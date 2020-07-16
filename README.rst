@@ -1,5 +1,5 @@
 
-.. image:: https://github.com/oujago/NumpyBrain/blob/master/docs/images/logo.png
+.. image:: https://github.com/chaoming0625/NumpyBrain/blob/master/docs/images/logo.png
     :target: https://github.com/chaoming0625/NumpyBrain
     :align: center
     :alt: logo
