@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# document building requirements
+Jinja2
+sphinx
+sphinx_rtd_theme
+nbsphinx
