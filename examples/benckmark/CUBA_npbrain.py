@@ -65,7 +65,7 @@ def Synapse(pre, post, delay=None):
     num = len(exc_pre)
     state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
 
-    def update_state(syn_state, var_index, t):
+    def update_state(syn_state, t, var_index):
         spike_idx = np.where(syn_state[0][-1] > 0)[0]
         # get post-synaptic values
         g = np.zeros(num_post * 2)

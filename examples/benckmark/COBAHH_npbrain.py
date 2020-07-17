@@ -130,8 +130,7 @@ def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
     num = len(exc_pre)
     state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
 
-    @nn.syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, var_index):
         # get synapse state
         spike = syn_state[0][-1]
         # calculate synaptic state
@@ -149,7 +148,7 @@ def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
                 inh_post_idx = inh_post[inh_start: inh_end]
                 g2[inh_post_idx] += wi
         g[num_post:] = g2
-        return g
+        nn.record_conductance(syn_state, var_index, g)
 
     def output_synapse(syn_state, var_index, post_neu_state, ):
         output_idx = var_index[-2]

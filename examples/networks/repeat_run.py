@@ -29,15 +29,13 @@ J = .1
 muext = 25
 sigmaext = 1
 dt = 0.1
-npbrain.utils.profile.set_dt(dt)
+nn.profile.set_dt(dt)
 
-lif = nn.LIF(N, dt=dt, V_reset=Vr, Vth=theta, tau=tau, ref=taurefr,
+lif = nn.LIF(N, Vr=Vr, Vth=theta, tau=tau, ref=taurefr,
              noise=sigmaext * np.sqrt(tau))
 mon = nn.SpikeMonitor(lif)
-syn = nn.VoltageJumpSynapse(lif, lif, -J,
-                            {'method': 'fixed_prob',
-                             'prob': sparseness,
-                             'include_self': False}, delay=delta)
+conn = nn.conn.fixed_prob(lif.num, lif.num, sparseness, False)
+syn = nn.VoltageJumpSynapse(lif, lif, -J, connection=conn, delay=delta)
 
 net = nn.Network(syn=syn, lif=lif, mon=mon)
 for _ in range(4):

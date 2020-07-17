@@ -37,7 +37,7 @@ if __name__ == '__main__':
     plt.show()
 
 if __name__ == '__main__':
-    npbrain.utils.profile.set_dt(0.02)
+    nn.profile.set_dt(0.02)
     lif1 = nn.LIF(500, ref=1., noise=1.1)
     lif2 = nn.LIF(1000, ref=1., noise=1.1)
     conn = nn.conn.fixed_prob(lif1.num, lif2.num, prob=0.1)
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     plt.show()
 
 if __name__ == '__main__':
-    npbrain.utils.profile.set_dt(0.02)
+    nn.profile.set_dt(0.02)
     lif1 = nn.LIF(500, ref=1., noise=1.1)
     mon = nn.SpikeMonitor(lif1)
     net = nn.Network(lif1=lif1, mon=mon)
