@@ -67,13 +67,13 @@ backend `c++` code). However, several drawbacks also exist:
   the compiled files and the link files) is left after code running. In `Brain2`, such annoying
   rubbish can even accumulate to several GB.
 
-Therefore, ``NumpyBrain`` wants to provide a highly flexible SNN simulation framework for
-Python users. It endows the users with the fully data/logic flow control. The core of the
-framework is a micro-kenerl, and it's easy to understand. Based on the kenerl, the extension
-of the new models or the customization of the data/logic flows are very simple for users.
-Ample examples (such as LIF neuron, HH neuron, or AMPA synapse, GABA synapse and GapJunction)
-are also provided. Besides the consideration of **flexibility**, for accelerating the running
-**speed** of NumPy codes, `Numba` is used. For computationally intensive
+Therefore, ``NumpyBrain`` wants to provide a highly flexible and efficient SNN simulation
+framework for Python users. It endows the users with the fully data/logic flow control. The
+core of the framework is a micro-kernel, and it's easy to understand. Based on the kernel,
+the extension of the new models or the customization of the data/logic flows are very simple
+for users. Ample examples (such as LIF neuron, HH neuron, or AMPA synapse, GABA synapse and
+GapJunction) are also provided. Besides the consideration of **flexibility**, for
+accelerating the running **speed** of NumPy codes, `Numba` is used. For computation intensive
 models, `Numba` backend is even faster than c++ codes.
 More details please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
 
