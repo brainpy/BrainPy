@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import numba as nb
 
 from npbrain.utils import helper, profile
 
@@ -14,7 +15,7 @@ __all__ = [
 synapse_no = 0
 
 
-@helper.autojit
+@nb.jit(**profile.get_numba_profile())
 def record_conductance(syn_state, var_index, g):
     """Record the conductance of the synapses.
 
