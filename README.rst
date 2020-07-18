@@ -64,8 +64,8 @@ backend `c++` code). However, several drawbacks also exist:
   native NumPy codes (many functions are also written in c++) are much faster than the `so called`
   accelerated codes.
 - Finally, just because of highly dependence on code generation, a lot of garbage (such as
-  the compiled files and the link files) is left after code running. In `Brain2`, such annoying
-  rubbish can even accumulate to several GB.
+  the compiled files and the link files) is left after code running, and users are hard to
+  debug the defined models, making the model coding much more limited and difficult.
 
 Therefore, ``NumpyBrain`` wants to provide a highly flexible and efficient SNN simulation
 framework for Python users. It endows the users with the fully data/logic flow control. The
