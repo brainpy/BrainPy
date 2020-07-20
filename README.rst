@@ -77,8 +77,10 @@ for users. Ample examples (such as LIF neuron, HH neuron, or AMPA synapse, GABA 
 GapJunction) are also provided.
 Besides the consideration of **flexibility**, for
 accelerating the running **speed** of NumPy codes, `Numba` is used. For most of the times,
-models running on `Numba` backend is faster than c++ codes.
-More details please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
+models running on `Numba` backend is faster than c++ codes
+(see `examples/benchmark <https://github.com/chaoming0625/NumpyBrain/tree/master/examples/benchmark>`_).
+
+More details about NumpyBrain please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
 
 
 Installation
@@ -173,8 +175,6 @@ It shows
 Define a Hodgkin–Huxley neuron model
 ====================================
 
-Define a Hodgkin–Huxley neuron model is a easy thing in NumpyBrain.
-
 .. code-block:: python
 
     import numpy as np
@@ -237,7 +237,7 @@ We would like to thank
 - Risheng Lian
 - Longping Liu
 
-for valuable discussions and comments on the project.
+for valuable comments and discussions on the project.
 
 .. _How NumpyBrain works: https://numpybrain.readthedocs.io/en/latest/guides/how_it_works.html
 
