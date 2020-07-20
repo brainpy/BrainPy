@@ -87,7 +87,7 @@ def from_ij(i, j, num_pre=None, others=()):
     Returns
     -------
     conn_tuple : tuple
-        (pre_indexes, post_indexes, pre_anchors).
+        (pre_ids, post_ids, anchors).
     """
     conn_i = np.array(i)
     conn_j = np.array(j)
@@ -110,6 +110,7 @@ def from_ij(i, j, num_pre=None, others=()):
     pre_ids = np.asarray(pre_ids)
     post_ids = np.asarray(post_ids)
     anchors = np.asarray(anchors).T
+    other_arrays = [np.asarray(arr) for arr in other_arrays]
     return (pre_ids, post_ids, anchors) + tuple(other_arrays)
 
 
@@ -765,7 +766,7 @@ def dog(pre_geo, post_geo, sigmas, ws_max, w_min=None, normalize=True, include_s
             # get weight and connection
             value = w_max_p * np.exp(-distance / (2.0 * sigma_p ** 2)) - \
                     w_max_n * np.exp(-distance / (2.0 * sigma_n ** 2))
-            if value > w_min:
+            if np.abs(value) > w_min:
                 i.append(pre_i)
                 j.append(post_i)
                 w.append(value)
@@ -782,39 +783,3 @@ def scale_free(num_pre, num_post, **kwargs):
 def small_world(num_pre, num_post, **kwargs):
     raise NotImplementedError
 
-
-if __name__ == '__main__':
-    # ii, jj, _ = one_to_one(6, 6)
-    # ii, jj, _ = all_to_all(6, 6)
-    # ii, jj, _ = all_to_all_no_equal(6, 6)
-
-    # ii, jj, _ = grid_eight(2, 2)
-    # ii, jj, _ = grid_eight(3, 3)
-    # ii, jj, _ = grid_four(3, 3)
-
-    # ii, jj, _ = fixed_prob(10, 10, 0.2)
-    # ii, jj, _ = fixed_prob(10, 10, 0.35)
-    # ii, jj, _ = fixed_prob_neq(10, 10, 0.2)
-    # ii, jj, _ = fixed_prob_neq(10, 10, 0.35)
-
-    # ii, jj, _ = fixed_prenum(10, 10, 2)
-    # ii, jj, _ = fixed_prenum_neq(10, 10, 2)
-
-    # ii, jj, _ = fixed_postnum(10, 10, 2)
-    # ii, jj, _ = fixed_postnum_neq(10, 10, 2)
-
-    # print('ii =', ii)
-    # print("jj =", jj)
-    # print('length =', len(ii))
-
-    # ii, jj, ac, ws = gaussian_weight((10, 10), (10, 10), sigma=0.1, w_max=1, include_self=True)
-    ii, jj, ac, ws = dog((10, 10), (10, 10), sigmas=[0.2, 0.7], ws_max=[1.0, 0.3], w_min=0.001 * 0.7, include_self=True)
-    print('ii =', ii)
-    print('jj =', jj)
-    print('ac =', ac)
-    print('weights =', ws)
-
-    # ii, jj, ac = gaussian_prob((10, 10), (10, 10), sigma=0.1, include_self=True)
-    # print('ii =', ii)
-    # print('jj =', jj)
-    # print('ac =', ac)

@@ -32,7 +32,7 @@ Ci.connect('i>=3200', p=0.02)
 s_mon = SpikeMonitor(P)
 
 t0 = time.time()
-run(10 * second, report='text')
+run(5 * second)
 print('{}. Used time {} s.'.format(prefs.codegen.target, time.time() - t0))
 
 plot(s_mon.t / ms, s_mon.i, ',k')

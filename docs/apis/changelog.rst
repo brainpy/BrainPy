@@ -1,6 +1,23 @@
 Release notes
 =============
 
+
+NumpyBrain 0.2.6
+----------------
+
+API changes
+~~~~~~~~~~~
+
+* rename `conn.py` to `connect.py`
+* rename `vis.py` to `visualize.py`
+
+Models and examples
+~~~~~~~~~~~~~~~~~~~
+
+* add `multi_process` examples in `examples/networks`
+* modify `benckmark` examples
+
+
 NumpyBrain 0.2.5
 ----------------
 

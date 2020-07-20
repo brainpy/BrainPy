@@ -109,9 +109,7 @@ class StateMonitor(Monitor):
 
         # function of update state
         def record_neu_state(obj_state, mon_states, vars_idx, i):
-            var_len = len(vars_idx)
-            for j in range(var_len):
-                index = vars_idx[j]
+            for j, index in enumerate(vars_idx):
                 v = obj_state[index]
                 mon_states[j][i] = v
 

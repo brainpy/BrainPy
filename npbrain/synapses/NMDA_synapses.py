@@ -78,11 +78,11 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
     state = initial_syn_state(delay, num_pre, num_post, num,
                               num_post_shape_var=1, num_syn_shape_var=2)
 
-    @integrate()
+    @integrate
     def int_x(x, t):
         return -x / tau_rise
 
-    @integrate()
+    @integrate
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 

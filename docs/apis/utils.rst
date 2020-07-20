@@ -8,8 +8,8 @@ npbrain.utils package
     :local:
     :depth: 2
 
-profile
--------
+``profile`` module
+------------------
 
 The setting of the overall framework.
 
@@ -50,7 +50,7 @@ Set the default backend to ``numba`` and change the default JIT options.
 
          from npbrain.utils import profile
          profile.set_backend('numba')
-         profile.set_numba(nopython=True, fastmath=True, parallel=True, cache=True)
+         profile.set_numba(nopython=True, fastmath=True, cache=True)
 
 
 Methods for the settings of numerical integration.
@@ -75,10 +75,14 @@ Methods for the settings of computation backend.
 
 
 
-connection
-----------
+``connect`` module
+------------------
 
-The method of constructing connections.
+The module helps you to construct the connectivity between neuron groups.
+The coded several commonly used connection methods. Examples please see
+the document of :doc:`Usage of connect module <usage_of_utils_connect>`.
+
+The available methods of constructing synapse connection.
 
 .. autosummary::
     :toctree: _autosummary
@@ -104,8 +108,8 @@ The method of formatting connections.
     from_ij
 
 
-helper
-------
+``helper`` module
+-----------------
 
 Helper of functions.
 
@@ -126,22 +130,33 @@ Helper of computations.
     clip
 
 
-input factory
--------------
+``input_factory`` module
+------------------------
 
 The method of constructing current inputs.
+
+Examples please see :doc:`Usage of input_factory module <usage_of_inputfactory>`.
 
 .. autosummary::
     :toctree: _autosummary
 
     constant_current
-    pulse_current
+    spike_current
     ramp_current
-    format_current
 
 
-running
--------
+``run`` module
+--------------
+
+This module is useful for researchers. Because usually, we need grid-search
+some parameters to known how the system perform in the parameters spaces.
+This module takes advantage of multi-processing. It will save your much times.
+
+Examples please see
+`example 1 <https://github.com/chaoming0625/NumpyBrain/blob/master/npbrain/examples/networks/multi_process.py>`_
+and
+`example 2 <https://github.com/chaoming0625/NumpyBrain/blob/master/npbrain/examples/networks/multi_process_with_lock.py>`_.
+
 
 .. autosummary::
     :toctree: _autosummary
@@ -150,8 +165,10 @@ running
     process_pool_lock
 
 
-visualization
--------------
+``visualize`` module
+--------------------
+
+This module provides commonly used functions to visualize model results.
 
 .. autosummary::
     :toctree: _autosummary

@@ -23,7 +23,7 @@ seed(12345)
 prefs.codegen.target = "numpy"
 
 import matplotlib.patches as patches
-import npbrain.all as nn
+import npbrain as nn
 
 gj_w, k_spikelet = 1., 0.5
 size = (10, 10)
@@ -46,7 +46,7 @@ S = Synapses(source=neurons,
              model='''w : 1 # gap junction conductance
                       Igap_post = w * (V_pre - V_post) : 1 (summed)''',
              on_pre='V_post += w * {}'.format(k_spikelet))
-pre_index, post_index, _ = nn.conn.grid_four(size[0], size[1])
+pre_index, post_index, _ = nn.connect.grid_four(size[0], size[1])
 S.connect(i=pre_index, j=post_index)
 S.w = gj_w
 
@@ -57,7 +57,7 @@ run(duration * ms)
 neuron_indexes = [1]
 spike_trains = mon_sp.spike_trains()
 
-fig, gs = nn.vis.get_figure(1, 1, 6, 14)
+fig, gs = nn.visualize.get_figure(1, 1, 6, 14)
 ax = fig.add_subplot(gs[0, 0])
 ax.plot([0, duration], [Vth, Vth], 'k', label='threshold')
 for i in neuron_indexes:

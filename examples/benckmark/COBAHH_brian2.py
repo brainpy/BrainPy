@@ -75,7 +75,7 @@ else:
 
 # Record a few traces
 t0 = time.time()
-run(10 * second, report='text')
+run(10 * second)
 print('{}. Used time {} s.'.format(prefs.codegen.target, time.time() - t0))
 
 if monitor == 'V':

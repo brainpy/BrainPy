@@ -8,8 +8,8 @@ import numba as nb
 import numpy as np
 from numba.core.dispatcher import Dispatcher
 
-from npbrain.utils.profile import get_numba_profile
-from npbrain.utils.profile import is_numba_bk
+from .profile import get_numba_profile
+from .profile import is_numba_bk
 
 
 __all__ = [

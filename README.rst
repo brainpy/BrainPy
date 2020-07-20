@@ -69,12 +69,15 @@ backend `c++` code). However, several drawbacks also exist:
 
 Therefore, ``NumpyBrain`` wants to provide a highly flexible and efficient SNN simulation
 framework for Python users. It endows the users with the fully data/logic flow control. The
-core of the framework is a micro-kernel, and it's easy to understand. Based on the kernel,
+core of the framework is a micro-kernel, and it's easy to understand (see
+`How NumpyBrain works`_).
+Based on the kernel,
 the extension of the new models or the customization of the data/logic flows are very simple
 for users. Ample examples (such as LIF neuron, HH neuron, or AMPA synapse, GABA synapse and
-GapJunction) are also provided. Besides the consideration of **flexibility**, for
-accelerating the running **speed** of NumPy codes, `Numba` is used. For computation intensive
-models, `Numba` backend is even faster than c++ codes.
+GapJunction) are also provided.
+Besides the consideration of **flexibility**, for
+accelerating the running **speed** of NumPy codes, `Numba` is used. For most of the times,
+models running on `Numba` backend is faster than c++ codes.
 More details please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
 
 
@@ -85,7 +88,7 @@ Install ``NumpyBrain`` using ``pip``::
 
     $> pip install npbrain
     $> # or
-    $> pip install git+https://github.com/oujago/NumpyBrain
+    $> pip install git+https://github.com/chaoming0625/NumpyBrain
 
 Install ``NumpyBrain`` using ``conda``::
 
@@ -126,7 +129,7 @@ Then, create one ``Synapse`` to connect them both.
 
 .. code-block:: python
 
-    conn = nn.conn.fixed_prob(lif1.num, lif2.num, prob=0.2)
+    conn = nn.connect.fixed_prob(lif1.num, lif2.num, prob=0.2)
     syn = nn.VoltageJumpSynapse(lif1, lif2, weights=0.2, connection=conn)
 
 In order to inspect the dynamics of two ``LIF`` neuron groups, we use ``StateMonitor``
@@ -156,10 +159,10 @@ Finally, visualize the running results:
 
 .. code-block:: python
 
-    fig, gs = nn.vis.get_figure(n_row=2, n_col=1, len_row=3, len_col=8)
+    fig, gs = nn.visualize.get_figure(n_row=2, n_col=1, len_row=3, len_col=8)
     ts = net.run_time()
-    nn.vis.plot_potential(net.mon1, ts, ax=fig.add_subplot(gs[0, 0]))
-    nn.vis.plot_raster(net.mon1, ts, ax=fig.add_subplot(gs[1, 0]), show=True)
+    nn.visualize.plot_potential(net.mon1, ts, ax=fig.add_subplot(gs[0, 0]))
+    nn.visualize.plot_raster(net.mon1, ts, ax=fig.add_subplot(gs[1, 0]), show=True)
 
 
 It shows
@@ -175,7 +178,7 @@ Define a Hodgkin–Huxley neuron model is a easy thing in NumpyBrain.
 .. code-block:: python
 
     import numpy as np
-    import npbrain.all as nn
+    import npbrain as nn
 
     def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77.,
            g_K=36., E_Leak=-54.387, g_Leak=0.03, C=1.0, Vr=-65., Vth=20.):
@@ -223,4 +226,19 @@ Define a Hodgkin–Huxley neuron model is a easy thing in NumpyBrain.
             nn.judge_spike(neu_state, Vth, t)
 
         return nn.Neurons(**locals())
+
+
+
+Acknowledgements
+================
+
+We would like to thank
+
+- Risheng Lian
+- Longping Liu
+
+for valuable discussions and comments on the project.
+
+.. _How NumpyBrain works: https://numpybrain.readthedocs.io/en/latest/guides/how_it_works.html
+
 

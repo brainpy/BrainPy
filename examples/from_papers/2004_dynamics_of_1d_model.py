@@ -17,7 +17,7 @@ import numpy as np
 
 import npbrain as nn
 
-nn.profile.set_backend('numba')
+nn.profile.set_backend('numpy')
 N = 2000
 dt = 0.1
 tau = 100
@@ -57,7 +57,7 @@ net.run(10e3, report=True, inputs=[lif, inputs])
 idx, time = np.array(mon.index), np.array(mon.time)
 idx_selected = np.where(time >= 5000)[0]
 idx, time = idx[idx_selected], time[idx_selected]
-fig, gs = nn.vis.get_figure(1, 1, 5, 7)
+fig, gs = nn.visualize.get_figure(1, 1, 5, 7)
 fig.add_subplot(gs[0, 0])
 plt.plot((time % tau) / tau, inputs[idx], ',')
 plt.xlabel('Spike phase')

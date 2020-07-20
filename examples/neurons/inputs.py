@@ -10,6 +10,6 @@ if __name__ == '__main__':
     net.run(duration=1001, report=True)
 
     ts = net.run_time()
-    fig, gs = nn.vis.get_figure(1, 1, 5, 8)
+    fig, gs = nn.visualize.get_figure(1, 1, 5, 8)
     ax = fig.add_subplot(gs[0, 0])
-    nn.vis.plot_raster(mon, ax=ax, show=True)
+    nn.visualize.plot_raster(mon, ax=ax, show=True)

@@ -11,32 +11,32 @@ Reference:
 """
 
 import numpy as np
-
 import npbrain as nn
 
 nn.profile.set_backend('numba')
+nn.profile.set_dt(dt=0.1)
 
 Vr = 10
 theta = 20
 tau = 20
 delta = 2
 taurefr = 2
-duration = 100
+duration = 1000
 C = 1000
 N = 5000
 sparseness = float(C) / N
 J = .1
 muext = 25
-sigmaext = 1
-dt = 0.1
-nn.profile.set_dt(dt)
+sigmaext = 1.
 
-lif = nn.LIF(N, Vr=Vr, Vth=theta, tau=tau, ref=taurefr, noise=sigmaext * np.sqrt(tau))
-conn = nn.conn.fixed_prob(lif.num, lif.num, sparseness, False)
+
+lif = nn.LIF(N, Vr=Vr, Vth=theta, tau=tau, ref=taurefr,
+             noise=sigmaext * np.sqrt(tau))
+conn = nn.connect.fixed_prob(lif.num, lif.num, sparseness, False)
 syn = nn.VoltageJumpSynapse(lif, lif, -J, delay=delta, connection=conn)
 mon = nn.SpikeMonitor(lif)
 
 net = nn.Network(syn=syn, lif=lif, mon=mon)
 net.run(duration, inputs=[lif, muext], report=True)
 
-nn.vis.plot_raster(mon, show=True)
+nn.visualize.plot_raster(mon, show=True)

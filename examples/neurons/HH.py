@@ -12,7 +12,7 @@ if __name__ == '__main__':
     net.run(duration=100, inputs=[hh, 10], report=True)
 
     ts = net.run_time()
-    fig, gs = nn.vis.get_figure(2, 1, 3, 12)
+    fig, gs = nn.visualize.get_figure(2, 1, 3, 12)
 
     fig.add_subplot(gs[0, 0])
     plt.plot(ts, mon.V[:, 0], label='N')

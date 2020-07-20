@@ -86,11 +86,11 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     state[2][0] = np.ones(num) * u0
     state[2][1] = np.ones(num) * x0
 
-    @integrate()
+    @integrate
     def int_u(u, t):
         return - u / tau_f
 
-    @integrate()
+    @integrate
     def int_x(x, t):
         return (1 - x) / tau_d
 

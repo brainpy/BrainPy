@@ -1,7 +1,18 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.5.2"
+__version__ = "0.2.6"
 
+# must import profile first
+from npbrain.utils import profile
+
+# module of "utils"
+from npbrain.utils import connect
+from npbrain.utils import helper
+from npbrain.utils import input_factory
+from npbrain.utils import measure
+from npbrain.utils import visualize
+from npbrain.utils import run
+from npbrain.utils.helper import *
 
 # module of "core"
 from npbrain import core
@@ -60,15 +71,4 @@ from npbrain.synapses import short_term_plasticity
 from npbrain.synapses.short_term_plasticity import *
 
 
-# module of "utils"
-from npbrain import utils
-from npbrain.utils import conn
-from npbrain.utils import helper
-from npbrain.utils import input_factory
-from npbrain.utils import measure
-from npbrain.utils import profile
-from npbrain.utils import vis
-from npbrain.utils import run
-
-from npbrain.utils.helper import *
 

@@ -25,7 +25,7 @@ def run_stp(cls, num_pre=5, num_post=10, weights=5.,
         stp.update_state(stp.state, stp.var2index_array, t)
         mon.update_state(stp.state, mon.state, mon.target_index_by_vars(), i)
 
-    fig, gs = nn.vis.get_figure(1, 1, 5, 10)
+    fig, gs = nn.visualize.get_figure(1, 1, 5, 10)
     fig.add_subplot(gs[0, 0])
     for k in monitor:
         plt.plot(ts, getattr(mon, k)[:, 0], label=k)

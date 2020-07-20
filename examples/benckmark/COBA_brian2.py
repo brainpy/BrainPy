@@ -1,7 +1,7 @@
 from brian2 import *
 
 sys.path.append('../../')
-import npbrain.all as nn
+import npbrain as nn
 
 np.random.seed(12345)
 defaultclock.dt = 0.05 * ms
@@ -43,12 +43,14 @@ P = NeuronGroup(num_exc + num_inh, eqs, threshold='v>Vt', reset='v = Vr',
 # Projections
 # ###########################################
 
-exc_pre, exc_post, exc_acs = nn.conn.fixed_prob(num_exc, num_exc + num_inh, 0.02, include_self=False)
+exc_pre, exc_post, exc_acs = nn.connect.fixed_prob(
+    num_exc, num_exc + num_inh, 0.02, include_self=False)
 exc_anchors = np.zeros((2, num_exc + num_inh), dtype=np.int32)
 exc_anchors[:, :num_exc] = exc_acs
 
-inh_pre, inh_post, inh_anchors = nn.conn.fixed_prob(list(range(num_exc, num_exc + num_inh)),
-                                                    num_exc + num_inh, 0.02, include_self=False)
+inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(
+    list(range(num_exc, num_exc + num_inh)),
+    num_exc + num_inh, 0.02, include_self=False)
 
 we = 0.6  # excitatory synaptic weight (voltage)
 wi = 6.7  # inhibitory synaptic weight
@@ -73,7 +75,7 @@ net.add(s_mon, P, Ce, Ci)
 
 # Run for 0 second in order to measure compilation time
 t1 = time.time()
-net.run(10. * second, report='text')
+net.run(5. * second)
 t2 = time.time()
 print('Done in', t2 - t1)
 

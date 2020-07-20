@@ -49,12 +49,12 @@ def CUBA(geometry, ref=5.0, name='CUBA'):
     return nn.Neurons(**locals())
 
 
-exc_pre, exc_post, exc_acs = nn.conn.fixed_prob(num_exc, num_exc + num_inh, 0.02, include_self=False)
+exc_pre, exc_post, exc_acs = nn.connect.fixed_prob(num_exc, num_exc + num_inh, 0.02, include_self=False)
 exc_anchors = np.zeros((2, num_exc + num_inh), dtype=np.int32)
 exc_anchors[:, :num_exc] = exc_acs
 
-inh_pre, inh_post, inh_anchors = nn.conn.fixed_prob(list(range(num_exc, num_exc + num_inh)),
-                                                    num_exc + num_inh, 0.02, include_self=False)
+inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(list(range(num_exc, num_exc + num_inh)),
+                                                       num_exc + num_inh, 0.02, include_self=False)
 
 
 def Synapse(pre, post, delay=None):
@@ -93,14 +93,14 @@ def Synapse(pre, post, delay=None):
 
 neurons = CUBA(num_exc + num_inh)
 syn = Synapse(neurons, neurons, )
-mon = nn.StateMonitor(neurons, ['spike', 'spike_time'])
+mon = nn.StateMonitor(neurons, ['spike'])
 net = nn.Network(syn=syn, neu=neurons, mon=mon)
 
 t0 = time.time()
-net.run(10 * 1000., report=True)
+net.run(5 * 1000., report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
-index, time = nn.raster_plot(mon)
+index, time = nn.raster_plot(mon, net.run_time())
 plt.plot(time, index, ',k')
 plt.xlabel('Time (ms)')
 plt.ylabel('Neuron index')

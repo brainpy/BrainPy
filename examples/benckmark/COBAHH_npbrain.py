@@ -113,12 +113,12 @@ def COBA_HH(geometry, name='COBA_HH'):
     return nn.Neurons(**locals())
 
 
-exc_pre, exc_post, exc_acs = nn.conn.fixed_prob(
+exc_pre, exc_post, exc_acs = nn.connect.fixed_prob(
     num_exc, num_exc + num_inh, 0.02, include_self=False)
 exc_anchors = np.zeros((2, num_exc + num_inh), dtype=np.int32)
 exc_anchors[:, :num_exc] = exc_acs
 
-inh_pre, inh_post, inh_anchors = nn.conn.fixed_prob(
+inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(
     list(range(num_exc, num_exc + num_inh)), num_exc + num_inh, 0.02, include_self=False)
 
 
@@ -164,7 +164,7 @@ syn = Synapse(neurons, neurons)
 if monitor == 'V':
     mon = nn.StateMonitor(neurons, ['V'])
 else:
-    mon = nn.StateMonitor(neurons, ['spike', 'spike_time'])
+    mon = nn.StateMonitor(neurons, ['spike'])
 net = nn.Network(syn=syn, neu=neurons, mon=mon)
 
 t0 = time.time()
@@ -172,11 +172,11 @@ net.run(10 * 1000., report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
 if monitor == 'V':
-    nn.vis.plot_potential(mon, net.run_time(), neuron_index=[1, 10, 100])
+    nn.visualize.plot_potential(mon, net.run_time(), neuron_index=[1, 10, 100])
     plt.legend()
     plt.show()
 else:
-    index, time = nn.raster_plot(mon)
+    index, time = nn.raster_plot(mon, net.run_time())
     plt.plot(time, index, ',k')
     plt.xlabel('Time (ms)')
     plt.ylabel('Neuron index')

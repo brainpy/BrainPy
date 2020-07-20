@@ -16,7 +16,7 @@ def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., 
     """The Hodgkin–Huxley neuron model.
 
     The Hodgkin–Huxley model can be thought of as a differential equation
-    with four state variables, :math:`v(t)`, :math;`m(t)`, :math:`n(t)`, and
+    with four state variables, :math:`v(t)`, :math:`m(t)`, :math:`n(t)`, and
     :math:`h(t)`, that change with respect to time :math:`t`.
 
     Parameters
