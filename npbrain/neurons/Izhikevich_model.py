@@ -113,13 +113,11 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
         def update_state(neu_state, t):
             not_ref = (t - neu_state[-2]) > ref
             not_ref_idx = np.where(not_ref)[0]
-            V = neu_state[0][not_ref_idx]
-            u = neu_state[1][not_ref_idx]
-            Isyn = neu_state[-1][not_ref_idx]
+            V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
             u_new = int_u(u, t, V)
             V_new = int_V(V, t, u, Isyn)
-            neu_state[0] = V_new
-            neu_state[1] = u_new
+            neu_state[0][not_ref_idx] = V_new[not_ref_idx]
+            neu_state[1][not_ref_idx] = u_new[not_ref_idx]
             spike_idx = judge_spike(neu_state, Vth, t)
             neu_state[0][spike_idx] = c
             neu_state[1][spike_idx] += d

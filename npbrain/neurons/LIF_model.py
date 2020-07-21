@@ -55,10 +55,8 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
             not_ref = (t - neu_state[-2]) > ref
             not_ref_idx = np.where(not_ref)[0]
             neu_state[-5] = not_ref
-            V = neu_state[0][not_ref_idx]
-            Isyn = neu_state[-1][not_ref_idx]
-            V = int_f(V, t, Isyn)
-            neu_state[0][not_ref_idx] = V
+            V = int_f(neu_state[0], t, neu_state[-1])
+            neu_state[0][not_ref_idx] = V[not_ref_idx]
             spike_idx = judge_spike(neu_state, Vth, t)
             neu_state[0][spike_idx] = Vr
     else:

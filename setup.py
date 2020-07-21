@@ -23,7 +23,7 @@ setup(
     description='NumpyBrain: A lightweight SNN simulation framework.',
     long_description=README,
     author='Chaoming Wang',
-    author_email='oujago@hotmail.com',
+    author_email='adaduo@outlook.com',
     packages=find_packages(),
     python_requires='>=3.5',
     install_requires=[

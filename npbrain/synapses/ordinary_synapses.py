@@ -42,7 +42,8 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='Voltage
     num = len(pre_ids)
     state = initial_syn_state(delay, num_pre, num_post, num)
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synapse state
         spike = syn_state[0][-1]
         spike_idx = np.where(spike > 0)[0]
@@ -52,7 +53,7 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='Voltage
             idx = anchors[:, i_]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += weights
-        record_conductance(syn_state, var_index, g)
+        return g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
         def output_synapse(syn_state, var_index, post_neu_state):
