@@ -121,6 +121,7 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
             spike_idx = judge_spike(neu_state, Vth, t)
             neu_state[0][spike_idx] = c
             neu_state[1][spike_idx] += d
+            neu_state[-5][spike_idx] = 0.
     else:
         def update_state(neu_state, t):
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
