@@ -27,8 +27,8 @@ __all__ = [
     'default_dict',
     'ddict',
 
-    # others
-    'clip',
+    # 'others'
+    'get_clip'
 ]
 
 ##############################
@@ -282,7 +282,6 @@ ddict = default_dict
 ##############################
 
 
-@nb.jit(**get_numba_profile())
 def clip(a, a_min, a_max):
     """Reproduce the ``clip`` function in NumPy.
 
@@ -322,4 +321,11 @@ def clip(a, a_min, a_max):
     return a
 
 
+def get_clip():
+    @autojit
+    def f(a, a_min, a_max):
+        a = np.maximum(a, a_min)
+        a = np.minimum(a, a_max)
+        return a
+    return f
 

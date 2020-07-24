@@ -3,7 +3,7 @@ import npbrain as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
-nn.profile.set_backend('numba')
+nn.profile.set_backend('numpy')
 nn.profile.set_dt(0.02)
 np.random.seed(1234)
 

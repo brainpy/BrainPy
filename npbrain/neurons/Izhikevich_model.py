@@ -100,6 +100,7 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
         state_[1] = state_[0] * b
 
     init_state(state, Vr)
+    judge_spike = get_spike_judger()
 
     @integrate(method=method)
     def int_u(u, t, V):
@@ -111,17 +112,20 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
 
     if ref > 0.:
         def update_state(neu_state, t):
-            not_ref = (t - neu_state[-2]) > ref
-            not_ref_idx = np.where(not_ref)[0]
+            in_ref = (t - neu_state[-2]) <= ref
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
             u_new = int_u(u, t, V)
             V_new = int_V(V, t, u, Isyn)
-            neu_state[0][not_ref_idx] = V_new[not_ref_idx]
-            neu_state[1][not_ref_idx] = u_new[not_ref_idx]
+            in_ref_idx = np.where(in_ref)[0]
+            if len(in_ref_idx) > 0:
+                u_new = u[in_ref_idx]
+                V_new = V[in_ref_idx]
+            neu_state[0] = V_new
+            neu_state[1] = u_new
             spike_idx = judge_spike(neu_state, Vth, t)
             neu_state[0][spike_idx] = c
             neu_state[1][spike_idx] += d
-            neu_state[-5][spike_idx] = 0.
+            neu_state[-5][spike_idx] = 1.
     else:
         def update_state(neu_state, t):
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]

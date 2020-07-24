@@ -73,11 +73,11 @@ def set_backend(bk):
         _backend = 'numpy'
     elif bk in ['numba', 'numba_cpu', 'numba-cpu', 'nb', 'nb_cpu', 'nb-cpu']:
         _backend = 'numba_cpu'
-    elif bk in ['numba_gpu', 'numba-gpu', 'nb_gpu', 'nb-gpu']:
-        raise NotImplementedError
-        _backend = 'numba_gpu'
     else:
         raise ValueError('Unknown backend: {}'.format(bk))
+
+    from npbrain import _reload
+    _reload()
 
 
 def get_backend():

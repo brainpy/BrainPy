@@ -6,7 +6,6 @@ import numpy as np
 from npbrain.utils import helper, profile
 
 __all__ = [
-    'judge_spike',
     'get_spike_judger',
     'initial_neu_state',
     'format_geometry',
@@ -16,7 +15,6 @@ __all__ = [
 ]
 
 
-@nb.jit(**profile.get_numba_profile())
 def judge_spike(neu_state, vth, t):
     """Judge and record the spikes of the given neuron group.
 
@@ -87,7 +85,6 @@ def initial_neu_state(num_var, num_neuron):
     """
     state = np.zeros((num_var + 5, num_neuron))
     state[-2] = -np.inf
-    state[-5] = 1.
     return state
 
 

@@ -55,7 +55,8 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
     else:
         raise ValueError('Unknown weights shape.')
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synapse state
         pre_v = syn_state[0][-2]
         post_v = syn_state[1][-1]
@@ -65,7 +66,7 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
             idx = anchors[:, i_]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += weights[idx[0]: idx[1]] * (pre_v[i_] - post_v[post_idx])
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]
@@ -132,7 +133,8 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
     else:
         raise ValueError('Unknown weights shape.')
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synapse state
         spike = syn_state[0][-1]
         pre_v = syn_state[0][-2]
@@ -154,7 +156,7 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
             post_idx = post_ids[idx[0]: idx[1]]
             g2[post_idx] += weights[idx[0]: idx[1]] * (pre_v[i_] - post_v[post_idx])
         g[:num_post] = g2
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]

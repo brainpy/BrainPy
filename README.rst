@@ -33,7 +33,7 @@ install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FOR
 be obtained in the simulation.
 
 A variety of Python SNN simulators are available in the internet, such as
-`Brain2 <https://github.com/brian-team/brian2>`_,
+`Brian2 <https://github.com/brian-team/brian2>`_,
 `ANNarchy <https://github.com/ANNarchy/ANNarchy>`_,
 `NEST <http://www.nest-initiative.org/>`_, etc.
 However, almost all of them are using the `code generation` approach. That is to say, the
@@ -50,7 +50,7 @@ backend `c++` code). However, several drawbacks also exist:
   fixed code-generation template for high-level descriptions; Once, if you have a logic control
   beyond the template, you must want to extend this template. However, the extension of
   the framework is not a easy thing for the general users (even for mature users).
-- Meanwhile, no framework is immune to errors. In `Brain2` and `ANNarchy`, some models are
+- Meanwhile, no framework is immune to errors. In `Brian2` and `ANNarchy`, some models are
   wrongly coded and users are hard to correct them,
   such as the `gap junction model for leaky integrate-and-fire neurons` in `Brian2`
   (see `gapjunction_lif_in_brian2 <https://numpybrain.readthedocs.io/en/latest/intro/gapjunction_lif_in_brian2.html>`_),

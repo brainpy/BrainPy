@@ -4,7 +4,7 @@ import numpy as np
 
 from npbrain.core import integrate
 from npbrain.core.neuron import *
-from npbrain.utils.helper import clip
+from npbrain.utils.helper import get_clip
 
 __all__ = [
     'HH'
@@ -63,6 +63,8 @@ def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., 
         neu_state[3] = alpha / (alpha + beta)  # n
 
     init_state(state, Vr)
+    judge_spike = get_spike_judger()
+    clip = get_clip()
 
     @integrate(method=method)
     def int_m(m, t, V):

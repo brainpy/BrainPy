@@ -86,7 +86,8 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synapse state
         spike = syn_state[0][0]
         post_v = syn_state[1][-1]
@@ -109,7 +110,7 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
             g[post_idx] += s[idx[0]: idx[1]]
         g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post_v)
         g = g_inf * g
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]

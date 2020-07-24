@@ -17,7 +17,7 @@ import numpy as np
 
 import npbrain as nn
 
-nn.profile.set_backend('numpy')
+nn.profile.set_backend('numba')
 N = 2000
 dt = 0.1
 tau = 100

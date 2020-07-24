@@ -4,7 +4,7 @@ import numpy as np
 
 from npbrain.core import integrate
 from npbrain.core.synapse import *
-from npbrain.utils.helper import clip
+from npbrain.utils.helper import get_clip
 
 __all__ = [
     'STP',
@@ -86,6 +86,8 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     state[2][0] = np.ones(num) * u0
     state[2][1] = np.ones(num) * x0
 
+    clip = get_clip()
+
     @integrate
     def int_u(u, t):
         return - u / tau_f
@@ -94,7 +96,8 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     def int_x(x, t):
         return (1 - x) / tau_d
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synapse state
         u_old = syn_state[2][0]
         x_old = syn_state[2][1]
@@ -117,7 +120,7 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
             idx = anchors[:, i]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += u_new[idx[0]: idx[1]] * x_new[idx[0]: idx[1]]
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]

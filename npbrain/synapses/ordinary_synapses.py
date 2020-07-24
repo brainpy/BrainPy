@@ -59,7 +59,7 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='Voltage
         def output_synapse(syn_state, var_index, post_neu_state):
             output_idx = var_index[-2]
             g_val = syn_state[output_idx[0]][output_idx[1]]
-            post_neu_state[0] += (g_val * post_neu_state[-5])
+            post_neu_state[0] += (g_val * (1. - post_neu_state[-5]))
     else:
         def output_synapse(syn_state, var_index, post_neu_state):
             output_idx = var_index[-2]

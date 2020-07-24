@@ -5,8 +5,8 @@ import numba as nb
 from npbrain.utils import helper, profile
 
 __all__ = [
-    'record_conductance',
     'syn_delay',
+    'get_conductance_recorder',
     'format_delay',
     'initial_syn_state',
     'Synapses',
@@ -15,7 +15,6 @@ __all__ = [
 synapse_no = 0
 
 
-@nb.jit(**profile.get_numba_profile())
 def record_conductance(syn_state, var_index, g):
     """Record the conductance of the synapses.
 
@@ -38,6 +37,22 @@ def record_conductance(syn_state, var_index, g):
     var_index[-3, 1] = delay_idx
     # update `conductance`
     syn_state[1][delay_idx] = g
+
+
+def get_conductance_recorder():
+    @helper.autojit
+    def record_conductance(syn_state, var_index, g):
+        # get `delay_len`
+        delay_len = var_index[-1, 0]
+        # update `output_idx`
+        output_idx = (var_index[-2, 1] + 1) % delay_len
+        var_index[-2, 1] = output_idx
+        # update `delay_idx`
+        delay_idx = (var_index[-3, 1] + 1) % delay_len
+        var_index[-3, 1] = delay_idx
+        # update `conductance`
+        syn_state[1][delay_idx] = g
+    return record_conductance
 
 
 def syn_delay(func):
@@ -153,6 +168,15 @@ def initial_syn_state(delay,
     return state
 
 
+def output_synapse(syn_state, var_index, neu_state):
+    output_idx = var_index[-2]
+    neu_state[-1] += syn_state[output_idx[0]][output_idx[1]]
+
+
+def collect_spike(syn_state, pre_neu_state, post_neu_state):
+    syn_state[0][-1] = pre_neu_state[-3]
+
+
 class Synapses(object):
     """The base synapses class.
 
@@ -175,17 +199,10 @@ class Synapses(object):
         assert 'update_state' in kwargs, 'Must provide "update_state" function.'
 
         if 'output_synapse' not in kwargs:
-            def f1(syn_state, var_index, neu_state):
-                output_idx = var_index[-2]
-                neu_state[-1] += syn_state[output_idx[0]][output_idx[1]]
-
-            self.output_synapse = f1
+            self.output_synapse = output_synapse
 
         if 'collect_spike' not in kwargs:
-            def f2(syn_state, pre_neu_state, post_neu_state):
-                syn_state[0][-1] = pre_neu_state[-3]
-
-            self.collect_spike = f2
+            self.collect_spike = collect_spike
 
         self.update_state = helper.autojit(self.update_state)
         self.output_synapse = helper.autojit(self.output_synapse)

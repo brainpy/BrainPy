@@ -4,7 +4,7 @@ import numpy as np
 
 from npbrain.core import integrate
 from npbrain.core.synapse import *
-from npbrain.utils.helper import clip
+from npbrain.utils.helper import get_clip
 
 __all__ = [
     'GABAa1',
@@ -50,12 +50,14 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
     num = len(pre_indexes)
 
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
+    record_conductance = get_conductance_recorder()
 
     @integrate
     def int_s(s, t):
         return - s / tau_decay
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synaptic state
         s = syn_state[2][0]
         s = int_s(s, t)
@@ -72,7 +74,7 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]
@@ -129,11 +131,14 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=2)
     state[2][1] = -np.inf
 
+    clip = get_clip()
+
     @integrate
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synaptic state
         spike = syn_state[0][0]
         s = syn_state[2][0]
@@ -154,7 +159,7 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]
@@ -219,6 +224,8 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=3)
     state[2][2] = -np.inf
 
+    clip = get_clip()
+
     @integrate
     def int_R(R, t, TT):
         return k3 * TT * (1 - R) - k4 * R
@@ -227,7 +234,8 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
     def int_G(G, t, R):
         return k1 * R - k2 * G
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synaptic state
         spike = syn_state[0][0]
         R = syn_state[2][0]
@@ -251,7 +259,7 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += G[idx[0]: idx[1]]
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]
@@ -319,6 +327,8 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=4)
     state[2][3] = -np.inf
 
+    clip = get_clip()
+
     @integrate
     def int_D(D, t, R):
         return k4 * R - k3 * D
@@ -331,7 +341,8 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
     def int_G(G, t, R):
         return k5 * R - k6 * G
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # calculate synaptic state
         spike = syn_state[0][0]
         D = syn_state[2][0]
@@ -357,7 +368,7 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += G[idx[0]: idx[1]]
         g = g_max * (g ** 4 / (g ** 4 + 100))
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]

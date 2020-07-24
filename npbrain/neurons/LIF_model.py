@@ -46,20 +46,27 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
     state = initial_neu_state(1, num)
     state[0] = Vr
 
+    judge_spike = get_spike_judger()
+
     @integrate(method=method, noise=noise / tau)
     def int_f(V, t, Isyn):
         return (-V + Vr + Isyn) / tau
 
     if ref > 0.:
         def update_state(neu_state, t):
-            not_ref = (t - neu_state[-2]) > ref
-            not_ref_idx = np.where(not_ref)[0]
-            neu_state[-5] = not_ref
+            in_ref = (t - neu_state[-2]) <= ref
+            neu_state[-5] = in_ref
+            # calculate states
             V = int_f(neu_state[0], t, neu_state[-1])
-            neu_state[0][not_ref_idx] = V[not_ref_idx]
+            # reset neuron values in refractory period
+            in_ref_idx = np.where(in_ref)[0]
+            if len(in_ref_idx) > 0:
+                V[in_ref_idx] = neu_state[0][in_ref_idx]
+            neu_state[0] = V
+            # get spikes
             spike_idx = judge_spike(neu_state, Vth, t)
             neu_state[0][spike_idx] = Vr
-            neu_state[-5][spike_idx] = 0.
+            neu_state[-5][spike_idx] = 1.
     else:
         def update_state(neu_state, t):
             neu_state[0] = int_f(neu_state[0], t, neu_state[-1])

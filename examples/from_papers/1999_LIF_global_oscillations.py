@@ -39,4 +39,4 @@ mon = nn.SpikeMonitor(lif)
 net = nn.Network(syn=syn, lif=lif, mon=mon)
 net.run(duration, inputs=[lif, muext], report=True)
 
-nn.visualize.plot_raster(mon, show=True)
+# nn.visualize.plot_raster(mon, show=True)

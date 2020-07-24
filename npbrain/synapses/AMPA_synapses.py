@@ -4,7 +4,7 @@ import numpy as np
 
 from npbrain.core import integrate
 from npbrain.core.synapse import *
-from npbrain.utils.helper import clip
+from npbrain.utils.helper import get_clip
 
 __all__ = [
     'AMPA1',
@@ -47,6 +47,7 @@ def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, na
     pre_ids, post_ids, anchors = connection
     num = len(pre_ids)
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
+    record_conductance = get_conductance_recorder()
 
     @integrate
     def int_f(s, t):
@@ -122,11 +123,14 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=2)
     state[2][1] = -np.inf
 
+    clip = get_clip()
+
     @integrate
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    def update_state(syn_state, t, var_index):
+    @syn_delay
+    def update_state(syn_state, t):
         # get synaptic state
         spike = syn_state[0][0]
         s = syn_state[2][0]
@@ -146,7 +150,7 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
             idx = anchors[:, i]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        record_conductance(syn_state, var_index, g)
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]

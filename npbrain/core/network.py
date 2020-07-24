@@ -133,7 +133,7 @@ class Network(object):
                 self._neuron_states = [neu.state.copy() for neu in self.neurons]
             else:
                 for neu, state in zip(self.neurons, self._neuron_states):
-                    neu.state = state.copy()
+                    neu.state[:] = state.copy()
 
         # synapses
         if repeat:
@@ -144,8 +144,9 @@ class Network(object):
                     self._synapse_states.append([state, syn.var2index_array.copy()])
             else:
                 for syn, (state, var_index) in zip(self.synapses, self._synapse_states):
-                    syn.state = tuple(st.copy() for st in state)
-                    syn.var2index_array = var_index.copy()
+                    for i, st in enumerate(state):
+                        syn.state[i][:] = st.copy()
+                    syn.var2index_array[:] = var_index.copy()
 
         # 3. format external inputs
         # --------------------------

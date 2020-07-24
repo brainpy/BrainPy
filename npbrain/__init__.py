@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.6.2"
+__version__ = "0.2.6.3"
 
 # must import profile first
 from npbrain.utils import profile
@@ -13,6 +13,7 @@ from npbrain.utils import measure
 from npbrain.utils import visualize
 from npbrain.utils import run
 from npbrain.utils.helper import *
+from npbrain.utils.helper import clip
 
 # module of "core"
 from npbrain import core
@@ -28,9 +29,11 @@ from npbrain.core.network import *
 
 from npbrain.core import neuron
 from npbrain.core.neuron import *
+from npbrain.core.neuron import judge_spike
 
 from npbrain.core import synapse
 from npbrain.core.synapse import *
+from npbrain.core.synapse import record_conductance
 
 
 # module of "neurons"
@@ -69,6 +72,16 @@ from npbrain.synapses.ordinary_synapses import *
 
 from npbrain.synapses import short_term_plasticity
 from npbrain.synapses.short_term_plasticity import *
+
+
+# reload functions
+def _reload():
+    global judge_spike
+    global record_conductance
+    global clip
+    judge_spike = get_spike_judger()
+    record_conductance = get_conductance_recorder()
+    clip = get_clip()
 
 
 
