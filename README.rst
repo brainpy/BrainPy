@@ -80,6 +80,11 @@ accelerating the running **speed** of NumPy codes, `Numba` is used. For most of 
 models running on `Numba` backend is faster than c++ codes
 (see `examples/benchmark <https://github.com/chaoming0625/NumpyBrain/tree/master/examples/benchmark>`_).
 
+.. image:: https://github.com/chaoming0625/NumpyBrain/blob/master/docs/images/speed_comparison.png
+    :align: center
+    :alt: Speed comparison with brian2
+    :width: 500px
+
 More details about NumpyBrain please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
 
 

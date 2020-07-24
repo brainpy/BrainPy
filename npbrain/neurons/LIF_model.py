@@ -53,20 +53,38 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
         return (-V + Vr + Isyn) / tau
 
     if ref > 0.:
+        # def update_state(neu_state, t):
+        #     # calculate states
+        #     not_in_ref = (t - neu_state[-2]) > ref
+        #     neu_state[-5] = not_in_ref
+        #     V = neu_state[0]
+        #     Isyn = neu_state[-1]
+        #     V_new = int_f(V, t, Isyn)
+        #     in_ref_idx = np.where(not_in_ref < 1.)[0]
+        #     V_new[in_ref_idx] = V[in_ref_idx]
+        #     neu_state[0] = V_new
+        #     # get spikes
+        #     spike_idx = judge_spike(neu_state, Vth, t)
+        #     neu_state[0][spike_idx] = Vr
+        #     neu_state[-5][spike_idx] = 0.
+
         def update_state(neu_state, t):
-            # calculate states
             not_in_ref = (t - neu_state[-2]) > ref
             neu_state[-5] = not_in_ref
-            V = neu_state[0]
-            Isyn = neu_state[-1]
-            V_new = int_f(V, t, Isyn)
-            in_ref_idx = np.where(not_in_ref < 1.)[0]
-            V_new[in_ref_idx] = V[in_ref_idx]
-            neu_state[0] = V_new
-            # get spikes
-            spike_idx = judge_spike(neu_state, Vth, t)
-            neu_state[0][spike_idx] = Vr
-            neu_state[-5][spike_idx] = 0.
+            V_new = int_f(neu_state[0], t, neu_state[-1])
+            for idx in range(num):
+                if not_in_ref[idx] > 0.:
+                    v = V_new[idx]
+                    if v >= Vth:
+                        neu_state[-5, idx] = 0.  # refractory state
+                        neu_state[-3, idx] = 1.  # spike state
+                        neu_state[-2, idx] = t  # spike time
+                        v = Vr
+                    else:
+                        neu_state[-3, idx] = 0.
+                    neu_state[0, idx] = v  # membrane potential
+                else:
+                    neu_state[-3, idx] = 0.
     else:
         def update_state(neu_state, t):
             neu_state[0] = int_f(neu_state[0], t, neu_state[-1])
