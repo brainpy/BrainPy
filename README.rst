@@ -81,9 +81,9 @@ models running on `Numba` backend is faster than c++ codes
 (see `examples/benchmark <https://github.com/chaoming0625/NumpyBrain/tree/master/examples/benchmark>`_).
 
 .. image:: https://github.com/chaoming0625/NumpyBrain/blob/master/docs/images/speed_comparison.png
-    :align: center
     :alt: Speed comparison with brian2
-    :width: 500px
+    :align: center
+    :width: 350px
 
 More details about NumpyBrain please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
 
@@ -176,6 +176,7 @@ It shows
 
 .. image:: https://github.com/chaoming0625/NumpyBrain/blob/master/docs/images/example.png
     :width: 500px
+    :align: center
 
 Define a Hodgkin–Huxley neuron model
 ====================================
