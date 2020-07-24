@@ -60,8 +60,7 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
             V = int_f(neu_state[0], t, neu_state[-1])
             # reset neuron values in refractory period
             in_ref_idx = np.where(in_ref)[0]
-            if len(in_ref_idx) > 0:
-                V[in_ref_idx] = neu_state[0][in_ref_idx]
+            V[in_ref_idx] = neu_state[0][in_ref_idx]
             neu_state[0] = V
             # get spikes
             spike_idx = judge_spike(neu_state, Vth, t)

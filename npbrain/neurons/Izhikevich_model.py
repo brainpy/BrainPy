@@ -117,9 +117,8 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
             u_new = int_u(u, t, V)
             V_new = int_V(V, t, u, Isyn)
             in_ref_idx = np.where(in_ref)[0]
-            if len(in_ref_idx) > 0:
-                u_new = u[in_ref_idx]
-                V_new = V[in_ref_idx]
+            u_new[in_ref_idx] = u[in_ref_idx]
+            V_new[in_ref_idx] = V[in_ref_idx]
             neu_state[0] = V_new
             neu_state[1] = u_new
             spike_idx = judge_spike(neu_state, Vth, t)

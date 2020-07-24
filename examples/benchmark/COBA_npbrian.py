@@ -35,33 +35,36 @@ def COBA(geometry, ref=5.0, name='COBA'):
     state[0] = np.random.randn(num) * 5. - 55.
 
     def update_state(neu_state, t):
-        # get neuron index not in refractory
-        not_ref = (t - neu_state[-2]) > ref
-        not_ref_idx = np.where(not_ref)[0]
-        neu_state[-5] = not_ref
-        # get neuron state
-        V = neu_state[0][not_ref_idx]
-        ge = neu_state[1][not_ref_idx]
-        gi = neu_state[2][not_ref_idx]
-        # calculate neuron state
-        ge -= ge / taue * dt
-        gi -= gi / taui * dt
-        V += (ge * (Erev_exc - V) + gi * (Erev_inh - V) - (V - El) + I) / taum * dt
-        neu_state[0][not_ref_idx] = V
-        neu_state[1][not_ref_idx] = ge
-        neu_state[2][not_ref_idx] = gi
+        not_in_ref = (t - neu_state[-2]) > ref
+        neu_state[-5] = not_in_ref
+        not_ref_idx = np.where(not_in_ref)[0]
+        for idx in not_ref_idx:
+            v = neu_state[0, idx]
+            ge = neu_state[1, idx]
+            gi = neu_state[2, idx]
+            ge -= ge / taue * dt
+            gi -= gi / taui * dt
+            v += (ge * (Erev_exc - v) + gi * (Erev_inh - v) - (v - El) + I) / taum * dt
+            neu_state[0, idx] = v
+            neu_state[1, idx] = ge
+            neu_state[2, idx] = gi
+        # judge spike
         spike_idx = nn.judge_spike(neu_state, Vt, t)
-        neu_state[0][spike_idx] = Vr
+        for idx in spike_idx:
+            neu_state[0, idx] = Vr
+            neu_state[-5, idx] = 0.
 
     return nn.Neurons(**locals())
 
 
-exc_pre, exc_post, exc_acs = nn.connect.fixed_prob(num_exc, num_exc + num_inh, 0.02, include_self=False)
+exc_pre, exc_post, exc_acs = nn.connect.fixed_prob(
+    num_exc, num_exc + num_inh, 0.02, include_self=False)
 exc_anchors = np.zeros((2, num_exc + num_inh), dtype=np.int32)
 exc_anchors[:, :num_exc] = exc_acs
 
-inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(list(range(num_exc, num_exc + num_inh)),
-                                                       num_exc + num_inh, 0.02, include_self=False)
+inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(
+    list(range(num_exc, num_exc + num_inh)),
+    num_exc + num_inh, 0.02, include_self=False)
 
 
 def Synapse(pre, post, delay=None, name='nromal_synapse'):
@@ -72,7 +75,8 @@ def Synapse(pre, post, delay=None, name='nromal_synapse'):
     num = len(exc_pre)
     state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
 
-    def update_state(syn_state, t, var_index):
+    @nn.syn_delay
+    def update_state(syn_state, t):
         spike = syn_state[0][-1]
         spike_idx = np.where(spike > 0.)[0]
         # get post-synaptic values
@@ -80,22 +84,24 @@ def Synapse(pre, post, delay=None, name='nromal_synapse'):
         g2 = np.zeros(num_post)
         for i_ in spike_idx:
             if i_ < num_exc:
-                exc_start, exc_end = exc_anchors[:, i_]
-                exc_post_idx = exc_post[exc_start: exc_end]
+                idx = exc_anchors[:, i_]
+                exc_post_idx = exc_post[idx[0]: idx[1]]
                 g[exc_post_idx] += we
             else:
-                inh_start, inh_end = inh_anchors[:, i_]
-                inh_post_idx = inh_post[inh_start: inh_end]
+                idx = inh_anchors[:, i_]
+                inh_post_idx = inh_post[idx[0]: idx[1]]
                 g2[inh_post_idx] += wi
         g[num_post:] = g2
-        nn.record_conductance(syn_state, var_index, g)
+        return g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
+    def output_synapse(syn_state, index2var, post_neu_state):
+        output_idx = index2var[-2]
         syn_val = syn_state[output_idx[0]][output_idx[1]]
-        not_in_ref = post_neu_state[-5]
-        post_neu_state[1] += syn_val[:num_post] * not_in_ref
-        post_neu_state[2] += syn_val[num_post:] * not_in_ref
+        ge = syn_val[:num_post]
+        gi = syn_val[num_post:]
+        for idx in range(num_post):
+            post_neu_state[1, idx] += ge[idx] * post_neu_state[-5, idx]
+            post_neu_state[2, idx] += gi[idx] * post_neu_state[-5, idx]
 
     return nn.Synapses(**locals())
 

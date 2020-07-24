@@ -159,7 +159,7 @@ class Network(object):
         if report:
             t0 = time.time()
         self._input(0, iterable_inputs, fixed_inputs, no_inputs)
-        self._step(ts[0], 0)
+        self._step(t=ts[0], run_idx=0)
 
         # record time
         if report:
@@ -172,7 +172,7 @@ class Network(object):
         for run_idx in range(1, run_length):
             t = ts[run_idx]
             self._input(run_idx, iterable_inputs, fixed_inputs, no_inputs)
-            self._step(t, run_idx)
+            self._step(t=t, run_idx=run_idx)
             if report and ((run_idx + 1) % report_gap == 0):
                 percent = (run_idx + 1) / run_length * 100
                 print('Run {:.1f}% using {:.3f} s.'.format(percent, time.time() - t0))

@@ -1,9 +1,7 @@
 from brian2 import *
 
-sys.path.append('../../')
 import npbrain as nn
 
-np.random.seed(12345)
 defaultclock.dt = 0.05 * ms
 # set_device('cpp_standalone', directory='brian2_COBAHH')
 prefs.codegen.target = "cython"

@@ -130,31 +130,31 @@ def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
     num = len(exc_pre)
     state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
 
-    def update_state(syn_state, t, var_index):
-        # get synapse state
-        spike = syn_state[0][-1]
-        # calculate synaptic state
-        spike_idx = np.where(spike > 0)[0]
-        # get post-synaptic values
+    @nn.syn_delay
+    def update_state(syn_state, t):
+        spike_idx = np.where(syn_state[0][-1] > 0)[0]
         g = np.zeros(num_post * 2)
-        g2 = np.zeros(num_post)
         for i_ in spike_idx:
             if i_ < num_exc:
-                exc_start, exc_end = exc_anchors[:, i_]
-                exc_post_idx = exc_post[exc_start: exc_end]
-                g[exc_post_idx] += we
+                idx = exc_anchors[:, i_]
+                exc_post_idx = exc_post[idx[0]: idx[1]]
+                for pi in exc_post_idx:
+                    g[pi] += we
             else:
-                inh_start, inh_end = inh_anchors[:, i_]
-                inh_post_idx = inh_post[inh_start: inh_end]
-                g2[inh_post_idx] += wi
-        g[num_post:] = g2
-        nn.record_conductance(syn_state, var_index, g)
+                idx = inh_anchors[:, i_]
+                inh_post_idx = inh_post[idx[0]: idx[1]]
+                for pi in inh_post_idx:
+                    g[num_post + pi] += wi
+        return g
 
     def output_synapse(syn_state, var_index, post_neu_state, ):
         output_idx = var_index[-2]
         syn_val = syn_state[output_idx[0]][output_idx[1]]
-        post_neu_state[4] += syn_val[:num_post]
-        post_neu_state[5] += syn_val[num_post:]
+        ge = syn_val[:num_post]
+        gi = syn_val[num_post:]
+        for idx in range(num_post):
+            post_neu_state[4, idx] += ge[idx]
+            post_neu_state[5, idx] += gi[idx]
 
     return nn.Synapses(**locals())
 
