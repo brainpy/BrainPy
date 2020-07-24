@@ -21,7 +21,7 @@ theta = 20
 tau = 20
 delta = 2
 taurefr = 2
-duration = 1000
+duration = 100
 C = 1000
 N = 5000
 sparseness = float(C) / N
@@ -39,4 +39,4 @@ mon = nn.SpikeMonitor(lif)
 net = nn.Network(syn=syn, lif=lif, mon=mon)
 net.run(duration, inputs=[lif, muext], report=True)
 
-# nn.visualize.plot_raster(mon, show=True)
+nn.visualize.plot_raster(mon, show=True)

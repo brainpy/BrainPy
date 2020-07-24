@@ -70,17 +70,17 @@ def Synapse(pre, post, delay=None):
         spike_idx = np.where(syn_state[0][-1] > 0)[0]
         # get post-synaptic values
         g = np.zeros(num_post * 2)
-        g2 = np.zeros(num_post)
         for i_ in spike_idx:
             if i_ < num_exc:
                 idx = exc_anchors[:, i_]
                 exc_post_idx = exc_post[idx[0]: idx[1]]
-                g[exc_post_idx] += we
+                for idx in exc_post_idx:
+                    g[idx] += we
             else:
                 idx = inh_anchors[:, i_]
                 inh_post_idx = inh_post[idx[0]: idx[1]]
-                g2[inh_post_idx] += wi
-        g[num_post:] = g2
+                for idx in inh_post_idx:
+                    g[idx + num_post] += wi
         return g
 
     def output_synapse(syn_state, var_index, post_neu_state):

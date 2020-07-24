@@ -112,26 +112,27 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
 
     if ref > 0.:
         def update_state(neu_state, t):
-            in_ref = (t - neu_state[-2]) <= ref
+            not_ref = (t - neu_state[-2]) > ref
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
             u_new = int_u(u, t, V)
             V_new = int_V(V, t, u, Isyn)
-            in_ref_idx = np.where(in_ref)[0]
-            u_new[in_ref_idx] = u[in_ref_idx]
-            V_new[in_ref_idx] = V[in_ref_idx]
-            neu_state[0] = V_new
-            neu_state[1] = u_new
+            not_ref_idx = np.where(not_ref)[0]
+            for idx in not_ref_idx:
+                neu_state[0, idx] = V_new[idx]
+                neu_state[1, idx] = u_new[idx]
             spike_idx = judge_spike(neu_state, Vth, t)
-            neu_state[0][spike_idx] = c
-            neu_state[1][spike_idx] += d
-            neu_state[-5][spike_idx] = 1.
+            for idx in spike_idx:
+                neu_state[0, idx] = c
+                neu_state[1, idx] += d
+                neu_state[-5, idx] = 0.
     else:
         def update_state(neu_state, t):
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
             neu_state[0] = int_V(V, t, u, Isyn)
             neu_state[1] = int_u(u, t, V)
             spike_idx = judge_spike(neu_state, Vth, t)
-            neu_state[0][spike_idx] = c
-            neu_state[1][spike_idx] += d
+            for idx in spike_idx:
+                neu_state[0, idx] = c
+                neu_state[1, idx] += d
 
     return Neurons(**locals())
