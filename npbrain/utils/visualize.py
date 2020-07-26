@@ -72,7 +72,7 @@ def mpl_style1(fontsize=22, axes_edgecolor='white', figsize='5,4', lw=1):
         'lines.linewidth': lw,
         "figure.figsize": figsize,
     }
-    rcParams.integrate(params)
+    rcParams.update(params)
 
 
 ###############################

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.6.3"
+__version__ = "0.2.6.4"
 
 # must import profile first
 from npbrain.utils import profile

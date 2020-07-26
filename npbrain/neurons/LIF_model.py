@@ -69,11 +69,9 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
         #     neu_state[-5][spike_idx] = 0.
 
         def update_state(neu_state, t):
-            not_in_ref = (t - neu_state[-2]) > ref
-            neu_state[-5] = not_in_ref
             V_new = int_f(neu_state[0], t, neu_state[-1])
             for idx in range(num):
-                if not_in_ref[idx] > 0.:
+                if (t - neu_state[-2, idx]) > ref:
                     v = V_new[idx]
                     if v >= Vth:
                         neu_state[-5, idx] = 0.  # refractory state
@@ -81,9 +79,11 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
                         neu_state[-2, idx] = t  # spike time
                         v = Vr
                     else:
+                        neu_state[-5, idx] = 1.
                         neu_state[-3, idx] = 0.
                     neu_state[0, idx] = v  # membrane potential
                 else:
+                    neu_state[-5, idx] = 0.
                     neu_state[-3, idx] = 0.
     else:
         def update_state(neu_state, t):

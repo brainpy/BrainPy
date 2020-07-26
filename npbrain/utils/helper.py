@@ -243,7 +243,7 @@ class Dict(dict):
                     (not isinstance(v, dict))):
                 self[k] = v
             else:
-                self[k].integrate(v)
+                self[k].update(v)
 
     def __getnewargs__(self):
         return tuple(self.items())
