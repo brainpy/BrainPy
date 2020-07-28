@@ -47,13 +47,12 @@ def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, na
     pre_ids, post_ids, anchors = connection
     num = len(pre_ids)
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
-    record_conductance = get_conductance_recorder()
 
     @integrate(signature='f8[:](f8[:], f8)')
     def int_f(s, t):
         return - s / tau_decay
 
-    def update_state(syn_state, t, var_index):
+    def update_state(syn_state, t, delay_idx):
         # get synaptic state
         spike_idx = np.where(syn_state[0][0] > 0.)[0]
         # calculate synaptic state
@@ -68,13 +67,19 @@ def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, na
             idx = anchors[:, i]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        record_conductance(syn_state, var_index, g)
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        g_val = syn_state[output_idx[0]][output_idx[1]]
-        post_val = - g_max * g_val * (post_neu_state[0] - E)
-        post_neu_state[-1] += post_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
+                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+    else:
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            post_val = - g_max * g_val * (post_neu_state[0] - E)
+            post_neu_state[-1] += post_val
 
     return Synapses(**locals())
 
@@ -129,8 +134,7 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    @syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         # get synaptic state
         spike = syn_state[0][0]
         s = syn_state[2][0]
@@ -150,11 +154,10 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
             idx = anchors[:, i]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        g_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        g_val = syn_state[1][output_idx]
         post_val = - g_max * g_val * (post_neu_state[0] - E)
         post_neu_state[-1] += post_val
 

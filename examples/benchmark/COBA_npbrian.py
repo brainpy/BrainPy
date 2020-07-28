@@ -75,8 +75,7 @@ def Synapse(pre, post, delay=None, name='nromal_synapse'):
     num = len(exc_pre)
     state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
 
-    @nn.syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         spike = syn_state[0][-1]
         spike_idx = np.where(spike > 0.)[0]
         # get post-synaptic values
@@ -92,11 +91,10 @@ def Synapse(pre, post, delay=None, name='nromal_synapse'):
                 inh_post_idx = inh_post[idx[0]: idx[1]]
                 for idx in inh_post_idx:
                     g[idx + num_post] += wi
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, index2var, post_neu_state):
-        output_idx = index2var[-2]
-        syn_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        syn_val = syn_state[1][output_idx]
         ge = syn_val[:num_post]
         gi = syn_val[num_post:]
         for idx in range(num_post):

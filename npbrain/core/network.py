@@ -141,12 +141,11 @@ class Network(object):
                 self._synapse_states = []
                 for syn in self.synapses:
                     state = tuple(st.copy() for st in syn.state)
-                    self._synapse_states.append([state, syn.var2index_array.copy()])
+                    self._synapse_states.append(state)
             else:
-                for syn, (state, var_index) in zip(self.synapses, self._synapse_states):
+                for syn, state in zip(self.synapses, self._synapse_states):
                     for i, st in enumerate(state):
                         syn.state[i][:] = st.copy()
-                    syn.var2index_array[:] = var_index.copy()
 
         # 3. format external inputs
         # --------------------------
@@ -300,8 +299,9 @@ class Network(object):
         for obj in self.objects:
             if isinstance(obj, Synapses):
                 obj.collect_spike(obj.state, obj.pre.state, obj.post.state)
-                obj.update_state(obj.state, t, obj.var2index_array)
-                obj.output_synapse(obj.state, obj.var2index_array, obj.post.state, )
+                obj.update_state(obj.state, t, obj.delay_idx())
+                obj.output_synapse(obj.state, obj.output_idx(), obj.post.state)
+                obj.update_conductance_index()
             elif isinstance(obj, Neurons):
                 obj.update_state(obj.state, t)
             elif isinstance(obj, StateMonitor):

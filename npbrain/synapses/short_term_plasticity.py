@@ -96,8 +96,7 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     def int_x(x, t):
         return (1 - x) / tau_d
 
-    @syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         # get synapse state
         u_old = syn_state[2][0]
         x_old = syn_state[2][1]
@@ -120,11 +119,10 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
             idx = anchors[:, i]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += u_new[idx[0]: idx[1]] * x_new[idx[0]: idx[1]]
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        syn_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        syn_val = syn_state[1][output_idx]
         post_neu_state[-1] += syn_val * weights
 
     return Synapses(**locals())

@@ -26,4 +26,4 @@ def run_nmda(cls, num_pre=5, num_post=10, prob=1., monitor=[],
 if __name__ == '__main__':
     for num in [1, 10]:
         run_nmda(nn.NMDA, num_pre=num, num_post=num,
-                 stimulus_gap=30, monitor=['g_post', 'x', 's'])
+                 stimulus_gap=30, monitor=['g_out', 'x', 's'])

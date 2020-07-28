@@ -112,6 +112,7 @@ The following packages need to be installed to use ``NumpyBrain``:
 - Python >= 3.5
 - NumPy
 - Numba
+- Matplotlib
 
 
 Getting started: 30 seconds to NumpyBrain

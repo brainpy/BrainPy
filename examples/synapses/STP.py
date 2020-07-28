@@ -28,4 +28,4 @@ def run_stp(cls, num_pre=5, num_post=10, weights=5.,
 if __name__ == '__main__':
     for num in [1, 10]:
         run_stp(nn.STP, num_pre=num, num_post=num, stimulus_gap=50,
-                monitor=['g_post', 'x', 'u'])
+                monitor=['g_out', 'x', 'u'])

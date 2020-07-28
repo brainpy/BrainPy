@@ -50,14 +50,12 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
     num = len(pre_indexes)
 
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
-    record_conductance = get_conductance_recorder()
 
     @integrate(signature='f8[:](f8[:], f8)')
     def int_s(s, t):
         return - s / tau_decay
 
-    @syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         # get synaptic state
         s = syn_state[2][0]
         s = int_s(s, t)
@@ -74,11 +72,10 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        g_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        g_val = syn_state[1][output_idx]
         post_val = - g_max * g_val * (post_neu_state[0] - E)
         post_neu_state[-1] += post_val
 
@@ -137,8 +134,7 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    @syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         # get synaptic state
         spike = syn_state[0][0]
         s = syn_state[2][0]
@@ -159,11 +155,10 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        g_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        g_val = syn_state[1][output_idx]
         post_val = - g_max * g_val * (post_neu_state[0] - E)
         post_neu_state[-1] += post_val
 
@@ -234,8 +229,7 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
     def int_G(G, t, R):
         return k1 * R - k2 * G
 
-    @syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         # get synaptic state
         spike = syn_state[0][0]
         R = syn_state[2][0]
@@ -259,11 +253,10 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += G[idx[0]: idx[1]]
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        g_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        g_val = syn_state[1][output_idx]
         post_val = - g_val * (post_neu_state[0] - E)
         post_neu_state[-1] += post_val
 
@@ -341,8 +334,7 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
     def int_G(G, t, R):
         return k5 * R - k6 * G
 
-    @syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         # calculate synaptic state
         spike = syn_state[0][0]
         D = syn_state[2][0]
@@ -368,11 +360,10 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += G[idx[0]: idx[1]]
         g = g_max * (g ** 4 / (g ** 4 + 100))
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        g_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        g_val = syn_state[1][output_idx]
         post_val = - g_val * (post_neu_state[0] - E)
         post_neu_state[-1] += post_val
 

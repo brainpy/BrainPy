@@ -91,7 +91,7 @@ def autojit(signature_or_func=None):
         def wrapper(f):
             if profile.is_numba_bk() and not isinstance(f, Dispatcher):
                 op = profile.get_numba_profile()
-                if profile.pre_sig:
+                if profile.predefine_signature:
                     j = nb.jit(signature_or_func, **op)
                 else:
                     j = nb.jit(**op)

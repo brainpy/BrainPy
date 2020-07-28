@@ -5,7 +5,7 @@ import numpy as np
 
 import npbrain as nn
 nn.profile.set_backend('numba')
-nn.profile.pre_sig = False
+nn.profile.predefine_signature = False
 
 dt = 0.1
 nn.profile.set_dt(dt)
@@ -130,8 +130,7 @@ def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
     num = len(exc_pre)
     state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
 
-    @nn.syn_delay
-    def update_state(syn_state, t):
+    def update_state(syn_state, t, delay_idx):
         spike_idx = np.where(syn_state[0][-1] > 0)[0]
         g = np.zeros(num_post * 2)
         for i_ in spike_idx:
@@ -145,11 +144,10 @@ def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
                 inh_post_idx = inh_post[idx[0]: idx[1]]
                 for pi in inh_post_idx:
                     g[num_post + pi] += wi
-        return g
+        syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        output_idx = var_index[-2]
-        syn_val = syn_state[output_idx[0]][output_idx[1]]
+    def output_synapse(syn_state, output_idx, post_neu_state):
+        syn_val = syn_state[1][output_idx]
         ge = syn_val[:num_post]
         gi = syn_val[num_post:]
         for idx in range(num_post):

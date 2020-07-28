@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.6.5"
+__version__ = "0.2.6.6"
 
 # must import profile first
 from npbrain.utils import profile
@@ -33,7 +33,6 @@ from npbrain.core.neuron import judge_spike
 
 from npbrain.core import synapse
 from npbrain.core.synapse import *
-from npbrain.core.synapse import record_conductance
 
 
 # module of "neurons"
@@ -77,10 +76,8 @@ from npbrain.synapses.short_term_plasticity import *
 # reload functions
 def _reload():
     global judge_spike
-    global record_conductance
     global clip
     judge_spike = get_spike_judger()
-    record_conductance = get_conductance_recorder()
     clip = get_clip()
 
 

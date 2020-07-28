@@ -5,75 +5,12 @@ import numba as nb
 from npbrain.utils import helper, profile
 
 __all__ = [
-    'syn_delay',
-    'get_conductance_recorder',
     'format_delay',
     'initial_syn_state',
     'Synapses',
 ]
 
 synapse_no = 0
-
-
-def record_conductance(syn_state, var_index, g):
-    """Record the conductance of the synapses.
-
-    Parameters
-    ----------
-    syn_state : tuple
-        The state of the synapses.
-    var_index : np.ndarray
-        The indexes of variables.
-    g : np.ndarray
-        The conductance to record at current time.
-    """
-    # get `delay_len`
-    delay_len = var_index[-1, 0]
-    # update `output_idx`
-    output_idx = (var_index[-2, 1] + 1) % delay_len
-    var_index[-2, 1] = output_idx
-    # update `delay_idx`
-    delay_idx = (var_index[-3, 1] + 1) % delay_len
-    var_index[-3, 1] = delay_idx
-    # update `conductance`
-    syn_state[1][delay_idx] = g
-
-
-def get_conductance_recorder():
-    @helper.autojit('(UniTuple(f8[:, :], 3), i4[:, :], f8[:])')
-    def f(syn_state, var_index, g):
-        delay_len = var_index[-1, 0]
-        # update `output_idx`
-        var_index[-2, 1] = (var_index[-2, 1] + 1) % delay_len
-        # update `delay_idx`
-        delay_idx = (var_index[-3, 1] + 1) % delay_len
-        var_index[-3, 1] = delay_idx
-        # update `conductance`
-        syn_state[1][delay_idx] = g
-    return f
-
-
-def syn_delay(func):
-
-    wrapper = helper.autojit('f8[:](UniTuple(f8[:, :], 3), f4)')
-    func = wrapper(func)
-
-    @helper.autojit('(UniTuple(f8[:, :], 3), f8, i4[:, :])')
-    def f(syn_state, t, var2index):
-        # get `g`
-        g = func(syn_state, t)
-        # get `delay_len`
-        delay_len = var2index[-1, 0]
-        # update `output_idx`
-        output_idx = (var2index[-2, 1] + 1) % delay_len
-        var2index[-2, 1] = output_idx
-        # update `delay_idx`
-        delay_idx = (var2index[-3, 1] + 1) % delay_len
-        var2index[-3, 1] = delay_idx
-        # update `conductance`
-        syn_state[1][delay_idx] = g
-
-    return f
 
 
 def format_delay(delay, dt=None):
@@ -203,10 +140,10 @@ class Synapses(object):
         if 'collect_spike' not in kwargs:
             self.collect_spike = collect_spike
 
-        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8, i4[:, :])')
+        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8, i8)')
         self.update_state = wrapper(self.update_state)
 
-        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), i4[:, :], f8[:, :])')
+        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), i8, f8[:, :])')
         self.output_synapse = wrapper(self.output_synapse)
 
         wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8[:, :], f8[:, :])')
@@ -237,26 +174,25 @@ class Synapses(object):
         if 'var2index' not in kwargs:
             raise ValueError('Must define "var2index".')
         assert isinstance(self.var2index, dict), '"var2index" must be a dict.'
-        # "g" is the "delay_idx"
-        # 'g_post' is the "output_idx"
-        default_variables = [('pre_spike', (0, -1)),
-                             ('g', (1, self.delay_len - 1)),
-                             ('g_post', (1, 0)), ]
+        # "g_in" is the "delay_idx"
+        # 'g_out' is the "output_idx"
+        default_variables = {'pre_spike': (0, -1), 'g_in': [1, self.delay_len - 1], 'g_out': [1, 0]}
         self.default_variables = default_variables
-        for k, _ in default_variables:
+        for k in default_variables.keys():
             if k in self.var2index:
                 raise ValueError('"{}" is a pre-defined variable, '
                                  'cannot be defined in "var2index".'.format(k))
-        user_defined_variables = sorted(list(self.var2index.items()), key=lambda a: a[1])
-        syn_variables = user_defined_variables + default_variables
-        var2index_array = np.zeros((len(syn_variables) + 1, 2), dtype=np.int32)
-        var2index_array[-1, 0] = self.delay_len
-        vars = dict(delay_len=-1)
-        for i, (var, index) in enumerate(syn_variables):
-            var2index_array[i] = list(index)
-            vars[var] = i
-        self.var2index = vars
-        self.var2index_array = var2index_array
+        self.var2index.update(default_variables)
+
+    def update_conductance_index(self):
+        self.var2index['g_in'][1] = (self.var2index['g_in'][1] + 1) % self.delay_len
+        self.var2index['g_out'][1] = (self.var2index['g_out'][1] + 1) % self.delay_len
+
+    def delay_idx(self):
+        return self.var2index['g_in'][1]
+
+    def output_idx(self):
+        return self.var2index['g_out'][1]
 
     def __str__(self):
         return self.name

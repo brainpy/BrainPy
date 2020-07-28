@@ -55,7 +55,7 @@ __all__ = [
 _backend = 'numpy'
 _nopython = True
 _fastmath = True
-pre_sig = True
+predefine_signature = True
 
 
 def set_backend(bk):
@@ -111,14 +111,14 @@ def set_numba(**kwargs):
     """
     global _fastmath
     global _nopython
-    global pre_sig
+    global predefine_signature
 
     if 'fastmath' in kwargs:
         _fastmath = kwargs.pop('fastmath')
     if 'nopython' in kwargs:
         _nopython = kwargs.pop('nopython')
     if 'pre_sig' in kwargs:
-        pre_sig = kwargs.pop('pre_sig')
+        predefine_signature = kwargs.pop('pre_sig')
 
 
 def get_numba_profile():

@@ -28,15 +28,15 @@ def run_gaba(cls, num_pre=5, num_post=10, prob=1., monitor=[],
 if __name__ == '__main__':
     for num in [1, 10]:
         run_gaba(nn.GABAa1, num_pre=num, num_post=num, stimulus_gap=30,
-                 monitor=['g_post', 's'])
+                 monitor=['g_out', 's'])
 
         run_gaba(nn.GABAa2, num_pre=num, num_post=num, stimulus_gap=30,
-                 monitor=['g_post', 's'])
+                 monitor=['g_out', 's'])
 
         run_gaba(nn.GABAb1, num_pre=num, num_post=num,
                  duration=2000, stimulus_gap=50,
-                 monitor=['g_post', 'R', 'G'])
+                 monitor=['g_out', 'R', 'G'])
 
         run_gaba(nn.GABAb2, num_pre=num, num_post=num,
                  duration=2000, stimulus_gap=50,
-                 monitor=['g_post', 'D', 'R', 'G'])
+                 monitor=['g_out', 'D', 'R', 'G'])

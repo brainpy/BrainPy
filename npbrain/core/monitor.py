@@ -90,7 +90,7 @@ class StateMonitor(Monitor):
             if isinstance(target, Neurons):
                 vars = ['V']
             elif isinstance(target, Synapses):
-                vars = ['g']
+                vars = ['g_out']
             else:
                 raise ValueError('When `vars=None`, NumpyBrain only supports the recording '
                                  'of "V" for Neurons and "g" for Synapses.')
@@ -102,7 +102,6 @@ class StateMonitor(Monitor):
             if var not in target.var2index:
                 raise ValueError('Variable "{}" is not in target "{}".'.format(var, target))
         self.vars = vars
-        self.vars_idx = np.array([target.var2index[v] for v in vars])
 
         # fake initialization
         for k in self.vars:
@@ -124,18 +123,23 @@ class StateMonitor(Monitor):
                 v = obj_state[index[0]][index[1]]
                 mon_states[j][i] = v
 
+        # variable2index and update_state function
         if isinstance(target, Neurons):
             self.update_state = record_neu_state
+            var_idxs = np.array([target.var2index[v] for v in self.vars])
+            self.target_index_by_vars = lambda: var_idxs
         elif isinstance(target, Synapses):
             self.update_state = record_syn_state
+            if 'g_in' not in vars and 'g_out' not in vars:
+                var_idxs = np.array([target.var2index[v] for v in self.vars])
+                self.target_index_by_vars = lambda: var_idxs
+            else:
+                self.target_index_by_vars = lambda: np.array([target.var2index[v] for v in self.vars])
         else:
             raise ValueError('Unknown type.')
 
         # super class initialization
         super(StateMonitor, self).__init__(target)
-
-    def target_index_by_vars(self):
-        return self.target.var2index_array[self.vars_idx]
 
     def init_state(self, length):
         assert isinstance(length, int)
