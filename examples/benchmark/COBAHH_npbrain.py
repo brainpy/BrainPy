@@ -3,9 +3,9 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 import npbrain as nn
 nn.profile.set_backend('numba')
+nn.profile.pre_sig = False
 
 dt = 0.1
 nn.profile.set_dt(dt)
@@ -18,27 +18,27 @@ num_exc = 3200
 num_inh = 800
 monitor = 'spike'
 
-unit = 1e6
+unit = 1e6 * 1.
 Cm = 200 / unit
 gl = 10. / unit
-g_na = 20 * 1000 / unit
+g_na = 20. * 1000 / unit
 g_kd = 6. * 1000 / unit
 
-El = -60
-EK = -90
-ENa = 50
-VT = -63
-Vt = -20
+El = -60.
+EK = -90.
+ENa = 50.
+VT = -63.
+Vt = -20.
 # Time constants
-taue = 5
-taui = 10
+taue = 5.
+taui = 10.
 # Reversal potentials
-Ee = 0
-Ei = -80
+Ee = 0.
+Ei = -80.
 # excitatory synaptic weight
-we = 6 / unit
+we = 6. / unit
 # inhibitory synaptic weight
-wi = 67 / unit
+wi = 67. / unit
 
 
 def COBA_HH(geometry, name='COBA_HH'):
@@ -147,7 +147,7 @@ def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
                     g[num_post + pi] += wi
         return g
 
-    def output_synapse(syn_state, var_index, post_neu_state, ):
+    def output_synapse(syn_state, var_index, post_neu_state):
         output_idx = var_index[-2]
         syn_val = syn_state[output_idx[0]][output_idx[1]]
         ge = syn_val[:num_post]

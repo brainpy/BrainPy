@@ -299,9 +299,9 @@ class Network(object):
     def _step(self, t, run_idx):
         for obj in self.objects:
             if isinstance(obj, Synapses):
+                obj.collect_spike(obj.state, obj.pre.state, obj.post.state)
                 obj.update_state(obj.state, t, obj.var2index_array)
                 obj.output_synapse(obj.state, obj.var2index_array, obj.post.state, )
-                obj.collect_spike(obj.state, obj.pre.state, obj.post.state)
             elif isinstance(obj, Neurons):
                 obj.update_state(obj.state, t)
             elif isinstance(obj, StateMonitor):

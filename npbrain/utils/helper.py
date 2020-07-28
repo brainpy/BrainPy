@@ -8,8 +8,7 @@ import numba as nb
 import numpy as np
 from numba.core.dispatcher import Dispatcher
 
-from .profile import get_numba_profile
-from .profile import is_numba_bk
+from . import profile
 
 
 __all__ = [
@@ -18,7 +17,6 @@ __all__ = [
 
     # function helpers
     'jit_function',
-    'jit_lambda',
     'autojit',
     'func_copy',
 
@@ -67,64 +65,40 @@ def jit_function(f):
     callable
         JIT function.
     """
-    profile = get_numba_profile()
-    return nb.jit(f, **profile)
+    op = profile.get_numba_profile()
+    return nb.jit(f, **op)
 
 
-def jit_lambda(f):
-    """Generate ``numba`` JIT lambda functions.
-
-    Parameters
-    ----------
-    f : callable
-        The lambda function.
-
-    Returns
-    -------
-    callable
-        JIT function.
-    """
-    profile = get_numba_profile()
-    profile['cache'] = False
-    return nb.jit(f, **profile)
-
-
-def is_lambda_function(func):
-    """Check whether the function is a ``lambda`` function. Comes from
-    https://stackoverflow.com/questions/23852423/how-to-check-that-variable-is-a-lambda-function
-
-    Parameters
-    ----------
-    func : callable function
-        The function.
-
-    Returns
-    -------
-    bool
-        True of False.
-    """
-    return isinstance(func, types.LambdaType) and func.__name__ == "<lambda>"
-
-
-def autojit(func):
+def autojit(signature_or_func=None):
     """Format user defined functions.
 
     Parameters
     ----------
-    func : callable
+    signature_or_func : callable, list, str
 
     Returns
     -------
     callable
         function.
     """
-    if is_numba_bk():
-        if is_lambda_function(func) and not isinstance(func, Dispatcher):
-            func = jit_lambda(func)
-        else:
-            if not isinstance(func, Dispatcher):
-                func = jit_function(func)
-    return func
+    if callable(signature_or_func):  # function
+        if profile.is_numba_bk():
+            if not isinstance(signature_or_func, Dispatcher):
+                op = profile.get_numba_profile()
+                signature_or_func = nb.jit(signature_or_func, **op)
+        return signature_or_func
+    else:  # signature
+        def wrapper(f):
+            if profile.is_numba_bk() and not isinstance(f, Dispatcher):
+                op = profile.get_numba_profile()
+                if profile.pre_sig:
+                    j = nb.jit(signature_or_func, **op)
+                else:
+                    j = nb.jit(**op)
+                f = j(f)
+            return f
+        return wrapper
+
 
 
 def func_copy(f):
@@ -322,7 +296,8 @@ def clip(a, a_min, a_max):
 
 
 def get_clip():
-    @autojit
+    @autojit(['f8[:](f8[:], f8, f8)',
+              'f8[:, :](f8[:, :], f8, f8)'])
     def f(a, a_min, a_max):
         a = np.maximum(a, a_min)
         a = np.minimum(a, a_max)

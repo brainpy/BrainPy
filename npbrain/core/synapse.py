@@ -40,26 +40,25 @@ def record_conductance(syn_state, var_index, g):
 
 
 def get_conductance_recorder():
-    @helper.autojit
-    def record_conductance(syn_state, var_index, g):
-        # get `delay_len`
+    @helper.autojit('(UniTuple(f8[:, :], 3), i4[:, :], f8[:])')
+    def f(syn_state, var_index, g):
         delay_len = var_index[-1, 0]
         # update `output_idx`
-        output_idx = (var_index[-2, 1] + 1) % delay_len
-        var_index[-2, 1] = output_idx
+        var_index[-2, 1] = (var_index[-2, 1] + 1) % delay_len
         # update `delay_idx`
         delay_idx = (var_index[-3, 1] + 1) % delay_len
         var_index[-3, 1] = delay_idx
         # update `conductance`
         syn_state[1][delay_idx] = g
-    return record_conductance
+    return f
 
 
 def syn_delay(func):
 
-    func = helper.autojit(func)
+    wrapper = helper.autojit('f8[:](UniTuple(f8[:, :], 3), f4)')
+    func = wrapper(func)
 
-    @helper.autojit
+    @helper.autojit('(UniTuple(f8[:, :], 3), f8, i4[:, :])')
     def f(syn_state, t, var2index):
         # get `g`
         g = func(syn_state, t)
@@ -204,9 +203,14 @@ class Synapses(object):
         if 'collect_spike' not in kwargs:
             self.collect_spike = collect_spike
 
-        self.update_state = helper.autojit(self.update_state)
-        self.output_synapse = helper.autojit(self.output_synapse)
-        self.collect_spike = helper.autojit(self.collect_spike)
+        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8, i4[:, :])')
+        self.update_state = wrapper(self.update_state)
+
+        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), i4[:, :], f8[:, :])')
+        self.output_synapse = wrapper(self.output_synapse)
+
+        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8[:, :], f8[:, :])')
+        self.collect_spike = wrapper(self.collect_spike)
 
         # check `name`
         if 'name' not in kwargs:

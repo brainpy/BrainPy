@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-def integrate(func=None, noise=None, method=None):
+def integrate(func=None, noise=None, method=None, signature=None):
     """Generate the one-step integration function for differential equations.
 
     Using this method, the users only need to define the right side of the equation.
@@ -57,6 +57,8 @@ def integrate(func=None, noise=None, method=None):
         number, or a function.
     method : None, str, callable
         The method of numerical integration.
+    signature : list, str, None
+        The numba compilation signature.
 
     Returns
     -------

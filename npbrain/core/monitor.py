@@ -52,6 +52,15 @@ class SpikeMonitor(Monitor):
         self.state = self.time
         self.vars_idx = self.index
 
+        @helper.autojit('(f8[:, :], ListType(f8), ListType(i8), f8)')
+        def update_state(neu_state, mon_time, mon_index, t):
+            spike_idx = np.where(neu_state[-3] > 0.)[0]
+            for idx in spike_idx:
+                mon_index.append(idx)
+                mon_time.append(t)
+
+        self.update_state = update_state
+
         # super class initialization
         super(SpikeMonitor, self).__init__(target)
 
@@ -62,13 +71,6 @@ class SpikeMonitor(Monitor):
         else:
             self.index = []
             self.time = []
-
-    @staticmethod
-    def update_state(obj_state, mon_time, mon_index, t):
-        spike_idx = np.where(obj_state[-3] > 0.)[0]
-        for idx in spike_idx:
-            mon_index.append(idx)
-            mon_time.append(t)
 
 
 class StateMonitor(Monitor):
@@ -108,11 +110,13 @@ class StateMonitor(Monitor):
         self.state = []
 
         # function of update state
+        @helper.autojit('(f8[:, :], UniTuple(f8[:, :], {}), i4[:], i4)'.format(len(vars)))
         def record_neu_state(obj_state, mon_states, vars_idx, i):
             for j, index in enumerate(vars_idx):
                 v = obj_state[index]
                 mon_states[j][i] = v
 
+        @helper.autojit('(UniTuple(f8[:, :], 3), UniTuple(f8[:, :], {}), i4[:, :], i4)'.format(len(vars)))
         def record_syn_state(obj_state, mon_states, vars_idx, i):
             var_len = len(vars_idx)
             for j in range(var_len):

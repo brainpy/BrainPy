@@ -55,8 +55,7 @@ __all__ = [
 _backend = 'numpy'
 _nopython = True
 _fastmath = True
-_parallel = False
-_cache = False
+pre_sig = True
 
 
 def set_backend(bk):
@@ -110,18 +109,16 @@ def set_numba(**kwargs):
                     ``parallel``, ``nopython``.
     :type kwargs: dict
     """
-    if 'cache' in kwargs:
-        global _cache
-        _cache = kwargs.pop('cache')
+    global _fastmath
+    global _nopython
+    global pre_sig
+
     if 'fastmath' in kwargs:
-        global _fastmath
         _fastmath = kwargs.pop('fastmath')
-    if 'parallel' in kwargs:
-        global _parallel
-        _parallel = kwargs.pop('parallel')
     if 'nopython' in kwargs:
-        global _nopython
         _nopython = kwargs.pop('nopython')
+    if 'pre_sig' in kwargs:
+        pre_sig = kwargs.pop('pre_sig')
 
 
 def get_numba_profile():
@@ -130,10 +127,10 @@ def get_numba_profile():
     :return: Settings.
     :rtype: dict
     """
-    return {'cache': _cache,
-            'fastmath': _fastmath,
-            'parallel': _parallel,
-            'nopython': _nopython}
+    return {
+        'fastmath': _fastmath,
+        'nopython': _nopython
+    }
 
 
 # ----------------------

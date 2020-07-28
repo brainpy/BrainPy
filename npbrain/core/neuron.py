@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import numba as nb
 import numpy as np
 
-from npbrain.utils import helper, profile
+from npbrain.utils import helper
 
 __all__ = [
     'get_spike_judger',
@@ -43,7 +42,7 @@ def judge_spike(neu_state, vth, t):
 
 
 def get_spike_judger():
-    @helper.autojit
+    @helper.autojit(['i8[:](f8[:, :], f8, f8)'])
     def f(neu_state, vth, t):
         above_threshold = (neu_state[0] >= vth).astype(np.float64)
         prev_above_th = neu_state[-4]
@@ -186,7 +185,8 @@ class Neurons(object):
 
         # check functions
         assert 'update_state' in kwargs
-        self.update_state = helper.autojit(self.update_state)
+        wrapper = helper.autojit('(f8[:, :], f8)')
+        self.update_state = wrapper(self.update_state)
 
         # check `geometry`
         assert 'geometry' in kwargs, 'Must define "geometry".'
