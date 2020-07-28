@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='VoltageJumpSynapse'):
+def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name='VoltageJumpSynapse'):
     """Voltage jump synapses.
 
     .. math::
@@ -26,8 +26,12 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='Voltage
         The weighted coefficients of synapses.
     connection : tuple
         The connectivity.
+    delay : int, float, None
+        The delay period (ms).
     name : str
         The name of the synapse.
+    var : str
+        The variable of the post-synapse going to connect.
 
     Returns
     -------
@@ -41,6 +45,11 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='Voltage
     pre_ids, post_ids, anchors = connection
     num = len(pre_ids)
     state = initial_syn_state(delay, num_pre, num_post, num)
+
+    try:
+        post_varid = post.var2index[var]
+    except KeyError:
+        raise KeyError("Post synapse doesn't has variable '{}'.".format(var))
 
     def update_state(syn_state, t, delay_idx):
         # get synapse state
@@ -58,10 +67,10 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='Voltage
         def output_synapse(syn_state, output_idx, post_neu_state):
             g_val = syn_state[1][output_idx]
             for idx in range(num_post):
-                post_neu_state[0, idx] += g_val[idx] * post_neu_state[-5, idx]
+                post_neu_state[post_varid, idx] += g_val[idx] * post_neu_state[-5, idx]
     else:
         def output_synapse(syn_state, output_idx, post_neu_state):
             g_val = syn_state[1][output_idx]
-            post_neu_state[0] += g_val
+            post_neu_state[post_varid] += g_val
 
     return Synapses(**locals())
