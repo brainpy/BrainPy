@@ -45,7 +45,6 @@ def integrate(func=None, noise=None, method=None, signature=None):
     >>>     return alpha * (1 - m) - beta * m
 
 
-
     Parameters
     ----------
     func : callable
@@ -76,14 +75,14 @@ def integrate(func=None, noise=None, method=None, signature=None):
 
     if func is None:
         if not has_noise:  # ODE
-            return wrapper
+            return lambda f: wrapper(f, signature=signature)
         else:  # SDE
-            return lambda f: wrapper(f, g=noise)
+            return lambda f: wrapper(f, g=noise, signature=signature)
     else:
         if not has_noise:  # ODE
-            return wrapper(func)
+            return wrapper(func, signature=signature)
         else:  # SDE
-            return wrapper(func, noise)
+            return wrapper(func, noise, signature=signature)
 
 
 def _get_integrator(method=None, has_noise=False):
@@ -141,7 +140,7 @@ def _get_integrator(method=None, has_noise=False):
 ##################################
 
 
-def forward_Euler(f, dt=None):
+def forward_Euler(f, dt=None, signature=None):
     """Forward Euler method. Also named as ``explicit_Euler``.
 
     The most unstable integrator known. Requires a very small timestep.
@@ -159,7 +158,7 @@ def forward_Euler(f, dt=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(f)
+    f = autojit(signature)(f)
     if dt is None:
         dt = profile.get_dt()
 
@@ -169,7 +168,7 @@ def forward_Euler(f, dt=None):
     return autojit(int_f)
 
 
-def rk2(f, dt=None, beta=2 / 3):
+def rk2(f, dt=None, beta=2 / 3, signature=None):
     """Parametric second-order Runge-Kutta (RK2).
     Also named as ``RK2``.
 
@@ -193,7 +192,7 @@ def rk2(f, dt=None, beta=2 / 3):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(f)
+    f = autojit(signature)(f)
     if dt is None:
         dt = profile.get_dt()
 
@@ -205,7 +204,7 @@ def rk2(f, dt=None, beta=2 / 3):
     return autojit(int_f)
 
 
-def midpoint(f, dt=None):
+def midpoint(f, dt=None, signature=None):
     """Explicit midpoint Euler method. Also named as ``modified_Euler``.
 
     Parameters
@@ -220,10 +219,10 @@ def midpoint(f, dt=None):
     func : callable
         The one-step numerical integration function.
     """
-    return rk2(f, dt, beta=0.5)
+    return rk2(f, dt, beta=0.5, signature=signature)
 
 
-def rk3(f, dt=None):
+def rk3(f, dt=None, signature=None):
     """Kutta's third-order method (commonly known as RK3).
     Also named as ``RK3``.
 
@@ -239,7 +238,7 @@ def rk3(f, dt=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(f)
+    f = autojit(signature)(f)
     if dt is None:
         dt = profile.get_dt()
 
@@ -252,7 +251,7 @@ def rk3(f, dt=None):
     return autojit(int_f)
 
 
-def rk4(f, dt=None):
+def rk4(f, dt=None, signature=None):
     """Fourth-order Runge-Kutta (RK4). Also named as ``RK4``.
 
     Parameters
@@ -267,7 +266,7 @@ def rk4(f, dt=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(f)
+    f = autojit(signature)(f)
     if dt is None:
         dt = profile.get_dt()
 
@@ -281,7 +280,7 @@ def rk4(f, dt=None):
     return autojit(int_f)
 
 
-def rk4_alternative(f, dt=None):
+def rk4_alternative(f, dt=None, signature=None):
     """An alternative of fourth-order Runge-Kutta method.
     Also named as ``RK4_alternative``.
 
@@ -297,7 +296,7 @@ def rk4_alternative(f, dt=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(f)
+    f = autojit(signature)(f)
     if dt is None:
         dt = profile.get_dt()
 
@@ -311,7 +310,7 @@ def rk4_alternative(f, dt=None):
     return autojit(int_f)
 
 
-def backward_Euler(f, dt=None, epsilon=1e-12):
+def backward_Euler(f, dt=None, epsilon=1e-12, signature=None):
     """Backward Euler method. Also named as ``implicit_Euler``.
 
     Parameters
@@ -326,7 +325,7 @@ def backward_Euler(f, dt=None, epsilon=1e-12):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(f)
+    f = autojit(signature)(f)
     if dt is None:
         dt = profile.get_dt()
 
@@ -341,7 +340,7 @@ def backward_Euler(f, dt=None, epsilon=1e-12):
     return autojit(int_f)
 
 
-def trapezoidal_rule(f, dt=None, epsilon=1e-12):
+def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None):
     """Trapezoidal rule.
 
     The trapezoidal rule is an implicit second-order method, which can
@@ -359,7 +358,7 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(f)
+    f = autojit(signature)(f)
     if dt is None:
         dt = profile.get_dt()
 
@@ -424,7 +423,7 @@ def exponential_euler(f, factor_zero_order, factor_one_order, dt=None):
 ##################################
 
 
-def Euler_method(f, g, dt=None):
+def Euler_method(f, g, dt=None, signature=None):
     """Itô stochastic integral. The simplest stochastic numerical approximation
         is the Euler-Maruyama method. Its is an order 0.5 strong Taylor schema.
         Also named as ``EM``, ``EM_method``, ``Euler``, ``Euler_Maruyama_method``.
@@ -445,10 +444,10 @@ def Euler_method(f, g, dt=None):
         """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(f)
+    f = autojit(signature)(f)
 
     if callable(g):
-        g = autojit(g)
+        g = autojit(signature)(g)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)
@@ -467,7 +466,7 @@ def Euler_method(f, g, dt=None):
     return autojit(int_fg)
 
 
-def Milstein_dfree_Ito(f, g, dt=None):
+def Milstein_dfree_Ito(f, g, dt=None, signature=None):
     """Itô stochastic integral. The derivative-free Milstein method is
     an order 1.0 strong Taylor schema.
 
@@ -487,10 +486,10 @@ def Milstein_dfree_Ito(f, g, dt=None):
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(f)
+    f = autojit(signature)(f)
 
     if callable(g):
-        g = autojit(g)
+        g = autojit(signature)(g)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)
@@ -514,7 +513,7 @@ def Milstein_dfree_Ito(f, g, dt=None):
     return autojit(int_fg)
 
 
-def Heun_method(f, g, dt=None):
+def Heun_method(f, g, dt=None, signature=None):
     """Stratonovich stochastic integral.
 
     Use the Stratonovich Heun algorithm
@@ -546,10 +545,10 @@ def Heun_method(f, g, dt=None):
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(f)
+    f = autojit(signature)(f)
 
     if callable(g):
-        g = autojit(g)
+        g = autojit(signature)(g)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)
@@ -573,7 +572,7 @@ def Heun_method(f, g, dt=None):
     return autojit(int_fg)
 
 
-def Milstein_dfree_Stra(f, g, dt=None):
+def Milstein_dfree_Stra(f, g, dt=None, signature=None):
     """Stratonovich stochastic integral. The derivative-free Milstein
     method is an order 1.0 strong Taylor schema.
 
@@ -593,10 +592,10 @@ def Milstein_dfree_Stra(f, g, dt=None):
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(f)
+    f = autojit(signature)(f)
 
     if callable(g):
-        g = autojit(g)
+        g = autojit(signature)(g)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)

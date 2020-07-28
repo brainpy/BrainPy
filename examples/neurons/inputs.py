@@ -1,6 +1,6 @@
 import npbrain as nn
 
-nn.profile.set_backend('numpy')
+nn.profile.set_backend('numba')
 nn.profile.set_dt(0.02)
 
 if __name__ == '__main__':

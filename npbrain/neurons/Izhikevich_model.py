@@ -102,11 +102,11 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
     init_state(state, Vr)
     judge_spike = get_spike_judger()
 
-    @integrate(method=method)
+    @integrate(method=method, signature='f8[:](f8[:], f8, f8[:])')
     def int_u(u, t, V):
         return a * (b * V - u)
 
-    @integrate(method=method, noise=noise)
+    @integrate(method=method, noise=noise, signature='f8[:](f8[:], f8, f8[:], f8[:])')
     def int_V(V, t, u, Isyn):
         return 0.04 * V * V + 5 * V + 140 - u + Isyn
 

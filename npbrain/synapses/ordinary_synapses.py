@@ -25,7 +25,7 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, name='Voltage
     weights : dict, np.ndarray, int, float
         The weighted coefficients of synapses.
     connection : tuple
-        The connection method.
+        The connectivity.
     name : str
         The name of the synapse.
 

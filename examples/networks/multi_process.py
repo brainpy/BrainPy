@@ -5,7 +5,7 @@ import numpy as np
 
 import npbrain as nn
 
-nn.profile.set_backend('numpy')
+nn.profile.set_backend('numba')
 nn.profile.set_dt(dt=0.1)
 
 Vr = 10

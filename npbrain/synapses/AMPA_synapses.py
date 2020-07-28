@@ -27,8 +27,8 @@ def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, na
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    connection : dict, str, callable
-        The connection method.
+    connection : tuple
+        The connectivity.
     g_max
     E
     tau_decay
@@ -49,7 +49,7 @@ def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, na
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
     record_conductance = get_conductance_recorder()
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8)')
     def int_f(s, t):
         return - s / tau_decay
 
@@ -95,8 +95,8 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    connection : dict, str, callable
-        The connection method.
+    connection : tuple
+        The connectivity.
     g_max
     E
     alpha
@@ -125,7 +125,7 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
 
     clip = get_clip()
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8, f8[:])')
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 

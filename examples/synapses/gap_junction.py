@@ -16,7 +16,7 @@ def run_gj(cls, num_neu, prob=1., gjw=0.1, k_spikelet=0., Iext=12., run_duration
     syn_mon = nn.StateMonitor(gj)
 
     net = nn.Network(gj=gj, syn_mon=syn_mon, lif=lif, neu_mon=neu_mon)
-    net.run(run_duration, inputs=[lif, np.array([Iext, 0])])
+    net.run(run_duration, inputs=[lif, np.array([Iext, 0])], report=True)
 
     fig, gs = nn.visualize.get_figure(2, 1, 3, 10)
     nn.visualize.plot_potential(neu_mon, net.run_time(), (0, 1), fig.add_subplot(gs[0, 0]))

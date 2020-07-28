@@ -29,8 +29,8 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    connection : dict, str, callable
-        The connection method.
+    connection : tuple
+        The connectivity.
     g_max
     E
     tau_decay
@@ -52,7 +52,7 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
     state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
     record_conductance = get_conductance_recorder()
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8)')
     def int_s(s, t):
         return - s / tau_decay
 
@@ -101,8 +101,8 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    connection : dict, str, callable
-        The connection method.
+    connection : tuple
+        The connectivity.
     g_max
     E
     tau_decay
@@ -133,7 +133,7 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
 
     clip = get_clip()
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8, f8[:])')
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
@@ -193,8 +193,8 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    connection : dict, str, callable
-        The connection method.
+    connection : tuple
+        The connectivity.
     g_max
     E
     k1
@@ -226,11 +226,11 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
 
     clip = get_clip()
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8, f8[:])')
     def int_R(R, t, TT):
         return k3 * TT * (1 - R) - k4 * R
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8, f8[:])')
     def int_G(G, t, R):
         return k1 * R - k2 * G
 
@@ -293,8 +293,8 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    connection : dict, str, callable
-        The connection method.
+    connection : tuple
+        The connectivity.
     g_max
     E
     k1
@@ -329,15 +329,15 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
 
     clip = get_clip()
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8, f8[:])')
     def int_D(D, t, R):
         return k4 * R - k3 * D
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8, f8[:], f8[:])')
     def int_R(R, t, TT, D):
         return k1 * TT * (1 - R - D) - k2 * R + k3 * D
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8, f8[:])')
     def int_G(G, t, R):
         return k5 * R - k6 * G
 

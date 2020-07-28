@@ -45,8 +45,8 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
         The post-synaptic neuron group.
     weights : dict, np.ndarray, int, float
         The weighted coefficients of synapses.
-    connection : dict, str, callable
-        The connection method.
+    connection : tuple
+        The connection.
     delay : None, float
         The delay time length.
     tau_d : float
@@ -88,11 +88,11 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
 
     clip = get_clip()
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8)')
     def int_u(u, t):
         return - u / tau_f
 
-    @integrate
+    @integrate(signature='f8[:](f8[:], f8)')
     def int_x(x, t):
         return (1 - x) / tau_d
 
