@@ -121,8 +121,18 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
             g[post_idx] += u_new[idx[0]: idx[1]] * x_new[idx[0]: idx[1]]
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        syn_val = syn_state[1][output_idx]
-        post_neu_state[-1] += syn_val * weights
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            syn_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                val = syn_val[idx] * weights * post_neu_state[-5, idx]
+                post_neu_state[-1, idx] += val
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            syn_val = syn_state[1][output_idx]
+            post_neu_state[-1] += syn_val * weights
 
     return Synapses(**locals())

@@ -67,10 +67,18 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
             g[post_idx] += weights[idx[0]: idx[1]] * (pre_v[i_] - post_v[post_idx])
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        g_val = syn_state[1][output_idx]
-        # post-neuron inputs
-        post_neu_state[-1] += g_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_neu_state[-1, idx] += g_val[idx] * post_neu_state[-5, idx]
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            # post-neuron inputs
+            post_neu_state[-1] += g_val
 
     def collect_spike(syn_state, pre_neu_state, post_neu_state):
         # spike
@@ -155,12 +163,24 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
         g[:num_post] = g2
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        syn_val = syn_state[1][output_idx]
-        # post-neuron inputs
-        post_neu_state[-1] += syn_val[:num_post]
-        # post-neuron potential
-        post_neu_state[0] += syn_val[num_post:]
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            syn_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                # post-neuron inputs
+                post_neu_state[-1, idx] += syn_val[:num_post] * post_neu_state[-5, idx]
+                # post-neuron potential
+                post_neu_state[0, idx] += syn_val[num_post:] * post_neu_state[-5, idx]
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            syn_val = syn_state[1][output_idx]
+            # post-neuron inputs
+            post_neu_state[-1] += syn_val[:num_post]
+            # post-neuron potential
+            post_neu_state[0] += syn_val[num_post:]
 
     def collect_spike(syn_state, pre_neu_state, post_neu_state):
         # spike

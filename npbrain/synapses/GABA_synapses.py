@@ -74,10 +74,20 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
             g[post_idx] += s[idx[0]: idx[1]]
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        g_val = syn_state[1][output_idx]
-        post_val = - g_max * g_val * (post_neu_state[0] - E)
-        post_neu_state[-1] += post_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
+                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            post_val = - g_max * g_val * (post_neu_state[0] - E)
+            post_neu_state[-1] += post_val
 
     return Synapses(**locals())
 
@@ -157,10 +167,20 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
             g[post_idx] += s[idx[0]: idx[1]]
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        g_val = syn_state[1][output_idx]
-        post_val = - g_max * g_val * (post_neu_state[0] - E)
-        post_neu_state[-1] += post_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
+                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            post_val = - g_max * g_val * (post_neu_state[0] - E)
+            post_neu_state[-1] += post_val
 
     return Synapses(**locals())
 
@@ -255,10 +275,20 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
             g[post_idx] += G[idx[0]: idx[1]]
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        g_val = syn_state[1][output_idx]
-        post_val = - g_val * (post_neu_state[0] - E)
-        post_neu_state[-1] += post_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_val = - g_val[idx] * (post_neu_state[0, idx] - E)
+                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            post_val = - g_val * (post_neu_state[0] - E)
+            post_neu_state[-1] += post_val
 
     return Synapses(**locals())
 
@@ -362,9 +392,19 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
         g = g_max * (g ** 4 / (g ** 4 + 100))
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        g_val = syn_state[1][output_idx]
-        post_val = - g_val * (post_neu_state[0] - E)
-        post_neu_state[-1] += post_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_val = - g_val[idx] * (post_neu_state[0, idx] - E)
+                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            post_val = - g_val * (post_neu_state[0] - E)
+            post_neu_state[-1] += post_val
 
     return Synapses(**locals())

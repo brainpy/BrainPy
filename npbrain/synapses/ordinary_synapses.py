@@ -64,11 +64,14 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
         syn_state[1][delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
         def output_synapse(syn_state, output_idx, post_neu_state):
             g_val = syn_state[1][output_idx]
             for idx in range(num_post):
-                post_neu_state[post_varid, idx] += g_val[idx] * post_neu_state[-5, idx]
+                val = g_val[idx] * post_neu_state[-5, idx]
+                post_neu_state[post_varid, idx] += val
     else:
+
         def output_synapse(syn_state, output_idx, post_neu_state):
             g_val = syn_state[1][output_idx]
             post_neu_state[post_varid] += g_val

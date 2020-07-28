@@ -111,10 +111,20 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
         g = g_inf * g
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        g_val = syn_state[1][output_idx]
-        post_val = - g_max * g_val * (post_neu_state[0] - E)
-        post_neu_state[-1] += post_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
+                post_neu_state[-1] += post_val * post_neu_state[-5, idx]
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            post_val = - g_max * g_val * (post_neu_state[0] - E)
+            post_neu_state[-1] += post_val
 
     def collect_spike(syn_state, pre_neu_state, post_neu_state):
         # spike

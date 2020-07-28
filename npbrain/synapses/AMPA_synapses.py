@@ -70,12 +70,15 @@ def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, na
         syn_state[1][delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
         def output_synapse(syn_state, output_idx, post_neu_state):
             g_val = syn_state[1][output_idx]
             for idx in range(num_post):
                 post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
                 post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+
     else:
+
         def output_synapse(syn_state, output_idx, post_neu_state):
             g_val = syn_state[1][output_idx]
             post_val = - g_max * g_val * (post_neu_state[0] - E)
@@ -156,9 +159,19 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
             g[post_idx] += s[idx[0]: idx[1]]
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        g_val = syn_state[1][output_idx]
-        post_val = - g_max * g_val * (post_neu_state[0] - E)
-        post_neu_state[-1] += post_val
+    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            for idx in range(num_post):
+                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
+                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+
+    else:
+
+        def output_synapse(syn_state, output_idx, post_neu_state):
+            g_val = syn_state[1][output_idx]
+            post_val = - g_max * g_val * (post_neu_state[0] - E)
+            post_neu_state[-1] += post_val
 
     return Synapses(**locals())
