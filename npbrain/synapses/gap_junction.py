@@ -50,10 +50,7 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
     # weights
     if np.size(weights) == 1:
         weights = np.ones(num) * weights
-    elif np.size(weights) == num:
-        weights = weights
-    else:
-        raise ValueError('Unknown weights shape.')
+    assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
 
     def update_state(syn_state, t, delay_idx):
         # get synapse state
@@ -134,10 +131,7 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
     # weights
     if np.size(weights) == 1:
         weights = np.ones(num) * weights
-    elif np.size(weights) == num:
-        weights = weights
-    else:
-        raise ValueError('Unknown weights shape.')
+    assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
 
     def update_state(syn_state, t, delay_idx):
         # get synapse state

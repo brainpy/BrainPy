@@ -129,7 +129,7 @@ def get_numba_profile():
     """
     return {
         'fastmath': _fastmath,
-        'nopython': _nopython
+        'nopython': _nopython,
     }
 
 

@@ -188,9 +188,11 @@ class Synapses(object):
         self.var2index['g_in'][1] = (self.var2index['g_in'][1] + 1) % self.delay_len
         self.var2index['g_out'][1] = (self.var2index['g_out'][1] + 1) % self.delay_len
 
+    @property
     def delay_idx(self):
         return self.var2index['g_in'][1]
 
+    @property
     def output_idx(self):
         return self.var2index['g_out'][1]
 

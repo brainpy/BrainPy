@@ -88,6 +88,11 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
 
     clip = get_clip()
 
+    # weights
+    if np.size(weights) == 1:
+        weights = np.ones(num) * weights
+    assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
+
     @integrate(signature='f8[:](f8[:], f8)')
     def int_u(u, t):
         return - u / tau_f
@@ -102,13 +107,13 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
         x_old = syn_state[2][1]
         pre_spike = syn_state[0][0]
         # calculate synaptic state
-        spike_idx = np.where(pre_spike > 0.)[0]
         u_new = int_u(u_old, t)
         x_new = int_x(x_old, t)
-        for i in spike_idx:
-            idx = anchors[:, i]
-            u_new[idx[0]: idx[1]] += U * (1 - u_old[idx[0]: idx[1]])
-            x_new[idx[0]: idx[1]] -= u_new[idx[0]: idx[1]] * x_old[idx[0]: idx[1]]
+        for i in range(num_pre):
+            if pre_spike[i] > 0.:
+                se = anchors[:, i]
+                u_new[se[0]: se[1]] += U * (1 - u_old[se[0]: se[1]])
+                x_new[se[0]: se[1]] -= u_new[se[0]: se[1]] * x_old[se[0]: se[1]]
         u_new = clip(u_new, 0., 1.)
         x_new = clip(x_new, 0., 1.)
         syn_state[2][0] = u_new
@@ -116,9 +121,12 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
-            idx = anchors[:, i]
-            post_idx = post_ids[idx[0]: idx[1]]
-            g[post_idx] += u_new[idx[0]: idx[1]] * x_new[idx[0]: idx[1]]
+            se = anchors[:, i]
+            post_idx = post_ids[se[0]: se[1]]
+            weight = weights[se[0]: se[1]]
+            u = u_new[se[0]: se[1]]
+            x = x_new[se[0]: se[1]]
+            g[post_idx] += u * x * weight
         syn_state[1][delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
@@ -126,13 +134,13 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
         def output_synapse(syn_state, output_idx, post_neu_state):
             syn_val = syn_state[1][output_idx]
             for idx in range(num_post):
-                val = syn_val[idx] * weights * post_neu_state[-5, idx]
+                val = syn_val[idx] * post_neu_state[-5, idx]
                 post_neu_state[-1, idx] += val
 
     else:
 
         def output_synapse(syn_state, output_idx, post_neu_state):
             syn_val = syn_state[1][output_idx]
-            post_neu_state[-1] += syn_val * weights
+            post_neu_state[-1] += syn_val
 
     return Synapses(**locals())

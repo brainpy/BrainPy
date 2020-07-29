@@ -51,6 +51,11 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
     except KeyError:
         raise KeyError("Post synapse doesn't has variable '{}'.".format(var))
 
+    # weights
+    if np.size(weights) == 1:
+        weights = np.ones(num) * weights
+    assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
+
     def update_state(syn_state, t, delay_idx):
         # get synapse state
         spike = syn_state[0][-1]
@@ -60,7 +65,7 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
         for i_ in spike_idx:
             idx = anchors[:, i_]
             post_idx = post_ids[idx[0]: idx[1]]
-            g[post_idx] += weights
+            g[post_idx] += weights[idx[0]: idx[1]]
         syn_state[1][delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:

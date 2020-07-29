@@ -44,8 +44,6 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
     state = initial_neu_state(1, num)
     state[0] = Vr
 
-    judge_spike = get_spike_judger()
-
     @integrate(method=method, noise=noise / tau, signature='f8[:](f8[:], f8, f8[:])')
     def int_f(V, t, Isyn):
         return (-V + Vr + Isyn) / tau

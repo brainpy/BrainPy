@@ -66,20 +66,20 @@ def Synapse(pre, post, delay=None):
     state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
 
     def update_state(syn_state, t, delay_idx):
-        spike_idx = np.where(syn_state[0][-1] > 0)[0]
-        # get post-synaptic values
         g = np.zeros(num_post * 2)
-        for i_ in spike_idx:
-            if i_ < num_exc:
-                idx = exc_anchors[:, i_]
-                exc_post_idx = exc_post[idx[0]: idx[1]]
-                for idx in exc_post_idx:
-                    g[idx] += we
-            else:
-                idx = inh_anchors[:, i_]
-                inh_post_idx = inh_post[idx[0]: idx[1]]
-                for idx in inh_post_idx:
-                    g[idx + num_post] += wi
+        pre_spike = syn_state[0][-1]
+        for pre_id in range(num_pre):
+            if pre_spike[pre_id] > 0.:
+                if pre_id < num_exc:
+                    idx = exc_anchors[:, pre_id]
+                    exc_post_idx = exc_post[idx[0]: idx[1]]
+                    for idx in exc_post_idx:
+                        g[idx] += we
+                else:
+                    idx = inh_anchors[:, pre_id]
+                    inh_post_idx = inh_post[idx[0]: idx[1]]
+                    for idx in inh_post_idx:
+                        g[idx + num_post] += wi
         syn_state[1][delay_idx] = g
 
     def output_synapse(syn_state, output_idx, post_neu_state):
