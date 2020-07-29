@@ -219,44 +219,35 @@ according to Equation (2)
     def int_f(s, t):
         return - s / tau_decay
 
-    def update_state(syn_state, t, val_index):
-        # get pre-synaptic spikes
+    def update_state(syn_state, t, delay_idx):
+        # get synaptic state
         spike_idx = np.where(syn_state[0][0] > 0.)[0]
-        
-        # evolve the synaptic state
+        # calculate synaptic state
         s = int_f(syn_state[2][0], t)
-        
-        # add the spike value to synapses
         for i in spike_idx:
             idx = anchors[:, i]
             s[idx[0]: idx[1]] += 1
         syn_state[2][0] = s
-        
-        # get the post-synaptic values
+        # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
             idx = anchors[:, i]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        
-        # record the delayed conductance
-        record_conductance(syn_state, var_index, g)
+        syn_state[1][delay_idx] = g
 
 
 The output function is defined according to Equation (2)
 
 .. code-block:: python
 
-    def output_synapse(syn_state, var_index, post_neu_state):
-        # get the conductance output index
-        output_idx = var_index[-2]
-        
+    def output_synapse(syn_state, output_idx, post_neu_state):
         # get the conductance
-        g_val = syn_state[output_idx[0]][output_idx[1]]
-        
+        g_val = syn_state[1][output_idx]
+
         # Equation (2)
         post_val = - g_max * g_val * (post_neu_state[0] - E)
-        
+
         # add computed value to post-synaptic neuron's input receiver
         post_neu_state[-1] += post_val
 
