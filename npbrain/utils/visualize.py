@@ -80,7 +80,7 @@ def mpl_style1(fontsize=22, axes_edgecolor='white', figsize='5,4', lw=1):
 ###############################
 
 
-def plot_value(mon, ts, key, val_index=None, ax=None):
+def plot_value(mon, ts, key, val_index=None, ax=None, xlim=None, show=False):
     """Show the specified value in the given object (Neurons or Synapses.)
 
     Parameters
@@ -108,9 +108,14 @@ def plot_value(mon, ts, key, val_index=None, ax=None):
         ax.plot(ts, getattr(mon, key)[:, idx], label='{}-{}'.format(key, idx))
     if len(val_index) > 1:
         ax.legend()
+    if xlim is not None:
+        plt.xlim(xlim[0], xlim[1])
+    if show:
+        plt.show()
 
 
-def plot_potential(mon, ts, neuron_index=None, ax=None, label=True, show=False):
+def plot_potential(mon, ts, neuron_index=None, ax=None, label=True,
+                   xlim=None, show=False):
     """Show the potential of neurons in the neuron group.
 
     Parameters
@@ -142,11 +147,13 @@ def plot_potential(mon, ts, neuron_index=None, ax=None, label=True, show=False):
     if label:
         plt.ylabel('Membrane potential')
         plt.xlabel('Time (ms)')
+    if xlim:
+        plt.xlim(xlim[0], xlim[1])
     if show:
         plt.show()
 
 
-def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, show=False):
+def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, xlim=None, show=False):
     """Show the rater plot of the spikes.
 
     Parameters
@@ -183,12 +190,13 @@ def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, s
 
     # plot rater
     if ax is None:
-        fig, gs = get_figure(1, 1)
-        ax = fig.add_subplot(gs[0, 0])
+        ax = plt
     ax.plot(time, index, '.' + color, markersize=markersize)
     if label:
         plt.xlabel('Time (ms)')
         plt.ylabel('Neuron index')
+    if xlim:
+        plt.xlim(xlim[0], xlim[1])
     if show:
         plt.show()
 

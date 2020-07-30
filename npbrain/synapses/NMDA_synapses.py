@@ -65,18 +65,13 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
         The constructed AMPA synapses.
     """
 
-    num_pre = pre.num
-    num_post = post.num
-    var2index = {'x': (2, 0), 's': (2, 1), 'post_V': (1, -1)}
+    var2index = {'x': (0, 0), 's': (0, 1)}
 
     pre_indexes, post_indexes, pre_anchors = connection
     num = len(pre_indexes)
+    num_pre, num_post = pre.num, post.num
 
-    # The first (num_syn, ) variable is ``x``
-    # The second (num_syn, ) variable is ``s``
-    # The first last (num_post, ) variable is the post-synaptic potential
-    state = initial_syn_state(delay, num_pre, num_post, num,
-                              num_post_shape_var=1, num_syn_shape_var=2)
+    state = initial_syn_state(delay, num_post=num_post, num_syn=num, num_syn_var=2)
 
     @integrate(signature='f8[:](f8[:], f8)')
     def int_x(x, t):
@@ -86,50 +81,44 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synapse state
-        spike = syn_state[0][0]
-        post_v = syn_state[1][-1]
-        x = syn_state[2][0]
-        s = syn_state[2][1]
+        pre_spike = pre_state[-3]
+        x = syn_state[0][0]
+        s = syn_state[0][1]
         # calculate synaptic state
-        spike_idx = np.where(spike > 0.)[0]
+        spike_idx = np.where(pre_spike > 0.)[0]
         for i in spike_idx:
             idx = pre_anchors[:, i]
-            x[idx[0]: idx[1]] += 1
+            x[idx[0]: idx[1]] += 1.
         x = int_x(x, t)
         s = int_s(s, t, x)
-        syn_state[2][0] = x
-        syn_state[2][1] = s
+        syn_state[0][0] = x
+        syn_state[0][1] = s
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post_v)
-        g = g_inf * g
         syn_state[1][delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            for idx in range(num_post):
-                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
-                post_neu_state[-1] += post_val * post_neu_state[-5, idx]
+            post_v = post_state[0]
+            g = - g_max * g_val * (post_v - E)
+            g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post_v)
+            post_state[-1] += g * g_inf * post_state[-5]
 
     else:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            post_val = - g_max * g_val * (post_neu_state[0] - E)
-            post_neu_state[-1] += post_val
-
-    def collect_spike(syn_state, pre_neu_state, post_neu_state):
-        # spike
-        syn_state[0][-1] = pre_neu_state[-3]
-        # membrane potential of post-synaptic neuron group
-        syn_state[1][-1] = post_neu_state[0]
+            post_v = post_state[0]
+            g = - g_max * g_val * (post_v - E)
+            g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post_v)
+            post_state[-1] += g * g_inf
 
     return Synapses(**locals())

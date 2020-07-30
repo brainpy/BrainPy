@@ -39,12 +39,12 @@ def format_delay(delay, dt=None):
 
 
 def initial_syn_state(delay,
-                      num_pre: int,
-                      num_post: int,
                       num_syn: int,
-                      num_pre_shape_var: int = 0,
-                      num_post_shape_var: int = 0,
-                      num_syn_shape_var: int = 0):
+                      num_syn_var: int = 0,
+                      num_post: int = 0,
+                      num_post_var: int = 0,
+                      num_pre: int = 0,
+                      num_pre_var: int = 0):
     """For each state, it is composed by
     (pre_shape_state, post_shape_state, syn_shape_state).
 
@@ -58,11 +58,11 @@ def initial_syn_state(delay,
         Number of neurons in post-synaptic group.
     num_syn : int
         Number of synapses.
-    num_pre_shape_var : int
+    num_pre_var : int
         Number of variables with (num_pre, ) shape.
-    num_post_shape_var : int
+    num_post_var : int
         Number of variables with (num_post, ) shape.
-    num_syn_shape_var : int
+    num_syn_var : int
         Number of variables with (num_syn, ) shape.
 
     Returns
@@ -78,7 +78,7 @@ def initial_syn_state(delay,
     # --------------------------   [..........],
     #   vars with num_pre shape    [..........],
     # --------------------------   [..........]]
-    pre_shape_state = np.zeros((1 + num_pre_shape_var, num_pre))
+    pre_shape_state = np.zeros((1 + num_pre_var, num_pre))
 
     # state with (post_num, ) shape #
     #################################
@@ -90,7 +90,7 @@ def initial_syn_state(delay,
     # -----------  [..........]]
 
     delay_len = format_delay(delay)
-    post_shape_state = np.zeros((delay_len + num_post_shape_var, num_post))
+    post_shape_state = np.zeros((delay_len + num_post_var, num_post))
 
     # state with (num_syn, ) shape #
     ################################
@@ -98,19 +98,10 @@ def initial_syn_state(delay,
     # -------------------------  [[..........],
     #  vars with num_syn shape    [..........]
     # -------------------------   [..........]]
-    syn_shape_state = np.zeros((num_syn_shape_var, num_syn))
+    syn_shape_state = np.zeros((num_syn_var, num_syn))
 
-    state = (pre_shape_state, post_shape_state, syn_shape_state)
+    state = (syn_shape_state, post_shape_state, pre_shape_state)
     return state
-
-
-def output_synapse(syn_state, var_index, neu_state):
-    output_idx = var_index[-2]
-    neu_state[-1] += syn_state[output_idx[0]][output_idx[1]]
-
-
-def collect_spike(syn_state, pre_neu_state, post_neu_state):
-    syn_state[0][-1] = pre_neu_state[-3]
 
 
 class Synapses(object):
@@ -133,21 +124,13 @@ class Synapses(object):
 
         # check functions
         assert 'update_state' in kwargs, 'Must provide "update_state" function.'
+        assert 'output_synapse' in kwargs, 'Must provide "output_synapse" function.'
 
-        if 'output_synapse' not in kwargs:
-            self.output_synapse = output_synapse
-
-        if 'collect_spike' not in kwargs:
-            self.collect_spike = collect_spike
-
-        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8, i8)')
+        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8, i8, f8[:, :], f8[:, :])')
         self.update_state = wrapper(self.update_state)
 
-        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), i8, f8[:, :])')
+        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), i8, f8[:, :], f8[:, :])')
         self.output_synapse = wrapper(self.output_synapse)
-
-        wrapper = helper.autojit('(UniTuple(f8[:, :], 3), f8[:, :], f8[:, :])')
-        self.collect_spike = wrapper(self.collect_spike)
 
         # check `name`
         if 'name' not in kwargs:
@@ -176,13 +159,13 @@ class Synapses(object):
         assert isinstance(self.var2index, dict), '"var2index" must be a dict.'
         # "g_in" is the "delay_idx"
         # 'g_out' is the "output_idx"
-        default_variables = {'pre_spike': (0, -1), 'g_in': [1, self.delay_len - 1], 'g_out': [1, 0]}
-        self.default_variables = default_variables
-        for k in default_variables.keys():
+        default_var2index = {'pre_spike': (0, -1), 'g_in': [1, self.delay_len - 1], 'g_out': [1, 0]}
+        self.default_var2index = default_var2index
+        for k in default_var2index.keys():
             if k in self.var2index:
                 raise ValueError('"{}" is a pre-defined variable, '
                                  'cannot be defined in "var2index".'.format(k))
-        self.var2index.update(default_variables)
+        self.var2index.update(default_var2index)
 
     def update_conductance_index(self):
         self.var2index['g_in'][1] = (self.var2index['g_in'][1] + 1) % self.delay_len

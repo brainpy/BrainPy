@@ -73,18 +73,14 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     .. [1] Tsodyks, Misha, Klaus Pawelzik, and Henry Markram. "Neural networks
            with dynamic synapses." Neural computation 10.4 (1998): 821-835.
     """
-    num_pre = pre.num
-    num_post = post.num
-    var2index = {'u': (2, 0), 'x': (2, 1)}
+    var2index = {'u': (0, 0), 'x': (0, 1)}
 
     pre_ids, post_ids, anchors = connection
     num = len(pre_ids)
-
-    # The first (num_syn, ) shape variable is "u"
-    # The second (num_syn, ) shape variable is "x"
-    state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=2)
-    state[2][0] = np.ones(num) * u0
-    state[2][1] = np.ones(num) * x0
+    num_pre, num_post = pre.num, post.num
+    state = initial_syn_state(delay, num_syn=num, num_post=num_post, num_syn_var=2)
+    state[0][0] = np.ones(num) * u0
+    state[0][1] = np.ones(num) * x0
 
     clip = get_clip()
 
@@ -101,11 +97,11 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     def int_x(x, t):
         return (1 - x) / tau_d
 
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synapse state
-        u_old = syn_state[2][0]
-        x_old = syn_state[2][1]
-        pre_spike = syn_state[0][0]
+        u_old = syn_state[0][0]
+        x_old = syn_state[0][1]
+        pre_spike = pre_state[-3]
         # calculate synaptic state
         u_new = int_u(u_old, t)
         x_new = int_x(x_old, t)
@@ -116,31 +112,31 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
                 x_new[se[0]: se[1]] -= u_new[se[0]: se[1]] * x_old[se[0]: se[1]]
         u_new = clip(u_new, 0., 1.)
         x_new = clip(x_new, 0., 1.)
-        syn_state[2][0] = u_new
-        syn_state[2][1] = x_new
+        syn_state[0][0] = u_new
+        syn_state[0][1] = x_new
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
             se = anchors[:, i]
-            post_idx = post_ids[se[0]: se[1]]
             weight = weights[se[0]: se[1]]
             u = u_new[se[0]: se[1]]
             x = x_new[se[0]: se[1]]
+            post_idx = post_ids[se[0]: se[1]]
             g[post_idx] += u * x * weight
         syn_state[1][delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             syn_val = syn_state[1][output_idx]
             for idx in range(num_post):
-                val = syn_val[idx] * post_neu_state[-5, idx]
-                post_neu_state[-1, idx] += val
+                val = syn_val[idx] * post_state[-5, idx]
+                post_state[-1, idx] += val
 
     else:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             syn_val = syn_state[1][output_idx]
-            post_neu_state[-1] += syn_val
+            post_state[-1] += syn_val
 
     return Synapses(**locals())

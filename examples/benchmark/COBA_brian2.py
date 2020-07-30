@@ -3,8 +3,8 @@ from brian2 import *
 import npbrain as nn
 
 defaultclock.dt = 0.05 * ms
-# set_device('cpp_standalone', directory='brian2_COBAHH')
-prefs.codegen.target = "cython"
+set_device('cpp_standalone', directory='brian2_COBA')
+# prefs.codegen.target = "cython"
 
 # ###########################################
 # Network parameters
@@ -73,7 +73,7 @@ net.add(s_mon, P, Ce, Ci)
 
 # Run for 0 second in order to measure compilation time
 t1 = time.time()
-net.run(5. * second)
+net.run(5. * second, report='text')
 t2 = time.time()
 print('Done in', t2 - t1)
 

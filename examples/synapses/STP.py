@@ -6,7 +6,7 @@ import npbrain as nn
 nn.profile.set_backend('numpy')
 
 
-def run_stp(cls, num_pre=5, num_post=10, weights=5.,
+def run_stp(cls, num_pre=5, num_post=10, weights=1.,
             prob=1., monitor=[], run_duration=300, stimulus_gap=10):
     pre = nn.FreqInput(num_pre, freq=1e3 / stimulus_gap, start_time=20.)
     post = nn.generate_fake_neuron(num_post)
@@ -26,6 +26,5 @@ def run_stp(cls, num_pre=5, num_post=10, weights=5.,
 
 
 if __name__ == '__main__':
-    for num in [1, 10]:
-        run_stp(nn.STP, num_pre=num, num_post=num, stimulus_gap=50,
-                monitor=['g_out', 'x', 'u'])
+    run_stp(nn.STP, num_pre=2, num_post=2, stimulus_gap=50, monitor=['g_out', 'x', 'u'])
+    run_stp(nn.STP, num_pre=10, num_post=10, stimulus_gap=50, monitor=['g_out', 'x', 'u'])

@@ -5,6 +5,7 @@ import numpy as np
 
 import npbrain as nn
 nn.profile.set_backend('numba')
+nn.profile.predefine_signature = False
 
 dt = 0.1
 nn.profile.set_dt(dt)
@@ -59,15 +60,12 @@ inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(
 
 def Synapse(pre, post, delay=None):
     var2index = dict()
-    num_pre = pre.num
-    num_post = post.num
+    num_pre, num_post, num = pre.num, post.num, len(exc_pre)
+    state = nn.initial_syn_state(delay, num_post=num_post * 2, num_syn=num)
 
-    num = len(exc_pre)
-    state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
-
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         g = np.zeros(num_post * 2)
-        pre_spike = syn_state[0][-1]
+        pre_spike = pre_state[-3]
         for pre_id in range(num_pre):
             if pre_spike[pre_id] > 0.:
                 if pre_id < num_exc:
@@ -82,13 +80,13 @@ def Synapse(pre, post, delay=None):
                         g[idx + num_post] += wi
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        syn_val = syn_state[2][output_idx]
+    def output_synapse(syn_state, output_idx, pre_state, post_state):
+        syn_val = syn_state[1][output_idx]
         ge = syn_val[:num_post]
         gi = syn_val[num_post:]
         for idx in range(num_post):
-            post_neu_state[1, idx] += ge[idx] * post_neu_state[-5, idx]
-            post_neu_state[2, idx] += gi[idx] * post_neu_state[-5, idx]
+            post_state[1, idx] += ge[idx] * post_state[-5, idx]
+            post_state[2, idx] += gi[idx] * post_state[-5, idx]
 
     return nn.Synapses(**locals())
 

@@ -42,30 +42,29 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
     synapse : Synapses
         The constructed GABAa synapses.
     """
-    num_pre = pre.num
-    num_post = post.num
-    var2index = {'s': (2, 0)}
+    var2index = {'s': (0, 0)}
 
     pre_indexes, post_indexes, pre_anchors = connection
+    
     num = len(pre_indexes)
-
-    state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
+    num_pre, num_post = pre.num, post.num
+    state = initial_syn_state(delay, num_post=num_post, num_syn=num, num_syn_var=1)
 
     @integrate(signature='f8[:](f8[:], f8)')
     def int_s(s, t):
         return - s / tau_decay
 
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synaptic state
-        s = syn_state[2][0]
+        s = syn_state[0][0]
         s = int_s(s, t)
-        spike = syn_state[0][0]
+        pre_spike = pre_state[-3]
         # calculate synaptic state
-        spike_idx = np.where(spike > 0.)[0]
+        spike_idx = np.where(pre_spike > 0.)[0]
         for i in spike_idx:
             idx = pre_anchors[:, i]
             s[idx[0]: idx[1]] += 1
-        syn_state[2][0] = s
+        syn_state[0][0] = s
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
@@ -76,18 +75,17 @@ def GABAa1(pre, post, connection, g_max=0.4, E=-80., tau_decay=6., delay=None, n
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            for idx in range(num_post):
-                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
-                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+            post_val = - g_max * g_val * (post_state[0] - E)
+            post_state[-1] += post_val * post_state[-5]
 
     else:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            post_val = - g_max * g_val * (post_neu_state[0] - E)
-            post_neu_state[-1] += post_val
+            post_val = - g_max * g_val * (post_state[0] - E)
+            post_state[-1] += post_val
 
     return Synapses(**locals())
 
@@ -126,17 +124,13 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
     synapse : Synapses
         The constructed GABAa synapses.
     """
-    num_pre = pre.num
-    num_post = post.num
-    var2index = {'s': (2, 0), 'pre_spike_time': (2, 1)}
+    var2index = {'s': (0, 0), 'syn_spike_time': (0, 1)}
 
     pre_indexes, post_indexes, pre_anchors = connection
     num = len(pre_indexes)
-
-    # The first (num_syn, ) variable is ``s``
-    # The second (num_syn, ) variable if the last_spike time
-    state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=2)
-    state[2][1] = -np.inf
+    num_pre, num_post = pre.num, post.num
+    state = initial_syn_state(delay, num_post=num_post, num_syn=num, num_syn_var=2)
+    state[0][1] = -np.inf
 
     clip = get_clip()
 
@@ -144,21 +138,21 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synaptic state
-        spike = syn_state[0][0]
-        s = syn_state[2][0]
-        last_spike = syn_state[2][1]
+        pre_spike = pre_state[-3]
+        s = syn_state[0][0]
+        last_spike = syn_state[0][1]
         # calculate synaptic state
-        spike_idx = np.where(spike > 0.)[0]
+        spike_idx = np.where(pre_spike > 0.)[0]
         for i in spike_idx:
             idx = pre_anchors[:, i]
             last_spike[idx[0]: idx[1]] = t
         TT = ((t - last_spike) < T_duration).astype(np.float64) * T
         s = int_s(s, t, TT)
         s = clip(s, 0., 1.)
-        syn_state[2][0] = s
-        syn_state[2][1] = last_spike
+        syn_state[0][0] = s
+        syn_state[0][1] = last_spike
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
@@ -169,18 +163,17 @@ def GABAa2(pre, post, connection, g_max=0.04, E=-80., alpha=0.53, beta=0.18,
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            for idx in range(num_post):
-                post_val = - g_max * g_val[idx] * (post_neu_state[0, idx] - E)
-                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+            post_val = - g_max * g_val * (post_state[0] - E)
+            post_state[-1] += post_val * post_state[-5]
 
     else:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            post_val = - g_max * g_val * (post_neu_state[0] - E)
-            post_neu_state[-1] += post_val
+            post_val = - g_max * g_val * (post_state[0] - E)
+            post_state[-1] += post_val
 
     return Synapses(**locals())
 
@@ -226,18 +219,14 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
     synapse : Synapses
         The constructed GABAb synapses.
     """
-    num_pre = pre.num
-    num_post = post.num
-    var2index = {'R': (2, 0), 'G': (2, 1), 'pre_spike_time': (2, 2)}
+    var2index = {'R': (0, 0), 'G': (0, 1), 'syn_spike_time': (0, 2)}
 
     pre_indexes, post_indexes, pre_anchors = connection
-    num = len(pre_indexes)
 
-    # The first (num_syn, ) variable is ``R``
-    # The second (num_syn, ) variable is ``G``
-    # The third (num_syn, ) variable if the last_spike time
-    state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=3)
-    state[2][2] = -np.inf
+    num = len(pre_indexes)
+    num_pre, num_post = pre.num, post.num
+    state = initial_syn_state(delay, num_post=num_post, num_syn=num, num_syn_var=3)
+    state[0][2] = -np.inf
 
     clip = get_clip()
 
@@ -249,23 +238,23 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
     def int_G(G, t, R):
         return k1 * R - k2 * G
 
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synaptic state
-        spike = syn_state[0][0]
-        R = syn_state[2][0]
-        G = syn_state[2][1]
-        last_spike = syn_state[2][2]
+        pre_spike = pre_state[-3]
+        R = syn_state[0][0]
+        G = syn_state[0][1]
+        last_spike = syn_state[0][2]
         # calculate synaptic state
-        spike_idx = np.where(spike > 0.)[0]
+        spike_idx = np.where(pre_spike > 0.)[0]
         for i in spike_idx:
             idx = pre_anchors[:, i]
             last_spike[idx[0]: idx[1]] = t
         TT = ((t - last_spike) < T_duration).astype(np.float64) * T
         R = clip(int_R(R, t, TT), 0., 1.)
         G = int_G(G, t, R)
-        syn_state[2][0] = R
-        syn_state[2][1] = G
-        syn_state[2][2] = last_spike
+        syn_state[0][0] = R
+        syn_state[0][1] = G
+        syn_state[0][2] = last_spike
         # get post-synaptic values
         G = g_max * (G ** 4 / (G ** 4 + 100))
         g = np.zeros(num_post)
@@ -277,18 +266,17 @@ def GABAb1(pre, post, connection, g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            for idx in range(num_post):
-                post_val = - g_val[idx] * (post_neu_state[0, idx] - E)
-                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+            post_val = - g_val * (post_state[0] - E)
+            post_state[-1] += post_val * post_state[-5]
 
     else:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            post_val = - g_val * (post_neu_state[0] - E)
-            post_neu_state[-1] += post_val
+            post_val = - g_val * (post_state[0] - E)
+            post_state[-1] += post_val
 
     return Synapses(**locals())
 
@@ -336,19 +324,14 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
     synapse : Synapses
         The constructed GABAb synapses.
     """
-    num_pre = pre.num
-    num_post = post.num
-    var2index = {'D': (2, 0), 'R': (2, 1), 'G': (2, 2), 'pre_spike_time': (2, 2)}
+    var2index = {'D': (0, 0), 'R': (0, 1), 'G': (0, 2), 'syn_spike_time': (0, 3)}
 
     pre_indexes, post_indexes, pre_anchors = connection
-    num = len(pre_indexes)
 
-    # The first (num_syn, ) variable is ``D``
-    # The second (num_syn, ) variable is ``R``
-    # The third (num_syn, ) variable is ``G``
-    # The fourth (num_syn, ) variable if the last_spike time
-    state = initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=4)
-    state[2][3] = -np.inf
+    num = len(pre_indexes)
+    num_pre, num_post = pre.num, post.num
+    state = initial_syn_state(delay, num_post=num_post, num_syn=num, num_syn_var=4)
+    state[0][3] = -np.inf
 
     clip = get_clip()
 
@@ -364,14 +347,14 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
     def int_G(G, t, R):
         return k5 * R - k6 * G
 
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # calculate synaptic state
-        spike = syn_state[0][0]
-        D = syn_state[2][0]
-        R = syn_state[2][1]
-        G = syn_state[2][2]
-        last_spike = syn_state[2][3]
-        spike_idx = np.where(spike > 0.)[0]
+        pre_spike = pre_state[-3]
+        D = syn_state[0][0]
+        R = syn_state[0][1]
+        G = syn_state[0][2]
+        last_spike = syn_state[0][3]
+        spike_idx = np.where(pre_spike > 0.)[0]
         for i in spike_idx:
             idx = pre_anchors[:, i]
             last_spike[idx[0]: idx[1]] = t
@@ -379,10 +362,10 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
         D = int_D(D, t, R)
         R = int_R(R, t, TT, D)
         G = int_G(G, t, R)
-        syn_state[2][0] = D
-        syn_state[2][1] = R
-        syn_state[2][2] = G
-        syn_state[2][3] = last_spike
+        syn_state[0][0] = D
+        syn_state[0][1] = R
+        syn_state[0][2] = G
+        syn_state[0][3] = last_spike
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
@@ -394,17 +377,16 @@ def GABAb2(pre, post, connection, g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.005
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            for idx in range(num_post):
-                post_val = - g_val[idx] * (post_neu_state[0, idx] - E)
-                post_neu_state[-1, idx] += post_val * post_neu_state[-5, idx]
+            post_val = - g_val * (post_state[0] - E)
+            post_state[-1] += post_val * post_state[-5]
 
     else:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            post_val = - g_val * (post_neu_state[0] - E)
-            post_neu_state[-1] += post_val
+            post_val = - g_val * (post_state[0] - E)
+            post_state[-1] += post_val
 
     return Synapses(**locals())

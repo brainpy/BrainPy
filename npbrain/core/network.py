@@ -298,9 +298,8 @@ class Network(object):
     def _step(self, t, run_idx):
         for obj in self.objects:
             if isinstance(obj, Synapses):
-                obj.output_synapse(obj.state, obj.output_idx, obj.post.state)
-                obj.collect_spike(obj.state, obj.pre.state, obj.post.state)
-                obj.update_state(obj.state, t, obj.delay_idx)
+                obj.output_synapse(obj.state, obj.output_idx, obj.pre.state, obj.post.state)
+                obj.update_state(obj.state, t, obj.delay_idx, obj.pre.state, obj.post.state)
                 obj.update_conductance_index()
             elif isinstance(obj, Neurons):
                 obj.update_state(obj.state, t)

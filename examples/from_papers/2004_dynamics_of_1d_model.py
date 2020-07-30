@@ -52,7 +52,7 @@ lif = LIF(N)
 mon = nn.SpikeMonitor(lif)
 net = nn.Network(lif=lif, mon=mon)
 
-net.run(10e3, report=True, inputs=[lif, inputs])
+net.run(10* 1e3, report=True, inputs=[lif, inputs])
 
 idx, time = np.array(mon.index), np.array(mon.time)
 idx_selected = np.where(time >= 5000)[0]

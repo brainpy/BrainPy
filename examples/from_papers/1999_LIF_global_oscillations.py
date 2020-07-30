@@ -16,27 +16,12 @@ import npbrain as nn
 nn.profile.set_backend('numba')
 nn.profile.set_dt(dt=0.1)
 
-Vr = 10
-theta = 20
-tau = 20
-delta = 2
-taurefr = 2
-duration = 100
-C = 1000
-N = 5000
-sparseness = float(C) / N
-J = .1
-muext = 25
-sigmaext = 1.
-
-
-lif = nn.LIF(N, Vr=Vr, Vth=theta, tau=tau, ref=taurefr,
-             noise=sigmaext * np.sqrt(tau))
-conn = nn.connect.fixed_prob(lif.num, lif.num, sparseness, False)
-syn = nn.VoltageJumpSynapse(lif, lif, -J, delay=delta, connection=conn)
+lif = nn.LIF(5000, Vr=10, Vth=20, tau=20, ref=2, noise=np.sqrt(20))
+conn = nn.connect.fixed_prob(lif.num, lif.num, prob=0.2, include_self=False)
+syn = nn.VoltageJumpSynapse(lif, lif, weights=-0.1, delay=2, connection=conn)
 mon = nn.SpikeMonitor(lif)
 
 net = nn.Network(syn=syn, lif=lif, mon=mon)
-net.run(duration, inputs=[lif, muext], report=True)
+net.run(duration=100., inputs=[lif, 25], report=True)
 
 nn.visualize.plot_raster(mon, show=True)

@@ -1,7 +1,7 @@
 from brian2 import *
 
-# set_device('cpp_standalone', directory='brian2_CUBA')
-prefs.codegen.target = "cython"
+set_device('cpp_standalone', directory='brian2_CUBA')
+# prefs.codegen.target = "cython"
 
 taum = 20 * ms
 taue = 5 * ms
@@ -32,7 +32,7 @@ Ci.connect('i>=3200', p=0.02)
 s_mon = SpikeMonitor(P)
 
 t0 = time.time()
-run(5 * second)
+run(5 * second, report='text')
 print('{}. Used time {} s.'.format(prefs.codegen.target, time.time() - t0))
 
 plot(s_mon.t / ms, s_mon.i, ',k')

@@ -168,8 +168,11 @@ class Neurons(object):
         Parameters of the given neuron group.
     """
 
-    default_variables = [('Isyn', -1), ('spike_time', -2), ('spike', -3),
-                         ('above_threshold', -4), ('not_refractory', -5)]
+    default_var2index = {'Isyn': -1,
+                         'spike_time': -2,
+                         'spike': -3,
+                         'above_threshold': -4,
+                         'not_refractory': -5}
 
     def __init__(self, **kwargs):
         if 'args' in kwargs:
@@ -205,7 +208,7 @@ class Neurons(object):
         if 'var2index' not in kwargs:
             raise ValueError('Must define "var2index".')
         assert isinstance(self.var2index, dict), '"var2index" must be a dict.'
-        for k, _ in self.default_variables:
+        for k in self.default_var2index.keys():
             if k in self.var2index:
                 if k == 'V':
                     if self.var2index['V'] != 0:
@@ -213,15 +216,7 @@ class Neurons(object):
                 else:
                     raise ValueError('"{}" is a pre-defined variable, cannot '
                                      'be defined in "var2index".'.format(k))
-        user_defined_variables = sorted(list(self.var2index.items()), key=lambda a: a[1])
-        neu_variables = user_defined_variables + self.default_variables
-        var2index_array = np.zeros((len(neu_variables),), dtype=np.int32)
-        vars = dict()
-        for i, (var, index) in enumerate(neu_variables):
-            var2index_array[i] = index
-            vars[var] = i
-        self.var2index = vars
-        self.var2index_array = var2index_array
+        self.var2index.update(self.default_var2index)
 
     def __str__(self):
         return self.name
@@ -279,7 +274,7 @@ def generate_fake_neuron(num, V=0.):
     """
 
     var2index = dict(V=0)
-    num, geometry = num, (num, )
+    num, geometry = num, (num,)
     state = np.zeros((5, num))
     state[0] = V
     update_state = helper.autojit(lambda neu_state, t: 1)

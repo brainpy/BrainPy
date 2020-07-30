@@ -122,16 +122,16 @@ inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(
     list(range(num_exc, num_exc + num_inh)), num_exc + num_inh, 0.02, include_self=False)
 
 
-def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
+def Synapse(pre, post, delay=None):
     var2index = dict()
     num_pre = pre.num
     num_post = post.num
 
     num = len(exc_pre)
-    state = nn.initial_syn_state(delay, num_pre, num_post * 2, num)
+    state = nn.initial_syn_state(delay, num_post=num_post * 2, num_syn=num)
 
-    def update_state(syn_state, t, delay_idx):
-        spike_idx = np.where(syn_state[0][-1] > 0)[0]
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+        spike_idx = np.where(pre_state[-3] > 0)[0]
         g = np.zeros(num_post * 2)
         for i_ in spike_idx:
             if i_ < num_exc:
@@ -146,13 +146,13 @@ def Synapse(pre, post, delay=None, name='voltage_jump_synapse'):
                     g[num_post + pi] += wi
         syn_state[1][delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
+    def output_synapse(syn_state, output_idx, pre_state, post_state):
         syn_val = syn_state[1][output_idx]
         ge = syn_val[:num_post]
         gi = syn_val[num_post:]
         for idx in range(num_post):
-            post_neu_state[4, idx] += ge[idx]
-            post_neu_state[5, idx] += gi[idx]
+            post_state[4, idx] += ge[idx]
+            post_state[5, idx] += gi[idx]
 
     return nn.Synapses(**locals())
 

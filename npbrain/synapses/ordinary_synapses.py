@@ -38,13 +38,12 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
     synapse : Synapses
         The constructed ordinary synapses.
     """
-    num_pre = pre.num
-    num_post = post.num
     var2index = dict()
 
     pre_ids, post_ids, anchors = connection
     num = len(pre_ids)
-    state = initial_syn_state(delay, num_pre, num_post, num)
+    num_pre, num_post = pre.num, post.num
+    state = initial_syn_state(delay, num_syn=num, num_post=num_post)
 
     try:
         post_varid = post.var2index[var]
@@ -56,10 +55,10 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
         weights = np.ones(num) * weights
     assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
 
-    def update_state(syn_state, t, delay_idx):
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synapse state
-        spike = syn_state[0][-1]
-        spike_idx = np.where(spike > 0)[0]
+        pre_spike = pre_state[-3]
+        spike_idx = np.where(pre_spike > 0)[0]
         # get post-synaptic values
         g = np.zeros(num_post)
         for i_ in spike_idx:
@@ -70,15 +69,15 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
             for idx in range(num_post):
-                val = g_val[idx] * post_neu_state[-5, idx]
-                post_neu_state[post_varid, idx] += val
+                val = g_val[idx] * post_state[-5, idx]
+                post_state[post_varid, idx] += val
     else:
 
-        def output_synapse(syn_state, output_idx, post_neu_state):
+        def output_synapse(syn_state, output_idx, pre_state, post_state):
             g_val = syn_state[1][output_idx]
-            post_neu_state[post_varid] += g_val
+            post_state[post_varid] += g_val
 
     return Synapses(**locals())

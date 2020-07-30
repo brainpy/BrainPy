@@ -1,7 +1,7 @@
 from brian2 import *
 
-# set_device('cpp_standalone', directory='brian2_COBAHH')
-prefs.codegen.target = "cython"
+set_device('cpp_standalone', directory='brian2_COBAHH')
+# prefs.codegen.target = "cython"
 np.random.seed(12345)
 defaultclock.dt = 0.1 * ms
 
@@ -75,7 +75,7 @@ else:
 
 # Record a few traces
 t0 = time.time()
-run(10 * second)
+run(10 * second, report='text')
 print('{}. Used time {} s.'.format(prefs.codegen.target, time.time() - t0))
 
 if monitor == 'V':

@@ -55,6 +55,8 @@ __all__ = [
 _backend = 'numpy'
 _nopython = True
 _fastmath = True
+_nogil = False
+_parallel = False
 predefine_signature = True
 
 
@@ -111,6 +113,8 @@ def set_numba(**kwargs):
     """
     global _fastmath
     global _nopython
+    global _nogil
+    global _parallel
     global predefine_signature
 
     if 'fastmath' in kwargs:
@@ -119,6 +123,9 @@ def set_numba(**kwargs):
         _nopython = kwargs.pop('nopython')
     if 'pre_sig' in kwargs:
         predefine_signature = kwargs.pop('pre_sig')
+    if 'parallel' in kwargs:
+        _parallel = kwargs.pop('parallel')
+        _nogil = _parallel
 
 
 def get_numba_profile():
@@ -130,6 +137,8 @@ def get_numba_profile():
     return {
         'fastmath': _fastmath,
         'nopython': _nopython,
+        'nogil': _nogil,
+        'parallel': _parallel,
     }
 
 
