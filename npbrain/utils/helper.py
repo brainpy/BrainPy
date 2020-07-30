@@ -26,6 +26,7 @@ __all__ = [
     'ddict',
 
     # 'others'
+    'clip',
     'get_clip'
 ]
 

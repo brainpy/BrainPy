@@ -1,6 +1,24 @@
 Release notes
 =============
 
+NumpyBrain 0.2.7
+----------------
+
+API changes
+~~~~~~~~~~~
+
+* remove 'collect_spike()' in synapse
+* change the way of synapse conductance index updating
+* support to pre-define numba signatures
+* fix bugs in `utils.Dict()`
+* change profile setting
+
+Models and examples
+~~~~~~~~~~~~~~~~~~~
+
+* add refractory consideration in `AMPA`, `GABA`, `STP`, `GJ` synapses
+* add variable choice to link in `VoltageJumpSynapse`
+
 
 NumpyBrain 0.2.6
 ----------------

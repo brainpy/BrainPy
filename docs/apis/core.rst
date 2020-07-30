@@ -67,7 +67,6 @@ Synapses
 .. autosummary::
     :toctree: _autosummary
 
-    record_conductance
     format_delay
     initial_syn_state
 

@@ -5,6 +5,7 @@ import numpy as np
 from npbrain.utils import helper
 
 __all__ = [
+    'judge_spike',
     'get_spike_judger',
     'initial_neu_state',
     'format_geometry',

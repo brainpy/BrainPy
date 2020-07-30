@@ -92,8 +92,14 @@ essential for the model state regulation and running.
 update_state()
 **************
 
-``update_state()`` function points out how the neuron model evolves. It is
-written according to the differential equations of the neuron models.
+``update_state()`` function points out how the neuron model evolves.
+
+.. code-block:: python
+
+    def update_state(neu_state, t):
+        do_something ...
+
+It is written according to the differential equations of the neuron models.
 In order to make the numerical integration of differential equations easier,
 NumpyBrain provides a decorator function ``@integrate`` to help construct
 numerical integration functions. The supported integration algorithms please

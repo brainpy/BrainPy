@@ -29,25 +29,25 @@ dynamical variables, the static variables and others.
 
     Figure 1. The state in a synapses model. 
 
-1. The first state matrix with the shape of :math:`(L1, num\_pre)` represents 
-   the state variables with the length of :math:`num\_pre` (see Figure 1, 
-   `Pre-shape state`), for example, the pre-synaptic spikes, or the pre-synaptic 
-   membrane potentials. The last array is fixed to receive the pre-synaptic 
-   spikes (the box with the solid lines). Other rows are free for users to 
-   define other variables.
+1. The first state matrix with the shape of :math:`(L1, num\_syn)` is the state
+   represents synapse-shaped variables. Each array has the length of
+   :math:`num\_syn`. This matrix is created according to the user demands.
 2. The second state matrix with the shape of :math:`(L2, num\_post)` denotes the 
    collection of the state variables with the length of :math:`num\_post` (see 
    Figure 1, `Post-shape state`), for example, the delayed conductance which 
    going to deliver to the post-synaptic neurons, or the post-synaptic membrane 
    potentials. In NumpyBrain, the first :math:`delay\_length` arrays are used to
    constain the delayed conductance. 
-3. The third state matrix with the shape of :math:`(L3, num\_syn)` is the state 
-   represents synapse-shaped variables. Each array has the length of 
-   :math:`num\_syn`. This matrix is created according to the user demands.
+3. The third state matrix with the shape of :math:`(L3, num\_pre)` represents
+   the state variables with the length of :math:`num\_pre` (see Figure 1,
+   `Pre-shape state`), for example, the pre-synaptic spikes, or the pre-synaptic
+   membrane potentials. The last array is fixed to receive the pre-synaptic
+   spikes (the box with the solid lines). Other rows are free for users to
+   define other variables.
 
 Here, we sould pay attention on the conductance delays. In order to get the 
 efficient deley computation, we fix the delay matrix (with a dimension of 
-:math:`(delay\_lendth, num\_post)`), and rotate it at each updating time-step
+:math:`(delay\_length, num\_post)`), and rotate it at each updating time-step
 (see Figure 2). In Figure 2, we denote the array position of output conductance 
 as `out`, and the array reveiving the input conductance as `in`. As illustrated, 
 at :math:`t=0`, the conductance `out` delivering to the post-synaptic neurons is 
@@ -73,7 +73,7 @@ model for example,
 
 .. code-block:: python
 
-    var2index = {'u': (2, 0), 'x': (2, 1)}
+    var2index = {'u': (0, 0), 'x': (0, 1)}
 
 represents the variable :math:`x` and the utilization parameter :math:`u` is stored
 at first and second row in the third matrix `state[2]`, respectively.
@@ -96,41 +96,39 @@ update_state()
 ``update_state()`` is a must defined function to update `synapses` model's state.
 It is written according to synapse dynamics.
 
+.. code-block:: python
+
+    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+        do_something ...
+
+where `delay_idx` is the position of delayed conductance to append.
+`delay_idx` is automatically computed by the framework. Users can use it
+directly to compute synaptic values.
+
 
 output_synapse()
 ****************
 
-``output_synapse()`` function must be defined to output the computed synaptic values.  
-It is an interface between `synapses` and the `post-synaptic neurons`. 
-
-The default `output_synapse()` function is to add the delayed `conductance` (here 
-is the current) to the `state` position of `post-synaptic neurons` which receives 
-the synaptic inputs, i.e.,
+``output_synapse()`` function must be defined to output the computed synaptic values.
 
 .. code-block:: python
 
-    neu_state[-1] += syn_state[output_idx[0]][output_idx[1]]
-
-where `neu_state[-1]` is the neuron array receiving the synaptic input, 
-and `output_idx` is the position of output conductance in the synapse state. 
+    def output_synapse(syn_state, output_idx, pre_state, post_state):
+        do_something ...
 
 
-collect_spike()
-***************
-
-``collect_spike()`` function must be defined to collect spikes from the pre-synaptic 
-and post-synaptic neurons. It is also an interface, which guarantee the `synapses` 
-model is an independent component. 
-
-The default `collect_spike()` function is to collect the spiking state of 
-pre-synaptic neurons to the `pre-shaped state`, i.e.,
+For example, for a `VoltageJumpSynapse`, where the delayed `conductance` (here
+is the current) is added to the `state` position of `post-synaptic neurons`
+which receives the synaptic inputs, i.e.,
 
 .. code-block:: python
 
-    syn_state[0][-1] = pre_neu_state[-3]
+    def output_synapse(syn_state, output_idx, pre_state, post_state):
+        post_state[-1] += syn_state[1][output_idx]
 
-where `syn_state[0][-1]` is the fixed synapse array to receive pre-synaptic spikes,
-and `pre_neu_state[-3]` is the spiking state array of pre-synaptic neuron.
+where `post_state[-1]` is the neuron array receiving the synaptic input,
+and `output_idx` is the position of output conductance in the synapse state,
+which is automatically inferred by the framework.
 
 
 Define your own synapse models

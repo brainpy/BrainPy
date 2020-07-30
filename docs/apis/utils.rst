@@ -116,8 +116,6 @@ Helper of functions.
 .. autosummary::
     :toctree: _autosummary
 
-    jit_function
-    jit_lambda
     autojit
     func_copy
 
