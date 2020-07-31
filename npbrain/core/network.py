@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from npbrain.utils import profile
-from npbrain.core.monitor import SpikeMonitor, StateMonitor, Monitor
+from npbrain.core.monitor import SpikeMonitor, StateMonitor
 from npbrain.core.neuron import Neurons
 from npbrain.core.synapse import Synapses
 from npbrain.utils.helper import Dict
@@ -31,7 +31,8 @@ class Network(object):
         # store and neurons and synapses
         self.neurons = []
         self.synapses = []
-        self.monitors = []
+        self.state_monitors = []
+        self.spike_monitors = []
 
         # store all objects
         self._objsets = Dict()
@@ -113,7 +114,7 @@ class Network(object):
         """
         # 1. checking
         # ------------
-        self._check_run_order()
+        # self._check_run_order()
 
         # 2. initialization
         # ------------------
@@ -124,7 +125,9 @@ class Network(object):
         run_length = len(ts)
 
         # monitors
-        for mon in self.monitors:
+        for mon in self.state_monitors:
+            mon.init_state(run_length)
+        for mon in self.spike_monitors:
             mon.init_state(run_length)
 
         # neurons
@@ -197,8 +200,10 @@ class Network(object):
             self.neurons.append(obj)
         elif isinstance(obj, Synapses):
             self.synapses.append(obj)
-        elif isinstance(obj, Monitor):
-            self.monitors.append(obj)
+        elif isinstance(obj, StateMonitor):
+            self.state_monitors.append(obj)
+        elif isinstance(obj, SpikeMonitor):
+            self.spike_monitors.append(obj)
         else:
             raise ValueError('Unknown object type: {}'.format(type(obj)))
         self.objects.append(obj)
@@ -296,17 +301,14 @@ class Network(object):
             receiver.state[-1] = 0.
 
     def _step(self, t, run_idx):
-        for obj in self.objects:
-            if isinstance(obj, Synapses):
-                obj.output_synapse(obj.state, obj.output_idx, obj.pre.state, obj.post.state)
-                obj.update_state(obj.state, t, obj.delay_idx, obj.pre.state, obj.post.state)
-                obj.update_conductance_index()
-            elif isinstance(obj, Neurons):
-                obj.update_state(obj.state, t)
-            elif isinstance(obj, StateMonitor):
-                vars_idx = obj.target_index_by_vars()
-                obj.update_state(obj.target.state, obj.state, vars_idx, run_idx)
-            elif isinstance(obj, SpikeMonitor):
-                obj.update_state(obj.target.state, obj.time, obj.index, t)
-            else:
-                raise ValueError
+        for syn in self.synapses:
+            syn.output_synapse(syn.state, syn.output_idx, syn.pre.state, syn.post.state)
+            syn.update_state(syn.state, t, syn.delay_idx, syn.pre.state, syn.post.state)
+            syn.update_conductance_index()
+        for neu in self.neurons:
+            neu.update_state(neu.state, t)
+        for mon in self.state_monitors:
+            vars_idx = mon.target_index_by_vars()
+            mon.update_state(mon.target.state, mon.state, vars_idx, run_idx)
+        for mon in self.spike_monitors:
+            mon.update_state(mon.target.state, mon.time, mon.index, t)

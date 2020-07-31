@@ -57,7 +57,7 @@ _nopython = True
 _fastmath = True
 _nogil = False
 _parallel = False
-predefine_signature = True
+define_signature = True
 
 
 def set_backend(bk):
@@ -115,14 +115,14 @@ def set_numba(**kwargs):
     global _nopython
     global _nogil
     global _parallel
-    global predefine_signature
+    global define_signature
 
     if 'fastmath' in kwargs:
         _fastmath = kwargs.pop('fastmath')
     if 'nopython' in kwargs:
         _nopython = kwargs.pop('nopython')
     if 'pre_sig' in kwargs:
-        predefine_signature = kwargs.pop('pre_sig')
+        define_signature = kwargs.pop('pre_sig')
     if 'parallel' in kwargs:
         _parallel = kwargs.pop('parallel')
         _nogil = _parallel

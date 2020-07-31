@@ -6,7 +6,7 @@ import numpy as np
 import npbrain as nn
 
 nn.profile.set_backend('numba')
-nn.profile.predefine_signature = False
+nn.profile.define_signature = False
 
 dt = 0.05
 nn.profile.set_dt(dt)

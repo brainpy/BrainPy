@@ -15,6 +15,7 @@ import npbrain as nn
 
 nn.profile.set_backend('numba')
 nn.profile.set_dt(dt=0.1)
+nn.profile.define_signature = False
 
 lif = nn.LIF(5000, Vr=10, Vth=20, tau=20, ref=2, noise=np.sqrt(20))
 conn = nn.connect.fixed_prob(lif.num, lif.num, prob=0.2, include_self=False)

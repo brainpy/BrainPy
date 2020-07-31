@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from numba import typed, types
+from numba import typed, types, prange
 
 from npbrain.core.neuron import Neurons
 from npbrain.core.synapse import Synapses
@@ -42,6 +42,7 @@ class SpikeMonitor(Monitor):
     def __init__(self, target):
         # check `variables`
         self.vars = ('index', 'time')
+        num = target.state.shape[1]
 
         # check `target`
         assert isinstance(target, Neurons), 'Cannot monitor spikes in synapses.'
@@ -49,15 +50,13 @@ class SpikeMonitor(Monitor):
         # fake initialization
         self.index = []
         self.time = []
-        self.state = self.time
-        self.vars_idx = self.index
 
-        @helper.autojit('(f8[:, :], ListType(f8), ListType(i8), f8)')
+        @helper.autojit('void(f8[:, :], ListType(f8), ListType(i8), f8)')
         def update_state(neu_state, mon_time, mon_index, t):
-            spike_idx = np.where(neu_state[-3] > 0.)[0]
-            for idx in spike_idx:
-                mon_index.append(idx)
-                mon_time.append(t)
+            for idx in prange(num):
+                if neu_state[-3, idx] > 0.:
+                    mon_index.append(idx)
+                    mon_time.append(t)
 
         self.update_state = update_state
 
@@ -109,16 +108,15 @@ class StateMonitor(Monitor):
         self.state = []
 
         # function of update state
-        @helper.autojit('(f8[:, :], UniTuple(f8[:, :], {}), i4[:], i4)'.format(len(vars)))
+        @helper.autojit('void(f8[:, :], UniTuple(f8[:, :], {}), i4[:], i4)'.format(len(vars)))
         def record_neu_state(obj_state, mon_states, vars_idx, i):
             for j, index in enumerate(vars_idx):
                 v = obj_state[index]
                 mon_states[j][i] = v
 
-        @helper.autojit('(UniTuple(f8[:, :], 3), UniTuple(f8[:, :], {}), i4[:, :], i4)'.format(len(vars)))
+        @helper.autojit('void(UniTuple(f8[:, :], 3), UniTuple(f8[:, :], {}), i4[:, :], i4)'.format(len(vars)))
         def record_syn_state(obj_state, mon_states, vars_idx, i):
-            var_len = len(vars_idx)
-            for j in range(var_len):
+            for j, index in enumerate(vars_idx):
                 index = vars_idx[j]
                 v = obj_state[index[0]][index[1]]
                 mon_states[j][i] = v
