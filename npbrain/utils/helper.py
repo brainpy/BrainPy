@@ -297,8 +297,7 @@ def clip(a, a_min, a_max):
 
 
 def get_clip():
-    @autojit(['f8[:](f8[:], f8, f8)',
-              'f8[:, :](f8[:, :], f8, f8)'])
+    @autojit(['f8[:](f8[:], f8, f8)'])
     def f(a, a_min, a_max):
         a = np.maximum(a, a_min)
         a = np.minimum(a, a_max)
