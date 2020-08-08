@@ -8,7 +8,7 @@ def LIF(geometry, tau=100, V_reset=0., Vth=1.):
     var2index = dict(V=0)
     num, geometry = nn.format_geometry(geometry)
 
-    state = nn.initial_neu_state(1, num)
+    state = nn.init_neu_state(1, num)
     state[0] = V_reset
 
     @nn.integrate
@@ -28,7 +28,7 @@ def LIF_with_ref(geometry, tau=100, Vr=0., Vth=1., ref=1.):
     var2index = dict(V=0)
     num, geometry = nn.format_geometry(geometry)
 
-    state = nn.initial_neu_state(1, num)
+    state = nn.init_neu_state(1, num)
     state[0] = Vr
 
     @nn.integrate

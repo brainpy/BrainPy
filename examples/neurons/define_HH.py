@@ -9,7 +9,7 @@ def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77.,
 
     var2index = {'V': 0, 'm': 1, 'h': 2, 'n': 3}
     num, geometry = nn.format_geometry(geometry)
-    state = nn.initial_neu_state(4, num)
+    state = nn.init_neu_state(4, num)
 
     @nn.integrate(method=method)
     def int_m(m, t, V):

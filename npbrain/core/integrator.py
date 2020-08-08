@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import numba as nb
 
-from npbrain.utils import profile
-from npbrain.utils.helper import autojit
+from ..utils import profile
+from ..utils.helper import autojit
 
 __all__ = [
     'integrate',
@@ -72,6 +73,7 @@ def integrate(func=None, noise=None, method=None, signature=None):
         has_noise = True
     method = method if method is not None else profile.get_method()
     wrapper = _get_integrator(method=method, has_noise=has_noise)
+    signature = None if signature is None else signature.format(f=profile.ftype, i=profile.itype)
 
     if func is None:
         if not has_noise:  # ODE
@@ -135,6 +137,15 @@ def _get_integrator(method=None, has_noise=False):
         raise ValueError('Do not support ODE updater: ', method)
 
 
+def _jit(f, signature):
+    # if signature and profile.jit_diff_eq == 'cfunc' and profile.is_numba_bk():
+    #     f = nb.cfunc(signature, nopython=True)(f)
+    # else:
+    #     f = autojit(signature)(f)
+    f = autojit(signature)(f)
+    return f
+
+
 ##################################
 # Numerical integration of ODE
 ##################################
@@ -158,7 +169,8 @@ def forward_Euler(f, dt=None, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
+
     if dt is None:
         dt = profile.get_dt()
 
@@ -192,7 +204,7 @@ def rk2(f, dt=None, beta=2 / 3, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
     if dt is None:
         dt = profile.get_dt()
 
@@ -238,7 +250,7 @@ def rk3(f, dt=None, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
     if dt is None:
         dt = profile.get_dt()
 
@@ -266,7 +278,7 @@ def rk4(f, dt=None, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
     if dt is None:
         dt = profile.get_dt()
 
@@ -296,7 +308,7 @@ def rk4_alternative(f, dt=None, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
     if dt is None:
         dt = profile.get_dt()
 
@@ -325,7 +337,7 @@ def backward_Euler(f, dt=None, epsilon=1e-12, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
     if dt is None:
         dt = profile.get_dt()
 
@@ -358,7 +370,7 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
     if dt is None:
         dt = profile.get_dt()
 
@@ -444,10 +456,10 @@ def Euler_method(f, g, dt=None, signature=None):
         """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
 
     if callable(g):
-        g = autojit(signature)(g)
+        g = _jit(g, signature)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)
@@ -486,10 +498,10 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None):
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
 
     if callable(g):
-        g = autojit(signature)(g)
+        g = _jit(g, signature)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)
@@ -545,10 +557,10 @@ def Heun_method(f, g, dt=None, signature=None):
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
 
     if callable(g):
-        g = autojit(signature)(g)
+        g = _jit(g, signature)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)
@@ -592,10 +604,10 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None):
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
-    f = autojit(signature)(f)
+    f = _jit(f, signature)
 
     if callable(g):
-        g = autojit(signature)(g)
+        g = _jit(g, signature)
 
         def int_fg(y0, t, *args):
             dW = np.random.normal(0.0, 1.0, y0.shape)

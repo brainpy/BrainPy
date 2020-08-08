@@ -3,9 +3,9 @@
 import numpy as np
 from numba import typed, types, prange
 
-from npbrain.core.neuron import Neurons
-from npbrain.core.synapse import Synapses
-from npbrain.utils import helper, profile
+from .neuron import Neurons
+from .synapse import Synapses
+from ..utils import helper, profile
 
 __all__ = [
     'Monitor',
@@ -48,10 +48,14 @@ class SpikeMonitor(Monitor):
         assert isinstance(target, Neurons), 'Cannot monitor spikes in synapses.'
 
         # fake initialization
-        self.index = []
-        self.time = []
+        if profile.is_numba_bk():
+            self.index = typed.List.empty_list(types.int64)
+            self.time = typed.List.empty_list(types.float64)
+        else:
+            self.index = []
+            self.time = []
 
-        @helper.autojit('void(f8[:, :], ListType(f8), ListType(i8), f8)')
+        @helper.autojit
         def update_state(neu_state, mon_time, mon_index, t):
             for idx in prange(num):
                 if neu_state[-3, idx] > 0.:
@@ -62,14 +66,6 @@ class SpikeMonitor(Monitor):
 
         # super class initialization
         super(SpikeMonitor, self).__init__(target)
-
-    def init_state(self, length):
-        if profile.is_numba_bk():
-            self.index = typed.List.empty_list(types.int64)
-            self.time = typed.List.empty_list(types.float64)
-        else:
-            self.index = []
-            self.time = []
 
 
 class StateMonitor(Monitor):
@@ -107,34 +103,28 @@ class StateMonitor(Monitor):
             setattr(self, k, np.zeros((1, 1)))
         self.state = []
 
-        # function of update state
-        @helper.autojit('void(f8[:, :], UniTuple(f8[:, :], {}), i4[:], i4)'.format(len(vars)))
-        def record_neu_state(obj_state, mon_states, vars_idx, i):
-            for j, index in enumerate(vars_idx):
-                v = obj_state[index]
-                mon_states[j][i] = v
-
-        @helper.autojit('void(UniTuple(f8[:, :], 3), UniTuple(f8[:, :], {}), i4[:, :], i4)'.format(len(vars)))
-        def record_syn_state(obj_state, mon_states, vars_idx, i):
-            for j, index in enumerate(vars_idx):
-                index = vars_idx[j]
-                v = obj_state[index[0]][index[1]]
-                mon_states[j][i] = v
-
-        # variable2index and update_state function
-        if isinstance(target, Neurons):
-            self.update_state = record_neu_state
-            var_idxs = np.array([target.var2index[v] for v in self.vars])
-            self.target_index_by_vars = lambda: var_idxs
-        elif isinstance(target, Synapses):
-            self.update_state = record_syn_state
-            if 'g_in' not in vars and 'g_out' not in vars:
-                var_idxs = np.array([target.var2index[v] for v in self.vars])
-                self.target_index_by_vars = lambda: var_idxs
+        if 'g_out' in vars or 'g_in' in vars:
+            if len([v for v in vars if v != 'g_out' and v != 'g_in']):
+                func_str = '''def func(obj_state, delay_state, mon_state, out_idx, in_idx, i):'''
             else:
-                self.target_index_by_vars = lambda: np.array([target.var2index[v] for v in self.vars])
+                func_str = '''def func(delay_state, mon_state, out_idx, in_idx, i):'''
         else:
-            raise ValueError('Unknown type.')
+            func_str = '''def func(obj_state, mon_state, i):'''
+        for j, k in enumerate(vars):
+            if k == 'g_out':
+                func_str += '\n\tmon_state[{}][i] = delay_state[out_idx]'.format(j)
+            elif k == 'g_in':
+                func_str += '\n\tmon_state[{}][i] = delay_state[in_idx]'.format(j)
+            else:
+                func_str += '\n\tmon_state[{}][i] = obj_state[{}]'.format(j, target.var2index[k])
+        exec(compile(func_str, '', 'exec'))
+
+        if profile.debug:
+            print('Monitor function:')
+            print('-' * 30)
+            print(func_str)
+
+        self.update_state = helper.autojit(locals()['func'])
 
         # super class initialization
         super(StateMonitor, self).__init__(target)
@@ -142,16 +132,13 @@ class StateMonitor(Monitor):
     def init_state(self, length):
         assert isinstance(length, int)
 
-        vars_idx = self.target_index_by_vars()
         mon_states = []
         for i, k in enumerate(self.vars):
-            index = vars_idx[i]
-            if isinstance(self.target, Synapses):
-                v = self.target.state
-                for idx in index:
-                    v = v[idx]
+            if k in ['g_out', 'g_in']:
+                d_state = self.target.delay_state
+                v = d_state[0]
             else:
-                v = self.target.state[index]
+                v = self.target.state[self.target.var2index[k]]
             shape = (length,) + v.shape
             state = np.zeros(shape)
             setattr(self, k, state)

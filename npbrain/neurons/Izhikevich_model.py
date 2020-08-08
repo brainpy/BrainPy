@@ -52,7 +52,7 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
 
     var2index = {'V': 0, 'u': 1}
     num, geometry = format_geometry(geometry)
-    state = initial_neu_state(2, num)
+    state = init_neu_state(num_neu=num, variables=len(var2index))
 
     if mode in ['tonic', 'tonic spiking']:
         a, b, c, d = [0.02, 0.40, -65.0, 2.0]
@@ -102,11 +102,13 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
     init_state(state, Vr)
     judge_spike = get_spike_judger()
 
-    @integrate(method=method, signature='f8[:](f8[:], f8, f8[:])')
+    @integrate(method=method,
+               signature='{f}[:]({f}[:], {f}, {f}[:])')
     def int_u(u, t, V):
         return a * (b * V - u)
 
-    @integrate(method=method, noise=noise, signature='f8[:](f8[:], f8, f8[:], f8[:])')
+    @integrate(method=method, noise=noise,
+               signature='{f}[:]({f}[:], {f}, {f}[:], {f}[:])')
     def int_V(V, t, u, Isyn):
         return 0.04 * V * V + 5 * V + 140 - u + Isyn
 

@@ -5,7 +5,6 @@ import numpy as np
 
 import npbrain as nn
 nn.profile.set_backend('numba')
-nn.profile.define_signature = False
 
 dt = 0.1
 nn.profile.set_dt(dt)
@@ -46,7 +45,7 @@ def COBA_HH(geometry, name='COBA_HH'):
     num, geometry = nn.format_geometry(geometry)
 
     # V, m, h, n, ge, gi
-    state = nn.initial_neu_state(6, num)
+    state = nn.init_neu_state(num, len(var2index))
     state[0] = El + (np.random.randn(num_exc + num_inh) * 5 - 5)
     state[4] = (np.random.randn(num_exc + num_inh) * 1.5 + 4) * 10. / unit
     state[5] = (np.random.randn(num_exc + num_inh) * 12 + 20) * 10. / unit
@@ -124,13 +123,10 @@ inh_pre, inh_post, inh_anchors = nn.connect.fixed_prob(
 
 def Synapse(pre, post, delay=None):
     var2index = dict()
-    num_pre = pre.num
-    num_post = post.num
+    num, num_pre, num_post = len(exc_pre), pre.num, post.num
+    delay_state = nn.init_delay_state(num_post=num_post * 2, delay=delay)
 
-    num = len(exc_pre)
-    state = nn.initial_syn_state(delay, num_post=num_post * 2, num_syn=num)
-
-    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+    def update_state(delay_st, delay_idx, pre_state):
         spike_idx = np.where(pre_state[-3] > 0)[0]
         g = np.zeros(num_post * 2)
         for i_ in spike_idx:
@@ -144,10 +140,10 @@ def Synapse(pre, post, delay=None):
                 inh_post_idx = inh_post[idx[0]: idx[1]]
                 for pi in inh_post_idx:
                     g[num_post + pi] += wi
-        syn_state[1][delay_idx] = g
+        delay_st[delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, pre_state, post_state):
-        syn_val = syn_state[1][output_idx]
+    def output_synapse(delay_st, output_idx, post_state):
+        syn_val = delay_st[output_idx]
         ge = syn_val[:num_post]
         gi = syn_val[num_post:]
         for idx in range(num_post):

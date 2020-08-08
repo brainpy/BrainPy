@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 import npbrain as nn
 
-nn.profile.set_backend('numpy')
+nn.profile.set_backend('numba')
 
 
 def run_stp(cls, num_pre=5, num_post=10, weights=1.,

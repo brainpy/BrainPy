@@ -32,7 +32,7 @@ def COBA(geometry, ref=5.0, name='COBA'):
     var2index = dict(V=0, ge=1, gi=2)
     num, geometry = nn.format_geometry(geometry)
 
-    state = nn.initial_neu_state(3, num)
+    state = nn.init_neu_state(num_neu=num, variables=len(var2index))
     state[0] = np.random.randn(num) * 5. - 55.
 
     def update_state(neu_state, t):
@@ -72,9 +72,9 @@ def Synapse(pre, post, delay=None):
     var2index = dict()
 
     num_pre, num_post, num = pre.num, post.num, len(exc_pre)
-    state = nn.initial_syn_state(delay, num_post=num_post * 2, num_syn=num)
+    delay_state = nn.init_delay_state(num_post=num_post * 2, delay=delay)
 
-    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+    def update_state(delay_st, delay_idx, pre_state):
         pre_spike = pre_state[-3]
         g = np.zeros(num_post * 2)
         for pre_id in range(num_pre):
@@ -89,10 +89,10 @@ def Synapse(pre, post, delay=None):
                     inh_post_idx = inh_post[idx[0]: idx[1]]
                     for idx in inh_post_idx:
                         g[idx + num_post] += wi
-        syn_state[1][delay_idx] = g
+        delay_st[delay_idx] = g
 
-    def output_synapse(syn_state, output_idx, pre_state, post_state):
-        syn_val = syn_state[1][output_idx]
+    def output_synapse(delay_st, output_idx, post_state):
+        syn_val = delay_st[output_idx]
         ge = syn_val[:num_post]
         gi = syn_val[num_post:]
         for idx in range(num_post):

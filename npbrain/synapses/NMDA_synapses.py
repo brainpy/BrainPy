@@ -65,27 +65,26 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
         The constructed AMPA synapses.
     """
 
-    var2index = {'x': (0, 0), 's': (0, 1)}
-
     pre_indexes, post_indexes, pre_anchors = connection
-    num = len(pre_indexes)
-    num_pre, num_post = pre.num, post.num
 
-    state = initial_syn_state(delay, num_post=num_post, num_syn=num, num_syn_var=2)
+    var2index = {'x': 0, 's': 1}
+    num, num_pre, num_post = len(pre_indexes), pre.num, post.num
+    state = init_syn_state(num_syn=num, variables=[('x', 0), ('s', 0)])
+    delay_state = init_delay_state(delay=delay, num_post=num_post)
 
-    @integrate(signature='f8[:](f8[:], f8)')
+    @integrate(signature='{f}[:]({f}[:], {f})')
     def int_x(x, t):
         return -x / tau_rise
 
-    @integrate(signature='f8[:](f8[:], f8, f8[:])')
+    @integrate(signature='{f}[:]({f}[:], {f}, {f}[:])')
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
-    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+    def update_state(syn_st, t, delay_st, delay_idx, pre_state):
         # get synapse state
+        x = syn_st[0]
+        s = syn_st[1]
         pre_spike = pre_state[-3]
-        x = syn_state[0][0]
-        s = syn_state[0][1]
         # calculate synaptic state
         spike_idx = np.where(pre_spike > 0.)[0]
         for i in spike_idx:
@@ -93,20 +92,20 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
             x[idx[0]: idx[1]] += 1.
         x = int_x(x, t)
         s = int_s(s, t, x)
-        syn_state[0][0] = x
-        syn_state[0][1] = s
+        syn_st[0] = x
+        syn_st[1] = s
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
             idx = pre_anchors[:, i]
             post_idx = post_indexes[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        syn_state[1][delay_idx] = g
+        delay_st[delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            g_val = syn_state[1][output_idx]
+        def output_synapse(delay_st, output_idx, post_state):
+            g_val = delay_st[output_idx]
             post_v = post_state[0]
             g = - g_max * g_val * (post_v - E)
             g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post_v)
@@ -114,8 +113,8 @@ def NMDA(pre, post, connection, delay=None, g_max=0.15, E=0, alpha=0.062, beta=3
 
     else:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            g_val = syn_state[1][output_idx]
+        def output_synapse(delay_st, output_idx, post_state):
+            g_val = delay_st[output_idx]
             post_v = post_state[0]
             g = - g_max * g_val * (post_v - E)
             g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post_v)

@@ -35,6 +35,10 @@ Set the default backend to ``numba`` and change the default JIT options.
 
 """
 
+import numba as nb
+import re
+import multiprocessing
+
 __all__ = [
     'set_backend',
     'get_backend',
@@ -57,7 +61,16 @@ _nopython = True
 _fastmath = True
 _nogil = False
 _parallel = False
-define_signature = True
+define_signature = False
+
+# dtype of float
+ftype = 'float32'
+# dtype of int
+itype = 'int64'
+
+jit_diff_eq = 'cfunc'
+
+debug = False
 
 
 def set_backend(bk):
@@ -69,11 +82,31 @@ def set_backend(bk):
         The backend name.
     """
     global _backend
+    global _parallel
+    global _nogil
 
     if bk in ['numpy', 'np', 'Numpy']:
         _backend = 'numpy'
-    elif bk in ['numba', 'numba_cpu', 'numba-cpu', 'nb', 'nb_cpu', 'nb-cpu']:
-        _backend = 'numba_cpu'
+    elif bk in ['numba', 'numba_cpu', 'numba-cpu']:
+        _backend = bk
+        _parallel = False
+        _nogil = False
+    elif bk.startswith('numba-pa') or bk.startswith('numba_pa'):
+        _backend = bk
+        _parallel = True
+        _nogil = True
+        splits = re.split(r'[-_]', bk)
+        if len(splits) == 3:
+            num_thread = int(splits[2])
+            nb.set_num_threads(num_thread)
+        elif len(splits) == 2:
+            num_thread = multiprocessing.cpu_count()
+            nb.set_num_threads(num_thread)
+        else:
+            raise ValueError('Unknown backend: {}'.format(bk))
+    elif bk.startswith('numba-gpu') or bk.startswith('numba_gpu'):
+        _backend = bk
+        raise NotImplementedError
     else:
         raise ValueError('Unknown backend: {}'.format(bk))
 
@@ -146,21 +179,21 @@ def get_numba_profile():
 # Numerical integration
 # ----------------------
 
-_dt = 0.1
-_method = 'euler'
+dt = 0.1
+method = 'euler'
 
 
-def set_dt(dt):
+def set_dt(_dt):
     """Set the numerical integration precision.
 
     Parameters
     ----------
-    dt : float
+    _dt : float
         precision.
     """
-    assert isinstance(dt, float)
-    global _dt
-    _dt = dt
+    assert isinstance(_dt, float)
+    global dt
+    dt = _dt
 
 
 def get_dt():
@@ -169,19 +202,19 @@ def get_dt():
     :return: Precision.
     :rtype: float
     """
-    return _dt
+    return dt
 
 
-def set_method(method):
+def set_method(_method):
     """Set the default numerical integration method for
      differential equations (DE).
 
     Parameters
     ----------
-    method : str, callable
+    _method : str, callable
         DE numerical integration method.
     """
-    global _method
+    global method
 
     ODE = ['euler', 'forward_Euler', 'explicit_Euler',
            'rk2', 'RK2', 'modified_Euler', 'explicit_midpoint_Euler',
@@ -193,13 +226,13 @@ def set_method(method):
            'Heun', 'Euler_Heun', 'Euler_Heun_method', 'Heun_method',
            'Milstein_dfree_Stra', ]
 
-    if isinstance(method, str):
-        if method not in SDE + ODE:
-            raise ValueError('Unknown ODE method: ', method)
-    elif not callable(method):
+    if isinstance(_method, str):
+        if _method not in SDE + ODE:
+            raise ValueError('Unknown ODE method: ', _method)
+    elif not callable(_method):
         raise ValueError('Unknown method type.')
 
-    _ode_method = method
+    method = _method
 
 
 def get_method():
@@ -210,4 +243,4 @@ def get_method():
     method : str, callable
         The default DE numerical integration method.
     """
-    return _method
+    return method

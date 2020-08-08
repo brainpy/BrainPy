@@ -12,7 +12,7 @@ def GapJunction(pre, post, weights, connection, delay=None):
     num_pre = pre.num
     num_post = post.num
 
-    state = nn.initial_syn_state(delay, num_pre, num_post, num)
+    state = nn.init_syn_state(delay, num_pre, num_post, num)
 
     def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synapse state
@@ -43,8 +43,8 @@ def GJ_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None):
     pre_ids, post_ids, anchors = connection
     num = len(pre_ids)
 
-    state = nn.initial_syn_state(delay,
-        num_pre=num_pre, num_post=num_post * 2, num_syn=num)
+    state = nn.init_syn_state(delay,
+                              num_pre=num_pre, num_post=num_post * 2, num_syn=num)
 
     def update_state(syn_state, t, delay_idx, pre_state, post_state):
         # get synapse state

@@ -3,11 +3,13 @@
 import numpy as np
 
 from npbrain.utils import helper
+from ..utils import profile
+
 
 __all__ = [
     'judge_spike',
     'get_spike_judger',
-    'initial_neu_state',
+    'init_neu_state',
     'format_geometry',
     'format_refractory',
     'Neurons',
@@ -43,7 +45,7 @@ def judge_spike(neu_state, vth, t):
 
 
 def get_spike_judger():
-    @helper.autojit(['i8[:](f8[:, :], f8, f8)'])
+    @helper.autojit(['i8[:]({d}[:, :], {d}, {d})'.format(d=profile.ftype)])
     def f(neu_state, vth, t):
         above_threshold = (neu_state[0] >= vth).astype(np.float64)
         prev_above_th = neu_state[-4]
@@ -57,34 +59,87 @@ def get_spike_judger():
     return f
 
 
-def initial_neu_state(num_var, num_neuron):
+default_neu_state = [
+    ('not_ref', 1., -5),
+    ('above_th', 0., -4),
+    ('spike', 0., -3),
+    ('spike_time', -1e5, -2),
+    ('Isyn', 0., -1)
+]
+
+
+def _format_vars(variables, num):
+    def digit2array(digit, var_name):
+        if np.size(digit) == 1:
+            return np.ones(num, dtype=profile.ftype) * digit
+        elif np.size(digit) == num:
+            return np.asarray(digit, dtype=profile.ftype)
+        else:
+            raise ValueError('The dimension value of var "{}" doesn\'t match "{}".'.format(var_name, num))
+
+    if variables is None:
+        var_names, var_values = [], []
+    else:
+        if isinstance(variables, int):
+            var_names = [None] * variables
+            var_values = [0.] * variables
+        elif isinstance(variables, (list, tuple)):
+            if isinstance(variables[0], str):
+                var_names = list(variables)
+                var_values = [0.] * len(variables)
+            elif isinstance(variables[0], (list, tuple)):
+                var_names = [k for k, v in variables]
+                var_values = [digit2array(v, k) for k, v in variables]
+            else:
+                var_names = [None] * len(variables)
+                var_values = [digit2array(v, '?') for v in variables]
+        else:
+            raise ValueError('Unknown variables type "{}".'.format(type(variables)))
+
+    return var_names, var_values
+
+
+def init_neu_state(num_neu, variables=None, parameters=None):
     """Initialize the state of the given neuron group.
-
-    For each state:
-
-    -------------    [[..........],
-    variables         [..........],
-    -------------     [..........],
-    not refractory    [..........],
-    above threshold   [..........],
-    spike_state       [..........],
-    spike_time        [..........],
-    inputs            [..........]]
 
     Parameters
     ----------
-    num_var : int
-        Number of the dynamical, static and other variables.
-    num_neuron : int
+    num_neu : int
         Number of the neurons in the group.
+    variables : tuple, list, dict, int
+        The variables of the neuron model.
+        Each variable has the shape of (num_neu, ).
+        If `variables` is an instance of `list` or `tuple`, each of them is
+        initialized as `zeros`.
+        If `variables` is an instance of `dict`, each of `key` in the dict is
+        initialized as the corresponding `value`.
+    parameters : tuple, list
+        The parameter of the neuron models. Each of them can be modified in
+        the model running.
 
     Returns
     -------
     state : np.ndarray
         The state of the neuron group.
     """
-    state = np.zeros((num_var + 5, num_neuron))
-    state[-2] = -np.inf
+
+    if variables is None and parameters is None:
+        raise ValueError('variables and parameters cannot be both None.')
+
+    # get names and values of variables, parameters
+    var_names, var_values = _format_vars(variables, num_neu)
+    par_names, par_values = _format_vars(parameters, num_neu)
+    default_names = [k for k, v, i in default_neu_state]
+    default_values = [v for k, v, i in default_neu_state]
+
+    # get states
+    names = var_names + par_names + default_names
+    values = var_values + par_values + default_values
+
+    state = np.zeros((len(names), num_neu), dtype=profile.ftype)
+    for i, v in enumerate(values):
+        state[i] = v
+
     return state
 
 
@@ -168,13 +223,6 @@ class Neurons(object):
     kwargs : dict
         Parameters of the given neuron group.
     """
-
-    default_var2index = {'Isyn': -1,
-                         'spike_time': -2,
-                         'spike': -3,
-                         'above_threshold': -4,
-                         'not_refractory': -5}
-
     def __init__(self, **kwargs):
         if 'args' in kwargs:
             kwargs.pop('args')
@@ -209,7 +257,7 @@ class Neurons(object):
         if 'var2index' not in kwargs:
             raise ValueError('Must define "var2index".')
         assert isinstance(self.var2index, dict), '"var2index" must be a dict.'
-        for k in self.default_var2index.keys():
+        for k, _, _ in default_neu_state:
             if k in self.var2index:
                 if k == 'V':
                     if self.var2index['V'] != 0:
@@ -217,7 +265,7 @@ class Neurons(object):
                 else:
                     raise ValueError('"{}" is a pre-defined variable, cannot '
                                      'be defined in "var2index".'.format(k))
-        self.var2index.update(self.default_var2index)
+        self.var2index.update({k: i for k, _, i in default_neu_state})
 
     def __str__(self):
         return self.name
@@ -250,12 +298,6 @@ class Neurons(object):
     @property
     def available_monitors(self):
         return sorted(list(self.var2index.keys()))
-
-    def set_state(self, key, value):
-        if key not in self.var2index:
-            raise ValueError('Variable "{}" is not in the neuron group.'.format(key))
-        idx = self.var2index[key]
-        self.state[idx] = value
 
 
 def generate_fake_neuron(num, V=0.):

@@ -35,20 +35,18 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
         The constructed electrical synapses.
     """
 
-    var2index = dict()
-
     pre_ids, post_ids, anchors = connection
-    num = len(pre_ids)
-    num_pre, num_post = pre.num, post.num
 
-    state = initial_syn_state(delay, num_syn=num, num_post=num_post)
+    var2index = dict()
+    num, num_pre, num_post = len(pre_ids), pre.num, post.num
+    delay_state = init_delay_state(delay=delay, num_post=num_post)
 
     # weights
     if np.size(weights) == 1:
         weights = np.ones(num) * weights
     assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
 
-    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+    def update_state(delay_st, delay_idx, pre_state, post_state):
         # get synapse state
         pre_v = pre_state[0]
         post_v = post_state[0]
@@ -59,17 +57,17 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
             post_idx = post_ids[idx[0]: idx[1]]
             v_diff = pre_v[i_] - post_v[post_idx]
             g[post_idx] += weights[idx[0]: idx[1]] * v_diff
-        syn_state[1][delay_idx] = g
+        delay_st[delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            g_val = syn_state[1][output_idx]
+        def output_synapse(delay_st, output_idx, post_state):
+            g_val = delay_st[output_idx]
             post_state[-1] += g_val * post_state[-5]
     else:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            g_val = syn_state[1][output_idx]
+        def output_synapse(delay_st, output_idx, post_state):
+            g_val = delay_st[output_idx]
             post_state[-1] += g_val
 
     return Synapses(**locals())
@@ -100,20 +98,19 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
     synapse : Synapses
         The constructed electrical synapses.
     """
-    var2index = dict()
     k = k_spikelet * weights
 
+    var2index = dict()
     pre_ids, post_ids, anchors = connection
-    num = len(pre_ids)
-    num_pre, num_post = pre.num, post.num
-    state = initial_syn_state(delay, num_post=num_post * 2, num_syn=num)
+    num, num_pre, num_post = len(pre_ids), pre.num, post.num
+    delay_state = init_delay_state(num_post=num_post * 2, delay=delay)
 
     # weights
     if np.size(weights) == 1:
         weights = np.ones(num) * weights
     assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
 
-    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+    def update_state(delay_st, delay_idx, pre_state, post_state):
         # get synapse state
         pre_spike = pre_state[-3]
         pre_v = pre_state[0]
@@ -137,23 +134,23 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
         g = np.zeros(num_post * 2)
         g[num_post:] = g1
         g[:num_post] = g2
-        syn_state[1][delay_idx] = g
+        delay_st[delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            syn_val = syn_state[1][output_idx]
-            val_input = syn_val[:num_post]
-            val_potential = syn_val[num_post:]
+        def output_synapse(delay_st, output_idx, post_state):
+            syn_val = delay_st[output_idx]
             # post-neuron inputs
+            val_input = syn_val[:num_post]
             post_state[-1] += val_input * post_state[-5]
             # post-neuron potential
+            val_potential = syn_val[num_post:]
             post_state[0] += val_potential * post_state[-5]
 
     else:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            syn_val = syn_state[1][output_idx]
+        def output_synapse(delay_st, output_idx, post_state):
+            syn_val = delay_st[output_idx]
             # post-neuron inputs
             post_state[-1] += syn_val[:num_post]
             # post-neuron potential

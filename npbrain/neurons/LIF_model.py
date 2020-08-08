@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from npbrain.core import integrate
-from npbrain.core.neuron import *
+from ..core import integrate
+from ..core.neuron import *
+from ..utils import profile
 
 __all__ = [
     'LIF'
@@ -40,17 +41,17 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
 
     var2index = {'V': 0}
     num, geometry = format_geometry(geometry)
-
-    state = initial_neu_state(1, num)
-    state[0] = Vr
+    state = init_neu_state(num, [('V', Vr)])
 
     judge_spike = get_spike_judger()
 
-    @integrate(method=method, noise=noise / tau, signature='f8[:](f8[:], f8, f8[:])')
+    @integrate(method=method, noise=noise / tau,
+               signature='{f}[:]({f}[:], {f}, {f}[:])')
     def int_f(V, t, Isyn):
         return (-V + Vr + Isyn) / tau
 
     if ref > 0.:
+
         def update_state(neu_state, t):
             V_new = int_f(neu_state[0], t, neu_state[-1])
             for idx in range(num):
@@ -68,7 +69,9 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
                 else:
                     neu_state[-5, idx] = 0.
                     neu_state[-3, idx] = 0.
+
     else:
+
         def update_state(neu_state, t):
             neu_state[0] = int_f(neu_state[0], t, neu_state[-1])
             spike_idx = judge_spike(neu_state, Vth, t)

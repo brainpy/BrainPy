@@ -31,8 +31,7 @@ nn.profile.set_dt(dt)
 def LIF(geometry, **kwargs):
     var2index = dict(V=0)
     num, geometry = nn.format_geometry(geometry)
-
-    state = nn.initial_neu_state(1, num)
+    state = nn.init_neu_state(num_neu=num, variables=len(var2index))
     state[0] = V_reset
 
     @nn.integrate
@@ -52,7 +51,7 @@ lif = LIF(N)
 mon = nn.SpikeMonitor(lif)
 net = nn.Network(lif=lif, mon=mon)
 
-net.run(10* 1e3, report=True, inputs=[lif, inputs])
+net.run(10 * 1e3, report=True, inputs=[lif, inputs])
 
 idx, time = np.array(mon.index), np.array(mon.time)
 idx_selected = np.where(time >= 5000)[0]

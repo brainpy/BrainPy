@@ -41,9 +41,8 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
     var2index = dict()
 
     pre_ids, post_ids, anchors = connection
-    num = len(pre_ids)
-    num_pre, num_post = pre.num, post.num
-    state = initial_syn_state(delay, num_syn=num, num_post=num_post)
+    num, num_pre, num_post = len(pre_ids), pre.num, post.num
+    delay_state = init_delay_state(num_post=num_post, delay=delay)
 
     try:
         post_varid = post.var2index[var]
@@ -55,7 +54,7 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
         weights = np.ones(num) * weights
     assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
 
-    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+    def update_state(delay_st, delay_idx, pre_state):
         # get synapse state
         pre_spike = pre_state[-3]
         spike_idx = np.where(pre_spike > 0)[0]
@@ -65,19 +64,19 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
             idx = anchors[:, i_]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += weights[idx[0]: idx[1]]
-        syn_state[1][delay_idx] = g
+        delay_st[delay_idx] = g
 
     if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            g_val = syn_state[1][output_idx]
+        def output_synapse(delay_st, out_idx, post_state):
+            g_val = delay_st[out_idx]
             for idx in range(num_post):
                 val = g_val[idx] * post_state[-5, idx]
                 post_state[post_varid, idx] += val
     else:
 
-        def output_synapse(syn_state, output_idx, pre_state, post_state):
-            g_val = syn_state[1][output_idx]
+        def output_synapse(delay_st, out_idx, post_state):
+            g_val = delay_st[1][out_idx]
             post_state[post_varid] += g_val
 
     return Synapses(**locals())

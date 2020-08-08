@@ -47,7 +47,7 @@ def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., 
 
     var2index = {'V': 0, 'm': 1, 'h': 2, 'n': 3}
     num, geometry = format_geometry(geometry)
-    state = initial_neu_state(4, num)
+    state = init_neu_state(num, variables=len(var2index))
 
     def init_state(neu_state, Vr_):
         V = np.ones(num) * Vr_
@@ -66,25 +66,29 @@ def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., 
     judge_spike = get_spike_judger()
     clip = get_clip()
 
-    @integrate(method=method, signature='f8[:](f8[:], f8, f8[:])')
+    @integrate(method=method,
+               signature='{f}[:]({f}[:], {f}, {f}[:])')
     def int_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
         return alpha * (1 - m) - beta * m
 
-    @integrate(method=method, signature='f8[:](f8[:], f8, f8[:])')
+    @integrate(method=method,
+               signature='{f}[:]({f}[:], {f}, {f}[:])')
     def int_h(h, t, V):
         alpha = 0.07 * np.exp(-(V + 65) / 20.)
         beta = 1 / (1 + np.exp(-(V + 35) / 10))
         return alpha * (1 - h) - beta * h
 
-    @integrate(method=method, signature='f8[:](f8[:], f8, f8[:])')
+    @integrate(method=method,
+               signature='{f}[:]({f}[:], {f}, {f}[:])')
     def int_n(n, t, V):
         alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
         beta = 0.125 * np.exp(-(V + 65) / 80)
         return alpha * (1 - n) - beta * n
 
-    @integrate(method=method, noise=noise / C, signature='f8[:](f8[:], f8, f8[:], f8[:])')
+    @integrate(method=method, noise=noise / C,
+               signature='{f}[:]({f}[:], {f}, {f}[:], {f}[:])')
     def int_V(V, t, Icur, Isyn):
         return (Icur + Isyn) / C
 

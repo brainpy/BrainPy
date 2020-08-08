@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import inspect
 import time
 
 import numpy as np
 
-from npbrain.utils import profile
-from npbrain.core.monitor import SpikeMonitor, StateMonitor
-from npbrain.core.neuron import Neurons
-from npbrain.core.synapse import Synapses
-from npbrain.utils.helper import Dict
+from .monitor import SpikeMonitor, StateMonitor
+from .neuron import Neurons
+from .synapse import Synapses
+from ..utils import helper
+from ..utils import profile
 
 __all__ = [
     'Network',
@@ -35,7 +36,7 @@ class Network(object):
         self.spike_monitors = []
 
         # store all objects
-        self._objsets = Dict()
+        self._objsets = helper.Dict()
         self.objects = []
 
         # store states of objects and synapses
@@ -70,7 +71,7 @@ class Network(object):
                 raise ValueError('Invalid name: ', name)
             setattr(self, name, obj)
 
-    def run(self, duration, report=False, inputs=(), repeat=False):
+    def run(self, duration, report=False, inputs=(), repeat=False, report_percent=0.1):
         """Run the simulation for the given duration.
 
         This function provides the most convenient way to run the network.
@@ -112,9 +113,6 @@ class Network(object):
         inputs : list, tuple
             The receivers, external inputs and durations.
         """
-        # 1. checking
-        # ------------
-        # self._check_run_order()
 
         # 2. initialization
         # ------------------
@@ -122,12 +120,11 @@ class Network(object):
         # time
         dt = profile.get_dt()
         ts = np.arange(self.current_time, self.current_time + duration, dt)
+        ts = np.asarray(ts, dtype=profile.ftype)
         run_length = len(ts)
 
         # monitors
         for mon in self.state_monitors:
-            mon.init_state(run_length)
-        for mon in self.spike_monitors:
             mon.init_state(run_length)
 
         # neurons
@@ -143,43 +140,208 @@ class Network(object):
             if self._synapse_states is None:
                 self._synapse_states = []
                 for syn in self.synapses:
-                    state = tuple(st.copy() for st in syn.state)
+                    state = (None if syn.state is None else syn.state.copy(), syn.delay_state.copy())
                     self._synapse_states.append(state)
             else:
                 for syn, state in zip(self.synapses, self._synapse_states):
-                    for i, st in enumerate(state):
-                        syn.state[i][:] = st.copy()
+                    for i, (st, dst) in enumerate(state):
+                        if st is not None:
+                            syn.state[:] = st.copy()
+                        syn.delay_state[:] = dst.copy()
 
-        # 3. format external inputs
-        # --------------------------
+        # generate step function
+        # -------------------------
+
+        def get_args(func):
+            if hasattr(func, 'py_func'):
+                args_ = inspect.getfullargspec(func.py_func)[0]
+            else:
+                args_ = inspect.getfullargspec(func)[0]
+            return args_
+
+        step_func_str = '''\ndef step_func(t, i):'''
+        step_func_local = {}
+
+        # synapse update function
+
+        for oi, syn in enumerate(self.synapses):
+            corresponds = {'syn_st': syn.state, 'delay_st': syn.delay_state,
+                           'pre_st': syn.pre.state, 'post_st': syn.post.state,
+                           'syn_state': syn.state, 'delay_state': syn.delay_state,
+                           'pre_state': syn.pre.state, 'post_state': syn.post.state}
+            # update_state()
+            args = get_args(syn.update_state)
+            step_func_str += '\n\t' + 'syn_update{}('.format(oi)
+            step_func_local['syn_update{}'.format(oi)] = syn.update_state
+            for arg in args:
+                if arg in ['t', 'i']:
+                    step_func_str += arg + ", "
+                elif arg in ['delay_idx', 'in_idx']:
+                    step_func_str += 'syn{}.var2index["g_in"], '.format(oi)
+                    step_func_local['syn' + str(oi)] = syn
+                else:
+                    step_func_str += arg + str(oi) + ', '
+                    step_func_local[arg + str(oi)] = corresponds[arg]
+            step_func_str += ')'
+
+            # output_synapse()
+            args = get_args(syn.output_synapse)
+            step_func_str += '\n\t' + 'syn_output{}('.format(oi)
+            step_func_local['syn_output{}'.format(oi)] = syn.output_synapse
+            for arg in args:
+                if args in ['t', 'i']:
+                    step_func_str += arg + ', '
+                elif arg in ['output_idx', 'out_idx']:
+                    step_func_str += 'syn{}.var2index["g_out"], '.format(oi)
+                    step_func_local['syn' + str(oi)] = syn
+                else:
+                    step_func_str += arg + str(oi) + ', '
+                    step_func_local[arg + str(oi)] = corresponds[arg]
+            step_func_str += ')'
+
+        # neuron update function
+        for oi, neu in enumerate(self.neurons):
+            step_func_str += '\n\t' + 'neu_update{}('.format(oi)
+            step_func_local['neu_update{}'.format(oi)] = neu.update_state
+            args = get_args(neu.update_state)
+            for arg in args:
+                if arg in ['t', 'i']:
+                    step_func_str += arg + ', '
+                else:
+                    step_func_str += arg + str(oi) + ', '
+                    step_func_local[arg + str(oi)] = neu.state
+            step_func_str += ')'
+
+        # state monitor function
+        for oi, mon in enumerate(self.state_monitors):
+            args = get_args(mon.update_state)
+            if len(args) == 3:
+                step_func_str += '\n\tst_mon_update{oi}(obj_st{oi}, mon_st{oi}, i)'.format(oi=oi)
+                step_func_local['st_mon_update{}'.format(oi)] = mon.update_state
+                step_func_local['obj_st{}'.format(oi)] = mon.target.state
+                step_func_local['mon_st{}'.format(oi)] = mon.state
+            elif len(args) == 5:
+                step_func_str += '\n\tst_mon_update{oi}(target{oi}.delay_state, ' \
+                                          'mon_st{oi}, ' \
+                                          'target{oi}.var2index["g_out"], ' \
+                                          'target{oi}.var2index["g_in"], ' \
+                                          'i)'.format(oi=oi)
+                step_func_local['st_mon_update{}'.format(oi)] = mon.update_state
+                step_func_local['mon_st{}'.format(oi)] = mon.state
+                step_func_local['target{}'.format(oi)] = mon.target
+            elif len(args) == 6:
+                step_func_str += '\n\tst_mon_update{oi}(target{oi}.state, ' \
+                                          'target{oi}.delay_state, ' \
+                                          'mon_st{oi}, ' \
+                                          'target{oi}.var2index["g_out"], ' \
+                                          'target{oi}.var2index["g_in"], ' \
+                                          'i)'.format(oi=oi)
+                step_func_local['st_mon_update{}'.format(oi)] = mon.update_state
+                step_func_local['mon_st{}'.format(oi)] = mon.state
+                step_func_local['target{}'.format(oi)] = mon.target
+            else:
+                raise ValueError('Unknown arguments of monitor update_state().')
+
+        # spike monitor function
+        for oi, mon in enumerate(self.spike_monitors):
+            step_func_str += '\n\tsp_mon_update{oi}(obj_st{oi}, mon_t{oi}, mon_i{oi}, t)'.format(oi=oi)
+            step_func_local['sp_mon_update{}'.format(oi)] = mon.update_state
+            step_func_local['obj_st{}'.format(oi)] = mon.target.state
+            step_func_local['mon_t{}'.format(oi)] = mon.time
+            step_func_local['mon_i{}'.format(oi)] = mon.index
+
+        # update `dalay_idx` and `output_idx`
+        for oi, syn in enumerate(self.synapses):
+            step_func_str += '\n\tsyn{oi}.var2index["g_in"] = (syn{oi}.var2index["g_in"] + 1) % ' \
+                             'syn{oi}.delay_len'.format(oi=oi)
+            step_func_str += '\n\tsyn{oi}.var2index["g_out"] = (syn{oi}.var2index["g_out"] + 1) % ' \
+                             'syn{oi}.delay_len'.format(oi=oi)
+            step_func_local['syn' + str(oi)] = syn
+
+        if profile.debug:
+            print('Step function :')
+            print('----------------------------')
+            print(step_func_str)
+            print()
+            from pprint import pprint
+            pprint(step_func_local)
+            print()
+        exec(compile(step_func_str, '', 'exec'), step_func_local)
+        self._step = step_func_local['step_func']
+
+        # generate input function
+        # -------------------------
+
         iterable_inputs, fixed_inputs, no_inputs = self._format_inputs_and_receiver(inputs, duration)
+
+        input_func_local = {}
+        neu_state_args = {}
+
+        input_func_str = '''\ndef input_func(run_idx, {arg}):'''
+
+        ni = 0
+        for receiver, inputs, dur in iterable_inputs:
+            input_func_str += '''
+    if {du0} <= run_idx <= {du1}:
+        obj_idx = run_idx - {du0}
+        {neu_st}[-1] = {input}[obj_idx]
+    else:
+        {neu_st}[-1] = 0.
+        '''.format(du0=dur[0], du1=dur[1], neu_st='neu_st' + str(ni), input='in' + str(ni))
+            input_func_local['in' + str(ni)] = inputs
+            neu_state_args['neu_st' + str(ni)] = receiver.state
+            ni += 1
+
+        for receiver, inputs, dur in fixed_inputs:
+            input_func_str += '''
+    if {du0} <= run_idx <= {du1}:
+        {neu_st}[-1] = {input}
+    else:
+        {neu_st}[-1] = 0.
+        '''.format(du0=dur[0], du1=dur[1], neu_st='neu_st' + str(ni), input='in' + str(ni))
+            input_func_local['in' + str(ni)] = inputs
+            neu_state_args['neu_st' + str(ni)] = receiver.state
+            ni += 1
+
+        for receiver in no_inputs:
+            input_func_str += '''\n\t{neu_st}[-1] = 0.'''.format(neu_st='neu_st' + str(ni))
+            neu_state_args['neu_st' + str(ni)] = receiver.state
+            ni += 1
+
+        input_func_str = input_func_str.format(arg=','.join(neu_state_args.keys()))
+
+        if profile.debug:
+            print('Input function :')
+            print('----------------------------')
+            print(input_func_str)
+
+            pprint(input_func_local)
+            print()
+        exec(compile(input_func_str, '', 'exec'), input_func_local)
+        self._input = helper.autojit(input_func_local['input_func'])
 
         # 4. run
         # ---------
-
-        # initialize
         if report:
             t0 = time.time()
-        self._input(0, iterable_inputs, fixed_inputs, no_inputs)
-        self._step(t=ts[0], run_idx=0)
-
-        # record time
-        if report:
+            self._input(run_idx=0, **neu_state_args)
+            self._step(t=ts[0], i=0)
             print('Compilation used {:.4f} ms.'.format(time.time() - t0))
-            print("Start running ...")
-            report_gap = int(run_length / 10)
-            t0 = time.time()
 
-        # run
-        for run_idx in range(1, run_length):
-            t = ts[run_idx]
-            self._input(run_idx, iterable_inputs, fixed_inputs, no_inputs)
-            self._step(t=t, run_idx=run_idx)
-            if report and ((run_idx + 1) % report_gap == 0):
-                percent = (run_idx + 1) / run_length * 100
-                print('Run {:.1f}% using {:.3f} s.'.format(percent, time.time() - t0))
-        if report:
+            print("Start running ...")
+            report_gap = int(run_length * report_percent)
+            t0 = time.time()
+            for run_idx in range(1, run_length):
+                self._input(run_idx=run_idx, **neu_state_args)
+                self._step(t=ts[run_idx], i=run_idx)
+                if (run_idx + 1) % report_gap == 0:
+                    percent = (run_idx + 1) / run_length * 100
+                    print('Run {:.1f}% using {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done. ')
+        else:
+            for run_idx in range(run_length):
+                self._input(run_idx=run_idx, **neu_state_args)
+                self._step(t=ts[run_idx], i=run_idx)
 
         # 5. Finally
         # -----------
@@ -258,14 +420,14 @@ class Network(object):
 
             # judge the type of the inputs.
             if isinstance(Iext, (int, float)):
-                Iext = np.ones(obj.num) * Iext
+                Iext = np.ones(obj.num, dtype=profile.ftype) * Iext
                 fixed_inputs.append([obj, Iext, dur])
                 continue
             size = np.shape(Iext)[0]
             run_length = dur[1] - dur[0]
             if size != run_length:
                 if size == 1:
-                    Iext = np.ones(obj.num) * Iext
+                    Iext = np.ones(obj.num, dtype=profile.ftype) * Iext
                 elif size == obj.num:
                     Iext = Iext
                 else:
@@ -283,32 +445,3 @@ class Network(object):
             if neu not in neuron_with_inputs:
                 no_inputs.append(neu)
         return iterable_inputs, fixed_inputs, no_inputs
-
-    def _input(self, run_idx, iterable_inputs, fixed_inputs, no_inputs):
-        # inputs
-        for receiver, inputs, dur in iterable_inputs:
-            if dur[0] <= run_idx <= dur[1]:
-                obj_idx = run_idx - dur[0]
-                receiver.state[-1] = inputs[obj_idx]
-            else:
-                receiver.state[-1] = 0.
-        for receiver, inputs, dur in fixed_inputs:
-            if dur[0] <= run_idx <= dur[1]:
-                receiver.state[-1] = inputs
-            else:
-                receiver.state[-1] = 0.
-        for receiver in no_inputs:
-            receiver.state[-1] = 0.
-
-    def _step(self, t, run_idx):
-        for syn in self.synapses:
-            syn.output_synapse(syn.state, syn.output_idx, syn.pre.state, syn.post.state)
-            syn.update_state(syn.state, t, syn.delay_idx, syn.pre.state, syn.post.state)
-            syn.update_conductance_index()
-        for neu in self.neurons:
-            neu.update_state(neu.state, t)
-        for mon in self.state_monitors:
-            vars_idx = mon.target_index_by_vars()
-            mon.update_state(mon.target.state, mon.state, vars_idx, run_idx)
-        for mon in self.spike_monitors:
-            mon.update_state(mon.target.state, mon.time, mon.index, t)

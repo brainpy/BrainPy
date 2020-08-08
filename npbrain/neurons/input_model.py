@@ -4,7 +4,7 @@ import numpy as np
 
 from npbrain.core.neuron import Neurons
 from npbrain.core.neuron import format_geometry
-from npbrain.core.neuron import initial_neu_state
+from npbrain.core.neuron import init_neu_state
 
 __all__ = [
     'FreqInput',
@@ -40,11 +40,9 @@ def FreqInput(geometry, freq, start_time=0., name='FreqInput'):
     neurons : Neurons
         The created neuron group.
     """
-    var2index = dict()
+    var2index = dict(syn_sp_time=0)
     num, geometry = format_geometry(geometry)
-
-    state = initial_neu_state(1, num)
-    state[0, 0] = start_time
+    state = init_neu_state(num, [('syn_sp_time', start_time)])
 
     def update_state(neu_state, t):
         if t >= neu_state[0, 0]:
@@ -120,7 +118,7 @@ def TimeInput(geometry, times, indices=None, name='TimeInput'):
     else:
         raise ValueError('Unknown type.')
 
-    state = initial_neu_state(1, num)
+    state = init_neu_state(1, num)
     state[0, 0] = 0.  # current index
 
     def update_state(neu_state, t):
