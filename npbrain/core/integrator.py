@@ -8,18 +8,27 @@ from ..utils.helper import autojit
 
 __all__ = [
     'integrate',
-    'forward_Euler',
-    'rk2',
+
+    # ODE methods
+    'ode_euler',
+    'ode_rk2',
     'midpoint',
-    'rk3',
-    'rk4',
-    'rk4_alternative',
-    'backward_Euler',
+    'ode_heun',
+    'ode_rk3',
+    'ode_rk4',
+    'ode_rk4_alternative',
+    'ode_backward_euler',
     'trapezoidal_rule',
-    'Euler_method',
+
+    'ode_exponential_euler',
+
+    # SDE methods
+    'sde_euler',
     'Milstein_dfree_Ito',
-    'Heun_method',
+    'sde_heun',
     'Milstein_dfree_Stra',
+
+    'sde_exponential_euler',
 ]
 
 
@@ -73,7 +82,6 @@ def integrate(func=None, noise=None, method=None, signature=None):
         has_noise = True
     method = method if method is not None else profile.get_method()
     wrapper = _get_integrator(method=method, has_noise=has_noise)
-    signature = None if signature is None else signature.format(f=profile.ftype, i=profile.itype)
 
     if func is None:
         if not has_noise:  # ODE
@@ -105,32 +113,44 @@ def _get_integrator(method=None, has_noise=False):
 
     if has_noise:
         if method == 'euler':
-            return Euler_method
+            return sde_euler
         if method == 'Ito_milstein':
             return Milstein_dfree_Ito
 
         if method == 'heun':
-            return Heun_method
+            return sde_heun
         if method == 'Stra_milstein':
             return Milstein_dfree_Stra
 
+        if method in ['exp', 'exponential']:
+            return sde_exponential_euler
+
         raise ValueError('Do not support SDE updater: ', method)
+
     else:
         if method == 'euler':
-            return forward_Euler
-        if method == midpoint:
+            return ode_euler
+
+        if method in ['exp', 'exponential']:
+            return ode_exponential_euler
+
+        if method == 'heun':
+            return ode_heun
+        if method == 'midpoint':
             return midpoint
         if method == 'rk2':
-            return rk2
+            return ode_rk2
+
         if method == 'rk3':
-            return rk3
+            return ode_rk3
+
         if method == 'rk4':
-            return rk4
+            return ode_rk4
         if method == 'rk4_alternative':
-            return rk4_alternative
+            return ode_rk4_alternative
 
         if method in ['backward_Euler', 'implicit_Euler']:
-            return backward_Euler
+            return ode_backward_euler
         if method in ['trapezoidal_rule']:
             return trapezoidal_rule
 
@@ -151,7 +171,7 @@ def _jit(f, signature):
 ##################################
 
 
-def forward_Euler(f, dt=None, signature=None):
+def ode_euler(f, dt=None, signature=None):
     """Forward Euler method. Also named as ``explicit_Euler``.
 
     The most unstable integrator known. Requires a very small timestep.
@@ -180,7 +200,7 @@ def forward_Euler(f, dt=None, signature=None):
     return autojit(int_f)
 
 
-def rk2(f, dt=None, beta=2 / 3, signature=None):
+def ode_rk2(f, dt=None, beta=2 / 3, signature=None):
     """Parametric second-order Runge-Kutta (RK2).
     Also named as ``RK2``.
 
@@ -216,6 +236,26 @@ def rk2(f, dt=None, beta=2 / 3, signature=None):
     return autojit(int_f)
 
 
+def ode_heun(f, dt=None, signature=None):
+    """Two-stage method for ODE numerical integration.
+
+    Parameters
+    ----------
+    f : callable
+        The function at the right hand of the differential equation.
+    dt : None, float
+        Precision of numerical integration.
+    signature : str, list, tuple
+        The signature for numba compilation.
+
+    Returns
+    -------
+    func : callable
+        The one-step numerical integration function.
+    """
+    return ode_rk2(f, dt, beta=1., signature=signature)
+
+
 def midpoint(f, dt=None, signature=None):
     """Explicit midpoint Euler method. Also named as ``modified_Euler``.
 
@@ -231,10 +271,10 @@ def midpoint(f, dt=None, signature=None):
     func : callable
         The one-step numerical integration function.
     """
-    return rk2(f, dt, beta=0.5, signature=signature)
+    return ode_rk2(f, dt, beta=0.5, signature=signature)
 
 
-def rk3(f, dt=None, signature=None):
+def ode_rk3(f, dt=None, signature=None):
     """Kutta's third-order method (commonly known as RK3).
     Also named as ``RK3``.
 
@@ -263,7 +303,7 @@ def rk3(f, dt=None, signature=None):
     return autojit(int_f)
 
 
-def rk4(f, dt=None, signature=None):
+def ode_rk4(f, dt=None, signature=None):
     """Fourth-order Runge-Kutta (RK4). Also named as ``RK4``.
 
     Parameters
@@ -292,7 +332,7 @@ def rk4(f, dt=None, signature=None):
     return autojit(int_f)
 
 
-def rk4_alternative(f, dt=None, signature=None):
+def ode_rk4_alternative(f, dt=None, signature=None):
     """An alternative of fourth-order Runge-Kutta method.
     Also named as ``RK4_alternative``.
 
@@ -322,7 +362,7 @@ def rk4_alternative(f, dt=None, signature=None):
     return autojit(int_f)
 
 
-def backward_Euler(f, dt=None, epsilon=1e-12, signature=None):
+def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None):
     """Backward Euler method. Also named as ``implicit_Euler``.
 
     Parameters
@@ -386,33 +426,34 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None):
     return autojit(int_f)
 
 
-def exponential_euler(f, factor_zero_order, factor_one_order, dt=None):
-    """Order 2 Exponential Euler method.
+def ode_exponential_euler(f, dt=None, signature=None):
+    """First order, explicit exponential Euler method for ODE integration.
 
     For an equation of the form
 
-    .. math:
+    .. math::
 
         y^{\\prime}=f(y), \quad y(0)=y_{0}
 
     its schema is given by
 
-    .. math:
+    .. math::
 
         y_{n+1}=y_{n}+h \\varphi(hA) f (y_{n})
 
-    where :math::`A=f^{\prime}(y_{n})` and
-    :math::`\\varphi(z)=\\frac{e^{z}-1}{z}`.
+    where :math:`A=f^{\prime}(y_{n})` and
+    :math:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
 
     Parameters
     ----------
     f : callable
         The function at the right hand of the differential equation.
+        Note, the `dydt` (i.e., :math:`f`) and linear coefficient `A` (i.e.,
+        :math:`f'(y0)`) must be returned in the customized function.
     dt : None, float
-    factor_zero_order : int, float
-        The factor of the zero order function in the equation.
-    factor_one_order : int, float
-        The factor of the one order function in the equation.
+        Precision of numerical integration.
+    signature : str, list, tuple
+        The signature for Numba compilation.
 
     Returns
     -------
@@ -420,12 +461,13 @@ def exponential_euler(f, factor_zero_order, factor_one_order, dt=None):
         The one-step numerical integration function.
     """
 
-    a = np.exp(-factor_one_order * dt)
-    b = factor_zero_order / factor_one_order * (1 - a)
+    f = _jit(f, signature)
+    if dt is None:
+        dt = profile.get_dt()
 
     def int_f(y0, t, *args):
-        y0 = f(y0, t, *args)
-        return y0 * a + b
+        y0, A = f(y0, t, *args)
+        return y0 + (np.exp(A * dt) - 1) / A * y0
 
     return autojit(int_f)
 
@@ -435,7 +477,7 @@ def exponential_euler(f, factor_zero_order, factor_one_order, dt=None):
 ##################################
 
 
-def Euler_method(f, g, dt=None, signature=None):
+def sde_euler(f, g, dt=None, signature=None):
     """Itô stochastic integral. The simplest stochastic numerical approximation
         is the Euler-Maruyama method. Its is an order 0.5 strong Taylor schema.
         Also named as ``EM``, ``EM_method``, ``Euler``, ``Euler_Maruyama_method``.
@@ -455,7 +497,7 @@ def Euler_method(f, g, dt=None, signature=None):
             The one-step numerical integration function.
         """
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt)
+    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
     f = _jit(f, signature)
 
     if callable(g):
@@ -474,6 +516,79 @@ def Euler_method(f, g, dt=None, signature=None):
             df = f(y0, t, *args) * dt
             dg = dt_sqrt * g * dW
             return y0 + df + dg
+
+    return autojit(int_fg)
+
+
+def sde_exponential_euler(f, g, dt=None, signature=None):
+    """First order, explicit exponential Euler method for SDE integration.
+
+    For an equation of the form
+
+    .. math::
+
+        d y=(A y+ F(y)) dt + g(y) dW(t), \\quad y(0)=y_{0}
+
+    its schema is given by [1]_
+
+    .. math::
+
+        y_{n+1}=e^{\\Delta t A}(y_{n}+ g(t)\\Delta W_{n})+\\varphi(\\Delta t A) F(y_{n}) \\Delta t
+
+    where :math:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
+
+    Parameters
+    ----------
+    f : callable
+        The drift coefficient, the deterministic part of the SDE.
+        Note, the `dydt` (i.e., :math:`f`) and linear coefficient `A` (i.e.,
+        :math:`f'(y0)`) must be returned in the customized function.
+    g : callable, float
+        The diffusion coefficient, the stochastic part.
+    dt : None, float
+        Precision of numerical integration.
+    signature : str, list, tuple
+        The signature for Numba compilation.
+
+    Returns
+    -------
+    func : callable
+        The one-step numerical integration function.
+
+    References
+    ----------
+
+    .. [1] Erdoğan, Utku, and Gabriel J. Lord. "A new class of exponential integrators for stochastic
+           differential equations with multiplicative noise." arXiv preprint arXiv:1608.07096 (2016).
+
+    """
+
+    f = _jit(f, signature)
+    if dt is None:
+        dt = profile.get_dt()
+    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
+
+    if callable(g):
+        g = _jit(g, signature)
+
+        def int_fg(y0, t, *args):
+            y0, A = f(y0, t, *args)
+            dW = np.random.normal(0.0, 1.0, y0.shape)
+            dg = dt_sqrt * g(y0, t, *args) * dW
+            exp = np.exp(A * dt)
+            y1 = y0 + (exp - 1) / A * y0
+            return y1 + exp * dg
+
+    else:
+        assert isinstance(g, (int, float, np.ndarray))
+
+        def int_fg(y0, t, *args):
+            y0, A = f(y0, t, *args)
+            dW = np.random.normal(0.0, 1.0, y0.shape)
+            dg = dt_sqrt * g * dW
+            exp = np.exp(A * dt)
+            y1 = y0 + (exp - 1) / A * y0
+            return y1 + exp * dg
 
     return autojit(int_fg)
 
@@ -497,7 +612,7 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None):
         The one-step numerical integration function.
     """
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt)
+    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
     f = _jit(f, signature)
 
     if callable(g):
@@ -525,12 +640,11 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None):
     return autojit(int_fg)
 
 
-def Heun_method(f, g, dt=None, signature=None):
-    """Stratonovich stochastic integral.
+def sde_heun(f, g, dt=None, signature=None):
+    """Heun two-stage stochastic numerical method for Stratonovich integral.
 
-    Use the Stratonovich Heun algorithm
-    to integrate Stratonovich equation,
-    according to paper [2]_, [3]_.
+    Use the Stratonovich Heun algorithm to integrate Stratonovich equation,
+    according to paper [1]_ [2]_.
 
     Parameters
     ----------
@@ -540,6 +654,8 @@ def Heun_method(f, g, dt=None, signature=None):
         The diffusion coefficient, the stochastic part.
     dt : None, float
         Precision of numerical integration.
+    signature : str, list
+        The signature for Numba compilation.
 
     Returns
     -------
@@ -549,14 +665,14 @@ def Heun_method(f, g, dt=None, signature=None):
     References
     ----------
 
-    .. [2] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
+    .. [1] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
          equations in MATLAB, Journal of Computational and Applied Mathematics 205 (2007),
-         no. 2, 1002{1018.
-    .. [3] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE through computer
+         no. 2, 1002-1018.
+    .. [2] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE through computer
          experiments, Springer, 1994.
     """
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt)
+    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
     f = _jit(f, signature)
 
     if callable(g):
@@ -603,7 +719,7 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None):
         The one-step numerical integration function.
     """
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt)
+    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
     f = _jit(f, signature)
 
     if callable(g):
@@ -630,3 +746,19 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None):
             return y1
 
     return autojit(int_fg)
+
+
+
+def sde_rk2():
+    pass
+
+
+def sde_rk3():
+    pass
+
+
+def sde_rk4():
+    pass
+
+
+

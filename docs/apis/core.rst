@@ -33,6 +33,7 @@ Methods for ordinary differential equations.
     rk4_alternative
     backward_Euler
     trapezoidal_rule
+    ode_exponential_euler
 
 Methods for stochastic differential equations.
 
@@ -43,6 +44,8 @@ Methods for stochastic differential equations.
     Milstein_dfree_Ito
     Heun_method
     Milstein_dfree_Stra
+
+    sde_exponential_euler
 
 
 Neurons
