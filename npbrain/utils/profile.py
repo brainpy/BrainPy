@@ -24,8 +24,8 @@ Set the default numerical integration alorithm.
 >>> from npbrain.utils import profile
 >>> profile.set_method('euler')
 >>> # Or, you can use
->>> from npbrain.core import forward_Euler
->>> profile.set_method(forward_Euler)
+>>> from npbrain.core import ode_euler
+>>> profile.set_method(ode_euler)
 
 Set the default backend to ``numba`` and change the default JIT options.
 
@@ -64,7 +64,7 @@ _parallel = False
 define_signature = False
 
 # dtype of float
-ftype = 'float32'
+ftype = 'float64'
 # dtype of int
 itype = 'int64'
 
@@ -183,17 +183,17 @@ dt = 0.1
 method = 'euler'
 
 
-def set_dt(_dt):
+def set_dt(dt_):
     """Set the numerical integration precision.
 
     Parameters
     ----------
-    _dt : float
+    dt_ : float
         precision.
     """
-    assert isinstance(_dt, float)
+    assert isinstance(dt_, float)
     global dt
-    dt = _dt
+    dt = dt_
 
 
 def get_dt():
@@ -205,13 +205,13 @@ def get_dt():
     return dt
 
 
-def set_method(_method):
+def set_method(method_):
     """Set the default numerical integration method for
      differential equations (DE).
 
     Parameters
     ----------
-    _method : str, callable
+    method_ : str, callable
         DE numerical integration method.
     """
     global method
@@ -226,13 +226,13 @@ def set_method(_method):
            'Heun', 'Euler_Heun', 'Euler_Heun_method', 'Heun_method',
            'Milstein_dfree_Stra', ]
 
-    if isinstance(_method, str):
-        if _method not in SDE + ODE:
-            raise ValueError('Unknown ODE method: ', _method)
-    elif not callable(_method):
+    if isinstance(method_, str):
+        if method_ not in SDE + ODE:
+            raise ValueError('Unknown ODE method: ', method_)
+    elif not callable(method_):
         raise ValueError('Unknown method type.')
 
-    method = _method
+    method = method_
 
 
 def get_method():

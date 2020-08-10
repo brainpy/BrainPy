@@ -45,7 +45,7 @@ def judge_spike(neu_state, vth, t):
 
 
 def get_spike_judger():
-    @helper.autojit(['i8[:]({d}[:, :], {d}, {d})'.format(d=profile.ftype)])
+    @helper.autojit('i[:](f[:, :], f, f)')
     def f(neu_state, vth, t):
         above_threshold = (neu_state[0] >= vth).astype(np.float64)
         prev_above_th = neu_state[-4]

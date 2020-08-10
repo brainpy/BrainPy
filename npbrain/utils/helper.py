@@ -83,12 +83,37 @@ def autojit(signature_or_func=None):
         function.
     """
     if callable(signature_or_func):  # function
+
         if profile.is_numba_bk():
             if not isinstance(signature_or_func, Dispatcher):
                 op = profile.get_numba_profile()
                 signature_or_func = nb.jit(signature_or_func, **op)
         return signature_or_func
+
     else:  # signature
+
+        if signature_or_func is None:
+            pass
+        elif isinstance(signature_or_func, str):
+            signature_or_func = [signature_or_func]
+        else:
+            assert isinstance(signature_or_func, (list, tuple))
+            signature_or_func = list(signature_or_func)
+        for i in range(len(signature_or_func)):
+            if ('float' in signature_or_func[i]) or ('int' in signature_or_func[i]):
+                pass
+            elif '{' in signature_or_func[i] and '}' in signature_or_func[i]:
+                signature_or_func[i] = signature_or_func[i].format(f=profile.ftype, i=profile.itype)
+            else:
+                s = signature_or_func[i].replace(' ', '')
+                s = s.replace('f[', profile.ftype+'[')
+                s = s.replace('f,', profile.ftype+',')
+                s = s.replace('f)', profile.ftype+')')
+                s = s.replace('i[', profile.itype + '[')
+                s = s.replace('i,', profile.itype + ',')
+                s = s.replace('i)', profile.itype + ')')
+                signature_or_func[i] = s
+
         def wrapper(f):
             if profile.is_numba_bk() and not isinstance(f, Dispatcher):
                 op = profile.get_numba_profile()
@@ -98,6 +123,7 @@ def autojit(signature_or_func=None):
                     j = nb.jit(**op)
                 f = j(f)
             return f
+
         return wrapper
 
 
@@ -297,7 +323,7 @@ def clip(a, a_min, a_max):
 
 
 def get_clip():
-    @autojit(['f8[:](f8[:], f8, f8)'])
+    @autojit(['f[:](f[:], f, f)'])
     def f(a, a_min, a_max):
         a = np.maximum(a, a_min)
         a = np.minimum(a, a_max)
