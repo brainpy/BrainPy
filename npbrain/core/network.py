@@ -160,106 +160,119 @@ class Network(object):
             return args_
 
         step_func_str = '''\ndef step_func(t, i):'''
-        step_func_local = {}
+
+        step_func_local = {'syn' + str(oi): syn for oi, syn in enumerate(self.synapses)}
+        step_func_local.update({'neu' + str(oi): neu for oi, neu in enumerate(self.neurons)})
+        step_func_local.update({'st_mon' + str(oi): mon for oi, mon in enumerate(self.state_monitors)})
+        step_func_local.update({'sp_mon' + str(oi): mon for oi, mon in enumerate(self.spike_monitors)})
+
+        obj2name = {neu: 'neu{}'.format(oi) for oi, neu in enumerate(self.neurons)}
+        obj2name.update({syn: 'syn{}'.format(oi) for oi, syn in enumerate(self.synapses)})
+        obj2name.update({mon: 'st_mon{}'.format(oi) for oi, mon in enumerate(self.state_monitors)})
+        obj2name.update({mon: 'sp_mon{}'.format(oi) for oi, mon in enumerate(self.spike_monitors)})
 
         # synapse update function
 
         for oi, syn in enumerate(self.synapses):
-            corresponds = {'syn_st': syn.state, 'delay_st': syn.delay_state,
-                           'pre_st': syn.pre.state, 'post_st': syn.post.state,
-                           'syn_state': syn.state, 'delay_state': syn.delay_state,
-                           'pre_state': syn.pre.state, 'post_state': syn.post.state}
             # update_state()
             args = get_args(syn.update_state)
-            step_func_str += '\n\t' + 'syn_update{}('.format(oi)
-            step_func_local['syn_update{}'.format(oi)] = syn.update_state
+            step_func_str += '\n\t' + 'syn{}.update_state('.format(oi)
             for arg in args:
                 if arg in ['t', 'i']:
                     step_func_str += arg + ", "
                 elif arg in ['delay_idx', 'in_idx']:
                     step_func_str += 'syn{}.var2index["g_in"], '.format(oi)
-                    step_func_local['syn' + str(oi)] = syn
+                elif arg in ['output_idx', 'out_idx']:
+                    step_func_str += 'syn{}.var2index["g_out"], '.format(oi)
+                    print('Define "{}" in {}.update_state(), maybe a wrong operation, '
+                          'please check.'.format(arg, syn.name))
+                elif arg in ['syn_st', 'syn_state']:
+                    step_func_str += 'syn{}.state, '.format(oi)
+                elif arg in ['delay_st', 'delay_state']:
+                    step_func_str += 'syn{}.delay_state, '.format(oi)
+                elif arg in ['pre_st', 'pre_state']:
+                    step_func_str += '{}.state, '.format(obj2name[syn.pre])
+                elif arg in ['post_st', 'post_state']:
+                    step_func_str += '{}.state, '.format(obj2name[syn.post])
                 else:
-                    step_func_str += arg + str(oi) + ', '
-                    step_func_local[arg + str(oi)] = corresponds[arg]
+                    raise ValueError('Unknown argument in {}.update_state(): {}'.format(syn.name, arg))
             step_func_str += ')'
 
             # output_synapse()
             args = get_args(syn.output_synapse)
-            step_func_str += '\n\t' + 'syn_output{}('.format(oi)
-            step_func_local['syn_output{}'.format(oi)] = syn.output_synapse
+            step_func_str += '\n\t' + 'syn{}.output_synapse('.format(oi)
             for arg in args:
                 if args in ['t', 'i']:
                     step_func_str += arg + ', '
+                elif arg in ['delay_idx', 'in_idx']:
+                    step_func_str += 'syn{}.var2index["g_in"], '.format(oi)
+                    print('Define "{}" in {}.output_synapse(), maybe a wrong operation, '
+                          'please check.'.format(arg, syn.name))
                 elif arg in ['output_idx', 'out_idx']:
                     step_func_str += 'syn{}.var2index["g_out"], '.format(oi)
-                    step_func_local['syn' + str(oi)] = syn
+                elif arg in ['syn_st', 'syn_state']:
+                    step_func_str += 'syn{}.state, '.format(oi)
+                elif arg in ['delay_st', 'delay_state']:
+                    step_func_str += 'syn{}.delay_state, '.format(oi)
+                elif arg in ['pre_st', 'pre_state']:
+                    step_func_str += '{}.state, '.format(obj2name[syn.pre])
+                elif arg in ['post_st', 'post_state']:
+                    step_func_str += '{}.state, '.format(obj2name[syn.post])
                 else:
-                    step_func_str += arg + str(oi) + ', '
-                    step_func_local[arg + str(oi)] = corresponds[arg]
+                    raise ValueError('Unknown argument in {}.update_state(): {}'.format(syn.name, arg))
             step_func_str += ')'
 
         # neuron update function
         for oi, neu in enumerate(self.neurons):
-            step_func_str += '\n\t' + 'neu_update{}('.format(oi)
-            step_func_local['neu_update{}'.format(oi)] = neu.update_state
+            step_func_str += '\n\t' + 'neu{}.update_state('.format(oi)
             args = get_args(neu.update_state)
             for arg in args:
                 if arg in ['t', 'i']:
                     step_func_str += arg + ', '
-                else:
-                    step_func_str += arg + str(oi) + ', '
-                    step_func_local[arg + str(oi)] = neu.state
+                elif arg in ['neu_st', 'neu_state', 'neuron_st', 'neuron_state']:
+                    step_func_str += '{}.state, '.format(obj2name[neu])
             step_func_str += ')'
 
         # state monitor function
         for oi, mon in enumerate(self.state_monitors):
             args = get_args(mon.update_state)
             if len(args) == 3:
-                step_func_str += '\n\tst_mon_update{oi}(obj_st{oi}, mon_st{oi}, i)'.format(oi=oi)
-                step_func_local['st_mon_update{}'.format(oi)] = mon.update_state
-                step_func_local['obj_st{}'.format(oi)] = mon.target.state
-                step_func_local['mon_st{}'.format(oi)] = mon.state
+                step_func_str += '\n\tst_mon{oi}.update_state({obj}.state, st_mon{oi}.state, i)'.format(
+                    oi=oi, obj=obj2name[mon.target])
             elif len(args) == 5:
-                step_func_str += '\n\tst_mon_update{oi}(target{oi}.delay_state, ' \
-                                          'mon_st{oi}, ' \
-                                          'target{oi}.var2index["g_out"], ' \
-                                          'target{oi}.var2index["g_in"], ' \
-                                          'i)'.format(oi=oi)
-                step_func_local['st_mon_update{}'.format(oi)] = mon.update_state
-                step_func_local['mon_st{}'.format(oi)] = mon.state
-                step_func_local['target{}'.format(oi)] = mon.target
+                step_func_str += '\n\tst_mon{oi}.update_state(' \
+                                 '{obj}.delay_state, ' \
+                                 'st_mon{oi}.state, ' \
+                                 '{obj}.var2index["g_out"], ' \
+                                 '{obj}.var2index["g_in"], ' \
+                                 'i)'.format(oi=oi, obj=obj2name[mon.target])
             elif len(args) == 6:
-                step_func_str += '\n\tst_mon_update{oi}(target{oi}.state, ' \
-                                          'target{oi}.delay_state, ' \
-                                          'mon_st{oi}, ' \
-                                          'target{oi}.var2index["g_out"], ' \
-                                          'target{oi}.var2index["g_in"], ' \
-                                          'i)'.format(oi=oi)
-                step_func_local['st_mon_update{}'.format(oi)] = mon.update_state
-                step_func_local['mon_st{}'.format(oi)] = mon.state
-                step_func_local['target{}'.format(oi)] = mon.target
+                step_func_str += '\n\tst_mon{oi}.update_state(' \
+                                 '{obj}.state, ' \
+                                 '{obj}.delay_state, ' \
+                                 'st_mon{oi}.state, ' \
+                                 '{obj}.var2index["g_out"], ' \
+                                 '{obj}.var2index["g_in"], ' \
+                                 'i)'.format(oi=oi, obj=obj2name[mon.target])
             else:
                 raise ValueError('Unknown arguments of monitor update_state().')
 
         # spike monitor function
         for oi, mon in enumerate(self.spike_monitors):
-            step_func_str += '\n\tsp_mon_update{oi}(obj_st{oi}, mon_t{oi}, mon_i{oi}, t)'.format(oi=oi)
-            step_func_local['sp_mon_update{}'.format(oi)] = mon.update_state
-            step_func_local['obj_st{}'.format(oi)] = mon.target.state
-            step_func_local['mon_t{}'.format(oi)] = mon.time
-            step_func_local['mon_i{}'.format(oi)] = mon.index
+            step_func_str += '\n\tsp_mon{oi}({obj}.state, sp_mon{oi}.time, sp_mon{oi}.index, t)'.format(
+                oi=oi, obj=obj2name[mon.target])
 
         # update `dalay_idx` and `output_idx`
         for oi, syn in enumerate(self.synapses):
-            step_func_str += '\n\tsyn{oi}.var2index["g_in"] = (syn{oi}.var2index["g_in"] + 1) % ' \
-                             'syn{oi}.delay_len'.format(oi=oi)
-            step_func_str += '\n\tsyn{oi}.var2index["g_out"] = (syn{oi}.var2index["g_out"] + 1) % ' \
-                             'syn{oi}.delay_len'.format(oi=oi)
-            step_func_local['syn' + str(oi)] = syn
+            if syn.delay_len <= 1:
+                continue
+            step_func_str += '\n\t{syn}.var2index["g_in"] = ({syn}.var2index["g_in"] + 1) % ' \
+                             '{syn}.delay_len'.format(syn='syn' + str(oi))
+            step_func_str += '\n\t{syn}.var2index["g_out"] = ({syn}.var2index["g_out"] + 1) % ' \
+                             '{syn}.delay_len'.format(syn='syn' + str(oi))
 
         if profile.debug:
-            print('Step function :')
+            print('\nStep function :')
             print('----------------------------')
             print(step_func_str)
             print()
@@ -286,8 +299,7 @@ class Network(object):
         obj_idx = run_idx - {du0}
         {neu_st}[-1] = {input}[obj_idx]
     else:
-        {neu_st}[-1] = 0.
-        '''.format(du0=dur[0], du1=dur[1], neu_st='neu_st' + str(ni), input='in' + str(ni))
+        {neu_st}[-1] = 0.'''.format(du0=dur[0], du1=dur[1], neu_st='neu_st' + str(ni), input='in' + str(ni))
             input_func_local['in' + str(ni)] = inputs
             neu_state_args['neu_st' + str(ni)] = receiver.state
             ni += 1
@@ -297,24 +309,23 @@ class Network(object):
     if {du0} <= run_idx <= {du1}:
         {neu_st}[-1] = {input}
     else:
-        {neu_st}[-1] = 0.
-        '''.format(du0=dur[0], du1=dur[1], neu_st='neu_st' + str(ni), input='in' + str(ni))
+        {neu_st}[-1] = 0.'''.format(du0=dur[0], du1=dur[1], neu_st='neu_st' + str(ni), input='in' + str(ni))
             input_func_local['in' + str(ni)] = inputs
             neu_state_args['neu_st' + str(ni)] = receiver.state
             ni += 1
 
         for receiver in no_inputs:
-            input_func_str += '''\n\t{neu_st}[-1] = 0.'''.format(neu_st='neu_st' + str(ni))
+            input_func_str += '''\n    {neu_st}[-1] = 0.'''.format(neu_st='neu_st' + str(ni))
             neu_state_args['neu_st' + str(ni)] = receiver.state
             ni += 1
 
         input_func_str = input_func_str.format(arg=','.join(neu_state_args.keys()))
 
         if profile.debug:
-            print('Input function :')
+            print('\nInput function :')
             print('----------------------------')
             print(input_func_str)
-
+            print()
             pprint(input_func_local)
             print()
         exec(compile(input_func_str, '', 'exec'), input_func_local)

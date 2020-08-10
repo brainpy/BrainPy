@@ -67,6 +67,12 @@ class SpikeMonitor(Monitor):
         # super class initialization
         super(SpikeMonitor, self).__init__(target)
 
+    def __str__(self):
+        return 'SpikeMonitor of {}'.format(str(self.target))
+
+    def __repr__(self):
+        return 'SpikeMonitor of {}'.format(repr(self.target))
+
 
 class StateMonitor(Monitor):
     """Monitor class to record states.
@@ -120,7 +126,7 @@ class StateMonitor(Monitor):
         exec(compile(func_str, '', 'exec'))
 
         if profile.debug:
-            print('Monitor function:')
+            print('\nMonitor function:')
             print('-' * 30)
             print(func_str)
 
@@ -135,15 +141,20 @@ class StateMonitor(Monitor):
         mon_states = []
         for i, k in enumerate(self.vars):
             if k in ['g_out', 'g_in']:
-                d_state = self.target.delay_state
-                v = d_state[0]
+                v = self.target.delay_state[0]
             else:
                 v = self.target.state[self.target.var2index[k]]
             shape = (length,) + v.shape
-            state = np.zeros(shape)
+            state = np.zeros(shape, dtype=profile.ftype)
             setattr(self, k, state)
             mon_states.append(state)
         self.state = tuple(mon_states)
+
+    def __str__(self):
+        return 'StateMonitor of {}'.format(str(self.target))
+
+    def __repr__(self):
+        return 'StateMonitor of {}'.format(repr(self.target))
 
 
 def raster_plot(mon, times=None):

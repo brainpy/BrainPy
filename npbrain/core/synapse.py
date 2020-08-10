@@ -148,7 +148,7 @@ class Synapses(object):
         # check `state`
         assert 'delay_state' in kwargs, 'Must define "delay_state" in synapses.'
         if 'state' not in kwargs:
-            print('Synapses do not define "state" item.')
+            print('Synapses "{}" do not define "state" item.'.format(self.name))
             self.state = None
 
         # check `var2index`
