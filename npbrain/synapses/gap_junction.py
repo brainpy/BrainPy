@@ -39,6 +39,7 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
 
     var2index = dict()
     num, num_pre, num_post = len(pre_ids), pre.num, post.num
+    state = None
     delay_state = init_delay_state(delay=delay, num_post=num_post)
 
     # weights
@@ -103,6 +104,7 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
     var2index = dict()
     pre_ids, post_ids, anchors = connection
     num, num_pre, num_post = len(pre_ids), pre.num, post.num
+    state = None
     delay_state = init_delay_state(num_post=num_post * 2, delay=delay)
 
     # weights

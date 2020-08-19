@@ -2,9 +2,10 @@
 
 import numpy as np
 
-from npbrain.core import integrate
-from npbrain.core.neuron import *
-from npbrain.utils.helper import get_clip
+from ..core import integrate
+from ..core.neuron import *
+from ..utils import get_clip
+from ..utils import autojit
 
 __all__ = [
     'HH'
@@ -66,42 +67,40 @@ def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., 
     judge_spike = get_spike_judger()
     clip = get_clip()
 
-    @integrate(method=method,
-               signature='{f}[:]({f}[:], {f}, {f}[:])')
+    @integrate(method=method, signature='f[:](f[:], f, f[:])')
     def int_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
         return alpha * (1 - m) - beta * m
 
-    @integrate(method=method,
-               signature='{f}[:]({f}[:], {f}, {f}[:])')
+    @integrate(method=method, signature='f[:](f[:], f, f[:])')
     def int_h(h, t, V):
         alpha = 0.07 * np.exp(-(V + 65) / 20.)
         beta = 1 / (1 + np.exp(-(V + 35) / 10))
         return alpha * (1 - h) - beta * h
 
-    @integrate(method=method,
-               signature='{f}[:]({f}[:], {f}, {f}[:])')
+    @integrate(method=method, signature='f[:](f[:], f, f[:])')
     def int_n(n, t, V):
         alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
         beta = 0.125 * np.exp(-(V + 65) / 80)
         return alpha * (1 - n) - beta * n
 
     @integrate(method=method, noise=noise / C,
-               signature='{f}[:]({f}[:], {f}, {f}[:], {f}[:])')
-    def int_V(V, t, Icur, Isyn):
-        return (Icur + Isyn) / C
+               signature='f[:](f[:], f, f[:], f[:], f[:], f[:])')
+    def int_V(V, t, m, h, n, Isyn):
+        INa = g_Na * m ** 3 * h * (V - E_Na)
+        IK = g_K * n ** 4 * (V - E_K)
+        IL = g_Leak * (V - E_Leak)
+        dvdt = (- INa - IK - IL + Isyn) / C
+        return dvdt
 
+    @autojit('void(f[:, :], f)')
     def update_state(neu_state, t):
         V, Isyn = neu_state[0], neu_state[-1]
         m = clip(int_m(neu_state[1], t, V), 0., 1.)
         h = clip(int_h(neu_state[2], t, V), 0., 1.)
         n = clip(int_n(neu_state[3], t, V), 0., 1.)
-        INa = g_Na * m ** 3 * h * (V - E_Na)
-        IK = g_K * n ** 4 * (V - E_K)
-        IL = g_Leak * (V - E_Leak)
-        Icur = - INa - IK - IL
-        V = int_V(V, t, Icur, Isyn)
+        V = int_V(V, t, m, h, n, Isyn)
         neu_state[0] = V
         neu_state[1] = m
         neu_state[2] = h

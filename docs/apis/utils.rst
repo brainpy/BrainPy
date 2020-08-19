@@ -108,6 +108,7 @@ The method of formatting connections.
     from_ij
 
 
+
 ``helper`` module
 -----------------
 

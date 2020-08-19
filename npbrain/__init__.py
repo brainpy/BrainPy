@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.7.1"
+__version__ = "0.2.8.0"
 
 # must import profile first
 from npbrain.utils import profile
@@ -77,6 +77,7 @@ from npbrain.synapses.short_term_plasticity import *
 def _reload():
     global judge_spike
     global clip
+
     judge_spike = get_spike_judger()
     clip = get_clip()
 

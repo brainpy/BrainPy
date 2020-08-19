@@ -81,6 +81,9 @@ def set_backend(bk):
     bk : str
         The backend name.
     """
+    if get_backend() == bk:
+        return
+
     global _backend
     global _parallel
     global _nogil

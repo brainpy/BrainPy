@@ -10,7 +10,6 @@ from numba.core.dispatcher import Dispatcher
 
 from . import profile
 
-
 __all__ = [
     # parameter helpers
     'check_params',
@@ -29,6 +28,7 @@ __all__ = [
     'clip',
     'get_clip'
 ]
+
 
 ##############################
 # parameter helpers
@@ -94,25 +94,26 @@ def autojit(signature_or_func=None):
 
         if signature_or_func is None:
             pass
-        elif isinstance(signature_or_func, str):
-            signature_or_func = [signature_or_func]
         else:
-            assert isinstance(signature_or_func, (list, tuple))
-            signature_or_func = list(signature_or_func)
-        for i in range(len(signature_or_func)):
-            if ('float' in signature_or_func[i]) or ('int' in signature_or_func[i]):
-                pass
-            elif '{' in signature_or_func[i] and '}' in signature_or_func[i]:
-                signature_or_func[i] = signature_or_func[i].format(f=profile.ftype, i=profile.itype)
+            if isinstance(signature_or_func, str):
+                signature_or_func = [signature_or_func]
             else:
-                s = signature_or_func[i].replace(' ', '')
-                s = s.replace('f[', profile.ftype+'[')
-                s = s.replace('f,', profile.ftype+',')
-                s = s.replace('f)', profile.ftype+')')
-                s = s.replace('i[', profile.itype + '[')
-                s = s.replace('i,', profile.itype + ',')
-                s = s.replace('i)', profile.itype + ')')
-                signature_or_func[i] = s
+                assert isinstance(signature_or_func, (list, tuple))
+                signature_or_func = list(signature_or_func)
+            for i in range(len(signature_or_func)):
+                if ('float' in signature_or_func[i]) or ('int' in signature_or_func[i]):
+                    pass
+                elif '{' in signature_or_func[i] and '}' in signature_or_func[i]:
+                    signature_or_func[i] = signature_or_func[i].format(f=profile.ftype, i=profile.itype)
+                else:
+                    s = signature_or_func[i].replace(' ', '')
+                    s = s.replace('f[', profile.ftype + '[')
+                    s = s.replace('f,', profile.ftype + ',')
+                    s = s.replace('f)', profile.ftype + ')')
+                    s = s.replace('i[', profile.itype + '[')
+                    s = s.replace('i,', profile.itype + ',')
+                    s = s.replace('i)', profile.itype + ')')
+                    signature_or_func[i] = s
 
         def wrapper(f):
             if profile.is_numba_bk() and not isinstance(f, Dispatcher):
@@ -127,6 +128,21 @@ def autojit(signature_or_func=None):
         return wrapper
 
 
+def is_lambda_function(func):
+    """Check whether the function is a ``lambda`` function. Comes from
+    https://stackoverflow.com/questions/23852423/how-to-check-that-variable-is-a-lambda-function
+
+    Parameters
+    ----------
+    func : callable function
+        The function.
+
+    Returns
+    -------
+    bool
+        True of False.
+    """
+    return isinstance(func, types.LambdaType) and func.__name__ == "<lambda>"
 
 def func_copy(f):
     """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
@@ -240,7 +256,7 @@ class Dict(dict):
         other.update(kwargs)
         for k, v in other.items():
             if ((k not in self) or
-                (not isinstance(self[k], dict)) or
+                    (not isinstance(self[k], dict)) or
                     (not isinstance(v, dict))):
                 self[k] = v
             else:
@@ -328,5 +344,5 @@ def get_clip():
         a = np.maximum(a, a_min)
         a = np.minimum(a, a_max)
         return a
-    return f
 
+    return f

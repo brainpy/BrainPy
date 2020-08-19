@@ -2,9 +2,10 @@
 
 import numpy as np
 
-from npbrain.core.neuron import Neurons
-from npbrain.core.neuron import format_geometry
-from npbrain.core.neuron import init_neu_state
+from ..core.neuron import Neurons
+from ..core.neuron import format_geometry
+from ..core.neuron import init_neu_state
+from ..utils import autojit
 
 __all__ = [
     'FreqInput',
@@ -44,6 +45,7 @@ def FreqInput(geometry, freq, start_time=0., name='FreqInput'):
     num, geometry = format_geometry(geometry)
     state = init_neu_state(num, [('syn_sp_time', start_time)])
 
+    @autojit('void(f[:, :], f)')
     def update_state(neu_state, t):
         if t >= neu_state[0, 0]:
             neu_state[-3] = 1.
@@ -121,6 +123,7 @@ def TimeInput(geometry, times, indices=None, name='TimeInput'):
     state = init_neu_state(1, num)
     state[0, 0] = 0.  # current index
 
+    @autojit('void(f[:, :], f)')
     def update_state(neu_state, t):
         current_idx = int(neu_state[0, 0])
         if (current_idx < num_times) and (t >= times[current_idx]):

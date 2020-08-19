@@ -9,7 +9,7 @@ if __name__ == '__main__':
     hh = nn.HH(1, noise=1.)
     mon = nn.StateMonitor(hh, ['V', 'm', 'h', 'n'])
     net = nn.Network(hh=hh, mon=mon)
-    net.run(duration=100, inputs=[hh, 10], report=True)
+    net.run(duration=100, inputs=[hh, -10], report=True)
 
     ts = net.run_time()
     fig, gs = nn.visualize.get_figure(2, 1, 3, 12)
@@ -29,3 +29,4 @@ if __name__ == '__main__':
     plt.xlabel('Time (ms)')
 
     plt.show()
+

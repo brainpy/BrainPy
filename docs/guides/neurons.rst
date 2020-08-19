@@ -99,7 +99,8 @@ update_state()
     def update_state(neu_state, t):
         do_something ...
 
-It is written according to the differential equations of the neuron models.
+This function receive two arguments: ``neu_state`` and ``t``. It is
+written according to the differential equations of the neuron models.
 In order to make the numerical integration of differential equations easier,
 NumpyBrain provides a decorator function ``@integrate`` to help construct
 numerical integration functions. The supported integration algorithms please
@@ -229,19 +230,19 @@ although it has more complex dynamics.
             return alpha * (1 - n) - beta * n
 
         @nn.integrate(method=method, noise=noise / C)
-        def int_V(V, t, Icur, Isyn):
-            return (Icur + Isyn) / C
+        def int_V(V, t, m, h, n, Isyn):
+            INa = g_Na * m ** 3 * h * (V - E_Na)
+            IK = g_K * n ** 4 * (V - E_K)
+            IL = g_Leak * (V - E_Leak)
+            dvdt = (- INa - IK - IL + Isyn) / C
+            return dvdt
 
         def update_state(neu_state, t):
             V, Isyn = neu_state[0], neu_state[-1]
             m = nn.clip(int_m(neu_state[1], t, V), 0., 1.)
             h = nn.clip(int_h(neu_state[2], t, V), 0., 1.)
             n = nn.clip(int_n(neu_state[3], t, V), 0., 1.)
-            INa = g_Na * m * m * m * h * (V - E_Na)
-            IK = g_K * n ** 4 * (V - E_K)
-            IL = g_Leak * (V - E_Leak)
-            Icur = - INa - IK - IL
-            V = int_V(V, t, Icur, Isyn)
+            V = int_V(V, t, m, h, n, Isyn)
             neu_state[0] = V
             neu_state[1] = m
             neu_state[2] = h

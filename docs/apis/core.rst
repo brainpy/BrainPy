@@ -25,13 +25,14 @@ Methods for ordinary differential equations.
 .. autosummary::
     :toctree: _autosummary
 
-    forward_Euler
-    rk2
+    ode_euler
+    ode_rk2
     midpoint
-    rk3
-    rk4
-    rk4_alternative
-    backward_Euler
+    ode_heun
+    ode_rk3
+    ode_rk4
+    ode_rk4_alternative
+    ode_backward_euler
     trapezoidal_rule
     ode_exponential_euler
 
@@ -40,9 +41,9 @@ Methods for stochastic differential equations.
 .. autosummary::
     :toctree: _autosummary
 
-    Euler_method
+    sde_euler
     Milstein_dfree_Ito
-    Heun_method
+    sde_heun
     Milstein_dfree_Stra
 
     sde_exponential_euler

@@ -4,6 +4,7 @@ import numpy as np
 
 from npbrain.core import integrate
 from npbrain.core.neuron import *
+from ..utils import autojit
 
 __all__ = [
     'Izhikevich'
@@ -102,17 +103,17 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
     init_state(state, Vr)
     judge_spike = get_spike_judger()
 
-    @integrate(method=method,
-               signature='{f}[:]({f}[:], {f}, {f}[:])')
+    @integrate(method=method, signature='f[:](f[:], f, f[:])')
     def int_u(u, t, V):
         return a * (b * V - u)
 
-    @integrate(method=method, noise=noise,
-               signature='{f}[:]({f}[:], {f}, {f}[:], {f}[:])')
+    @integrate(method=method, noise=noise, signature='f[:](f[:], f, f[:], f[:])')
     def int_V(V, t, u, Isyn):
         return 0.04 * V * V + 5 * V + 140 - u + Isyn
 
     if ref > 0.:
+
+        @autojit('void(f[:, :], f)')
         def update_state(neu_state, t):
             not_ref = (t - neu_state[-2]) > ref
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
@@ -128,6 +129,8 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
                 neu_state[1, idx] += d
                 neu_state[-5, idx] = 0.
     else:
+
+        @autojit('void(f[:, :], f)')
         def update_state(neu_state, t):
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
             neu_state[0] = int_V(V, t, u, Isyn)

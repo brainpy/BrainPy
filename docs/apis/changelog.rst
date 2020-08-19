@@ -1,6 +1,22 @@
 Release notes
 =============
 
+
+NumpyBrain 0.2.8
+----------------
+
+API changes
+~~~~~~~~~~~
+
+- Add exponential euler method for ODE and SDE.
+- Change Neurons and Synapse "update_state" function.
+- Code generation for network running.
+- Format signature completion and profile setting.
+- Format step() and input() functions.
+- Support "multi_return" in @integrate function.
+
+
+
 NumpyBrain 0.2.7
 ----------------
 

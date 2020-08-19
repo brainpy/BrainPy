@@ -2,7 +2,7 @@
 
 from ..core import integrate
 from ..core.neuron import *
-from ..utils import profile
+from ..utils import autojit
 
 __all__ = [
     'LIF'
@@ -45,13 +45,13 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
 
     judge_spike = get_spike_judger()
 
-    @integrate(method=method, noise=noise / tau,
-               signature='{f}[:]({f}[:], {f}, {f}[:])')
+    @integrate(method=method, noise=noise / tau, signature='f[:](f[:], f, f[:])')
     def int_f(V, t, Isyn):
         return (-V + Vr + Isyn) / tau
 
     if ref > 0.:
 
+        @autojit('void(f[:, :], f)')
         def update_state(neu_state, t):
             V_new = int_f(neu_state[0], t, neu_state[-1])
             for idx in range(num):
@@ -72,6 +72,7 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
 
     else:
 
+        @autojit('void(f[:, :], f)')
         def update_state(neu_state, t):
             neu_state[0] = int_f(neu_state[0], t, neu_state[-1])
             spike_idx = judge_spike(neu_state, Vth, t)

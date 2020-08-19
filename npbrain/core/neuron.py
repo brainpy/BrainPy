@@ -300,12 +300,12 @@ class Neurons(object):
         return sorted(list(self.var2index.keys()))
 
 
-def generate_fake_neuron(num, V=0.):
+def generate_fake_neuron(geometry, V=0.):
     """Generate the fake neuron group for testing synapse function.
 
     Parameters
     ----------
-    num : int
+    geometry : int
         Number of neurons in the group.
     V : int, float, numpy.ndarray
         Initial membrane potential.
@@ -317,7 +317,7 @@ def generate_fake_neuron(num, V=0.):
     """
 
     var2index = dict(V=0)
-    num, geometry = num, (num,)
+    num, geometry = format_geometry(geometry)
     state = np.zeros((5, num))
     state[0] = V
     update_state = helper.autojit(lambda neu_state, t: 1)
