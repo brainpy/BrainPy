@@ -173,8 +173,17 @@ def _get_integrator(method=None, has_noise=False):
 def ode_euler(f, dt=None, signature=None, multi_return=False):
     """Forward Euler method. Also named as ``explicit_Euler``.
 
-    The most unstable integrator known. Requires a very small timestep.
-    Accuracy is O(dt).
+    The simplest way for solving ordinary differential equations is "the
+    Euler method" by Press et al. (1992) [1]_ :
+
+    .. math::
+
+        y_{n+1} = y_n + f(y_n, t_n) \\Delta t
+
+    This formula advances a solution from :math:`y_n` to :math:`y_{n+1}=y_n+h`.
+    Note that the method increments a solution through an interval :math:`h`
+    while using derivative information from only the beginning of the interval.
+    As a result, the step's error is :math:`O(h^2)`.
 
     Parameters
     ----------
@@ -193,6 +202,13 @@ def ode_euler(f, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+    .. [1] W. H.; Flannery, B. P.; Teukolsky, S. A.; and Vetterling,
+            W. T. Numerical Recipes in FORTRAN: The Art of Scientific
+            Computing, 2nd ed. Cambridge, England: Cambridge University
+            Press, p. 710, 1992.
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -215,6 +231,14 @@ def ode_euler(f, dt=None, signature=None, multi_return=False):
 def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):
     """Parametric second-order Runge-Kutta (RK2).
     Also named as ``RK2``.
+
+    It is given in parametric form by [1]_ .
+
+    .. math::
+
+        k_1	&=	f(y_n, t_n)  \\\\
+        k_2	&=	f(y_n + \\beta \\Delta t k_1, t_n + \\beta \\Delta t) \\\\
+        y_{n+1} &= y_n + \\Delta t [(1-\\frac{1}{2\\beta})k_1+\\frac{1}{2\\beta}k_2]
 
     Popular choices for 'beta':
         1/2 :
@@ -239,6 +263,11 @@ def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+    .. [1] https://lpsa.swarthmore.edu/NumInt/NumIntSecond.html
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -279,6 +308,10 @@ def ode_heun(f, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    See Also
+    --------
+    ode_rk2, midpoint
     """
     return ode_rk2(f, dt, beta=1., signature=signature, multi_return=multi_return)
 
@@ -301,13 +334,25 @@ def midpoint(f, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    See Also
+    --------
+    ode_rk2, ode_heun
+
     """
     return ode_rk2(f, dt, beta=0.5, signature=signature, multi_return=multi_return)
 
 
 def ode_rk3(f, dt=None, signature=None, multi_return=False):
     """Kutta's third-order method (commonly known as RK3).
-    Also named as ``RK3``.
+    Also named as ``RK3`` [1]_ [2]_ [3]_ .
+
+    .. math::
+
+        k_1 &= f(y_n, t_n) \\\\
+        k_2 &= f(y_n + \\frac{\\Delta t}{2}k_1, tn+\\frac{\\Delta t}{2}) \\\\
+        k_3 &= f(y_n -\\Delta t k_1 + 2\\Delta t k_2, t_n + \\Delta t) \\\\
+        y_{n+1} &= y_{n} + \\frac{\\Delta t}{6}(k_1 + 4k_2+k_3)
 
     Parameters
     ----------
@@ -324,6 +369,13 @@ def ode_rk3(f, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+    .. [1] http://mathworld.wolfram.com/Runge-KuttaMethod.html
+    .. [2] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+    .. [3] https://zh.wikipedia.org/wiki/龙格－库塔法
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -347,7 +399,15 @@ def ode_rk3(f, dt=None, signature=None, multi_return=False):
 
 
 def ode_rk4(f, dt=None, signature=None, multi_return=False):
-    """Fourth-order Runge-Kutta (RK4).
+    """Fourth-order Runge-Kutta (RK4) [1]_ [2]_ [3]_ .
+
+    .. math::
+
+        k_1 &= f(y_n, t_n) \\\\
+        k_2 &= f(y_n + \\frac{\\Delta t}{2}k_1, t_n + \\frac{\\Delta t}{2}) \\\\
+        k_3 &= f(y_n + \\frac{\\Delta t}{2}k_2, t_n + \\frac{\\Delta t}{2}) \\\\
+        k_4 &= f(y_n + \\Delta t k_3, t_n + \\Delta t) \\\\
+        y_{n+1} &= y_n + \\frac{\\Delta t}{6}(k_1 + 2*k_2 + 2* k_3 + k_4)
 
     Parameters
     ----------
@@ -364,6 +424,13 @@ def ode_rk4(f, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+    .. [1] http://mathworld.wolfram.com/Runge-KuttaMethod.html
+    .. [2] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+    .. [3] https://zh.wikipedia.org/wiki/龙格－库塔法
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -390,7 +457,18 @@ def ode_rk4(f, dt=None, signature=None, multi_return=False):
 
 def ode_rk4_alternative(f, dt=None, signature=None, multi_return=False):
     """An alternative of fourth-order Runge-Kutta method.
-    Also named as ``RK4_alternative``.
+    Also named as ``RK4_alternative`` ("3/8" rule).
+
+    It is a less often used fourth-order
+    explicit RK method, and was also proposed by Kutta [1]_:
+
+    .. math::
+
+        k_1 &= f(y_n, t_n) \\\\
+        k_2 &= f(y_n + \\frac{\\Delta t}{3}k_1, t_n + \\frac{\\Delta t}{3}) \\\\
+        k_3 &= f(y_n - \\frac{\\Delta t}{3}k_1 + \\Delta t k_2, t_n + \\frac{2 \\Delta t}{3}) \\\\
+        k_4 &= f(y_n + \\Delta t k_1 - \\Delta t k_2 + \\Delta t k_3, t_n + \\Delta t) \\\\
+        y_{n+1} &= y_n + \\frac{\\Delta t}{8}(k_1 + 3*k_2 + 3* k_3 + k_4)
 
     Parameters
     ----------
@@ -407,6 +485,12 @@ def ode_rk4_alternative(f, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+
+    .. [1] https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -434,6 +518,71 @@ def ode_rk4_alternative(f, dt=None, signature=None, multi_return=False):
 def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None, multi_return=False):
     """Backward Euler method. Also named as ``implicit_Euler``.
 
+    The backward Euler method (or implicit Euler method) [1]_ [2]_
+    provide a different way for the approximation of ordinary differential
+    equations comparing with the (standard) Euler method. The backward Euler
+    method has error of order ``1`` in time, it computes the approximations
+    using
+
+    .. math::
+
+        y_{n+1}=y_{n}+hf(t_{n+1},y_{n+1}).
+
+    This differs from the (forward) Euler method in that the latter
+    uses :math:`f(t_{n},y_{n})` in place of :math:`f(t_{n+1},y_{n+1})`.
+
+    **Solution**
+
+    The backward Euler method is an implicit method: the new approximation
+    :math:`y_{n+1}` appears on both sides of the equation, and thus the method
+    needs to solve an algebraic equation for the unknown :math:`y_{n+1}`.
+    For non-stiff problems, this can be done with fixed-point iteration:
+
+    .. math::
+
+        y_{n+1}^{(0)} & =y_{n} \\\\
+        y_{n+1}^{(i+1)} & =y_{n}+hf(t_{n+1},y_{n+1}^{(i)}).
+
+    If this sequence converges (within a given tolerance), then the method
+    takes its limit as the new approximation :math:`y_{n+1}`.
+
+    Alternatively, we can use the Newton–Raphson method to solve the
+    algebraic equation.
+
+    **Algorithmic summary of Backward Euler method**
+
+    For each timestep :math:`n`, do the following:
+
+    1, Initialize:
+
+    .. math::
+
+        y_{n+1}^{(0)} &\\leftarrow y_{n} \\\\
+        i &\\leftarrow 0
+
+    2, Update:
+
+    .. math::
+
+        k &\leftarrow f(y_{n+1}^{(i)}, t_{n+1}) \\\\
+        i &\leftarrow i + 1 \\\\
+        y_{n+1}^{(i)} &= y_n + \\Delta t k
+
+    3, If :math:`u^{(i)}_{n+1}` is “close” to :math:`u^{(i-1)}_{n+1}`,
+    the method has converged and the solution is complete. Jump to step 6.
+
+    4, If :math:`i = i_{max}`, the method did not converge. No solution
+    obtained; raise an exception.
+
+    5, Next iteration. Continue from step 2.
+
+    6, Set the solution obtained as
+
+    .. math::
+
+        y_{n+1} \\leftarrow y_{n+1}^{(i)}
+
+
     Parameters
     ----------
     f : callable
@@ -451,6 +600,16 @@ def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None, multi_return=F
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+
+    .. [1] Forward and Backward Euler Methods,
+           http://web.mit.edu/10.001/Web/Course_Notes/Differential_Equations_Notes/node3.html
+    .. [2] Butcher, John C. (2003), Numerical Methods for Ordinary
+           Differential Equations, New York: John Wiley & Sons, ISBN
+           978-0-471-96758-3.
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -471,8 +630,25 @@ def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None, multi_return=F
 def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None, multi_return=False):
     """Trapezoidal rule.
 
-    The trapezoidal rule is an implicit second-order method, which can
-    be considered as both a Runge–Kutta method and a linear multistep method.
+    In numerical analysis and scientific computing,
+    the trapezoidal rule [1]_ is a numerical method to solve ordinary
+    differential equations derived from the trapezoidal rule for
+    computing integrals. The trapezoidal rule is an implicit
+    second-order method, which can be considered as both a
+    Runge–Kutta method and a linear multistep method.
+
+    The trapezoidal rule is given by the formula
+
+    .. math::
+
+        y_{n+1}=y_{n}+\\frac{1}{2}\\Delta t {\\Big (}f(t_{n},y_{n})+f(t_{n+1},y_{n+1}){\\Big )}.
+
+    This is an implicit method: the value :math:`y_{n+1}` appears on both
+    sides of the equation, and to actually calculate it, we have to solve
+    an equation which will usually be nonlinear. One possible method for
+    solving this equation is Newton's method. We can use the Euler method
+    to get a fairly good estimate for the solution, which can be used as
+    the initial guess of Newton's method.
 
     Parameters
     ----------
@@ -489,6 +665,12 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None, multi_return=Fal
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+    .. [1] Trapezoidal rule (differential equations),
+           https://en.wikipedia.org/wiki/Trapezoidal_rule_(differential_equations)
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -549,6 +731,10 @@ def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    See Also
+    --------
+    sde_exponential_euler
     """
 
     f = autojit(signature)(f)
@@ -577,9 +763,35 @@ def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
 
 
 def sde_euler(f, g, dt=None, signature=None, multi_return=False):
-    """Itô stochastic integral. The simplest stochastic numerical approximation
-    is the Euler-Maruyama method. Its is an order 0.5 strong Taylor schema.
-    Also named as ``EM``, ``EM_method``, ``Euler``, ``Euler_Maruyama_method``.
+    """Itô stochastic integral.
+
+    The simplest stochastic numerical approximation is the Euler-Maruyama
+    method that requires the problem to be described using the Itô scheme.
+
+    This approximation is a continuous time stochastic process that
+    satisfy the iterative scheme [1]_.
+
+    .. math::
+
+        Y_{n+1} = Y_n + f(Y_n)h_n + g(Y_n)\\Delta W_n
+
+    where :math:`n=0,1, \\cdots , N-1`, :math:`Y_0=x_0`, :math:`Y_n = Y(t_n)`,
+    :math:`h_n = t_{n+1} - t_n` is the step size,
+    :math:`\\Delta W_n = [W(t_{n+1}) - W(t_n)] \\sim N(0, h_n)=\\sqrt{h}N(0, 1)`
+    with :math:`W(t_0) = 0`.
+
+    For simplicity, we rewrite the above equation into
+
+    .. math::
+
+        Y_{n+1} = Y_n + f_n h + g_n \\Delta W_n
+
+    As the order of convergence for the Euler-Maruyama method is low (strong order of
+    convergence 0.5, weak order of convergence 1), the numerical results are inaccurate
+    unless a small step size is used. By adding one more term from the stochastic
+    Taylor expansion, one obtains a 1.0 strong order of convergence scheme known
+    as *Milstein scheme* [1]_.
+
 
     Parameters
     ----------
@@ -598,6 +810,17 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
     -------
     func : callable
         The one-step numerical integration function.
+
+    References
+    ----------
+
+    .. [1] U. Picchini, Sde toolbox: Simulation and estimation of stochastic
+           differential equations with matlab.
+
+    See Also
+    --------
+    Milstein_dfree_Ito
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -690,6 +913,10 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
     .. [1] Erdoğan, Utku, and Gabriel J. Lord. "A new class of exponential integrators for stochastic
            differential equations with multiplicative noise." arXiv preprint arXiv:1608.07096 (2016).
 
+    See Also
+    --------
+    ode_exponential_euler
+
     """
 
     f = autojit(signature)(f)
@@ -751,6 +978,18 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
     """Itô stochastic integral. The derivative-free Milstein method is
     an order 1.0 strong Taylor schema.
 
+    The following implementation approximates this derivative thanks to a
+    Runge-Kutta approach [1]_.
+
+    In Itô scheme, it is expressed as
+
+    .. math::
+
+        Y_{n+1} = Y_n + f_n h + g_n \\Delta W_n + {1 \\over 2\\sqrt{h}}
+        [g(\\overline{Y_n}) - g_n] [(\\Delta W_n)^2-h]
+
+    where :math:`\\overline{Y_n} = Y_n + f_n h + g_n \\sqrt{h}`.
+
     Parameters
     ----------
     f : callable
@@ -764,10 +1003,20 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
     multi_return : bool
         Return multiple values.
 
+    References
+    ----------
+    .. [1] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE
+           through computer experiments, Springer, 1994.
+
     Returns
     -------
     func : callable
         The one-step numerical integration function.
+
+    See Also
+    --------
+    Milstein_dfree_Stra
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -813,6 +1062,21 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
     Use the Stratonovich Heun algorithm to integrate Stratonovich equation,
     according to paper [1]_ [2]_.
 
+    .. math::
+        Y_{n+1} &= Y_n + f_n h + {1 \\over 2}[g_n + g(\\overline{Y}_n)] \\Delta W_n
+
+        \\overline{Y}_n &= Y_n + g_n \\Delta W_n
+
+
+    Or, it is written as [22]_
+
+    .. math::
+
+        Y_1 &= y_n + f(y_n)h + g_n \\Delta W_n
+
+        y_{n+1} &= y_n + {1 \over 2}[f(y_n) + f(Y_1)]h + {1 \\over 2} [g(y_n) + g(Y_1)] \\Delta W_n
+
+
     Parameters
     ----------
     f : callable
@@ -839,6 +1103,12 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
          no. 2, 1002-1018.
     .. [2] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE through computer
          experiments, Springer, 1994.
+
+    See Also
+    --------
+
+    Milstein_dfree_Stra
+
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
@@ -882,6 +1152,13 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
     """Stratonovich stochastic integral. The derivative-free Milstein
     method is an order 1.0 strong Taylor schema.
 
+    In Stratonovich scheme, it is expressed as [1]_
+
+    .. math::
+
+        Y_{n+1} = Y_n + f_n h + g_n\\Delta W_n +  {1 \\over 2\\sqrt{h}}
+        [g(\\overline{Y_n}) - g_n] (\\Delta W_n)^2
+
     Parameters
     ----------
     f : callable
@@ -895,10 +1172,22 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
     multi_return : bool
         Return multiple values.
 
+
+    References
+    ----------
+
+    .. [1] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE
+           through computer experiments, Springer, 1994.
+
     Returns
     -------
     func : callable
         The one-step numerical integration function.
+
+    See Also
+    --------
+    Milstein_dfree_Ito
+
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt).astype(profile.ftype)

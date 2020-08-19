@@ -18,49 +18,55 @@ and three essential function.
 state
 *****
 
-In a *synapses* model, ``state`` (see Figure 1) constains three two-dimensional 
-matrix, which wraps all variables defined in a synapses object, including the 
-dynamical variables, the static variables and others. 
+Similar to a *neurons* model, ``state`` in *synapses* model (see Figure 1)
+contains a two-dimensional matrix, which wraps all variables defined in a
+synapses object, including the dynamical variables, the static variables,
+the changeable parameters, and others.
 
 .. figure:: ../images/synapses_state.png
     :alt: The state of syanpses
-    :width: 600px
+    :width: 200px
     :figclass: align-center
 
     Figure 1. The state in a synapses model. 
 
-1. The first state matrix with the shape of :math:`(L1, num\_syn)` is the state
-   represents synapse-shaped variables. Each array has the length of
-   :math:`num\_syn`. This matrix is created according to the user demands.
-2. The second state matrix with the shape of :math:`(L2, num\_post)` denotes the 
-   collection of the state variables with the length of :math:`num\_post` (see 
-   Figure 1, `Post-shape state`), for example, the delayed conductance which 
-   going to deliver to the post-synaptic neurons, or the post-synaptic membrane 
-   potentials. In NumpyBrain, the first :math:`delay\_length` arrays are used to
-   constain the delayed conductance. 
-3. The third state matrix with the shape of :math:`(L3, num\_pre)` represents
-   the state variables with the length of :math:`num\_pre` (see Figure 1,
-   `Pre-shape state`), for example, the pre-synaptic spikes, or the pre-synaptic
-   membrane potentials. The last array is fixed to receive the pre-synaptic
-   spikes (the box with the solid lines). Other rows are free for users to
-   define other variables.
+The state matrix with the shape of :math:`(L1, num\_syn)` is the state
+represents synapse-shaped variables. Each array has the length of
+:math:`num\_syn`. This matrix can be created by using the function:
 
-Here, we sould pay attention on the conductance delays. In order to get the 
-efficient deley computation, we fix the delay matrix (with a dimension of 
-:math:`(delay\_length, num\_post)`), and rotate it at each updating time-step
-(see Figure 2). In Figure 2, we denote the array position of output conductance 
-as `out`, and the array reveiving the input conductance as `in`. As illustrated, 
-at :math:`t=0`, the conductance `out` delivering to the post-synaptic neurons is 
-at the first row, while the newly computated conductance `in` will be append to 
-the last row. At :math:`t=1`, `out` and `in` go one step, and become `1` and `0`,
-respectively. Such rotation lasts with the each time-step.
+.. code-block:: python
 
-.. figure:: ../images/synapses_delay.png
-    :alt: The conductance delay of syanpses
-    :width: 350px
+    import npbrain as nn
+
+    state = nn.init_syn_state(num_syn, variables=[('a1', 0.), ('a2', 100.)],
+                              parameters=[('b1', 0.), ('b2', 100.)])
+
+delay_state
+***********
+
+Different from a neuron model, a synapse has delay. In order to manage the
+delayed conductance which going to deliver to the post-synaptic neurons, we
+should create a ``delay_state``. `delay_state` is a matrix with the shape
+of :math:`(L2, num\_post)` denotes the collection of the state variables with
+the length of :math:`num\_post` (see Figure 2, `Post-shape state`).
+
+.. figure:: ../images/synapses_delay_state.png
+    :alt: The delay_state of syanpses
+    :width: 600px
     :figclass: align-center
-    
-    Figure 2. The delayed conductances in a synapses model.
+
+    Figure 2. The delay_state in a synapses model.
+
+Here, we should pay attention on the conductance delays. In order to get the
+efficient delay computation, we fix the delay matrix (with a dimension of
+:math:`(delay\_length, num\_post)`), and rotate it at each updating time-step
+(see Figure 3 right). In Figure 3, we denote the array position of output
+conductance as `out`, and the array receiving the input conductance as `in`.
+As illustrated, at :math:`t=0`, the conductance `out` delivering to the
+post-synaptic neurons is at the first row, while the newly computed
+conductance `in` will be append to the last row. At :math:`t=1`, `out` and
+`in` go one step, and become `1` and `0`, respectively. Such rotation continues
+until the end of the simulation.
 
 
 var2index
@@ -78,11 +84,6 @@ model for example,
 represents the variable :math:`x` and the utilization parameter :math:`u` is stored
 at first and second row in the third matrix `state[2]`, respectively.
 
-delay
-*****
-
-``delay`` should be declared. If can be None, or a digital number. 
-
 num
 ***
 
@@ -98,12 +99,23 @@ It is written according to synapse dynamics.
 
 .. code-block:: python
 
-    def update_state(syn_state, t, delay_idx, pre_state, post_state):
+    def update_state(**arguments):
         do_something ...
 
-where `delay_idx` is the position of delayed conductance to append.
-`delay_idx` is automatically computed by the framework. Users can use it
-directly to compute synaptic values.
+
+The **arguments** of `update_state()` function can be chosen from
+
+- ``i`` : the current running step
+- ``t`` : the current time point
+- ``syn_state``/``syn_st`` : the synapse state
+- ``delay_state``/``delay_st`` : the synapse delay state
+- ``delay_idx``/``in_idx`` : the synapse delay index
+- ``output_idx``/``out_idx`` :  the delay output index
+- ``pre_state``/``pre_st`` : state of pre-synaptic neuron
+- ``post_state``/``post_st`` : state of post-synaptic neuron
+
+NumpyBrain will automatically recognize what you want and pass
+the corresponding arguments into the function.
 
 
 output_synapse()
@@ -113,7 +125,7 @@ output_synapse()
 
 .. code-block:: python
 
-    def output_synapse(syn_state, output_idx, pre_state, post_state):
+    def output_synapse(**arguments):
         do_something ...
 
 
@@ -123,11 +135,11 @@ which receives the synaptic inputs, i.e.,
 
 .. code-block:: python
 
-    def output_synapse(syn_state, output_idx, pre_state, post_state):
-        post_state[-1] += syn_state[1][output_idx]
+    def output_synapse(delay_st, out_idx, post_state):
+        post_state[-1] += delay_st[out_idx]
 
 where `post_state[-1]` is the neuron array receiving the synaptic input,
-and `output_idx` is the position of output conductance in the synapse state,
+and `out_idx` is the position of output conductance in the synapse state,
 which is automatically inferred by the framework.
 
 
@@ -137,7 +149,7 @@ Define your own synapse models
 Synapse connectivity
 ********************
 
-Before going to the difinition of new synapse model, we should figure out 
+Before going to the definition of new synapse model, we should figure out
 what is the most efficient synapse structure to calculate synapse state. 
 In practice, the number of synapse is far bigger than the neurons. Usually, 
 the time spending on the synapse computation is 10 times of neuron computation's. 
@@ -206,7 +218,8 @@ initialize the `state` as:
     num_syn = len(pre_ids)
     delay = 2.  # ms
 
-    state = nn.initial_syn_state(delay, num_pre, num_post, num, num_syn_shape_var=1)
+    state = nn.init_syn_state(num_syn=num, variables=[('s', 0.)])
+    delay_state = nn.init_delay_state(num_post=num_post, delay=delay)
 
 The update function and the decay function of variable :math:`s` are defined 
 according to Equation (2)
@@ -217,37 +230,31 @@ according to Equation (2)
     def int_f(s, t):
         return - s / tau_decay
 
-    def update_state(syn_state, t, delay_idx):
-        # get synaptic state
-        spike_idx = np.where(syn_state[0][0] > 0.)[0]
+    def update_state(syn_st, t, delay_st, delay_idx, pre_state):
         # calculate synaptic state
-        s = int_f(syn_state[2][0], t)
+        s = int_f(syn_st[0], t)
+        spike_idx = np.where(pre_state[-3] > 0.)[0]
         for i in spike_idx:
             idx = anchors[:, i]
             s[idx[0]: idx[1]] += 1
-        syn_state[2][0] = s
+        syn_st[0] = s
         # get post-synaptic values
         g = np.zeros(num_post)
         for i in range(num_pre):
             idx = anchors[:, i]
             post_idx = post_ids[idx[0]: idx[1]]
             g[post_idx] += s[idx[0]: idx[1]]
-        syn_state[1][delay_idx] = g
+        delay_st[delay_idx] = g
 
 
 The output function is defined according to Equation (2)
 
 .. code-block:: python
 
-    def output_synapse(syn_state, output_idx, post_neu_state):
-        # get the conductance
-        g_val = syn_state[1][output_idx]
-
-        # Equation (2)
-        post_val = - g_max * g_val * (post_neu_state[0] - E)
-
-        # add computed value to post-synaptic neuron's input receiver
-        post_neu_state[-1] += post_val
+    def output_synapse(delay_st, output_idx, post_state):
+        g_val = delay_st[output_idx]
+        post_val = - g_max * g_val * (post_state[0] - E)
+        post_state[-1] += post_val
 
 Put them together, we get the full model of the
 `AMPA synapse <https://github.com/chaoming0625/NumpyBrain/blob/master/npbrain/synapses/AMPA_synapses.py>`_ .

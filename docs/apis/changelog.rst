@@ -14,7 +14,7 @@ API changes
 - Format signature completion and profile setting.
 - Format step() and input() functions.
 - Support "multi_return" in @integrate function.
-
+- Add methods "pre2post", "post2pre", "pre2syn" and "post2syn" in utils/connect.py
 
 
 NumpyBrain 0.2.7

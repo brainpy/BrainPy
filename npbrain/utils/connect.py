@@ -4,12 +4,18 @@
 Connection toolkit.
 """
 
+import numba as nb
 import numpy as np
+from . import profile
 
 __all__ = [
     # connection formatter
     'from_matrix',
     'from_ij',
+    'pre2post',
+    'post2pre',
+    'pre2syn',
+    'post2syn',
     # connection methods
     'one2one',
     'all2all',
@@ -112,6 +118,152 @@ def from_ij(i, j, num_pre=None, others=()):
     anchors = np.asarray(anchors).T
     other_arrays = [np.asarray(arr) for arr in other_arrays]
     return (pre_ids, post_ids, anchors) + tuple(other_arrays)
+
+
+def pre2post(i, j, num_pre):
+    """Get pre2post connections from `i` and `j` indexes.
+
+    Parameters
+    ----------
+    i : list, numpy.ndarray
+        The pre-synaptic neuron indexes.
+    j : list, numpy.ndarray
+        The post-synaptic neuron indexes.
+    num_pre : int, None
+        The number of the pre-synaptic neurons.
+
+    Returns
+    -------
+    conn : list
+        The connection list of pre2post.
+    """
+    i, j = np.asarray(i), np.asarray(j)
+
+    if profile.is_numba_bk():
+        pre2post_list = nb.typed.List()
+
+        for pre_i in range(num_pre):
+            index = np.where(i == pre_i)[0]
+            post_idx = j[index]
+            l = nb.typed.List.empty_list(nb.types.int32)
+            for idx in post_idx:
+                l.append(np.int32(idx))
+            pre2post_list.append(l)
+    else:
+        pre2post_list = []
+
+        for pre_i in range(num_pre):
+            index = np.where(i == pre_i)[0]
+            post_idx = j[index]
+            pre2post_list.append(post_idx)
+    return pre2post_list
+
+
+def post2pre(i, j, num_post):
+    """Get post2pre connections from `i` and `j` indexes.
+
+    Parameters
+    ----------
+    i : list, numpy.ndarray
+        The pre-synaptic neuron indexes.
+    j : list, numpy.ndarray
+        The post-synaptic neuron indexes.
+    num_post : int, None
+        The number of the post-synaptic neurons.
+
+    Returns
+    -------
+    conn : list
+        The connection list of post2pre.
+    """
+    i, j = np.asarray(i), np.asarray(j)
+
+    if profile.is_numba_bk():
+        post2pre_list = nb.typed.List()
+        for post_i in range(num_post):
+            index = np.where(j == post_i)[0]
+            pre_idx = i[index]
+            l = nb.typed.List.empty_list(nb.types.int32)
+            for idx in pre_idx:
+                l.append(np.int32(idx))
+            post2pre_list.append(l)
+    else:
+        post2pre_list = []
+        for post_i in range(num_post):
+            index = np.where(j == post_i)[0]
+            pre_idx = i[index]
+            post2pre_list.append(pre_idx)
+    return post2pre_list
+
+
+def pre2syn(i, j, num_pre):
+    """Get pre2syn connections from `i` and `j` indexes.
+
+    Parameters
+    ----------
+    i : list, numpy.ndarray
+        The pre-synaptic neuron indexes.
+    j : list, numpy.ndarray
+        The post-synaptic neuron indexes.
+    num_pre : int
+        The number of the pre-synaptic neurons.
+
+    Returns
+    -------
+    conn : list
+        The connection list of pre2syn.
+    """
+    i, j = np.asarray(i), np.asarray(j)
+
+    if profile.is_numba_bk():
+        post2syn_list = nb.typed.List()
+        for pre_i in range(num_pre):
+            index = np.where(i == pre_i)[0]
+            l = nb.typed.List.empty_list(nb.types.int32)
+            for idx in index:
+                l.append(np.int32(idx))
+            post2syn_list.append(l)
+    else:
+        post2syn_list = []
+        for pre_i in range(num_pre):
+            index = np.where(j == pre_i)[0]
+            post2syn_list.append(index)
+    return post2syn_list
+
+
+def post2syn(i, j, num_post):
+    """Get post2syn connections from `i` and `j` indexes.
+
+    Parameters
+    ----------
+    i : list, numpy.ndarray
+        The pre-synaptic neuron indexes.
+    j : list, numpy.ndarray
+        The post-synaptic neuron indexes.
+    num_post : int
+        The number of the post-synaptic neurons.
+
+    Returns
+    -------
+    conn : list
+        The connection list of post2syn.
+    """
+    i, j = np.asarray(i), np.asarray(j)
+
+    if profile.is_numba_bk():
+        post2syn_list = nb.typed.List()
+        for post_i in range(num_post):
+            index = np.where(j == post_i)[0]
+            l = nb.typed.List.empty_list(nb.types.int32)
+            for idx in index:
+                l.append(np.int32(idx))
+            post2syn_list.append(l)
+    else:
+        post2syn_list = []
+        for post_i in range(num_post):
+            index = np.where(j == post_i)[0]
+            post2syn_list.append(index)
+    return post2syn_list
 
 
 # -----------------------------------

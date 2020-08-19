@@ -106,6 +106,10 @@ The method of formatting connections.
 
     from_matrix
     from_ij
+    pre2post
+    post2pre
+    pre2syn
+    post2syn
 
 
 
