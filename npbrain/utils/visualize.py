@@ -51,7 +51,7 @@ def get_figure(n_row, n_col, len_row=3, len_col=6):
 ###############################
 
 
-def mpl_style1(fontsize=22, axes_edgecolor='white', figsize='5,4', lw=1):
+def mpl_style1(fontsize=22, axes_edgecolor='black', figsize='5,4', lw=1):
     rcParams['text.latex.preamble'] = [r"\usepackage{amsmath, lmodern}"]
     params = {
         'text.usetex': True,
