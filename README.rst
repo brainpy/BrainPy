@@ -131,9 +131,9 @@ Finally, visualize the running results:
 
 .. code-block:: python
 
-    fig, gs = nn.visualize.get_figure(n_row=2, n_col=1, len_row=3, len_col=8)
-    ts = net.run_time()
     xlim = (0, 100)
+    ts = net.run_time()
+    fig, gs = nn.visualize.get_figure(n_row=2, n_col=1, len_row=3, len_col=8)
     nn.visualize.plot_potential(net.mon1, ts, ax=fig.add_subplot(gs[0, 0]), xlim=xlim)
     nn.visualize.plot_raster(net.mon1, ts, ax=fig.add_subplot(gs[1, 0]), xlim=xlim, show=True)
 
