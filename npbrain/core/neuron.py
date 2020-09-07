@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
-from npbrain.utils import helper
-from ..utils import profile
-
+from .. import _numpy as np
+from .. import profile
+from ..utils import helper
 
 __all__ = [
     'judge_spike',
@@ -223,6 +221,7 @@ class Neurons(object):
     kwargs : dict
         Parameters of the given neuron group.
     """
+
     def __init__(self, **kwargs):
         if 'args' in kwargs:
             kwargs.pop('args')

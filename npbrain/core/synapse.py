@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
-from ..utils import helper, profile
 from .neuron import _format_vars
+from .. import _numpy as np
+from .. import profile
+from ..utils import helper
 
 __all__ = [
     'format_delay',

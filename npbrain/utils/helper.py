@@ -8,7 +8,7 @@ import numba as nb
 import numpy as np
 from numba.core.dispatcher import Dispatcher
 
-from . import profile
+from .. import profile
 
 __all__ = [
     # parameter helpers

@@ -1,7 +1,7 @@
 import npbrain as nn
 
-nn.profile.set_backend('numba')
-nn.profile.set_dt(0.02)
+npbrain.profile.set_backend('numba')
+npbrain.profile.set_dt(0.02)
 
 import matplotlib.pyplot as plt
 

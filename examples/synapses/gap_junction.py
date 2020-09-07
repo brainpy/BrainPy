@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import npbrain as nn
 
-nn.profile.set_backend('numba')
+npbrain.profile.set_backend('numba')
 
 
 def run_gj(cls, num_neu, prob=1., gjw=0.1, k_spikelet=0., Iext=12., run_duration=300):

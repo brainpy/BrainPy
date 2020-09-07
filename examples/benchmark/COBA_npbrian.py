@@ -5,11 +5,11 @@ import numpy as np
 
 import npbrain as nn
 
-nn.profile.set_backend('numba')
-nn.profile.define_signature = False
+npbrain.profile.set_backend('numba')
+npbrain.profile.define_signature = False
 
 dt = 0.05
-nn.profile.set_dt(dt)
+npbrain.profile.set_dt(dt)
 np.random.seed(12345)
 
 # Parameters

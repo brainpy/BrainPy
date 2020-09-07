@@ -13,9 +13,9 @@ Reference:
 import numpy as np
 import npbrain as nn
 
-nn.profile.set_backend('numba')
-nn.profile.set_dt(0.01)
-nn.profile.debug = True
+npbrain.profile.set_backend('numba')
+npbrain.profile.set_dt(0.01)
+npbrain.profile.debug = True
 
 lif = nn.LIF(5000, Vr=10, Vth=20, tau=20, ref=2, noise=np.sqrt(20))
 conn = nn.connect.fixed_prob(lif.num, lif.num, prob=0.2, include_self=False)

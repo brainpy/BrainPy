@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 # profile.py
-from npbrain.utils.profile import *
 
 # connect.py
 from npbrain.utils.connect import *

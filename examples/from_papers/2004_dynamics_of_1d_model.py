@@ -17,7 +17,7 @@ import numpy as np
 
 import npbrain as nn
 
-nn.profile.set_backend('numba')
+npbrain.profile.set_backend('numba')
 N = 2000
 dt = 0.1
 tau = 100
@@ -25,7 +25,7 @@ V_reset = 0.
 Vth = 1.
 freq = 1 / tau
 inputs = np.linspace(2., 4., N)
-nn.profile.set_dt(dt)
+npbrain.profile.set_dt(dt)
 
 
 def LIF(geometry, **kwargs):

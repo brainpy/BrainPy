@@ -4,13 +4,12 @@ import inspect
 import time
 from pprint import pprint
 
-import numpy as np
-
 from .monitor import SpikeMonitor, StateMonitor
 from .neuron import Neurons
 from .synapse import Synapses
+from .. import _numpy as np
+from .. import profile
 from ..utils import helper
-from ..utils import profile
 
 __all__ = [
     'Network',

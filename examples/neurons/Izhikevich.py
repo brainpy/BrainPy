@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 
 import npbrain as nn
 
-nn.profile.set_backend('numba')
-nn.profile.set_dt(0.02)
+npbrain.profile.set_backend('numba')
+npbrain.profile.set_dt(0.02)
 
 if __name__ == '__main__':
     izh = nn.Izhikevich(10, noise=1.)

@@ -5,8 +5,8 @@ import numpy as np
 
 import npbrain as nn
 
-nn.profile.set_backend('numpy')
-nn.profile.set_dt(dt=0.1)
+npbrain.profile.set_backend('numpy')
+npbrain.profile.set_dt(dt=0.1)
 
 Vr = 10
 theta = 20

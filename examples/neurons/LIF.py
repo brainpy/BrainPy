@@ -3,8 +3,8 @@ import npbrain as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
-nn.profile.set_backend('numba')
-nn.profile.set_dt(0.02)
+npbrain.profile.set_backend('numba')
+npbrain.profile.set_dt(0.02)
 np.random.seed(1234)
 
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     plt.show()
 
 if __name__ == '__main__':
-    nn.profile.set_dt(0.02)
+    npbrain.profile.set_dt(0.02)
     lif1 = nn.LIF(500, ref=1., noise=1.1)
     lif2 = nn.LIF(1000, ref=1., noise=1.1)
     conn = nn.connect.fixed_prob(lif1.num, lif2.num, prob=0.1)
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     plt.show()
 
 if __name__ == '__main__':
-    nn.profile.set_dt(0.02)
+    npbrain.profile.set_dt(0.02)
     lif1 = nn.LIF(500, ref=1., noise=1.1)
     mon = nn.SpikeMonitor(lif1)
     net = nn.Network(lif1=lif1, mon=mon)

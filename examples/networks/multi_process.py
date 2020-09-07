@@ -3,8 +3,8 @@
 import numpy as np
 import npbrain as nn
 
-nn.profile.set_backend('numba')
-nn.profile.set_dt(dt=0.1)
+npbrain.profile.set_backend('numba')
+npbrain.profile.set_dt(dt=0.1)
 
 
 def model_run(sigmaext):

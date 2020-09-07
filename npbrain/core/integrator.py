@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
-from ..utils import profile
+from .. import _numpy as np
+from .. import profile
 from ..utils.helper import autojit
 
 __all__ = [
@@ -275,10 +274,9 @@ def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):
         def int_f(y0, t, *args):
             val = f(y0, t, *args)
             k1 = val[0]
-            v = f(y0 + beta * dt * k1, t + beta * dt, *args)
-            k2 = v[0]
+            k2 = f(y0 + beta * dt * k1, t + beta * dt, *args)[0]
             y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
-            return (y, ) + val[1:]
+            return (y,) + val[1:]
 
     else:
         def int_f(y0, t, *args):
@@ -386,7 +384,7 @@ def ode_rk3(f, dt=None, signature=None, multi_return=False):
             k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)[0]
             k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)[0]
             y = y0 + dt / 6 * (k1 + 4 * k2 + k3)
-            return (y, ) + val[1:]
+            return (y,) + val[1:]
 
     else:
         def int_f(y0, t, *args):
@@ -442,7 +440,7 @@ def ode_rk4(f, dt=None, signature=None, multi_return=False):
             k3 = f(y0 + dt / 2 * k2, t + dt / 2, *args)[0]
             k4 = f(y0 + dt * k3, t + dt, *args)[0]
             y = y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
-            return (y, ) + val[1:]
+            return (y,) + val[1:]
 
     else:
         def int_f(y0, t, *args):
@@ -502,7 +500,7 @@ def ode_rk4_alternative(f, dt=None, signature=None, multi_return=False):
             k3 = f(y0 - dt / 3 * k1 + dt * k2, t + 2 * dt / 3, *args)[0]
             k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)[0]
             y = y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
-            return (y, ) + val[1:]
+            return (y,) + val[1:]
 
     else:
         def int_f(y0, t, *args):
@@ -959,7 +957,7 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
                 dg = dt_sqrt * g * dW
                 exp = np.exp(linear_part * dt)
                 y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
-                return (y1, ) + val[1:]
+                return (y1,) + val[1:]
 
         else:
 

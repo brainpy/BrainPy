@@ -5,33 +5,11 @@ The setting of the overall framework.
 
 Using the API in ``profile.py``, you can set
 
-- the backend of numerical algorithm, ``numpy`` or ``numba``,
+- the _numpy of numerical algorithm, ``numpy`` or ``numba``,
 - the compilation options of JIT function in ``numba``,
 - the precision of the numerical integration,
 - the method of the numerical integration.
 
-
-Example
--------
-
-Set the default numerical integration precision.
-
->>> from npbrain.utils import profile
->>> profile.set_dt(0.01)
-
-Set the default numerical integration alorithm.
-
->>> from npbrain.utils import profile
->>> profile.set_method('euler')
->>> # Or, you can use
->>> from npbrain.core import ode_euler
->>> profile.set_method(ode_euler)
-
-Set the default backend to ``numba`` and change the default JIT options.
-
->>> from npbrain.utils import profile
->>> profile.set_backend('numba')
->>> profile.set_numba(nopython=True, fastmath=True, parallel=True, cache=True)
 
 """
 
@@ -42,9 +20,6 @@ import multiprocessing
 __all__ = [
     'set_backend',
     'get_backend',
-    'is_numba_bk',
-    'set_numba',
-    'get_numba_profile',
 
     'set_dt',
     'get_dt',
@@ -53,10 +28,13 @@ __all__ = [
 ]
 
 # -------------------
-# backend
+# _numpy
 # -------------------
 
 _backend = 'numpy'
+_device = 'cpu'
+
+
 _nopython = True
 _fastmath = True
 _nogil = False
@@ -74,55 +52,55 @@ debug = False
 
 
 def set_backend(bk):
-    """Set the backend.
+    """Set the _numpy.
 
     Parameters
     ----------
     bk : str
-        The backend name.
+        The _numpy name.
     """
-    if get_backend() == bk:
-        return
-
     global _backend
-    global _parallel
-    global _nogil
+    global _device
 
-    if bk in ['numpy', 'np', 'Numpy']:
-        _backend = 'numpy'
-    elif bk in ['numba', 'numba_cpu', 'numba-cpu']:
-        _backend = bk
-        _parallel = False
-        _nogil = False
-    elif bk.startswith('numba-pa') or bk.startswith('numba_pa'):
-        _backend = bk
-        _parallel = True
-        _nogil = True
-        splits = re.split(r'[-_]', bk)
-        if len(splits) == 3:
-            num_thread = int(splits[2])
-            nb.set_num_threads(num_thread)
-        elif len(splits) == 2:
-            num_thread = multiprocessing.cpu_count()
-            nb.set_num_threads(num_thread)
-        else:
-            raise ValueError('Unknown backend: {}'.format(bk))
-    elif bk.startswith('numba-gpu') or bk.startswith('numba_gpu'):
-        _backend = bk
-        raise NotImplementedError
+    splits = bk.split('-')
+    bk = splits[0]
+
+    # device
+    if len(splits) == 2:
+        device = splits[1]
     else:
-        raise ValueError('Unknown backend: {}'.format(bk))
+        device = 'cpu'
 
-    from npbrain import _reload
-    _reload()
+    # _numpy
+    if bk.lower() in ['numpy', 'np']:
+        backend = 'numpy'
+    elif bk.lower() in ['torch', 'pytorch']:
+        backend = 'torch'
+    elif bk.lower() in ['tf', 'tensorflow']:
+        backend = 'tensorflow'
+    elif bk.lower() in ['jax', 'JAX']:
+        backend = 'jax'
+    else:
+        raise ValueError(f'Unknown _numpy: {bk}')
+
+    # switch _numpy and device
+    if device != _device:
+        _device = device
+    if backend != _backend:
+        _backend = backend
+
+        from npbrain import _reload
+        _reload()
+        from ._numpy import _reload as r1
+        r1(backend)
 
 
 def get_backend():
-    """Get the backend.
+    """Get the _numpy.
 
     Returns
     -------
-    backend: str
+    _numpy: str
         Backend name.
 
     """
@@ -130,7 +108,7 @@ def get_backend():
 
 
 def is_numba_bk():
-    """Check whether the backend is ``numba``.
+    """Check whether the _numpy is ``numba``.
 
     Returns
     -------

@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import npbrain as nn
-nn.profile.set_backend('numba')
-nn.profile.define_signature = False
+npbrain.profile.set_backend('numba')
+npbrain.profile.define_signature = False
 
 dt = 0.1
-nn.profile.set_dt(dt)
+npbrain.profile.set_dt(dt)
 
 num_exc = 3200
 num_inh = 800

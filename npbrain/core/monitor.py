@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 from numba import typed, types, prange
 
 from .neuron import Neurons
 from .synapse import Synapses
-from ..utils import helper, profile
+from .. import _numpy as np
+from .. import profile
+from ..utils import helper
 
 __all__ = [
     'Monitor',

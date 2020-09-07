@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import npbrain as nn
-nn.profile.set_backend('numba')
+npbrain.profile.set_backend('numba')
 
 dt = 0.1
-nn.profile.set_dt(dt)
+npbrain.profile.set_dt(dt)
 np.random.seed(12345)
 
 # ------------------

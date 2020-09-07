@@ -24,488 +24,116 @@ def _check():
         torch = import_module('torch')
 
 
-class _base(metaclass=ABCMeta):
-    """Base class defining the common interface"""
-
-    __slots__ = ("data",)
-
-    @abstractmethod
-    def __init__(self):
-        ...
-
-    def __iter__(self: ArrayType) -> Iterator[ArrayType]:
-        for i in range(len(self)):
-            yield self[i]
-
-    @abstractmethod
-    def __repr__(self: ArrayType) -> str:
-        ...
-
-    @abstractmethod
-    def __format__(self: ArrayType, format_spec: str) -> str:
-        ...
-
-    @abstractmethod
-    def __getitem__(self: ArrayType, index: Any) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __bool__(self: ArrayType) -> bool:
-        ...
-
-    @abstractmethod
-    def __len__(self: ArrayType) -> int:
-        ...
-
-    @abstractmethod
-    def __abs__(self: ArrayType) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __neg__(self: ArrayType) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __add__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __radd__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __sub__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __rsub__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __mul__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __rmul__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __truediv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __rtruediv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __floordiv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __rfloordiv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __mod__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __lt__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __le__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __eq__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __ne__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __gt__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __ge__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def __pow__(self: ArrayType, exponent: ArrayOrScalar) -> ArrayType:
-        ...
-
-    # ----------
-    # property
-    # ----------
-
-    @property
-    @abstractmethod
-    def dtype(self: ArrayType) -> Any:
-        ...
-
-    @property
-    @abstractmethod
-    def ndim(self: ArrayType) -> int:
-        ...
-
-    @property
-    @abstractmethod
-    def shape(self: ArrayType) -> Shape:
-        ...
-
-    @property
-    def T(self: ArrayType) -> ArrayType:
-        return self.transpose()
-
-    # ----------
-    # transform
-    # ----------
-
-    @abstractmethod
-    def numpy(self: ArrayType) -> Any:
-        ...
-
-    @abstractmethod
-    def from_numpy(self: ArrayType, a: Any) -> ArrayType:
-        ...
-
-    # ---------
-    # methods
-    # ---------
-
-    def abs(self: ArrayType) -> ArrayType:
-        return self.__abs__()
-
-    @abstractmethod
-    def all(self: ArrayType, axis: Optional[AxisAxes] = None, keepdims: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def any(self: ArrayType, axis: Optional[AxisAxes] = None, keepdims: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def argmin(self: ArrayType, axis: Optional[int] = None) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def argmax(self: ArrayType, axis: Optional[int] = None) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def argsort(self: ArrayType, axis: int = -1) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def astype(self: ArrayType, dtype: Any) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def byteswap(self: ArrayType, inplace: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def choose(self: ArrayType, choices, mode: str = 'raise') -> ArrayType:
-        ...
-
-    @abstractmethod
-    def clip(self: ArrayType, min_: float, max_: float) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def compress(self, condition, axis=None) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def conj(self):
-        ...
-
-    @abstractmethod
-    def conjugate(self):
-        ...
-
-    @abstractmethod
-    def copy(self, order='C'):
-        ...
-
-    @abstractmethod
-    def cumprod(self, axis=None, dtype=None):
-        ...
-
-    @abstractmethod
-    def cumsum(self: ArrayType, axis: Optional[int] = None) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def diagonal(self, offset=0, axis1=0, axis2=1):
-        ...
-
-    @abstractmethod
-    def dot(self, b):
-        ...
-
-    @abstractmethod
-    def dump(self, file):
-        ...
-
-    @abstractmethod
-    def dumps(self):
-        ...
-
-    @abstractmethod
-    def fill(self, value):
-        ...
-
-    @abstractmethod
-    def flatten(self):
-        ...
-
-    @abstractmethod
-    def getfield(self, dtype, offset=0):
-        ...
-
-    @abstractmethod
-    def itemset(self, *args):
-        ...
-
-    @abstractmethod
-    def mean(self: ArrayType, axis: Optional[AxisAxes] = None, keepdims: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def min(self: ArrayType, axis: Optional[AxisAxes] = None, keepdims: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def max(self: ArrayType, axis: Optional[AxisAxes] = None, keepdims: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def newbyteorder(self, new_order='S'):
-        ...
-
-    @abstractmethod
-    def nonzero(self):
-        ...
-
-    @abstractmethod
-    def partition(self, kth, axis=-1, kind='introselect', order=None):
-        ...
-
-    @abstractmethod
-    def prod(self: ArrayType, axis: Optional[AxisAxes] = None, keepdims: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def ptp(self, axis=None, keepdims=False):
-        ...
-
-    @abstractmethod
-    def put(self, indices, values, mode='raise'):
-        ...
-
-    @abstractmethod
-    def ravel(self, order=None):
-        ...
-
-    @abstractmethod
-    def repeat(self, repeats, axis=None):
-        ...
-
-    @abstractmethod
-    def reshape(self: ArrayType, shape: Union[Shape, int]) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def resize(self, new_shape, refcheck=True):
-        ...
-
-    @abstractmethod
-    def round(self, decimals=0):
-        ...
-
-    @abstractmethod
-    def searchsorted(self, v, side='left', sorter=None):
-        ...
-
-    @abstractmethod
-    def setfield(self, val, dtype, offset=0):
-        ...
-
-    @abstractmethod
-    def setflags(self, write=None, align=None, uic=None):
-        ...
-
-    @abstractmethod
-    def sort(self: ArrayType, axis: int = -1) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def squeeze(self: ArrayType, axis: Optional[AxisAxes] = None) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def std(self, axis=None, dtype=None, ddof=0, keepdims=False):
-        ...
-
-    @abstractmethod
-    def sum(self: ArrayType, axis: Optional[AxisAxes] = None, keepdims: bool = False) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def swapaxes(self, axis1, axis2):
-        ...
-
-    @abstractmethod
-    def take(self, indices, axis=None, mode='raise'):
-        ...
-
-    @abstractmethod
-    def tobytes(self, order='C'):
-        ...
-
-    @abstractmethod
-    def tofile(self, fid, sep="", format="%s"):
-        ...
-
-    @abstractmethod
-    def tolist(self):
-        ...
-
-    @abstractmethod
-    def tostring(self, order='C'):
-        ...
-
-    @abstractmethod
-    def trace(self, offset=0, axis1=0, axis2=1, dtype=None):
-        ...
-
-    @abstractmethod
-    def transpose(self: ArrayType, axes: Optional[Axes] = None) -> ArrayType:
-        ...
-
-    @abstractmethod
-    def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
-        ...
-
-    @abstractmethod
-    def view(self, dtype=None, type=None):
-        ...
-
-
-class ndarray(_base):
-    def byteswap(self: ArrayType, inplace: bool = False) -> ArrayType:
-        pass
-
-    def choose(self: ArrayType, choices, mode: str = 'raise') -> ArrayType:
-        pass
-
-    def compress(self, condition, axis=None) -> ArrayType:
-        pass
-
-    def conj(self):
-        pass
-
-    def conjugate(self):
-        pass
-
-    def copy(self, order='C'):
-        pass
-
-    def cumprod(self, axis=None, dtype=None):
-        pass
-
-    def diagonal(self, offset=0, axis1=0, axis2=1):
-        pass
-
-    def dot(self, b):
-        pass
-
-    def dump(self, file):
-        pass
-
-    def dumps(self):
-        pass
-
-    def fill(self, value):
-        pass
-
-    def getfield(self, dtype, offset=0):
-        pass
-
-    def itemset(self, *args):
-        pass
-
-    def newbyteorder(self, new_order='S'):
-        pass
-
-    def nonzero(self):
-        pass
-
-    def partition(self, kth, axis=-1, kind='introselect', order=None):
-        pass
-
-    def ptp(self, axis=None, keepdims=False):
-        pass
-
-    def put(self, indices, values, mode='raise'):
-        pass
-
-    def ravel(self, order=None):
-        pass
-
-    def repeat(self, repeats, axis=None):
-        pass
-
-    def resize(self, new_shape, refcheck=True):
-        pass
-
-    def round(self, decimals=0):
-        pass
-
-    def searchsorted(self, v, side='left', sorter=None):
-        pass
-
-    def setfield(self, val, dtype, offset=0):
-        pass
-
-    def setflags(self, write=None, align=None, uic=None):
-        pass
-
-    def std(self, axis=None, dtype=None, ddof=0, keepdims=False):
-        pass
-
-    def swapaxes(self, axis1, axis2):
-        pass
-
-    def take(self, indices, axis=None, mode='raise'):
-        pass
-
-    def tobytes(self, order='C'):
-        pass
-
-    def tofile(self, fid, sep="", format="%s"):
-        pass
-
-    def tolist(self):
-        pass
-
-    def tostring(self, order='C'):
-        pass
-
-    def trace(self, offset=0, axis1=0, axis2=1, dtype=None):
-        pass
-
-    def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
-        pass
-
-    def view(self, dtype=None, type=None):
-        pass
-
+class ndarray:
     __slots__ = ('data',)
+
+    def byteswap(self: ArrayType, inplace: bool = False) -> ArrayType:
+        pass
+
+    def choose(self: ArrayType, choices, mode: str = 'raise') -> ArrayType:
+        pass
+
+    def compress(self, condition, axis=None) -> ArrayType:
+        pass
+
+    def conj(self):
+        pass
+
+    def conjugate(self):
+        pass
+
+    def copy(self, order='C'):
+        pass
+
+    def cumprod(self, axis=None, dtype=None):
+        pass
+
+    def diagonal(self, offset=0, axis1=0, axis2=1):
+        pass
+
+    def dot(self, b):
+        pass
+
+    def dump(self, file):
+        pass
+
+    def dumps(self):
+        pass
+
+    def fill(self, value):
+        pass
+
+    def getfield(self, dtype, offset=0):
+        pass
+
+    def itemset(self, *args):
+        pass
+
+    def newbyteorder(self, new_order='S'):
+        pass
+
+    def nonzero(self):
+        pass
+
+    def partition(self, kth, axis=-1, kind='introselect', order=None):
+        pass
+
+    def ptp(self, axis=None, keepdims=False):
+        pass
+
+    def put(self, indices, values, mode='raise'):
+        pass
+
+    def ravel(self, order=None):
+        pass
+
+    def repeat(self, repeats, axis=None):
+        pass
+
+    def resize(self, new_shape, refcheck=True):
+        pass
+
+    def round(self, decimals=0):
+        pass
+
+    def searchsorted(self, v, side='left', sorter=None):
+        pass
+
+    def setfield(self, val, dtype, offset=0):
+        pass
+
+    def setflags(self, write=None, align=None, uic=None):
+        pass
+
+    def std(self, axis=None, dtype=None, ddof=0, keepdims=False):
+        pass
+
+    def swapaxes(self, axis1, axis2):
+        pass
+
+    def take(self, indices, axis=None, mode='raise'):
+        pass
+
+    def tobytes(self, order='C'):
+        pass
+
+    def tofile(self, fid, sep="", format="%s"):
+        pass
+
+    def tolist(self):
+        pass
+
+    def tostring(self, order='C'):
+        pass
+
+    def trace(self, offset=0, axis1=0, axis2=1, dtype=None):
+        pass
+
+    def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
+        pass
+
+    def view(self, dtype=None, type=None):
+        pass
 
     def __init__(self, data):
         _check()
@@ -531,33 +159,33 @@ class ndarray(_base):
         return format(self.data, format_spec)
 
     def __lt__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__lt__(other))
 
     def __le__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__le__(other))
 
     def __eq__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__eq__(other))
 
     def __ne__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__ne__(other))
 
     def __gt__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__gt__(other))
 
     def __ge__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__ge__(other))
 
     def __getitem__(self: ArrayType, index: Any) -> ArrayType:
         if isinstance(index, tuple):
-            index = tuple(x.data if isinstance(x, _base) else x for x in index)
-        elif isinstance(index, _base):
+            index = tuple(x.data if isinstance(x, ndarray) else x for x in index)
+        elif isinstance(index, ndarray):
             index = index.data
         return ndarray(self.data[index])
 
@@ -574,51 +202,51 @@ class ndarray(_base):
         return ndarray(-self.data)
 
     def __add__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__add__(other))
 
     def __radd__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__radd__(other))
 
     def __sub__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__sub__(other))
 
     def __rsub__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__rsub__(other))
 
     def __mul__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__mul__(other))
 
     def __rmul__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__rmul__(other))
 
     def __truediv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__truediv__(other))
 
     def __rtruediv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__rtruediv__(other))
 
     def __floordiv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__floordiv__(other))
 
     def __rfloordiv__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__rfloordiv__(other))
 
     def __mod__(self: ArrayType, other: ArrayOrScalar) -> ArrayType:
-        other = other.data if isinstance(other, _base) else other
+        other = other.data if isinstance(other, ndarray) else other
         return ndarray(self.data.__mod__(other))
 
     def __pow__(self: ArrayType, exponent: ArrayOrScalar) -> ArrayType:
-        exponent = exponent.data if isinstance(exponent, _base) else exponent
+        exponent = exponent.data if isinstance(exponent, ndarray) else exponent
         return ndarray(self.data.__pow__(exponent))
 
     # ----------
@@ -1070,12 +698,12 @@ def transpose(arr: ArrayType, axes: Optional[Axes] = None) -> ArrayType:
 
 
 def concatenate(arrays: Iterable[ArrayType], axis: int = 0) -> ArrayType:
-    arrays = tuple(arr.data if isinstance(arr, _base) else arr for arr in arrays)
+    arrays = tuple(arr.data if isinstance(arr, ndarray) else arr for arr in arrays)
     return ndarray(torch.cat(arrays, dim=axis))
 
 
 def stack(arrays: Iterable[ArrayType], axis: int = 0) -> ArrayType:
-    arrays = tuple(arr.data if isinstance(arr, _base) else arr for arr in arrays)
+    arrays = tuple(arr.data if isinstance(arr, ndarray) else arr for arr in arrays)
     return ndarray(torch.stack(arrays, dim=axis))
 
 

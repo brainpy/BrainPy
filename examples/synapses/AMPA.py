@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 
 import npbrain as nn
 
-nn.profile.set_backend('numba')
-nn.profile.ftype = 'float32'
+npbrain.profile.set_backend('numba')
+npbrain.profile.ftype = 'float32'
 
 
 def run_ampa(cls, num_pre=5, num_post=10, prob=1., duration=650.):

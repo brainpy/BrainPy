@@ -6,7 +6,7 @@ Connection toolkit.
 
 import numba as nb
 import numpy as np
-from . import profile
+from .. import profile
 
 __all__ = [
     # connection formatter
