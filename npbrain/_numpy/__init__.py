@@ -5,8 +5,9 @@ import numpy
 from . import linalg
 from . import random
 
+
 # https://numpy.org/doc/stable/reference/routines.math.html
-math_operations = [
+_math_funcs = [
     # Basics
     # --------
     'real', 'imag', 'conj', 'conjugate',  # 'angle',
@@ -41,8 +42,8 @@ math_operations = [
 
     # floating_functions
     # -------------------
-    'isfinite', 'isinf', 'isnan', 'signbit', 'copysign', 'nextafter', 'modf',
-    'ldexp', 'frexp', 'floor', 'spacing',
+    'isfinite', 'isinf', 'isnan', 'signbit', 'copysign', 'nextafter',
+    'ldexp', 'frexp', 'spacing',
 
     # Miscellaneous
     # --------------
@@ -50,16 +51,128 @@ math_operations = [
     'heaviside', 'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip',
 ]
 
+real = numpy.real
+imag = numpy.imag
+conj = numpy.conj
+conjugate = numpy.conjugate
+
+add = numpy.add
+reciprocal = numpy.reciprocal
+negative = numpy.negative
+positive = numpy.positive
+multiply = numpy.multiply
+divide = numpy.divide
+power = numpy.power
+subtract = numpy.subtract
+true_divide = numpy.true_divide
+floor_divide = numpy.floor_divide
+float_power = numpy.float_power
+fmod = numpy.fmod
+mod = numpy.mod
+modf = numpy.modf
+divmod = numpy.divmod
+remainder = numpy.remainder
+
+exp = numpy.exp
+exp2 = numpy.exp2
+expm1 = numpy.expm1
+log = numpy.log
+log10 = numpy.log10
+log1p = numpy.log1p
+log2 = numpy.log2
+logaddexp = numpy.logaddexp
+logaddexp2 = numpy.logaddexp2
+
+lcm = numpy.lcm
+gcd = numpy.gcd
+
+arccos = numpy.arccos
+arccosh = numpy.arccosh
+arcsin = numpy.arcsin
+arcsinh = numpy.arcsinh
+arctan = numpy.arctan
+arctan2 = numpy.arctan2
+arctanh = numpy.arctanh
+cos = numpy.cos
+cosh = numpy.cosh
+sin = numpy.sin
+sinc = numpy.sinc
+sinh = numpy.sinh
+tan = numpy.tan
+tanh = numpy.tanh
+deg2rad = numpy.deg2rad
+hypot = numpy.hypot
+rad2deg = numpy.rad2deg
+degrees = numpy.degrees
+radians = numpy.radians
+
+around = numpy.around
+round_ = numpy.round_
+rint = numpy.rint
+floor = numpy.floor
+ceil = numpy.ceil
+trunc = numpy.trunc
+fix = numpy.fix
+
+prod = numpy.prod
+sum = numpy.sum
+diff = numpy.diff
+median = numpy.median
+nancumprod = numpy.nancumprod
+nancumsum = numpy.nancumsum
+nanprod = numpy.nanprod
+nansum = numpy.nansum
+cumprod = numpy.cumprod
+cumsum = numpy.cumsum
+ediff1d = numpy.ediff1d
+cross = numpy.cross
+trapz = numpy.trapz
+
+isfinite = numpy.isfinite
+isinf = numpy.isinf
+isnan = numpy.isnan
+signbit = numpy.signbit
+copysign = numpy.copysign
+nextafter = numpy.nextafter
+ldexp = numpy.ldexp
+frexp = numpy.frexp
+spacing = numpy.spacing
+
+convolve = numpy.convolve
+sqrt = numpy.sqrt
+cbrt = numpy.cbrt
+square = numpy.square
+absolute = numpy.absolute
+fabs = numpy.fabs
+sign = numpy.sign
+heaviside = numpy.heaviside
+maximum = numpy.maximum
+minimum = numpy.minimum
+fmax = numpy.fmax
+fmin = numpy.fmin
+interp = numpy.interp
+clip = numpy.clip
+
+
 # https://numpy.org/doc/stable/reference/routines.bitwise.html
-binary_operations = [
+_binary_funcs = [
     # Elementwise bit operations
     # ----------------------------
     'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor',
     'invert', 'left_shift', 'right_shift',
 ]
 
+bitwise_and = numpy.bitwise_and
+bitwise_not = numpy.bitwise_not
+bitwise_or = numpy.bitwise_or
+bitwise_xor = numpy.bitwise_xor
+invert = numpy.invert
+left_shift = numpy.left_shift
+right_shift = numpy.right_shift
+
+
 # https://numpy.org/doc/stable/reference/routines.logic.html
-logic_functions = [
+_logic_funcs = [
     # Comparison
     # --------------
     'equal', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal',
@@ -68,16 +181,32 @@ logic_functions = [
     # Logical operations
     # ---------------------
     'logical_and', 'logical_not', 'logical_or', 'logical_xor',
-    'maximum', 'minimum', 'fmax', 'fmin',
 
     # Truth value testing
     # ----------------------
     'all', 'any',
 ]
 
+equal = numpy.equal
+not_equal = numpy.not_equal
+greater = numpy.greater
+greater_equal = numpy.greater_equal
+less = numpy.less
+less_equal = numpy.less_equal
+array_equal = numpy.array_equal
+isclose = numpy.isclose
+allclose = numpy.allclose
+logical_and = numpy.logical_and
+logical_not = numpy.logical_not
+logical_or = numpy.logical_or
+logical_xor = numpy.logical_xor
+all = numpy.all
+any = numpy.any
+
+
 # https://numpy.org/doc/stable/reference/routines.array-manipulation.html
 # https://numpy.org/doc/stable/reference/routines.sort.html
-array_manipulation = [
+_array_manipulation = [
     # Changing array shape
     # ---------------------
     'shape', 'reshape', 'ravel',
@@ -125,15 +254,61 @@ array_manipulation = [
 
     # array intrinsic methods
     # -------------------------
-    'max', 'min', 'astype', 'flatten', 'item', 'itemset', 'view',
+    'max', 'min',
 
     # padding
     # ---------
     # 'pad'
 ]
 
+shape = numpy.shape
+reshape = numpy.reshape
+ravel = numpy.ravel
+moveaxis = numpy.moveaxis
+transpose = numpy.transpose
+swapaxes = numpy.swapaxes
+concatenate = numpy.concatenate
+stack = numpy.stack
+vstack = numpy.vstack
+hstack = numpy.hstack
+dstack = numpy.dstack
+column_stack = numpy.column_stack
+split = numpy.split
+dsplit = numpy.dsplit
+hsplit = numpy.hsplit
+vsplit = numpy.vsplit
+tile = numpy.tile
+repeat = numpy.repeat
+unique = numpy.unique
+delete = numpy.delete
+append = numpy.append
+flip = numpy.flip
+fliplr = numpy.fliplr
+flipud = numpy.flipud
+roll = numpy.roll
+atleast_1d = numpy.atleast_1d
+atleast_2d = numpy.atleast_2d
+atleast_3d = numpy.atleast_3d
+expand_dims = numpy.expand_dims
+squeeze = numpy.squeeze
+sort = numpy.sort
+argsort = numpy.argsort
+partition = numpy.partition
+argmax = numpy.argmax
+argmin = numpy.argmin
+argwhere = numpy.argwhere
+nonzero = numpy.nonzero
+flatnonzero = numpy.flatnonzero
+where = numpy.where
+searchsorted = numpy.searchsorted
+extract = numpy.extract
+count_nonzero = numpy.count_nonzero
+max = numpy.max
+min = numpy.min
+
+
 # https://numpy.org/doc/stable/reference/routines.array-creation.html
-array_creation = [
+_array_creation = [
     # Ones and zeros
     # ---------------
     'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',
@@ -152,8 +327,32 @@ array_creation = [
     'diag', 'tri', 'tril', 'triu', 'vander',
 ]
 
+empty = numpy.empty
+empty_like = numpy.empty_like
+ones = numpy.ones
+ones_like = numpy.ones_like
+zeros = numpy.zeros
+zeros_like = numpy.zeros_like
+full = numpy.full
+full_like = numpy.full_like
+eye = numpy.eye
+identity = numpy.identity
+array = numpy.array
+asarray = numpy.asarray
+arange = numpy.arange
+linspace = numpy.linspace
+logspace = numpy.logspace
+meshgrid = numpy.meshgrid
+copy = numpy.copy
+diag = numpy.diag
+tri = numpy.tri
+tril = numpy.tril
+triu = numpy.triu
+vander = numpy.vander
+
+
 # https://numpy.org/doc/stable/reference/routines.indexing.html
-indexing_routines = [
+_indexing_funcs = [
     # Generating index arrays
     # -------------------------
     'nonzero', 'where', 'tril_indices', 'tril_indices_from',
@@ -168,8 +367,22 @@ indexing_routines = [
     'nditer', 'ndenumerate', 'ndindex',
 ]
 
+# nonzero = numpy.nonzero
+# where = numpy.where
+tril_indices = numpy.tril_indices
+tril_indices_from = numpy.tril_indices_from
+triu_indices = numpy.triu_indices
+triu_indices_from = numpy.triu_indices_from
+take = numpy.take
+# diag = numpy.diag
+select = numpy.select
+nditer = numpy.nditer
+ndenumerate = numpy.ndenumerate
+ndindex = numpy.ndindex
+
+
 # https://numpy.org/doc/stable/reference/routines.statistics.html
-statistic_functions = [
+_statistic_funcs = [
     # Order statistics
     # ------------------
     'nanmin', 'nanmax', 'ptp', 'percentile', 'nanpercentile', 'quantile', 'nanquantile',
@@ -188,20 +401,68 @@ statistic_functions = [
     'histogram', 'bincount', 'digitize',  # 'histogram2d', 'histogramdd', 'histogram_bin_edges'
 ]
 
+nanmin = numpy.nanmin
+nanmax = numpy.nanmax
+ptp = numpy.ptp
+percentile = numpy.percentile
+nanpercentile = numpy.nanpercentile
+quantile = numpy.quantile
+nanquantile = numpy.nanquantile
+# median = numpy.median
+average = numpy.average
+mean = numpy.mean
+std = numpy.std
+var = numpy.var
+nanmedian = numpy.nanmedian
+nanmean = numpy.nanmean
+nanstd = numpy.nanstd
+nanvar = numpy.nanvar
+corrcoef = numpy.corrcoef
+correlate = numpy.correlate
+cov = numpy.cov
+histogram = numpy.histogram
+bincount = numpy.bincount
+digitize = numpy.digitize
+
+
 # https://numpy.org/doc/stable/reference/routines.window.html
-window_functions = ['bartlett', 'blackman', 'hamming', 'hanning', 'kaiser']
+_window_funcs = ['bartlett', 'blackman', 'hamming', 'hanning', 'kaiser']
+
+bartlett = numpy.bartlett
+blackman = numpy.blackman
+hamming = numpy.hamming
+hanning = numpy.hanning
+kaiser = numpy.kaiser
+
 
 # https://numpy.org/doc/stable/reference/constants.html
-constants = ['e', 'pi', 'inf', 'nan', 'newaxis', 'euler_gamma']
+_constants = ['e', 'pi', 'inf', 'nan', 'newaxis', 'euler_gamma']
+
+e = numpy.e
+pi = numpy.pi
+inf = numpy.inf
+nan = numpy.nan
+newaxis = numpy.newaxis
+euler_gamma = numpy.euler_gamma
+
 
 # https://numpy.org/doc/stable/reference/routines.linalg.html
-linear_algebra = [
+_linear_algebra = [
     'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
     # 'tensordot', 'einsum', 'einsum_path',
 ]
 
+dot = numpy.dot
+vdot = numpy.vdot
+inner = numpy.inner
+outer = numpy.outer
+kron = numpy.kron
+matmul = numpy.matmul
+trace = numpy.trace
+
+
 # https://numpy.org/doc/stable/reference/routines.dtype.html
-data_type_routines = [
+_data_types = [
     # functions
     # ---------
     'dtype', 'finfo', 'iinfo', 'MachAr',
@@ -215,25 +476,46 @@ data_type_routines = [
     'complex_', 'complex64', 'complex128',
 ]
 
-_all_funcs_and_objs = math_operations + binary_operations + logic_functions + array_manipulation + \
-                      array_creation + indexing_routines + statistic_functions + window_functions + \
-                      constants + linear_algebra + data_type_routines
+dtype = numpy.dtype
+finfo = numpy.finfo
+iinfo = numpy.iinfo
+MachAr = numpy.MachAr
+bool_ = numpy.bool_
+uint8 = numpy.uint8
+uint16 = numpy.uint16
+uint32 = numpy.uint32
+uint64 = numpy.uint64
+int_ = numpy.int_
+int8 = numpy.int8
+int16 = numpy.int16
+int32 = numpy.int32
+int64 = numpy.int64
+float_ = numpy.float_
+float16 = numpy.float16
+float32 = numpy.float32
+float64 = numpy.float64
+complex_ = numpy.complex_
+complex64 = numpy.complex64
+complex128 = numpy.complex128
 
-__all__ = []
-for __ops in _all_funcs_and_objs:
-    __all__.append(getattr(numpy, __ops))
+_all = _math_funcs + _binary_funcs + _logic_funcs + _array_manipulation + \
+       _array_creation + _indexing_funcs + _statistic_funcs + _window_funcs + \
+       _constants + _linear_algebra + _data_types
 
 
 def _reload(backend):
+    random._reload(backend)
+    linalg._reload(backend)
+
     global_vars = globals()
 
     if backend == 'numpy':
-        for __ops in _all_funcs_and_objs:
+        for __ops in _all:
             global_vars[__ops] = getattr(numpy, __ops)
 
     elif backend == 'numba':
         from ._backends import numba
-        for __ops in _all_funcs_and_objs:
+        for __ops in _all:
             if hasattr(numba, __ops):
                 global_vars[__ops] = getattr(numba, __ops)
             else:
