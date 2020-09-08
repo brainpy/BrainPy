@@ -16,7 +16,7 @@ _math_funcs = [
     # ----------------------
     'add', 'reciprocal', 'negative', 'positive', 'multiply', 'divide',
     'power', 'subtract', 'true_divide', 'floor_divide', 'float_power',
-    'fmod', 'mod', 'modf', 'divmod', 'remainder',
+    'fmod', 'mod', 'modf', 'divmod', 'remainder', 'abs',
 
     # Exponents and logarithms
     # -------------------------
@@ -72,6 +72,7 @@ mod = numpy.mod
 modf = numpy.modf
 divmod = numpy.divmod
 remainder = numpy.remainder
+abs = numpy.absolute
 
 exp = numpy.exp
 exp2 = numpy.exp2
