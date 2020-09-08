@@ -1,48 +1,33 @@
 # -*- coding: utf-8 -*-
 
-from importlib import import_module
-
 import numpy.linalg
 
-_operations = ['cholesky', 'cond', 'det', 'eig', 'eigh',
-               'eigvals', 'eigvalsh', 'inv', 'lstsq',
-               'matrix_power', 'matrix_rank', 'norm',
-               'pinv', 'qr', 'slogdet', 'solve', 'svd', ]
+linear_algebra = [
+    'cholesky', 'cond', 'det', 'eig', 'eigh', 'eigvals', 'eigvalsh', 'inv', 'svd',
+    'lstsq', 'matrix_power', 'matrix_rank', 'norm', 'pinv', 'qr', 'slogdet', 'solve',
+]
 
 __all__ = []
 
-for __ops in _operations:
+for __ops in linear_algebra:
     __all__.append(getattr(numpy.linalg, __ops))
 
 
 def _reload(backend):
     global_vars = globals()
 
-    if backend in ['numpy', 'numba']:
-        for __ops in _operations:
+    if backend == 'numpy':
+        for __ops in linear_algebra:
             global_vars[__ops] = getattr(numpy.linalg, __ops)
 
-    elif backend == 'jax':
-        # https://jax.readthedocs.io/en/latest/jax.random.html
-        jnp = import_module('jax.numpy')
+    elif backend == 'numba':
+        from ._backends import numba
 
-        for __ops in _operations:
-            global_vars[__ops] = getattr(jnp.linalg, __ops)
-
-    elif backend == 'torch':
-
-        raise NotImplementedError
-
-    elif backend == 'tensorflow':
-
-        from ._backends import tensorflow
-
-        for __ops in _operations:
-            try:
-                ops = getattr(tensorflow, __ops)
-            except AttributeError:
-                ops = None
-            global_vars[__ops] = ops
+        for __ops in linear_algebra:
+            if hasattr(numba, __ops):
+                global_vars[__ops] = getattr(numpy.linalg, __ops)
+            else:
+                global_vars[__ops] = getattr(numba, __ops)
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')
