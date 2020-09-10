@@ -5,8 +5,8 @@ import time
 from pprint import pprint
 
 from .monitor import SpikeMonitor, StateMonitor
-from .neuron import Neurons
-from .synapse import Synapses
+from .neuron_group import NeuronGroup
+from .synapse_group import Synapses
 from .. import _numpy as np
 from .. import profile
 from ..utils import helper
@@ -101,7 +101,7 @@ class Network(object):
 
         for oi, syn in enumerate(self.synapses):
             # update_state()
-            args = self._get_args(syn.update_state)
+            args = self._get_args(syn.update)
             step_func_str += '\n\t' + 'syn{}.update_state('.format(oi)
             for arg in args:
                 if arg in ['t', 'i']:
@@ -151,7 +151,7 @@ class Network(object):
         # neuron update function
         for oi, neu in enumerate(self.neurons):
             step_func_str += '\n\t' + 'neu{}.update_state('.format(oi)
-            args = self._get_args(neu.update_state)
+            args = self._get_args(neu.update)
             for arg in args:
                 if arg in ['t', 'i']:
                     step_func_str += arg + ', '
@@ -161,7 +161,7 @@ class Network(object):
 
         # state monitor function
         for oi, mon in enumerate(self.state_monitors):
-            args = self._get_args(mon.update_state)
+            args = self._get_args(mon.update)
             if len(args) == 3:
                 step_func_str += '\n\tst_mon{oi}.update_state({obj}.state, st_mon{oi}.state, i)'.format(
                     oi=oi, obj=obj2name[mon.target])

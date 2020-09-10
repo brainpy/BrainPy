@@ -3,7 +3,7 @@
 from .. import _numpy as np
 
 from npbrain.core import integrate
-from npbrain.core.synapse import *
+from npbrain.core.synapse_group import *
 from npbrain.utils.helper import get_clip
 
 __all__ = [

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from importlib import import_module
 import numpy
 
 from . import linalg
 from . import random
-
 
 # https://numpy.org/doc/stable/reference/routines.math.html
 _math_funcs = [
@@ -154,7 +154,6 @@ fmin = numpy.fmin
 interp = numpy.interp
 clip = numpy.clip
 
-
 # https://numpy.org/doc/stable/reference/routines.bitwise.html
 _binary_funcs = [
     # Elementwise bit operations
@@ -170,7 +169,6 @@ bitwise_xor = numpy.bitwise_xor
 invert = numpy.invert
 left_shift = numpy.left_shift
 right_shift = numpy.right_shift
-
 
 # https://numpy.org/doc/stable/reference/routines.logic.html
 _logic_funcs = [
@@ -197,20 +195,21 @@ less_equal = numpy.less_equal
 array_equal = numpy.array_equal
 isclose = numpy.isclose
 allclose = numpy.allclose
+
 logical_and = numpy.logical_and
 logical_not = numpy.logical_not
 logical_or = numpy.logical_or
 logical_xor = numpy.logical_xor
+
 all = numpy.all
 any = numpy.any
-
 
 # https://numpy.org/doc/stable/reference/routines.array-manipulation.html
 # https://numpy.org/doc/stable/reference/routines.sort.html
 _array_manipulation = [
     # Changing array shape
     # ---------------------
-    'shape', 'reshape', 'ravel',
+    'shape', 'size', 'reshape', 'ravel',
 
     # Transpose-like operations
     # --------------------------
@@ -263,6 +262,7 @@ _array_manipulation = [
 ]
 
 shape = numpy.shape
+size = numpy.size
 reshape = numpy.reshape
 ravel = numpy.ravel
 moveaxis = numpy.moveaxis
@@ -307,9 +307,10 @@ count_nonzero = numpy.count_nonzero
 max = numpy.max
 min = numpy.min
 
-
 # https://numpy.org/doc/stable/reference/routines.array-creation.html
 _array_creation = [
+    'ndarray',
+
     # Ones and zeros
     # ---------------
     'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',
@@ -328,6 +329,7 @@ _array_creation = [
     'diag', 'tri', 'tril', 'triu', 'vander',
 ]
 
+ndarray = numpy.ndarray
 empty = numpy.empty
 empty_like = numpy.empty_like
 ones = numpy.ones
@@ -338,19 +340,21 @@ full = numpy.full
 full_like = numpy.full_like
 eye = numpy.eye
 identity = numpy.identity
+
 array = numpy.array
 asarray = numpy.asarray
+
 arange = numpy.arange
 linspace = numpy.linspace
 logspace = numpy.logspace
 meshgrid = numpy.meshgrid
 copy = numpy.copy
+
 diag = numpy.diag
 tri = numpy.tri
 tril = numpy.tril
 triu = numpy.triu
 vander = numpy.vander
-
 
 # https://numpy.org/doc/stable/reference/routines.indexing.html
 _indexing_funcs = [
@@ -374,13 +378,14 @@ tril_indices = numpy.tril_indices
 tril_indices_from = numpy.tril_indices_from
 triu_indices = numpy.triu_indices
 triu_indices_from = numpy.triu_indices_from
+
 take = numpy.take
 # diag = numpy.diag
 select = numpy.select
+
 nditer = numpy.nditer
 ndenumerate = numpy.ndenumerate
 ndindex = numpy.ndindex
-
 
 # https://numpy.org/doc/stable/reference/routines.statistics.html
 _statistic_funcs = [
@@ -409,6 +414,7 @@ percentile = numpy.percentile
 nanpercentile = numpy.nanpercentile
 quantile = numpy.quantile
 nanquantile = numpy.nanquantile
+
 # median = numpy.median
 average = numpy.average
 mean = numpy.mean
@@ -418,13 +424,14 @@ nanmedian = numpy.nanmedian
 nanmean = numpy.nanmean
 nanstd = numpy.nanstd
 nanvar = numpy.nanvar
+
 corrcoef = numpy.corrcoef
 correlate = numpy.correlate
 cov = numpy.cov
+
 histogram = numpy.histogram
 bincount = numpy.bincount
 digitize = numpy.digitize
-
 
 # https://numpy.org/doc/stable/reference/routines.window.html
 _window_funcs = ['bartlett', 'blackman', 'hamming', 'hanning', 'kaiser']
@@ -435,7 +442,6 @@ hamming = numpy.hamming
 hanning = numpy.hanning
 kaiser = numpy.kaiser
 
-
 # https://numpy.org/doc/stable/reference/constants.html
 _constants = ['e', 'pi', 'inf', 'nan', 'newaxis', 'euler_gamma']
 
@@ -445,7 +451,6 @@ inf = numpy.inf
 nan = numpy.nan
 newaxis = numpy.newaxis
 euler_gamma = numpy.euler_gamma
-
 
 # https://numpy.org/doc/stable/reference/routines.linalg.html
 _linear_algebra = [
@@ -460,7 +465,6 @@ outer = numpy.outer
 kron = numpy.kron
 matmul = numpy.matmul
 trace = numpy.trace
-
 
 # https://numpy.org/doc/stable/reference/routines.dtype.html
 _data_types = [
@@ -481,6 +485,7 @@ dtype = numpy.dtype
 finfo = numpy.finfo
 iinfo = numpy.iinfo
 MachAr = numpy.MachAr
+
 bool_ = numpy.bool_
 uint8 = numpy.uint8
 uint16 = numpy.uint16
@@ -516,11 +521,21 @@ def _reload(backend):
 
     elif backend == 'numba':
         from ._backends import numba
+
         for __ops in _all:
             if hasattr(numba, __ops):
                 global_vars[__ops] = getattr(numba, __ops)
             else:
                 global_vars[__ops] = getattr(numpy, __ops)
+
+    elif backend == 'jax':
+        jax = import_module('jax')
+
+        for __ops in _all:
+            global_vars[__ops] = getattr(jax, __ops)
+
+    elif backend == 'tensorflow':
+        pass
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')

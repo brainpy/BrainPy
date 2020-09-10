@@ -3,7 +3,7 @@
 from .. import _numpy as np
 
 from ..core import integrate
-from ..core.neuron import *
+from ..core.neuron_group import *
 from ..utils import get_clip
 from ..utils import autojit
 

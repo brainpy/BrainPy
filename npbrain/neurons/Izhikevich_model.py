@@ -3,7 +3,7 @@
 from .. import _numpy as np
 
 from npbrain.core import integrate
-from npbrain.core.neuron import *
+from npbrain.core.neuron_group import *
 from ..utils import autojit
 
 __all__ = [

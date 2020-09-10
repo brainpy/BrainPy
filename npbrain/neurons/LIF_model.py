@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ..core import integrate
-from ..core.neuron import *
+from ..core.neuron_group import *
 from ..utils import autojit
 
 __all__ = [

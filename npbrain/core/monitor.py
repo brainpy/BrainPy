@@ -2,9 +2,9 @@
 
 from numba import typed, types, prange
 
-from .neuron import Neurons
-from .synapse import Synapses
-from .. import _numpy as np
+from .neuron_group import NeuronGroup
+from .synapse_group import SynapseGroup
+from .. import _numpy as bnp
 from .. import profile
 from ..utils import helper
 
@@ -20,15 +20,76 @@ __all__ = [
 
 class Monitor(object):
     """Base monitor class.
-
     """
 
-    def __init__(self, target):
+    def __init__(self, target, variables=None):
         self.target = target
-        self.update_state = helper.autojit(self.update_state)
 
-    def init_state(self, *args, **kwargs):
-        raise NotImplementedError()
+        # check `variables`
+        if variables is None:
+            if isinstance(target, NeuronGroup):
+                variables = ['V']
+            elif isinstance(target, SynapseGroup):
+                variables = ['g_out']
+            else:
+                raise ValueError('When `vars=None`, NumpyBrain only supports the recording '
+                                 'of "V" for NeuronGroup and "g_out" for SynapseGroup.')
+        if isinstance(variables, str):
+            variables = [variables]
+        assert isinstance(variables, (list, tuple))
+        self.variables = tuple(variables)
+
+        # fake initialization
+        for k in self.variables:
+            setattr(self, k, bnp.zeros((1, 1), dtype=bnp.float_))
+
+
+        # generate update_function
+        if profile.is_numba_bk():
+            self.state = []
+
+            # monitor of synapse object
+            if 'g_out' in self.variables or 'g_in' in self.variables:
+                if len([v for v in self.variables if v != 'g_out' and v != 'g_in']):
+                    func_str = '''def func(S, D, mon_state, out_idx, in_idx, i):'''
+                else:
+                    func_str = '''def func(D, mon_state, out_idx, in_idx, i):'''
+            # monitor of neuron object
+            else:
+                func_str = '''def func(S, mon_state, i):'''
+
+            # define the monitor function
+            for j, k in enumerate(self.variables):
+                if k == 'g_out':
+                    func_str += '\n\tmon_state[{}][i] = D[out_idx]'.format(j)
+                elif k == 'g_in':
+                    func_str += '\n\tmon_state[{}][i] = D[in_idx]'.format(j)
+                else:
+                    func_str += '\n\tmon_state[{}][i] = S[{}]'.format(j, target.var2index[k])
+
+            # compile the function
+            exec(compile(func_str, '', 'exec'))
+
+            if profile.debug:
+                print('\nMonitor function:')
+                print('-' * 30)
+                print(func_str)
+
+            self.update = helper.autojit(locals()['func'])
+
+        else:
+            if isinstance(target, SynapseGroup):
+                if len([v for v in self.variables if v != 'g_out' and v != 'g_in']):
+                    def func(S, D, mon_state, out_idx, in_idx, i):
+                        pass
+                else:
+                    def func(D, mon_state, out_idx, in_idx, i):
+                        for v in self.variables:
+                            getattr(self, )
+
+            if isinstance(target, NeuronGroup):
+                def func(S, mon_state, i):
+                    pass
 
 
 class SpikeMonitor(Monitor):
@@ -75,7 +136,7 @@ class SpikeMonitor(Monitor):
         return 'SpikeMonitor of {}'.format(repr(self.target))
 
 
-class StateMonitor(Monitor):
+class StateMonitor():
     """Monitor class to record states.
 
     Parameters
@@ -107,15 +168,15 @@ class StateMonitor(Monitor):
 
         # fake initialization
         for k in self.vars:
-            setattr(self, k, np.zeros((1, 1)))
+            setattr(self, k, bnp.zeros((1, 1)))
         self.state = []
 
-        if 'g_out' in vars or 'g_in' in vars:
+        if 'g_out' in vars or 'g_in' in vars:  # monitor of synapse object
             if len([v for v in vars if v != 'g_out' and v != 'g_in']):
                 func_str = '''def func(obj_state, delay_state, mon_state, out_idx, in_idx, i):'''
             else:
                 func_str = '''def func(delay_state, mon_state, out_idx, in_idx, i):'''
-        else:
+        else:  # monitor of neuron object
             func_str = '''def func(obj_state, mon_state, i):'''
         for j, k in enumerate(vars):
             if k == 'g_out':
@@ -146,7 +207,7 @@ class StateMonitor(Monitor):
             else:
                 v = self.target.state[self.target.var2index[k]]
             shape = (length,) + v.shape
-            state = np.zeros(shape, dtype=profile.ftype)
+            state = bnp.zeros(shape, dtype=profile.ftype)
             setattr(self, k, state)
             mon_states.append(state)
         self.state = tuple(mon_states)
@@ -175,7 +236,7 @@ def raster_plot(mon, times=None):
         Include (neuron index, spike time).
     """
     if isinstance(mon, StateMonitor):
-        elements = np.where(mon.spike > 0.)
+        elements = bnp.where(mon.spike > 0.)
         index = elements[1]
         if hasattr(mon, 'spike_time'):
             time = mon.spike_time[elements]
@@ -183,8 +244,8 @@ def raster_plot(mon, times=None):
             assert times is not None, 'Must provide "times" when StateMonitor has no "spike_time" attribute.'
             time = times[elements[0]]
     elif isinstance(mon, SpikeMonitor):
-        index = np.array(mon.index)
-        time = np.array(mon.time)
+        index = bnp.array(mon.index)
+        time = bnp.array(mon.time)
     else:
         raise ValueError
     return index, time
@@ -228,19 +289,19 @@ def firing_rate(mon, width, window='gaussian'):
     """
     # rate
     assert hasattr(mon, 'spike'), 'Must record the "spike" of the neuron group to get firing rate.'
-    rate = np.sum(mon.spike, axis=1)
+    rate = bnp.sum(mon.spike, axis=1)
 
     # window
     dt = profile.get_dt()
     if window == 'gaussian':
         width1 = 2 * width / dt
-        width2 = int(np.round(width1))
-        window = np.exp(-np.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 / 2))
+        width2 = int(bnp.round(width1))
+        window = bnp.exp(-bnp.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 / 2))
     elif window == 'flat':
         width1 = int(width / 2 / dt) * 2 + 1
-        window = np.ones(width1)
+        window = bnp.ones(width1)
     else:
         raise ValueError('Unknown window type "{}".'.format(window))
-    window = np.float_(window)
+    window = bnp.float_(window)
 
-    return np.convolve(rate, window / sum(window), mode='same')
+    return bnp.convolve(rate, window / sum(window), mode='same')

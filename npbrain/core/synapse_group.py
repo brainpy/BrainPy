@@ -1,43 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from .neuron import _format_vars
-from .. import _numpy as np
+from .. import _numpy as bnp
 from .. import profile
 from ..utils import helper
+from collections import OrderedDict
+from .common_func import Group
+from .common_func import numbify_func
 
-__all__ = [
-    'format_delay',
-    'init_syn_state',
-    'init_delay_state',
-    'Synapses',
-]
-
-synapse_no = 0
-
-
-def format_delay(delay, dt=None):
-    """Format the given delay and get the delay length.
-
-    Parameters
-    ----------
-    delay : None, int, float, np.ndarray
-        The delay.
-    dt : float, None
-        The precision of the numerical integration.
-
-    Returns
-    -------
-    delay_len : int
-        Delay length.
-    """
-    if delay is None:
-        delay_len = 1
-    elif isinstance(delay, (int, float)):
-        dt = profile.get_dt() if dt is None else dt
-        delay_len = int(np.ceil(delay / dt)) + 1
-    else:
-        raise ValueError()
-    return delay_len
+_group_no = 0
 
 
 def init_syn_state(num_syn, variables=None, parameters=None):
@@ -72,7 +42,7 @@ def init_syn_state(num_syn, variables=None, parameters=None):
     names = var_names + par_names
     values = var_values + par_values
 
-    state = np.zeros((len(names), num_syn), dtype=profile.ftype)
+    state = bnp.zeros((len(names), num_syn), dtype=profile.ftype)
     for i, v in enumerate(values):
         state[i] = v
 
@@ -90,7 +60,7 @@ def init_delay_state(num_post, delay, variables=None, parameters=None):
     names = var_names + par_names
     values = var_values + par_values
 
-    state = np.zeros((delay_len + len(names), num_post), dtype=profile.ftype)
+    state = bnp.zeros((delay_len + len(names), num_post), dtype=profile.ftype)
     for i, v in enumerate(values):
         state[delay_len + i] = v
 
@@ -186,3 +156,123 @@ class Synapses(object):
     @property
     def available_monitors(self):
         return sorted(list(self.var2index.keys()))
+
+
+class SynapseGroup(Group):
+
+    def __init__(self, pre, post, delay=0., monitors=None,
+                 vars_init=None, pars_updates=None):
+        # essential
+        # -----------
+        self.num_pre = pre.num
+        self.num_post = post.num
+
+        # connection
+        # -----------
+        self.num = ...
+
+        # delay and delay state
+        # ----------------------
+        if delay is None:
+            delay_len = 1
+        elif isinstance(delay, (int, float)):
+            dt = profile.get_dt()
+            delay_len = int(bnp.ceil(delay / dt)) + 1
+        else:
+            raise ValueError('NumpyBrain currently does not support other kinds of delay.')
+        self.delay_len = delay_len
+        self.delay_state = bnp.zeros((delay_len, self.num_post), dtype=bnp.float_)
+        self.D = self.delay_state
+        self._delay_indices = bnp.array([0, delay_len-1])
+
+        # super class initialization
+        super(SynapseGroup, self).__init__(vars_init=vars_init, pars_updates=pars_updates)
+
+        # monitors
+        # ----------
+        self.mon = dict()
+        self._mon_vars = monitors
+        self._mon_update = None
+
+        if monitors is not None:
+            for k in monitors:
+                self.mon[k] = bnp.zeros((1, 1), dtype=bnp.float_)
+
+            # generate function
+            if profile.is_numba_bk():
+                def update(i):
+                    for k in self._mon_vars:
+                        if k == 'g_out':
+                            self.mon[k][i] = self.D[self._delay_indices[0]]
+                        elif k == 'g_in':
+                            self.mon[k][i] = self.D[self._delay_indices[1]]
+                        else:
+                            self.mon[k][i] = self.state[self.var2index[k]]
+            else:
+                def update(i):
+                    if k == 'g_out':
+                        self.mon[k][i] = self.D[self._delay_indices[0]]
+                    elif k == 'g_in':
+                        self.mon[k][i] = self.D[self._delay_indices[1]]
+                    else:
+                        self.mon[k][i] = self.state[k]
+            self._mon_update = update
+
+    def update_delay_indices(self):
+        self._delay_indices[0] = (self._delay_indices[0] + 1) % self.delay_len
+        self._delay_indices[1] = (self._delay_indices[1] + 1) % self.delay_len
+
+
+def create_synapse_model(parameters=None, variables=None, update_func=None, name=None):
+    # handle "update"
+    # -----------------
+    assert update_func is not None, '"update_func" cannot be None.'
+
+    # handle "name"
+    # --------------
+    if name is None:
+        global _group_no
+        name_ = 'syn_group_{}'.format(_group_no)
+        _group_no += 1
+    else:
+        name_ = name
+
+    # handle "parameters"
+    # --------------------
+    if parameters is None:
+        parameters = OrderedDict()
+    elif isinstance(parameters, (list, tuple)):
+        parameters = OrderedDict((par, 0.) for par in parameters)
+    elif isinstance(parameters, dict):
+        parameters = OrderedDict(parameters)
+    else:
+        raise ValueError('Unknown parameters type: {}'.format(type(parameters)))
+
+    # handle "variables"
+    # --------------------
+    if variables is None:
+        variables = OrderedDict()
+    elif isinstance(variables, (list, tuple)):
+        variables = OrderedDict((var_, 0.) for var_ in variables)
+    elif isinstance(variables, dict):
+        variables = OrderedDict(variables)
+    else:
+        raise ValueError('Unknown variables type: {}'.format(type(variables)))
+
+    # generate class
+    # --------------------
+
+    class CreatedSynapseGroup(SynapseGroup):
+        pars = parameters
+        vars = variables
+        update = update_func
+        name = name_
+
+        def __str__(self):
+            return self.name
+
+        def __repr__(self):
+            return self.name
+
+    return CreatedSynapseGroup
+

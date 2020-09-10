@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import _numpy as np
+from .. import _numpy as bnp
 from .. import profile
 from ..utils.helper import autojit
 
@@ -55,7 +55,6 @@ def integrate(func=None, noise=None, method=None, signature=None, multi_return=F
     >>>     alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
     >>>     beta = 4.0 * np.exp(-(V + 65) / 18)
     >>>     return alpha * (1 - m) - beta * m
-
 
     Parameters
     ----------
@@ -617,7 +616,7 @@ def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None, multi_return=F
     def int_f(y0, t, *args):
         y1 = y0 + dt * f(y0, t, *args)
         y2 = y0 + dt * f(y1, t, *args)
-        while not np.all(np.abs(y1 - y2) < epsilon):
+        while not bnp.all(bnp.abs(y1 - y2) < epsilon):
             y1 = y2
             y2 = y0 + dt * f(y1, t, *args)
         return y2
@@ -679,7 +678,7 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None, multi_return=Fal
         dy0 = f(y0, t, *args)
         y1 = y0 + dt * dy0
         y2 = y0 + dt / 2 * (dy0 + f(y1, t + dt, *args))
-        while not np.all(np.abs(y1 - y2) < epsilon):
+        while not bnp.all(bnp.abs(y1 - y2) < epsilon):
             y1 = y2
             y2 = y0 + dt / 2 * (dy0 + f(y1, t + dt, *args))
         return y2
@@ -742,14 +741,14 @@ def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
         def int_f(y0, t, *args):
             val = f(y0, t, *args)
             df, linear_part = val[0], val[1]
-            y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
+            y = y0 + (bnp.exp(linear_part * dt) - 1) / linear_part * df
             return (y,) + val[2:]
 
     else:
 
         def int_f(y0, t, *args):
             df, linear_part = f(y0, t, *args)
-            y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
+            y = y0 + (bnp.exp(linear_part * dt) - 1) / linear_part * df
             return y
 
     return autojit(int_f)
@@ -822,14 +821,14 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
+    dt_sqrt = bnp.sqrt(dt).astype(profile.ftype)
 
     if callable(g):
         g = autojit(signature)(g)
 
         if multi_return:
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 val = f(y0, t, *args)
                 df = val[0] * dt
                 dg = dt_sqrt * g(y0, t, *args) * dW
@@ -839,19 +838,19 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
         else:
 
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 df = f(y0, t, *args) * dt
                 dg = dt_sqrt * g(y0, t, *args) * dW
                 return y0 + df + dg
     else:
-        assert isinstance(g, (int, float, np.ndarray))
+        assert isinstance(g, (int, float, bnp.ndarray))
 
         if multi_return:
 
             def int_fg(y0, t, *args):
                 val = f(y0, t, *args)
                 df = val[0] * dt
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 dg = dt_sqrt * g * dW
                 y = y0 + df + dg
                 return (y,) + val[1:]
@@ -860,7 +859,7 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
 
             def int_fg(y0, t, *args):
                 df = f(y0, t, *args) * dt
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 dg = dt_sqrt * g * dW
                 return y0 + df + dg
 
@@ -919,7 +918,7 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
 
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
+    dt_sqrt = bnp.sqrt(dt).astype(profile.ftype)
 
     if callable(g):
         g = autojit(signature)(g)
@@ -929,9 +928,9 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
             def int_fg(y0, t, *args):
                 val = f(y0, t, *args)
                 dydt, linear_part = val[0], val[1]
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 dg = dt_sqrt * g(y0, t, *args) * dW
-                exp = np.exp(linear_part * dt)
+                exp = bnp.exp(linear_part * dt)
                 y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                 return (y1,) + val[2:]
 
@@ -939,23 +938,23 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
 
             def int_fg(y0, t, *args):
                 dydt, linear_part = f(y0, t, *args)
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 dg = dt_sqrt * g(y0, t, *args) * dW
-                exp = np.exp(linear_part * dt)
+                exp = bnp.exp(linear_part * dt)
                 y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                 return y1
 
     else:
-        assert isinstance(g, (int, float, np.ndarray))
+        assert isinstance(g, (int, float, bnp.ndarray))
 
         if multi_return:
 
             def int_fg(y0, t, *args):
                 val = f(y0, t, *args)
                 dydt, linear_part = val[0], val[1]
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 dg = dt_sqrt * g * dW
-                exp = np.exp(linear_part * dt)
+                exp = bnp.exp(linear_part * dt)
                 y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                 return (y1,) + val[1:]
 
@@ -963,9 +962,9 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
 
             def int_fg(y0, t, *args):
                 dydt, linear_part = f(y0, t, *args)
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 dg = dt_sqrt * g * dW
-                exp = np.exp(linear_part * dt)
+                exp = bnp.exp(linear_part * dt)
                 y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                 return y1
 
@@ -1018,7 +1017,7 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
+    dt_sqrt = bnp.sqrt(dt).astype(profile.ftype)
 
     if callable(g):
         g = autojit(signature)(g)
@@ -1026,7 +1025,7 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
         if multi_return:
 
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 val = f(y0, t, *args)
                 df = val[0] * dt
                 g_n = g(y0, t, *args)
@@ -1039,7 +1038,7 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
         else:
 
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 df = f(y0, t, *args) * dt
                 g_n = g(y0, t, *args)
                 dg = g_n * dW * dt_sqrt
@@ -1110,7 +1109,7 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
     """
     f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
+    dt_sqrt = bnp.sqrt(dt).astype(profile.ftype)
 
     if callable(g):
         g = autojit(signature)(g)
@@ -1118,7 +1117,7 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
         if multi_return:
 
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 val = f(y0, t, *args)
                 df = val[0] * dt
                 gn = g(y0, t, *args)
@@ -1131,7 +1130,7 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
         else:
 
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 df = f(y0, t, *args) * dt
                 gn = g(y0, t, *args)
                 y_bar = y0 + gn * dW * dt_sqrt
@@ -1188,7 +1187,7 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
 
     """
     dt = profile.get_dt() if dt is None else dt
-    dt_sqrt = np.sqrt(dt).astype(profile.ftype)
+    dt_sqrt = bnp.sqrt(dt).astype(profile.ftype)
     f = autojit(signature)(f)
 
     if callable(g):
@@ -1196,7 +1195,7 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
 
         if multi_return:
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 val = f(y0, t, *args)
                 df = val[0] * dt
                 g_n = g(y0, t, *args)
@@ -1209,7 +1208,7 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
 
         else:
             def int_fg(y0, t, *args):
-                dW = np.random.normal(0.0, 1.0, y0.shape)
+                dW = bnp.random.normal(0.0, 1.0, y0.shape)
                 df = f(y0, t, *args) * dt
                 g_n = g(y0, t, *args)
                 dg = g_n * dW * dt_sqrt

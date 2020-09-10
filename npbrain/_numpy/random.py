@@ -74,7 +74,7 @@ def _reload(backend):
         for __ops in _all:
             global_vars[__ops] = getattr(numpy.random, __ops)
 
-    if backend == 'numba':
+    elif backend == 'numba':
         from ._backends import numba
 
         for __ops in _all:
@@ -83,5 +83,16 @@ def _reload(backend):
             else:
                 global_vars[__ops] = getattr(numpy.random, __ops)
 
+    elif backend == 'jax':
+        from ._backends import jax
+
+        for __ops in _all:
+            global_vars[__ops] = getattr(jax, __ops)
+
+    elif backend == 'tensorflow':
+        pass
+
+
     else:
         raise ValueError(f'Unknown backend device: {backend}')
+
