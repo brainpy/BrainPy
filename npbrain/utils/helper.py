@@ -144,6 +144,7 @@ def is_lambda_function(func):
     """
     return isinstance(func, types.LambdaType) and func.__name__ == "<lambda>"
 
+
 def func_copy(f):
     """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
     g = types.FunctionType(f.__code__, f.__globals__,
@@ -160,28 +161,27 @@ def func_copy(f):
 ##############################
 
 class Dict(dict):
-    def __init__(__self, *args, **kwargs):
-        object.__setattr__(__self, '__parent', kwargs.pop('__parent', None))
-        object.__setattr__(__self, '__key', kwargs.pop('__key', None))
+    def __init__(self, *args, **kwargs):
+        object.__setattr__(self, '__parent', kwargs.pop('__parent', None))
+        object.__setattr__(self, '__key', kwargs.pop('__key', None))
         for arg in args:
             if not arg:
                 continue
             elif isinstance(arg, dict):
                 for key, val in arg.items():
-                    __self[key] = __self._hook(val)
+                    self[key] = self._hook(val)
             elif isinstance(arg, tuple) and (not isinstance(arg[0], tuple)):
-                __self[arg[0]] = __self._hook(arg[1])
+                self[arg[0]] = self._hook(arg[1])
             else:
                 for key, val in iter(arg):
-                    __self[key] = __self._hook(val)
+                    self[key] = self._hook(val)
 
         for key, val in kwargs.items():
-            __self[key] = __self._hook(val)
+            self[key] = self._hook(val)
 
     def __setattr__(self, name, value):
         if hasattr(self.__class__, name):
-            raise AttributeError("'Dict' object attribute "
-                                 "'{0}' is read-only".format(name))
+            raise AttributeError(f"Attribute '{name}' is read-only in 'Dict' object.")
         else:
             self[name] = value
 
@@ -240,9 +240,8 @@ class Dict(dict):
             if isinstance(value, type(self)):
                 base[key] = value.to_dict()
             elif isinstance(value, (list, tuple)):
-                base[key] = type(value)(
-                    item.to_dict() if isinstance(item, type(self)) else
-                    item for item in value)
+                base[key] = type(value)(item.to_dict() if isinstance(item, type(self)) else item
+                                        for item in value)
             else:
                 base[key] = value
         return base
@@ -255,9 +254,7 @@ class Dict(dict):
             other.update(args[0])
         other.update(kwargs)
         for k, v in other.items():
-            if ((k not in self) or
-                    (not isinstance(self[k], dict)) or
-                    (not isinstance(v, dict))):
+            if (k not in self) or (not isinstance(self[k], dict)) or (not isinstance(v, dict)):
                 self[k] = v
             else:
                 self[k].update(v)
@@ -273,7 +270,7 @@ class Dict(dict):
 
     def unique_add(self, key, val):
         if key in self:
-            raise ValueError('Key "{}" has already exists.'.format(key))
+            raise ValueError(f'Key "{key}" has already exists.')
         else:
             self[key] = val
 

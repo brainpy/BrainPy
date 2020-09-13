@@ -5,18 +5,17 @@ from .. import profile
 from ..utils import helper
 
 
-class Group(object):
+class NodeGroup(object):
     pars = dict()
     vars = dict()
     update = None
     name = None
 
-    __slots__ = ('num', 'var2index', 'state', 'S', 'P',
-                 '_mon_vars', 'mon',)
+    __slots__ = ('num', 'var2index', 'state', 'S', 'P', '_mon_vars', 'mon')
 
     def __init__(self, vars_init=None, pars_updates=None):
-        # variables and "state"
-        # ----------------------
+        # variables and "state" ("S")
+        # ----------------------------
         assert isinstance(vars_init, dict), '"vars_init" must be a dict.'
         for k, v in vars_init:
             if k not in self.vars:
@@ -122,6 +121,7 @@ class Group(object):
         """
         for k in self._mon_vars:
             self.mon[k] = bnp.zeros((length, self.num), dtype=bnp.float_)
+
 
 
 

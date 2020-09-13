@@ -2,8 +2,7 @@
 
 # profile.py
 
-# connect.py
-from npbrain.utils.connect import *
+# connectivity.py
 
 # input_factory.py
 from npbrain.utils.input_factory import *
@@ -14,11 +13,9 @@ from npbrain.utils.helper import *
 # measure.py
 from npbrain.utils.measure import *
 
-# run.py
-from npbrain.utils.run import *
+# running.py
 
-# visualize.py
-from npbrain.utils.visualize import *
+# visualization.py
 
 
 

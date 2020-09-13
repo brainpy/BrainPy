@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
-
+import inspect
 from .common_func import numbify_func
-from .common_func import Group
+from .common_func import NodeGroup
 from .. import _numpy as bnp
 from .. import profile
 from ..utils import helper
@@ -16,14 +16,114 @@ __all__ = [
 ]
 
 
-class NeuronGroup(Group):
+class Runnable(object):
+    pass
+
+
+class NeuronGroup(object):
+    def __init__(self, define_func, variables):
+        self.vars = variables
+        self.define_func = define_func
+
+        # get parameters and their default values
+        _sig = inspect.signature(define_func)
+
+    def __call__(self, geometry, monitors=None, vars_init=None, pars_updates=None):
+        # num and geometry
+        # -----------------
+        if isinstance(geometry, (int, float)):
+            geometry = (1, int(geometry))
+        elif isinstance(geometry, (tuple, list)):
+            if len(geometry) == 1:
+                height, width = 1, geometry[0]
+            elif len(geometry) == 2:
+                height, width = geometry[0], geometry[1]
+            else:
+                raise ValueError('Do not support 3+ dimensional networks.')
+            geometry = (height, width)
+        else:
+            raise ValueError()
+        num = int(bnp.prod(geometry))
+        self.num, self.geometry = num, geometry
+
+        # variables and "state" ("S")
+        # ----------------------------
+        assert isinstance(vars_init, dict), '"vars_init" must be a dict.'
+        for k, v in vars_init:
+            if k not in self.vars:
+                raise KeyError('variable "{}" is not defined in "{}".'.format(k, self.name))
+            self.vars[k] = v
+
+        if profile.is_numba_bk():
+            import numba as nb
+
+            self.var2index = dict()
+            self.state = bnp.zeros((len(self.vars), self.num), dtype=bnp.float_)
+            for i, (k, v) in enumerate(self.vars.items()):
+                self.state[i] = v
+                self.var2index[k] = i
+        else:
+            self.var2index = None
+            self.state = dict()
+            for k, v in self.vars.items():
+                self.state[k] = bnp.ones(self.num, dtype=bnp.float_) * v
+        self.S = self.state
+
+        # parameters and "P"
+        # -------------------
+        assert isinstance(pars_updates, dict), '"pars_updates" must be a dict.'
+        for k, v in pars_updates:
+            val_size = bnp.size(v)
+            if val_size != 1:
+                if val_size != self.num:
+                    raise ValueError('The size of parameter "{k}" is wrong, "{s}" != 1 and '
+                                     '"{s}" != group.num.'.format(k=k, s=val_size))
+            self.pars[k] = v
+
+        if profile.is_numba_bk():
+            max_size = bnp.max([bnp.size(v) for v in self.pars.values()])
+            if max_size > 1:
+                self.P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float64[:])
+                for k, v in self.pars.items():
+                    self.P[k] = bnp.ones(self.num, dtype=bnp.float_) * v
+            else:
+                self.P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float64)
+                for k, v in self.pars.items():
+                    self.P[k] = v
+        else:
+            self.P = self.pars
+
+        # monitors
+        # ----------
+        self.mon = dict()
+        self._mon_vars = monitors
+        self._mon_update = None
+
+        if monitors is not None:
+            for k in monitors:
+                self.mon[k] = bnp.zeros((1, 1), dtype=bnp.float_)
+
+            # generate function
+            if profile.is_numba_bk():
+                def update(i):
+                    for k in self._mon_vars:
+                        self.mon[k][i] = self.state[self.var2index[k]]
+            else:
+                def update(i):
+                    for k in self._mon_vars:
+                        self.mon[k][i] = self.state[k]
+            self._mon_update = update
+
+
+
+
+class NeuronGroup2(NodeGroup):
     def __init__(self, geometry, monitors=None, vars_init=None, pars_updates=None):
         # num and geometry
         # -----------------
         if isinstance(geometry, (int, float)):
             geometry = (1, int(geometry))
         elif isinstance(geometry, (tuple, list)):
-            # a tuple is given, can be 1 .. N dimensional
             if len(geometry) == 1:
                 height, width = 1, geometry[0]
             elif len(geometry) == 2:
@@ -59,8 +159,6 @@ class NeuronGroup(Group):
                     for k in self._mon_vars:
                         self.mon[k][i] = self.state[k]
             self._mon_update = update
-
-
 
 
 def create_neuron_model(parameters=None, variables=None, update_func=None, name=None):

@@ -6,7 +6,7 @@ Connection toolkit.
 
 import numba as nb
 import numpy as np
-from .. import profile
+from npbrain import profile
 
 __all__ = [
     # connection formatter
@@ -269,6 +269,12 @@ def post2syn(i, j, num_post):
 # -----------------------------------
 # methods of connection
 # -----------------------------------
+
+
+class Connector(object):
+    def __call__(self, *args, **kwargs):
+        pass
+
 
 def one2one(num_pre, num_post):
     """Connect two neuron groups one by one. This means

@@ -6,7 +6,7 @@ from pprint import pprint
 
 from .monitor import SpikeMonitor, StateMonitor
 from .neuron_group import NeuronGroup
-from .synapse_group import Synapses
+from .synapse_group import SynapseGroup
 from .. import _numpy as np
 from .. import profile
 from ..utils import helper
