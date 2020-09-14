@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
+from .. import profile
+from .. import _numpy  as bnp
 
 __all__ = [
     'cross_correlation',
@@ -53,19 +54,19 @@ def cross_correlation(spikes, bin_size):
     """
 
     num_hist, num_neu = spikes.shape
-    num_bin = int(np.ceil(num_hist / bin_size))
+    num_bin = int(bnp.ceil(num_hist / bin_size))
     if num_bin * bin_size != num_hist:
-        spikes = np.append(spikes, np.zeros(num_bin * num_hist - num_hist, num_neu), axis=0)
+        spikes = bnp.append(spikes, bnp.zeros(num_bin * num_hist - num_hist, num_neu), axis=0)
     states = spikes.T.reshape(num_neu, num_bin, bin_size)
-    states = np.float64(np.sum(states, axis=2) > 0.)
+    states = bnp.float64(bnp.sum(states, axis=2) > 0.)
 
     all_k = []
     for i in range(num_neu):
         for j in range(i + 1, num_neu):
-            sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
-            k = 0. if sqrt_ij == 0. else np.sum(states[i] * states[j]) / sqrt_ij
+            sqrt_ij = bnp.sqrt(bnp.sum(states[i]) * bnp.sum(states[j]))
+            k = 0. if sqrt_ij == 0. else bnp.sum(states[i] * states[j]) / sqrt_ij
             all_k.append(k)
-    return np.mean(all_k)
+    return bnp.mean(all_k)
 
 
 def voltage_fluctuation(potentials):
@@ -125,11 +126,99 @@ def voltage_fluctuation(potentials):
     """
 
     num_hist, num_neu = potentials.shape
-    avg = np.mean(potentials, axis=1)
-    avg_var = np.mean(avg * avg) - np.mean(avg) ** 2
+    avg = bnp.mean(potentials, axis=1)
+    avg_var = bnp.mean(avg * avg) - bnp.mean(avg) ** 2
     neu_vars = []
     for i in range(num_neu):
         neu = potentials[:, i]
-        neu_vars.append(np.mean(neu * neu) - np.mean(neu) ** 2)
-    var_mean = np.mean(neu_vars)
+        neu_vars.append(bnp.mean(neu * neu) - bnp.mean(neu) ** 2)
+    var_mean = bnp.mean(neu_vars)
     return avg_var / var_mean if var_mean != 0. else 1.
+
+
+def raster_plot(mon, times=None):
+    """Get spike raster plot which displays the spiking activity
+    of a group of neurons over time.
+
+    Parameters
+    ----------
+    mon : Monitor
+        The monitor which record spiking activities.
+    times : None, numpy.ndarray
+        The time steps.
+
+    Returns
+    -------
+    raster_plot : tuple
+        Include (neuron index, spike time).
+    """
+    if isinstance(mon, StateMonitor):
+        elements = bnp.where(mon.spike > 0.)
+        index = elements[1]
+        if hasattr(mon, 'spike_time'):
+            time = mon.spike_time[elements]
+        else:
+            assert times is not None, 'Must provide "times" when StateMonitor has no "spike_time" attribute.'
+            time = times[elements[0]]
+    elif isinstance(mon, SpikeMonitor):
+        index = bnp.array(mon.index)
+        time = bnp.array(mon.time)
+    else:
+        raise ValueError
+    return index, time
+
+
+def firing_rate(mon, width, window='gaussian'):
+    """Calculate the mean firing rate over in a neuron group.
+
+    This method is adopted from Brian2.
+
+    The firing rate in trial :math:`k` is the spike count :math:`n_{k}^{sp}`
+    in an interval of duration :math:`T` divided by :math:`T`:
+
+    .. math::
+
+        v_k = {n_k^{sp} \\over T}
+
+    Parameters
+    ----------
+    mon : StateMonitor
+        The monitor which record spiking activities.
+    width : int, float
+        The width of the ``window`` in millisecond.
+    window : str
+        The window to use for smoothing. It can be a string to chose a
+        predefined window:
+
+        - `flat`: a rectangular,
+        - `gaussian`: a Gaussian-shaped window.
+
+        For the `Gaussian` window, the `width` parameter specifies the
+        standard deviation of the Gaussian, the width of the actual window
+        is `4 * width + dt`.
+        For the `flat` window, the width of the actual window
+        is `2 * width/2 + dt`.
+
+    Returns
+    -------
+    rate : numpy.ndarray
+        The population rate in Hz, smoothed with the given window.
+    """
+    # rate
+    assert hasattr(mon, 'spike'), 'Must record the "spike" of the neuron group to get firing rate.'
+    rate = bnp.sum(mon.spike, axis=1)
+
+    # window
+    dt = profile.get_dt()
+    if window == 'gaussian':
+        width1 = 2 * width / dt
+        width2 = int(bnp.round(width1))
+        window = bnp.exp(-bnp.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 / 2))
+    elif window == 'flat':
+        width1 = int(width / 2 / dt) * 2 + 1
+        window = bnp.ones(width1)
+    else:
+        raise ValueError('Unknown window type "{}".'.format(window))
+    window = bnp.float_(window)
+
+    return bnp.convolve(rate, window / sum(window), mode='same')

@@ -306,7 +306,7 @@ def clip(a, a_min, a_max):
     is specified, values smaller than 0 become 0, and values larger
     than 1 become 1.
 
-    Equivalent to but faster than ``np.maximum(a_min, np.minimum(a, a_max))``.
+    Equivalent to but faster than ``bnp.maximum(a_min, bnp.minimum(a, a_max))``.
     No check is performed to ensure ``a_min < a_max``.
 
     Parameters

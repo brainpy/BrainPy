@@ -4,7 +4,6 @@ import inspect
 import time
 from pprint import pprint
 
-from .monitor import SpikeMonitor, StateMonitor
 from .neuron_group import NeuronGroup
 from .synapse_group import SynapseGroup
 from .. import _numpy as np

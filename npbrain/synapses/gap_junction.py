@@ -20,7 +20,7 @@ def GapJunction(pre, post, weights, connection, delay=None, name='gap_junction')
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    weights : dict, np.ndarray, int, float
+    weights : dict, bnp.ndarray, int, float
         The weighted coefficients of synapses.
     connection : tuple
         The connectivity.
@@ -83,7 +83,7 @@ def GapJunction_LIF(pre, post, weights, connection, k_spikelet=0.1, delay=None, 
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    weights : dict, np.ndarray, int, float
+    weights : dict, bnp.ndarray, int, float
         The weighted coefficients of synapses.
     connection : tuple
         The connectivity.

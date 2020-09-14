@@ -72,7 +72,7 @@ def set_backend(bk):
         device = 'cpu'
 
     # _numpy
-    if bk.lower() in ['numpy', 'np']:
+    if bk.lower() in ['numpy', 'bnp']:
         backend = 'numpy'
     elif bk.lower() in ['torch', 'pytorch']:
         backend = 'torch'

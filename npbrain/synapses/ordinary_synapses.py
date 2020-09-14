@@ -22,7 +22,7 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    weights : dict, np.ndarray, int, float
+    weights : dict, bnp.ndarray, int, float
         The weighted coefficients of synapses.
     connection : tuple
         The connectivity.

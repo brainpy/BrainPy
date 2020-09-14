@@ -1,11 +1,51 @@
 # -*- coding: utf-8 -*-
 
+import inspect
 from .. import _numpy as bnp
 from .. import profile
 from ..utils import helper
+from collections import OrderedDict
 
 
-class NodeGroup(object):
+class BaseGroup(object):
+    def __init__(self, create_func, variables, name=None):
+        # name
+        # -----
+        if name is None:
+            global _group_no
+            self.name = 'neu_group_{}'.format(_group_no)
+            _group_no += 1
+        else:
+            self.nam = name
+
+        # variables
+        # ----------
+        if variables is None:
+            variables = OrderedDict()
+        elif isinstance(variables, (list, tuple)):
+            variables = OrderedDict((var_, 0.) for var_ in variables)
+        elif isinstance(variables, dict):
+            variables = OrderedDict(variables)
+        else:
+            raise ValueError('Unknown variables type: {}'.format(type(variables)))
+        self.variables = variables
+
+        # create_func
+        # ------------
+        self.create_func = create_func
+
+        # parameters
+        # ------------
+        # get parameters and their default values
+        _sig = inspect.signature(create_func)
+        ...
+
+
+
+
+
+
+class NodeGroup2(object):
     pars = dict()
     vars = dict()
     update = None

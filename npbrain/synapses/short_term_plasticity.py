@@ -43,7 +43,7 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
         The pre-synaptic neuron group.
     post : Neurons
         The post-synaptic neuron group.
-    weights : dict, np.ndarray, int, float
+    weights : dict, bnp.ndarray, int, float
         The weighted coefficients of synapses.
     connection : tuple
         The connection.

@@ -3,7 +3,7 @@
 from collections import OrderedDict
 import inspect
 from .common_func import numbify_func
-from .common_func import NodeGroup
+from .common_func import BaseGroup
 from .. import _numpy as bnp
 from .. import profile
 from ..utils import helper
@@ -16,18 +16,17 @@ __all__ = [
 ]
 
 
-class Runnable(object):
-    pass
+class RunnableNeuron(object):
+    '''
+
+    Handle
+
+    '''
+    def __init__(self):
+        pass
 
 
-class NeuronGroup(object):
-    def __init__(self, define_func, variables):
-        self.vars = variables
-        self.define_func = define_func
-
-        # get parameters and their default values
-        _sig = inspect.signature(define_func)
-
+class NeuronGroup(BaseGroup):
     def __call__(self, geometry, monitors=None, vars_init=None, pars_updates=None):
         # num and geometry
         # -----------------
@@ -117,7 +116,7 @@ class NeuronGroup(object):
 
 
 
-class NeuronGroup2(NodeGroup):
+class NeuronGroup2(BaseGroup):
     def __init__(self, geometry, monitors=None, vars_init=None, pars_updates=None):
         # num and geometry
         # -----------------
@@ -206,7 +205,7 @@ def create_neuron_model(parameters=None, variables=None, update_func=None, name=
     # generate class
     # --------------------
 
-    class CreatedNeuronGroup(NeuronGroup):
+    class CreatedNeuronGroup(NeuronGroup2):
         pars = parameters
         vars = variables
         update = update_func
