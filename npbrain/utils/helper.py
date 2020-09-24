@@ -75,7 +75,7 @@ def autojit(signature_or_func=None):
 
     Parameters
     ----------
-    signature_or_func : callable, list, str
+    signature_or_func : callable, a_list, str
 
     Returns
     -------

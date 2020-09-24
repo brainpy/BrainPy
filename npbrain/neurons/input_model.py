@@ -27,7 +27,7 @@ def FreqInput(geometry, freq, start_time=0., name='FreqInput'):
 
     Parameters
     ----------
-    geometry : int, list, tuple
+    geometry : int, a_list, tuple
         The geometry of neuron group.
     freq : int, float
         The output spike frequency.
@@ -77,11 +77,11 @@ def TimeInput(geometry, times, indices=None, name='TimeInput'):
 
     Parameters
     ----------
-    geometry : int, list, tuple
+    geometry : int, a_list, tuple
         The geometry of neuron group.
     times : list
         The time points which generate the spikes.
-    indices : None, int, list, tuple
+    indices : None, int, a_list, tuple
         The neuron indices at each time point.
     name : str
         The name of the neuron group.

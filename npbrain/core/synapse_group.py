@@ -4,31 +4,43 @@ from .. import _numpy as bnp
 from .. import profile
 from ..utils import helper
 from collections import OrderedDict
-from .common_func import BaseGroup
+from .common_func import BaseType
 from .common_func import numbify_func
 from .connectivity import Connector
+from .connectivity import FixedProb
 
-_group_no = 0
+__all__ = [
+    'SynapseGroup',
+    'SynapseType'
+]
 
 
-class RunnableSynapse(object):
-    pass
+class SynapseGroup(object):
+    def __int__(self):
+        pass
+
+    def __str__(self):
+        return f"{self.name} (Concrete)"
 
 
-class SynapseGroup(BaseGroup):
-    def __call__(self, pre, post, connection, delay=0., monitors=None, vars_init=None, pars_updates=None):
-        # connection
+class SynapseType(BaseType):
+    def __init__(self, create_func, name=None):
+        super(SynapseType, self).__init__(create_func=create_func, name=name, type_='syn')
+
+    def __call__(self, pre, post, conn=FixedProb(prob=0.1), delay=0., monitors=None,
+                 vars_init=None, pars_updates=None, name=None):
+        # conn
         # -----------
-        if isinstance(connection, Connector):
-            self.connector = connection
+        if isinstance(conn, Connector):
+            self.connector = conn
             self.pre_idx = ...
             self.post_idx = ...
         else:
-            assert isinstance(connection, dict), '"connection" only support "dict".'
-            assert 'i' in connection, '"connection" must provide "i" item.'
-            assert 'j' in connection, '"connection" must provide "j" item.'
-            self.pre_idx = connection['i']
-            self.post_idx = connection['j']
+            assert isinstance(conn, dict), '"conn" only support "dict".'
+            assert 'i' in conn, '"conn" must provide "i" item.'
+            assert 'j' in conn, '"conn" must provide "j" item.'
+            self.pre_idx = conn['i']
+            self.post_idx = conn['j']
 
         # essential
         # -----------

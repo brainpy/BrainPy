@@ -67,7 +67,7 @@ def integrate(func=None, noise=None, method=None, signature=None, multi_return=F
         number, or a function.
     method : None, str, callable
         The method of numerical integration.
-    signature : list, str, None
+    signature : a_list, str, None
         The numba compilation signature.
     multi_return : bool
         Return multiple values in `dydt` function. The first iterm must be the value of
@@ -189,7 +189,7 @@ def ode_euler(f, dt=None, signature=None, multi_return=False):
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values in `dydt` function. The first iterm
@@ -252,7 +252,7 @@ def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -296,7 +296,7 @@ def ode_heun(f, dt=None, signature=None, multi_return=False):
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -322,7 +322,7 @@ def midpoint(f, dt=None, signature=None, multi_return=False):
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -357,7 +357,7 @@ def ode_rk3(f, dt=None, signature=None, multi_return=False):
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -412,7 +412,7 @@ def ode_rk4(f, dt=None, signature=None, multi_return=False):
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -473,7 +473,7 @@ def ode_rk4_alternative(f, dt=None, signature=None, multi_return=False):
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -588,7 +588,7 @@ def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None, multi_return=F
         Precision of numerical integration.
     epsilon : float
         The minimal precision.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -653,7 +653,7 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None, multi_return=Fal
         The function at the right hand of the differential equation.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -719,7 +719,7 @@ def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
         :math:`f'(y0)`) must be returned in the customized function.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -798,7 +798,7 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
         The diffusion coefficient, the stochastic part.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -894,7 +894,7 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
         The diffusion coefficient, the stochastic part.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -995,7 +995,7 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
         The diffusion coefficient, the stochastic part.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -1082,7 +1082,7 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
         The diffusion coefficient, the stochastic part.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.
@@ -1164,7 +1164,7 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
         The diffusion coefficient, the stochastic part.
     dt : None, float
         Precision of numerical integration.
-    signature : str, list, tuple
+    signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
         Return multiple values.

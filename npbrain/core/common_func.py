@@ -7,19 +7,62 @@ from ..utils import helper
 from collections import OrderedDict
 
 
-class BaseGroup(object):
-    def __init__(self, create_func, variables, name=None):
+class ModelDefError(Exception):
+    pass
+
+_neu_no = 0
+_syn_no = 0
+
+
+class BaseType(object):
+    def __init__(self, create_func, name=None, type_='neu'):
         # name
         # -----
         if name is None:
-            global _group_no
-            self.name = 'neu_group_{}'.format(_group_no)
-            _group_no += 1
+            if type_ == 'neu':
+                global _neu_no
+                self.name = f'NeuGroup{_neu_no}'
+                _neu_no += 1
+            elif type_ == 'syn':
+                global _syn_no
+                self.name = f'SynGroup{_syn_no}'
+                _syn_no += 1
+            else:
+                raise KeyError('Unknown group type: ', type_)
         else:
             self.nam = name
 
+        # create_func
+        # ------------
+        self.create_func = create_func
+
+        # check "create_func"
+        try:
+            func_return = create_func()
+        except TypeError as e:
+            raise ModelDefError(f'Arguments in "{create_func.__name__}" must provide default values.')
+
+        if not isinstance(func_return, (tuple, list)):
+            raise ModelDefError('"create_func" must return a tuple/a_list.')
+        for i in range(len(func_return)):
+            if i == 0 and callable(func_return[0]):
+                raise ModelDefError('First return value must be "variables", not a callable.')
+            else:
+                if not callable(func_return[0]):
+                    raise ModelDefError('Non-first return values must be callable functions.')
+
+        # parameters
+        # ------------
+        parameters = inspect.getcallargs(create_func)
+        self.parameters = parameters
+
+        # update functions
+        # ------------------
+        self.update_functions = func_return[1:]
+
         # variables
         # ----------
+        variables = func_return[0]
         if variables is None:
             variables = OrderedDict()
         elif isinstance(variables, (list, tuple)):
@@ -28,17 +71,18 @@ class BaseGroup(object):
             variables = OrderedDict(variables)
         else:
             raise ValueError('Unknown variables type: {}'.format(type(variables)))
+
+        if type_ == 'neu':
+            variables['not_ref'] = 1.
+            variables['above_th'] = 0.
+            variables['spike'] = 0.
+            variables['sp_time'] = -1e7
+            variables['input'] = 0.
         self.variables = variables
 
-        # create_func
-        # ------------
-        self.create_func = create_func
+    def __str__(self):
+        return f'{self.nam} (Abstract)'
 
-        # parameters
-        # ------------
-        # get parameters and their default values
-        _sig = inspect.signature(create_func)
-        ...
 
 
 

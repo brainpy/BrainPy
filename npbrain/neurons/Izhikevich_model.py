@@ -21,7 +21,7 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
         At least twenty firing modes have beed provides by Izhikevich.
         One can specify the preferred firing mode to get the corresponding
         neuron group.
-    geometry : int, list, tuple
+    geometry : int, a_list, tuple
         The geometry of neuron group. If an integer is given, it is the size
         of the population.
     method : str, callable, dict

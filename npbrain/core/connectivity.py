@@ -4,25 +4,26 @@
 Connection toolkit.
 """
 
+import numpy as onp
 import numba as nb
-import numpy as np
+from .. import _numpy as np
 from npbrain import profile
 
 __all__ = [
-    # connection formatter
+    # conn formatter
     'from_matrix',
     'from_ij',
     'pre2post',
     'post2pre',
     'pre2syn',
     'post2syn',
-    # connection methods
-    'one2one',
-    'all2all',
-    'grid_four',
-    'grid_eight',
-    'grid_N',
-    'fixed_prob',
+    # conn methods
+    'one2one', 'One2One',
+    'all2all', 'All2All',
+    'grid_four', 'GridFour',
+    'grid_eight', 'GridEight',
+    'GridN',
+    'FixedProb',
     'fixed_prenum',
     'fixed_postnum',
     'gaussian_weight',
@@ -34,7 +35,7 @@ __all__ = [
 
 
 # -----------------------------------
-# formatter of connection
+# formatter of conn
 # -----------------------------------
 
 
@@ -81,13 +82,13 @@ def from_ij(i, j, num_pre=None, others=()):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : a_list, numpy.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : a_list, numpy.ndarray
         The post-synaptic neuron indexes.
     num_pre : int, None
         The number of the pre-synaptic neurons.
-    others : tuple, list, numpy.array
+    others : tuple, a_list, numpy.array
         The other parameters.
 
     Returns
@@ -99,7 +100,7 @@ def from_ij(i, j, num_pre=None, others=()):
     conn_j = np.array(j)
     num_pre = np.max(i) + 1 if num_pre is None else num_pre
     pre_ids, post_ids, anchors = [], [], []
-    assert isinstance(others, (list, tuple)), '"others" must be a list/tuple of arrays.'
+    assert isinstance(others, (list, tuple)), '"others" must be a a_list/tuple of arrays.'
     others = [np.asarray(o) for o in others]
     other_arrays = [[] for _ in range(len(others))]
     ii = 0
@@ -125,9 +126,9 @@ def pre2post(i, j, num_pre):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : a_list, numpy.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : a_list, numpy.ndarray
         The post-synaptic neuron indexes.
     num_pre : int, None
         The number of the pre-synaptic neurons.
@@ -135,7 +136,7 @@ def pre2post(i, j, num_pre):
     Returns
     -------
     conn : list
-        The connection list of pre2post.
+        The conn a_list of pre2post.
     """
     i, j = np.asarray(i), np.asarray(j)
 
@@ -164,9 +165,9 @@ def post2pre(i, j, num_post):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : a_list, numpy.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : a_list, numpy.ndarray
         The post-synaptic neuron indexes.
     num_post : int, None
         The number of the post-synaptic neurons.
@@ -174,7 +175,7 @@ def post2pre(i, j, num_post):
     Returns
     -------
     conn : list
-        The connection list of post2pre.
+        The conn a_list of post2pre.
     """
     i, j = np.asarray(i), np.asarray(j)
 
@@ -201,9 +202,9 @@ def pre2syn(i, j, num_pre):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : a_list, numpy.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : a_list, numpy.ndarray
         The post-synaptic neuron indexes.
     num_pre : int
         The number of the pre-synaptic neurons.
@@ -211,7 +212,7 @@ def pre2syn(i, j, num_pre):
     Returns
     -------
     conn : list
-        The connection list of pre2syn.
+        The conn a_list of pre2syn.
     """
     i, j = np.asarray(i), np.asarray(j)
 
@@ -236,9 +237,9 @@ def post2syn(i, j, num_post):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : a_list, numpy.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : a_list, numpy.ndarray
         The post-synaptic neuron indexes.
     num_post : int
         The number of the post-synaptic neurons.
@@ -246,7 +247,7 @@ def post2syn(i, j, num_post):
     Returns
     -------
     conn : list
-        The connection list of post2syn.
+        The conn a_list of post2syn.
     """
     i, j = np.asarray(i), np.asarray(j)
 
@@ -267,185 +268,153 @@ def post2syn(i, j, num_post):
 
 
 # -----------------------------------
-# methods of connection
+# methods of conn
 # -----------------------------------
 
 
+def _product(a_list):
+    p = 1
+    for i in a_list:
+        p *= i
+    return p
+
+
 class Connector(object):
-    def __call__(self, *args, **kwargs):
+    def __call__(self, geom_pre, geom_post):
         pass
 
 
-def one2one(num_pre, num_post):
-    """Connect two neuron groups one by one. This means
+class One2One(Connector):
+    """
+    Connect two neuron groups one by one. This means
     The two neuron groups should have the same size.
-
-    Parameters
-    ----------
-    num_pre : int
-        Number of neurons in the pre-synaptic group.
-    num_post : int
-        Number of neurons in the post-synaptic group.
-
-    Returns
-    -------
-    connection : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
     """
-    assert num_pre == num_post
-    pre_ids = list(range(num_pre))
-    post_ids = list(range(num_post))
-    anchors = [[ii, ii + 1] for ii in range(num_post)]
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors).T
-    return pre_ids, post_ids, anchors
+
+    def __int__(self):
+        pass
+
+    def __call__(self, geom_pre, geom_post):
+        assert onp.array_equal(np.asarray(geom_pre), np.asarray(geom_post))
+        id_list = [i for i in range(_product(geom_post))]
+        pre_ids = np.asarray(id_list)
+        post_ids = np.asarray(id_list)
+        return pre_ids, post_ids
 
 
-def all2all(num_pre, num_post, include_self=True):
+one2one = One2One
+
+
+class All2All(Connector):
     """Connect each neuron in first group to all neurons in the
-    post-synaptic neuron groups. It means this kind of connection
+    post-synaptic neuron groups. It means this kind of conn
     will create (num_pre x num_post) synapses.
-
-    Parameters
-    ----------
-    num_pre : int
-        Number of neurons in the pre-synaptic group.
-    num_post : int
-        Number of neurons in the post-synaptic group.
-    include_self : bool
-        Whether create (i, i) connection ?
-
-    Returns
-    -------
-    connection : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
     """
-    pre_ids, post_ids, anchors = [], [], []
-    ii = 0
-    for i_ in range(num_pre):
-        jj = 0
-        for j_ in range(num_post):
-            if (not include_self) and (i_ == j_):
-                continue
-            else:
-                pre_ids.append(i_)
-                post_ids.append(j_)
-                jj += 1
-        anchors.append([ii, ii + jj])
-        ii += jj
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors).T
-    return pre_ids, post_ids, anchors
+
+    def __init__(self, include_self=True):
+        self.include_self = include_self
+
+    def __call__(self, geom_pre, geom_post):
+        num_pre = _product(geom_pre)
+        num_post = _product(geom_post)
+
+        pre_ids, post_ids = [], []
+        for i_ in range(num_pre):
+            for j_ in range(num_post):
+                if (not self.include_self) and (i_ == j_):
+                    continue
+                else:
+                    pre_ids.append(i_)
+                    post_ids.append(j_)
+        pre_ids = np.asarray(pre_ids)
+        post_ids = np.asarray(post_ids)
+        return pre_ids, post_ids
 
 
-def grid_four(height, width, include_self=False):
-    """The nearest four neighbors connection method.
-
-    Parameters
-    ----------
-    height : int
-        Number of rows.
-    width : int
-        Number of columns.
-    include_self : bool
-        Whether create (i, i) connection ?
-
-    Returns
-    -------
-    connection : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
-    """
-    conn_i = []
-    conn_j = []
-    for row in range(height):
-        for col in range(width):
-            i_index = (row * width) + col
-            if 0 <= row - 1 < height:
-                j_index = ((row - 1) * width) + col
-                conn_i.append(i_index)
-                conn_j.append(j_index)
-            if 0 <= row + 1 < height:
-                j_index = ((row + 1) * width) + col
-                conn_i.append(i_index)
-                conn_j.append(j_index)
-            if 0 <= col - 1 < width:
-                j_index = (row * width) + col - 1
-                conn_i.append(i_index)
-                conn_j.append(j_index)
-            if 0 <= col + 1 < width:
-                j_index = (row * width) + col + 1
-                conn_i.append(i_index)
-                conn_j.append(j_index)
-            if include_self:
-                conn_i.append(i_index)
-                conn_j.append(i_index)
-    conn_i = np.asarray(conn_i)
-    conn_j = np.asarray(conn_j)
-
-    pre_ids = []
-    post_ids = []
-    anchors = []
-    num_pre = height * width
-    ii = 0
-    for i in range(num_pre):
-        indexes = np.where(conn_i == i)[0]
-        post_idx = conn_j[indexes]
-        post_len = len(post_idx)
-        pre_ids.extend([i] * post_len)
-        post_ids.extend(post_idx)
-        anchors.append([ii, ii + post_len])
-        ii += post_len
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors).T
-    return pre_ids, post_ids, anchors
+all2all = All2All(include_self=True)
 
 
-def grid_eight(height, width, include_self=False):
-    """The nearest eight neighbors connection method.
+class GridFour(Connector):
+    """The nearest four neighbors conn method."""
 
-    Parameters
-    ----------
-    height : int
-        Number of rows.
-    width : int
-        Number of columns.
-    include_self : bool
-        Whether create (i, i) connection ?
+    def __init__(self, include_self=False):
+        self.include_self = include_self
 
-    Returns
-    -------
-    connection : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
-    """
-    return grid_N(height, width, 1, include_self)
+    def __call__(self, height_and_width, others=None):
+        height = height_and_width[0]
+        width = height_and_width[1]
+
+        conn_i = []
+        conn_j = []
+        for row in range(height):
+            for col in range(width):
+                i_index = (row * width) + col
+                if 0 <= row - 1 < height:
+                    j_index = ((row - 1) * width) + col
+                    conn_i.append(i_index)
+                    conn_j.append(j_index)
+                if 0 <= row + 1 < height:
+                    j_index = ((row + 1) * width) + col
+                    conn_i.append(i_index)
+                    conn_j.append(j_index)
+                if 0 <= col - 1 < width:
+                    j_index = (row * width) + col - 1
+                    conn_i.append(i_index)
+                    conn_j.append(j_index)
+                if 0 <= col + 1 < width:
+                    j_index = (row * width) + col + 1
+                    conn_i.append(i_index)
+                    conn_j.append(j_index)
+                if self.include_self:
+                    conn_i.append(i_index)
+                    conn_j.append(i_index)
+        conn_i = np.asarray(conn_i)
+        conn_j = np.asarray(conn_j)
+        return conn_i, conn_j
 
 
-def grid_N(height, width, N=1, include_self=False):
-    """The nearest (2*N+1) * (2*N+1) neighbors connection method.
+grid_four = GridFour()
+
+
+class GridEight(Connector):
+    """The nearest eight neighbors conn method."""
+
+    def __init__(self, include_self=False):
+        self.include_self = include_self
+
+    def __call__(self, height_and_width, others=None):
+        height = height_and_width[0]
+        width = height_and_width[1]
+        N = 1
+
+        conn_i = []
+        conn_j = []
+        for row in range(height):
+            for col in range(width):
+                i_index = (row * width) + col
+                for row_diff in [-1, 0, 1]:
+                    for col_diff in [-1, 0, 1]:
+                        if (not self.include_self) and (row_diff == col_diff == 0):
+                            continue
+                        if 0 <= row + row_diff < height and 0 <= col + col_diff < width:
+                            j_index = ((row + row_diff) * width) + col + col_diff
+                            conn_i.append(i_index)
+                            conn_j.append(j_index)
+        conn_i = np.asarray(conn_i)
+        conn_j = np.asarray(conn_j)
+
+        return conn_i, conn_j
+
+
+grid_eight = GridEight()
+
+
+class GridN(Connector):
+    """The nearest (2*N+1) * (2*N+1) neighbors conn method.
 
     Parameters
     ----------
-    height : int
-        Number of rows.
-    width : int
-        Number of columns.
     N : int
-        Extend of the connection scope. For example:
+        Extend of the conn scope. For example:
         When N=1,
             [x x x]
             [x I x]
@@ -457,113 +426,73 @@ def grid_N(height, width, N=1, include_self=False):
             [x x x x x]
             [x x x x x]
     include_self : bool
-        Whether create (i, i) connection ?
-
-    Returns
-    -------
-    connection : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
+        Whether create (i, i) conn ?
     """
-    conn_i = []
-    conn_j = []
-    for row in range(height):
-        for col in range(width):
-            i_index = (row * width) + col
-            for row_diff in [-N, 0, N]:
-                for col_diff in [-N, 0, N]:
-                    if (not include_self) and (row_diff == col_diff == 0):
-                        continue
-                    if 0 <= row + row_diff < height and 0 <= col + col_diff < width:
-                        j_index = ((row + row_diff) * width) + col + col_diff
-                        conn_i.append(i_index)
-                        conn_j.append(j_index)
-    conn_i = np.asarray(conn_i)
-    conn_j = np.asarray(conn_j)
 
-    pre_ids = []
-    post_ids = []
-    anchors = []
-    num_pre = height * width
-    ii = 0
-    for i in range(num_pre):
-        indexes = np.where(conn_i == i)[0]
-        post_idx = conn_j[indexes]
-        post_len = len(post_idx)
-        pre_ids.extend([i] * post_len)
-        post_ids.extend(post_idx)
-        anchors.append([ii, ii + post_len])
-        ii += post_len
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors).T
-    return pre_ids, post_ids, anchors
+    def __init__(self, n=1, include_self=False):
+        self.n = n
+        self.include_self = include_self
+
+    def __call__(self, height_and_width, others=None):
+        height = height_and_width[0]
+        width = height_and_width[1]
+
+        conn_i = []
+        conn_j = []
+        for row in range(height):
+            for col in range(width):
+                i_index = (row * width) + col
+                for row_diff in range(-self.n, self.n + 1):
+                    for col_diff in range(-self.n, self.n + 1):
+                        if (not self.include_self) and (row_diff == col_diff == 0):
+                            continue
+                        if 0 <= row + row_diff < height and 0 <= col + col_diff < width:
+                            j_index = ((row + row_diff) * width) + col + col_diff
+                            conn_i.append(i_index)
+                            conn_j.append(j_index)
+        conn_i = np.asarray(conn_i)
+        conn_j = np.asarray(conn_j)
+
+        return conn_i, conn_j
 
 
-def fixed_prob(pre, post, prob, include_self=True, seed=None):
+class FixedProb(Connector):
     """Connect the post-synaptic neurons with fixed probability.
 
     Parameters
     ----------
-    pre : int, list
-        Number of neurons in the pre-synaptic group.
-    post : int, list
-        Number of neurons in the post-synaptic group.
     prob : float
-        The connection probability.
+        The conn probability.
     include_self : bool
-        Whether create (i, i) connection ?
+        Whether create (i, i) conn ?
     seed : None, int
         Seed the random generator.
-
-    Returns
-    -------
-    connection : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
     """
-    if isinstance(pre, int):
-        num_pre = pre
-        all_pre = list(range(pre))
-    elif isinstance(pre, (list, tuple)):
-        all_pre = list(pre)
-        num_pre = len(all_pre)
-    else:
-        raise ValueError
-    if isinstance(post, int):
-        num_post = post
-        all_post = list(range(post))
-    elif isinstance(post, (list, tuple)):
-        all_post = list(post)
-        num_post = len(all_post)
-    else:
-        raise ValueError
-    assert isinstance(prob, (int, float)) and 0. <= prob <= 1.
-    rng = np.random if seed is None else np.random.RandomState(seed)
 
-    pre_ids = []
-    post_ids = []
-    anchors = np.zeros((2, np.max(all_pre) + 1), dtype=np.int32)
-    ii = 0
-    for pre_idx in all_pre:
-        random_vals = rng.random(num_post)
-        idx_selected = list(np.where(random_vals < prob)[0])
-        if (not include_self) and (pre_idx in idx_selected):
-            idx_selected.remove(pre_idx)
-        for post_idx in idx_selected:
-            pre_ids.append(pre_idx)
-            post_ids.append(all_post[post_idx])
-        size_post = len(idx_selected)
-        anchors[:, pre_idx] = [ii, ii + size_post]
-        ii += size_post
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors)
-    return pre_ids, post_ids, anchors
+    def __init__(self, prob, include_self=True, seed=None):
+        self.prob = prob
+        self.include_self = include_self
+        self.seed = seed
+
+        self.rng = np.random if seed is None else np.random.RandomState(seed)
+
+    def __call__(self, geom_pre, geom_post):
+        num_post = _product(geom_post)
+        num_pre = _product(geom_pre)
+
+        pre_ids = []
+        post_ids = []
+        for pre_idx in range(num_pre):
+            random_vals = self.rng.random(num_post)
+            idx_selected = list(np.where(random_vals < self.prob)[0])
+            if (not self.include_self) and (pre_idx in idx_selected):
+                idx_selected.remove(pre_idx)
+            for post_idx in idx_selected:
+                pre_ids.append(pre_idx)
+                post_ids.append(post_idx)
+        pre_ids = np.asarray(pre_ids)
+        post_ids = np.asarray(post_ids)
+        return pre_ids, post_ids
 
 
 def fixed_prenum(num_pre, num_post, num, include_self=True, seed=None):
@@ -577,15 +506,15 @@ def fixed_prenum(num_pre, num_post, num, include_self=True, seed=None):
     num_post : int
         Number of neurons in the post-synaptic group.
     num : int
-        The fixed connection number.
+        The fixed conn number.
     include_self : bool
-        Whether create (i, i) connection ?
+        Whether create (i, i) conn ?
     seed : None, int
         Seed the random generator.
 
     Returns
     -------
-    connection : tuple
+    conn : tuple
         (pre-synaptic neuron indexes,
          post-synaptic neuron indexes,
          start and end positions of post-synaptic neuron
@@ -637,15 +566,15 @@ def fixed_postnum(num_pre, num_post, num, include_self=True, seed=None):
     num_post : int
         Number of neurons in the post-synaptic group.
     num : int
-        The fixed connection number.
+        The fixed conn number.
     include_self : bool
-        Whether create (i, i) connection ?
+        Whether create (i, i) conn ?
     seed : None, int
         Seed the random generator.
 
     Returns
     -------
-    connection : tuple
+    conn : tuple
         (pre-synaptic neuron indexes,
          post-synaptic neuron indexes,
          start and end positions of post-synaptic neuron
@@ -676,7 +605,7 @@ def fixed_postnum(num_pre, num_post, num, include_self=True, seed=None):
 
 
 def gaussian_weight(pre_geo, post_geo, sigma, w_max, w_min=None, normalize=True, include_self=True):
-    """Builds a Gaussian connection pattern between the two populations, where
+    """Builds a Gaussian conn pattern between the two populations, where
     the weights decay with gaussian function.
 
     Specifically,
@@ -707,7 +636,7 @@ def gaussian_weight(pre_geo, post_geo, sigma, w_max, w_min=None, normalize=True,
     normalize : bool
         Whether normalize the coordination.
     include_self : bool
-        Whether create the connection at the same position.
+        Whether create the conn at the same position.
 
     Returns
     -------
@@ -751,7 +680,7 @@ def gaussian_weight(pre_geo, post_geo, sigma, w_max, w_min=None, normalize=True,
 
             # Compute Euclidean distance between two coordinates
             distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
-            # get weight and connection
+            # get weight and conn
             value = w_max * np.exp(-distance / (2.0 * sigma ** 2))
             if value > w_min:
                 i.append(pre_i)
@@ -764,8 +693,8 @@ def gaussian_weight(pre_geo, post_geo, sigma, w_max, w_min=None, normalize=True,
 
 
 def gaussian_prob(pre_geo, post_geo, sigma, normalize=True, include_self=True, seed=None):
-    """Builds a Gaussian connection pattern between the two populations, where
-    the connection probability decay according to the gaussian function.
+    """Builds a Gaussian conn pattern between the two populations, where
+    the conn probability decay according to the gaussian function.
 
     Specifically,
 
@@ -787,7 +716,7 @@ def gaussian_prob(pre_geo, post_geo, sigma, normalize=True, include_self=True, s
     normalize : bool
         Whether normalize the coordination.
     include_self : bool
-        Whether create the connection at the same position.
+        Whether create the conn at the same position.
     seed : bool
         The random seed.
 
@@ -846,7 +775,7 @@ def gaussian_prob(pre_geo, post_geo, sigma, normalize=True, include_self=True, s
 
 
 def dog(pre_geo, post_geo, sigmas, ws_max, w_min=None, normalize=True, include_self=True):
-    """Builds a Difference-Of-Gaussian (dog) connection pattern between the two populations.
+    """Builds a Difference-Of-Gaussian (dog) conn pattern between the two populations.
 
     Mathematically,
 
@@ -874,7 +803,7 @@ def dog(pre_geo, post_geo, sigmas, ws_max, w_min=None, normalize=True, include_s
     normalize : bool
         Whether normalize the coordination.
     include_self : bool
-        Whether create the connection at the same position.
+        Whether create the conn at the same position.
 
     Returns
     -------
@@ -921,7 +850,7 @@ def dog(pre_geo, post_geo, sigmas, ws_max, w_min=None, normalize=True, include_s
 
             # Compute Euclidean distance between two coordinates
             distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
-            # get weight and connection
+            # get weight and conn
             value = w_max_p * np.exp(-distance / (2.0 * sigma_p ** 2)) - \
                     w_max_n * np.exp(-distance / (2.0 * sigma_n ** 2))
             if np.abs(value) > w_min:
@@ -940,4 +869,3 @@ def scale_free(num_pre, num_post, **kwargs):
 
 def small_world(num_pre, num_post, **kwargs):
     raise NotImplementedError
-

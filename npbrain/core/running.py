@@ -16,7 +16,7 @@ def process_pool(func, all_net_params, nb_process):
     ----------
     func : callable
         The function to run model.
-    all_net_params : list, tuple
+    all_net_params : a_list, tuple
         The parameters of the function arguments.
         The parameters for each process can be a tuple, or a dictionary.
     nb_process : int
@@ -65,7 +65,7 @@ def process_pool_lock(func, all_net_params, nb_process):
     ----------
     func : callable
         The function to run model.
-    all_net_params : list, tuple
+    all_net_params : a_list, tuple
         The parameters of the function arguments.
     nb_process : int
         The number of the processes.

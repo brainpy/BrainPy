@@ -22,7 +22,7 @@ def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., 
 
     Parameters
     ----------
-    geometry : int, list, tuple
+    geometry : int, a_list, tuple
         The geometry of neuron group. If an integer is given, it is the size
         of the population.
     method : str, callable, dict

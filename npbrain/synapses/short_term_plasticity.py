@@ -46,7 +46,7 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     weights : dict, bnp.ndarray, int, float
         The weighted coefficients of synapses.
     connection : tuple
-        The connection.
+        The conn.
     delay : None, float
         The delay time length.
     tau_d : float

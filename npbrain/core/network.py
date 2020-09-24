@@ -4,8 +4,8 @@ import inspect
 import time
 from pprint import pprint
 
-from .neuron_group import NeuronGroup
-from .synapse_group import SynapseGroup
+from .neuron_group import NeuronType
+from .synapse_group import SynapseType
 from .. import _numpy as np
 from .. import profile
 from ..utils import helper
@@ -58,7 +58,7 @@ class Network(object):
 
         Parameters
         ----------
-        args : list, tuple
+        args : a_list, tuple
             The nameless objects.
         kwargs : dict
             The named objects, which can be accessed by `net.xxx`
@@ -292,7 +292,7 @@ class Network(object):
         repeat : bool
             Whether repeat run this model. If `repeat=True`, every time
             call this method will initialize the object state.
-        inputs : list, tuple
+        inputs : a_list, tuple
             The receivers, external inputs and durations.
         """
 

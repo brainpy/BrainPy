@@ -50,11 +50,11 @@ def spike_current(points, lengths, sizes, duration, dt=None):
 
     Parameters
     ----------
-    points : list, tuple
+    points : a_list, tuple
         The spike time-points. Must be an iterable object.
-    lengths : int, float, list, tuple
+    lengths : int, float, a_list, tuple
         The length of each point-current, mimicking the spike durations.
-    sizes : int, float, list, tuple
+    sizes : int, float, a_list, tuple
         The current sizes.
     duration : int, float
         The total current duration.

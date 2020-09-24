@@ -87,11 +87,11 @@ def plot_value(mon, ts, key, val_index=None, ax=None, xlim=None, show=False):
     ----------
     mon : Monitor
         The monitor which record the membrane potential.
-    ts : list, numpy.ndarray
+    ts : a_list, numpy.ndarray
         The time steps.
     key : str
         The name of the value to plot.
-    val_index : None, int, tuple, list
+    val_index : None, int, tuple, a_list
         The index of the value to plot.
     ax : None, Axes
         The figure to plot.
@@ -122,9 +122,9 @@ def plot_potential(mon, ts, neuron_index=None, ax=None, label=True,
     ----------
     mon : Monitor
         The monitor which record the membrane potential.
-    ts : list, numpy.ndarray
+    ts : a_list, numpy.ndarray
         The time steps.
-    neuron_index : None, int, tuple, list
+    neuron_index : None, int, tuple, a_list
         The neuron index to show the potential.
     ax : None, Axes
         The figure to plot.
@@ -201,7 +201,7 @@ def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, x
         plt.show()
 
 
-def animation_potential(potentials, size, dt, V_min=0, V_max=10, cmap=None,
+def animation_potential(potentials, size, dt, V_min=None, V_max=None, cmap=None,
                         frame_delay=1., frame_step=1, title_size=10, figsize=None,
                         gif_dpi=None, video_fps=None, save_path=None, show=True):
     """Animate the potentials of the neuron group.
@@ -248,6 +248,8 @@ def animation_potential(potentials, size, dt, V_min=0, V_max=10, cmap=None,
     """
     num_step, num_neuron = potentials.shape
     height, width = size
+    V_min = potentials.min() if V_min is None else V_min
+    V_max = potentials.max() if V_max is None else V_max
 
     figsize = figsize or (6, 6)
     fig, gs = get_figure(1, 1, figsize[1], figsize[0])
