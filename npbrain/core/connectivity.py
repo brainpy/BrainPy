@@ -4,10 +4,11 @@
 Connection toolkit.
 """
 
-import numpy as onp
 import numba as nb
+import numpy as onp
+
 from .. import _numpy as np
-from npbrain import profile
+from .. import profile
 
 __all__ = [
     # conn formatter
@@ -23,14 +24,9 @@ __all__ = [
     'grid_four', 'GridFour',
     'grid_eight', 'GridEight',
     'GridN',
-    'FixedProb',
-    'fixed_prenum',
-    'fixed_postnum',
-    'gaussian_weight',
-    'gaussian_prob',
-    'dog',
-    'scale_free',
-    'small_world',
+    'FixedProb', 'FixedPreNum', 'FixedPostNum',
+    'GaussianProb', 'GaussianWeight', 'DOG',
+    'ScaleFree', 'SmallWorld',
 ]
 
 
@@ -280,8 +276,10 @@ def _product(a_list):
 
 
 class Connector(object):
+    """Abstract connector class."""
+
     def __call__(self, geom_pre, geom_post):
-        pass
+        raise NotImplementedError
 
 
 class One2One(Connector):
@@ -298,7 +296,7 @@ class One2One(Connector):
         id_list = [i for i in range(_product(geom_post))]
         pre_ids = np.asarray(id_list)
         post_ids = np.asarray(id_list)
-        return pre_ids, post_ids
+        return {'i': pre_ids, 'j': post_ids}
 
 
 one2one = One2One
@@ -327,7 +325,7 @@ class All2All(Connector):
                     post_ids.append(j_)
         pre_ids = np.asarray(pre_ids)
         post_ids = np.asarray(post_ids)
-        return pre_ids, post_ids
+        return {'i': pre_ids, 'j': post_ids}
 
 
 all2all = All2All(include_self=True)
@@ -369,7 +367,7 @@ class GridFour(Connector):
                     conn_j.append(i_index)
         conn_i = np.asarray(conn_i)
         conn_j = np.asarray(conn_j)
-        return conn_i, conn_j
+        return {'i': conn_i, 'j': conn_j}
 
 
 grid_four = GridFour()
@@ -402,7 +400,7 @@ class GridEight(Connector):
         conn_i = np.asarray(conn_i)
         conn_j = np.asarray(conn_j)
 
-        return conn_i, conn_j
+        return {'i': conn_i, 'j': conn_j}
 
 
 grid_eight = GridEight()
@@ -453,7 +451,7 @@ class GridN(Connector):
         conn_i = np.asarray(conn_i)
         conn_j = np.asarray(conn_j)
 
-        return conn_i, conn_j
+        return {'i': conn_i, 'j': conn_j}
 
 
 class FixedProb(Connector):
@@ -473,7 +471,6 @@ class FixedProb(Connector):
         self.prob = prob
         self.include_self = include_self
         self.seed = seed
-
         self.rng = np.random if seed is None else np.random.RandomState(seed)
 
     def __call__(self, geom_pre, geom_post):
@@ -492,119 +489,98 @@ class FixedProb(Connector):
                 post_ids.append(post_idx)
         pre_ids = np.asarray(pre_ids)
         post_ids = np.asarray(post_ids)
-        return pre_ids, post_ids
+        return {'i': pre_ids, 'j': post_ids}
 
 
-def fixed_prenum(num_pre, num_post, num, include_self=True, seed=None):
+class FixedPreNum(Connector):
     """Connect the pre-synaptic neurons with fixed number for each
     post-synaptic neuron.
 
     Parameters
     ----------
-    num_pre : int
-        Number of neurons in the pre-synaptic group.
-    num_post : int
-        Number of neurons in the post-synaptic group.
-    num : int
-        The fixed conn number.
+    num : float, int
+        The conn probability (if "num" is float) or the fixed number of
+        connectivity (if "num" is int).
     include_self : bool
         Whether create (i, i) conn ?
     seed : None, int
         Seed the random generator.
-
-    Returns
-    -------
-    conn : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
     """
-    assert isinstance(num_pre, int)
-    assert isinstance(num_post, int)
-    assert isinstance(num, int)
-    rng = np.random if seed is None else np.random.RandomState(seed)
 
-    conn_i = []
-    conn_j = []
-    for j in range(num_post):
-        idx_selected = rng.choice(num_pre, num, replace=False).tolist()
-        if (not include_self) and (j in idx_selected):
-            idx_selected.remove(j)
-        size_pre = len(idx_selected)
-        conn_i.extend(idx_selected)
-        conn_j.extend([j] * size_pre)
-    conn_i = np.asarray(conn_i)
-    conn_j = np.asarray(conn_j)
+    def __init__(self, num, include_self=True, seed=None):
+        if isinstance(num, int):
+            assert num >= 0, '"num" must be bigger than 0.'
+        elif isinstance(num, float):
+            assert 0. <= num <= 1., '"num" must be in [0., 1.].'
+        else:
+            raise ValueError(f'Unknown type: {type(num)}')
+        self.num = num
+        self.include_self = include_self
+        self.seed = seed
+        self.rng = np.random if seed is None else np.random.RandomState(seed)
 
-    pre_ids = []
-    post_ids = []
-    anchors = []
-    ii = 0
-    for i in range(num_pre):
-        indexes = np.where(conn_i == i)[0]
-        post_idx = conn_j[indexes]
-        post_len = len(post_idx)
-        pre_ids.extend([i] * post_len)
-        post_ids.extend(post_idx)
-        anchors.append([ii, ii + post_len])
-        ii += post_len
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors).T
-    return pre_ids, post_ids, anchors
+    def __call__(self, geom_pre, geom_post):
+        num_post = _product(geom_post)
+        num_pre = _product(geom_pre)
+
+        pre_ids, post_ids = [], []
+        num = self.num if isinstance(self.num, int) else self.num * num_pre
+        for j in range(num_post):
+            idx_selected = self.rng.choice(num_pre, num, replace=False).tolist()
+            if (not self.include_self) and (j in idx_selected):
+                idx_selected.remove(j)
+            size_pre = len(idx_selected)
+            pre_ids.extend(idx_selected)
+            post_ids.extend([j] * size_pre)
+        pre_ids = np.asarray(pre_ids)
+        post_ids = np.asarray(post_ids)
+        return {'i': pre_ids, 'j': post_ids}
 
 
-def fixed_postnum(num_pre, num_post, num, include_self=True, seed=None):
+class FixedPostNum(Connector):
     """Connect the post-synaptic neurons with fixed number for each
     pre-synaptic neuron.
 
     Parameters
     ----------
-    num_pre : int
-        Number of neurons in the pre-synaptic group.
-    num_post : int
-        Number of neurons in the post-synaptic group.
-    num : int
-        The fixed conn number.
+    num : float, int
+        The conn probability (if "num" is float) or the fixed number of
+        connectivity (if "num" is int).
     include_self : bool
         Whether create (i, i) conn ?
     seed : None, int
         Seed the random generator.
-
-    Returns
-    -------
-    conn : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron
-         for each pre-synaptic neuron)
     """
-    assert isinstance(num_pre, int)
-    assert isinstance(num_post, int)
-    assert isinstance(num, int)
-    rng = np.random if seed is None else np.random.RandomState(seed)
 
-    pre_ids = []
-    post_ids = []
-    anchors = []
-    ii = 0
-    for i in range(num_pre):
-        idx_selected = rng.choice(num_post, num, replace=False).tolist()
-        if (not include_self) and (i in idx_selected):
-            idx_selected.remove(i)
-        size_post = len(idx_selected)
-        pre_ids.extend([i] * size_post)
-        post_ids.extend(idx_selected)
-        anchors.append([ii, ii + size_post])
-        ii += size_post
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors).T
-    return pre_ids, post_ids, anchors
+    def __init__(self, num, include_self=True, seed=None):
+        if isinstance(num, int):
+            assert num >= 0, '"num" must be bigger than 0.'
+        elif isinstance(num, float):
+            assert 0. <= num <= 1., '"num" must be in [0., 1.].'
+        else:
+            raise ValueError(f'Unknown type: {type(num)}')
+        self.num = num
+        self.include_self = include_self
+        self.seed = seed
+        self.rng = np.random if seed is None else np.random.RandomState(seed)
+
+    def __call__(self, geom_pre, geom_post):
+        num_post, num_pre = _product(geom_post), _product(geom_pre)
+        pre_ids, post_ids = [], []
+        num = self.num if isinstance(self.num, int) else self.num * num_post
+        for i in range(num_pre):
+            idx_selected = self.rng.choice(num_post, num, replace=False).tolist()
+            if (not self.include_self) and (i in idx_selected):
+                idx_selected.remove(i)
+            size_pre = len(idx_selected)
+            pre_ids.extend([i] * size_pre)
+            post_ids.extend(idx_selected)
+        pre_ids = np.asarray(pre_ids)
+        post_ids = np.asarray(post_ids)
+        return {'i': pre_ids, 'j': post_ids}
 
 
-def gaussian_weight(pre_geo, post_geo, sigma, w_max, w_min=None, normalize=True, include_self=True):
+class GaussianWeight(Connector):
     """Builds a Gaussian conn pattern between the two populations, where
     the weights decay with gaussian function.
 
@@ -623,10 +599,6 @@ def gaussian_weight(pre_geo, post_geo, sigma, w_max, w_min=None, normalize=True,
 
     Parameters
     ----------
-    pre_geo : tuple
-        The geometry of pre-synaptic neuron group.
-    post_geo : tuple
-        The geometry of post-synaptic neuron group.
     sigma : float
         Width of the Gaussian function.
     w_max : float
@@ -637,62 +609,53 @@ def gaussian_weight(pre_geo, post_geo, sigma, w_max, w_min=None, normalize=True,
         Whether normalize the coordination.
     include_self : bool
         Whether create the conn at the same position.
-
-    Returns
-    -------
-    connection_and_weight : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron for each pre-synaptic neuron,
-         weights)
     """
 
-    # check parameters
-    assert isinstance(pre_geo, (tuple, list)), 'Must provide a tuple geometry of the neuron group.'
-    assert isinstance(post_geo, (tuple, list)), 'Must provide a tuple geometry of the neuron group.'
-    assert len(post_geo) == len(pre_geo), 'The geometries of pre- and post-synaptic neuron group should be the same.'
-    if len(pre_geo) == 1:
-        pre_geo, post_geo = (1, pre_geo[0]), (1, post_geo[0])
+    def __init__(self, sigma, w_max, w_min=None, normalize=True, include_self=True):
+        self.sigma = sigma
+        self.w_max = w_max
+        self.w_min = w_max * 0.01 if w_min is None else w_min
+        self.normalize = normalize
+        self.include_self = include_self
 
-    # get necessary data
-    pre_num = int(np.prod(pre_geo))
-    post_num = int(np.prod(post_geo))
-    w_min = w_max * 0.01 if w_min is None else w_min
+    def __call__(self, geom_pre, geom_post):
+        num_post, num_pre = _product(geom_post), _product(geom_pre)
 
-    # get the connections and weights
-    i, j, w = [], [], []  # conn_i, conn_j, weights
-    for pre_i in range(pre_num):
-        # get normalized coordination
-        pre_coords = (pre_i // pre_geo[1], pre_i % pre_geo[1])
-        if normalize:
-            pre_coords = (pre_coords[0] / (pre_geo[0] - 1) if pre_geo[0] > 1 else 1.,
-                          pre_coords[1] / (pre_geo[1] - 1) if pre_geo[1] > 1 else 1.)
-
-        for post_i in range(post_num):
-            if (pre_i == post_i) and (not include_self):
-                continue
-
+        # get the connections and weights
+        i, j, w = [], [], []  # conn_i, conn_j, weights
+        for pre_i in range(num_pre):
             # get normalized coordination
-            post_coords = (post_i // post_geo[1], post_i % post_geo[1])
-            if normalize:
-                post_coords = (post_coords[0] / (post_geo[0] - 1) if post_geo[0] > 1 else 1.,
-                               post_coords[1] / (post_geo[1] - 1) if post_geo[1] > 1 else 1.)
+            pre_coords = (pre_i // geom_pre[1], pre_i % geom_pre[1])
+            if self.normalize:
+                pre_coords = (pre_coords[0] / (geom_pre[0] - 1) if geom_pre[0] > 1 else 1.,
+                              pre_coords[1] / (geom_pre[1] - 1) if geom_pre[1] > 1 else 1.)
 
-            # Compute Euclidean distance between two coordinates
-            distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
-            # get weight and conn
-            value = w_max * np.exp(-distance / (2.0 * sigma ** 2))
-            if value > w_min:
-                i.append(pre_i)
-                j.append(post_i)
-                w.append(value)
+            for post_i in range(num_post):
+                if (pre_i == post_i) and (not self.include_self):
+                    continue
 
-    # format connections and weights
-    pre_ids, post_ids, anchors, weights = from_ij(i, j, pre_num, others=(w,))
-    return pre_ids, post_ids, anchors, weights
+                # get normalized coordination
+                post_coords = (post_i // geom_post[1], post_i % geom_post[1])
+                if self.normalize:
+                    post_coords = (post_coords[0] / (geom_post[0] - 1) if geom_post[0] > 1 else 1.,
+                                   post_coords[1] / (geom_post[1] - 1) if geom_post[1] > 1 else 1.)
+
+                # Compute Euclidean distance between two coordinates
+                distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
+                # get weight and conn
+                value = self.w_max * np.exp(-distance / (2.0 * self.sigma ** 2))
+                if value > self.w_min:
+                    i.append(pre_i)
+                    j.append(post_i)
+                    w.append(value)
+
+        pre_idxs = np.asarray(i, dtype=np.int_)
+        post_idxs = np.asarray(j, dtype=np.int_)
+        weights = np.asarray(w, dtype=np.int_)
+        return {'i': pre_idxs, 'j': post_idxs, 'w': weights}
 
 
-def gaussian_prob(pre_geo, post_geo, sigma, normalize=True, include_self=True, seed=None):
+class GaussianProb(Connector):
     """Builds a Gaussian conn pattern between the two populations, where
     the conn probability decay according to the gaussian function.
 
@@ -707,10 +670,6 @@ def gaussian_prob(pre_geo, post_geo, sigma, normalize=True, include_self=True, s
 
     Parameters
     ----------
-    pre_geo : tuple
-        The geometry of pre-synaptic neuron group.
-    post_geo : tuple
-        The geometry of post-synaptic neuron group.
     sigma : float
         Width of the Gaussian function.
     normalize : bool
@@ -719,62 +678,50 @@ def gaussian_prob(pre_geo, post_geo, sigma, normalize=True, include_self=True, s
         Whether create the conn at the same position.
     seed : bool
         The random seed.
-
-    Returns
-    -------
-    connection_and_weight : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron for each pre-synaptic neuron)
     """
-    # check parameters
-    assert isinstance(pre_geo, (tuple, list)), 'Must provide a tuple geometry of the neuron group.'
-    assert isinstance(post_geo, (tuple, list)), 'Must provide a tuple geometry of the neuron group.'
-    assert len(post_geo) == len(pre_geo), 'The geometries of pre- and post-synaptic neuron group should be the same.'
-    if len(pre_geo) == 1:
-        pre_geo, post_geo = (1, pre_geo[0]), (1, post_geo[0])
 
-    # get necessary data
-    pre_num = int(np.prod(pre_geo))
-    post_num = int(np.prod(post_geo))
-    rng = np.random if seed is None else np.random.RandomState(seed=seed)
+    def __init__(self, sigma, normalize=True, include_self=True, seed=None):
+        self.sigma = sigma
+        self.normalize = normalize
+        self.include_self = include_self
+        self.rng = np.random if seed is None else np.random.RandomState(seed=seed)
 
-    # get the connections
-    i, j, p = [], [], []  # conn_i, conn_j, probabilities
-    for pre_i in range(pre_num):
-        # get normalized coordination
-        pre_coords = (pre_i // pre_geo[1], pre_i % pre_geo[1])
-        if normalize:
-            pre_coords = (pre_coords[0] / (pre_geo[0] - 1) if pre_geo[0] > 1 else 1.,
-                          pre_coords[1] / (pre_geo[1] - 1) if pre_geo[1] > 1 else 1.)
+    def __call__(self, geom_pre, geom_post):
+        num_post, num_pre = _product(geom_post), _product(geom_pre)
 
-        for post_i in range(post_num):
-            if (pre_i == post_i) and (not include_self):
-                continue
-
+        # get the connections
+        i, j, p = [], [], []  # conn_i, conn_j, probabilities
+        for pre_i in range(num_pre):
             # get normalized coordination
-            post_coords = (post_i // post_geo[1], post_i % post_geo[1])
-            if normalize:
-                post_coords = (post_coords[0] / (post_geo[0] - 1) if post_geo[0] > 1 else 1.,
-                               post_coords[1] / (post_geo[1] - 1) if post_geo[1] > 1 else 1.)
+            pre_coords = (pre_i // geom_pre[1], pre_i % geom_pre[1])
+            if self.normalize:
+                pre_coords = (pre_coords[0] / (geom_pre[0] - 1) if geom_pre[0] > 1 else 1.,
+                              pre_coords[1] / (geom_pre[1] - 1) if geom_pre[1] > 1 else 1.)
 
-            # Compute Euclidean distance between two coordinates
-            distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
+            for post_i in range(num_post):
+                if (pre_i == post_i) and (not self.include_self):
+                    continue
 
-            # get weight and probability
-            i.append(pre_i)
-            j.append(post_i)
-            p.append(np.exp(-distance / (2.0 * sigma ** 2)))
-    i, j, p = np.asarray(i), np.asarray(j), np.asarray(p)
-    selected_idxs = np.where(rng.random(len(p)) < p)
-    i, j = i[selected_idxs], j[selected_idxs]
+                # get normalized coordination
+                post_coords = (post_i // geom_post[1], post_i % geom_post[1])
+                if self.normalize:
+                    post_coords = (post_coords[0] / (geom_post[0] - 1) if geom_post[0] > 1 else 1.,
+                                   post_coords[1] / (geom_post[1] - 1) if geom_post[1] > 1 else 1.)
 
-    # format connections and weights
-    pre_ids, post_ids, anchors = from_ij(i, j, pre_num)
-    return pre_ids, post_ids, anchors
+                # Compute Euclidean distance between two coordinates
+                distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
+
+                # get weight and probability
+                i.append(pre_i)
+                j.append(post_i)
+                p.append(np.exp(-distance / (2.0 * self.sigma ** 2)))
+        i, j, p = np.asarray(i), np.asarray(j), np.asarray(p)
+        selected_idxs = np.where(self.rng.random(len(p)) < p)
+        i, j = i[selected_idxs], j[selected_idxs]
+        return {'i': i, 'j': j}
 
 
-def dog(pre_geo, post_geo, sigmas, ws_max, w_min=None, normalize=True, include_self=True):
+class DOG(Connector):
     """Builds a Difference-Of-Gaussian (dog) conn pattern between the two populations.
 
     Mathematically,
@@ -789,83 +736,70 @@ def dog(pre_geo, post_geo, sigmas, ws_max, w_min=None, normalize=True, include_s
 
     Parameters
     ----------
-    pre_geo : tuple
-        The geometry of pre-synaptic neuron group.
-    post_geo : tuple
-        The geometry of post-synaptic neuron group.
     sigmas : tuple
         Widths of the positive and negative Gaussian functions.
     ws_max : tuple
         The weight amplitudes of the positive and negative Gaussian functions.
-    w_min : float, None
+    ws_min : float, None
         The minimum weight value below which synapses are not created
         (default: :math:`0.01 * w_{max}^+ - w_{min}^-`).
     normalize : bool
         Whether normalize the coordination.
     include_self : bool
         Whether create the conn at the same position.
-
-    Returns
-    -------
-    connection_and_weight : tuple
-        (pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic neuron for each pre-synaptic neuron,
-         weights)
     """
-    # check parameters
-    assert isinstance(pre_geo, (tuple, list)), 'Must provide a tuple geometry of the neuron group.'
-    assert isinstance(post_geo, (tuple, list)), 'Must provide a tuple geometry of the neuron group.'
-    assert len(post_geo) == len(pre_geo), 'The geometries of pre- and post-synaptic neuron group should be the same.'
-    if len(pre_geo) == 1:
-        pre_geo, post_geo = (1, pre_geo[0]), (1, post_geo[0])
-    assert len(sigmas) == 2, "Must provide two sigma."
-    assert len(ws_max) == 2, 'Must provide two maximum weight (positive weight, negative weight).'
 
-    # get necessary data
-    pre_num = int(np.prod(pre_geo))
-    post_num = int(np.prod(post_geo))
-    sigma_p, sigma_n = sigmas
-    w_max_p, w_max_n = ws_max
-    w_min = np.abs(ws_max[0] - ws_max[1]) * 0.01 if w_min is None else w_min
+    def __init__(self, sigmas, ws_max, w_min=None, normalize=True, include_self=True):
+        self.sigma_p, self.sigma_n = sigmas
+        self.w_max_p, self.w_max_n = ws_max
+        self.w_min = np.abs(ws_max[0] - ws_max[1]) * 0.01 if w_min is None else w_min
+        self.normalize = normalize
+        self.include_self = include_self
 
-    # get the connections and weights
-    i, j, w = [], [], []  # conn_i, conn_j, weights
-    for pre_i in range(pre_num):
-        # get normalized coordination
-        pre_coords = (pre_i // pre_geo[1], pre_i % pre_geo[1])
-        if normalize:
-            pre_coords = (pre_coords[0] / (pre_geo[0] - 1) if pre_geo[0] > 1 else 1.,
-                          pre_coords[1] / (pre_geo[1] - 1) if pre_geo[1] > 1 else 1.)
+    def __call__(self, geom_pre, geom_post):
+        num_post, num_pre = _product(geom_post), _product(geom_pre)
 
-        for post_i in range(post_num):
-            if (pre_i == post_i) and (not include_self):
-                continue
-
+        # get the connections and weights
+        i, j, w = [], [], []  # conn_i, conn_j, weights
+        for pre_i in range(num_pre):
             # get normalized coordination
-            post_coords = (post_i // post_geo[1], post_i % post_geo[1])
-            if normalize:
-                post_coords = (post_coords[0] / (post_geo[0] - 1) if post_geo[0] > 1 else 1.,
-                               post_coords[1] / (post_geo[1] - 1) if post_geo[1] > 1 else 1.)
+            pre_coords = (pre_i // geom_pre[1], pre_i % geom_pre[1])
+            if self.normalize:
+                pre_coords = (pre_coords[0] / (geom_pre[0] - 1) if geom_pre[0] > 1 else 1.,
+                              pre_coords[1] / (geom_pre[1] - 1) if geom_pre[1] > 1 else 1.)
 
-            # Compute Euclidean distance between two coordinates
-            distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
-            # get weight and conn
-            value = w_max_p * np.exp(-distance / (2.0 * sigma_p ** 2)) - \
-                    w_max_n * np.exp(-distance / (2.0 * sigma_n ** 2))
-            if np.abs(value) > w_min:
-                i.append(pre_i)
-                j.append(post_i)
-                w.append(value)
+            for post_i in range(num_post):
+                if (pre_i == post_i) and (not self.include_self):
+                    continue
 
-    # format connections and weights
-    pre_ids, post_ids, anchors, weights = from_ij(i, j, pre_num, others=(w,))
-    return pre_ids, post_ids, anchors, weights
+                # get normalized coordination
+                post_coords = (post_i // geom_post[1], post_i % geom_post[1])
+                if self.normalize:
+                    post_coords = (post_coords[0] / (geom_post[0] - 1) if geom_post[0] > 1 else 1.,
+                                   post_coords[1] / (geom_post[1] - 1) if geom_post[1] > 1 else 1.)
+
+                # Compute Euclidean distance between two coordinates
+                distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
+                # get weight and conn
+                value = self.w_max_p * np.exp(-distance / (2.0 * self.sigma_p ** 2)) - \
+                        self.w_max_n * np.exp(-distance / (2.0 * self.sigma_n ** 2))
+                if np.abs(value) > self.w_min:
+                    i.append(pre_i)
+                    j.append(post_i)
+                    w.append(value)
+
+        # format connections and weights
+        i = np.asarray(i, dtype=np.int_)
+        j = np.asarray(j, dtype=np.int_)
+        w = np.asarray(w, dtype=np.int_)
+        return {'i': i, 'j': j, 'w': w}
 
 
-def scale_free(num_pre, num_post, **kwargs):
-    raise NotImplementedError
+class ScaleFree(Connector):
+    def __init__(self):
+        raise NotImplementedError
 
 
-def small_world(num_pre, num_post, **kwargs):
-    raise NotImplementedError
+class SmallWorld(Connector):
+    def __init__(self):
+        raise NotImplementedError
