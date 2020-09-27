@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from .. import _numpy as np
+from npbrain import _numpy as np
 
-from ..core import integrate
-from ..core.neuron_group import *
-from ..utils import get_clip
-from ..utils import autojit
+from npbrain.core import integrate
+from npbrain.core.neuron_group import *
+from npbrain.utils import get_clip
+from npbrain.utils import autojit
 
 __all__ = [
     'HH'

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import _numpy as np
+from npbrain import _numpy as np
 
 from npbrain.core import integrate
 from npbrain.core.synapse_group import *

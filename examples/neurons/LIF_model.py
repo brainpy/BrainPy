@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from ..core import integrate
-from ..core.neuron_group import *
-from ..utils import autojit
+from npbrain.core import integrate
+from npbrain.core.neuron_group import *
+from npbrain.utils import autojit
 
 __all__ = [
     'LIF'
@@ -21,7 +21,7 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
         The numerical integration method. Either a string with the name of a
         registered method (e.g. "euler") or a function.
     tau : float
-        Neuron parameters.
+        NeuGroup parameters.
     Vr : float
         The reset potential.
     Vth : float

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import _numpy as np
+from npbrain import _numpy as np
 
 from npbrain.core import integrate
 from npbrain.core.synapse_group import *
@@ -10,6 +10,27 @@ __all__ = [
     'AMPA1',
     'AMPA2',
 ]
+
+
+def define_ampa(g_max=0.10, E=0., tau_decay=2.0):
+    """AMPA conductance-based synapse (type 1).
+
+    .. math::
+
+        I_{syn}&=\\bar{g}_{syn} s (V-E_{syn})
+
+        \\frac{d s}{d t}&=-\\frac{s}{\\tau_{decay}}+\\sum_{k} \\delta(t-t_{j}^{k})
+
+    Parameters
+    ----------
+    g_max : float
+        Maximum conductance.
+    E : float
+        Reversal potential.
+    tau_decay : float
+    """
+    pass
+
 
 
 def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, name='AMPA_ChType1'):

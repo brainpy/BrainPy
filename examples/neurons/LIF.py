@@ -84,5 +84,5 @@ if __name__ == '__main__':
     fig.add_subplot(gs[0, 0])
     plt.plot(mon.time, mon.index, '|', markersize=4)
     plt.xlabel('Time (ms)')
-    plt.ylabel('Neuron Index')
+    plt.ylabel('NeuGroup Index')
     plt.show()

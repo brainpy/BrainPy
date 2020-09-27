@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from .. import _numpy as np
+from npbrain import _numpy as np
 
-from ..core.neuron_group import Neurons
-from ..core.neuron_group import format_geometry
-from ..core.neuron_group import init_neu_state
-from ..utils import autojit
+from npbrain.core.neuron_group import Neurons
+from npbrain.core.neuron_group import format_geometry
+from npbrain.core.neuron_group import init_neu_state
+from npbrain.utils import autojit
 
 __all__ = [
     'FreqInput',

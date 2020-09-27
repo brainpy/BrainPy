@@ -10,7 +10,7 @@ from . import random
 _math_funcs = [
     # Basics
     # --------
-    'real', 'imag', 'conj', 'conjugate',  # 'angle',
+    'real', 'imag', 'conj', 'conjugate', 'ndim',  # 'angle',
 
     # Arithmetic operations
     # ----------------------
@@ -55,6 +55,7 @@ real = numpy.real
 imag = numpy.imag
 conj = numpy.conj
 conjugate = numpy.conjugate
+ndim = numpy.ndim
 
 add = numpy.add
 reciprocal = numpy.reciprocal
