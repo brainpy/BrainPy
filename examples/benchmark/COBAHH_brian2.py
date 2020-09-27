@@ -88,5 +88,5 @@ if monitor == 'V':
 else:
     plot(s_mon.t / ms, s_mon.i, ',k')
     xlabel('Time (ms)')
-    ylabel('Neuron index')
+    ylabel('NeuGroup index')
     show()

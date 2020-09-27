@@ -1,37 +1,24 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
-import inspect
-from .common_func import numbify_func
+from copy import deepcopy
+
 from .common_func import BaseType
 from .. import _numpy as bnp
 from .. import profile
-from copy import deepcopy
-from ..utils import helper
-
-_group_no = 0
+from ..utils.helper import Dict
 
 __all__ = [
-    'NeuronGroup',
-    'NeuronType',
+    'NeuGroup',
 ]
 
 
-class NeuronGroup(object):
-    '''
-
-    Handle
-
-    '''
-    def __init__(self):
-        pass
-
-
-class NeuronType(BaseType):
+class NeuGroup(BaseType):
+    """Neuron Group.
+    """
     def __init__(self, create_func, name=None):
-        super(NeuronType, self).__init__(create_func=create_func, name=name, type_='neu')
+        super(NeuGroup, self).__init__(create_func=create_func, name=name, type_='neu')
 
-    def __call__(self, geometry, monitors=None, vars_init=None, pars_updates=None):
+    def __call__(self, geometry, monitors=None, vars_init=None, pars_update=None):
         # num and geometry
         # -----------------
         if isinstance(geometry, (int, float)):
@@ -47,6 +34,8 @@ class NeuronType(BaseType):
         else:
             raise ValueError()
         num = int(bnp.prod(geometry))
+        self.num = num
+        self.geometry = geometry
 
         # variables and "state" ("S")
         # ----------------------------
@@ -58,52 +47,61 @@ class NeuronType(BaseType):
             variables[k] = v
 
         if profile.is_numba_bk():
-            import numba as nb
-
-            var2index = dict()
-            state = bnp.zeros((len(variables), num), dtype=bnp.float_)
+            self.var2index = Dict()
+            self.state = Dict()
+            self._state_mat = bnp.zeros((len(variables), num), dtype=bnp.float_)
             for i, (k, v) in enumerate(variables.items()):
-                state[i] = v
-                var2index[k] = i
-            var2index['not_ref'] = -5
-            var2index['above_th'] = -4
-            var2index['spike'] = -3
-            var2index['sp_time'] = -2
-            var2index['input'] = -1
+                self._state_mat[i] = v
+                self.state[k] = self._state_mat[i]
+                self.var2index[k] = i
         else:
-            var2index = None
-            state = dict()
+            self.var2index = None
+            self.state = Dict()
             for k, v in variables.items():
-                state[k] = bnp.ones(num, dtype=bnp.float_) * v
+                self.state[k] = bnp.ones(num, dtype=bnp.float_) * v
+        self.S = self.state
 
         # parameters and "P"
         # -------------------
-        assert isinstance(pars_updates, dict), '"pars_updates" must be a dict.'
+        assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
         parameters = deepcopy(self.parameters)
-        for k, v in pars_updates:
+        for k, v in pars_update:
             val_size = bnp.size(v)
             if val_size != 1:
                 if val_size != num:
                     raise ValueError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
-                                     'and "{val_size}" != {num}.')
+                                     f'and "{val_size}" != {num}.')
             parameters[k] = v
-
         if profile.is_numba_bk():
-            max_size = bnp.max([bnp.size(v) for v in parameters.values()])
+            import numba as nb
+            max_size = max([bnp.size(v) for v in parameters.values()])
             if max_size > 1:
-                P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float64[:])
+                self.P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
                 for k, v in parameters.items():
-                    P[k] = bnp.ones(num, dtype=bnp.float_) * v
+                    self.P[k] = bnp.ones(self.num, dtype=bnp.float_) * v
+                self.parameters = self.P
             else:
-                P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float64)
+                self.P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_)
                 for k, v in parameters.items():
-                    P[k] = v
+                    self.P[k] = v
+                self.parameters = self.P
         else:
-            P = parameters
+            self.P = self.parameters = parameters
+
+        # define update functions
+        # -------------------------
+        self.func_returns = self.create_func(**parameters)
+        step_funcs = self.func_returns['step_funcs']
+        if callable(step_funcs):
+            self.update_funcs = [step_funcs, ]
+        elif isinstance(step_funcs, (tuple, list)):
+            self.update_funcs = list(step_funcs)
+        else:
+            raise ValueError('"step_funcs" must be a callable, or a list/tuple of callable functions.')
 
         # monitors
         # ----------
-        self.mon = dict()
+        self.mon = Dict()
         self._mon_vars = monitors
         self._mon_update = None
 
@@ -112,13 +110,14 @@ class NeuronType(BaseType):
                 self.mon[k] = bnp.zeros((1, 1), dtype=bnp.float_)
 
             # generate function
-            if profile.is_numba_bk():
-                def update(i):
-                    for k in self._mon_vars:
-                        self.mon[k][i] = self.state[self.var2index[k]]
-            else:
-                def update(i):
-                    for k in self._mon_vars:
-                        self.mon[k][i] = self.state[k]
+            def update(i):
+                for k in self._mon_vars:
+                    self.mon[k][i] = self.state[k]
+
             self._mon_update = update
+            self.update_funcs.append(update)
+
+        # update functions
+        # -----------------
+        self.update_funcs = tuple(self.update_funcs)
 

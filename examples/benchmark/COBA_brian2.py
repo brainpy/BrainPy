@@ -22,7 +22,7 @@ num_exc = 3200
 num_inh = 800
 
 # ###########################################
-# Neuron model
+# NeuGroup model
 # ###########################################
 eqs = '''
 dv/dt  = (ge*(Erev_exc-v)+gi*(Erev_inh-v)-(v-El) + I)*(1./taum) : volt (unless refractory)
@@ -82,5 +82,5 @@ print('Done in', t2 - t1)
 # ###########################################
 plot(s_mon.t / ms, s_mon.i, ',k')
 xlabel('Time (ms)')
-ylabel('Neuron index')
+ylabel('NeuGroup index')
 show()

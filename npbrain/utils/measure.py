@@ -10,7 +10,7 @@ __all__ = [
 
 
 ###############################
-# Neuron synchronization
+# NeuGroup synchronization
 ###############################
 
 def cross_correlation(spikes, bin_size):

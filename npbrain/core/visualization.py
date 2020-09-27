@@ -76,7 +76,7 @@ def mpl_style1(fontsize=22, axes_edgecolor='black', figsize='5,4', lw=1):
 
 
 ###############################
-# Neuron and Synapse plotting
+# NeuGroup and SynConn plotting
 ###############################
 
 
@@ -194,7 +194,7 @@ def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, x
     ax.plot(time, index, '.' + color, markersize=markersize)
     if label:
         plt.xlabel('Time (ms)')
-        plt.ylabel('Neuron index')
+        plt.ylabel('NeuGroup index')
     if xlim:
         plt.xlim(xlim[0], xlim[1])
     if show:

@@ -4,8 +4,8 @@ import inspect
 import time
 from pprint import pprint
 
-from .neuron_group import NeuronType
-from .synapse_group import SynapseType
+from .neuron_group import NeuronGroup
+from .synapse_group import Connection
 from .. import _numpy as np
 from .. import profile
 from ..utils import helper
@@ -396,7 +396,7 @@ class Network(object):
                 pre_neu_order = self.objects.index(obj.pre)
                 post_neu_order = self.objects.index(obj.post)
                 if syn_order > post_neu_order or syn_order > pre_neu_order:
-                    raise ValueError('Synapse "{}" must run before than the '
+                    raise ValueError('SynConn "{}" must run before than the '
                                      'pre-/post-synaptic neurons.'.format(obj))
 
     def _format_inputs_and_receiver(self, inputs, duration):

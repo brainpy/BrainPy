@@ -173,5 +173,5 @@ else:
     index, time = nn.raster_plot(mon, net.run_time())
     plt.plot(time, index, ',k')
     plt.xlabel('Time (ms)')
-    plt.ylabel('Neuron index')
+    plt.ylabel('NeuGroup index')
     plt.show()
