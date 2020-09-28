@@ -3,7 +3,7 @@
 from npbrain import _numpy as np
 
 from npbrain.core import integrate
-from npbrain.core.synapse_group import *
+from npbrain.core.synapse_cennection import *
 
 __all__ = [
     'NMDA',

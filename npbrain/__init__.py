@@ -15,7 +15,7 @@ __version__ = "0.2.8.0"
 # from npbrain.utils.helper import clip
 #
 # # module of "core"
-# from npbrain import core, profile
+from npbrain import core, profile
 #
 # from npbrain.core import integrator
 # from npbrain.core.integrator import integrate

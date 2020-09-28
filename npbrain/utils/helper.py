@@ -5,9 +5,10 @@ import functools
 import types
 
 import numba as nb
-import numpy as np
+import numpy as onp
 from numba.core.dispatcher import Dispatcher
 
+from .. import _numpy as np
 from .. import profile
 
 __all__ = [
@@ -25,8 +26,9 @@ __all__ = [
     'ddict',
 
     # 'others'
-    'clip',
-    'get_clip'
+    'is_struct_array',
+    'init_struct_array',
+
 ]
 
 
@@ -296,50 +298,31 @@ ddict = default_dict
 ##############################
 
 
-def clip(a, a_min, a_max):
-    """Reproduce the ``clip`` function in NumPy.
+def is_struct_array(arr):
+    if profile.is_numba_bk() or profile.is_numba_bk():
+        if isinstance(arr, onp.ndarray) and (arr.dtype.names is not None):
+            return True
+        else:
+            return False
 
-    Clip (limit) the values in an array.
-
-    Given an interval, values outside the interval are clipped to
-    the interval edges.  For example, if an interval of ``[0, 1]``
-    is specified, values smaller than 0 become 0, and values larger
-    than 1 become 1.
-
-    Equivalent to but faster than ``bnp.maximum(a_min, bnp.minimum(a, a_max))``.
-    No check is performed to ensure ``a_min < a_max``.
-
-    Parameters
-    ----------
-    a : array_like
-        Array containing elements to clip.
-    a_min : scalar or array_like or None
-        Minimum value. If None, clipping is not performed on lower
-        interval edge. Not more than one of `a_min` and `a_max` may be
-        None.
-    a_max : scalar or array_like or None
-        Maximum value. If None, clipping is not performed on upper
-        interval edge. Not more than one of `a_min` and `a_max` may be
-        None. If `a_min` or `a_max` are array_like, then the three
-        arrays will be broadcasted to match their shapes.
-
-    Returns
-    -------
-    clipped_array : ndarray
-        An array with the elements of `a`, but where values
-        < `a_min` are replaced with `a_min`, and those > `a_max`
-        with `a_max`.
-    """
-    a = np.maximum(a, a_min)
-    a = np.minimum(a, a_max)
-    return a
+    if profile.is_jax_bk():
+        raise NotImplementedError
 
 
-def get_clip():
-    @autojit(['f[:](f[:], f, f)'])
-    def f(a, a_min, a_max):
-        a = np.maximum(a, a_min)
-        a = np.minimum(a, a_max)
-        return a
+def init_struct_array(num, variables):
+    if isinstance(variables, (list, tuple)):
+        variables = {v: np.float_ for v in variables}
+    elif isinstance(variables, dict):
+        pass
+    else:
+        raise ValueError(f'Unknown type: {type(variables)}.')
 
-    return f
+    if profile.is_numba_bk() and profile.is_numpy_bk():
+        dtype = np.dtype(list(variables.items()), align=True)
+        arr = np.zeros(num, dtype)
+        return arr
+
+    if profile.is_jax_bk():
+        arr = {k: np.zeros(num, dtype=d) for k, d in variables.items()}
+        return arr
+

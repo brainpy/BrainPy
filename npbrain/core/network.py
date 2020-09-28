@@ -4,8 +4,8 @@ import inspect
 import time
 from pprint import pprint
 
-from .neuron_group import NeuronGroup
-from .synapse_group import Connection
+from .neuron_group import NeuGroup
+from .synapse_cennection import SynConn
 from .. import _numpy as np
 from .. import profile
 from ..utils import helper
@@ -27,23 +27,21 @@ class Network(object):
 
     """
 
+    _keywords = ['neu_groups', 'syn_conns', '_objsets', 'objects',
+                 '_run_time', '_step', '_input', 'add', 'run', 'ts',
+                 '_neu_state_args', ]
+
     def __init__(self, *args, **kwargs):
         # store and neurons and synapses
-        self.neurons = []
-        self.synapses = []
-        self.state_monitors = []
-        self.spike_monitors = []
+        self.neu_groups = []
+        self.syn_conns = []
 
         # store all objects
         self._objsets = helper.Dict()
         self.objects = []
 
-        # store states of objects and synapses
-        self._neuron_states = None
-        self._synapse_states = None
-
         # record the current step
-        self.current_time = 0.
+        self._run_time = 0.
 
         # add objects
         self.add(*args, **kwargs)
@@ -64,15 +62,14 @@ class Network(object):
             The named objects, which can be accessed by `net.xxx`
             (xxx is the name of the object).
         """
-        keywords = ['neurons', 'synapses', 'monitors', '_objsets', '_neuron_states',
-                    '_synapse_states', 'current_time', 'add', 'run', 'run_time']
+
         for obj in args:
             self._add_obj(obj)
         for name, obj in kwargs.items():
             self._add_obj(obj)
             self._objsets.unique_add(name, obj)
-            if name in keywords:
-                raise ValueError('Invalid name: ', name)
+            if name in self._keywords:
+                raise ValueError(f'Invalid name "{name}", which is a keyword of "Network".')
             setattr(self, name, obj)
 
     @staticmethod
@@ -86,19 +83,16 @@ class Network(object):
     def _get_step_function(self):
         step_func_str = '''\ndef step_func(t, i):'''
 
-        step_func_local = {'syn' + str(oi): syn for oi, syn in enumerate(self.synapses)}
-        step_func_local.update({'neu' + str(oi): neu for oi, neu in enumerate(self.neurons)})
-        step_func_local.update({'st_mon' + str(oi): mon for oi, mon in enumerate(self.state_monitors)})
-        step_func_local.update({'sp_mon' + str(oi): mon for oi, mon in enumerate(self.spike_monitors)})
+        # get the correspondence between objects (neu_groups and syn_conns) and their names
 
-        obj2name = {neu: 'neu{}'.format(oi) for oi, neu in enumerate(self.neurons)}
-        obj2name.update({syn: 'syn{}'.format(oi) for oi, syn in enumerate(self.synapses)})
-        obj2name.update({mon: 'st_mon{}'.format(oi) for oi, mon in enumerate(self.state_monitors)})
-        obj2name.update({mon: 'sp_mon{}'.format(oi) for oi, mon in enumerate(self.spike_monitors)})
+        step_func_local = {'syn' + str(oi): syn for oi, syn in enumerate(self.syn_conns)}
+        step_func_local.update({'neu' + str(oi): neu for oi, neu in enumerate(self.neu_groups)})
+        obj2name = {neu: 'neu{}'.format(oi) for oi, neu in enumerate(self.neu_groups)}
+        obj2name.update({syn: 'syn{}'.format(oi) for oi, syn in enumerate(self.syn_conns)})
 
         # synapse update function
 
-        for oi, syn in enumerate(self.synapses):
+        for oi, syn in enumerate(self.syn_conns):
             # update_state()
             args = self._get_args(syn.update)
             step_func_str += '\n\t' + 'syn{}.update_state('.format(oi)
@@ -148,7 +142,7 @@ class Network(object):
             step_func_str += ')'
 
         # neuron update function
-        for oi, neu in enumerate(self.neurons):
+        for oi, neu in enumerate(self.neu_groups):
             step_func_str += '\n\t' + 'neu{}.update_state('.format(oi)
             args = self._get_args(neu.update)
             for arg in args:
@@ -158,37 +152,8 @@ class Network(object):
                     step_func_str += '{}.state, '.format(obj2name[neu])
             step_func_str += ')'
 
-        # state monitor function
-        for oi, mon in enumerate(self.state_monitors):
-            args = self._get_args(mon.update)
-            if len(args) == 3:
-                step_func_str += '\n\tst_mon{oi}.update_state({obj}.state, st_mon{oi}.state, i)'.format(
-                    oi=oi, obj=obj2name[mon.target])
-            elif len(args) == 5:
-                step_func_str += '\n\tst_mon{oi}.update_state(' \
-                                 '{obj}.delay_state, ' \
-                                 'st_mon{oi}.state, ' \
-                                 '{obj}.var2index["g_out"], ' \
-                                 '{obj}.var2index["g_in"], ' \
-                                 'i)'.format(oi=oi, obj=obj2name[mon.target])
-            elif len(args) == 6:
-                step_func_str += '\n\tst_mon{oi}.update_state(' \
-                                 '{obj}.state, ' \
-                                 '{obj}.delay_state, ' \
-                                 'st_mon{oi}.state, ' \
-                                 '{obj}.var2index["g_out"], ' \
-                                 '{obj}.var2index["g_in"], ' \
-                                 'i)'.format(oi=oi, obj=obj2name[mon.target])
-            else:
-                raise ValueError('Unknown arguments of monitor update_state().')
-
-        # spike monitor function
-        for oi, mon in enumerate(self.spike_monitors):
-            step_func_str += '\n\tsp_mon{oi}.update_state({obj}.state, sp_mon{oi}.time, sp_mon{oi}.index, t)'.format(
-                oi=oi, obj=obj2name[mon.target])
-
         # update `dalay_idx` and `output_idx`
-        for oi, syn in enumerate(self.synapses):
+        for oi, syn in enumerate(self.syn_conns):
             if syn.delay_len <= 1:
                 continue
             step_func_str += '\n\t{syn}.var2index["g_in"] = ({syn}.var2index["g_in"] + 1) % ' \
@@ -301,7 +266,7 @@ class Network(object):
 
         # time
         dt = profile.get_dt()
-        ts = np.arange(self.current_time, self.current_time + duration, dt)
+        ts = np.arange(self._run_time, self._run_time + duration, dt)
         ts = np.asarray(ts, dtype=profile.ftype)
         run_length = len(ts)
 
@@ -312,20 +277,20 @@ class Network(object):
         # neurons
         if repeat:
             if self._neuron_states is None:
-                self._neuron_states = [neu.state.copy() for neu in self.neurons]
+                self._neuron_states = [neu.state.copy() for neu in self.neu_groups]
             else:
-                for neu, state in zip(self.neurons, self._neuron_states):
+                for neu, state in zip(self.neu_groups, self._neuron_states):
                     neu.state[:] = state.copy()
 
         # synapses
         if repeat:
             if self._synapse_states is None:
                 self._synapse_states = []
-                for syn in self.synapses:
+                for syn in self.syn_conns:
                     state = (None if syn.state is None else syn.state.copy(), syn.delay_state.copy())
                     self._synapse_states.append(state)
             else:
-                for syn, state in zip(self.synapses, self._synapse_states):
+                for syn, state in zip(self.syn_conns, self._synapse_states):
                     for i, (st, dst) in enumerate(state):
                         if st is not None:
                             syn.state[:] = st.copy()
@@ -364,9 +329,9 @@ class Network(object):
 
         # 3. Finally
         # -----------
-        self.current_time = duration
+        self._run_time = duration
 
-    def run_time(self):
+    def ts(self):
         """Get the time points of the network.
 
         Returns
@@ -374,13 +339,13 @@ class Network(object):
         times : numpy.ndarray
             The running time-steps of the network.
         """
-        return np.arange(0, self.current_time, profile.get_dt())
+        return np.arange(0, self._run_time, profile.get_dt())
 
     def _add_obj(self, obj):
         if isinstance(obj, Neurons):
-            self.neurons.append(obj)
+            self.neu_groups.append(obj)
         elif isinstance(obj, Synapses):
-            self.synapses.append(obj)
+            self.syn_conns.append(obj)
         elif isinstance(obj, StateMonitor):
             self.state_monitors.append(obj)
         elif isinstance(obj, SpikeMonitor):
@@ -460,7 +425,7 @@ class Network(object):
                 iterable_inputs.append([obj, Iext, dur])
         # 3. no inputs
         no_inputs = []
-        for neu in self.neurons:
+        for neu in self.neu_groups:
             if neu not in neuron_with_inputs:
                 no_inputs.append(neu)
         return iterable_inputs, fixed_inputs, no_inputs

@@ -16,7 +16,7 @@ def run_ampa(cls, num_pre=5, num_post=10, prob=1., duration=650.):
 
     net.run(duration, report=True)
 
-    ts = net.run_time()
+    ts = net.ts()
     fig, gs = nn.visualize.get_figure(1, 1, 5, 10)
     fig.add_subplot(gs[0, 0])
     plt.plot(ts, mon.g_out[:, 0], lw=3, label='g_out')

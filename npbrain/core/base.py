@@ -16,6 +16,10 @@ class ModelDefError(Exception):
     pass
 
 
+class StepFuncError(Exception):
+    pass
+
+
 _neu_no = 0
 _syn_no = 0
 
@@ -90,12 +94,28 @@ class BaseType(object):
 
 
 class BaseGroup(object):
-    __slots__ = ['_mon_vars', 'mon', 'num']
+    __slots__ = ['model', '_mon_vars', 'mon', 'num', 'step_funcs']
 
     def init_monitor(self, length):
         for k in self._mon_vars:
             self.mon[k] = bnp.zeros((length, self.num), dtype=bnp.float_)
 
+    def get_step_func_args(self):
+        step_func_args = []
+        for func in self.step_funcs:
+            args = inspect.getfullargspec(func).args
+            step_func_args.append(args)
+        return step_func_args
+
+    def check_step_func_args(self):
+        for i, args in enumerate(self.get_step_func_args()):
+            for arg in args:
+                if not (arg in ['S', 't', 'i', 'P', 'din', 'dout']):
+                    if not hasattr(self, arg):
+                        raise StepFuncError(
+                            f'Function "{self.step_funcs[i].__name__}" in "{self.model.name}"'
+                            f'model requires "{arg}" as argument, but "{arg}" is not defined '
+                            f'in the neuron group.')
 
 
 def judge_spike(t, vth, S, k):
@@ -124,4 +144,3 @@ def judge_spike(t, vth, S, k):
     S['spike'] = spike_st
     S['sp_time'][spike_idx] = t
     return spike_idx
-

@@ -9,7 +9,7 @@ if __name__ == '__main__':
     net = nn.Network(neu=neu, mon=mon)
     net.run(duration=1001, report=True)
 
-    ts = net.run_time()
+    ts = net.ts()
     fig, gs = nn.visualize.get_figure(1, 1, 5, 8)
     ax = fig.add_subplot(gs[0, 0])
     nn.visualize.plot_raster(mon, ax=ax, show=True)

@@ -21,19 +21,19 @@ if __name__ == '__main__':
                      mon3=mon_lif2, mon4=mon4)
     net.run(duration=100, inputs=[lif1, 15], report=True)
 
-    ts = net.run_time()
+    ts = net.ts()
     fig, gs = nn.visualize.get_figure(2, 1, 3, 8)
 
     ax = fig.add_subplot(gs[0, 0])
     nn.visualize.plot_potential(mon_lif1, ts, (0, 1), ax)
-    plt.xlim(-0.1, net.current_time + 0.1)
+    plt.xlim(-0.1, net._run_time + 0.1)
     plt.title('LIF neuron group 1')
     plt.legend()
 
     ax = fig.add_subplot(gs[1, 0])
     if len(mon2.time):
         nn.visualize.plot_raster(mon2, ax=ax)
-    plt.xlim(-0.1, net.current_time + 0.1)
+    plt.xlim(-0.1, net._run_time + 0.1)
 
     plt.show()
 
@@ -48,28 +48,28 @@ if __name__ == '__main__':
     net = nn.Network(syn=syn, lif1=lif1, lif2=lif2, mon1=mon_lif1, mon2=mon_lif2)
     net.run(duration=100, inputs=[lif1, 15], report=True)
 
-    ts = net.run_time()
+    ts = net.ts()
     fig, gs = nn.visualize.get_figure(2, 2, 3, 6)
 
     ax1 = fig.add_subplot(gs[0, 0])
     nn.visualize.plot_potential(mon_lif1, ts, (0, 1), ax1)
-    plt.xlim(-0.1, net.current_time + 0.1)
+    plt.xlim(-0.1, net._run_time + 0.1)
     plt.title('LIF neuron group 1')
     plt.legend()
 
     ax2 = fig.add_subplot(gs[0, 1])
     nn.visualize.plot_potential(mon_lif2, ts, (0, 1), ax2)
-    plt.xlim(-0.1, net.current_time + 0.1)
+    plt.xlim(-0.1, net._run_time + 0.1)
     plt.title('LIF neuron group 2')
     plt.legend()
 
     ax3 = fig.add_subplot(gs[1, 0])
     nn.visualize.plot_raster(mon_lif1, ts, ax=ax3)
-    plt.xlim(-0.1, net.current_time + 0.1)
+    plt.xlim(-0.1, net._run_time + 0.1)
 
     ax4 = fig.add_subplot(gs[1, 1])
     nn.visualize.plot_raster(mon_lif2, ts, ax=ax4)
-    plt.xlim(-0.1, net.current_time + 0.1)
+    plt.xlim(-0.1, net._run_time + 0.1)
     plt.show()
 
 if __name__ == '__main__':

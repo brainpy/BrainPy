@@ -166,11 +166,11 @@ net.run(10 * 1000., report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
 if monitor == 'V':
-    nn.visualize.plot_potential(mon, net.run_time(), neuron_index=[1, 10, 100])
+    nn.visualize.plot_potential(mon, net.ts(), neuron_index=[1, 10, 100])
     plt.legend()
     plt.show()
 else:
-    index, time = nn.raster_plot(mon, net.run_time())
+    index, time = nn.raster_plot(mon, net.ts())
     plt.plot(time, index, ',k')
     plt.xlabel('Time (ms)')
     plt.ylabel('NeuGroup index')

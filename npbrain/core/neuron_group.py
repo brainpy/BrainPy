@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from copy import deepcopy
+from collections import OrderedDict
 
-from .common_func import BaseType
-from .common_func import BaseGroup
+from .base import BaseType
+from .base import BaseGroup
 from .. import _numpy as np
 from .. import profile
-from ..utils.helper import Dict
+from ..utils import helper
 
 __all__ = [
     'NeuType',
@@ -59,8 +60,8 @@ class NeuGroup(BaseGroup):
             variables[k] = v
 
         if profile.is_numba_bk():
-            self.var2index = Dict()
-            self.state = Dict()
+            self.var2index = dict()
+            self.state = dict()
             self._state_mat = np.zeros((len(variables), num), dtype=np.float_)
             for i, (k, v) in enumerate(variables.items()):
                 self._state_mat[i] = v
@@ -68,10 +69,9 @@ class NeuGroup(BaseGroup):
                 self.var2index[k] = i
         else:
             self.var2index = None
-            self.state = Dict()
+            self.state = helper.init_struct_array(num, list(variables.keys()))
             for k, v in variables.items():
-                self.state[k] = np.ones(num, dtype=np.float_) * v
-        self.S = self.state
+                self.state[k] = v
 
         # parameters and "P"
         # -------------------
@@ -102,18 +102,18 @@ class NeuGroup(BaseGroup):
 
         # define update functions
         # -------------------------
-        self.func_returns = self.model.create_func(**parameters)
-        step_funcs = self.func_returns['step_funcs']
+        func_returns = self.model.create_func(**parameters)
+        step_funcs = func_returns['step_funcs']
         if callable(step_funcs):
-            self.update_funcs = [step_funcs, ]
+            step_funcs = [step_funcs, ]
         elif isinstance(step_funcs, (tuple, list)):
-            self.update_funcs = list(step_funcs)
+            step_funcs = list(step_funcs)
         else:
             raise ValueError('"step_funcs" must be a callable, or a list/tuple of callable functions.')
 
         # monitors
         # ----------
-        self.mon = Dict()
+        self.mon = helper.Dict()
         self._mon_vars = monitors
         self._mon_update = None
 
@@ -122,14 +122,18 @@ class NeuGroup(BaseGroup):
                 self.mon[k] = np.zeros((1, 1), dtype=np.float_)
 
             # generate function
-            def update(i):
+            def mon_step_function(i):
                 for k in self._mon_vars:
                     self.mon[k][i] = self.state[k]
 
-            self._mon_update = update
-            self.update_funcs.append(update)
+            self._mon_update = mon_step_function
+            step_funcs.append(mon_step_function)
 
-        # update functions
-        # -----------------
-        self.update_funcs = tuple(self.update_funcs)
+        # step functions
+        # -------------------
+        self.step_funcs = OrderedDict()
+        for func in step_funcs:
+            func_name = func.__name__
+            self.step_funcs[func_name] = func
+
 

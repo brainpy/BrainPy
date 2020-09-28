@@ -111,7 +111,7 @@ t0 = time.time()
 net.run(5 * 1000., report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
-index, time = nn.raster_plot(mon, net.run_time())
+index, time = nn.raster_plot(mon, net.ts())
 plt.plot(time, index, ',k')
 plt.xlabel('Time (ms)')
 plt.ylabel('NeuGroup index')

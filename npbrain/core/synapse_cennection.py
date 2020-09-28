@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+
 from .. import _numpy as np
 from .. import profile
 from ..utils.helper import Dict
-from .common_func import BaseType
-from .common_func import BaseGroup
+from .base import BaseType
+from .base import BaseGroup
 from .connectivity import Connector
 from .connectivity import FixedProb
 from .neuron_group import NeuGroup
@@ -13,7 +15,7 @@ from copy import deepcopy
 
 __all__ = [
     'SynType',
-    'SynConn'
+    'SynConn',
 ]
 
 
@@ -30,27 +32,30 @@ class SynConn(BaseGroup):
     """Synaptic connections.
 
     """
-    def __init__(self, model, pre=None, post=None, conn=FixedProb(prob=0.1), num=None,
+    def __init__(self, model, pre_group=None, post_group=None, conn=None, num=None,
                  delay=0., monitors=None, vars_init=None, pars_update=None):
         assert isinstance(model, SynType), 'Must provide a SynType class.'
         self.model = model
 
-        if pre is not None and post is not None:
+        if pre_group is not None and post_group is not None:
             # check
             # ------
-            assert isinstance(pre, NeuGroup), '"pre" must be an instance of NeuGroup.'
-            assert isinstance(post, NeuGroup), '"post" must be an instance of NeuGroup.'
+            assert isinstance(pre_group, NeuGroup), '"pre" must be an instance of NeuGroup.'
+            assert isinstance(post_group, NeuGroup), '"post" must be an instance of NeuGroup.'
 
             # connections
             # ------------
-            if isinstance(conn, Connector):
-                self.pre_idx, self.post_idx = conn(pre.geometry, post.geometry)
+            if conn is None:
+                pass
+            elif isinstance(conn, Connector):
+                self.pre_idx, self.post_idx = conn(pre_group.geometry, post_group.geometry)
             elif isinstance(conn, np.ndarray):
                 assert np.ndim(conn) == 2, f'"conn" must be a 2D array, not {np.ndim(conn)}D.'
                 shape = np.shape(conn)
-                assert shape[0] == pre.num and shape[1] == post.num, f'The shape of "conn" must be ({pre.num}, {post.num})'
+                assert shape[0] == pre_group.num and shape[1] == post_group.num, \
+                    f'The shape of "conn" must be ({pre_group.num}, {post_group.num})'
                 self.pre_idx, self.post_idx = [], []
-                for i in enumerate(pre.num):
+                for i in enumerate(pre_group.num):
                     idx = np.where(conn[i] > 0)[0]
                     self.pre_idx.extend([i * len(idx)])
                     self.post_idx.extend(idx)
@@ -65,8 +70,10 @@ class SynConn(BaseGroup):
 
             # essential
             # ---------
-            self.num_pre = pre.num
-            self.num_post = post.num
+            self.pre_group = pre_group
+            self.post_group = post_group
+            self.num_pre = pre_group.num
+            self.num_post = post_group.num
             self.num = len(self.pre_idx)
 
         else:
@@ -145,9 +152,9 @@ class SynConn(BaseGroup):
             func_returns = self.model.create_func(**parameters)
             step_funcs = func_returns['step_funcs']
             if callable(step_funcs):
-                self.step_funcs = [step_funcs, ]
+                step_funcs = [step_funcs, ]
             elif isinstance(step_funcs, (tuple, list)):
-                self.step_funcs = list(step_funcs)
+                step_funcs = list(step_funcs)
             else:
                 raise ValueError('"step_funcs" must be a callable, or a list/tuple of callable functions.')
         else:
@@ -164,19 +171,23 @@ class SynConn(BaseGroup):
                 self.mon[k] = np.zeros((1, 1), dtype=np.float_)
 
             # generate function
-            def update(i):
+            def mon_step_function(i):
                 for k in self._mon_vars:
-                    self.mon[k][i] = self.state[k]
+                    self.mon[k][i] = self.state[k][self.delay_in]
 
-            self._mon_update = update
-            self.step_funcs.append(update)
+            self._mon_update = mon_step_function
+            step_funcs.append(mon_step_function)
 
-        # update function
-        self.step_funcs.append(self.update_delay_indices)
-        self.step_funcs = tuple(self.step_funcs)
+        # step functions
+        # ---------------
+        step_funcs.append(self.update_delay_indices)
+        self.step_funcs = OrderedDict()
+        for func in step_funcs:
+            func_name = func.__name__
+            self.step_funcs[func_name] = func
 
     def update_delay_indices(self):
         # in_index
-        self.state['delay_in'] = (self.state['delay_in'] + 1) % self.delay_len
+        self.delay_in = (self.delay_in + 1) % self.delay_len
         # out_index
-        self.state['delay_out'] = (self.state['delay_out'] + 1) % self.delay_len
+        self.delay_out = (self.delay_out + 1) % self.delay_len

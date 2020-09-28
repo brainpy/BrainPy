@@ -19,7 +19,7 @@ def run_stp(cls, num_pre=5, num_post=10, weights=1.,
     fig, gs = nn.visualize.get_figure(1, 1, 5, 10)
     fig.add_subplot(gs[0, 0])
     for k in monitor:
-        plt.plot(net.run_time(), getattr(mon, k)[:, 0], label=k)
+        plt.plot(net.ts(), getattr(mon, k)[:, 0], label=k)
     plt.legend()
     plt.show()
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     fig, gs = nn.visualize.get_figure(1, 1, 5, 10)
     fig.add_subplot(gs[0, 0])
     for k in monitors:
-        plt.plot(net.run_time(), getattr(mon, k)[:, 0], label=k)
+        plt.plot(net.ts(), getattr(mon, k)[:, 0], label=k)
     plt.legend()
     plt.show()
 

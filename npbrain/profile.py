@@ -113,6 +113,17 @@ def get_backend():
     return _backend
 
 
+def is_jax_bk():
+    """Check whether the backend is ``JAX``.
+
+    Returns
+    -------
+    jax_backend : bool
+        True or False.
+    """
+    return _backend.startswith('jax')
+
+
 def is_numpy_bk():
     """Check whether the backend is ``Numpy``.
 
