@@ -113,6 +113,17 @@ def get_backend():
     return _backend
 
 
+def is_numpy_bk():
+    """Check whether the backend is ``Numpy``.
+
+    Returns
+    -------
+    numpy_backend : bool
+        True or False.
+    """
+    return _backend.startswith('numpy')
+
+
 def is_numba_bk():
     """Check whether the _numpy is ``numba``.
 

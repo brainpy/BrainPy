@@ -3,22 +3,34 @@
 from copy import deepcopy
 
 from .common_func import BaseType
-from .. import _numpy as bnp
+from .common_func import BaseGroup
+from .. import _numpy as np
 from .. import profile
 from ..utils.helper import Dict
 
 __all__ = [
+    'NeuType',
     'NeuGroup',
 ]
 
 
-class NeuGroup(BaseType):
+class NeuType(BaseType):
+    """Abstract Neuron Type.
+
+    It can be defined based on a group of neurons or a single neuron.
+    """
+    def __init__(self, create_func, group_based=True, name=None):
+        super(NeuType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_='neu')
+
+
+class NeuGroup(BaseGroup):
     """Neuron Group.
     """
-    def __init__(self, create_func, name=None):
-        super(NeuGroup, self).__init__(create_func=create_func, name=name, type_='neu')
 
-    def __call__(self, geometry, monitors=None, vars_init=None, pars_update=None):
+    def __init__(self, model, geometry, monitors=None, vars_init=None, pars_update=None):
+        assert isinstance(model, NeuType), 'Must provide a NeuType class.'
+        self.model = model
+
         # num and geometry
         # -----------------
         if isinstance(geometry, (int, float)):
@@ -33,23 +45,23 @@ class NeuGroup(BaseType):
             geometry = (height, width)
         else:
             raise ValueError()
-        num = int(bnp.prod(geometry))
+        num = int(np.prod(geometry))
         self.num = num
         self.geometry = geometry
 
         # variables and "state" ("S")
         # ----------------------------
         assert isinstance(vars_init, dict), '"vars_init" must be a dict.'
-        variables = deepcopy(self.variables)
+        variables = deepcopy(self.model.variables)
         for k, v in vars_init:
-            if k not in self.variables:
-                raise KeyError(f'variable "{k}" is not defined in "{self.name}".')
+            if k not in self.model.variables:
+                raise KeyError(f'variable "{k}" is not defined in "{self.model.name}".')
             variables[k] = v
 
         if profile.is_numba_bk():
             self.var2index = Dict()
             self.state = Dict()
-            self._state_mat = bnp.zeros((len(variables), num), dtype=bnp.float_)
+            self._state_mat = np.zeros((len(variables), num), dtype=np.float_)
             for i, (k, v) in enumerate(variables.items()):
                 self._state_mat[i] = v
                 self.state[k] = self._state_mat[i]
@@ -58,7 +70,7 @@ class NeuGroup(BaseType):
             self.var2index = None
             self.state = Dict()
             for k, v in variables.items():
-                self.state[k] = bnp.ones(num, dtype=bnp.float_) * v
+                self.state[k] = np.ones(num, dtype=np.float_) * v
         self.S = self.state
 
         # parameters and "P"
@@ -66,7 +78,7 @@ class NeuGroup(BaseType):
         assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
         parameters = deepcopy(self.parameters)
         for k, v in pars_update:
-            val_size = bnp.size(v)
+            val_size = np.size(v)
             if val_size != 1:
                 if val_size != num:
                     raise ValueError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
@@ -74,11 +86,11 @@ class NeuGroup(BaseType):
             parameters[k] = v
         if profile.is_numba_bk():
             import numba as nb
-            max_size = max([bnp.size(v) for v in parameters.values()])
+            max_size = max([np.size(v) for v in parameters.values()])
             if max_size > 1:
                 self.P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
                 for k, v in parameters.items():
-                    self.P[k] = bnp.ones(self.num, dtype=bnp.float_) * v
+                    self.P[k] = np.ones(self.num, dtype=np.float_) * v
                 self.parameters = self.P
             else:
                 self.P = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_)
@@ -90,7 +102,7 @@ class NeuGroup(BaseType):
 
         # define update functions
         # -------------------------
-        self.func_returns = self.create_func(**parameters)
+        self.func_returns = self.model.create_func(**parameters)
         step_funcs = self.func_returns['step_funcs']
         if callable(step_funcs):
             self.update_funcs = [step_funcs, ]
@@ -107,7 +119,7 @@ class NeuGroup(BaseType):
 
         if monitors is not None:
             for k in monitors:
-                self.mon[k] = bnp.zeros((1, 1), dtype=bnp.float_)
+                self.mon[k] = np.zeros((1, 1), dtype=np.float_)
 
             # generate function
             def update(i):

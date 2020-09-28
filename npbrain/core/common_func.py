@@ -5,6 +5,12 @@ import inspect
 from .. import _numpy as bnp
 from ..utils.helper import Dict
 
+__all__ = [
+    'ModelDefError',
+    'BaseType',
+    'BaseGroup'
+]
+
 
 class ModelDefError(Exception):
     pass
@@ -17,7 +23,11 @@ _syn_no = 0
 class BaseType(object):
     """The base type of neurons and synapses."""
 
-    def __init__(self, create_func, name=None, type_='neu'):
+    def __init__(self, create_func, name=None, group_based=True, type_='neu'):
+        # type
+        # -----
+        self.group_based = group_based
+
         # name
         # -----
         if name is None:
@@ -36,18 +46,15 @@ class BaseType(object):
 
         # create_func
         # ------------
-        self.create_func = create_func
-
-        # check "create_func"
         try:
             func_return = create_func()
         except TypeError as e:
             raise ModelDefError(f'Arguments in "{create_func.__name__}" must provide default values.')
-
         if not isinstance(func_return, dict):
             raise ModelDefError('"create_func" must return a dict.')
         assert 'variables' in func_return, 'Keyword "variables" must be defined in the return dictionary.'
         assert 'step_funcs' in func_return, 'Keyword "step_funcs" must be defined in the return dictionary.'
+        self.create_func = create_func
 
         # parameters
         # ------------
@@ -56,7 +63,7 @@ class BaseType(object):
 
         # variables
         # ----------
-        variables = func_return[0]
+        variables = func_return['variables']
         if variables is None:
             variables = Dict()
         elif isinstance(variables, (list, tuple)):
@@ -64,21 +71,31 @@ class BaseType(object):
         elif isinstance(variables, dict):
             variables = Dict(variables)
         else:
-            raise ValueError('Unknown variables type: {}'.format(type(variables)))
+            raise ValueError(f'Unknown variables type: {type(variables)}.')
         self.variables = variables
 
-        # monitors
-        # --------
-        self._mon_vars = []
-        self.mon = Dict()
-        self.num = 0
+        # step functions
+        # --------------
+        step_funcs = func_return['step_funcs']
+        if callable(step_funcs):
+            step_funcs = [step_funcs]
+        elif isinstance(step_funcs, (list, tuple)):
+            step_funcs = list(step_funcs)
+        else:
+            raise ValueError('"step_funcs" must be a callable, or a list/tuple of callable functions.')
+        self.step_funcs = step_funcs
 
     def __str__(self):
         return f'{self.name}'
 
+
+class BaseGroup(object):
+    __slots__ = ['_mon_vars', 'mon', 'num']
+
     def init_monitor(self, length):
         for k in self._mon_vars:
             self.mon[k] = bnp.zeros((length, self.num), dtype=bnp.float_)
+
 
 
 def judge_spike(t, vth, S, k):
@@ -108,10 +125,3 @@ def judge_spike(t, vth, S, k):
     S['sp_time'][spike_idx] = t
     return spike_idx
 
-
-def numbify_spike_judger(func):
-    pass
-
-
-def numbify_func(func):
-    pass

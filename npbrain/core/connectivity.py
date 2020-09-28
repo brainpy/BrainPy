@@ -18,11 +18,15 @@ __all__ = [
     'post2pre',
     'pre2syn',
     'post2syn',
+
+    # conn abstract
+    'Connector',
+
     # conn methods
-    'one2one', 'One2One',
-    'all2all', 'All2All',
-    'grid_four', 'GridFour',
-    'grid_eight', 'GridEight',
+    'One2One', 'one2one',
+    'All2All', 'all2all',
+    'GridFour', 'grid_four',
+    'GridEight', 'grid_eight',
     'GridN',
     'FixedProb', 'FixedPreNum', 'FixedPostNum',
     'GaussianProb', 'GaussianWeight', 'DOG',
