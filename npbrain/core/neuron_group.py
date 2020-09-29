@@ -3,6 +3,7 @@
 from copy import deepcopy
 from collections import OrderedDict
 
+from .base import State
 from .base import BaseType
 from .base import BaseGroup
 from .. import _numpy as np

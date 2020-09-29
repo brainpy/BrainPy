@@ -6,7 +6,11 @@ from .. import _numpy as bnp
 from ..utils.helper import Dict
 
 __all__ = [
+    # errors
     'ModelDefError',
+    'StepFuncError',
+
+    # base types
     'BaseType',
     'BaseGroup'
 ]

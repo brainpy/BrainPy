@@ -342,33 +342,20 @@ class Network(object):
         return np.arange(0, self._run_time, profile.get_dt())
 
     def _add_obj(self, obj):
-        if isinstance(obj, Neurons):
+        if isinstance(obj, NeuGroup):
             self.neu_groups.append(obj)
-        elif isinstance(obj, Synapses):
+        elif isinstance(obj, SynConn):
             self.syn_conns.append(obj)
-        elif isinstance(obj, StateMonitor):
-            self.state_monitors.append(obj)
-        elif isinstance(obj, SpikeMonitor):
-            self.spike_monitors.append(obj)
         else:
             raise ValueError('Unknown object type: {}'.format(type(obj)))
         self.objects.append(obj)
 
-    def _check_run_order(self):
-        for obj in self.objects:
-            if isinstance(obj, Synapses):
-                syn_order = self.objects.index(obj)
-                pre_neu_order = self.objects.index(obj.pre)
-                post_neu_order = self.objects.index(obj.post)
-                if syn_order > post_neu_order or syn_order > pre_neu_order:
-                    raise ValueError('SynConn "{}" must run before than the '
-                                     'pre-/post-synaptic neurons.'.format(obj))
 
     def _format_inputs_and_receiver(self, inputs, duration):
         dt = profile.get_dt()
         # format inputs and receivers
         if len(inputs) > 1 and not isinstance(inputs[0], (list, tuple)):
-            if isinstance(inputs[0], Neurons):
+            if isinstance(inputs[0], NeuGroup):
                 inputs = [inputs]
             else:
                 raise ValueError('Unknown input structure.')
@@ -395,7 +382,7 @@ class Network(object):
                     obj = self._objsets[obj]
                 except:
                     raise ValueError(err.format(obj))
-            assert isinstance(obj, Neurons), "You can assign inputs only for Neurons."
+            assert isinstance(obj, NeuGroup), "You can assign inputs only for Neurons."
             assert obj in self.objects, err.format(obj)
             assert len(dur) == 2, "Must provide the start and the end simulation time."
             assert 0 <= dur[0] < dur[1] <= duration
