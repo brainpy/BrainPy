@@ -5,7 +5,7 @@ import time
 from pprint import pprint
 
 from .neuron_group import NeuGroup
-from .synapse_cennection import SynConn
+from .synapse_connection import SynConn
 from .. import _numpy as np
 from .. import profile
 from ..utils import helper
@@ -154,7 +154,7 @@ class Network(object):
 
         # update `dalay_idx` and `output_idx`
         for oi, syn in enumerate(self.syn_conns):
-            if syn.delay_len <= 1:
+            if syn.dlen <= 1:
                 continue
             step_func_str += '\n\t{syn}.var2index["g_in"] = ({syn}.var2index["g_in"] + 1) % ' \
                              '{syn}.delay_len'.format(syn='syn' + str(oi))

@@ -2,7 +2,7 @@
 
 from npbrain import _numpy as np
 
-from npbrain.core.synapse_cennection import *
+from npbrain.core.synapse_connection import *
 
 __all__ = [
     'VoltageJumpSynapse',

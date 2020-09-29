@@ -13,7 +13,7 @@ synapses, etc.
 
 from npbrain.core.network import *
 from npbrain.core.neuron_group import *
-from npbrain.core.synapse_cennection import *
+from npbrain.core.synapse_connection import *
 from npbrain.core.integrator import *
 
 
