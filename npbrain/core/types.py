@@ -20,6 +20,8 @@ __all__ = [
     'Array',
     'Int',
     'Float',
+    'List',
+    'Dict',
 ]
 
 
