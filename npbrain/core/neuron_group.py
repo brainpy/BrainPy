@@ -121,47 +121,34 @@ class NeuGroup(BaseEnsemble):
             attr_item = key.split('.')
 
             # get the left side #
-            if len(attr_item) == 1:
-                item, attr = attr_item[0], ''
+            if len(attr_item) == 1 and (attr_item[0] not in self.ST):  # if "item" is the model attribute
+                attr, item = attr_item[0], ''
+                assert hasattr(self, attr), f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
+                                            f'and "{self.name}.ST" doesn\'t have "{attr}" field.'
+                assert isinstance(getattr(self, attr), np.ndarray), f'NumpyBrain only support input to arrays.'
 
-                # if "item" is a field of "ST"
-                if item in self.ST:
-                    attr = 'ST'
-                    if profile.is_numpy_bk():
-                        left = f'{self.name}.ST["{item}"]'
-                    else:
-                        idx = self.ST['_var2idx'][item]
-                        left = f'{self.name}_ST[{idx}]'
-                        code_args.add(f'{self.name}_ST')
-                        code_arg2call[f'{self.name}_ST'] = f'{self.name}.ST["_data"]'
-
-                # if "item" is the model attribute
+                if profile.is_numpy_bk():
+                    left = f'{self.name}.{attr}'
                 else:
-                    attr, item = item, ''
-                    assert hasattr(self, attr), f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
-                                                f'and "{self.name}.ST" doesn\'t have "{attr}" field.'
-                    assert isinstance(getattr(self, attr), np.ndarray), f'NumpyBrain only support input to arrays.'
-
-                    if profile.is_numpy_bk():
-                        left = f'{self.name}.{attr}'
-                    else:
-                        left = f'{self.name}_{attr}'
-                        code_args.add(left)
-                        code_arg2call[left] = f'{self.name}.{attr}'
-
-            elif len(attr_item) == 2:
-                attr, item = attr_item[0], attr_item[1]
+                    left = f'{self.name}_{attr}'
+                    code_args.add(left)
+                    code_arg2call[left] = f'{self.name}.{attr}'
+            else:
+                if len(attr_item) == 1:
+                    attr, item = 'ST', attr_item[0]
+                elif len(attr_item) == 2:
+                    attr, item = attr_item[0], attr_item[1]
+                else:
+                    raise ValueError(f'Unknown target : {key}.')
                 assert item in getattr(self, attr), f'"{self.name}.{attr}" doesn\'t have "{item}" field.'
+
                 if profile.is_numpy_bk():
                     left = f'{self.name}.{attr}["{item}"]'
                 else:
                     idx = getattr(self, attr)['_var2idx'][item]
-                    left = f'{self.name}_{attr}[{idx}]'
+                    left = f'{self.name}_{attr}{idx}]'
                     code_args.add(f'{self.name}_{attr}')
                     code_arg2call[f'{self.name}_{attr}'] = f'{self.name}.{attr}["_data"]'
-
-            else:
-                raise ValueError(f'Unknown target : {key}.')
 
             # get the right side #
             right = f'{self.name}_input{input_idx}_{attr}_{item}_{ops2str[ops]}'
@@ -176,7 +163,12 @@ class NeuGroup(BaseEnsemble):
             else:
                 code_lines.append(left + f" {ops}= " + right)
 
-        print("code_scope: ", code_scope)
-        print("code_args: ", code_args)
-        print("code_arg2call: ", code_arg2call)
-        print('\n'.join(code_lines))
+        from pprint import pprint
+
+        print("code_scope: ")
+        pprint(code_scope)
+        print("code_args: ")
+        pprint(code_args)
+        print("code_arg2call: ")
+        pprint(code_arg2call)
+        pprint('\n'.join(code_lines))

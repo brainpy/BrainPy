@@ -214,10 +214,24 @@ class BaseEnsemble(object):
         # monitors
         # ---------
         self.mon = helper.Dict()
-        self._mon_vars = monitors
+        self._mon_vars = []
         if monitors is not None:
-            for k in monitors:
-                self.mon[k] = np.empty((1, 1), dtype=np.float_)
+            if isinstance(monitors, (list, tuple)):
+                for var in monitors:
+                    if isinstance(var, str):
+                        self._mon_vars.append((var, None))
+                        self.mon[var] = np.empty((1, 1), dtype=np.float_)
+                    elif isinstance(var, (tuple, list)):
+                        self._mon_vars.append((var[0], var[1]))
+                        self.mon[var[0]] = np.empty((1, 1), dtype=np.float_)
+                    else:
+                        raise ValueError(f'Unknown monitor item: {str(var)}')
+            elif isinstance(monitors, dict):
+                for k, v in monitors.items():
+                    self._mon_vars.append((k, v))
+                    self.mon[k] = np.empty((1, 1), dtype=np.float_)
+            else:
+                raise TypeError(f'Unknown monitors type: {type(monitors)}')
 
     def _type_checking(self):
         # check attribute and its type
@@ -243,111 +257,107 @@ class BaseEnsemble(object):
 
     def _add_monitor(self, run_length):
         code_scope = {self.name: self}
-        code_args, code_arg2call = set(), {}
+        code_args, code_arg2call = set(('i', )), {'i': 'i'}
         code_lines = []
-
         idx_no = 0
 
         for key, indices in self._mon_vars:
+            # check indices
+            if indices is not None:
+                if isinstance(indices, list):
+                    assert isinstance(indices[0], int), 'Monitor index only supports list [int] or 1D array.'
+                elif isinstance(indices, np.ndarray):
+                    assert np.ndim(indices) == 1, 'Monitor index only supports list [int] or 1D array.'
+                else:
+                    raise ValueError(f'Unknown monitor index type: {type(indices)}.')
+
             attr_item = key.split('.')
 
-            # get the left side #
-            if len(attr_item) == 1:
-                item, attr = attr_item[0], ''
+            # get the code line #
+            if (len(attr_item) == 1) and (attr_item[0] not in getattr(self, 'ST')):
+                attr = attr_item[0]
+                assert hasattr(self, attr), f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
+                                            f'and "{self.name}.ST" doesn\'t have "{attr}" field.'
+                assert isinstance(getattr(self, attr), np.ndarray), \
+                    f'NumpyBrain only support monitor of arrays.'
+                shape = getattr(self, attr).shape
 
-                # if "item" is a field of "ST"
-                if item in self.ST:
-                    attr = 'ST'
-                    shape = self.ST[key].shape
-
-                    if profile.is_numpy_bk():
-                        if indices is None:
-                            line = f'{self.name}.mon["{key}"][i] = self.ST["{item}"]'
-                        else:
-                            idx_name = f'{self.name}_idx{idx_no}_ST_{item}'
-                            line = f'{self.name}.mon["{key}"][i][{idx_name}] = self.ST["{item}"][{idx_name}]'
-                            idx_no += 1
-                            code_scope[idx_name] = indices
-                    else:
-                        idx = self.ST['_var2idx'][item]
-                        mon_name = f'{self.name}_mon_ST_{item}'
-                        target_name = f'{self.name}_ST'
-                        if indices is None:
-                            line = f'{mon_name}[i] = {self.name}_ST[{idx}]'
-                        else:
-                            idx_name = f'{self.name}_idx{idx_no}_ST_{item}'
-                            line = f'for _mi_, _ti_ in enumerate({idx_name}): ' \
-                                   f'{mon_name}[i, _mi_] = {self.name}_ST[{idx}, _ti_]'
-                            idx_no += 1
-                            code_scope[idx_name] = indices
-                        code_args.add(mon_name)
-                        code_arg2call[mon_name] = f'{self.name}.mon["{key}"]'
-                        code_args.add(target_name)
-                        code_arg2call[target_name] = f'{self.name}.ST["_data"]'
-
-                # if "item" is the model attribute
-                else:
-                    attr, item = item, ''
-                    assert hasattr(self, attr), f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
-                                                f'and "{self.name}.ST" doesn\'t have "{attr}" field.'
-                    assert isinstance(getattr(self, attr), np.ndarray), f'NumpyBrain only support monitor of arrays.'
-
-                    if profile.is_numpy_bk():
-                        if indices is None:
-                            pass
-
-                        else:
-                            pass
-
-                    else:
-                        if indices is None:
-                            pass
-                        else:
-                            pass
-
-            elif len(attr_item) == 2:
-                attr, item = attr_item[0], attr_item[1]
-                assert item in getattr(self, attr), f'"{self.name}.{attr}" doesn\'t have "{item}" field.'
-
+                idx_name = f'{self.name}_idx{idx_no}_{attr}'
                 if profile.is_numpy_bk():
                     if indices is None:
-                        pass
-
+                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}'
                     else:
-                        pass
+                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}[{idx_name}]'
+                        code_scope[idx_name] = indices
+                        idx_no += 1
 
                 else:
+                    mon_name = f'{self.name}_mon_{attr}'
+                    target_name = f'{self.name}_{attr}'
                     if indices is None:
-                        pass
+                        line = f'{mon_name}[i] = {target_name}'
                     else:
-                        pass
-
+                        line = f'{mon_name}[i] = {target_name}[{idx_name}]'
+                        code_scope[idx_name] = indices
+                        idx_no += 1
+                    code_args.add(mon_name)
+                    code_arg2call[mon_name] = f'{self.name}.mon["{key}"]'
+                    code_args.add(target_name)
+                    code_arg2call[target_name] = f'{self.name}.{attr}'
             else:
-                raise ValueError(f'Unknown target : {key}.')
+                if len(attr_item) == 1:
+                    item, attr = attr_item[0], 'ST'
+                elif len(attr_item) == 2:
+                    attr, item = attr_item
+                else:
+                    raise ValueError(f'Unknown target : {key}.')
 
-            self.mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
+                shape = getattr(self, attr)[item].shape
 
-        #     if len(vs) == 1:
-        #         assert k in self.ST, f'"{k}" isn\'t in ST.'
-        #         shape = self.ST[k].shape
-        #         code = 'self.mon[k][i] = self.ST[k]'
-        #     elif len(vs) == 2:
-        #         attr_name, k = vs
-        #         try:
-        #             attr = getattr(self, attr_name)
-        #         except AttributeError:
-        #             raise AttributeError(f'"{self.name}" does\'t have "{attr_name}" attribute.')
-        #         assert isinstance(attr, ObjState), f'We can only monitor the field of "ObjState".'
-        #         assert k in attr, f'"{k}" isn\'t in "{attr_name}".'
-        #         shape = attr_name[k].shape
-        #         code = f'self.mon[k][i] = self.{attr_name}[k]'
-        #     else:
-        #         raise KeyError(f'Unknown variable "{k}" to monitor.')
-        #
-        #     self.mon[k] = np.zeros((run_length,) + shape, dtype=np.float_)
-        #     mon_codes.append(code)
-        # print('\n\t'.join(mon_codes))
-        # print(mon_codes)
+                idx_name = f'{self.name}_idx{idx_no}_{attr}_{item}'
+                if profile.is_numpy_bk():
+                    if indices is None:
+                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}["{item}"]'
+                    else:
+                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}["{item}"][{idx_name}]'
+                        code_scope[idx_name] = indices
+                        idx_no += 1
+                else:
+                    idx = getattr(self, attr)['_var2idx'][item]
+                    mon_name = f'{self.name}_mon_{attr}_{item}'
+                    target_name = f'{self.name}_{attr}'
+                    if indices is None:
+                        line = f'{mon_name}[i] = {target_name}[{idx}]'
+                    else:
+                        line = f'{mon_name}[i] = {target_name}[{idx}][{idx_name}]'
+                        code_scope[idx_name] = indices
+                        idx_no += 1
+                    code_args.add(mon_name)
+                    code_arg2call[mon_name] = f'{self.name}.mon["{key}"]'
+                    code_args.add(target_name)
+                    code_arg2call[target_name] = f'{self.name}.{attr}["_data"]'
+
+            # initialize monitor array
+            if indices is None:
+                self.mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
+            else:
+                self.mon[key] = np.zeros((run_length, len(indices)) + shape[1:], dtype=np.float_)
+
+            code_lines.append(line)
+
+
+        from pprint import pprint
+        if profile.is_numpy_bk():
+            code_lines.insert(0, f'\ndef step_monitor({", ".join(code_args)}):')
+            pprint('\n\t'.join(code_lines))
+        else:
+            pprint('\n'.join(code_lines))
+        print("code_scope: ")
+        pprint(code_scope, indent=5)
+        print("code_args: ")
+        pprint(code_args, indent=5)
+        print("code_arg2call: ")
+        pprint(code_arg2call, indent=5)
 
     def _merge_step_func(self, run_length):
         self._add_monitor(run_length)
