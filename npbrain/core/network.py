@@ -72,6 +72,9 @@ class Network(object):
                 raise ValueError(f'Invalid name "{name}", which is a keyword of "Network".')
             setattr(self, name, obj)
 
+    def _check_ensemble_names(self):
+        pass
+
     @staticmethod
     def _get_args(func):
         if hasattr(func, 'py_func'):

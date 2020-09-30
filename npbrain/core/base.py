@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import inspect
+from copy import deepcopy
 
+from .. import profile
 from .types import TypeChecker
 from .types import ObjState
-from .. import _numpy as bnp
+from .. import _numpy as np
+from ..utils import helper
 
 __all__ = [
     # errors
@@ -130,9 +133,118 @@ class BaseType(object):
 
 
 class BaseEnsemble(object):
-    __slots__ = ['model', '_mon_vars', 'mon', 'num', 'step_funcs', 'ST', 'name']
 
-    def init_monitor(self, length):
+    def __init__(self, model, name, num, pars_update, vars_init, monitors):
+        # model
+        # -----
+        self.model = model
+
+        # name
+        # ----
+        self.name = name
+        if not self.name.isidentifier():
+            raise ValueError(f'"{self.name}" isn\'t a valid identifier according to Python '
+                             f'language definition. Please choose another name.')
+
+        # num
+        # ---
+        self.num = num
+
+        # parameters
+        # ----------
+        pars_update = dict() if pars_update is None else pars_update
+        assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
+        parameters = deepcopy(self.model.parameters)
+        for k, v in pars_update:
+            val_size = np.size(v)
+            if val_size != 1:
+                if val_size != num:
+                    raise ValueError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
+                                     f'and "{val_size}" != {num}.')
+            parameters[k] = v
+        self.pars_update = parameters
+        if profile.is_numba_bk():
+            import numba as nb
+            max_size = max([np.size(v) for v in parameters.values()])
+            if max_size > 1:
+                self.PA = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
+                for k, v in parameters.items():
+                    self.PA[k] = np.ones(self.num, dtype=np.float_) * v
+            else:
+                self.PA = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_)
+                for k, v in parameters.items():
+                    self.PA[k] = v
+        else:
+            self.PA = parameters
+
+        # variables
+        # ---------
+        vars_init = dict() if vars_init is None else vars_init
+        assert isinstance(vars_init, dict), '"vars_init" must be a dict.'
+        variables = deepcopy(self.model.variables)
+        for k, v in vars_init:
+            if k not in self.model.variables:
+                raise KeyError(f'variable "{k}" is not defined in "{self.model.name}".')
+            variables[k] = v
+        self.vars_init = vars_init
+
+        # step functions
+        # ---------------
+        if profile.is_numpy_bk():
+            func_return = self.model.create_func(**pars_update)
+            step_funcs = func_return['step_funcs']
+            if callable(step_funcs):
+                step_funcs = [step_funcs, ]
+            elif isinstance(step_funcs, (tuple, list)):
+                step_funcs = list(step_funcs)
+            else:
+                raise ValueError('"step_funcs" must be a callable, or a list/tuple of callable functions.')
+            self.step_funcs = step_funcs
+
+        elif profile.is_numba_bk():
+            raise NotImplementedError
+
+        else:
+            raise NotImplementedError
+
+        for func in step_funcs:
+            func_name = func.__name__
+            setattr(self, func_name, func)
+
+        # monitors
+        # ---------
+        self.mon = helper.Dict()
+        self._mon_vars = monitors
+        if monitors is not None:
+            for k in monitors:
+                self.mon[k] = np.empty((1, 1), dtype=np.float_)
+
+    def _type_checking(self):
+        # check attribute and its type
+        for key, type_checker in self.model.attributes.items():
+            if not hasattr(self, key):
+                raise AttributeError(f'"{self.name}" doesn\'t have "{key}" attribute.')
+            if not type_checker.check(getattr(self, key)):
+                raise TypeError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
+
+        # get function arguments
+        step_func_args = []
+        for func in self.step_funcs:
+            args = [arg for arg in inspect.getfullargspec(func).args if arg != 'self']
+            step_func_args.extend(args)
+
+        # check step function arguments
+        for i, args in enumerate(step_func_args):
+            for arg in args:
+                # Or, check "not (arg in ['ST', 't', 'i', 'din', 'dout', 'self'])"
+                if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
+                    raise AttributeError(f'Function "{self.step_funcs[i].__name__}" in "{self.name}" requires '
+                                         f'"{arg}" as argument, but "{arg}" is not defined in this model.')
+
+
+    def _init_monitor(self, run_length):
+        self._type_checking()
+
         mon_codes = []
         mon_scope = {'self': self}
         for k in self._mon_vars:
@@ -154,37 +266,44 @@ class BaseEnsemble(object):
             else:
                 raise KeyError(f'Unknown variable "{k}" to monitor.')
 
-            self.mon[k] = bnp.zeros((length,) + shape, dtype=bnp.float_)
+            self.mon[k] = np.zeros((run_length,) + shape, dtype=np.float_)
             mon_codes.append(code)
         print('\n\t'.join(mon_codes))
         print(mon_codes)
 
         return mon_scope, mon_codes
 
-    def get_func_call(self):
-        pass
+    def _merge_step_funcs(self, run_length):
+        self._init_monitor(run_length)
 
-    def type_checking(self):
-        # check attribute and its type
-        for key, type_checker in self.model.attributes.items():
-            if not hasattr(self, key):
-                raise AttributeError(f'"{self.name}" doesn\'t have "{key}" attribute.')
-            if not type_checker.check(getattr(self, key)):
-                raise TypeError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
+        if profile.is_numpy_bk():
+            pass
 
-        # get function arguments
-        step_func_args = []
+        else:
+            raise NotImplementedError
+
+    def _get_step_calls(self, run_length):
+        step_scope = dict()
+        step_codes = []
         for func in self.step_funcs:
-            args = [arg for arg in inspect.getfullargspec(func).args if arg != 'self']
-            step_func_args.extend(args)
-
-        # check step function arguments
-        for i, args in enumerate(step_func_args):
+            func_name = func.__name__
+            args = inspect.getfullargspec(func).args
+            arg_code = ''
             for arg in args:
-                # if not (arg in ['ST', 't', 'i', 'din', 'dout', 'self']) and not hasattr(self, arg):
-                if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
-                    raise AttributeError(f'Function "{self.step_funcs[i].__name__}" in "{self.name}" requires '
-                                         f'"{arg}" as argument, but "{arg}" is not defined in this model.')
+                if arg == 'self':
+                    pass
+                elif arg in ['t', 'i']:
+                    arg_code += f'{args}, '
+                else:
+                    if isinstance(getattr(self, arg), ObjState):
+                        arg_code += f'{self.name}.{arg}["_data"], '
+                    else:
+                        arg_code += f'{self.name}.{arg}, '
+            code = f'{self.name}.{func_name}({arg_code[:-2]})'
+            step_codes.append(code)
+        step_scope[self.name] = self
+
+        return step_codes, step_scope
 
     def change_ST(self, new_ST):
         type_checker = self.model.attributes['ST']
