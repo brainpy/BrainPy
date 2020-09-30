@@ -45,37 +45,25 @@ class ObjState(dict, TypeChecker):
         self._values = list(variables.values())
         self._vars = variables
 
-    def __call__(self, size=None):
-        if size is None:  # single-neuron level
-            assert profile.is_numpy_bk(), '"size" cannot be None.'
-            state = {k: v for k, v in self._vars.items()}
+    def __call__(self, size):
+        if isinstance(size, int):
+            size = (size,)
+        elif isinstance(size, (tuple, list)):
+            size = tuple(size)
+        else:
+            raise ValueError(f'Unknown size type: {type(size)}.')
 
-        else:  # neuron-group level
-            if isinstance(size, int):
-                size = (size,)
-            elif isinstance(size, (tuple, list)):
-                size = tuple(size)
-            else:
-                raise ValueError(f'Unknown size type: {type(size)}.')
-
-            if profile.is_numpy_bk():
-                state = {k: bnp.ones(size, dtype=bnp.float_) * v for k, v in self._vars.items()}
-
-            elif profile.is_numba_bk():
-                data = bnp.zeros((len(self._vars),) + size, dtype=bnp.float_)
-                var2idx = dict()
-                idx2var = dict()
-                state = dict()
-                for i, k in enumerate(self._keys):
-                    state[k] = data[i]
-                    var2idx[k] = i
-                    idx2var[i] = k
-                state['_data'] = data
-                state['_var2idx'] = var2idx
-                state['_idx2var'] = idx2var
-
-            else:
-                raise NotImplementedError
+        data = bnp.zeros((len(self._vars),) + size, dtype=bnp.float_)
+        var2idx = dict()
+        idx2var = dict()
+        state = dict()
+        for i, k in enumerate(self._keys):
+            state[k] = data[i]
+            var2idx[k] = i
+            idx2var[i] = k
+        state['_data'] = data
+        state['_var2idx'] = var2idx
+        state['_idx2var'] = idx2var
 
         super(ObjState, self).__init__(state)
 
@@ -83,15 +71,16 @@ class ObjState(dict, TypeChecker):
 
     def __setitem__(self, key, val):
         if key in self._vars:
-            key_val = self.__getitem__(key)
-            if isinstance(key_val, bnp.ndarray):
-                key_val[:] = val
-            else:
-                super(ObjState, self).__setitem__(key, val)
+            data = self.__getitem__('_data')
+            _var2idx = self.__getitem__('_var2idx')
+            data[_var2idx[key]] = val
         elif key in ['_data', '_var2idx', '_idx2var']:
             raise KeyError(f'"{key}" cannot be modified.')
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
+
+    def extract_be_index(self, idx):
+        return {v: self.__getitem__(v)[idx] for v in self._vars}
 
     def check(self, cls):
         if not isinstance(cls, ObjState):
