@@ -39,7 +39,7 @@ class BaseType(object):
      - a1 = av1
      - a2 = av2
      - ...
-    - step_funcs = a_list  (collection of the step functions)
+    - step_func = a_list  (collection of the step functions)
      - f1 = callable
      - f2 = callable
      - ...
@@ -87,8 +87,8 @@ class BaseType(object):
             raise ModelDefError('"create_func" must return a dict.')
         assert 'attrs' in func_return, \
             '"attrs" (specify variables the model need) must be defined in the return.'
-        assert 'steps' in func_return, \
-            '"steps" (step functions at each time step) must be defined in the return.'
+        assert 'step_func' in func_return, \
+            '"step_func" (step functions at each time step) must be defined in the return.'
         self.create_func = create_func
         self.func_return = func_return
 
@@ -113,19 +113,19 @@ class BaseType(object):
 
         # step functions
         # --------------
-        step_funcs = func_return['step_funcs']
-        if callable(step_funcs):
-            step_funcs = [step_funcs]
-        elif isinstance(step_funcs, (list, tuple)):
-            step_funcs = list(step_funcs)
+        step_func = func_return['step_func']
+        if callable(step_func):
+            step_func = [step_func]
+        elif isinstance(step_func, (list, tuple)):
+            step_func = list(step_func)
         else:
-            raise ValueError('"step_funcs" must be a callable, or a list/tuple of callable functions.')
-        self.step_funcs, self.step_names = [], []
-        for func in step_funcs:
-            assert callable(func), '"step_funcs" must be a list/tuple of callable functions.'
+            raise ValueError('"step_func" must be a callable, or a list/tuple of callable functions.')
+        self.step_func, self.step_names = [], []
+        for func in step_func:
+            assert callable(func), '"step_func" must be a list/tuple of callable functions.'
             func_name = func.__name__
             self.step_names.append(func_name)
-            self.step_funcs.append(func)
+            self.step_func.append(func)
             setattr(self, func_name, func)
 
     def __str__(self):
@@ -167,11 +167,11 @@ class BaseEnsemble(object):
             import numba as nb
             max_size = max([np.size(v) for v in parameters.values()])
             if max_size > 1:
-                self.PA = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
+                self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
                 for k, v in parameters.items():
                     self.PA[k] = np.ones(self.num, dtype=np.float_) * v
             else:
-                self.PA = nb.typed.Dict(key_type=nb.types.unicode_type, value_type=nb.types.float_)
+                self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_)
                 for k, v in parameters.items():
                     self.PA[k] = v
         else:
@@ -186,20 +186,20 @@ class BaseEnsemble(object):
             if k not in self.model.variables:
                 raise KeyError(f'variable "{k}" is not defined in "{self.model.name}".')
             variables[k] = v
-        self.vars_init = vars_init
+        self.vars_init = variables
 
         # step functions
         # ---------------
         if profile.is_numpy_bk():
             func_return = self.model.create_func(**pars_update)
-            step_funcs = func_return['step_funcs']
-            if callable(step_funcs):
-                step_funcs = [step_funcs, ]
-            elif isinstance(step_funcs, (tuple, list)):
-                step_funcs = list(step_funcs)
+            step_func = func_return['step_func']
+            if callable(step_func):
+                step_func = [step_func, ]
+            elif isinstance(step_func, (tuple, list)):
+                step_func = list(step_func)
             else:
-                raise ValueError('"step_funcs" must be a callable, or a list/tuple of callable functions.')
-            self.step_funcs = step_funcs
+                raise ValueError('"step_func" must be a callable, or a list/tuple of callable functions.')
+            self.step_func = step_func
 
         elif profile.is_numba_bk():
             raise NotImplementedError
@@ -207,7 +207,7 @@ class BaseEnsemble(object):
         else:
             raise NotImplementedError
 
-        for func in step_funcs:
+        for func in step_func:
             func_name = func.__name__
             setattr(self, func_name, func)
 
@@ -229,7 +229,7 @@ class BaseEnsemble(object):
 
         # get function arguments
         step_func_args = []
-        for func in self.step_funcs:
+        for func in self.step_func:
             args = [arg for arg in inspect.getfullargspec(func).args if arg != 'self']
             step_func_args.extend(args)
 
@@ -238,43 +238,119 @@ class BaseEnsemble(object):
             for arg in args:
                 # Or, check "not (arg in ['ST', 't', 'i', 'din', 'dout', 'self'])"
                 if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
-                    raise AttributeError(f'Function "{self.step_funcs[i].__name__}" in "{self.name}" requires '
+                    raise AttributeError(f'Function "{self.step_func[i].__name__}" in "{self.name}" requires '
                                          f'"{arg}" as argument, but "{arg}" is not defined in this model.')
 
+    def _add_monitor(self, run_length):
+        code_scope = {self.name: self}
+        code_args, code_arg2call = set(), {}
+        code_lines = []
 
-    def _init_monitor(self, run_length):
-        self._type_checking()
+        idx_no = 0
 
-        mon_codes = []
-        mon_scope = {'self': self}
-        for k in self._mon_vars:
-            vs = k.split('.')
-            if len(vs) == 1:
-                assert k in self.ST, f'"{k}" isn\'t in ST.'
-                shape = self.ST[k].shape
-                code = 'self.mon[k][i] = self.ST[k]'
-            elif len(vs) == 2:
-                attr_name, k = vs
-                try:
-                    attr = getattr(self, attr_name)
-                except AttributeError:
-                    raise AttributeError(f'"{self.name}" does\'t have "{attr_name}" attribute.')
-                assert isinstance(attr, ObjState), f'We can only monitor the field of "ObjState".'
-                assert k in attr, f'"{k}" isn\'t in "{attr_name}".'
-                shape = attr_name[k].shape
-                code = f'self.mon[k][i] = self.{attr_name}[k]'
+        for key, indices in self._mon_vars:
+            attr_item = key.split('.')
+
+            # get the left side #
+            if len(attr_item) == 1:
+                item, attr = attr_item[0], ''
+
+                # if "item" is a field of "ST"
+                if item in self.ST:
+                    attr = 'ST'
+                    shape = self.ST[key].shape
+
+                    if profile.is_numpy_bk():
+                        if indices is None:
+                            line = f'{self.name}.mon["{key}"][i] = self.ST["{item}"]'
+                        else:
+                            idx_name = f'{self.name}_idx{idx_no}_ST_{item}'
+                            line = f'{self.name}.mon["{key}"][i][{idx_name}] = self.ST["{item}"][{idx_name}]'
+                            idx_no += 1
+                            code_scope[idx_name] = indices
+                    else:
+                        idx = self.ST['_var2idx'][item]
+                        mon_name = f'{self.name}_mon_ST_{item}'
+                        target_name = f'{self.name}_ST'
+                        if indices is None:
+                            line = f'{mon_name}[i] = {self.name}_ST[{idx}]'
+                        else:
+                            idx_name = f'{self.name}_idx{idx_no}_ST_{item}'
+                            line = f'for _mi_, _ti_ in enumerate({idx_name}): ' \
+                                   f'{mon_name}[i, _mi_] = {self.name}_ST[{idx}, _ti_]'
+                            idx_no += 1
+                            code_scope[idx_name] = indices
+                        code_args.add(mon_name)
+                        code_arg2call[mon_name] = f'{self.name}.mon["{key}"]'
+                        code_args.add(target_name)
+                        code_arg2call[target_name] = f'{self.name}.ST["_data"]'
+
+                # if "item" is the model attribute
+                else:
+                    attr, item = item, ''
+                    assert hasattr(self, attr), f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
+                                                f'and "{self.name}.ST" doesn\'t have "{attr}" field.'
+                    assert isinstance(getattr(self, attr), np.ndarray), f'NumpyBrain only support monitor of arrays.'
+
+                    if profile.is_numpy_bk():
+                        if indices is None:
+                            pass
+
+                        else:
+                            pass
+
+                    else:
+                        if indices is None:
+                            pass
+                        else:
+                            pass
+
+            elif len(attr_item) == 2:
+                attr, item = attr_item[0], attr_item[1]
+                assert item in getattr(self, attr), f'"{self.name}.{attr}" doesn\'t have "{item}" field.'
+
+                if profile.is_numpy_bk():
+                    if indices is None:
+                        pass
+
+                    else:
+                        pass
+
+                else:
+                    if indices is None:
+                        pass
+                    else:
+                        pass
+
             else:
-                raise KeyError(f'Unknown variable "{k}" to monitor.')
+                raise ValueError(f'Unknown target : {key}.')
 
-            self.mon[k] = np.zeros((run_length,) + shape, dtype=np.float_)
-            mon_codes.append(code)
-        print('\n\t'.join(mon_codes))
-        print(mon_codes)
+            self.mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
 
-        return mon_scope, mon_codes
+        #     if len(vs) == 1:
+        #         assert k in self.ST, f'"{k}" isn\'t in ST.'
+        #         shape = self.ST[k].shape
+        #         code = 'self.mon[k][i] = self.ST[k]'
+        #     elif len(vs) == 2:
+        #         attr_name, k = vs
+        #         try:
+        #             attr = getattr(self, attr_name)
+        #         except AttributeError:
+        #             raise AttributeError(f'"{self.name}" does\'t have "{attr_name}" attribute.')
+        #         assert isinstance(attr, ObjState), f'We can only monitor the field of "ObjState".'
+        #         assert k in attr, f'"{k}" isn\'t in "{attr_name}".'
+        #         shape = attr_name[k].shape
+        #         code = f'self.mon[k][i] = self.{attr_name}[k]'
+        #     else:
+        #         raise KeyError(f'Unknown variable "{k}" to monitor.')
+        #
+        #     self.mon[k] = np.zeros((run_length,) + shape, dtype=np.float_)
+        #     mon_codes.append(code)
+        # print('\n\t'.join(mon_codes))
+        # print(mon_codes)
 
-    def _merge_step_funcs(self, run_length):
-        self._init_monitor(run_length)
+    def _merge_step_func(self, run_length):
+        self._add_monitor(run_length)
 
         if profile.is_numpy_bk():
             pass
@@ -285,7 +361,7 @@ class BaseEnsemble(object):
     def _get_step_calls(self, run_length):
         step_scope = dict()
         step_codes = []
-        for func in self.step_funcs:
+        for func in self.step_func:
             func_name = func.__name__
             args = inspect.getfullargspec(func).args
             arg_code = ''

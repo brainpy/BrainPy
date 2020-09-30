@@ -24,7 +24,7 @@ class NeuType(BaseType):
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(self, create_func, group_based=True, name=None):
+    def __init__(self, name, create_func, group_based=True):
         super(NeuType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_='neu')
 
 
@@ -74,13 +74,13 @@ class NeuGroup(BaseEnsemble):
 
         # model update schedule
         # ---------------------
-        self._schedule = ['input', 'step_funcs', 'monitor']
+        self._schedule = ['input', 'step_func', 'monitor']
 
     @property
     def _keywords(self):
         kws = ['model', 'num', 'geometry', 'ST', 'PA',
                'vars_init', 'pars_update',
-               'mon', '_mon_vars', 'step_funcs', '_schedule']
+               'mon', '_mon_vars', 'step_func', '_schedule']
         if hasattr(self, 'model'):
             return kws + self.model.step_names
         else:
@@ -92,18 +92,91 @@ class NeuGroup(BaseEnsemble):
                 raise KeyError(f'"{key}" is a keyword in NeuGroup, please change another name.')
         super(NeuGroup, self).__setattr__(key, value)
 
-    def _add_input(self, keys, values, types):
+    def _add_input(self, key_val_ops_types):
+        code_scope = {self.name: self}
+        code_args, code_arg2call = set(), {}
+        code_lines = []
+
+        # check datatype of the input
+        # ----------------------------
         has_iter = False
-        for t in types:
-            assert t in ['iter', 'fix'], 'Only support inputs with "iter" and "fix" types.'
+        for _, _, _, t in key_val_ops_types:
+            assert t in ['iter', 'fix'], 'Only support inputs of "iter" and "fix" types.'
             if t == 'iter':
                 has_iter = True
+        if has_iter:
+            code_args.add('i')
+            code_arg2call['i'] = 'i'
 
-        if profile.is_numpy_bk():
-            if has_iter:
-                code = '\ndef add_input(i):'
+        # check data operations
+        # ----------------------
+        for _, _, ops, _ in key_val_ops_types:
+            assert ops in ['-', '+', 'x', '/', '='], 'Only support five operations: +, -, x, /, ='
+        ops2str = {'-': 'sub', '+': 'add', 'x': 'mul', '/': 'div', '=': 'assign'}
+
+        # generate code of variable input
+        # --------------------------------
+        input_idx = 0
+        for key, val, ops, data_type in key_val_ops_types:
+            attr_item = key.split('.')
+
+            # get the left side #
+            if len(attr_item) == 1:
+                item, attr = attr_item[0], ''
+
+                # if "item" is a field of "ST"
+                if item in self.ST:
+                    attr = 'ST'
+                    if profile.is_numpy_bk():
+                        left = f'{self.name}.ST["{item}"]'
+                    else:
+                        idx = self.ST['_var2idx'][item]
+                        left = f'{self.name}_ST[{idx}]'
+                        code_args.add(f'{self.name}_ST')
+                        code_arg2call[f'{self.name}_ST'] = f'{self.name}.ST["_data"]'
+
+                # if "item" is the model attribute
+                else:
+                    attr, item = item, ''
+                    assert hasattr(self, attr), f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
+                                                f'and "{self.name}.ST" doesn\'t have "{attr}" field.'
+                    assert isinstance(getattr(self, attr), np.ndarray), f'NumpyBrain only support input to arrays.'
+
+                    if profile.is_numpy_bk():
+                        left = f'{self.name}.{attr}'
+                    else:
+                        left = f'{self.name}_{attr}'
+                        code_args.add(left)
+                        code_arg2call[left] = f'{self.name}.{attr}'
+
+            elif len(attr_item) == 2:
+                attr, item = attr_item[0], attr_item[1]
+                assert item in getattr(self, attr), f'"{self.name}.{attr}" doesn\'t have "{item}" field.'
+                if profile.is_numpy_bk():
+                    left = f'{self.name}.{attr}["{item}"]'
+                else:
+                    idx = getattr(self, attr)['_var2idx'][item]
+                    left = f'{self.name}_{attr}[{idx}]'
+                    code_args.add(f'{self.name}_{attr}')
+                    code_arg2call[f'{self.name}_{attr}'] = f'{self.name}.{attr}["_data"]'
+
             else:
-                code = '\ndef add_input():'
+                raise ValueError(f'Unknown target : {key}.')
 
+            # get the right side #
+            right = f'{self.name}_input{input_idx}_{attr}_{item}_{ops2str[ops]}'
+            code_scope[right] = val
+            if data_type == 'iter':
+                right = right + '[i]'
+            input_idx += 1
 
+            # final code line #
+            if ops == '=':
+                code_lines.append(left + " = " + right)
+            else:
+                code_lines.append(left + f" {ops}= " + right)
 
+        print("code_scope: ", code_scope)
+        print("code_args: ", code_args)
+        print("code_arg2call: ", code_arg2call)
+        print('\n'.join(code_lines))

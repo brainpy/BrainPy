@@ -24,7 +24,7 @@ class SynType(BaseType):
     It can be defined based on a collection of synapses or a single synapse model.
     """
 
-    def __init__(self, create_func, group_based=True, name=None):
+    def __init__(self, name, create_func, group_based=True):
         super(SynType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_='syn')
 
 
@@ -121,11 +121,11 @@ class SynConn(BaseEnsemble):
         # --
         self.ST = ObjState(self.vars_init)((delay_len, self.num))
 
-        self.step_funcs.append(self.update_delay_indices)
+        self.step_func.append(self.update_delay_indices)
 
         # model update schedule
         # ---------------------
-        self._schedule = ['step_funcs', 'monitor', 'delay_index']
+        self._schedule = ['step_func', 'monitor', 'delay_index']
 
     def update_delay_indices(self):
         # in_index
@@ -137,7 +137,7 @@ class SynConn(BaseEnsemble):
     def _keywords(self):
         kws = ['model', 'num', 'dlen', 'din', 'dout', 'ST', 'PA',
                'vars_init', 'pars_update',
-               'mon', '_mon_vars', 'step_funcs', '_schedule']
+               'mon', '_mon_vars', 'step_func', '_schedule']
         if hasattr(self, 'model'):
             return kws + self.model.step_names
         else:
