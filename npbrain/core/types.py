@@ -26,6 +26,9 @@ __all__ = [
 
 
 class TypeChecker(object):
+    def __init__(self, help):
+        self.help = help
+
     def check(self, cls):
         raise NotImplementedError
 
@@ -33,7 +36,8 @@ class TypeChecker(object):
 class ObjState(dict, TypeChecker):
     """Object State. """
 
-    def __init__(self, fields):
+    def __init__(self, fields, help=''):
+        TypeChecker.__init__(self, help=help)
         variables = dict()
         if isinstance(fields, (tuple, list)):
             variables.update({v: 0. for v in fields})
@@ -65,7 +69,7 @@ class ObjState(dict, TypeChecker):
         state['_var2idx'] = var2idx
         state['_idx2var'] = idx2var
 
-        super(ObjState, self).__init__(state)
+        dict.__init__(self, state)
 
         return self
 
@@ -94,8 +98,11 @@ class ObjState(dict, TypeChecker):
         return type(self).__name__ + f' ({str(self._keys)})'
 
 
-class _ListConn(TypeChecker):
+class ListConn(TypeChecker):
     """Synaptic connection with list type."""
+
+    def __init__(self, help=''):
+        super(ListConn, self).__init__(help=help)
 
     def check(self, cls):
         if profile.is_numba_bk():
@@ -107,11 +114,12 @@ class _ListConn(TypeChecker):
         return 'ListConn'
 
 
-ListConn = _ListConn()
 
-
-class _MatConn(TypeChecker):
+class MatConn(TypeChecker):
     """Synaptic connection with matrix (2d array) type."""
+
+    def __init__(self, help=''):
+        super(MatConn, self).__init__(help=help)
 
     def check(self, cls):
         return isinstance(cls, bnp.ndarray) and bnp.ndim(cls) == 2
@@ -120,10 +128,10 @@ class _MatConn(TypeChecker):
         return 'MatConn'
 
 
-MatConn = _MatConn()
-
-
 class ijConn(TypeChecker):
+    def __init__(self, help=''):
+        super(ijConn, self).__init__(help=help)
+
     def __str__(self):
         return 'ijConn'
 
@@ -131,8 +139,9 @@ class ijConn(TypeChecker):
 class Array(TypeChecker):
     """NumPy ndarray."""
 
-    def __init__(self, dim):
+    def __init__(self, dim, help=''):
         self.dim = dim
+        super(Array, self).__init__(help=help)
 
     def __call__(self, size):
         if isinstance(size, int):
@@ -148,7 +157,10 @@ class Array(TypeChecker):
         return type(self).__name__ + f' (dim={self.dim})'
 
 
-class _StringType(TypeChecker):
+class String(TypeChecker):
+    def __init__(self, help=''):
+        super(String, self).__init__(help=help)
+
     def check(self, cls):
         return isinstance(cls, str)
 
@@ -156,10 +168,12 @@ class _StringType(TypeChecker):
         return 'StringType'
 
 
-String = _StringType
 
 
-class _IntType(TypeChecker):
+class Int(TypeChecker):
+    def __init__(self, help=''):
+        super(Int, self).__init__(help=help)
+
     def check(self, cls):
         return isinstance(cls, int)
 
@@ -167,10 +181,12 @@ class _IntType(TypeChecker):
         return 'IntType'
 
 
-Int = _IntType()
 
 
-class _FloatType(TypeChecker):
+class Float(TypeChecker):
+    def __init__(self, help=''):
+        super(Float, self).__init__(help=help)
+
     def check(self, cls):
         return isinstance(cls, float)
 
@@ -178,16 +194,15 @@ class _FloatType(TypeChecker):
         return 'Floatype'
 
 
-Float = _FloatType()
-
-
 class List(TypeChecker):
-    def __init__(self, item_type=None):
+    def __init__(self, item_type=None, help=''):
         if item_type is None:
             self.item_type = None
         else:
             assert isinstance(item_type, TypeChecker), 'Must be a TypeChecker.'
             self.item_type = item_type
+
+        super(List, self).__init__(help=help)
 
     def check(self, cls):
         if profile.is_numba_bk():
@@ -207,13 +222,14 @@ class List(TypeChecker):
 
 
 class Dict(TypeChecker):
-    def __init__(self, key_type=String, item_type=None):
+    def __init__(self, key_type=String, item_type=None, help=''):
         if key_type is not None:
             assert isinstance(key_type, TypeChecker), 'Must be a TypeChecker.'
         self.key_type = key_type
         if item_type is not None:
             assert isinstance(item_type, TypeChecker), 'Must be a TypeChecker.'
         self.item_type = item_type
+        super(Dict, self).__init__(help=help)
 
     def check(self, cls):
         if profile.is_numba_bk():
@@ -236,3 +252,4 @@ class Dict(TypeChecker):
 
     def __str__(self):
         return type(self).__name__ + f'(key_type={str(self.key_type)}, item_type={str(self.item_type)})'
+
