@@ -84,8 +84,6 @@ class SynConn(BaseEnsemble):
 
             else:
                 assert num is not None, '"num" must be provided when "conn" are none.'
-                assert 0 < num, '"num" must be a positive number.'
-                num = num
 
             # essential
             # ---------
@@ -94,8 +92,7 @@ class SynConn(BaseEnsemble):
 
         else:
             assert num is not None, '"num" must be provided when "pre" and "post" are none.'
-            assert 0 < num, '"num" must be a positive number.'
-            num = num
+        assert 0 < num < 2**64, 'Total synapse number "num" must be a valid number in "uint64".'
 
         # delay
         # -------

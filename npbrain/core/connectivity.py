@@ -220,9 +220,9 @@ def pre2syn(i, j, num_pre):
         post2syn_list = nb.typed.List()
         for pre_i in range(num_pre):
             index = np.where(i == pre_i)[0]
-            l = nb.typed.List.empty_list(nb.types.int_)
+            l = nb.typed.List.empty_list(nb.types.uint64)
             for idx in index:
-                l.append(np.int_(idx))
+                l.append(np.uint64(idx))
             post2syn_list.append(l)
     else:
         post2syn_list = []
@@ -255,9 +255,9 @@ def post2syn(i, j, num_post):
         post2syn_list = nb.typed.List()
         for post_i in range(num_post):
             index = np.where(j == post_i)[0]
-            l = nb.typed.List.empty_list(nb.types.int_)
+            l = nb.typed.List.empty_list(nb.types.uint64)
             for idx in index:
-                l.append(np.int_(idx))
+                l.append(np.uint64(idx))
             post2syn_list.append(l)
     else:
         post2syn_list = []
