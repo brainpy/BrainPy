@@ -26,10 +26,6 @@ class Network(object):
 
     """
 
-    _keywords = ['neu_groups', 'syn_conns', '_objsets', 'objects',
-                 '_run_time', '_step', '_input', 'add', 'run', 'ts',
-                 '_neu_state_args', ]
-
     def __init__(self, *args, **kwargs):
         # store and neurons and synapses
         self.neu_groups = []
@@ -49,6 +45,12 @@ class Network(object):
         self._step = None
         self._input = None
         self._neu_state_args = None
+
+    @property
+    def _keywords(self):
+        return ['neu_groups', 'syn_conns', '_objsets', 'objects',
+                '_run_time', '_step', '_input', 'add', 'run', 'ts',
+                '_neu_state_args', ]
 
     def add(self, *args, **kwargs):
         """Add object (neurons or synapses or monitor) to the network.

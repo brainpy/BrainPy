@@ -33,9 +33,7 @@ class SynConn(BaseEnsemble):
 
     """
 
-    def __init__(self, model, delay=0.,
-                 pre_group=None, post_group=None, conn=None,
-                 num=None,
+    def __init__(self, model, delay=0., pre_group=None, post_group=None, conn=None, num=None,
                  monitors=None, vars_init=None, pars_update=None, name=None):
         assert isinstance(model, SynType), 'Must provide an instance of SynType class.'
 
@@ -121,10 +119,6 @@ class SynConn(BaseEnsemble):
         # --
         self.ST = ObjState(self.vars_init)((delay_len, self.num))
 
-        # model update schedule
-        # ---------------------
-        self._schedule = ['step_func', 'monitor']
-
     def delay_indices_step(self):
         # in_index
         self.din = (self.din + 1) % self.dlen
@@ -132,52 +126,10 @@ class SynConn(BaseEnsemble):
         self.dout = (self.dout + 1) % self.dlen
 
     def _merge_steps(self):
-        codes_of_calls = []  # call the compiled functions
-
-        self._type_checking()
-
-        lines, scopes, args, arg2calls = [], dict(), set(), dict()
-        for item in self._schedule:
-            if profile.is_numpy_bk():
-                if item == 'monitor':
-                    codes_of_calls.append(self._codegen[item]['calls'])
-                else:
-                    codes_of_calls.extend(self._codegen[item]['calls'])
-            else:
-                lines.extend(self._codegen[item]['codes'])
-                scopes.update(self._codegen[item]['scopes'])
-                args = args | self._codegen[item]['args']
-                arg2calls.update(self._codegen[item]['arg2calls'])
-
-        if not profile.is_numpy_bk():
-            args = list(args)
-            arg2calls_list = [arg2calls[arg] for arg in args]
-            lines.insert(0, f'\ndef merge_func({", ".join(args)})')
-            exec(compile('\n  '.join(lines), '', 'exec'), scopes)
-
-            self.merge_func = scopes['merge_func']
-            call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
-            codes_of_calls.append(call)
-
-            if profile.show_codgen:
-                print("\n" + '\n\t'.join(lines))
-                print("\n" + call)
-
+        codes_of_calls = super(SynConn, self)._merge_steps()
         codes_of_calls.append(f'{self.name}.delay_indices_step()')
         return codes_of_calls
 
     @property
     def _keywords(self):
         return super(SynConn, self)._keywords + ['dlen', 'din', 'dout', 'delay_indices_step']
-
-    def __setattr__(self, key, value):
-        if key in self._keywords:
-            if hasattr(self, key):
-                raise KeyError(f'"{key}" is a keyword in SynConn, please change another name.')
-        super(SynConn, self).__setattr__(key, value)
-
-    def set_schedule(self, schedule):
-        assert isinstance(schedule, (list, tuple)), '"schedule" must be a list/tuple.'
-        for s in schedule:
-            assert s in ['monitor', 'step_func'], 'Use can only schedule "monitor" and "step_func".'
-        super(SynConn, self).__setattr__('_schedule', schedule)

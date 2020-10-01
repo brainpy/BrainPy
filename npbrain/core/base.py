@@ -3,7 +3,6 @@
 import inspect
 from copy import deepcopy
 
-from .types import ObjState
 from .types import TypeChecker
 from .. import _numpy as np
 from .. import profile
@@ -133,12 +132,20 @@ class BaseType(object):
 
 
 class BaseEnsemble(object):
+    """Base Ensemble class.
+
+    Parameters
+    ----------
+    model : BaseType
+        The (neuron/synapse) model type.
+
+    """
 
     def __init__(self, model, name, num, pars_update, vars_init, monitors, cls_type):
         # class type
         # -----------
         assert cls_type in ['neu_group', 'syn_conn'], 'Only support "neu_group" and "syn_conn".'
-        self.cls_type = cls_type
+        self._cls_type = cls_type
 
         # model
         # -----
@@ -238,6 +245,10 @@ class BaseEnsemble(object):
         # -----------------------
         self._codegen = dict()
 
+        # model update schedule
+        # ---------------------
+        self._schedule = ['input'] + self.model.step_names + ['monitor']
+
     def _type_checking(self):
         # check attribute and its type
         for key, type_checker in self.model.attributes.items():
@@ -262,21 +273,115 @@ class BaseEnsemble(object):
 
     def _add_steps(self):
         if profile.is_numpy_bk():
-            func_calls = []
             for func in self.step_func:
                 func_name = func.__name__
                 setattr(self, func_name, func)
+
                 arg_calls = []
                 for arg in inspect.getfullargspec(func).args:
                     if arg != 'self':
                         arg_calls.append(f"{self.name}.{arg}")
                 func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
-                func_calls.append(func_call)
 
-            self._codegen['step_func'] = {'funcs': self.step_func, 'calls': func_calls}
+                self._codegen[func_name] = {'funcs': func, 'calls': func_call}
 
         else:
             raise NotImplementedError
+
+    def _add_input(self, key_val_ops_types):
+        code_scope, code_args, code_arg2call, code_lines = {}, set(), {}, []
+        input_idx = 0
+
+        # check datatype of the input
+        # ----------------------------
+        has_iter = False
+        for _, _, _, t in key_val_ops_types:
+            assert t in ['iter', 'fix'], 'Only support inputs of "iter" and "fix" types.'
+            if t == 'iter':
+                has_iter = True
+        if has_iter:
+            code_args.add('i')
+            code_arg2call['i'] = 'i'
+
+        # check data operations
+        # ----------------------
+        for _, _, ops, _ in key_val_ops_types:
+            assert ops in ['-', '+', 'x', '/', '='], 'Only support five operations: +, -, x, /, ='
+        ops2str = {'-': 'sub', '+': 'add', 'x': 'mul', '/': 'div', '=': 'assign'}
+
+        # generate code of input function
+        # --------------------------------
+        for key, val, ops, data_type in key_val_ops_types:
+            attr_item = key.split('.')
+
+            # get the left side #
+            if len(attr_item) == 1 and (attr_item[0] not in self.ST):  # if "item" is the model attribute
+                attr, item = attr_item[0], ''
+                assert hasattr(self, attr), f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
+                                            f'and "{self.name}.ST" doesn\'t have "{attr}" field.'
+                assert isinstance(getattr(self, attr), np.ndarray), f'NumpyBrain only support input to arrays.'
+
+                if profile.is_numpy_bk():
+                    left = f'{self.name}.{attr}'
+                else:
+                    left = f'{self.name}_{attr}'
+                    code_args.add(left)
+                    code_arg2call[left] = f'{self.name}.{attr}'
+            else:
+                if len(attr_item) == 1:
+                    attr, item = 'ST', attr_item[0]
+                elif len(attr_item) == 2:
+                    attr, item = attr_item[0], attr_item[1]
+                else:
+                    raise ValueError(f'Unknown target : {key}.')
+                assert item in getattr(self, attr), f'"{self.name}.{attr}" doesn\'t have "{item}" field.'
+
+                if profile.is_numpy_bk():
+                    left = f'{self.name}.{attr}["{item}"]'
+                else:
+                    idx = getattr(self, attr)['_var2idx'][item]
+                    left = f'{self.name}_{attr}{idx}]'
+                    code_args.add(f'{self.name}_{attr}')
+                    code_arg2call[f'{self.name}_{attr}'] = f'{self.name}.{attr}["_data"]'
+
+            # get the right side #
+            right = f'{self.name}_input{input_idx}_{attr}_{item}_{ops2str[ops]}'
+            code_scope[right] = val
+            if data_type == 'iter':
+                right = right + '[i]'
+            input_idx += 1
+
+            # final code line #
+            if ops == '=':
+                code_lines.append(left + " = " + right)
+            else:
+                code_lines.append(left + f" {ops}= " + right)
+
+        # final code
+        # ----------
+        code_lines.insert(0, f'# Input step function of {self.name}')
+
+        if profile.is_numpy_bk():
+            code_args = list(code_args)
+            code_lines.insert(0, f'\ndef input_step({", ".join(code_args)})')
+
+            # compile function
+            exec(compile('\n  '.join(code_lines), '', 'exec'), code_scope)
+            self.input_step = code_scope['input_step']
+
+            # format function call
+            code_arg2call = [code_arg2call[arg] for arg in code_args]
+            func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
+
+            if profile.show_codgen:
+                print("\n" + '\n\t'.join(code_lines))
+                print("\n" + func_call)
+
+            self._codegen['input'] = {'funcs': self.input_step, 'calls': func_call}
+
+        else:
+            self._codegen['input'] = {'scopes': code_scope, 'args': code_args,
+                                      'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _add_monitor(self, run_length):
         code_scope, code_args, code_arg2call, code_lines = {}, set(('i',)), {'i': 'i'}, []
@@ -378,7 +483,7 @@ class BaseEnsemble(object):
             code_lines.insert(0, f'\ndef monitor_step({", ".join(code_args)}):')
 
             # compile function
-            exec(compile('\n\t'.join(code_lines), '', 'exec'), code_scope)
+            exec(compile('\n  '.join(code_lines), '', 'exec'), code_scope)
             self.monitor_step = code_scope['monitor_step']
 
             # format function call
@@ -395,6 +500,37 @@ class BaseEnsemble(object):
             self._codegen['monitor'] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
+    def _merge_steps(self):
+        self._type_checking()
+
+        codes_of_calls = []  # call the compiled functions
+        if profile.is_numpy_bk():  # numpy mode
+            for item in self._schedule:
+                codes_of_calls.append(self._codegen[item]['calls'])
+
+        else:  # non-numpy mode
+            lines, scopes, args, arg2calls = [], dict(), set(), dict()
+            for item in self._schedule:
+                lines.extend(self._codegen[item]['codes'])
+                scopes.update(self._codegen[item]['scopes'])
+                args = args | self._codegen[item]['args']
+                arg2calls.update(self._codegen[item]['arg2calls'])
+
+            args = list(args)
+            arg2calls_list = [arg2calls[arg] for arg in args]
+            lines.insert(0, f'\ndef merge_func({", ".join(args)})')
+            exec(compile('\n  '.join(lines), '', 'exec'), scopes)
+
+            self.merge_func = scopes['merge_func']
+            call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
+            codes_of_calls.append(call)
+
+            if profile.show_codgen:
+                print("\n" + '\n\t'.join(lines))
+                print("\n" + call)
+
+        return codes_of_calls
+
     def set_ST(self, new_ST):
         type_checker = self.model.attributes['ST']
         if not type_checker.check(new_ST):
@@ -403,10 +539,33 @@ class BaseEnsemble(object):
 
     @property
     def _keywords(self):
-        kws = ['model', 'num', 'ST', 'PA', 'vars_init', 'pars_update',
-               'mon', '_mon_vars', 'step_func',
-               'monitor_step', 'input_step', 'merge_func',
-               'cls_type', '_codegen', '_schedule']
+        kws = [
+            # attributes
+            'model', 'num', 'ST', 'PA', 'vars_init', 'pars_update', '_mon_vars',
+            'mon', '_cls_type', '_codegen', '_keywords', 'step_func', '_schedule',
+            # assigned functions
+            'monitor_step', 'input_step', 'merge_func',
+            # self functions
+            '_merge_steps', '_add_steps', '_add_input', '_add_monitor',
+            'get_schedule', 'set_schedule'
+        ]
         if hasattr(self, 'model'):
             kws += self.model.step_names
         return kws
+
+    def get_schedule(self):
+        return self._schedule
+
+    def set_schedule(self, schedule):
+        assert isinstance(schedule, (list, tuple)), '"schedule" must be a list/tuple.'
+        all_func_names = ['input', 'monitor'] + self.model.step_names
+
+        for s in schedule:
+            assert s in all_func_names, f'Unknown step function "{s}" for "{self._cls_type}" model.'
+        super(BaseEnsemble, self).__setattr__('_schedule', schedule)
+
+    def __setattr__(self, key, value):
+        if key in self._keywords:
+            if hasattr(self, key):
+                raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, please change another name.')
+        super(BaseEnsemble, self).__setattr__(key, value)
