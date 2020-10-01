@@ -3,10 +3,10 @@
 import inspect
 from copy import deepcopy
 
-from .. import profile
-from .types import TypeChecker
 from .types import ObjState
+from .types import TypeChecker
 from .. import _numpy as np
+from .. import profile
 from ..utils import helper
 
 __all__ = [
@@ -134,7 +134,12 @@ class BaseType(object):
 
 class BaseEnsemble(object):
 
-    def __init__(self, model, name, num, pars_update, vars_init, monitors):
+    def __init__(self, model, name, num, pars_update, vars_init, monitors, cls_type):
+        # class type
+        # -----------
+        assert cls_type in ['neu_group', 'syn_conn'], 'Only support "neu_group" and "syn_conn".'
+        self.cls_type = cls_type
+
         # model
         # -----
         self.model = model
@@ -207,13 +212,9 @@ class BaseEnsemble(object):
         else:
             raise NotImplementedError
 
-        for func in step_func:
-            func_name = func.__name__
-            setattr(self, func_name, func)
-
         # monitors
         # ---------
-        self.mon = helper.Dict()
+        self.mon = helper.DictPlus()
         self._mon_vars = []
         if monitors is not None:
             if isinstance(monitors, (list, tuple)):
@@ -232,6 +233,10 @@ class BaseEnsemble(object):
                     self.mon[k] = np.empty((1, 1), dtype=np.float_)
             else:
                 raise TypeError(f'Unknown monitors type: {type(monitors)}')
+
+        # code generation results
+        # -----------------------
+        self._codegen = dict()
 
     def _type_checking(self):
         # check attribute and its type
@@ -255,14 +260,32 @@ class BaseEnsemble(object):
                     raise AttributeError(f'Function "{self.step_func[i].__name__}" in "{self.name}" requires '
                                          f'"{arg}" as argument, but "{arg}" is not defined in this model.')
 
+    def _add_steps(self):
+        if profile.is_numpy_bk():
+            func_calls = []
+            for func in self.step_func:
+                func_name = func.__name__
+                setattr(self, func_name, func)
+                arg_calls = []
+                for arg in inspect.getfullargspec(func).args:
+                    if arg != 'self':
+                        arg_calls.append(f"{self.name}.{arg}")
+                func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
+                func_calls.append(func_call)
+
+            self._codegen['step_func'] = {'funcs': self.step_func, 'calls': func_calls}
+
+        else:
+            raise NotImplementedError
+
     def _add_monitor(self, run_length):
-        code_scope = {self.name: self}
-        code_args, code_arg2call = set(('i', )), {'i': 'i'}
-        code_lines = []
+        code_scope, code_args, code_arg2call, code_lines = {}, set(('i',)), {'i': 'i'}, []
         idx_no = 0
 
+        # generate code of monitor function
+        # ---------------------------------
         for key, indices in self._mon_vars:
-            # check indices
+            # check indices #
             if indices is not None:
                 if isinstance(indices, list):
                     assert isinstance(indices[0], int), 'Monitor index only supports list [int] or 1D array.'
@@ -337,62 +360,53 @@ class BaseEnsemble(object):
                     code_args.add(target_name)
                     code_arg2call[target_name] = f'{self.name}.{attr}["_data"]'
 
-            # initialize monitor array
+            # initialize monitor array #
             if indices is None:
                 self.mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
             else:
                 self.mon[key] = np.zeros((run_length, len(indices)) + shape[1:], dtype=np.float_)
 
+            # add line #
             code_lines.append(line)
 
-
-        from pprint import pprint
-        if profile.is_numpy_bk():
-            code_lines.insert(0, f'\ndef step_monitor({", ".join(code_args)}):')
-            pprint('\n\t'.join(code_lines))
-        else:
-            pprint('\n'.join(code_lines))
-        print("code_scope: ")
-        pprint(code_scope, indent=5)
-        print("code_args: ")
-        pprint(code_args, indent=5)
-        print("code_arg2call: ")
-        pprint(code_arg2call, indent=5)
-
-    def _merge_step_func(self, run_length):
-        self._add_monitor(run_length)
+        # final code
+        # ----------
+        code_lines.insert(0, f'# Monitor step function of {self.name}')
 
         if profile.is_numpy_bk():
-            pass
+            code_args = list(code_args)
+            code_lines.insert(0, f'\ndef monitor_step({", ".join(code_args)}):')
+
+            # compile function
+            exec(compile('\n\t'.join(code_lines), '', 'exec'), code_scope)
+            self.monitor_step = code_scope['monitor_step']
+
+            # format function call
+            code_arg2call = [code_arg2call[arg] for arg in code_args]
+            func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
+
+            if profile.show_codgen:
+                print("\n" + '\n\t'.join(code_lines))
+                print("\n" + func_call)
+
+            self._codegen['monitor'] = {'funcs': self.monitor_step, 'calls': func_call}
 
         else:
-            raise NotImplementedError
+            self._codegen['monitor'] = {'scopes': code_scope, 'args': code_args,
+                                        'arg2calls': code_arg2call, 'codes': code_lines}
 
-    def _get_step_calls(self, run_length):
-        step_scope = dict()
-        step_codes = []
-        for func in self.step_func:
-            func_name = func.__name__
-            args = inspect.getfullargspec(func).args
-            arg_code = ''
-            for arg in args:
-                if arg == 'self':
-                    pass
-                elif arg in ['t', 'i']:
-                    arg_code += f'{args}, '
-                else:
-                    if isinstance(getattr(self, arg), ObjState):
-                        arg_code += f'{self.name}.{arg}["_data"], '
-                    else:
-                        arg_code += f'{self.name}.{arg}, '
-            code = f'{self.name}.{func_name}({arg_code[:-2]})'
-            step_codes.append(code)
-        step_scope[self.name] = self
-
-        return step_codes, step_scope
-
-    def change_ST(self, new_ST):
+    def set_ST(self, new_ST):
         type_checker = self.model.attributes['ST']
         if not type_checker.check(new_ST):
             raise TypeError(f'"new_ST" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
         super(BaseEnsemble, self).__setattr__('ST', new_ST)
+
+    @property
+    def _keywords(self):
+        kws = ['model', 'num', 'ST', 'PA', 'vars_init', 'pars_update',
+               'mon', '_mon_vars', 'step_func',
+               'monitor_step', 'input_step', 'merge_func',
+               'cls_type', '_codegen', '_schedule']
+        if hasattr(self, 'model'):
+            kws += self.model.step_names
+        return kws

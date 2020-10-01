@@ -22,8 +22,7 @@ class Network(object):
     objects that are added with `add()`. The `run()` method
     actually runs the simulation. The main loop runs according to user add
     orders. The objects in the `Network` are accessible via their names, e.g.
-    `net.name` would return the `object` (including neurons, synapses, and
-    monitors) with this name.
+    `net.name` would return the `object` (including neurons and synapses).
 
     """
 
@@ -37,7 +36,7 @@ class Network(object):
         self.syn_conns = []
 
         # store all objects
-        self._objsets = helper.Dict()
+        self._objsets = helper.DictPlus()
         self.objects = []
 
         # record the current step
@@ -352,7 +351,6 @@ class Network(object):
         else:
             raise ValueError('Unknown object type: {}'.format(type(obj)))
         self.objects.append(obj)
-
 
     def _format_inputs_and_receiver(self, inputs, duration):
         dt = profile.get_dt()

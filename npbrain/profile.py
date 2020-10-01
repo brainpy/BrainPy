@@ -50,6 +50,9 @@ jit_diff_eq = 'cfunc'
 
 debug = False
 
+show_codgen = False
+
+
 
 def set(backend=None, device=None, method=None, ode_method=None, sde_method=None, dt=None, ):
     pass

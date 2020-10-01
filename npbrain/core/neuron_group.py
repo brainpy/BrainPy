@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
-from collections import OrderedDict
-
-from .types import ObjState
-from .base import BaseType
 from .base import BaseEnsemble
+from .base import BaseType
+from .types import ObjState
 from .. import _numpy as np
 from .. import profile
-from ..utils import helper
 
 __all__ = [
     'NeuType',
@@ -66,7 +62,7 @@ class NeuGroup(BaseEnsemble):
         # initialize
         # ----------
         super(NeuGroup, self).__init__(model=model, name=name, num=num, pars_update=pars_update,
-                                       vars_init=vars_init, monitors=monitors)
+                                       vars_init=vars_init, monitors=monitors, cls_type='neu_group')
 
         # ST
         # --
@@ -78,13 +74,7 @@ class NeuGroup(BaseEnsemble):
 
     @property
     def _keywords(self):
-        kws = ['model', 'num', 'geometry', 'ST', 'PA',
-               'vars_init', 'pars_update',
-               'mon', '_mon_vars', 'step_func', '_schedule']
-        if hasattr(self, 'model'):
-            return kws + self.model.step_names
-        else:
-            return kws
+        return super(NeuGroup, self)._keywords + ['geometry', ]
 
     def __setattr__(self, key, value):
         if key in self._keywords:
@@ -93,9 +83,8 @@ class NeuGroup(BaseEnsemble):
         super(NeuGroup, self).__setattr__(key, value)
 
     def _add_input(self, key_val_ops_types):
-        code_scope = {self.name: self}
-        code_args, code_arg2call = set(), {}
-        code_lines = []
+        code_scope, code_args, code_arg2call, code_lines = {}, set(), {}, []
+        input_idx = 0
 
         # check datatype of the input
         # ----------------------------
@@ -114,9 +103,8 @@ class NeuGroup(BaseEnsemble):
             assert ops in ['-', '+', 'x', '/', '='], 'Only support five operations: +, -, x, /, ='
         ops2str = {'-': 'sub', '+': 'add', 'x': 'mul', '/': 'div', '=': 'assign'}
 
-        # generate code of variable input
+        # generate code of input function
         # --------------------------------
-        input_idx = 0
         for key, val, ops, data_type in key_val_ops_types:
             attr_item = key.split('.')
 
@@ -163,12 +151,68 @@ class NeuGroup(BaseEnsemble):
             else:
                 code_lines.append(left + f" {ops}= " + right)
 
-        from pprint import pprint
+        # final code
+        # ----------
+        code_lines.insert(0, f'# Input step function of {self.name}')
 
-        print("code_scope: ")
-        pprint(code_scope)
-        print("code_args: ")
-        pprint(code_args)
-        print("code_arg2call: ")
-        pprint(code_arg2call)
-        pprint('\n'.join(code_lines))
+        if profile.is_numpy_bk():
+            code_args = list(code_args)
+            code_lines.insert(0, f'\ndef input_step({", ".join(code_args)})')
+
+            # compile function
+            exec(compile('\n\t'.join(code_lines), '', 'exec'), code_scope)
+            self.input_step = code_scope['input_step']
+
+            # format function call
+            code_arg2call = [code_arg2call[arg] for arg in code_args]
+            func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
+
+            if profile.show_codgen:
+                print("\n" + '\n\t'.join(code_lines))
+                print("\n" + func_call)
+
+            self._codegen['input'] = {'funcs': self.input_step, 'calls': func_call}
+
+        else:
+            self._codegen['input'] = {'scopes': code_scope, 'args': code_args,
+                                      'arg2calls': code_arg2call, 'codes': code_lines}
+
+    def _merge_steps(self):
+        codes_of_calls = []  # call the compiled functions
+
+        self._type_checking()
+
+        lines, scopes, args, arg2calls = [], dict(), set(), dict()
+        for item in self._schedule:
+            if profile.is_numpy_bk():
+                if item in ['input', 'monitor']:
+                    codes_of_calls.append(self._codegen[item]['calls'])
+                else:
+                    codes_of_calls.extend(self._codegen[item]['calls'])
+            else:
+                lines.extend(self._codegen[item]['codes'])
+                scopes.update(self._codegen[item]['scopes'])
+                args = args | self._codegen[item]['args']
+                arg2calls.update(self._codegen[item]['arg2calls'])
+
+        if not profile.is_numpy_bk():
+            args = list(args)
+            arg2calls_list = [arg2calls[arg] for arg in args]
+            lines.insert(0, f'\ndef merge_func({", ".join(args)})')
+            exec(compile('\n  '.join(lines), '', 'exec'), scopes)
+
+            self.merge_func = scopes['merge_func']
+            call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
+            codes_of_calls.append(call)
+
+            if profile.show_codgen:
+                print("\n" + '\n\t'.join(lines))
+                print("\n" + call)
+
+        return codes_of_calls
+
+    def set_schedule(self, schedule):
+        assert isinstance(schedule, (list, tuple)), '"schedule" must be a list/tuple.'
+        for s in schedule:
+            assert s in ['input', 'monitor', 'step_func'], 'Use can only schedule "input", "monitor" and "step_func".'
+        super(NeuGroup, self).__setattr__('_schedule', schedule)
