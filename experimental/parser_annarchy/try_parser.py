@@ -2,13 +2,13 @@
 import logging
 from experimental.parser_annarchy.AnalyseNeuron import analyse_neuron
 from experimental.parser_annarchy.config import _objects
-from npbrain.utils import Dict
+from npbrain.utils import DictPlus
 
 
 def neurons(parameters="", equations="", spike=None,
             reset=None, refractory=None, functions=None,
             name="", description="", extra_values={}):
-    self = Dict(_default_names={'rate': "Rate-coded neuron", 'spike': "Spiking neuron"})
+    self = DictPlus(_default_names={'rate': "Rate-coded neuron", 'spike': "Spiking neuron"})
 
     # Store the parameters and equations
     self.parameters = parameters
@@ -50,7 +50,7 @@ def synapses(parameters="", equations="", psp=None, operation='sum',
              pre_spike=None, post_spike=None, functions=None,
              pruning=None, creating=None, name=None, description=None,
              extra_values={}):
-    self = Dict(_default_names={'rate': "Rate-coded synapse", 'spike': "Spiking synapse"})
+    self = DictPlus(_default_names={'rate': "Rate-coded synapse", 'spike': "Spiking synapse"})
 
     # Store the parameters and equations
     self.parameters = parameters

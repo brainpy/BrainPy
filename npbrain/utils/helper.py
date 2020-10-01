@@ -21,7 +21,7 @@ __all__ = [
     'func_copy',
 
     # data structure
-    'Dict',
+    'DictPlus',
     'default_dict',
     'ddict',
 
@@ -162,7 +162,7 @@ def func_copy(f):
 # data structure
 ##############################
 
-class Dict(dict):
+class DictPlus(dict):
     def __init__(self, *args, **kwargs):
         object.__setattr__(self, '__parent', kwargs.pop('__parent', None))
         object.__setattr__(self, '__key', kwargs.pop('__key', None))
@@ -183,12 +183,12 @@ class Dict(dict):
 
     def __setattr__(self, name, value):
         if hasattr(self.__class__, name):
-            raise AttributeError(f"Attribute '{name}' is read-only in 'Dict' object.")
+            raise AttributeError(f"Attribute '{name}' is read-only in '{type(self)}' object.")
         else:
             self[name] = value
 
     def __setitem__(self, name, value):
-        super(Dict, self).__setitem__(name, value)
+        super(DictPlus, self).__setitem__(name, value)
         try:
             p = object.__getattribute__(self, '__parent')
             key = object.__getattribute__(self, '__key')
@@ -206,7 +206,7 @@ class Dict(dict):
         else:
             self_type = type(self).__name__
             other_type = type(other).__name__
-            msg = "unsupported operand type(s) for +: '{}' and '{}'"
+            msg = "Unsupported operand type(s) for +: '{}' and '{}'"
             raise TypeError(msg.format(self_type, other_type))
 
     @classmethod
@@ -282,15 +282,6 @@ class Dict(dict):
         else:
             self[key] = default
             return default
-
-
-def default_dict(args_update, *args, **kwargs):
-    args = Dict(*args, **kwargs)
-    args.update(args_update)
-    return args
-
-
-ddict = default_dict
 
 
 ##############################
