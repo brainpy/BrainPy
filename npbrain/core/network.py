@@ -92,8 +92,12 @@ class Network(object):
         exec(compile(step_func_str, '', 'exec'), code_scope)
 
         if profile.show_codgen:
+            print()
             print(step_func_str)
+            code_scope.pop('__builtins__')
+            print()
             pprint(code_scope)
+            print()
 
         return code_scope['step_func']
 
@@ -186,6 +190,8 @@ class Network(object):
             obj._type_checking()
             # initialize monitor
             obj._add_monitor(run_length)
+            # step function
+            obj._add_steps()
 
         # inputs
         format_inputs = self._format_inputs(inputs, run_length)

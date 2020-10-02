@@ -264,12 +264,11 @@ class BaseEnsemble(object):
             step_func_args.extend(args)
 
         # check step function arguments
-        for i, args in enumerate(step_func_args):
-            for arg in args:
-                # Or, check "not (arg in ['ST', 't', 'i', 'din', 'dout', 'self'])"
-                if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
-                    raise AttributeError(f'Function "{self.step_func[i].__name__}" in "{self.name}" requires '
-                                         f'"{arg}" as argument, but "{arg}" is not defined in this model.')
+        for i, arg in enumerate(step_func_args):
+            # Or, check "not (arg in ['ST', 't', 'i', 'din', 'dout', 'self'])"
+            if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
+                raise AttributeError(f'Function "{self.step_func[i].__name__}" in "{self.model.name}" requires '
+                                     f'"{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
     def _add_steps(self):
         if profile.is_numpy_bk():
@@ -279,7 +278,11 @@ class BaseEnsemble(object):
 
                 arg_calls = []
                 for arg in inspect.getfullargspec(func).args:
-                    if arg != 'self':
+                    if arg == 'self':
+                        pass
+                    elif arg in ['t', 'i']:
+                        arg_calls.append(arg)
+                    else:
                         arg_calls.append(f"{self.name}.{arg}")
                 func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
 
@@ -289,7 +292,7 @@ class BaseEnsemble(object):
             raise NotImplementedError
 
     def _add_input(self, key_val_ops_types):
-        code_scope, code_args, code_arg2call, code_lines = {}, set(), {}, []
+        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
         input_idx = 0
 
         # check datatype of the input
@@ -363,7 +366,7 @@ class BaseEnsemble(object):
 
         if profile.is_numpy_bk():
             code_args = list(code_args)
-            code_lines.insert(0, f'\ndef input_step({", ".join(code_args)})')
+            code_lines.insert(0, f'\ndef input_step({", ".join(code_args)}):')
 
             # compile function
             exec(compile('\n  '.join(code_lines), '', 'exec'), code_scope)
@@ -384,7 +387,7 @@ class BaseEnsemble(object):
                                       'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _add_monitor(self, run_length):
-        code_scope, code_args, code_arg2call, code_lines = {}, set(('i',)), {'i': 'i'}, []
+        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(('i',)), {'i': 'i'}, []
         idx_no = 0
 
         # generate code of monitor function
