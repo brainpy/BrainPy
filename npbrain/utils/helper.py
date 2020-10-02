@@ -4,17 +4,17 @@ import copy
 import functools
 import types
 
-import numba as nb
 import numpy as onp
-from numba.core.dispatcher import Dispatcher
+try:
+    import numba as nb
+    from numba.core.dispatcher import Dispatcher
+except ImportError as e:
+    nb = None
 
 from .. import _numpy as np
 from .. import profile
 
 __all__ = [
-    # parameter helpers
-    'check_params',
-
     # function helpers
     'jit_function',
     'autojit',
@@ -22,8 +22,6 @@ __all__ = [
 
     # data structure
     'DictPlus',
-    'default_dict',
-    'ddict',
 
     # 'others'
     'is_struct_array',
@@ -33,27 +31,9 @@ __all__ = [
 
 
 ##############################
-# parameter helpers
-##############################
-
-
-def check_params(kwargs):
-    """Check the ``kwargs`` parameters.
-
-    If there are more parameters left, it means the users give the
-    wrong parameters.
-
-    Parameters
-    ----------
-    kwargs : dict
-        Parameters.
-    """
-    assert len(kwargs) == 0, "No arguments about: {}".format(list(kwargs.keys()))
-
-
-##############################
 # function helpers
 ##############################
+
 
 def jit_function(f):
     """Generate ``numba`` JIT functions.
@@ -68,6 +48,8 @@ def jit_function(f):
     callable
         JIT function.
     """
+    if nb is None:
+        raise ImportError('Please install numba.')
     op = profile.get_numba_profile()
     return nb.jit(f, **op)
 
@@ -87,7 +69,9 @@ def autojit(signature_or_func=None):
     if callable(signature_or_func):  # function
 
         if profile.is_numba_bk():
-            if not isinstance(signature_or_func, Dispatcher):
+            if nb is None:
+                raise ImportError('Please install numba.')
+            if not isinstance(signature_or_func, nb.core.dispatcher.Dispatcher):
                 op = profile.get_numba_profile()
                 signature_or_func = nb.jit(signature_or_func, **op)
         return signature_or_func
@@ -118,13 +102,16 @@ def autojit(signature_or_func=None):
                     signature_or_func[i] = s
 
         def wrapper(f):
-            if profile.is_numba_bk() and not isinstance(f, Dispatcher):
-                op = profile.get_numba_profile()
-                if profile.define_signature:
-                    j = nb.jit(signature_or_func, **op)
-                else:
-                    j = nb.jit(**op)
-                f = j(f)
+            if profile.is_numba_bk():
+                if nb is None:
+                    raise ImportError('Please install numba.')
+                if not isinstance(f, nb.core.dispatcher.Dispatcher):
+                    op = profile.get_numba_profile()
+                    if profile.define_signature:
+                        j = nb.jit(signature_or_func, **op)
+                    else:
+                        j = nb.jit(**op)
+                    f = j(f)
             return f
 
         return wrapper
@@ -149,7 +136,8 @@ def is_lambda_function(func):
 
 def func_copy(f):
     """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
-    g = types.FunctionType(f.__code__, f.__globals__,
+    g = types.FunctionType(code=f.__code__,
+                           globals=f.__globals__,
                            name=f.__name__,
                            argdefs=f.__defaults__,
                            closure=f.__closure__)
