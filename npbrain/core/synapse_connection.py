@@ -6,13 +6,14 @@ from .connectivity import Connector
 from .connectivity import post2syn
 from .connectivity import pre2syn
 from .neuron_group import NeuGroup
-from .types import ObjState
+from .types import SynState
 from .. import _numpy as np
 from .. import profile
 
 __all__ = [
     'SynType',
     'SynConn',
+    'cond_by_post2syn',
 ]
 
 _syn_no = 0
@@ -92,7 +93,7 @@ class SynConn(BaseEnsemble):
 
         else:
             assert num is not None, '"num" must be provided when "pre" and "post" are none.'
-        assert 0 < num < 2**64, 'Total synapse number "num" must be a valid number in "uint64".'
+        assert 0 < num < 2 ** 64, 'Total synapse number "num" must be a valid number in "uint64".'
 
         # delay
         # -------
@@ -103,9 +104,7 @@ class SynConn(BaseEnsemble):
             delay_len = int(np.ceil(delay / dt)) + 1
         else:
             raise ValueError("NumpyBrain currently doesn't support other kinds of delay.")
-        self.dlen = delay_len  # delay length
-        self.din = 0  # delay in position
-        self.dout = self.dlen - 1  # delay out position
+        self.delay_len = delay_len  # delay length
 
         # initialize
         # ----------
@@ -114,19 +113,22 @@ class SynConn(BaseEnsemble):
 
         # ST
         # --
-        self.ST = ObjState(self.vars_init)((delay_len, self.num))
-
-    def delay_indices_step(self):
-        # in_index
-        self.din = (self.din + 1) % self.dlen
-        # out_index
-        self.dout = (self.dout + 1) % self.dlen
+        self.ST = SynState(self.vars_init)(size=self.num, delay=delay_len)
 
     def _merge_steps(self):
         codes_of_calls = super(SynConn, self)._merge_steps()
-        codes_of_calls.append(f'{self.name}.delay_indices_step()')
+        codes_of_calls.append(f'{self.name}.ST._update_delay_indices()')
         return codes_of_calls
 
     @property
     def _keywords(self):
-        return super(SynConn, self)._keywords + ['dlen', 'din', 'dout', 'delay_indices_step']
+        return super(SynConn, self)._keywords + ['delay_len']
+
+
+def cond_by_post2syn(syn_val, post2syn):
+    num_post = len(post2syn)
+    g_val = np.zeros(num_post, dtype=np.float_)
+    for i in range(num_post):
+        syn_idx = post2syn[i]
+        g_val[i] = syn_val[syn_idx]
+    return g_val

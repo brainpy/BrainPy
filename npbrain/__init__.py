@@ -9,6 +9,7 @@ from . import profile
 from . import core
 from .core import connectivity as connect
 from .core import integrator
+from .core.integrator import integrate
 from .core.network import *
 from .core.neuron_group import *
 from .core.synapse_connection import *

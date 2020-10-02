@@ -13,7 +13,8 @@ except ImportError as e:
 
 __all__ = [
     'TypeChecker',
-    'ObjState',
+    'NeuState',
+    'SynState',
     'ListConn',
     'MatConn',
     'ijConn',
@@ -33,8 +34,8 @@ class TypeChecker(object):
         raise NotImplementedError
 
 
-class ObjState(dict, TypeChecker):
-    """Object State. """
+class NeuState(dict, TypeChecker):
+    """Neuron State. """
 
     def __init__(self, fields, help=''):
         TypeChecker.__init__(self, help=help)
@@ -61,8 +62,9 @@ class ObjState(dict, TypeChecker):
         var2idx = dict()
         idx2var = dict()
         state = dict()
-        for i, k in enumerate(self._keys):
+        for i, (k, v) in enumerate(self._vars.items()):
             state[k] = data[i]
+            data[i] = v
             var2idx[k] = i
             idx2var[i] = k
         state['_data'] = data
@@ -87,7 +89,7 @@ class ObjState(dict, TypeChecker):
         return {v: self.__getitem__(v)[idx] for v in self._vars}
 
     def check(self, cls):
-        if not isinstance(cls, ObjState):
+        if not isinstance(cls, NeuState):
             return False
         for k in self._keys:
             if k not in cls:
@@ -95,7 +97,98 @@ class ObjState(dict, TypeChecker):
         return True
 
     def __str__(self):
-        return type(self).__name__ + f' ({str(self._keys)})'
+        return f'NeuState ({str(self._keys)})'
+
+
+class SynState(dict, TypeChecker):
+    """Synapse State. """
+
+    def __init__(self, fields, help=''):
+        TypeChecker.__init__(self, help=help)
+        variables = dict()
+        if isinstance(fields, (tuple, list)):
+            variables.update({v: 0. for v in fields})
+        elif isinstance(fields, dict):
+            variables.update(fields)
+        else:
+            assert ValueError(f'"fields" only supports tuple/list/dict, not {type(variables)}.')
+        self._keys = list(variables.keys())
+        self._values = list(variables.values())
+        self._vars = variables
+        self._delay_len = 1
+        self._delay_in = 0
+        self._delay_out = 0
+
+    def __call__(self, size, delay=None):
+        # check size
+        if isinstance(size, int):
+            size = (size,)
+        elif isinstance(size, (tuple, list)):
+            size = tuple(size)
+        else:
+            raise ValueError(f'Unknown size type: {type(size)}.')
+
+        # check delay
+        delay = 1 if delay is None else delay
+        assert isinstance(delay, int), '"delay" must be a int to specify the delay length.'
+        self._delay_len = delay
+
+        # initialize data
+        data = bnp.zeros((self._delay_len + len(self._vars),) + size, dtype=bnp.float_)
+        var2idx = dict()
+        idx2var = dict()
+        state = dict()
+        for i, (k, v) in enumerate(self._vars.items()):
+            idx = i + self._delay_len
+            data[idx] = v
+            state[k] = data[idx]
+            var2idx[k] = idx
+            idx2var[i] = k
+        state['_cond_delay'] = data[:self._delay_len]
+        state['_data'] = data
+        state['_var2idx'] = var2idx
+        state['_idx2var'] = idx2var
+
+        dict.__init__(self, state)
+
+        return self
+
+    def push_cond(self, g):
+        data = self.__getitem__('_data')
+        data[self._delay_in] = g
+
+    def pull_cond(self):
+        data = self.__getitem__('_data')
+        return data[self._delay_out]
+
+    def _update_delay_indices(self):
+        self._delay_in = (self._delay_in + 1) % self._delay_len
+        self._delay_in = (self._delay_in + 1) % self._delay_len
+
+    def __setitem__(self, key, val):
+        if key in self._vars:
+            data = self.__getitem__('_data')
+            _var2idx = self.__getitem__('_var2idx')
+            data[_var2idx[key]] = val
+        elif key in ['_data', '_var2idx', '_idx2var', '_cond_delay']:
+            raise KeyError(f'"{key}" cannot be modified.')
+        else:
+            raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
+
+    def extract_be_index(self, idx):
+        return {v: self.__getitem__(v)[idx] for v in self._vars}
+
+    def check(self, cls):
+        if not isinstance(cls, SynState):
+            return False
+        for k in self._keys:
+            if k not in cls:
+                return False
+        return True
+
+    def __str__(self):
+        return f'SynState ({str(self._keys)})'
+
 
 
 class ListConn(TypeChecker):

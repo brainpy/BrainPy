@@ -1,18 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import matplotlib.pyplot as plt
+import npbrain as npb
 from npbrain import _numpy as np
 
-from npbrain.core import integrate
-from npbrain.core.synapse_connection import *
-from npbrain.utils.helper import get_clip
+npb.profile.show_codgen = True
 
-__all__ = [
-    'AMPA1',
-    'AMPA2',
-]
-
-
-def define_ampa(g_max=0.10, E=0., tau_decay=2.0):
+def define_ampa1(g_max=0.10, E=0., tau_decay=2.0):
     """AMPA conductance-based synapse (type 1).
 
     .. math::
@@ -28,86 +22,44 @@ def define_ampa(g_max=0.10, E=0., tau_decay=2.0):
     E : float
         Reversal potential.
     tau_decay : float
-    """
-    pass
-
-
-
-def AMPA1(pre, post, connection, g_max=0.10, E=0., tau_decay=2.0, delay=None, name='AMPA_ChType1'):
-    """AMPA conductance-based synapse (type 1).
-
-    .. math::
-
-        I_{syn}&=\\bar{g}_{syn} s (V-E_{syn})
-
-        \\frac{d s}{d t}&=-\\frac{s}{\\tau_{decay}}+\\sum_{k} \\delta(t-t_{j}^{k})
-
-    Parameters
-    ----------
-    pre : Neurons
-        The pre-synaptic neuron group.
-    post : Neurons
-        The post-synaptic neuron group.
-    connection : tuple
-        The connectivity.
-    g_max
-    E
-    tau_decay
-    delay
-    name
-
-    Returns
-    -------
-    synapse : Synapses
-        The constructed AMPA synapses.
+        Tau for decay.
     """
 
-    pre_ids, post_ids, anchors = connection
+    attrs = dict(
+        ST=npb.types.SynState(['s'],
+                              help='AMPA synapse state.'),
+        pre=npb.types.NeuState(['sp'],
+                               help='Pre-synaptic neuron state must have "sp" item.'),
+        post=npb.types.NeuState(['V', 'inp'],
+                                help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+    )
 
-    var2index = {'s': 0}
-    num, num_pre, num_post = len(pre_ids), pre.num, post.num
-    state = init_syn_state(num_syn=num, variables=[('s', 0.)])
-    delay_state = init_delay_state(num_post=num_post, delay=delay)
-
-    @integrate(signature='{f}[:]({f}[:], {f})')
-    def int_f(s, t):
+    @npb.integrate(method='euler')
+    def ints(s, t):
         return - s / tau_decay
 
-    def update_state(syn_st, delay_st, t, delay_idx, pre_state):
-        # calculate synaptic state
-        s = int_f(syn_st[0], t)
-        spike_idx = np.where(pre_state[-3] > 0.)[0]
+    def update(ST, t, pre, pre2syn):
+        s = ints(ST['s'], t)
+        spike_idx = np.where(pre['sp'] > 0.)[0]
         for i in spike_idx:
-            idx = anchors[:, i]
-            s[idx[0]: idx[1]] += 1
-        syn_st[0] = s
-        # get post-synaptic values
-        g = np.zeros(num_post)
-        for i in range(num_pre):
-            idx = anchors[:, i]
-            post_idx = post_ids[idx[0]: idx[1]]
-            g[post_idx] += s[idx[0]: idx[1]]
-        delay_st[delay_idx] = g
+            syn_idx = pre2syn[i]
+            s[syn_idx] += 1.
+        ST['s'] = s
+        ST.push_cond(s)
 
-    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+    def output(ST, post, post2syn):
+        g = ST.pull_cond()
+        g_val = npb.cond_by_post2syn(g, post2syn)
+        post_val = - g_max * g_val * (post['V'] - E)
+        post['inp'] += post_val
 
-        def output_synapse(delay_st, output_idx, post_state):
-            g_val = delay_st[output_idx]
-            post_val = - g_max * g_val * (post_state[0] - E)
-            post_state[-1] += post_val * post_state[-5]
-
-    else:
-
-        def output_synapse(delay_st, output_idx, post_state):
-            g_val = delay_st[output_idx]
-            post_val = - g_max * g_val * (post_state[0] - E)
-            post_state[-1] += post_val
-
-    return Synapses(**locals())
+    return {'attrs': attrs, 'step_func': (update, output)}
 
 
-def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
-          T=0.5, T_duration=0.5, delay=None, name='AMPA_ChType2'):
+AMPA1 = npb.SynType(name='AMPA_type1', create_func=define_ampa1, group_based=True)
+
+
+def define_ampa2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     """AMPA conductance-based synapse (type 2).
 
     .. math::
@@ -118,74 +70,71 @@ def AMPA2(pre, post, connection, g_max=0.42, E=0., alpha=0.98, beta=0.18,
 
     Parameters
     ----------
-    pre : Neurons
-        The pre-synaptic neuron group.
-    post : Neurons
-        The post-synaptic neuron group.
-    connection : tuple
-        The connectivity.
-    g_max
-    E
+    g_max : float
+        Maximum conductance.
+    E : float
+        Reversal potential.
     alpha
     beta
     T
     T_duration
-    delay
-    name
-
-    Returns
-    -------
-    synapse : Synapses
-        The constructed AMPA synapses.
     """
 
-    pre_ids, post_ids, anchors = connection
+    attrs = dict(
+        ST=npb.types.SynState({'s': 0., 'sp_t': -1e7},
+                              help='AMPA synapse state.\n'
+                                   '"s": Synaptic state.\n'
+                                   '"sp_t": Pre-synaptic neuron spike time.'),
+        pre=npb.types.NeuState(['sp'],
+                               help='Pre-synaptic neuron state must have "sp" item.'),
+        post=npb.types.NeuState(['V', 'inp'],
+                                help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+    )
 
-    var2index = {'s': 0, 'syn_sp_time': 1}
-    num, num_pre, num_post = len(pre_ids), pre.num, post.num
-    state = init_syn_state(num_syn=num, variables=[('s', 0.), ('syn_sp_time', -1e5)])
-    delay_state = init_delay_state(num_post=num_post, delay=delay)
-
-    clip = get_clip()
-
-    @integrate(signature='{f}[:]({f}[:], {f}, {f}[:])')
+    @npb.integrate(method='euler')
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    def update_state(syn_st, delay_st, t, delay_idx, pre_state):
-        # get synaptic state
-        s = syn_st[0]
-        last_spike = syn_st[1]
-        pre_spike = pre_state[-3]
-        # calculate synaptic state
-        spike_idx = np.where(pre_spike > 0.)[0]
+    def update(ST, t, pre, pre2syn):
+        spike_idx = np.where(pre['sp'] > 0.)[0]
         for i in spike_idx:
-            idx = anchors[:, i]
-            last_spike[idx[0]: idx[1]] = t
-        TT = ((t - last_spike) < T_duration).astype(np.float64) * T
-        s = clip(int_s(s, t, TT), 0., 1.)
-        syn_st[0] = s
-        syn_st[1] = last_spike
-        # get post-synaptic values
-        g = np.zeros(num_post)
-        for i in range(num_pre):
-            idx = anchors[:, i]
-            post_idx = post_ids[idx[0]: idx[1]]
-            g[post_idx] += s[idx[0]: idx[1]]
-        delay_st[delay_idx] = g
+            syn_idx = pre2syn[i]
+            ST['sp_t'][syn_idx] = t
+        TT = ((t - ST['sp_t']) < T_duration) * T
+        s = np.clip(int_s(ST['s'], t, TT), 0., 1.)
+        ST['s'] = s
+        ST.push_cond(s)
 
-    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+    def output(ST, post, post2syn):
+        g = ST.pull_cond()
+        g_val = npb.cond_by_post2syn(g, post2syn)
+        post_val = - g_max * g_val * (post['V'] - E)
+        post['inp'] += post_val
 
-        def output_synapse(delay_st, output_idx, post_state):
-            g_val = delay_st[output_idx]
-            post_val = - g_max * g_val * (post_state[0] - E)
-            post_state[-1] += post_val * post_state[-5]
+    return {'attrs': attrs, 'step_func': (update, output)}
 
-    else:
 
-        def output_synapse(delay_st, output_idx, post_state):
-            g_val = delay_st[output_idx]
-            post_val = - g_max * g_val * (post_state[0] - E)
-            post_state[-1] += post_val
+AMPA2 = npb.SynType(name='AMPA_type2', create_func=define_ampa2, group_based=True)
 
-    return Synapses(**locals())
+
+def run_ampa(cls, duration=650.):
+    ampa = npb.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
+    ampa.pre = npb.types.NeuState(['sp'])(1)
+    ampa.post = npb.types.NeuState(['V', 'inp'])(1)
+    ampa.pre2syn = [[0]]
+    ampa.post2syn = [[0]]
+
+    net = npb.Network(ampa)
+    Iext = npb.inputs.spike_current([10, 110, 210, 310, 410], npb.profile.dt, 1., duration=duration)
+    net.run(duration, inputs=(ampa, 'pre.sp', Iext, '='), report=True)
+
+    fig, gs = npb.visualize.get_figure(1, 1, 5, 10)
+    fig.add_subplot(gs[0, 0])
+    plt.plot(net.ts, ampa.mon.s[:, 0], label='s')
+    plt.legend()
+    plt.show()
+
+
+if __name__ == '__main__':
+    # run_ampa(AMPA1)
+    run_ampa(AMPA2)

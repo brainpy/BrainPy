@@ -258,17 +258,11 @@ class BaseEnsemble(object):
                 raise TypeError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
 
         # get function arguments
-        step_func_args = []
-        for func in self.step_func:
-            args = [arg for arg in inspect.getfullargspec(func).args if arg != 'self']
-            step_func_args.extend(args)
-
-        # check step function arguments
-        for i, arg in enumerate(step_func_args):
-            # Or, check "not (arg in ['ST', 't', 'i', 'din', 'dout', 'self'])"
-            if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
-                raise AttributeError(f'Function "{self.step_func[i].__name__}" in "{self.model.name}" requires '
-                                     f'"{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
+        for i, func in enumerate(self.step_func):
+            for arg in inspect.getfullargspec(func).args:
+                if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
+                    raise AttributeError(f'Function "{self.step_func[i].__name__}" in "{self.model.name}" requires '
+                                         f'"{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
     def _add_steps(self):
         if profile.is_numpy_bk():

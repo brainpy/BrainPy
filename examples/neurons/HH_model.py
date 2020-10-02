@@ -39,7 +39,7 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
     """
 
     attrs = dict(
-        ST=npb.types.ObjState({'V': Vr, 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
+        ST=npb.types.NeuState({'V': Vr, 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
                               help='Hodgkin–Huxley neuron state.'),
     )
 

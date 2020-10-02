@@ -2,7 +2,7 @@
 
 from .base import BaseEnsemble
 from .base import BaseType
-from .types import ObjState
+from .types import NeuState
 from .. import _numpy as np
 
 __all__ = [
@@ -65,7 +65,7 @@ class NeuGroup(BaseEnsemble):
 
         # ST
         # --
-        self.ST = ObjState(self.vars_init)(num)
+        self.ST = NeuState(self.vars_init)(num)
 
     @property
     def _keywords(self):
