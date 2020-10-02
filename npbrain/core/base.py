@@ -283,7 +283,7 @@ class BaseEnsemble(object):
                         arg_calls.append(f"{self.name}.{arg}")
                 func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
 
-                self._codegen[func_name] = {'funcs': func, 'calls': func_call}
+                self._codegen[func_name] = {'func': func, 'call': func_call}
 
         else:
             raise NotImplementedError
@@ -377,7 +377,7 @@ class BaseEnsemble(object):
                 print("\n" + '\n\t'.join(code_lines))
                 print("\n" + func_call)
 
-            self._codegen['input'] = {'funcs': self.input_step, 'calls': func_call}
+            self._codegen['input'] = {'func': self.input_step, 'call': func_call}
 
         else:
             self._codegen['input'] = {'scopes': code_scope, 'args': code_args,
@@ -494,27 +494,28 @@ class BaseEnsemble(object):
                 print("\n" + '\n\t'.join(code_lines))
                 print("\n" + func_call)
 
-            self._codegen['monitor'] = {'funcs': self.monitor_step, 'calls': func_call}
+            self._codegen['monitor'] = {'func': self.monitor_step, 'call': func_call}
 
         else:
             self._codegen['monitor'] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _merge_steps(self):
-        self._type_checking()
-
         codes_of_calls = []  # call the compiled functions
         if profile.is_numpy_bk():  # numpy mode
             for item in self._schedule:
-                codes_of_calls.append(self._codegen[item]['calls'])
+                if item in self._codegen:
+                    call = self._codegen[item]['call']
+                    codes_of_calls.append(call)
 
         else:  # non-numpy mode
             lines, scopes, args, arg2calls = [], dict(), set(), dict()
             for item in self._schedule:
-                lines.extend(self._codegen[item]['codes'])
-                scopes.update(self._codegen[item]['scopes'])
-                args = args | self._codegen[item]['args']
-                arg2calls.update(self._codegen[item]['arg2calls'])
+                if item in self._codegen:
+                    lines.extend(self._codegen[item]['codes'])
+                    scopes.update(self._codegen[item]['scopes'])
+                    args = args | self._codegen[item]['args']
+                    arg2calls.update(self._codegen[item]['arg2calls'])
 
             args = list(args)
             arg2calls_list = [arg2calls[arg] for arg in args]
