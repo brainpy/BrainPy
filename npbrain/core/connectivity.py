@@ -744,7 +744,7 @@ class DOG(Connector):
         Widths of the positive and negative Gaussian functions.
     ws_max : tuple
         The weight amplitudes of the positive and negative Gaussian functions.
-    ws_min : float, None
+    w_min : float, None
         The minimum weight value below which synapses are not created
         (default: :math:`0.01 * w_{max}^+ - w_{min}^-`).
     normalize : bool

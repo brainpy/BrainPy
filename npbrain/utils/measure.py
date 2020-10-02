@@ -6,6 +6,8 @@ from .. import _numpy as bnp
 __all__ = [
     'cross_correlation',
     'voltage_fluctuation',
+    'raster_plot',
+    'firing_rate',
 ]
 
 
@@ -35,7 +37,7 @@ def cross_correlation(spikes, bin_size):
 
     Parameters
     ----------
-    spikes : numpy.ndarray
+    spikes : bnp.ndarray
         The history of spike states of the neuron group.
         It can be easily get via `StateMonitor(neu, ['spike'])`.
     bin_size : int
@@ -136,15 +138,15 @@ def voltage_fluctuation(potentials):
     return avg_var / var_mean if var_mean != 0. else 1.
 
 
-def raster_plot(mon, times=None):
+def raster_plot(sp_matrix, times):
     """Get spike raster plot which displays the spiking activity
     of a group of neurons over time.
 
     Parameters
     ----------
-    mon : Monitor
-        The monitor which record spiking activities.
-    times : None, numpy.ndarray
+    sp_matrix : bnp.ndarray
+        The matrix which record spiking activities.
+    times : bnp.ndarray
         The time steps.
 
     Returns
@@ -152,23 +154,13 @@ def raster_plot(mon, times=None):
     raster_plot : tuple
         Include (neuron index, spike time).
     """
-    if isinstance(mon, StateMonitor):
-        elements = bnp.where(mon.spike > 0.)
-        index = elements[1]
-        if hasattr(mon, 'spike_time'):
-            time = mon.spike_time[elements]
-        else:
-            assert times is not None, 'Must provide "times" when StateMonitor has no "spike_time" attribute.'
-            time = times[elements[0]]
-    elif isinstance(mon, SpikeMonitor):
-        index = bnp.array(mon.index)
-        time = bnp.array(mon.time)
-    else:
-        raise ValueError
+    elements = bnp.where(sp_matrix.spike > 0.)
+    index = elements[1]
+    time = times[elements[0]]
     return index, time
 
 
-def firing_rate(mon, width, window='gaussian'):
+def firing_rate(sp_matrix, width, window='gaussian'):
     """Calculate the mean firing rate over in a neuron group.
 
     This method is adopted from Brian2.
@@ -182,8 +174,8 @@ def firing_rate(mon, width, window='gaussian'):
 
     Parameters
     ----------
-    mon : StateMonitor
-        The monitor which record spiking activities.
+    sp_matrix : bnp.ndarray
+        The spike matrix which record spiking activities.
     width : int, float
         The width of the ``window`` in millisecond.
     window : str
@@ -205,14 +197,13 @@ def firing_rate(mon, width, window='gaussian'):
         The population rate in Hz, smoothed with the given window.
     """
     # rate
-    assert hasattr(mon, 'spike'), 'Must record the "spike" of the neuron group to get firing rate.'
-    rate = bnp.sum(mon.spike, axis=1)
+    rate = bnp.sum(sp_matrix, axis=1)
 
     # window
     dt = profile.get_dt()
     if window == 'gaussian':
         width1 = 2 * width / dt
-        width2 = int(bnp.round(width1))
+        width2 = int(bnp.around(width1))
         window = bnp.exp(-bnp.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 / 2))
     elif window == 'flat':
         width1 = int(width / 2 / dt) * 2 + 1

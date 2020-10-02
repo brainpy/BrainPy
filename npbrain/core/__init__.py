@@ -11,9 +11,15 @@ synapses, etc.
 """
 
 
-from npbrain.core.network import *
-from npbrain.core.neuron_group import *
-from npbrain.core.synapse_connection import *
-from npbrain.core.integrator import *
+from .base import *
+from .types import *
+from .connectivity import *
+from .integrator import *
+from .neuron_group import *
+from .synapse_connection import *
+from .running import *
+from .visualization import *
+from .network import *
+
 
 
