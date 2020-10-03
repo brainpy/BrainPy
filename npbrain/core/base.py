@@ -127,6 +127,19 @@ class BaseType(object):
             self.step_func.append(func)
             setattr(self, func_name, func)
 
+        # check consistence between function
+        # arguments and model attributes
+        # ----------------------------------
+        warnings = []
+        for func in self.step_func:
+            for arg in inspect.getfullargspec(func).args:
+                if arg in ['t', 'i']:
+                    continue
+                if arg not in self.attributes:
+                    warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "attrs".'
+                    warnings.append(warn)
+        print('\n'.join(warnings) + '\n')
+
     def __str__(self):
         return f'{self.name}'
 

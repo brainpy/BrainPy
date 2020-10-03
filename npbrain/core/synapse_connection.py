@@ -13,7 +13,7 @@ from .. import profile
 __all__ = [
     'SynType',
     'SynConn',
-    'cond_by_post2syn',
+    'post_cond_by_post2syn',
 ]
 
 _syn_no = 0
@@ -125,7 +125,7 @@ class SynConn(BaseEnsemble):
         return super(SynConn, self)._keywords + ['delay_len']
 
 
-def cond_by_post2syn(syn_val, post2syn):
+def post_cond_by_post2syn(syn_val, post2syn):
     num_post = len(post2syn)
     g_val = np.zeros(num_post, dtype=np.float_)
     for i in range(num_post):

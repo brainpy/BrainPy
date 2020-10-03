@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import npbrain as npb
 from npbrain import _numpy as np
 
-npb.profile.show_codgen = True
+# npb.profile.show_codgen = True
+
 
 def define_ampa1(g_max=0.10, E=0., tau_decay=2.0):
     """AMPA conductance-based synapse (type 1).
@@ -49,7 +50,7 @@ def define_ampa1(g_max=0.10, E=0., tau_decay=2.0):
 
     def output(ST, post, post2syn):
         g = ST.pull_cond()
-        g_val = npb.cond_by_post2syn(g, post2syn)
+        g_val = npb.post_cond_by_post2syn(g, post2syn)
         post_val = - g_max * g_val * (post['V'] - E)
         post['inp'] += post_val
 
@@ -107,7 +108,7 @@ def define_ampa2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5)
 
     def output(ST, post, post2syn):
         g = ST.pull_cond()
-        g_val = npb.cond_by_post2syn(g, post2syn)
+        g_val = npb.post_cond_by_post2syn(g, post2syn)
         post_val = - g_max * g_val * (post['V'] - E)
         post['inp'] += post_val
 
@@ -123,6 +124,7 @@ def run_ampa(cls, duration=650.):
     ampa.post = npb.types.NeuState(['V', 'inp'])(1)
     ampa.pre2syn = [[0]]
     ampa.post2syn = [[0]]
+    ampa.set_schedule(['input', 'update', 'monitor'])
 
     net = npb.Network(ampa)
     Iext = npb.inputs.spike_current([10, 110, 210, 310, 410], npb.profile.dt, 1., duration=duration)
