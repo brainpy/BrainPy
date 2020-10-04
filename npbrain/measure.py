@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .. import profile
-from .. import _numpy as bnp
+from npbrain import profile
+from npbrain import _numpy as bnp
 
 __all__ = [
     'cross_correlation',

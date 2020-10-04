@@ -24,7 +24,6 @@ __all__ = ['EquationError',
            'check_subexpressions',
            'parse_string_equations']
 
-
 logger = logging.Logger(__name__)
 
 # Equation types (currently simple strings but always use the constants,
@@ -223,6 +222,11 @@ class Expression(Hashable):
         return hash(self.code)
 
 
+# a = 'f + g * xi_1 + h * xi_2'
+# expr = Expression(a)
+# expr.split_stochastic()
+
+
 class SingleEquation(Hashable):
     """
     Class for internal use, encapsulates a single equation or parameter.
@@ -341,14 +345,13 @@ class Equations(Hashable, Mapping):
         for eq in self._equations.values():
             if eq.expr is not None and 'xi' in eq.expr.identifiers:
                 if not eq.type == DIFFERENTIAL_EQUATION:
-                    raise EquationError(('The equation defining %s contains the '
-                                         'symbol "xi" but is not a differential '
-                                         'equation.') % eq.varname)
+                    raise EquationError(f'The equation defining {eq.varname} contains the '
+                                        f'symbol "xi" but is not a differential '
+                                        f'equation.')
                 elif uses_xi is not None:
-                    raise EquationError(('The equation defining %s contains the '
-                                         'symbol "xi", but it is already used '
-                                         'in the equation defining %s.') %
-                                        (eq.varname, uses_xi))
+                    raise EquationError(f'The equation defining {eq.varname} contains the '
+                                        f'symbol "xi", but it is already used '
+                                        f'in the equation defining {uses_xi}.')
                 else:
                     uses_xi = eq.varname
 
@@ -505,7 +508,7 @@ class Equations(Hashable, Mapping):
                     substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
                     self._substituted_expressions.append((eq.varname, expr))
                 elif eq.type == DIFFERENTIAL_EQUATION:
-                    #  a differential equation that we have to check
+                    # a differential equation that we have to check
                     self._substituted_expressions.append((eq.varname, expr))
                 else:
                     raise AssertionError('Unknown equation type %s' % eq.type)

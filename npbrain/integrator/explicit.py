@@ -6,10 +6,10 @@ import sympy
 from pyparsing import Literal, Group, Word, ZeroOrMore, Suppress, restOfLine, ParseException
 from sympy.core.sympify import SympifyError
 
+from npbrain.integrator._equations import is_constant_over_dt
+from npbrain.integrator.base import EquationError
 from npbrain.integrator.base import StateUpdateMethod
-from npbrain.integrator.base import UnsupportedEquationsException
 from npbrain.integrator.base import extract_method_options
-from npbrain.integrator.equations import is_constant_over_dt
 from npbrain.integrator.sympytools import str_to_sympy, sympy_to_str
 
 __all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
@@ -210,8 +210,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     EXPRESSION = restOfLine.setResultsName('expression')
 
     #: An assignment statement
-    STATEMENT = Group(TEMP_VAR + Suppress('=') +
-                      EXPRESSION).setResultsName('statement')
+    STATEMENT = Group(TEMP_VAR + Suppress('=') + EXPRESSION).setResultsName('statement')
 
     #: The last line of a state updater description
     OUTPUT = Group(Suppress(Literal('x_new')) + Suppress('=') + EXPRESSION).setResultsName('output')
@@ -225,8 +224,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         self.custom_check = custom_check
 
         try:
-            parsed = ExplicitStateUpdater.DESCRIPTION.parseString(description,
-                                                                  parseAll=True)
+            parsed = ExplicitStateUpdater.DESCRIPTION.parseString(description, parseAll=True)
         except ParseException as p_exc:
             ex = SyntaxError('Parsing failed: ' + str(p_exc.msg))
             ex.text = str(p_exc.line)
@@ -240,10 +238,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
             expression = str_to_sympy(element.expression)
             # Replace all symbols used in state updater expressions by unique
             # names that cannot clash with user-defined variables or functions
-            expression = expression.subs(sympy.Function('f'),
-                                         self.symbols['__f'])
-            expression = expression.subs(sympy.Function('g'),
-                                         self.symbols['__g'])
+            expression = expression.subs(sympy.Function('f'), self.symbols['__f'])
+            expression = expression.subs(sympy.Function('g'), self.symbols['__g'])
             symbols = list(expression.atoms(sympy.Symbol))
             unique_symbols = []
             for symbol in symbols:
@@ -254,20 +250,17 @@ class ExplicitStateUpdater(StateUpdateMethod):
             for symbol, unique_symbol in zip(symbols, unique_symbols):
                 expression = expression.subs(symbol, unique_symbol)
 
-            self.symbols.update(dict(((symbol.name, symbol)
-                                      for symbol in unique_symbols)))
+            self.symbols.update(dict(((symbol.name, symbol) for symbol in unique_symbols)))
             if element.getName() == 'statement':
                 self.statements.append(('__' + element.identifier, expression))
             elif element.getName() == 'output':
                 self.output = expression
             else:
-                raise AssertionError('Unknown element name: %s' %
-                                     element.getName())
+                raise AssertionError('Unknown element name: %s' % element.getName())
 
     def __repr__(self):
         # recreate a description string
-        description = '\n'.join(['%s = %s' % (var, expr)
-                                 for var, expr in self.statements])
+        description = '\n'.join(['%s = %s' % (var, expr) for var, expr in self.statements])
         if len(description):
             description += '\n'
         description += 'x_new = ' + str(self.output)
@@ -559,7 +552,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
         Examples
         --------
-        >>> from brian2 import *
         >>> eqs = Equations('dv/dt = -v / tau : volt')
         >>> print(euler(eqs))
         _v = -dt*v/tau + v
@@ -576,9 +568,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
         if eqs.is_stochastic and self.stochastic is None:
-            raise UnsupportedEquationsException('Cannot integrate '
-                                                'stochastic equations with '
-                                                'this state updater.')
+            raise EquationError('Cannot integrate '
+                                'stochastic equations with '
+                                'this state updater.')
         if self.custom_check:
             self.custom_check(eqs, variables)
         # The final list of statements
@@ -598,7 +590,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         for stochastic_variable in stochastic_variables:
             statements.append(stochastic_variable + ' = ' + 'dt**.5 * randn()')
 
-        substituted_expressions = eqs.get_substituted_expressions(variables)
+        substituted_expressions = eqs.substitute(variables)
 
         # Process the intermediate statements in the stateupdater description
         for intermediate_var, intermediate_expr in self.statements:
@@ -647,10 +639,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
                     # via differential equations.
                     if (not is_constant_over_dt(sympy_expr, variables, dt_value)
                             or len(stoch_expr.identifiers & eqs.diff_eq_names)):
-                        raise UnsupportedEquationsException('Cannot integrate '
-                                                            'equations with '
-                                                            'multiplicative noise with '
-                                                            'this state updater.')
+                        raise EquationError('Cannot integrate '
+                                            'equations with '
+                                            'multiplicative noise with '
+                                            'this state updater.')
 
         # Assign a value to all the model variables described by differential
         # equations
@@ -706,23 +698,23 @@ def diagonal_noise(equations, variables):
         return
 
     stochastic_vars = []
-    for _, expr in equations.get_substituted_expressions(variables):
+    for _, expr in equations.substitute(variables):
         expr_stochastic_vars = expr.stochastic_variables
         if len(expr_stochastic_vars) > 1:
             # More than one stochastic variable --> no diagonal noise
-            raise UnsupportedEquationsException('Cannot integrate stochastic '
-                                                'equations with non-diagonal '
-                                                'noise with this state '
-                                                'updater.')
+            raise EquationError('Cannot integrate stochastic '
+                                'equations with non-diagonal '
+                                'noise with this state '
+                                'updater.')
         stochastic_vars.extend(expr_stochastic_vars)
 
     # If there's no stochastic variable is used in more than one equation, we
     # have diagonal noise
     if len(stochastic_vars) != len(set(stochastic_vars)):
-        raise UnsupportedEquationsException('Cannot integrate stochastic '
-                                            'equations with non-diagonal '
-                                            'noise with this state '
-                                            'updater.')
+        raise EquationError('Cannot integrate stochastic '
+                            'equations with non-diagonal '
+                            'noise with this state '
+                            'updater.')
 
 
 #: Derivative-free Milstein method

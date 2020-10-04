@@ -3,8 +3,7 @@
 from npbrain import _numpy as np
 
 from npbrain.core import integrate
-from npbrain.core.synapse_connection import *
-from npbrain.utils.helper import get_clip
+from npbrain.helper import get_clip
 
 __all__ = [
     'GABAa1',

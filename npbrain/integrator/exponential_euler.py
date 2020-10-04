@@ -2,7 +2,7 @@ import sympy as sp
 
 from npbrain.integrator.sympytools import sympy_to_str, str_to_sympy
 from npbrain.integrator.base import StateUpdateMethod
-from npbrain.integrator.base import UnsupportedEquationsException
+from npbrain.integrator.base import EquationError
 from npbrain.integrator.base import extract_method_options
 
 __all__ = ['exponential_euler']
@@ -30,7 +30,6 @@ def get_conditionally_linear_system(eqs, variables=None):
 
     Examples
     --------
-    >>> from brian2 import Equations
     >>> eqs = Equations('''
     ... dv/dt = (-v + w**2) / tau : 1
     ... dw/dt = -w / tau : 1
@@ -72,17 +71,12 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
     def __call__(self, equations, variables=None, method_options=None):
         method_options = extract_method_options(method_options, {})
         if equations.is_stochastic:
-            raise UnsupportedEquationsException('Cannot solve stochastic '
+            raise EquationError('Cannot solve stochastic '
                                                 'equations with this state '
                                                 'updater.')
 
         # Try whether the equations are conditionally linear
-        try:
-            system = get_conditionally_linear_system(equations, variables)
-        except ValueError:
-            raise UnsupportedEquationsException('Can only solve conditionally '
-                                                'linear systems with this '
-                                                'state updater.')
+        system = get_conditionally_linear_system(equations, variables)
 
         code = []
         for var, (A, B) in system.items():
@@ -101,8 +95,8 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
                 update_expression = s_var * sp.exp(A * s_dt)
 
             # The actual update step
-            update = '_{var} = {expr}'
-            code += [update.format(var=var, expr=sympy_to_str(update_expression))]
+            update = f'_{var} = {sympy_to_str(update_expression)}'
+            code.append(update)
 
         # Replace all the variables with their updated value
         for var in system:
@@ -117,12 +111,21 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
 exponential_euler = ExponentialEulerStateUpdater()
 
 if __name__ == '__main__':
-    from parsing.equations import Equations
+    pass
+    # get linear part
+    # ---------------
+    # code = '(-v + v**2 + 3) / tau'
+    # var = sp.Symbol('v', real=True)
+    # s_expr = str_to_sympy(code).expand()
+    # print(s_expr)
+    # s_expr = sp.collect(s_expr, var, evaluate=False)
+    # print(type(s_expr))
+    # print(s_expr)
 
+    from npbrain.integrator._equations import Equations
     eqs = Equations("""
-        a = np.random.rand(w**2) : 1
-        b = np.sin(v) : 1
-        dv/dt = (-v + a + b) / tau : 1
-        dw/dt = -w / tau : 1
+        alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10)) : 1
+        beta = 4.0 * np.exp(-(V + 65) / 18) : 1
+        dm/dt = alpha * (1 - m) - beta * m : 1
     """)
     print(exponential_euler(eqs))

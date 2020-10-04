@@ -196,7 +196,9 @@ if __name__ == '__main__':
             dn/dt = an * (1.0 - n) - 
             bn * n
         dm/dt = am * (1.0 - m) - bm * m
-        dh/dt = ah * (1.0 - h) - bh * h : init = 0.6, midpoint
+        dh/dt = ah * (1.0 - h) - bh * h, \
+        ad, nn
     '''
     variable_list = process_equations(des)
-    print(variable_list)
+    from pprint import pprint
+    pprint(variable_list)

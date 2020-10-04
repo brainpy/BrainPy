@@ -65,7 +65,7 @@ def HH_model():
     def int_V(V, t, Icur, Isyn):
         return (Icur + Isyn) / C
 
-    @nn.helper.autojit
+    @npbrain.helper.autojit
     def neu_update_state(st, t):
         m = nn.clip(int_m(st.m, t, st.V), 0., 1.)
         h = nn.clip(int_h(st.h, t, st.V), 0., 1.)
@@ -103,7 +103,7 @@ def HH_model():
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    @nn.helper.autojit
+    @npbrain.helper.autojit
     def syn_update_state(syn_st, post_st, t, pre_state):
         # calculate synaptic state
         spike_idx = np.where(pre_state.spike > 0.)[0]
@@ -121,7 +121,7 @@ def HH_model():
         didx = post_st.didx
         post_st.g[didx[0]] = g
 
-    @nn.helper.autojit
+    @npbrain.helper.autojit
     def syn_output_synapse(post_st, post_state):
         didx = post_st.didx
         g_val = post_st.g[didx[1]]

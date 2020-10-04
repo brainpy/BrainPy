@@ -43,25 +43,25 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
                               help='Hodgkin–Huxley neuron state.'),
     )
 
-    @npb.core.integrate(method=method)
+    @npb.integrator.integrate(method=method)
     def int_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
         return alpha * (1 - m) - beta * m
 
-    @npb.core.integrate(method=method)
+    @npb.integrator.integrate(method=method)
     def int_h(h, t, V):
         alpha = 0.07 * np.exp(-(V + 65) / 20.)
         beta = 1 / (1 + np.exp(-(V + 35) / 10))
         return alpha * (1 - h) - beta * h
 
-    @npb.core.integrate(method=method)
+    @npb.integrator.integrate(method=method)
     def int_n(n, t, V):
         alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
         beta = 0.125 * np.exp(-(V + 65) / 80)
         return alpha * (1 - n) - beta * n
 
-    @npb.core.integrate(method=method, noise=noise / C)
+    @npb.integrator.integrate(method=method, noise=noise / C)
     def int_V(V, t, m, h, n, Isyn):
         INa = g_Na * m ** 3 * h * (V - E_Na)
         IK = g_K * n ** 4 * (V - E_K)
@@ -87,8 +87,13 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
 
 HH = npb.NeuType(name='HH_neuron', create_func=define, group_based=True)
 
+import inspect
+a = define()
+print(inspect.getclosurevars(a['step_func']))
 
-if __name__ == '__main__':
+
+
+if __name__ == '__main__1':
     neu = npb.NeuGroup(HH, geometry=(1, ), monitors=['sp', 'V', 'm', 'h', 'n'])
     net = npb.Network(neu)
     net.run(duration=100., inputs=[neu, 'ST.inp', 10.], report=True)

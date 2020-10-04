@@ -11,8 +11,8 @@ try:
 except ImportError as e:
     nb = None
 
-from .. import _numpy as np
-from .. import profile
+from npbrain import _numpy as np
+from npbrain import profile
 
 __all__ = [
     # function helpers

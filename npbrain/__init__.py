@@ -3,7 +3,7 @@
 __version__ = "1.0.0"
 
 # "profile" module
-from . import profile
+from . import profile, inputs
 
 # "core" module
 from . import core
@@ -14,11 +14,6 @@ from .core.neuron_group import *
 from .core.synapse_connection import *
 from .core import types
 
-# "utils" module
-from . import utils
-from .utils import helper
-from .utils import inputs
-from .utils import measure
 
 #
 # # reload functions

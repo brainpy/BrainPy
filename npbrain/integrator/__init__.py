@@ -7,9 +7,7 @@ from .exact import *
 from .explicit import *
 from .exponential_euler import *
 
-StateUpdateMethod.register('linear', linear)
 StateUpdateMethod.register('exact', exact)
-StateUpdateMethod.register('independent', independent)
 StateUpdateMethod.register('exponential_euler', exponential_euler)
 StateUpdateMethod.register('euler', euler)
 StateUpdateMethod.register('rk2', rk2)
@@ -18,6 +16,6 @@ StateUpdateMethod.register('milstein', milstein)
 StateUpdateMethod.register('heun', heun)
 
 __all__ = ['StateUpdateMethod',
-           'linear', 'exact', 'independent',
+           'exact',
            'milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater',
            'exponential_euler',]

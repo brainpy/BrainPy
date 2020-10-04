@@ -47,11 +47,6 @@ DEFAULT_FUNCTIONS = {
     'min': sympy.functions.elementary.miscellaneous.Min,
     'max': sympy.functions.elementary.miscellaneous.Max,
     'cbrt': sympy.functions.elementary.miscellaneous.cbrt,
-
-    # 'rand': Function(pyfunc=np.random.rand, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
-    # 'randn': Function(pyfunc=np.random.randn, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
-    # 'poisson': Function(pyfunc=np.random.poisson, arg_units=[1], return_unit=1, return_type='integer',
-    #                     stateless=False, auto_vectorise=True),
 }
 
 DEFAULT_CONSTANTS = {'pi': sympy.pi,

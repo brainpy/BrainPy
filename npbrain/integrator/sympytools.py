@@ -250,7 +250,6 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
                                        '"0.0").').format(expr=expr, func=identifier))
 
 
-
 class SympyPrinter(StrPrinter):
     """
     Printer that overrides the printing of some basic sympy objects. E.g.

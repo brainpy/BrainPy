@@ -5,13 +5,13 @@ from abc import abstractmethod, ABCMeta
 from collections.abc import Iterable
 
 __all__ = ['StateUpdateMethod',
-           'UnsupportedEquationsException', 
+           'EquationError',
            'extract_method_options']
 
 logger = logging.Logger(__name__)
 
 
-class UnsupportedEquationsException(Exception):
+class EquationError(Exception):
     pass
 
 
@@ -108,7 +108,7 @@ class StateUpdateMethod(object):
         pass
 
     @staticmethod
-    def register(name, stateupdater):
+    def register(name, updater):
         """
         Register a state updater. Registered state updaters can be referred to
         via their name.
@@ -117,7 +117,7 @@ class StateUpdateMethod(object):
         ----------
         name : str
             A short name for the state updater (e.g. `'euler'`)
-        stateupdater : `StateUpdaterMethod`
+        updater : `StateUpdaterMethod`
             The state updater object, e.g. an `ExplicitStateUpdater`.
         """
 
@@ -128,11 +128,11 @@ class StateUpdateMethod(object):
             raise ValueError(('A stateupdater with the name "%s" '
                               'has already been registered') % name)
 
-        if not isinstance(stateupdater, StateUpdateMethod):
+        if not isinstance(updater, StateUpdateMethod):
             raise ValueError(('Given stateupdater of type %s does not seem to '
-                              'be a valid stateupdater.' % str(type(stateupdater))))
+                              'be a valid stateupdater.' % str(type(updater))))
 
-        StateUpdateMethod.stateupdaters[name] = stateupdater
+        StateUpdateMethod.stateupdaters[name] = updater
 
     @staticmethod
     def apply_stateupdater(equations, variables, method, method_options=None, group_name=None):
@@ -161,8 +161,7 @@ class StateUpdateMethod(object):
         abstract_code : str
             The code integrating the given equations.
         """
-        if (isinstance(method, Iterable) and
-                not isinstance(method, str)):
+        if (isinstance(method, Iterable) and not isinstance(method, str)):
             the_method = None
             start_time = time.time()
             for one_method in method:
@@ -175,7 +174,7 @@ class StateUpdateMethod(object):
                     the_method = one_method
                     one_method_time = time.time() - one_method_start_time
                     break
-                except UnsupportedEquationsException:
+                except EquationError:
                     pass
                 except TypeError:
                     raise TypeError(('Each element in the list of methods has '
@@ -214,12 +213,10 @@ class StateUpdateMethod(object):
                 method = method.lower()  # normalize name to lower case
                 stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
                 if stateupdater is None:
-                    raise ValueError('No state updater with the name "%s" '
-                                     'is known' % method)
+                    raise ValueError(f'No state updater with the name "{method}" is known')
             else:
-                raise TypeError(('method argument has to be a string, a '
-                                 'callable, or an iterable of such objects. '
-                                 'Got %s') % type(method))
+                raise TypeError(f'method argument has to be a string, a callable, or an iterable'
+                                 f' of such objects. Got {type(method)}.' )
             start_time = time.time()
             code = stateupdater(equations, variables, method_options)
             method_time = time.time() - start_time

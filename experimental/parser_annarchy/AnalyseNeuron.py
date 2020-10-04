@@ -273,3 +273,15 @@ def analyse_neuron(neuron):
                     description['variables'][idx] = new_eq
 
     return description
+
+
+
+if __name__ == '__main__':
+    a = '''
+    an = 0.01 * (V + 60.0) / (1.0 - exp(-0.1* (V + 60.0) ) )
+    am = 0.1 * (V + 45.0) / (1.0 - exp (- 0.1 * ( V + 45.0 )))
+    ah = 0.07 * exp(- 0.05 * ( V + 70.0 ))
+    '''
+    print(analyse_neuron(a))
+
+

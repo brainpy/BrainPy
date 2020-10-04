@@ -127,7 +127,7 @@ def run_ampa(cls, duration=650.):
     ampa.set_schedule(['input', 'update', 'monitor'])
 
     net = npb.Network(ampa)
-    Iext = npb.inputs.spike_current([10, 110, 210, 310, 410], npb.profile.dt, 1., duration=duration)
+    Iext = npbrain.inputs.spike_current([10, 110, 210, 310, 410], npb.profile.dt, 1., duration=duration)
     net.run(duration, inputs=(ampa, 'pre.sp', Iext, '='), report=True)
 
     fig, gs = npb.visualize.get_figure(1, 1, 5, 10)

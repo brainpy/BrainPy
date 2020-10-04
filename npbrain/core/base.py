@@ -4,9 +4,8 @@ import inspect
 from copy import deepcopy
 
 from .types import TypeChecker
-from .. import _numpy as np
+from .. import _numpy as np, helper
 from .. import profile
-from ..utils import helper
 
 __all__ = [
     # errors
