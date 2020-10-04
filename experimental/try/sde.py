@@ -3,7 +3,7 @@
 import numpy as np
 
 from npbrain import profile
-from npbrain.helper import autojit
+from npbrain.tools import autojit
 
 __all__ = [
     'sde_generator',

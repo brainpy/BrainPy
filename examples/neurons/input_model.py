@@ -5,7 +5,7 @@ from npbrain import _numpy as np
 from npbrain.core.neuron_group import Neurons
 from npbrain.core.neuron_group import format_geometry
 from npbrain.core.neuron_group import init_neu_state
-from npbrain.utils import autojit
+from npbrain.tools import autojit
 
 __all__ = [
     'FreqInput',

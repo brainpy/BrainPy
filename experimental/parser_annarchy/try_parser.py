@@ -2,7 +2,7 @@
 import logging
 from experimental.parser_annarchy.AnalyseNeuron import analyse_neuron
 from experimental.parser_annarchy.config import _objects
-from npbrain.utils import DictPlus
+from npbrain.tools import DictPlus
 
 
 def neurons(parameters="", equations="", spike=None,

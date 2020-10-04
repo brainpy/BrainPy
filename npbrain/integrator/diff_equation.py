@@ -1,7 +1,7 @@
 import inspect
 import re
 import sympy
-from npbrain import helper
+from npbrain import tools
 from npbrain.integrator.sympytools import str_to_sympy
 from npbrain.integrator.sympytools import sympy_to_str
 from collections import Counter
@@ -58,7 +58,7 @@ def get_source_code(func):
     if func is None:
         return None
 
-    if helper.is_lambda_function(func):
+    if tools.is_lambda_function(func):
         func_code = inspect.getsource(func)
         splits = func_code.split(':')
         if len(splits) != 2:

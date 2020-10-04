@@ -4,7 +4,7 @@ import numba as nb
 import numpy as np
 
 from npbrain import profile
-from npbrain.helper import autojit
+from npbrain.tools import autojit
 
 
 def _reload():

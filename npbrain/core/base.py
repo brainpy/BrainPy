@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import re
 import inspect
 from copy import deepcopy
 
 from .types import TypeChecker
-from .. import _numpy as np, helper
+from .. import _numpy as np
+from .. import tools
 from .. import profile
 
 __all__ = [
@@ -234,7 +236,7 @@ class BaseEnsemble(object):
 
         # monitors
         # ---------
-        self.mon = helper.DictPlus()
+        self.mon = tools.DictPlus()
         self._mon_vars = []
         if monitors is not None:
             if isinstance(monitors, (list, tuple)):
@@ -611,3 +613,64 @@ class BaseEnsemble(object):
             if hasattr(self, key):
                 raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, please change another name.')
         super(BaseEnsemble, self).__setattr__(key, value)
+
+
+def numba_func(func, states=None):
+    if tools.is_lambda_function(func):
+        raise ValueError('Do not support lambda function.')
+
+    vars = inspect.getclosurevars(func)
+    scope = vars.nonlocals
+    scope.update(vars.globals)
+    scope_keys = list(scope.keys())
+
+    # check scope variables
+    modified = False
+    for k, v in scope.items():
+        # function
+        if callable(v):
+            scope[k] = numba_func(v, states)
+            modified = True
+
+    # check function code
+    if states is not None:
+        args = inspect.getfullargspec(func).args
+        func_code = inspect.getsource(func)
+        added_args = []
+        for i, arg in enumerate(args):
+            if arg in states:
+                modified = True
+                st = states[arg]
+                var2idx = st['_var2idx']
+                for st_k in st._keys():
+                    p = f'{arg}\[([\'"]{st_k}[\'"])\]'
+                    r = f"{arg}[{var2idx[st_k]}]"
+                    func_code = re.sub(r'' + p, r, func_code)
+                p = f'{arg}.pull_cond()'
+                if p in func_code:
+                    r = f'{arg}["{arg}_dout"]'
+                    func_code = func_code.replace(p, r)
+                    added_args.append(f'{arg}_dout')
+                p = f'{arg}.push_cond'
+                if p in func_code:
+                    res = re.findall(r'(' + p + r'\((\w+?)\))', func_code)
+                    assert len(res) == 2
+                    func_code = func_code.replace(res[0], f'{arg}["{arg}_din"] = {res[1]}')
+                    added_args.append(f'{arg}_din')
+
+        if len(added_args):
+            added_args = ', '.join(added_args)
+            if len(args) > 0:
+                added_args = ', ' + added_args
+            func_code = func_code.replace('):', added_args + '):')
+
+    if not modified:
+        return tools.autojit(func)
+    else:
+        func_code = tools.deindent(func_code, spaces_per_tab=2)
+        exec(compile(func_code, '', 'exec'), scope)
+        for k in scope.keys():
+            if k not in scope_keys:
+                return scope[k]
+        else:
+            raise ValueError('No return.')

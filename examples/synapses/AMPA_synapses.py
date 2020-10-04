@@ -27,12 +27,9 @@ def define_ampa1(g_max=0.10, E=0., tau_decay=2.0):
     """
 
     attrs = dict(
-        ST=npb.types.SynState(['s'],
-                              help='AMPA synapse state.'),
-        pre=npb.types.NeuState(['sp'],
-                               help='Pre-synaptic neuron state must have "sp" item.'),
-        post=npb.types.NeuState(['V', 'inp'],
-                                help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+        ST=npb.types.SynState(['s'], help='AMPA synapse state.'),
+        pre=npb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
+        post=npb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
     )
 
     @npb.integrate(method='euler')

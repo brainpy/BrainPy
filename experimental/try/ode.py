@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from npbrain.helper import autojit
+from npbrain.tools import autojit
 from npbrain import profile
 
 __all__ = [

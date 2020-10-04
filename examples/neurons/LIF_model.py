@@ -2,7 +2,7 @@
 
 from npbrain.core import integrate
 from npbrain.core.neuron_group import *
-from npbrain.utils import autojit
+from npbrain.tools import autojit
 
 __all__ = [
     'LIF'

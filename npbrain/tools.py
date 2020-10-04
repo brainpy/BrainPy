@@ -5,6 +5,7 @@ import functools
 import types
 
 import numpy as onp
+
 try:
     import numba as nb
     from numba.core.dispatcher import Dispatcher
@@ -67,7 +68,6 @@ def autojit(signature_or_func=None):
         function.
     """
     if callable(signature_or_func):  # function
-
         if profile.is_numba_bk():
             if nb is None:
                 raise ImportError('Please install numba.')
@@ -86,20 +86,6 @@ def autojit(signature_or_func=None):
             else:
                 assert isinstance(signature_or_func, (list, tuple))
                 signature_or_func = list(signature_or_func)
-            for i in range(len(signature_or_func)):
-                if ('float' in signature_or_func[i]) or ('int' in signature_or_func[i]):
-                    pass
-                elif '{' in signature_or_func[i] and '}' in signature_or_func[i]:
-                    signature_or_func[i] = signature_or_func[i].format(f=profile.ftype, i=profile.itype)
-                else:
-                    s = signature_or_func[i].replace(' ', '')
-                    s = s.replace('f[', profile.ftype + '[')
-                    s = s.replace('f,', profile.ftype + ',')
-                    s = s.replace('f)', profile.ftype + ')')
-                    s = s.replace('i[', profile.itype + '[')
-                    s = s.replace('i,', profile.itype + ',')
-                    s = s.replace('i)', profile.itype + ')')
-                    signature_or_func[i] = s
 
         def wrapper(f):
             if profile.is_numba_bk():
@@ -305,3 +291,40 @@ def init_struct_array(num, variables):
         arr = {k: np.zeros(num, dtype=d) for k, d in variables.items()}
         return arr
 
+
+######################################
+# String tools
+######################################
+
+
+def indent(text, num_tabs=1, spaces_per_tab=4, tab=None):
+    if tab is None:
+        tab = ' ' * spaces_per_tab
+    indent = tab * num_tabs
+    indentedstring = indent + text.replace('\n', '\n' + indent)
+    return indentedstring
+
+
+def deindent(text, num_tabs=None, spaces_per_tab=4, docstring=False):
+    text = text.replace('\t', ' ' * spaces_per_tab)
+    lines = text.split('\n')
+    # if it's a docstring, we search for the common tabulation starting from
+    # line 1, otherwise we use all lines
+    if docstring:
+        start = 1
+    else:
+        start = 0
+    if docstring and len(lines) < 2:  # nothing to do
+        return text
+    # Find the minimum indentation level
+    if num_tabs is not None:
+        indentlevel = num_tabs * spaces_per_tab
+    else:
+        lineseq = [len(line) - len(line.lstrip()) for line in lines[start:] if len(line.strip())]
+        if len(lineseq) == 0:
+            indentlevel = 0
+        else:
+            indentlevel = min(lineseq)
+    # remove the common indentation
+    lines[start:] = [line[indentlevel:] for line in lines[start:]]
+    return '\n'.join(lines)

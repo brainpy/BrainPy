@@ -2,7 +2,7 @@
 
 from npbrain import _numpy as bnp
 from npbrain import profile
-from npbrain.helper import autojit
+from npbrain.tools import autojit
 
 __all__ = [
     'integrate',

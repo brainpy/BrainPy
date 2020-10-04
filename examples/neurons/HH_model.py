@@ -89,7 +89,8 @@ HH = npb.NeuType(name='HH_neuron', create_func=define, group_based=True)
 
 import inspect
 a = define()
-print(inspect.getclosurevars(a['step_func']))
+vars = inspect.getclosurevars(a['step_func'])
+print()
 
 
 
