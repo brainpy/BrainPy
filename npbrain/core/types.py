@@ -85,8 +85,14 @@ class NeuState(dict, TypeChecker):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
-    def extract_be_index(self, idx):
+    def extract_by_index(self, idx):
         return {v: self.__getitem__(v)[idx] for v in self._vars}
+
+    def update_by_index(self, idx, val):
+        data = self.__getitem__('_data')
+        for k, v in val:
+            _var2idx = self.__getitem__('_var2idx')
+            data[_var2idx[k], idx] = v
 
     def check(self, cls):
         if not isinstance(cls, NeuState):
@@ -175,8 +181,14 @@ class SynState(dict, TypeChecker):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
-    def extract_be_index(self, idx):
+    def extract_by_index(self, idx):
         return {v: self.__getitem__(v)[idx] for v in self._vars}
+
+    def update_by_index(self, idx, val):
+        data = self.__getitem__('_data')
+        for k, v in val:
+            _var2idx = self.__getitem__('_var2idx')
+            data[_var2idx[k], idx] = v
 
     def check(self, cls):
         if not isinstance(cls, SynState):

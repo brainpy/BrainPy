@@ -1,4 +1,4 @@
-from experimental.parser_annarchy import CoupledEquations
+from experimental.parser_annarchy.CoupledEquations import CoupledEquations
 from experimental.parser_annarchy.Extraction import *
 
 

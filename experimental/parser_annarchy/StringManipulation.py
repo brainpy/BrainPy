@@ -186,16 +186,17 @@ def process_equations(equations):
             variables[-1]['eq'] += ' ' + equation.strip()
             variables[-1]['constraint'] += constraint
         else:
-            logging.error('Only one assignement operator is allowed per equation.')
+            logging.error('Only one assignment operator is allowed per equation.')
 
     return variables
 
 
 if __name__ == '__main__':
     des = '''
-            dn/dt = an * (1.0 - n) - bn * n : init = 0.3, midpoint
-        dm/dt = am * (1.0 - m) - bm * m : init = 0.0, midpoint
+            dn/dt = an * (1.0 - n) - 
+            bn * n
+        dm/dt = am * (1.0 - m) - bm * m
         dh/dt = ah * (1.0 - h) - bh * h : init = 0.6, midpoint
     '''
     variable_list = process_equations(des)
-    print()
+    print(variable_list)

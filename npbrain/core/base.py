@@ -175,8 +175,20 @@ class BaseEnsemble(object):
         # ---
         self.num = num
 
+        # variables
+        # ---------
+        vars_init = dict() if vars_init is None else vars_init
+        assert isinstance(vars_init, dict), '"vars_init" must be a dict.'
+        variables = deepcopy(self.model.variables)
+        for k, v in vars_init:
+            if k not in self.model.variables:
+                raise KeyError(f'variable "{k}" is not defined in "{self.model.name}".')
+            variables[k] = v
+        self.vars_init = variables
+
         # parameters
         # ----------
+        hetero_pars = {}
         pars_update = dict() if pars_update is None else pars_update
         assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
         parameters = deepcopy(self.model.parameters)
@@ -186,6 +198,8 @@ class BaseEnsemble(object):
                 if val_size != num:
                     raise ValueError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
                                      f'and "{val_size}" != {num}.')
+                else:
+                    hetero_pars[k] = v
             parameters[k] = v
         self.pars_update = parameters
         if profile.is_numba_bk():
@@ -202,29 +216,16 @@ class BaseEnsemble(object):
         else:
             self.PA = parameters
 
-        # variables
-        # ---------
-        vars_init = dict() if vars_init is None else vars_init
-        assert isinstance(vars_init, dict), '"vars_init" must be a dict.'
-        variables = deepcopy(self.model.variables)
-        for k, v in vars_init:
-            if k not in self.model.variables:
-                raise KeyError(f'variable "{k}" is not defined in "{self.model.name}".')
-            variables[k] = v
-        self.vars_init = variables
-
         # step functions
         # ---------------
+        if not model.group_based:
+            if len(hetero_pars) > 0:
+                raise ValueError('Single neuron/synapse model doesn\'t support heterogeneous parameters.')
+            if self._cls_type == 'syn_conn' and (self.pre_group is None or self.post_group is None):
+                raise ValueError('Single synapse model must provide "pre_group" and "post_group".')
+
         if profile.is_numpy_bk():
-            func_return = self.model.create_func(**pars_update)
-            step_func = func_return['step_func']
-            if callable(step_func):
-                step_func = [step_func, ]
-            elif isinstance(step_func, (tuple, list)):
-                step_func = list(step_func)
-            else:
-                raise ValueError('"step_func" must be a callable, or a list/tuple of callable functions.')
-            self.step_func = step_func
+            self.step_func = self._get_steps_from_model(self.pars_update)
 
         elif profile.is_numba_bk():
             raise NotImplementedError
@@ -262,6 +263,17 @@ class BaseEnsemble(object):
         # ---------------------
         self._schedule = ['input'] + self.model.step_names + ['monitor']
 
+    def _get_steps_from_model(self, pars_update):
+        func_return = self.model.create_func(**pars_update)
+        step_func = func_return['step_func']
+        if callable(step_func):
+            step_func = [step_func, ]
+        elif isinstance(step_func, (tuple, list)):
+            step_func = list(step_func)
+        else:
+            raise ValueError('"step_func" must be a callable, or a list/tuple of callable functions.')
+        return step_func
+
     def _type_checking(self):
         # check attribute and its type
         for key, type_checker in self.model.attributes.items():
@@ -281,19 +293,39 @@ class BaseEnsemble(object):
         if profile.is_numpy_bk():
             for func in self.step_func:
                 func_name = func.__name__
-                setattr(self, func_name, func)
+                func_args = inspect.getfullargspec(func).args
+                if self.model.group_based:
+                    setattr(self, func_name, func)
+                    arg_calls = []
+                    for arg in func_args:
+                        if arg == 'self': pass
+                        elif arg in ['t', 'i']: arg_calls.append(arg)
+                        else: arg_calls.append(f"{self.name}.{arg}")
+                    func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
+                    self._codegen[func_name] = {'func': func, 'call': func_call}
 
-                arg_calls = []
-                for arg in inspect.getfullargspec(func).args:
-                    if arg == 'self':
-                        pass
-                    elif arg in ['t', 'i']:
-                        arg_calls.append(arg)
-                    else:
-                        arg_calls.append(f"{self.name}.{arg}")
-                func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
+                else:
+                    code_lines = [f'def {func_name}({", ".join(func_args)}):']
+                    code_lines.append(f'  for ni in range(self.pre_group.num):')
+                    code_lines.append(f'    for si in self.:')
+                    arg_calls = []
+                    for arg in func_args:
+                        if arg == 'self':
+                            pass
+                        elif arg in ['t', 'i']:
+                            arg_calls.append(arg)
+                        else:
+                            arg_calls.append(f"{self.name}.{arg}")
 
-                self._codegen[func_name] = {'func': func, 'call': func_call}
+                    func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
+
+                    self._codegen[func_name] = {'func': func, 'call': func_call}
+
+        elif profile.is_numba_bk():
+            code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
+
+            for func in self.step_func:
+                pass
 
         else:
             raise NotImplementedError

@@ -49,47 +49,43 @@ class SynConn(BaseEnsemble):
 
         # pre or post neuron group
         # ------------------------
+        self.pre_group = pre_group
+        self.post_group = post_group
         if pre_group is not None and post_group is not None:
             # check
             # ------
             assert isinstance(pre_group, NeuGroup), '"pre" must be an instance of NeuGroup.'
             assert isinstance(post_group, NeuGroup), '"post" must be an instance of NeuGroup.'
+            assert conn is not None, '"conn" must be provided.'
 
             # connections
             # ------------
-            if conn is None:
-                if isinstance(conn, Connector):
-                    pre_idx, post_idx = conn(pre_group.geometry, post_group.geometry)
-                elif isinstance(conn, np.ndarray):
-                    assert np.ndim(conn) == 2, f'"conn" must be a 2D array, not {np.ndim(conn)}D.'
-                    conn_shape = np.shape(conn)
-                    assert conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num, \
-                        f'The shape of "conn" must be ({pre_group.num}, {post_group.num})'
-                    pre_idx, post_idx = [], []
-                    for i in enumerate(pre_group.num):
-                        idx = np.where(conn[i] > 0)[0]
-                        pre_idx.extend([i * len(idx)])
-                        post_idx.extend(idx)
-                    pre_idx = np.asarray(pre_idx, dtype=np.int_)
-                    post_idx = np.asarray(post_idx, dtype=np.int_)
-                else:
-                    assert isinstance(conn, dict), '"conn" only support "dict" or a 2D "array".'
-                    assert 'i' in conn, '"conn" must provide "i" item.'
-                    assert 'j' in conn, '"conn" must provide "j" item.'
-                    pre_idx = np.asarray(conn['i'], dtype=np.int_)
-                    post_idx = np.asarray(conn['j'], dtype=np.int_)
-
-                num = len(pre_idx)
-                self.pre2syn = pre2syn(pre_idx, post_idx, pre_group.num)
-                self.post2syn = post2syn(pre_idx, post_idx, post_group.num)
-
+            if isinstance(conn, Connector):
+                pre_idx, post_idx = conn(pre_group.geometry, post_group.geometry)
+            elif isinstance(conn, np.ndarray):
+                assert np.ndim(conn) == 2, f'"conn" must be a 2D array, not {np.ndim(conn)}D.'
+                conn_shape = np.shape(conn)
+                assert conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num, \
+                    f'The shape of "conn" must be ({pre_group.num}, {post_group.num})'
+                pre_idx, post_idx = [], []
+                for i in enumerate(pre_group.num):
+                    idx = np.where(conn[i] > 0)[0]
+                    pre_idx.extend([i * len(idx)])
+                    post_idx.extend(idx)
+                pre_idx = np.asarray(pre_idx, dtype=np.int_)
+                post_idx = np.asarray(post_idx, dtype=np.int_)
             else:
-                assert num is not None, '"num" must be provided when "conn" are none.'
+                assert isinstance(conn, dict), '"conn" only support "dict" or a 2D "array".'
+                assert 'i' in conn, '"conn" must provide "i" item.'
+                assert 'j' in conn, '"conn" must provide "j" item.'
+                pre_idx = np.asarray(conn['i'], dtype=np.int_)
+                post_idx = np.asarray(conn['j'], dtype=np.int_)
 
-            # essential
-            # ---------
-            self.pre_group = pre_group
-            self.post_group = post_group
+            num = len(pre_idx)
+            self.pre2syn = pre2syn(pre_idx, post_idx, pre_group.num)
+            self.post2syn = post2syn(pre_idx, post_idx, post_group.num)
+            self.pre_idx = pre_idx
+            self.post_idx = post_idx
 
         else:
             assert num is not None, '"num" must be provided when "pre" and "post" are none.'

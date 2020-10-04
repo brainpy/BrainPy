@@ -4,6 +4,11 @@ from experimental.parser_annarchy.ITE import *
 from experimental.parser_annarchy.Random import available_distributions, distributions_arguments, distributions_equivalents
 from experimental.parser_annarchy.config import config
 from experimental.parser_annarchy.config import get_constant
+from experimental.parser_annarchy.StringManipulation import prepare_string
+from experimental.parser_annarchy.StringManipulation import extract_name
+from experimental.parser_annarchy.StringManipulation import split_equation
+from experimental.parser_annarchy.StringManipulation import extract_flags
+from experimental.parser_annarchy.StringManipulation import process_equations
 from experimental.parser_annarchy.config import list_constants
 
 

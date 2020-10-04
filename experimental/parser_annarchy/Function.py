@@ -4,7 +4,7 @@ from sympy import *
 from sympy.parsing.sympy_parser import parse_expr, convert_xor, auto_number
 
 from experimental.parser_annarchy.Equation import transform_condition
-from experimental.parser_annarchy import functions_dict, user_functions
+from experimental.parser_annarchy.ParserTemplate import functions_dict, user_functions
 from experimental.parser_annarchy.config import _objects
 
 

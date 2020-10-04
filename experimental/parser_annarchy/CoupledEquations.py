@@ -4,7 +4,7 @@ import re
 from sympy import *
 
 from experimental.parser_annarchy.Equation import Equation
-from experimental.parser_annarchy import create_local_dict, user_functions
+from experimental.parser_annarchy.ParserTemplate import create_local_dict, user_functions
 from experimental.parser_annarchy.config import config
 
 
