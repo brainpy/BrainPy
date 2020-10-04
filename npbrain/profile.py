@@ -7,8 +7,8 @@ Using the API in ``profile.py``, you can set
 
 - the _numpy of numerical algorithm, ``numpy`` or ``numba``,
 - the compilation options of JIT function in ``numba``,
-- the precision of the numerical integration,
-- the method of the numerical integration.
+- the precision of the numerical integrator,
+- the method of the numerical integrator.
 
 
 """
@@ -191,7 +191,7 @@ def get_numba_profile():
 
 
 # ----------------------
-# Numerical integration
+# Numerical integrator
 # ----------------------
 
 dt = 0.1
@@ -199,7 +199,7 @@ method = 'euler'
 
 
 def set_dt(dt_):
-    """Set the numerical integration precision.
+    """Set the numerical integrator precision.
 
     Parameters
     ----------
@@ -212,7 +212,7 @@ def set_dt(dt_):
 
 
 def get_dt():
-    """Get the numerical integration precision.
+    """Get the numerical integrator precision.
 
     :return: Precision.
     :rtype: float
@@ -221,13 +221,13 @@ def get_dt():
 
 
 def set_method(method_):
-    """Set the default numerical integration method for
+    """Set the default numerical integrator method for
      differential equations (DE).
 
     Parameters
     ----------
     method_ : str, callable
-        DE numerical integration method.
+        DE numerical integrator method.
     """
     global method
 
@@ -251,11 +251,11 @@ def set_method(method_):
 
 
 def get_method():
-    """Get the default DE numerical integration method.
+    """Get the default DE numerical integrator method.
 
     Returns
     -------
     method : str, callable
-        The default DE numerical integration method.
+        The default DE numerical integrator method.
     """
     return method

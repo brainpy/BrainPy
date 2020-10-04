@@ -8,12 +8,12 @@ import sympy
 from pyparsing import Combine, Suppress, restOfLine, LineEnd, ParseException
 from pyparsing import Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn
 
-from npbrain.parser.sympytools import sympy_to_str
-from npbrain.parser.sympytools import str_to_sympy
-from npbrain.parser.namespace import DEFAULT_CONSTANTS
-from npbrain.parser.namespace import DEFAULT_FUNCTIONS
-from npbrain.parser.stringtools import get_identifiers
-from npbrain.parser.topsort import topsort
+from npbrain.integrator.sympytools import sympy_to_str
+from npbrain.integrator.sympytools import str_to_sympy
+from npbrain.integrator.namespace import DEFAULT_CONSTANTS
+from npbrain.integrator.namespace import DEFAULT_FUNCTIONS
+from npbrain.integrator.stringtools import get_identifiers
+from npbrain.integrator.topsort import topsort
 
 __all__ = ['EquationError',
            'Expression',

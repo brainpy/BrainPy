@@ -16,7 +16,7 @@ __all__ = [
 
 
 def sde_generator(py_func=None, f=None, g=None, method=None):
-    """Generate the one-step SDE integration function.
+    """Generate the one-step SDE integrator function.
 
     Parameters
     ----------
@@ -25,12 +25,12 @@ def sde_generator(py_func=None, f=None, g=None, method=None):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     method : None, str, callable
-        Method of numerical integration.
+        Method of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     dt = profile.get_dt()
     if method is None:
@@ -48,7 +48,7 @@ def _get_generator(method):
     Parameters
     ----------
     method : None, str, callable
-        Method of numerical integration.
+        Method of numerical integrator.
 
     Returns
     -------
@@ -80,12 +80,12 @@ def Euler_method(f, g, dt=None):
         g : callable, float
             The diffusion coefficient, the stochastic part.
         dt : None, float
-            Precision of numerical integration.
+            Precision of numerical integrator.
 
         Returns
         -------
         func : callable
-            The one-step numerical integration function.
+            The one-step numerical integrator function.
         """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
@@ -122,12 +122,12 @@ def Milstein_dfree_Ito(f, g, dt=None):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)
@@ -169,12 +169,12 @@ def Heun_method2(f, g, dt=None):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -223,12 +223,12 @@ def Heun_method(f, g, dt=None):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -279,12 +279,12 @@ def Milstein_dfree_Stra(f, g, dt=None):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     dt = profile.get_dt() if dt is None else dt
     dt_sqrt = np.sqrt(dt)

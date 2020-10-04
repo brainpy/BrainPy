@@ -6,11 +6,11 @@ import sympy
 from pyparsing import Literal, Group, Word, ZeroOrMore, Suppress, restOfLine, ParseException
 from sympy.core.sympify import SympifyError
 
-from npbrain.parser.base import StateUpdateMethod
-from npbrain.parser.base import UnsupportedEquationsException
-from npbrain.parser.base import extract_method_options
-from npbrain.parser.equations import is_constant_over_dt
-from npbrain.parser.sympytools import str_to_sympy, sympy_to_str
+from npbrain.integrator.base import StateUpdateMethod
+from npbrain.integrator.base import UnsupportedEquationsException
+from npbrain.integrator.base import extract_method_options
+from npbrain.integrator.equations import is_constant_over_dt
+from npbrain.integrator.sympytools import str_to_sympy, sympy_to_str
 
 __all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
@@ -128,7 +128,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
     A description of an explicit state updater consists of a (multi-line)
     string, containing assignments to variables and a final "x_new = ...",
-    stating the integration result for a single timestep. The assignments
+    stating the integrator result for a single timestep. The assignments
     can be used to define an arbitrary number of intermediate results and
     can refer to ``f(x, t)`` (the function being integrated, as a function of
     ``x``, the previous value of the state variable and ``t``, the time) and
@@ -190,7 +190,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     in the state update step is still at its previous value. Enumerating the
     states and discrete times, ``x_new = x + dt*f(x, t)`` is therefore
     understood as :math:`x_{i+1} = x_i + dt f(x_i, t_i)`, yielding the correct
-    forward Euler integration. If the integrator has to refer to the time at
+    forward Euler integrator. If the integrator has to refer to the time at
     the end of the timestep, simply use ``t + dt`` instead of ``t``.
 
     See also

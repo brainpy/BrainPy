@@ -18,7 +18,7 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
         The geometry of neuron group. If an integer is given, it is the size
         of the population.
     method : str, callable, dict
-        The numerical integration method. Either a string with the name of a
+        The numerical integrator method. Either a string with the name of a
         registered method (e.g. "euler") or a function.
     tau : float
         NeuGroup parameters.

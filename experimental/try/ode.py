@@ -20,19 +20,19 @@ __all__ = [
 
 
 def ode_generator(f=None, method=None):
-    """Generate the one-step ODE integration function.
+    """Generate the one-step ODE integrator function.
 
     Parameters
     ----------
     f : callable
         The function at the right hand of the differential equation.
     method : None, str, callable
-        Method of numerical integration.
+        Method of numerical integrator.
 
     Returns
     -------
     func : callable
-        If `f` is provided, then the one-step numerical integration function will be returned.
+        If `f` is provided, then the one-step numerical integrator function will be returned.
         if not, the wrapper will be provided.
     """
 
@@ -45,12 +45,12 @@ def ode_generator(f=None, method=None):
 
 
 def _get_generator(method=None):
-    """Generate the one-step ODE integration function.
+    """Generate the one-step ODE integrator function.
 
     Parameters
     ----------
     method : None, str, callable
-        Method of numerical integration.
+        Method of numerical integrator.
 
     Returns
     -------
@@ -91,12 +91,12 @@ def forward_Euler(f, dt=None):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     f = autojit(f)
     if dt is None:
@@ -132,12 +132,12 @@ def rk2(f, dt=None, beta=2 / 3):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     f = autojit(f)
     if dt is None:
@@ -166,12 +166,12 @@ def explicit_midpoint_Euler(f, dt=None):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     return rk2(f, dt, beta=0.5)
 
@@ -192,12 +192,12 @@ def rk3(f, dt=None):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     f = autojit(f)
     if dt is None:
@@ -227,12 +227,12 @@ def rk4(f, dt=None):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     f = autojit(f)
     if dt is None:
@@ -264,12 +264,12 @@ def rk4_alternative(f, dt=None):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     f = autojit(f)
     if dt is None:
@@ -300,12 +300,12 @@ def backward_Euler(f, dt=None, epsilon=1e-12):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     f = autojit(f)
     if dt is None:
@@ -340,12 +340,12 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
 
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
     f = autojit(f)
     if dt is None:
@@ -397,7 +397,7 @@ def exp_euler_o2(f, dt, factor_zero_order, factor_one_order):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
     """
 
     a = np.exp(-factor_one_order * dt)

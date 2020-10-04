@@ -7,8 +7,8 @@ from . import profile
 
 # "core" module
 from . import core
-from .core import integrator
-from .core.integrator import integrate
+from .integrator import integrator
+from .integrator.integrator import integrate
 from .core.network import *
 from .core.neuron_group import *
 from .core.synapse_connection import *

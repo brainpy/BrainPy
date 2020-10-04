@@ -4,11 +4,11 @@ import logging
 import sympy as sp
 from sympy import Wild, Symbol, I, re, im
 
-from npbrain.parser.equations import is_constant_over_dt
-from npbrain.parser.sympytools import sympy_to_str, str_to_sympy
-from npbrain.parser.base import StateUpdateMethod
-from npbrain.parser.base import UnsupportedEquationsException
-from npbrain.parser.base import extract_method_options
+from npbrain.integrator.equations import is_constant_over_dt
+from npbrain.integrator.sympytools import sympy_to_str, str_to_sympy
+from npbrain.integrator.base import StateUpdateMethod
+from npbrain.integrator.base import UnsupportedEquationsException
+from npbrain.integrator.base import extract_method_options
 
 __all__ = ['linear', 'exact', 'independent']
 

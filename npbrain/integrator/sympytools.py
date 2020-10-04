@@ -6,8 +6,8 @@ import sympy
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
-from npbrain.parser.namespace import DEFAULT_CONSTANTS
-from npbrain.parser.namespace import DEFAULT_FUNCTIONS
+from npbrain.integrator.namespace import DEFAULT_CONSTANTS
+from npbrain.integrator.namespace import DEFAULT_FUNCTIONS
 
 
 class SympyRender(object):

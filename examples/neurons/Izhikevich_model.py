@@ -25,7 +25,7 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
         The geometry of neuron group. If an integer is given, it is the size
         of the population.
     method : str, callable, dict
-        The numerical integration method. Either a string with the name of a
+        The numerical integrator method. Either a string with the name of a
         registered method (e.g. "euler") or a function.
     a : float
         It determines the time scale of the recovery variable :math:`u`.

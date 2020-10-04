@@ -1,9 +1,9 @@
 import sympy as sp
 
-from npbrain.parser.sympytools import sympy_to_str, str_to_sympy
-from npbrain.parser.base import StateUpdateMethod
-from npbrain.parser.base import UnsupportedEquationsException
-from npbrain.parser.base import extract_method_options
+from npbrain.integrator.sympytools import sympy_to_str, str_to_sympy
+from npbrain.integrator.base import StateUpdateMethod
+from npbrain.integrator.base import UnsupportedEquationsException
+from npbrain.integrator.base import extract_method_options
 
 __all__ = ['exponential_euler']
 
@@ -65,7 +65,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
     A state updater for conditionally linear equations, i.e. equations where
     each variable only depends linearly on itself (but possibly non-linearly
     on other variables). Typical Hodgkin-Huxley equations fall into this
-    category, it is therefore the default integration method used in the
+    category, it is therefore the default integrator method used in the
     GENESIS simulator, for example.
     """
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from .. import _numpy as bnp
-from .. import profile
-from ..utils.helper import autojit
+from npbrain import _numpy as bnp
+from npbrain import profile
+from npbrain.utils.helper import autojit
 
 __all__ = [
     'integrate',
@@ -35,7 +35,7 @@ __all__ = [
 
 
 def integrate(func=None, noise=None, method=None, signature=None, multi_return=False):
-    """Generate the one-step integration function for differential equations.
+    """Generate the one-step integrator function for differential equations.
 
     Using this method, the users only need to define the right side of the equation.
     For example, for the `m` channel in the Hodgkin–Huxley neuron model
@@ -66,7 +66,7 @@ def integrate(func=None, noise=None, method=None, signature=None, multi_return=F
         The diffusion coefficient (the stochastic part) of the SDE. `noise` can be a float
         number, or a function.
     method : None, str, callable
-        The method of numerical integration.
+        The method of numerical integrator.
     signature : a_list, str, None
         The numba compilation signature.
     multi_return : bool
@@ -77,7 +77,7 @@ def integrate(func=None, noise=None, method=None, signature=None, multi_return=F
     Returns
     -------
     func : callable
-        If `f` is provided, then the one-step numerical integration function will be returned.
+        If `f` is provided, then the one-step numerical integrator function will be returned.
         if not, the wrapper will be provided.
     """
 
@@ -102,12 +102,12 @@ def integrate(func=None, noise=None, method=None, signature=None, multi_return=F
 
 
 def _get_integrator(method=None, has_noise=False):
-    """Generate the one-step ODE integration function.
+    """Generate the one-step ODE integrator function.
 
     Parameters
     ----------
     method : None, str
-        Method of numerical integration.
+        Method of numerical integrator.
     has_noise : bool
         if `has_noise=True`, the equation is a SDE; otherwise, it is a ODE.
 
@@ -164,7 +164,7 @@ def _get_integrator(method=None, has_noise=False):
 
 
 ##################################
-# Numerical integration of ODE
+# Numerical integrator of ODE
 ##################################
 
 
@@ -188,7 +188,7 @@ def ode_euler(f, dt=None, signature=None, multi_return=False):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -199,7 +199,7 @@ def ode_euler(f, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -251,7 +251,7 @@ def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -260,7 +260,7 @@ def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -288,14 +288,14 @@ def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):
 
 
 def ode_heun(f, dt=None, signature=None, multi_return=False):
-    """Two-stage method for ODE numerical integration.
+    """Two-stage method for ODE numerical integrator.
 
     Parameters
     ----------
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -304,7 +304,7 @@ def ode_heun(f, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     See Also
     --------
@@ -321,7 +321,7 @@ def midpoint(f, dt=None, signature=None, multi_return=False):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -330,7 +330,7 @@ def midpoint(f, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     See Also
     --------
@@ -356,7 +356,7 @@ def ode_rk3(f, dt=None, signature=None, multi_return=False):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -365,7 +365,7 @@ def ode_rk3(f, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -411,7 +411,7 @@ def ode_rk4(f, dt=None, signature=None, multi_return=False):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -420,7 +420,7 @@ def ode_rk4(f, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -472,7 +472,7 @@ def ode_rk4_alternative(f, dt=None, signature=None, multi_return=False):
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -481,7 +481,7 @@ def ode_rk4_alternative(f, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -585,7 +585,7 @@ def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None, multi_return=F
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     epsilon : float
         The minimal precision.
     signature : str, a_list, tuple
@@ -596,7 +596,7 @@ def ode_backward_euler(f, dt=None, epsilon=1e-12, signature=None, multi_return=F
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -652,7 +652,7 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None, multi_return=Fal
     f : callable
         The function at the right hand of the differential equation.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -661,7 +661,7 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None, multi_return=Fal
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -687,7 +687,7 @@ def trapezoidal_rule(f, dt=None, epsilon=1e-12, signature=None, multi_return=Fal
 
 
 def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
-    """First order, explicit exponential Euler method for ODE integration.
+    """First order, explicit exponential Euler method for ODE integrator.
 
     For an equation of the form
 
@@ -718,7 +718,7 @@ def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
         Note, the `dydt` (i.e., :math:`f`) and linear coefficient `A` (i.e.,
         :math:`f'(y0)`) must be returned in the customized function.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -727,7 +727,7 @@ def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     See Also
     --------
@@ -755,7 +755,7 @@ def ode_exponential_euler(f, dt=None, signature=None, multi_return=False):
 
 
 ##################################
-# Numerical integration of SDE
+# Numerical integrator of SDE
 ##################################
 
 
@@ -797,7 +797,7 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -806,7 +806,7 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -867,7 +867,7 @@ def sde_euler(f, g, dt=None, signature=None, multi_return=False):
 
 
 def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
-    """First order, explicit exponential Euler method for SDE integration.
+    """First order, explicit exponential Euler method for SDE integrator.
 
     For an equation of the form
 
@@ -893,7 +893,7 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -902,7 +902,7 @@ def sde_exponential_euler(f, g, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -994,7 +994,7 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -1008,7 +1008,7 @@ def Milstein_dfree_Ito(f, g, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     See Also
     --------
@@ -1081,7 +1081,7 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -1090,7 +1090,7 @@ def sde_heun(f, g, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     References
     ----------
@@ -1163,7 +1163,7 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
     g : callable, float
         The diffusion coefficient, the stochastic part.
     dt : None, float
-        Precision of numerical integration.
+        Precision of numerical integrator.
     signature : str, a_list, tuple
         The signature for numba compilation.
     multi_return : bool
@@ -1179,7 +1179,7 @@ def Milstein_dfree_Stra(f, g, dt=None, signature=None, multi_return=False):
     Returns
     -------
     func : callable
-        The one-step numerical integration function.
+        The one-step numerical integrator function.
 
     See Also
     --------

@@ -19,7 +19,7 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
     Parameters
     ----------
     method : str, callable, dict
-        The numerical integration method. Either a string with the name of a
+        The numerical integrator method. Either a string with the name of a
         registered method (e.g. "euler") or a function.
     noise
     E_Na

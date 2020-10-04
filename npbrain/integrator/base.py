@@ -195,10 +195,10 @@ class StateUpdateMethod(object):
                                       total_time - one_method_time)
 
             if group_name is not None:
-                msg_text = ("No numerical integration method specified for group "
+                msg_text = ("No numerical integrator method specified for group "
                             "'{group_name}', using method '{method}' ({timing}).")
             else:
-                msg_text = ("No numerical integration method specified, "
+                msg_text = ("No numerical integrator method specified, "
                             "using method '{method}' ({timing}).")
             logger.info(msg_text.format(group_name=group_name,
                                         method=the_method,
@@ -225,13 +225,13 @@ class StateUpdateMethod(object):
             method_time = time.time() - start_time
             timing = 'took %.2fs' % method_time
             if group_name is not None:
-                logger.debug(('Group {group_name}: using numerical integration '
+                logger.debug(('Group {group_name}: using numerical integrator '
                               'method {method} ({timing})').format(group_name=group_name,
                                                                    method=method,
                                                                    timing=timing),
                              'method_choice')
             else:
-                logger.debug(('Using numerical integration method: {method} '
+                logger.debug(('Using numerical integrator method: {method} '
                               '({timing})').format(method=method,
                                                    timing=timing),
                              'method_choice')
