@@ -13,7 +13,6 @@ from .core.network import *
 from .core.neuron_group import *
 from .core.synapse_connection import *
 from .core import types
-from .core import visualization as visualize
 
 # "utils" module
 from . import utils

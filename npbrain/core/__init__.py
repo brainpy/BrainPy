@@ -17,7 +17,6 @@ from .integrator import *
 from .neuron_group import *
 from .synapse_connection import *
 from .running import *
-from .visualization import *
 from .network import *
 
 
