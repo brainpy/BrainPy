@@ -31,7 +31,7 @@ def VoltageJumpSynapse(pre, post, weights, connection, delay=None, var='V', name
     name : str
         The name of the synapse.
     var : str
-        The variable of the post-synapse going to connect.
+        The variable of the post-synapse going to connectivity.
 
     Returns
     -------

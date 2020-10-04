@@ -31,7 +31,7 @@ def model_run(sigmaext, lock):
     net = nn.Network(syn=syn, lif=lif, mon=mon)
 
     net.run(duration, inputs=[lif, muext], report=True, repeat=True)
-    # nn.visualize.plot_raster(mon, show=True)
+    # nn.visualization.plot_raster(mon, show=True)
 
     lock.acquire()
     with open('results.txt', 'a') as fout:
