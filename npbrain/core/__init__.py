@@ -13,7 +13,6 @@ synapses, etc.
 
 from .base import *
 from .types import *
-from .connectivity import *
 from .integrator import *
 from .neuron_group import *
 from .synapse_connection import *

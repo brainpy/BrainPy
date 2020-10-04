@@ -7,7 +7,6 @@ from . import profile
 
 # "core" module
 from . import core
-from .core import connectivity as connect
 from .core import integrator
 from .core.integrator import integrate
 from .core.network import *

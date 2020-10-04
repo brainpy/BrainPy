@@ -2,13 +2,13 @@
 
 from .base import BaseEnsemble
 from .base import BaseType
-from .connectivity import Connector
-from .connectivity import post2syn
-from .connectivity import pre2syn
 from .neuron_group import NeuGroup
 from .types import SynState
 from .. import _numpy as np
 from .. import profile
+from ..connect import Connector
+from ..connect import post2syn
+from ..connect import pre2syn
 
 __all__ = [
     'SynType',
