@@ -1,21 +1,18 @@
-'''
-Exact integration for linear equations.
-'''
-
 import itertools
+import logging
 
 import sympy as sp
-from brian2.equations.codestrings import is_constant_over_dt
-from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.stateupdaters.base import (StateUpdateMethod,
-                                       UnsupportedEquationsException,
-                                       extract_method_options)
-from brian2.utils.logger import get_logger
 from sympy import Wild, Symbol, I, re, im
+
+from npbrain.parser.equations import is_constant_over_dt
+from npbrain.parser.sympytools import sympy_to_str, str_to_sympy
+from npbrain.parser.base import StateUpdateMethod
+from npbrain.parser.base import UnsupportedEquationsException
+from npbrain.parser.base import extract_method_options
 
 __all__ = ['linear', 'exact', 'independent']
 
-logger = get_logger(__name__)
+logger = logging.Logger(__name__)
 
 
 def get_linear_system(eqs, variables):

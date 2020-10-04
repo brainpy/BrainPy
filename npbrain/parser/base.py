@@ -1,15 +1,12 @@
-'''
-This module defines the `StateUpdateMethod` class that acts as a base class for
-all stateupdaters and allows to register stateupdaters so that it is able to
-return a suitable stateupdater object for a given set of equations. This is used
-for example in `NeuronGroup` when no state updater is given explicitly.
-'''
+
 import logging
 import time
 from abc import abstractmethod, ABCMeta
 from collections.abc import Iterable
 
-__all__ = ['StateUpdateMethod']
+__all__ = ['StateUpdateMethod',
+           'UnsupportedEquationsException', 
+           'extract_method_options']
 
 logger = logging.Logger(__name__)
 
@@ -19,7 +16,7 @@ class UnsupportedEquationsException(Exception):
 
 
 def extract_method_options(method_options, default_options):
-    '''
+    """
     Helper function to check ``method_options`` against options understood by
     this state updater, and setting default values for all unspecified options.
 
@@ -49,15 +46,17 @@ def extract_method_options(method_options, default_options):
     >>> options = extract_method_options({'a': True}, default_options={'b': False, 'c': False})  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
-    KeyError: 'method_options specifies "a", but this is not an option for this state updater. Avalaible options are: "b", "c".'
+    KeyError: 'method_options specifies "a", but this is not an option for
+        this state updater. Avalaible options are: "b", "c".'
     >>> options = extract_method_options({'a': True}, default_options={})  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
-    KeyError: 'method_options specifies "a", but this is not an option for this state updater. This state updater does not accept any options.'
+    KeyError: 'method_options specifies "a", but this is not an option for
+        this state updater. This state updater does not accept any options.'
     >>> options = extract_method_options({'a': True}, default_options={'a': False, 'b': False})
     >>> sorted(options.items())
     [('a', True), ('b', False)]
-    '''
+    """
     if method_options is None:
         method_options = {}
     for key in method_options:
@@ -84,7 +83,7 @@ class StateUpdateMethod(object):
 
     @abstractmethod
     def __call__(self, equations, variables=None, method_options=None):
-        '''
+        """
         Generate abstract code from equations. The method also gets the
         the variables because some state updaters have to check whether
         variable names reflect other state variables (which can change from
@@ -105,12 +104,12 @@ class StateUpdateMethod(object):
         -------
         code : str
             The abstract code performing a state update step.
-        '''
+        """
         pass
 
     @staticmethod
     def register(name, stateupdater):
-        '''
+        """
         Register a state updater. Registered state updaters can be referred to
         via their name.
         
@@ -120,8 +119,8 @@ class StateUpdateMethod(object):
             A short name for the state updater (e.g. `'euler'`)
         stateupdater : `StateUpdaterMethod`
             The state updater object, e.g. an `ExplicitStateUpdater`.
-        '''
-        
+        """
+
         # only deal with lower case names -- we don't want to have 'Euler' and
         # 'euler', for example
         name = name.lower()
@@ -137,7 +136,7 @@ class StateUpdateMethod(object):
 
     @staticmethod
     def apply_stateupdater(equations, variables, method, method_options=None, group_name=None):
-        '''
+        """
         apply_stateupdater(equations, variables, method, method_options=None, group_name=None)
 
         Applies a given state updater to equations. If a `method` is given, the
@@ -161,7 +160,7 @@ class StateUpdateMethod(object):
         -------
         abstract_code : str
             The code integrating the given equations.
-        '''
+        """
         if (isinstance(method, Iterable) and
                 not isinstance(method, str)):
             the_method = None
@@ -193,7 +192,7 @@ class StateUpdateMethod(object):
             else:
                 timing = ('took %.2fs, trying other methods took '
                           '%.2fs') % (one_method_time,
-                                      total_time-one_method_time)
+                                      total_time - one_method_time)
 
             if group_name is not None:
                 msg_text = ("No numerical integration method specified for group "
@@ -227,9 +226,9 @@ class StateUpdateMethod(object):
             timing = 'took %.2fs' % method_time
             if group_name is not None:
                 logger.debug(('Group {group_name}: using numerical integration '
-                             'method {method} ({timing})').format(group_name=group_name,
-                                                                  method=method,
-                                                                  timing=timing),
+                              'method {method} ({timing})').format(group_name=group_name,
+                                                                   method=method,
+                                                                   timing=timing),
                              'method_choice')
             else:
                 logger.debug(('Using numerical integration method: {method} '

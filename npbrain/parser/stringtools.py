@@ -1,33 +1,35 @@
 """
 A collection of tools for string formatting tasks.
 """
+
 import re
 import string
 
-__all__ = ['indent',
-           'deindent',
-           'word_substitute',
-           'replace',
-           'get_identifiers',
-           'strip_empty_lines',
-           'stripped_deindented_lines',
-           'strip_empty_leading_and_trailing_lines',
-           'code_representation',
-           'SpellChecker'
-           ]
+__all__ = [
+    'indent',
+    'deindent',
+    'word_substitute',
+    'replace',
+    'get_identifiers',
+    'strip_empty_lines',
+    'stripped_deindented_lines',
+    'strip_empty_leading_and_trailing_lines',
+    'code_representation',
+    'SpellChecker'
+]
 
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
     '''
     Indents a given multiline string.
-    
+
     By default, indentation is done using spaces rather than tab characters.
     To use tab characters, specify the tab character explictly, e.g.::
-    
+
         indent(text, tab='\t')
-        
+
     Note that in this case ``spacespertab`` is ignored.
-    
+
     Examples
     --------
     >>> multiline = """def f(x):
@@ -58,19 +60,19 @@ def indent(text, numtabs=1, spacespertab=4, tab=None):
 def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     '''
     Returns a copy of the string with the common indentation removed.
-    
+
     Note that all tab characters are replaced with ``spacespertab`` spaces.
-        
+
     If the ``docstring`` flag is set, the first line is treated differently and
     is assumed to be already correctly tabulated.
-    
+
     If the ``numtabs`` option is given, the amount of indentation to remove is
     given explicitly and not the common indentation.
-    
+
     Examples
     --------
     Normal strings, e.g. function definitions:
-    
+
     >>> multiline = """    def f(x):
     ...          return x**2"""
     >>> print(multiline)
@@ -85,9 +87,9 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     >>> print(deindent(multiline, numtabs=1, spacespertab=2))
       def f(x):
            return x**2
-    
+
     Docstrings:
-    
+
     >>> docstring = """First docstring line.
     ...     This line determines the indentation."""
     >>> print(docstring)
@@ -124,14 +126,14 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
 def word_substitute(expr, substitutions):
     '''
     Applies a dict of word substitutions.
-    
+
     The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
     word ``word`` appearing in ``expr`` is replaced by ``rep``. Here a 'word'
     means anything matching the regexp ``\\bword\\b``.
-    
+
     Examples
     --------
-    
+
     >>> expr = 'a*_b+c5+8+f(A)'
     >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
     banana*_b+c5+8+func(A)
@@ -142,10 +144,10 @@ def word_substitute(expr, substitutions):
 
 
 def replace(s, substitutions):
-    '''
+    """
     Applies a dictionary of substitutions. Simpler than `word_substitute`, it
     does not attempt to only replace words
-    '''
+    """
     for before, after in substitutions.items():
         s = s.replace(before, after)
     return s
@@ -196,12 +198,12 @@ def get_identifiers(expr, include_numbers=False):
 def strip_empty_lines(s):
     '''
     Removes all empty lines from the multi-line string `s`.
-    
+
     Examples
     --------
-    
+
     >>> multiline = """A string with
-    ... 
+    ...
     ... an empty line."""
     >>> print(strip_empty_lines(multiline))
     A string with
@@ -233,7 +235,7 @@ def stripped_deindented_lines(code):
 def code_representation(code):
     '''
     Returns a string representation for several different formats of code
-    
+
     Formats covered include:
     - A single string
     - A list of statements/strings
