@@ -8,9 +8,6 @@
     :target: https://numpybrain.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-    :target: https://github.com/chaoming0625/NumpyBrain/blob/master/LICENSE
-
 .. image:: https://anaconda.org/oujago/npbrain/badges/version.svg
     :target: https://anaconda.org/oujago/npbrain
 
