@@ -199,29 +199,27 @@ class BaseEnsemble(object):
 
         # parameters
         # ----------
-        hetero_pars = {}
+        self._hetero_pars = {}
         pars_update = dict() if pars_update is None else pars_update
         assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
         parameters = deepcopy(self.model.parameters)
-        for k, v in pars_update:
+        for k, v in pars_update.items():
             val_size = np.size(v)
             if val_size != 1:
                 if val_size != num:
                     raise ValueError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
                                      f'and "{val_size}" != {num}.')
                 else:
-                    hetero_pars[k] = v
+                    self._hetero_pars[k] = v
             parameters[k] = v
         self.pars_update = parameters
 
         # step functions
         # ---------------
         if not model.group_based:
-            if len(hetero_pars) > 0:
-                raise ValueError('Single neuron/synapse model doesn\'t support heterogeneous parameters.')
             if self._cls_type == 'syn_conn' and (self.pre_group is None or self.post_group is None):
                 raise ValueError('Single synapse model must provide "pre_group" and "post_group".')
-        self.steps = self._get_steps_from_model(self.pars_update)
+        self._steps = self._get_steps_from_model(self.pars_update)
 
         # monitors
         # ---------
@@ -275,53 +273,156 @@ class BaseEnsemble(object):
                 raise TypeError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
 
         # get function arguments
-        for i, func in enumerate(self.steps):
+        for i, func in enumerate(self._steps):
             for arg in inspect.getfullargspec(func).args:
                 if not (arg in _arg_keywords + ['self']) and not hasattr(self, arg):
-                    raise AttributeError(f'Function "{self.steps[i].__name__}" in "{self.model.name}" requires '
+                    raise AttributeError(f'Function "{self._steps[i].__name__}" in "{self.model.name}" requires '
                                          f'"{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
     def _add_steps(self):
         if profile.is_numpy_bk():
-            for func in self.steps:
-                func_name = func.__name__
-                func_args = inspect.getfullargspec(func).args
-                if self.model.group_based:
+            if self.model.group_based:
+                for func in self._steps:
+                    func_name = func.__name__
+                    func_args = inspect.getfullargspec(func).args
+
                     setattr(self, func_name, func)
                     arg_calls = []
                     for arg in func_args:
-                        if arg == 'self':
-                            pass
-                        elif arg in _arg_keywords:
+                        if arg in _arg_keywords:
                             arg_calls.append(arg)
                         else:
                             arg_calls.append(f"{self.name}.{arg}")
                     func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
                     self._codegen[func_name] = {'func': func, 'call': func_call}
+            else:
 
-                else:
-                    raise NotImplementedError
-                    code_lines = [f'def {func_name}({", ".join(func_args)}):']
-                    code_lines.append(f'  for ni in range(self.pre_group.num):')
-                    code_lines.append(f'    for si in self.:')
-                    arg_calls = []
+                if self.num > 1000:
+                    raise ValueError(f'The number of the '
+                                     f'{"neurons" if self._cls_type == "neu_type" else "synapses"} is so huge, '
+                                     f'please use numba mode or group_based model.')
+
+                # get step functions
+                steps_collection = {func.__name__: [] for func in self._steps}
+                for i in range(self.num):
+                    pars = {k: v if k not in self._hetero_pars else self._hetero_pars[k][i]
+                            for k, v in self.pars_update.items()}
+                    steps = self._get_steps_from_model(pars)
+                    for func in steps:
+                        steps_collection[func.__name__].append(func)
+
+                for func in self._steps:
+                    func_name = func.__name__
+                    func_args = inspect.getfullargspec(func).args
+                    state_args = [arg for arg in func_args
+                                  if arg not in _arg_keywords and
+                                  isinstance(getattr(self, arg), ObjState)]
+
+                    # arg and arg2call
+                    code_arg, code_arg2call = [], {}
                     for arg in func_args:
-                        if arg == 'self':
-                            pass
-                        elif arg in _arg_keywords:
-                            arg_calls.append(arg)
+                        if arg in state_args:
+                            arg2 = f'{self.name}_{arg}'
+                            code_arg2call[arg2] = f'{self.name}.{arg}'
+                            code_arg.append(arg2)
                         else:
-                            arg_calls.append(f"{self.name}.{arg}")
+                            if arg in _arg_keywords:
+                                code_arg2call[arg] = arg
+                            else:
+                                code_arg2call[arg] = f'{self.name}.{arg}'
+                            code_arg.append(arg)
 
-                    func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
+                    # scope
+                    code_scope = {f'{func_name}_collect': steps_collection[func_name]}
 
+                    # codes
+                    has_ST = 'ST' in state_args
+                    has_pre = 'pre' in state_args
+                    has_post = 'post' in state_args
+                    if has_ST:
+                        if has_pre and has_post:
+                            code_arg.extend(['pre2syn', 'post_idx'])
+                            code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
+                            code_arg2call['post_idx'] = f'{self.name}.post_idx'
+
+                            code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
+                                          f'def {func_name}({", ".join(code_arg)}):',
+                                          f'for pre_idx in range({self.pre_group.num}):',
+                                          f'  pre = {self.name}_pre.extract_by_index(pre_idx)',
+                                          f'  for syn_idx in pre2syn[pre_idx]:',
+                                          f'    post_i = post_idx[syn_idx]',
+                                          f'    post = {self.name}_post.extract_by_index(post_i)',
+                                          f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
+                                          f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
+                                          f'    {self.name}_ST.update_by_index(syn_idx, ST)']
+
+                        elif has_pre:
+                            code_arg.append('pre2syn')
+                            code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
+
+                            code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
+                                          f'def {func_name}({", ".join(code_arg)}):',
+                                          f'for pre_idx in range({self.pre_group.num}):',
+                                          f'  pre = {self.name}_pre.extract_by_index(pre_idx)',
+                                          f'  for syn_idx in pre2syn[pre_idx]:',
+                                          f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
+                                          f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
+                                          f'    {self.name}_ST.update_by_index(syn_idx, ST)']
+
+                        elif has_post:
+                            code_arg.append('post2syn')
+                            code_arg2call['post2syn'] = f'{self.name}.post2syn'
+
+                            code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
+                                          f'def {func_name}({", ".join(code_arg)}):',
+                                          f'for post_idx in range({self.post_group.num}):',
+                                          f'  post = {self.name}_post.extract_by_index(post_idx)',
+                                          f'  for syn_idx in post2syn[post_idx]:',
+                                          f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
+                                          f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
+                                          f'    {self.name}_ST.update_by_index(syn_idx, ST)']
+
+                        else:
+                            code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
+                                          f'def {func_name}({", ".join(code_arg)}):',
+                                          f'for _ni_ in range({self.num}):']
+                            for arg in state_args:
+                                code_lines.append(f'  {arg} = {self.name}_{arg}.extract_by_index(_ni_)')
+                            code_lines.append(f'  {func_name}_collect[_ni_]({", ".join(func_args)})')
+                            for arg in state_args:
+                                code_lines.append(f'  {self.name}_{arg}.update_by_index(_ni_, {arg})')
+
+                    else:
+                        assert not has_post and not has_pre, f'Unknown "{func_name}" function structure.'
+                        code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
+                                      f'def {func_name}({", ".join(code_arg)}):',
+                                      f'for _ni_ in range({self.num}):',
+                                      f'  {func_name}_collect[_ni_]({", ".join(func_args)})']
+
+                    # compile
+                    func_code = '\n  '.join(code_lines)
+                    func_code = autopep8.fix_code(func_code)
+                    exec(compile(func_code, '', 'exec'), code_scope)
+                    func = code_scope[func_name]
+                    setattr(self, func_name, func)
+
+                    # call
+                    func_call = f'{self.name}.{func_name}({", ".join([code_arg2call[arg] for arg in code_arg])})'
+                    # func_call = autopep8.fix_code(func_call)
+
+                    if profile.show_codgen:
+                        print(func_code)
+                        print(func_call)
+
+                    # final
                     self._codegen[func_name] = {'func': func, 'call': func_call}
+
 
         elif profile.is_numba_bk():
             states = {k: getattr(self, k) for k, v in self.model.requires.items()
                       if isinstance(v, ObjState)}
 
-            for func in self.steps:
+            for func in self._steps:
                 func_name = func.__name__
 
                 if self.model.group_based:
@@ -471,27 +572,34 @@ class BaseEnsemble(object):
                 code_lines.append(left + " = " + right)
             else:
                 code_lines.append(left + f" {ops}= " + right)
-        code_lines.append('\n')
 
         # final code
         # ----------
-        code_lines.insert(0, f'# "input" step function of {self.name}')
+        if len(key_val_ops_types) > 0:
+            code_lines.append('\n')
+            code_lines.insert(0, f'# "input" step function of {self.name}')
 
         if profile.is_numpy_bk():
-            code_args = list(code_args)
-            code_lines.insert(0, f'\ndef input_step({", ".join(code_args)}):')
+            if len(key_val_ops_types) > 0:
+                code_args = list(code_args)
+                code_lines.insert(0, f'\ndef input_step({", ".join(code_args)}):')
 
-            # compile function
-            exec(compile('\n  '.join(code_lines), '', 'exec'), code_scope)
-            self.input_step = code_scope['input_step']
+                # compile function
+                func_code = autopep8.fix_code('\n  '.join(code_lines))
+                exec(compile(func_code, '', 'exec'), code_scope)
+                self.input_step = code_scope['input_step']
 
-            # format function call
-            code_arg2call = [code_arg2call[arg] for arg in code_args]
-            func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
+                # format function call
+                code_arg2call = [code_arg2call[arg] for arg in code_args]
+                func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
+                # func_call = autopep8.fix_code(func_call)
 
-            if profile.show_codgen:
-                print("\n" + '\n\t'.join(code_lines))
-                print("\n" + func_call)
+                if profile.show_codgen:
+                    print("\n" + func_code)
+                    print("\n" + func_call)
+            else:
+                self.input_step = None
+                func_call = ''
 
             self._codegen['input'] = {'func': self.input_step, 'call': func_call}
 
@@ -500,7 +608,7 @@ class BaseEnsemble(object):
                                       'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _add_monitor(self, run_length):
-        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(('_i_',)), {'_i_': '_i_'}, []
+        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
         idx_no = 0
 
         # generate code of monitor function
@@ -589,27 +697,36 @@ class BaseEnsemble(object):
 
             # add line #
             code_lines.append(line)
-        code_lines.append('\n')
 
         # final code
         # ----------
-        code_lines.insert(0, f'# "monitor" step function of {self.name}')
+        if len(self._mon_vars):
+            code_args.add('_i_')
+            code_arg2call['_i_'] = '_i_'
+            code_lines.append('\n')
+            code_lines.insert(0, f'# "monitor" step function of {self.name}')
 
         if profile.is_numpy_bk():
-            code_args = list(code_args)
-            code_lines.insert(0, f'\ndef monitor_step({", ".join(code_args)}):')
+            if len(self._mon_vars):
+                code_args = list(code_args)
+                code_lines.insert(0, f'\ndef monitor_step({", ".join(code_args)}):')
 
-            # compile function
-            exec(compile('\n  '.join(code_lines), '', 'exec'), code_scope)
-            self.monitor_step = code_scope['monitor_step']
+                # compile function
+                code = autopep8.fix_code('\n  '.join(code_lines))
+                exec(compile(code, '', 'exec'), code_scope)
+                self.monitor_step = code_scope['monitor_step']
 
-            # format function call
-            code_arg2call = [code_arg2call[arg] for arg in code_args]
-            func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
+                # format function call
+                code_arg2call = [code_arg2call[arg] for arg in code_args]
+                func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
+                # func_call = autopep8.fix_code(func_call)
 
-            if profile.show_codgen:
-                print("\n" + '\n\t'.join(code_lines))
-                print("\n" + func_call)
+                if profile.show_codgen:
+                    print(code)
+                    print(func_call)
+            else:
+                self.monitor_step = None
+                func_call = ''
 
             self._codegen['monitor'] = {'func': self.monitor_step, 'call': func_call}
 
@@ -623,7 +740,8 @@ class BaseEnsemble(object):
             for item in self._schedule:
                 if item in self._codegen:
                     call = self._codegen[item]['call']
-                    codes_of_calls.append(call)
+                    if call:
+                        codes_of_calls.append(call)
 
         else:  # non-numpy mode
             lines, scopes, args, arg2calls = [], dict(), set(), dict()
@@ -643,7 +761,7 @@ class BaseEnsemble(object):
 
             self.merge_func = scopes['merge_func']
             call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
-            call = autopep8.fix_code(call)
+            # call = autopep8.fix_code(call)
             codes_of_calls.append(call)
 
             if profile.show_codgen:
@@ -668,8 +786,6 @@ class BaseEnsemble(object):
             # attributes
             'model', 'num', 'ST', 'PA', 'vars_init', 'pars_update', '_mon_vars',
             'mon', '_cls_type', '_codegen', '_keywords', 'steps', '_schedule',
-            # assigned functions
-            'monitor_step', 'input_step', 'merge_func',
             # self functions
             '_merge_steps', '_add_steps', '_add_input', '_add_monitor',
             'get_schedule', 'set_schedule'

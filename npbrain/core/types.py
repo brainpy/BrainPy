@@ -59,11 +59,11 @@ class ObjState(dict, TypeChecker):
         self._vars = variables
 
     def extract_by_index(self, idx):
-        return {v: self.__getitem__(v)[idx] for v in self._vars}
+        return {k: self.__getitem__(k)[idx] for k in self._keys}
 
     def update_by_index(self, idx, val):
         data = self.__getitem__('_data')
-        for k, v in val:
+        for k, v in val.items():
             _var2idx = self.__getitem__('_var2idx')
             data[_var2idx[k], idx] = v
 

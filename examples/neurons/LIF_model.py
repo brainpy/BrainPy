@@ -1,25 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from npbrain.core import integrate
-from npbrain.core.neuron_group import *
-from npbrain.tools import autojit
+import matplotlib.pyplot as plt
 
-__all__ = [
-    'LIF'
-]
+import npbrain as nb
+import npbrain._numpy as np
+
+nb.profile.set_backend('numpy')
+nb.profile.set_dt(0.02)
+nb.profile.show_codgen = True
 
 
-def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='LIF'):
+def LIF_single_neuron(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
     """Leaky integrate-and-fire neuron model.
 
     Parameters
     ----------
-    geometry : int, list, tuple
-        The geometry of neuron group. If an integer is given, it is the size
-        of the population.
-    method : str, callable, dict
-        The numerical integrator method. Either a string with the name of a
-        registered method (e.g. "euler") or a function.
     tau : float
         NeuGroup parameters.
     Vr : float
@@ -30,52 +25,47 @@ def LIF(geometry, method=None, tau=10., Vr=0., Vth=10., noise=0., ref=0., name='
         The noise item.
     ref : float
         The refractory period.
-    name : str
-        The name of the neuron group.
-
-    Returns
-    -------
-    neurons : Neurons
-        The created neuron group.
     """
 
-    var2index = {'V': 0}
-    num, geometry = format_geometry(geometry)
-    state = init_neu_state(num, [('V', Vr)])
+    ST = nb.types.NeuState({'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.})
 
-    judge_spike = get_spike_judger()
-
-    @integrate(method=method, noise=noise / tau, signature='f[:](f[:], f, f[:])')
+    @nb.integrate(noise=noise / tau)
     def int_f(V, t, Isyn):
         return (-V + Vr + Isyn) / tau
 
-    if ref > 0.:
+    def update(ST, _t_):
+        if _t_ - ST['sp_t'] > ref:
+            V = int_f(ST['V'], _t_, ST['inp'])
+            if V >= Vth:
+                V = Vr
+                ST['sp_t'] = _t_
+                ST['sp'] = True
+            ST['V'] = V
+        else:
+            ST['sp'] = False
+        ST['inp'] = 0.
 
-        @autojit('void(f[:, :], f)')
-        def update_state(neu_state, t):
-            V_new = int_f(neu_state[0], t, neu_state[-1])
-            for idx in range(num):
-                if (t - neu_state[-2, idx]) > ref:
-                    v = V_new[idx]
-                    if v >= Vth:
-                        neu_state[-5, idx] = 0.  # refractory state
-                        neu_state[-3, idx] = 1.  # spike state
-                        neu_state[-2, idx] = t  # spike time
-                        v = Vr
-                    else:
-                        neu_state[-5, idx] = 1.
-                        neu_state[-3, idx] = 0.
-                    neu_state[0, idx] = v  # membrane potential
-                else:
-                    neu_state[-5, idx] = 0.
-                    neu_state[-3, idx] = 0.
+    return {'requires': {'ST': ST}, 'steps': update}
 
-    else:
 
-        @autojit('void(f[:, :], f)')
-        def update_state(neu_state, t):
-            neu_state[0] = int_f(neu_state[0], t, neu_state[-1])
-            spike_idx = judge_spike(neu_state, Vth, t)
-            neu_state[0][spike_idx] = Vr
+LIF_single = nb.NeuType(name='LIF_neuron', create_func=LIF_single_neuron, group_based=False)
 
-    return Neurons(**locals())
+
+if __name__ == '__main__':
+    neu = nb.NeuGroup(LIF_single, geometry=(10,), monitors=['sp', 'V'],
+                      pars_update={'tau': np.random.randint(5, 10, size=(10,))})
+    net = nb.Network(neu)
+    net.run(duration=100., inputs=[neu, 'ST.inp', 13.], report=True)
+
+    ts = net.ts
+    fig, gs = nb.visualize.get_figure(1, 1, 4, 8)
+
+    fig.add_subplot(gs[0, 0])
+    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.pars_update["tau"][0]})')
+    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.pars_update["tau"][2]})')
+    plt.ylabel('Membrane potential')
+    plt.xlim(-0.1, net._run_time + 0.1)
+    plt.legend()
+    plt.xlabel('Time (ms)')
+
+    plt.show()

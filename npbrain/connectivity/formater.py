@@ -8,16 +8,11 @@ try:
 except ImportError:
     nb = None
 
-__all__ = ['from_matrix', 'from_ij', 'pre2post', 'pre2syn', 'post2syn', 'post2pre']
+__all__ = ['mat2ij', 'pre2post', 'pre2syn', 'post2syn', 'post2pre']
 
 
-def from_matrix(conn_mat):
-    """Get the connections from connectivity matrix.
-
-    This function which create three arrays. The first one is the connected
-    pre-synaptic neurons, a 1-D array. The second one is the connected
-    post-synaptic neurons, another 1-D array. The third one is the start
-    and the end indexes at the 1-D array for each pre-synaptic neurons.
+def mat2ij(conn_mat):
+    """Get the i-j connections from connectivity matrix.
 
     Parameters
     ----------
@@ -28,69 +23,18 @@ def from_matrix(conn_mat):
     -------
     conn_tuple : tuple
         (Pre-synaptic neuron indexes,
-         post-synaptic neuron indexes,
-         start and end positions of post-synaptic
-         neuron for each pre-synaptic neuron).
+         post-synaptic neuron indexes).
     """
     pre_ids = []
     post_ids = []
-    anchors = []
-    ii = 0
     num_pre = conn_mat.shape[0]
     for pre_idx in range(num_pre):
         post_idxs = np.where(conn_mat[pre_idx] > 0)[0]
         post_ids.extend(post_idxs)
-        len_idx = len(post_idxs)
-        anchors.append([ii, ii + len_idx])
         pre_ids.extend([pre_idx] * len(post_idxs))
-        ii += len_idx
-    post_ids = np.array(post_ids)
-    anchors = np.array(anchors).T
-    return pre_ids, post_ids, anchors
-
-
-def from_ij(i, j, num_pre=None, others=()):
-    """Format complete connections from `i` and `j` indexes.
-
-    Parameters
-    ----------
-    i : a_list, numpy.ndarray
-        The pre-synaptic neuron indexes.
-    j : a_list, numpy.ndarray
-        The post-synaptic neuron indexes.
-    num_pre : int, None
-        The number of the pre-synaptic neurons.
-    others : tuple, a_list, numpy.array
-        The other parameters.
-
-    Returns
-    -------
-    conn_tuple : tuple
-        (pre_ids, post_ids, anchors).
-    """
-    conn_i = np.array(i)
-    conn_j = np.array(j)
-    num_pre = np.max(i) + 1 if num_pre is None else num_pre
-    pre_ids, post_ids, anchors = [], [], []
-    assert isinstance(others, (list, tuple)), '"others" must be a a_list/tuple of arrays.'
-    others = [np.asarray(o) for o in others]
-    other_arrays = [[] for _ in range(len(others))]
-    ii = 0
-    for i in range(num_pre):
-        indexes = np.where(conn_i == i)[0]
-        post_idx = conn_j[indexes]
-        post_len = len(post_idx)
-        pre_ids.extend([i] * post_len)
-        post_ids.extend(post_idx)
-        anchors.append([ii, ii + post_len])
-        for iii, o in enumerate(others):
-            other_arrays[iii].extend(o[indexes])
-        ii += post_len
-    pre_ids = np.asarray(pre_ids)
-    post_ids = np.asarray(post_ids)
-    anchors = np.asarray(anchors).T
-    other_arrays = [np.asarray(arr) for arr in other_arrays]
-    return (pre_ids, post_ids, anchors) + tuple(other_arrays)
+    pre_ids = np.array(pre_ids, dtype=np.uint64)
+    post_ids = np.array(post_ids, dtype=np.uint64)
+    return pre_ids, post_ids
 
 
 def pre2post(i, j, num_pre):
@@ -118,17 +62,14 @@ def pre2post(i, j, num_pre):
         for pre_i in range(num_pre):
             index = np.where(i == pre_i)[0]
             post_idx = j[index]
-            l = nb.typed.List.empty_list(nb.types.uint64)
-            for idx in post_idx:
-                l.append(np.uint64(idx))
-            pre2post_list.append(l)
+            pre2post_list.append(np.uint64(post_idx))
     else:
         pre2post_list = []
 
         for pre_i in range(num_pre):
             index = np.where(i == pre_i)[0]
             post_idx = j[index]
-            pre2post_list.append(post_idx)
+            pre2post_list.append(np.uint64(post_idx))
     return pre2post_list
 
 
@@ -156,16 +97,13 @@ def post2pre(i, j, num_post):
         for post_i in range(num_post):
             index = np.where(j == post_i)[0]
             pre_idx = i[index]
-            l = nb.typed.List.empty_list(nb.types.uint64)
-            for idx in pre_idx:
-                l.append(np.uint64(idx))
-            post2pre_list.append(l)
+            post2pre_list.append(np.uint64(pre_idx))
     else:
         post2pre_list = []
         for post_i in range(num_post):
             index = np.where(j == post_i)[0]
             pre_idx = i[index]
-            post2pre_list.append(pre_idx)
+            post2pre_list.append(np.uint64(pre_idx))
     return post2pre_list
 
 
@@ -192,15 +130,12 @@ def pre2syn(i, j, num_pre):
         post2syn_list = nb.typed.List()
         for pre_i in range(num_pre):
             index = np.where(i == pre_i)[0]
-            l = nb.typed.List.empty_list(nb.types.uint64)
-            for idx in index:
-                l.append(np.uint64(idx))
-            post2syn_list.append(l)
+            post2syn_list.append(np.uint64(index))
     else:
         post2syn_list = []
         for pre_i in range(num_pre):
             index = np.where(j == pre_i)[0]
-            post2syn_list.append(index)
+            post2syn_list.append(np.uint64(index))
     return post2syn_list
 
 
@@ -227,13 +162,10 @@ def post2syn(i, j, num_post):
         post2syn_list = nb.typed.List()
         for post_i in range(num_post):
             index = np.where(j == post_i)[0]
-            l = nb.typed.List.empty_list(nb.types.uint64)
-            for idx in index:
-                l.append(np.uint64(idx))
-            post2syn_list.append(l)
+            post2syn_list.append(np.uint64(index))
     else:
         post2syn_list = []
         for post_i in range(num_post):
             index = np.where(j == post_i)[0]
-            post2syn_list.append(index)
+            post2syn_list.append(np.uint64(index))
     return post2syn_list

@@ -61,7 +61,8 @@ class SynConn(BaseEnsemble):
             # connections
             # ------------
             if isinstance(conn, Connector):
-                pre_idx, post_idx = conn(pre_group.geometry, post_group.geometry)
+                conn_res = conn(pre_group.geometry, post_group.geometry)
+                pre_idx, post_idx = conn_res['i'], conn_res['j']
             elif isinstance(conn, np.ndarray):
                 assert np.ndim(conn) == 2, f'"conn" must be a 2D array, not {np.ndim(conn)}D.'
                 conn_shape = np.shape(conn)
@@ -86,6 +87,8 @@ class SynConn(BaseEnsemble):
             self.post2syn = post2syn(pre_idx, post_idx, post_group.num)
             self.pre_idx = pre_idx
             self.post_idx = post_idx
+            self.pre = pre_group.ST
+            self.post = post_group.ST
 
         else:
             assert num is not None, '"num" must be provided when "pre" and "post" are none.'
@@ -101,6 +104,8 @@ class SynConn(BaseEnsemble):
         else:
             raise ValueError("NumpyBrain currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
+        if not model.group_based and delay_len > 1 and profile.is_numpy_bk():
+            print('WARNING: do not support delay in NumPy mode with single synapse level definition.')
 
         # initialize
         # ----------

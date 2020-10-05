@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import npbrain as nb
 import npbrain._numpy as np
 
-nb.profile.set_backend('numba')
-nb.profile.set_dt(0.02)
-nb.profile.show_codgen = False
+# nb.profile.set_backend('numba')
+# nb.profile.set_dt(0.02)
+# nb.profile.show_codgen = False
 
 
 def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
