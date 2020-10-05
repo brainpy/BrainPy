@@ -5,6 +5,7 @@ import inspect
 from copy import deepcopy
 
 from .types import TypeChecker
+from .types import ObjState
 from .. import _numpy as np
 from .. import tools
 from .. import profile
@@ -203,19 +204,19 @@ class BaseEnsemble(object):
                     hetero_pars[k] = v
             parameters[k] = v
         self.pars_update = parameters
-        if profile.is_numba_bk():
-            import numba as nb
-            max_size = max([np.size(v) for v in parameters.values()])
-            if max_size > 1:
-                self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
-                for k, v in parameters.items():
-                    self.PA[k] = np.ones(self.num, dtype=np.float_) * v
-            else:
-                self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_)
-                for k, v in parameters.items():
-                    self.PA[k] = v
-        else:
-            self.PA = parameters
+        # if profile.is_numba_bk():
+        #     import numba as nb
+        #     max_size = max([np.size(v) for v in parameters.values()])
+        #     if max_size > 1:
+        #         self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
+        #         for k, v in parameters.items():
+        #             self.PA[k] = np.ones(self.num, dtype=np.float_) * v
+        #     else:
+        #         self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_)
+        #         for k, v in parameters.items():
+        #             self.PA[k] = v
+        # else:
+        #     self.PA = parameters
 
         # step functions
         # ---------------
@@ -229,7 +230,7 @@ class BaseEnsemble(object):
             self.step_func = self._get_steps_from_model(self.pars_update)
 
         elif profile.is_numba_bk():
-            raise NotImplementedError
+            self.step_func = self._get_steps_from_model(self.pars_update)
 
         else:
             raise NotImplementedError
@@ -325,8 +326,17 @@ class BaseEnsemble(object):
         elif profile.is_numba_bk():
             code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
 
+            states = {k: getattr(self, k) for k, v in self.model.attributes.items()
+                      if isinstance(v, ObjState)}
+
             for func in self.step_func:
-                pass
+                func_name = func.__name__
+                func = numba_func(func, states)
+                if self.model.group_based:
+
+                    setattr(self, func_name, func)
+
+
 
         else:
             raise NotImplementedError
@@ -642,7 +652,7 @@ def numba_func(func, states=None):
                 modified = True
                 st = states[arg]
                 var2idx = st['_var2idx']
-                for st_k in st._keys():
+                for st_k in st._keys:
                     p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                     r = f"{arg}[{var2idx[st_k]}]"
                     func_code = re.sub(r'' + p, r, func_code)
@@ -670,7 +680,7 @@ def numba_func(func, states=None):
         func_code = tools.deindent(func_code, spaces_per_tab=2)
         exec(compile(func_code, '', 'exec'), scope)
         for k in scope.keys():
-            if k not in scope_keys:
-                return scope[k]
+            if k not in scope_keys and callable(scope[k]):
+                return tools.autojit(scope[k])
         else:
             raise ValueError('No return.')

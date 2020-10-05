@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 
-import npbrain as npb
+import npbrain as nb
 import npbrain._numpy as np
 
-npb.profile.set_backend('numpy')
-npb.profile.set_dt(0.02)
-npb.profile.show_codgen = True
+nb.profile.set_backend('numba')
+nb.profile.set_dt(0.02)
+nb.profile.show_codgen = True
 
 
 def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
@@ -39,29 +39,29 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
     """
 
     attrs = dict(
-        ST=npb.types.NeuState({'V': Vr, 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
-                              help='Hodgkin–Huxley neuron state.'),
+        ST=nb.types.NeuState({'V': Vr, 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
+                             help='Hodgkin–Huxley neuron state.'),
     )
 
-    @npb.integrator.integrate(method=method)
+    @nb.integrator.integrate(method=method)
     def int_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
         return alpha * (1 - m) - beta * m
 
-    @npb.integrator.integrate(method=method)
+    @nb.integrator.integrate(method=method)
     def int_h(h, t, V):
         alpha = 0.07 * np.exp(-(V + 65) / 20.)
         beta = 1 / (1 + np.exp(-(V + 35) / 10))
         return alpha * (1 - h) - beta * h
 
-    @npb.integrator.integrate(method=method)
+    @nb.integrator.integrate(method=method)
     def int_n(n, t, V):
         alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
         beta = 0.125 * np.exp(-(V + 65) / 80)
         return alpha * (1 - n) - beta * n
 
-    @npb.integrator.integrate(method=method, noise=noise / C)
+    @nb.integrator.integrate(method=method, noise=noise / C)
     def int_V(V, t, m, h, n, Isyn):
         INa = g_Na * m ** 3 * h * (V - E_Na)
         IK = g_K * n ** 4 * (V - E_K)
@@ -85,22 +85,16 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
     return {'attrs': attrs, 'step_func': update}
 
 
-HH = npb.NeuType(name='HH_neuron', create_func=define, group_based=True)
-
-import inspect
-a = define()
-vars = inspect.getclosurevars(a['step_func'])
-print()
+HH = nb.NeuType(name='HH_neuron', create_func=define, group_based=True)
 
 
-
-if __name__ == '__main__1':
-    neu = npb.NeuGroup(HH, geometry=(1, ), monitors=['sp', 'V', 'm', 'h', 'n'])
-    net = npb.Network(neu)
+if __name__ == '__main__':
+    neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'])
+    net = nb.Network(neu)
     net.run(duration=100., inputs=[neu, 'ST.inp', 10.], report=True)
 
     ts = net.ts
-    fig, gs = npb.visualize.get_figure(2, 1, 3, 12)
+    fig, gs = nb.visualize.get_figure(2, 1, 3, 12)
 
     fig.add_subplot(gs[0, 0])
     plt.plot(ts, neu.mon.V[:, 0], label='N')

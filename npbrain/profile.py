@@ -84,10 +84,8 @@ def set_backend(bk):
     # _numpy
     if bk.lower() in ['numpy', 'bnp']:
         backend = 'numpy'
-    elif bk.lower() in ['torch', 'pytorch']:
-        backend = 'torch'
-    elif bk.lower() in ['tf', 'tensorflow']:
-        backend = 'tensorflow'
+    elif bk.lower() in ['numba', 'Numba']:
+        backend = 'numba'
     elif bk.lower() in ['jax', 'JAX']:
         backend = 'jax'
     else:
@@ -99,8 +97,8 @@ def set_backend(bk):
     if backend != _backend:
         _backend = backend
 
-        from npbrain import _reload
-        _reload()
+        # from npbrain import _reload
+        # _reload()
         from ._numpy import _reload as r1
         r1(backend)
 

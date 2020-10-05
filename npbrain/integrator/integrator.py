@@ -208,7 +208,7 @@ def ode_euler(f, dt=None, signature=None, multi_return=False):
             Computing, 2nd ed. Cambridge, England: Cambridge University
             Press, p. 710, 1992.
     """
-    f = autojit(signature)(f)
+    # f = autojit(signature)(f)
     dt = profile.get_dt() if dt is None else dt
 
     if multi_return:
@@ -223,7 +223,8 @@ def ode_euler(f, dt=None, signature=None, multi_return=False):
         def int_f(y0, t, *args):
             return y0 + dt * f(y0, t, *args)
 
-    return autojit(int_f)
+    # return autojit(int_f)
+    return int_f
 
 
 def ode_rk2(f, dt=None, beta=2 / 3, signature=None, multi_return=False):

@@ -13,6 +13,7 @@ except ImportError as e:
 
 __all__ = [
     'TypeChecker',
+    'ObjState',
     'NeuState',
     'SynState',
     'ListConn',
@@ -34,9 +35,7 @@ class TypeChecker(object):
         raise NotImplementedError
 
 
-class NeuState(dict, TypeChecker):
-    """Neuron State. """
-
+class ObjState(dict, TypeChecker):
     def __init__(self, fields, help=''):
         TypeChecker.__init__(self, help=help)
         variables = dict()
@@ -49,6 +48,30 @@ class NeuState(dict, TypeChecker):
         self._keys = list(variables.keys())
         self._values = list(variables.values())
         self._vars = variables
+
+    def extract_by_index(self, idx):
+        return {v: self.__getitem__(v)[idx] for v in self._vars}
+
+    def update_by_index(self, idx, val):
+        data = self.__getitem__('_data')
+        for k, v in val:
+            _var2idx = self.__getitem__('_var2idx')
+            data[_var2idx[k], idx] = v
+
+    def check(self, cls):
+        if not isinstance(cls, type(self)):
+            return False
+        for k in self._keys:
+            if k not in cls:
+                return False
+        return True
+
+    def __str__(self):
+        return f'{self.__class__.__name__} ({str(self._keys)})'
+
+
+class NeuState(ObjState):
+    """Neuron State. """
 
     def __call__(self, size):
         if isinstance(size, int):
@@ -85,42 +108,12 @@ class NeuState(dict, TypeChecker):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
-    def extract_by_index(self, idx):
-        return {v: self.__getitem__(v)[idx] for v in self._vars}
 
-    def update_by_index(self, idx, val):
-        data = self.__getitem__('_data')
-        for k, v in val:
-            _var2idx = self.__getitem__('_var2idx')
-            data[_var2idx[k], idx] = v
-
-    def check(self, cls):
-        if not isinstance(cls, NeuState):
-            return False
-        for k in self._keys:
-            if k not in cls:
-                return False
-        return True
-
-    def __str__(self):
-        return f'NeuState ({str(self._keys)})'
-
-
-class SynState(dict, TypeChecker):
+class SynState(ObjState):
     """Synapse State. """
 
     def __init__(self, fields, help=''):
-        TypeChecker.__init__(self, help=help)
-        variables = dict()
-        if isinstance(fields, (tuple, list)):
-            variables.update({v: 0. for v in fields})
-        elif isinstance(fields, dict):
-            variables.update(fields)
-        else:
-            assert ValueError(f'"fields" only supports tuple/list/dict, not {type(variables)}.')
-        self._keys = list(variables.keys())
-        self._values = list(variables.values())
-        self._vars = variables
+        super(SynState, self).__init__(fields=fields, help=help)
         self._delay_len = 1
         self._delay_in = 0
         self._delay_out = 0
@@ -159,6 +152,16 @@ class SynState(dict, TypeChecker):
 
         return self
 
+    def __setitem__(self, key, val):
+        if key in self._vars:
+            data = self.__getitem__('_data')
+            _var2idx = self.__getitem__('_var2idx')
+            data[_var2idx[key]] = val
+        elif key in ['_data', '_var2idx', '_idx2var', '_cond_delay']:
+            raise KeyError(f'"{key}" cannot be modified.')
+        else:
+            raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
+
     def push_cond(self, g):
         data = self.__getitem__('_data')
         data[self._delay_in] = g
@@ -170,37 +173,6 @@ class SynState(dict, TypeChecker):
     def _update_delay_indices(self):
         self._delay_in = (self._delay_in + 1) % self._delay_len
         self._delay_in = (self._delay_in + 1) % self._delay_len
-
-    def __setitem__(self, key, val):
-        if key in self._vars:
-            data = self.__getitem__('_data')
-            _var2idx = self.__getitem__('_var2idx')
-            data[_var2idx[key]] = val
-        elif key in ['_data', '_var2idx', '_idx2var', '_cond_delay']:
-            raise KeyError(f'"{key}" cannot be modified.')
-        else:
-            raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
-
-    def extract_by_index(self, idx):
-        return {v: self.__getitem__(v)[idx] for v in self._vars}
-
-    def update_by_index(self, idx, val):
-        data = self.__getitem__('_data')
-        for k, v in val:
-            _var2idx = self.__getitem__('_var2idx')
-            data[_var2idx[k], idx] = v
-
-    def check(self, cls):
-        if not isinstance(cls, SynState):
-            return False
-        for k in self._keys:
-            if k not in cls:
-                return False
-        return True
-
-    def __str__(self):
-        return f'SynState ({str(self._keys)})'
-
 
 
 class ListConn(TypeChecker):
@@ -217,7 +189,6 @@ class ListConn(TypeChecker):
 
     def __str__(self):
         return 'ListConn'
-
 
 
 class MatConn(TypeChecker):
@@ -273,8 +244,6 @@ class String(TypeChecker):
         return 'StringType'
 
 
-
-
 class Int(TypeChecker):
     def __init__(self, help=''):
         super(Int, self).__init__(help=help)
@@ -284,8 +253,6 @@ class Int(TypeChecker):
 
     def __str__(self):
         return 'IntType'
-
-
 
 
 class Float(TypeChecker):
@@ -357,4 +324,3 @@ class Dict(TypeChecker):
 
     def __str__(self):
         return type(self).__name__ + f'(key_type={str(self.key_type)}, item_type={str(self.item_type)})'
-

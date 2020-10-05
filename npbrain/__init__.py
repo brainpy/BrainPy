@@ -16,6 +16,10 @@ from .core import types
 
 
 #
+from . import visualization as visualize
+from . import connectivity as connect
+
+#
 # # reload functions
 # def _reload():
 #     global judge_spike
