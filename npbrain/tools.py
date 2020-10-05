@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import re
+import inspect
 import copy
 import functools
 import types
@@ -131,6 +133,48 @@ def func_copy(f):
     g.__kwdefaults__ = f.__kwdefaults__
     return g
 
+
+def get_main_code(func):
+    if func is None:
+        return None
+
+    if is_lambda_function(func):
+        func_code = inspect.getsource(func)
+        splits = func_code.split(':')
+        if len(splits) != 2:
+            raise ValueError(f'Can not parse function: \n{func_code}')
+        return f'return {splits[1]}'
+
+    else:
+        func_codes = inspect.getsourcelines(func)[0]
+        idx = 0
+        for i, line in enumerate(func_codes):
+            line = line.replace(' ', '')
+            if '):' in line:
+                break
+            idx += 1
+        return ''.join(func_codes[idx + 1:])
+
+
+def numba_func(func):
+    vars = inspect.getclosurevars(func)
+    code_scope = dict(vars.nonlocals)
+    code_scope.update(vars.globals)
+
+    modified = False
+    # check scope variables
+    for k, v in code_scope.items():
+        # function
+        if callable(v):
+            code_scope[k] = numba_func(v)
+            modified = True
+
+    if modified:
+        func_code = deindent(inspect.getsource(func))
+        exec(compile(func_code, '', "exec"), code_scope)
+        return autojit(code_scope[func.__name__])
+    else:
+        return autojit(func)
 
 ##############################
 # data structure
@@ -328,3 +372,23 @@ def deindent(text, num_tabs=None, spaces_per_tab=4, docstring=False):
     # remove the common indentation
     lines[start:] = [line[indentlevel:] for line in lines[start:]]
     return '\n'.join(lines)
+
+
+def word_substitute(expr, substitutions):
+    """
+    Applies a dict of word substitutions.
+
+    The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
+    word ``word`` appearing in ``expr`` is replaced by ``rep``. Here a 'word'
+    means anything matching the regexp ``\\bword\\b``.
+
+    Examples
+    --------
+
+    >>> expr = 'a*_b+c5+8+f(A)'
+    >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
+    banana*_b+c5+8+func(A)
+    """
+    for var, replace_var in substitutions.items():
+        expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
+    return expr

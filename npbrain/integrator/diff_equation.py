@@ -54,28 +54,6 @@ def get_identifiers(expr, include_numbers=False):
     return (identifiers - KEYWORDS) | numbers
 
 
-def get_source_code(func):
-    if func is None:
-        return None
-
-    if tools.is_lambda_function(func):
-        func_code = inspect.getsource(func)
-        splits = func_code.split(':')
-        if len(splits) != 2:
-            raise ValueError(f'Can not parse function: \n{func_code}')
-        return f'return {splits[1]}'
-
-    else:
-        func_codes = inspect.getsourcelines(func)[0]
-        idx = 0
-        for i, line in enumerate(func_codes):
-            line = line.replace(' ', '')
-            if '):' in line:
-                break
-            idx += 1
-        return ''.join(func_codes[idx + 1:])
-
-
 def extract_name(equation, left=False):
     """Extracts the name of a parameter/variable by looking the left term of an equation."""
 
@@ -187,8 +165,8 @@ class DiffEquation(object):
         self.use_subs_eqs = use_substituted_eqs
         self.func_args = inspect.getfullargspec(f).args
         self.var = self.func_args[0]
-        self.f_code = get_source_code(f)
-        self.g_code = get_source_code(g)
+        self.f_code = tools.get_main_code(f)
+        self.g_code = tools.get_main_code(g)
 
         # check
         expressions = []

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import autopep8
 import re
 import inspect
 from copy import deepcopy
 
 from .types import TypeChecker
+from .types import TypeMismatchError
 from .types import ObjState
 from .. import _numpy as np
 from .. import tools
@@ -18,6 +20,9 @@ __all__ = [
     'BaseType',
     'BaseEnsemble',
 ]
+
+
+_arg_keywords = ['_dt_', '_t_', '_i_']
 
 
 class ModelDefError(Exception):
@@ -40,7 +45,7 @@ class BaseType(object):
      - a1 = av1
      - a2 = av2
      - ...
-    - step_func = a_list  (collection of the step functions)
+    - steps = a_list  (collection of the step functions)
      - f1 = callable
      - f2 = callable
      - ...
@@ -86,10 +91,10 @@ class BaseType(object):
             raise ModelDefError(f'Arguments in "{create_func.__name__}" must provide default values.')
         if not isinstance(func_return, dict):
             raise ModelDefError('"create_func" must return a dict.')
-        assert 'attrs' in func_return, \
-            '"attrs" (specify variables the model need) must be defined in the return.'
-        assert 'step_func' in func_return, \
-            '"step_func" (step functions at each time step) must be defined in the return.'
+        assert 'requires' in func_return, \
+            '"requires" (specify variables the model need) must be defined in the return.'
+        assert 'steps' in func_return, \
+            '"steps" (step functions at each time step) must be defined in the return.'
         self.create_func = create_func
         self.func_return = func_return
 
@@ -100,45 +105,49 @@ class BaseType(object):
 
         # attributes
         # -----------
-        attributes = func_return['attrs']
-        assert isinstance(attributes, dict), '"attrs" only supports dict.'
-        assert 'ST' in attributes, '"ST" must be defined in "attrs".'
-        self.attributes = attributes
-        for k, v in attributes.items():
-            assert isinstance(v, TypeChecker), f'The value of "{k}" in "attrs" must be a TypeChecker.'
+        requires = func_return['requires']
+        assert isinstance(requires, dict), '"requires" only supports dict.'
+        assert 'ST' in requires, '"ST" must be defined in "requires".'
+        self.requires = requires
+        for k, v in requires.items():
+            if isinstance(v, type):
+                raise TypeError(f'In "requires", you must instantiate the type checker of "{k}". '
+                                f'Like "{v.__name__}()".')
+            assert isinstance(v, TypeChecker), f'In "requires", each value must be a {TypeChecker.__name__}, ' \
+                                               f'but got "{type(v)}" for "{k}".'
             setattr(self, k, v)
 
         # variables
         # ----------
-        self.variables = self.attributes['ST']._vars
+        self.variables = self.requires['ST']._vars
 
         # step functions
         # --------------
-        step_func = func_return['step_func']
-        if callable(step_func):
-            step_func = [step_func]
-        elif isinstance(step_func, (list, tuple)):
-            step_func = list(step_func)
+        steps = func_return['steps']
+        if callable(steps):
+            steps = [steps]
+        elif isinstance(steps, (list, tuple)):
+            steps = list(steps)
         else:
-            raise ValueError('"step_func" must be a callable, or a list/tuple of callable functions.')
-        self.step_func, self.step_names = [], []
-        for func in step_func:
-            assert callable(func), '"step_func" must be a list/tuple of callable functions.'
+            raise ValueError('"steps" must be a callable, or a list/tuple of callable functions.')
+        self.steps, self.step_names = [], []
+        for func in steps:
+            assert callable(func), '"steps" must be a list/tuple of callable functions.'
             func_name = func.__name__
             self.step_names.append(func_name)
-            self.step_func.append(func)
+            self.steps.append(func)
             setattr(self, func_name, func)
 
         # check consistence between function
         # arguments and model attributes
         # ----------------------------------
         warnings = []
-        for func in self.step_func:
+        for func in self.steps:
             for arg in inspect.getfullargspec(func).args:
-                if arg in ['t', 'i']:
+                if arg in _arg_keywords:
                     continue
-                if arg not in self.attributes:
-                    warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "attrs".'
+                if arg not in self.requires:
+                    warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "requires".'
                     warnings.append(warn)
         print('\n'.join(warnings) + '\n')
 
@@ -204,19 +213,6 @@ class BaseEnsemble(object):
                     hetero_pars[k] = v
             parameters[k] = v
         self.pars_update = parameters
-        # if profile.is_numba_bk():
-        #     import numba as nb
-        #     max_size = max([np.size(v) for v in parameters.values()])
-        #     if max_size > 1:
-        #         self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_[:])
-        #         for k, v in parameters.items():
-        #             self.PA[k] = np.ones(self.num, dtype=np.float_) * v
-        #     else:
-        #         self.PA = nb.typed.Dict.empty(key_type=nb.types.unicode_type, value_type=nb.types.float_)
-        #         for k, v in parameters.items():
-        #             self.PA[k] = v
-        # else:
-        #     self.PA = parameters
 
         # step functions
         # ---------------
@@ -225,15 +221,7 @@ class BaseEnsemble(object):
                 raise ValueError('Single neuron/synapse model doesn\'t support heterogeneous parameters.')
             if self._cls_type == 'syn_conn' and (self.pre_group is None or self.post_group is None):
                 raise ValueError('Single synapse model must provide "pre_group" and "post_group".')
-
-        if profile.is_numpy_bk():
-            self.step_func = self._get_steps_from_model(self.pars_update)
-
-        elif profile.is_numba_bk():
-            self.step_func = self._get_steps_from_model(self.pars_update)
-
-        else:
-            raise NotImplementedError
+        self.steps = self._get_steps_from_model(self.pars_update)
 
         # monitors
         # ---------
@@ -267,46 +255,52 @@ class BaseEnsemble(object):
 
     def _get_steps_from_model(self, pars_update):
         func_return = self.model.create_func(**pars_update)
-        step_func = func_return['step_func']
-        if callable(step_func):
-            step_func = [step_func, ]
-        elif isinstance(step_func, (tuple, list)):
-            step_func = list(step_func)
+        steps = func_return['steps']
+        if callable(steps):
+            steps = [steps, ]
+        elif isinstance(steps, (tuple, list)):
+            steps = list(steps)
         else:
-            raise ValueError('"step_func" must be a callable, or a list/tuple of callable functions.')
-        return step_func
+            raise ValueError('"steps" must be a callable, or a list/tuple of callable functions.')
+        return steps
 
     def _type_checking(self):
         # check attribute and its type
-        for key, type_checker in self.model.attributes.items():
+        for key, type_checker in self.model.requires.items():
             if not hasattr(self, key):
                 raise AttributeError(f'"{self.name}" doesn\'t have "{key}" attribute.')
-            if not type_checker.check(getattr(self, key)):
+            try:
+                type_checker.check(getattr(self, key))
+            except TypeMismatchError as e:
                 raise TypeError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
 
         # get function arguments
-        for i, func in enumerate(self.step_func):
+        for i, func in enumerate(self.steps):
             for arg in inspect.getfullargspec(func).args:
-                if not (arg in ['t', 'i', 'self']) and not hasattr(self, arg):
-                    raise AttributeError(f'Function "{self.step_func[i].__name__}" in "{self.model.name}" requires '
+                if not (arg in _arg_keywords + ['self']) and not hasattr(self, arg):
+                    raise AttributeError(f'Function "{self.steps[i].__name__}" in "{self.model.name}" requires '
                                          f'"{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
     def _add_steps(self):
         if profile.is_numpy_bk():
-            for func in self.step_func:
+            for func in self.steps:
                 func_name = func.__name__
                 func_args = inspect.getfullargspec(func).args
                 if self.model.group_based:
                     setattr(self, func_name, func)
                     arg_calls = []
                     for arg in func_args:
-                        if arg == 'self': pass
-                        elif arg in ['t', 'i']: arg_calls.append(arg)
-                        else: arg_calls.append(f"{self.name}.{arg}")
+                        if arg == 'self':
+                            pass
+                        elif arg in _arg_keywords:
+                            arg_calls.append(arg)
+                        else:
+                            arg_calls.append(f"{self.name}.{arg}")
                     func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
                     self._codegen[func_name] = {'func': func, 'call': func_call}
 
                 else:
+                    raise NotImplementedError
                     code_lines = [f'def {func_name}({", ".join(func_args)}):']
                     code_lines.append(f'  for ni in range(self.pre_group.num):')
                     code_lines.append(f'    for si in self.:')
@@ -314,7 +308,7 @@ class BaseEnsemble(object):
                     for arg in func_args:
                         if arg == 'self':
                             pass
-                        elif arg in ['t', 'i']:
+                        elif arg in _arg_keywords:
                             arg_calls.append(arg)
                         else:
                             arg_calls.append(f"{self.name}.{arg}")
@@ -324,19 +318,87 @@ class BaseEnsemble(object):
                     self._codegen[func_name] = {'func': func, 'call': func_call}
 
         elif profile.is_numba_bk():
-            code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
-
-            states = {k: getattr(self, k) for k, v in self.model.attributes.items()
+            states = {k: getattr(self, k) for k, v in self.model.requires.items()
                       if isinstance(v, ObjState)}
 
-            for func in self.step_func:
+            for func in self.steps:
                 func_name = func.__name__
-                func = numba_func(func, states)
+
                 if self.model.group_based:
+                    # initialize code namespace
+                    func_code = tools.deindent(tools.get_main_code(func))
+                    used_args, code_arg2call, code_lines = set(), {}, []
+                    vars = inspect.getclosurevars(func)
+                    code_scope = dict(vars.nonlocals)
+                    code_scope.update(vars.globals)
+                    code_scope.update({self.name: self})
 
-                    setattr(self, func_name, func)
+                    # check function in function scope
+                    for k, v in code_scope.items():
+                        if callable(v):
+                            code_scope[k] = tools.numba_func(v)
+
+                    # check function code
+                    add_args = set()
+                    for i, arg in enumerate(inspect.getfullargspec(func).args):
+                        used_args.add(arg)
+                        if states is None:
+                            continue
+                        if arg in states:
+                            st = states[arg]
+                            var2idx = st['_var2idx']
+                            for st_k in st._keys:
+                                p = f'{arg}\[([\'"]{st_k}[\'"])\]'
+                                r = f"{arg}[{var2idx[st_k]}]"
+                                func_code = re.sub(r'' + p, r, func_code)
+                            p = f'{arg}.pull_cond()'
+                            if p in func_code:
+                                r = f'{arg}[{self.name}_{arg}_dout]'
+                                func_code = func_code.replace(p, r)
+                                add_args.add(f'{self.name}_{arg}_dout')
+                                code_arg2call[f'{self.name}_{arg}_dout'] = f'{self.name}.{arg}._delay_out'
+                            p = f'{arg}.push_cond'
+                            if p in func_code:
+                                res = re.findall(r'(' + p + r'\((\w+?)\))', func_code)
+                                if len(res) > 1:
+                                    raise ValueError(f'Cannot call "{p}()" {len(res)} times. Error in code:\n\n'
+                                                     f'{func_code}')
+                                if len(res[0]) != 2:
+                                    raise ValueError(f'Python regex error for search of "{p}" in code:\n{func_code}')
+                                res = res[0]
+                                text = f'{arg}[{self.name}_{arg}_din] = {res[1]}'
+                                func_code = func_code.replace(res[0], text)
+                                add_args.add(f'{self.name}_{arg}_din')
+                                code_arg2call[f'{self.name}_{arg}_din'] = f'{self.name}.{arg}._delay_in'
+
+                    # substitute arguments
+                    code_args = add_args
+                    # code_args = set()
+                    arg_substitute = {}
+                    for arg in used_args:
+                        if arg in _arg_keywords:
+                            new_arg = arg
+                            code_arg2call[arg] = arg
+                        else:
+                            new_arg = f'{self.name}_{arg}'
+                            arg_substitute[arg] = new_arg
+                            if isinstance(getattr(self, arg), ObjState):
+                                code_arg2call[new_arg] = f'{self.name}.{arg}["_data"]'
+                            else:
+                                code_arg2call[new_arg] = f'{self.name}.{arg}'
+                        code_args.add(new_arg)
+                    func_code = tools.word_substitute(func_code, arg_substitute)
+
+                    # final
+                    code_lines = func_code.split('\n')
 
 
+                else:
+                    raise NotImplementedError
+
+                code_lines.insert(0, f'# "{func_name}" step function of {self.name}')
+                self._codegen[func_name] = {'scopes': code_scope, 'args': code_args,
+                                            'arg2calls': code_arg2call, 'codes': code_lines}
 
         else:
             raise NotImplementedError
@@ -353,8 +415,8 @@ class BaseEnsemble(object):
             if t == 'iter':
                 has_iter = True
         if has_iter:
-            code_args.add('i')
-            code_arg2call['i'] = 'i'
+            code_args.add('_i_')
+            code_arg2call['_i_'] = '_i_'
 
         # check data operations
         # ----------------------
@@ -393,7 +455,7 @@ class BaseEnsemble(object):
                     left = f'{self.name}.{attr}["{item}"]'
                 else:
                     idx = getattr(self, attr)['_var2idx'][item]
-                    left = f'{self.name}_{attr}{idx}]'
+                    left = f'{self.name}_{attr}[{idx}]'
                     code_args.add(f'{self.name}_{attr}')
                     code_arg2call[f'{self.name}_{attr}'] = f'{self.name}.{attr}["_data"]'
 
@@ -401,7 +463,7 @@ class BaseEnsemble(object):
             right = f'{self.name}_input{input_idx}_{attr}_{item}_{ops2str[ops]}'
             code_scope[right] = val
             if data_type == 'iter':
-                right = right + '[i]'
+                right = right + '[_i_]'
             input_idx += 1
 
             # final code line #
@@ -409,10 +471,11 @@ class BaseEnsemble(object):
                 code_lines.append(left + " = " + right)
             else:
                 code_lines.append(left + f" {ops}= " + right)
+        code_lines.append('\n')
 
         # final code
         # ----------
-        code_lines.insert(0, f'# Input step function of {self.name}')
+        code_lines.insert(0, f'# "input" step function of {self.name}')
 
         if profile.is_numpy_bk():
             code_args = list(code_args)
@@ -437,7 +500,7 @@ class BaseEnsemble(object):
                                       'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _add_monitor(self, run_length):
-        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(('i',)), {'i': 'i'}, []
+        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(('_i_',)), {'_i_': '_i_'}, []
         idx_no = 0
 
         # generate code of monitor function
@@ -476,9 +539,9 @@ class BaseEnsemble(object):
                     mon_name = f'{self.name}_mon_{attr}'
                     target_name = f'{self.name}_{attr}'
                     if indices is None:
-                        line = f'{mon_name}[i] = {target_name}'
+                        line = f'{mon_name}[_i_] = {target_name}'
                     else:
-                        line = f'{mon_name}[i] = {target_name}[{idx_name}]'
+                        line = f'{mon_name}[_i_] = {target_name}[{idx_name}]'
                         code_scope[idx_name] = indices
                         idx_no += 1
                     code_args.add(mon_name)
@@ -498,9 +561,9 @@ class BaseEnsemble(object):
                 idx_name = f'{self.name}_idx{idx_no}_{attr}_{item}'
                 if profile.is_numpy_bk():
                     if indices is None:
-                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}["{item}"]'
+                        line = f'{self.name}.mon["{key}"][_i_] = {self.name}.{attr}["{item}"]'
                     else:
-                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}["{item}"][{idx_name}]'
+                        line = f'{self.name}.mon["{key}"][_i_] = {self.name}.{attr}["{item}"][{idx_name}]'
                         code_scope[idx_name] = indices
                         idx_no += 1
                 else:
@@ -508,9 +571,9 @@ class BaseEnsemble(object):
                     mon_name = f'{self.name}_mon_{attr}_{item}'
                     target_name = f'{self.name}_{attr}'
                     if indices is None:
-                        line = f'{mon_name}[i] = {target_name}[{idx}]'
+                        line = f'{mon_name}[_i_] = {target_name}[{idx}]'
                     else:
-                        line = f'{mon_name}[i] = {target_name}[{idx}][{idx_name}]'
+                        line = f'{mon_name}[_i_] = {target_name}[{idx}][{idx_name}]'
                         code_scope[idx_name] = indices
                         idx_no += 1
                     code_args.add(mon_name)
@@ -526,10 +589,11 @@ class BaseEnsemble(object):
 
             # add line #
             code_lines.append(line)
+        code_lines.append('\n')
 
         # final code
         # ----------
-        code_lines.insert(0, f'# Monitor step function of {self.name}')
+        code_lines.insert(0, f'# "monitor" step function of {self.name}')
 
         if profile.is_numpy_bk():
             code_args = list(code_args)
@@ -572,31 +636,38 @@ class BaseEnsemble(object):
 
             args = list(args)
             arg2calls_list = [arg2calls[arg] for arg in args]
-            lines.insert(0, f'\ndef merge_func({", ".join(args)})')
-            exec(compile('\n  '.join(lines), '', 'exec'), scopes)
+            lines.insert(0, f'\n# {self.name} "merge_func"'
+                            f'\ndef merge_func({", ".join(args)}):')
+            code = autopep8.fix_code('\n  '.join(lines))
+            exec(compile(code, '', 'exec'), scopes)
 
             self.merge_func = scopes['merge_func']
             call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
+            call = autopep8.fix_code(call)
             codes_of_calls.append(call)
 
             if profile.show_codgen:
-                print("\n" + '\n\t'.join(lines))
+                print("\n" + code)
                 print("\n" + call)
 
         return codes_of_calls
 
     def set_ST(self, new_ST):
-        type_checker = self.model.attributes['ST']
+        type_checker = self.model.requires['ST']
         if not type_checker.check(new_ST):
             raise TypeError(f'"new_ST" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
         super(BaseEnsemble, self).__setattr__('ST', new_ST)
+
+    @property
+    def requires(self):
+        return self.model.requires
 
     @property
     def _keywords(self):
         kws = [
             # attributes
             'model', 'num', 'ST', 'PA', 'vars_init', 'pars_update', '_mon_vars',
-            'mon', '_cls_type', '_codegen', '_keywords', 'step_func', '_schedule',
+            'mon', '_cls_type', '_codegen', '_keywords', 'steps', '_schedule',
             # assigned functions
             'monitor_step', 'input_step', 'merge_func',
             # self functions
@@ -623,64 +694,3 @@ class BaseEnsemble(object):
             if hasattr(self, key):
                 raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, please change another name.')
         super(BaseEnsemble, self).__setattr__(key, value)
-
-
-def numba_func(func, states=None):
-    if tools.is_lambda_function(func):
-        raise ValueError('Do not support lambda function.')
-
-    vars = inspect.getclosurevars(func)
-    scope = vars.nonlocals
-    scope.update(vars.globals)
-    scope_keys = list(scope.keys())
-
-    # check scope variables
-    modified = False
-    for k, v in scope.items():
-        # function
-        if callable(v):
-            scope[k] = numba_func(v, states)
-            modified = True
-
-    # check function code
-    if states is not None:
-        args = inspect.getfullargspec(func).args
-        func_code = inspect.getsource(func)
-        added_args = []
-        for i, arg in enumerate(args):
-            if arg in states:
-                modified = True
-                st = states[arg]
-                var2idx = st['_var2idx']
-                for st_k in st._keys:
-                    p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                    r = f"{arg}[{var2idx[st_k]}]"
-                    func_code = re.sub(r'' + p, r, func_code)
-                p = f'{arg}.pull_cond()'
-                if p in func_code:
-                    r = f'{arg}["{arg}_dout"]'
-                    func_code = func_code.replace(p, r)
-                    added_args.append(f'{arg}_dout')
-                p = f'{arg}.push_cond'
-                if p in func_code:
-                    res = re.findall(r'(' + p + r'\((\w+?)\))', func_code)
-                    assert len(res) == 2
-                    func_code = func_code.replace(res[0], f'{arg}["{arg}_din"] = {res[1]}')
-                    added_args.append(f'{arg}_din')
-
-        if len(added_args):
-            added_args = ', '.join(added_args)
-            if len(args) > 0:
-                added_args = ', ' + added_args
-            func_code = func_code.replace('):', added_args + '):')
-
-    if not modified:
-        return tools.autojit(func)
-    else:
-        func_code = tools.deindent(func_code, spaces_per_tab=2)
-        exec(compile(func_code, '', 'exec'), scope)
-        for k in scope.keys():
-            if k not in scope_keys and callable(scope[k]):
-                return tools.autojit(scope[k])
-        else:
-            raise ValueError('No return.')

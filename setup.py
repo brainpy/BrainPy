@@ -30,6 +30,8 @@ setup(
         'numpy>=1.15',
         'matplotlib',
         'numba',
+        'sympy',
+        'autopep8',
     ],
     url='https://github.com/chaoming0625/NumpyBrain',
     keywords='computational neuroscience simulation',

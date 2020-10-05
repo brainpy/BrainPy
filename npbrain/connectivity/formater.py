@@ -118,9 +118,9 @@ def pre2post(i, j, num_pre):
         for pre_i in range(num_pre):
             index = np.where(i == pre_i)[0]
             post_idx = j[index]
-            l = nb.typed.List.empty_list(nb.types.int32)
+            l = nb.typed.List.empty_list(nb.types.uint64)
             for idx in post_idx:
-                l.append(np.int32(idx))
+                l.append(np.uint64(idx))
             pre2post_list.append(l)
     else:
         pre2post_list = []
@@ -156,9 +156,9 @@ def post2pre(i, j, num_post):
         for post_i in range(num_post):
             index = np.where(j == post_i)[0]
             pre_idx = i[index]
-            l = nb.typed.List.empty_list(nb.types.int32)
+            l = nb.typed.List.empty_list(nb.types.uint64)
             for idx in pre_idx:
-                l.append(np.int32(idx))
+                l.append(np.uint64(idx))
             post2pre_list.append(l)
     else:
         post2pre_list = []

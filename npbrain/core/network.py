@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import autopep8
 import time
 from pprint import pprint
 
@@ -82,18 +83,18 @@ class Network(object):
 
     def _get_step_function(self):
         code_lines = ['\n# network step function'
-                      '\ndef step_func(t, i):']
+                      '\ndef step_func(_t_, _i_, _dt_):']
         code_scope = {}
         for obj in self._all_objects:
             code_lines.extend(obj._merge_steps())
             code_scope[obj.name] = obj
 
-        step_func_str = '\n  '.join(code_lines)
-        exec(compile(step_func_str, '', 'exec'), code_scope)
+        func_code = autopep8.fix_code('\n  '.join(code_lines))
+        exec(compile(func_code, '', 'exec'), code_scope)
 
         if profile.show_codgen:
             print()
-            print(step_func_str)
+            print(func_code)
             code_scope.pop('__builtins__')
             print()
             pprint(code_scope)
@@ -180,7 +181,8 @@ class Network(object):
         # ------------------
 
         # time
-        ts = np.arange(self._run_time, self._run_time + duration, self.dt)
+        dt = self.dt
+        ts = np.arange(self._run_time, self._run_time + duration, dt)
         ts = np.asarray(ts, dtype=profile.ftype)
         run_length = ts.shape[0]
 
@@ -205,21 +207,21 @@ class Network(object):
         # ---------
         if report:
             t0 = time.time()
-            _step_func(t=ts[0], i=0)
+            _step_func(_t_=ts[0], _i_=0, _dt_=dt)
             print('Compilation used {:.4f} ms.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)
             t0 = time.time()
             for run_idx in range(1, run_length):
-                _step_func(t=ts[run_idx], i=run_idx)
+                _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
                 if (run_idx + 1) % report_gap == 0:
                     percent = (run_idx + 1) / run_length * 100
                     print('Run {:.1f}% using {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
         else:
             for run_idx in range(run_length):
-                _step_func(t=ts[run_idx], i=run_idx)
+                _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
 
         # 3. Finally
         # -----------

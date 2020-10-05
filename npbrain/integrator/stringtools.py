@@ -20,24 +20,6 @@ __all__ = [
 
 
 
-def word_substitute(expr, substitutions):
-    """
-    Applies a dict of word substitutions.
-
-    The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
-    word ``word`` appearing in ``expr`` is replaced by ``rep``. Here a 'word'
-    means anything matching the regexp ``\\bword\\b``.
-
-    Examples
-    --------
-
-    >>> expr = 'a*_b+c5+8+f(A)'
-    >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
-    banana*_b+c5+8+func(A)
-    """
-    for var, replace_var in substitutions.items():
-        expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
-    return expr
 
 
 def replace(s, substitutions):

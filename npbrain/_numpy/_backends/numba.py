@@ -100,8 +100,14 @@ def _reload():
     # Round to nearest integer towards zero.
     global_vars['fix'] = autojit(lambda x: np.where(x >= 0, x, -np.floor(-x)))
 
+    @autojit
+    def clip(x, x_min, x_max):
+        x = np.maximum(x, x_min)
+        x = np.minimum(x, x_max)
+        return x
+
     # Clip (limit) the values in an array.
-    global_vars['clip'] = autojit(lambda x, x_min, x_max: np.clip(x, x_min, x_max))
+    global_vars['clip'] = clip
 
     # Returns True if two arrays are element-wise equal within a tolerance.
     global_vars['allclose'] = autojit(

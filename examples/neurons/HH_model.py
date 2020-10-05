@@ -5,11 +5,11 @@ import npbrain._numpy as np
 
 nb.profile.set_backend('numba')
 nb.profile.set_dt(0.02)
-nb.profile.show_codgen = True
+nb.profile.show_codgen = False
 
 
-def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
-           g_Leak=0.03, C=1.0, Vr=-65., Vth=20.):
+def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
+           g_Leak=0.03, C=1.0, Vth=20.):
     """The Hodgkin–Huxley neuron model.
 
     The Hodgkin–Huxley model can be thought of as a differential equation
@@ -18,9 +18,6 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
 
     Parameters
     ----------
-    method : str, callable, dict
-        The numerical integrator method. Either a string with the name of a
-        registered method (e.g. "euler") or a function.
     noise
     E_Na
     g_Na
@@ -38,30 +35,36 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
         The necessary variables.
     """
 
-    attrs = dict(
-        ST=nb.types.NeuState({'V': Vr, 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
-                             help='Hodgkin–Huxley neuron state.'),
+    ST = nb.types.NeuState(
+        {'V': -65., 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
+        help='Hodgkin–Huxley neuron state.\n'
+             '"V" denotes membrane potential.\n'
+             '"n" denotes potassium channel activation probability.\n'
+             '"m" denotes sodium channel activation probability.\n'
+             '"h" denotes sodium channel inactivation probability.\n'
+             '"sp" denotes spiking state.\n'
+             '"inp" denotes synaptic input.\n'
     )
 
-    @nb.integrator.integrate(method=method)
+    @nb.integrator.integrate
     def int_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
         return alpha * (1 - m) - beta * m
 
-    @nb.integrator.integrate(method=method)
+    @nb.integrator.integrate
     def int_h(h, t, V):
         alpha = 0.07 * np.exp(-(V + 65) / 20.)
         beta = 1 / (1 + np.exp(-(V + 35) / 10))
         return alpha * (1 - h) - beta * h
 
-    @nb.integrator.integrate(method=method)
+    @nb.integrator.integrate
     def int_n(n, t, V):
         alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
         beta = 0.125 * np.exp(-(V + 65) / 80)
         return alpha * (1 - n) - beta * n
 
-    @nb.integrator.integrate(method=method, noise=noise / C)
+    @nb.integrator.integrate(noise=noise / C)
     def int_V(V, t, m, h, n, Isyn):
         INa = g_Na * m ** 3 * h * (V - E_Na)
         IK = g_K * n ** 4 * (V - E_K)
@@ -69,11 +72,11 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
         dvdt = (- INa - IK - IL + Isyn) / C
         return dvdt
 
-    def update(ST, t):
-        m = np.clip(int_m(ST['m'], t, ST['V']), 0., 1.)
-        h = np.clip(int_h(ST['h'], t, ST['V']), 0., 1.)
-        n = np.clip(int_n(ST['n'], t, ST['V']), 0., 1.)
-        V = int_V(ST['V'], t, m, h, n, ST['inp'])
+    def update(ST, _t_):
+        m = np.clip(int_m(ST['m'], _t_, ST['V']), 0., 1.)
+        h = np.clip(int_h(ST['h'], _t_, ST['V']), 0., 1.)
+        n = np.clip(int_n(ST['n'], _t_, ST['V']), 0., 1.)
+        V = int_V(ST['V'], _t_, m, h, n, ST['inp'])
         sp = np.logical_and(ST['V'] < Vth, V >= Vth)
         ST['sp'] = sp
         ST['V'] = V
@@ -82,11 +85,10 @@ def define(method=None, noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak
         ST['n'] = n
         ST['inp'] = 0.
 
-    return {'attrs': attrs, 'step_func': update}
+    return {'requires': {"ST": ST}, 'steps': update}
 
 
 HH = nb.NeuType(name='HH_neuron', create_func=define, group_based=True)
-
 
 if __name__ == '__main__':
     neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'])

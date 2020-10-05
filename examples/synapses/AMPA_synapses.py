@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
-import npbrain as npb
+import npbrain as nb
 from npbrain import _numpy as np
 
-# npb.profile.show_codgen = True
+nb.profile.set_backend('numba')
+
+nb.profile.show_codgen = False
 
 
 def define_ampa1(g_max=0.10, E=0., tau_decay=2.0):
@@ -26,18 +28,26 @@ def define_ampa1(g_max=0.10, E=0., tau_decay=2.0):
         Tau for decay.
     """
 
-    attrs = dict(
-        ST=npb.types.SynState(['s'], help='AMPA synapse state.'),
-        pre=npb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
-        post=npb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
-    )
-
-    @npb.integrate(method='euler')
+    @nb.integrate(method='euler')
     def ints(s, t):
         return - s / tau_decay
 
-    def update(ST, t, pre, pre2syn):
-        s = ints(ST['s'], t)
+    # requirements
+    # ------------
+
+    requires = {
+        'ST': nb.types.SynState(['s'], help='AMPA synapse state.'),
+        'pre': nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
+        'post': nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+        'pre2syn': nb.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
+        'post2syn': nb.types.ListConn(help='Post-synaptic neuron index -> synapse index'),
+    }
+
+    # model logic
+    # -----------
+
+    def update(ST, _t_, pre, pre2syn):
+        s = ints(ST['s'], _t_)
         spike_idx = np.where(pre['sp'] > 0.)[0]
         for i in spike_idx:
             syn_idx = pre2syn[i]
@@ -47,14 +57,14 @@ def define_ampa1(g_max=0.10, E=0., tau_decay=2.0):
 
     def output(ST, post, post2syn):
         g = ST.pull_cond()
-        g_val = npb.post_cond_by_post2syn(g, post2syn)
+        g_val = nb.post_cond_by_post2syn(g, post2syn)
         post_val = - g_max * g_val * (post['V'] - E)
         post['inp'] += post_val
 
-    return {'attrs': attrs, 'step_func': (update, output)}
+    return {'requires': requires, 'steps': (update, output)}
 
 
-AMPA1 = npb.SynType(name='AMPA_type1', create_func=define_ampa1, group_based=True)
+AMPA1 = nb.SynType(name='AMPA_type1', create_func=define_ampa1, group_based=True)
 
 
 def define_ampa2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
@@ -78,56 +88,58 @@ def define_ampa2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5)
     T_duration
     """
 
-    attrs = dict(
-        ST=npb.types.SynState({'s': 0., 'sp_t': -1e7},
-                              help='AMPA synapse state.\n'
-                                   '"s": Synaptic state.\n'
-                                   '"sp_t": Pre-synaptic neuron spike time.'),
-        pre=npb.types.NeuState(['sp'],
-                               help='Pre-synaptic neuron state must have "sp" item.'),
-        post=npb.types.NeuState(['V', 'inp'],
-                                help='Pre-synaptic neuron state must have "V" and "inp" item.'),
-    )
-
-    @npb.integrate(method='euler')
+    @nb.integrate(method='euler')
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    def update(ST, t, pre, pre2syn):
+    requires = {
+        'ST': nb.types.SynState(
+            {'s': 0., 'sp_t': -1e7},
+            help='AMPA synapse state.\n'
+                 '"s": Synaptic state.\n'
+                 '"sp_t": Pre-synaptic neuron spike time.'
+        ),
+        'pre': nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
+        'post': nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+        'pre2syn': nb.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
+        'post2syn': nb.types.ListConn(help='Post-synaptic neuron index -> synapse index'),
+    }
+
+    def update(ST, _t_, pre, pre2syn):
         spike_idx = np.where(pre['sp'] > 0.)[0]
         for i in spike_idx:
             syn_idx = pre2syn[i]
-            ST['sp_t'][syn_idx] = t
-        TT = ((t - ST['sp_t']) < T_duration) * T
-        s = np.clip(int_s(ST['s'], t, TT), 0., 1.)
+            ST['sp_t'][syn_idx] = _t_
+        TT = ((_t_ - ST['sp_t']) < T_duration) * T
+        s = np.clip(int_s(ST['s'], _t_, TT), 0., 1.)
         ST['s'] = s
         ST.push_cond(s)
 
     def output(ST, post, post2syn):
         g = ST.pull_cond()
-        g_val = npb.post_cond_by_post2syn(g, post2syn)
+        g_val = nb.post_cond_by_post2syn(g, post2syn)
         post_val = - g_max * g_val * (post['V'] - E)
         post['inp'] += post_val
 
-    return {'attrs': attrs, 'step_func': (update, output)}
+    return {'requires': requires, 'steps': (update, output)}
 
 
-AMPA2 = npb.SynType(name='AMPA_type2', create_func=define_ampa2, group_based=True)
+AMPA2 = nb.SynType(name='AMPA_type2', create_func=define_ampa2, group_based=True)
 
 
 def run_ampa(cls, duration=650.):
-    ampa = npb.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
-    ampa.pre = npb.types.NeuState(['sp'])(1)
-    ampa.post = npb.types.NeuState(['V', 'inp'])(1)
-    ampa.pre2syn = [[0]]
-    ampa.post2syn = [[0]]
+    ampa = nb.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
+    ampa.pre = nb.types.NeuState(['sp'])(1)
+    ampa.post = nb.types.NeuState(['V', 'inp'])(1)
+    ampa.pre2syn = ampa.requires['pre2syn'].create([[0]])
+    ampa.post2syn = ampa.requires['post2syn'].create([[0]])
     ampa.set_schedule(['input', 'update', 'monitor'])
 
-    net = npb.Network(ampa)
-    Iext = npbrain.inputs.spike_current([10, 110, 210, 310, 410], npb.profile.dt, 1., duration=duration)
+    net = nb.Network(ampa)
+    Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile.dt, 1., duration=duration)
     net.run(duration, inputs=(ampa, 'pre.sp', Iext, '='), report=True)
 
-    fig, gs = npb.visualize.get_figure(1, 1, 5, 10)
+    fig, gs = nb.visualize.get_figure(1, 1, 5, 10)
     fig.add_subplot(gs[0, 0])
     plt.plot(net.ts, ampa.mon.s[:, 0], label='s')
     plt.legend()
@@ -135,5 +147,5 @@ def run_ampa(cls, duration=650.):
 
 
 if __name__ == '__main__':
-    # run_ampa(AMPA1)
+    run_ampa(AMPA1)
     run_ampa(AMPA2)
