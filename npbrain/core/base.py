@@ -4,6 +4,7 @@ import inspect
 import re
 from copy import deepcopy
 from importlib import import_module
+from pprint import pprint
 
 import autopep8
 
@@ -463,7 +464,7 @@ class BaseEnsemble(object):
 
             # compile
             func_code = '\n  '.join(code_lines)
-            if profile.autopep8:
+            if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)
             func = code_scope[func_name]
@@ -472,7 +473,7 @@ class BaseEnsemble(object):
             # call
             func_call = f'{self.name}.{func_name}({", ".join([code_arg2call[arg] for arg in code_arg])})'
 
-            if profile.show_codgen:
+            if profile._show_codgen:
                 print(func_code)
                 print(func_call)
 
@@ -657,9 +658,9 @@ class BaseEnsemble(object):
             # check function code
             add_args = set()
             if func_name == 'update':
-                add_args.add(f'{self.name}_din1')
+                add_args.add(f'{self.name}_din')
+                code_arg2call[f'{self.name}_din'] = f'{self.name}.ST._delay_in'
                 add_args.add(f'{self.name}_din2')
-                code_arg2call[f'{self.name}_din1'] = f'{self.name}.ST._delay_in1'
                 code_arg2call[f'{self.name}_din2'] = f'{self.name}.ST._delay_in2'
             else:
                 add_args.add(f'{self.name}_dout')
@@ -679,7 +680,7 @@ class BaseEnsemble(object):
                                     p = f'(=.*)ST\[([\'"]{st_k}[\'"])\]'
                                     r = f"\\1{arg}[{var2idx[st_k]} + {idx}, _syn_i_]"
                                     func_code = re.sub(r'' + p, r'' + r, func_code)
-                                    idx = f'{self.name}_din1'
+                                    idx = f'{self.name}_din'
                                     p = f'\\bST\[([\'"]{st_k}[\'"])\](\s+=)'
                                     r = f"{arg}[{var2idx[st_k]} + {idx}, _syn_i_]\\2"
                                     func_code = re.sub(r'' + p, r'' + r, func_code)
@@ -808,7 +809,7 @@ class BaseEnsemble(object):
             try:
                 assert ops in ['-', '+', 'x', '/', '=']
             except AssertionError:
-                raise ModelUseError('Only support five operations: +, -, x, /, =')
+                raise ModelUseError('Only support five input operations: +, -, x, /, =')
         ops2str = {'-': 'sub', '+': 'add', 'x': 'mul', '/': 'div', '=': 'assign'}
 
         # generate code of input function
@@ -822,7 +823,7 @@ class BaseEnsemble(object):
                 try:
                     assert hasattr(self, attr)
                 except AssertionError:
-                    raise ModelUseError(f'Model "{self.name}" doesn\'t have "{attr}" attribute", ' \
+                    raise ModelUseError(f'Model "{self.name}" doesn\'t have "{attr}" attribute", '
                                         f'and "{self.name}.ST" doesn\'t have "{attr}" field.')
                 try:
                     assert isinstance(getattr(self, attr), np.ndarray)
@@ -871,7 +872,6 @@ class BaseEnsemble(object):
         # final code
         # ----------
         if len(key_val_ops_types) > 0:
-            code_lines.append('\n')
             code_lines.insert(0, f'# "input" step function of {self.name}')
 
         if profile.is_numpy_bk():
@@ -881,7 +881,7 @@ class BaseEnsemble(object):
 
                 # compile function
                 func_code = '\n  '.join(code_lines)
-                if profile.autopep8:
+                if profile._auto_pep8:
                     func_code = autopep8.fix_code(func_code)
                 exec(compile(func_code, '', 'exec'), code_scope)
                 self.input_step = code_scope['input_step']
@@ -890,9 +890,13 @@ class BaseEnsemble(object):
                 code_arg2call = [code_arg2call[arg] for arg in code_args]
                 func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
 
-                if profile.show_codgen:
-                    print("\n" + func_code)
-                    print("\n" + func_call)
+                if profile._show_codgen:
+                    print(func_code)
+                    print()
+                    code_scope.pop('__builtins__')
+                    code_scope.pop('input_step')
+                    pprint(code_scope)
+                    print()
             else:
                 self.input_step = None
                 func_call = ''
@@ -1025,7 +1029,6 @@ class BaseEnsemble(object):
         if len(self._mon_vars):
             code_args.add('_i_')
             code_arg2call['_i_'] = '_i_'
-            code_lines.append('\n')
             code_lines.insert(0, f'# "monitor" step function of {self.name}')
 
         if profile.is_numpy_bk():
@@ -1034,19 +1037,23 @@ class BaseEnsemble(object):
                 code_lines.insert(0, f'\ndef monitor_step({", ".join(code_args)}):')
 
                 # compile function
-                code = '\n  '.join(code_lines)
-                if profile.autopep8:
-                    code = autopep8.fix_code(code)
-                exec(compile(code, '', 'exec'), code_scope)
+                func_code = '\n  '.join(code_lines)
+                if profile._auto_pep8:
+                    func_code = autopep8.fix_code(func_code)
+                exec(compile(func_code, '', 'exec'), code_scope)
                 self.monitor_step = code_scope['monitor_step']
 
                 # format function call
                 code_arg2call = [code_arg2call[arg] for arg in code_args]
                 func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
 
-                if profile.show_codgen:
-                    print(code)
-                    print(func_call)
+                if profile._show_codgen:
+                    print(func_code)
+                    print()
+                    code_scope.pop('__builtins__')
+                    code_scope.pop('monitor_step')
+                    pprint(code_scope)
+                    print()
             else:
                 self.monitor_step = None
                 func_call = ''
@@ -1062,16 +1069,16 @@ class BaseEnsemble(object):
         if profile.is_numpy_bk():  # numpy mode
             for item in self._schedule:
                 if item in self._codegen:
-                    call = self._codegen[item]['call']
-                    if call:
-                        codes_of_calls.append(call)
+                    func_call = self._codegen[item]['call']
+                    if func_call:
+                        codes_of_calls.append(func_call)
 
         else:  # non-numpy mode
-            lines, scopes, args, arg2calls = [], dict(), set(), dict()
+            lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
             for item in self._schedule:
                 if item in self._codegen:
                     lines.extend(self._codegen[item]['codes'])
-                    scopes.update(self._codegen[item]['scopes'])
+                    code_scopes.update(self._codegen[item]['scopes'])
                     args = args | self._codegen[item]['args']
                     arg2calls.update(self._codegen[item]['arg2calls'])
 
@@ -1079,18 +1086,22 @@ class BaseEnsemble(object):
             arg2calls_list = [arg2calls[arg] for arg in args]
             lines.insert(0, f'\n# {self.name} "merge_func"'
                             f'\ndef merge_func({", ".join(args)}):')
-            code = '\n  '.join(lines)
-            if profile.autopep8:
-                code = autopep8.fix_code(code)
-            exec(compile(code, '', 'exec'), scopes)
+            func_code = '\n  '.join(lines)
+            if profile._auto_pep8:
+                func_code = autopep8.fix_code(func_code)
+            exec(compile(func_code, '', 'exec'), code_scopes)
 
-            self.merge_func = scopes['merge_func']
-            call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
-            codes_of_calls.append(call)
+            self.merge_func = code_scopes['merge_func']
+            func_call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
+            codes_of_calls.append(func_call)
 
-            if profile.show_codgen:
-                print("\n" + code)
-                print("\n" + call)
+            if profile._show_codgen:
+                print(func_code)
+                print()
+                code_scopes.pop('__builtins__')
+                code_scopes.pop('merge_func')
+                pprint(code_scopes)
+                print()
 
         return codes_of_calls
 

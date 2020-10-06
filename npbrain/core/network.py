@@ -6,6 +6,7 @@ from pprint import pprint
 import autopep8
 
 from .base import BaseEnsemble
+from .base import ModelUseError
 from .neuron_group import NeuGroup
 from .synapse_connection import SynConn
 from .. import _numpy as np
@@ -83,39 +84,50 @@ class Network(object):
             self._add_obj(obj, name)
 
     def _get_step_function(self):
-        code_lines = ['\n# network step function'
+        code_lines = ['# network step function'
                       '\ndef step_func(_t_, _i_, _dt_):']
         code_scope = {}
         for obj in self._all_objects:
             code_lines.extend(obj._merge_steps())
             code_scope[obj.name] = obj
 
-        func_code = autopep8.fix_code('\n  '.join(code_lines))
+        func_code = '\n  '.join(code_lines)
+        if profile._auto_pep8:
+            func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
+        step_func = code_scope['step_func']
 
-        if profile.show_codgen:
-            print()
+        if profile._show_codgen:
             print(func_code)
-            code_scope.pop('__builtins__')
             print()
+            code_scope.pop('__builtins__')
+            code_scope.pop('step_func')
             pprint(code_scope)
             print()
 
-        return code_scope['step_func']
+        return step_func
 
     def _format_inputs(self, inputs, run_length):
         # check
-        assert isinstance(inputs, (tuple, list)), '"inputs" must be a tuple/list.'
+        try:
+            assert isinstance(inputs, (tuple, list))
+        except AssertionError:
+            raise ModelUseError('"inputs" must be a tuple/list.')
         if not isinstance(inputs[0], (list, tuple)):
             if isinstance(inputs[0], BaseEnsemble):
                 inputs = [inputs]
             else:
                 raise ValueError('Unknown input structure.')
         for inp in inputs:
-            assert 3 <= len(inp) <= 4, 'For each target, you must specify "(target, key, value, [operation])".'
+            try:
+                assert 3 <= len(inp) <= 4
+            except AssertionError:
+                raise ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
             if len(inp) == 4:
-                assert inp[3] in ['+', '-', 'x', '/', '='], \
-                    f'Input operation only support "+, -, x, /, =", not "{inp[2]}".'
+                try:
+                    assert inp[3] in ['+', '-', 'x', '/', '=']
+                except AssertionError:
+                    raise ModelUseError(f'Input operation only support "+, -, x, /, =", not "{inp[2]}".')
 
         # format input
         formatted_inputs = {}
@@ -129,8 +141,11 @@ class Network(object):
                 raise KeyError(f'Unknown input target: {str(inp[0])}.')
 
             # key
-            assert isinstance(inp[1], str), 'For each input, input[1] must be a string ' \
-                                            'to specify variable of the target.'
+            try:
+                assert isinstance(inp[1], str)
+            except AssertionError:
+                raise ModelUseError('For each input, input[1] must be a string '
+                                    'to specify variable of the target.')
             key = inp[1]
 
             # value and data type
@@ -144,7 +159,7 @@ class Network(object):
                 else:
                     data_type = 'fix'
             else:
-                raise ValueError('For each input, input[2] must be a numerical value to specify input values.')
+                raise ModelUseError('For each input, input[2] must be a numerical value to specify input values.')
 
             # operation
             if len(inp) == 4:
@@ -160,32 +175,8 @@ class Network(object):
 
         return formatted_inputs
 
-    def run(self, duration, inputs=(), report=False, report_percent=0.1):
-        """Run the simulation for the given duration.
-
-        This function provides the most convenient way to run the network.
-        For example:
-
-        Parameters
-        ----------
-        duration : int, float
-            The amount of simulation time to run for.
-        inputs : a_list, tuple
-            The receivers, external inputs and durations.
-        report : bool
-            Report the progress of the simulation.
-        report_percent : float
-            The speed to report simulation progress.
-        """
-
-        # 1. initialization
-        # ------------------
-
-        # time
-        dt = self.dt
-        ts = np.arange(self._run_time, self._run_time + duration, dt)
-        ts = np.asarray(ts, dtype=profile.ftype)
-        run_length = ts.shape[0]
+    def build(self, run_length, inputs=()):
+        assert isinstance(run_length, int)
 
         # first step
         for obj in self._all_objects:
@@ -204,8 +195,38 @@ class Network(object):
         # step function
         _step_func = self._get_step_function()
 
+        return _step_func
+
+    def run(self, duration, inputs=(), report=False, report_percent=0.1):
+        """Run the simulation for the given duration.
+
+        This function provides the most convenient way to run the network.
+        For example:
+
+        Parameters
+        ----------
+        duration : int, float
+            The amount of simulation time to run for.
+        inputs : a_list, tuple
+            The receivers, external inputs and durations.
+        report : bool
+            Report the progress of the simulation.
+        report_percent : float
+            The speed to report simulation progress.
+        """
+        # initialization
+        # ------------------
+        ts = np.arange(self._run_time, self._run_time + duration, self.dt)
+        ts = np.asarray(ts, dtype=profile.ftype)
+        run_length = ts.shape[0]
+
+        # 1. build
+        # ----------
+        _step_func = self.build(run_length, inputs)
+
         # 2. run
         # ---------
+        dt = self.dt
         if report:
             t0 = time.time()
             _step_func(_t_=ts[0], _i_=0, _dt_=dt)

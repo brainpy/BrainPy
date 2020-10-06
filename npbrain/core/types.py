@@ -207,8 +207,8 @@ class _SynStateForNbSingleMode(SynState):
         delay = 1 if (delay is None) or (delay < 1) else delay
         assert isinstance(delay, int), '"delay" must be a int to specify the delay length.'
         self._delay_len = delay
-        self._delay_in1 = delay - 1
-        self._delay_in2 = (self._delay_in1 - 1) % delay
+        self._delay_in = delay - 1
+        self._delay_in2 = (self._delay_in - 1) % delay
 
         # initialize data
         non_delay_var = [k for k in self._keys if k not in delay_var]
@@ -241,8 +241,8 @@ class _SynStateForNbSingleMode(SynState):
 
     def _update_delay_indices(self):
         if self._delay_len > 0:
-            self._delay_in2 = self._delay_in1
-            self._delay_in1 = (self._delay_in1 + 1) % self._delay_len
+            self._delay_in2 = self._delay_in
+            self._delay_in = (self._delay_in + 1) % self._delay_len
             self._delay_out = (self._delay_out + 1) % self._delay_len
 
 
