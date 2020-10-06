@@ -36,7 +36,7 @@ class TypeChecker(object):
         raise NotImplementedError
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def copy_to(cls, *args, **kwargs):
         raise NotImplementedError
 
 
@@ -116,7 +116,7 @@ class NeuState(ObjState):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
-    def create(self, size):
+    def copy_to(self, size):
         obj = NeuState(self._vars)
         return obj(size=size)
 
@@ -140,12 +140,14 @@ class SynState(ObjState):
             raise ValueError(f'Unknown size type: {type(size)}.')
 
         # check delay
-        delay = 1 if delay is None else delay
+        delay = 0 if (delay is None) or (delay < 1) else delay
         assert isinstance(delay, int), '"delay" must be a int to specify the delay length.'
         self._delay_len = delay
+        self._delay_in = delay - 1
 
         # initialize data
-        data = bnp.zeros((self._delay_len + len(self._vars),) + size, dtype=bnp.float_)
+        length = self._delay_len + len(self._vars)
+        data = bnp.zeros((length,) + size, dtype=bnp.float_)
         var2idx = dict()
         idx2var = dict()
         state = dict()
@@ -174,7 +176,7 @@ class SynState(ObjState):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
-    def create(self, size, delay=None):
+    def copy_to(self, size, delay=None):
         obj = SynState(self._vars)
         return obj(size=size, delay=delay)
 
@@ -187,8 +189,61 @@ class SynState(ObjState):
         return data[self._delay_out]
 
     def _update_delay_indices(self):
-        self._delay_in = (self._delay_in + 1) % self._delay_len
-        self._delay_out = (self._delay_out + 1) % self._delay_len
+        if self._delay_len > 0:
+            self._delay_in = (self._delay_in + 1) % self._delay_len
+            self._delay_out = (self._delay_out + 1) % self._delay_len
+
+
+class _SynStateForNbSingleMode(SynState):
+    def __init__(self, fields, help=''):
+        super(_SynStateForNbSingleMode, self).__init__(fields=fields, help=help)
+        self._delay_offset = {}
+
+    def __call__(self, num, delay, delay_var):
+        # check size
+        assert isinstance(num, int)
+
+        # check delay
+        delay = 1 if (delay is None) or (delay < 1) else delay
+        assert isinstance(delay, int), '"delay" must be a int to specify the delay length.'
+        self._delay_len = delay
+        self._delay_in1 = delay - 1
+        self._delay_in2 = (self._delay_in1 - 1) % delay
+
+        # initialize data
+        non_delay_var = [k for k in self._keys if k not in delay_var]
+        length = delay * len(delay_var) + len(non_delay_var)
+        data = bnp.zeros((length, num), dtype=bnp.float_)
+        var2idx = dict()
+        idx2var = dict()
+        state = dict()
+        offset = 0
+        for k, v in self._vars.items():
+            var2idx[k] = offset
+            idx2var[offset] = k
+            if k in delay_var:
+                data[offset: offset + delay] = 0.
+                data[offset + delay - 1] = v
+                state[k] = data[offset: offset + delay]
+                self._delay_offset[k] = offset
+                offset += delay
+            else:
+                data[offset] = v
+                state[k] = data[offset]
+                offset += 1
+        state['_data'] = data
+        state['_var2idx'] = var2idx
+        state['_idx2var'] = idx2var
+
+        dict.__init__(self, state)
+
+        return self
+
+    def _update_delay_indices(self):
+        if self._delay_len > 0:
+            self._delay_in2 = self._delay_in1
+            self._delay_in1 = (self._delay_in1 + 1) % self._delay_len
+            self._delay_out = (self._delay_out + 1) % self._delay_len
 
 
 class ListConn(TypeChecker):
@@ -214,7 +269,7 @@ class ListConn(TypeChecker):
                                         f'ndarray, but got {type(cls)}.')
 
     @classmethod
-    def create(cls, conn):
+    def copy_to(cls, conn):
         assert isinstance(conn, (list, tuple)), '"conn" must be a tuple/list.'
         assert isinstance(conn[0], (list, tuple)), 'Elements of "conn" must be tuple/list.'
         if profile.is_numba_bk():

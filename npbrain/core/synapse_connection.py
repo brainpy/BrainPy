@@ -2,6 +2,8 @@
 
 from .base import BaseEnsemble
 from .base import BaseType
+from .base import _SYN_CONN
+from .base import _SYN_TYPE
 from .neuron_group import NeuGroup
 from .types import SynState
 from .. import _numpy as np
@@ -26,7 +28,7 @@ class SynType(BaseType):
     """
 
     def __init__(self, name, create_func, group_based=True):
-        super(SynType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_='syn')
+        super(SynType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_=_SYN_TYPE)
 
 
 class SynConn(BaseEnsemble):
@@ -110,7 +112,7 @@ class SynConn(BaseEnsemble):
         # initialize
         # ----------
         super(SynConn, self).__init__(model=model, name=name, num=num, pars_update=pars_update,
-                                      vars_init=vars_init, monitors=monitors, cls_type='syn_conn')
+                                      vars_init=vars_init, monitors=monitors, cls_type=_SYN_CONN)
 
         # ST
         # --

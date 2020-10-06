@@ -2,6 +2,8 @@
 
 from .base import BaseEnsemble
 from .base import BaseType
+from .base import _NEU_GROUP
+from .base import _NEU_TYPE
 from .types import NeuState
 from .. import _numpy as np
 
@@ -20,7 +22,7 @@ class NeuType(BaseType):
     """
 
     def __init__(self, name, create_func, group_based=True):
-        super(NeuType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_='neu')
+        super(NeuType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_=_NEU_TYPE)
 
 
 class NeuGroup(BaseEnsemble):
@@ -61,7 +63,7 @@ class NeuGroup(BaseEnsemble):
         # initialize
         # ----------
         super(NeuGroup, self).__init__(model=model, name=name, num=num, pars_update=pars_update,
-                                       vars_init=vars_init, monitors=monitors, cls_type='neu_group')
+                                       vars_init=vars_init, monitors=monitors, cls_type=_NEU_GROUP)
 
         # ST
         # --

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import autopep8
 import time
 from pprint import pprint
+
+import autopep8
 
 from .base import BaseEnsemble
 from .neuron_group import NeuGroup
@@ -190,10 +191,10 @@ class Network(object):
         for obj in self._all_objects:
             # type checking
             obj._type_checking()
-            # initialize monitor
-            obj._add_monitor(run_length)
             # step function
             obj._add_steps()
+            # initialize monitor
+            obj._add_monitor(run_length)
 
         # inputs
         format_inputs = self._format_inputs(inputs, run_length)
