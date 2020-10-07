@@ -13,9 +13,11 @@ from .types import ObjState
 from .types import TypeChecker
 from .types import TypeMismatchError
 from .types import _SynStateForNbSingleMode
+from ..integration import Integrator
 from .. import _numpy as np
 from .. import profile
 from .. import tools
+from  ..integration.sympy_tools import get_mapping_scope
 
 __all__ = [
     # errors
@@ -26,7 +28,7 @@ __all__ = [
     'BaseEnsemble',
 ]
 
-_KEYWORDS = ['_dt_', '_t_', '_i_']
+_ARG_KEYWORDS = ['_dt_', '_t_', '_i_']
 _NEU_GROUP = 'NeuGroup'
 _SYN_CONN = 'SynConn'
 _NEU_TYPE = 'NeuType'
@@ -196,7 +198,7 @@ class BaseType(object):
         warnings = []
         for func in self.steps:
             for arg in inspect.getfullargspec(func).args:
-                if arg in _KEYWORDS:
+                if arg in _ARG_KEYWORDS:
                     continue
                 if arg not in self.requires:
                     warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "requires".'
@@ -337,9 +339,52 @@ class BaseEnsemble(object):
         # get function arguments
         for i, func in enumerate(self._steps):
             for arg in inspect.getfullargspec(func).args:
-                if not (arg in _KEYWORDS + ['self']) and not hasattr(self, arg):
+                if not (arg in _ARG_KEYWORDS + ['self']) and not hasattr(self, arg):
                     raise ModelUseError(f'Function "{self._steps[i].__name__}" in "{self.model.name}" requires '
                                         f'"{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
+
+    def __step_substitute_integrator(self, func):
+        func_code = tools.deindent(tools.get_main_code(func))
+        code_lines = tools.get_code_lines(func_code)
+
+        vars = inspect.getclosurevars(func)
+        code_scope = dict(vars.nonlocals)
+        code_scope.update(vars.globals)
+        code_scope.update({self.name: self})
+        if len(code_lines) == 0:
+            return '', code_scope
+
+        add_scope = {}
+        del_scope = set()
+        for k, v in code_scope.items():
+            if isinstance(v, Integrator):
+                int_func_name = v.py_func_name
+                for line_no, line in enumerate(code_lines):
+                    if int_func_name in tools.get_identifiers(line):
+                        break
+                line_indent = tools.get_line_indent(line)
+                indent = ' ' * line_indent
+                new_line, args, kwargs = tools.func_replace(line, int_func_name)
+                func_args = v.diff_eqs.func_args
+                append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
+                                for i in range(len(args))]
+                for arg in func_args[len(args):]:
+                    append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
+                append_lines.extend([indent + l for l in v.update_code.split('\n')])
+                append_lines.append(indent + new_line)
+                code_lines = code_lines[:line_no] + append_lines + code_lines[line_no + 1:]
+
+                del_scope.add(k)
+                for k2, v2 in v.code_scope.items():
+                    if callable(v2):
+                        v2 = tools.numba_func(v2)
+                    add_scope[k2] = v2
+        code_scope.update(add_scope)
+        code_scope.update(get_mapping_scope())
+        for k in del_scope:
+            code_scope.pop(k)
+        return '\n'.join(code_lines), code_scope
+
 
     def __step_mode_np_group(self):
         for func in self._steps:
@@ -349,7 +394,7 @@ class BaseEnsemble(object):
             setattr(self, func_name, func)
             arg_calls = []
             for arg in func_args:
-                if arg in _KEYWORDS:
+                if arg in _ARG_KEYWORDS:
                     arg_calls.append(arg)
                 else:
                     arg_calls.append(f"{self.name}.{arg}")
@@ -375,7 +420,7 @@ class BaseEnsemble(object):
             func_name = func.__name__
             func_args = inspect.getfullargspec(func).args
             state_args = [arg for arg in func_args
-                          if arg not in _KEYWORDS and
+                          if arg not in _ARG_KEYWORDS and
                           isinstance(getattr(self, arg), ObjState)]
 
             # arg and arg2call
@@ -386,7 +431,7 @@ class BaseEnsemble(object):
                     code_arg2call[arg2] = f'{self.name}.{arg}'
                     code_arg.append(arg2)
                 else:
-                    if arg in _KEYWORDS:
+                    if arg in _ARG_KEYWORDS:
                         code_arg2call[arg] = arg
                     else:
                         code_arg2call[arg] = f'{self.name}.{arg}'
@@ -485,20 +530,11 @@ class BaseEnsemble(object):
             func_name = func.__name__
             func_args = inspect.getfullargspec(func).args
             states = {k: getattr(self, k) for k in func_args
-                      if k not in _KEYWORDS and isinstance(getattr(self, k), ObjState)}
+                      if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
 
             # initialize code namespace
-            func_code = tools.deindent(tools.get_main_code(func))
             used_args, code_arg2call, code_lines = set(), {}, []
-            vars = inspect.getclosurevars(func)
-            code_scope = dict(vars.nonlocals)
-            code_scope.update(vars.globals)
-            code_scope.update({self.name: self})
-
-            # check function in function scope
-            for k, v in code_scope.items():
-                if callable(v):
-                    code_scope[k] = tools.numba_func(v)
+            func_code, code_scope = self.__step_substitute_integrator(func)
 
             # check function code
             add_args = set()
@@ -538,7 +574,7 @@ class BaseEnsemble(object):
             # code_args = set()
             arg_substitute = {}
             for arg in used_args:
-                if arg in _KEYWORDS:
+                if arg in _ARG_KEYWORDS:
                     new_arg = arg
                     code_arg2call[arg] = arg
                 else:
@@ -563,7 +599,7 @@ class BaseEnsemble(object):
         used_args, code_arg2call, code_lines = set(), {}, []
         func_args = inspect.getfullargspec(func).args
         states = {k: getattr(self, k) for k in func_args
-                  if k not in _KEYWORDS and isinstance(getattr(self, k), NeuState)}
+                  if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), NeuState)}
         func_code = tools.deindent(tools.get_main_code(func))
 
         # get code scope
@@ -599,7 +635,7 @@ class BaseEnsemble(object):
         code_args = set()
         arg_substitute = {}
         for arg in used_args:
-            if arg in _KEYWORDS:
+            if arg in _ARG_KEYWORDS:
                 new_arg = arg
                 code_arg2call[arg] = arg
             else:
@@ -636,7 +672,7 @@ class BaseEnsemble(object):
             used_args, code_arg2call, code_lines = set(), {}, []
             func_args = inspect.getfullargspec(func).args
             states = {k: getattr(self, k) for k in func_args
-                      if k not in _KEYWORDS and isinstance(getattr(self, k), ObjState)}
+                      if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
             func_code = tools.deindent(tools.get_main_code(func))
 
             # get code scope
@@ -710,7 +746,7 @@ class BaseEnsemble(object):
             code_args = add_args
             arg_substitute = {}
             for arg in used_args:
-                if arg in _KEYWORDS:
+                if arg in _ARG_KEYWORDS:
                     new_arg = arg
                     code_arg2call[arg] = arg
                 else:
@@ -1089,6 +1125,7 @@ class BaseEnsemble(object):
             func_code = '\n  '.join(lines)
             if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
+            print(func_code)
             exec(compile(func_code, '', 'exec'), code_scopes)
 
             self.merge_func = code_scopes['merge_func']

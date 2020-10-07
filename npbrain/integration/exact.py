@@ -3,11 +3,11 @@ import logging
 
 import sympy
 
-from npbrain.integrator._equations import is_constant_over_dt
-from npbrain.integrator.sympytools import sympy_to_str, str_to_sympy
-from npbrain.integrator.base import StateUpdateMethod
-from npbrain.integrator.base import EquationError
-from npbrain.integrator.base import extract_method_options
+from npbrain.integration._equations import is_constant_over_dt
+from npbrain.integration.sympy_tools import sympy_to_str, str_to_sympy
+from npbrain.integration.base import StateUpdateMethod
+from npbrain.integration.base import EquationError
+from npbrain.integration.base import extract_method_options
 
 __all__ = ['exact', ]
 

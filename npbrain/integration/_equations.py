@@ -3,17 +3,17 @@ import logging
 import re
 import string
 from collections.abc import Mapping, Hashable
+from copy import copy
 
 import sympy
 from pyparsing import Combine, Suppress, restOfLine, LineEnd, ParseException
 from pyparsing import Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn
 
-from npbrain.integrator.sympytools import sympy_to_str
-from npbrain.integrator.sympytools import str_to_sympy
-from npbrain.integrator.namespace import DEFAULT_CONSTANTS
-from npbrain.integrator.namespace import DEFAULT_FUNCTIONS
-from npbrain.integrator.stringtools import get_identifiers
-from npbrain.integrator.topsort import topsort
+from npbrain.integration.diff_equation import get_identifiers
+from npbrain.integration.sympy_tools import CONSTANT_MAPPING
+from npbrain.integration.sympy_tools import FUNCTION_MAPPING
+from npbrain.integration.sympy_tools import str_to_sympy
+from npbrain.integration.sympy_tools import sympy_to_str
 
 __all__ = ['EquationError',
            'Expression',
@@ -48,8 +48,8 @@ IDENTIFIER = Word(string.ascii_letters + '_',
 
 # very broad definition here, expression will be analysed by sympy anyway
 # allows for multi-line expressions, where each line can have comments
-EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
-                                Suppress(Optional(LineEnd()))).ignore('#' + restOfLine)),
+EXPRESSION = Combine(OneOrMore(
+    (CharsNotIn(':#\n') + Suppress(Optional(LineEnd()))).ignore('#' + restOfLine)),
                      joinString=' ').setResultsName('expression')
 
 # a unit
@@ -87,6 +87,38 @@ DIFF_EQ = Group(DIFF_OP + Suppress('=') + EXPRESSION + Suppress(':') + UNIT +
 # ignore comments
 EQUATION = (PARAMETER_EQ | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
+
+
+def topsort(graph):
+    """
+    Topologically sort a graph
+
+    The graph should be of the form ``{node: [list of nodes], ...}``.
+    """
+    # make a copy so as not to destroy original
+    graph = dict((k, copy(v)) for k, v in graph.items())
+    # Use the standard algorithm for topological sorting:
+    # http://en.wikipedia.org/wiki/Topological_sorting
+    # List that will contain the sorted elements
+    sorted_items = []
+    # set of all nodes with no incoming edges:
+    no_incoming = set([node for node, edges in graph.items() if len(edges) == 0])
+
+    while len(no_incoming):
+        n = no_incoming.pop()
+        sorted_items.append(n)
+        # find nodes m with edges to n
+        outgoing = [m for m, edges in graph.items() if n in edges]
+        for m in outgoing:
+            graph[m].remove(n)
+            if len(graph[m]) == 0:
+                # no other dependencies
+                no_incoming.add(m)
+
+    if any([len(edges) > 0 for edges in graph.values()]):
+        raise ValueError('Cannot topologically sort cyclic graph.')
+
+    return sorted_items
 
 
 class EquationError(Exception):
@@ -455,7 +487,7 @@ class Equations(Hashable, Mapping):
 
             # Make sure that identifier names do not clash with function names.
             # ----
-            if name in DEFAULT_CONSTANTS:
+            if name in CONSTANT_MAPPING:
                 raise SyntaxError(f'"{name}" is the name of a constant, cannot be used as a '
                                   f'variable name.')
 
@@ -468,7 +500,7 @@ class Equations(Hashable, Mapping):
                                    'be used as a variable name.') % name)
             # Make sure that identifier names do not clash with function names.
             # ----
-            if name in DEFAULT_FUNCTIONS:
+            if name in FUNCTION_MAPPING:
                 raise SyntaxError('"%s" is the name of a function, cannot be used as a '
                                   'variable name.' % name)
 

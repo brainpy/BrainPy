@@ -6,11 +6,11 @@ import sympy
 from pyparsing import Literal, Group, Word, ZeroOrMore, Suppress, restOfLine, ParseException
 from sympy.core.sympify import SympifyError
 
-from npbrain.integrator._equations import is_constant_over_dt
-from npbrain.integrator.base import EquationError
-from npbrain.integrator.base import StateUpdateMethod
-from npbrain.integrator.base import extract_method_options
-from npbrain.integrator.sympytools import str_to_sympy, sympy_to_str
+from npbrain.integration._equations import is_constant_over_dt
+from npbrain.integration.base import EquationError
+from npbrain.integration.base import StateUpdateMethod
+from npbrain.integration.base import extract_method_options
+from npbrain.integration.sympy_tools import str_to_sympy, sympy_to_str
 
 __all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 

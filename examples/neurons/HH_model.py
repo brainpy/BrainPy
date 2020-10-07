@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 import npbrain as nb
 import npbrain._numpy as np
 
-# nb.profile.set_backend('numba')
-# nb.profile.set_dt(0.02)
-# nb.profile.show_codgen = False
+nb.profile.set_backend('numba')
+nb.profile.set_method('exponential')
+nb.profile.set_dt(0.02)
+nb.profile.show_codgen = True
 
 
 def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
@@ -46,25 +47,25 @@ def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
              '"inp" denotes synaptic input.\n'
     )
 
-    @nb.integrator.integrate
+    @nb.integrate
     def int_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
         return alpha * (1 - m) - beta * m
 
-    @nb.integrator.integrate
+    @nb.integrate
     def int_h(h, t, V):
         alpha = 0.07 * np.exp(-(V + 65) / 20.)
         beta = 1 / (1 + np.exp(-(V + 35) / 10))
         return alpha * (1 - h) - beta * h
 
-    @nb.integrator.integrate
+    @nb.integrate
     def int_n(n, t, V):
         alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
         beta = 0.125 * np.exp(-(V + 65) / 80)
         return alpha * (1 - n) - beta * n
 
-    @nb.integrator.integrate(noise=noise / C)
+    @nb.integrate(noise=noise / C)
     def int_V(V, t, m, h, n, Isyn):
         INa = g_Na * m ** 3 * h * (V - E_Na)
         IK = g_K * n ** 4 * (V - E_K)

@@ -1,13 +1,114 @@
 import ast
 import re
 from collections import Counter
+from .. import _numpy as np
 
 import sympy
+import sympy.functions.elementary.complexes
+import sympy.functions.elementary.exponential
+import sympy.functions.elementary.hyperbolic
+import sympy.functions.elementary.integers
+import sympy.functions.elementary.miscellaneous
+import sympy.functions.elementary.trigonometric
+from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
-from npbrain.integrator.namespace import DEFAULT_CONSTANTS
-from npbrain.integrator.namespace import DEFAULT_FUNCTIONS
+FUNCTION_MAPPING = {
+    'real': sympy.functions.elementary.complexes.re,
+    'imag': sympy.functions.elementary.complexes.im,
+    'conjugate': sympy.functions.elementary.complexes.conjugate,
+    'sign': sympy.sign,
+    'abs': sympy.functions.elementary.complexes.Abs,
+
+    'cos': sympy.functions.elementary.trigonometric.cos,
+    'sin': sympy.functions.elementary.trigonometric.sin,
+    'tan': sympy.functions.elementary.trigonometric.tan,
+    'sinc': sympy.functions.elementary.trigonometric.sinc,
+    'arcsin': sympy.functions.elementary.trigonometric.asin,
+    'arccos': sympy.functions.elementary.trigonometric.acos,
+    'arctan': sympy.functions.elementary.trigonometric.atan,
+    'arctan2': sympy.functions.elementary.trigonometric.atan2,
+
+    'cosh': sympy.functions.elementary.hyperbolic.cosh,
+    'sinh': sympy.functions.elementary.hyperbolic.sinh,
+    'tanh': sympy.functions.elementary.hyperbolic.tanh,
+    'arcsinh': sympy.functions.elementary.hyperbolic.asinh,
+    'arccosh': sympy.functions.elementary.hyperbolic.acosh,
+    'arctanh': sympy.functions.elementary.hyperbolic.atanh,
+
+    'ceil': sympy.functions.elementary.integers.ceiling,
+    'floor': sympy.functions.elementary.integers.floor,
+
+    'log': sympy.functions.elementary.exponential.log,
+    'log2': cfunctions.log2,
+    'log1p': cfunctions.log1p,
+    'log10': cfunctions.log10,
+    'exp': sympy.functions.elementary.exponential.exp,
+    'expm1': cfunctions.expm1,
+    'exp2': cfunctions.exp2,
+    'hypot': cfunctions.hypot,
+
+    'sqrt': sympy.functions.elementary.miscellaneous.sqrt,
+    'min': sympy.functions.elementary.miscellaneous.Min,
+    'max': sympy.functions.elementary.miscellaneous.Max,
+    'cbrt': sympy.functions.elementary.miscellaneous.cbrt,
+}
+
+CONSTANT_MAPPING = {
+    'pi': sympy.pi,
+    'e': sympy.E,
+    'inf': sympy.S.Infinity,
+    '-inf': sympy.S.NegativeInfinity
+}
+
+
+def get_mapping_scope():
+    return {
+        'real': np.real,
+        'imag': np.imag,
+        'conjugate': np.conjugate,
+        'sign': np.sign,
+        'abs': np.abs,
+
+        'cos': np.cos,
+        'sin': np.sin,
+        'tan': np.tan,
+        'sinc': np.sinc,
+        'arcsin': np.arcsin,
+        'arccos': np.arccos,
+        'arctan': np.arctan,
+        'arctan2': np.arctan2,
+
+        'cosh': np.cosh,
+        'sinh': np.cosh,
+        'tanh': np.tanh,
+        'arcsinh': np.arcsinh,
+        'arccosh': np.arccosh,
+        'arctanh': np.arctanh,
+
+        'ceil': np.ceil,
+        'floor': np.floor,
+
+        'log': np.log,
+        'log2': np.log2,
+        'log1p': np.log1p,
+        'log10': np.log10,
+        'exp': np.exp,
+        'expm1': np.expm1,
+        'exp2': np.exp2,
+        'hypot': np.hypot,
+
+        'sqrt': np.sqrt,
+        'min': np.min,
+        'max': np.max,
+        'cbrt': np.cbrt,
+
+        'pi': np.pi,
+        'e': np.e,
+        'inf': np.inf,
+        '-inf': -np.inf
+    }
 
 
 class SympyRender(object):
@@ -132,8 +233,8 @@ class SympyRender(object):
 
     def render_func(self, node):
         if hasattr(node, 'id'):
-            if node.id in DEFAULT_FUNCTIONS:
-                f = DEFAULT_FUNCTIONS[node.id]
+            if node.id in FUNCTION_MAPPING:
+                f = FUNCTION_MAPPING[node.id]
                 return f
             # special workaround for the "int" function
             if node.id == 'int':
@@ -141,8 +242,8 @@ class SympyRender(object):
             else:
                 return sympy.Function(node.id)
         else:
-            if node.attr in DEFAULT_FUNCTIONS:
-                return DEFAULT_FUNCTIONS[node.attr]
+            if node.attr in FUNCTION_MAPPING:
+                return FUNCTION_MAPPING[node.attr]
             if node.attr == 'int':
                 return sympy.Function("int_")
             else:
@@ -171,8 +272,8 @@ class SympyRender(object):
         return ops(left, right)
 
     def render_Name(self, node):
-        if node.id in DEFAULT_CONSTANTS:
-            return DEFAULT_CONSTANTS[node.id]
+        if node.id in CONSTANT_MAPPING:
+            return CONSTANT_MAPPING[node.id]
         elif node.id in ['t', 'dt']:
             return sympy.Symbol(node.id, real=True, positive=True)
         else:
@@ -226,28 +327,6 @@ class SympyRender(object):
             return sympy.Not(self.render_node(node.operand))
         else:
             raise ValueError('Unknown unary operator: ' + op_name)
-
-
-def check_expression_for_multiple_stateful_functions(expr, variables):
-    identifiers = re.findall(r'\w+', expr)
-    # Don't bother counting if we don't have any duplicates in the first place
-    if len(identifiers) == len(set(identifiers)):
-        return
-    identifier_count = Counter(identifiers)
-    for identifier, count in identifier_count.items():
-        var = variables.get(identifier, None)
-        if var is None:
-            continue
-        if count > 1 and not var.stateless:
-            raise NotImplementedError(('The expression "{expr}" contains '
-                                       'more than one call of {func}, this '
-                                       'is currently not supported since '
-                                       '{func} is a stateful function and '
-                                       'its multiple calls might be '
-                                       'treated incorrectly (e.g.'
-                                       '"rand() - rand()" could be '
-                                       ' simplified to '
-                                       '"0.0").').format(expr=expr, func=identifier))
 
 
 class SympyPrinter(StrPrinter):
@@ -315,10 +394,6 @@ def str_to_sympy(expr, variables=None):
     SyntaxError
         In case of any problems during parsing.
     """
-    if variables is None:
-        variables = {}
-    check_expression_for_multiple_stateful_functions(expr, variables)
-
     # We do the actual transformation in a separate function that is cached
     # If we cached `str_to_sympy` itself, it would also use the contents of the
     # variables dictionary as the cache key, while it is only used for the check
@@ -347,10 +422,10 @@ def sympy_to_str(sympy_expr):
         A string representing the sympy expression.
     """
     # replace the standard functions by our names if necessary
-    replacements = dict((f, sympy.Function(name)) for name, f in DEFAULT_FUNCTIONS.items() if str(f) != name)
+    replacements = dict((f, sympy.Function(name)) for name, f in FUNCTION_MAPPING.items() if str(f) != name)
 
     # replace constants with our names as well
-    replacements.update(dict((c, sympy.Symbol(name)) for name, c in DEFAULT_CONSTANTS.items() if str(c) != name))
+    replacements.update(dict((c, sympy.Symbol(name)) for name, c in CONSTANT_MAPPING.items() if str(c) != name))
 
     # Replace the placeholder argument by an empty symbol
     replacements[sympy.Symbol('_placeholder_arg')] = sympy.Symbol('')

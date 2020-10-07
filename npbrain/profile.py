@@ -34,7 +34,6 @@ __all__ = [
 _backend = 'numpy'
 _device = 'cpu'
 
-
 _nopython = True
 _fastmath = True
 _nogil = False
@@ -46,12 +45,10 @@ ftype = 'float64'
 # dtype of int
 itype = 'int64'
 
-jit_diff_eq = 'cfunc'
-
-debug = False
 
 _show_codgen = False
 _auto_pep8 = True
+_use_substituted_eqs = False
 
 
 def set(backend=None, device=None, method=None, ode_method=None, sde_method=None, dt=None,
@@ -229,7 +226,7 @@ def set_method(method_):
     """
     global method
 
-    ODE = ['euler', 'forward_Euler', 'explicit_Euler',
+    ODE = ['euler', 'forward_Euler', 'explicit_Euler', 'exponential',
            'rk2', 'RK2', 'modified_Euler', 'explicit_midpoint_Euler',
            'rk3', 'RK3', 'rk4', 'RK4', 'RK4_alternative', 'rk4_alternative',
            'backward_Euler', 'implicit_Euler', 'trapezoidal_rule']
