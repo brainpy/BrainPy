@@ -6,12 +6,12 @@ __version__ = "1.0.0"
 from . import profile, inputs
 
 # "core" module
-from . import core
+from . import core_system
 from .integration import integrate
-from .core.network import *
-from .core.neuron_group import *
-from .core.synapse_connection import *
-from .core import types
+from .core_system.network import *
+from .core_system.neuron_group import *
+from .core_system.synapse_connection import *
+from .core_system import types
 
 
 #

@@ -2,8 +2,8 @@
 
 from npbrain import _numpy as np
 
-from npbrain.core import integrate
-from npbrain.core.neuron_group import *
+from npbrain.core_system import integrate
+from npbrain.core_system.neuron_group import *
 from npbrain.tools import autojit
 
 __all__ = [

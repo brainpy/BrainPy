@@ -2,8 +2,8 @@
 
 from npbrain import _numpy as np
 
-from npbrain.core import integrate
-from npbrain.core.synapse_connection import *
+from npbrain.core_system import integrate
+from npbrain.core_system.synapse_connection import *
 
 __all__ = [
     'NMDA',

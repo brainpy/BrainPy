@@ -2,7 +2,7 @@
 
 from npbrain import _numpy as np
 
-from npbrain.core import integrate
+from npbrain.core_system import integrate
 from npbrain.tools import get_clip
 
 __all__ = [

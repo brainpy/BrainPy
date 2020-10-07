@@ -1,5 +1,5 @@
-from npbrain.core import types
-from npbrain.core.neuron_group import NeuGroup, NeuType
+from npbrain.core_system import types
+from npbrain.core_system.neuron_group import NeuGroup, NeuType
 import npbrain._numpy as np
 from npbrain import profile
 

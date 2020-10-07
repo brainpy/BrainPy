@@ -2,9 +2,9 @@
 
 from npbrain import _numpy as np
 
-from npbrain.core.neuron_group import Neurons
-from npbrain.core.neuron_group import format_geometry
-from npbrain.core.neuron_group import init_neu_state
+from npbrain.core_system.neuron_group import Neurons
+from npbrain.core_system.neuron_group import format_geometry
+from npbrain.core_system.neuron_group import init_neu_state
 from npbrain.tools import autojit
 
 __all__ = [
