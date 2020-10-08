@@ -47,3 +47,4 @@ def detect_rows(begin=0, root='.'):
 
 
 print(detect_rows(root='../npbrain'))
+print(detect_rows(root='../experimental'))

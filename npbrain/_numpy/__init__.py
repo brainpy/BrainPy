@@ -535,8 +535,5 @@ def _reload(backend):
         for __ops in _all:
             global_vars[__ops] = getattr(jax, __ops)
 
-    elif backend == 'tensorflow':
-        pass
-
     else:
         raise ValueError(f'Unknown backend device: {backend}')

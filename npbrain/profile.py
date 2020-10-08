@@ -13,9 +13,6 @@ Using the API in ``profile.py``, you can set
 
 """
 
-import numba as nb
-import re
-import multiprocessing
 
 __all__ = [
     'set_backend',
@@ -38,7 +35,6 @@ _nopython = True
 _fastmath = True
 _nogil = False
 _parallel = False
-define_signature = False
 
 # dtype of float
 ftype = 'float64'
@@ -46,9 +42,10 @@ ftype = 'float64'
 itype = 'int64'
 
 
-_show_codgen = False
-_auto_pep8 = True
-_use_substituted_eqs = False
+show_codgen = False
+auto_pep8 = True
+substitute_eqs = False
+merge_integral = True
 
 
 def set(backend=None, device=None, method=None, ode_method=None, sde_method=None, dt=None,

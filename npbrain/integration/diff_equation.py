@@ -304,7 +304,7 @@ class DiffEquation(object):
             identifiers.update(self.return_expressions.identifiers)
             for expr in self.expressions[::-1]:
                 if expr.var in identifiers and expr.var not in subs_expressions:
-                    code = expr.code if not profile._use_substituted_eqs or expr._substituted_code is None \
+                    code = expr.code if not profile.substitute_eqs or expr._substituted_code is None \
                         else expr._substituted_code
                     subs_expressions[expr.var] = Expression(_SUB_EXPRESSION, expr.var, code)
                     identifiers.update(tools.get_identifiers(code))

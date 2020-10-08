@@ -55,6 +55,7 @@ def integrate(func=None, noise=None, method=None):
     method = method if method is not None else profile.get_method()
     _integrator_ = get_integrator(method)
 
+
     if func is None:
         if not has_noise:  # ODE
             def wrapper(f):
@@ -70,3 +71,4 @@ def integrate(func=None, noise=None, method=None):
             return _integrator_(DiffEquation(f=func))
         else:  # SDE
             return _integrator_(DiffEquation(f=func, g=noise))
+
