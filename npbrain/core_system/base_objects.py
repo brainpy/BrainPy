@@ -13,11 +13,11 @@ from .types import ObjState
 from .types import TypeChecker
 from .types import TypeMismatchError
 from .types import _SynStateForNbSingleMode
-from ..integration import Integrator
 from .. import _numpy as np
 from .. import profile
 from .. import tools
-from  ..integration.sympy_tools import get_mapping_scope
+from ..integration import Integrator
+from ..integration.sympy_tools import get_mapping_scope
 
 __all__ = [
     # errors
@@ -45,7 +45,6 @@ class ModelDefError(Exception):
 class ModelUseError(Exception):
     """Model use error."""
     pass
-
 
 
 class BaseType(object):
@@ -346,6 +345,7 @@ class BaseEnsemble(object):
         func_code = tools.deindent(tools.get_main_code(func))
         code_lines = tools.get_code_lines(func_code)
 
+        # get function scope
         vars = inspect.getclosurevars(func)
         code_scope = dict(vars.nonlocals)
         code_scope.update(vars.globals)
@@ -353,35 +353,55 @@ class BaseEnsemble(object):
         if len(code_lines) == 0:
             return '', code_scope
 
-        add_scope = {}
-        del_scope = set()
+        scope_to_add = {}
+        scope_to_del = set()
+        need_add_mapping_scope = False
         for k, v in code_scope.items():
             if isinstance(v, Integrator):
+                need_add_mapping_scope = True
+
+                # locate the integration function
                 int_func_name = v.py_func_name
                 for line_no, line in enumerate(code_lines):
                     if int_func_name in tools.get_identifiers(line):
                         break
+
+                # get integral function line indent
                 line_indent = tools.get_line_indent(line)
                 indent = ' ' * line_indent
+
+                # get the replace line and arguments need to replace
                 new_line, args, kwargs = tools.func_replace(line, int_func_name)
+
+                # append code line of argument replacement
                 func_args = v.diff_eqs.func_args
                 append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
                                 for i in range(len(args))]
                 for arg in func_args[len(args):]:
                     append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
+
+                # append numerical integration code lines
                 append_lines.extend([indent + l for l in v.update_code.split('\n')])
                 append_lines.append(indent + new_line)
+
+                # add appended lines into the main function code lines
                 code_lines = code_lines[:line_no] + append_lines + code_lines[line_no + 1:]
 
-                del_scope.add(k)
+                # get scope variables to delete
+                scope_to_del.add(k)
                 for k2, v2 in v.code_scope.items():
                     if callable(v2):
                         v2 = tools.numba_func(v2)
-                    add_scope[k2] = v2
-        code_scope.update(add_scope)
-        code_scope.update(get_mapping_scope())
-        for k in del_scope:
+                    scope_to_add[k2] = v2
+
+        # update code scope
+        if need_add_mapping_scope:
+            code_scope.update(get_mapping_scope())
+        code_scope.update(scope_to_add)
+        for k in scope_to_del:
             code_scope.pop(k)
+
+        # return code lines and code scope
         return '\n'.join(code_lines), code_scope
 
     def __step_mode_np_group(self):
@@ -560,7 +580,7 @@ class BaseEnsemble(object):
                             raise ModelDefError(f'Cannot call "{p}()" {len(res)} times. Error in code:\n\n'
                                                 f'{func_code}')
                         if len(res[0]) != 2:
-                            raise ValueError(f'Python regex error for search of "{p}" in code:\n{func_code}')
+                            raise ValueError(f'Python regex error for search of "{p}" in code:\n\n{func_code}')
                         res = res[0]
                         text = f'{arg}[{self.name}_{arg}_din] = {res[1]}'
                         func_code = func_code.replace(res[0], text)
@@ -583,7 +603,7 @@ class BaseEnsemble(object):
                     else:
                         code_arg2call[new_arg] = f'{self.name}.{arg}'
                 code_args.add(new_arg)
-            func_code = tools.word_substitute(func_code, arg_substitute)
+            func_code = tools.word_replace(func_code, arg_substitute)
 
             # final
             code_lines = func_code.split('\n')
@@ -594,27 +614,27 @@ class BaseEnsemble(object):
 
     def __step_mode_nb_single_neu(self):
         func = self._steps[0]
+
+        # get code scope
         used_args, code_arg2call, code_lines = set(), {}, []
+        func_code, code_scope = self.__step_substitute_integrator(func)
         func_args = inspect.getfullargspec(func).args
         states = {k: getattr(self, k) for k in func_args
                   if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), NeuState)}
-        func_code = tools.deindent(tools.get_main_code(func))
 
-        # get code scope
-        vars = inspect.getclosurevars(func)
-        code_scope = dict(vars.nonlocals)
-        code_scope.update(vars.globals)
-        code_scope.update({self.name: self})
-
-        # update parameters
+        # update parameters in code scope
         for p, v in self.pars_update.items():
             if p in code_scope:
                 code_scope[p] = v
+        for p_k in self._hetero_pars.keys():
+            if p_k not in code_scope:
+                raise ValueError(f'Heterogeneous parameter "{p_k}" is not in '
+                                 f'main function, it will not work.')
 
-        # TODO: if parameter in callable scope is multiple dimension
+        # update functions in code scope
         for k, v in code_scope.items():
             if callable(v):
-                code_scope[k] = tools.numba_func(v)
+                code_scope[k] = tools.numba_func(func=v, params=self.pars_update)
 
         # check function code
         for i, arg in enumerate(func_args):
@@ -644,12 +664,14 @@ class BaseEnsemble(object):
                 else:
                     code_arg2call[new_arg] = f'{self.name}.{arg}'
             code_args.add(new_arg)
+
         # substitute multi-dimensional parameter "p" to "p[_ni_]"
         for p in self._hetero_pars.keys():
             if p in code_scope:
                 arg_substitute[p] = f'{p}[_ni_]'
+
         # substitute
-        func_code = tools.word_substitute(func_code, arg_substitute)
+        func_code = tools.word_replace(func_code, arg_substitute)
 
         # final
         code_lines = [f'# "update" step function of {self.name}',
@@ -667,27 +689,27 @@ class BaseEnsemble(object):
 
         for i, func in enumerate(self._steps):
             func_name = 'update' if i == 0 else 'output'
-            used_args, code_arg2call, code_lines = set(), {}, []
-            func_args = inspect.getfullargspec(func).args
-            states = {k: getattr(self, k) for k in func_args
-                      if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
-            func_code = tools.deindent(tools.get_main_code(func))
 
             # get code scope
-            vars = inspect.getclosurevars(func)
-            code_scope = dict(vars.nonlocals)
-            code_scope.update(vars.globals)
-            code_scope.update({self.name: self})
+            used_args, code_arg2call, code_lines = set(), {}, []
+            func_args = inspect.getfullargspec(func).args
+            func_code, code_scope = self.__step_substitute_integrator(func)
+            states = {k: getattr(self, k) for k in func_args
+                      if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
 
-            # update parameters
+            # update parameters in code scope
             for p, v in self.pars_update.items():
                 if p in code_scope:
                     code_scope[p] = v
+            for p_k in self._hetero_pars.keys():
+                if p_k not in code_scope:
+                    raise ValueError(f'Heterogeneous parameter "{p_k}" is not in '
+                                     f'main function, it will not work.')
 
-            # TODO: if parameter in callable scope is multiple dimension
+            # update functions in code scope
             for k, v in code_scope.items():
                 if callable(v):
-                    code_scope[k] = tools.numba_func(v)
+                    code_scope[k] = tools.numba_func(func=v, params=self.pars_update)
 
             # check function code
             add_args = set()
@@ -760,7 +782,7 @@ class BaseEnsemble(object):
                 if p in code_scope:
                     arg_substitute[p] = f'{p}[_ni_]'
             # substitute
-            func_code = tools.word_substitute(func_code, arg_substitute)
+            func_code = tools.word_replace(func_code, arg_substitute)
 
             # final
             assert 'ST' in states
