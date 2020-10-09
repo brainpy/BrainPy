@@ -1,3 +1,6 @@
+# encoding:UTF-8
+import sys
+sys.path.append("../../")
 import matplotlib.pyplot as plt
 
 import npbrain as nb
@@ -13,7 +16,7 @@ def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
            g_Leak=0.03, C=1.0, Vth=20.):
     """The Hodgkin–Huxley neuron model.
 
-    Parameters
+	Parameters
     ----------
     noise
     E_Na
@@ -86,6 +89,7 @@ def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
 
 
 HH = nb.NeuType(name='HH_neuron', create_func=define, vector_based=True)
+
 
 if __name__ == '__main__':
     neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'])
