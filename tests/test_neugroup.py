@@ -3,7 +3,7 @@ from npbrain.core_system.neuron_group import NeuGroup, NeuType
 import npbrain._numpy as np
 from npbrain import profile
 
-dt = 0.02
+_dt = 0.02
 
 
 def main(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387, g_Leak=0.03, C=1.0, Vth=20.):
@@ -23,23 +23,23 @@ def main(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387, g_Leak=0.03, C=
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
         dmdt = alpha * (1 - m) - beta * m
-        m = m + dmdt * dt
+        m = m + dmdt * _dt
 
         alpha = 0.07 * np.exp(-(V + 65) / 20.)
         beta = 1 / (1 + np.exp(-(V + 35) / 10))
         dhdt = alpha * (1 - h) - beta * h
-        h = h + dhdt * dt
+        h = h + dhdt * _dt
 
         alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
         beta = 0.125 * np.exp(-(V + 65) / 80)
         dndt = alpha * (1 - n) - beta * n
-        n = n + dndt * dt
+        n = n + dndt * _dt
 
         INa = g_Na * m ** 3 * h * (V - E_Na)
         IK = g_K * n ** 4 * (V - E_K)
         IL = g_Leak * (V - E_Leak)
         dvdt = (- INa - IK - IL + input) / C
-        V += dvdt * dt
+        V += dvdt * _dt
 
         ST['V'] = V
         ST['m'] = m

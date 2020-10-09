@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from npbrain import _numpy as bnp
-from npbrain import profile
+from collections import OrderedDict
+
+from .. import _numpy as bnp
+from .. import profile
 
 try:
     import numba as nb
@@ -47,7 +49,7 @@ class TypeMismatchError(Exception):
 class ObjState(dict, TypeChecker):
     def __init__(self, fields, help=''):
         TypeChecker.__init__(self, help=help)
-        variables = dict()
+        variables = OrderedDict()
         if isinstance(fields, (tuple, list)):
             variables.update({v: 0. for v in fields})
         elif isinstance(fields, dict):

@@ -70,31 +70,31 @@ def COBA_HH(geometry, name='COBA_HH'):
         # m channel
         fm = (m_alpha * (1 - m) - m_beta * m)
         dfm_dm = - m_alpha - m_beta
-        m = m + (np.exp(dfm_dm * dt) - 1) / dfm_dm * fm
+        m = m + (np.exp(dfm_dm * _dt) - 1) / dfm_dm * fm
         neu_state[1] = m
 
         # h channel
         fh = (h_alpha * (1 - h) - h_beta * h)
         dfh_dh = - h_alpha - h_beta
-        h = h + (np.exp(dfh_dh * dt) - 1) / dfh_dh * fh
+        h = h + (np.exp(dfh_dh * _dt) - 1) / dfh_dh * fh
         neu_state[2] = h
 
         # n channel
         fn = (n_alpha * (1 - n) - n_beta * n)
         dfn_dn = - n_alpha - h_beta
-        n = n + (np.exp(dfn_dn * dt) - 1) / dfn_dn * fn
+        n = n + (np.exp(dfn_dn * _dt) - 1) / dfn_dn * fn
         neu_state[3] = n
 
         # ge
         fge = - ge / taue
         dfge_dge = - 1 / taue
-        ge = ge + (np.exp(dfge_dge * dt) - 1) / dfge_dge * fge
+        ge = ge + (np.exp(dfge_dge * _dt) - 1) / dfge_dge * fge
         neu_state[4] = ge
 
         # gi
         fgi = - gi / taui
         dfgi_dgi = - 1 / taui
-        gi = gi + (np.exp(dfgi_dgi * dt) - 1) / dfgi_dgi * fgi
+        gi = gi + (np.exp(dfgi_dgi * _dt) - 1) / dfgi_dgi * fgi
         neu_state[5] = gi
 
         # V
@@ -103,7 +103,7 @@ def COBA_HH(geometry, name='COBA_HH'):
         fv = (gl * (El - V) + ge * (Ee - V) + gi * (Ei - V) -
               g_na_ * (V - ENa) - g_kd_ * (V - EK)) / Cm
         dfv_dv = (-gl - ge - gi - g_na_ - g_kd_) / Cm
-        V = V + (np.exp(dfv_dv * dt) - 1) / dfv_dv * fv
+        V = V + (np.exp(dfv_dv * _dt) - 1) / dfv_dv * fv
         neu_state[0] = V
 
         # spike

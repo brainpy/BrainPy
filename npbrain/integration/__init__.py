@@ -9,6 +9,21 @@ from .integrator import *
 from .. import profile
 
 
+_SUPPORT_METHODS = [
+    'euler',
+    'midpoint',
+    'heun',
+    'rk2',
+    'rk3',
+    'rk4',
+    'rk4_alternative',
+    'exponential',
+    'milstein',
+    'milstein_ito',
+    'milstein_stra',
+]
+
+
 def integrate(func=None, noise=None, method=None):
     """Generate the one-step integrator function for differential equations.
 

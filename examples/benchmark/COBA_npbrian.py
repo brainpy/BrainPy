@@ -43,9 +43,9 @@ def COBA(geometry, ref=5.0, name='COBA'):
             v = neu_state[0, idx]
             ge = neu_state[1, idx]
             gi = neu_state[2, idx]
-            ge -= ge / taue * dt
-            gi -= gi / taui * dt
-            v += (ge * (Erev_exc - v) + gi * (Erev_inh - v) - (v - El) + I) / taum * dt
+            ge -= ge / taue * _dt
+            gi -= gi / taui * _dt
+            v += (ge * (Erev_exc - v) + gi * (Erev_inh - v) - (v - El) + I) / taum * _dt
             neu_state[0, idx] = v
             neu_state[1, idx] = ge
             neu_state[2, idx] = gi
