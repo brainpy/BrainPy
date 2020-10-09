@@ -30,7 +30,7 @@ class NeuType(BaseType):
     def __init__(self, name, create_func, vector_based=True):
         super(NeuType, self).__init__(create_func=create_func, name=name, vector_based=vector_based, type_=_NEU_TYPE)
 
-    def run(self, duration, monitors, vars_init=None, pars_update=None):
+    def run_dynamics(self, duration, monitors, vars_init=None, pars_update=None):
         # times
         if isinstance(duration, (int, float)):
             start, end = 0, duration
