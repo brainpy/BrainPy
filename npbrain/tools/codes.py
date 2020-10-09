@@ -3,12 +3,11 @@
 import ast
 import inspect
 import re
-import string
+import types
 
 import autopep8
 
 from .ast2code import ast2code
-from .functions import is_lambda_function
 
 __all__ = [
     'func_replace',
@@ -21,6 +20,24 @@ __all__ = [
     'deindent',
     'word_replace',
 ]
+
+
+def is_lambda_function(func):
+    """Check whether the function is a ``lambda`` function. Comes from
+    https://stackoverflow.com/questions/23852423/how-to-check-that-variable-is-a-lambda-function
+
+    Parameters
+    ----------
+    func : callable function
+        The function.
+
+    Returns
+    -------
+    bool
+        True of False.
+    """
+    return isinstance(func, types.LambdaType) and func.__name__ == "<lambda>"
+
 
 _ID_KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
 

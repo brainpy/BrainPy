@@ -10,7 +10,6 @@ from .sympy_tools import str_to_sympy
 from .sympy_tools import sympy_to_str
 from .. import _numpy as np
 from .. import profile
-from ..tools import autojit
 from ..tools import word_replace
 
 __all__ = [
@@ -106,7 +105,7 @@ def euler(diff_eqs):
     assert isinstance(diff_eqs, DiffEquation)
 
     dt = profile.get_dt()
-    f = autojit(diff_eqs.f)
+    f = diff_eqs.f
 
     # SDE
     if diff_eqs.is_stochastic:
@@ -114,7 +113,6 @@ def euler(diff_eqs):
         g = diff_eqs.g
 
         if callable(diff_eqs.g):
-            g = autojit(g)
 
             if diff_eqs.is_multi_return:
                 def int_f(y0, t, *args):
@@ -161,7 +159,7 @@ def euler(diff_eqs):
             def int_f(y0, t, *args):
                 return y0 + dt * f(y0, t, *args)
 
-    return autojit(int_f)
+    return int_f
 
 
 class Euler(Integrator):
@@ -234,7 +232,7 @@ class Euler(Integrator):
 def rk2(diff_eqs, beta=2 / 3):
     assert isinstance(diff_eqs, DiffEquation)
 
-    f = autojit(diff_eqs.f)
+    f = diff_eqs.f
     dt = profile.get_dt()
 
     if diff_eqs.is_stochastic:
@@ -257,7 +255,7 @@ def rk2(diff_eqs, beta=2 / 3):
                 y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
                 return y
 
-    return autojit(int_f)
+    return int_f
 
 
 class RK2(Integrator):
@@ -327,11 +325,10 @@ def heun(diff_eqs):
     if diff_eqs.is_stochastic:
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
-        f = autojit(diff_eqs.f)
+        f = diff_eqs.f
         g = diff_eqs.g
 
         if callable(g):
-            g = autojit(g)
 
             if diff_eqs.is_multi_return:
 
@@ -358,7 +355,7 @@ def heun(diff_eqs):
                     y1 = y0 + df + dg
                     return y1
 
-            return autojit(int_f)
+            return int_f
 
         else:
             return euler(diff_eqs)
@@ -483,7 +480,7 @@ def rk3(diff_eqs):
     """
     assert isinstance(diff_eqs, DiffEquation)
 
-    f = autojit(diff_eqs.f)
+    f = diff_eqs.f
     dt = profile.get_dt()
 
     if diff_eqs.is_stochastic:
@@ -506,7 +503,7 @@ def rk3(diff_eqs):
                 k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)
                 return y0 + dt / 6 * (k1 + 4 * k2 + k3)
 
-    return autojit(int_f)
+    return int_f
 
 
 class RK3(Integrator):
@@ -571,7 +568,7 @@ def rk4(diff_eqs):
     """
     assert isinstance(diff_eqs, DiffEquation)
 
-    f = autojit(diff_eqs.f)
+    f = diff_eqs.f
     dt = profile.get_dt()
 
     if diff_eqs.is_stochastic:
@@ -596,7 +593,7 @@ def rk4(diff_eqs):
                 k4 = f(y0 + dt * k3, t + dt, *args)
                 return y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
 
-    return autojit(int_f)
+    return int_f
 
 
 class RK4(Integrator):
@@ -662,7 +659,7 @@ def rk4_alternative(diff_eq):
     """
     assert isinstance(diff_eq, DiffEquation)
 
-    f = autojit(diff_eq.f)
+    f = diff_eq.f
     dt = profile.get_dt()
 
     if diff_eq.is_stochastic:
@@ -688,7 +685,7 @@ def rk4_alternative(diff_eq):
                 k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)
                 return y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
 
-    return autojit(int_f)
+    return int_f
 
 
 class RK4Alternative(Integrator):
@@ -777,7 +774,7 @@ def exponential_euler(diff_eq):
 
     assert isinstance(diff_eq, DiffEquation)
 
-    f = autojit(diff_eq.f)
+    f = diff_eq.f
     dt = profile.get_dt()
 
     if diff_eq.is_stochastic:
@@ -785,7 +782,6 @@ def exponential_euler(diff_eq):
         g = diff_eq.g
 
         if callable(g):
-            g = autojit(g)
 
             if diff_eq.is_multi_return:
 
@@ -848,7 +844,7 @@ def exponential_euler(diff_eq):
                 y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
                 return y
 
-    return autojit(int_f)
+    return int_f
 
 
 class ExponentialEuler(Integrator):
@@ -972,12 +968,11 @@ def Milstein_Ito(diff_eq):
 
     dt = profile.get_dt()
     dt_sqrt = np.sqrt(dt)
-    f = autojit(diff_eq.f)
+    f = diff_eq.f
     g = diff_eq.g
 
     if diff_eq.is_stochastic:
         if callable(g):
-            g = autojit(g)
 
             if diff_eq.is_multi_return:
 
@@ -1004,7 +999,7 @@ def Milstein_Ito(diff_eq):
                     y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt - dt_sqrt)
                     return y1
 
-            return autojit(int_fg)
+            return int_fg
 
     return euler(diff_eq)
 
@@ -1075,13 +1070,12 @@ def Milstein_Stra(diff_eq):
 
     dt = profile.get_dt()
     dt_sqrt = np.sqrt(dt)
-    f = autojit(diff_eq.f)
+    f = diff_eq.f
 
     if diff_eq.is_stochastic:
         g = diff_eq.g
 
         if callable(g):
-            g = autojit(g)
 
             if diff_eq.is_multi_return:
                 def int_fg(y0, t, *args):
@@ -1108,7 +1102,7 @@ def Milstein_Stra(diff_eq):
                     y1 = y0 + df + dg + extra_term
                     return y1
 
-            return autojit(int_fg)
+            return int_fg
 
     return euler(diff_eq)
 

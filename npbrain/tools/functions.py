@@ -7,6 +7,8 @@ import types
 import numpy as onp
 
 from .codes import deindent
+from .. import _numpy as np
+from .. import profile
 
 try:
     import numba as nb
@@ -14,15 +16,13 @@ try:
 except ImportError as e:
     nb = None
 
-from npbrain import _numpy as np
-from npbrain import profile
+
 
 __all__ = [
     # function helpers
     'jit_function',
     'autojit',
     'func_copy',
-    'is_lambda_function',
     'numba_func',
 
     # 'others'
@@ -103,22 +103,6 @@ def autojit(signature_or_func=None):
 
         return wrapper
 
-
-def is_lambda_function(func):
-    """Check whether the function is a ``lambda`` function. Comes from
-    https://stackoverflow.com/questions/23852423/how-to-check-that-variable-is-a-lambda-function
-
-    Parameters
-    ----------
-    func : callable function
-        The function.
-
-    Returns
-    -------
-    bool
-        True of False.
-    """
-    return isinstance(func, types.LambdaType) and func.__name__ == "<lambda>"
 
 
 def func_copy(f):
