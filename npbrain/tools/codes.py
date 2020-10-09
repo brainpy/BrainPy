@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import ast
 import inspect
 import re
@@ -17,7 +19,7 @@ __all__ = [
     'get_code_lines',
     'indent',
     'deindent',
-    'word_substitute',
+    'word_replace',
 ]
 
 _ID_KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
@@ -119,25 +121,43 @@ class FuncFinder(ast.NodeTransformer):
 
 
 def get_main_code(func):
+    """Get the main function code string.
+
+    For lambda function, return the
+
+
+
+
+
+    Parameters
+    ----------
+    func : callable, Optional, int, float
+
+    Returns
+    -------
+
+    """
     if func is None:
         return None
+    elif callable(func):
+        if is_lambda_function(func):
+            func_code = inspect.getsource(func)
+            splits = func_code.split(':')
+            if len(splits) != 2:
+                raise ValueError(f'Can not parse function: \n{func_code}')
+            return f'return {splits[1]}'
 
-    if is_lambda_function(func):
-        func_code = inspect.getsource(func)
-        splits = func_code.split(':')
-        if len(splits) != 2:
-            raise ValueError(f'Can not parse function: \n{func_code}')
-        return f'return {splits[1]}'
-
+        else:
+            func_codes = inspect.getsourcelines(func)[0]
+            idx = 0
+            for i, line in enumerate(func_codes):
+                idx += 1
+                line = line.replace(' ', '')
+                if '):' in line:
+                    break
+            return ''.join(func_codes[idx:])
     else:
-        func_codes = inspect.getsourcelines(func)[0]
-        idx = 0
-        for i, line in enumerate(func_codes):
-            idx += 1
-            line = line.replace(' ', '')
-            if '):' in line:
-                break
-        return ''.join(func_codes[idx:])
+        return func
 
 
 def extract_name(equation, left=False):
@@ -245,9 +265,9 @@ def get_code_lines(code_string):
 def indent(text, num_tabs=1, spaces_per_tab=4, tab=None):
     if tab is None:
         tab = ' ' * spaces_per_tab
-    indent = tab * num_tabs
-    indentedstring = indent + text.replace('\n', '\n' + indent)
-    return indentedstring
+    indent_ = tab * num_tabs
+    indented_string = indent_ + text.replace('\n', '\n' + indent_)
+    return indented_string
 
 
 def deindent(text, num_tabs=None, spaces_per_tab=4, docstring=False):
@@ -263,21 +283,20 @@ def deindent(text, num_tabs=None, spaces_per_tab=4, docstring=False):
         return text
     # Find the minimum indentation level
     if num_tabs is not None:
-        indentlevel = num_tabs * spaces_per_tab
+        indent_level = num_tabs * spaces_per_tab
     else:
-        lineseq = [len(line) - len(line.lstrip()) for line in lines[start:] if len(line.strip())]
-        if len(lineseq) == 0:
-            indentlevel = 0
+        line_seq = [len(line) - len(line.lstrip()) for line in lines[start:] if len(line.strip())]
+        if len(line_seq) == 0:
+            indent_level = 0
         else:
-            indentlevel = min(lineseq)
+            indent_level = min(line_seq)
     # remove the common indentation
-    lines[start:] = [line[indentlevel:] for line in lines[start:]]
+    lines[start:] = [line[indent_level:] for line in lines[start:]]
     return '\n'.join(lines)
 
 
-def word_substitute(expr, substitutions):
-    """
-    Applies a dict of word substitutions.
+def word_replace(expr, substitutions):
+    """Applies a dict of word substitutions.
 
     The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
     word ``word`` appearing in ``expr`` is replaced by ``rep``. Here a 'word'
@@ -287,7 +306,7 @@ def word_substitute(expr, substitutions):
     --------
 
     >>> expr = 'a*_b+c5+8+f(A)'
-    >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
+    >>> print(word_replace(expr, {'a':'banana', 'f':'func'}))
     banana*_b+c5+8+func(A)
     """
     for var, replace_var in substitutions.items():
@@ -372,43 +391,3 @@ def code_representation(code):
         msg += indent(str(v))
         output.append(msg)
     return strip_empty_leading_and_trailing_lines('\n'.join(output))
-
-
-# The below is adapted from Peter Norvig's spelling corrector
-# http://norvig.com/spell.py (MIT licensed)
-class SpellChecker(object):
-    """
-    A simple spell checker that will be used to suggest the correct name if the
-    user made a typo (e.g. for state variable names).
-
-    Parameters
-    ----------
-    words : iterable of str
-        The known words
-    alphabet : iterable of str, optional
-        The allowed characters. Defaults to the characters allowed for
-        identifiers, i.e. ascii characters, digits and the underscore.
-    """
-
-    def __init__(self, words,
-                 alphabet=string.ascii_lowercase + string.digits + '_'):
-        self.words = words
-        self.alphabet = alphabet
-
-    def edits1(self, word):
-        s = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-        deletes = [a + b[1:] for a, b in s if b]
-        transposes = [a + b[1] + b[0] + b[2:] for a, b in s if len(b) > 1]
-        replaces = [a + c + b[1:] for a, b in s for c in self.alphabet if b]
-        inserts = [a + c + b for a, b in s for c in self.alphabet]
-        return set(deletes + transposes + replaces + inserts)
-
-    def known_edits2(self, word):
-        return set(e2 for e1 in self.edits1(word)
-                   for e2 in self.edits1(e1) if e2 in self.words)
-
-    def known(self, words):
-        return set(w for w in words if w in self.words)
-
-    def suggest(self, word):
-        return self.known(self.edits1(word)) or self.known_edits2(word) or set()

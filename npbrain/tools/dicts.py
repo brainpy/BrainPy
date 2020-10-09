@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
+
 import copy
 
 __all__ = [
     'DictPlus'
 ]
+
 
 class DictPlus(dict):
     def __init__(self, *args, **kwargs):

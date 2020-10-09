@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import inspect
 import re
 from collections import Counter
@@ -7,8 +9,8 @@ import sympy
 
 from .sympy_tools import str_to_sympy
 from .sympy_tools import sympy_to_str
-from .. import tools
 from .. import profile
+from .. import tools
 
 __all__ = [
     'ReturnExps',

@@ -201,7 +201,7 @@ def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, x
         plt.show()
 
 
-def animation_potential(potentials, size, dt, V_min=None, V_max=None, cmap=None,
+def animation_potential(potentials, size, dt, min=None, max=None, cmap=None,
                         frame_delay=1., frame_step=1, title_size=10, figsize=None,
                         gif_dpi=None, video_fps=None, save_path=None, show=True):
     """Animate the potentials of the neuron group.
@@ -214,9 +214,9 @@ def animation_potential(potentials, size, dt, V_min=None, V_max=None, cmap=None,
         The size of the neuron group.
     dt : float
         The time duration of each step.
-    V_min : float, int
+    min : float, int
         The minimum of the potential.
-    V_max : float, int
+    max : float, int
         The maximum of the potential.
     cmap : None, str
         The colormap.
@@ -248,8 +248,8 @@ def animation_potential(potentials, size, dt, V_min=None, V_max=None, cmap=None,
     """
     num_step, num_neuron = potentials.shape
     height, width = size
-    V_min = potentials.min() if V_min is None else V_min
-    V_max = potentials.max() if V_max is None else V_max
+    min = potentials.min() if min is None else min
+    max = potentials.max() if max is None else max
 
     figsize = figsize or (6, 6)
     fig, gs = get_figure(1, 1, figsize[1], figsize[0])
@@ -258,7 +258,7 @@ def animation_potential(potentials, size, dt, V_min=None, V_max=None, cmap=None,
     def frame(t):
         img = potentials[t]
         fig.clf()
-        plt.pcolor(img, cmap=cmap, vmin=V_min, vmax=V_max)
+        plt.pcolor(img, cmap=cmap, vmin=min, vmax=max)
         plt.colorbar()
         plt.axis('off')
         fig.suptitle("Time: {:.2f} ms".format((t + 1) * dt),

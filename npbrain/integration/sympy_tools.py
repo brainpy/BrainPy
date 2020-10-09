@@ -1,7 +1,6 @@
+# -*- coding: utf-8 -*-
+
 import ast
-import re
-from collections import Counter
-from .. import _numpy as np
 
 import sympy
 import sympy.functions.elementary.complexes
@@ -13,6 +12,8 @@ import sympy.functions.elementary.trigonometric
 from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
+
+from .. import _numpy as np
 
 FUNCTION_MAPPING = {
     'real': sympy.functions.elementary.complexes.re,
@@ -364,7 +365,7 @@ class SympyPrinter(StrPrinter):
 PRINTER = SympyPrinter()
 
 
-def str_to_sympy(expr, variables=None):
+def str_to_sympy(expr):
     """
     Parses a string into a sympy expression. There are two reasons for not
     using `sympify` directly: 1) sympify does a ``from sympy import *``,
@@ -388,16 +389,7 @@ def str_to_sympy(expr, variables=None):
     -------
     s_expr
         A sympy expression
-
-    Raises
-    ------
-    SyntaxError
-        In case of any problems during parsing.
     """
-    # We do the actual transformation in a separate function that is cached
-    # If we cached `str_to_sympy` itself, it would also use the contents of the
-    # variables dictionary as the cache key, while it is only used for the check
-    # above and does not affect the translation to sympy
     s_expr = SympyRender().render_expr(expr)
     return s_expr
 
@@ -418,6 +410,7 @@ def sympy_to_str(sympy_expr):
         The expression that should be converted to a string.
         
     Returns
+    -------
     str_expr : str
         A string representing the sympy expression.
     """

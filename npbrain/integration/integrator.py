@@ -11,7 +11,7 @@ from .sympy_tools import sympy_to_str
 from .. import _numpy as np
 from .. import profile
 from ..tools import autojit
-from ..tools import word_substitute
+from ..tools import word_replace
 
 __all__ = [
     'get_integrator',
@@ -74,7 +74,7 @@ class Integrator(metaclass=ABCMeta):
 
     def substitute_arguments(self, code):
         subs_dict = {arg: f'_{self.py_func_name}_{arg}' for arg in self.diff_eqs.func_args}
-        code = word_substitute(code, subs_dict)
+        code = word_replace(code, subs_dict)
         return code
 
     @property

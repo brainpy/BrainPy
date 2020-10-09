@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import copy
 import functools
 import inspect
-import re
-import string
 import types
 
-import autopep8
 import numpy as onp
+
+from .codes import deindent
 
 try:
     import numba as nb
@@ -135,8 +133,7 @@ def func_copy(f):
     return g
 
 
-
-def numba_func(func):
+def numba_func(func, params={}):
     vars = inspect.getclosurevars(func)
     code_scope = dict(vars.nonlocals)
     code_scope.update(vars.globals)
@@ -146,7 +143,12 @@ def numba_func(func):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            code_scope[k] = numba_func(v)
+            code_scope[k] = numba_func(v, params)
+            modified = True
+    # check scope changed parameters
+    for p, v in params.items():
+        if p in code_scope:
+            code_scope[p] = v
             modified = True
 
     if modified:
@@ -155,16 +157,6 @@ def numba_func(func):
         return autojit(code_scope[func.__name__])
     else:
         return autojit(func)
-
-
-##############################
-# data structure
-##############################
-
-
-##############################
-# other helpers
-##############################
 
 
 def is_struct_array(arr):
@@ -194,4 +186,3 @@ def init_struct_array(num, variables):
     if profile.is_jax_bk():
         arr = {k: np.zeros(num, dtype=d) for k, d in variables.items()}
         return arr
-
