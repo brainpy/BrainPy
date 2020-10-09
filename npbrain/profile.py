@@ -45,7 +45,7 @@ itype = 'int64'
 show_codgen = False
 auto_pep8 = True
 substitute_eqs = False
-merge_integral = True
+merge_integral = False
 
 
 def set(backend=None, device=None, method=None, ode_method=None, sde_method=None, dt=None,

@@ -1,13 +1,11 @@
-import copy
-import functools
+import ast
 import inspect
 import re
 import string
-import types
-import ast
-import astor
+
 import autopep8
-import numpy as onp
+
+from .ast2code import ast2code
 from .functions import is_lambda_function
 
 __all__ = [
@@ -69,7 +67,7 @@ def func_replace(code, func_name):
     w = FuncFinder(func_name)
     tree = w.visit(tree)
     tree = ast.fix_missing_locations(tree)
-    new_code = astor.to_source(tree)
+    new_code = ast2code(tree)
     return new_code, w.args, w.kwargs
 
 
@@ -103,7 +101,7 @@ class FuncFinder(ast.NodeTransformer):
                 elif isinstance(arg, ast.Num):
                     self.args.append(arg.n)
                 else:
-                    s = astor.to_source(ast.fix_missing_locations(arg))
+                    s = ast2code(ast.fix_missing_locations(arg))
                     self.args.append(s.strip())
             for kv in node.keywords:
                 if isinstance(kv.value, ast.Name):
@@ -111,7 +109,7 @@ class FuncFinder(ast.NodeTransformer):
                 elif isinstance(kv.value, ast.Num):
                     self.kwargs[kv.arg] = kv.value.n
                 else:
-                    s = astor.to_source(ast.fix_missing_locations(kv.value))
+                    s = ast2code(ast.fix_missing_locations(kv.value))
                     self.kwargs[kv.arg] = s.strip()
             return ast.Name(f'_{self.name}_res')
         else:
@@ -180,6 +178,9 @@ def get_line_indent(line, spaces_per_tab=4):
     return len(line) - len(line.lstrip())
 
 
+_LINE_KEYWORDS = ('print', 'raise', 'del', 'yield', 'if ', 'elif ', 'while ', 'for ')
+
+
 def get_code_lines(code_string):
     """Get code lines from the string.
 
@@ -209,7 +210,7 @@ def get_code_lines(code_string):
                 continue
 
         # Split the equation around operators = += -= *= /=, but not ==
-        split_operators = re.findall(r'(?<![\(,])([\s\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
+        # split_operators = re.findall(r'(?<![\(,])([\s\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
         split_operators = re.findall(r'(?<![\(,])([\s\[\]\'\"\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
 
         # definition of a new variable
@@ -224,9 +225,7 @@ def get_code_lines(code_string):
                 line_strip = line.strip()
                 if ':' in line or \
                         line_strip in ['continue', 'break', 'pass', 'print'] or \
-                        line_strip.startswith('print') or \
-                        line_strip.startswith('raise') or \
-                        line_strip.startswith('del') or \
+                        line_strip.startswith(_LINE_KEYWORDS) or \
                         (line_no > 0 and get_line_indent(line) ==
                          get_line_indent(code_splits[line_no - 1])):
                     code_lines.append(line)

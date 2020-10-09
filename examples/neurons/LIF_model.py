@@ -48,7 +48,7 @@ def LIF_single_neuron(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
     return {'requires': {'ST': ST}, 'steps': update}
 
 
-LIF_single = nb.NeuType(name='LIF_neuron', create_func=LIF_single_neuron, group_based=False)
+LIF_single = nb.NeuType(name='LIF_neuron', create_func=LIF_single_neuron, vector_based=False)
 
 
 if __name__ == '__main__':

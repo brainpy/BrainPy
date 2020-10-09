@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .base import BaseEnsemble
-from .base import BaseType
-from .base import _NEU_GROUP
-from .base import _NEU_TYPE
+from .base_objects import BaseEnsemble
+from .base_objects import BaseType
+from .base_objects import _NEU_GROUP
+from .base_objects import _NEU_TYPE
 from .types import NeuState
 from .. import _numpy as np
 
@@ -12,7 +12,7 @@ __all__ = [
     'NeuGroup',
 ]
 
-_neu_no = 0
+_NEU_NO = 0
 
 
 class NeuType(BaseType):
@@ -21,8 +21,8 @@ class NeuType(BaseType):
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(self, name, create_func, group_based=True):
-        super(NeuType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_=_NEU_TYPE)
+    def __init__(self, name, create_func, vector_based=True):
+        super(NeuType, self).__init__(create_func=create_func, name=name, vector_based=vector_based, type_=_NEU_TYPE)
 
 
 class NeuGroup(BaseEnsemble):
@@ -37,9 +37,9 @@ class NeuGroup(BaseEnsemble):
         # name
         # -----
         if name is None:
-            global _neu_no
-            name = f'NeuGroup{_neu_no}'
-            _neu_no += 1
+            global _NEU_NO
+            name = f'NeuGroup{_NEU_NO}'
+            _NEU_NO += 1
         else:
             name = name
 

@@ -59,16 +59,16 @@ def integrate(func=None, noise=None, method=None):
     if func is None:
         if not has_noise:  # ODE
             def wrapper(f):
-                return _integrator_(DiffEquation(f=f))
+                return _integrator_(DiffEquation(f=f, analyse=True))
             return wrapper
         else:  # SDE
             def wrapper(f):
-                return _integrator_(DiffEquation(f=f, g=noise))
+                return _integrator_(DiffEquation(f=f, g=noise, analyse=True))
             return wrapper
 
     else:
         if not has_noise:  # ODE
-            return _integrator_(DiffEquation(f=func))
+            return _integrator_(DiffEquation(f=func, analyse=True))
         else:  # SDE
-            return _integrator_(DiffEquation(f=func, g=noise))
+            return _integrator_(DiffEquation(f=func, g=noise, analyse=True))
 

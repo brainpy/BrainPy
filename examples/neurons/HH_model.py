@@ -4,18 +4,14 @@ import npbrain as nb
 import npbrain._numpy as np
 
 nb.profile.set_backend('numba')
-nb.profile.set_method('exponential')
+nb.profile.set_method('euler')
 nb.profile.set_dt(0.02)
-nb.profile.show_codgen = True
+nb.profile.merge_integral = False
 
 
 def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
            g_Leak=0.03, C=1.0, Vth=20.):
     """The Hodgkin–Huxley neuron model.
-
-    The Hodgkin–Huxley model can be thought of as a differential equation
-    with four state variables, :math:`v(t)`, :math:`m(t)`, :math:`n(t)`, and
-    :math:`h(t)`, that change with respect to time :math:`t`.
 
     Parameters
     ----------
@@ -89,7 +85,7 @@ def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
     return {'requires': {"ST": ST}, 'steps': update}
 
 
-HH = nb.NeuType(name='HH_neuron', create_func=define, group_based=True)
+HH = nb.NeuType(name='HH_neuron', create_func=define, vector_based=True)
 
 if __name__ == '__main__':
     neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'])

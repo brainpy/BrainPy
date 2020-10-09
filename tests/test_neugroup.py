@@ -51,7 +51,7 @@ def main(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387, g_Leak=0.03, C=
     return {'attrs': attrs, 'step_func': step}
 
 
-HH = NeuType('HH', main, group_based=True)
+HH = NeuType('HH', main, vector_based=True)
 
 
 

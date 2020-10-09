@@ -132,7 +132,7 @@ class DiffEquation(object):
     """Differential Equation.
     """
 
-    def __init__(self, f=None, g=None):
+    def __init__(self, f=None, g=None, analyse=False):
         # get functions
         self.f = f
         self.g = g
@@ -147,101 +147,101 @@ class DiffEquation(object):
             scope = inspect.getclosurevars(g)
             self.func_scope.update(scope.nonlocals)
             self.func_scope.update(scope.globals)
+        self.analyse = analyse
 
+        if analyse:
+            # check
+            expressions = []
+            if 'return' not in self.f_code:
+                raise ValueError(f'Bad function definition: no result returned in the function.\n\n'
+                                 f'Please check function: \n{f}')
 
-        # check
-        expressions = []
-        if 'return' not in self.f_code:
-            raise ValueError(f'Bad function definition: no result returned in the function.\n\n'
-                             f'Please check function: \n{f}')
+            # get code lines
+            code_lines = re.sub(r'\b' + r'return' + r'\b', f'd{self.var}dt =', self.f_code)
+            code_lines = code_lines.strip()
+            if code_lines == '':
+                raise ValueError('Empty function.')
+            code_lines = code_lines.replace(';', '\n').split('\n')
 
-        # get code lines
-        code_lines = re.sub(r'\b' + r'return' + r'\b', f'd{self.var}dt =', self.f_code)
-        code_lines = code_lines.strip()
-        if code_lines == '':
-            raise ValueError('Empty function.')
-        code_lines = code_lines.replace(';', '\n').split('\n')
-
-        # analyse code lines
-        for line in code_lines:
-            # skip empty lines
-            expression = line.strip()
-            if expression == '':
-                continue
-            # remove comments
-            com = expression.split('#')
-            if len(com) > 1:
-                expression = com[0]
-                if expression.strip() == '':
+            # analyse code lines
+            for line in code_lines:
+                # skip empty lines
+                expression = line.strip()
+                if expression == '':
                     continue
+                # remove comments
+                com = expression.split('#')
+                if len(com) > 1:
+                    expression = com[0]
+                    if expression.strip() == '':
+                        continue
 
-            # Split the equation around operators = += -= *= /=, but not ==
-            split_operators = re.findall('([\s\w\+\-\*\/\)]+)=([^=])', expression)
+                # Split the equation around operators = += -= *= /=, but not ==
+                split_operators = re.findall('([\s\w\+\-\*\/\)]+)=([^=])', expression)
 
-            # definition of a new variable
-            if len(split_operators) == 1:
-                # Retrieve the name
-                eq = split_operators[0][0]
-                if eq.strip() == "":
-                    print(expression)
-                    raise ValueError('The equation can not be analysed, check the syntax.')
-                name = extract_name(eq, left=True)
-                if name in ['_undefined', '']:
-                    raise ValueError(f'No variable name can be found in "{expression}".')
-                # Append the result
-                expressions.append({'var': name, 'type': _SUB_EXPRESSION, 'code': expression.strip()})
+                # definition of a new variable
+                if len(split_operators) == 1:
+                    # Retrieve the name
+                    eq = split_operators[0][0]
+                    if eq.strip() == "":
+                        raise ValueError('The equation can not be analysed, check the syntax.')
+                    name = extract_name(eq, left=True)
+                    if name in ['_undefined', '']:
+                        raise ValueError(f'No variable name can be found in "{expression}".')
+                    # Append the result
+                    expressions.append({'var': name, 'type': _SUB_EXPRESSION, 'code': expression.strip()})
 
-            # Continuation of the equation on a new line:
-            # append the equation to the previous variable
-            elif len(split_operators) == 0:
-                expressions[-1]['code'] += ' ' + expression.strip()
-            else:
-                raise ValueError(f'Error syntax in "{expression}".\nOnly one assignment operator'
-                                 f' is allowed per equation, but found {len(split_operators)}.')
-        expressions[-1]['type'] = _DIFF_EQUATION
+                # Continuation of the equation on a new line:
+                # append the equation to the previous variable
+                elif len(split_operators) == 0:
+                    expressions[-1]['code'] += ' ' + expression.strip()
+                else:
+                    raise ValueError(f'Error syntax in "{expression}".\nOnly one assignment operator'
+                                     f' is allowed per equation, but found {len(split_operators)}.')
+            expressions[-1]['type'] = _DIFF_EQUATION
 
-        # analyse returns
-        return_expr = expressions[-1]['code'].replace(f'd{self.var}dt =', '').strip()
-        if return_expr[0] == '(' and return_expr[-1] == ')':
-            return_expr = return_expr[1:-1]
-        return_splits = re.split(r'(?<!\(),(?![\w\s]*[\)])', return_expr)
-        for sp in return_splits:
-            if sp.strip() == '':
-                raise ValueError('Function return error: contains null item.\n\n'
-                                 'You can code like "return a" or "return a, b", not "return a, "')
-        return_expressions = [self.var]
-        if len(return_splits) != 1:
-            assert len(return_splits) > 1
-            expressions[-1]['code'] = f'd{self.var}dt =' + return_splits[0]
-            for rt in return_splits[1:]:
-                return_expressions.append(rt)
+            # analyse returns
+            return_expr = expressions[-1]['code'].replace(f'd{self.var}dt =', '').strip()
+            if return_expr[0] == '(' and return_expr[-1] == ')':
+                return_expr = return_expr[1:-1]
+            return_splits = re.split(r'(?<!\(),(?![\w\s]*[\)])', return_expr)
+            for sp in return_splits:
+                if sp.strip() == '':
+                    raise ValueError('Function return error: contains null item.\n\n'
+                                     'You can code like "return a" or "return a, b", not "return a, "')
+            return_expressions = [self.var]
+            if len(return_splits) != 1:
+                assert len(return_splits) > 1
+                expressions[-1]['code'] = f'd{self.var}dt =' + return_splits[0]
+                for rt in return_splits[1:]:
+                    return_expressions.append(rt)
 
-        # get the right-hand expression
-        for expr in expressions:
-            splits = re.split(r'([\s\+\-\*\/])=(?!=)', expr['code'])
-            assert len(splits) == 3, f'Unknown expression "{expr["code"]}"'
-            if splits[1].strip() == '':
-                expr['code'] = splits[2]
-            else:
-                assert splits[1].strip() in ['+', '-', '*', '/']
-                expr['code'] = f"{expr['var']} {splits[1]} {splits[2]}"
+            # get the right-hand expression
+            for expr in expressions:
+                splits = re.split(r'([\s\+\-\*\/])=(?!=)', expr['code'])
+                assert len(splits) == 3, f'Unknown expression "{expr["code"]}"'
+                if splits[1].strip() == '':
+                    expr['code'] = splits[2]
+                else:
+                    assert splits[1].strip() in ['+', '-', '*', '/']
+                    expr['code'] = f"{expr['var']} {splits[1]} {splits[2]}"
 
-        # check duplicate names
-        counter = Counter([v['var'] for v in expressions])
-        for k, num in counter.items():
-            if num > 1:
-                raise SyntaxError(
-                    f'Found "{k}" {num} times. Please assign each expression with a unique name. ')
+            # check duplicate names
+            counter = Counter([v['var'] for v in expressions])
+            for k, num in counter.items():
+                if num > 1:
+                    raise SyntaxError(
+                        f'Found "{k}" {num} times. Please assign each expression with a unique name. ')
 
-        # return values
-        self.expressions = [Expression(**expr) for expr in expressions]
-        self.return_expressions = ReturnExps(return_expressions)
-        self.var2expr = {expr.var: expr for expr in self.expressions}
-        self.vars = [expr.var for expr in self.expressions]
-        self.vars_in_returns = []
-        for expr in self.expressions:
-            if expr.var in self.return_expressions.identifiers:
-                self.vars_in_returns.append(expr.var)
+            # return values
+            self.expressions = [Expression(**expr) for expr in expressions]
+            self.return_expressions = ReturnExps(return_expressions)
+            self.var2expr = {expr.var: expr for expr in self.expressions}
+            self.vars = [expr.var for expr in self.expressions]
+            self.vars_in_returns = []
+            for expr in self.expressions:
+                if expr.var in self.return_expressions.identifiers:
+                    self.vars_in_returns.append(expr.var)
 
     def substitute(self, include_subexpressions=True):
         """

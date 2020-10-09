@@ -11,7 +11,7 @@ synapses, etc.
 """
 
 
-from .base import *
+from .base_objects import *
 from .types import *
 from .neuron_group import *
 from .synapse_connection import *

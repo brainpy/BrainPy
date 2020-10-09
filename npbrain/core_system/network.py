@@ -5,8 +5,8 @@ from pprint import pprint
 
 import autopep8
 
-from .base import BaseEnsemble
-from .base import ModelUseError
+from .base_objects import BaseEnsemble
+from .base_objects import ModelUseError
 from .neuron_group import NeuGroup
 from .synapse_connection import SynConn
 from .. import _numpy as np
@@ -117,7 +117,7 @@ class Network(object):
             if isinstance(inputs[0], BaseEnsemble):
                 inputs = [inputs]
             else:
-                raise ValueError('Unknown input structure.')
+                raise ModelUseError('Unknown input structure.')
         for inp in inputs:
             try:
                 assert 3 <= len(inp) <= 4

@@ -65,7 +65,7 @@ def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
     return {'requires': requires, 'steps': (update, output)}
 
 
-AMPA1_group = nb.SynType(name='AMPA_type1', create_func=define_ampa1_group, group_based=True)
+AMPA1_group = nb.SynType(name='AMPA_type1', create_func=define_ampa1_group, vector_based=True)
 
 
 def define_ampa2_group(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
@@ -125,7 +125,7 @@ def define_ampa2_group(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duratio
     return {'requires': requires, 'steps': (update, output)}
 
 
-AMPA2_group = nb.SynType(name='AMPA_type2', create_func=define_ampa2_group, group_based=True)
+AMPA2_group = nb.SynType(name='AMPA_type2', create_func=define_ampa2_group, vector_based=True)
 
 
 def run_ampa_group(cls, duration=650.):
@@ -199,7 +199,7 @@ def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
     return {'requires': requires, 'update': update, 'output': output}
 
 
-AMPA1_single = nb.SynType(name='AMPA_type1', create_func=define_ampa1_single, group_based=False)
+AMPA1_single = nb.SynType(name='AMPA_type1', create_func=define_ampa1_single, vector_based=False)
 
 
 def define_ampa2_single(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
@@ -250,7 +250,7 @@ def define_ampa2_single(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
     return {'requires': requires, 'update': update, 'output': output}
 
 
-AMPA2_single = nb.SynType(name='AMPA_type2', create_func=define_ampa2_single, group_based=False)
+AMPA2_single = nb.SynType(name='AMPA_type2', create_func=define_ampa2_single, vector_based=False)
 
 
 def run_ampa_single(cls, duration=650.):

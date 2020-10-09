@@ -32,7 +32,6 @@ setup(
         'numba>=0.40.0',
         'sympy>=1.2',
         'autopep8',
-        'astor>=0.8.0',
     ],
     url='https://github.com/PKU-NIP-Lab/NumpyBrain',
     keywords='computational neuroscience simulation',

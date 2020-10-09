@@ -33,6 +33,8 @@ _NEU_GROUP = 'NeuGroup'
 _SYN_CONN = 'SynConn'
 _NEU_TYPE = 'NeuType'
 _SYN_TYPE = 'SynType'
+_NEU_NO = 0
+_SYN_NO = 0
 
 
 class ModelDefError(Exception):
@@ -44,9 +46,6 @@ class ModelUseError(Exception):
     """Model use error."""
     pass
 
-
-_neu_no = 0
-_syn_no = 0
 
 
 class BaseType(object):
@@ -71,28 +70,28 @@ class BaseType(object):
         The function to create the model.
     name : str, optional
         Model name.
-    group_based : bool
+    vector_based : bool
         Whether the model is written in the neuron-group level or in the single-neuron level.
     type_ : str
         Whether the model is a 'neuron' or a 'synapse' model.
     """
 
-    def __init__(self, create_func, name=None, group_based=True, type_=_NEU_TYPE):
+    def __init__(self, create_func, name=None, vector_based=True, type_=_NEU_TYPE):
         # type : neuron based or group based code
         # ---------------------------------------
-        self.group_based = group_based
+        self.vector_based = vector_based
 
         # name
         # -----
         if name is None:
             if type_ == _NEU_TYPE:
-                global _neu_no
-                self.name = f'NeuType{_neu_no}'
-                _neu_no += 1
+                global _NEU_NO
+                self.name = f'NeuType{_NEU_NO}'
+                _NEU_NO += 1
             elif type_ == _SYN_TYPE:
-                global _syn_no
-                self.name = f'SynType{_syn_no}'
-                _syn_no += 1
+                global _SYN_NO
+                self.name = f'SynType{_SYN_NO}'
+                _SYN_NO += 1
             else:
                 raise ModelDefError(f'Unknown model type "{type_}", only support "{_NEU_TYPE}" and "{_SYN_TYPE}".')
         else:
@@ -110,7 +109,7 @@ class BaseType(object):
             assert 'requires' in func_return
         except AssertionError:
             raise ModelDefError('"requires" (specify variables the model need) must be defined in the return.')
-        if group_based:
+        if vector_based:
             try:
                 assert 'steps' in func_return
             except AssertionError:
@@ -164,7 +163,7 @@ class BaseType(object):
         # step functions
         # --------------
         self.steps, self.step_names = [], []
-        if group_based:
+        if vector_based:
             steps = func_return['steps']
             if callable(steps):
                 steps = [steps]
@@ -273,7 +272,7 @@ class BaseEnsemble(object):
 
         # step functions
         # ---------------
-        if not model.group_based:
+        if not model.vector_based:
             if self._cls_type == _SYN_CONN and (self.pre_group is None or self.post_group is None):
                 raise ModelUseError('Single synapse model must provide "pre_group" and "post_group".')
         self._steps = self._get_steps_from_model(self.pars_update)
@@ -309,7 +308,7 @@ class BaseEnsemble(object):
         self._schedule = ['input'] + self.model.step_names + ['monitor']
 
     def _get_steps_from_model(self, pars_update):
-        if self.model.group_based:
+        if self.model.vector_based:
             func_return = self.model.create_func(**pars_update)
             steps = func_return['steps']
             if callable(steps):
@@ -385,7 +384,6 @@ class BaseEnsemble(object):
             code_scope.pop(k)
         return '\n'.join(code_lines), code_scope
 
-
     def __step_mode_np_group(self):
         for func in self._steps:
             func_name = func.__name__
@@ -405,7 +403,7 @@ class BaseEnsemble(object):
         if self.num > 1000:
             raise ModelUseError(f'The number of the '
                                 f'{"neurons" if self._cls_type == _NEU_GROUP else "synapses"} is '
-                                f'too huge (>1000), please use numba backend or define group_based model.')
+                                f'too huge (>1000), please use numba backend or define vector_based model.')
 
         # get step functions
         steps_collection = {func.__name__: [] for func in self._steps}
@@ -804,13 +802,13 @@ class BaseEnsemble(object):
 
     def _add_steps(self):
         if profile.is_numpy_bk():
-            if self.model.group_based:
+            if self.model.vector_based:
                 self.__step_mode_np_group()
             else:
                 self.__step_mode_np_single()
 
         elif profile.is_numba_bk():
-            if self.model.group_based:
+            if self.model.vector_based:
                 self.__step_mode_nb_group()
             else:
                 if self._cls_type == _NEU_GROUP:
@@ -1012,7 +1010,7 @@ class BaseEnsemble(object):
                 else:
                     raise ModelUseError(f'Unknown target : {key}.')
 
-                if not self.model.group_based and self._cls_type == _SYN_CONN and \
+                if not self.model.vector_based and self._cls_type == _SYN_CONN and \
                         attr == 'ST' and profile.is_numba_bk():
                     shape = getattr(self, attr)[item][0].shape
                 else:
@@ -1030,7 +1028,7 @@ class BaseEnsemble(object):
                     idx = getattr(self, attr)['_var2idx'][item]
                     mon_name = f'{self.name}_mon_{attr}_{item}'
                     target_name = f'{self.name}_{attr}'
-                    if not self.model.group_based and self._cls_type == _SYN_CONN and \
+                    if not self.model.vector_based and self._cls_type == _SYN_CONN and \
                             attr == 'ST' and item in self.ST._delay_offset:
                         code_args.add(f'{self.name}_din')
                         code_arg2call[f'{self.name}_din'] = f'{self.name}.ST._delay_in'
@@ -1125,7 +1123,6 @@ class BaseEnsemble(object):
             func_code = '\n  '.join(lines)
             if profile.auto_pep8:
                 func_code = autopep8.fix_code(func_code)
-            print(func_code)
             exec(compile(func_code, '', 'exec'), code_scopes)
 
             self.merge_func = code_scopes['merge_func']

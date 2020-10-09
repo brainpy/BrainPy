@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .base import BaseEnsemble
-from .base import BaseType
-from .base import _SYN_CONN
-from .base import _SYN_TYPE
+from .base_objects import BaseEnsemble
+from .base_objects import BaseType
+from .base_objects import _SYN_CONN
+from .base_objects import _SYN_TYPE
 from .neuron_group import NeuGroup
 from .types import SynState
 from .. import _numpy as np
@@ -18,7 +18,7 @@ __all__ = [
     'post_cond_by_post2syn',
 ]
 
-_syn_no = 0
+_SYN_NO = 0
 
 
 class SynType(BaseType):
@@ -27,8 +27,8 @@ class SynType(BaseType):
     It can be defined based on a collection of synapses or a single synapse model.
     """
 
-    def __init__(self, name, create_func, group_based=True):
-        super(SynType, self).__init__(create_func=create_func, name=name, group_based=group_based, type_=_SYN_TYPE)
+    def __init__(self, name, create_func, vector_based=True):
+        super(SynType, self).__init__(create_func=create_func, name=name, vector_based=vector_based, type_=_SYN_TYPE)
 
 
 class SynConn(BaseEnsemble):
@@ -43,9 +43,9 @@ class SynConn(BaseEnsemble):
         # name
         # ----
         if name is None:
-            global _syn_no
-            name = f'SynConn{_syn_no}'
-            _syn_no += 1
+            global _SYN_NO
+            name = f'SynConn{_SYN_NO}'
+            _SYN_NO += 1
         else:
             name = name
 
@@ -106,7 +106,7 @@ class SynConn(BaseEnsemble):
         else:
             raise ValueError("NumpyBrain currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
-        if not model.group_based and delay_len > 1 and profile.is_numpy_bk():
+        if not model.vector_based and delay_len > 1 and profile.is_numpy_bk():
             print('WARNING: do not support delay in NumPy mode with single synapse level definition.')
 
         # initialize
