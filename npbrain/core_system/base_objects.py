@@ -76,7 +76,7 @@ class BaseType(object):
     """
 
     def __init__(self, create_func, name=None, vector_based=True, type_=_NEU_TYPE):
-        # type : neuron based or group based code
+        # type : neuron based or group based _code
         # ---------------------------------------
         self.vector_based = vector_based
 
@@ -298,7 +298,7 @@ class BaseEnsemble(object):
             else:
                 raise ModelUseError(f'Unknown monitors type: {type(monitors)}')
 
-        # code generation results
+        # _code generation results
         # -----------------------
         self._codegen = dict()
 
@@ -373,18 +373,18 @@ class BaseEnsemble(object):
                 # get the replace line and arguments need to replace
                 new_line, args, kwargs = tools.func_replace(line, int_func_name)
 
-                # append code line of argument replacement
+                # append _code line of argument replacement
                 func_args = v.diff_eqs.func_args
                 append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
                                 for i in range(len(args))]
                 for arg in func_args[len(args):]:
                     append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
 
-                # append numerical integration code lines
+                # append numerical integration _code lines
                 append_lines.extend([indent + l for l in v.update_code.split('\n')])
                 append_lines.append(indent + new_line)
 
-                # add appended lines into the main function code lines
+                # add appended lines into the main function _code lines
                 code_lines = code_lines[:line_no] + append_lines + code_lines[line_no + 1:]
 
                 # get scope variables to delete
@@ -394,14 +394,14 @@ class BaseEnsemble(object):
                         v2 = tools.numba_func(v2)
                     scope_to_add[k2] = v2
 
-        # update code scope
+        # update _code scope
         if need_add_mapping_scope:
             code_scope.update(get_mapping_scope())
         code_scope.update(scope_to_add)
         for k in scope_to_del:
             code_scope.pop(k)
 
-        # return code lines and code scope
+        # return _code lines and _code scope
         return '\n'.join(code_lines), code_scope
 
     def __step_mode_np_group(self):
@@ -550,11 +550,11 @@ class BaseEnsemble(object):
             states = {k: getattr(self, k) for k in func_args
                       if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
 
-            # initialize code namespace
+            # initialize _code namespace
             used_args, code_arg2call, code_lines = set(), {}, []
             func_code, code_scope = self.__step_substitute_integrator(func)
 
-            # check function code
+            # check function _code
             add_args = set()
             for i, arg in enumerate(func_args):
                 used_args.add(arg)
@@ -615,14 +615,14 @@ class BaseEnsemble(object):
     def __step_mode_nb_single_neu(self):
         func = self._steps[0]
 
-        # get code scope
+        # get _code scope
         used_args, code_arg2call, code_lines = set(), {}, []
         func_code, code_scope = self.__step_substitute_integrator(func)
         func_args = inspect.getfullargspec(func).args
         states = {k: getattr(self, k) for k in func_args
                   if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), NeuState)}
 
-        # update parameters in code scope
+        # update parameters in _code scope
         for p, v in self.pars_update.items():
             if p in code_scope:
                 code_scope[p] = v
@@ -631,12 +631,12 @@ class BaseEnsemble(object):
                 raise ValueError(f'Heterogeneous parameter "{p_k}" is not in '
                                  f'main function, it will not work.')
 
-        # update functions in code scope
+        # update functions in _code scope
         for k, v in code_scope.items():
             if callable(v):
                 code_scope[k] = tools.numba_func(func=v, params=self.pars_update)
 
-        # check function code
+        # check function _code
         for i, arg in enumerate(func_args):
             used_args.add(arg)
             if len(states) == 0:
@@ -690,14 +690,14 @@ class BaseEnsemble(object):
         for i, func in enumerate(self._steps):
             func_name = 'update' if i == 0 else 'output'
 
-            # get code scope
+            # get _code scope
             used_args, code_arg2call, code_lines = set(), {}, []
             func_args = inspect.getfullargspec(func).args
             func_code, code_scope = self.__step_substitute_integrator(func)
             states = {k: getattr(self, k) for k in func_args
                       if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
 
-            # update parameters in code scope
+            # update parameters in _code scope
             for p, v in self.pars_update.items():
                 if p in code_scope:
                     code_scope[p] = v
@@ -706,12 +706,12 @@ class BaseEnsemble(object):
                     raise ValueError(f'Heterogeneous parameter "{p_k}" is not in '
                                      f'main function, it will not work.')
 
-            # update functions in code scope
+            # update functions in _code scope
             for k, v in code_scope.items():
                 if callable(v):
                     code_scope[k] = tools.numba_func(func=v, params=self.pars_update)
 
-            # check function code
+            # check function _code
             add_args = set()
             if func_name == 'update':
                 add_args.add(f'{self.name}_din')
@@ -868,7 +868,7 @@ class BaseEnsemble(object):
                 raise ModelUseError('Only support five input operations: +, -, x, /, =')
         ops2str = {'-': 'sub', '+': 'add', 'x': 'mul', '/': 'div', '=': 'assign'}
 
-        # generate code of input function
+        # generate _code of input function
         # --------------------------------
         for key, val, ops, data_type in key_val_ops_types:
             attr_item = key.split('.')
@@ -919,13 +919,13 @@ class BaseEnsemble(object):
                 right = right + '[_i_]'
             input_idx += 1
 
-            # final code line #
+            # final _code line #
             if ops == '=':
                 code_lines.append(left + " = " + right)
             else:
                 code_lines.append(left + f" {ops}= " + right)
 
-        # final code
+        # final _code
         # ----------
         if len(key_val_ops_types) > 0:
             code_lines.insert(0, f'# "input" step function of {self.name}')
@@ -967,7 +967,7 @@ class BaseEnsemble(object):
         code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
         idx_no = 0
 
-        # generate code of monitor function
+        # generate _code of monitor function
         # ---------------------------------
         for key, indices in self._mon_vars:
             # check indices #
@@ -987,7 +987,7 @@ class BaseEnsemble(object):
 
             attr_item = key.split('.')
 
-            # get the code line #
+            # get the _code line #
             if (len(attr_item) == 1) and (attr_item[0] not in getattr(self, 'ST')):
                 attr = attr_item[0]
                 try:
@@ -1080,7 +1080,7 @@ class BaseEnsemble(object):
             # add line #
             code_lines.append(line)
 
-        # final code
+        # final _code
         # ----------
         if len(self._mon_vars):
             code_args.add('_i_')

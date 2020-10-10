@@ -8,7 +8,9 @@ import ast
 import sys
 from contextlib import contextmanager
 
-__all__ = ['ast2code']
+__all__ = [
+    'ast2code'
+]
 
 
 _OP_TO_STR = {
@@ -516,10 +518,7 @@ class Decompiler(ast.NodeVisitor):
         self.write_newline()
 
     def visit_ImportFrom(self, node):
-        if (
-                node.module == '__future__' and
-                any(alias.name == 'unicode_literals' for alias in node.names)
-        ):
+        if node.module == '__future__' and any(alias.name == 'unicode_literals' for alias in node.names):
             self.has_unicode_literals = True
 
         self.write_indentation()

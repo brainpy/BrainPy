@@ -15,6 +15,17 @@ from sympy.printing.str import StrPrinter
 
 from .. import _numpy as np
 
+__all__ = [
+
+    'FUNCTION_MAPPING',
+    'CONSTANT_MAPPING',
+    'SympyRender',
+    'SympyPrinter',
+    'str_to_sympy',
+    'sympy_to_str',
+    'get_mapping_scope',
+]
+
 FUNCTION_MAPPING = {
     'real': sympy.functions.elementary.complexes.re,
     'imag': sympy.functions.elementary.complexes.im,
@@ -148,10 +159,8 @@ class SympyRender(object):
         'AugMod': '%=',
     }
 
-    def __init__(self, auto_vectorise=None):
-        if auto_vectorise is None:
-            auto_vectorise = set()
-        self.auto_vectorise = auto_vectorise
+    def __init__(self):
+        pass
 
     def render_expr(self, expr, strip=True):
         if strip:
@@ -362,58 +371,15 @@ class SympyPrinter(StrPrinter):
             return expr.func.__name__ + "(%s)" % self.stringify(expr.args, ", ")
 
 
-PRINTER = SympyPrinter()
+_RENDER = SympyRender()
+_PRINTER = SympyPrinter()
 
 
-def str_to_sympy(expr):
-    """
-    Parses a string into a sympy expression. There are two reasons for not
-    using `sympify` directly: 1) sympify does a ``from sympy import *``,
-    adding all functions to its namespace. This leads to issues when trying to
-    use sympy function names as variable names. For example, both ``beta`` and
-    ``factor`` -- quite reasonable names for variables -- are sympy functions,
-    using them as variables would lead to a parsing error. 2) We want to use
-    a common syntax across expressions and statements, e.g. we want to allow
-    to use `and` (instead of `&`) and function names like `ceil` (instead of
-    `ceiling`).
-
-    Parameters
-    ----------
-    expr : str
-        The string expression to parse.
-    variables : dict, optional
-        Dictionary mapping variable/function names in the expr to their
-        respective `Variable`/`Function` objects.
-
-    Returns
-    -------
-    s_expr
-        A sympy expression
-    """
-    s_expr = SympyRender().render_expr(expr)
-    return s_expr
+def str_to_sympy(str_expr):
+    return _RENDER.render_expr(str_expr)
 
 
 def sympy_to_str(sympy_expr):
-    """
-    sympy_to_str(sympy_expr)
-
-    Converts a sympy expression into a string. This could be as easy as 
-    ``str(sympy_exp)`` but it is possible that the sympy expression contains
-    functions like ``Abs`` (for example, if an expression such as
-    ``sqrt(x**2)`` appeared somewhere). We do want to re-translate ``Abs`` into
-    ``abs`` in this case.
-    
-    Parameters
-    ----------
-    sympy_expr : sympy.core.expr.Expr
-        The expression that should be converted to a string.
-        
-    Returns
-    -------
-    str_expr : str
-        A string representing the sympy expression.
-    """
     # replace the standard functions by our names if necessary
     replacements = dict((f, sympy.Function(name)) for name, f in FUNCTION_MAPPING.items() if str(f) != name)
 
@@ -426,6 +392,5 @@ def sympy_to_str(sympy_expr):
     for old, new in replacements.items():
         if old in atoms:
             sympy_expr = sympy_expr.subs(old, new)
-    expr = PRINTER.doprint(sympy_expr)
 
-    return expr
+    return _PRINTER.doprint(sympy_expr)

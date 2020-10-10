@@ -71,7 +71,7 @@ class NeuType(BaseType):
         # initialize corresponding state
         ST = NeuState(variables)(1)
 
-        # get the running code
+        # get the running _code
         code_scope = {'update': update, 'monitor': mon, 'ST': ST,
                       'mon_keys': monitors, 'dt': dt, 'times': times}
         code_args = inspect.getfullargspec(update).args

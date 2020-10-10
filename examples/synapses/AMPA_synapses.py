@@ -137,7 +137,7 @@ def run_ampa_group(cls, duration=650.):
     ampa.set_schedule(['input', 'update', 'monitor'])
 
     net = nb.Network(ampa)
-    Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile.dt, 1., duration=duration)
+    Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile._dt, 1., duration=duration)
     net.run(duration, inputs=(ampa, 'pre.sp', Iext, '='), report=True)
 
     fig, gs = nb.visualize.get_figure(1, 1, 5, 10)
@@ -264,7 +264,7 @@ def run_ampa_single(cls, duration=650.):
                       monitors=['s'], delay=10.)
 
     net = nb.Network(pre, ampa, post)
-    Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile.dt, 1., duration=duration)
+    Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile._dt, 1., duration=duration)
     net.run(duration, inputs=(ampa, 'pre.sp', Iext, '='), report=True)
 
     fig, gs = nb.visualize.get_figure(1, 1, 5, 10)

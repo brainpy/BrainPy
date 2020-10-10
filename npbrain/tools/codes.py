@@ -8,8 +8,10 @@ import types
 import autopep8
 
 from .ast2code import ast2code
+from .. import _numpy as np
 
 __all__ = [
+    'is_lambda_function',
     'func_replace',
     'FuncFinder',
     'get_identifiers',
@@ -19,6 +21,11 @@ __all__ = [
     'indent',
     'deindent',
     'word_replace',
+
+
+    'analyse_diff_eq',
+    'DiffEquationAnalyser',
+    'DiffEquationError',
 ]
 
 
@@ -81,6 +88,88 @@ def get_identifiers(expr, include_numbers=False):
     return (identifiers - _ID_KEYWORDS) | numbers
 
 
+def analyse_diff_eq(eq_code):
+    if eq_code.strip() == '':
+        return [], [], ['0']
+    else:
+        tree = ast.parse(eq_code)
+        analyser = DiffEquationAnalyser()
+        analyser.visit(tree)
+        return analyser.variables, analyser.expressions, analyser.returns
+
+
+class DiffEquationAnalyser(ast.NodeTransformer):
+    expression_ops = {
+        'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/',
+        'Mod': '%', 'Pow': '**', 'BitXor': '^', 'BitAnd': '&',
+    }
+
+    # TODO : Multiple assignment like "a = b = 1" or "a, b = f()"
+    def __init__(self):
+        self.variables = []
+        self.expressions = []
+        self.returns = []
+
+    def visit_Assign(self, node):
+        targets = node.targets
+        assert len(targets) == 1, 'Do not support multiple assignment.'
+        self.variables.append(targets[0].id)
+        self.expressions.append(ast2code(ast.fix_missing_locations(node.value)))
+        return node
+
+    def visit_AugAssign(self, node):
+        targets = node.targets
+        assert len(targets) == 1, 'Do not support multiple assignment.'
+        var = targets[0].id
+        self.variables.append(var)
+        op = node.op
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        self.expressions.append(f"{var} {op} ({expr})")
+        return node
+
+    def visit_Return(self, node):
+        value = node.value
+        if isinstance(value, (ast.Tuple, ast.List)):
+            v0 = value.elts[0]
+            if isinstance(v0, ast.Name):
+                self.returns.append(v0.id)
+            else:
+                self.expressions.append(ast2code(ast.fix_missing_locations(v0)))
+                self.variables.append("_func_res_")
+                self.returns.append("_func_res_")
+            for i, item in enumerate(value.elts[1:]):
+                if isinstance(item, ast.Name):
+                    self.returns.append(item.id)
+                else:
+                    self.returns.append(ast2code(ast.fix_missing_locations(item)))
+        elif isinstance(value, ast.Name):
+            self.returns.append(value.id)
+        else:
+            self.expressions.append(ast2code(ast.fix_missing_locations(value)))
+            self.variables.append("_func_res_")
+            self.returns.append("_func_res_")
+        return node
+
+    def visit_If(self, node):
+        raise DiffEquationError('Do not support "if" statement in differential equation.')
+
+    def visit_IfExp(self, node):
+        raise DiffEquationError('Do not support "if" expression in differential equation.')
+
+    def visit_For(self, node):
+        raise DiffEquationError('Do not support "for" loop in differential equation.')
+
+    def visit_While(self, node):
+        raise DiffEquationError('Do not support "while" loop in differential equation.')
+
+    def visit_Try(self, node):
+        raise DiffEquationError('Do not support "try" handler in differential equation.')
+
+
+class DiffEquationError(Exception):
+    pass
+
+
 def func_replace(code, func_name):
     tree = ast.parse(code.strip())
     w = FuncFinder(func_name)
@@ -138,13 +227,9 @@ class FuncFinder(ast.NodeTransformer):
 
 
 def get_main_code(func):
-    """Get the main function code string.
+    """Get the main function _code string.
 
     For lambda function, return the
-
-
-
-
 
     Parameters
     ----------
@@ -155,7 +240,7 @@ def get_main_code(func):
 
     """
     if func is None:
-        return None
+        return ''
     elif callable(func):
         if is_lambda_function(func):
             func_code = inspect.getsource(func)
@@ -174,7 +259,12 @@ def get_main_code(func):
                     break
             return ''.join(func_codes[idx:])
     else:
-        return func
+        if isinstance(func, (int, float)):
+            return str(func)
+        elif isinstance(func, np.ndarray):
+            return '_g'
+        else:
+            raise ValueError(f'Unknown function type: {type(func)}.')
 
 
 def extract_name(equation, left=False):
@@ -219,7 +309,7 @@ _LINE_KEYWORDS = ('print', 'raise', 'del', 'yield', 'if ', 'elif ', 'while ', 'f
 
 
 def get_code_lines(code_string):
-    """Get code lines from the string.
+    """Get _code lines from the string.
 
     Parameters
     ----------
@@ -234,7 +324,7 @@ def get_code_lines(code_string):
     code_string = autopep8.fix_code(deindent(code_string))
     code_splits = code_string.split('\n')
 
-    # analyse code lines
+    # analyse _code lines
     for line_no, line in enumerate(code_splits):
         # skip empty lines
         if line.strip() == '':
@@ -380,7 +470,7 @@ def stripped_deindented_lines(code):
 
 def code_representation(code):
     """
-    Returns a string representation for several different formats of code
+    Returns a string representation for several different formats of _code
 
     Formats covered include:
     - A single string

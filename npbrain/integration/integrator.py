@@ -29,11 +29,6 @@ def get_integrator(method):
     
     method = method.lower()
     
-    if method == 'exact':
-        if profile.merge_integral:
-            return Exact
-        else:
-            raise ValueError('Cannot use "exact" method in non \'merge_integral\' mode.')
     if method == 'euler':
         return Euler if profile.merge_integral else euler
     elif method == 'midpoint':
@@ -91,14 +86,6 @@ class Integrator(metaclass=ABCMeta):
     @property
     def code_scope(self):
         return self.diff_eqs.func_scope
-
-
-class Exact(Integrator):
-    def __init__(self, diff_eqs):
-        super(Exact, self).__init__(diff_eqs)
-
-    def get_nb_step(self):
-        pass
 
 
 def euler(diff_eqs):
@@ -226,7 +213,13 @@ class Euler(Integrator):
         self.get_nb_step()
 
     def get_nb_step(self):
-        pass
+        dt = profile.get_dt()
+        sub_exprs = self.diff_eqs._substitute(include_subexpressions=True)
+
+        # get code lines
+        code_lines = []
+        for k, v in sub_exprs:
+            code_lines.append(f'{k} = {v._code}')
 
 
 def rk2(diff_eqs, beta=2 / 3):
@@ -904,15 +897,17 @@ class ExponentialEuler(Integrator):
 
     def get_nb_step(self):
         dt = profile.get_dt()
-        sub_exprs = self.diff_eqs.substitute()
+        sub_exprs = self.diff_eqs.get_f_expressions()
+
+        # code line
         code_lines = []
-        for k, v in list(sub_exprs.items())[:-1]:
-            code_lines.append(f'{k} = {v.code}')
+        for k, v in sub_exprs[:-1]:
+            code_lines.append(f'{k} = {v._code()}')
 
         # get the linear system using sympy
         var = sympy.Symbol(self.diff_eqs.var, real=True)
-        diff_eqs_expr = sub_exprs[f'd{self.diff_eqs.var}dt']
-        df_expr = str_to_sympy(diff_eqs_expr.code).expand()
+        diff_eqs_expr = sub_exprs[-1]
+        df_expr = str_to_sympy(diff_eqs_expr._code).expand()
         s_df = sympy.Symbol(f'_d{self.diff_eqs.var}dt')
         code_lines.append(f'{str(s_df)} = {sympy_to_str(df_expr)}')
         if df_expr.has(var):
