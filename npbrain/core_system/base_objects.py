@@ -358,50 +358,54 @@ class BaseEnsemble(object):
         need_add_mapping_scope = False
         for k, v in code_scope.items():
             if isinstance(v, Integrator):
-                need_add_mapping_scope = True
+                if profile.merge_integral:
+                    need_add_mapping_scope = True
 
-                # locate the integration function
-                int_func_name = v.py_func_name
-                for line_no, line in enumerate(code_lines):
-                    if int_func_name in tools.get_identifiers(line):
-                        break
+                    # locate the integration function
+                    int_func_name = v.py_func_name
+                    for line_no, line in enumerate(code_lines):
+                        if int_func_name in tools.get_identifiers(line):
+                            break
 
-                # get integral function line indent
-                line_indent = tools.get_line_indent(line)
-                indent = ' ' * line_indent
+                    # get integral function line indent
+                    line_indent = tools.get_line_indent(line)
+                    indent = ' ' * line_indent
 
-                # get the replace line and arguments need to replace
-                new_line, args, kwargs = tools.func_replace(line, int_func_name)
+                    # get the replace line and arguments need to replace
+                    new_line, args, kwargs = tools.func_replace(line, int_func_name)
 
-                # append _code line of argument replacement
-                func_args = v.diff_eqs.func_args
-                append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
-                                for i in range(len(args))]
-                for arg in func_args[len(args):]:
-                    append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
+                    # append _code line of argument replacement
+                    func_args = v.diff_eq.func_args
+                    append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
+                                    for i in range(len(args))]
+                    for arg in func_args[len(args):]:
+                        append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
 
-                # append numerical integration _code lines
-                append_lines.extend([indent + l for l in v.update_code.split('\n')])
-                append_lines.append(indent + new_line)
+                    # append numerical integration _code lines
+                    append_lines.extend([indent + l for l in v.update_code.split('\n')])
+                    append_lines.append(indent + new_line)
 
-                # add appended lines into the main function _code lines
-                code_lines = code_lines[:line_no] + append_lines + code_lines[line_no + 1:]
+                    # add appended lines into the main function _code lines
+                    code_lines = code_lines[:line_no] + append_lines + code_lines[line_no + 1:]
 
-                # get scope variables to delete
-                scope_to_del.add(k)
-                for k2, v2 in v.code_scope.items():
-                    if callable(v2):
-                        v2 = tools.numba_func(v2)
-                    scope_to_add[k2] = v2
+                    # get scope variables to delete
+                    scope_to_del.add(k)
+                    for k2, v2 in v.code_scope.items():
+                        if callable(v2):
+                            v2 = tools.numba_func(v2)
+                        scope_to_add[k2] = v2
 
-        # update _code scope
+                else:
+                    code_scope[k] = tools.numba_func(v.update_func)
+
+        # update code scope
         if need_add_mapping_scope:
             code_scope.update(get_mapping_scope())
         code_scope.update(scope_to_add)
         for k in scope_to_del:
             code_scope.pop(k)
 
-        # return _code lines and _code scope
+        # return code lines and code scope
         return '\n'.join(code_lines), code_scope
 
     def __step_mode_np_group(self):
@@ -536,9 +540,11 @@ class BaseEnsemble(object):
             # call
             func_call = f'{self.name}.{func_name}({", ".join([code_arg2call[arg] for arg in code_arg])})'
 
-            if profile.show_codgen:
+            if profile.show_formatted_code:
                 print(func_code)
-                print(func_call)
+                print()
+                tools.show_code_scope(code_scope, ['__builtins__', func_name])
+                print()
 
             # final
             self._codegen[func_name] = {'func': func, 'call': func_call}
@@ -607,8 +613,8 @@ class BaseEnsemble(object):
 
             # final
             code_lines = func_code.split('\n')
-
             code_lines.insert(0, f'# "{func_name}" step function of {self.name}')
+            code_lines.append('\n')
             self._codegen[func_name] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -631,10 +637,10 @@ class BaseEnsemble(object):
                 raise ValueError(f'Heterogeneous parameter "{p_k}" is not in '
                                  f'main function, it will not work.')
 
-        # update functions in _code scope
+        # update functions in code scope
         for k, v in code_scope.items():
             if callable(v):
-                code_scope[k] = tools.numba_func(func=v, params=self.pars_update)
+                code_scope[k] = tools.numba_func(func=v)
 
         # check function _code
         for i, arg in enumerate(func_args):
@@ -678,6 +684,7 @@ class BaseEnsemble(object):
                       f'for _ni_ in numba.prange({self.num}):']
         code_lines.extend(['  ' + l for l in func_code.split('\n')])
         code_scope['numba'] = import_module('numba')
+        code_lines.append('\n')
         self._codegen['update'] = {'scopes': code_scope, 'args': code_args,
                                    'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -709,7 +716,7 @@ class BaseEnsemble(object):
             # update functions in _code scope
             for k, v in code_scope.items():
                 if callable(v):
-                    code_scope[k] = tools.numba_func(func=v, params=self.pars_update)
+                    code_scope[k] = tools.numba_func(func=v)
 
             # check function _code
             add_args = set()
@@ -751,13 +758,13 @@ class BaseEnsemble(object):
                                 func_code = re.sub(r'' + p, r, func_code)
                     elif arg == 'pre':
                         for st_k in st._keys:
-                            p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                            r = f"{arg}[{var2idx[st_k]}, _pre_i_]"
+                            p = f'pre\[([\'"]{st_k}[\'"])\]'
+                            r = f"pre[{var2idx[st_k]}, _pre_i_]"
                             func_code = re.sub(r'' + p, r, func_code)
                     elif arg == 'post':
                         for st_k in st._keys:
-                            p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                            r = f"{arg}[{var2idx[st_k]}, _post_i_]"
+                            p = f'post\[([\'"]{st_k}[\'"])\]'
+                            r = f"post[{var2idx[st_k]}, _post_i_]"
                             func_code = re.sub(r'' + p, r, func_code)
                     else:
                         raise ValueError
@@ -780,7 +787,7 @@ class BaseEnsemble(object):
             # substitute multi-dimensional parameter "p" to "p[_ni_]"
             for p in self._hetero_pars.keys():
                 if p in code_scope:
-                    arg_substitute[p] = f'{p}[_ni_]'
+                    arg_substitute[p] = f'{p}[_syn_i_]'
             # substitute
             func_code = tools.word_replace(func_code, arg_substitute)
 
@@ -819,6 +826,7 @@ class BaseEnsemble(object):
 
             code_lines.extend([blank + l for l in func_code.split('\n')])
             code_scope['numba'] = import_module('numba')
+            code_lines.append('\n')
             self._codegen[func_name] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -946,12 +954,10 @@ class BaseEnsemble(object):
                 code_arg2call = [code_arg2call[arg] for arg in code_args]
                 func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
 
-                if profile.show_codgen:
+                if profile.show_formatted_code:
                     print(func_code)
                     print()
-                    code_scope.pop('__builtins__')
-                    code_scope.pop('input_step')
-                    pprint(code_scope)
+                    tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
                     print()
             else:
                 self.input_step = None
@@ -960,6 +966,7 @@ class BaseEnsemble(object):
             self._codegen['input'] = {'func': self.input_step, 'call': func_call}
 
         else:
+            code_lines.append('\n')
             self._codegen['input'] = {'scopes': code_scope, 'args': code_args,
                                       'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -1103,12 +1110,10 @@ class BaseEnsemble(object):
                 code_arg2call = [code_arg2call[arg] for arg in code_args]
                 func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
 
-                if profile.show_codgen:
+                if profile.show_formatted_code:
                     print(func_code)
                     print()
-                    code_scope.pop('__builtins__')
-                    code_scope.pop('monitor_step')
-                    pprint(code_scope)
+                    tools.show_code_scope(code_scope, ['__builtins__', 'monitor_step'])
                     print()
             else:
                 self.monitor_step = None
@@ -1117,6 +1122,7 @@ class BaseEnsemble(object):
             self._codegen['monitor'] = {'func': self.monitor_step, 'call': func_call}
 
         else:
+            code_lines.append('\n')
             self._codegen['monitor'] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -1129,7 +1135,7 @@ class BaseEnsemble(object):
                     if func_call:
                         codes_of_calls.append(func_call)
 
-        else:  # non-numpy mode
+        elif profile.is_numba_bk():  # non-numpy mode
             lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
             for item in self._schedule:
                 if item in self._codegen:
@@ -1147,17 +1153,18 @@ class BaseEnsemble(object):
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scopes)
 
-            self.merge_func = code_scopes['merge_func']
+            self.merge_func = tools.jit(code_scopes['merge_func'])
             func_call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
             codes_of_calls.append(func_call)
 
-            if profile.show_codgen:
+            if profile.show_formatted_code:
                 print(func_code)
                 print()
-                code_scopes.pop('__builtins__')
-                code_scopes.pop('merge_func')
-                pprint(code_scopes)
+                tools.show_code_scope(code_scopes, ['__builtins__', 'merge_func'])
                 print()
+
+        else:
+            raise NotImplementedError
 
         return codes_of_calls
 

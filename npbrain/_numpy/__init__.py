@@ -537,3 +537,14 @@ def _reload(backend):
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')
+
+
+def func_by_name(name):
+    if name in globals():
+        return globals()[name]
+    elif hasattr(random, name):
+        return getattr(random, name)
+    elif hasattr(linalg, name):
+        return getattr(linalg, name)
+    else:
+        return None

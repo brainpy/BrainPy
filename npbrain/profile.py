@@ -29,7 +29,7 @@ _method = 'euler'
 _numba_setting = {'nopython': True, 'fastmath': True,
                   'nogil': False, 'parallel': False}
 
-show_codgen = False
+show_formatted_code = False
 auto_pep8 = True
 substitute_eqs = False
 merge_integral = False

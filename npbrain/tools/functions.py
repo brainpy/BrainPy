@@ -21,7 +21,7 @@ except ImportError as e:
 __all__ = [
     # function helpers
     'jit_function',
-    'autojit',
+    'jit',
     'func_copy',
     'numba_func',
 
@@ -56,52 +56,27 @@ def jit_function(f):
     return nb.jit(f, **op)
 
 
-def autojit(signature_or_func=None):
+def jit(func=None):
     """Format user defined functions.
 
     Parameters
     ----------
-    signature_or_func : callable, a_list, str
+    func : callable, a_list, str
+        The function to be jit.
 
     Returns
     -------
-    callable
+    jit_func : callable
         function.
     """
-    if callable(signature_or_func):  # function
-        if profile.is_numba_bk():
-            if nb is None:
-                raise ImportError('Please install numba.')
-            if not isinstance(signature_or_func, nb.core.dispatcher.Dispatcher):
-                op = profile.get_numba_profile()
-                signature_or_func = nb.jit(signature_or_func, **op)
-        return signature_or_func
-
-    else:  # signature
-
-        if signature_or_func is None:
-            pass
-        else:
-            if isinstance(signature_or_func, str):
-                signature_or_func = [signature_or_func]
-            else:
-                assert isinstance(signature_or_func, (list, tuple))
-                signature_or_func = list(signature_or_func)
-
-        def wrapper(f):
-            if profile.is_numba_bk():
-                if nb is None:
-                    raise ImportError('Please install numba.')
-                if not isinstance(f, nb.core.dispatcher.Dispatcher):
-                    op = profile.get_numba_profile()
-                    if profile.define_signature:
-                        j = nb.jit(signature_or_func, **op)
-                    else:
-                        j = nb.jit(**op)
-                    f = j(f)
-            return f
-
-        return wrapper
+    if nb is None:
+        raise ImportError('Please install numba.')
+    if not isinstance(func, nb.core.dispatcher.Dispatcher):
+        if not callable(func):
+            raise ValueError(f'"func" must be a callable function, but got "{type(func)}".')
+        op = profile.get_numba_profile()
+        func = nb.jit(func, **op)
+    return func
 
 
 
@@ -118,6 +93,9 @@ def func_copy(f):
 
 
 def numba_func(func, params={}):
+    if func == np.func_by_name(func.__name__):
+        return func
+
     vars = inspect.getclosurevars(func)
     code_scope = dict(vars.nonlocals)
     code_scope.update(vars.globals)
@@ -138,9 +116,9 @@ def numba_func(func, params={}):
     if modified:
         func_code = deindent(inspect.getsource(func))
         exec(compile(func_code, '', "exec"), code_scope)
-        return autojit(code_scope[func.__name__])
+        return jit(code_scope[func.__name__])
     else:
-        return autojit(func)
+        return jit(func)
 
 
 def is_struct_array(arr):

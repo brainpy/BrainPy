@@ -35,7 +35,7 @@ class NeuType(BaseType):
         if isinstance(duration, (int, float)):
             start, end = 0, duration
         elif isinstance(duration, (tuple, list)):
-            assert len(duration) == 2, 'Only support duration with format of "(start, end)".'
+            assert len(duration) == 2, 'Only support duration with the format of "(start, end)".'
             start, end = duration
         else:
             raise ValueError(f'Unknown duration type: {type(duration)}')

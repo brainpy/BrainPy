@@ -6,7 +6,7 @@ from npbrain import _numpy as np
 
 nb.profile.set_backend('numpy')
 
-nb.profile.show_codgen = True
+nb.profile.show_formatted_code = True
 nb.profile.auto_pep8 = True
 
 
@@ -256,7 +256,7 @@ AMPA2_single = nb.SynType(name='AMPA_type2', create_func=define_ampa2_single, ve
 def run_ampa_single(cls, duration=650.):
     from examples.neurons.HH_model import HH
     nb.profile.set_backend('numba')
-    nb.profile.show_codgen = True
+    nb.profile.show_formatted_code = True
 
     pre = nb.NeuGroup(HH, 10)
     post = nb.NeuGroup(HH, 20)

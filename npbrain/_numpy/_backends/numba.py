@@ -4,22 +4,22 @@ import numba as nb
 import numpy as np
 
 from npbrain import profile
-from npbrain.tools import autojit
+from npbrain.tools import jit
 
 
 def _reload():
     global_vars = globals()
 
     # Return the cube-root of an array, element-wise.
-    global_vars['cbrt'] = autojit(lambda x: np.power(x, 1. / 3))
+    global_vars['cbrt'] = jit(lambda x: np.power(x, 1. / 3))
 
     # First array elements raised to powers from second array, element-wise.
-    global_vars['float_power'] = autojit(lambda x1, x2: np.power(np.float(x1), x2))
+    global_vars['float_power'] = jit(lambda x1, x2: np.power(np.float(x1), x2))
 
     # Compute the Heaviside step function.
-    global_vars['heaviside'] = autojit(lambda x1, x2: np.where(x1 == 0, x2, np.where(x1 > 0, 1, 0)))
+    global_vars['heaviside'] = jit(lambda x1, x2: np.where(x1 == 0, x2, np.where(x1 > 0, 1, 0)))
 
-    @autojit
+    @jit
     def func(x, source, destination):
         shape = list(x.shape)
         s = shape.pop(source)
@@ -36,7 +36,7 @@ def _reload():
     global_vars['vsplit'] = None
     global_vars['tile'] = None
 
-    @autojit
+    @jit
     def func(x, axis1, axis2):
         shape = list(x.shape)
         s1 = shape[axis1]
@@ -52,7 +52,7 @@ def _reload():
     global_vars['rot90'] = None
 
     # Return numbers spaced evenly on a log scale.
-    global_vars['logspace'] = autojit(
+    global_vars['logspace'] = jit(
         lambda start, stop, num=50, endpoint=True, base=10.0, dtype=None:
         np.power(base, np.linspace(start, stop, num=num, endpoint=endpoint)).astype(dtype))
 
@@ -92,15 +92,15 @@ def _reload():
     global_vars['squeeze'] = func
 
     # Inner product of two arrays.
-    global_vars['inner'] = autojit(lambda a, b: np.sum(a * b))
+    global_vars['inner'] = jit(lambda a, b: np.sum(a * b))
 
     # Evenly round to the given number of decimals.
     global_vars['around'] = np.round_
 
     # Round to nearest integer towards zero.
-    global_vars['fix'] = autojit(lambda x: np.where(x >= 0, x, -np.floor(-x)))
+    global_vars['fix'] = jit(lambda x: np.where(x >= 0, x, -np.floor(-x)))
 
-    @autojit
+    @jit
     def clip(x, x_min, x_max):
         x = np.maximum(x, x_min)
         x = np.minimum(x, x_max)
@@ -110,12 +110,12 @@ def _reload():
     global_vars['clip'] = clip
 
     # Returns True if two arrays are element-wise equal within a tolerance.
-    global_vars['allclose'] = autojit(
+    global_vars['allclose'] = jit(
         lambda a, b, rtol=1e-05, atol=1e-08:
         np.all(np.absolute(a - b) <= (atol + rtol * np.absolute(b))))
 
     # Returns a boolean array where two arrays are element-wise equal within a tolerance.
-    global_vars['isclose'] = autojit(
+    global_vars['isclose'] = jit(
         lambda a, b, rtol=1e-05, atol=1e-08:
         np.absolute(a - b) <= (atol + rtol * np.absolute(b)))
 

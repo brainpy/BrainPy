@@ -7,7 +7,7 @@ import npbrain._numpy as np
 
 nb.profile.set_backend('numpy')
 nb.profile.set_dt(0.02)
-nb.profile.show_codgen = True
+nb.profile.show_formatted_code = True
 
 
 def LIF_single_neuron(tau=10., Vr=0., Vth=10., noise=0., ref=0.):

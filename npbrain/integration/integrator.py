@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta
-from abc import abstractmethod
-
 import sympy
 
 from .diff_equation import DiffEquation
@@ -26,29 +23,29 @@ def get_integrator(method):
     #       integration function into the main function.
     # else,
     #       we should return a "function", to help JIT user defined functions.
-    
+
     method = method.lower()
-    
+
     if method == 'euler':
-        return Euler if profile.merge_integral else euler
+        return Euler
     elif method == 'midpoint':
-        return MidPoint if profile.merge_integral else midpoint
+        return MidPoint
     elif method == 'heun':
-        return Heun if profile.merge_integral else heun
+        return Heun
     elif method == 'rk2':
-        return RK2 if profile.merge_integral else rk2
+        return RK2
     elif method == 'rk3':
-        return RK3 if profile.merge_integral else rk3
+        return RK3
     elif method == 'rk4':
-        return RK4 if profile.merge_integral else rk4
+        return RK4
     elif method == 'exponential':
-        return ExponentialEuler if profile.merge_integral else exponential_euler
+        return ExponentialEuler
     elif method == 'milstein':
-        return MilsteinIto if profile.merge_integral else Milstein_Ito
+        return MilsteinIto
     elif method == 'milstein_ito':
-        return MilsteinIto if profile.merge_integral else Milstein_Ito
+        return MilsteinIto
     elif method == 'milstein_stra':
-        return MilsteinStra if profile.merge_integral else Milstein_Stra
+        return MilsteinStra
     else:
         raise ValueError(f'Unknown method: {method}.')
 
@@ -57,96 +54,46 @@ class IntegratorError(Exception):
     pass
 
 
-class Integrator(metaclass=ABCMeta):
-    def __init__(self, diff_eqs):
-        self.diff_eqs = diff_eqs
+class Integrator(object):
+    def __init__(self, diff_eq):
+        if not isinstance(diff_eq, DiffEquation):
+            raise IntegratorError('"diff_eqs" must be an instance of DiffEquation.')
+        self.diff_eq = diff_eq
         self._update_code = None
+        self._update_func = None
 
-    @abstractmethod
-    def get_nb_step(self):
-        pass
+    @staticmethod
+    def get_nb_step(diff_eq, *args):
+        raise NotImplementedError
 
-    def substitute_arguments(self, code):
-        subs_dict = {arg: f'_{self.py_func_name}_{arg}' for arg in self.diff_eqs.func_args}
-        code = word_replace(code, subs_dict)
-        return code
+    @staticmethod
+    def get_np_step(diff_eq, *args):
+        raise NotImplementedError
 
-    @property
-    def py_func(self):
-        return self.diff_eqs.f
+    def __call__(self, y0, t, *args):
+        return self._update_func(y0, t, *args)
 
+    # @property
+    # def py_func(self):
+    #     return self.diff_eqs.f
+    #
     @property
     def py_func_name(self):
-        return self.diff_eqs.f.__name__
+        return self.diff_eq.func_name
 
     @property
     def update_code(self):
         return self._update_code
 
     @property
+    def update_func(self):
+        return self._update_func
+
+    @property
     def code_scope(self):
-        return self.diff_eqs.func_scope
-
-
-def euler(diff_eqs):
-    assert isinstance(diff_eqs, DiffEquation)
-
-    dt = profile.get_dt()
-    f = diff_eqs.f
-
-    # SDE
-    if diff_eqs.is_stochastic:
-        dt_sqrt = np.sqrt(dt).astype(profile.ftype)
-        g = diff_eqs.g
-
-        if callable(diff_eqs.g):
-
-            if diff_eqs.is_multi_return:
-                def int_f(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    val = f(y0, t, *args)
-                    df = val[0] * dt
-                    dg = dt_sqrt * g(y0, t, *args) * dW
-                    y = y0 + df + dg
-                    return (y,) + tuple(val[1:])
-
-            else:
-                def int_f(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    df = f(y0, t, *args) * dt
-                    dg = dt_sqrt * g(y0, t, *args) * dW
-                    return y0 + df + dg
-        else:
-            assert isinstance(diff_eqs.g, (int, float, np.ndarray))
-
-            if diff_eqs.is_multi_return:
-                def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
-                    df = val[0] * dt
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    dg = dt_sqrt * g * dW
-                    y = y0 + df + dg
-                    return (y,) + tuple(val[1:])
-            else:
-                def int_f(y0, t, *args):
-                    df = f(y0, t, *args) * dt
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    dg = dt_sqrt * g * dW
-                    return y0 + df + dg
-
-    # ODE
-    else:
-        if diff_eqs.is_multi_return:
-            def int_f(y0, t, *args):
-                val = f(y0, t, *args)
-                y = y0 + dt * val[0]
-                return (y,) + tuple(val[1:])
-
-        else:
-            def int_f(y0, t, *args):
-                return y0 + dt * f(y0, t, *args)
-
-    return int_f
+        scope = self.diff_eq.func_scope
+        scope['normal'] = np.random.normal
+        return scope
 
 
 class Euler(Integrator):
@@ -190,7 +137,7 @@ class Euler(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -208,47 +155,110 @@ class Euler(Integrator):
            differential equations with matlab.
     """
 
-    def __init__(self, diff_eqs):
-        super(Euler, self).__init__(diff_eqs)
-        self.get_nb_step()
+    def __init__(self, diff_eq):
+        super(Euler, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq)
+        self._update_func = self.get_np_step(diff_eq)
 
-    def get_nb_step(self):
+    @staticmethod
+    def get_nb_step(diff_eq):
         dt = profile.get_dt()
-        sub_exprs = self.diff_eqs._substitute(include_subexpressions=True)
+        dt_sqrt = np.sqrt(dt)
+        var_name = diff_eq.var_name
+        func_name = diff_eq.func_name
+        var = sympy.Symbol(var_name, real=True)
 
-        # get code lines
-        code_lines = []
-        for k, v in sub_exprs:
-            code_lines.append(f'{k} = {v._code}')
+        # get code lines of df part
+        f_expressions = diff_eq.get_f_expressions(substitute=False)
+        code_lines = [str(expr) for expr in f_expressions]
+        dfdt = sympy.Symbol(f'_df{var_name}_dt')
 
-
-def rk2(diff_eqs, beta=2 / 3):
-    assert isinstance(diff_eqs, DiffEquation)
-
-    f = diff_eqs.f
-    dt = profile.get_dt()
-
-    if diff_eqs.is_stochastic:
-        raise NotImplementedError
-    else:
-
-        if diff_eqs.is_multi_return:
-            def int_f(y0, t, *args):
-                val = f(y0, t, *args)
-                k1 = val[0]
-                v = f(y0 + beta * dt * k1, t + beta * dt, *args)
-                k2 = v[0]
-                y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
-                return (y,) + tuple(val[1:])
-
+        # get code lines of dg part
+        if diff_eq.is_stochastic:
+            code_lines.append(f'_{var_name}_dW = normal(0., 1., {var_name}.shape)')
+            if diff_eq.is_functional_noise:
+                g_expressions = diff_eq.get_g_expressions(substitute=False)
+                code_lines.extend([str(expr) for expr in g_expressions])
+            else:
+                code_lines.append(f'_dg{var_name}_dt = {diff_eq.g_code}')
+            dgdt = sympy.Symbol(f'_{var_name}_dW') * sympy.Symbol(f'_dg{var_name}_dt')
         else:
-            def int_f(y0, t, *args):
-                k1 = f(y0, t, *args)
-                k2 = f(y0 + beta * dt * k1, t + beta * dt, *args)
-                y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
-                return y
+            dgdt = 0
 
-    return int_f
+        # update expression
+        update = var + dfdt * dt + dt_sqrt * dgdt
+        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+
+        # multiple returns
+        return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+        code_lines.append(f'_{func_name}_res = {return_expr}')
+
+        # final
+        code = '\n'.join(code_lines)
+        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                     diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+        code = word_replace(code, subs_dict)
+        return code
+
+    @staticmethod
+    def get_np_step(diff_eqs, *args):
+        f = diff_eqs.f
+        dt = profile.get_dt()
+
+        # SDE
+        if diff_eqs.is_stochastic:
+            dt_sqrt = np.sqrt(dt)
+            g = diff_eqs.g
+
+            if callable(diff_eqs.g):
+
+                if diff_eqs.is_multi_return:
+                    def int_f(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        val = f(y0, t, *args)
+                        df = val[0] * dt
+                        dg = dt_sqrt * g(y0, t, *args) * dW
+                        y = y0 + df + dg
+                        return (y,) + tuple(val[1:])
+
+                else:
+                    def int_f(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        df = f(y0, t, *args) * dt
+                        dg = dt_sqrt * g(y0, t, *args) * dW
+                        return y0 + df + dg
+            else:
+                assert isinstance(diff_eqs.g, (int, float, np.ndarray))
+
+                if diff_eqs.is_multi_return:
+                    def int_f(y0, t, *args):
+                        val = f(y0, t, *args)
+                        df = val[0] * dt
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        dg = dt_sqrt * g * dW
+                        y = y0 + df + dg
+                        return (y,) + tuple(val[1:])
+                else:
+                    def int_f(y0, t, *args):
+                        df = f(y0, t, *args) * dt
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        dg = dt_sqrt * g * dW
+                        return y0 + df + dg
+
+        # ODE
+        else:
+            if diff_eqs.is_multi_return:
+                def int_f(y0, t, *args):
+                    val = f(y0, t, *args)
+                    y = y0 + dt * val[0]
+                    return (y,) + tuple(val[1:])
+
+            else:
+                def int_f(y0, t, *args):
+                    return y0 + dt * f(y0, t, *args)
+
+        return int_f
 
 
 class RK2(Integrator):
@@ -265,7 +275,7 @@ class RK2(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
     beta : float
         Popular choices for 'beta':
@@ -290,70 +300,95 @@ class RK2(Integrator):
     Heun, MidPoint
     """
 
-    def __init__(self, diff_eqs, beta=2 / 3):
-        super(RK2, self).__init__(diff_eqs)
+    def __init__(self, diff_eq, beta=2 / 3):
+        super(RK2, self).__init__(diff_eq)
         self.beta = beta
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq, beta)
+        self._update_func = self.get_np_step(diff_eq, beta=beta)
 
-
-def heun(diff_eqs):
-    """Two-stage method for ODE numerical integration.
-
-    Parameters
-    ----------
-    diff_eqs : DiffEquation
-        The function at the right hand of the differential equation.
-
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
-
-    See Also
-    --------
-    ode_rk2, midpoint
-    """
-
-    assert isinstance(diff_eqs, DiffEquation)
-
-    if diff_eqs.is_stochastic:
+    @staticmethod
+    def get_nb_step(diff_eq, beta):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
-        f = diff_eqs.f
-        g = diff_eqs.g
+        t_name = diff_eq.t_name
+        var_name = diff_eq.var_name
+        func_name = diff_eq.func_name
+        var = sympy.Symbol(var_name, real=True)
 
-        if callable(g):
+        # get code lines of k1 df part
+        k1_expressions = diff_eq.get_f_expressions(substitute=False)
+        code_lines = [str(expr) for expr in k1_expressions[:-1]]
+        code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
+
+        # k1 -> k2 increment
+        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        code_lines.append(f'{y_1_to_2} = {var_name} + {beta * dt} * _df{var_name}_dt_k1')
+        code_lines.append(f'{t_1_to_2} = {t_name} + {beta * dt}')
+
+        # get code lines of k2 df part
+        k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=y_1_to_2, t_sub=t_1_to_2)
+        if len(k2_expressions):
+            code_lines.extend([str(expr) for expr in k2_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k2 = {k2_expressions[-1].code}')
+
+        # final dt part
+        dfdt = sympy.Symbol(f'_df{var_name}_dt')
+        if len(k2_expressions):
+            coefficient2 = 1 / (2 * beta)
+            coefficient1 = 1 - coefficient2
+            code_lines.append(f'{dfdt.name} = {coefficient1} * _df{var_name}_dt_k1 + {coefficient2} * _df{var_name}_dt_k2')
+        else:
+            code_lines.append(f'{dfdt.name} = _df{var_name}_dt_k1')
+
+        # get code lines of dg part
+        if diff_eq.is_stochastic:
+            raise NotImplementedError('RK2 currently doesn\'t support SDE.')
+        else:
+            dgdt = 0
+
+        # update expression
+        update = var + dfdt * dt + dt_sqrt * dgdt
+        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+
+        # multiple returns
+        return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+        code_lines.append(f'_{func_name}_res = {return_expr}')
+
+        # final
+        code = '\n'.join(code_lines)
+        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                     diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+        code = word_replace(code, subs_dict)
+        return code
+
+    @staticmethod
+    def get_np_step(diff_eqs, beta):
+        f = diff_eqs.f
+        dt = profile.get_dt()
+
+        if diff_eqs.is_stochastic:
+            raise NotImplementedError
+        else:
 
             if diff_eqs.is_multi_return:
-
                 def int_f(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
                     val = f(y0, t, *args)
-                    df = val[0] * dt
-                    gn = g(y0, t, *args)
-                    y_bar = y0 + gn * dW * dt_sqrt
-                    gn_bar = g(y_bar, t, *args)
-                    dg = 0.5 * (gn + gn_bar) * dW * dt_sqrt
-                    y1 = y0 + df + dg
-                    return (y1,) + tuple(val[1:])
+                    k1 = val[0]
+                    v = f(y0 + beta * dt * k1, t + beta * dt, *args)
+                    k2 = v[0]
+                    y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
+                    return (y,) + tuple(val[1:])
 
             else:
-
                 def int_f(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    df = f(y0, t, *args) * dt
-                    gn = g(y0, t, *args)
-                    y_bar = y0 + gn * dW * dt_sqrt
-                    gn_bar = g(y_bar, t, *args)
-                    dg = 0.5 * (gn + gn_bar) * dW * dt_sqrt
-                    y1 = y0 + df + dg
-                    return y1
+                    k1 = f(y0, t, *args)
+                    k2 = f(y0 + beta * dt * k1, t + beta * dt, *args)
+                    y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
+                    return y
 
-            return int_f
-
-        else:
-            return euler(diff_eqs)
-    else:
-        return rk2(diff_eqs, beta=1.)
+        return int_f
 
 
 class Heun(Integrator):
@@ -380,7 +415,7 @@ class Heun(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -401,28 +436,60 @@ class Heun(Integrator):
     RK2, MidPoint, MilsteinStra
     """
 
-    def __init__(self, diff_eqs):
-        super(Heun, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(Heun, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq, 1.0)
+        self._update_func = self.get_np_step(diff_eq)
 
+    @staticmethod
+    def get_nb_step(diff_eq, beta):
+        if diff_eq.is_stochastic:
+            raise NotImplementedError
+        else:
+            return RK2.get_nb_step(diff_eq, beta)
 
-def midpoint(diff_eqs):
-    """Explicit midpoint Euler method. Also named as ``modified_Euler``.
+    @staticmethod
+    def get_np_step(diff_eqs, *args):
+        dt = profile.get_dt()
+        f = diff_eqs.f
 
-    Parameters
-    ----------
-    f : callable
-        The function at the right hand of the differential equation.
+        if diff_eqs.is_stochastic:
+            dt_sqrt = np.sqrt(dt)
+            g = diff_eqs.g
 
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
+            if callable(g):
+                if diff_eqs.is_multi_return:
 
-    See Also
-    --------
-    ode_rk2, ode_heun
-    """
-    return rk2(diff_eqs, beta=0.5)
+                    def int_f(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        val = f(y0, t, *args)
+                        df = val[0] * dt
+                        gn = g(y0, t, *args)
+                        y_bar = y0 + gn * dW * dt_sqrt
+                        gn_bar = g(y_bar, t, *args)
+                        dg = 0.5 * (gn + gn_bar) * dW * dt_sqrt
+                        y1 = y0 + df + dg
+                        return (y1,) + tuple(val[1:])
+
+                else:
+
+                    def int_f(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        df = f(y0, t, *args) * dt
+                        gn = g(y0, t, *args)
+                        y_bar = y0 + gn * dW * dt_sqrt
+                        gn_bar = g(y_bar, t, *args)
+                        dg = 0.5 * (gn + gn_bar) * dW * dt_sqrt
+                        y1 = y0 + df + dg
+                        return y1
+
+                return int_f
+
+            else:
+                return Euler.get_np_step(diff_eqs)
+        else:
+            return RK2.get_np_step(diff_eqs, beta=1.)
 
 
 class MidPoint(Integrator):
@@ -430,7 +497,7 @@ class MidPoint(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -443,60 +510,22 @@ class MidPoint(Integrator):
     RK2, Heun
     """
 
-    def __init__(self, diff_eqs):
-        super(MidPoint, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(MidPoint, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq, beta=0.5)
+        self._update_func = self.get_np_step(diff_eq)
 
-
-def rk3(diff_eqs):
-    """Kutta's third-order method (commonly known as RK3).
-    Also named as ``RK3`` [1]_ [2]_ [3]_ .
-    .. math::
-        k_1 &= f(y_n, t_n) \\\\
-        k_2 &= f(y_n + \\frac{\\Delta t}{2}k_1, tn+\\frac{\\Delta t}{2}) \\\\
-        k_3 &= f(y_n -\\Delta t k_1 + 2\\Delta t k_2, t_n + \\Delta t) \\\\
-        y_{n+1} &= y_{n} + \\frac{\\Delta t}{6}(k_1 + 4k_2+k_3)
-    Parameters
-    ----------
-    diff_eqs : DiffEquation
-        The function at the right hand of the differential equation.
-
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
-
-    References
-    ----------
-    .. [1] http://mathworld.wolfram.com/Runge-KuttaMethod.html
-    .. [2] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
-    .. [3] https://zh.wikipedia.org/wiki/龙格－库塔法
-    """
-    assert isinstance(diff_eqs, DiffEquation)
-
-    f = diff_eqs.f
-    dt = profile.get_dt()
-
-    if diff_eqs.is_stochastic:
-        raise NotImplementedError
-
-    else:
-        if diff_eqs.is_multi_return:
-            def int_f(y0, t, *args):
-                val = f(y0, t, *args)
-                k1 = val[0]
-                k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)[0]
-                k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)[0]
-                y = y0 + dt / 6 * (k1 + 4 * k2 + k3)
-                return (y,) + tuple(val[1:])
-
+    @staticmethod
+    def get_nb_step(diff_eq, beta):
+        if diff_eq.is_stochastic:
+            raise NotImplementedError
         else:
-            def int_f(y0, t, *args):
-                k1 = f(y0, t, *args)
-                k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)
-                k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)
-                return y0 + dt / 6 * (k1 + 4 * k2 + k3)
+            return RK2.get_nb_step(diff_eq, beta)
 
-    return int_f
+    @staticmethod
+    def get_np_step(diff_eqs, *args):
+        return RK2.get_np_step(diff_eqs, beta=0.5)
 
 
 class RK3(Integrator):
@@ -512,7 +541,7 @@ class RK3(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -528,65 +557,103 @@ class RK3(Integrator):
 
     """
 
-    def __init__(self, diff_eqs):
-        super(RK3, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(RK3, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq)
+        self._update_func = self.get_np_step(diff_eq)
 
+    @staticmethod
+    def get_nb_step(diff_eq):
+        dt = profile.get_dt()
+        dt_sqrt = np.sqrt(dt)
+        t_name = diff_eq.t_name
+        var_name = diff_eq.var_name
+        func_name = diff_eq.func_name
+        var = sympy.Symbol(var_name, real=True)
 
-def rk4(diff_eqs):
-    """Fourth-order Runge-Kutta (RK4) [1]_ [2]_ [3]_ .
-    
-    .. math::
-        k_1 &= f(y_n, t_n) \\\\
-        k_2 &= f(y_n + \\frac{\\Delta t}{2}k_1, t_n + \\frac{\\Delta t}{2}) \\\\
-        k_3 &= f(y_n + \\frac{\\Delta t}{2}k_2, t_n + \\frac{\\Delta t}{2}) \\\\
-        k_4 &= f(y_n + \\Delta t k_3, t_n + \\Delta t) \\\\
-        y_{n+1} &= y_n + \\frac{\\Delta t}{6}(k_1 + 2*k_2 + 2* k_3 + k_4)
-        
-    Parameters
-    ----------
-    diff_eqs : DiffEquation
-        The function at the right hand of the differential equation.
-    
-    
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
-        
-    References
-    ----------
-    .. [1] http://mathworld.wolfram.com/Runge-KuttaMethod.html
-    .. [2] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
-    .. [3] https://zh.wikipedia.org/wiki/龙格－库塔法
-    """
-    assert isinstance(diff_eqs, DiffEquation)
+        # get code lines of k1 df part
+        k1_expressions = diff_eq.get_f_expressions(substitute=False)
+        code_lines = [str(expr) for expr in k1_expressions[:-1]]
+        code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
-    f = diff_eqs.f
-    dt = profile.get_dt()
+        # k1 -> k2 increment
+        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        code_lines.append(f'{y_1_to_2} = {var_name} + {dt / 2} * _df{var_name}_dt_k1')
+        code_lines.append(f'{t_1_to_2} = {t_name} + {dt / 2}')
 
-    if diff_eqs.is_stochastic:
-        raise NotImplementedError
+        # get code lines of k2 df part
+        k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=y_1_to_2, t_sub=t_1_to_2)
 
-    else:
-        if diff_eqs.is_multi_return:
-            def int_f(y0, t, *args):
-                val = f(y0, t, *args)
-                k1 = val[0]
-                k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)[0]
-                k3 = f(y0 + dt / 2 * k2, t + dt / 2, *args)[0]
-                k4 = f(y0 + dt * k3, t + dt, *args)[0]
-                y = y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
-                return (y,) + tuple(val[1:])
+        dfdt = sympy.Symbol(f'_df{var_name}_dt')
+        if len(k2_expressions):
+            code_lines.extend([str(expr) for expr in k2_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k2 = {k2_expressions[-1].code}')
+
+            # get code lines of k3 df part
+            y_1_to_3 = f'_{func_name}_{var_name}_k1_to_k3'
+            t_1_to_3 = f'_{func_name}_t_k1_to_k3'
+            code_lines.append(f'{y_1_to_3} = {var_name} - {dt} * _df{var_name}_dt_k1 + {2 * dt} * _df{var_name}_dt_k2')
+            code_lines.append(f'{t_1_to_3} = {t_name} + {dt}')
+            k3_expressions = diff_eq.replace_f_expressions('k3', y_sub=y_1_to_3, t_sub=t_1_to_3)
+            code_lines.extend([str(expr) for expr in k3_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k3 = {k3_expressions[-1].code}')
+
+            # final df part
+            code_lines.append(f'{dfdt.name} = (_df{var_name}_dt_k1 + '
+                              f'4 * _df{var_name}_dt_k2 + _df{var_name}_dt_k3) / 6')
+        else:
+            # final df part
+            code_lines.append(f'{dfdt.name} = _df{var_name}_dt_k1')
+
+        # get code lines of dg part
+        if diff_eq.is_stochastic:
+            raise NotImplementedError('RK3 currently doesn\'t support SDE.')
+        else:
+            dgdt = 0
+
+        # update expression
+        update = var + dfdt * dt + dt_sqrt * dgdt
+        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+
+        # multiple returns
+        return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+        code_lines.append(f'_{func_name}_res = {return_expr}')
+
+        # final
+        code = '\n'.join(code_lines)
+        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                     diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+        code = word_replace(code, subs_dict)
+        return code
+
+    @staticmethod
+    def get_np_step(diff_eqs, *args):
+        f = diff_eqs.f
+        dt = profile.get_dt()
+
+        if diff_eqs.is_stochastic:
+            raise NotImplementedError
 
         else:
-            def int_f(y0, t, *args):
-                k1 = f(y0, t, *args)
-                k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)
-                k3 = f(y0 + dt / 2 * k2, t + dt / 2, *args)
-                k4 = f(y0 + dt * k3, t + dt, *args)
-                return y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+            if diff_eqs.is_multi_return:
+                def int_f(y0, t, *args):
+                    val = f(y0, t, *args)
+                    k1 = val[0]
+                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)[0]
+                    k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)[0]
+                    y = y0 + dt / 6 * (k1 + 4 * k2 + k3)
+                    return (y,) + tuple(val[1:])
 
-    return int_f
+            else:
+                def int_f(y0, t, *args):
+                    k1 = f(y0, t, *args)
+                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)
+                    k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)
+                    return y0 + dt / 6 * (k1 + 4 * k2 + k3)
+
+        return int_f
 
 
 class RK4(Integrator):
@@ -602,7 +669,7 @@ class RK4(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -618,67 +685,40 @@ class RK4(Integrator):
 
     """
 
-    def __init__(self, diff_eqs):
-        super(RK4, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(RK4, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq)
+        self._update_func = self.get_np_step(diff_eq)
 
+    @staticmethod
+    def get_np_step(diff_eqs, *args):
+        f = diff_eqs.f
+        dt = profile.get_dt()
 
-def rk4_alternative(diff_eq):
-    """An alternative of fourth-order Runge-Kutta method.
-    Also named as ``RK4_alternative`` ("3/8" rule).
-    
-    It is a less often used fourth-order
-    explicit RK method, and was also proposed by Kutta [1]_:
-    
-    .. math::
-        k_1 &= f(y_n, t_n) \\\\
-        k_2 &= f(y_n + \\frac{\\Delta t}{3}k_1, t_n + \\frac{\\Delta t}{3}) \\\\
-        k_3 &= f(y_n - \\frac{\\Delta t}{3}k_1 + \\Delta t k_2, t_n + \\frac{2 \\Delta t}{3}) \\\\
-        k_4 &= f(y_n + \\Delta t k_1 - \\Delta t k_2 + \\Delta t k_3, t_n + \\Delta t) \\\\
-        y_{n+1} &= y_n + \\frac{\\Delta t}{8}(k_1 + 3*k_2 + 3* k_3 + k_4)
-        
-    Parameters
-    ----------
-    diff_eq : DiffEquation
-        The function at the right hand of the differential equation.
-        
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
-        
-    References
-    ----------
-    .. [1] https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods
-    """
-    assert isinstance(diff_eq, DiffEquation)
-
-    f = diff_eq.f
-    dt = profile.get_dt()
-
-    if diff_eq.is_stochastic:
-        raise IntegratorError('"RK4_alternative" method doesn\'t support stochastic differential equation.')
-
-    else:
-
-        if diff_eq.is_multi_return:
-            def int_f(y0, t, *args):
-                val = f(y0, t, *args)
-                k1 = val[0]
-                k2 = f(y0 + dt / 3 * k1, t + dt / 3, *args)[0]
-                k3 = f(y0 - dt / 3 * k1 + dt * k2, t + 2 * dt / 3, *args)[0]
-                k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)[0]
-                y = y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
-                return (y,) + tuple(val[1:])
+        if diff_eqs.is_stochastic:
+            raise NotImplementedError
 
         else:
-            def int_f(y0, t, *args):
-                k1 = f(y0, t, *args)
-                k2 = f(y0 + dt / 3 * k1, t + dt / 3, *args)
-                k3 = f(y0 - dt / 3 * k1 + dt * k2, t + 2 * dt / 3, *args)
-                k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)
-                return y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
+            if diff_eqs.is_multi_return:
+                def int_f(y0, t, *args):
+                    val = f(y0, t, *args)
+                    k1 = val[0]
+                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)[0]
+                    k3 = f(y0 + dt / 2 * k2, t + dt / 2, *args)[0]
+                    k4 = f(y0 + dt * k3, t + dt, *args)[0]
+                    y = y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+                    return (y,) + tuple(val[1:])
 
-    return int_f
+            else:
+                def int_f(y0, t, *args):
+                    k1 = f(y0, t, *args)
+                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)
+                    k3 = f(y0 + dt / 2 * k2, t + dt / 2, *args)
+                    k4 = f(y0 + dt * k3, t + dt, *args)
+                    return y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+        return int_f
 
 
 class RK4Alternative(Integrator):
@@ -698,7 +738,7 @@ class RK4Alternative(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -712,132 +752,43 @@ class RK4Alternative(Integrator):
     .. [1] https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods
     """
 
-    def __init__(self, diff_eqs):
-        super(RK4Alternative, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(RK4Alternative, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq)
+        self._update_func = self.get_np_step(diff_eq)
 
+    @staticmethod
+    def get_np_step(diff_eq, *args):
+        assert isinstance(diff_eq, DiffEquation)
 
-def exponential_euler(diff_eq):
-    """First order, explicit exponential Euler method for ODE integration.
-    
-    For an equation of the form
-    
-    .. math::
-        y^{\\prime}=f(y), \quad y(0)=y_{0}
-        
-    its schema is given by
-    
-    .. math::
-        y_{n+1}= y_{n}+h \\varphi(hA) f (y_{n})
-        
-    where :math:`A=f^{\prime}(y_{n})` and
-    :math:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
-    
-    For linear ODE system: :math:`y^{\\prime} = Ay + B`,
-    the above equation is equal to
-    
-    .. math::
-        y_{n+1}= y_{n}e^{hA}-B/A(1-e^{hA})
-    
-    For an equation of the form
-    
-    .. math::
-        d y=(A y+ F(y)) dt + g(y) dW(t) = f(y) dt + g(y) dW(t), \\quad y(0)=y_{0}
-    
-    its schema is given by [1]_
-    
-    .. math::
-        y_{n+1} & =e^{\\Delta t A}(y_{n}+ g(y_n)\\Delta W_{n})+\\varphi(\\Delta t A) F(y_{n}) \\Delta t \\\\
-         &= y_n + \\Delta t \\varphi(\\Delta t A) f(y) + e^{\\Delta t A}g(y_n)\\Delta W_{n}
-    
-    where :math:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
-    
-    
-    Parameters
-    ----------
-    diff_eq : DiffEquation
-        The function at the right hand of the differential equation.
-        Note, the `dydt` (i.e., :math:`f`) and linear coefficient `A` (i.e.,
-        :math:`f'(y0)`) must be returned in the customized function.
-        
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
-    """
+        f = diff_eq.f
+        dt = profile.get_dt()
 
-    assert isinstance(diff_eq, DiffEquation)
-
-    f = diff_eq.f
-    dt = profile.get_dt()
-
-    if diff_eq.is_stochastic:
-        dt_sqrt = np.sqrt(dt)
-        g = diff_eq.g
-
-        if callable(g):
-
-            if diff_eq.is_multi_return:
-
-                def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
-                    dydt, linear_part = val[0], val[1]
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    dg = dt_sqrt * g(y0, t, *args) * dW
-                    exp = np.exp(linear_part * dt)
-                    y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
-                    return (y1,) + tuple(val[2:])
-
-            else:
-
-                def int_f(y0, t, *args):
-                    dydt, linear_part = f(y0, t, *args)
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    dg = dt_sqrt * g(y0, t, *args) * dW
-                    exp = np.exp(linear_part * dt)
-                    y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
-                    return y1
-
-        else:
-            assert isinstance(g, (int, float, np.ndarray))
-
-            if diff_eq.is_multi_return:
-
-                def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
-                    dydt, linear_part = val[0], val[1]
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    dg = dt_sqrt * g * dW
-                    exp = np.exp(linear_part * dt)
-                    y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
-                    return (y1,) + tuple(val[1:])
-
-            else:
-
-                def int_f(y0, t, *args):
-                    dydt, linear_part = f(y0, t, *args)
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    dg = dt_sqrt * g * dW
-                    exp = np.exp(linear_part * dt)
-                    y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
-                    return y1
-
-    else:
-
-        if diff_eq.is_multi_return:
-            def int_f(y0, t, *args):
-                val = f(y0, t, *args)
-                df, linear_part = val[0], val[1]
-                y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
-                return (y,) + tuple(val[2:])
+        if diff_eq.is_stochastic:
+            raise IntegratorError('"RK4_alternative" method doesn\'t support stochastic differential equation.')
 
         else:
 
-            def int_f(y0, t, *args):
-                df, linear_part = f(y0, t, *args)
-                y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
-                return y
+            if diff_eq.is_multi_return:
+                def int_f(y0, t, *args):
+                    val = f(y0, t, *args)
+                    k1 = val[0]
+                    k2 = f(y0 + dt / 3 * k1, t + dt / 3, *args)[0]
+                    k3 = f(y0 - dt / 3 * k1 + dt * k2, t + 2 * dt / 3, *args)[0]
+                    k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)[0]
+                    y = y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
+                    return (y,) + tuple(val[1:])
 
-    return int_f
+            else:
+                def int_f(y0, t, *args):
+                    k1 = f(y0, t, *args)
+                    k2 = f(y0 + dt / 3 * k1, t + dt / 3, *args)
+                    k3 = f(y0 - dt / 3 * k1 + dt * k2, t + 2 * dt / 3, *args)
+                    k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)
+                    return y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
+
+        return int_f
 
 
 class ExponentialEuler(Integrator):
@@ -881,7 +832,7 @@ class ExponentialEuler(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -890,113 +841,161 @@ class ExponentialEuler(Integrator):
         The one-step numerical integrator function.
     """
 
-    def __init__(self, diff_eqs):
-        super(ExponentialEuler, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(ExponentialEuler, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq)
+        if not profile.merge_integral:
+            raise IntegratorError('"exponential method only supports "merge_integral=True". '
+                                  'Please set "profile.merge_integral = True."')
+        self._update_func = self.get_np_step(diff_eq)
 
-        self.get_nb_step()
-
-    def get_nb_step(self):
+    @staticmethod
+    def get_nb_step(diff_eq, *args):
         dt = profile.get_dt()
-        sub_exprs = self.diff_eqs.get_f_expressions()
+        f_expressions = diff_eq.get_f_expressions(substitute=True)
 
-        # code line
-        code_lines = []
-        for k, v in sub_exprs[:-1]:
-            code_lines.append(f'{k} = {v._code()}')
+        # code lines
+        code_lines = [str(expr) for expr in f_expressions[:-1]]
 
         # get the linear system using sympy
-        var = sympy.Symbol(self.diff_eqs.var, real=True)
-        diff_eqs_expr = sub_exprs[-1]
-        df_expr = str_to_sympy(diff_eqs_expr._code).expand()
-        s_df = sympy.Symbol(f'_d{self.diff_eqs.var}dt')
-        code_lines.append(f'{str(s_df)} = {sympy_to_str(df_expr)}')
+        f_res = f_expressions[-1]
+        df_expr = str_to_sympy(f_res.code).expand()
+        s_df = sympy.Symbol(f"{f_res.var_name}")
+        code_lines.append(f'{s_df.name} = {sympy_to_str(df_expr)}')
+        var = sympy.Symbol(diff_eq.var_name, real=True)
+
+        # get df part
+        s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
+        s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
+        s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
         if df_expr.has(var):
+            # linear
             linear = sympy.collect(df_expr, var, evaluate=False)[var]
-            s_lin_name = f'_{self.py_func_name}_linear'
-            s_lin = sympy.Symbol(s_lin_name)
-            code_lines.append(f'{s_lin_name} = {sympy_to_str(linear)}')
-            update = var + (sympy.exp(s_lin * dt) - 1) / s_lin * s_df
+            code_lines.append(f'{s_linear.name} = {sympy_to_str(linear)}')
+            # linear exponential
+            linear_exp = sympy.exp(linear * dt)
+            code_lines.append(f'{s_linear_exp.name} = {sympy_to_str(linear_exp)}')
+            # df part
+            df_part = (s_linear_exp - 1) / s_linear * s_df
+            code_lines.append(f'{s_df_part.name} = {sympy_to_str(df_part)}')
+
         else:
-            update = var + dt * s_df
+            # linear exponential
+            code_lines.append(f'{s_linear_exp.name} = np.sqrt({dt})')
+            # df part
+            code_lines.append(f'{s_df_part.name} = {sympy_to_str(dt * s_df)}')
+
+        # get dg part
+        if diff_eq.is_stochastic:
+            # dW
+            code_lines.append(f'_{diff_eq.var_name}_dW = normal(0., 1., {diff_eq.var_name}.shape)')
+            # expressions of the stochastic part
+            g_expressions = diff_eq.get_g_expressions()
+            # get the
+            if diff_eq.is_functional_noise:
+                for expr in g_expressions:
+                    code_lines.append(str(expr))
+                g_expr = g_expressions[-1].var_name
+            else:
+                g_expr = g_expressions[-1].code
+            # get the dg_part
+            s_dg_part = sympy.Symbol(f'_{diff_eq.var_name}_dg_part')
+            code_lines.append(f'_{diff_eq.var_name}_dg_part = {g_expr} * _{diff_eq.var_name}_dW')
+        else:
+            s_dg_part = 0
+
+        # update expression
+        update = var + s_df_part + s_dg_part * s_linear_exp
 
         # The actual update step
-        code_lines.append(f'{self.diff_eqs.var} = {sympy_to_str(update)}')
-        code_lines.append(f'_{self.py_func_name}_res = {self.diff_eqs.return_expressions.code_line}')
+        code_lines.append(f'{diff_eq.var_name} = {sympy_to_str(update)}')
+        return_expr = ', '.join([diff_eq.var_name] + diff_eq.f_returns[1:])
+        code_lines.append(f'_{diff_eq.func_name}_res = {return_expr}')
 
-        #
+        # final
         code = '\n'.join(code_lines)
-        self._update_code = self.substitute_arguments(code)
+        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                     diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+        code = word_replace(code, subs_dict)
+        return code
 
+    @staticmethod
+    def get_np_step(diff_eq, *args):
+        assert isinstance(diff_eq, DiffEquation)
 
-def Milstein_Ito(diff_eq):
-    """Itô stochastic integral. The derivative-free Milstein method is
-    an order 1.0 strong Taylor schema.
-    
-    The following implementation approximates this derivative thanks to a
-    Runge-Kutta approach [1]_.
-    
-    In Itô scheme, it is expressed as
-    
-    .. math::
-        Y_{n+1} = Y_n + f_n h + g_n \\Delta W_n + {1 \\over 2\\sqrt{h}}
-        [g(\\overline{Y_n}) - g_n] [(\\Delta W_n)^2-h]
-        
-    where :math:`\\overline{Y_n} = Y_n + f_n h + g_n \\sqrt{h}`.
-    
-    Parameters
-    ----------
-    diff_eq : DiffEquation
-        The drift coefficient, the deterministic part of the SDE.
-    
-    References
-    ----------
-    .. [1] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE
-           through computer experiments, Springer, 1994.
-           
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
-        
-    """
-    assert isinstance(diff_eq, DiffEquation)
+        f = diff_eq.f
+        dt = profile.get_dt()
 
-    dt = profile.get_dt()
-    dt_sqrt = np.sqrt(dt)
-    f = diff_eq.f
-    g = diff_eq.g
+        if diff_eq.is_stochastic:
+            dt_sqrt = np.sqrt(dt)
+            g = diff_eq.g
 
-    if diff_eq.is_stochastic:
-        if callable(g):
+            if callable(g):
+
+                if diff_eq.is_multi_return:
+
+                    def int_f(y0, t, *args):
+                        val = f(y0, t, *args)
+                        dydt, linear_part = val[0], val[1]
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        dg = dt_sqrt * g(y0, t, *args) * dW
+                        exp = np.exp(linear_part * dt)
+                        y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
+                        return (y1,) + tuple(val[2:])
+
+                else:
+
+                    def int_f(y0, t, *args):
+                        dydt, linear_part = f(y0, t, *args)
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        dg = dt_sqrt * g(y0, t, *args) * dW
+                        exp = np.exp(linear_part * dt)
+                        y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
+                        return y1
+
+            else:
+                assert isinstance(g, (int, float, np.ndarray))
+
+                if diff_eq.is_multi_return:
+
+                    def int_f(y0, t, *args):
+                        val = f(y0, t, *args)
+                        dydt, linear_part = val[0], val[1]
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        dg = dt_sqrt * g * dW
+                        exp = np.exp(linear_part * dt)
+                        y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
+                        return (y1,) + tuple(val[1:])
+
+                else:
+
+                    def int_f(y0, t, *args):
+                        dydt, linear_part = f(y0, t, *args)
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        dg = dt_sqrt * g * dW
+                        exp = np.exp(linear_part * dt)
+                        y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
+                        return y1
+
+        else:
 
             if diff_eq.is_multi_return:
 
-                def int_fg(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
+                def int_f(y0, t, *args):
                     val = f(y0, t, *args)
-                    df = val[0] * dt
-                    g_n = g(y0, t, *args)
-                    dg = g_n * dW * dt_sqrt
-                    y_n_bar = y0 + df + g_n * dt_sqrt
-                    g_n_bar = g(y_n_bar, t, *args)
-                    y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt - dt_sqrt)
-                    return (y1,) + tuple(val[1:])
+                    df, linear_part = val[0], val[1]
+                    y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
+                    return (y,) + tuple(val[2:])
 
             else:
 
-                def int_fg(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    df = f(y0, t, *args) * dt
-                    g_n = g(y0, t, *args)
-                    dg = g_n * dW * dt_sqrt
-                    y_n_bar = y0 + df + g_n * dt_sqrt
-                    g_n_bar = g(y_n_bar, t, *args)
-                    y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt - dt_sqrt)
-                    return y1
+                def int_f(y0, t, *args):
+                    df, linear_part = f(y0, t, *args)
+                    y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
+                    return y
 
-            return int_fg
-
-    return euler(diff_eq)
+        return int_f
 
 
 class MilsteinIto(Integrator):
@@ -1017,7 +1016,7 @@ class MilsteinIto(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -1032,74 +1031,52 @@ class MilsteinIto(Integrator):
 
     """
 
-    def __init__(self, diff_eqs):
-        super(MilsteinIto, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(MilsteinIto, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq)
+        self._update_func = self.get_np_step(diff_eq)
 
+    @staticmethod
+    def get_np_step(diff_eq, *args):
+        assert isinstance(diff_eq, DiffEquation)
 
-def Milstein_Stra(diff_eq):
-    """Stratonovich stochastic integral. The derivative-free Milstein
-    method is an order 1.0 strong Taylor schema.
-    
-    In Stratonovich scheme, it is expressed as [1]_
-    
-    .. math::
-        Y_{n+1} = Y_n + f_n h + g_n\\Delta W_n +  {1 \\over 2\\sqrt{h}}
-        [g(\\overline{Y_n}) - g_n] (\\Delta W_n)^2
-        
-    Parameters
-    ----------
-    diff_eq : DiffEquation
-        The drift coefficient, the deterministic part of the SDE.
-    
-    References
-    ----------
-    .. [1] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE
-           through computer experiments, Springer, 1994.
-           
-    Returns
-    -------
-    func : callable
-        The one-step numerical integration function.
-    """
-    assert isinstance(diff_eq, DiffEquation)
-
-    dt = profile.get_dt()
-    dt_sqrt = np.sqrt(dt)
-    f = diff_eq.f
-
-    if diff_eq.is_stochastic:
+        dt = profile.get_dt()
+        dt_sqrt = np.sqrt(dt)
+        f = diff_eq.f
         g = diff_eq.g
 
-        if callable(g):
+        if diff_eq.is_stochastic:
+            if callable(g):
 
-            if diff_eq.is_multi_return:
-                def int_fg(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    val = f(y0, t, *args)
-                    df = val[0] * dt
-                    g_n = g(y0, t, *args)
-                    dg = g_n * dW * dt_sqrt
-                    y_n_bar = y0 + df + g_n * dt_sqrt
-                    g_n_bar = g(y_n_bar, t, *args)
-                    extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt)
-                    y1 = y0 + df + dg + extra_term
-                    return (y1,) + tuple(val[1:])
+                if diff_eq.is_multi_return:
 
-            else:
-                def int_fg(y0, t, *args):
-                    dW = np.random.normal(0.0, 1.0, y0.shape)
-                    df = f(y0, t, *args) * dt
-                    g_n = g(y0, t, *args)
-                    dg = g_n * dW * dt_sqrt
-                    y_n_bar = y0 + df + g_n * dt_sqrt
-                    g_n_bar = g(y_n_bar, t, *args)
-                    extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt)
-                    y1 = y0 + df + dg + extra_term
-                    return y1
+                    def int_fg(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        val = f(y0, t, *args)
+                        df = val[0] * dt
+                        g_n = g(y0, t, *args)
+                        dg = g_n * dW * dt_sqrt
+                        y_n_bar = y0 + df + g_n * dt_sqrt
+                        g_n_bar = g(y_n_bar, t, *args)
+                        y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt - dt_sqrt)
+                        return (y1,) + tuple(val[1:])
 
-            return int_fg
+                else:
 
-    return euler(diff_eq)
+                    def int_fg(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        df = f(y0, t, *args) * dt
+                        g_n = g(y0, t, *args)
+                        dg = g_n * dW * dt_sqrt
+                        y_n_bar = y0 + df + g_n * dt_sqrt
+                        g_n_bar = g(y_n_bar, t, *args)
+                        y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt - dt_sqrt)
+                        return y1
+
+                return int_fg
+
+        return Euler.get_np_step(diff_eq)
 
 
 class MilsteinStra(Integrator):
@@ -1125,7 +1102,7 @@ class MilsteinStra(Integrator):
 
     Parameters
     ----------
-    diff_eqs : DiffEquation
+    diff_eq : DiffEquation
         The differential equation.
 
     Returns
@@ -1148,5 +1125,51 @@ class MilsteinStra(Integrator):
 
     """
 
-    def __init__(self, diff_eqs):
-        super(MilsteinStra, self).__init__(diff_eqs)
+    def __init__(self, diff_eq):
+        super(MilsteinStra, self).__init__(diff_eq)
+        if profile.is_numba_bk():
+            self._update_code = self.get_nb_step(diff_eq)
+        self._update_func = self.get_np_step(diff_eq)
+
+    @staticmethod
+    def get_np_step(diff_eq, *args):
+
+        assert isinstance(diff_eq, DiffEquation)
+
+        dt = profile.get_dt()
+        dt_sqrt = np.sqrt(dt)
+        f = diff_eq.f
+
+        if diff_eq.is_stochastic:
+            g = diff_eq.g
+
+            if callable(g):
+
+                if diff_eq.is_multi_return:
+                    def int_fg(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        val = f(y0, t, *args)
+                        df = val[0] * dt
+                        g_n = g(y0, t, *args)
+                        dg = g_n * dW * dt_sqrt
+                        y_n_bar = y0 + df + g_n * dt_sqrt
+                        g_n_bar = g(y_n_bar, t, *args)
+                        extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt)
+                        y1 = y0 + df + dg + extra_term
+                        return (y1,) + tuple(val[1:])
+
+                else:
+                    def int_fg(y0, t, *args):
+                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        df = f(y0, t, *args) * dt
+                        g_n = g(y0, t, *args)
+                        dg = g_n * dW * dt_sqrt
+                        y_n_bar = y0 + df + g_n * dt_sqrt
+                        g_n_bar = g(y_n_bar, t, *args)
+                        extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt)
+                        y1 = y0 + df + dg + extra_term
+                        return y1
+
+                return int_fg
+
+        return Euler.get_np_step(diff_eq)

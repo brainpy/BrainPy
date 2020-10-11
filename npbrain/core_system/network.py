@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import time
-from pprint import pprint
 
 import autopep8
 
@@ -11,6 +10,7 @@ from .neuron_group import NeuGroup
 from .synapse_connection import SynConn
 from .. import _numpy as np
 from .. import profile
+from .. import tools
 
 __all__ = [
     'Network',
@@ -97,12 +97,10 @@ class Network(object):
         exec(compile(func_code, '', 'exec'), code_scope)
         step_func = code_scope['step_func']
 
-        if profile.show_codgen:
+        if profile.show_formatted_code:
             print(func_code)
             print()
-            code_scope.pop('__builtins__')
-            code_scope.pop('step_func')
-            pprint(code_scope)
+            tools.show_code_scope(code_scope, ['__builtins__', 'step_func'])
             print()
 
         return step_func
@@ -217,7 +215,7 @@ class Network(object):
         # initialization
         # ------------------
         ts = np.arange(self._run_time, self._run_time + duration, self.dt)
-        ts = np.asarray(ts, dtype=profile.ftype)
+        ts = np.asarray(ts, dtype=np.float_)
         run_length = ts.shape[0]
 
         # 1. build

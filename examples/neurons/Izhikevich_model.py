@@ -3,7 +3,7 @@
 from npbrain import _numpy as np
 
 from npbrain import integrate
-from npbrain.tools import autojit
+from npbrain.tools import jit
 
 __all__ = [
     'Izhikevich'
@@ -112,7 +112,7 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
 
     if ref > 0.:
 
-        @autojit('void(f[:, :], f)')
+        @jit('void(f[:, :], f)')
         def update_state(neu_state, t):
             not_ref = (t - neu_state[-2]) > ref
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
@@ -129,7 +129,7 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
                 neu_state[-5, idx] = 0.
     else:
 
-        @autojit('void(f[:, :], f)')
+        @jit('void(f[:, :], f)')
         def update_state(neu_state, t):
             V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
             neu_state[0] = int_V(V, t, u, Isyn)
