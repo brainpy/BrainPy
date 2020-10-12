@@ -38,6 +38,8 @@ def get_integrator(method):
         return RK3
     elif method == 'rk4':
         return RK4
+    elif method == 'rk4_alternative':
+        return RK4Alternative
     elif method == 'exponential':
         return ExponentialEuler
     elif method == 'milstein':
@@ -162,7 +164,7 @@ class Euler(Integrator):
         self._update_func = self.get_np_step(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq):
+    def get_nb_step(diff_eq, *args):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
         var_name = diff_eq.var_name
@@ -338,7 +340,8 @@ class RK2(Integrator):
         if len(k2_expressions):
             coefficient2 = 1 / (2 * beta)
             coefficient1 = 1 - coefficient2
-            code_lines.append(f'{dfdt.name} = {coefficient1} * _df{var_name}_dt_k1 + {coefficient2} * _df{var_name}_dt_k2')
+            code_lines.append(
+                f'{dfdt.name} = {coefficient1} * _df{var_name}_dt_k1 + {coefficient2} * _df{var_name}_dt_k2')
         else:
             code_lines.append(f'{dfdt.name} = _df{var_name}_dt_k1')
 
@@ -439,15 +442,80 @@ class Heun(Integrator):
     def __init__(self, diff_eq):
         super(Heun, self).__init__(diff_eq)
         if profile.is_numba_bk():
-            self._update_code = self.get_nb_step(diff_eq, 1.0)
+            self._update_code = self.get_nb_step(diff_eq)
         self._update_func = self.get_np_step(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, beta):
+    def get_nb_step(diff_eq, *args):
         if diff_eq.is_stochastic:
-            raise NotImplementedError
+            if callable(diff_eq.g):
+                dt = profile.get_dt()
+                dt_sqrt = np.sqrt(dt)
+                var_name = diff_eq.var_name
+                func_name = diff_eq.func_name
+                var = sympy.Symbol(var_name, real=True)
+
+                # k1 part #
+                # ------- #
+
+                # df
+                f_k1_expressions = diff_eq.get_f_expressions(substitute=False)
+                code_lines = [str(expr) for expr in f_k1_expressions[:-1]]
+                code_lines.append(f'_df{var_name}_dt_k1 = {f_k1_expressions[-1].code}')
+
+                # dg
+                dW_sb = sympy.Symbol(f'_{var_name}_dW')
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * normal(0., 1., {var_name}.shape)')
+                assert diff_eq.is_functional_noise
+                g_k1_expressions = diff_eq.get_g_expressions(substitute=False)
+                code_lines.extend([str(expr) for expr in g_k1_expressions[:-1]])
+                code_lines.append(f'_dg{var_name}_dt_k1 = {g_k1_expressions[-1].code}')
+
+                # k1
+                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt_k1 * {dt} + '
+                                  f'_dg{var_name}_dt_k1 * {dW_sb.name}')
+
+                # k2 part #
+                # ------- #
+
+                # df
+                dfdt = sympy.Symbol(f'_df{var_name}_dt')
+                f_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=f'_{func_name}_k1')
+                if len(f_k2_expressions):
+                    code_lines.extend([str(expr) for expr in f_k2_expressions[:-1]])
+                    code_lines.append(f'_df{var_name}_dt_k2 = {f_k2_expressions[-1].code}')
+                    code_lines.append(f'{dfdt.name} = (_df{var_name}_dt_k1 + _df{var_name}_dt_k2) / 2')
+                else:
+                    code_lines.append(f'{dfdt.name} = _df{var_name}_dt_k1')
+
+                # dg
+                dgdt = sympy.Symbol(f'_dg{var_name}_dt')
+                g_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=f'_{func_name}_k1')
+                if len(g_k2_expressions):
+                    code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
+                    code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
+                    code_lines.append(f'{dgdt.name} = (_dg{var_name}_dt_k1 + _dg{var_name}_dt_k2) / 2')
+                else:
+                    code_lines.append(f'{dgdt.name} = _dg{var_name}_dt_k1')
+
+                # update expression
+                update = var + dfdt * dt + dgdt * dW_sb
+                code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+
+                # multiple returns
+                return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+                code_lines.append(f'_{func_name}_res = {return_expr}')
+
+                # final
+                code = '\n'.join(code_lines)
+                subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                             diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+                code = word_replace(code, subs_dict)
+                return code
+            else:
+                return Euler.get_nb_step(diff_eq)
         else:
-            return RK2.get_nb_step(diff_eq, beta)
+            return RK2.get_nb_step(diff_eq, 1.0)
 
     @staticmethod
     def get_np_step(diff_eqs, *args):
@@ -513,15 +581,15 @@ class MidPoint(Integrator):
     def __init__(self, diff_eq):
         super(MidPoint, self).__init__(diff_eq)
         if profile.is_numba_bk():
-            self._update_code = self.get_nb_step(diff_eq, beta=0.5)
+            self._update_code = self.get_nb_step(diff_eq)
         self._update_func = self.get_np_step(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, beta):
+    def get_nb_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             raise NotImplementedError
         else:
-            return RK2.get_nb_step(diff_eq, beta)
+            return RK2.get_nb_step(diff_eq, 0.5)
 
     @staticmethod
     def get_np_step(diff_eqs, *args):
@@ -564,7 +632,7 @@ class RK3(Integrator):
         self._update_func = self.get_np_step(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq):
+    def get_nb_step(diff_eq, *args):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
@@ -692,6 +760,80 @@ class RK4(Integrator):
         self._update_func = self.get_np_step(diff_eq)
 
     @staticmethod
+    def get_nb_step(diff_eq, *args):
+        dt = profile.get_dt()
+        dt_sqrt = np.sqrt(dt)
+        t_name = diff_eq.t_name
+        var_name = diff_eq.var_name
+        func_name = diff_eq.func_name
+        var = sympy.Symbol(var_name, real=True)
+
+        # get code lines of k1 df part
+        k1_expressions = diff_eq.get_f_expressions(substitute=False)
+        code_lines = [str(expr) for expr in k1_expressions[:-1]]
+        code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
+
+        # k1 -> k2 increment
+        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        code_lines.append(f'{y_1_to_2} = {var_name} + {dt / 2} * _df{var_name}_dt_k1')
+        code_lines.append(f'{t_1_to_2} = {t_name} + {dt / 2}')
+
+        # get code lines of k2 df part
+        k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=y_1_to_2, t_sub=t_1_to_2)
+
+        dfdt = sympy.Symbol(f'_df{var_name}_dt')
+        if len(k2_expressions):
+            code_lines.extend([str(expr) for expr in k2_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k2 = {k2_expressions[-1].code}')
+
+            # get code lines of k3 df part
+            y_2_to_3 = f'_{func_name}_{var_name}_k2_to_k3'
+            t_2_to_3 = f'_{func_name}_t_k2_to_k3'
+            code_lines.append(f'{y_2_to_3} = {var_name} + {dt / 2} * _df{var_name}_dt_k2')
+            code_lines.append(f'{t_2_to_3} = {t_name} + {dt / 2}')
+            k3_expressions = diff_eq.replace_f_expressions('k3', y_sub=y_2_to_3, t_sub=t_2_to_3)
+            code_lines.extend([str(expr) for expr in k3_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k3 = {k3_expressions[-1].code}')
+
+            # get code lines of k4 df part
+            y_3_to_4 = f'_{func_name}_{var_name}_k3_to_k4'
+            t_3_to_4 = f'_{func_name}_t_k3_to_k4'
+            code_lines.append(f'{y_3_to_4} = {var_name} + {dt} * _df{var_name}_dt_k3')
+            code_lines.append(f'{t_3_to_4} = {t_name} + {dt}')
+            k4_expressions = diff_eq.replace_f_expressions('k4', y_sub=y_3_to_4, t_sub=t_3_to_4)
+            code_lines.extend([str(expr) for expr in k4_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k4 = {k4_expressions[-1].code}')
+
+            # final df part
+            code_lines.append(f'{dfdt.name} = (_df{var_name}_dt_k1 + 2 * _df{var_name}_dt_k2 + '
+                              f'2 * _df{var_name}_dt_k3 + _df{var_name}_dt_k4) / 6')
+        else:
+            # final df part
+            code_lines.append(f'{dfdt.name} = _df{var_name}_dt_k1')
+
+        # get code lines of dg part
+        if diff_eq.is_stochastic:
+            raise NotImplementedError('RK4 currently doesn\'t support SDE.')
+        else:
+            dgdt = 0
+
+        # update expression
+        update = var + dfdt * dt + dt_sqrt * dgdt
+        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+
+        # multiple returns
+        return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+        code_lines.append(f'_{func_name}_res = {return_expr}')
+
+        # final
+        code = '\n'.join(code_lines)
+        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                     diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+        code = word_replace(code, subs_dict)
+        return code
+
+    @staticmethod
     def get_np_step(diff_eqs, *args):
         f = diff_eqs.f
         dt = profile.get_dt()
@@ -757,6 +899,81 @@ class RK4Alternative(Integrator):
         if profile.is_numba_bk():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = self.get_np_step(diff_eq)
+
+    @staticmethod
+    def get_nb_step(diff_eq, *args):
+        dt = profile.get_dt()
+        dt_sqrt = np.sqrt(dt)
+        t_name = diff_eq.t_name
+        var_name = diff_eq.var_name
+        func_name = diff_eq.func_name
+        var = sympy.Symbol(var_name, real=True)
+
+        # get code lines of k1 df part
+        k1_expressions = diff_eq.get_f_expressions(substitute=False)
+        code_lines = [str(expr) for expr in k1_expressions[:-1]]
+        code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
+
+        # k1 -> k2 increment
+        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        code_lines.append(f'{y_1_to_2} = {var_name} + {dt / 3} * _df{var_name}_dt_k1')
+        code_lines.append(f'{t_1_to_2} = {t_name} + {dt / 3}')
+
+        # get code lines of k2 df part
+        k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=y_1_to_2, t_sub=t_1_to_2)
+
+        dfdt = sympy.Symbol(f'_df{var_name}_dt')
+        if len(k2_expressions):
+            code_lines.extend([str(expr) for expr in k2_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k2 = {k2_expressions[-1].code}')
+
+            # get code lines of k3 df part
+            y_1_to_3 = f'_{func_name}_{var_name}_k1_to_k3'
+            t_1_to_3 = f'_{func_name}_t_k1_to_k3'
+            code_lines.append(f'{y_1_to_3} = {var_name} - {dt / 3} * _df{var_name}_dt_k1 + {dt} * _df{var_name}_dt_k2')
+            code_lines.append(f'{t_1_to_3} = {t_name} + {dt * 2 / 3}')
+            k3_expressions = diff_eq.replace_f_expressions('k3', y_sub=y_1_to_3, t_sub=t_1_to_3)
+            code_lines.extend([str(expr) for expr in k3_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k3 = {k3_expressions[-1].code}')
+
+            # get code lines of k4 df part
+            y_1_to_4 = f'_{func_name}_{var_name}_k1_to_k4'
+            t_1_to_4 = f'_{func_name}_t_k1_to_k4'
+            code_lines.append(f'{y_1_to_4} = {var_name} + {dt} * _df{var_name}_dt_k1 - {dt} * _df{var_name}_dt_k2'
+                              f'+ {dt} * _df{var_name}_dt_k3')
+            code_lines.append(f'{t_1_to_4} = {t_name} + {dt}')
+            k4_expressions = diff_eq.replace_f_expressions('k4', y_sub=y_1_to_4, t_sub=t_1_to_4)
+            code_lines.extend([str(expr) for expr in k4_expressions[:-1]])
+            code_lines.append(f'_df{var_name}_dt_k4 = {k4_expressions[-1].code}')
+
+            # final df part
+            code_lines.append(f'{dfdt.name} = (_df{var_name}_dt_k1 + 3 * _df{var_name}_dt_k2 + '
+                              f'3 * _df{var_name}_dt_k3 + _df{var_name}_dt_k4) / 8')
+        else:
+            # final df part
+            code_lines.append(f'{dfdt.name} = _df{var_name}_dt_k1')
+
+        # get code lines of dg part
+        if diff_eq.is_stochastic:
+            raise NotImplementedError('RK4 currently doesn\'t support SDE.')
+        else:
+            dgdt = 0
+
+        # update expression
+        update = var + dfdt * dt + dt_sqrt * dgdt
+        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+
+        # multiple returns
+        return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+        code_lines.append(f'_{func_name}_res = {return_expr}')
+
+        # final
+        code = '\n'.join(code_lines)
+        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                     diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+        code = word_replace(code, subs_dict)
+        return code
 
     @staticmethod
     def get_np_step(diff_eq, *args):
@@ -1038,6 +1255,67 @@ class MilsteinIto(Integrator):
         self._update_func = self.get_np_step(diff_eq)
 
     @staticmethod
+    def get_nb_step(diff_eq, *args):
+        if diff_eq.is_stochastic:
+            g = diff_eq.g
+
+            if callable(g):
+                g_dependent_on_var = diff_eq.replace_f_expressions('test', y_sub=f'test')
+                if len(g_dependent_on_var) == 0:
+                    return Euler.get_nb_step(diff_eq)
+
+                dt = profile.get_dt()
+                dt_sqrt = np.sqrt(dt)
+                var_name = diff_eq.var_name
+                func_name = diff_eq.func_name
+                var = sympy.Symbol(var_name, real=True)
+
+                # k1 part #
+                # ------- #
+
+                # df
+                f_k1_expressions = diff_eq.get_f_expressions(substitute=False)
+                code_lines = [str(expr) for expr in f_k1_expressions]  # _df{var_name}_dt
+
+                # dg
+                dW_sb = sympy.Symbol(f'_{var_name}_dW')
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * normal(0., 1., {var_name}.shape)')
+                g_k1_expressions = diff_eq.get_g_expressions(substitute=False)
+                code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
+
+                # k1
+                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
+                                  f'_dg{var_name}_dt * {dt_sqrt}')
+
+                # high order part #
+                # --------------- #
+
+                # dg high order
+                high_order = sympy.Symbol(f'_dg{var_name}_high_order')
+                g_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=f'_{func_name}_k1')
+                code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
+                code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
+                code_lines.append(f'{high_order.name} = {1 / 2. / dt_sqrt} * (_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
+                                  f'({dW_sb.name} * {dW_sb.name} - {dt})')
+
+                # update expression
+                code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                  f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+
+                # multiple returns
+                return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+                code_lines.append(f'_{func_name}_res = {return_expr}')
+
+                # final
+                code = '\n'.join(code_lines)
+                subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                             diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+                code = word_replace(code, subs_dict)
+                return code
+
+        return Euler.get_nb_step(diff_eq)
+
+    @staticmethod
     def get_np_step(diff_eq, *args):
         assert isinstance(diff_eq, DiffEquation)
 
@@ -1130,6 +1408,67 @@ class MilsteinStra(Integrator):
         if profile.is_numba_bk():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = self.get_np_step(diff_eq)
+
+    @staticmethod
+    def get_nb_step(diff_eq, *args):
+        if diff_eq.is_stochastic:
+            g = diff_eq.g
+
+            if callable(g):
+                g_dependent_on_var = diff_eq.replace_f_expressions('test', y_sub=f'test')
+                if len(g_dependent_on_var) == 0:
+                    return Euler.get_nb_step(diff_eq)
+
+                dt = profile.get_dt()
+                dt_sqrt = np.sqrt(dt)
+                var_name = diff_eq.var_name
+                func_name = diff_eq.func_name
+                var = sympy.Symbol(var_name, real=True)
+
+                # k1 part #
+                # ------- #
+
+                # df
+                f_k1_expressions = diff_eq.get_f_expressions(substitute=False)
+                code_lines = [str(expr) for expr in f_k1_expressions]  # _df{var_name}_dt
+
+                # dg
+                dW_sb = sympy.Symbol(f'_{var_name}_dW')
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * normal(0., 1., {var_name}.shape)')
+                g_k1_expressions = diff_eq.get_g_expressions(substitute=False)
+                code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
+
+                # k1
+                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
+                                  f'_dg{var_name}_dt * {dt_sqrt}')
+
+                # high order part #
+                # --------------- #
+
+                # dg high order
+                high_order = sympy.Symbol(f'_dg{var_name}_high_order')
+                g_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=f'_{func_name}_k1')
+                code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
+                code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
+                code_lines.append(f'{high_order.name} = {1 / 2. / dt_sqrt} * (_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
+                                  f'{dW_sb.name} * {dW_sb.name}')
+
+                # update expression
+                code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                  f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+
+                # multiple returns
+                return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
+                code_lines.append(f'_{func_name}_res = {return_expr}')
+
+                # final
+                code = '\n'.join(code_lines)
+                subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
+                             diff_eq.func_args + diff_eq.f_expr_names + diff_eq.g_expr_names}
+                code = word_replace(code, subs_dict)
+                return code
+
+        return Euler.get_nb_step(diff_eq)
 
     @staticmethod
     def get_np_step(diff_eq, *args):
