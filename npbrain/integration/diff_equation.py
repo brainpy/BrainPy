@@ -9,7 +9,7 @@ import sympy
 
 from .sympy_tools import str_to_sympy
 from .sympy_tools import sympy_to_str
-from .. import _numpy as np
+from .. import numpy as np
 from .. import profile
 from .. import tools
 
@@ -214,7 +214,7 @@ class DiffEquation(object):
         expr_num = len(self.f_expressions)
         for expr in self.f_expressions[expr_num - 2::-1]:
             if expr.var_name in need_vars:
-                if not profile.substitute_eqs or expr._substituted_code is None:
+                if not profile.substitute_equation or expr._substituted_code is None:
                     code = expr.code
                 else:
                     code = expr._substituted_code
@@ -238,7 +238,7 @@ class DiffEquation(object):
             expr_num = len(self.g_expressions)
             for expr in self.g_expressions[expr_num - 2::-1]:
                 if expr.var_name in need_vars:
-                    if not profile.substitute_eqs or expr._substituted_code is None:
+                    if not profile.substitute_equation or expr._substituted_code is None:
                         code = expr.code
                     else: code = expr._substituted_code
                     return_expressions[expr.var_name] = Expression(expr.var_name, code)
@@ -286,7 +286,7 @@ class DiffEquation(object):
 
     @property
     def is_stochastic(self):
-        return not (self.g is None or self.g == 0.)
+        return not (self.g is None or np.all(self.g == 0.))
 
     @property
     def is_functional_noise(self):

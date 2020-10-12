@@ -8,6 +8,21 @@ __all__ = [
 
 
 class DictPlus(dict):
+    """Python dictionaries with advanced dot notation access.
+
+    For example:
+
+    >>> d = DictPlus({'a': 10, 'b': 20})
+    >>> d.a
+    10
+    >>> d['a']
+    10
+    >>> d.c  # this will raise a KeyError
+    KeyError: 'c'
+    >>> d.c = 30  # but you can assign a value to a non-existing item
+    >>> d.c
+    30
+    """
     def __init__(self, *args, **kwargs):
         object.__setattr__(self, '__parent', kwargs.pop('__parent', None))
         object.__setattr__(self, '__key', kwargs.pop('__key', None))

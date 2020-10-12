@@ -3,7 +3,7 @@
 import numpy as onp
 
 from .base import Connector
-from .. import _numpy as np
+from .. import numpy as np
 
 __all__ = ['One2One', 'All2All',
            'GridFour', 'grid_four',

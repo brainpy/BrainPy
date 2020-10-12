@@ -6,7 +6,7 @@ from .base_objects import _SYN_CONN
 from .base_objects import _SYN_TYPE
 from .neuron_group import NeuGroup
 from .types import SynState
-from .. import _numpy as np
+from .. import numpy as np
 from .. import profile
 from ..connectivity import Connector
 from ..connectivity import post2syn

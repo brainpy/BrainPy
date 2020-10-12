@@ -13,7 +13,7 @@ from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
-from .. import _numpy as np
+from .. import numpy as np
 
 __all__ = [
 
@@ -62,9 +62,6 @@ FUNCTION_MAPPING = {
     'hypot': cfunctions.hypot,
 
     'sqrt': sympy.functions.elementary.miscellaneous.sqrt,
-    'min': sympy.functions.elementary.miscellaneous.Min,
-    'max': sympy.functions.elementary.miscellaneous.Max,
-    'cbrt': sympy.functions.elementary.miscellaneous.cbrt,
 }
 
 CONSTANT_MAPPING = {
@@ -112,9 +109,6 @@ def get_mapping_scope():
         'hypot': np.hypot,
 
         'sqrt': np.sqrt,
-        'min': np.min,
-        'max': np.max,
-        'cbrt': np.cbrt,
 
         'pi': np.pi,
         'e': np.e,
@@ -341,7 +335,7 @@ class SympyRender(object):
 
 class SympyPrinter(StrPrinter):
     """
-    Printer that overrides the printing of some basic sympy objects. E.g.
+    Printer that overrides the printing of some basic sympy objects. reversal_potential.g.
     print "a and b" instead of "And(a, b)".
     """
 

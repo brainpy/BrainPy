@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import _numpy as np
+from .. import numpy as np
 from .. import profile
 
 try:

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from npbrain import profile
-from npbrain import _numpy as bnp
+from npbrain import numpy as bnp
 
 __all__ = [
     'cross_correlation',
@@ -121,7 +121,7 @@ def voltage_fluctuation(potentials):
     References
     ----------
     .. [1] Golomb, D. and Rinzel J. (1993) Dynamics of globally coupled
-           inhibitory neurons with heterogeneity. Phys. Rev. E 48:4810-4814.
+           inhibitory neurons with heterogeneity. Phys. Rev. reversal_potential 48:4810-4814.
     .. [2] Golomb D. and Rinzel J. (1994) Clustering in globally coupled
            inhibitory neurons. Physica D 72:259-282.
     .. [3] David Golomb (2007) Neuronal synchrony measures. Scholarpedia, 2(1):1347.
@@ -154,7 +154,7 @@ def raster_plot(sp_matrix, times):
     raster_plot : tuple
         Include (neuron index, spike time).
     """
-    elements = bnp.where(sp_matrix.spike > 0.)
+    elements = bnp.where(sp_matrix > 0.)
     index = elements[1]
     time = times[elements[0]]
     return index, time

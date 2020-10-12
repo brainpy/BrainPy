@@ -8,7 +8,7 @@ from .base_objects import BaseEnsemble
 from .base_objects import ModelUseError
 from .neuron_group import NeuGroup
 from .synapse_connection import SynConn
-from .. import _numpy as np
+from .. import numpy as np
 from .. import profile
 from .. import tools
 

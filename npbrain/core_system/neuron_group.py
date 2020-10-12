@@ -11,7 +11,7 @@ from .base_objects import _ARG_KEYWORDS
 from .types import NeuState
 from ..tools import DictPlus
 from .. import profile
-from .. import _numpy as np
+from .. import numpy as np
 
 __all__ = [
     'NeuType',

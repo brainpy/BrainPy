@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 
-from .. import _numpy as bnp
+from .. import numpy as bnp
 from .. import profile
 
 try:

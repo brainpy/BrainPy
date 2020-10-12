@@ -4,7 +4,6 @@ import inspect
 import re
 from copy import deepcopy
 from importlib import import_module
-from pprint import pprint
 
 import autopep8
 
@@ -13,7 +12,7 @@ from .types import ObjState
 from .types import TypeChecker
 from .types import TypeMismatchError
 from .types import _SynStateForNbSingleMode
-from .. import _numpy as np
+from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..integration import Integrator
@@ -22,6 +21,7 @@ from ..integration.sympy_tools import get_mapping_scope
 __all__ = [
     # errors
     'ModelDefError',
+    'ModelUseError',
 
     # base types
     'BaseType',
@@ -267,14 +267,14 @@ class BaseEnsemble(object):
                 else:
                     self._hetero_pars[k] = v
             parameters[k] = v
-        self.pars_update = parameters
+        self.params = parameters
 
         # step functions
         # ---------------
         if not model.vector_based:
             if self._cls_type == _SYN_CONN and (self.pre_group is None or self.post_group is None):
                 raise ModelUseError('Single synapse model must provide "pre_group" and "post_group".')
-        self._steps = self._get_steps_from_model(self.pars_update)
+        self._steps = self._get_steps_from_model(self.params)
 
         # monitors
         # ---------
@@ -372,7 +372,7 @@ class BaseEnsemble(object):
                     indent = ' ' * line_indent
 
                     # get the replace line and arguments need to replace
-                    new_line, args, kwargs = tools.func_replace(line, int_func_name)
+                    new_line, args, kwargs = tools.replace_func(line, int_func_name)
 
                     # append _code line of argument replacement
                     func_args = v.diff_eq.func_args
@@ -394,8 +394,21 @@ class BaseEnsemble(object):
                         if callable(v2):
                             v2 = tools.numba_func(v2)
                         scope_to_add[k2] = v2
+                    g_array = f'_g_{v.py_func_name}'
+                    if g_array in v.code_scope:
+                        self._hetero_pars[g_array] = v.code_scope[g_array]
+                    f_array = f'_f_{v.py_func_name}'
+                    if f_array in v.code_scope:
+                        self._hetero_pars[f_array] = v.code_scope[f_array]
 
                 else:
+                    if not self.model.vector_based:
+                        for k, v in tools.get_func_scope(v.update_func).items():
+                            if k in self._hetero_pars and isinstance(v, np.ndarray):
+                                raise ModelUseError(f'Heterogeneous parameter "{k}" is not in main function, it will '
+                                                    f'not work. \nPlease try to set "profile.merge_integral = True" to '
+                                                    f'merge parameter "{k}" into the main function.')
+
                     code_scope[k] = tools.numba_func(v.update_func)
 
         # update code scope
@@ -433,7 +446,7 @@ class BaseEnsemble(object):
         steps_collection = {func.__name__: [] for func in self._steps}
         for i in range(self.num):
             pars = {k: v if k not in self._hetero_pars else self._hetero_pars[k][i]
-                    for k, v in self.pars_update.items()}
+                    for k, v in self.params.items()}
             steps = self._get_steps_from_model(pars)
             for func in steps:
                 steps_collection[func.__name__].append(func)
@@ -573,13 +586,13 @@ class BaseEnsemble(object):
                         p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                         r = f"{arg}[{var2idx[st_k]}]"
                         func_code = re.sub(r'' + p, r, func_code)
-                    p = f'{arg}.pull_cond()'
+                    p = f'{arg}.pull()'
                     if p in func_code:
                         r = f'{arg}[{self.name}_{arg}_dout]'
                         func_code = func_code.replace(p, r)
                         add_args.add(f'{self.name}_{arg}_dout')
                         code_arg2call[f'{self.name}_{arg}_dout'] = f'{self.name}.{arg}._delay_out'
-                    p = f'{arg}.push_cond'
+                    p = f'{arg}.push'
                     if p in func_code:
                         res = re.findall(r'(' + p + r'\((\w+?)\))', func_code)
                         if len(res) > 1:
@@ -629,13 +642,14 @@ class BaseEnsemble(object):
                   if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), NeuState)}
 
         # update parameters in _code scope
-        for p, v in self.pars_update.items():
+        for p, v in self.params.items():
             if p in code_scope:
                 code_scope[p] = v
         for p_k in self._hetero_pars.keys():
             if p_k not in code_scope:
-                raise ValueError(f'Heterogeneous parameter "{p_k}" is not in '
-                                 f'main function, it will not work.')
+                raise ModelUseError(f'Heterogeneous parameter "{p_k}" is not in main function, it will not work. \n'
+                                    f'Please try to set "npbrain.profile.merge_integral = True" to merge parameter '
+                                    f'"{p_k}" into the main function.')
 
         # update functions in code scope
         for k, v in code_scope.items():
@@ -685,6 +699,7 @@ class BaseEnsemble(object):
         code_lines.extend(['  ' + l for l in func_code.split('\n')])
         code_scope['numba'] = import_module('numba')
         code_lines.append('\n')
+
         self._codegen['update'] = {'scopes': code_scope, 'args': code_args,
                                    'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -705,7 +720,7 @@ class BaseEnsemble(object):
                       if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
 
             # update parameters in _code scope
-            for p, v in self.pars_update.items():
+            for p, v in self.params.items():
                 if p in code_scope:
                     code_scope[p] = v
             for p_k in self._hetero_pars.keys():
@@ -827,6 +842,7 @@ class BaseEnsemble(object):
             code_lines.extend([blank + l for l in func_code.split('\n')])
             code_scope['numba'] = import_module('numba')
             code_lines.append('\n')
+
             self._codegen[func_name] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -1184,7 +1200,7 @@ class BaseEnsemble(object):
     def _keywords(self):
         kws = [
             # attributes
-            'model', 'num', 'ST', 'PA', 'vars_init', 'pars_update', '_mon_vars',
+            'model', 'num', 'ST', 'PA', 'vars_init', 'params', '_mon_vars',
             'mon', '_cls_type', '_codegen', '_keywords', 'steps', '_schedule',
             # self functions
             '_merge_steps', '_add_steps', '_add_input', '_add_monitor',

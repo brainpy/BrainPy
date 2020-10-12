@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numba as nb
-import numpy as np
+import numba
+import numpy
 
 from npbrain import profile
 from npbrain.tools import jit
@@ -11,20 +11,20 @@ def _reload():
     global_vars = globals()
 
     # Return the cube-root of an array, element-wise.
-    global_vars['cbrt'] = jit(lambda x: np.power(x, 1. / 3))
+    global_vars['cbrt'] = jit(lambda x: numpy.power(x, 1. / 3))
 
     # First array elements raised to powers from second array, element-wise.
-    global_vars['float_power'] = jit(lambda x1, x2: np.power(np.float(x1), x2))
+    global_vars['float_power'] = jit(lambda x1, x2: numpy.power(numpy.float(x1), x2))
 
     # Compute the Heaviside step function.
-    global_vars['heaviside'] = jit(lambda x1, x2: np.where(x1 == 0, x2, np.where(x1 > 0, 1, 0)))
+    global_vars['heaviside'] = jit(lambda x1, x2: numpy.where(x1 == 0, x2, numpy.where(x1 > 0, 1, 0)))
 
     @jit
     def func(x, source, destination):
         shape = list(x.shape)
         s = shape.pop(source)
         shape.insert(destination, s)
-        return np.transpose(x, tuple(shape))
+        return numpy.transpose(x, tuple(shape))
 
     # Move axes of an array to new positions.
     global_vars['moveaxis'] = func
@@ -43,7 +43,7 @@ def _reload():
         s2 = shape[axis2]
         shape[axis1] = s2
         shape[axis2] = s1
-        return np.transpose(x, tuple(shape))
+        return numpy.transpose(x, tuple(shape))
 
     # Interchange two axes of an array.
     global_vars['swapaxes'] = func
@@ -54,27 +54,27 @@ def _reload():
     # Return numbers spaced evenly on a log scale.
     global_vars['logspace'] = jit(
         lambda start, stop, num=50, endpoint=True, base=10.0, dtype=None:
-        np.power(base, np.linspace(start, stop, num=num, endpoint=endpoint)).astype(dtype))
+        numpy.power(base, numpy.linspace(start, stop, num=num, endpoint=endpoint)).astype(dtype))
 
-    @nb.generated_jit(**profile.get_numba_profile())
+    @numba.generated_jit(**profile.get_numba_profile())
     def squeeze(a, axis=None):
-        if isinstance(axis, nb.types.NoneType):
+        if isinstance(axis, numba.types.NoneType):
             def squeeze_func(a, axis=None):
                 shape = []
                 for s in a.shape:
                     if s != 1:
                         shape.append(s)
-                return np.reshape(a, shape)
+                return numpy.reshape(a, shape)
 
             return squeeze_func
 
-        elif isinstance(axis, nb.types.Integer):
+        elif isinstance(axis, numba.types.Integer):
             def squeeze_func(a, axis=None):
                 shape = []
                 for i, s in enumerate(a.shape):
                     if s != 1 or i != axis:
                         shape.append(s)
-                return np.reshape(a, shape)
+                return numpy.reshape(a, shape)
 
             return squeeze_func
 
@@ -84,7 +84,7 @@ def _reload():
                 for i, s in enumerate(a.shape):
                     if s != 1 or i not in axis:
                         shape.append(s)
-                return np.reshape(a, shape)
+                return numpy.reshape(a, shape)
 
             return squeeze_func
 
@@ -92,18 +92,18 @@ def _reload():
     global_vars['squeeze'] = func
 
     # Inner product of two arrays.
-    global_vars['inner'] = jit(lambda a, b: np.sum(a * b))
+    global_vars['inner'] = jit(lambda a, b: numpy.sum(a * b))
 
     # Evenly round to the given number of decimals.
-    global_vars['around'] = np.round_
+    global_vars['around'] = numpy.round_
 
     # Round to nearest integer towards zero.
-    global_vars['fix'] = jit(lambda x: np.where(x >= 0, x, -np.floor(-x)))
+    global_vars['fix'] = jit(lambda x: numpy.where(x >= 0, x, -numpy.floor(-x)))
 
     @jit
     def clip(x, x_min, x_max):
-        x = np.maximum(x, x_min)
-        x = np.minimum(x, x_max)
+        x = numpy.maximum(x, x_min)
+        x = numpy.minimum(x, x_max)
         return x
 
     # Clip (limit) the values in an array.
@@ -112,24 +112,24 @@ def _reload():
     # Returns True if two arrays are element-wise equal within a tolerance.
     global_vars['allclose'] = jit(
         lambda a, b, rtol=1e-05, atol=1e-08:
-        np.all(np.absolute(a - b) <= (atol + rtol * np.absolute(b))))
+        numpy.all(numpy.absolute(a - b) <= (atol + rtol * numpy.absolute(b))))
 
     # Returns a boolean array where two arrays are element-wise equal within a tolerance.
     global_vars['isclose'] = jit(
         lambda a, b, rtol=1e-05, atol=1e-08:
-        np.absolute(a - b) <= (atol + rtol * np.absolute(b)))
+        numpy.absolute(a - b) <= (atol + rtol * numpy.absolute(b)))
 
-    @nb.generated_jit(**profile.get_numba_profile())
+    @numba.generated_jit(**profile.get_numba_profile())
     def average(a, axis=None, weights=None):
-        if isinstance(weights, nb.types.NoneType):
+        if isinstance(weights, numba.types.NoneType):
             def func(a, axis=None, weights=None):
-                return np.mean(a, axis)
+                return numpy.mean(a, axis)
 
             return func
 
         else:
             def func(a, axis=None, weights=None):
-                return np.sum(a * weights, axis=axis) / sum(weights)
+                return numpy.sum(a * weights, axis=axis) / sum(weights)
 
             return func
 
@@ -137,7 +137,16 @@ def _reload():
     global_vars['average'] = average
 
     # set random seed
-    global_vars['seed'] = nb.njit(lambda a: np.random.seed(a))
+    global_vars['seed'] = numba.njit(lambda a: numpy.random.seed(a))
+
+    @numba.generated_jit(**profile.get_numba_profile())
+    def _normal_sample_(x):
+        if isinstance(x, (numba.types.Integer, numba.types.Float)):
+            return lambda x: numpy.random.normal()
+        else:
+            return lambda x: numpy.random.normal(0., 1.0, x.shape)
+
+    global_vars['_normal_sample_'] = _normal_sample_
 
 
 _reload()

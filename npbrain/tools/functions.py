@@ -4,10 +4,8 @@ import functools
 import inspect
 import types
 
-import numpy as onp
-
 from .codes import deindent
-from .. import _numpy as np
+from .. import numpy as np
 from .. import profile
 
 try:
@@ -15,49 +13,18 @@ try:
     from numba.core.dispatcher import Dispatcher
 except ImportError as e:
     nb = None
-
-
+    Dispatcher = None
 
 __all__ = [
-    # function helpers
-    'jit_function',
     'jit',
     'func_copy',
     'numba_func',
-
-    # 'others'
-    'is_struct_array',
-    'init_struct_array',
-
+    'get_func_scope',
 ]
 
 
-##############################
-# function helpers
-##############################
-
-
-def jit_function(f):
-    """Generate ``numba`` JIT functions.
-
-    Parameters
-    ----------
-    f : callable
-        The function.
-
-    Returns
-    -------
-    callable
-        JIT function.
-    """
-    if nb is None:
-        raise ImportError('Please install numba.')
-    op = profile.get_numba_profile()
-    return nb.jit(f, **op)
-
-
 def jit(func=None):
-    """Format user defined functions.
+    """JIT user defined functions.
 
     Parameters
     ----------
@@ -79,9 +46,21 @@ def jit(func=None):
     return func
 
 
-
 def func_copy(f):
-    """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
+    """Make a deepcopy of a python function.
+
+    This method is adopted from http://stackoverflow.com/a/6528148/190597 (Glenn Maynard).
+
+    Parameters
+    ----------
+    f : callable
+        Function to copy.
+
+    Returns
+    -------
+    g : callable
+        Copied function.
+    """
     g = types.FunctionType(code=f.__code__,
                            globals=f.__globals__,
                            name=f.__name__,
@@ -94,6 +73,8 @@ def func_copy(f):
 
 def numba_func(func, params={}):
     if func == np.func_by_name(func.__name__):
+        return func
+    if isinstance(func, Dispatcher):
         return func
 
     vars = inspect.getclosurevars(func)
@@ -121,30 +102,14 @@ def numba_func(func, params={}):
         return jit(func)
 
 
-def is_struct_array(arr):
-    if profile.is_numba_bk() or profile.is_numba_bk():
-        if isinstance(arr, onp.ndarray) and (arr.dtype.names is not None):
-            return True
-        else:
-            return False
+def get_func_scope(func):
+    vars = inspect.getclosurevars(func)
+    scope = dict(vars.nonlocals)
+    scope.update(vars.globals)
 
-    if profile.is_jax_bk():
-        raise NotImplementedError
+    for k, v in list(scope.items()):
+        if callable(v) and (Dispatcher is not None and not isinstance(v, Dispatcher)):
+            v_scope = get_func_scope(v)
+            scope.update(v_scope)
 
-
-def init_struct_array(num, variables):
-    if isinstance(variables, (list, tuple)):
-        variables = {v: np.float_ for v in variables}
-    elif isinstance(variables, dict):
-        pass
-    else:
-        raise ValueError(f'Unknown type: {type(variables)}.')
-
-    if profile.is_numba_bk() and profile.is_numpy_bk():
-        dtype = np.dtype(list(variables.items()), align=True)
-        arr = np.zeros(num, dtype)
-        return arr
-
-    if profile.is_jax_bk():
-        arr = {k: np.zeros(num, dtype=d) for k, d in variables.items()}
-        return arr
+    return scope

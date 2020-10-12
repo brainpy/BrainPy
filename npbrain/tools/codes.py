@@ -8,12 +8,11 @@ import types
 import autopep8
 
 from .ast2code import ast2code
-from .. import _numpy as np
+from .. import numpy as np
 
 __all__ = [
     'is_lambda_function',
-    'func_replace',
-    'FuncFinder',
+
     'get_identifiers',
     'get_main_code',
     'get_line_indent',
@@ -22,7 +21,11 @@ __all__ = [
     'deindent',
     'word_replace',
 
+    # replace function calls
+    'replace_func',
+    'FuncCallFinder',
 
+    # analyse differential equations
     'analyse_diff_eq',
     'DiffEquationAnalyser',
     'DiffEquationError',
@@ -170,17 +173,17 @@ class DiffEquationError(Exception):
     pass
 
 
-def func_replace(code, func_name):
+def replace_func(code, func_name):
     tree = ast.parse(code.strip())
-    w = FuncFinder(func_name)
+    w = FuncCallFinder(func_name)
     tree = w.visit(tree)
     tree = ast.fix_missing_locations(tree)
     new_code = ast2code(tree)
     return new_code, w.args, w.kwargs
 
 
-class FuncFinder(ast.NodeTransformer):
-    """Wraps all integers in a call to Integer()"""
+class FuncCallFinder(ast.NodeTransformer):
+    """"""
 
     def __init__(self, func_name):
         self.name = func_name

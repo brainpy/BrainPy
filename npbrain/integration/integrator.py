@@ -5,7 +5,7 @@ import sympy
 from .diff_equation import DiffEquation
 from .sympy_tools import str_to_sympy
 from .sympy_tools import sympy_to_str
-from .. import _numpy as np
+from .. import numpy as np
 from .. import profile
 from ..tools import word_replace
 
@@ -13,6 +13,16 @@ __all__ = [
     'get_integrator',
     'Integrator',
     'IntegratorError',
+    'Euler',
+    'Heun',
+    'MidPoint',
+    'RK2',
+    'RK3',
+    'RK4',
+    'RK4Alternative',
+    'ExponentialEuler',
+    'MilsteinIto',
+    'MilsteinStra',
 ]
 
 
@@ -75,10 +85,6 @@ class Integrator(object):
     def __call__(self, y0, t, *args):
         return self._update_func(y0, t, *args)
 
-    # @property
-    # def py_func(self):
-    #     return self.diff_eqs.f
-    #
     @property
     def py_func_name(self):
         return self.diff_eq.func_name
@@ -94,7 +100,8 @@ class Integrator(object):
     @property
     def code_scope(self):
         scope = self.diff_eq.func_scope
-        scope['normal'] = np.random.normal
+        scope['_normal_sample_'] = np.random._normal_sample_
+        scope['np'] = np
         return scope
 
 
@@ -178,7 +185,10 @@ class Euler(Integrator):
 
         # get code lines of dg part
         if diff_eq.is_stochastic:
-            code_lines.append(f'_{var_name}_dW = normal(0., 1., {var_name}.shape)')
+            # code_lines.append(f'print(_normal_sample_(10))')
+            # code_lines.append(f'print(_normal_sample_(np.array([1,2,3])))')
+            code_lines.append(f'_{var_name}_dW = _normal_sample_({var_name})')
+            # code_lines.append(f'_{var_name}_dW = np.random.normal(0., 1., {var_name}.shape)')
             if diff_eq.is_functional_noise:
                 g_expressions = diff_eq.get_g_expressions(substitute=False)
                 code_lines.extend([str(expr) for expr in g_expressions])
@@ -242,9 +252,30 @@ class Euler(Integrator):
                         y = y0 + df + dg
                         return (y,) + tuple(val[1:])
                 else:
+                    import numba
+                    @numba.generated_jit(nopython=True)
+                    def shape(x):
+                        if isinstance(x, (numba.types.Float, numba.types.Integer)):
+                            return lambda x: None
+                        else:
+                            return lambda x: x.shape
+
+                    @numba.generated_jit(nopython=True)
+                    def _normal_sample_(x):
+                        if isinstance(x, numba.types.Float):
+                            return lambda x: np.random.normal()
+                        elif isinstance(x, numba.types.Integer):
+                            return lambda x: np.random.normal()
+                        else:
+                            return lambda x: np.random.normal(0., 1., x.shape)
+
                     def int_f(y0, t, *args):
                         df = f(y0, t, *args) * dt
-                        dW = np.random.normal(0.0, 1.0, y0.shape)
+                        # dW = np.random.normal(0.0, 1.0, np.shape(y0))
+                        # dW = np.random.normal(0.0, 1.0, np.array(y0).shape)
+                        # dW = np.random.normal(0.0, 1.0, shape(y0))
+                        dW = _normal_sample_(y0)
+                        # dW = np.random._normal_sample_(y0)
                         dg = dt_sqrt * g * dW
                         return y0 + df + dg
 
@@ -431,7 +462,7 @@ class Heun(Integrator):
     .. [1] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
          equations in MATLAB, Journal of Computational and Applied Mathematics 205 (2007),
          no. 2, 1002-1018.
-    .. [2] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE through computer
+    .. [2] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE through computer
          experiments, Springer, 1994.
 
     See Also
@@ -465,7 +496,7 @@ class Heun(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * normal(0., 1., {var_name}.shape)')
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * _normal_sample_({var_name})')
                 assert diff_eq.is_functional_noise
                 g_k1_expressions = diff_eq.get_g_expressions(substitute=False)
                 code_lines.extend([str(expr) for expr in g_k1_expressions[:-1]])
@@ -1106,7 +1137,7 @@ class ExponentialEuler(Integrator):
         # get dg part
         if diff_eq.is_stochastic:
             # dW
-            code_lines.append(f'_{diff_eq.var_name}_dW = normal(0., 1., {diff_eq.var_name}.shape)')
+            code_lines.append(f'_{diff_eq.var_name}_dW = _normal_sample_({diff_eq.var_name})')
             # expressions of the stochastic part
             g_expressions = diff_eq.get_g_expressions()
             # get the
@@ -1243,7 +1274,7 @@ class MilsteinIto(Integrator):
 
     References
     ----------
-    .. [1] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE
+    .. [1] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE
            through computer experiments, Springer, 1994.
 
     """
@@ -1279,7 +1310,7 @@ class MilsteinIto(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * normal(0., 1., {var_name}.shape)')
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * _normal_sample_({var_name})')
                 g_k1_expressions = diff_eq.get_g_expressions(substitute=False)
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
@@ -1394,7 +1425,7 @@ class MilsteinStra(Integrator):
     .. [1] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
          equations in MATLAB, Journal of Computational and Applied Mathematics 205 (2007),
          no. 2, 1002-1018.
-    .. [2] P.E. Kloeden, E. Platen, and H. Schurz, Numerical solution of SDE through computer
+    .. [2] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE through computer
          experiments, Springer, 1994.
 
     See Also
@@ -1434,7 +1465,7 @@ class MilsteinStra(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * normal(0., 1., {var_name}.shape)')
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * _normal_sample_({var_name})')
                 g_k1_expressions = diff_eq.get_g_expressions(substitute=False)
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 

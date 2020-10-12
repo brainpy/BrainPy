@@ -31,12 +31,12 @@ _numba_setting = {'nopython': True, 'fastmath': True,
 
 show_formatted_code = False
 auto_pep8 = True
-substitute_eqs = False
+substitute_equation = False
 merge_integral = False
 
 
-def set(backend=None, device=None, numerical_method=None, dt=None,
-        ftype=None, itype=None):
+def set(backend=None, numerical_method=None, dt=None, float_type=None, int_type=None,
+        merge_ing=None, substitute=None, show_code=None):
     if backend is not None:
         set_backend(backend)
 
@@ -45,6 +45,28 @@ def set(backend=None, device=None, numerical_method=None, dt=None,
 
     if dt is not None:
         set_dt(dt)
+
+    if float_type is not None:
+        from .numpy import _set_default_float
+
+        _set_default_float(float_type)
+
+    if int_type is not None:
+        from .numpy import _set_default_int
+
+        _set_default_int(int_type)
+
+    if merge_ing is not None:
+        global merge_integral
+        merge_integral = merge_ing
+
+    if substitute is not None:
+        global substitute_equation
+        substitute_equation = substitute
+
+    if show_code is not None:
+        global show_formatted_code
+        show_formatted_code = show_code
 
 
 def set_backend(bk):
@@ -83,7 +105,7 @@ def set_backend(bk):
 
     if backend != _backend:
         _backend = backend
-        from ._numpy import _reload as r1
+        from .numpy import _reload as r1
         r1(backend)
 
 
