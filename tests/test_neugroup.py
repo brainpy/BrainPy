@@ -1,6 +1,6 @@
 from npbrain.core_system import types
 from npbrain.core_system.neuron_group import NeuGroup, NeuType
-import npbrain._numpy as np
+import npbrain.numpy as np
 from npbrain import profile
 
 _dt = 0.02

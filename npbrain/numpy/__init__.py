@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from importlib import import_module
+
 import numpy
 
 from . import linalg
@@ -539,7 +540,50 @@ def _reload(backend):
         raise ValueError(f'Unknown backend device: {backend}')
 
 
+def _set_default_int(itype):
+    """Set default int type.
+
+    Parameters
+    ----------
+    itype : str, numpy.generic
+        Int type.
+    """
+    global int_
+    if isinstance(itype, str):
+        int_ = func_by_name(itype)
+    else:
+        int_ = itype
+
+
+def _set_default_float(ftype):
+    """Set default float type.
+
+    Parameters
+    ----------
+    ftype : str, numpy.generic
+        float type.
+    """
+    global float_
+
+    if isinstance(ftype, str):
+        float_ = func_by_name(ftype)
+    else:
+        float_ = ftype
+
+
 def func_by_name(name):
+    """Get numpy function by its name.
+
+    Parameters
+    ----------
+    name : str
+        Function name.
+
+    Returns
+    -------
+    func : callable
+        Numpy function.
+    """
     if name in globals():
         return globals()[name]
     elif hasattr(random, name):

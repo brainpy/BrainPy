@@ -1,17 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from npbrain import _numpy as np
-
-from npbrain.core_system import integrate
-from npbrain.tools import get_clip
-
-__all__ = [
-    'STP',
-]
+import npbrain as nb
+import npbrain.numpy as np
 
 
-def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
-        u0=0.0, x0=1.0, delay=None, name='short_term_plasticity'):
+def define_stp(U=0.15, tau_f=1500., tau_d=200.):
     """Short-term plasticity proposed by Tsodyks and Markram (Tsodyks 98) [1]_.
 
     The model is given by
@@ -38,16 +31,6 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
 
     Parameters
     ----------
-    pre : Neurons
-        The pre-synaptic neuron group.
-    post : Neurons
-        The post-synaptic neuron group.
-    weights : dict, bnp.ndarray, int, float
-        The weighted coefficients of synapses.
-    connection : tuple
-        The conn.
-    delay : None, float
-        The delay time length.
     tau_d : float
         Time constant of short-term depression.
     tau_f : float
@@ -58,13 +41,6 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
         Initial value of :math:`x`.
     u0 : float
         Initial value of :math:`u`.
-    name : str
-        The name of synapse.
-
-    Returns
-    -------
-    synapse : Synapses
-        The constructed electrical synapses.
 
     References
     ----------
@@ -72,68 +48,42 @@ def STP(pre, post, weights, connection, U=0.15, tau_f=1500., tau_d=200.,
     .. [1] Tsodyks, Misha, Klaus Pawelzik, and Henry Markram. "Neural networks
            with dynamic synapses." Neural computation 10.4 (1998): 821-835.
     """
-    var2index = {'u': 0, 'x': 1}
+    requires = dict(
+        ST=nb.types.SynState({'u': 0., 'x': 1., 'w': 1.}),
+        pre=nb.types.NeuState(['sp']),
+        post=nb.types.NeuState(['V', 'inp']),
+        pre2syn=nb.types.ListConn(),
+        post2syn=nb.types.ListConn(),
+    )
 
-    pre_ids, post_ids, anchors = connection
-    num, num_pre, num_post = len(pre_ids), pre.num, post.num
-    state = init_syn_state(num_syn=num, variables=[('u', u0), ('x', x0)])
-    delay_state = init_delay_state(num_post=num_post, delay=delay)
-
-    clip = get_clip()
-
-    # weights
-    if np.size(weights) == 1:
-        weights = np.ones(num) * weights
-    assert np.size(weights) == num, 'Unknown weights shape: {}'.format(weights.shape)
-
-    @integrate(signature='{f}[:]({f}[:], {f})')
+    @nb.integrate(method='exponential')
     def int_u(u, t):
         return - u / tau_f
 
-    @integrate(signature='{f}[:]({f}[:], {f})')
+    @nb.integrate(method='exponential')
     def int_x(x, t):
         return (1 - x) / tau_d
 
-    def update_state(syn_st, t, delay_st, delay_idx, pre_state):
-        # get synapse state
-        u_old = syn_st[0]
-        x_old = syn_st[1]
-        pre_spike = pre_state[-3]
-        # calculate synaptic state
-        u_new = int_u(u_old, t)
-        x_new = int_x(x_old, t)
-        for i in range(num_pre):
-            if pre_spike[i] > 0.:
-                se = anchors[:, i]
-                u_new[se[0]: se[1]] += U * (1 - u_old[se[0]: se[1]])
-                x_new[se[0]: se[1]] -= u_new[se[0]: se[1]] * x_old[se[0]: se[1]]
-        u_new = clip(u_new, 0., 1.)
-        x_new = clip(x_new, 0., 1.)
-        syn_st[0] = u_new
-        syn_st[1] = x_new
-        # get post-synaptic values
-        g = np.zeros(num_post)
-        for i in range(num_pre):
-            se = anchors[:, i]
-            weight = weights[se[0]: se[1]]
-            u = u_new[se[0]: se[1]]
-            x = x_new[se[0]: se[1]]
-            post_idx = post_ids[se[0]: se[1]]
-            g[post_idx] += u * x * weight
-        delay_st[delay_idx] = g
+    def update(ST, pre, pre2syn):
+        u = int_u(ST['u'], 0)
+        x = int_x(ST['x'], 0)
+        for pre_id in np.where(pre['sp'] > 0.)[0]:
+            syn_ids = pre2syn[pre_id]
+            u_syn = u[syn_ids] + U * (1 - ST['u'][syn_ids])
+            u[syn_ids] = u_syn
+            x[syn_ids] -= u_syn * ST['x'][syn_ids]
+        ST['u'] = np.clip(u, 0., 1.)
+        ST['x'] = np.clip(x, 0., 1.)
+        ST.push(ST['w'] * ST['u'] * ST['x'])
 
-    if hasattr(post, 'ref') and getattr(post, 'ref') > 0.:
+    def output(ST, post, post2syn):
+        g = ST.pull()
+        post_cond = np.zeros(len(post2syn), dtype=np.float_)
+        for post_id, syn_ids in enumerate(post2syn):
+            post_cond[post_id] = np.sum(g[syn_ids])
+        post['inp'] += post_cond
 
-        def output_synapse(delay_st, output_idx, post_state):
-            syn_val = delay_st[output_idx]
-            for idx in range(num_post):
-                val = syn_val[idx] * post_state[-5, idx]
-                post_state[-1, idx] += val
+    return dict(requires=requires, steps=(update, output))
 
-    else:
 
-        def output_synapse(delay_st, output_idx, post_state):
-            syn_val = delay_st[output_idx]
-            post_state[-1] += syn_val
-
-    return Synapses(**locals())
+STP = nb.SynType('STP', create_func=define_stp, vector_based=True)

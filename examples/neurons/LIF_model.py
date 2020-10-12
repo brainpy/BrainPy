@@ -3,20 +3,19 @@
 import matplotlib.pyplot as plt
 
 import npbrain as nb
-import npbrain._numpy as np
+import npbrain.numpy as np
 
-nb.profile.set_backend('numpy')
-nb.profile.set_dt(0.02)
-nb.profile.show_formatted_code = True
+nb.profile.set(backend='numba', dt=0.02, )
+nb.profile.merge_integral = True
 
 
-def LIF_single_neuron(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
+def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
     """Leaky integrate-and-fire neuron model.
 
     Parameters
     ----------
     tau : float
-        NeuGroup parameters.
+        Membrane time constants.
     Vr : float
         The reset potential.
     Vth : float
@@ -27,7 +26,17 @@ def LIF_single_neuron(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
         The refractory period.
     """
 
-    ST = nb.types.NeuState({'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.})
+    ST = nb.types.NeuState(
+        {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
+        help='''
+        LIF neuron state.
+        
+        V: membrane potential.
+        sp : spike state. 
+        sp_t : last spike time.
+        inp : input, including external and synaptic inputs.
+        '''
+    )
 
     @nb.integrate(noise=noise / tau)
     def int_f(V, t, Isyn):
@@ -45,15 +54,18 @@ def LIF_single_neuron(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
             ST['sp'] = False
         ST['inp'] = 0.
 
-    return {'requires': {'ST': ST}, 'steps': update}
+    return {'requires': {'ST': ST}, 'update': update}
 
 
-LIF_single = nb.NeuType(name='LIF_neuron', create_func=LIF_single_neuron, vector_based=False)
-
+LIF_single = nb.NeuType(name='LIF_neuron', create_func=define_single_lif, vector_based=False)
 
 if __name__ == '__main__':
     neu = nb.NeuGroup(LIF_single, geometry=(10,), monitors=['sp', 'V'],
-                      pars_update={'tau': np.random.randint(5, 10, size=(10,))})
+                      pars_update={
+                          'Vr': np.random.randint(0, 2, size=(10,)),
+                          'tau': np.random.randint(5, 10, size=(10,)),
+                          'noise': 1.
+                      })
     net = nb.Network(neu)
     net.run(duration=100., inputs=[neu, 'ST.inp', 13.], report=True)
 
@@ -61,8 +73,8 @@ if __name__ == '__main__':
     fig, gs = nb.visualize.get_figure(1, 1, 4, 8)
 
     fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.pars_update["tau"][0]})')
-    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.pars_update["tau"][2]})')
+    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.params["tau"][0]})')
+    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.params["tau"][2]})')
     plt.ylabel('Membrane potential')
     plt.xlim(-0.1, net._run_time + 0.1)
     plt.legend()

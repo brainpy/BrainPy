@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
+
 import npbrain as nb
-from npbrain import _numpy as np
-
-nb.profile.set_backend('numpy')
-
-nb.profile.show_formatted_code = True
-nb.profile.auto_pep8 = True
+from npbrain import numpy as np
 
 
 def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
@@ -54,13 +50,12 @@ def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
             syn_idx = pre2syn[i]
             s[syn_idx] += 1.
         ST['s'] = s
-        ST.push_cond(s)
+        ST.push(g_max * s)
 
     def output(ST, post, post2syn):
-        g = ST.pull_cond()
+        g = ST.pull()
         g_val = nb.post_cond_by_post2syn(g, post2syn)
-        post_val = - g_max * g_val * (post['V'] - E)
-        post['inp'] += post_val
+        post['inp'] -= g_val * (post['V'] - E)
 
     return {'requires': requires, 'steps': (update, output)}
 
@@ -107,20 +102,18 @@ def define_ampa2_group(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duratio
     }
 
     def update(ST, _t_, pre, pre2syn):
-        spike_idx = np.where(pre['sp'] > 0.)[0]
-        for i in spike_idx:
+        for i in np.where(pre['sp'] > 0.)[0]:
             syn_idx = pre2syn[i]
             ST['sp_t'][syn_idx] = _t_
         TT = ((_t_ - ST['sp_t']) < T_duration) * T
         s = np.clip(int_s(ST['s'], _t_, TT), 0., 1.)
         ST['s'] = s
-        ST.push_cond(s)
+        ST.push(g_max * s)
 
     def output(ST, post, post2syn):
-        g = ST.pull_cond()
+        g = ST.pull()
         g_val = nb.post_cond_by_post2syn(g, post2syn)
-        post_val = - g_max * g_val * (post['V'] - E)
-        post['inp'] += post_val
+        post['inp'] -= g_val * (post['V'] - E)
 
     return {'requires': requires, 'steps': (update, output)}
 
@@ -147,7 +140,7 @@ def run_ampa_group(cls, duration=650.):
     plt.show()
 
 
-if __name__ == '__main__1':
+if __name__ == '__main__':
     run_ampa_group(AMPA1_group)
     run_ampa_group(AMPA2_group)
 

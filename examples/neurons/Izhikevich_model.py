@@ -1,31 +1,24 @@
 # -*- coding: utf-8 -*-
 
-from npbrain import _numpy as np
+import matplotlib.pyplot as plt
 
-from npbrain import integrate
-from npbrain.tools import jit
+import npbrain as nb
+import npbrain.numpy as np
+
+nb.profile.set(backend='numba', )
 
 __all__ = [
     'Izhikevich'
 ]
 
 
-def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
-               ref=0., noise=0., Vth=30., Vr=-65., name='Izhikevich_neuron'):
+def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65., mode=None):
     """Izhikevich two-variable neuron model.
 
     Parameters
     ----------
-    mode : None, str
-        At least twenty firing modes have beed provides by Izhikevich.
-        One can specify the preferred firing mode to get the corresponding
-        neuron group.
-    geometry : int, a_list, tuple
-        The geometry of neuron group. If an integer is given, it is the size
-        of the population.
-    method : str, callable, dict
-        The numerical integrator method. Either a string with the name of a
-        registered method (e.g. "euler") or a function.
+    mode : optional, str
+        The neuron spiking mode.
     a : float
         It determines the time scale of the recovery variable :math:`u`.
     b : float
@@ -37,22 +30,28 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
     d : float
         It describes after-spike reset of the recovery variable :math:`u` caused
         by slow high-threshold :math:`Na^{+}` and :math:`K^{+}` conductance.
-    ref
-    noise
-    Vth
-    Vr
-    name : str
-        The name of the neuron group.
-
-    Returns
-    -------
-    neurons : Neurons
-        The created neuron group.
+    ref : float
+        Refractory period length. [ms]
+    noise : float
+        The noise fluctuation.
+    Vth : float
+        The membrane potential threshold.
+    Vr : float
+        The membrane reset potential.
     """
 
-    var2index = {'V': 0, 'u': 1}
-    num, geometry = format_geometry(geometry)
-    state = init_neu_state(num_neu=num, variables=len(var2index))
+    state = nb.types.NeuState(
+        {'V': 0., 'u': 1., 'sp': 0., 'sp_t': -1e7, 'inp': 0.},
+        help='''
+        Izhikevich two-variable neuron model state.
+        
+        V : membrane potential [mV].
+        u : recovery variable [mV].
+        sp : spike state. 
+        sp_t : last spike time.
+        inp : input, including external and synaptic inputs.
+        '''
+    )
 
     if mode in ['tonic', 'tonic spiking']:
         a, b, c, d = [0.02, 0.40, -65.0, 2.0]
@@ -95,70 +94,71 @@ def Izhikevich(geometry, mode=None, method=None, a=0.02, b=0.20, c=-65., d=8.,
     elif mode in ['inhibition-induced bursting', ]:
         a, b, c, d = [-0.026, -1.00, -45.0, 0.0]
 
-    def init_state(state_, Vr_):
-        state_[0] = np.ones(num) * Vr_
-        state_[1] = state_[0] * b
-
-    init_state(state, Vr)
-    judge_spike = get_spike_judger()
-
-    @integrate(method=method, signature='f[:](f[:], f, f[:])')
+    @nb.integrate
     def int_u(u, t, V):
         return a * (b * V - u)
 
-    @integrate(method=method, noise=noise, signature='f[:](f[:], f, f[:], f[:])')
+    @nb.integrate
     def int_V(V, t, u, Isyn):
         return 0.04 * V * V + 5 * V + 140 - u + Isyn
 
-    if ref > 0.:
+    if np.any(ref > 0.):
 
-        @jit('void(f[:, :], f)')
-        def update_state(neu_state, t):
-            not_ref = (t - neu_state[-2]) > ref
-            V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
-            u_new = int_u(u, t, V)
-            V_new = int_V(V, t, u, Isyn)
-            not_ref_idx = np.where(not_ref)[0]
-            for idx in not_ref_idx:
-                neu_state[0, idx] = V_new[idx]
-                neu_state[1, idx] = u_new[idx]
-            spike_idx = judge_spike(neu_state, Vth, t)
+        def update(ST, _t_):
+            V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
+            u = int_u(ST['u'], _t_, ST['V'])
+            not_ref = (_t_ - ST['sp_t']) > ref
+            for idx in np.where(not_ref)[0]:
+                V[idx] = ST['V'][idx]
+                u[idx] = ST['u'][idx]
+            sp = V >= Vth
+            spike_idx = np.where(sp)[0]
             for idx in spike_idx:
-                neu_state[0, idx] = c
-                neu_state[1, idx] += d
-                neu_state[-5, idx] = 0.
+                V[idx] = c
+                u[idx] += d
+                ST['sp_t'] = _t_
+            ST['sp'] = sp
+            ST['V'] = V
+            ST['u'] = u
+            ST['inp'] = 0.
+
     else:
 
-        @jit('void(f[:, :], f)')
-        def update_state(neu_state, t):
-            V, u, Isyn = neu_state[0], neu_state[1], neu_state[-1]
-            neu_state[0] = int_V(V, t, u, Isyn)
-            neu_state[1] = int_u(u, t, V)
-            spike_idx = judge_spike(neu_state, Vth, t)
+        def update(ST, _t_):
+            V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
+            u = int_u(ST['u'], _t_, ST['V'])
+            sp = V >= Vth
+            spike_idx = np.where(sp)[0]
             for idx in spike_idx:
-                neu_state[0, idx] = c
-                neu_state[1, idx] += d
+                V[idx] = c
+                u[idx] += d
+                ST['sp_t'] = _t_
+            ST['V'] = V
+            ST['u'] = u
+            ST['sp'] = sp
+            ST['inp'] = 0.
 
-    return Neurons(**locals())
+    requires = {'ST': state}
+    return dict(requires=requires, steps=update)
+
+
+Izhikevich = nb.NeuType('Izhikevich_neuron', create_func=Izhikevich, vector_based=True)
 
 if __name__ == '__main__':
-    izh = nn.Izhikevich(10, noise=1.)
-    mon = nn.StateMonitor(izh, ['V', 'u'])
-    net = nn.Network(hh=izh, mon=mon)
-    net.run(duration=100, inputs=[izh, 10], report=True)
-
-    ts = net.ts()
-    fig, gs = nn.visualize.get_figure(2, 1, 3, 12)
+    neu = nb.NeuGroup(Izhikevich, 10, pars_update=dict(noise=1.), monitors=['V', 'u'])
+    net = nb.Network(neu)
+    net.run(duration=100, inputs=[neu, 'inp', 10], report=True)
 
     indexes = [0, 1, 2]
+    fig, gs = nb.visualize.get_figure(2, 1, 3, 12)
 
     fig.add_subplot(gs[0, 0])
-    nn.visualize.plot_potential(mon, ts, neuron_index=indexes)
+    nb.visualize.plot_potential(neu.mon, net.ts, neuron_index=indexes)
     plt.xlim(-0.1, net._run_time + 0.1)
     plt.legend()
 
     fig.add_subplot(gs[1, 0])
-    nn.visualize.plot_value(mon, ts, 'u', val_index=indexes)
+    nb.visualize.plot_value(neu.mon, net.ts, 'u', val_index=indexes)
     plt.xlim(-0.1, net._run_time + 0.1)
     plt.xlabel('Time (ms)')
     plt.legend()

@@ -1,22 +1,18 @@
 # encoding:UTF-8
-import sys
 
-sys.path.append("../../")
 import matplotlib.pyplot as plt
 
 import npbrain as nb
-import npbrain._numpy as np
+import npbrain.numpy as np
 
-nb.profile.set_backend('numba')
-nb.profile.set_method('milstein')
-nb.profile.set_dt(0.02)
+nb.profile.set(backend='numba', dt=0.02, numerical_method='milstein')
 nb.profile.show_formatted_code = True
 nb.profile.merge_integral = True
 noise = 1
 
 
-def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
-           g_Leak=0.03, C=1.0, Vth=20.):
+def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
+              g_Leak=0.03, C=1.0, Vth=20.):
     """The Hodgkin–Huxley neuron model.
 
     Parameters
@@ -92,7 +88,8 @@ def define(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
     return {'requires': {"ST": ST}, 'steps': update}
 
 
-HH = nb.NeuType(name='HH_neuron', create_func=define, vector_based=True)
+HH = nb.NeuType(name='HH_neuron', create_func=define_hh, vector_based=True)
+
 
 if __name__ == '__main__':
     neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'],

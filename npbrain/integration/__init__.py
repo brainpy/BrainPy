@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from .. import numpy as np
 from . import diff_equation
 from . import integrator
+from . import sympy_tools
 
 from .diff_equation import *
 from .integrator import *
@@ -68,7 +70,15 @@ def integrate(func=None, noise=None, method=None):
         if not, the wrapper will be provided.
     """
 
-    has_noise = not (noise is None or noise == 0.)
+    if noise is None:
+        has_noise = False
+    elif callable(noise):
+        has_noise = True
+    else:
+        if np.all(noise == 0.):
+            has_noise = False
+        else:
+            has_noise = True
     method = method if method is not None else profile.get_method()
     _integrator_ = get_integrator(method)
 
