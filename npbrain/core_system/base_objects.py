@@ -481,16 +481,16 @@ class BaseEnsemble(object):
             has_post = 'post' in state_args
             if has_ST:
                 if has_pre and has_post:
-                    code_arg.extend(['pre2syn', 'post_idx'])
+                    code_arg.extend(['pre2syn', 'post_ids'])
                     code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
-                    code_arg2call['post_idx'] = f'{self.name}.post_idx'
+                    code_arg2call['post_ids'] = f'{self.name}.post_ids'
 
                     code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
                                   f'def {func_name}({", ".join(code_arg)}):',
                                   f'for pre_idx in range({self.pre_group.num}):',
                                   f'  pre = {self.name}_pre.extract_by_index(pre_idx)',
                                   f'  for syn_idx in pre2syn[pre_idx]:',
-                                  f'    post_i = post_idx[syn_idx]',
+                                  f'    post_i = post_ids[syn_idx]',
                                   f'    post = {self.name}_post.extract_by_index(post_i)',
                                   f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
                                   f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
@@ -515,9 +515,9 @@ class BaseEnsemble(object):
 
                     code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
                                   f'def {func_name}({", ".join(code_arg)}):',
-                                  f'for post_idx in range({self.post_group.num}):',
-                                  f'  post = {self.name}_post.extract_by_index(post_idx)',
-                                  f'  for syn_idx in post2syn[post_idx]:',
+                                  f'for post_ids in range({self.post_group.num}):',
+                                  f'  post = {self.name}_post.extract_by_index(post_ids)',
+                                  f'  for syn_idx in post2syn[post_ids]:',
                                   f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
                                   f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
                                   f'    {self.name}_ST.update_by_index(syn_idx, ST)']
@@ -812,7 +812,7 @@ class BaseEnsemble(object):
             has_post = 'post' in states
             if has_pre and has_post:
                 code_args.add(f'{self.name}_post_idx')
-                code_arg2call[f'{self.name}_post_idx'] = f'{self.name}.post_idx'
+                code_arg2call[f'{self.name}_post_idx'] = f'{self.name}.post_ids'
                 code_args.add(f'{self.name}_pre2syn')
                 code_arg2call[f'{self.name}_pre2syn'] = f'{self.name}.pre2syn'
                 code_lines = [f'# "{func_name}" step function of {self.name}',

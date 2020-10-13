@@ -23,12 +23,10 @@ def gap_junction_vector():
 
     def update(ST, pre, post, post2syn, pre_ids):
         num_post = len(post2syn)
-        post_cond = np.zeros(num_post, np.float_)
         for post_id in range(num_post):
             for syn_id in post2syn[post_id]:
                 pre_id = pre_ids[syn_id]
-                post_cond[post_id] = ST['w'][syn_id] * (pre['V'][pre_id] - post['V'][post_id])
-        post['inp'] += post_cond
+                post['inp'][post_id] = ST['w'][syn_id] * (pre['V'][pre_id] - post['V'][post_id])
 
     return dict(requires=requires, steps=update)
 
@@ -38,14 +36,7 @@ GapJunction_vector = nb.SynType('GapJunction', create_func=gap_junction_vector, 
 
 def gap_junction_single():
     requires = dict(
-        ST=nb.types.SynState(
-            ['w'],
-            help='''
-            Gap junction state.
-            
-            w : gap junction conductance.
-            '''
-        ),
+        ST=nb.types.SynState(['w'], help='w : gap junction conductance.'),
         pre=nb.types.NeuState(['V']),
         post=nb.types.NeuState(['V', 'inp']),
     )

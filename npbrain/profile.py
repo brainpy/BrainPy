@@ -35,9 +35,13 @@ substitute_equation = False
 merge_integral = False
 
 
-def set(backend=None, numerical_method=None, dt=None, float_type=None, int_type=None,
+def set(backend=None, device=None, numerical_method=None, dt=None, float_type=None, int_type=None,
         merge_ing=None, substitute=None, show_code=None):
+    if device is not None and backend is None:
+        raise ValueError('Please set backend. NumpyBrain now supports "numpy", "numba" backends.')
     if backend is not None:
+        if device is None:
+            pass
         set_backend(backend)
 
     if numerical_method is not None:

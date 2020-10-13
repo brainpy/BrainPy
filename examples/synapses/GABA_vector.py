@@ -82,14 +82,14 @@ def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_d
 
     Parameters
     ----------
-    g_max
-    E
-    k1
-    k2
-    k3
-    k4
-    T
-    T_duration
+    g_max : float
+    E : float
+    k1 : float
+    k2 : float
+    k3 : float
+    k4 : float
+    T : float
+    T_duration : float
     """
 
     requires = dict(

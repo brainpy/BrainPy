@@ -108,12 +108,11 @@ def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65.,
             V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
             u = int_u(ST['u'], _t_, ST['V'])
             not_ref = (_t_ - ST['sp_t']) > ref
-            for idx in np.where(not_ref)[0]:
+            for idx in np.where(np.logical_not(not_ref))[0]:
                 V[idx] = ST['V'][idx]
                 u[idx] = ST['u'][idx]
             sp = V >= Vth
-            spike_idx = np.where(sp)[0]
-            for idx in spike_idx:
+            for idx in np.where(sp)[0]:
                 V[idx] = c
                 u[idx] += d
                 ST['sp_t'] = _t_
