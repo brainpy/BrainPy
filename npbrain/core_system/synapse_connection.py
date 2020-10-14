@@ -16,6 +16,8 @@ __all__ = [
     'SynType',
     'SynConn',
     'post_cond_by_post2syn',
+    'delay_push',
+    'delay_pull',
 ]
 
 _SYN_NO = 0
@@ -135,3 +137,17 @@ def post_cond_by_post2syn(syn_val, post2syn):
         syn_idx = post2syn[i]
         g_val[i] = syn_val[syn_idx]
     return g_val
+
+
+def delay_push(func):
+    """Delay push."""
+    func.__name__ = f'_NB_delay_push_{func.__name__}'
+    return func
+
+
+def delay_pull(func):
+    """Delay pull."""
+    func.__name__ = f'_NB_delay_pull_{func.__name__}'
+    return func
+
+
