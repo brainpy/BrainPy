@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 
-from .. import numpy as bnp
+from .. import numpy as np
 from .. import profile
 
 try:
@@ -21,7 +21,6 @@ __all__ = [
     'SynState',
     'ListConn',
     'MatConn',
-    'ijConn',
     'Array',
     'Int',
     'Float',
@@ -38,7 +37,7 @@ class TypeChecker(object):
         raise NotImplementedError
 
     @classmethod
-    def copy_to(cls, *args, **kwargs):
+    def make_copy(cls, *args, **kwargs):
         raise NotImplementedError
 
 
@@ -81,7 +80,7 @@ class ObjState(dict, TypeChecker):
 
 
 class NeuState(ObjState):
-    """Neuron State. """
+    """Neuron State Management. """
 
     def __call__(self, size):
         if isinstance(size, int):
@@ -91,7 +90,7 @@ class NeuState(ObjState):
         else:
             raise ValueError(f'Unknown size type: {type(size)}.')
 
-        data = bnp.zeros((len(self._vars),) + size, dtype=bnp.float_)
+        data = np.zeros((len(self._vars),) + size, dtype=np.float_)
         var2idx = dict()
         idx2var = dict()
         state = dict()
@@ -118,13 +117,13 @@ class NeuState(ObjState):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
-    def copy_to(self, size):
+    def make_copy(self, size):
         obj = NeuState(self._vars)
         return obj(size=size)
 
 
 class SynState(ObjState):
-    """Synapse State. """
+    """Synapse State Management. """
 
     def __init__(self, fields, help=''):
         super(SynState, self).__init__(fields=fields, help=help)
@@ -132,7 +131,7 @@ class SynState(ObjState):
         self._delay_in = 0
         self._delay_out = 0
 
-    def __call__(self, size, delay=None):
+    def __call__(self, size, delay=None, delay_vars=('cond',)):
         # check size
         if isinstance(size, int):
             size = (size,)
@@ -147,19 +146,29 @@ class SynState(ObjState):
         self._delay_len = delay
         self._delay_in = delay - 1
 
+        # check delay_vars
+        if isinstance(delay_vars, str):
+            delay_vars = (delay_vars,)
+        elif isinstance(delay_vars, (tuple, list)):
+            delay_vars = tuple(delay_vars)
+        else:
+            raise ValueError(f'Unknown delay_vars type: {type(delay_vars)}.')
+
         # initialize data
-        length = self._delay_len + len(self._vars)
-        data = bnp.zeros((length,) + size, dtype=bnp.float_)
+        length = len(self._vars) + delay * len(delay_vars)
+        data = np.zeros((length,) + size, dtype=np.float_)
         var2idx = dict()
         idx2var = dict()
         state = dict()
         for i, (k, v) in enumerate(self._vars.items()):
-            idx = i + self._delay_len
-            data[idx] = v
-            state[k] = data[idx]
-            var2idx[k] = idx
+            data[i] = v
+            state[k] = data[i]
+            var2idx[k] = i
             idx2var[i] = k
-        state['_cond_delay'] = data[:self._delay_len]
+        index_offset = len(self._vars)
+        for i, v in enumerate(delay_vars):
+            state[f'_{v}_offset'] = i * delay + index_offset
+            state[f'_{v}_delay'] = data[i * delay + index_offset: (i + 1) * delay + index_offset]
         state['_data'] = data
         state['_var2idx'] = var2idx
         state['_idx2var'] = idx2var
@@ -178,17 +187,19 @@ class SynState(ObjState):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
-    def copy_to(self, size, delay=None):
+    def make_copy(self, size, delay=None, delay_vars=('cond',)):
         obj = SynState(self._vars)
-        return obj(size=size, delay=delay)
+        return obj(size=size, delay=delay, delay_vars=delay_vars)
 
-    def push_cond(self, g):
+    def delay_push(self, g, var='cond'):
         data = self.__getitem__('_data')
-        data[self._delay_in] = g
+        offset = self.__getitem__(f'_{var}_offset')
+        data[self._delay_in + offset] = g
 
-    def pull_cond(self):
+    def delay_pull(self, var='cond'):
         data = self.__getitem__('_data')
-        return data[self._delay_out]
+        offset = self.__getitem__(f'_{var}_offset')
+        return data[self._delay_out + offset]
 
     def _update_delay_indices(self):
         if self._delay_len > 0:
@@ -215,7 +226,7 @@ class _SynStateForNbSingleMode(SynState):
         # initialize data
         non_delay_var = [k for k in self._keys if k not in delay_var]
         length = delay * len(delay_var) + len(non_delay_var)
-        data = bnp.zeros((length, num), dtype=bnp.float_)
+        data = np.zeros((length, num), dtype=np.float_)
         var2idx = dict()
         idx2var = dict()
         state = dict()
@@ -259,25 +270,25 @@ class ListConn(TypeChecker):
             if not isinstance(cls, nb.typed.List):
                 raise TypeMismatchError(f'In numba mode, "cls" must be an instance of {type(nb.typed.List)}, '
                                         f'but got {type(cls)}. Hint: you can use "ListConn.create()" method.')
-            if not isinstance(cls[0], (nb.typed.List, bnp.ndarray)):
+            if not isinstance(cls[0], (nb.typed.List, np.ndarray)):
                 raise TypeMismatchError(f'In numba mode, elements in "cls" must be an instance of '
                                         f'{type(nb.typed.List)} or ndarray, but got {type(cls[0])}. '
                                         f'Hint: you can use "ListConn.create()" method.')
         else:
             if not isinstance(cls, list):
                 raise TypeMismatchError(f'ListConn requires a list, but got {type(cls)}.')
-            if not isinstance(cls[0], (list, bnp.ndarray)):
+            if not isinstance(cls[0], (list, np.ndarray)):
                 raise TypeMismatchError(f'ListConn requires the elements of the list must be list or '
                                         f'ndarray, but got {type(cls)}.')
 
     @classmethod
-    def copy_to(cls, conn):
+    def make_copy(cls, conn):
         assert isinstance(conn, (list, tuple)), '"conn" must be a tuple/list.'
         assert isinstance(conn[0], (list, tuple)), 'Elements of "conn" must be tuple/list.'
         if profile.is_numba_bk():
             a_list = nb.typed.List()
             for l in conn:
-                a_list.append(bnp.uint64(l))
+                a_list.append(np.uint64(l))
         else:
             a_list = conn
         return a_list
@@ -293,19 +304,11 @@ class MatConn(TypeChecker):
         super(MatConn, self).__init__(help=help)
 
     def check(self, cls):
-        if not (isinstance(cls, bnp.ndarray) and bnp.ndim(cls) == 2):
+        if not (isinstance(cls, np.ndarray) and np.ndim(cls) == 2):
             raise TypeMismatchError(f'MatConn requires a two-dimensional ndarray.')
 
     def __str__(self):
         return 'MatConn'
-
-
-class ijConn(TypeChecker):
-    def __init__(self, help=''):
-        super(ijConn, self).__init__(help=help)
-
-    def __str__(self):
-        return 'ijConn'
 
 
 class Array(TypeChecker):
@@ -320,10 +323,10 @@ class Array(TypeChecker):
             assert self.dim == 1
         else:
             assert len(size) == self.dim
-        return bnp.zeros(size, dtype=bnp.float_)
+        return np.zeros(size, dtype=np.float_)
 
     def check(self, cls):
-        if not (isinstance(cls, bnp.ndarray) and bnp.ndim(cls) == self.dim):
+        if not (isinstance(cls, np.ndarray) and np.ndim(cls) == self.dim):
             raise TypeMismatchError(f'MatConn requires a {self.dim}-D ndarray.')
 
     def __str__(self):
