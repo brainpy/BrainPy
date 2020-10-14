@@ -31,7 +31,7 @@ def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
         post=nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
     )
 
-    @nb.integrate(method='euler')
+    @nb.integrate(method='exponential')
     def ints(s, t):
         return - s / tau_decay
 

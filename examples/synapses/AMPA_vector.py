@@ -54,8 +54,10 @@ def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
 
     def output(ST, post, post2syn):
         g = ST.pull()
-        g_val = nb.post_cond_by_post2syn(g, post2syn)
-        post['inp'] -= g_val * (post['V'] - E)
+        post_cond = np.zeros(len(post2syn), dtype=np.float_)
+        for post_id, syn_ids in enumerate(post2syn):
+            post_cond[post_id] = np.sum(g[syn_ids])
+        post['inp'] -= post_cond * (post['V'] - E)
 
     return {'requires': requires, 'steps': (update, output)}
 
@@ -125,8 +127,8 @@ def run_ampa_group(cls, duration=650.):
     ampa = nb.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
     ampa.pre = nb.types.NeuState(['sp'])(1)
     ampa.post = nb.types.NeuState(['V', 'inp'])(1)
-    ampa.pre2syn = ampa.requires['pre2syn'].copy_to([[0]])
-    ampa.post2syn = ampa.requires['post2syn'].copy_to([[0]])
+    ampa.pre2syn = ampa.requires['pre2syn'].make_copy([[0]])
+    ampa.post2syn = ampa.requires['post2syn'].make_copy([[0]])
     ampa.set_schedule(['input', 'update', 'monitor'])
 
     net = nb.Network(ampa)

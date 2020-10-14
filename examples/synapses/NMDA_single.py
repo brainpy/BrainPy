@@ -58,26 +58,21 @@ def define_nmda(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=10
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
-    def update(ST, _t_, pre, pre2syn):
-        for pre_id in np.where(pre['sp'] > 0.)[0]:
-            syn_ids = pre2syn[pre_id]
-            ST['x'][syn_ids] += 1.
+    @nb.delay_push
+    def update(ST, _t_, pre):
         x = int_x(ST['x'], _t_)
+        x += pre['sp']
         s = int_s(ST['s'], _t_, x)
         ST['x'] = x
         ST['s'] = s
-        ST.delay_push(g_max * s)
 
-    def output(ST, post, post2syn):
-        g_val = ST.delay_pull()
-        post_cond = np.zeros(len(post2syn), dtype=np.float_)
-        for post_id, syn_ids in enumerate(post2syn):
-            post_cond[post_id] = np.sum(g_val[syn_ids])
-        g = post_cond * (post['V'] - E)
+    @nb.delay_pull
+    def output(ST, post):
+        g = g_max * ST['s'] * (post['V'] - E)
         g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post['V'])
         post['inp'] -= g * g_inf
 
     return dict(requires=requires, steps=(update, output))
 
 
-NMDA = nb.SynType('NMDA', create_func=define_nmda, vector_based=True)
+NMDA = nb.SynType('NMDA', create_func=define_nmda, vector_based=False)
