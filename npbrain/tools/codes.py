@@ -11,8 +11,7 @@ from .ast2code import ast2code
 from .. import numpy as np
 
 __all__ = [
-    'is_lambda_function',
-
+    # string processing
     'get_identifiers',
     'get_main_code',
     'get_line_indent',
@@ -29,6 +28,9 @@ __all__ = [
     'analyse_diff_eq',
     'DiffEquationAnalyser',
     'DiffEquationError',
+
+    # others
+    'is_lambda_function',
 ]
 
 
@@ -423,81 +425,3 @@ def word_replace(expr, substitutions):
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
     return expr
 
-
-def replace(s, substitutions):
-    """
-    Applies a dictionary of substitutions. Simpler than `word_substitute`, it
-    does not attempt to only replace words
-    """
-    for before, after in substitutions.items():
-        s = s.replace(before, after)
-    return s
-
-
-def strip_empty_lines(s):
-    '''
-    Removes all empty lines from the multi-line string `s`.
-
-    Examples
-    --------
-
-    >>> multiline = """A string with
-    ...
-    ... an empty line."""
-    >>> print(strip_empty_lines(multiline))
-    A string with
-    an empty line.
-    '''
-    return '\n'.join(line for line in s.split('\n') if line.strip())
-
-
-def strip_empty_leading_and_trailing_lines(s):
-    """
-    Removes all empty leading and trailing lines in the multi-line string `s`.
-    """
-    lines = s.split('\n')
-    while lines and not lines[0].strip():  del lines[0]
-    while lines and not lines[-1].strip(): del lines[-1]
-    return '\n'.join(lines)
-
-
-def stripped_deindented_lines(code):
-    """
-    Returns a list of the lines in a multi-line string, deindented.
-    """
-    code = deindent(code)
-    code = strip_empty_lines(code)
-    lines = code.split('\n')
-    return lines
-
-
-def code_representation(code):
-    """
-    Returns a string representation for several different formats of _code
-
-    Formats covered include:
-    - A single string
-    - A list of statements/strings
-    - A dict of strings
-    - A dict of lists of statements/strings
-    """
-    if not isinstance(code, (str, list, tuple, dict)):
-        code = str(code)
-    if isinstance(code, str):
-        return strip_empty_leading_and_trailing_lines(code)
-    if not isinstance(code, dict):
-        code = {None: code}
-    else:
-        code = code.copy()
-    for k, v in code.items():
-        if isinstance(v, (list, tuple)):
-            v = '\n'.join([str(line) for line in v])
-            code[k] = v
-    if len(code) == 1 and list(code.keys())[0] is None:
-        return strip_empty_leading_and_trailing_lines(list(code.values())[0])
-    output = []
-    for k, v in code.items():
-        msg = 'Key %s:\n' % k
-        msg += indent(str(v))
-        output.append(msg)
-    return strip_empty_leading_and_trailing_lines('\n'.join(output))

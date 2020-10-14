@@ -130,7 +130,6 @@ class SympyRender(object):
         'GtE': sympy.GreaterThan,
         'Eq': sympy.Eq,
         'NotEq': sympy.Ne,
-        # Unary ops are handled manually
         # Bool ops
         'And': sympy.And,
         'Or': sympy.Or,
@@ -139,11 +138,9 @@ class SympyRender(object):
         'Div': '/',
         'FloorDiv': '//',
         # Compare
-        # Unary ops
         'Not': 'not',
         'UAdd': '+',
         'USub': '-',
-        # Bool ops
         # Augmented assign
         'AugAdd': '+=',
         'AugSub': '-=',
@@ -176,17 +173,16 @@ class SympyRender(object):
         except AttributeError:
             raise SyntaxError(f"Unknown syntax: {nodename}, {node}")
 
-    def render_Constant(self, node):  # For literals in Python 3.8
+    def render_Constant(self, node):
         if node.value is True or node.value is False or node.value is None:
             return self.render_NameConstant(node)
         else:
             return self.render_Num(node)
 
     def render_element_parentheses(self, node):
-        '''
-        Render an element with parentheses around it or leave them away for
+        """Render an element with parentheses around it or leave them away for
         numbers, names and function calls.
-        '''
+        """
         if node.__class__.__name__ in ['Name', 'NameConstant']:
             return self.render_node(node)
         elif node.__class__.__name__ in ['Num', 'Constant'] and \
@@ -195,14 +191,14 @@ class SympyRender(object):
         elif node.__class__.__name__ == 'Call':
             return self.render_node(node)
         else:
-            return '(%s)' % self.render_node(node)
+            return f'({self.render_node(node)})'
 
     def render_BinOp_parentheses(self, left, right, op):
-        # Use a simplified checking whether it is possible to omit parentheses:
-        # only omit parentheses for numbers, variable names or function calls.
-        # This means we still put needless parentheses because we ignore
-        # precedence rules, e.g. we write "3 + (4 * 5)" but at least we do
-        # not do "(3) + ((4) + (5))"
+        """Use a simplified checking whether it is possible to omit parentheses:
+        only omit parentheses for numbers, variable names or function calls.
+        This means we still put needless parentheses because we ignore
+        precedence rules, e.g. we write "3 + (4 * 5)" but at least we do
+        not do "(3) + ((4) + (5))" """
         ops = {'BitXor': ('^', '**'), 'BitAnd': ('&', 'and'), 'BitOr': ('|', 'or')}
         op_class = op.__class__.__name__
         # Give a more useful error message when using bit-wise operators
@@ -210,21 +206,20 @@ class SympyRender(object):
             correction = ops.get(op_class)
             raise SyntaxError('The operator "{}" is not supported, use "{}" '
                               'instead.'.format(correction[0], correction[1]))
-        return '%s %s %s' % (self.render_element_parentheses(left),
-                             self.expression_ops[op_class],
-                             self.render_element_parentheses(right))
+        return f'{self.render_element_parentheses(left)} ' \
+               f'{self.expression_ops[op_class]} ' \
+               f'{self.render_element_parentheses(right)}'
 
     def render_Assign(self, node):
         if len(node.targets) > 1:
             raise SyntaxError("Only support syntax like a=b not a=b=c")
-        return '%s = %s' % (self.render_node(node.targets[0]),
-                            self.render_node(node.value))
+        return f'{self.render_node(node.targets[0])} = {self.render_node(node.value)}'
 
     def render_AugAssign(self, node):
         target = node.target.id
         rhs = self.render_node(node.value)
         op = self.expression_ops['Aug' + node.op.__class__.__name__]
-        return '%s %s %s' % (target, op, rhs)
+        return f'{target} {op} {rhs}'
 
     def _get_attr_value(self, node, names):
         if hasattr(node, 'value'):
@@ -323,7 +318,6 @@ class SympyRender(object):
     def render_UnaryOp(self, node):
         op_name = node.op.__class__.__name__
         if op_name == 'UAdd':
-            # Nothing to do
             return self.render_node(node.operand)
         elif op_name == 'USub':
             return -self.render_node(node.operand)
@@ -348,21 +342,21 @@ class SympyPrinter(StrPrinter):
     def _print_Not(self, expr):
         if len(expr.args) != 1:
             raise AssertionError('"Not" with %d arguments?' % len(expr.args))
-        return 'not (%s)' % self.doprint(expr.args[0])
+        return f'not ({self.doprint(expr.args[0])})'
 
     def _print_Relational(self, expr):
-        return '%s %s %s' % (self.parenthesize(expr.lhs, precedence(expr)),
-                             self._relationals.get(expr.rel_op) or expr.rel_op,
-                             self.parenthesize(expr.rhs, precedence(expr)))
+        return f'{self.parenthesize(expr.lhs, precedence(expr))} ' \
+               f'{self._relationals.get(expr.rel_op) or expr.rel_op} ' \
+               f'{self.parenthesize(expr.rhs, precedence(expr))}'
 
     def _print_Function(self, expr):
         # Special workaround for the int function
         if expr.func.__name__ == 'int_':
-            return "int(%s)" % self.stringify(expr.args, ", ")
+            return f'int({self.stringify(expr.args, ", ")})'
         elif expr.func.__name__ == 'Mod':
-            return '((%s)%%(%s))' % (self.doprint(expr.args[0]), self.doprint(expr.args[1]))
+            return f'(({self.doprint(expr.args[0])})%({self.doprint(expr.args[1])}))'
         else:
-            return expr.func.__name__ + "(%s)" % self.stringify(expr.args, ", ")
+            return expr.func.__name__ + f"({self.stringify(expr.args, ', ')})"
 
 
 _RENDER = SympyRender()

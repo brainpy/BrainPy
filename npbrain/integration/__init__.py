@@ -42,13 +42,13 @@ def integrate(func=None, noise=None, method=None):
 
     Using ``NumpyBrain``, this ODE function can be written as
 
-    >>> import npbrain._numpy as bnp
+    >>> import npbrain._numpy as np
     >>> from npbrain import integrate
     >>>
     >>> @integrate(method='rk4')
     >>> def int_m(m, t, V):
-    >>>     alpha = 0.1 * (V + 40) / (1 - bnp.exp(-(V + 40) / 10))
-    >>>     beta = 4.0 * bnp.exp(-(V + 65) / 18)
+    >>>     alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+    >>>     beta = 4.0 * np.exp(-(V + 65) / 18)
     >>>     return alpha * (1 - m) - beta * m
 
     Parameters
