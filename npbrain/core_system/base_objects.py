@@ -586,13 +586,13 @@ class BaseEnsemble(object):
                         p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                         r = f"{arg}[{var2idx[st_k]}]"
                         func_code = re.sub(r'' + p, r, func_code)
-                    p = f'{arg}.pull()'
+                    p = f'{arg}.delay_pull()'
                     if p in func_code:
                         r = f'{arg}[{self.name}_{arg}_dout]'
                         func_code = func_code.replace(p, r)
                         add_args.add(f'{self.name}_{arg}_dout')
                         code_arg2call[f'{self.name}_{arg}_dout'] = f'{self.name}.{arg}._delay_out'
-                    p = f'{arg}.push'
+                    p = f'{arg}.delay_push'
                     if p in func_code:
                         res = re.findall(r'(' + p + r'\((\w+?)\))', func_code)
                         if len(res) > 1:
@@ -1095,6 +1095,7 @@ class BaseEnsemble(object):
                     code_arg2call[target_name] = f'{self.name}.{attr}["_data"]'
 
             # initialize monitor array #
+            key = key.replace(',', '_')
             if indices is None:
                 self.mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
             else:
