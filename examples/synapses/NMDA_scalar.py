@@ -4,7 +4,7 @@ import npbrain.numpy as np
 import npbrain as nb
 
 
-def define_nmda(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0.5, tau_rise=2.):
+def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0.5, tau_rise=2.):
     """NMDA conductance-based synapse.
 
     .. math::
@@ -50,11 +50,11 @@ def define_nmda(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=10
         post2syn=nb.types.ListConn(),
     )
 
-    @nb.integrate(method='exponential')
+    @nb.integrate
     def int_x(x, t):
         return -x / tau_rise
 
-    @nb.integrate(method='exponential')
+    @nb.integrate
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
@@ -72,7 +72,4 @@ def define_nmda(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=10
         g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post['V'])
         post['inp'] -= g * g_inf
 
-    return dict(requires=requires, steps=(update, output))
-
-
-NMDA = nb.SynType('NMDA', create_func=define_nmda, vector_based=False)
+    return nb.SynType(name='NMDA', requires=requires, steps=(update, output), vector_based=False)

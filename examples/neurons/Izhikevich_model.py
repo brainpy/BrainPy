@@ -5,12 +5,6 @@ import matplotlib.pyplot as plt
 import npbrain as nb
 import npbrain.numpy as np
 
-nb.profile.set(backend='numba', )
-
-__all__ = [
-    'Izhikevich'
-]
-
 
 def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65., mode=None):
     """Izhikevich two-variable neuron model.
@@ -137,13 +131,12 @@ def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65.,
             ST['sp'] = sp
             ST['inp'] = 0.
 
-    requires = {'ST': state}
-    return dict(requires=requires, steps=update)
+    return nb.NeuType(name='Izhikevich', requires={'ST': state}, steps=update, vector_based=True)
 
-
-Izhikevich = nb.NeuType('Izhikevich_neuron', create_func=Izhikevich, vector_based=True)
 
 if __name__ == '__main__':
+    nb.profile.set(backend='numba', )
+
     neu = nb.NeuGroup(Izhikevich, 10, pars_update=dict(noise=1.), monitors=['V', 'u'])
     net = nb.Network(neu)
     net.run(duration=100, inputs=[neu, 'inp', 10], report=True)

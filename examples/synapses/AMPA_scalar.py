@@ -4,48 +4,10 @@ import matplotlib.pyplot as plt
 
 import npbrain as nb
 from npbrain import numpy as np
-
-nb.profile.set_backend('numba')
-nb.profile.show_formatted_code = True
-nb.profile.merge_integral = False
-nb.profile.auto_pep8 = False
+from examples.neurons.LIF_model import LIF
 
 
-def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
-    ST = nb.types.NeuState(
-        {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
-        help='''LIF neuron state.
-
-        V: membrane potential.
-        sp : spike state. 
-        sp_t : last spike time.
-        inp : input, including external and synaptic inputs.
-        '''
-    )
-
-    @nb.integrate(noise=noise / tau)
-    def int_f(V, t, Isyn):
-        return (-V + Vr + Isyn) / tau
-
-    def update(ST, _t_):
-        if _t_ - ST['sp_t'] > ref:
-            V = int_f(ST['V'], _t_, ST['inp'])
-            if V >= Vth:
-                V = Vr
-                ST['sp_t'] = _t_
-                ST['sp'] = True
-            ST['V'] = V
-        else:
-            ST['sp'] = False
-        ST['inp'] = 0.
-
-    return {'requires': {'ST': ST}, 'steps': update}
-
-
-LIF = nb.NeuType(name='LIF_neuron', create_func=define_single_lif, vector_based=False)
-
-
-def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
+def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
     """AMPA conductance-based synapse (type 1).
 
     .. math::
@@ -70,7 +32,7 @@ def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
         post=nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
     )
 
-    @nb.integrate(method='euler')
+    @nb.integrate
     def ints(s, t):
         return - s / tau_decay
 
@@ -85,13 +47,10 @@ def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
         post_val = - g_max * ST['s'] * (post['V'] - E)
         post['inp'] += post_val
 
-    return {'requires': requires, 'steps': (update, output)}
+    return nb.SynType(name='AMPA', requires=requires, steps=(update, output), vector_based=False)
 
 
-AMPA1_single = nb.SynType(name='AMPA_type1', create_func=define_ampa1_single, vector_based=False)
-
-
-def define_ampa2_single(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
+def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     """AMPA conductance-based synapse (type 2).
 
     .. math::
@@ -114,15 +73,14 @@ def define_ampa2_single(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
 
     requires = {
         'ST': nb.types.SynState({'s': 0., 'sp_t': -1e7},
-                                help="""
-                                    "s": Synaptic state.
+                                help=""" "s": Synaptic state.
                                     "sp_t": Pre-synaptic neuron spike time.
                                 """),
         'pre': nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
         'post': nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
     }
 
-    @nb.integrate(method='euler')
+    @nb.integrate
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
@@ -139,16 +97,13 @@ def define_ampa2_single(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
         post_val = - g_max * ST['s'] * (post['V'] - E)
         post['inp'] += post_val
 
-    return {'requires': requires, 'steps': (update, output)}
-
-
-AMPA2_single = nb.SynType(name='AMPA_type2', create_func=define_ampa2_single, vector_based=False)
+    return nb.SynType(name='AMPA', requires=requires, steps=(update, output), vector_based=False)
 
 
 def run_ampa_single(cls, duration=650.):
     pre = nb.NeuGroup(LIF, 2)
     post = nb.NeuGroup(LIF, 3)
-    ampa = nb.SynConn(model=cls, pre_group=pre, post_group=post, conn=nb.connect.All2All(),
+    ampa = nb.SynConn(create_func=cls, pre_group=pre, post_group=post, conn=nb.connect.All2All(),
                       monitors=['s'], delay=10.)
     # ampa.set_schedule(['input', 'output', 'monitor'])
     ampa.set_schedule(['input', 'update', 'output', 'monitor'])
@@ -165,5 +120,7 @@ def run_ampa_single(cls, duration=650.):
 
 
 if __name__ == '__main__':
-    run_ampa_single(AMPA1_single)
-    run_ampa_single(AMPA2_single)
+    nb.profile.set(backend='numba', merge_ing=True, dt=0.1)
+
+    run_ampa_single(AMPA1)
+    run_ampa_single(AMPA2)

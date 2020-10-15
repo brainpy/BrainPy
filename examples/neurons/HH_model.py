@@ -5,11 +5,9 @@ import matplotlib.pyplot as plt
 import npbrain as nb
 import npbrain.numpy as np
 
-nb.profile.set(backend='numba', dt=0.02, numerical_method='milstein')
 
-
-def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
-              g_Leak=0.03, C=1.0, Vth=20.):
+def HH(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
+       g_Leak=0.03, C=1.0, Vth=20.):
     """The Hodgkin–Huxley neuron model.
 
     Parameters
@@ -23,7 +21,6 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
     E_Leak : float
     g_Leak : float
     C : float
-    Vr : float
     Vth : float
 
     Returns
@@ -82,13 +79,12 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['n'] = n
         ST['inp'] = 0.
 
-    return dict(requires={"ST": ST}, steps=update)
-
-
-HH = nb.NeuType(name='HH_neuron', create_func=define_hh, vector_based=True)
+    return nb.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update, vector_based=True)
 
 
 if __name__ == '__main__':
+    nb.profile.set(backend='numba', dt=0.02, numerical_method='milstein', merge_ing=True)
+
     neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'],
                       pars_update={'noise': 0.})
     net = nb.Network(neu)

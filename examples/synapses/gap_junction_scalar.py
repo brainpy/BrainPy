@@ -3,7 +3,7 @@
 import npbrain as nb
 
 
-def gap_junction():
+def GapJunction():
     requires = dict(
         ST=nb.types.SynState(['w'], help='w : gap junction conductance.'),
         pre=nb.types.NeuState(['V']),
@@ -13,13 +13,10 @@ def gap_junction():
     def update(ST, pre, post):
         post['inp'] += ST['w'] * (pre['V'] - post['V'])
 
-    return dict(requires=requires, steps=update)
+    return nb.SynType(name='GapJunction', requires=requires, steps=update, vector_based=False)
 
 
-GapJunction_scalar = nb.SynType('GapJunction', create_func=gap_junction, vector_based=False)
-
-
-def gap_junction_lif_scalar(spikelet=0.1):
+def LIFGapJunction(spikelet=0.1):
     requires = dict(
         ST=nb.types.SynState(
             ['w', 'spikelet'],
@@ -46,9 +43,5 @@ def gap_junction_lif_scalar(spikelet=0.1):
     def output(ST, post):
         post['V'] += ST['spikelet']
 
-    return dict(requires=requires, steps=update)
-
-
-GapJunction_LIF = nb.SynType('GapJunctin_for_LIF', create_func=gap_junction_lif_scalar, vector_based=True)
-
-
+    return nb.SynType(name='gap_junction_for_lif', requires=requires,
+                      steps=(update, output), vector_based=False)

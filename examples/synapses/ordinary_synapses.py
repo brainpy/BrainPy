@@ -31,4 +31,5 @@ def VoltageJumpSynapse():
     def output(ST, post):
         post['V'] += ST['s'] * post['not_ref']
 
-    return dict(requires=requires, steps=(update, output))
+    return nb.SynType(name='VoltageJumpSynapse', requires=requires,
+                      steps=(update, output), vector_based=True)

@@ -4,7 +4,7 @@ import npbrain as nb
 import npbrain.numpy as np
 
 
-def gap_junction_vector():
+def GapJunction():
     requires = dict(
         ST=nb.types.SynState(
             ['s', 'w'],
@@ -28,13 +28,10 @@ def gap_junction_vector():
                 pre_id = pre_ids[syn_id]
                 post['inp'][post_id] = ST['w'][syn_id] * (pre['V'][pre_id] - post['V'][post_id])
 
-    return dict(requires=requires, steps=update)
+    return nb.SynType(name='GapJunction', requires=requires, steps=update, vector_based=True)
 
 
-GapJunction_vector = nb.SynType('GapJunction', create_func=gap_junction_vector, vector_based=True)
-
-
-def gap_junction_lif_vector(spikelet=0.1):
+def gap_junction_lif(spikelet=0.1):
     requires = dict(
         ST=nb.types.SynState(
             ['spikelet', 'w'],
@@ -67,9 +64,6 @@ def gap_junction_lif_vector(spikelet=0.1):
             post_spikelet[post_id] = np.sum(ST['spikelet'][syn_ids])
         post['V'] += post_spikelet
 
-    return dict(requires=requires, steps=update)
-
-
-GapJunction_LIF = nb.SynType('GapJunctin_for_LIF', create_func=gap_junction_lif_vector, vector_based=True)
+    return nb.SynType(name='GapJunctin_for_LIF', requires=requires, steps=update, vector_based=True)
 
 

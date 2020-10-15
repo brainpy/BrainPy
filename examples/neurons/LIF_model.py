@@ -5,12 +5,8 @@ import matplotlib.pyplot as plt
 import npbrain as nb
 import npbrain.numpy as np
 
-nb.profile.set(backend='numba', dt=0.02, )
-nb.profile.merge_integral = True
-nb.profile.show_formatted_code = True
 
-
-def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
+def LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
     """Leaky integrate-and-fire neuron model.
 
     Parameters
@@ -54,13 +50,13 @@ def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
             ST['sp'] = False
         ST['inp'] = 0.
 
-    return {'requires': {'ST': ST}, 'steps': update}
+    return nb.NeuType(name='LIF', requires=dict(ST=ST), steps=update, vector_based=False)
 
-
-LIF_single = nb.NeuType(name='LIF_neuron', create_func=define_single_lif, vector_based=False)
 
 if __name__ == '__main__':
-    neu = nb.NeuGroup(LIF_single, geometry=(10,), monitors=['sp', 'V'],
+    nb.profile.set(backend='numba', dt=0.02, merge_ing=True)
+
+    neu = nb.NeuGroup(LIF, geometry=(10,), monitors=['sp', 'V'],
                       pars_update={
                           'Vr': np.random.randint(0, 2, size=(10,)),
                           'tau': np.random.randint(5, 10, size=(10,)),
@@ -73,8 +69,8 @@ if __name__ == '__main__':
     fig, gs = nb.visualize.get_figure(1, 1, 4, 8)
 
     fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.params["tau"][0]})')
-    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.params["tau"][2]})')
+    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.pars_update["tau"][0]})')
+    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.pars_update["tau"][2]})')
     plt.ylabel('Membrane potential')
     plt.xlim(-0.1, net._run_time + 0.1)
     plt.legend()

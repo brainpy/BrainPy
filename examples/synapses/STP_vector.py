@@ -4,7 +4,7 @@ import npbrain as nb
 import npbrain.numpy as np
 
 
-def define_stp(U=0.15, tau_f=1500., tau_d=200.):
+def STP(U=0.15, tau_f=1500., tau_d=200.):
     """Short-term plasticity proposed by Tsodyks and Markram (Tsodyks 98) [1]_.
 
     The model is given by
@@ -84,7 +84,4 @@ def define_stp(U=0.15, tau_f=1500., tau_d=200.):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] += post_cond
 
-    return dict(requires=requires, steps=(update, output))
-
-
-STP = nb.SynType('STP', create_func=define_stp, vector_based=True)
+    return nb.SynType(name='STP', requires=requires, steps=(update, output), vector_based=True)
