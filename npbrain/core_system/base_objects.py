@@ -73,7 +73,7 @@ class BaseType(object):
         Whether the model is a 'neuron' or a 'synapse' model.
     """
 
-    def __init__(self, create_func, name=None, vector_based=True, type_=_NEU_TYPE):
+    def __init__(self, requires, steps, type_, name, vector_based=True):
         # type : neuron based or group based code
         # ---------------------------------------
         self.vector_based = vector_based
@@ -94,34 +94,8 @@ class BaseType(object):
         else:
             self.name = name
 
-        # create_func
-        # ------------
-        try:
-            func_return = create_func()
-        except TypeError as e:
-            raise ModelDefError(f'Arguments in "{create_func.__name__}" must provide default values.')
-        if not isinstance(func_return, dict):
-            raise ModelDefError('"create_func" must return a dict.')
-        try:
-            assert 'requires' in func_return
-        except AssertionError:
-            raise ModelDefError('"requires" (specify variables the model need) must be defined in the return.')
-        try:
-            assert 'steps' in func_return
-        except AssertionError:
-            raise ModelDefError('"steps" (step functions at each time step) must be defined in the return.')
-
-        self.create_func = create_func
-        self.func_return = func_return
-
-        # parameters
-        # -----------
-        parameters = inspect.getcallargs(create_func)
-        self.parameters = dict(parameters)
-
         # attributes
         # -----------
-        requires = func_return['requires']
         try:
             assert isinstance(requires, dict)
         except AssertionError:
@@ -140,7 +114,6 @@ class BaseType(object):
             except AssertionError:
                 raise ModelDefError(f'In "requires", each value must be a {TypeChecker.__name__}, '
                                     f'but got "{type(v)}" for "{k}".')
-            setattr(self, k, v)
 
         # variables
         # ----------
@@ -149,7 +122,6 @@ class BaseType(object):
         # step functions
         # --------------
         self.steps, self.step_names = [], []
-        steps = func_return['steps']
         if callable(steps):
             steps = [steps]
         elif isinstance(steps, (list, tuple)):
@@ -161,9 +133,7 @@ class BaseType(object):
                 assert callable(func)
             except AssertionError:
                 raise ModelDefError('"steps" must be a list/tuple of callable functions.')
-            func_name = func.__name__
-            func_name = func_name.replace('_npbrain_delay_push_', '')
-            func_name = func_name.replace('_npbrain_delay_pull_', '')
+            func_name = tools.get_func_name(func, replace=True)
             self.step_names.append(func_name)
             self.steps.append(func)
             setattr(self, func_name, func)
@@ -190,20 +160,50 @@ class BaseEnsemble(object):
 
     Parameters
     ----------
-    model : BaseType
+    create_func : callable
         The (neuron/synapse) model type.
 
     """
 
-    def __init__(self, model, name, num, pars_update, vars_init, monitors, cls_type):
+    def __init__(self, create_func, name, num, pars_update, vars_init, monitors, cls_type):
         # class type
         # -----------
         assert cls_type in [_NEU_GROUP, _SYN_CONN], f'Only support "{_NEU_GROUP}" and "{_SYN_CONN}".'
         self._cls_type = cls_type
 
+        # parameters
+        # ----------
+        self._hetero_pars = {}
+        pars_update = dict() if pars_update is None else pars_update
+        assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
+        parameters = inspect.getfullargspec(create_func).args
+        for k, v in pars_update.items():
+            val_size = np.size(v)
+            if val_size != 1:
+                if val_size != num:
+                    raise ModelUseError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
+                                        f'and "{val_size}" != {num}.')
+                else:
+                    self._hetero_pars[k] = v
+            if k not in parameters:
+                raise ModelUseError(f'parameter "{k}" is not defined in "{parameters}".')
+        self.params = parameters
+        self.pars_update = pars_update
+
         # model
         # -----
-        self.model = model
+        assert callable(create_func), f"Model must be a callable, but got {type(create_func)}."
+        self.create_func = create_func
+        try:
+            self.model = create_func(**pars_update)
+        except TypeError:
+            raise ModelUseError(f'Parameters of {create_func.__name__} are not fulfilled, please check.')
+
+        # step functions
+        # ---------------
+        if not self.model.vector_based:
+            if self._cls_type == _SYN_CONN and (self.pre_group is None or self.post_group is None):
+                raise ModelUseError('Using of scalar-based synapse model must provide "pre_group" and "post_group".')
 
         # name
         # ----
@@ -225,34 +225,9 @@ class BaseEnsemble(object):
             raise ModelUseError('"vars_init" must be a dict.')
         variables = deepcopy(self.model.variables)
         for k, v in vars_init:
-            if k not in self.model.variables:
-                raise ModelUseError(f'variable "{k}" is not defined in "{self.model.name}".')
-            variables[k] = v
+            if k not in variables:
+                raise ModelUseError(f'variable "{k}" is not defined in "{variables}".')
         self.vars_init = variables
-
-        # parameters
-        # ----------
-        self._hetero_pars = {}
-        pars_update = dict() if pars_update is None else pars_update
-        assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
-        parameters = deepcopy(self.model.parameters)
-        for k, v in pars_update.items():
-            val_size = np.size(v)
-            if val_size != 1:
-                if val_size != num:
-                    raise ModelUseError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
-                                        f'and "{val_size}" != {num}.')
-                else:
-                    self._hetero_pars[k] = v
-            parameters[k] = v
-        self.params = parameters
-
-        # step functions
-        # ---------------
-        if not model.vector_based:
-            if self._cls_type == _SYN_CONN and (self.pre_group is None or self.post_group is None):
-                raise ModelUseError('Single synapse model must provide "pre_group" and "post_group".')
-        self._steps = self._get_steps_from_model(self.params)
 
         # monitors
         # ---------
@@ -284,17 +259,6 @@ class BaseEnsemble(object):
         # ---------------------
         self._schedule = ['input'] + self.model.step_names + ['monitor']
 
-    def _get_steps_from_model(self, pars_update):
-        func_return = self.model.create_func(**pars_update)
-        steps = func_return['steps']
-        if callable(steps):
-            steps = [steps, ]
-        elif isinstance(steps, (tuple, list)):
-            steps = list(steps)
-        else:
-            raise ModelDefError('"steps" must be a callable, or a list/tuple of callable functions.')
-        return steps
-
     def _type_checking(self):
         # check attribute and its type
         for key, type_checker in self.model.requires.items():
@@ -306,11 +270,11 @@ class BaseEnsemble(object):
                 raise ModelUseError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
 
         # get function arguments
-        for i, func in enumerate(self._steps):
+        for i, func in enumerate(self.model.steps):
             for arg in inspect.getfullargspec(func).args:
                 if not (arg in _ARG_KEYWORDS + ['self']) and not hasattr(self, arg):
-                    raise ModelUseError(f'Function "{self._steps[i].__name__}" in "{self.model.name}" requires '
-                                        f'"{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
+                    raise ModelUseError(f'Function "{tools.get_func_name(func, replace=True)}" in "{self.model.name}" '
+                                        f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
     def __step_substitute_integrator(self, func):
         func_code = tools.deindent(tools.get_main_code(func))
@@ -399,7 +363,7 @@ class BaseEnsemble(object):
             has_delay_push = False
             has_delay_pull = False
             pull_func = None
-            for func in self._steps:
+            for func in self.model.steps:
                 if func.__name__.startswith('_npbrain_delay_push_'):
                     has_delay_push = True
                 if func.__name__.startswith('_npbrain_delay_pull_'):
@@ -420,10 +384,9 @@ class BaseEnsemble(object):
         return delay_keys
 
     def __step_mode_np_group(self):
-
         delay_keys = self.__step_delay_keys()
 
-        for func in self._steps:
+        for func in self.model.steps:
             func_name = func.__name__
             func_name_stripped = tools.get_func_name(func, replace=True)
             func_args = inspect.getfullargspec(func).args
@@ -478,15 +441,15 @@ class BaseEnsemble(object):
         delay_keys = self.__step_delay_keys()
 
         # get step functions
-        steps_collection = {tools.get_func_name(func, replace=True): [] for func in self._steps}
+        steps_collection = {tools.get_func_name(func, replace=True): [] for func in self.model.steps}
         for i in range(self.num):
             pars = {k: v if k not in self._hetero_pars else self._hetero_pars[k][i]
-                    for k, v in self.params.items()}
-            steps = self._get_steps_from_model(pars)
+                    for k, v in self.pars_update.items()}
+            steps = self.create_func(**pars).steps
             for func in steps:
                 steps_collection[tools.get_func_name(func, replace=True)].append(func)
 
-        for func in self._steps:
+        for func in self.model.steps:
             func_name = func.__name__
             func_name_stripped = tools.get_func_name(func, replace=True)
             func_args = inspect.getfullargspec(func).args
@@ -598,7 +561,7 @@ class BaseEnsemble(object):
     def __step_mode_nb_group(self):
         delay_keys = self.__step_delay_keys()
 
-        for func in self._steps:
+        for func in self.model.steps:
             func_name = func.__name__
             func_name_stripped = tools.get_func_name(func, replace=True)
             func_args = inspect.getfullargspec(func).args
@@ -667,7 +630,7 @@ class BaseEnsemble(object):
     def __step_mode_nb_single(self):
         delay_keys = self.__step_delay_keys()
 
-        for i, func in enumerate(self._steps):
+        for i, func in enumerate(self.model.steps):
             func_name = func.__name__
 
             # get code scope
@@ -678,7 +641,7 @@ class BaseEnsemble(object):
                       if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
 
             # update parameters in code scope
-            for p, v in self.params.items():
+            for p, v in self.pars_update.items():
                 if p in code_scope:
                     code_scope[p] = v
             for p_k in self._hetero_pars.keys():

@@ -29,8 +29,8 @@ class SynType(BaseType):
     It can be defined based on a collection of synapses or a single synapse model.
     """
 
-    def __init__(self, name, create_func, vector_based=True):
-        super(SynType, self).__init__(create_func=create_func, name=name, vector_based=vector_based, type_=_SYN_TYPE)
+    def __init__(self, name, requires, steps, vector_based=True):
+        super(SynType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based, type_=_SYN_TYPE)
 
 
 class SynConn(BaseEnsemble):
@@ -38,10 +38,8 @@ class SynConn(BaseEnsemble):
 
     """
 
-    def __init__(self, model, delay=0., pre_group=None, post_group=None, conn=None, num=None,
+    def __init__(self, create_func, delay=0., pre_group=None, post_group=None, conn=None, num=None,
                  monitors=None, vars_init=None, pars_update=None, name=None):
-        assert isinstance(model, SynType), 'Must provide an instance of SynType class.'
-
         # name
         # ----
         if name is None:
@@ -101,19 +99,17 @@ class SynConn(BaseEnsemble):
         # delay
         # -------
         if delay is None:
-            delay_len = 1
+            delay_len = 0
         elif isinstance(delay, (int, float)):
             dt = profile.get_dt()
-            delay_len = int(np.ceil(delay / dt)) + 1
+            delay_len = int(np.ceil(delay / dt))
         else:
             raise ValueError("NumpyBrain currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
-        if not model.vector_based and delay_len > 1 and profile.is_numpy_bk():
-            print('WARNING: do not support delay in NumPy mode with single synapse level definition.')
 
         # initialize
         # ----------
-        super(SynConn, self).__init__(model=model, name=name, num=num, pars_update=pars_update,
+        super(SynConn, self).__init__(create_func=create_func, name=name, num=num, pars_update=pars_update,
                                       vars_init=vars_init, monitors=monitors, cls_type=_SYN_CONN)
 
         # ST
