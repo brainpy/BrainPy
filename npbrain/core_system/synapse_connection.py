@@ -141,13 +141,13 @@ def post_cond_by_post2syn(syn_val, post2syn):
 
 def delay_push(func):
     """Delay push."""
-    func.__name__ = f'_NB_delay_push_{func.__name__}'
+    func.__name__ = f'_npbrain_delay_push_{func.__name__}'
     return func
 
 
 def delay_pull(func):
     """Delay pull."""
-    func.__name__ = f'_NB_delay_pull_{func.__name__}'
+    func.__name__ = f'_npbrain_delay_pull_{func.__name__}'
     return func
 
 

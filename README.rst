@@ -1,6 +1,6 @@
 
-.. image:: https://github.com/chaoming0625/NumpyBrain/blob/master/docs/images/logo.png
-    :target: https://github.com/chaoming0625/NumpyBrain
+.. image:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/logo.png
+    :target: https://github.com/PKU-NIP-Lab/NumpyBrain
     :align: center
     :alt: logo
 
@@ -39,9 +39,9 @@ HH neuron, or AMPA synapse, GABA synapse and GapJunction) are also provided.
 Besides the consideration of **flexibility**, for accelerating the running
 **speed** of NumPy codes, `Numba` is used. For most of the times,
 models running on `Numba` backend is very fast
-(see `examples/benchmark <https://github.com/chaoming0625/NumpyBrain/tree/master/examples/benchmark>`_).
+(see `examples/benchmark <https://github.com/PKU-NIP-Lab/NumpyBrain/tree/master/examples/benchmark>`_).
 
-.. figure:: https://github.com/chaoming0625/NumpyBrain/blob/master/docs/images/speed_comparison.png
+.. figure:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/speed_comparison.png
     :alt: Speed comparison with brian2
     :figclass: align-center
     :width: 350px
@@ -56,7 +56,7 @@ Install ``NumpyBrain`` using ``pip``::
 
     $> pip install npbrain
     $> # or
-    $> pip install git+https://github.com/chaoming0625/NumpyBrain
+    $> pip install git+https://github.com/PKU-NIP-Lab/NumpyBrain
 
 Install ``NumpyBrain`` using ``conda``::
 
@@ -137,7 +137,7 @@ Finally, visualize the running results:
 
 It shows
 
-.. figure:: https://github.com/chaoming0625/NumpyBrain/blob/master/docs/images/example.png
+.. figure:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/example.png
     :figclass: align-center
     :width: 500px
 
@@ -146,7 +146,7 @@ Define a Hodgkin–Huxley neuron model
 
 .. code-block:: python
 
-    import numpy as np
+    import npbrain.numpy as np
     import npbrain as nn
 
     def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77.,
@@ -197,16 +197,12 @@ Define a Hodgkin–Huxley neuron model
         return nn.Neurons(**locals())
 
 
+Define an AMPA synapse model
+============================
 
-Acknowledgements
-================
+.. code-block:: python
 
-We would like to thank
 
-- Risheng Lian
-- Longping Liu
-
-for valuable comments and discussions on the project.
 
 .. _How NumpyBrain works: https://numpybrain.readthedocs.io/en/latest/guides/how_it_works.html
 

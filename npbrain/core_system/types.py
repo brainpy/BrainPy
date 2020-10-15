@@ -167,7 +167,7 @@ class SynState(ObjState):
             idx2var[i] = k
         index_offset = len(self._vars)
         for i, v in enumerate(delay_vars):
-            state[f'_{v}_offset'] = i * delay + index_offset
+            var2idx[f'_{v}_offset'] = i * delay + index_offset
             state[f'_{v}_delay'] = data[i * delay + index_offset: (i + 1) * delay + index_offset]
         state['_data'] = data
         state['_var2idx'] = var2idx
@@ -203,58 +203,6 @@ class SynState(ObjState):
 
     def _update_delay_indices(self):
         if self._delay_len > 0:
-            self._delay_in = (self._delay_in + 1) % self._delay_len
-            self._delay_out = (self._delay_out + 1) % self._delay_len
-
-
-class _SynStateForNbSingleMode(SynState):
-    def __init__(self, fields, help=''):
-        super(_SynStateForNbSingleMode, self).__init__(fields=fields, help=help)
-        self._delay_offset = {}
-
-    def __call__(self, num, delay, delay_var):
-        # check size
-        assert isinstance(num, int)
-
-        # check delay
-        delay = 1 if (delay is None) or (delay < 1) else delay
-        assert isinstance(delay, int), '"delay" must be a int to specify the delay length.'
-        self._delay_len = delay
-        self._delay_in = delay - 1
-        self._delay_in2 = (self._delay_in - 1) % delay
-
-        # initialize data
-        non_delay_var = [k for k in self._keys if k not in delay_var]
-        length = delay * len(delay_var) + len(non_delay_var)
-        data = np.zeros((length, num), dtype=np.float_)
-        var2idx = dict()
-        idx2var = dict()
-        state = dict()
-        offset = 0
-        for k, v in self._vars.items():
-            var2idx[k] = offset
-            idx2var[offset] = k
-            if k in delay_var:
-                data[offset: offset + delay] = 0.
-                data[offset + delay - 1] = v
-                state[k] = data[offset: offset + delay]
-                self._delay_offset[k] = offset
-                offset += delay
-            else:
-                data[offset] = v
-                state[k] = data[offset]
-                offset += 1
-        state['_data'] = data
-        state['_var2idx'] = var2idx
-        state['_idx2var'] = idx2var
-
-        dict.__init__(self, state)
-
-        return self
-
-    def _update_delay_indices(self):
-        if self._delay_len > 0:
-            self._delay_in2 = self._delay_in
             self._delay_in = (self._delay_in + 1) % self._delay_len
             self._delay_out = (self._delay_out + 1) % self._delay_len
 

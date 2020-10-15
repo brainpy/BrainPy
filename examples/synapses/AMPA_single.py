@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 import npbrain as nb
 from npbrain import numpy as np
 
+nb.profile.set_backend('numba')
+nb.profile.show_formatted_code = True
+nb.profile.merge_integral = True
+
 
 def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
     """AMPA conductance-based synapse (type 1).
@@ -31,7 +35,7 @@ def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
         post=nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
     )
 
-    @nb.integrate(method='exponential')
+    @nb.integrate(method='euler')
     def ints(s, t):
         return - s / tau_decay
 
@@ -100,7 +104,7 @@ def define_ampa2_single(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
         post_val = - g_max * ST['s'] * (post['V'] - E)
         post['inp'] += post_val
 
-    return {'requires': requires, 'update': update, 'output': output}
+    return {'requires': requires, 'steps': (update, output)}
 
 
 AMPA2_single = nb.SynType(name='AMPA_type2', create_func=define_ampa2_single, vector_based=False)
@@ -128,5 +132,5 @@ def run_ampa_single(cls, duration=650.):
 
 
 if __name__ == '__main__':
-    # run_ampa_single(AMPA1_single)
-    run_ampa_single(AMPA2_single)
+    run_ampa_single(AMPA1_single)
+    # run_ampa_single(AMPA2_single)
