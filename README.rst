@@ -65,9 +65,10 @@ The following packages need to be installed to use ``NumpyBrain``:
 
 - Python >= 3.5
 - NumPy >= 1.13
-- Numba >=
-- Sympy
-- Matplotlib
+- Numba >= 0.40.0
+- Sympy >= 1.2
+- Matplotlib >= 2.0
+- autopep8
 
 
 Define a Hodgkin–Huxley neuron model
@@ -76,60 +77,94 @@ Define a Hodgkin–Huxley neuron model
 .. code-block:: python
 
     import npbrain.numpy as np
-    import npbrain as nn
+    import npbrain as nb
 
-    def HH(geometry, method=None, noise=0., E_Na=50., g_Na=120., E_K=-77.,
-           g_K=36., E_Leak=-54.387, g_Leak=0.03, C=1.0, Vr=-65., Vth=20.):
+    def HH(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36.,
+           E_Leak=-54.387, g_Leak=0.03, C=1.0, Vth=20.):
 
-        var2index = {'V': 0, 'm': 1, 'h': 2, 'n': 3}
-        num, geometry = nn.format_geometry(geometry)
-        state = nn.initial_neu_state(4, num)
+        ST = nb.types.NeuState(
+            {'V': -65., 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
+            help='Hodgkin–Huxley neuron state.\n'
+                 '"V" denotes membrane potential.\n'
+                 '"n" denotes potassium channel activation probability.\n'
+                 '"m" denotes sodium channel activation probability.\n'
+                 '"h" denotes sodium channel inactivation probability.\n'
+                 '"sp" denotes spiking state.\n'
+                 '"inp" denotes synaptic input.\n'
+        )
 
-        @nn.update(method=method)
+        @nb.integrate
         def int_m(m, t, V):
             alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
             beta = 4.0 * np.exp(-(V + 65) / 18)
             return alpha * (1 - m) - beta * m
 
-        @nn.update(method=method)
+        @nb.integrate
         def int_h(h, t, V):
             alpha = 0.07 * np.exp(-(V + 65) / 20.)
             beta = 1 / (1 + np.exp(-(V + 35) / 10))
             return alpha * (1 - h) - beta * h
 
-        @nn.update(method=method)
+        @nb.integrate
         def int_n(n, t, V):
             alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
             beta = 0.125 * np.exp(-(V + 65) / 80)
             return alpha * (1 - n) - beta * n
 
-        @nn.update(method=method, noise=noise / C)
-        def int_V(V, t, Icur, Isyn):
-            return (Icur + Isyn) / C
-
-        def update_state(neu_state, t):
-            V, Isyn = neu_state[0], neu_state[-1]
-            m = nn.clip(int_m(neu_state[1], t, V), 0., 1.)
-            h = nn.clip(int_h(neu_state[2], t, V), 0., 1.)
-            n = nn.clip(int_n(neu_state[3], t, V), 0., 1.)
-            INa = g_Na * m * m * m * h * (V - E_Na)
+        @nb.integrate(noise=noise / C)
+        def int_V(V, t, m, h, n, Isyn):
+            INa = g_Na * m ** 3 * h * (V - E_Na)
             IK = g_K * n ** 4 * (V - E_K)
             IL = g_Leak * (V - E_Leak)
-            Icur = - INa - IK - IL
-            V = int_V(V, t, Icur, Isyn)
-            neu_state[0] = V
-            neu_state[1] = m
-            neu_state[2] = h
-            neu_state[3] = n
-            nn.judge_spike(neu_state, Vth, t)
+            dvdt = (- INa - IK - IL + Isyn) / C
+            return dvdt
 
-        return nn.Neurons(**locals())
+        def update(ST, _t_):
+            m = np.clip(int_m(ST['m'], _t_, ST['V']), 0., 1.)
+            h = np.clip(int_h(ST['h'], _t_, ST['V']), 0., 1.)
+            n = np.clip(int_n(ST['n'], _t_, ST['V']), 0., 1.)
+            V = int_V(ST['V'], _t_, m, h, n, ST['inp'])
+            sp = np.logical_and(ST['V'] < Vth, V >= Vth)
+            ST['sp'] = sp
+            ST['V'] = V
+            ST['m'] = m
+            ST['h'] = h
+            ST['n'] = n
+            ST['inp'] = 0.
+
+        return nb.NeuType(requires={"ST": ST}, steps=update, vector_based=True)
+
 
 
 Define an AMPA synapse model
 ============================
 
 .. code-block:: python
+
+    def AMPA(g_max=0.10, E=0., tau_decay=2.0):
+
+        requires = dict(
+            ST=nb.types.SynState(['s'], help='AMPA synapse state.'),
+            pre=nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
+            post=nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+        )
+
+        @nb.integrate(method='euler')
+        def ints(s, t):
+            return - s / tau_decay
+
+        @nb.delay_push
+        def update(ST, _t_, pre):
+            s = ints(ST['s'], _t_)
+            s += pre['sp']
+            ST['s'] = s
+
+        @nb.delay_pull
+        def output(ST, post):
+            post_val = - g_max * ST['s'] * (post['V'] - E)
+            post['inp'] += post_val
+
+        return nb.SynType(requires=requires, steps=(update, output), vector_based=False)
 
 
 
