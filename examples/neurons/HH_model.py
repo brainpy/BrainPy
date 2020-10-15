@@ -6,9 +6,6 @@ import npbrain as nb
 import npbrain.numpy as np
 
 nb.profile.set(backend='numba', dt=0.02, numerical_method='milstein')
-nb.profile.show_formatted_code = True
-nb.profile.merge_integral = True
-noise = 0
 
 
 def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
@@ -85,7 +82,7 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['n'] = n
         ST['inp'] = 0.
 
-    return {'requires': {"ST": ST}, 'steps': update}
+    return dict(requires={"ST": ST}, steps=update)
 
 
 HH = nb.NeuType(name='HH_neuron', create_func=define_hh, vector_based=True)
@@ -93,7 +90,7 @@ HH = nb.NeuType(name='HH_neuron', create_func=define_hh, vector_based=True)
 
 if __name__ == '__main__':
     neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'],
-                      pars_update={'noise': noise})
+                      pars_update={'noise': 0.})
     net = nb.Network(neu)
     net.run(duration=100., inputs=[neu, 'ST.inp', 10.], report=True)
 

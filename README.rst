@@ -54,13 +54,7 @@ Installation
 
 Install ``NumpyBrain`` using ``pip``::
 
-    $> pip install npbrain
-    $> # or
     $> pip install git+https://github.com/PKU-NIP-Lab/NumpyBrain
-
-Install ``NumpyBrain`` using ``conda``::
-
-    $> conda install -c oujago npbrain
 
 Install from source code::
 
@@ -70,76 +64,11 @@ Install from source code::
 The following packages need to be installed to use ``NumpyBrain``:
 
 - Python >= 3.5
-- NumPy
-- Numba
+- NumPy >= 1.13
+- Numba >=
+- Sympy
 - Matplotlib
 
-
-Getting started: 30 seconds to NumpyBrain
-=========================================
-
-First of all, import the package, and set the numerical backend you prefer:
-
-.. code-block:: python
-
-    import numpy as np
-    import npbrain as nn
-
-    nn.profile.set_backend('numba')  # or "numpy"
-
-Next, define two neuron groups:
-
-.. code-block:: python
-
-    lif1 = nn.LIF(500, noise=0.5, method='Ito_milstein')  # or method='euler'
-    lif2 = nn.LIF(1000, noise=1.1, method='Ito_milstein')
-
-Then, create one ``Synapse`` to connect them both.
-
-.. code-block:: python
-
-    conn = nn.connect.fixed_prob(lif1.num, lif2.num, prob=0.2)
-    syn = nn.VoltageJumpSynapse(lif1, lif2, weights=0.2, connection=conn)
-
-In order to inspect the dynamics of two ``LIF`` neuron groups, we use ``StateMonitor``
-to record the membrane potential and the spiking events.
-
-.. code-block:: python
-
-    mon_lif1 = nn.StateMonitor(lif1, ['V', 'spike'])
-    mon_lif2 = nn.StateMonitor(lif2, ['V', 'spike'])
-
-All above definitions help us to construct a **network**. Providing the name of the
-simulation object (for example, ``mon1=mon_lif1``) can make us easy to access it
-by using ``net.mon1``.
-
-.. code-block:: python
-
-    net = nn.Network(syn, lif1, lif2, mon1=mon_lif1, mon2=mon_lif2)
-
-We can simulate the whole network just use ``.run(duration)`` function. Here,
-we set the inputs of ``lif1`` object to ``15.``, and open the ``report`` mode.
-
-.. code-block:: python
-
-    net.run(duration=100, inputs=(lif1, 15.), report=True)
-
-Finally, visualize the running results:
-
-.. code-block:: python
-
-    xlim = (0, 100)
-    ts = net.run_time()
-    fig, gs = nn.visualize.get_figure(n_row=2, n_col=1, len_row=3, len_col=8)
-    nn.visualize.plot_potential(net.mon1, ts, ax=fig.add_subplot(gs[0, 0]), xlim=xlim)
-    nn.visualize.plot_raster(net.mon1, ts, ax=fig.add_subplot(gs[1, 0]), xlim=xlim, show=True)
-
-
-It shows
-
-.. figure:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/example.png
-    :figclass: align-center
-    :width: 500px
 
 Define a Hodgkin–Huxley neuron model
 ====================================
