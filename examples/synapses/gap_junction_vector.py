@@ -34,26 +34,10 @@ def gap_junction_vector():
 GapJunction_vector = nb.SynType('GapJunction', create_func=gap_junction_vector, vector_based=True)
 
 
-def gap_junction_single():
-    requires = dict(
-        ST=nb.types.SynState(['w'], help='w : gap junction conductance.'),
-        pre=nb.types.NeuState(['V']),
-        post=nb.types.NeuState(['V', 'inp']),
-    )
-
-    def update(ST, pre, post):
-        post['inp'] += ST['w'] * (pre['V'] - post['V'])
-
-    return dict(requires=requires, steps=update)
-
-
-GapJunction_single = nb.SynType('GapJunction', create_func=gap_junction_single, vector_based=False)
-
-
 def gap_junction_lif_vector(spikelet=0.1):
     requires = dict(
         ST=nb.types.SynState(
-            ['s', 'w'],
+            ['spikelet', 'w'],
             help='''
                 Gap junction state.
 
@@ -67,16 +51,20 @@ def gap_junction_lif_vector(spikelet=0.1):
         pre_ids=nb.types.Array(dim=1, help='Pre-synaptic neuron indices.'),
     )
 
+    @nb.delay_push
     def update(ST, pre, post, post2syn, pre_ids):
         num_post = len(post2syn)
-        post_cond = np.zeros(num_post, np.float_)
-        post_spikelet = np.zeros(num_post, np.float_)
         for post_id in range(num_post):
             for syn_id in post2syn[post_id]:
                 pre_id = pre_ids[syn_id]
-                post_cond[post_id] = ST['w'] * (pre['V'][pre_id] - post['V'][post_id])
-                post_spikelet[post_id] = ST['w'][syn_id] * spikelet * pre['sp']
-        post['inp'] += post_cond
+                post['inp'][post_id] += ST['w'] * (pre['V'][pre_id] - post['V'][post_id])
+                ST['spikelet'][syn_id] = ST['w'][syn_id] * spikelet * pre['sp']
+
+    @nb.delay_pull
+    def output(ST, post, post2syn):
+        post_spikelet = np.zeros(len(post2syn), dtype=np.float_)
+        for post_id, syn_ids in enumerate(post2syn):
+            post_spikelet[post_id] = np.sum(ST['spikelet'][syn_ids])
         post['V'] += post_spikelet
 
     return dict(requires=requires, steps=update)

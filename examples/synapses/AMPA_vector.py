@@ -5,6 +5,11 @@ import matplotlib.pyplot as plt
 import npbrain as nb
 from npbrain import numpy as np
 
+nb.profile.set_backend('numpy')
+nb.profile.show_formatted_code = True
+nb.profile.merge_integral = False
+nb.profile.auto_pep8 = False
+
 
 def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
     """AMPA conductance-based synapse (type 1).
@@ -33,7 +38,7 @@ def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
     # ------------
 
     requires = {
-        'ST': nb.types.SynState(['s'], help='AMPA synapse state.'),
+        'ST': nb.types.SynState(['s', 'g'], help='AMPA synapse state.'),
         'pre': nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
         'post': nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
         'pre2syn': nb.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
@@ -43,6 +48,7 @@ def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
     # model logic
     # -----------
 
+    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         s = ints(ST['s'], _t_)
         spike_idx = np.where(pre['sp'] > 0.)[0]
@@ -50,13 +56,13 @@ def define_ampa1_group(g_max=0.10, E=0., tau_decay=2.0):
             syn_idx = pre2syn[i]
             s[syn_idx] += 1.
         ST['s'] = s
-        ST.push(g_max * s)
+        ST['g'] = g_max * s
 
+    @nb.delay_pull
     def output(ST, post, post2syn):
-        g = ST.pull()
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
-            post_cond[post_id] = np.sum(g[syn_ids])
+            post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] -= post_cond * (post['V'] - E)
 
     return {'requires': requires, 'steps': (update, output)}
@@ -129,7 +135,7 @@ def run_ampa_group(cls, duration=650.):
     ampa.post = nb.types.NeuState(['V', 'inp'])(1)
     ampa.pre2syn = ampa.requires['pre2syn'].make_copy([[0]])
     ampa.post2syn = ampa.requires['post2syn'].make_copy([[0]])
-    ampa.set_schedule(['input', 'update', 'monitor'])
+    # ampa.set_schedule(['input', 'update', 'monitor'])
 
     net = nb.Network(ampa)
     Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile._dt, 1., duration=duration)

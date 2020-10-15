@@ -343,7 +343,8 @@ def get_code_lines(code_string):
 
         # Split the equation around operators = += -= *= /=, but not ==
         # split_operators = re.findall(r'(?<![\(,])([\s\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
-        split_operators = re.findall(r'(?<![\(,])([\s\[\]\'\"\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
+        # split_operators = re.findall(r'(?<![\(,])([\s\[\]\'\"\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
+        split_operators = re.findall(r'(?<![\((,\s*?\w*?)])([\s\[\]\'\"\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
 
         # definition of a new variable
         if len(split_operators) == 1:

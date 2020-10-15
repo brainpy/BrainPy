@@ -49,7 +49,7 @@ def define_stp(U=0.15, tau_f=1500., tau_d=200.):
            with dynamic synapses." Neural computation 10.4 (1998): 821-835.
     """
     requires = dict(
-        ST=nb.types.SynState({'u': 0., 'x': 1., 'w': 1.}),
+        ST=nb.types.SynState({'u': 0., 'x': 1., 'w': 1., 'g': 0.}),
         pre=nb.types.NeuState(['sp']),
         post=nb.types.NeuState(['V', 'inp']),
         pre2syn=nb.types.ListConn(),
@@ -64,6 +64,7 @@ def define_stp(U=0.15, tau_f=1500., tau_d=200.):
     def int_x(x, t):
         return (1 - x) / tau_d
 
+    @nb.delay_push
     def update(ST, pre, pre2syn):
         u = int_u(ST['u'], 0)
         x = int_x(ST['x'], 0)
@@ -74,13 +75,13 @@ def define_stp(U=0.15, tau_f=1500., tau_d=200.):
             x[syn_ids] -= u_syn * ST['x'][syn_ids]
         ST['u'] = np.clip(u, 0., 1.)
         ST['x'] = np.clip(x, 0., 1.)
-        ST.push(ST['w'] * ST['u'] * ST['x'])
+        ST['g'] = ST['w'] * ST['u'] * ST['x']
 
+    @nb.delay_pull
     def output(ST, post, post2syn):
-        g = ST.pull()
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
-            post_cond[post_id] = np.sum(g[syn_ids])
+            post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] += post_cond
 
     return dict(requires=requires, steps=(update, output))

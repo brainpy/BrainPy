@@ -19,8 +19,17 @@ __all__ = [
     'jit',
     'func_copy',
     'numba_func',
+    'get_func_name',
     'get_func_scope',
 ]
+
+
+def get_func_name(func, replace=False):
+    func_name = func.__name__
+    if replace:
+        func_name = func_name.replace('_npbrain_delay_push_', '')
+        func_name = func_name.replace('_npbrain_delay_pull_', '')
+    return func_name
 
 
 def jit(func=None):

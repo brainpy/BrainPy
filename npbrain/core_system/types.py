@@ -187,18 +187,30 @@ class SynState(ObjState):
         else:
             raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
+    def extract_by_index(self, idx, delay_pull=False):
+        if delay_pull:
+            res = {}
+            for k in self._keys:
+                if f'_{k}_delay' in self:
+                    res[k] = self.delay_pull(k)[idx]
+                else:
+                    res[k] = self.__getitem__(k)[idx]
+            return res
+        else:
+            return {k: self.__getitem__(k)[idx] for k in self._keys}
+
     def make_copy(self, size, delay=None, delay_vars=('cond',)):
         obj = SynState(self._vars)
         return obj(size=size, delay=delay, delay_vars=delay_vars)
 
     def delay_push(self, g, var='cond'):
         data = self.__getitem__('_data')
-        offset = self.__getitem__(f'_{var}_offset')
+        offset = self.__getitem__('_var2idx')[f'_{var}_offset']
         data[self._delay_in + offset] = g
 
     def delay_pull(self, var='cond'):
         data = self.__getitem__('_data')
-        offset = self.__getitem__(f'_{var}_offset')
+        offset = self.__getitem__('_var2idx')[f'_{var}_offset']
         return data[self._delay_out + offset]
 
     def _update_delay_indices(self):

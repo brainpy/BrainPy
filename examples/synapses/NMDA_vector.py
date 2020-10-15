@@ -43,7 +43,7 @@ def define_nmda(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=10
     a : float
     """
     requires = dict(
-        ST=nb.types.SynState(['x', 's']),
+        ST=nb.types.SynState(['x', 's', 'g']),
         pre=nb.types.NeuState(['sp']),
         post=nb.types.NeuState(['V', 'inp']),
         pre2syn=nb.types.ListConn(),
@@ -58,6 +58,7 @@ def define_nmda(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=10
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
+    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         for pre_id in np.where(pre['sp'] > 0.)[0]:
             syn_ids = pre2syn[pre_id]
@@ -66,13 +67,13 @@ def define_nmda(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=10
         s = int_s(ST['s'], _t_, x)
         ST['x'] = x
         ST['s'] = s
-        ST.delay_push(g_max * s)
+        ST['g'] = g_max * s
 
+    @nb.delay_pull
     def output(ST, post, post2syn):
-        g_val = ST.delay_pull()
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
-            post_cond[post_id] = np.sum(g_val[syn_ids])
+            post_cond[post_id] = np.sum(ST['g'][syn_ids])
         g = post_cond * (post['V'] - E)
         g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post['V'])
         post['inp'] -= g * g_inf

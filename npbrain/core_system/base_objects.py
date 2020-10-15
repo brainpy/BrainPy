@@ -7,7 +7,6 @@ from importlib import import_module
 
 import autopep8
 
-from .types import NeuState
 from .types import ObjState
 from .types import TypeChecker
 from .types import TypeMismatchError
@@ -393,217 +392,8 @@ class BaseEnsemble(object):
         # return code lines and code scope
         return '\n'.join(code_lines), code_scope
 
-    def __step_mode_np_group(self):
-        for func in self._steps:
-            func_name = func.__name__
-            func_args = inspect.getfullargspec(func).args
-
-            setattr(self, func_name, func)
-            arg_calls = []
-            for arg in func_args:
-                if arg in _ARG_KEYWORDS:
-                    arg_calls.append(arg)
-                else:
-                    arg_calls.append(f"{self.name}.{arg}")
-            func_call = f'{self.name}.{func_name}({", ".join(arg_calls)})'
-            self._codegen[func_name] = {'func': func, 'call': func_call}
-
-    def __step_mode_np_single(self):
-        if self.num > 1000:
-            raise ModelUseError(f'The number of the '
-                                f'{"neurons" if self._cls_type == _NEU_GROUP else "synapses"} is '
-                                f'too huge (>1000), please use numba backend or define vector_based model.')
-
-        # get step functions
-        steps_collection = {func.__name__: [] for func in self._steps}
-        for i in range(self.num):
-            pars = {k: v if k not in self._hetero_pars else self._hetero_pars[k][i]
-                    for k, v in self.params.items()}
-            steps = self._get_steps_from_model(pars)
-            for func in steps:
-                steps_collection[func.__name__].append(func)
-
-        for func in self._steps:
-            func_name = func.__name__
-            func_args = inspect.getfullargspec(func).args
-            state_args = [arg for arg in func_args
-                          if arg not in _ARG_KEYWORDS and
-                          isinstance(getattr(self, arg), ObjState)]
-
-            # arg and arg2call
-            code_arg, code_arg2call = [], {}
-            for arg in func_args:
-                if arg in state_args:
-                    arg2 = f'{self.name}_{arg}'
-                    code_arg2call[arg2] = f'{self.name}.{arg}'
-                    code_arg.append(arg2)
-                else:
-                    if arg in _ARG_KEYWORDS:
-                        code_arg2call[arg] = arg
-                    else:
-                        code_arg2call[arg] = f'{self.name}.{arg}'
-                    code_arg.append(arg)
-
-            # scope
-            code_scope = {f'{func_name}_collect': steps_collection[func_name]}
-
-            # codes
-            has_ST = 'ST' in state_args
-            has_pre = 'pre' in state_args
-            has_post = 'post' in state_args
-            if has_ST:
-                if has_pre and has_post:
-                    code_arg.extend(['pre2syn', 'post_ids'])
-                    code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
-                    code_arg2call['post_ids'] = f'{self.name}.post_ids'
-
-                    code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
-                                  f'def {func_name}({", ".join(code_arg)}):',
-                                  f'for pre_idx in range({self.pre_group.num}):',
-                                  f'  pre = {self.name}_pre.extract_by_index(pre_idx)',
-                                  f'  for syn_idx in pre2syn[pre_idx]:',
-                                  f'    post_i = post_ids[syn_idx]',
-                                  f'    post = {self.name}_post.extract_by_index(post_i)',
-                                  f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
-                                  f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
-                                  f'    {self.name}_ST.update_by_index(syn_idx, ST)']
-
-                elif has_pre:
-                    code_arg.append('pre2syn')
-                    code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
-
-                    code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
-                                  f'def {func_name}({", ".join(code_arg)}):',
-                                  f'for pre_idx in range({self.pre_group.num}):',
-                                  f'  pre = {self.name}_pre.extract_by_index(pre_idx)',
-                                  f'  for syn_idx in pre2syn[pre_idx]:',
-                                  f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
-                                  f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
-                                  f'    {self.name}_ST.update_by_index(syn_idx, ST)']
-
-                elif has_post:
-                    code_arg.append('post2syn')
-                    code_arg2call['post2syn'] = f'{self.name}.post2syn'
-
-                    code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
-                                  f'def {func_name}({", ".join(code_arg)}):',
-                                  f'for post_ids in range({self.post_group.num}):',
-                                  f'  post = {self.name}_post.extract_by_index(post_ids)',
-                                  f'  for syn_idx in post2syn[post_ids]:',
-                                  f'    ST = {self.name}_ST.extract_by_index(syn_idx)',
-                                  f'    {func_name}_collect[syn_idx]({", ".join(func_args)})',
-                                  f'    {self.name}_ST.update_by_index(syn_idx, ST)']
-
-                else:
-                    code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
-                                  f'def {func_name}({", ".join(code_arg)}):',
-                                  f'for _ni_ in range({self.num}):']
-                    for arg in state_args:
-                        code_lines.append(f'  {arg} = {self.name}_{arg}.extract_by_index(_ni_)')
-                    code_lines.append(f'  {func_name}_collect[_ni_]({", ".join(func_args)})')
-                    for arg in state_args:
-                        code_lines.append(f'  {self.name}_{arg}.update_by_index(_ni_, {arg})')
-
-            else:
-                try:
-                    assert not has_post and not has_pre
-                except AssertionError:
-                    raise ModelDefError(f'Unknown "{func_name}" function structure.')
-                code_lines = [f'\n# "{func_name}" step function in {self.name}\n'
-                              f'def {func_name}({", ".join(code_arg)}):',
-                              f'for _ni_ in range({self.num}):',
-                              f'  {func_name}_collect[_ni_]({", ".join(func_args)})']
-
-            # compile
-            func_code = '\n  '.join(code_lines)
-            if profile.auto_pep8:
-                func_code = autopep8.fix_code(func_code)
-            exec(compile(func_code, '', 'exec'), code_scope)
-            func = code_scope[func_name]
-            setattr(self, func_name, func)
-
-            # call
-            func_call = f'{self.name}.{func_name}({", ".join([code_arg2call[arg] for arg in code_arg])})'
-
-            if profile.show_formatted_code:
-                print(func_code)
-                print()
-                tools.show_code_scope(code_scope, ['__builtins__', func_name])
-                print()
-
-            # final
-            self._codegen[func_name] = {'func': func, 'call': func_call}
-
-    def __step_mode_nb_group(self):
-        for func in self._steps:
-            func_name = func.__name__
-            func_args = inspect.getfullargspec(func).args
-            states = {k: getattr(self, k) for k in func_args
-                      if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
-
-            # initialize code namespace
-            used_args, code_arg2call, code_lines = set(), {}, []
-            func_code, code_scope = self.__step_substitute_integrator(func)
-
-            # check function code
-            add_args = set()
-            for i, arg in enumerate(func_args):
-                used_args.add(arg)
-                if len(states) == 0:
-                    continue
-                if arg in states:
-                    st = states[arg]
-                    var2idx = st['_var2idx']
-                    for st_k in st._keys:
-                        p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                        r = f"{arg}[{var2idx[st_k]}]"
-                        func_code = re.sub(r'' + p, r, func_code)
-                    p = f'{arg}.delay_pull()'
-                    if p in func_code:
-                        r = f'{arg}[{self.name}_{arg}_dout]'
-                        func_code = func_code.replace(p, r)
-                        add_args.add(f'{self.name}_{arg}_dout')
-                        code_arg2call[f'{self.name}_{arg}_dout'] = f'{self.name}.{arg}._delay_out'
-                    p = f'{arg}.delay_push'
-                    if p in func_code:
-                        res = re.findall(r'(' + p + r'\((\w+?)\))', func_code)
-                        if len(res) > 1:
-                            raise ModelDefError(f'Cannot call "{p}()" {len(res)} times. Error in code:\n\n'
-                                                f'{func_code}')
-                        if len(res[0]) != 2:
-                            raise ValueError(f'Python regex error for search of "{p}" in code:\n\n{func_code}')
-                        res = res[0]
-                        text = f'{arg}[{self.name}_{arg}_din] = {res[1]}'
-                        func_code = func_code.replace(res[0], text)
-                        add_args.add(f'{self.name}_{arg}_din')
-                        code_arg2call[f'{self.name}_{arg}_din'] = f'{self.name}.{arg}._delay_in'
-
-            # substitute arguments
-            code_args = add_args
-            # code_args = set()
-            arg_substitute = {}
-            for arg in used_args:
-                if arg in _ARG_KEYWORDS:
-                    new_arg = arg
-                    code_arg2call[arg] = arg
-                else:
-                    new_arg = f'{self.name}_{arg}'
-                    arg_substitute[arg] = new_arg
-                    if isinstance(getattr(self, arg), ObjState):
-                        code_arg2call[new_arg] = f'{self.name}.{arg}["_data"]'
-                    else:
-                        code_arg2call[new_arg] = f'{self.name}.{arg}'
-                code_args.add(new_arg)
-            func_code = tools.word_replace(func_code, arg_substitute)
-
-            # final
-            code_lines = func_code.split('\n')
-            code_lines.insert(0, f'# "{func_name}" step function of {self.name}')
-            code_lines.append('\n')
-            self._codegen[func_name] = {'scopes': code_scope, 'args': code_args,
-                                        'arg2calls': code_arg2call, 'codes': code_lines}
-
-    def __step_mode_nb_single(self):
+    def __step_delay_keys(self):
+        delay_keys = []
         if self._cls_type == _SYN_CONN:
             # check "delay_push" and "delay_pull"
             has_delay_push = False
@@ -627,6 +417,255 @@ class BaseEnsemble(object):
                 pull_func_code = tools.get_main_code(pull_func)
                 delay_keys = list(set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', pull_func_code)))
                 self.set_ST(self.ST.make_copy(self.num, self.delay_len, delay_keys))
+        return delay_keys
+
+    def __step_mode_np_group(self):
+
+        delay_keys = self.__step_delay_keys()
+
+        for func in self._steps:
+            func_name = func.__name__
+            func_name_stripped = tools.get_func_name(func, replace=True)
+            func_args = inspect.getfullargspec(func).args
+
+            if 'ST' in func_args and func_name.startswith('_npbrain_delay_'):
+                if func_name.startswith('_npbrain_delay_push_'):
+                    code_scope = {func_name_stripped: func}
+                    code_lines = [f'def {func_name_stripped}_enhanced({", ".join(func_args)}):',
+                                  f'  {func_name_stripped}({", ".join(func_args)})']
+                    for key in delay_keys:
+                        code_lines.append(f'  ST.delay_push(ST["{key}"], var="{key}")')
+
+                elif func_name.startswith('_npbrain_delay_pull_'):
+                    code_scope = {func_name_stripped: func}
+                    code_lines = [f'def {func_name_stripped}_enhanced({", ".join(func_args)}):',
+                                  f'  new_ST = dict()']
+                    for key in delay_keys:
+                        code_lines.append(f'  new_ST["{key}"] = ST.delay_pull("{key}")')
+                    code_lines.append('  ST = new_ST')
+                    code_lines.append(f'  {func_name_stripped}({", ".join(func_args)})')
+
+                else:
+                    raise ValueError
+
+                # compile
+                func_code = '\n'.join(code_lines)
+                if profile.auto_pep8:
+                    func_code = autopep8.fix_code(func_code)
+                exec(compile(func_code, '', 'exec'), code_scope)
+                func = code_scope[func_name_stripped + '_enhanced']
+
+                if profile.show_formatted_code:
+                    tools.show_code_str(func_code)
+                    tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
+
+            setattr(self, func_name_stripped, func)
+            arg_calls = []
+            for arg in func_args:
+                if arg in _ARG_KEYWORDS:
+                    arg_calls.append(arg)
+                else:
+                    arg_calls.append(f"{self.name}.{arg}")
+            func_call = f'{self.name}.{func_name_stripped}({", ".join(arg_calls)})'
+            self._codegen[func_name_stripped] = {'func': func, 'call': func_call}
+
+    def __step_mode_np_single(self):
+        if self.num > 1000:
+            raise ModelUseError(f'The number of the '
+                                f'{"neurons" if self._cls_type == _NEU_GROUP else "synapses"} is '
+                                f'too huge (>1000), please use numba backend or define vector_based model.')
+
+        delay_keys = self.__step_delay_keys()
+
+        # get step functions
+        steps_collection = {tools.get_func_name(func, replace=True): [] for func in self._steps}
+        for i in range(self.num):
+            pars = {k: v if k not in self._hetero_pars else self._hetero_pars[k][i]
+                    for k, v in self.params.items()}
+            steps = self._get_steps_from_model(pars)
+            for func in steps:
+                steps_collection[tools.get_func_name(func, replace=True)].append(func)
+
+        for func in self._steps:
+            func_name = func.__name__
+            func_name_stripped = tools.get_func_name(func, replace=True)
+            func_args = inspect.getfullargspec(func).args
+            state_args = [arg for arg in func_args
+                          if arg not in _ARG_KEYWORDS and
+                          isinstance(getattr(self, arg), ObjState)]
+
+            # arg and arg2call
+            code_arg, code_arg2call = [], {}
+            for arg in func_args:
+                if arg in state_args:
+                    arg2 = f'{self.name}_{arg}'
+                    code_arg2call[arg2] = f'{self.name}.{arg}'
+                    code_arg.append(arg2)
+                else:
+                    if arg in _ARG_KEYWORDS:
+                        code_arg2call[arg] = arg
+                    else:
+                        code_arg2call[arg] = f'{self.name}.{arg}'
+                    code_arg.append(arg)
+
+            # scope
+            code_scope = {f'{func_name_stripped}_collect': steps_collection[func_name_stripped]}
+
+            # codes
+            has_ST = 'ST' in state_args
+            has_pre = 'pre' in state_args
+            has_post = 'post' in state_args
+            if has_ST:  # have ST
+                if has_pre and has_post:
+                    code_arg.extend(['pre2syn', 'post_ids'])
+                    code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
+                    code_arg2call['post_ids'] = f'{self.name}.post_ids'
+
+                    code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
+                                  f'  for pre_idx in range({self.pre_group.num}):',
+                                  f'    pre = {self.name}_pre.extract_by_index(pre_idx)',
+                                  f'    for _obj_i_ in pre2syn[pre_idx]:',
+                                  f'      post_i = post_ids[_obj_i_]',
+                                  f'      post = {self.name}_post.extract_by_index(post_i)']
+                    prefix = '  ' * 3
+
+                elif has_pre:
+                    code_arg.append('pre2syn')
+                    code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
+
+                    code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
+                                  f'  for pre_idx in range({self.pre_group.num}):',
+                                  f'    pre = {self.name}_pre.extract_by_index(pre_idx)',
+                                  f'    for _obj_i_ in pre2syn[pre_idx]:']
+                    prefix = '  ' * 3
+                elif has_post:
+                    code_arg.append('post2syn')
+                    code_arg2call['post2syn'] = f'{self.name}.post2syn'
+
+                    code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
+                                  f'  for post_ids in range({self.post_group.num}):',
+                                  f'    post = {self.name}_post.extract_by_index(post_ids)',
+                                  f'    for _obj_i_ in post2syn[post_ids]:']
+                    prefix = '  ' * 3
+
+                else:
+                    code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
+                                  f'  for _obj_i_ in range({self.num}):']
+                    prefix = '  ' * 2
+
+                if func_name.startswith('_npbrain_delay_pull_'):
+                    code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_, delay_pull=True)')
+                    code_lines.append(prefix + f'{func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})')
+                else:
+                    code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_)')
+                    code_lines.append(prefix + f'{func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})')
+                    code_lines.append(prefix + f'{self.name}_ST.update_by_index(_obj_i_, ST)')
+
+                if func_name.startswith('_npbrain_delay_push_'):
+                    for key in delay_keys:
+                        code_lines.append(f'  {self.name}_ST.delay_push({self.name}_ST["{key}"], "{key}")')
+
+            else:  # doesn't have ST
+                try:
+                    assert not has_post and not has_pre
+                except AssertionError:
+                    raise ModelDefError(f'Unknown "{func_name_stripped}" function structure.')
+                code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
+                              f'  for _obj_i_ in range({self.num}):',
+                              f'    {func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})']
+
+            # append the final results
+            code_lines.insert(0, f'# "{func_name_stripped}" step function in {self.name}')
+
+            # compile
+            func_code = '\n'.join(code_lines)
+            if profile.auto_pep8:
+                func_code = autopep8.fix_code(func_code)
+            exec(compile(func_code, '', 'exec'), code_scope)
+            func = code_scope[func_name_stripped]
+            setattr(self, func_name_stripped, func)
+
+            # call
+            func_call = f'{self.name}.{func_name_stripped}({", ".join([code_arg2call[arg] for arg in code_arg])})'
+
+            if profile.show_formatted_code:
+                tools.show_code_str(func_code)
+                tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
+
+            # final
+            self._codegen[func_name_stripped] = {'func': func, 'call': func_call}
+
+    def __step_mode_nb_group(self):
+        delay_keys = self.__step_delay_keys()
+
+        for func in self._steps:
+            func_name = func.__name__
+            func_name_stripped = tools.get_func_name(func, replace=True)
+            func_args = inspect.getfullargspec(func).args
+            states = {k: getattr(self, k) for k in func_args
+                      if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
+
+            # initialize code namespace
+            used_args, code_arg2call, code_lines = set(), {}, []
+            func_code, code_scope = self.__step_substitute_integrator(func)
+
+            # check function code
+            add_args = set()
+            for i, arg in enumerate(func_args):
+                used_args.add(arg)
+                if len(states) == 0:
+                    continue
+                if arg in states:
+                    st = states[arg]
+                    var2idx = st['_var2idx']
+
+                    if arg == 'ST' and func_name.startswith('_npbrain_delay_pull_'):
+                        add_args.add(f'{self.name}_dout')
+                        code_arg2call[f'{self.name}_dout'] = f'{self.name}.{arg}._delay_out'
+                        for st_k in delay_keys:
+                            p = f'{arg}\[([\'"]{st_k}[\'"])\]'
+                            r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_dout]"
+                            func_code = re.sub(r'' + p, r, func_code)
+
+                    for st_k in st._keys:
+                        p = f'{arg}\[([\'"]{st_k}[\'"])\]'
+                        r = f"{arg}[{var2idx[st_k]}]"
+                        func_code = re.sub(r'' + p, r, func_code)
+
+                    if arg == 'ST' and func_name.startswith('_npbrain_delay_push_'):
+                        add_args.add(f'{self.name}_din')
+                        code_arg2call[f'{self.name}_din'] = f'{self.name}.{arg}._delay_in'
+                        for st_k in delay_keys:
+                            right = f'{arg}[{var2idx[st_k]}]'
+                            left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
+                            func_code += f'\n{left} = {right}'
+
+            # substitute arguments
+            code_args = add_args
+            arg_substitute = {}
+            for arg in used_args:
+                if arg in _ARG_KEYWORDS:
+                    new_arg = arg
+                    code_arg2call[arg] = arg
+                else:
+                    new_arg = f'{self.name}_{arg}'
+                    arg_substitute[arg] = new_arg
+                    if isinstance(getattr(self, arg), ObjState):
+                        code_arg2call[new_arg] = f'{self.name}.{arg}["_data"]'
+                    else:
+                        code_arg2call[new_arg] = f'{self.name}.{arg}'
+                code_args.add(new_arg)
+            func_code = tools.word_replace(func_code, arg_substitute)
+
+            # final
+            code_lines = func_code.split('\n')
+            code_lines.insert(0, f'# "{func_name_stripped}" step function of {self.name}')
+            code_lines.append('\n')
+            self._codegen[func_name_stripped] = {'scopes': code_scope, 'args': code_args,
+                                                 'arg2calls': code_arg2call, 'codes': code_lines}
+
+    def __step_mode_nb_single(self):
+        delay_keys = self.__step_delay_keys()
 
         for i, func in enumerate(self._steps):
             func_name = func.__name__
@@ -672,7 +711,7 @@ class BaseEnsemble(object):
                         if func_name.startswith('_npbrain_delay_pull_'):
                             for st_k in delay_keys:
                                 p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                                r = f"{arg}[{var2idx['_'+st_k+'_offset']} + {self.name}_dout, _obj_i_]"
+                                r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_dout, _obj_i_]"
                                 func_code = re.sub(r'' + p, r, func_code)
                         else:
                             for st_k in st._keys:
@@ -715,7 +754,7 @@ class BaseEnsemble(object):
             func_code = tools.word_replace(func_code, arg_substitute)
 
             # add the for loop in the start of the main code
-            assert 'ST' in states, "In numba mode, scalar-based model only support function with 'ST'."
+            assert 'ST' in states, "In numba mode, scalar-based model only support function has 'ST' argument."
             has_pre = 'pre' in states
             has_post = 'post' in states
             if has_pre and has_post:
@@ -723,28 +762,24 @@ class BaseEnsemble(object):
                 code_arg2call[f'{self.name}_post_ids'] = f'{self.name}.post_ids'
                 code_args.add(f'{self.name}_pre2syn')
                 code_arg2call[f'{self.name}_pre2syn'] = f'{self.name}.pre2syn'
-                code_lines = [f'# "{func_name}" step function of {self.name}',
-                              f'for _pre_i_ in numba.prange({self.pre_group.num}):',
+                code_lines = [f'for _pre_i_ in numba.prange({self.pre_group.num}):',
                               f'  for _syn_i_ in {self.name}_pre2syn[_pre_i_]:',
                               f'    _obj_i_ = {self.name}_post_idx[_syn_i_]']
-                blank = '  ' * 3
+                blank = '  ' * 2
             elif has_pre:
                 code_args.add(f'{self.name}_pre2syn')
                 code_arg2call[f'{self.name}_pre2syn'] = f'{self.name}.pre2syn'
-                code_lines = [f'# "{func_name}" step function of {self.name}',
-                              f'for _pre_i_ in numba.prange({self.pre_group.num}):',
+                code_lines = [f'for _pre_i_ in numba.prange({self.pre_group.num}):',
                               f'  for _obj_i_ in {self.name}_pre2syn[_pre_i_]:']
                 blank = '  ' * 2
             elif has_post:
                 code_args.add(f'{self.name}_post2syn')
                 code_arg2call[f'{self.name}_post2syn'] = f'{self.name}.post2syn'
-                code_lines = [f'# "{func_name}" step function of {self.name}',
-                              f'for _post_i_ in numba.prange({self.post_group.num}):',
+                code_lines = [f'for _post_i_ in numba.prange({self.post_group.num}):',
                               f'  for _obj_i_ in {self.name}_post2syn[_post_i_]:']
                 blank = '  ' * 2
             else:
-                code_lines = [f'# "{func_name}" step function of {self.name}',
-                              f'for _obj_i_ in numba.prange({self.num}):']
+                code_lines = [f'for _obj_i_ in numba.prange({self.num}):']
                 blank = '  ' * 1
 
             code_lines.extend([blank + l for l in func_code.split('\n')])
@@ -755,13 +790,14 @@ class BaseEnsemble(object):
                 var2idx = self.ST['_var2idx']
                 for st_k in delay_keys:
                     right = f'{self.name}_ST[{var2idx[st_k]}]'
-                    left = f"{self.name}_ST[{var2idx['_'+st_k+'_offset']} + {self.name}_din]"
+                    left = f"{self.name}_ST[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
                     code_lines.append(f'{left} = {right}')
             code_lines.append('\n')
 
             # append the final results
             func_name = func_name.replace('_npbrain_delay_push_', '')
             func_name = func_name.replace('_npbrain_delay_pull_', '')
+            code_lines.insert(0, f'# "{func_name}" step function of {self.name}')
             self._codegen[func_name] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
@@ -971,11 +1007,7 @@ class BaseEnsemble(object):
                 else:
                     raise ModelUseError(f'Unknown target : {key}.')
 
-                if not self.model.vector_based and self._cls_type == _SYN_CONN and \
-                        attr == 'ST' and profile.is_numba_bk():
-                    shape = getattr(self, attr)[item][0].shape
-                else:
-                    shape = getattr(self, attr)[item].shape
+                shape = getattr(self, attr)[item].shape
 
                 idx_name = f'{self.name}_idx{idx_no}_{attr}_{item}'
                 if profile.is_numpy_bk():
@@ -989,16 +1021,6 @@ class BaseEnsemble(object):
                     idx = getattr(self, attr)['_var2idx'][item]
                     mon_name = f'{self.name}_mon_{attr}_{item}'
                     target_name = f'{self.name}_{attr}'
-                    # if not self.model.vector_based and self._cls_type == _SYN_CONN and \
-                    #         attr == 'ST' and item in self.ST._delay_offset:
-                    #     code_args.add(f'{self.name}_din')
-                    #     code_arg2call[f'{self.name}_din'] = f'{self.name}.ST._delay_in'
-                    #     if indices is None:
-                    #         line = f'{mon_name}[_i_] = {target_name}[{idx} + {self.name}_din]'
-                    #     else:
-                    #         line = f'{mon_name}[_i_] = {target_name}[{idx} + {self.name}_din][{idx_name}]'
-                    #         code_scope[idx_name] = indices
-                    # else:
                     if indices is None:
                         line = f'{mon_name}[_i_] = {target_name}[{idx}]'
                     else:
@@ -1148,4 +1170,3 @@ class BaseEnsemble(object):
             if hasattr(self, key):
                 raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, please change another name.')
         super(BaseEnsemble, self).__setattr__(key, value)
-

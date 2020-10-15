@@ -19,16 +19,16 @@ def VoltageJumpSynapse():
         pre2post=nb.types.ListConn(),
     )
 
+    @nb.delay_push
     def update(ST, pre, pre2post):
         s = np.zeros_like(ST['s'], dtype=np.float_)
         for pre_id in np.where(pre['sp'] > 0)[0]:
             post_ids = pre2post[pre_id]
             s[post_ids] = 1
         ST['s'] = s
-        ST.push(s)
 
+    @nb.delay_pull
     def output(ST, post):
-        post_cond = ST.pull()
-        post['V'] += post_cond * post['not_ref']
+        post['V'] += ST['s'] * post['not_ref']
 
     return dict(requires=requires, steps=(update, output))

@@ -7,7 +7,42 @@ from npbrain import numpy as np
 
 nb.profile.set_backend('numba')
 nb.profile.show_formatted_code = True
-nb.profile.merge_integral = True
+nb.profile.merge_integral = False
+nb.profile.auto_pep8 = False
+
+
+def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
+    ST = nb.types.NeuState(
+        {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
+        help='''LIF neuron state.
+
+        V: membrane potential.
+        sp : spike state. 
+        sp_t : last spike time.
+        inp : input, including external and synaptic inputs.
+        '''
+    )
+
+    @nb.integrate(noise=noise / tau)
+    def int_f(V, t, Isyn):
+        return (-V + Vr + Isyn) / tau
+
+    def update(ST, _t_):
+        if _t_ - ST['sp_t'] > ref:
+            V = int_f(ST['V'], _t_, ST['inp'])
+            if V >= Vth:
+                V = Vr
+                ST['sp_t'] = _t_
+                ST['sp'] = True
+            ST['V'] = V
+        else:
+            ST['sp'] = False
+        ST['inp'] = 0.
+
+    return {'requires': {'ST': ST}, 'steps': update}
+
+
+LIF = nb.NeuType(name='LIF_neuron', create_func=define_single_lif, vector_based=False)
 
 
 def define_ampa1_single(g_max=0.10, E=0., tau_decay=2.0):
@@ -111,14 +146,12 @@ AMPA2_single = nb.SynType(name='AMPA_type2', create_func=define_ampa2_single, ve
 
 
 def run_ampa_single(cls, duration=650.):
-    from examples.neurons.HH_model import HH
-    nb.profile.set_backend('numba')
-    nb.profile.show_formatted_code = True
-
-    pre = nb.NeuGroup(HH, 10)
-    post = nb.NeuGroup(HH, 20)
+    pre = nb.NeuGroup(LIF, 2)
+    post = nb.NeuGroup(LIF, 3)
     ampa = nb.SynConn(model=cls, pre_group=pre, post_group=post, conn=nb.connect.All2All(),
                       monitors=['s'], delay=10.)
+    # ampa.set_schedule(['input', 'output', 'monitor'])
+    ampa.set_schedule(['input', 'update', 'output', 'monitor'])
 
     net = nb.Network(pre, ampa, post)
     Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile._dt, 1., duration=duration)
@@ -133,4 +166,4 @@ def run_ampa_single(cls, duration=650.):
 
 if __name__ == '__main__':
     run_ampa_single(AMPA1_single)
-    # run_ampa_single(AMPA2_single)
+    run_ampa_single(AMPA2_single)

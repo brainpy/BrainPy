@@ -7,6 +7,7 @@ import npbrain.numpy as np
 
 nb.profile.set(backend='numba', dt=0.02, )
 nb.profile.merge_integral = True
+nb.profile.show_formatted_code = True
 
 
 def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
@@ -28,8 +29,7 @@ def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
 
     ST = nb.types.NeuState(
         {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
-        help='''
-        LIF neuron state.
+        help='''LIF neuron state.
         
         V: membrane potential.
         sp : spike state. 
@@ -54,7 +54,7 @@ def define_single_lif(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
             ST['sp'] = False
         ST['inp'] = 0.
 
-    return {'requires': {'ST': ST}, 'update': update}
+    return {'requires': {'ST': ST}, 'steps': update}
 
 
 LIF_single = nb.NeuType(name='LIF_neuron', create_func=define_single_lif, vector_based=False)
