@@ -11,3 +11,5 @@ npbrain.neurons package
     HH
     Izhikevich
     LIF
+    FreqInput
+    TimeInput

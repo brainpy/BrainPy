@@ -28,10 +28,12 @@ setup(
     python_requires='>=3.5',
     install_requires=[
         'numpy>=1.15',
-        'matplotlib',
-        'numba',
+        'matplotlib>=2.0',
+        'numba>=0.40.0',
+        'sympy>=1.2',
+        'autopep8',
     ],
-    url='https://github.com/chaoming0625/NumpyBrain',
+    url='https://github.com/PKU-NIP-Lab/NumpyBrain',
     keywords='computational neuroscience simulation',
     classifiers=[
           'Intended Audience :: Science/Research',
