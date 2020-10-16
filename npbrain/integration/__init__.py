@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from .. import numpy as np
 from . import diff_equation
 from . import integrator
 from . import sympy_tools
-
 from .diff_equation import *
 from .integrator import *
-
+from .. import numpy as np
 from .. import profile
-
 
 _SUPPORT_METHODS = [
     'euler',

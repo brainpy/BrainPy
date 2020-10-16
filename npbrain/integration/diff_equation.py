@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import inspect
-import re
 from collections import Counter
-from collections import OrderedDict
 
 import sympy
 
@@ -240,7 +238,8 @@ class DiffEquation(object):
                 if expr.var_name in need_vars:
                     if not profile.substitute_equation or expr._substituted_code is None:
                         code = expr.code
-                    else: code = expr._substituted_code
+                    else:
+                        code = expr._substituted_code
                     return_expressions[expr.var_name] = Expression(expr.var_name, code)
                     need_vars |= tools.get_identifiers(code)
             return_expressions = return_expressions[::-1]
@@ -306,4 +305,3 @@ class DiffEquation(object):
     @property
     def g_expr_names(self):
         return [expr.var_name for expr in self.g_expressions]
-

@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import inspect
-from copy import deepcopy
-
 from .base_objects import BaseEnsemble
 from .base_objects import BaseType
 from .base_objects import _NEU_GROUP
 from .base_objects import _NEU_TYPE
-from .base_objects import _ARG_KEYWORDS
 from .types import NeuState
-from ..tools import DictPlus
-from .. import profile
 from .. import numpy as np
 
 __all__ = [
@@ -28,7 +22,8 @@ class NeuType(BaseType):
     """
 
     def __init__(self, name, requires, steps, vector_based=True):
-        super(NeuType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based, type_=_NEU_TYPE)
+        super(NeuType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based,
+                                      type_=_NEU_TYPE)
 
 
 class NeuGroup(BaseEnsemble):

@@ -65,10 +65,14 @@ The following packages need to be installed to use ``NumpyBrain``:
 
 - Python >= 3.5
 - NumPy >= 1.13
-- Numba >= 0.40.0
 - Sympy >= 1.2
 - Matplotlib >= 2.0
 - autopep8
+
+Packages recommended to install:
+
+- Numba >= 0.40.0
+- JAX >= 0.1.0
 
 
 Define a Hodgkin–Huxley neuron model
@@ -153,13 +157,12 @@ Define an AMPA synapse model
         def ints(s, t):
             return - s / tau_decay
 
-        @nb.delay_push
         def update(ST, _t_, pre):
             s = ints(ST['s'], _t_)
             s += pre['sp']
             ST['s'] = s
 
-        @nb.delay_pull
+        @nb.delayed
         def output(ST, post):
             post_val = - g_max * ST['s'] * (post['V'] - E)
             post['inp'] += post_val
