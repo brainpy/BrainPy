@@ -58,7 +58,6 @@ def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
-    @nb.delay_push
     def update(ST, _t_, pre):
         x = int_x(ST['x'], _t_)
         x += pre['sp']
@@ -66,7 +65,7 @@ def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0
         ST['x'] = x
         ST['s'] = s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post):
         g = g_max * ST['s'] * (post['V'] - E)
         g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post['V'])

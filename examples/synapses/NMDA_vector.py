@@ -58,7 +58,6 @@ def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
-    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         for pre_id in np.where(pre['sp'] > 0.)[0]:
             syn_ids = pre2syn[pre_id]
@@ -69,7 +68,7 @@ def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):

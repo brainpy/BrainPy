@@ -48,7 +48,6 @@ def gap_junction_lif(spikelet=0.1):
         pre_ids=nb.types.Array(dim=1, help='Pre-synaptic neuron indices.'),
     )
 
-    @nb.delay_push
     def update(ST, pre, post, post2syn, pre_ids):
         num_post = len(post2syn)
         for post_id in range(num_post):
@@ -57,7 +56,7 @@ def gap_junction_lif(spikelet=0.1):
                 post['inp'][post_id] += ST['w'] * (pre['V'][pre_id] - post['V'][post_id])
                 ST['spikelet'][syn_id] = ST['w'][syn_id] * spikelet * pre['sp']
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_spikelet = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):

@@ -15,7 +15,6 @@ def GABAa1(g_max=0.4, reversal_potential=-80., tau_decay=6.):
     def int_s(s, t):
         return - s / tau_decay
 
-    @nb.delay_push
     def update(ST, pre, pre2syn):
         s = int_s(ST['s'], 0.)
         for pre_id in np.where(pre['sp'] > 0.)[0]:
@@ -24,7 +23,7 @@ def GABAa1(g_max=0.4, reversal_potential=-80., tau_decay=6.):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
@@ -46,7 +45,6 @@ def GABAa2(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    @nb.delay_push
     def update(ST, pre, pre2syn, _t_):
         for pre_id in np.where(pre['sp'] > 0.)[0]:
             syn_ids = pre2syn[pre_id]
@@ -56,7 +54,7 @@ def GABAa2(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
@@ -110,7 +108,6 @@ def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_d
     def int_G(G, t, R):
         return k1 * R - k2 * G
 
-    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         for pre_id in np.where(pre['sp'] > 0.)[0]:
             syn_ids = pre2syn[pre_id]
@@ -122,7 +119,7 @@ def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_d
         ST['G'] = G
         ST['g'] = g_max * G ** 4 / (G ** 4 + 100)
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
@@ -182,7 +179,6 @@ def GABAb2(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
     def int_G(G, t, R):
         return k5 * R - k6 * G
 
-    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         # calculate synaptic state
         for pre_id in np.where(pre['sp'] > 0.)[0]:
@@ -197,7 +193,7 @@ def GABAb2(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
         ST['G'] = G
         ST['g'] = g_max * (G ** 4 / (G ** 4 + 100))
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):

@@ -32,14 +32,13 @@ def LIFGapJunction(spikelet=0.1):
         pre_ids=nb.types.Array(dim=1, help='Pre-synaptic neuron indices.'),
     )
 
-    @nb.delay_push
     def update(ST, pre, post):
         # gap junction sub-threshold
         post['inp'] += ST['w'] * (pre['V'] - post['V'])
         # gap junction supra-threshold
         ST['spikelet'] = ST['w'] * spikelet * pre['sp']
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post):
         post['V'] += ST['spikelet']
 

@@ -43,7 +43,6 @@ def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
     # model logic
     # -----------
 
-    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         s = ints(ST['s'], _t_)
         spike_idx = np.where(pre['sp'] > 0.)[0]
@@ -53,7 +52,7 @@ def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
@@ -99,7 +98,6 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
         post2syn=nb.types.ListConn(help='Post-synaptic neuron index -> synapse index'),
     )
 
-    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         for i in np.where(pre['sp'] > 0.)[0]:
             syn_idx = pre2syn[i]
@@ -109,7 +107,7 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
@@ -139,7 +137,7 @@ def run_ampa_group(cls, duration=650.):
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', )
+    nb.profile.set(backend='numba', merge_ing=True, show_code=True)
 
     run_ampa_group(AMPA1)
     run_ampa_group(AMPA2)

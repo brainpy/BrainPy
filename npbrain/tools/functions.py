@@ -29,6 +29,7 @@ def get_func_name(func, replace=False):
     if replace:
         func_name = func_name.replace('_npbrain_delay_push_', '')
         func_name = func_name.replace('_npbrain_delay_pull_', '')
+        func_name = func_name.replace('_npbrain_delayed_', '')
     return func_name
 
 

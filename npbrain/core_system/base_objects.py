@@ -357,30 +357,26 @@ class BaseEnsemble(object):
         return '\n'.join(code_lines), code_scope
 
     def __step_delay_keys(self):
-        delay_keys = []
+        delay_keys = set()
         if self._cls_type == _SYN_CONN:
             # check "delay_push" and "delay_pull"
-            has_delay_push = False
-            has_delay_pull = False
-            pull_func = None
+            delay_funcs = []
             for func in self.model.steps:
-                if func.__name__.startswith('_npbrain_delay_push_'):
-                    has_delay_push = True
-                if func.__name__.startswith('_npbrain_delay_pull_'):
-                    has_delay_pull = True
-                    pull_func = func
-            if has_delay_push and not has_delay_pull:
-                raise ModelDefError('You only define function using "@npbrain.delay_push", missing '
-                                    'function which use "@npbrain.delay_pull".')
-            if not has_delay_push and has_delay_pull:
-                raise ModelDefError('You only define function using "@npbrain.delay_pull", missing '
-                                    'function which use "@npbrain.delay_push".')
+                if func.__name__.startswith('_npbrain_delayed_'):
+                    delay_funcs.append(func)
 
-            # get the delay variables
-            if pull_func is not None:
-                pull_func_code = tools.get_main_code(pull_func)
-                delay_keys = list(set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', pull_func_code)))
-                self.set_ST(self.ST.make_copy(self.num, self.delay_len, delay_keys))
+            # get delayed variables
+            if len(delay_funcs):
+                delay_func_code = ''
+                for func in delay_funcs:
+                    pull_func_code = tools.get_main_code(func)
+                    delay_func_code += '\n' + pull_func_code
+                delay_func_left_code = '\n'.join([line.split('=')[0] for line in tools.get_code_lines(delay_func_code)])
+                delay_keys_in_left = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_left_code))
+                if len(delay_keys_in_left) > 0:
+                    raise ModelDefError('Delayed function cannot assign value to "ST".')
+                delay_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_code))
+                self.set_ST(self.ST.make_copy(self.num, self.delay_len, list(delay_keys)))
         return delay_keys
 
     def __step_mode_np_group(self):
@@ -391,36 +387,46 @@ class BaseEnsemble(object):
             func_name_stripped = tools.get_func_name(func, replace=True)
             func_args = inspect.getfullargspec(func).args
 
-            if 'ST' in func_args and func_name.startswith('_npbrain_delay_'):
-                if func_name.startswith('_npbrain_delay_push_'):
-                    code_scope = {func_name_stripped: func}
-                    code_lines = [f'def {func_name_stripped}_enhanced({", ".join(func_args)}):',
-                                  f'  {func_name_stripped}({", ".join(func_args)})']
-                    for key in delay_keys:
-                        code_lines.append(f'  ST.delay_push(ST["{key}"], var="{key}")')
+            if 'ST' in func_args and len(delay_keys) > 0:
 
-                elif func_name.startswith('_npbrain_delay_pull_'):
+                if func_name.startswith('_npbrain_delayed_'):
+                    func_code = tools.get_main_code(func)
+                    func_delay_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
                     code_scope = {func_name_stripped: func}
                     code_lines = [f'def {func_name_stripped}_enhanced({", ".join(func_args)}):',
                                   f'  new_ST = dict()']
-                    for key in delay_keys:
+                    for key in func_delay_keys:
                         code_lines.append(f'  new_ST["{key}"] = ST.delay_pull("{key}")')
                     code_lines.append('  ST = new_ST')
                     code_lines.append(f'  {func_name_stripped}({", ".join(func_args)})')
 
                 else:
-                    raise ValueError
+                    func_code = tools.get_main_code(func)
+                    func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
+                    func_delay_keys = func_keys.intersection(delay_keys)
+                    if len(func_delay_keys) > 0:
+                        code_scope = {func_name_stripped: func}
+                        code_lines = [f'def {func_name_stripped}_enhanced({", ".join(func_args)}):',
+                                      f'  {func_name_stripped}({", ".join(func_args)})']
+                        for key in func_delay_keys:
+                            if key not in delay_keys:
+                                raise ValueError('System error: pars')
+                            code_lines.append(f'  ST.delay_push(ST["{key}"], var="{key}")')
+                    else:
+                        code_lines = []
+                        code_scope = {}
 
-                # compile
-                func_code = '\n'.join(code_lines)
-                if profile.auto_pep8:
-                    func_code = autopep8.fix_code(func_code)
-                exec(compile(func_code, '', 'exec'), code_scope)
-                func = code_scope[func_name_stripped + '_enhanced']
+                if len(code_lines):
+                    # compile
+                    func_code = '\n'.join(code_lines)
+                    if profile.auto_pep8:
+                        func_code = autopep8.fix_code(func_code)
+                    exec(compile(func_code, '', 'exec'), code_scope)
+                    func = code_scope[func_name_stripped + '_enhanced']
 
-                if profile.show_formatted_code:
-                    tools.show_code_str(func_code)
-                    tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
+                    if profile.show_formatted_code:
+                        tools.show_code_str(func_code)
+                        tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
 
             setattr(self, func_name_stripped, func)
             arg_calls = []
@@ -491,7 +497,6 @@ class BaseEnsemble(object):
                                   f'      post_i = post_ids[_obj_i_]',
                                   f'      post = {self.name}_post.extract_by_index(post_i)']
                     prefix = '  ' * 3
-
                 elif has_pre:
                     code_arg.append('pre2syn')
                     code_arg2call['pre2syn'] = f'{self.name}.pre2syn'
@@ -506,27 +511,31 @@ class BaseEnsemble(object):
                     code_arg2call['post2syn'] = f'{self.name}.post2syn'
 
                     code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
-                                  f'  for post_ids in range({self.post_group.num}):',
-                                  f'    post = {self.name}_post.extract_by_index(post_ids)',
-                                  f'    for _obj_i_ in post2syn[post_ids]:']
+                                  f'  for post_id in range({self.post_group.num}):',
+                                  f'    post = {self.name}_post.extract_by_index(post_id)',
+                                  f'    for _obj_i_ in post2syn[post_id]:']
                     prefix = '  ' * 3
-
                 else:
                     code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
                                   f'  for _obj_i_ in range({self.num}):']
                     prefix = '  ' * 2
 
-                if func_name.startswith('_npbrain_delay_pull_'):
+                if func_name.startswith('_npbrain_delayed_'):
                     code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_, delay_pull=True)')
                     code_lines.append(prefix + f'{func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})')
                 else:
                     code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_)')
                     code_lines.append(prefix + f'{func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})')
                     code_lines.append(prefix + f'{self.name}_ST.update_by_index(_obj_i_, ST)')
-
-                if func_name.startswith('_npbrain_delay_push_'):
-                    for key in delay_keys:
-                        code_lines.append(f'  {self.name}_ST.delay_push({self.name}_ST["{key}"], "{key}")')
+                    if len(delay_keys):
+                        func_code = tools.get_main_code(func)
+                        func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
+                        func_delay_keys = func_keys.intersection(delay_keys)
+                        if len(func_delay_keys) > 0:
+                            for key in func_delay_keys:
+                                if key not in delay_keys:
+                                    raise ValueError('System error: pars')
+                                code_lines.append(f'  {self.name}_ST.delay_push({self.name}_ST["{key}"], "{key}")')
 
             else:  # doesn't have ST
                 try:
@@ -582,26 +591,31 @@ class BaseEnsemble(object):
                     st = states[arg]
                     var2idx = st['_var2idx']
 
-                    if arg == 'ST' and func_name.startswith('_npbrain_delay_pull_'):
-                        add_args.add(f'{self.name}_dout')
-                        code_arg2call[f'{self.name}_dout'] = f'{self.name}.{arg}._delay_out'
-                        for st_k in delay_keys:
-                            p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                            r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_dout]"
-                            func_code = re.sub(r'' + p, r, func_code)
+                    if arg == 'ST':
+                        if func_name.startswith('_npbrain_delayed_'):
+                            add_args.add(f'{self.name}_dout')
+                            code_arg2call[f'{self.name}_dout'] = f'{self.name}.{arg}._delay_out'
+                            for st_k in delay_keys:
+                                p = f'{arg}\[([\'"]{st_k}[\'"])\]'
+                                r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_dout]"
+                                func_code = re.sub(r'' + p, r, func_code)
+                        elif len(delay_keys) > 0:
+                            func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
+                            func_delay_keys = func_keys.intersection(delay_keys)
+                            if len(func_delay_keys) > 0:
+                                add_args.add(f'{self.name}_din')
+                                code_arg2call[f'{self.name}_din'] = f'{self.name}.{arg}._delay_in'
+                                for st_k in func_delay_keys:
+                                    if st_k not in delay_keys:
+                                        raise ValueError('System error: pars')
+                                    right = f'{arg}[{var2idx[st_k]}]'
+                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
+                                    func_code += f'\n{left} = {right}'
 
                     for st_k in st._keys:
                         p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                         r = f"{arg}[{var2idx[st_k]}]"
                         func_code = re.sub(r'' + p, r, func_code)
-
-                    if arg == 'ST' and func_name.startswith('_npbrain_delay_push_'):
-                        add_args.add(f'{self.name}_din')
-                        code_arg2call[f'{self.name}_din'] = f'{self.name}.{arg}._delay_in'
-                        for st_k in delay_keys:
-                            right = f'{arg}[{var2idx[st_k]}]'
-                            left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
-                            func_code += f'\n{left} = {right}'
 
             # substitute arguments
             code_args = add_args
@@ -657,12 +671,15 @@ class BaseEnsemble(object):
 
             # check function code
             add_args = set()
-            if func_name.startswith('_npbrain_delay_push_'):
-                add_args.add(f'{self.name}_din')
-                code_arg2call[f'{self.name}_din'] = f'{self.name}.ST._delay_in'
-            elif func_name.startswith('_npbrain_delay_pull_'):
+            if func_name.startswith('_npbrain_delayed_'):
                 add_args.add(f'{self.name}_dout')
                 code_arg2call[f'{self.name}_dout'] = f'{self.name}.ST._delay_out'
+            elif len(delay_keys) > 0:
+                func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
+                func_delay_keys = func_keys.intersection(delay_keys)
+                if len(func_delay_keys) > 0:
+                    add_args.add(f'{self.name}_din')
+                    code_arg2call[f'{self.name}_din'] = f'{self.name}.ST._delay_in'
             for i, arg in enumerate(func_args):
                 used_args.add(arg)
                 if len(states) == 0:
@@ -671,7 +688,7 @@ class BaseEnsemble(object):
                     st = states[arg]
                     var2idx = st['_var2idx']
                     if arg == 'ST':
-                        if func_name.startswith('_npbrain_delay_pull_'):
+                        if func_name.startswith('_npbrain_delayed_'):
                             for st_k in delay_keys:
                                 p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                                 r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_dout, _obj_i_]"
@@ -749,19 +766,20 @@ class BaseEnsemble(object):
             code_scope['numba'] = import_module('numba')
 
             # add the delay push in the end of the main code
-            if func_name.startswith('_npbrain_delay_push_'):
+            if not func_name.startswith('_npbrain_delayed_') and len(delay_keys) > 0:
                 var2idx = self.ST['_var2idx']
-                for st_k in delay_keys:
+                for st_k in func_delay_keys:
+                    if st_k not in delay_keys:
+                        raise ValueError('System error: pars')
                     right = f'{self.name}_ST[{var2idx[st_k]}]'
                     left = f"{self.name}_ST[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
                     code_lines.append(f'{left} = {right}')
             code_lines.append('\n')
 
             # append the final results
-            func_name = func_name.replace('_npbrain_delay_push_', '')
-            func_name = func_name.replace('_npbrain_delay_pull_', '')
-            code_lines.insert(0, f'# "{func_name}" step function of {self.name}')
-            self._codegen[func_name] = {'scopes': code_scope, 'args': code_args,
+            func_name_stripped = tools.get_func_name(func, replace=True)
+            code_lines.insert(0, f'# "{func_name_stripped}" step function of {self.name}')
+            self._codegen[func_name_stripped] = {'scopes': code_scope, 'args': code_args,
                                         'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _add_steps(self):

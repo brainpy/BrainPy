@@ -16,8 +16,7 @@ __all__ = [
     'SynType',
     'SynConn',
     'post_cond_by_post2syn',
-    'delay_push',
-    'delay_pull',
+    'delayed',
 ]
 
 _SYN_NO = 0
@@ -135,15 +134,6 @@ def post_cond_by_post2syn(syn_val, post2syn):
     return g_val
 
 
-def delay_push(func):
-    """Delay push."""
-    func.__name__ = f'_npbrain_delay_push_{func.__name__}'
+def delayed(func):
+    func.__name__ = f'_npbrain_delayed_{func.__name__}'
     return func
-
-
-def delay_pull(func):
-    """Delay pull."""
-    func.__name__ = f'_npbrain_delay_pull_{func.__name__}'
-    return func
-
-

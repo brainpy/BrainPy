@@ -36,13 +36,12 @@ def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
     def ints(s, t):
         return - s / tau_decay
 
-    @nb.delay_push
     def update(ST, _t_, pre):
         s = ints(ST['s'], _t_)
         s += pre['sp']
         ST['s'] = s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post):
         post_val = - g_max * ST['s'] * (post['V'] - E)
         post['inp'] += post_val
@@ -84,7 +83,6 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
-    @nb.delay_push
     def update(ST, _t_, pre):
         if pre['sp'] > 0.:
             ST['sp_t'] = _t_
@@ -92,7 +90,7 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
         s = np.clip(int_s(ST['s'], _t_, TT), 0., 1.)
         ST['s'] = s
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post):
         post_val = - g_max * ST['s'] * (post['V'] - E)
         post['inp'] += post_val
@@ -120,7 +118,7 @@ def run_ampa_single(cls, duration=650.):
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', merge_ing=True, dt=0.1)
+    nb.profile.set(backend='numpy', merge_ing=True, dt=0.1, show_code=True)
 
     run_ampa_single(AMPA1)
     run_ampa_single(AMPA2)

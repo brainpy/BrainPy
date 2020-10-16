@@ -64,7 +64,6 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
     def int_x(x, t):
         return (1 - x) / tau_d
 
-    @nb.delay_push
     def update(ST, pre, pre2syn):
         u = int_u(ST['u'], 0)
         x = int_x(ST['x'], 0)
@@ -77,7 +76,7 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
         ST['x'] = np.clip(x, 0., 1.)
         ST['g'] = ST['w'] * ST['u'] * ST['x']
 
-    @nb.delay_pull
+    @nb.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
