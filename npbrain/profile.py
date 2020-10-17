@@ -27,90 +27,104 @@ _device = 'cpu'
 _dt = 0.1
 _method = 'euler'
 _numba_setting = {'nopython': True, 'fastmath': True,
-                  'nogil': False, 'parallel': False}
+                  'nogil': True, 'parallel': False}
 
-show_formatted_code = False
-auto_pep8 = True
-substitute_equation = False
-merge_integral = False
+_show_formatted_code = False
+_auto_pep8 = True
+_substitute_equation = False
+_merge_integral = False
 
 
 def set(backend=None, device=None, numerical_method=None, dt=None, float_type=None, int_type=None,
         merge_ing=None, substitute=None, show_code=None):
+    # backend and device
     if device is not None and backend is None:
-        raise ValueError('Please set backend. NumpyBrain now supports "numpy", "numba" backends.')
+        raise ValueError('Please set backend. NumpyBrain now supports "numpy" and "numba" backends.')
     if backend is not None:
-        if device is None:
-            pass
-        set_backend(backend)
+        set_backend(backend, device=device)
 
+    # numerical integration method
     if numerical_method is not None:
         set_method(numerical_method)
 
+    # numerical integration precision
     if dt is not None:
         set_dt(dt)
 
+    # default float type
     if float_type is not None:
         from .numpy import _set_default_float
-
         _set_default_float(float_type)
 
+    # default int type
     if int_type is not None:
         from .numpy import _set_default_int
-
         _set_default_int(int_type)
 
+    # option of merging integral functions
     if merge_ing is not None:
-        global merge_integral
-        merge_integral = merge_ing
+        global _merge_integral
+        _merge_integral = merge_ing
 
+    # option of equation substitution
     if substitute is not None:
-        global substitute_equation
-        substitute_equation = substitute
+        global _substitute_equation
+        _substitute_equation = substitute
 
+    # option of formatted code output
     if show_code is not None:
-        global show_formatted_code
-        show_formatted_code = show_code
+        global _show_formatted_code
+        _show_formatted_code = show_code
 
 
-def set_backend(bk):
-    """Set the backend.
+def set_backend(backend, device=None):
+    """Set the backend and the device to deploy the models.
 
     Parameters
     ----------
-    bk : str
+    backend : str
         The backend name.
+    device : str, optional
+        The device name.
     """
+
+    # backend #
+
     global _backend
-    global _device
 
-    splits = bk.split('-')
-    bk = splits[0]
-
-    # device
-    if len(splits) == 2:
-        device = splits[1]
-    else:
-        device = 'cpu'
-
-    # _numpy
-    if bk.lower() == 'numpy':
-        backend = 'numpy'
-    elif bk.lower() == 'numba':
-        backend = 'numba'
-    elif bk.lower() == 'jax':
-        backend = 'jax'
-    else:
-        raise ValueError(f'Unknown backend: {bk}.')
-
-    # switch backend and device
-    if device != _device:
-        _device = device
+    backend = backend.lower()
+    if backend not in ['numpy', 'numba', 'jax']:
+        raise ValueError(f'Unsupported backend: {backend}.')
 
     if backend != _backend:
         _backend = backend
         from .numpy import _reload as r1
-        r1(backend)
+        r1(_backend)
+
+    # device #
+
+    global _device
+
+    device = device.lower()
+
+    if _device != device:
+        if backend == 'numpy':
+            if device != 'cpu':
+                print(f'NumPy mode only support "cpu" device, not "{device}".')
+            else:
+                _device = device
+        elif backend == 'numba':
+            if device == 'cpu':
+                set_numba_profile(parallel=False)
+            elif device == 'multi-core':
+                set_numba_profile(parallel=True)
+            elif device == 'gpu':
+                raise NotImplementedError('NumpyBrain currently doesn\'t support GPU.')
+            else:
+                raise ValueError(f'Unknown device in Numba mode: {device}.')
+            _device = device
+        elif backend == 'jax':
+            raise NotImplementedError
 
 
 def get_backend():
@@ -148,7 +162,7 @@ def is_numpy_bk():
 
 
 def is_numba_bk():
-    """Check whether the _numpy is ``numba``.
+    """Check whether the backend is ``numba``.
 
     Returns
     -------

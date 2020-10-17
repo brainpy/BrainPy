@@ -92,12 +92,12 @@ class Network(object):
             code_scope[obj.name] = obj
 
         func_code = '\n  '.join(code_lines)
-        if profile.auto_pep8:
+        if profile._auto_pep8:
             func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
         step_func = code_scope['step_func']
 
-        if profile.show_formatted_code:
+        if profile._show_formatted_code:
             print(func_code)
             print()
             tools.show_code_scope(code_scope, ['__builtins__', 'step_func'])

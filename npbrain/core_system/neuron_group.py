@@ -25,6 +25,9 @@ class NeuType(BaseType):
         super(NeuType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based,
                                       type_=_NEU_TYPE)
 
+    def first_try(self):
+        pass
+
 
 class NeuGroup(BaseEnsemble):
     """Neuron Group.

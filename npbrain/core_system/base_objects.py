@@ -293,7 +293,7 @@ class BaseEnsemble(object):
         need_add_mapping_scope = False
         for k, v in code_scope.items():
             if isinstance(v, Integrator):
-                if profile.merge_integral:
+                if profile._merge_integral:
                     need_add_mapping_scope = True
 
                     # locate the integration function
@@ -419,12 +419,12 @@ class BaseEnsemble(object):
                 if len(code_lines):
                     # compile
                     func_code = '\n'.join(code_lines)
-                    if profile.auto_pep8:
+                    if profile._auto_pep8:
                         func_code = autopep8.fix_code(func_code)
                     exec(compile(func_code, '', 'exec'), code_scope)
                     func = code_scope[func_name_stripped + '_enhanced']
 
-                    if profile.show_formatted_code:
+                    if profile._show_formatted_code:
                         tools.show_code_str(func_code)
                         tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
 
@@ -551,7 +551,7 @@ class BaseEnsemble(object):
 
             # compile
             func_code = '\n'.join(code_lines)
-            if profile.auto_pep8:
+            if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)
             func = code_scope[func_name_stripped]
@@ -560,7 +560,7 @@ class BaseEnsemble(object):
             # call
             func_call = f'{self.name}.{func_name_stripped}({", ".join([code_arg2call[arg] for arg in code_arg])})'
 
-            if profile.show_formatted_code:
+            if profile._show_formatted_code:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
 
@@ -894,7 +894,7 @@ class BaseEnsemble(object):
 
                 # compile function
                 func_code = '\n  '.join(code_lines)
-                if profile.auto_pep8:
+                if profile._auto_pep8:
                     func_code = autopep8.fix_code(func_code)
                 exec(compile(func_code, '', 'exec'), code_scope)
                 self.input_step = code_scope['input_step']
@@ -903,7 +903,7 @@ class BaseEnsemble(object):
                 code_arg2call = [code_arg2call[arg] for arg in code_args]
                 func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
 
-                if profile.show_formatted_code:
+                if profile._show_formatted_code:
                     print(func_code)
                     print()
                     tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
@@ -1037,7 +1037,7 @@ class BaseEnsemble(object):
 
                 # compile function
                 func_code = '\n  '.join(code_lines)
-                if profile.auto_pep8:
+                if profile._auto_pep8:
                     func_code = autopep8.fix_code(func_code)
                 exec(compile(func_code, '', 'exec'), code_scope)
                 self.monitor_step = code_scope['monitor_step']
@@ -1046,7 +1046,7 @@ class BaseEnsemble(object):
                 code_arg2call = [code_arg2call[arg] for arg in code_args]
                 func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
 
-                if profile.show_formatted_code:
+                if profile._show_formatted_code:
                     print(func_code)
                     print()
                     tools.show_code_scope(code_scope, ['__builtins__', 'monitor_step'])
@@ -1085,7 +1085,7 @@ class BaseEnsemble(object):
             lines.insert(0, f'\n# {self.name} "merge_func"'
                             f'\ndef merge_func({", ".join(args)}):')
             func_code = '\n  '.join(lines)
-            if profile.auto_pep8:
+            if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scopes)
 
@@ -1093,7 +1093,7 @@ class BaseEnsemble(object):
             func_call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
             codes_of_calls.append(func_call)
 
-            if profile.show_formatted_code:
+            if profile._show_formatted_code:
                 print(func_code)
                 print()
                 tools.show_code_scope(code_scopes, ['__builtins__', 'merge_func'])

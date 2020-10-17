@@ -27,7 +27,7 @@ __all__ = [
 
 
 def get_integrator(method):
-    # If "profile.merge_integral" is True,
+    # If "profile._merge_integral" is True,
     #       we should return a "Integrator"
     #       instance, to help the "core_system" merge differential
     #       integration function into the main function.
@@ -1093,9 +1093,9 @@ class ExponentialEuler(Integrator):
         super(ExponentialEuler, self).__init__(diff_eq)
         if profile.is_numba_bk():
             self._update_code = self.get_nb_step(diff_eq)
-        if not profile.merge_integral:
-            raise IntegratorError('"exponential method only supports "merge_integral=True". '
-                                  'Please set "profile.merge_integral = True."')
+        if not profile._merge_integral:
+            raise IntegratorError('"exponential method only supports "_merge_integral=True". '
+                                  'Please set "profile._merge_integral = True."')
         self._update_func = self.get_np_step(diff_eq)
 
     @staticmethod

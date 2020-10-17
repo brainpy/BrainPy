@@ -212,7 +212,7 @@ class DiffEquation(object):
         expr_num = len(self.f_expressions)
         for expr in self.f_expressions[expr_num - 2::-1]:
             if expr.var_name in need_vars:
-                if not profile.substitute_equation or expr._substituted_code is None:
+                if not profile._substitute_equation or expr._substituted_code is None:
                     code = expr.code
                 else:
                     code = expr._substituted_code
@@ -236,7 +236,7 @@ class DiffEquation(object):
             expr_num = len(self.g_expressions)
             for expr in self.g_expressions[expr_num - 2::-1]:
                 if expr.var_name in need_vars:
-                    if not profile.substitute_equation or expr._substituted_code is None:
+                    if not profile._substitute_equation or expr._substituted_code is None:
                         code = expr.code
                     else:
                         code = expr._substituted_code
