@@ -149,8 +149,8 @@ Define an AMPA synapse model
 
         requires = dict(
             ST=nb.types.SynState(['s'], help='AMPA synapse state.'),
-            pre=nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
-            post=nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+            pre=nb.types.NeuState(['sp'], help='Pre-synaptic state must have "sp" item.'),
+            post=nb.types.NeuState(['V', 'inp'], help='Post-synaptic neuron must have "V" and "inp" items.')
         )
 
         @nb.integrate(method='euler')
