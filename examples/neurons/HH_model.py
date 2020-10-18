@@ -83,15 +83,18 @@ def HH(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', dt=0.02, numerical_method='milstein', merge_ing=True)
+    nb.profile.set(backend='numba', device='cpu', dt=0.02,
+                   numerical_method='exponential', merge_ing=True)
 
     neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'],
-                      pars_update={'noise': 0.})
+                      pars_update={'noise': 1.})
+    # neu = nb.NeuGroup(HH, geometry=(500000,))
     net = nb.Network(neu)
-    net.run(duration=100., inputs=[neu, 'ST.inp', 10.], report=True)
+    net.run(duration=40., inputs=[neu, 'ST.inp', 10.], report=True)
 
     ts = net.ts
-    fig, gs = nb.visualize.get_figure(2, 1, 3, 12)
+    fig, gs = nb.visualize.get_figure(2, 1, 3, 6)
+    # fig, gs = nb.visualize.get_figure(1, 1, 4, 8)
 
     fig.add_subplot(gs[0, 0])
     plt.plot(ts, neu.mon.V[:, 0], label='N')

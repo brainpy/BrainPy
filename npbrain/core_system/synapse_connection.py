@@ -37,8 +37,8 @@ class SynConn(BaseEnsemble):
 
     """
 
-    def __init__(self, create_func, delay=0., pre_group=None, post_group=None, conn=None, num=None,
-                 monitors=None, vars_init=None, pars_update=None, name=None):
+    def __init__(self, create_func, delay=0., pre_group=None, post_group=None, conn=None,
+                 num=None, monitors=None, vars_init=None, pars_update=None, name=None):
         # name
         # ----
         if name is None:

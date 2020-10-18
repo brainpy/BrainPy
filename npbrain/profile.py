@@ -105,26 +105,27 @@ def set_backend(backend, device=None):
 
     global _device
 
-    device = device.lower()
+    if device:
+        device = device.lower()
 
-    if _device != device:
-        if backend == 'numpy':
-            if device != 'cpu':
-                print(f'NumPy mode only support "cpu" device, not "{device}".')
-            else:
+        if _device != device:
+            if backend == 'numpy':
+                if device != 'cpu':
+                    print(f'NumPy mode only support "cpu" device, not "{device}".')
+                else:
+                    _device = device
+            elif backend == 'numba':
+                if device == 'cpu':
+                    set_numba_profile(parallel=False)
+                elif device == 'multi-core':
+                    set_numba_profile(parallel=True)
+                elif device == 'gpu':
+                    raise NotImplementedError('NumpyBrain currently doesn\'t support GPU.')
+                else:
+                    raise ValueError(f'Unknown device in Numba mode: {device}.')
                 _device = device
-        elif backend == 'numba':
-            if device == 'cpu':
-                set_numba_profile(parallel=False)
-            elif device == 'multi-core':
-                set_numba_profile(parallel=True)
-            elif device == 'gpu':
-                raise NotImplementedError('NumpyBrain currently doesn\'t support GPU.')
-            else:
-                raise ValueError(f'Unknown device in Numba mode: {device}.')
-            _device = device
-        elif backend == 'jax':
-            raise NotImplementedError
+            elif backend == 'jax':
+                raise NotImplementedError
 
 
 def get_backend():

@@ -224,9 +224,10 @@ class BaseEnsemble(object):
         except AssertionError:
             raise ModelUseError('"vars_init" must be a dict.')
         variables = deepcopy(self.model.variables)
-        for k, v in vars_init:
+        for k, v in vars_init.items():
             if k not in variables:
                 raise ModelUseError(f'variable "{k}" is not defined in "{variables}".')
+            variables[k] = v
         self.vars_init = variables
 
         # monitors

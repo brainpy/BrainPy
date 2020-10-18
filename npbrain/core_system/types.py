@@ -204,14 +204,20 @@ class SynState(ObjState):
         return obj(size=size, delay=delay, delay_vars=delay_vars)
 
     def delay_push(self, g, var='cond'):
-        data = self.__getitem__('_data')
-        offset = self.__getitem__('_var2idx')[f'_{var}_offset']
-        data[self._delay_in + offset] = g
+        if self._delay_len > 0:
+            data = self.__getitem__('_data')
+            offset = self.__getitem__('_var2idx')[f'_{var}_offset']
+            data[self._delay_in + offset] = g
 
     def delay_pull(self, var='cond'):
-        data = self.__getitem__('_data')
-        offset = self.__getitem__('_var2idx')[f'_{var}_offset']
-        return data[self._delay_out + offset]
+        if self._delay_len > 0:
+            data = self.__getitem__('_data')
+            offset = self.__getitem__('_var2idx')[f'_{var}_offset']
+            return data[self._delay_out + offset]
+        else:
+            data = self.__getitem__('_data')
+            var2idx = self.__getitem__('_var2idx')
+            return data[var2idx[var]]
 
     def _update_delay_indices(self):
         if self._delay_len > 0:
