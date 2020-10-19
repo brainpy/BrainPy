@@ -6,7 +6,7 @@ import npbrain as nb
 import npbrain.numpy as np
 
 
-def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65., mode=None):
+def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., mode=None):
     """Izhikevich two-variable neuron model.
 
     Parameters
@@ -92,7 +92,7 @@ def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65.,
     def int_u(u, t, V):
         return a * (b * V - u)
 
-    @nb.integrate
+    @nb.integrate(noise=noise)
     def int_V(V, t, u, Isyn):
         return 0.04 * V * V + 5 * V + 140 - u + Isyn
 
@@ -131,7 +131,8 @@ def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65.,
 if __name__ == '__main__':
     nb.profile.set(backend='numba', )
 
-    neu = nb.NeuGroup(Izhikevich, 10, pars_update=dict(noise=1.), monitors=['V', 'u'])
+    Izhikevich = define_Izhikevich()
+    neu = nb.NeuGroup(Izhikevich, 10, monitors=['V', 'u'])
     net = nb.Network(neu)
     net.run(duration=100, inputs=[neu, 'inp', 10], report=True)
 

@@ -3,6 +3,7 @@
 from .base_objects import BaseEnsemble
 from .base_objects import BaseType
 from .base_objects import _NEU_GROUP
+from .base_objects import ModelUseError
 from .base_objects import _NEU_TYPE
 from .types import NeuState
 from .. import numpy as np
@@ -31,9 +32,17 @@ class NeuType(BaseType):
 
 class NeuGroup(BaseEnsemble):
     """Neuron Group.
+
+    Parameters
+    ----------
+    model : NeuType
+        The instantiated neuron type model.
+    geometry : int, tuple
+        The neuron group geometry.
+
     """
 
-    def __init__(self, create_func, geometry, monitors=None, vars_init=None, pars_update=None, name=None):
+    def __init__(self, model, geometry, monitors=None, name=None):
         # name
         # -----
         if name is None:
@@ -60,14 +69,21 @@ class NeuGroup(BaseEnsemble):
         num = int(np.prod(geometry))
         self.geometry = geometry
 
+        # model
+        # ------
+        try:
+            assert isinstance(model, NeuType)
+        except AssertionError:
+            raise ModelUseError(f'{NeuGroup.__name__} receives an instance of {NeuType.__name__}, '
+                                f'not {type(model).__name__}.')
+
         # initialize
         # ----------
-        super(NeuGroup, self).__init__(create_func=create_func, name=name, num=num, pars_update=pars_update,
-                                       vars_init=vars_init, monitors=monitors, cls_type=_NEU_GROUP)
+        super(NeuGroup, self).__init__(model=model, name=name, num=num, monitors=monitors, cls_type=_NEU_GROUP)
 
         # ST
         # --
-        self.ST = NeuState(self.vars_init)(num)
+        self.ST = self.requires['ST'].make_copy(num)
 
     @property
     def _keywords(self):

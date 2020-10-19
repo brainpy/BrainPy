@@ -6,7 +6,7 @@ import npbrain as nb
 import npbrain.numpy as np
 
 
-def LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
+def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
     """Leaky integrate-and-fire neuron model.
 
     Parameters
@@ -25,13 +25,6 @@ def LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
 
     ST = nb.types.NeuState(
         {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
-        help='''LIF neuron state.
-        
-        V: membrane potential.
-        sp : spike state. 
-        sp_t : last spike time.
-        inp : input, including external and synaptic inputs.
-        '''
     )
 
     @nb.integrate(noise=noise / tau)
@@ -55,6 +48,8 @@ def LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
 
 if __name__ == '__main__':
     nb.profile.set(backend='numba', dt=0.02, merge_ing=True)
+
+    LIF = define_LIF()
 
     neu = nb.NeuGroup(LIF, geometry=(10,), monitors=['sp', 'V'],
                       pars_update={

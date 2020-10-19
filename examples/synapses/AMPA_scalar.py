@@ -101,7 +101,7 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
 def run_ampa_single(cls, duration=350.):
     pre = nb.NeuGroup(LIF, 2)
     post = nb.NeuGroup(LIF, 3)
-    ampa = nb.SynConn(create_func=cls, pre_group=pre, post_group=post, conn=nb.connect.All2All(),
+    ampa = nb.SynConn(model=cls, pre_group=pre, post_group=post, conn=nb.connect.All2All(),
                       monitors=['s'], delay=10.)
     # ampa.set_schedule(['input', 'output', 'monitor'])
     ampa.set_schedule(['input', 'update', 'output', 'monitor'])

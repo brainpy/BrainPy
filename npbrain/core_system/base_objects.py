@@ -2,7 +2,6 @@
 
 import inspect
 import re
-from copy import deepcopy
 from importlib import import_module
 
 import autopep8
@@ -160,50 +159,30 @@ class BaseEnsemble(object):
 
     Parameters
     ----------
-    create_func : callable
+    model : BaseType
         The (neuron/synapse) model type.
+    name : str
+        Ensemble name.
 
     """
 
-    def __init__(self, create_func, name, num, pars_update, vars_init, monitors, cls_type):
+    def __init__(self, model, name, num, monitors, cls_type):
         # class type
         # -----------
         assert cls_type in [_NEU_GROUP, _SYN_CONN], f'Only support "{_NEU_GROUP}" and "{_SYN_CONN}".'
         self._cls_type = cls_type
 
-        # parameters
-        # ----------
-        self._hetero_pars = {}
-        pars_update = dict() if pars_update is None else pars_update
-        assert isinstance(pars_update, dict), '"pars_update" must be a dict.'
-        parameters = inspect.getfullargspec(create_func).args
-        for k, v in pars_update.items():
-            val_size = np.size(v)
-            if val_size != 1:
-                if val_size != num:
-                    raise ModelUseError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
-                                        f'and "{val_size}" != {num}.')
-                else:
-                    self._hetero_pars[k] = v
-            if k not in parameters:
-                raise ModelUseError(f'parameter "{k}" is not defined in "{parameters}".')
-        self.params = parameters
-        self.pars_update = pars_update
-
         # model
         # -----
-        assert callable(create_func), f"Model must be a callable, but got {type(create_func)}."
-        self.create_func = create_func
-        try:
-            self.model = create_func(**pars_update)
-        except TypeError:
-            raise ModelUseError(f'Parameters of {create_func.__name__} are not fulfilled, please check.')
+        self.model = model
 
         # step functions
         # ---------------
         if not self.model.vector_based:
-            if self._cls_type == _SYN_CONN and (self.pre_group is None or self.post_group is None):
-                raise ModelUseError('Using of scalar-based synapse model must provide "pre_group" and "post_group".')
+            if self._cls_type == _SYN_CONN:
+                if self.pre_group is None or self.post_group is None:
+                    raise ModelUseError('Using of scalar-based synapse model must '
+                                        'provide "pre_group" and "post_group".')
 
         # name
         # ----
@@ -215,20 +194,6 @@ class BaseEnsemble(object):
         # num
         # ---
         self.num = num
-
-        # variables
-        # ---------
-        vars_init = dict() if vars_init is None else vars_init
-        try:
-            assert isinstance(vars_init, dict)
-        except AssertionError:
-            raise ModelUseError('"vars_init" must be a dict.')
-        variables = deepcopy(self.model.variables)
-        for k, v in vars_init.items():
-            if k not in variables:
-                raise ModelUseError(f'variable "{k}" is not defined in "{variables}".')
-            variables[k] = v
-        self.vars_init = variables
 
         # monitors
         # ---------
@@ -330,21 +295,8 @@ class BaseEnsemble(object):
                         if callable(v2):
                             v2 = tools.numba_func(v2)
                         scope_to_add[k2] = v2
-                    g_array = f'_g_{v.py_func_name}'
-                    if g_array in v.code_scope:
-                        self._hetero_pars[g_array] = v.code_scope[g_array]
-                    f_array = f'_f_{v.py_func_name}'
-                    if f_array in v.code_scope:
-                        self._hetero_pars[f_array] = v.code_scope[f_array]
 
                 else:
-                    if not self.model.vector_based:
-                        for ks, vs in tools.get_func_scope(v.update_func).items():
-                            if ks in self._hetero_pars and isinstance(vs, np.ndarray):
-                                raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in main function, it will '
-                                                    f'not work. \nPlease try to set "profile.merge_integral = True" to '
-                                                    f'merge parameter "{ks}" into the main function.')
-
                     code_scope[k] = tools.numba_func(v.update_func)
 
         # update code scope
@@ -447,15 +399,6 @@ class BaseEnsemble(object):
 
         delay_keys = self.__step_delay_keys()
 
-        # get step functions
-        steps_collection = {tools.get_func_name(func, replace=True): [] for func in self.model.steps}
-        for i in range(self.num):
-            pars = {k: v if k not in self._hetero_pars else self._hetero_pars[k][i]
-                    for k, v in self.pars_update.items()}
-            steps = self.create_func(**pars).steps
-            for func in steps:
-                steps_collection[tools.get_func_name(func, replace=True)].append(func)
-
         for func in self.model.steps:
             func_name = func.__name__
             func_name_stripped = tools.get_func_name(func, replace=True)
@@ -479,7 +422,7 @@ class BaseEnsemble(object):
                     code_arg.append(arg)
 
             # scope
-            code_scope = {f'{func_name_stripped}_collect': steps_collection[func_name_stripped]}
+            code_scope = {f'{func_name_stripped}_origin': func}
 
             # codes
             has_ST = 'ST' in state_args
@@ -523,10 +466,10 @@ class BaseEnsemble(object):
 
                 if func_name.startswith('_npbrain_delayed_'):
                     code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_, delay_pull=True)')
-                    code_lines.append(prefix + f'{func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})')
+                    code_lines.append(prefix + f'{func_name_stripped}_origin({", ".join(func_args)})')
                 else:
                     code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_)')
-                    code_lines.append(prefix + f'{func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})')
+                    code_lines.append(prefix + f'{func_name_stripped}_origin({", ".join(func_args)})')
                     code_lines.append(prefix + f'{self.name}_ST.update_by_index(_obj_i_, ST)')
                     if len(delay_keys):
                         func_code = tools.get_main_code(func)
@@ -535,7 +478,7 @@ class BaseEnsemble(object):
                         if len(func_delay_keys) > 0:
                             for key in func_delay_keys:
                                 if key not in delay_keys:
-                                    raise ValueError('System error: pars')
+                                    raise ValueError('System error: delay keys')
                                 code_lines.append(f'  {self.name}_ST.delay_push({self.name}_ST["{key}"], "{key}")')
 
             else:  # doesn't have ST
@@ -545,7 +488,7 @@ class BaseEnsemble(object):
                     raise ModelDefError(f'Unknown "{func_name_stripped}" function structure.')
                 code_lines = [f'def {func_name_stripped}({", ".join(code_arg)}):',
                               f'  for _obj_i_ in range({self.num}):',
-                              f'    {func_name_stripped}_collect[_obj_i_]({", ".join(func_args)})']
+                              f'    {func_name_stripped}_origin({", ".join(func_args)})']
 
             # append the final results
             code_lines.insert(0, f'# "{func_name_stripped}" step function in {self.name}')
@@ -655,16 +598,6 @@ class BaseEnsemble(object):
             states = {k: getattr(self, k) for k in func_args
                       if k not in _ARG_KEYWORDS and isinstance(getattr(self, k), ObjState)}
 
-            # update parameters in code scope
-            for p, v in self.pars_update.items():
-                if p in code_scope:
-                    code_scope[p] = v
-            for p_k in self._hetero_pars.keys():
-                if p_k not in code_scope:
-                    raise ModelUseError(f'Heterogeneous parameter "{p_k}" is not in main function, it will not work. \n'
-                                        f'Please try to set "npbrain.profile.merge_integral = True" to merge parameter '
-                                        f'"{p_k}" into the main function.')
-
             # update functions in code scope
             for k, v in code_scope.items():
                 if callable(v):
@@ -727,10 +660,6 @@ class BaseEnsemble(object):
                     else:
                         code_arg2call[new_arg] = f'{self.name}.{arg}'
                 code_args.add(new_arg)
-            # substitute multi-dimensional parameter "p" to "p[_ni_]"
-            for p in self._hetero_pars.keys():
-                if p in code_scope:
-                    arg_substitute[p] = f'{p}[_obj_i_]'
             # substitute
             func_code = tools.word_replace(func_code, arg_substitute)
 
@@ -771,7 +700,7 @@ class BaseEnsemble(object):
                 var2idx = self.ST['_var2idx']
                 for st_k in func_delay_keys:
                     if st_k not in delay_keys:
-                        raise ValueError('System error: pars')
+                        raise ValueError('System error: delay keys')
                     right = f'{self.name}_ST[{var2idx[st_k]}]'
                     left = f"{self.name}_ST[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
                     code_lines.append(f'{left} = {right}')
@@ -781,7 +710,7 @@ class BaseEnsemble(object):
             func_name_stripped = tools.get_func_name(func, replace=True)
             code_lines.insert(0, f'# "{func_name_stripped}" step function of {self.name}')
             self._codegen[func_name_stripped] = {'scopes': code_scope, 'args': code_args,
-                                        'arg2calls': code_arg2call, 'codes': code_lines}
+                                                 'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _add_steps(self):
         if profile.is_numpy_bk():
@@ -1048,10 +977,8 @@ class BaseEnsemble(object):
                 func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
 
                 if profile._show_formatted_code:
-                    print(func_code)
-                    print()
-                    tools.show_code_scope(code_scope, ['__builtins__', 'monitor_step'])
-                    print()
+                    tools.show_code_str(func_code)
+                    tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
             else:
                 self.monitor_step = None
                 func_call = ''
@@ -1095,10 +1022,8 @@ class BaseEnsemble(object):
             codes_of_calls.append(func_call)
 
             if profile._show_formatted_code:
-                print(func_code)
-                print()
-                tools.show_code_scope(code_scopes, ['__builtins__', 'merge_func'])
-                print()
+                tools.show_code_str(func_code)
+                tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
 
         else:
             raise NotImplementedError
@@ -1121,7 +1046,7 @@ class BaseEnsemble(object):
     def _keywords(self):
         kws = [
             # attributes
-            'model', 'num', 'ST', 'PA', 'vars_init', 'params', '_mon_vars',
+            'model', 'num', 'ST', '_mon_vars',
             'mon', '_cls_type', '_codegen', '_keywords', 'steps', '_schedule',
             # self functions
             '_merge_steps', '_add_steps', '_add_input', '_add_monitor',

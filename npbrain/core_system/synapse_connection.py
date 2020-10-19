@@ -4,6 +4,7 @@ from .base_objects import BaseEnsemble
 from .base_objects import BaseType
 from .base_objects import _SYN_CONN
 from .base_objects import _SYN_TYPE
+from .base_objects import ModelUseError
 from .neuron_group import NeuGroup
 from .types import SynState
 from .. import numpy as np
@@ -37,8 +38,8 @@ class SynConn(BaseEnsemble):
 
     """
 
-    def __init__(self, create_func, delay=0., pre_group=None, post_group=None, conn=None,
-                 num=None, monitors=None, vars_init=None, pars_update=None, name=None):
+    def __init__(self, model, delay=0., pre_group=None, post_group=None, conn=None,
+                 num=None, monitors=None, name=None):
         # name
         # ----
         if name is None:
@@ -106,14 +107,22 @@ class SynConn(BaseEnsemble):
             raise ValueError("NumpyBrain currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
 
+        # model
+        # ------
+        try:
+            assert isinstance(model, SynType)
+        except AssertionError:
+            raise ModelUseError(f'{type(self).__name__} receives an instance of {SynType.__name__}, '
+                                f'not {type(model).__name__}.')
+
         # initialize
         # ----------
-        super(SynConn, self).__init__(create_func=create_func, name=name, num=num, pars_update=pars_update,
-                                      vars_init=vars_init, monitors=monitors, cls_type=_SYN_CONN)
+        super(SynConn, self).__init__(model=model, name=name, num=num,
+                                      monitors=monitors, cls_type=_SYN_CONN)
 
         # ST
         # --
-        self.ST = SynState(self.vars_init)(size=self.num, delay=delay_len)
+        self.ST = self.requires['ST'].make_copy(size=self.num, delay=delay_len)
 
     def _merge_steps(self):
         codes_of_calls = super(SynConn, self)._merge_steps()

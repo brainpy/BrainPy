@@ -118,7 +118,7 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
 
 
 def run_ampa_group(cls, duration=650.):
-    ampa = nb.SynConn(create_func=cls, num=1, monitors=['s'], delay=10.)
+    ampa = nb.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
     ampa.pre = nb.types.NeuState(['sp'])(1)
     ampa.post = nb.types.NeuState(['V', 'inp'])(1)
     ampa.pre2syn = ampa.requires['pre2syn'].make_copy([[0]])
