@@ -2,10 +2,8 @@
 
 from .base_objects import BaseEnsemble
 from .base_objects import BaseType
-from .base_objects import _NEU_GROUP
 from .base_objects import ModelUseError
-from .base_objects import _NEU_TYPE
-from .types import NeuState
+from .base_objects import _NEU_GROUP
 from .. import numpy as np
 
 __all__ = [
@@ -13,7 +11,7 @@ __all__ = [
     'NeuGroup',
 ]
 
-_NEU_NO = 0
+_NEU_GROUP_NO = 0
 
 
 class NeuType(BaseType):
@@ -22,9 +20,9 @@ class NeuType(BaseType):
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(self, name, requires, steps, vector_based=True):
+    def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None):
         super(NeuType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based,
-                                      type_=_NEU_TYPE)
+                                      heter_params_replace=heter_params_replace)
 
     def first_try(self):
         pass
@@ -39,16 +37,21 @@ class NeuGroup(BaseEnsemble):
         The instantiated neuron type model.
     geometry : int, tuple
         The neuron group geometry.
-
+    pars_update : dict, None
+        Parameters to update.
+    monitors : list, tuple, None
+        Variables to monitor.
+    name : str, None
+        The name of the neuron group.
     """
 
-    def __init__(self, model, geometry, monitors=None, name=None):
+    def __init__(self, model, geometry, pars_update=None, monitors=None, name=None):
         # name
         # -----
         if name is None:
-            global _NEU_NO
-            name = f'NeuGroup{_NEU_NO}'
-            _NEU_NO += 1
+            global _NEU_GROUP_NO
+            name = f'NeuGroup{_NEU_GROUP_NO}'
+            _NEU_GROUP_NO += 1
         else:
             name = name
 
@@ -79,7 +82,10 @@ class NeuGroup(BaseEnsemble):
 
         # initialize
         # ----------
-        super(NeuGroup, self).__init__(model=model, name=name, num=num, monitors=monitors, cls_type=_NEU_GROUP)
+        super(NeuGroup, self).__init__(model=model,
+                                       pars_update=pars_update,
+                                       name=name, num=num,
+                                       monitors=monitors, cls_type=_NEU_GROUP)
 
         # ST
         # --

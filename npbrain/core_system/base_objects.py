@@ -6,7 +6,9 @@ from importlib import import_module
 
 import autopep8
 
+from .types import NeuState
 from .types import ObjState
+from .types import SynState
 from .types import TypeChecker
 from .types import TypeMismatchError
 from .. import numpy as np
@@ -28,10 +30,6 @@ __all__ = [
 _ARG_KEYWORDS = ['_dt_', '_t_', '_i_']
 _NEU_GROUP = 'NeuGroup'
 _SYN_CONN = 'SynConn'
-_NEU_TYPE = 'NeuType'
-_SYN_TYPE = 'SynType'
-_NEU_NO = 0
-_SYN_NO = 0
 
 
 class ModelDefError(Exception):
@@ -47,53 +45,24 @@ class ModelUseError(Exception):
 class BaseType(object):
     """The base type of neuron and synapse.
 
-    Structure of a BaseType instantiation:
-
-    - parameters = a_dict  (model parameters)
-    - variables = a_dict   (model variables)
-    - attributes = a_dict  (essential attributes for model running)
-     - a1 = av1
-     - a2 = av2
-     - ...
-    - steps = a_list  (collection of the step functions)
-     - f1 = callable
-     - f2 = callable
-     - ...
-
     Parameters
     ----------
-    create_func : callable
-        The function to create the model.
     name : str, optional
         Model name.
     vector_based : bool
         Whether the model is written in the neuron-group level or in the single-neuron level.
-    type_ : str
-        Whether the model is a 'neuron' or a 'synapse' model.
     """
 
-    def __init__(self, requires, steps, type_, name, vector_based=True):
+    def __init__(self, requires, steps, name, vector_based=True, heter_params_replace=None):
         # type : neuron based or group based code
         # ---------------------------------------
         self.vector_based = vector_based
 
         # name
         # -----
-        if name is None:
-            if type_ == _NEU_TYPE:
-                global _NEU_NO
-                self.name = f'NeuType{_NEU_NO}'
-                _NEU_NO += 1
-            elif type_ == _SYN_TYPE:
-                global _SYN_NO
-                self.name = f'SynType{_SYN_NO}'
-                _SYN_NO += 1
-            else:
-                raise ModelDefError(f'Unknown model type "{type_}", only support "{_NEU_TYPE}" and "{_SYN_TYPE}".')
-        else:
-            self.name = name
+        self.name = name
 
-        # attributes
+        # requires
         # -----------
         try:
             assert isinstance(requires, dict)
@@ -118,9 +87,9 @@ class BaseType(object):
         # ----------
         self.variables = self.requires['ST']._vars
 
-        # step functions
-        # --------------
-        self.steps, self.step_names = [], []
+        # steps
+        # ------
+        self.steps, self.step_names, self.steps_scope = [], [], dict()
         if callable(steps):
             steps = [steps]
         elif isinstance(steps, (list, tuple)):
@@ -135,7 +104,19 @@ class BaseType(object):
             func_name = tools.get_func_name(func, replace=True)
             self.step_names.append(func_name)
             self.steps.append(func)
+            scope = tools.get_func_scope(func, include_dispatcher=True)
+            self.steps_scope.update(scope)
             setattr(self, func_name, func)
+
+        # heterogeneous parameter replace
+        # --------------------------------
+        if heter_params_replace is None:
+            heter_params_replace = dict()
+        try:
+            assert isinstance(heter_params_replace, dict)
+        except AssertionError:
+            raise ModelDefError('"heter_params_replace" must be a dict.')
+        self.heter_params_replace = heter_params_replace
 
         # check consistence between function
         # arguments and model attributes
@@ -159,14 +140,21 @@ class BaseEnsemble(object):
 
     Parameters
     ----------
-    model : BaseType
-        The (neuron/synapse) model type.
     name : str
-        Ensemble name.
-
+        Name of the (neurons/synapses) ensemble.
+    num : int
+        The number of the neurons/synapses.
+    model : BaseType
+        The (neuron/synapse) model.
+    monitors : list, tuple, None
+        Variables to monitor.
+    pars_update : dict, None
+        Parameters to update.
+    cls_type : str
+        Class type.
     """
 
-    def __init__(self, model, name, num, monitors, cls_type):
+    def __init__(self, name, num, model, monitors, pars_update, cls_type):
         # class type
         # -----------
         assert cls_type in [_NEU_GROUP, _SYN_CONN], f'Only support "{_NEU_GROUP}" and "{_SYN_CONN}".'
@@ -176,24 +164,39 @@ class BaseEnsemble(object):
         # -----
         self.model = model
 
-        # step functions
-        # ---------------
-        if not self.model.vector_based:
-            if self._cls_type == _SYN_CONN:
-                if self.pre_group is None or self.post_group is None:
-                    raise ModelUseError('Using of scalar-based synapse model must '
-                                        'provide "pre_group" and "post_group".')
-
         # name
         # ----
         self.name = name
         if not self.name.isidentifier():
-            raise ValueError(f'"{self.name}" isn\'t a valid identifier according to Python '
-                             f'language definition. Please choose another name.')
+            raise ModelUseError(f'"{self.name}" isn\'t a valid identifier according to Python '
+                                f'language definition. Please choose another name.')
 
         # num
         # ---
         self.num = num
+
+        # parameters
+        # ----------
+        self._hetero_pars = {}
+        pars_update = dict() if pars_update is None else pars_update
+        try:
+            assert isinstance(pars_update, dict)
+        except AssertionError:
+            raise ModelUseError('"pars_update" must be a dict.')
+        for k, v in pars_update.items():
+            val_size = np.size(v)
+            if val_size != 1:
+                if val_size != num:
+                    raise ModelUseError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
+                                        f'and "{val_size}" != {num}.')
+                else:
+                    self._hetero_pars[k] = v
+            if k not in model.steps_scope:
+                raise ModelUseError(f'Parameter "{k}" is not defined in "{model.name}" variable scope.\n'
+                                    f'This may be caused by that "{k}" is used to compute an intermediate variable, \n'
+                                    f'but not directly used by the function. Therefore, NumpyBrain cannot update \n'
+                                    f'this parameter.')
+        self._pars_to_update = pars_update
 
         # monitors
         # ---------
@@ -242,77 +245,10 @@ class BaseEnsemble(object):
                     raise ModelUseError(f'Function "{tools.get_func_name(func, replace=True)}" in "{self.model.name}" '
                                         f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
-    def __step_substitute_integrator(self, func):
-        func_code = tools.deindent(tools.get_main_code(func))
-        code_lines = tools.get_code_lines(func_code)
-
-        # get function scope
-        vars = inspect.getclosurevars(func)
-        code_scope = dict(vars.nonlocals)
-        code_scope.update(vars.globals)
-        code_scope.update({self.name: self})
-        if len(code_lines) == 0:
-            return '', code_scope
-
-        scope_to_add = {}
-        scope_to_del = set()
-        need_add_mapping_scope = False
-        for k, v in code_scope.items():
-            if isinstance(v, Integrator):
-                if profile._merge_integral:
-                    need_add_mapping_scope = True
-
-                    # locate the integration function
-                    int_func_name = v.py_func_name
-                    for line_no, line in enumerate(code_lines):
-                        if int_func_name in tools.get_identifiers(line):
-                            break
-
-                    # get integral function line indent
-                    line_indent = tools.get_line_indent(line)
-                    indent = ' ' * line_indent
-
-                    # get the replace line and arguments need to replace
-                    new_line, args, kwargs = tools.replace_func(line, int_func_name)
-
-                    # append code line of argument replacement
-                    func_args = v.diff_eq.func_args
-                    append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
-                                    for i in range(len(args))]
-                    for arg in func_args[len(args):]:
-                        append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
-
-                    # append numerical integration code lines
-                    append_lines.extend([indent + l for l in v.update_code.split('\n')])
-                    append_lines.append(indent + new_line)
-
-                    # add appended lines into the main function code lines
-                    code_lines = code_lines[:line_no] + append_lines + code_lines[line_no + 1:]
-
-                    # get scope variables to delete
-                    scope_to_del.add(k)
-                    for k2, v2 in v.code_scope.items():
-                        if callable(v2):
-                            v2 = tools.numba_func(v2)
-                        scope_to_add[k2] = v2
-
-                else:
-                    code_scope[k] = tools.numba_func(v.update_func)
-
-        # update code scope
-        if need_add_mapping_scope:
-            code_scope.update(get_mapping_scope())
-        code_scope.update(scope_to_add)
-        for k in scope_to_del:
-            code_scope.pop(k)
-
-        # return code lines and code scope
-        return '\n'.join(code_lines), code_scope
-
     def __step_delay_keys(self):
         delay_keys = set()
         if self._cls_type == _SYN_CONN:
-            # check "delay_push" and "delay_pull"
+            # check "delayed" decorator
             delay_funcs = []
             for func in self.model.steps:
                 if func.__name__.startswith('_npbrain_delayed_'):
@@ -320,12 +256,9 @@ class BaseEnsemble(object):
 
             # get delayed variables
             if len(delay_funcs):
-                delay_func_code = ''
-                for func in delay_funcs:
-                    pull_func_code = tools.get_main_code(func)
-                    delay_func_code += '\n' + pull_func_code
-                delay_func_left_code = '\n'.join([line.split('=')[0] for line in tools.get_code_lines(delay_func_code)])
-                delay_keys_in_left = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_left_code))
+                delay_func_code = '\n'.join([tools.get_main_code(func) for func in delay_funcs])
+                delay_func_code_left = '\n'.join([line.split('=')[0] for line in tools.get_code_lines(delay_func_code)])
+                delay_keys_in_left = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_code_left))
                 if len(delay_keys_in_left) > 0:
                     raise ModelDefError('Delayed function cannot assign value to "ST".')
                 delay_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_code))
@@ -333,6 +266,12 @@ class BaseEnsemble(object):
         return delay_keys
 
     def __step_mode_np_group(self):
+        # check whether the model include heterogeneous parameters
+        if len(self._hetero_pars) > 0:
+            raise ModelUseError(f'This model has heterogeneous parameters '
+                                f'"{list(self._hetero_pars.keys())}", '
+                                f'it cannot be compiled in numpy mode.')
+        # get the delay keys
         delay_keys = self.__step_delay_keys()
 
         for func in self.model.steps:
@@ -343,6 +282,8 @@ class BaseEnsemble(object):
             if 'ST' in func_args and len(delay_keys) > 0:
 
                 if func_name.startswith('_npbrain_delayed_'):
+                    # In the delayed function,
+                    # synapse state should pull out from the delay queues
                     func_code = tools.get_main_code(func)
                     func_delay_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
                     code_scope = {func_name_stripped: func}
@@ -354,6 +295,8 @@ class BaseEnsemble(object):
                     code_lines.append(f'  {func_name_stripped}({", ".join(func_args)})')
 
                 else:
+                    # In other un-delayed function,
+                    # the calculated values of delayed keys should be push into the delay queues
                     func_code = tools.get_main_code(func)
                     func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
                     func_delay_keys = func_keys.intersection(delay_keys)
@@ -362,15 +305,13 @@ class BaseEnsemble(object):
                         code_lines = [f'def {func_name_stripped}_enhanced({", ".join(func_args)}):',
                                       f'  {func_name_stripped}({", ".join(func_args)})']
                         for key in func_delay_keys:
-                            if key not in delay_keys:
-                                raise ValueError('System error: pars')
                             code_lines.append(f'  ST.delay_push(ST["{key}"], var="{key}")')
                     else:
                         code_lines = []
                         code_scope = {}
 
                 if len(code_lines):
-                    # compile
+                    # Compile the modified step function
                     func_code = '\n'.join(code_lines)
                     if profile._auto_pep8:
                         func_code = autopep8.fix_code(func_code)
@@ -381,7 +322,10 @@ class BaseEnsemble(object):
                         tools.show_code_str(func_code)
                         tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
 
+            # set the function to the this model
             setattr(self, func_name_stripped, func)
+
+            # get the function call
             arg_calls = []
             for arg in func_args:
                 if arg in _ARG_KEYWORDS:
@@ -389,19 +333,32 @@ class BaseEnsemble(object):
                 else:
                     arg_calls.append(f"{self.name}.{arg}")
             func_call = f'{self.name}.{func_name_stripped}({", ".join(arg_calls)})'
+
+            # get the function result
             self._codegen[func_name_stripped] = {'func': func, 'call': func_call}
 
     def __step_mode_np_single(self):
-        if self.num > 1000:
+        # check number of the neurons/synapses,
+        # too huge number of neurons/synapses sharply reduce running speed
+        if self.num > 4000:
             raise ModelUseError(f'The number of the '
                                 f'{"neurons" if self._cls_type == _NEU_GROUP else "synapses"} is '
-                                f'too huge (>1000), please use numba backend or define vector_based model.')
+                                f'too huge (>4000), please use numba backend or define vector_based model.')
 
+        # check whether the model include heterogeneous parameters
+        if len(self._hetero_pars) > 0:
+            raise ModelUseError(f'This model has heterogeneous parameters '
+                                f'"{list(self._hetero_pars.keys())}", '
+                                f'it cannot be compiled in numpy mode.')
+
+        # get the delay keys
         delay_keys = self.__step_delay_keys()
 
         for func in self.model.steps:
             func_name = func.__name__
             func_name_stripped = tools.get_func_name(func, replace=True)
+
+            # function argument
             func_args = inspect.getfullargspec(func).args
             state_args = [arg for arg in func_args
                           if arg not in _ARG_KEYWORDS and
@@ -465,20 +422,22 @@ class BaseEnsemble(object):
                     prefix = '  ' * 2
 
                 if func_name.startswith('_npbrain_delayed_'):
+                    # Function with "delayed" decorator should use ST pulled from the delay queue
                     code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_, delay_pull=True)')
                     code_lines.append(prefix + f'{func_name_stripped}_origin({", ".join(func_args)})')
                 else:
+                    # Other function with "delayed" decorator
                     code_lines.append(prefix + f'ST = {self.name}_ST.extract_by_index(_obj_i_)')
                     code_lines.append(prefix + f'{func_name_stripped}_origin({", ".join(func_args)})')
                     code_lines.append(prefix + f'{self.name}_ST.update_by_index(_obj_i_, ST)')
                     if len(delay_keys):
+                        # Function without "delayed" decorator should push their
+                        # updated ST to the delay queue
                         func_code = tools.get_main_code(func)
                         func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
                         func_delay_keys = func_keys.intersection(delay_keys)
                         if len(func_delay_keys) > 0:
                             for key in func_delay_keys:
-                                if key not in delay_keys:
-                                    raise ValueError('System error: delay keys')
                                 code_lines.append(f'  {self.name}_ST.delay_push({self.name}_ST["{key}"], "{key}")')
 
             else:  # doesn't have ST
@@ -493,26 +452,116 @@ class BaseEnsemble(object):
             # append the final results
             code_lines.insert(0, f'# "{func_name_stripped}" step function in {self.name}')
 
-            # compile
+            # compile the updated function
             func_code = '\n'.join(code_lines)
             if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)
             func = code_scope[func_name_stripped]
-            setattr(self, func_name_stripped, func)
-
-            # call
-            func_call = f'{self.name}.{func_name_stripped}({", ".join([code_arg2call[arg] for arg in code_arg])})'
-
             if profile._show_formatted_code:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', func_name_stripped])
 
+            # set the function to the model
+            setattr(self, func_name_stripped, func)
+
+            # function call
+            func_call = f'{self.name}.{func_name_stripped}({", ".join([code_arg2call[arg] for arg in code_arg])})'
+
             # final
             self._codegen[func_name_stripped] = {'func': func, 'call': func_call}
 
+    def __step_substitute_integrator(self, func):
+        # get code and code lines
+        func_code = tools.deindent(tools.get_main_code(func))
+        code_lines = tools.get_code_lines(func_code)
+
+        # get function scope
+        vars = inspect.getclosurevars(func)
+        code_scope = dict(vars.nonlocals)
+        code_scope.update(vars.globals)
+        code_scope.update({self.name: self})
+        if len(code_lines) == 0:
+            return '', code_scope
+
+        # code scope update
+        scope_to_add = {}
+        scope_to_del = set()
+        need_add_mapping_scope = False
+        for k, v in code_scope.items():
+            if isinstance(v, Integrator):
+                if profile._merge_integral:
+                    need_add_mapping_scope = True
+
+                    # locate the integration function
+                    int_func_name = v.py_func_name
+                    for line_no, line in enumerate(code_lines):
+                        if int_func_name in tools.get_identifiers(line):
+                            break
+
+                    # get integral function line indent
+                    line_indent = tools.get_line_indent(line)
+                    indent = ' ' * line_indent
+
+                    # get the replace line and arguments need to replace
+                    new_line, args, kwargs = tools.replace_func(line, int_func_name)
+
+                    # append code line of argument replacement
+                    func_args = v.diff_eq.func_args
+                    append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
+                                    for i in range(len(args))]
+                    for arg in func_args[len(args):]:
+                        append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
+
+                    # append numerical integration code lines
+                    append_lines.extend([indent + l for l in v.update_code.split('\n')])
+                    append_lines.append(indent + new_line)
+
+                    # add appended lines into the main function code lines
+                    code_lines = code_lines[:line_no] + append_lines + code_lines[line_no + 1:]
+
+                    # get scope variables to delete
+                    scope_to_del.add(k)
+                    for k2, v2 in v.code_scope.items():
+                        if callable(v2):
+                            v2 = tools.numba_func(v2, params=self._pars_to_update)
+                        scope_to_add[k2] = v2
+                    # noise term (g) is a 1D array
+                    g_array = f'_g_{v.py_func_name}'
+                    if g_array in v.code_scope:
+                        self._hetero_pars[g_array] = v.code_scope[g_array]
+                    # deterministic term (f) is a 1D array
+                    f_array = f'_f_{v.py_func_name}'
+                    if f_array in v.code_scope:
+                        self._hetero_pars[f_array] = v.code_scope[f_array]
+
+                else:
+                    if not self.model.vector_based:
+                        for ks, vs in tools.get_func_scope(v.update_func, include_dispatcher=True).items():
+                            if ks in self._hetero_pars:
+                                raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in step functions, '
+                                                    f'it will not work.\n'
+                                                    f'Please try to set "npbrain.profile.merge_integral = True" to '
+                                                    f'merge parameter "{ks}" into the step functions.')
+
+                    code_scope[k] = tools.numba_func(v.update_func, params=self._pars_to_update)
+
+        # update code scope
+        if need_add_mapping_scope:
+            code_scope.update(get_mapping_scope())
+        code_scope.update(scope_to_add)
+        for k in scope_to_del:
+            code_scope.pop(k)
+
+        # return code lines and code scope
+        return '\n'.join(code_lines), code_scope
+
     def __step_mode_nb_group(self):
+        # check whether the model include heterogeneous parameters
         delay_keys = self.__step_delay_keys()
+
+        #
+        all_heter_pars = set(self._hetero_pars.keys())
 
         for func in self.model.steps:
             func_name = func.__name__
@@ -535,7 +584,8 @@ class BaseEnsemble(object):
                     st = states[arg]
                     var2idx = st['_var2idx']
 
-                    if arg == 'ST':
+                    if self._is_state_attr(arg):
+                        # Function with "delayed" decorator should use ST pulled from the delay queue
                         if func_name.startswith('_npbrain_delayed_'):
                             add_args.add(f'{self.name}_dout')
                             code_arg2call[f'{self.name}_dout'] = f'{self.name}.{arg}._delay_out'
@@ -544,18 +594,19 @@ class BaseEnsemble(object):
                                 r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_dout]"
                                 func_code = re.sub(r'' + p, r, func_code)
                         elif len(delay_keys) > 0:
+                            # Function without "delayed" decorator should push their
+                            # updated ST to the delay queue
                             func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
                             func_delay_keys = func_keys.intersection(delay_keys)
                             if len(func_delay_keys) > 0:
                                 add_args.add(f'{self.name}_din')
                                 code_arg2call[f'{self.name}_din'] = f'{self.name}.{arg}._delay_in'
                                 for st_k in func_delay_keys:
-                                    if st_k not in delay_keys:
-                                        raise ValueError('System error: pars')
                                     right = f'{arg}[{var2idx[st_k]}]'
                                     left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
                                     func_code += f'\n{left} = {right}'
 
+                    #
                     for st_k in st._keys:
                         p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                         r = f"{arg}[{var2idx[st_k]}]"
@@ -576,7 +627,19 @@ class BaseEnsemble(object):
                     else:
                         code_arg2call[new_arg] = f'{self.name}.{arg}'
                 code_args.add(new_arg)
+            # substitute parameters
+            for k in code_scope.keys():
+                if k in self.model.heter_params_replace:
+                    arg_substitute[k] = self.model.heter_params_replace[k]
+            # substitute
             func_code = tools.word_replace(func_code, arg_substitute)
+
+            # update code scope
+            for k in list(code_scope.keys()):
+                if k in self._pars_to_update:
+                    code_scope[k] = self._pars_to_update[k]
+                if k in all_heter_pars:
+                    all_heter_pars.remove(k)
 
             # final
             code_lines = func_code.split('\n')
@@ -585,8 +648,17 @@ class BaseEnsemble(object):
             self._codegen[func_name_stripped] = {'scopes': code_scope, 'args': code_args,
                                                  'arg2calls': code_arg2call, 'codes': code_lines}
 
+        # WARNING: heterogeneous parameter may not in the main step functions
+        if len(all_heter_pars) > 0:
+            raise ModelDefError(f'Heterogeneous parameters "{list(all_heter_pars)}" are not defined '
+                                f'in main step function. NumpyBrain cannot recognize. Please check.')
+
     def __step_mode_nb_single(self):
+        # check whether the model include heterogeneous parameters
         delay_keys = self.__step_delay_keys()
+
+        #
+        all_heter_pars = set(self._hetero_pars.keys())
 
         for i, func in enumerate(self.model.steps):
             func_name = func.__name__
@@ -601,19 +673,24 @@ class BaseEnsemble(object):
             # update functions in code scope
             for k, v in code_scope.items():
                 if callable(v):
-                    code_scope[k] = tools.numba_func(func=v)
+                    code_scope[k] = tools.numba_func(func=v, params=self._pars_to_update)
 
-            # check function code
+            # check function arguments, whether need to add "_dout" and "_din"
             add_args = set()
             if func_name.startswith('_npbrain_delayed_'):
+                # Function with "delayed" decorator should use ST pulled from the delay queue
                 add_args.add(f'{self.name}_dout')
                 code_arg2call[f'{self.name}_dout'] = f'{self.name}.ST._delay_out'
             elif len(delay_keys) > 0:
+                # Function without "delayed" decorator should push their
+                # updated ST to the delay queue
                 func_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', func_code))
                 func_delay_keys = func_keys.intersection(delay_keys)
                 if len(func_delay_keys) > 0:
                     add_args.add(f'{self.name}_din')
                     code_arg2call[f'{self.name}_din'] = f'{self.name}.ST._delay_in'
+
+            # substitute STATE iterm access to index
             for i, arg in enumerate(func_args):
                 used_args.add(arg)
                 if len(states) == 0:
@@ -621,8 +698,9 @@ class BaseEnsemble(object):
                 if arg in states:
                     st = states[arg]
                     var2idx = st['_var2idx']
-                    if arg == 'ST':
+                    if self._is_state_attr(arg):
                         if func_name.startswith('_npbrain_delayed_'):
+                            # Function with "delayed" decorator should use ST pulled from the delay queue
                             for st_k in delay_keys:
                                 p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                                 r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {self.name}_dout, _obj_i_]"
@@ -660,11 +738,18 @@ class BaseEnsemble(object):
                     else:
                         code_arg2call[new_arg] = f'{self.name}.{arg}'
                 code_args.add(new_arg)
+            # substitute multi-dimensional parameter "p" to "p[_ni_]"
+            for p in self._hetero_pars.keys():
+                if p in code_scope:
+                    arg_substitute[p] = f'{p}[_obj_i_]'
             # substitute
             func_code = tools.word_replace(func_code, arg_substitute)
 
             # add the for loop in the start of the main code
-            assert 'ST' in states, "In numba mode, scalar-based model only support function has 'ST' argument."
+            try:
+                assert 'ST' in states
+            except AssertionError:
+                raise ModelUseError("In numba mode, scalar-based model only support function has 'ST' argument.")
             has_pre = 'pre' in states
             has_post = 'post' in states
             if has_pre and has_post:
@@ -692,25 +777,40 @@ class BaseEnsemble(object):
                 code_lines = [f'for _obj_i_ in numba.prange({self.num}):']
                 blank = '  ' * 1
 
+            # add the main code (user defined)
             code_lines.extend([blank + l for l in func_code.split('\n')])
+
+            # update code scope
             code_scope['numba'] = import_module('numba')
 
             # add the delay push in the end of the main code
             if not func_name.startswith('_npbrain_delayed_') and len(delay_keys) > 0:
                 var2idx = self.ST['_var2idx']
                 for st_k in func_delay_keys:
-                    if st_k not in delay_keys:
-                        raise ValueError('System error: delay keys')
                     right = f'{self.name}_ST[{var2idx[st_k]}]'
                     left = f"{self.name}_ST[{var2idx['_' + st_k + '_offset']} + {self.name}_din]"
                     code_lines.append(f'{left} = {right}')
             code_lines.append('\n')
 
-            # append the final results
+            # function comment
             func_name_stripped = tools.get_func_name(func, replace=True)
             code_lines.insert(0, f'# "{func_name_stripped}" step function of {self.name}')
+
+            # update code scope
+            for k in list(code_scope.keys()):
+                if k in self._pars_to_update:
+                    code_scope[k] = self._pars_to_update[k]
+                if k in all_heter_pars:
+                    all_heter_pars.remove(k)
+
+            # the final results
             self._codegen[func_name_stripped] = {'scopes': code_scope, 'args': code_args,
                                                  'arg2calls': code_arg2call, 'codes': code_lines}
+
+        # WARNING: heterogeneous parameter may not in the main step functions
+        if len(all_heter_pars) > 0:
+            raise ModelDefError(f'Heterogeneous parameters "{list(all_heter_pars)}" are not defined '
+                                f'in main step function. NumpyBrain cannot recognize. Please check.')
 
     def _add_steps(self):
         if profile.is_numpy_bk():
@@ -1030,6 +1130,18 @@ class BaseEnsemble(object):
 
         return codes_of_calls
 
+    def _is_state_attr(self, arg):
+        try:
+            attr = getattr(self, arg)
+        except AssertionError:
+            raise ModelUseError(f'"{self.model.name}" need "{arg}", but it isn\'t defined in this model.')
+        if self._cls_type == _NEU_GROUP:
+            return isinstance(attr, NeuState)
+        elif self._cls_type == _SYN_CONN:
+            return isinstance(attr, SynState)
+        else:
+            raise ValueError
+
     def set_ST(self, new_ST):
         type_checker = self.model.requires['ST']
         try:
@@ -1037,6 +1149,20 @@ class BaseEnsemble(object):
         except TypeMismatchError:
             raise ModelUseError(f'"new_ST" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
         super(BaseEnsemble, self).__setattr__('ST', new_ST)
+
+    def update_param(self, **kwargs):
+        for k, v in kwargs.items():
+            val_size = np.size(v)
+            if val_size != 1:
+                if val_size != self.num:
+                    raise ModelUseError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
+                                        f'and "{val_size}" != {self.num}.')
+                else:
+                    if self.model.vector_based:
+                        if k not in self.model.heter_params_replace:
+                            continue
+                    self._hetero_pars[k] = v
+            self._pars_to_update[k] = v
 
     @property
     def requires(self):

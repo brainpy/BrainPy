@@ -2,11 +2,9 @@
 
 from .base_objects import BaseEnsemble
 from .base_objects import BaseType
-from .base_objects import _SYN_CONN
-from .base_objects import _SYN_TYPE
 from .base_objects import ModelUseError
+from .base_objects import _SYN_CONN
 from .neuron_group import NeuGroup
-from .types import SynState
 from .. import numpy as np
 from .. import profile
 from ..connectivity import Connector
@@ -16,11 +14,10 @@ from ..connectivity import pre2syn
 __all__ = [
     'SynType',
     'SynConn',
-    'post_cond_by_post2syn',
     'delayed',
 ]
 
-_SYN_NO = 0
+_SYN_CONN_NO = 0
 
 
 class SynType(BaseType):
@@ -29,23 +26,46 @@ class SynType(BaseType):
     It can be defined based on a collection of synapses or a single synapse model.
     """
 
-    def __init__(self, name, requires, steps, vector_based=True):
-        super(SynType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based, type_=_SYN_TYPE)
+    def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None):
+        super(SynType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based,
+                                      heter_params_replace=heter_params_replace)
 
 
 class SynConn(BaseEnsemble):
     """Synaptic connections.
 
+    Parameters
+    ----------
+    model : NeuType
+        The instantiated neuron type model.
+    pars_update : dict, None
+        Parameters to update.
+    pre_group : NeuGroup, None
+        Pre-synaptic neuron group.
+    post_group : NeuGroup, None
+        Post-synaptic neuron group.
+    conn : Connector, None
+        Connection method to create synaptic connectivity.
+    num : int
+        The number of the synapses.
+    delay : float
+        The time of the synaptic delay.
+    monitors : list, tuple, None
+        Variables to monitor.
+    name : str, None
+        The name of the neuron group.
     """
 
-    def __init__(self, model, delay=0., pre_group=None, post_group=None, conn=None,
-                 num=None, monitors=None, name=None):
+    def __init__(self, model, pars_update=None,
+                 pre_group=None, post_group=None, conn=None,
+                 num=None,
+                 delay=0., monitors=None, name=None):
         # name
         # ----
         if name is None:
-            global _SYN_NO
-            name = f'SynConn{_SYN_NO}'
-            _SYN_NO += 1
+            global _SYN_CONN_NO
+            name = f'SynConn{_SYN_CONN_NO}'
+            _SYN_CONN_NO += 1
         else:
             name = name
 
@@ -115,9 +135,16 @@ class SynConn(BaseEnsemble):
             raise ModelUseError(f'{type(self).__name__} receives an instance of {SynType.__name__}, '
                                 f'not {type(model).__name__}.')
 
+        if not model.vector_based:
+            if self.pre_group is None or self.post_group is None:
+                raise ModelUseError('Using of scalar-based synapse model must '
+                                    'provide "pre_group" and "post_group".')
+
         # initialize
         # ----------
-        super(SynConn, self).__init__(model=model, name=name, num=num,
+        super(SynConn, self).__init__(model=model,
+                                      pars_update=pars_update,
+                                      name=name, num=num,
                                       monitors=monitors, cls_type=_SYN_CONN)
 
         # ST

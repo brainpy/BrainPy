@@ -5,6 +5,7 @@ import inspect
 import types
 
 from .codes import deindent
+from ..integration.integrator import Integrator
 from .. import numpy as np
 from .. import profile
 
@@ -112,14 +113,25 @@ def numba_func(func, params={}):
         return jit(func)
 
 
-def get_func_scope(func):
-    vars = inspect.getclosurevars(func)
+def get_func_scope(func, include_dispatcher=False):
+    if isinstance(func, Integrator):
+        vars = inspect.getclosurevars(func.update_func)
+    elif type(func).__name__ == 'function':
+        vars = inspect.getclosurevars(func)
+    else:
+        raise ValueError(f'Unknown type: {type(func)}')
+
     scope = dict(vars.nonlocals)
     scope.update(vars.globals)
 
     for k, v in list(scope.items()):
-        if callable(v) and (Dispatcher is not None and not isinstance(v, Dispatcher)):
-            v_scope = get_func_scope(v)
-            scope.update(v_scope)
+        if callable(v):
+            if Dispatcher is not None and isinstance(v, Dispatcher):
+                if include_dispatcher:
+                    v_scope = get_func_scope(v.py_func)
+                    scope.update(v_scope)
+            else:
+                v_scope = get_func_scope(v)
+                scope.update(v_scope)
 
     return scope

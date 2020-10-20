@@ -215,40 +215,40 @@ class Euler(Integrator):
 
     @staticmethod
     def get_np_step(diff_eqs, *args):
-        f = diff_eqs.f
-        dt = profile.get_dt()
+        __f = diff_eqs.f
+        __dt = profile.get_dt()
 
         # SDE
         if diff_eqs.is_stochastic:
-            dt_sqrt = np.sqrt(dt)
-            g = diff_eqs.g
+            __dt_sqrt = np.sqrt(__dt)
+            __g = diff_eqs.g
 
             if callable(diff_eqs.g):
 
                 if diff_eqs.is_multi_return:
                     def int_f(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        val = f(y0, t, *args)
-                        df = val[0] * dt
-                        dg = dt_sqrt * g(y0, t, *args) * dW
+                        val = __f(y0, t, *args)
+                        df = val[0] * __dt
+                        dg = __dt_sqrt * __g(y0, t, *args) * dW
                         y = y0 + df + dg
                         return (y,) + tuple(val[1:])
 
                 else:
                     def int_f(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        df = f(y0, t, *args) * dt
-                        dg = dt_sqrt * g(y0, t, *args) * dW
+                        df = __f(y0, t, *args) * __dt
+                        dg = __dt_sqrt * __g(y0, t, *args) * dW
                         return y0 + df + dg
             else:
                 assert isinstance(diff_eqs.g, (int, float, np.ndarray))
 
                 if diff_eqs.is_multi_return:
                     def int_f(y0, t, *args):
-                        val = f(y0, t, *args)
-                        df = val[0] * dt
+                        val = __f(y0, t, *args)
+                        df = val[0] * __dt
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        dg = dt_sqrt * g * dW
+                        dg = __dt_sqrt * __g * dW
                         y = y0 + df + dg
                         return (y,) + tuple(val[1:])
                 else:
@@ -270,26 +270,22 @@ class Euler(Integrator):
                             return lambda x: np.random.normal(0., 1., x.shape)
 
                     def int_f(y0, t, *args):
-                        df = f(y0, t, *args) * dt
-                        # dW = np.random.normal(0.0, 1.0, np.shape(y0))
-                        # dW = np.random.normal(0.0, 1.0, np.array(y0).shape)
-                        # dW = np.random.normal(0.0, 1.0, shape(y0))
+                        df = __f(y0, t, *args) * __dt
                         dW = _normal_sample_(y0)
-                        # dW = np.random._normal_sample_(y0)
-                        dg = dt_sqrt * g * dW
+                        dg = __dt_sqrt * __g * dW
                         return y0 + df + dg
 
         # ODE
         else:
             if diff_eqs.is_multi_return:
                 def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
-                    y = y0 + dt * val[0]
+                    val = __f(y0, t, *args)
+                    y = y0 + __dt * val[0]
                     return (y,) + tuple(val[1:])
 
             else:
                 def int_f(y0, t, *args):
-                    return y0 + dt * f(y0, t, *args)
+                    return y0 + __dt * __f(y0, t, *args)
 
         return int_f
 
@@ -338,7 +334,7 @@ class RK2(Integrator):
         self.beta = beta
         if profile.is_numba_bk():
             self._update_code = self.get_nb_step(diff_eq, beta)
-        self._update_func = self.get_np_step(diff_eq, beta=beta)
+        self._update_func = self.get_np_step(diff_eq, __beta=beta)
 
     @staticmethod
     def get_nb_step(diff_eq, beta):
@@ -398,9 +394,9 @@ class RK2(Integrator):
         return code
 
     @staticmethod
-    def get_np_step(diff_eqs, beta):
-        f = diff_eqs.f
-        dt = profile.get_dt()
+    def get_np_step(diff_eqs, __beta):
+        __f = diff_eqs.f
+        __dt = profile.get_dt()
 
         if diff_eqs.is_stochastic:
             raise NotImplementedError
@@ -408,18 +404,18 @@ class RK2(Integrator):
 
             if diff_eqs.is_multi_return:
                 def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
+                    val = __f(y0, t, *args)
                     k1 = val[0]
-                    v = f(y0 + beta * dt * k1, t + beta * dt, *args)
+                    v = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)
                     k2 = v[0]
-                    y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
+                    y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
                     return (y,) + tuple(val[1:])
 
             else:
                 def int_f(y0, t, *args):
-                    k1 = f(y0, t, *args)
-                    k2 = f(y0 + beta * dt * k1, t + beta * dt, *args)
-                    y = y0 + dt * ((1 - 1 / (2 * beta)) * k1 + 1 / (2 * beta) * k2)
+                    k1 = __f(y0, t, *args)
+                    k2 = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)
+                    y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
                     return y
 
         return int_f
@@ -550,24 +546,24 @@ class Heun(Integrator):
 
     @staticmethod
     def get_np_step(diff_eqs, *args):
-        dt = profile.get_dt()
-        f = diff_eqs.f
+        __dt = profile.get_dt()
+        __f = diff_eqs.f
 
         if diff_eqs.is_stochastic:
-            dt_sqrt = np.sqrt(dt)
-            g = diff_eqs.g
+            __dt_sqrt = np.sqrt(__dt)
+            __g = diff_eqs.g
 
-            if callable(g):
+            if callable(__g):
                 if diff_eqs.is_multi_return:
 
                     def int_f(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        val = f(y0, t, *args)
-                        df = val[0] * dt
-                        gn = g(y0, t, *args)
-                        y_bar = y0 + gn * dW * dt_sqrt
-                        gn_bar = g(y_bar, t, *args)
-                        dg = 0.5 * (gn + gn_bar) * dW * dt_sqrt
+                        val = __f(y0, t, *args)
+                        df = val[0] * __dt
+                        gn = __g(y0, t, *args)
+                        y_bar = y0 + gn * dW * __dt_sqrt
+                        gn_bar = __g(y_bar, t, *args)
+                        dg = 0.5 * (gn + gn_bar) * dW * __dt_sqrt
                         y1 = y0 + df + dg
                         return (y1,) + tuple(val[1:])
 
@@ -575,11 +571,11 @@ class Heun(Integrator):
 
                     def int_f(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        df = f(y0, t, *args) * dt
-                        gn = g(y0, t, *args)
-                        y_bar = y0 + gn * dW * dt_sqrt
-                        gn_bar = g(y_bar, t, *args)
-                        dg = 0.5 * (gn + gn_bar) * dW * dt_sqrt
+                        df = __f(y0, t, *args) * __dt
+                        gn = __g(y0, t, *args)
+                        y_bar = y0 + gn * dW * __dt_sqrt
+                        gn_bar = __g(y_bar, t, *args)
+                        dg = 0.5 * (gn + gn_bar) * dW * __dt_sqrt
                         y1 = y0 + df + dg
                         return y1
 
@@ -588,7 +584,7 @@ class Heun(Integrator):
             else:
                 return Euler.get_np_step(diff_eqs)
         else:
-            return RK2.get_np_step(diff_eqs, beta=1.)
+            return RK2.get_np_step(diff_eqs, __beta=1.)
 
 
 class MidPoint(Integrator):
@@ -624,7 +620,7 @@ class MidPoint(Integrator):
 
     @staticmethod
     def get_np_step(diff_eqs, *args):
-        return RK2.get_np_step(diff_eqs, beta=0.5)
+        return RK2.get_np_step(diff_eqs, __beta=0.5)
 
 
 class RK3(Integrator):
@@ -729,8 +725,8 @@ class RK3(Integrator):
 
     @staticmethod
     def get_np_step(diff_eqs, *args):
-        f = diff_eqs.f
-        dt = profile.get_dt()
+        __f = diff_eqs.f
+        __dt = profile.get_dt()
 
         if diff_eqs.is_stochastic:
             raise NotImplementedError
@@ -738,19 +734,19 @@ class RK3(Integrator):
         else:
             if diff_eqs.is_multi_return:
                 def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
+                    val = __f(y0, t, *args)
                     k1 = val[0]
-                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)[0]
-                    k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)[0]
-                    y = y0 + dt / 6 * (k1 + 4 * k2 + k3)
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0]
+                    k3 = __f(y0 - __dt * k1 + 2 * __dt * k2, t + __dt, *args)[0]
+                    y = y0 + __dt / 6 * (k1 + 4 * k2 + k3)
                     return (y,) + tuple(val[1:])
 
             else:
                 def int_f(y0, t, *args):
-                    k1 = f(y0, t, *args)
-                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)
-                    k3 = f(y0 - dt * k1 + 2 * dt * k2, t + dt, *args)
-                    return y0 + dt / 6 * (k1 + 4 * k2 + k3)
+                    k1 = __f(y0, t, *args)
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)
+                    k3 = __f(y0 - __dt * k1 + 2 * __dt * k2, t + __dt, *args)
+                    return y0 + __dt / 6 * (k1 + 4 * k2 + k3)
 
         return int_f
 
@@ -866,8 +862,8 @@ class RK4(Integrator):
 
     @staticmethod
     def get_np_step(diff_eqs, *args):
-        f = diff_eqs.f
-        dt = profile.get_dt()
+        __f = diff_eqs.f
+        __dt = profile.get_dt()
 
         if diff_eqs.is_stochastic:
             raise NotImplementedError
@@ -875,21 +871,21 @@ class RK4(Integrator):
         else:
             if diff_eqs.is_multi_return:
                 def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
+                    val = __f(y0, t, *args)
                     k1 = val[0]
-                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)[0]
-                    k3 = f(y0 + dt / 2 * k2, t + dt / 2, *args)[0]
-                    k4 = f(y0 + dt * k3, t + dt, *args)[0]
-                    y = y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0]
+                    k3 = __f(y0 + __dt / 2 * k2, t + __dt / 2, *args)[0]
+                    k4 = __f(y0 + __dt * k3, t + __dt, *args)[0]
+                    y = y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
                     return (y,) + tuple(val[1:])
 
             else:
                 def int_f(y0, t, *args):
-                    k1 = f(y0, t, *args)
-                    k2 = f(y0 + dt / 2 * k1, t + dt / 2, *args)
-                    k3 = f(y0 + dt / 2 * k2, t + dt / 2, *args)
-                    k4 = f(y0 + dt * k3, t + dt, *args)
-                    return y0 + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+                    k1 = __f(y0, t, *args)
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)
+                    k3 = __f(y0 + __dt / 2 * k2, t + __dt / 2, *args)
+                    k4 = __f(y0 + __dt * k3, t + __dt, *args)
+                    return y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
 
         return int_f
 
@@ -1010,8 +1006,8 @@ class RK4Alternative(Integrator):
     def get_np_step(diff_eq, *args):
         assert isinstance(diff_eq, DiffEquation)
 
-        f = diff_eq.f
-        dt = profile.get_dt()
+        __f = diff_eq.f
+        __dt = profile.get_dt()
 
         if diff_eq.is_stochastic:
             raise IntegratorError('"RK4_alternative" method doesn\'t support stochastic differential equation.')
@@ -1020,21 +1016,21 @@ class RK4Alternative(Integrator):
 
             if diff_eq.is_multi_return:
                 def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
+                    val = __f(y0, t, *args)
                     k1 = val[0]
-                    k2 = f(y0 + dt / 3 * k1, t + dt / 3, *args)[0]
-                    k3 = f(y0 - dt / 3 * k1 + dt * k2, t + 2 * dt / 3, *args)[0]
-                    k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)[0]
-                    y = y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
+                    k2 = __f(y0 + __dt / 3 * k1, t + __dt / 3, *args)[0]
+                    k3 = __f(y0 - __dt / 3 * k1 + __dt * k2, t + 2 * __dt / 3, *args)[0]
+                    k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)[0]
+                    y = y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
                     return (y,) + tuple(val[1:])
 
             else:
                 def int_f(y0, t, *args):
-                    k1 = f(y0, t, *args)
-                    k2 = f(y0 + dt / 3 * k1, t + dt / 3, *args)
-                    k3 = f(y0 - dt / 3 * k1 + dt * k2, t + 2 * dt / 3, *args)
-                    k4 = f(y0 + dt * k1 - dt * k2 + dt * k3, t + dt, *args)
-                    return y0 + dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
+                    k1 = __f(y0, t, *args)
+                    k2 = __f(y0 + __dt / 3 * k1, t + __dt / 3, *args)
+                    k3 = __f(y0 - __dt / 3 * k1 + __dt * k2, t + 2 * __dt / 3, *args)
+                    k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)
+                    return y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
 
         return int_f
 
@@ -1172,57 +1168,57 @@ class ExponentialEuler(Integrator):
     def get_np_step(diff_eq, *args):
         assert isinstance(diff_eq, DiffEquation)
 
-        f = diff_eq.f
-        dt = profile.get_dt()
+        __f = diff_eq.f
+        __dt = profile.get_dt()
 
         if diff_eq.is_stochastic:
-            dt_sqrt = np.sqrt(dt)
-            g = diff_eq.g
+            __dt_sqrt = np.sqrt(__dt)
+            __g = diff_eq.g
 
-            if callable(g):
+            if callable(__g):
 
                 if diff_eq.is_multi_return:
 
                     def int_f(y0, t, *args):
-                        val = f(y0, t, *args)
+                        val = __f(y0, t, *args)
                         dydt, linear_part = val[0], val[1]
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        dg = dt_sqrt * g(y0, t, *args) * dW
-                        exp = np.exp(linear_part * dt)
+                        dg = __dt_sqrt * __g(y0, t, *args) * dW
+                        exp = np.exp(linear_part * __dt)
                         y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                         return (y1,) + tuple(val[2:])
 
                 else:
 
                     def int_f(y0, t, *args):
-                        dydt, linear_part = f(y0, t, *args)
+                        dydt, linear_part = __f(y0, t, *args)
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        dg = dt_sqrt * g(y0, t, *args) * dW
-                        exp = np.exp(linear_part * dt)
+                        dg = __dt_sqrt * __g(y0, t, *args) * dW
+                        exp = np.exp(linear_part * __dt)
                         y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                         return y1
 
             else:
-                assert isinstance(g, (int, float, np.ndarray))
+                assert isinstance(__g, (int, float, np.ndarray))
 
                 if diff_eq.is_multi_return:
 
                     def int_f(y0, t, *args):
-                        val = f(y0, t, *args)
+                        val = __f(y0, t, *args)
                         dydt, linear_part = val[0], val[1]
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        dg = dt_sqrt * g * dW
-                        exp = np.exp(linear_part * dt)
+                        dg = __dt_sqrt * __g * dW
+                        exp = np.exp(linear_part * __dt)
                         y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                         return (y1,) + tuple(val[1:])
 
                 else:
 
                     def int_f(y0, t, *args):
-                        dydt, linear_part = f(y0, t, *args)
+                        dydt, linear_part = __f(y0, t, *args)
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        dg = dt_sqrt * g * dW
-                        exp = np.exp(linear_part * dt)
+                        dg = __dt_sqrt * __g * dW
+                        exp = np.exp(linear_part * __dt)
                         y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
                         return y1
 
@@ -1231,16 +1227,16 @@ class ExponentialEuler(Integrator):
             if diff_eq.is_multi_return:
 
                 def int_f(y0, t, *args):
-                    val = f(y0, t, *args)
+                    val = __f(y0, t, *args)
                     df, linear_part = val[0], val[1]
-                    y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
+                    y = y0 + (np.exp(linear_part * __dt) - 1) / linear_part * df
                     return (y,) + tuple(val[2:])
 
             else:
 
                 def int_f(y0, t, *args):
-                    df, linear_part = f(y0, t, *args)
-                    y = y0 + (np.exp(linear_part * dt) - 1) / linear_part * df
+                    df, linear_part = __f(y0, t, *args)
+                    y = y0 + (np.exp(linear_part * __dt) - 1) / linear_part * df
                     return y
 
         return int_f
@@ -1350,37 +1346,37 @@ class MilsteinIto(Integrator):
     def get_np_step(diff_eq, *args):
         assert isinstance(diff_eq, DiffEquation)
 
-        dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
-        f = diff_eq.f
-        g = diff_eq.g
+        __dt = profile.get_dt()
+        __dt_sqrt = np.sqrt(__dt)
+        __f = diff_eq.f
+        __g = diff_eq.g
 
         if diff_eq.is_stochastic:
-            if callable(g):
+            if callable(__g):
 
                 if diff_eq.is_multi_return:
 
                     def int_fg(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        val = f(y0, t, *args)
-                        df = val[0] * dt
-                        g_n = g(y0, t, *args)
-                        dg = g_n * dW * dt_sqrt
-                        y_n_bar = y0 + df + g_n * dt_sqrt
-                        g_n_bar = g(y_n_bar, t, *args)
-                        y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt - dt_sqrt)
+                        val = __f(y0, t, *args)
+                        df = val[0] * __dt
+                        g_n = __g(y0, t, *args)
+                        dg = g_n * dW * __dt_sqrt
+                        y_n_bar = y0 + df + g_n * __dt_sqrt
+                        g_n_bar = __g(y_n_bar, t, *args)
+                        y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * __dt_sqrt - __dt_sqrt)
                         return (y1,) + tuple(val[1:])
 
                 else:
 
                     def int_fg(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        df = f(y0, t, *args) * dt
-                        g_n = g(y0, t, *args)
-                        dg = g_n * dW * dt_sqrt
-                        y_n_bar = y0 + df + g_n * dt_sqrt
-                        g_n_bar = g(y_n_bar, t, *args)
-                        y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt - dt_sqrt)
+                        df = __f(y0, t, *args) * __dt
+                        g_n = __g(y0, t, *args)
+                        dg = g_n * dW * __dt_sqrt
+                        y_n_bar = y0 + df + g_n * __dt_sqrt
+                        g_n_bar = __g(y_n_bar, t, *args)
+                        y1 = y0 + df + dg + 0.5 * (g_n_bar - g_n) * (dW * dW * __dt_sqrt - __dt_sqrt)
                         return y1
 
                 return int_fg
@@ -1506,37 +1502,37 @@ class MilsteinStra(Integrator):
 
         assert isinstance(diff_eq, DiffEquation)
 
-        dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
-        f = diff_eq.f
+        __dt = profile.get_dt()
+        __dt_sqrt = np.sqrt(__dt)
+        __f = diff_eq.f
 
         if diff_eq.is_stochastic:
-            g = diff_eq.g
+            __g = diff_eq.g
 
-            if callable(g):
+            if callable(__g):
 
                 if diff_eq.is_multi_return:
                     def int_fg(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        val = f(y0, t, *args)
-                        df = val[0] * dt
-                        g_n = g(y0, t, *args)
-                        dg = g_n * dW * dt_sqrt
-                        y_n_bar = y0 + df + g_n * dt_sqrt
-                        g_n_bar = g(y_n_bar, t, *args)
-                        extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt)
+                        val = __f(y0, t, *args)
+                        df = val[0] * __dt
+                        g_n = __g(y0, t, *args)
+                        dg = g_n * dW * __dt_sqrt
+                        y_n_bar = y0 + df + g_n * __dt_sqrt
+                        g_n_bar = __g(y_n_bar, t, *args)
+                        extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * __dt_sqrt)
                         y1 = y0 + df + dg + extra_term
                         return (y1,) + tuple(val[1:])
 
                 else:
                     def int_fg(y0, t, *args):
                         dW = np.random.normal(0.0, 1.0, y0.shape)
-                        df = f(y0, t, *args) * dt
-                        g_n = g(y0, t, *args)
-                        dg = g_n * dW * dt_sqrt
-                        y_n_bar = y0 + df + g_n * dt_sqrt
-                        g_n_bar = g(y_n_bar, t, *args)
-                        extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * dt_sqrt)
+                        df = __f(y0, t, *args) * __dt
+                        g_n = __g(y0, t, *args)
+                        dg = g_n * dW * __dt_sqrt
+                        y_n_bar = y0 + df + g_n * __dt_sqrt
+                        g_n_bar = __g(y_n_bar, t, *args)
+                        extra_term = 0.5 * (g_n_bar - g_n) * (dW * dW * __dt_sqrt)
                         y1 = y0 + df + dg + extra_term
                         return y1
 
