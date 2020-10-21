@@ -6,6 +6,10 @@ from importlib import import_module
 
 import autopep8
 
+from .constants import INPUT_OPERATIONS
+from .constants import _ARG_KEYWORDS
+from .constants import _NEU_GROUP
+from .constants import _SYN_CONN
 from .types import NeuState
 from .types import ObjState
 from .types import SynState
@@ -26,10 +30,6 @@ __all__ = [
     'BaseType',
     'BaseEnsemble',
 ]
-
-_ARG_KEYWORDS = ['_dt_', '_t_', '_i_']
-_NEU_GROUP = 'NeuGroup'
-_SYN_CONN = 'SynConn'
 
 
 class ModelDefError(Exception):
@@ -131,6 +131,9 @@ class BaseType(object):
                     warnings.append(warn)
         if len(warnings):
             print('\n'.join(warnings) + '\n')
+
+        # delay keys
+        self._delay_keys = {}
 
     def __str__(self):
         return f'{self.name}'
@@ -856,10 +859,9 @@ class BaseEnsemble(object):
         # ----------------------
         for _, _, ops, _ in key_val_ops_types:
             try:
-                assert ops in ['-', '+', 'x', '/', '=']
+                assert ops in INPUT_OPERATIONS
             except AssertionError:
-                raise ModelUseError('Only support five input operations: +, -, x, /, =')
-        ops2str = {'-': 'sub', '+': 'add', 'x': 'mul', '/': 'div', '=': 'assign'}
+                raise ModelUseError(f'Only support five input operations: {list(INPUT_OPERATIONS.keys())}')
 
         # generate code of input function
         # --------------------------------
@@ -906,7 +908,7 @@ class BaseEnsemble(object):
                     code_arg2call[f'{self.name}_{attr}'] = f'{self.name}.{attr}["_data"]'
 
             # get the right side #
-            right = f'{self.name}_input{input_idx}_{attr}_{item}_{ops2str[ops]}'
+            right = f'{self.name}_input{input_idx}_{attr}_{item}_{INPUT_OPERATIONS[ops]}'
             code_scope[right] = val
             if data_type == 'iter':
                 right = right + '[_i_]'

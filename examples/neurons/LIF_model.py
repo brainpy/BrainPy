@@ -27,7 +27,9 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
         {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
     )
 
-    @nb.integrate(noise=noise / tau)
+    g = lambda V, t, Isyn: noise / tau
+
+    @nb.integrate(noise=g)
     def int_f(V, t, Isyn):
         return (-V + Vr + Isyn) / tau
 
@@ -49,7 +51,7 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
 if __name__ == '__main__':
     nb.profile.set(backend='numba', dt=0.02, merge_ing=True)
 
-    LIF = define_LIF()
+    LIF = define_LIF(noise=1.)
 
     neu = nb.NeuGroup(LIF, geometry=(10,), monitors=['sp', 'V'],
                       pars_update={
@@ -57,6 +59,7 @@ if __name__ == '__main__':
                           'tau': np.random.randint(5, 10, size=(10,)),
                           'noise': 1.
                       })
+    neu.update_pars()
     net = nb.Network(neu)
     net.run(duration=100., inputs=[neu, 'ST.inp', 13.], report=True)
 
@@ -64,10 +67,10 @@ if __name__ == '__main__':
     fig, gs = nb.visualize.get_figure(1, 1, 4, 8)
 
     fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.pars_update["tau"][0]})')
-    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.pars_update["tau"][2]})')
+    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu._pars_to_update["tau"][0]})')
+    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu._pars_to_update["tau"][2]})')
     plt.ylabel('Membrane potential')
-    plt.xlim(-0.1, net._run_time + 0.1)
+    plt.xlim(-0.1, net.t_start + 0.1)
     plt.legend()
     plt.xlabel('Time (ms)')
 

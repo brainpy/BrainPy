@@ -141,12 +141,12 @@ if __name__ == '__main__':
 
     fig.add_subplot(gs[0, 0])
     nb.visualize.plot_potential(neu.mon, net.ts, neuron_index=indexes)
-    plt.xlim(-0.1, net._run_time + 0.1)
+    plt.xlim(-0.1, net.t_start + 0.1)
     plt.legend()
 
     fig.add_subplot(gs[1, 0])
     nb.visualize.plot_value(neu.mon, net.ts, 'u', val_index=indexes)
-    plt.xlim(-0.1, net._run_time + 0.1)
+    plt.xlim(-0.1, net.t_start + 0.1)
     plt.xlabel('Time (ms)')
     plt.legend()
 

@@ -6,8 +6,9 @@ import autopep8
 
 from .base_objects import BaseEnsemble
 from .base_objects import ModelUseError
-from .neuron_group import NeuGroup
-from .synapse_connection import SynConn
+from .constants import INPUT_OPERATIONS
+from .neurons import NeuGroup
+from .synapses import SynConn
 from .. import numpy as np
 from .. import profile
 from .. import tools
@@ -38,7 +39,8 @@ class Network(object):
         self._objsets = dict()
 
         # record the current step
-        self._run_time = 0.
+        self.t_start = 0.
+        self.t_end = 0.
 
         # add objects
         self.add(*args, **kwargs)
@@ -123,9 +125,10 @@ class Network(object):
                 raise ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
             if len(inp) == 4:
                 try:
-                    assert inp[3] in ['+', '-', 'x', '/', '=']
+                    assert inp[3] in INPUT_OPERATIONS
                 except AssertionError:
-                    raise ModelUseError(f'Input operation only support "+, -, x, /, =", not "{inp[2]}".')
+                    raise ModelUseError(f'Input operation only support '
+                                        f'"{list(INPUT_OPERATIONS.keys())}", not "{inp[3]}".')
 
         # format input
         formatted_inputs = {}
@@ -136,7 +139,7 @@ class Network(object):
             elif isinstance(inp[0], BaseEnsemble):
                 target = inp[0].name
             else:
-                raise KeyError(f'Unknown input target: {str(inp[0])}.')
+                raise KeyError(f'Unknown input target: {str(inp[0])}')
 
             # key
             try:
@@ -214,7 +217,17 @@ class Network(object):
         """
         # initialization
         # ------------------
-        ts = np.arange(self._run_time, self._run_time + duration, self.dt)
+        # times
+        if isinstance(duration, (int, float)):
+            start, end = 0, duration
+        elif isinstance(duration, (tuple, list)):
+            assert len(duration) == 2, 'Only support duration with the format of "(start, end)".'
+            start, end = duration
+        else:
+            raise ValueError(f'Unknown duration type: {type(duration)}')
+        self.t_start, self.t_end = start, end
+        dt = profile.get_dt()
+        ts = np.arange(start, end, dt)
         ts = np.asarray(ts, dtype=np.float_)
         run_length = ts.shape[0]
 
@@ -243,16 +256,12 @@ class Network(object):
             for run_idx in range(run_length):
                 _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
 
-        # 3. Finally
-        # -----------
-        self._run_time = duration
-
     @property
     def _keywords(self):
         return [
             # attributes
             '_all_neu_groups', '_all_syn_conns', '_objsets', '_all_objects',
-            '_run_time',
+            't_start', 't_end',
             # self functions
             'add', 'run', '_add_obj',
             # property
@@ -268,7 +277,7 @@ class Network(object):
         times : numpy.ndarray
             The running time-steps of the network.
         """
-        return np.arange(0, self._run_time, self.dt)
+        return np.asarray(np.arange(self.t_start, self.t_end, self.dt), dtype=np.float_)
 
     @property
     def dt(self):

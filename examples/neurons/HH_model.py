@@ -1,4 +1,4 @@
-# encoding:UTF-8
+# -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     fig.add_subplot(gs[0, 0])
     plt.plot(ts, neu.mon.V[:, 0], label='N')
     plt.ylabel('Membrane potential')
-    plt.xlim(-0.1, net._run_time + 0.1)
+    plt.xlim(-0.1, net.t_start + 0.1)
     plt.legend()
 
     fig.add_subplot(gs[1, 0])
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     plt.plot(ts, neu.mon.h[:, 0], label='h')
     plt.plot(ts, neu.mon.n[:, 0], label='n')
     plt.legend()
-    plt.xlim(-0.1, net._run_time + 0.1)
+    plt.xlim(-0.1, net.t_start + 0.1)
     plt.xlabel('Time (ms)')
 
     plt.show()

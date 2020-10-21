@@ -13,8 +13,8 @@ synapses, etc.
 
 from .base_objects import *
 from .types import *
-from .neuron_group import *
-from .synapse_connection import *
+from .neurons import *
+from .synapses import *
 from .network import *
 
 

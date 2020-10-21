@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import re
+
 from .base_objects import BaseEnsemble
 from .base_objects import BaseType
+from .base_objects import ModelDefError
 from .base_objects import ModelUseError
-from .base_objects import _SYN_CONN
-from .neuron_group import NeuGroup
+from .constants import _SYN_CONN
+from .neurons import NeuGroup
+from .types import SynState
 from .. import numpy as np
 from .. import profile
+from .. import tools
 from ..connectivity import Connector
 from ..connectivity import post2syn
 from ..connectivity import pre2syn
@@ -29,6 +34,34 @@ class SynType(BaseType):
     def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None):
         super(SynType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based,
                                       heter_params_replace=heter_params_replace)
+
+        # inspect delay keys
+        # ------------------
+
+        # delay function
+        delay_funcs = []
+        for func in self.steps:
+            if func.__name__.startswith('_npbrain_delayed_'):
+                delay_funcs.append(func)
+        if len(delay_funcs):
+            delay_func_code = '\n'.join([tools.get_main_code(func) for func in delay_funcs])
+            delay_func_code_left = '\n'.join(
+                [line.split('=')[0] for line in tools.get_code_lines(delay_func_code)])
+
+            # get delayed variables
+            for arg, state in self.requires.items():
+                if isinstance(state, SynState):
+                    delay_keys_in_left = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', delay_func_code_left))
+                    if len(delay_keys_in_left) > 0:
+                        raise ModelDefError(f'Delayed function cannot assign value to "{arg}".')
+                    delay_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', delay_func_code))
+                    if len(delay_keys) > 0:
+                        if arg not in self._delay_keys:
+                            self._delay_keys[arg] = set()
+                        self._delay_keys[arg].update(delay_keys)
+
+    def run(self):
+        raise NotImplementedError
 
 
 class SynConn(BaseEnsemble):
