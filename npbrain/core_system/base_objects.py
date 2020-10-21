@@ -129,7 +129,8 @@ class BaseType(object):
                 if arg not in self.requires:
                     warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "requires".'
                     warnings.append(warn)
-        print('\n'.join(warnings) + '\n')
+        if len(warnings):
+            print('\n'.join(warnings) + '\n')
 
     def __str__(self):
         return f'{self.name}'
@@ -514,7 +515,12 @@ class BaseEnsemble(object):
                         append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
 
                     # append numerical integration code lines
-                    append_lines.extend([indent + l for l in v.update_code.split('\n')])
+                    try:
+                        append_lines.extend([indent + l for l in v.update_code.split('\n')])
+                    except AttributeError:
+                        raise ModelUseError(f'Integrator {v} has no "update_code". This may be caused by \n'
+                                            f'the declaration of "profile.set(backend="numba")" is not \n'
+                                            f'before the definition of the model.')
                     append_lines.append(indent + new_line)
 
                     # add appended lines into the main function code lines
@@ -1150,7 +1156,7 @@ class BaseEnsemble(object):
             raise ModelUseError(f'"new_ST" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
         super(BaseEnsemble, self).__setattr__('ST', new_ST)
 
-    def update_param(self, **kwargs):
+    def update_pars(self, **kwargs):
         for k, v in kwargs.items():
             val_size = np.size(v)
             if val_size != 1:

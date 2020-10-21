@@ -16,13 +16,12 @@ from sympy.printing.str import StrPrinter
 from .. import numpy as np
 
 __all__ = [
-
     'FUNCTION_MAPPING',
     'CONSTANT_MAPPING',
     'SympyRender',
     'SympyPrinter',
-    'str_to_sympy',
-    'sympy_to_str',
+    'str2sympy',
+    'sympy2str',
     'get_mapping_scope',
 ]
 
@@ -363,11 +362,11 @@ _RENDER = SympyRender()
 _PRINTER = SympyPrinter()
 
 
-def str_to_sympy(str_expr):
+def str2sympy(str_expr):
     return _RENDER.render_expr(str_expr)
 
 
-def sympy_to_str(sympy_expr):
+def sympy2str(sympy_expr):
     # replace the standard functions by our names if necessary
     replacements = dict((f, sympy.Function(name)) for name, f in FUNCTION_MAPPING.items() if str(f) != name)
 

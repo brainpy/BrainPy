@@ -39,7 +39,7 @@ def integrate(func=None, noise=None, method=None):
 
     Using ``NumpyBrain``, this ODE function can be written as
 
-    >>> import npbrain._numpy as np
+    >>> import npbrain.numpy as np
     >>> from npbrain import integrate
     >>>
     >>> @integrate(method='rk4')
@@ -66,12 +66,6 @@ def integrate(func=None, noise=None, method=None):
         If `f` is provided, then the one-step numerical integrator will be returned.
         if not, the wrapper will be provided.
     """
-    import dis
-
-    from dill.source import getsource
-
-    print(dis.dis(noise))
-    print(getsource(noise))
 
     if noise is None:
         has_noise = False

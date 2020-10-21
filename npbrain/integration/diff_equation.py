@@ -5,8 +5,8 @@ from collections import Counter
 
 import sympy
 
-from .sympy_tools import str_to_sympy
-from .sympy_tools import sympy_to_str
+from .sympy_tools import str2sympy
+from .sympy_tools import sympy2str
 from .. import numpy as np
 from .. import profile
 from .. import tools
@@ -175,10 +175,10 @@ class DiffEquation(object):
             for dep_var, dep_expr in dependencies.items():
                 if dep_var in expr.identifiers:
                     code = dep_expr.get_code(subs=True)
-                    substitutions[sympy.Symbol(dep_var, real=True)] = str_to_sympy(code)
+                    substitutions[sympy.Symbol(dep_var, real=True)] = str2sympy(code)
             if len(substitutions):
-                new_sympy_expr = str_to_sympy(expr.code).xreplace(substitutions)
-                new_str_expr = sympy_to_str(new_sympy_expr)
+                new_sympy_expr = str2sympy(expr.code).xreplace(substitutions)
+                new_str_expr = sympy2str(new_sympy_expr)
                 expr._substituted_code = new_str_expr
                 dependencies[expr.var_name] = expr
             else:
@@ -190,11 +190,11 @@ class DiffEquation(object):
         substitutions = {}
         for dep_var, dep_expr in dependencies.items():
             code = dep_expr.get_code(subs=True)
-            substitutions[sympy.Symbol(dep_var, real=True)] = str_to_sympy(code)
+            substitutions[sympy.Symbol(dep_var, real=True)] = str2sympy(code)
         if len(substitutions):
             expr = expressions[-1]
-            new_sympy_expr = str_to_sympy(expr.code).xreplace(substitutions)
-            new_str_expr = sympy_to_str(new_sympy_expr)
+            new_sympy_expr = str2sympy(expr.code).xreplace(substitutions)
+            new_str_expr = sympy2str(new_sympy_expr)
             expr._substituted_code = new_str_expr
 
     def get_f_expressions(self, substitute=False):

@@ -3,8 +3,8 @@
 import sympy
 
 from .diff_equation import DiffEquation
-from .sympy_tools import str_to_sympy
-from .sympy_tools import sympy_to_str
+from .sympy_tools import str2sympy
+from .sympy_tools import sympy2str
 from .. import numpy as np
 from .. import profile
 from ..tools import word_replace
@@ -200,7 +200,7 @@ class Euler(Integrator):
 
         # update expression
         update = var + dfdt * dt + dt_sqrt * dgdt
-        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+        code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
         return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
@@ -380,7 +380,7 @@ class RK2(Integrator):
 
         # update expression
         update = var + dfdt * dt + dt_sqrt * dgdt
-        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+        code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
         return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
@@ -527,7 +527,7 @@ class Heun(Integrator):
 
                 # update expression
                 update = var + dfdt * dt + dgdt * dW_sb
-                code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+                code_lines.append(f'{var_name} = {sympy2str(update)}')
 
                 # multiple returns
                 return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
@@ -710,7 +710,7 @@ class RK3(Integrator):
 
         # update expression
         update = var + dfdt * dt + dt_sqrt * dgdt
-        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+        code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
         return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
@@ -847,7 +847,7 @@ class RK4(Integrator):
 
         # update expression
         update = var + dfdt * dt + dt_sqrt * dgdt
-        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+        code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
         return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
@@ -989,7 +989,7 @@ class RK4Alternative(Integrator):
 
         # update expression
         update = var + dfdt * dt + dt_sqrt * dgdt
-        code_lines.append(f'{var_name} = {sympy_to_str(update)}')
+        code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
         return_expr = ', '.join([var_name] + diff_eq.f_returns[1:])
@@ -1104,9 +1104,9 @@ class ExponentialEuler(Integrator):
 
         # get the linear system using sympy
         f_res = f_expressions[-1]
-        df_expr = str_to_sympy(f_res.code).expand()
+        df_expr = str2sympy(f_res.code).expand()
         s_df = sympy.Symbol(f"{f_res.var_name}")
-        code_lines.append(f'{s_df.name} = {sympy_to_str(df_expr)}')
+        code_lines.append(f'{s_df.name} = {sympy2str(df_expr)}')
         var = sympy.Symbol(diff_eq.var_name, real=True)
 
         # get df part
@@ -1116,19 +1116,19 @@ class ExponentialEuler(Integrator):
         if df_expr.has(var):
             # linear
             linear = sympy.collect(df_expr, var, evaluate=False)[var]
-            code_lines.append(f'{s_linear.name} = {sympy_to_str(linear)}')
+            code_lines.append(f'{s_linear.name} = {sympy2str(linear)}')
             # linear exponential
             linear_exp = sympy.exp(linear * dt)
-            code_lines.append(f'{s_linear_exp.name} = {sympy_to_str(linear_exp)}')
+            code_lines.append(f'{s_linear_exp.name} = {sympy2str(linear_exp)}')
             # df part
             df_part = (s_linear_exp - 1) / s_linear * s_df
-            code_lines.append(f'{s_df_part.name} = {sympy_to_str(df_part)}')
+            code_lines.append(f'{s_df_part.name} = {sympy2str(df_part)}')
 
         else:
             # linear exponential
             code_lines.append(f'{s_linear_exp.name} = np.sqrt({dt})')
             # df part
-            code_lines.append(f'{s_df_part.name} = {sympy_to_str(dt * s_df)}')
+            code_lines.append(f'{s_df_part.name} = {sympy2str(dt * s_df)}')
 
         # get dg part
         if diff_eq.is_stochastic:
@@ -1153,7 +1153,7 @@ class ExponentialEuler(Integrator):
         update = var + s_df_part + s_dg_part * s_linear_exp
 
         # The actual update step
-        code_lines.append(f'{diff_eq.var_name} = {sympy_to_str(update)}')
+        code_lines.append(f'{diff_eq.var_name} = {sympy2str(update)}')
         return_expr = ', '.join([diff_eq.var_name] + diff_eq.f_returns[1:])
         code_lines.append(f'_{diff_eq.func_name}_res = {return_expr}')
 
