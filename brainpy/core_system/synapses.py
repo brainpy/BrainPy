@@ -44,9 +44,8 @@ class SynType(BaseType):
             if func.__name__.startswith('_npbrain_delayed_'):
                 delay_funcs.append(func)
         if len(delay_funcs):
-            delay_func_code = '\n'.join([tools.get_main_code(func) for func in delay_funcs])
-            delay_func_code_left = '\n'.join(
-                [line.split('=')[0] for line in tools.get_code_lines(delay_func_code)])
+            delay_func_code = '\n'.join([tools.deindent(tools.get_main_code(func)) for func in delay_funcs])
+            delay_func_code_left = '\n'.join(tools.format_code(delay_func_code).lefts)
 
             # get delayed variables
             for arg, state in self.requires.items():
@@ -97,7 +96,7 @@ class SynConn(BaseEnsemble):
         # ----
         if name is None:
             global _SYN_CONN_NO
-            name = f'SynConn{_SYN_CONN_NO}'
+            name = f'SC{_SYN_CONN_NO}'
             _SYN_CONN_NO += 1
         else:
             name = name
@@ -182,7 +181,8 @@ class SynConn(BaseEnsemble):
 
         # ST
         # --
-        self.ST = self.requires['ST'].make_copy(size=self.num, delay=delay_len)
+        self.ST = self.requires['ST'].make_copy(size=self.num, delay=delay_len,
+                                                delay_vars=list(self.model._delay_keys['ST']))
 
     def _merge_steps(self):
         codes_of_calls = super(SynConn, self)._merge_steps()

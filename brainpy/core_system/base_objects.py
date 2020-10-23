@@ -101,11 +101,21 @@ class BaseType(object):
                 assert callable(func)
             except AssertionError:
                 raise ModelDefError('"steps" must be a list/tuple of callable functions.')
+            # function name
             func_name = tools.get_func_name(func, replace=True)
             self.step_names.append(func_name)
+            # function
             self.steps.append(func)
+            # function scope
             scope = tools.get_func_scope(func, include_dispatcher=True)
-            self.steps_scope.update(scope)
+            for k, v in scope.items():
+                if k in self.steps_scope:
+                    if v != self.steps_scope[k]:
+                        raise ModelDefError(f'Find scope variable {k} have different values in '
+                                            f'{self.name}: {k} = {v} and {k} = {self.steps_scope[k]}.\n'
+                                            f'This maybe cause a grievous mistake in the future. Please change!')
+                self.steps_scope[k] = v
+            # set attribute
             setattr(self, func_name, func)
 
         # heterogeneous parameter replace
@@ -137,6 +147,49 @@ class BaseType(object):
 
     def __str__(self):
         return f'{self.name}'
+
+
+class ParsUpdate(dict):
+    def __init__(self, all_pars, num, model):
+        assert isinstance(all_pars, (tuple, list))
+        assert isinstance(num, int)
+
+        # structure of the ParsUpdate #
+        # --------------------------- #
+        # origins : original parameters
+        # num : number of the neurons
+        # heters : heterogeneous parameters
+        # updates : parameters to update
+        # model : the model belongs to
+
+        super(ParsUpdate, self).__init__(origins=all_pars, num=num,
+                                         heters=dict(), updates=dict(),
+                                         model=model)
+
+    def __setitem__(self, key, value):
+        # check the existence of "key"
+        if key not in self["origins"]:
+            raise ModelUseError(f'Parameter "{key}" may be not defined in "{self["model"].name}" variable scope.\n'
+                                f'Or, "{key}" is used to compute an intermediate variable, and is not '
+                                f'directly used by the step functions.')
+
+        # check value size
+        val_size = np.size(value)
+        if val_size != 1:
+            if val_size != self["num"]:
+                raise ModelUseError(f'The size of parameter "{key}" is wrong, "{val_size}" != 1 '
+                                    f'and "{val_size}" != {self["num"]}.')
+            else:
+                self["heters"][key] = value
+
+        # update
+        self['updates'][key] = value
+
+    def __getattr__(self, item):
+        if item in ['origins', 'heters', 'updates', 'num', 'model']:
+            return self.__getitem__(item)
+        else:
+            getattr(self, item)
 
 
 class BaseEnsemble(object):
@@ -181,26 +234,14 @@ class BaseEnsemble(object):
 
         # parameters
         # ----------
-        self._hetero_pars = {}
+        self.pars = ParsUpdate(all_pars=model.steps_scope, num=num, model=model)
         pars_update = dict() if pars_update is None else pars_update
         try:
             assert isinstance(pars_update, dict)
         except AssertionError:
             raise ModelUseError('"pars_update" must be a dict.')
         for k, v in pars_update.items():
-            val_size = np.size(v)
-            if val_size != 1:
-                if val_size != num:
-                    raise ModelUseError(f'The size of parameter "{k}" is wrong, "{val_size}" != 1 '
-                                        f'and "{val_size}" != {num}.')
-                else:
-                    self._hetero_pars[k] = v
-            if k not in model.steps_scope:
-                raise ModelUseError(f'Parameter "{k}" is not defined in "{model.name}" variable scope.\n'
-                                    f'This may be caused by that "{k}" is used to compute an intermediate variable, \n'
-                                    f'but not directly used by the function. Therefore, NumpyBrain cannot update \n'
-                                    f'this parameter.')
-        self._pars_to_update = pars_update
+            self.pars[k] = v
 
         # monitors
         # ---------
@@ -246,28 +287,8 @@ class BaseEnsemble(object):
         for i, func in enumerate(self.model.steps):
             for arg in inspect.getfullargspec(func).args:
                 if not (arg in _ARG_KEYWORDS + ['self']) and not hasattr(self, arg):
-                    raise ModelUseError(f'Function "{tools.get_func_name(func, replace=True)}" in "{self.model.name}" '
+                    raise ModelUseError(f'Function "{self.model.step_names[i]}" in "{self.model.name}" '
                                         f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
-
-    def __step_delay_keys(self):
-        delay_keys = set()
-        if self._cls_type == _SYN_CONN:
-            # check "delayed" decorator
-            delay_funcs = []
-            for func in self.model.steps:
-                if func.__name__.startswith('_npbrain_delayed_'):
-                    delay_funcs.append(func)
-
-            # get delayed variables
-            if len(delay_funcs):
-                delay_func_code = '\n'.join([tools.get_main_code(func) for func in delay_funcs])
-                delay_func_code_left = '\n'.join([line.split('=')[0] for line in tools.get_code_lines(delay_func_code)])
-                delay_keys_in_left = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_code_left))
-                if len(delay_keys_in_left) > 0:
-                    raise ModelDefError('Delayed function cannot assign value to "ST".')
-                delay_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_code))
-                self.set_ST(self.ST.make_copy(self.num, self.delay_len, list(delay_keys)))
-        return delay_keys
 
     def __step_mode_np_group(self):
         # check whether the model include heterogeneous parameters
@@ -478,7 +499,7 @@ class BaseEnsemble(object):
     def __step_substitute_integrator(self, func):
         # get code and code lines
         func_code = tools.deindent(tools.get_main_code(func))
-        code_lines = tools.get_code_lines(func_code)
+        code_lines = tools.format_code(func_code).lines
 
         # get function scope
         vars = inspect.getclosurevars(func)
@@ -836,267 +857,6 @@ class BaseEnsemble(object):
 
         else:
             raise NotImplementedError
-
-    def _add_input(self, key_val_ops_types):
-        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
-        input_idx = 0
-
-        # check datatype of the input
-        # ----------------------------
-        has_iter = False
-        for _, _, _, t in key_val_ops_types:
-            try:
-                assert t in ['iter', 'fix']
-            except AssertionError:
-                raise ModelUseError('Only support inputs of "iter" and "fix" types.')
-            if t == 'iter':
-                has_iter = True
-        if has_iter:
-            code_args.add('_i_')
-            code_arg2call['_i_'] = '_i_'
-
-        # check data operations
-        # ----------------------
-        for _, _, ops, _ in key_val_ops_types:
-            try:
-                assert ops in INPUT_OPERATIONS
-            except AssertionError:
-                raise ModelUseError(f'Only support five input operations: {list(INPUT_OPERATIONS.keys())}')
-
-        # generate code of input function
-        # --------------------------------
-        for key, val, ops, data_type in key_val_ops_types:
-            attr_item = key.split('.')
-
-            # get the left side #
-            if len(attr_item) == 1 and (attr_item[0] not in self.ST):  # if "item" is the model attribute
-                attr, item = attr_item[0], ''
-                try:
-                    assert hasattr(self, attr)
-                except AssertionError:
-                    raise ModelUseError(f'Model "{self.name}" doesn\'t have "{attr}" attribute", '
-                                        f'and "{self.name}.ST" doesn\'t have "{attr}" field.')
-                try:
-                    assert isinstance(getattr(self, attr), np.ndarray)
-                except AssertionError:
-                    raise ModelUseError(f'NumpyBrain only support input to arrays.')
-
-                if profile.is_numpy_bk():
-                    left = f'{self.name}.{attr}'
-                else:
-                    left = f'{self.name}_{attr}'
-                    code_args.add(left)
-                    code_arg2call[left] = f'{self.name}.{attr}'
-            else:
-                if len(attr_item) == 1:
-                    attr, item = 'ST', attr_item[0]
-                elif len(attr_item) == 2:
-                    attr, item = attr_item[0], attr_item[1]
-                else:
-                    raise ModelUseError(f'Unknown target : {key}.')
-                try:
-                    assert item in getattr(self, attr)
-                except AssertionError:
-                    raise ModelUseError(f'"{self.name}.{attr}" doesn\'t have "{item}" field.')
-
-                if profile.is_numpy_bk():
-                    left = f'{self.name}.{attr}["{item}"]'
-                else:
-                    idx = getattr(self, attr)['_var2idx'][item]
-                    left = f'{self.name}_{attr}[{idx}]'
-                    code_args.add(f'{self.name}_{attr}')
-                    code_arg2call[f'{self.name}_{attr}'] = f'{self.name}.{attr}["_data"]'
-
-            # get the right side #
-            right = f'{self.name}_input{input_idx}_{attr}_{item}_{INPUT_OPERATIONS[ops]}'
-            code_scope[right] = val
-            if data_type == 'iter':
-                right = right + '[_i_]'
-            input_idx += 1
-
-            # final code line #
-            if ops == '=':
-                code_lines.append(left + " = " + right)
-            else:
-                code_lines.append(left + f" {ops}= " + right)
-
-        # final code
-        # ----------
-        if len(key_val_ops_types) > 0:
-            code_lines.insert(0, f'# "input" step function of {self.name}')
-
-        if profile.is_numpy_bk():
-            if len(key_val_ops_types) > 0:
-                code_args = sorted(list(code_args))
-                code_lines.insert(0, f'\ndef input_step({", ".join(code_args)}):')
-
-                # compile function
-                func_code = '\n  '.join(code_lines)
-                if profile._auto_pep8:
-                    func_code = autopep8.fix_code(func_code)
-                exec(compile(func_code, '', 'exec'), code_scope)
-                self.input_step = code_scope['input_step']
-
-                # format function call
-                code_arg2call = [code_arg2call[arg] for arg in code_args]
-                func_call = f'{self.name}.input_step({", ".join(code_arg2call)})'
-
-                if profile._show_formatted_code:
-                    print(func_code)
-                    print()
-                    tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
-                    print()
-            else:
-                self.input_step = None
-                func_call = ''
-
-            self._codegen['input'] = {'func': self.input_step, 'call': func_call}
-
-        else:
-            code_lines.append('\n')
-            self._codegen['input'] = {'scopes': code_scope, 'args': code_args,
-                                      'arg2calls': code_arg2call, 'codes': code_lines}
-
-    def _add_monitor(self, run_length):
-        code_scope, code_args, code_arg2call, code_lines = {self.name: self}, set(), {}, []
-        idx_no = 0
-
-        # generate code of monitor function
-        # ---------------------------------
-        for key, indices in self._mon_vars:
-            # check indices #
-            if indices is not None:
-                if isinstance(indices, list):
-                    try:
-                        isinstance(indices[0], int)
-                    except AssertionError:
-                        raise ModelUseError('Monitor index only supports list [int] or 1D array.')
-                elif isinstance(indices, np.ndarray):
-                    try:
-                        assert np.ndim(indices) == 1
-                    except AssertionError:
-                        raise ModelUseError('Monitor index only supports list [int] or 1D array.')
-                else:
-                    raise ModelUseError(f'Unknown monitor index type: {type(indices)}.')
-
-            attr_item = key.split('.')
-
-            # get the code line #
-            if (len(attr_item) == 1) and (attr_item[0] not in getattr(self, 'ST')):
-                attr = attr_item[0]
-                try:
-                    assert hasattr(self, attr)
-                except AssertionError:
-                    raise ModelUseError(f'Model "{self.name}" doesn\'t have "{attr}" attribute", '
-                                        f'and "{self.name}.ST" doesn\'t have "{attr}" field.')
-                try:
-                    assert isinstance(getattr(self, attr), np.ndarray)
-                except AssertionError:
-                    assert ModelUseError(f'NumpyBrain only support monitor of arrays.')
-
-                shape = getattr(self, attr).shape
-
-                idx_name = f'{self.name}_idx{idx_no}_{attr}'
-                if profile.is_numpy_bk():
-                    if indices is None:
-                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}'
-                    else:
-                        line = f'{self.name}.mon["{key}"][i] = {self.name}.{attr}[{idx_name}]'
-                        code_scope[idx_name] = indices
-                        idx_no += 1
-
-                else:
-                    mon_name = f'{self.name}_mon_{attr}'
-                    target_name = f'{self.name}_{attr}'
-                    if indices is None:
-                        line = f'{mon_name}[_i_] = {target_name}'
-                    else:
-                        line = f'{mon_name}[_i_] = {target_name}[{idx_name}]'
-                        code_scope[idx_name] = indices
-                        idx_no += 1
-                    code_args.add(mon_name)
-                    code_arg2call[mon_name] = f'{self.name}.mon["{key}"]'
-                    code_args.add(target_name)
-                    code_arg2call[target_name] = f'{self.name}.{attr}'
-            else:
-                if len(attr_item) == 1:
-                    item, attr = attr_item[0], 'ST'
-                elif len(attr_item) == 2:
-                    attr, item = attr_item
-                else:
-                    raise ModelUseError(f'Unknown target : {key}.')
-
-                shape = getattr(self, attr)[item].shape
-
-                idx_name = f'{self.name}_idx{idx_no}_{attr}_{item}'
-                if profile.is_numpy_bk():
-                    if indices is None:
-                        line = f'{self.name}.mon["{key}"][_i_] = {self.name}.{attr}["{item}"]'
-                    else:
-                        line = f'{self.name}.mon["{key}"][_i_] = {self.name}.{attr}["{item}"][{idx_name}]'
-                        code_scope[idx_name] = indices
-                        idx_no += 1
-                else:
-                    idx = getattr(self, attr)['_var2idx'][item]
-                    mon_name = f'{self.name}_mon_{attr}_{item}'
-                    target_name = f'{self.name}_{attr}'
-                    if indices is None:
-                        line = f'{mon_name}[_i_] = {target_name}[{idx}]'
-                    else:
-                        line = f'{mon_name}[_i_] = {target_name}[{idx}][{idx_name}]'
-                        code_scope[idx_name] = indices
-                    idx_no += 1
-                    code_args.add(mon_name)
-                    code_arg2call[mon_name] = f'{self.name}.mon["{key}"]'
-                    code_args.add(target_name)
-                    code_arg2call[target_name] = f'{self.name}.{attr}["_data"]'
-
-            # initialize monitor array #
-            key = key.replace(',', '_')
-            if indices is None:
-                self.mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
-            else:
-                self.mon[key] = np.zeros((run_length, len(indices)) + shape[1:], dtype=np.float_)
-
-            # add line #
-            code_lines.append(line)
-
-        # final code
-        # ----------
-        if len(self._mon_vars):
-            code_args.add('_i_')
-            code_arg2call['_i_'] = '_i_'
-            code_lines.insert(0, f'# "monitor" step function of {self.name}')
-
-        if profile.is_numpy_bk():
-            if len(self._mon_vars):
-                code_args = sorted(list(code_args))
-                code_lines.insert(0, f'\ndef monitor_step({", ".join(code_args)}):')
-
-                # compile function
-                func_code = '\n  '.join(code_lines)
-                if profile._auto_pep8:
-                    func_code = autopep8.fix_code(func_code)
-                exec(compile(func_code, '', 'exec'), code_scope)
-                self.monitor_step = code_scope['monitor_step']
-
-                # format function call
-                code_arg2call = [code_arg2call[arg] for arg in code_args]
-                func_call = f'{self.name}.monitor_step({", ".join(code_arg2call)})'
-
-                if profile._show_formatted_code:
-                    tools.show_code_str(func_code)
-                    tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
-            else:
-                self.monitor_step = None
-                func_call = ''
-
-            self._codegen['monitor'] = {'func': self.monitor_step, 'call': func_call}
-
-        else:
-            code_lines.append('\n')
-            self._codegen['monitor'] = {'scopes': code_scope, 'args': code_args,
-                                        'arg2calls': code_arg2call, 'codes': code_lines}
 
     def _merge_steps(self):
         codes_of_calls = []  # call the compiled functions

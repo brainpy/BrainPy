@@ -93,7 +93,7 @@ class NeuGroup(BaseEnsemble):
         # -----
         if name is None:
             global _NEU_GROUP_NO
-            name = f'NeuGroup{_NEU_GROUP_NO}'
+            name = f'NG{_NEU_GROUP_NO}'
             _NEU_GROUP_NO += 1
         else:
             name = name

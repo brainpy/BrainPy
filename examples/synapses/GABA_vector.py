@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as nb
+import brainpy.numpy as np
 
 
 def GABAa1(g_max=0.4, reversal_potential=-80., tau_decay=6.):

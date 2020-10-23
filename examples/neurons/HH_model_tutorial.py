@@ -2,11 +2,11 @@
 
 import matplotlib.pyplot as plt
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as nb
+import brainpy.numpy as np
 
 nb.profile.set(backend='numba', device='cpu', dt=0.02, merge_ing=True,
-               numerical_method='exponential')
+               numerical_method='euler')
 
 noise = 0.  # noise term
 C = 1.0  # Membrane capacity per unit area (assumed constant).

@@ -39,8 +39,8 @@ def integrate(func=None, noise=None, method=None):
 
     Using ``NumpyBrain``, this ODE function can be written as
 
-    >>> import npbrain.numpy as np
-    >>> from npbrain import integrate
+    >>> import brainpy.numpy as np
+    >>> from brainpy import integrate
     >>>
     >>> @integrate(method='rk4')
     >>> def int_m(m, t, V):

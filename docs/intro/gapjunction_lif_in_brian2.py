@@ -23,7 +23,7 @@ seed(12345)
 prefs.codegen.target = "numpy"
 
 import matplotlib.patches as patches
-import npbrain as nn
+import brainpy as nn
 
 gj_w, k_spikelet = 1., 0.5
 size = (10, 10)

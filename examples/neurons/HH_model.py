@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as nb
+import brainpy.numpy as np
 
 
 def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,

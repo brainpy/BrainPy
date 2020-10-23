@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as nb
+import brainpy.numpy as np
 
 
 def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):

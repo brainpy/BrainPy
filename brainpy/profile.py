@@ -237,7 +237,7 @@ def set_method(method):
     method : str, callable
         Numerical integrator method.
     """
-    from npbrain.integration import _SUPPORT_METHODS
+    from brainpy.integration import _SUPPORT_METHODS
 
     if not isinstance(method, str):
         raise ValueError(f'Only support string, not {type(method)}.')

@@ -3,8 +3,8 @@
 import numba
 import numpy
 
-from npbrain import profile
-from npbrain.tools import jit
+from brainpy import profile
+from brainpy.tools import jit
 
 
 def _reload():

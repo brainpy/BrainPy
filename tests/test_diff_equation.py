@@ -1,8 +1,8 @@
 import numpy as np
-from npbrain.integration import DiffEquation
-from npbrain import integrate
-from npbrain import tools
-from npbrain import profile
+from brainpy.integration import DiffEquation
+from brainpy import integrate
+from brainpy import tools
+from brainpy import profile
 profile.set_backend('numba')
 
 

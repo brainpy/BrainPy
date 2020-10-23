@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from npbrain import profile
+from brainpy import profile
 
 __all__ = [
     'constant_current',

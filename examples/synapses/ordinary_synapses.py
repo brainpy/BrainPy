@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import npbrain . numpy as np
-import npbrain as nb
+import brainpy . numpy as np
+import brainpy as nb
 
 
 def VoltageJumpSynapse():

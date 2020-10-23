@@ -1,7 +1,7 @@
-from npbrain.core_system import types
-from npbrain.core_system.neurons import NeuGroup, NeuType
-import npbrain.numpy as np
-from npbrain import profile
+from brainpy.core_system import types
+from brainpy.core_system.neurons import NeuGroup, NeuType
+import brainpy.numpy as np
+from brainpy import profile
 
 _dt = 0.02
 

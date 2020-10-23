@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as nb
+import brainpy.numpy as np
 
 
 def STP(U=0.15, tau_f=1500., tau_d=200.):

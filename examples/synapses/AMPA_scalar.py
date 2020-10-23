@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 
-import npbrain as nb
-from npbrain import numpy as np
+import brainpy as nb
+from brainpy import numpy as np
 from examples.neurons.LIF_model import LIF
 
 

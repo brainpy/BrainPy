@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as nb
+import brainpy.numpy as np
 
 nb.profile.set(backend='numba', device='cpu', dt=0.05, merge_ing=True,
                numerical_method='exponential')

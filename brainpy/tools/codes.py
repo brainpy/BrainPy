@@ -15,7 +15,7 @@ __all__ = [
     'get_identifiers',
     'get_main_code',
     'get_line_indent',
-    'get_code_lines',
+    'format_code',
     'indent',
     'deindent',
     'word_replace',
@@ -103,11 +103,13 @@ def analyse_diff_eq(eq_code):
         return analyser.variables, analyser.expressions, analyser.returns
 
 
+expression_ops = {
+    'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/',
+    'Mod': '%', 'Pow': '**', 'BitXor': '^', 'BitAnd': '&',
+}
+
+
 class DiffEquationAnalyser(ast.NodeTransformer):
-    expression_ops = {
-        'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/',
-        'Mod': '%', 'Pow': '**', 'BitXor': '^', 'BitAnd': '&',
-    }
 
     # TODO : Multiple assignment like "a = b = 1" or "a, b = f()"
     def __init__(self):
@@ -117,20 +119,24 @@ class DiffEquationAnalyser(ast.NodeTransformer):
 
     def visit_Assign(self, node):
         targets = node.targets
-        assert len(targets) == 1, 'Do not support multiple assignment.'
+        try:
+            assert len(targets) == 1
+        except AssertionError:
+            raise DiffEquationError('Do not support multiple assignment.')
         self.variables.append(targets[0].id)
         self.expressions.append(ast2code(ast.fix_missing_locations(node.value)))
         return node
 
     def visit_AugAssign(self, node):
-        targets = node.targets
-        assert len(targets) == 1, 'Do not support multiple assignment.'
-        var = targets[0].id
+        var = node.targets.id
         self.variables.append(var)
-        op = node.op
+        op = ast2code(ast.fix_missing_locations(node.op))
         expr = ast2code(ast.fix_missing_locations(node.value))
-        self.expressions.append(f"{var} {op} ({expr})")
+        self.expressions.append(f"{var} {op} {expr}")
         return node
+
+    def visit_AnnAssign(self, node):
+        raise NotImplementedError('Do not support an assignment with a type annotation.')
 
     def visit_Return(self, node):
         value = node.value
@@ -169,6 +175,15 @@ class DiffEquationAnalyser(ast.NodeTransformer):
 
     def visit_Try(self, node):
         raise DiffEquationError('Do not support "try" handler in differential equation.')
+
+    def visit_With(self, node):
+        raise DiffEquationError('Do not support "with" block in differential equation.')
+
+    def visit_Raise(self, node):
+        raise DiffEquationError('Do not support "raise" statement.')
+
+    def visit_Delete(self, node):
+        raise DiffEquationError('Do not support "del" operation.')
 
 
 class DiffEquationError(Exception):
@@ -272,48 +287,152 @@ def get_main_code(func):
             raise ValueError(f'Unknown function type: {type(func)}.')
 
 
-def extract_name(equation, left=False):
-    """Extracts the name of a parameter/variable by looking the left term of an equation."""
-
-    equation = equation.replace(' ', '')
-
-    name = equation.strip()
-    # Search for increments
-    operators = ['+', '-', '*', '/']
-    for op in operators:
-        if equation.endswith(op):
-            return equation.split(op)[0]
-
-    # Check for error
-    if name.strip() == "":
-        raise ValueError(f'The variable name can not be extracted from "{equation}".')
-
-    # Search for any operation in the left side
-    ode = False
-    operators = ['+', '-', '*', '/']
-    for op in operators:
-        if not name.find(op) == -1:
-            ode = True
-    if not ode:  # variable name is alone on the left side
-        return name
-
-    # ODE: the variable name is between d and /dt
-    name = re.findall("d([\w]+)/dt", name)
-    if len(name) == 1:
-        return name[0].strip()
-    else:
-        return '_undefined'
-
-
 def get_line_indent(line, spaces_per_tab=4):
     line = line.replace('\t', ' ' * spaces_per_tab)
     return len(line) - len(line.lstrip())
 
 
-_LINE_KEYWORDS = ('print', 'raise', 'del', 'yield', 'if ', 'elif ', 'while ', 'for ')
+class CodeError(Exception):
+    pass
 
 
-def get_code_lines(code_string):
+class CodeLineFormatter(ast.NodeTransformer):
+    def __init__(self):
+        self.lefts = []
+        self.rights = []
+        self.lines = []
+
+    def visit_Assign(self, node, level=0):
+        targets = node.targets
+        try:
+            assert len(targets) == 1
+        except AssertionError:
+            raise DiffEquationError('Do not support multiple assignment.')
+        target = targets[0].id
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        prefix = '  ' * level
+        self.lefts.append(target)
+        self.rights.append(expr)
+        self.lines.append(f'{prefix}{target} = {expr}')
+        return node
+
+    def visit_AugAssign(self, node, level=0):
+        target = node.target
+        target = target.id
+        op = ast2code(ast.fix_missing_locations(node.op))
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        prefix = '  ' * level
+        self.lefts.append(target)
+        self.rights.append(f"{target} {op} {expr}")
+        self.lines.append(f"{prefix}{target} {op}= {expr}")
+        return node
+
+    def visit_AnnAssign(self, node):
+        raise NotImplementedError('Do not support an assignment with a type annotation.')
+
+    def visit_node_not_assign(self, node, level=0):
+        prefix = '  ' * level
+        expr = ast2code(ast.fix_missing_locations(node))
+        self.lines.append(f'{prefix}{expr}')
+
+    def visit_Assert(self, node, level=0):
+        self.visit_node_not_assign(node, level)
+
+    def visit_Expr(self, node, level=0):
+        self.visit_node_not_assign(node, level)
+
+    def visit_Expression(self, node, level=0):
+        self.visit_node_not_assign(node, level)
+
+    def visit_content_in_condition_control(self, node, level):
+        if isinstance(node, ast.Expr):
+            self.visit_Expr(node, level)
+        elif isinstance(node, ast.Assert):
+            self.visit_Assert(node, level)
+        elif isinstance(node, ast.Assign):
+            self.visit_Assign(node, level)
+        elif isinstance(node, ast.AugAssign):
+            self.visit_AugAssign(node, level)
+        elif isinstance(node, ast.If):
+            self.visit_If(node, level)
+        elif isinstance(node, ast.For):
+            self.visit_For(node, level)
+        elif isinstance(node, ast.While):
+            self.visit_While(node, level)
+        else:
+            code = ast2code(ast.fix_missing_locations(node))
+            raise CodeError(f'Do not support {type(node)}.\n\n{code}')
+
+    def visit_If(self, node, level=0):
+        # If condition
+        prefix = '  ' * level
+        compare = ast2code(ast.fix_missing_locations(node.test))
+        self.lines.append(f'{prefix}if {compare}:')
+        # body
+        for expr in node.body:
+            self.visit_content_in_condition_control(expr, level + 1)
+
+        # elif
+        while node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+            node = node.orelse[0]
+            compare = ast2code(ast.fix_missing_locations(node.test))
+            self.lines.append(f'{prefix}elif {compare}:')
+            for expr in node.body:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+        # else:
+        if len(node.orelse) > 0:
+            self.lines.append(f'{prefix}else:')
+            for expr in node.orelse:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+    def visit_For(self, node, level=0):
+        prefix = '  ' * level
+        # target
+        target = ast2code(ast.fix_missing_locations(node.target))
+        # iter
+        iter = ast2code(ast.fix_missing_locations(node.iter))
+        self.lefts.append(target)
+        self.rights.append(iter)
+        self.lines.append(prefix + f'for {target} in {iter}:')
+        # body
+        for expr in node.body:
+            self.visit_content_in_condition_control(expr, level + 1)
+        # else
+        if len(node.orelse) > 0:
+            self.lines.append(prefix + 'else:')
+            for expr in node.orelse:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+    def visit_While(self, node, level=0):
+        prefix = '  ' * level
+        # test
+        test = ast2code(ast.fix_missing_locations(node.test))
+        self.rights.append(test)
+        self.lines.append(prefix + f'while {test}:')
+        # body
+        for expr in node.body:
+            self.visit_content_in_condition_control(expr, level + 1)
+        # else
+        if len(node.orelse) > 0:
+            self.lines.append(prefix + 'else:')
+            for expr in node.orelse:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+    def visit_Try(self, node):
+        raise CodeError('Do not support "try" handler.')
+
+    def visit_With(self, node):
+        raise CodeError('Do not support "with" block.')
+
+    def visit_Raise(self, node):
+        raise CodeError('Do not support "raise" statement.')
+
+    def visit_Delete(self, node):
+        raise CodeError('Do not support "del" operation.')
+
+
+def format_code(code_string):
     """Get _code lines from the string.
 
     Parameters
@@ -324,50 +443,12 @@ def get_code_lines(code_string):
     -------
     code_lines : list
     """
-    code_lines = []
 
     code_string = autopep8.fix_code(deindent(code_string))
-    code_splits = code_string.split('\n')
-
-    # analyse _code lines
-    for line_no, line in enumerate(code_splits):
-        # skip empty lines
-        if line.strip() == '':
-            continue
-        # remove comments
-        com = line.split('#')
-        if len(com) > 1:
-            line = com[0]
-            if line.strip() == '':
-                continue
-
-        # Split the equation around operators = += -= *= /=, but not ==
-        # split_operators = re.findall(r'(?<![\(,])([\s\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
-        # split_operators = re.findall(r'(?<![\(,])([\s\[\]\'\"\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
-        split_operators = re.findall(r'(?<![\((,\s*?\w*?)])([\s\[\]\'\"\w\+\-\*\/\)]+)=([^=])(?![\w\s]*[\),])', line)
-
-        # definition of a new variable
-        if len(split_operators) == 1:
-            # Retrieve the name
-            eq = split_operators[0][0]
-            if eq.strip() == "":
-                raise ValueError('The equation can not be analysed, check the syntax.')
-            code_lines.append(line)
-        else:
-            if len(split_operators) == 0:
-                line_strip = line.strip()
-                if ':' in line or \
-                        line_strip in ['continue', 'break', 'pass', 'print'] or \
-                        line_strip.startswith(_LINE_KEYWORDS) or \
-                        (line_no > 0 and get_line_indent(line) ==
-                         get_line_indent(code_splits[line_no - 1])):
-                    code_lines.append(line)
-                else:
-                    code_lines[-1] += ' ' + line
-            else:
-                raise ValueError(f'Error syntax in "{line}".')
-
-    return code_lines
+    tree = ast.parse(code_string.strip())
+    formatter = CodeLineFormatter()
+    formatter.visit(tree)
+    return formatter
 
 
 ######################################
@@ -425,4 +506,3 @@ def word_replace(expr, substitutions):
     for var, replace_var in substitutions.items():
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
     return expr
-

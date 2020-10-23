@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import npbrain as nb
+import brainpy as nb
 
 
 def GapJunction():

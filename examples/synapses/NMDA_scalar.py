@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import npbrain.numpy as np
-import npbrain as nb
+import brainpy.numpy as np
+import brainpy as nb
 
 
 def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0.5, tau_rise=2.):

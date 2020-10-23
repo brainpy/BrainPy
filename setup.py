@@ -8,7 +8,7 @@ from setuptools import setup
 
 # obtain version string from __init__.py
 here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'npbrain', '__init__.py'), 'r') as f:
+with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
     init_py = f.read()
 version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 
@@ -18,9 +18,9 @@ with io.open(os.path.join(here, 'README.rst'), 'r', encoding='utf-8') as f:
 
 # setup
 setup(
-    name='npbrain',
+    name='brainpy',
     version=version,
-    description='NumpyBrain: A Just-In-Time compilation approach for neuronal dynamics simulation.',
+    description='BrainPy: A Just-In-Time compilation approach for neuronal dynamics simulation.',
     long_description=README,
     author='Chaoming Wang',
     author_email='adaduo@outlook.com',
