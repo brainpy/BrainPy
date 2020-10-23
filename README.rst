@@ -16,20 +16,20 @@
 
 
 
-**Note**: *NumpyBrain is a project under development.*
+**Note**: *BrainPy is a project under development.*
 *More features are coming soon. Contributions are welcome.*
 
 
-Why to use NumpyBrain
+Why to use BrainPy
 =====================
 
-``NumpyBrain`` is a microkernel framework for SNN (spiking neural network) simulation
+``BrainPy`` is a microkernel framework for SNN (spiking neural network) simulation
 purely based on **native** python. It only relies on `NumPy <https://numpy.org/>`_.
 However, if you want to get faster performance,you can additionally
 install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FORTRAN can
 be obtained in the simulation.
 
-``NumpyBrain`` wants to provide a highly flexible and efficient SNN simulation
+``BrainPy`` wants to provide a highly flexible and efficient SNN simulation
 framework for Python users. It endows the users with the fully data/logic flow control.
 The core of the framework is a micro-kernel, and it's easy to understand (see
 `How NumpyBrain works`_).
@@ -46,22 +46,22 @@ models running on `Numba` backend is very fast
     :figclass: align-center
     :width: 350px
 
-More details about NumpyBrain please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
+More details about BrainPy please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
 
 
 Installation
 ============
 
-Install ``NumpyBrain`` using ``pip``::
+Install ``BrainPy`` using ``pip``::
 
-    $> pip install git+https://github.com/PKU-NIP-Lab/NumpyBrain
+    $> pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
 Install from source code::
 
     $> python setup.py install
 
 
-The following packages need to be installed to use ``NumpyBrain``:
+The following packages need to be installed to use ``BrainPy``:
 
 - Python >= 3.5
 - NumPy >= 1.13
