@@ -31,6 +31,9 @@ __all__ = [
 
     # others
     'is_lambda_function',
+
+    #
+    'func_call',
 ]
 
 
@@ -506,3 +509,12 @@ def word_replace(expr, substitutions):
     for var, replace_var in substitutions.items():
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
     return expr
+
+
+def func_call(args):
+    func_args = []
+    for i in range(0, len(args), 5):
+        for arg in args[i: i + 5]:
+            func_args.append(f'{arg},')
+        func_args.append('\n')
+    return ' '.join(func_args).strip()

@@ -20,7 +20,7 @@ with io.open(os.path.join(here, 'README.rst'), 'r', encoding='utf-8') as f:
 
 # setup
 setup(
-    name='brainpy',
+    name='Brain.Py',
     version=version,
     description='BrainPy: A Just-In-Time compilation approach for neuronal dynamics simulation.',
     long_description=README,
@@ -34,7 +34,7 @@ setup(
         'sympy>=1.2',
         'autopep8',
     ],
-    url='https://github.com/PKU-NIP-Lab/NumpyBrain',
+    url='https://github.com/PKU-NIP-Lab/BrainPy',
     keywords='computational neuroscience',
     classifiers=[
           'Intended Audience :: Science/Research',

@@ -48,6 +48,7 @@ class SynType(BaseType):
             delay_func_code_left = '\n'.join(tools.format_code(delay_func_code).lefts)
 
             # get delayed variables
+            _delay_keys = dict()
             for arg, state in self.requires.items():
                 if isinstance(state, SynState):
                     delay_keys_in_left = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', delay_func_code_left))
@@ -55,9 +56,11 @@ class SynType(BaseType):
                         raise ModelDefError(f'Delayed function cannot assign value to "{arg}".')
                     delay_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', delay_func_code))
                     if len(delay_keys) > 0:
-                        if arg not in self._delay_keys:
-                            self._delay_keys[arg] = set()
-                        self._delay_keys[arg].update(delay_keys)
+                        if arg not in _delay_keys:
+                            _delay_keys[arg] = set()
+                        _delay_keys[arg].update(delay_keys)
+            # self._delay_keys = _delay_keys.get('ST', set())
+            self._delay_keys = _delay_keys
 
     def run(self):
         raise NotImplementedError
@@ -156,7 +159,7 @@ class SynConn(BaseEnsemble):
             dt = profile.get_dt()
             delay_len = int(np.ceil(delay / dt))
         else:
-            raise ValueError("NumpyBrain currently doesn't support other kinds of delay.")
+            raise ValueError("BrainPy currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
 
         # model

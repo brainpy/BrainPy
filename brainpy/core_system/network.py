@@ -19,7 +19,7 @@ __all__ = [
 
 
 class Network(object):
-    """The main simulation controller in ``NumpyBrain``.
+    """The main simulation controller in ``BrainPy``.
 
     ``Network`` handles the running of a simulation. It contains a set of
     objects that are added with `add()`. The `run()` method

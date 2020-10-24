@@ -39,7 +39,7 @@ def set(backend=None, device=None, numerical_method=None, dt=None, float_type=No
         merge_ing=None, substitute=None, show_code=None):
     # backend and device
     if device is not None and backend is None:
-        raise ValueError('Please set backend. NumpyBrain now supports "numpy" and "numba" backends.')
+        raise ValueError('Please set backend. BrainPy now supports "numpy" and "numba" backends.')
     if backend is not None:
         set_backend(backend, device=device)
 
@@ -120,7 +120,7 @@ def set_backend(backend, device=None):
                 elif device == 'multi-core':
                     set_numba_profile(parallel=True)
                 elif device == 'gpu':
-                    raise NotImplementedError('NumpyBrain currently doesn\'t support GPU.')
+                    raise NotImplementedError('BrainPy currently doesn\'t support GPU.')
                 else:
                     raise ValueError(f'Unknown device in Numba mode: {device}.')
                 _device = device

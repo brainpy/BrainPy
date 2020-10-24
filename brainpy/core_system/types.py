@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from .. import numpy as np
 from .. import profile
+from .errors import TypeMismatchError
 
 try:
     import numba as nb
@@ -39,10 +40,6 @@ class TypeChecker(object):
     @classmethod
     def make_copy(cls, *args, **kwargs):
         raise NotImplementedError
-
-
-class TypeMismatchError(Exception):
-    pass
 
 
 class ObjState(dict, TypeChecker):

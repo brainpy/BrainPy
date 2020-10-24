@@ -37,7 +37,7 @@ def integrate(func=None, noise=None, method=None):
 
         {dm \\over dt} = \\alpha * (1 - m) - \\beta * m
 
-    Using ``NumpyBrain``, this ODE function can be written as
+    Using ``BrainPy``, this ODE function can be written as
 
     >>> import brainpy.numpy as np
     >>> from brainpy import integrate
