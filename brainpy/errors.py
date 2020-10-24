@@ -14,3 +14,14 @@ class ModelUseError(Exception):
 class TypeMismatchError(Exception):
     pass
 
+
+class IntegratorError(Exception):
+    pass
+
+
+class DiffEquationError(Exception):
+    pass
+
+
+class CodeError(Exception):
+    pass

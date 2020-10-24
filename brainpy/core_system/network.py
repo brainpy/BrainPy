@@ -4,8 +4,8 @@ import time
 
 import autopep8
 
-from .base_objects import BaseEnsemble
-from .base_objects import ModelUseError
+from .base import BaseEnsemble
+from .base import ModelUseError
 from .constants import INPUT_OPERATIONS
 from .neurons import NeuGroup
 from .synapses import SynConn
@@ -73,7 +73,7 @@ class Network(object):
 
         Parameters
         ----------
-        args : a_list, tuple
+        args : list, tuple
             The nameless objects.
         kwargs : dict
             The named objects, which can be accessed by `net.xxx`
@@ -84,28 +84,6 @@ class Network(object):
             self._add_obj(obj)
         for name, obj in kwargs.items():
             self._add_obj(obj, name)
-
-    def _get_step_function(self):
-        code_lines = ['# network step function'
-                      '\ndef step_func(_t_, _i_, _dt_):']
-        code_scope = {}
-        for obj in self._all_objects:
-            code_lines.extend(obj._merge_steps())
-            code_scope[obj.name] = obj
-
-        func_code = '\n  '.join(code_lines)
-        if profile._auto_pep8:
-            func_code = autopep8.fix_code(func_code)
-        exec(compile(func_code, '', 'exec'), code_scope)
-        step_func = code_scope['step_func']
-
-        if profile._show_formatted_code:
-            print(func_code)
-            print()
-            tools.show_code_scope(code_scope, ['__builtins__', 'step_func'])
-            print()
-
-        return step_func
 
     def _format_inputs(self, inputs, run_length):
         # check
@@ -178,25 +156,29 @@ class Network(object):
 
     def build(self, run_length, inputs=()):
         assert isinstance(run_length, int)
-
-        # first step
-        for obj in self._all_objects:
-            # type checking
-            obj._type_checking()
-            # step function
-            obj._add_steps()
-            # initialize monitor
-            obj._add_monitor(run_length)
+        code_scopes = {}
+        code_lines = ['# network step function\n'
+                      'def step_func(_t_, _i_, _dt_):']
 
         # inputs
         format_inputs = self._format_inputs(inputs, run_length)
-        for target, input in format_inputs.items():
-            self._objsets[target]._add_input(input)
 
-        # step function
-        _step_func = self._get_step_function()
+        mode = profile.get_backend()
+        for obj in self._all_objects:
+            code_scopes[obj.name] = obj
+            lines_of_call = obj._build(mode, inputs=format_inputs.get(obj.name, None), mon_length=run_length)
+            code_lines.extend(lines_of_call)
+        func_code = '\n  '.join(code_lines)
+        if profile._auto_pep8:
+            func_code = autopep8.fix_code(func_code)
+        exec(compile(func_code, '', 'exec'), code_scopes)
+        step_func = code_scopes['step_func']
 
-        return _step_func
+        if profile._show_formatted_code:
+            tools.show_code_str(func_code)
+            tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
+
+        return step_func
 
     def run(self, duration, inputs=(), report=False, report_percent=0.1):
         """Run the simulation for the given duration.
@@ -208,7 +190,7 @@ class Network(object):
         ----------
         duration : int, float
             The amount of simulation time to run for.
-        inputs : a_list, tuple
+        inputs : list, tuple
             The receivers, external inputs and durations.
         report : bool
             Report the progress of the simulation.
@@ -250,11 +232,17 @@ class Network(object):
                 _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
                 if (run_idx + 1) % report_gap == 0:
                     percent = (run_idx + 1) / run_length * 100
-                    print('Run {:.1f}% using {:.3f} s.'.format(percent, time.time() - t0))
+                    print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
         else:
             for run_idx in range(run_length):
                 _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
+
+        # monitor
+        for obj in self._all_objects:
+            obj.mon['ts'] = self.ts
+
+
 
     @property
     def _keywords(self):

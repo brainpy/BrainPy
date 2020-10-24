@@ -49,17 +49,14 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', dt=0.02, merge_ing=True)
+    nb.profile.set(backend='numba', dt=0.02, merge_steps=True)
+    nb.profile._show_formatted_code = True
 
     LIF = define_LIF(noise=1.)
 
-    neu = nb.NeuGroup(LIF, geometry=(10,), monitors=['sp', 'V'],
-                      pars_update={
-                          'Vr': np.random.randint(0, 2, size=(10,)),
-                          'tau': np.random.randint(5, 10, size=(10,)),
-                          'noise': 1.
-                      })
-    neu.update_pars()
+    neu = nb.NeuGroup(LIF, geometry=(10,), monitors=['sp', 'V'])
+    neu.pars['Vr'] = np.random.randint(0, 2, size=(10,))
+    neu.pars['tau'] = np.random.randint(5, 10, size=(10,))
     net = nb.Network(neu)
     net.run(duration=100., inputs=[neu, 'ST.inp', 13.], report=True)
 
@@ -67,10 +64,10 @@ if __name__ == '__main__':
     fig, gs = nb.visualize.get_figure(1, 1, 4, 8)
 
     fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu._pars_to_update["tau"][0]})')
-    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu._pars_to_update["tau"][2]})')
+    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.pars.get("tau")[0]})')
+    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.pars.get("tau")[2]})')
     plt.ylabel('Membrane potential')
-    plt.xlim(-0.1, net.t_start + 0.1)
+    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
     plt.legend()
     plt.xlabel('Time (ms)')
 

@@ -117,7 +117,8 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     return nb.SynType(name='AMPA', requires=requires, steps=(update, output), vector_based=True)
 
 
-def run_ampa_group(cls, duration=650.):
+def run_ampa_group(define, duration=650.):
+    cls = define()
     ampa = nb.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
     ampa.pre = nb.types.NeuState(['sp'])(1)
     ampa.post = nb.types.NeuState(['V', 'inp'])(1)
@@ -137,7 +138,7 @@ def run_ampa_group(cls, duration=650.):
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', merge_ing=True, show_code=True)
+    nb.profile.set(backend='numpy', merge_steps=True, show_code=True)
 
     run_ampa_group(AMPA1)
     run_ampa_group(AMPA2)

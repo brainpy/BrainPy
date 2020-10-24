@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from .. import numpy as np
 from .. import profile
-from .errors import TypeMismatchError
+from ..errors import TypeMismatchError
 
 try:
     import numba as nb
@@ -16,7 +16,6 @@ except ImportError as e:
 
 __all__ = [
     'TypeChecker',
-    'TypeMismatchError',
     'ObjState',
     'NeuState',
     'SynState',

@@ -82,13 +82,17 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
     return nb.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update, vector_based=True)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__1':
     nb.profile.set(backend='numba', device='cpu', dt=0.02,
-                   numerical_method='exponential', merge_ing=True)
+                   numerical_method='exponential', merge_steps=True)
+    nb.profile._show_formatted_code = True
 
     HH = define_hh(noise=1.)
 
-    neu = nb.NeuGroup(HH, geometry=(1,), monitors=['sp', 'V', 'm', 'h', 'n'])
+    neu = nb.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])
+    neu.ST['V'] = np.random.random(100) * 20 + -75
+    neu.pars['g_K'] = np.random.random(100) * 2 + 35
+
     net = nb.Network(neu)
     net.run(duration=100., inputs=[neu, 'ST.inp', 10.], report=True)
 
@@ -98,7 +102,7 @@ if __name__ == '__main__':
     fig.add_subplot(gs[0, 0])
     plt.plot(ts, neu.mon.V[:, 0], label='N')
     plt.ylabel('Membrane potential')
-    plt.xlim(-0.1, net.t_start + 0.1)
+    plt.xlim(net.t_start-0.1, net.t_end + 0.1)
     plt.legend()
 
     fig.add_subplot(gs[1, 0])
@@ -106,7 +110,41 @@ if __name__ == '__main__':
     plt.plot(ts, neu.mon.h[:, 0], label='h')
     plt.plot(ts, neu.mon.n[:, 0], label='n')
     plt.legend()
-    plt.xlim(-0.1, net.t_start + 0.1)
+    plt.xlim(net.t_start-0.1, net.t_end + 0.1)
     plt.xlabel('Time (ms)')
 
     plt.show()
+
+
+if __name__ == '__main__':
+    nb.profile.set(backend='numba', device='cpu', dt=0.02,
+                   numerical_method='euler', merge_steps=True)
+    nb.profile._show_formatted_code = True
+
+    HH = define_hh(noise=1.)
+
+    neu = nb.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])
+    neu.ST['V'] = np.random.random(100) * 20 + -75
+    neu.pars['g_K'] = np.random.random(100) * 2 + 35
+    neu.run(duration=100., inputs=['ST.inp', 10.], report=True)
+
+    ts = neu.mon.ts
+    fig, gs = nb.visualize.get_figure(2, 1, 3, 12)
+
+    fig.add_subplot(gs[0, 0])
+    plt.plot(ts, neu.mon.V[:, 0], label='N')
+    plt.ylabel('Membrane potential')
+    plt.xlim(-0.1, 100.1)
+    plt.legend()
+
+    fig.add_subplot(gs[1, 0])
+    plt.plot(ts, neu.mon.m[:, 0], label='m')
+    plt.plot(ts, neu.mon.h[:, 0], label='h')
+    plt.plot(ts, neu.mon.n[:, 0], label='n')
+    plt.legend()
+    plt.xlim(-0.1, 100.1)
+    plt.xlabel('Time (ms)')
+
+    plt.show()
+
+

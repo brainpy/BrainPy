@@ -1,28 +1,25 @@
 # -*- coding: utf-8 -*-
 
 import inspect
-import re
-from importlib import import_module
-
+import time
 from copy import deepcopy
+
 import autopep8
 
-from .errors import ModelUseError
-from .errors import ModelDefError
 from .constants import ARG_KEYWORDS
+from .constants import INPUT_OPERATIONS
 from .constants import _NEU_GROUP
 from .constants import _SYN_CONN
+from ..errors import ModelDefError
+from ..errors import ModelUseError
 from .runner import Runner
 from .types import NeuState
-from .types import ObjState
 from .types import SynState
 from .types import TypeChecker
 from .types import TypeMismatchError
 from .. import numpy as np
 from .. import profile
 from .. import tools
-from ..integration import Integrator
-from ..integration.sympy_tools import get_mapping_scope
 
 __all__ = [
     'BaseType',
@@ -131,7 +128,7 @@ class BaseType(object):
             print('\n'.join(warnings) + '\n')
 
         # delay keys
-        self._delay_keys = set()
+        self._delay_keys = {}
 
     def __str__(self):
         return f'{self.name}'
@@ -139,7 +136,7 @@ class BaseType(object):
 
 class ParsUpdate(dict):
     def __init__(self, all_pars, num, model):
-        assert isinstance(all_pars, (tuple, list))
+        assert isinstance(all_pars, dict)
         assert isinstance(num, int)
 
         # structure of the ParsUpdate #
@@ -172,6 +169,18 @@ class ParsUpdate(dict):
 
         # update
         self.updates[key] = value
+
+    def __dir__(self):
+        return str(self.all)
+
+    def keys(self):
+        return self.origins.keys()
+
+    def items(self):
+        return self.all.keys()
+
+    def get(self, item):
+        return self.all.__getitem__(item)
 
     @property
     def origins(self):
@@ -273,15 +282,8 @@ class BaseEnsemble(object):
             else:
                 raise ModelUseError(f'Unknown monitors type: {type(monitors)}')
 
-        # code generation results
-        # -----------------------
-        self._codegen = dict()
-
-        # model update schedule
-        # ---------------------
-        self._schedule = ['input'] + self.model.step_names + ['monitor']
-
-        #
+        # runner
+        # -------
         self.runner = Runner(ensemble=self)
 
     def _type_checking(self):
@@ -301,46 +303,6 @@ class BaseEnsemble(object):
                     raise ModelUseError(f'Function "{self.model.step_names[i]}" in "{self.model.name}" '
                                         f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
-    def _merge_steps(self):
-        codes_of_calls = []  # call the compiled functions
-        if profile.is_numpy_bk():  # numpy mode
-            for item in self._schedule:
-                if item in self._codegen:
-                    func_call = self._codegen[item]['call']
-                    if func_call:
-                        codes_of_calls.append(func_call)
-
-        elif profile.is_numba_bk():  # non-numpy mode
-            lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
-            for item in self._schedule:
-                if item in self._codegen:
-                    lines.extend(self._codegen[item]['codes'])
-                    code_scopes.update(self._codegen[item]['scopes'])
-                    args = args | self._codegen[item]['args']
-                    arg2calls.update(self._codegen[item]['arg2calls'])
-
-            args = sorted(list(args))
-            arg2calls_list = [arg2calls[arg] for arg in args]
-            lines.insert(0, f'\n# {self.name} "merge_func"'
-                            f'\ndef merge_func({", ".join(args)}):')
-            func_code = '\n  '.join(lines)
-            if profile._auto_pep8:
-                func_code = autopep8.fix_code(func_code)
-            exec(compile(func_code, '', 'exec'), code_scopes)
-
-            self.merge_func = tools.jit(code_scopes['merge_func'])
-            func_call = f'{self.name}.merge_func({", ".join(arg2calls_list)})'
-            codes_of_calls.append(func_call)
-
-            if profile._show_formatted_code:
-                tools.show_code_str(func_code)
-                tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
-
-        else:
-            raise NotImplementedError
-
-        return codes_of_calls
-
     def _is_state_attr(self, arg):
         try:
             attr = getattr(self, arg)
@@ -353,6 +315,33 @@ class BaseEnsemble(object):
         else:
             raise ValueError
 
+    def _build(self, mode, inputs=None, mon_length=0):
+        # prerequisite
+        self._type_checking()
+
+        # results
+        results = dict()
+
+        # inputs
+        if inputs:
+            r = self.runner.format_input_code(inputs, mode=mode)
+            results.update(r)
+
+        # monitors
+        if len(self._mon_vars):
+            mon, r = self.runner.format_monitor_code(self._mon_vars, run_length=mon_length, mode=mode)
+            results.update(r)
+            self.mon.clear()
+            self.mon.update(mon)
+
+        # steps
+        r = self.runner.format_step_codes(mode=mode)
+        results.update(r)
+
+        # merge
+        calls = self.runner.merge_steps(results, mode=mode)
+        return calls
+
     @property
     def requires(self):
         return self.model.requires
@@ -360,32 +349,122 @@ class BaseEnsemble(object):
     @property
     def _keywords(self):
         kws = [
-            # attributes
-            'model', 'num', 'ST', '_mon_vars',
-            'mon', '_cls_type', '_codegen', '_keywords', 'steps', '_schedule',
-            # self functions
-            '_merge_steps', '_add_steps', '_add_input', '_add_monitor',
-            'get_schedule', 'set_schedule'
+            'model', 'num', '_mon_vars', 'mon', '_cls_type', '_keywords',
         ]
         if hasattr(self, 'model'):
             kws += self.model.step_names
         return kws
 
-    def get_schedule(self):
-        return self._schedule
+    def run(self, duration, inputs=None, report=False, report_percent=0.1):
+        # times
+        # ------
+        if isinstance(duration, (int, float)):
+            start, end = 0, duration
+        elif isinstance(duration, (tuple, list)):
+            assert len(duration) == 2, 'Only support duration with the format of "(start, end)".'
+            start, end = duration
+        else:
+            raise ValueError(f'Unknown duration type: {type(duration)}')
+        dt = profile.get_dt()
+        times = np.arange(start, end, dt)
+        times = np.asarray(times, dtype=np.float_)
+        run_length = times.shape[0]
 
-    def set_schedule(self, schedule):
+        # check inputs
+        # -------------
         try:
-            assert isinstance(schedule, (list, tuple))
+            assert isinstance(inputs, (tuple, list))
         except AssertionError:
-            raise ModelUseError('"schedule" must be a list/tuple.')
-        all_func_names = ['input', 'monitor'] + self.model.step_names
-        for s in schedule:
+            raise ModelUseError('"inputs" must be a tuple/list.')
+        if not isinstance(inputs[0], (list, tuple)):
+            if isinstance(inputs[0], str):
+                inputs = [inputs]
+            else:
+                raise ModelUseError('Unknown input structure.')
+        for inp in inputs:
             try:
-                assert s in all_func_names
+                assert 2 <= len(inp) <= 3
             except AssertionError:
-                raise ModelUseError(f'Unknown step function "{s}" for "{self._cls_type}" model.')
-        super(BaseEnsemble, self).__setattr__('_schedule', schedule)
+                raise ModelUseError('For each target, you must specify "(key, value, [operation])".')
+            if len(inp) == 3:
+                try:
+                    assert inp[2] in INPUT_OPERATIONS
+                except AssertionError:
+                    raise ModelUseError(f'Input operation only support '
+                                        f'"{list(INPUT_OPERATIONS.keys())}", not "{inp[2]}".')
+
+        # format inputs
+        # -------------
+        formatted_inputs = []
+        for inp in inputs:
+            # key
+            try:
+                assert isinstance(inp[0], str)
+            except AssertionError:
+                raise ModelUseError('For each input, input[0] must be a string '
+                                    'to specify variable of the target.')
+            key = inp[0]
+
+            # value and data type
+            if isinstance(inp[1], (int, float)):
+                val = inp[1]
+                data_type = 'fix'
+            elif isinstance(inp[1], np.ndarray):
+                val = inp[1]
+                if val.shape[0] == run_length:
+                    data_type = 'iter'
+                else:
+                    data_type = 'fix'
+            else:
+                raise ModelUseError('For each input, input[1] must be a numerical value to specify input values.')
+
+            # operation
+            if len(inp) == 3:
+                ops = inp[2]
+            else:
+                ops = '+'
+
+            format_inp = (key, val, ops, data_type)
+            formatted_inputs.append(format_inp)
+
+        # get step function
+        # -------------------
+        lines_of_call = self._build(mode=profile.get_backend(),
+                                    inputs=formatted_inputs,
+                                    mon_length=run_length)
+        code_lines = ['def step_func(_t_, _i_, _dt_):']
+        code_lines.extend(lines_of_call)
+        code_scopes = {self.name: self}
+        func_code = '\n  '.join(code_lines)
+        if profile._auto_pep8:
+            func_code = autopep8.fix_code(func_code)
+        exec(compile(func_code, '', 'exec'), code_scopes)
+        step_func = code_scopes['step_func']
+        if profile._show_formatted_code:
+            tools.show_code_str(func_code)
+            tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
+
+        # run the model
+        # -------------
+        if report:
+            t0 = time.time()
+            step_func(_t_=times[0], _i_=0, _dt_=dt)
+            print('Compilation used {:.4f} ms.'.format(time.time() - t0))
+
+            print("Start running ...")
+            report_gap = int(run_length * report_percent)
+            t0 = time.time()
+            for run_idx in range(1, run_length):
+                step_func(_t_=times[run_idx], _i_=run_idx, _dt_=dt)
+                if (run_idx + 1) % report_gap == 0:
+                    percent = (run_idx + 1) / run_length * 100
+                    print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
+            print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
+        else:
+            for run_idx in range(run_length):
+                step_func(_t_=times[run_idx], _i_=run_idx, _dt_=dt)
+
+        self.mon['ts'] = times
 
     def __setattr__(self, key, value):
         if key in self._keywords:

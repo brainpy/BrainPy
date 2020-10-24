@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 
 import brainpy as nb
 from brainpy import numpy as np
-from examples.neurons.LIF_model import LIF
+from examples.neurons.LIF_model import define_LIF
 
 
-def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
+def define_AMPA1(g_max=0.10, E=0., tau_decay=2.0):
     """AMPA conductance-based synapse (type 1).
 
     .. math::
@@ -49,7 +49,7 @@ def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
     return nb.SynType(name='AMPA', requires=requires, steps=(update, output), vector_based=False)
 
 
-def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
+def define_AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     """AMPA conductance-based synapse (type 2).
 
     .. math::
@@ -98,13 +98,14 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     return nb.SynType(name='AMPA', requires=requires, steps=(update, output), vector_based=False)
 
 
-def run_ampa_single(cls, duration=350.):
+def run_ampa_single(define, duration=350.):
+    LIF = define_LIF()
     pre = nb.NeuGroup(LIF, 2)
     post = nb.NeuGroup(LIF, 3)
+    cls = define()
     ampa = nb.SynConn(model=cls, pre_group=pre, post_group=post, conn=nb.connect.All2All(),
                       monitors=['s'], delay=10.)
-    # ampa.set_schedule(['input', 'output', 'monitor'])
-    ampa.set_schedule(['input', 'update', 'output', 'monitor'])
+    ampa.runner.set_schedule(['input', 'update', 'output', 'monitor'])
 
     net = nb.Network(pre, ampa, post)
     Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile._dt, 1., duration=duration)
@@ -118,7 +119,7 @@ def run_ampa_single(cls, duration=350.):
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numpy', merge_ing=True, dt=0.1, show_code=True)
+    nb.profile.set(backend='numba', merge_steps=True, dt=0.1, show_code=True)
 
-    run_ampa_single(AMPA1)
-    run_ampa_single(AMPA2)
+    run_ampa_single(define_AMPA1)
+    run_ampa_single(define_AMPA2)

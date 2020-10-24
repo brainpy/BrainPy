@@ -7,12 +7,12 @@ from .sympy_tools import str2sympy
 from .sympy_tools import sympy2str
 from .. import numpy as np
 from .. import profile
+from ..errors import IntegratorError
 from ..tools import word_replace
 
 __all__ = [
     'get_integrator',
     'Integrator',
-    'IntegratorError',
     'Euler',
     'Heun',
     'MidPoint',
@@ -60,10 +60,6 @@ def get_integrator(method):
         return MilsteinStra
     else:
         raise ValueError(f'Unknown method: {method}.')
-
-
-class IntegratorError(Exception):
-    pass
 
 
 class Integrator(object):
@@ -1089,7 +1085,7 @@ class ExponentialEuler(Integrator):
         super(ExponentialEuler, self).__init__(diff_eq)
         if profile.is_numba_bk():
             self._update_code = self.get_nb_step(diff_eq)
-        if not profile._merge_integral:
+        if not profile._merge_steps:
             raise IntegratorError('"exponential method only supports "_merge_integral=True". '
                                   'Please set "profile._merge_integral = True."')
         self._update_func = self.get_np_step(diff_eq)

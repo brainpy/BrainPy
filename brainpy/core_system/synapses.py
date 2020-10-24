@@ -2,10 +2,10 @@
 
 import re
 
-from .base_objects import BaseEnsemble
-from .base_objects import BaseType
-from .base_objects import ModelDefError
-from .base_objects import ModelUseError
+from .base import BaseEnsemble
+from .base import BaseType
+from .base import ModelDefError
+from .base import ModelUseError
 from .constants import _SYN_CONN
 from .neurons import NeuGroup
 from .types import SynState

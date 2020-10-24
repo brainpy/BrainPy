@@ -11,7 +11,7 @@ synapses, etc.
 """
 
 
-from .base_objects import *
+from .base import *
 from .types import *
 from .neurons import *
 from .synapses import *

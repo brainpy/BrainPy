@@ -9,6 +9,8 @@ import autopep8
 
 from .ast2code import ast2code
 from .. import numpy as np
+from  ..errors import CodeError
+from  ..errors import DiffEquationError
 
 __all__ = [
     # string processing
@@ -27,7 +29,6 @@ __all__ = [
     # analyse differential equations
     'analyse_diff_eq',
     'DiffEquationAnalyser',
-    'DiffEquationError',
 
     # others
     'is_lambda_function',
@@ -189,9 +190,6 @@ class DiffEquationAnalyser(ast.NodeTransformer):
         raise DiffEquationError('Do not support "del" operation.')
 
 
-class DiffEquationError(Exception):
-    pass
-
 
 def replace_func(code, func_name):
     tree = ast.parse(code.strip())
@@ -295,9 +293,6 @@ def get_line_indent(line, spaces_per_tab=4):
     return len(line) - len(line.lstrip())
 
 
-class CodeError(Exception):
-    pass
-
 
 class CodeLineFormatter(ast.NodeTransformer):
     def __init__(self):
@@ -311,7 +306,7 @@ class CodeLineFormatter(ast.NodeTransformer):
             assert len(targets) == 1
         except AssertionError:
             raise DiffEquationError('Do not support multiple assignment.')
-        target = targets[0].id
+        target = ast2code(ast.fix_missing_locations(targets[0]))
         expr = ast2code(ast.fix_missing_locations(node.value))
         prefix = '  ' * level
         self.lefts.append(target)
@@ -320,8 +315,7 @@ class CodeLineFormatter(ast.NodeTransformer):
         return node
 
     def visit_AugAssign(self, node, level=0):
-        target = node.target
-        target = target.id
+        target = ast2code(ast.fix_missing_locations(node.target))
         op = ast2code(ast.fix_missing_locations(node.op))
         expr = ast2code(ast.fix_missing_locations(node.value))
         prefix = '  ' * level
@@ -512,6 +506,10 @@ def word_replace(expr, substitutions):
 
 
 def func_call(args):
+    if isinstance(args, set):
+        args = sorted(list(args))
+    else:
+        assert isinstance(args, (tuple, list))
     func_args = []
     for i in range(0, len(args), 5):
         for arg in args[i: i + 5]:

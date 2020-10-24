@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from .base_objects import BaseEnsemble
-from .base_objects import BaseType
-from .base_objects import ModelUseError
+from .base import BaseEnsemble
+from .base import BaseType
+from .base import ModelUseError
 from .constants import _NEU_GROUP
 from .constants import INPUT_OPERATIONS
 from .. import numpy as np
@@ -26,49 +26,6 @@ class NeuType(BaseType):
         super(NeuType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based,
                                       heter_params_replace=heter_params_replace)
 
-    def run(self, duration, monitors, inputs=None, vars_init=None, pars_update=None, report=False):
-        group = NeuGroup(model=self, geometry=1, pars_update=pars_update, monitors=monitors, )
-        # variable initialization
-        if vars_init is not None:
-            assert isinstance(vars_init, dict)
-            for k, v in vars_init.items():
-                group.ST[k] = v
-
-        # inputs
-        try:
-            assert isinstance(inputs, (tuple, list))
-        except AssertionError:
-            raise ModelUseError('"inputs" must be a tuple/list.')
-        if not isinstance(inputs[0], (list, tuple)):
-            if isinstance(inputs[0], str):
-                inputs = [inputs]
-            else:
-                raise ModelUseError('Unknown input structure.')
-        for inp in inputs:
-            try:
-                assert 2 <= len(inp) <= 3
-            except AssertionError:
-                raise ModelUseError('For each target, you must specify "(key, value, [operation])".')
-            if len(inp) == 3:
-                try:
-                    assert inp[2] in INPUT_OPERATIONS
-                except AssertionError:
-                    raise ModelUseError(f'Input operation only support '
-                                        f'"{list(INPUT_OPERATIONS.keys())}", not "{inp[2]}".')
-        inputs = tuple([(group, ) + tuple(inp) for inp in inputs])
-
-        # network
-        from .network import Network
-        net = Network(group)
-        net.run(duration=duration, inputs=inputs, report=report)
-
-        # monitors
-        mon = DictPlus()
-        for k in monitors:
-            mon[k] = group.mon[k].flatten()
-        mon['ts'] = net.ts
-
-        return mon
 
 
 class NeuGroup(BaseEnsemble):

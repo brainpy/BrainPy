@@ -13,7 +13,7 @@ from . import connectivity as connect
 
 # "core_system" module
 from . import core_system as core
-from .core_system.base_objects import *
+from .core_system.base import *
 from .core_system.neurons import *
 from .core_system.synapses import *
 from .core_system.network import *

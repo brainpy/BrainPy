@@ -14,7 +14,7 @@ for d in range(10):
       else:
         d = g()
     else:
-      b = 0
+      b['b'] = 0
       c = f()
       while b > 10:
         b += 1

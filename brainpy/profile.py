@@ -32,11 +32,11 @@ _numba_setting = {'nopython': True, 'fastmath': True,
 _show_formatted_code = False
 _auto_pep8 = True
 _substitute_equation = False
-_merge_integral = False
+_merge_steps = False
 
 
 def set(backend=None, device=None, numerical_method=None, dt=None, float_type=None, int_type=None,
-        merge_ing=None, substitute=None, show_code=None):
+        merge_steps=None, substitute=None, show_code=None):
     # backend and device
     if device is not None and backend is None:
         raise ValueError('Please set backend. BrainPy now supports "numpy" and "numba" backends.')
@@ -62,9 +62,9 @@ def set(backend=None, device=None, numerical_method=None, dt=None, float_type=No
         _set_default_int(int_type)
 
     # option of merging integral functions
-    if merge_ing is not None:
-        global _merge_integral
-        _merge_integral = merge_ing
+    if merge_steps is not None:
+        global _merge_steps
+        _merge_steps = merge_steps
 
     # option of equation substitution
     if substitute is not None:
