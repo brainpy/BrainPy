@@ -1,5 +1,9 @@
 
-.. image:: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/logo4.png
+.. image:: https://anaconda.org/brainpy/brainpy/badges/license.svg
+    :target: https://github.com/PKU-NIP-Lab/BrainPy
+    :alt: LICENSE
+
+.. image:: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/logo.png
     :target: https://github.com/PKU-NIP-Lab/BrainPy
     :align: center
     :alt: Logo
@@ -16,8 +20,7 @@
     :target: https://badge.fury.io/py/Brain.Py
     :alt: Pypi Version
 
-.. image:: https://anaconda.org/brainpy/brainpy/badges/license.svg
-    :alt: LICENSE
+
 
 
 **Note**: *BrainPy is a project under development.*
@@ -27,30 +30,23 @@
 Why to use BrainPy
 =====================
 
-``BrainPy`` is a microkernel framework for SNN (spiking neural network) simulation
-purely based on **native** python. It only relies on `NumPy <https://numpy.org/>`_.
-However, if you want to get faster performance,you can additionally
-install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FORTRAN can
-be obtained in the simulation.
-
-``BrainPy`` wants to provide a highly flexible and efficient SNN simulation
-framework for Python users. It endows the users with the fully data/logic flow control.
+``BrainPy`` is a microkernel framework based on the Just-In-Time (JIT) compilers.
+The goal of ``BrainPy`` is to provide
+a highly flexible and efficient neural simulation framework for Python users.
+It endows the users with the fully data/logic flow control.
 The core of the framework is a micro-kernel, and it's easy to understand (see
-`How NumpyBrain works`_).
+*the document coming soon*).
 Based on the kernel, the extension of the new models or the customization of the
 data/logic flows are very simple for users. Ample examples (such as LIF neuron,
 HH neuron, or AMPA synapse, GABA synapse and GapJunction) are also provided.
 Besides the consideration of **flexibility**, for accelerating the running
 **speed** of NumPy codes, `Numba` is used. For most of the times,
-models running on `Numba` backend is very fast
-(see `examples/benchmark <https://github.com/PKU-NIP-Lab/NumpyBrain/tree/master/examples/benchmark>`_).
+models running on `Numba` backend is very fast.
 
-.. figure:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/speed_comparison.png
-    :alt: Speed comparison with brian2
+.. figure:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/speed.png
+    :alt: Speed of BrainPy
     :figclass: align-center
-    :width: 350px
-
-More details about BrainPy please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
+    :width: 500px
 
 
 Installation
@@ -125,13 +121,13 @@ Define a Hodgkin–Huxley neuron model
             beta = 0.125 * np.exp(-(V + 65) / 80)
             return alpha * (1 - n) - beta * n
 
-        @nb.integrate(noise=noise / C)
+        @nb.integrate
         def int_V(V, t, m, h, n, Isyn):
             INa = g_Na * m ** 3 * h * (V - E_Na)
             IK = g_K * n ** 4 * (V - E_K)
             IL = g_Leak * (V - E_Leak)
             dvdt = (- INa - IK - IL + Isyn) / C
-            return dvdt
+            return (dvdt, noise / C)
 
         def update(ST, _t_):
             m = np.clip(int_m(ST['m'], _t_, ST['V']), 0., 1.)
@@ -146,7 +142,7 @@ Define a Hodgkin–Huxley neuron model
             ST['n'] = n
             ST['inp'] = 0.
 
-        return nb.NeuType(requires={"ST": ST}, steps=update, vector_based=True)
+        return nb.NeuType(name='HH', requires=dict(ST=ST), steps=update)
 
 
 
@@ -158,9 +154,12 @@ Define an AMPA synapse model
     def AMPA(g_max=0.10, E=0., tau_decay=2.0):
 
         requires = dict(
-            ST=nb.types.SynState(['s'], help='AMPA synapse state.'),
-            pre=nb.types.NeuState(['sp'], help='Pre-synaptic state must have "sp" item.'),
-            post=nb.types.NeuState(['V', 'inp'], help='Post-synaptic neuron must have "V" and "inp" items.')
+            ST=nb.types.SynState(
+                ['s'], help='AMPA synapse state.'),
+            pre=nb.types.NeuState(
+                ['sp'], help='Pre-synaptic state must have "sp" item.'),
+            post=nb.types.NeuState(
+                ['V', 'inp'], help='Post-synaptic neuron must have "V" and "inp" items.')
         )
 
         @nb.integrate(method='euler')
@@ -177,10 +176,9 @@ Define an AMPA synapse model
             post_val = - g_max * ST['s'] * (post['V'] - E)
             post['inp'] += post_val
 
-        return nb.SynType(requires=requires, steps=(update, output), vector_based=False)
-
-
-
-.. _How NumpyBrain works: https://numpybrain.readthedocs.io/en/latest/guides/how_it_works.html
+        return nb.SynType(name='AMPA',
+                          requires=requires,
+                          steps=(update, output),
+                          vector_based=False)
 
 
