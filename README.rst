@@ -1,19 +1,23 @@
 
-.. image:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/logo.png
-    :target: https://github.com/PKU-NIP-Lab/NumpyBrain
+.. image:: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/logo4.png
+    :target: https://github.com/PKU-NIP-Lab/BrainPy
     :align: center
-    :alt: logo
+    :alt: Logo
 
-.. image:: https://readthedocs.org/projects/numpybrain/badge/?version=latest
-    :target: https://numpybrain.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/brainpy/badge/?version=latest
+    :target: https://brainpy.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://anaconda.org/oujago/npbrain/badges/version.svg
-    :target: https://anaconda.org/oujago/npbrain
+.. image:: https://anaconda.org/brainpy/brainpy/badges/version.svg
+    :target: https://anaconda.org/brainpy/brainpy
+    :alt: Conda version
 
-.. image:: https://badge.fury.io/py/npbrain.svg
-    :target: https://badge.fury.io/py/npbrain
+.. image:: https://badge.fury.io/py/Brain.Py.svg
+    :target: https://badge.fury.io/py/Brain.Py
+    :alt: Pypi Version
 
+.. image:: https://anaconda.org/brainpy/brainpy/badges/license.svg
+    :alt: LICENSE
 
 
 **Note**: *BrainPy is a project under development.*
@@ -52,13 +56,20 @@ More details about BrainPy please see our `document <https://numpybrain.readthed
 Installation
 ============
 
+Install ``BrainPy`` using ``conda``::
+
+    > conda install -c brainpy brainpy
+
+
 Install ``BrainPy`` using ``pip``::
 
-    $> pip install git+https://github.com/PKU-NIP-Lab/BrainPy
+    > pip install Brain.Py
 
 Install from source code::
 
-    $> python setup.py install
+    > python setup.py install
+    > # or
+    > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
 
 The following packages need to be installed to use ``BrainPy``:

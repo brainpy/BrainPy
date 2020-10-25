@@ -1,9 +1,9 @@
 package:
     name: brainpy
-    version: "0.1.0"
+    version: "0.2.0"
 
 source:
-    path: ../
+    path: ../../
 
 build:
     number: 0
@@ -12,17 +12,18 @@ build:
 requirements:
     host:
         - python
-        - setuptools >= 24
-        - numpy >= 1.13
-        - sympy >=1.2
-        - numba >= 0.40
+        - setuptools>=24
+        - numpy>= 1.13
+        - sympy>=1.2
+        - numba>=0.40
     run:
-      - python
-        - numpy >= 1.13
-        - sympy >=1.2
-        - numba >= 0.40
-        - matplotlib >= 3.0
-        - setuptools >=24
+        - python
+        - numpy>=1.13
+        - sympy>=1.2
+        - numba>=0.40
+        - matplotlib>=3.0
+        - setuptools>=24
+        - autopep8
 
 test:
   imports:
@@ -33,8 +34,8 @@ about:
     license: GPL-3.0
     summary: 'A Just-In-Time compilation approach for neuronal dynamics simulation.'
     description: |
-        BrainPy is a microkernel framework for SNN (spiking neural
-        network) simulation purely based on native python. It only
+        BrainPy is a microkernel framework for neuronal dynamics
+        simulation purely based on native python. It only
         relies on NumPy. However, if you want to get faster CPU
         performance, you can additionally install Numba. With Numba,
         the speed of C or FORTRAN can be gained in the simulation.
