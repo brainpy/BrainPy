@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import npbrain.numpy as np
-import npbrain as nb
+import brainpy as bp
+import brainpy.numpy as np
 
 
 def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0.5, tau_rise=2.):
@@ -43,22 +43,21 @@ def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0
     a : float
     """
     requires = dict(
-        ST=nb.types.SynState(['x', 's', 'g']),
-        pre=nb.types.NeuState(['sp']),
-        post=nb.types.NeuState(['V', 'inp']),
-        pre2syn=nb.types.ListConn(),
-        post2syn=nb.types.ListConn(),
+        ST=bp.types.SynState(['x', 's', 'g']),
+        pre=bp.types.NeuState(['sp']),
+        post=bp.types.NeuState(['V', 'inp']),
+        pre2syn=bp.types.ListConn(),
+        post2syn=bp.types.ListConn(),
     )
 
-    @nb.integrate
+    @bp.integrate
     def int_x(x, t):
         return -x / tau_rise
 
-    @nb.integrate
+    @bp.integrate
     def int_s(s, t, x):
         return -s / tau_decay + a * x * (1 - s)
 
-    @nb.delay_push
     def update(ST, _t_, pre, pre2syn):
         for pre_id in np.where(pre['sp'] > 0.)[0]:
             syn_ids = pre2syn[pre_id]
@@ -69,7 +68,7 @@ def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delay_pull
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
@@ -78,4 +77,7 @@ def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0
         g_inf = 1 + cc_Mg / beta * np.exp(-alpha * post['V'])
         post['inp'] -= g * g_inf
 
-    return nb.SynType(name='NMDA', requires=requires, steps=(update, output), vector_based=True)
+    return bp.SynType(name='NMDA',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)

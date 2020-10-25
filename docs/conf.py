@@ -14,17 +14,17 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-import npbrain
+import brainpy
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'npbrain'
+project = 'brainpy'
 copyright = '2020, Chaoming Wang'
 author = 'Chaoming Wang'
 
 # The full version, including alpha/beta/rc tags
-release = npbrain.__version__
+release = brainpy.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -44,6 +44,7 @@ extensions = [
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+html_static_path = ['_static']
 
 # source_suffix = '.rst'
 autosummary_generate = True

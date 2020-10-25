@@ -2,11 +2,11 @@
 
 import matplotlib.pyplot as plt
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as bp
+import brainpy.numpy as np
 
 
-def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65., mode=None):
+def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., mode=None):
     """Izhikevich two-variable neuron model.
 
     Parameters
@@ -34,7 +34,7 @@ def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65.,
         The membrane reset potential.
     """
 
-    state = nb.types.NeuState(
+    state = bp.types.NeuState(
         {'V': 0., 'u': 1., 'sp': 0., 'sp_t': -1e7, 'inp': 0.},
         help='''
         Izhikevich two-variable neuron model state.
@@ -88,70 +88,68 @@ def Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., Vr=-65.,
     elif mode in ['inhibition-induced bursting', ]:
         a, b, c, d = [-0.026, -1.00, -45.0, 0.0]
 
-    @nb.integrate
+    @bp.integrate
     def int_u(u, t, V):
         return a * (b * V - u)
 
-    @nb.integrate
+    @bp.integrate
     def int_V(V, t, u, Isyn):
-        return 0.04 * V * V + 5 * V + 140 - u + Isyn
+        dfdt = 0.04 * V * V + 5 * V + 140 - u + Isyn
+        dgdt = noise
+        return dfdt, dgdt
 
     if np.any(ref > 0.):
 
         def update(ST, _t_):
-            V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
-            u = int_u(ST['u'], _t_, ST['V'])
-            not_ref = (_t_ - ST['sp_t']) > ref
-            for idx in np.where(np.logical_not(not_ref))[0]:
-                V[idx] = ST['V'][idx]
-                u[idx] = ST['u'][idx]
-            sp = V >= Vth
-            for idx in np.where(sp)[0]:
-                V[idx] = c
-                u[idx] += d
-                ST['sp_t'] = _t_
-            ST['sp'] = sp
-            ST['V'] = V
-            ST['u'] = u
-            ST['inp'] = 0.
+            if (_t_ - ST['sp_t']) > ref:
+                V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
+                u = int_u(ST['u'], _t_, ST['V'])
+                if V >= Vth:
+                    V = c
+                    u += d
+                    ST['sp_t'] = _t_
+                    ST['sp'] = True
+                ST['V'] = V
+                ST['u'] = u
+                ST['inp'] = 0.
 
     else:
 
         def update(ST, _t_):
             V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
             u = int_u(ST['u'], _t_, ST['V'])
-            sp = V >= Vth
-            spike_idx = np.where(sp)[0]
-            for idx in spike_idx:
-                V[idx] = c
-                u[idx] += d
+            if V >= Vth:
+                V = c
+                u += d
                 ST['sp_t'] = _t_
+                ST['sp'] = True
             ST['V'] = V
             ST['u'] = u
-            ST['sp'] = sp
             ST['inp'] = 0.
 
-    return nb.NeuType(name='Izhikevich', requires={'ST': state}, steps=update, vector_based=True)
+    return bp.NeuType(name='Izhikevich', requires={'ST': state}, steps=update, vector_based=False)
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', )
+    bp.profile.set(backend='numba', merge_steps=True)
 
-    neu = nb.NeuGroup(Izhikevich, 10, pars_update=dict(noise=1.), monitors=['V', 'u'])
-    net = nb.Network(neu)
-    net.run(duration=100, inputs=[neu, 'inp', 10], report=True)
+    Izhikevich = define_Izhikevich()
+    neu = bp.NeuGroup(Izhikevich, 10, monitors=['V', 'u'])
+    neu.pars['noise'] = 1.
+
+    neu.run(duration=100, inputs=['inp', 20], report=True)
 
     indexes = [0, 1, 2]
-    fig, gs = nb.visualize.get_figure(2, 1, 3, 12)
+    fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
 
     fig.add_subplot(gs[0, 0])
-    nb.visualize.plot_potential(neu.mon, net.ts, neuron_index=indexes)
-    plt.xlim(-0.1, net._run_time + 0.1)
+    bp.visualize.plot_potential(neu.mon, neu.mon.ts, neuron_index=indexes)
+    plt.xlim(-0.1, 100.1)
     plt.legend()
 
     fig.add_subplot(gs[1, 0])
-    nb.visualize.plot_value(neu.mon, net.ts, 'u', val_index=indexes)
-    plt.xlim(-0.1, net._run_time + 0.1)
+    bp.visualize.plot_value(neu.mon, neu.mon.ts, 'u', val_index=indexes)
+    plt.xlim(-0.1, 10.1)
     plt.xlabel('Time (ms)')
     plt.legend()
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import npbrain as nb
-import npbrain.numpy as np
+import brainpy as bp
+import brainpy.numpy as np
 
 
 def STP(U=0.15, tau_f=1500., tau_d=200.):
@@ -49,22 +49,21 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
            with dynamic synapses." Neural computation 10.4 (1998): 821-835.
     """
     requires = dict(
-        ST=nb.types.SynState({'u': 0., 'x': 1., 'w': 1., 'g': 0.}),
-        pre=nb.types.NeuState(['sp']),
-        post=nb.types.NeuState(['V', 'inp']),
-        pre2syn=nb.types.ListConn(),
-        post2syn=nb.types.ListConn(),
+        ST=bp.types.SynState({'u': 0., 'x': 1., 'w': 1., 'g': 0.}),
+        pre=bp.types.NeuState(['sp']),
+        post=bp.types.NeuState(['V', 'inp']),
+        pre2syn=bp.types.ListConn(),
+        post2syn=bp.types.ListConn(),
     )
 
-    @nb.integrate(method='exponential')
+    @bp.integrate(method='exponential')
     def int_u(u, t):
         return - u / tau_f
 
-    @nb.integrate(method='exponential')
+    @bp.integrate(method='exponential')
     def int_x(x, t):
         return (1 - x) / tau_d
 
-    @nb.delay_push
     def update(ST, pre, pre2syn):
         u = int_u(ST['u'], 0)
         x = int_x(ST['x'], 0)
@@ -77,11 +76,14 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
         ST['x'] = np.clip(x, 0., 1.)
         ST['g'] = ST['w'] * ST['u'] * ST['x']
 
-    @nb.delay_pull
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] += post_cond
 
-    return nb.SynType(name='STP', requires=requires, steps=(update, output), vector_based=True)
+    return bp.SynType(name='STP',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)

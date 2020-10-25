@@ -1,8 +1,8 @@
 import numpy as np
-from npbrain.integration import DiffEquation
-from npbrain import integrate
-from npbrain import tools
-from npbrain import profile
+from brainpy.integration import DiffEquation
+from brainpy import integrate
+from brainpy import tools
+from brainpy import profile
 profile.set_backend('numba')
 
 
@@ -17,8 +17,8 @@ def try_analyse_func():
     from pprint import pprint
 
     df = DiffEquation(int_m)
-    pprint(df.f_expressions)
-    pprint(df.f_returns)
+    pprint(df.expressions)
+    pprint(df.returns)
     pprint(df.get_f_expressions())
     pprint(df.get_g_expressions())
     print('-'* 30)
@@ -34,9 +34,9 @@ def try_analyse_func2():
 
     from pprint import pprint
 
-    df = DiffEquation(f=func, g=np.zeros(10))
-    pprint(df.f_expressions)
-    pprint(df.f_returns)
+    df = DiffEquation(func=func, g=np.zeros(10))
+    pprint(df.expressions)
+    pprint(df.returns)
     pprint(df.get_f_expressions())
     pprint(df.get_g_expressions())
     print('-' * 30)
@@ -52,9 +52,9 @@ def try_analyse_func3():
 
     from pprint import pprint
 
-    df = DiffEquation(f=None, g=g_func)
-    pprint(df.f_expressions)
-    pprint(df.f_returns)
+    df = DiffEquation(func=None, g=g_func)
+    pprint(df.expressions)
+    pprint(df.returns)
     pprint(df.get_f_expressions())
     pprint(df.get_g_expressions())
     print('-' * 30)
@@ -82,17 +82,44 @@ return alpha * (1 - m) - beta * m, f(alpha, beta)
     '''
 
     res = tools.analyse_diff_eq(code)
-    print('Return: ', res[2], '\n')
-    for var, exp in zip(res[0], res[1]):
+    print('Return: ', res.returns)
+    print('return_type: ', res.return_type)
+    for var, exp in zip(res.variables, res.expressions):
         print(var, '=', exp)
+    print('f_expr: ', res.f_expr)
+    print('g_expr: ', res.g_expr)
 
 
+def try_diff_eq_analyser2():
+
+    for code in ['return a',
+                 'return a, b',
+                 'return (a, b)',
+                 'return (a, ), b',
+                 'return (a, b), ',
+                 'return (a, b), c, d',
+                 'return ((a, b), c, d)',
+                 'return (a, ), ',
+                 'return (a+b, b*2), ',
+                 'return a, b, c']:
+
+        res = tools.analyse_diff_eq(code)
+        print('Code:\n', code)
+
+        print('Return: ', res.returns)
+        print('return_type: ', res.return_type)
+        for var, exp in zip(res.variables, res.expressions):
+            print(var, '=', exp)
+        print('f_expr: ', res.f_expr)
+        print('g_expr: ', res.g_expr)
+        print('\n')
 
 
 if __name__ == '__main__':
     # try_analyse_func()
-    try_analyse_func2()
-    try_analyse_func3()
+    # try_analyse_func2()
+    # try_analyse_func3()
     # try_integrate()
     # try_diff_eq_analyser()
+    try_diff_eq_analyser2()
 

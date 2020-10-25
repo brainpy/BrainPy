@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import npbrain . numpy as np
-import npbrain as nb
+import brainpy as bp
+import brainpy.numpy as np
 
 
 def VoltageJumpSynapse():
@@ -13,13 +13,12 @@ def VoltageJumpSynapse():
     """
 
     requires = dict(
-        ST=nb.types.SynState(['s']),
-        pre=nb.types.NeuState(['sp']),
-        post=nb.types.NeuState(['V', 'not_ref']),
-        pre2post=nb.types.ListConn(),
+        ST=bp.types.SynState(['s']),
+        pre=bp.types.NeuState(['sp']),
+        post=bp.types.NeuState(['V', 'not_ref']),
+        pre2post=bp.types.ListConn(),
     )
 
-    @nb.delay_push
     def update(ST, pre, pre2post):
         s = np.zeros_like(ST['s'], dtype=np.float_)
         for pre_id in np.where(pre['sp'] > 0)[0]:
@@ -27,9 +26,11 @@ def VoltageJumpSynapse():
             s[post_ids] = 1
         ST['s'] = s
 
-    @nb.delay_pull
+    @bp.delayed
     def output(ST, post):
         post['V'] += ST['s'] * post['not_ref']
 
-    return nb.SynType(name='VoltageJumpSynapse', requires=requires,
-                      steps=(update, output), vector_based=True)
+    return bp.SynType(name='VoltageJumpSynapse',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)

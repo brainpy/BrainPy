@@ -16,20 +16,20 @@
 
 
 
-**Note**: *NumpyBrain is a project under development.*
+**Note**: *BrainPy is a project under development.*
 *More features are coming soon. Contributions are welcome.*
 
 
-Why to use NumpyBrain
+Why to use BrainPy
 =====================
 
-``NumpyBrain`` is a microkernel framework for SNN (spiking neural network) simulation
+``BrainPy`` is a microkernel framework for SNN (spiking neural network) simulation
 purely based on **native** python. It only relies on `NumPy <https://numpy.org/>`_.
 However, if you want to get faster performance,you can additionally
 install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FORTRAN can
 be obtained in the simulation.
 
-``NumpyBrain`` wants to provide a highly flexible and efficient SNN simulation
+``BrainPy`` wants to provide a highly flexible and efficient SNN simulation
 framework for Python users. It endows the users with the fully data/logic flow control.
 The core of the framework is a micro-kernel, and it's easy to understand (see
 `How NumpyBrain works`_).
@@ -46,29 +46,33 @@ models running on `Numba` backend is very fast
     :figclass: align-center
     :width: 350px
 
-More details about NumpyBrain please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
+More details about BrainPy please see our `document <https://numpybrain.readthedocs.io/en/latest/>`_.
 
 
 Installation
 ============
 
-Install ``NumpyBrain`` using ``pip``::
+Install ``BrainPy`` using ``pip``::
 
-    $> pip install git+https://github.com/PKU-NIP-Lab/NumpyBrain
+    $> pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
 Install from source code::
 
     $> python setup.py install
 
 
-The following packages need to be installed to use ``NumpyBrain``:
+The following packages need to be installed to use ``BrainPy``:
 
 - Python >= 3.5
 - NumPy >= 1.13
-- Numba >= 0.40.0
 - Sympy >= 1.2
 - Matplotlib >= 2.0
 - autopep8
+
+Packages recommended to install:
+
+- Numba >= 0.40.0
+- JAX >= 0.1.0
 
 
 Define a Hodgkin–Huxley neuron model
@@ -145,21 +149,20 @@ Define an AMPA synapse model
 
         requires = dict(
             ST=nb.types.SynState(['s'], help='AMPA synapse state.'),
-            pre=nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
-            post=nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+            pre=nb.types.NeuState(['sp'], help='Pre-synaptic state must have "sp" item.'),
+            post=nb.types.NeuState(['V', 'inp'], help='Post-synaptic neuron must have "V" and "inp" items.')
         )
 
         @nb.integrate(method='euler')
         def ints(s, t):
             return - s / tau_decay
 
-        @nb.delay_push
         def update(ST, _t_, pre):
             s = ints(ST['s'], _t_)
             s += pre['sp']
             ST['s'] = s
 
-        @nb.delay_pull
+        @nb.delayed
         def output(ST, post):
             post_val = - g_max * ST['s'] * (post['V'] - E)
             post['inp'] += post_val
