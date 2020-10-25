@@ -83,7 +83,6 @@ The following packages need to be installed to use ``BrainPy``:
 Packages recommended to install:
 
 - Numba >= 0.40.0
-- JAX >= 0.1.0
 
 
 Define a Hodgkin–Huxley neuron model

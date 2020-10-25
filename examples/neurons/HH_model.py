@@ -82,39 +82,6 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
     return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update, vector_based=True)
 
 
-if __name__ == '__main__1':
-    bp.profile.set(backend='numba', device='cpu', dt=0.02,
-                   numerical_method='exponential', merge_steps=True)
-    bp.profile._show_formatted_code = True
-
-    HH = define_hh(noise=1.)
-
-    neu = bp.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])
-    neu.ST['V'] = np.random.random(100) * 20 + -75
-    neu.pars['g_K'] = np.random.random(100) * 2 + 35
-
-    net = bp.Network(neu)
-    net.run(duration=100., inputs=[neu, 'ST.inp', 10.], report=True)
-
-    ts = net.ts
-    fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
-
-    fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0], label='N')
-    plt.ylabel('Membrane potential')
-    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
-    plt.legend()
-
-    fig.add_subplot(gs[1, 0])
-    plt.plot(ts, neu.mon.m[:, 0], label='m')
-    plt.plot(ts, neu.mon.h[:, 0], label='h')
-    plt.plot(ts, neu.mon.n[:, 0], label='n')
-    plt.legend()
-    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
-    plt.xlabel('Time (ms)')
-
-    plt.show()
-
 if __name__ == '__main__':
     bp.profile.set(backend='numba', device='cpu', dt=0.02,
                    numerical_method='exponential', merge_steps=True)
