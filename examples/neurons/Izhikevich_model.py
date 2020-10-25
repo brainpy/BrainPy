@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 
-import brainpy as nb
+import brainpy as bp
 import brainpy.numpy as np
 
 
@@ -34,7 +34,7 @@ def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., m
         The membrane reset potential.
     """
 
-    state = nb.types.NeuState(
+    state = bp.types.NeuState(
         {'V': 0., 'u': 1., 'sp': 0., 'sp_t': -1e7, 'inp': 0.},
         help='''
         Izhikevich two-variable neuron model state.
@@ -88,13 +88,15 @@ def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., m
     elif mode in ['inhibition-induced bursting', ]:
         a, b, c, d = [-0.026, -1.00, -45.0, 0.0]
 
-    @nb.integrate
+    @bp.integrate
     def int_u(u, t, V):
         return a * (b * V - u)
 
-    @nb.integrate(noise=noise)
+    @bp.integrate
     def int_V(V, t, u, Isyn):
-        return 0.04 * V * V + 5 * V + 140 - u + Isyn
+        dfdt = 0.04 * V * V + 5 * V + 140 - u + Isyn
+        dgdt = noise
+        return dfdt, dgdt
 
     if np.any(ref > 0.):
 
@@ -125,28 +127,29 @@ def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., m
             ST['u'] = u
             ST['inp'] = 0.
 
-    return nb.NeuType(name='Izhikevich', requires={'ST': state}, steps=update, vector_based=False)
+    return bp.NeuType(name='Izhikevich', requires={'ST': state}, steps=update, vector_based=False)
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', )
+    bp.profile.set(backend='numba', merge_steps=True)
 
     Izhikevich = define_Izhikevich()
-    neu = nb.NeuGroup(Izhikevich, 10, monitors=['V', 'u'])
-    net = nb.Network(neu)
-    net.run(duration=100, inputs=[neu, 'inp', 10], report=True)
+    neu = bp.NeuGroup(Izhikevich, 10, monitors=['V', 'u'])
+    neu.pars['noise'] = 1.
+
+    neu.run(duration=100, inputs=['inp', 20], report=True)
 
     indexes = [0, 1, 2]
-    fig, gs = nb.visualize.get_figure(2, 1, 3, 12)
+    fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
 
     fig.add_subplot(gs[0, 0])
-    nb.visualize.plot_potential(neu.mon, net.ts, neuron_index=indexes)
-    plt.xlim(-0.1, net.t_start + 0.1)
+    bp.visualize.plot_potential(neu.mon, neu.mon.ts, neuron_index=indexes)
+    plt.xlim(-0.1, 100.1)
     plt.legend()
 
     fig.add_subplot(gs[1, 0])
-    nb.visualize.plot_value(neu.mon, net.ts, 'u', val_index=indexes)
-    plt.xlim(-0.1, net.t_start + 0.1)
+    bp.visualize.plot_value(neu.mon, neu.mon.ts, 'u', val_index=indexes)
+    plt.xlim(-0.1, 10.1)
     plt.xlabel('Time (ms)')
     plt.legend()
 

@@ -2,10 +2,10 @@
 
 import matplotlib.pyplot as plt
 
-import brainpy as nb
+import brainpy as bp
 import brainpy.numpy as np
 
-nb.profile.set(backend='numba', device='cpu', dt=0.05, merge_steps=True,
+bp.profile.set(backend='numba', device='cpu', dt=0.05, merge_steps=True,
                numerical_method='exponential')
 
 # HH neuron model #
@@ -22,10 +22,10 @@ gK = 9.
 EK = -90.
 phi = 5.0
 
-HH_ST = nb.types.NeuState({'V': -55., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.})
+HH_ST = bp.types.NeuState({'V': -55., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.})
 
 
-@nb.integrate
+@bp.integrate
 def int_h(h, t, V):
     alpha = 0.07 * np.exp(-(V + 58) / 20)
     beta = 1 / (np.exp(-0.1 * (V + 28)) + 1)
@@ -33,7 +33,7 @@ def int_h(h, t, V):
     return phi * dhdt
 
 
-@nb.integrate
+@bp.integrate
 def int_n(n, t, V):
     alpha = -0.01 * (V + 34) / (np.exp(-0.1 * (V + 34)) - 1)
     beta = 0.125 * np.exp(-(V + 44) / 80)
@@ -41,7 +41,7 @@ def int_n(n, t, V):
     return phi * dndt
 
 
-@nb.integrate
+@bp.integrate
 def int_V(V, t, h, n, Isyn):
     m_alpha = -0.1 * (V + 35) / (np.exp(-0.1 * (V + 35)) - 1)
     m_beta = 4 * np.exp(-(V + 60) / 18)
@@ -65,7 +65,7 @@ def update(ST, _t_):
     ST['inp'] = 0.
 
 
-HH = nb.NeuType('HH_neuron', requires={"ST": HH_ST}, steps=update)
+HH = bp.NeuType('HH_neuron', requires={"ST": HH_ST}, steps=update)
 
 # GABAa #
 # ----- #
@@ -76,15 +76,15 @@ alpha = 12.
 beta = 0.1
 
 requires = dict(
-    ST=nb.types.SynState(['g', 's', 'pre_above_th']),
-    pre=nb.types.NeuState(['V']),
-    post=nb.types.NeuState(['V', 'inp']),
-    pre2syn=nb.types.ListConn(),
-    post2syn=nb.types.ListConn(),
+    ST=bp.types.SynState(['g', 's', 'pre_above_th']),
+    pre=bp.types.NeuState(['V']),
+    post=bp.types.NeuState(['V', 'inp']),
+    pre2syn=bp.types.ListConn(),
+    post2syn=bp.types.ListConn(),
 )
 
 
-@nb.integrate
+@bp.integrate
 def int_s(s, t, TT):
     return alpha * TT * (1 - s) - beta * s
 
@@ -105,7 +105,7 @@ def output(ST, post, post2syn):
     post['inp'] -= post_cond * (post['V'] - E)
 
 
-GABAa = nb.SynType('GABAa', requires=requires, steps=(update, output))
+GABAa = bp.SynType('GABAa', requires=requires, steps=(update, output))
 
 if __name__ == '__main__':
     num = 100
@@ -117,21 +117,21 @@ if __name__ == '__main__':
     n_beta = 0.125 * np.exp(-(v_init + 44) / 80)
     n_init = n_alpha / (n_alpha + n_beta)
 
-    neu = nb.NeuGroup(HH, geometry=num, monitors=['sp', 'V'])
+    neu = bp.NeuGroup(HH, geometry=num, monitors=['sp', 'V'])
     neu.ST['V'] = v_init
     neu.ST['h'] = h_init
     neu.ST['n'] = n_init
 
-    syn = nb.SynConn(GABAa, pre_group=neu, post_group=neu,
-                     conn=nb.connect.All2All(include_self=False),
+    syn = bp.SynConn(GABAa, pre_group=neu, post_group=neu,
+                     conn=bp.connect.All2All(include_self=False),
                      monitors=['s', 'g'])
-    syn.update_pars(g_max=0.1 / num)
+    syn.pars['g_max'] = 0.1 / num
 
-    net = nb.Network(neu, syn)
+    net = bp.Network(neu, syn)
     net.run(duration=500., inputs=[neu, 'ST.inp', 1.2], report=True, report_percent=0.2)
 
     ts = net.ts
-    fig, gs = nb.visualize.get_figure(2, 1, 3, 12)
+    fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
 
     fig.add_subplot(gs[0, 0])
     plt.plot(ts, neu.mon.V[:, 0])
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
 
     fig.add_subplot(gs[1, 0])
-    index, time = nb.measure.raster_plot(neu.mon.sp, net.ts)
+    index, time = bp.measure.raster_plot(neu.mon.sp, net.ts)
     plt.plot(time, index, '.')
     plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
     plt.xlabel('Time (ms)')

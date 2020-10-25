@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 
-import brainpy as nb
+import brainpy as bp
 import brainpy.numpy as np
 
 
@@ -23,15 +23,13 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
         The refractory period.
     """
 
-    ST = nb.types.NeuState(
+    ST = bp.types.NeuState(
         {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
     )
 
-    g = lambda V, t, Isyn: noise / tau
-
-    @nb.integrate(noise=g)
+    @bp.integrate
     def int_f(V, t, Isyn):
-        return (-V + Vr + Isyn) / tau
+        return (-V + Vr + Isyn) / tau, noise / tau
 
     def update(ST, _t_):
         if _t_ - ST['sp_t'] > ref:
@@ -45,29 +43,27 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
             ST['sp'] = False
         ST['inp'] = 0.
 
-    return nb.NeuType(name='LIF', requires=dict(ST=ST), steps=update, vector_based=False)
+    return bp.NeuType(name='LIF', requires=dict(ST=ST), steps=update, vector_based=False)
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numba', dt=0.02, merge_steps=True)
-    nb.profile._show_formatted_code = True
+    bp.profile.set(backend='numba', dt=0.02, merge_steps=True)
+    bp.profile._show_formatted_code = True
 
     LIF = define_LIF(noise=1.)
 
-    neu = nb.NeuGroup(LIF, geometry=(10,), monitors=['sp', 'V'])
+    neu = bp.NeuGroup(LIF, geometry=(10,), monitors=['sp', 'V'])
     neu.pars['Vr'] = np.random.randint(0, 2, size=(10,))
     neu.pars['tau'] = np.random.randint(5, 10, size=(10,))
-    net = nb.Network(neu)
-    net.run(duration=100., inputs=[neu, 'ST.inp', 13.], report=True)
+    neu.run(duration=100., inputs=['ST.inp', 13.], report=True)
 
-    ts = net.ts
-    fig, gs = nb.visualize.get_figure(1, 1, 4, 8)
+    fig, gs = bp.visualize.get_figure(1, 1, 4, 8)
 
     fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.pars.get("tau")[0]})')
-    plt.plot(ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.pars.get("tau")[2]})')
+    plt.plot(neu.mon.ts, neu.mon.V[:, 0], label=f'N-0 (tau={neu.pars.get("tau")[0]})')
+    plt.plot(neu.mon.ts, neu.mon.V[:, 2], label=f'N-2 (tau={neu.pars.get("tau")[2]})')
     plt.ylabel('Membrane potential')
-    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
+    plt.xlim(- 0.1, 100.1)
     plt.legend()
     plt.xlabel('Time (ms)')
 

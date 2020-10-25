@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 
-import brainpy as nb
+import brainpy as bp
 from brainpy import numpy as np
 
 
@@ -25,7 +25,7 @@ def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
         Tau for decay.
     """
 
-    @nb.integrate
+    @bp.integrate
     def ints(s, t):
         return - s / tau_decay
 
@@ -33,11 +33,11 @@ def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
     # ------------
 
     requires = {
-        'ST': nb.types.SynState(['s', 'g'], help='AMPA synapse state.'),
-        'pre': nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
-        'post': nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
-        'pre2syn': nb.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
-        'post2syn': nb.types.ListConn(help='Post-synaptic neuron index -> synapse index'),
+        'ST': bp.types.SynState(['s', 'g'], help='AMPA synapse state.'),
+        'pre': bp.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
+        'post': bp.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+        'pre2syn': bp.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
+        'post2syn': bp.types.ListConn(help='Post-synaptic neuron index -> synapse index'),
     }
 
     # model logic
@@ -52,14 +52,17 @@ def AMPA1(g_max=0.10, E=0., tau_decay=2.0):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delayed
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] -= post_cond * (post['V'] - E)
 
-    return nb.SynType(name='AMPA1', requires=requires, steps=(update, output), vector_based=True)
+    return bp.SynType(name='AMPA1',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)
 
 
 def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
@@ -83,19 +86,19 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     T_duration
     """
 
-    @nb.integrate
+    @bp.integrate
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
     requires = dict(
-        ST=nb.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.},
+        ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.},
                              help='AMPA synapse state.\n'
                                   '"s": Synaptic state.\n'
                                   '"sp_t": Pre-synaptic neuron spike time.'),
-        pre=nb.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
-        post=nb.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
-        pre2syn=nb.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
-        post2syn=nb.types.ListConn(help='Post-synaptic neuron index -> synapse index'),
+        pre=bp.types.NeuState(['sp'], help='Pre-synaptic neuron state must have "sp" item.'),
+        post=bp.types.NeuState(['V', 'inp'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
+        pre2syn=bp.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
+        post2syn=bp.types.ListConn(help='Post-synaptic neuron index -> synapse index'),
     )
 
     def update(ST, _t_, pre, pre2syn):
@@ -107,30 +110,33 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delayed
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] -= post_cond * (post['V'] - E)
 
-    return nb.SynType(name='AMPA', requires=requires, steps=(update, output), vector_based=True)
+    return bp.SynType(name='AMPA',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)
 
 
 def run_ampa_group(define, duration=650.):
     cls = define()
-    ampa = nb.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
-    ampa.pre = nb.types.NeuState(['sp'])(1)
-    ampa.post = nb.types.NeuState(['V', 'inp'])(1)
+    ampa = bp.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
+    ampa.pre = bp.types.NeuState(['sp'])(1)
+    ampa.post = bp.types.NeuState(['V', 'inp'])(1)
     ampa.pre2syn = ampa.requires['pre2syn'].make_copy([[0]])
     ampa.post2syn = ampa.requires['post2syn'].make_copy([[0]])
     # ampa.set_schedule(['input', 'update', 'monitor'])
 
-    net = nb.Network(ampa)
-    Iext = nb.inputs.spike_current([10, 110, 210, 310, 410], nb.profile._dt, 1., duration=duration)
+    net = bp.Network(ampa)
+    Iext = bp.inputs.spike_current([10, 110, 210, 310, 410], bp.profile._dt, 1., duration=duration)
     net.run(duration, inputs=(ampa, 'pre.sp', Iext, '='), report=True)
 
-    fig, gs = nb.visualize.get_figure(1, 1, 5, 10)
+    fig, gs = bp.visualize.get_figure(1, 1, 5, 10)
     fig.add_subplot(gs[0, 0])
     plt.plot(net.ts, ampa.mon.s[:, 0], label='s')
     plt.legend()
@@ -138,7 +144,7 @@ def run_ampa_group(define, duration=650.):
 
 
 if __name__ == '__main__':
-    nb.profile.set(backend='numpy', merge_steps=True, show_code=True)
+    bp.profile.set(backend='numpy', merge_steps=True, show_code=True)
 
     run_ampa_group(AMPA1)
     run_ampa_group(AMPA2)

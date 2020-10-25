@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as nb
+import brainpy as bp
 import brainpy.numpy as np
 
 
 def GABAa1(g_max=0.4, reversal_potential=-80., tau_decay=6.):
     requires = dict(
-        ST=nb.types.SynState(['s', 'g']),
-        pre=nb.types.NeuState(['sp']),
-        pre2syn=nb.types.ListConn(),
+        ST=bp.types.SynState(['s', 'g']),
+        pre=bp.types.NeuState(['sp']),
+        pre2syn=bp.types.ListConn(),
     )
 
-    @nb.integrate
+    @bp.integrate
     def int_s(s, t):
         return - s / tau_decay
 
@@ -23,25 +23,28 @@ def GABAa1(g_max=0.4, reversal_potential=-80., tau_decay=6.):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delayed
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] -= post_cond * (post['V'] - reversal_potential)
 
-    return dict(requires=requires, steps=(update, output))
+    return bp.SynType(name='GABAa1',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)
 
 
 def GABAa2(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
     requires = dict(
-        ST=nb.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
-        pre=nb.types.NeuState(['sp']),
-        pre2syn=nb.types.ListConn(),
-        post2syn=nb.types.ListConn(),
+        ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
+        pre=bp.types.NeuState(['sp']),
+        pre2syn=bp.types.ListConn(),
+        post2syn=bp.types.ListConn(),
     )
 
-    @nb.integrate
+    @bp.integrate
     def int_s(s, t, TT):
         return alpha * TT * (1 - s) - beta * s
 
@@ -54,14 +57,17 @@ def GABAa2(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
         ST['s'] = s
         ST['g'] = g_max * s
 
-    @nb.delayed
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] -= post_cond * (post['V'] - E)
 
-    return dict(requires=requires, steps=(update, output))
+    return bp.SynType(name='GABAa2',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)
 
 
 def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_duration=0.3):
@@ -93,18 +99,18 @@ def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_d
     """
 
     requires = dict(
-        ST=nb.types.SynState({'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
-        pre=nb.types.NeuState(['sp']),
-        post=nb.types.NeuState(['V', 'inp']),
-        pre2syn=nb.types.ListConn(),
-        post2syn=nb.types.ListConn(),
+        ST=bp.types.SynState({'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
+        pre=bp.types.NeuState(['sp']),
+        post=bp.types.NeuState(['V', 'inp']),
+        pre2syn=bp.types.ListConn(),
+        post2syn=bp.types.ListConn(),
     )
 
-    @nb.integrate
+    @bp.integrate
     def int_R(R, t, TT):
         return k3 * TT * (1 - R) - k4 * R
 
-    @nb.integrate
+    @bp.integrate
     def int_G(G, t, R):
         return k1 * R - k2 * G
 
@@ -119,14 +125,17 @@ def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_d
         ST['G'] = G
         ST['g'] = g_max * G ** 4 / (G ** 4 + 100)
 
-    @nb.delayed
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] -= post_cond * (post['V'] - E)
 
-    return dict(requires=requires, steps=(update, output))
+    return bp.SynType(name='GABAb1',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)
 
 
 def GABAb2(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
@@ -160,22 +169,22 @@ def GABAb2(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
     T_duration
     """
     requires = dict(
-        ST=nb.types.SynState({'D': 0., 'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
-        pre=nb.types.NeuState(['sp']),
-        post=nb.types.NeuState(['V', 'inp']),
-        pre2syn=nb.types.ListConn(),
-        post2syn=nb.types.ListConn(),
+        ST=bp.types.SynState({'D': 0., 'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
+        pre=bp.types.NeuState(['sp']),
+        post=bp.types.NeuState(['V', 'inp']),
+        pre2syn=bp.types.ListConn(),
+        post2syn=bp.types.ListConn(),
     )
 
-    @nb.integrate
+    @bp.integrate
     def int_D(D, t, R):
         return k4 * R - k3 * D
 
-    @nb.integrate
+    @bp.integrate
     def int_R(R, t, TT, D):
         return k1 * TT * (1 - R - D) - k2 * R + k3 * D
 
-    @nb.integrate
+    @bp.integrate
     def int_G(G, t, R):
         return k5 * R - k6 * G
 
@@ -193,11 +202,14 @@ def GABAb2(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
         ST['G'] = G
         ST['g'] = g_max * (G ** 4 / (G ** 4 + 100))
 
-    @nb.delayed
+    @bp.delayed
     def output(ST, post, post2syn):
         post_cond = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_cond[post_id] = np.sum(ST['g'][syn_ids])
         post['inp'] -= post_cond * (post['V'] - E)
 
-    return dict(requires=requires, steps=(update, output))
+    return bp.SynType(name='GABAb2',
+                      requires=requires,
+                      steps=(update, output),
+                      vector_based=True)

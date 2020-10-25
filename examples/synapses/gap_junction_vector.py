@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as nb
+import brainpy as bp
 import brainpy.numpy as np
 
 
 def GapJunction():
     requires = dict(
-        ST=nb.types.SynState(
+        ST=bp.types.SynState(
             ['s', 'w'],
             help='''
             Gap junction state.
@@ -15,10 +15,10 @@ def GapJunction():
             w : gap junction conductance.
             '''
         ),
-        pre=nb.types.NeuState(['V']),
-        post=nb.types.NeuState(['V', 'inp']),
-        post2syn=nb.types.ListConn(help='post-to-synapse connection.'),
-        pre_ids=nb.types.Array(dim=1, help='Pre-synaptic neuron indices.'),
+        pre=bp.types.NeuState(['V']),
+        post=bp.types.NeuState(['V', 'inp']),
+        post2syn=bp.types.ListConn(help='post-to-synapse connection.'),
+        pre_ids=bp.types.Array(dim=1, help='Pre-synaptic neuron indices.'),
     )
 
     def update(ST, pre, post, post2syn, pre_ids):
@@ -28,12 +28,12 @@ def GapJunction():
                 pre_id = pre_ids[syn_id]
                 post['inp'][post_id] = ST['w'][syn_id] * (pre['V'][pre_id] - post['V'][post_id])
 
-    return nb.SynType(name='GapJunction', requires=requires, steps=update, vector_based=True)
+    return bp.SynType(name='GapJunction', requires=requires, steps=update, vector_based=True)
 
 
 def gap_junction_lif(spikelet=0.1):
     requires = dict(
-        ST=nb.types.SynState(
+        ST=bp.types.SynState(
             ['spikelet', 'w'],
             help='''
                 Gap junction state.
@@ -42,10 +42,10 @@ def gap_junction_lif(spikelet=0.1):
                 w : gap junction conductance. It
                 '''
         ),
-        pre=nb.types.NeuState(['V', 'sp']),
-        post=nb.types.NeuState(['V', 'inp']),
-        post2syn=nb.types.ListConn(help='post-to-synapse connection.'),
-        pre_ids=nb.types.Array(dim=1, help='Pre-synaptic neuron indices.'),
+        pre=bp.types.NeuState(['V', 'sp']),
+        post=bp.types.NeuState(['V', 'inp']),
+        post2syn=bp.types.ListConn(help='post-to-synapse connection.'),
+        pre_ids=bp.types.Array(dim=1, help='Pre-synaptic neuron indices.'),
     )
 
     def update(ST, pre, post, post2syn, pre_ids):
@@ -56,13 +56,14 @@ def gap_junction_lif(spikelet=0.1):
                 post['inp'][post_id] += ST['w'] * (pre['V'][pre_id] - post['V'][post_id])
                 ST['spikelet'][syn_id] = ST['w'][syn_id] * spikelet * pre['sp']
 
-    @nb.delayed
+    @bp.delayed
     def output(ST, post, post2syn):
         post_spikelet = np.zeros(len(post2syn), dtype=np.float_)
         for post_id, syn_ids in enumerate(post2syn):
             post_spikelet[post_id] = np.sum(ST['spikelet'][syn_ids])
         post['V'] += post_spikelet
 
-    return nb.SynType(name='GapJunctin_for_LIF', requires=requires, steps=update, vector_based=True)
-
-
+    return bp.SynType(name='GapJunctin_for_LIF',
+                      requires=requires,
+                      steps=update,
+                      vector_based=True)
