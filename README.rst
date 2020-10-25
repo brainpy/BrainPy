@@ -1,12 +1,14 @@
 
-.. image:: https://anaconda.org/brainpy/brainpy/badges/license.svg
-    :target: https://github.com/PKU-NIP-Lab/BrainPy
-    :alt: LICENSE
+
 
 .. image:: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/logo.png
     :target: https://github.com/PKU-NIP-Lab/BrainPy
     :align: center
     :alt: Logo
+
+.. image:: https://anaconda.org/brainpy/brainpy/badges/license.svg
+    :target: https://github.com/PKU-NIP-Lab/BrainPy
+    :alt: LICENSE
 
 .. image:: https://readthedocs.org/projects/brainpy/badge/?version=latest
     :target: https://brainpy.readthedocs.io/en/latest/?badge=latest
@@ -46,7 +48,7 @@ models running on `Numba` backend is very fast.
 .. figure:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/speed.png
     :alt: Speed of BrainPy
     :figclass: align-center
-    :width: 500px
+    :width: 400px
 
 
 Installation
