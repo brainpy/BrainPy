@@ -85,13 +85,12 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
 if __name__ == '__main__':
     bp.profile.set(backend='numba', device='cpu', dt=0.02,
                    numerical_method='exponential', merge_steps=True)
-    bp.profile._show_formatted_code = True
 
     HH = define_hh(noise=1.)
-
     neu = bp.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])
-    neu.ST['V'] = np.random.random(100) * 20 + -75
-    neu.pars['g_K'] = np.random.random(100) * 2 + 35
+    neu.ST['V'] = np.random.random(100) * 20 + -75  # set initial variable state
+    neu.pars['g_K'] = np.random.random(100) * 2 + 35  # update parameters
+
     neu.run(duration=100., inputs=['ST.inp', 10.], report=True)
 
     ts = neu.mon.ts
