@@ -4,12 +4,11 @@
 Visualization toolkit.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
+import numpy as np
 from matplotlib import animation
+from matplotlib import rcParams
 from matplotlib.gridspec import GridSpec
-
 
 __all__ = [
     'get_figure',

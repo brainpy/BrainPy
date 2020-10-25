@@ -8,6 +8,7 @@ import autopep8
 
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
+from .constants import _SYN_CONN
 from .types import ObjState
 from .. import numpy as np
 from .. import profile
@@ -620,7 +621,7 @@ class Runner(object):
                             if ks in self._pars.heters:
                                 raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in step functions, '
                                                     f'it will not work.\n'
-                                                    f'Please set "npbrain.profile.merge_integral = True" to try to '
+                                                    f'Please set "brainpy.profile._merge_steps = True" to try to '
                                                     f'merge parameter "{ks}" into the step functions.')
                     code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
@@ -639,7 +640,8 @@ class Runner(object):
 
         # check whether the model include heterogeneous parameters
         delay_keys = self._delay_keys
-        all_heter_pars = list(self._pars.heters.keys())
+        all_heter_pars = list([k for k in self._model.heter_params_replace.keys()
+                               if k in self._pars.updates])
 
         for func in self._steps:
             # information about the function
@@ -720,6 +722,8 @@ class Runner(object):
             for k in code_scope.keys():
                 if k in self._model.heter_params_replace:
                     arg_substitute[k] = self._model.heter_params_replace[k]
+                    if k in all_heter_pars:
+                        all_heter_pars.remove(k)
             # substitute
             func_code = tools.word_replace(func_code, arg_substitute)
 
@@ -727,8 +731,6 @@ class Runner(object):
             for k in list(code_scope.keys()):
                 if k in self._pars.updates:
                     code_scope[k] = self._pars.updates[k]
-                if k in all_heter_pars:
-                    all_heter_pars.remove(k)
 
             # final
             code_lines = func_code.split('\n')
@@ -759,7 +761,7 @@ class Runner(object):
         # WARNING: heterogeneous parameter may not in the main step functions
         if len(all_heter_pars) > 0:
             raise ModelDefError(f'Heterogeneous parameters "{list(all_heter_pars)}" are not defined '
-                                f'in main step function. NumpyBrain cannot recognize. Please check.')
+                                f'in main step function. BrainPy cannot recognize. Please check.')
 
         return results
 
@@ -983,6 +985,7 @@ class Runner(object):
 
         else:
             raise NotImplementedError
+
 
         return codes_of_calls
 

@@ -184,17 +184,13 @@ class SynConn(BaseEnsemble):
 
         # ST
         # --
-        self.ST = self.requires['ST'].make_copy(size=self.num, delay=delay_len,
-                                                delay_vars=list(self.model._delay_keys['ST']))
-
-    def _merge_steps(self):
-        codes_of_calls = super(SynConn, self)._merge_steps()
-        codes_of_calls.append(f'{self.name}.ST._update_delay_indices()')
-        return codes_of_calls
-
-    @property
-    def _keywords(self):
-        return super(SynConn, self)._keywords + ['delay_len']
+        if 'ST' in self.model._delay_keys:
+            self.ST = self.requires['ST'].make_copy(
+                size=self.num, delay=delay_len,
+                delay_vars=list(self.model._delay_keys['ST']))
+        else:
+            self.ST = self.requires['ST'].make_copy(
+                size=self.num, delay=delay_len)
 
 
 def post_cond_by_post2syn(syn_val, post2syn):

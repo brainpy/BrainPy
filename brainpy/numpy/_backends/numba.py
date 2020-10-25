@@ -140,13 +140,13 @@ def _reload():
     global_vars['seed'] = numba.njit(lambda a: numpy.random.seed(a))
 
     @numba.generated_jit(**profile.get_numba_profile())
-    def _normal_sample_(x):
+    def _normal_like(x):
         if isinstance(x, (numba.types.Integer, numba.types.Float)):
             return lambda x: numpy.random.normal()
         else:
             return lambda x: numpy.random.normal(0., 1.0, x.shape)
 
-    global_vars['_normal_sample_'] = _normal_sample_
+    global_vars['_normal_like'] = _normal_like
 
 
 _reload()

@@ -5,23 +5,19 @@ from collections import Counter
 
 import sympy
 
+from .constants import CONSTANT_NOISE
+from .constants import FUNCTIONAL_NOISE
 from .sympy_tools import str2sympy
 from .sympy_tools import sympy2str
 from .. import numpy as np
 from .. import profile
 from .. import tools
+from ..errors import DiffEquationError
 
 __all__ = [
     'Expression',
     'DiffEquation',
 ]
-
-_CONSTANT_NOISE = 'CONSTANT'
-_FUNCTIONAL_NOISE = 'FUNCTIONAL'
-_ODE_TYPE = 'ODE'
-_SDE_TYPE = 'SDE'
-_DIFF_EQUATION = 'diff_equation'
-_SUB_EXPRESSION = 'sub_expression'
 
 
 class Expression(object):
@@ -69,108 +65,97 @@ class DiffEquation(object):
 
     dx/dt = f(x) + g(x) dW
 
+    Parameters
+    ----------
+    func : callable
+        The user defined differential equation.
     """
+    def __init__(self, func):
+        # check
+        try:
+            assert func is not None
+        except AssertionError:
+            raise DiffEquationError('"func" cannot be None.')
+        try:
+            assert callable(func) and type(func).__name__ == 'function'
+        except AssertionError:
+            raise DiffEquationError('"func" must be a function.')
 
-    def __init__(self, f=None, g=None):
-        # "f" function
-        self.f = f
-        if f is None:
-            self.f_code = '0'
-        else:
-            self.f_code = tools.deindent(tools.get_main_code(f))
+        # function
+        self.func = func
 
-        # "g" function
-        self.g = g
-        if g is None:
-            self.g_code = '0'
-        else:
-            self.g_code = tools.deindent(tools.get_main_code(g))
+        # function string
+        self.code = tools.deindent(tools.get_main_code(func))
+        try:
+            assert 'return' in self.code
+        except AssertionError:
+            raise DiffEquationError(f'"func" function must return something, '
+                                    f'but found nothing.\n{self.code}')
 
-        if not callable(f):
-            assert callable(g), '"f" and "g" cannot be None simultaneously.'
-            # function arguments
-            self.func_args = inspect.getfullargspec(g).args
-            # function name
-            if tools.is_lambda_function(g):
-                self.func_name = f'_integral_{self.func_args[0]}_'
-            else:
-                self.func_name = g.__name__
-            # function scope
-            scope = inspect.getclosurevars(g)
-            self.func_scope = dict(scope.nonlocals)
-            self.func_scope.update(scope.globals)
-            if isinstance(f, np.ndarray):
-                self.f_code = f'return _f_{self.func_name}'
-                self.func_scope[f'_f_{self.func_name}'] = f
-            # noise type
-            self.g_type = _FUNCTIONAL_NOISE
+        # function arguments
+        self.func_args = inspect.getfullargspec(func).args
+
+        # function name
+        if tools.is_lambda_function(func):
+            self.func_name = f'_integral_{self.func_args[0]}_'
         else:
-            # function arguments
-            self.func_args = inspect.getfullargspec(f).args
-            # function name
-            if tools.is_lambda_function(f):
-                self.func_name = f'_integral_{self.func_args[0]}_'
-            else:
-                self.func_name = f.__name__
-            # function scope
-            scope = inspect.getclosurevars(f)
-            self.func_scope = dict(scope.nonlocals)
-            self.func_scope.update(scope.globals)
-            if callable(g):
-                g_args = inspect.getfullargspec(g).args
-                if self.func_args != g_args:
-                    raise tools.DiffEquationError(f'The argument of "f" and "g" should be the same. But got:\n\n'
-                                                  f'f({", ".join(self.func_args)})\n\n'
-                                                  f'and\n\n'
-                                                  f'g({", ".join(g_args)})')
-                scope = inspect.getclosurevars(g)
-                self.func_scope.update(scope.nonlocals)
-                self.func_scope.update(scope.globals)
-            elif isinstance(g, np.ndarray):
-                self.g_code = f'_g_{self.func_name}'
-                self.func_scope[f'_g_{self.func_name}'] = g
-            # noise type
-            self.g_type = _CONSTANT_NOISE
-            if callable(g):
-                self.g_type = _FUNCTIONAL_NOISE
+            self.func_name = func.__name__
+
+        # function scope
+        scope = inspect.getclosurevars(func)
+        self.func_scope = dict(scope.nonlocals)
+        self.func_scope.update(scope.globals)
 
         # differential variable name and time name
         self.var_name = self.func_args[0]
         self.t_name = self.func_args[1]
 
-        # analyse f code
-        if 'return' in self.f_code:
-            f_variables, f_expressions, f_returns = tools.analyse_diff_eq(self.f_code)
-            self.f_expressions = [Expression(v, expr) for v, expr in zip(f_variables, f_expressions)]
-            self.f_returns = f_returns
-            for k, num in Counter(f_variables).items():
-                if num > 1:
-                    raise tools.DiffEquationError(f'Found "{k}" {num} times. Please assign each expression '
-                                                  f'in differential function with a unique name. ')
-        else:
-            self.f_expressions = [Expression('_func_res_', self.f_code)]
-            self.f_returns = [self.var_name]
+        # analyse function code
+        res = tools.analyse_diff_eq(self.code)
+        self.expressions = [Expression(v, expr) for v, expr in zip(res.variables, res.expressions)]
+        self.returns = res.returns
+        self.return_type = res.return_type
+        self.f_expr = None
+        self.g_expr = None
+        if res.f_expr is not None:
+            self.f_expr = Expression(res.f_expr[0], res.f_expr[1])
+        if res.g_expr is not None:
+            self.g_expr = Expression(res.g_expr[0], res.g_expr[1])
+        for k, num in Counter(res.variables).items():
+            if num > 1:
+                raise DiffEquationError(f'Found "{k}" {num} times. Please assign each expression '
+                                        f'in differential function with a unique name. ')
 
-        # analyse g code
-        if self.is_functional_noise:
-            g_variables, g_expressions, g_returns = tools.analyse_diff_eq(self.g_code)
-            if len(g_returns) > 1:
-                raise tools.DiffEquationError(f'"g" function can only return one result, but found {len(g_returns)}.')
-            for k, num in Counter(g_variables).items():
-                if num > 1:
-                    raise tools.DiffEquationError(f'Found "{k}" {num} times. Please assign each expression '
-                                                  f'in differential function with a unique name. ')
-            self.g_expressions = [Expression(v, expr) for v, expr in zip(g_variables, g_expressions)]
-            self.g_returns = g_returns[0]
-        else:
-            self.g_expressions = []
-            self.g_returns = self.g_code
+        # analyse noise type
+        self.g_type = CONSTANT_NOISE
+        self.g_value = None
+        if self.g_expr is not None:
+            self._substitute(self.g_expr, self.expressions)
+            g_code = self.g_expr.get_code(subs=True)
+            for idf in tools.get_identifiers(g_code):
+                if idf not in self.func_scope:
+                    self.g_type = FUNCTIONAL_NOISE
+                    break
+            else:
+                self.g_value = eval(g_code, self.func_scope)
 
-    def _substitute(self, expressions):
+    def _substitute(self, final_exp, expressions):
+        """Substitute expressions to get the final single expression
+
+        Parameters
+        ----------
+        final_exp : Expression
+            The final expression.
+        expressions : list, tuple
+            The list/tuple of expressions.
+        """
+        if final_exp is None:
+            return
+
         # Goal: Substitute dependent variables into the expresion
         # Hint: This step doesn't require the left variables are unique
         dependencies = {}
-        for expr in expressions[:-1]:
+        for expr in expressions:
             substitutions = {}
             for dep_var, dep_expr in dependencies.items():
                 if dep_var in expr.identifiers:
@@ -192,25 +177,26 @@ class DiffEquation(object):
             code = dep_expr.get_code(subs=True)
             substitutions[sympy.Symbol(dep_var, real=True)] = str2sympy(code)
         if len(substitutions):
-            expr = expressions[-1]
-            new_sympy_expr = str2sympy(expr.code).xreplace(substitutions)
+            new_sympy_expr = str2sympy(final_exp.code).xreplace(substitutions)
             new_str_expr = sympy2str(new_sympy_expr)
-            expr._substituted_code = new_str_expr
+            final_exp._substituted_code = new_str_expr
 
     def get_f_expressions(self, substitute=False):
+        if self.f_expr is None:
+            return []
+
         if substitute:
-            self._substitute(self.f_expressions)
+            self._substitute(self.f_expr, self.expressions)
 
         return_expressions = []
         # the derivative expression
-        dif_eq_code = self.f_expressions[-1].get_code(subs=True)
+        dif_eq_code = self.f_expr.get_code(subs=True)
         return_expressions.append(Expression(f'_df{self.var_name}_dt', dif_eq_code))
         # needed variables
         need_vars = tools.get_identifiers(dif_eq_code)
-        need_vars |= tools.get_identifiers(', '.join(self.f_returns[1:]))
+        need_vars |= tools.get_identifiers(', '.join(self.returns))
         # get the total return expressions
-        expr_num = len(self.f_expressions)
-        for expr in self.f_expressions[expr_num - 2::-1]:
+        for expr in self.expressions[::-1]:
             if expr.var_name in need_vars:
                 if not profile._substitute_equation or expr._substituted_code is None:
                     code = expr.code
@@ -218,42 +204,55 @@ class DiffEquation(object):
                     code = expr._substituted_code
                 return_expressions.append(Expression(expr.var_name, code))
                 need_vars |= tools.get_identifiers(code)
-        return_expressions = return_expressions[::-1]
-        return return_expressions
+        return return_expressions[::-1]
 
-    def get_g_expressions(self, substitute=False):
+    def get_g_expressions(self):
         if self.is_functional_noise:
-            if substitute:
-                self._substitute(self.g_expressions)
-
             return_expressions = []
             # the derivative expression
-            eq_code = self.g_expressions[-1].get_code(subs=True)
+            eq_code = self.g_expr.get_code(subs=True)
             return_expressions.append(Expression(f'_dg{self.var_name}_dt', eq_code))
             # needed variables
             need_vars = tools.get_identifiers(eq_code)
             # get the total return expressions
-            expr_num = len(self.g_expressions)
-            for expr in self.g_expressions[expr_num - 2::-1]:
+            for expr in self.expressions[::-1]:
                 if expr.var_name in need_vars:
                     if not profile._substitute_equation or expr._substituted_code is None:
                         code = expr.code
                     else:
                         code = expr._substituted_code
-                    return_expressions[expr.var_name] = Expression(expr.var_name, code)
+                    return_expressions.append(Expression(expr.var_name, code))
                     need_vars |= tools.get_identifiers(code)
-            return_expressions = return_expressions[::-1]
-            return return_expressions
+            return return_expressions[::-1]
         else:
-            return [Expression(f'_dg{self.var_name}_dt', self.g_code)]
+            return [Expression(f'_dg{self.var_name}_dt', self.g_expr.get_code(subs=True))]
 
     def _replace_expressions(self, expressions, name, y_sub, t_sub=None):
+        """Replace expressions of df part.
+
+        Parameters
+        ----------
+        expressions : list, tuple
+            The list/tuple of expressions.
+        name : str
+            The name of the new expression.
+        y_sub : str
+            The new name of the variable "y".
+        t_sub : str, optional
+            The new name of the variable "t".
+
+        Returns
+        -------
+        list_of_expr : list
+            A list of expressions.
+        """
         return_expressions = []
 
-        # replacement
+        # replacements
         replacement = {self.var_name: y_sub}
         if t_sub is not None:
             replacement[self.t_name] = t_sub
+
         # replace variables in expressions
         for expr in expressions:
             replace = False
@@ -270,26 +269,44 @@ class DiffEquation(object):
         return return_expressions
 
     def replace_f_expressions(self, name, y_sub, t_sub=None):
-        return self._replace_expressions(self.f_expressions, name=name, y_sub=y_sub, t_sub=t_sub)
+        """Replace expressions of df part.
+
+        Parameters
+        ----------
+        name : str
+            The name of the new expression.
+        y_sub : str
+            The new name of the variable "y".
+        t_sub : str, optional
+            The new name of the variable "t".
+
+        Returns
+        -------
+        list_of_expr : list
+            A list of expressions.
+        """
+        return self._replace_expressions(self.get_f_expressions(),
+                                         name=name, y_sub=y_sub, t_sub=t_sub)
 
     def replace_g_expressions(self, name, y_sub, t_sub=None):
-        return self._replace_expressions(self.g_expressions, name=name, y_sub=y_sub, t_sub=t_sub)
-
-    @property
-    def type(self):
-        return _SDE_TYPE if self.is_stochastic else _ODE_TYPE
+        if self.is_functional_noise:
+            return self._replace_expressions(self.get_g_expressions(),
+                                             name=name, y_sub=y_sub, t_sub=t_sub)
+        else:
+            return []
 
     @property
     def is_multi_return(self):
-        return len(self.f_returns) > 1
+        return len(self.returns) > 0
 
     @property
     def is_stochastic(self):
-        return not (self.g is None or np.all(self.g == 0.))
+        # return not (self.g_expr is None or np.all(self.g_value == 0.))
+        return self.g_expr is not None
 
     @property
     def is_functional_noise(self):
-        return self.g_type == _FUNCTIONAL_NOISE
+        return self.g_type == FUNCTIONAL_NOISE
 
     @property
     def stochastic_type(self):
@@ -299,9 +316,6 @@ class DiffEquation(object):
             pass
 
     @property
-    def f_expr_names(self):
-        return [expr.var_name for expr in self.f_expressions]
+    def expr_names(self):
+        return [expr.var_name for expr in self.expressions]
 
-    @property
-    def g_expr_names(self):
-        return [expr.var_name for expr in self.g_expressions]

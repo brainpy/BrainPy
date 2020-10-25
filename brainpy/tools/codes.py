@@ -3,14 +3,14 @@
 import ast
 import inspect
 import re
-import types
+from types import LambdaType
 
 import autopep8
 
 from .ast2code import ast2code
-from .. import numpy as np
-from  ..errors import CodeError
-from  ..errors import DiffEquationError
+from ..errors import CodeError
+from ..errors import DiffEquationError
+from .dicts import DictPlus
 
 __all__ = [
     # string processing
@@ -35,6 +35,7 @@ __all__ = [
 
     #
     'func_call',
+    'get_func_source',
 ]
 
 
@@ -52,10 +53,7 @@ def is_lambda_function(func):
     bool
         True of False.
     """
-    return isinstance(func, types.LambdaType) and func.__name__ == "<lambda>"
-
-
-_ID_KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
+    return isinstance(func, LambdaType) and func.__name__ == "<lambda>"
 
 
 def get_identifiers(expr, include_numbers=False):
@@ -86,6 +84,7 @@ def get_identifiers(expr, include_numbers=False):
     >>> print(sorted(list(ids)))
     ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2']
     """
+    _ID_KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
     identifiers = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_.]*\b', expr))
     # identifiers = set(re.findall(r'\b[A-Za-z_][.?[A-Za-z0-9_]*]*\b', expr))
     if include_numbers:
@@ -97,36 +96,28 @@ def get_identifiers(expr, include_numbers=False):
     return (identifiers - _ID_KEYWORDS) | numbers
 
 
-def analyse_diff_eq(eq_code):
-    if eq_code.strip() == '':
-        return [], [], ['0']
-    else:
-        tree = ast.parse(eq_code)
-        analyser = DiffEquationAnalyser()
-        analyser.visit(tree)
-        return analyser.variables, analyser.expressions, analyser.returns
-
-
-expression_ops = {
-    'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/',
-    'Mod': '%', 'Pow': '**', 'BitXor': '^', 'BitAnd': '&',
-}
-
-
 class DiffEquationAnalyser(ast.NodeTransformer):
+    expression_ops = {
+        'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/',
+        'Mod': '%', 'Pow': '**', 'BitXor': '^', 'BitAnd': '&',
+    }
 
-    # TODO : Multiple assignment like "a = b = 1" or "a, b = f()"
     def __init__(self):
         self.variables = []
         self.expressions = []
+        self.f_expr = None
+        self.g_expr = None
         self.returns = []
+        self.return_type = None
 
+    # TODO : Multiple assignment like "a = b = 1" or "a, b = f()"
     def visit_Assign(self, node):
         targets = node.targets
         try:
             assert len(targets) == 1
         except AssertionError:
-            raise DiffEquationError('Do not support multiple assignment.')
+            raise DiffEquationError('BrainPy currently does not support multiple '
+                                    'assignment in differential equation.')
         self.variables.append(targets[0].id)
         self.expressions.append(ast2code(ast.fix_missing_locations(node.value)))
         return node
@@ -140,29 +131,64 @@ class DiffEquationAnalyser(ast.NodeTransformer):
         return node
 
     def visit_AnnAssign(self, node):
-        raise NotImplementedError('Do not support an assignment with a type annotation.')
+        raise DiffEquationError('Do not support an assignment with a type annotation.')
 
     def visit_Return(self, node):
         value = node.value
-        if isinstance(value, (ast.Tuple, ast.List)):
+        if isinstance(value, (ast.Tuple, ast.List)):  # a tuple/list return
             v0 = value.elts[0]
-            if isinstance(v0, ast.Name):
-                self.returns.append(v0.id)
-            else:
-                self.expressions.append(ast2code(ast.fix_missing_locations(v0)))
-                self.variables.append("_func_res_")
-                self.returns.append("_func_res_")
-            for i, item in enumerate(value.elts[1:]):
-                if isinstance(item, ast.Name):
-                    self.returns.append(item.id)
+            if isinstance(v0, (ast.Tuple, ast.List)):  # item 0 is a tuple/list
+                # f expression
+                if isinstance(v0.elts[0], ast.Name):
+                    self.f_expr = ('_f_res_', v0.elts[0].id)
                 else:
-                    self.returns.append(ast2code(ast.fix_missing_locations(item)))
-        elif isinstance(value, ast.Name):
-            self.returns.append(value.id)
+                    self.f_expr = ('_f_res_', ast2code(ast.fix_missing_locations(v0.elts[0])))
+
+                if len(v0.elts) == 1:
+                    self.return_type = '(x,),'
+                elif len(v0.elts) == 2:
+                    self.return_type = '(x,x),'
+                    # g expression
+                    if isinstance(v0.elts[1], ast.Name):
+                        self.g_expr = ('_g_res_', v0.elts[1].id)
+                    else:
+                        self.g_expr = ('_g_res_', ast2code(ast.fix_missing_locations(v0.elts[1])))
+                else:
+                    raise DiffEquationError(f'The dxdt should have the format of (f, g), not '
+                                            f'"({ast2code(ast.fix_missing_locations(v0.elts))})"')
+
+                # returns
+                for i, item in enumerate(value.elts[1:]):
+                    if isinstance(item, ast.Name):
+                        self.returns.append(item.id)
+                    else:
+                        self.returns.append(ast2code(ast.fix_missing_locations(item)))
+
+            else:  # item 0 is not a tuple/list
+                # f expression
+                if isinstance(v0, ast.Name):
+                    self.f_expr = ('_f_res_', v0.id)
+                else:
+                    self.f_expr = ('_f_res_', ast2code(ast.fix_missing_locations(v0)))
+
+                if len(value.elts) == 1:
+                    self.return_type = 'x,'
+                elif len(value.elts) == 2:
+                    self.return_type = 'x,x'
+                    # g expression
+                    if isinstance(value.elts[1], ast.Name):
+                        self.g_expr = ('_g_res_', value.elts[1].id)
+                    else:
+                        self.g_expr = ("_g_res_", ast2code(ast.fix_missing_locations(value.elts[1])))
+                else:
+                    raise DiffEquationError('Cannot parse return expression. It should have the '
+                                            'format of "(f, [g]), [return values]"')
         else:
-            self.expressions.append(ast2code(ast.fix_missing_locations(value)))
-            self.variables.append("_func_res_")
-            self.returns.append("_func_res_")
+            self.return_type = 'x'
+            if isinstance(value, ast.Name):  # a name return
+                self.f_expr = ('_f_res_', value.id)
+            else:  # an expression return
+                self.f_expr = ('_f_res_', ast2code(ast.fix_missing_locations(value)))
         return node
 
     def visit_If(self, node):
@@ -190,14 +216,19 @@ class DiffEquationAnalyser(ast.NodeTransformer):
         raise DiffEquationError('Do not support "del" operation.')
 
 
+def analyse_diff_eq(eq_code):
+    assert eq_code.strip() != ''
+    tree = ast.parse(eq_code)
+    analyser = DiffEquationAnalyser()
+    analyser.visit(tree)
 
-def replace_func(code, func_name):
-    tree = ast.parse(code.strip())
-    w = FuncCallFinder(func_name)
-    tree = w.visit(tree)
-    tree = ast.fix_missing_locations(tree)
-    new_code = ast2code(tree)
-    return new_code, w.args, w.kwargs
+    res = DictPlus(variables=analyser.variables,
+                   expressions=analyser.expressions,
+                   returns=analyser.returns,
+                   return_type=analyser.return_type,
+                   f_expr=analyser.f_expr,
+                   g_expr=analyser.g_expr)
+    return res
 
 
 class FuncCallFinder(ast.NodeTransformer):
@@ -247,6 +278,15 @@ class FuncCallFinder(ast.NodeTransformer):
             return ast.Call(func=node.func, args=args, keywords=keywords)
 
 
+def replace_func(code, func_name):
+    tree = ast.parse(code.strip())
+    w = FuncCallFinder(func_name)
+    tree = w.visit(tree)
+    tree = ast.fix_missing_locations(tree)
+    new_code = ast2code(tree)
+    return new_code, w.args, w.kwargs
+
+
 def get_main_code(func):
     """Get the main function _code string.
 
@@ -264,7 +304,7 @@ def get_main_code(func):
         return ''
     elif callable(func):
         if is_lambda_function(func):
-            func_code = inspect.getsource(func)
+            func_code = get_func_source(func)
             splits = func_code.split(':')
             if len(splits) != 2:
                 raise ValueError(f'Can not parse function: \n{func_code}')
@@ -278,20 +318,17 @@ def get_main_code(func):
                 line = line.replace(' ', '')
                 if '):' in line:
                     break
+            else:
+                code = "\n".join(func_codes)
+                raise ValueError(f'Can not parse function: \n{code}')
             return ''.join(func_codes[idx:])
     else:
-        if isinstance(func, (int, float)):
-            return str(func)
-        elif isinstance(func, np.ndarray):
-            return '_g'
-        else:
-            raise ValueError(f'Unknown function type: {type(func)}.')
+        raise ValueError(f'Unknown function type: {type(func)}.')
 
 
 def get_line_indent(line, spaces_per_tab=4):
     line = line.replace('\t', ' ' * spaces_per_tab)
     return len(line) - len(line.lstrip())
-
 
 
 class CodeLineFormatter(ast.NodeTransformer):
@@ -516,3 +553,15 @@ def func_call(args):
             func_args.append(f'{arg},')
         func_args.append('\n')
     return ' '.join(func_args).strip()
+
+
+def get_func_source(func):
+    code = inspect.getsource(func)
+    # remove @
+    try:
+        start = code.index('def ')
+        code = code[start:]
+    except ValueError:
+        pass
+    return code
+

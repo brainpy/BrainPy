@@ -4,9 +4,7 @@ from .base import BaseEnsemble
 from .base import BaseType
 from .base import ModelUseError
 from .constants import _NEU_GROUP
-from .constants import INPUT_OPERATIONS
 from .. import numpy as np
-from ..tools import DictPlus
 
 __all__ = [
     'NeuType',

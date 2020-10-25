@@ -5,6 +5,7 @@ import inspect
 import types
 
 from .codes import deindent
+from .codes import get_func_source
 from .. import numpy as np
 from .. import profile
 from ..integration.integrator import Integrator
@@ -104,7 +105,7 @@ def numba_func(func, params={}):
             modified = True
 
     if modified:
-        func_code = deindent(inspect.getsource(func))
+        func_code = deindent(get_func_source(func))
         exec(compile(func_code, '', "exec"), code_scope)
         return jit(code_scope[func.__name__])
     else:
@@ -139,7 +140,7 @@ def get_func_scope(func, include_dispatcher=False):
     # get function scope
     if isinstance(func, Integrator):
         func_name = func.py_func_name
-        variables = inspect.getclosurevars(func.update_func)
+        variables = inspect.getclosurevars(func.diff_eq.func)
     elif type(func).__name__ == 'function':
         func_name = get_func_name(func, replace=True)
         variables = inspect.getclosurevars(func)
@@ -173,3 +174,5 @@ def get_func_scope(func, include_dispatcher=False):
             scope.pop(k)
 
     return scope
+
+

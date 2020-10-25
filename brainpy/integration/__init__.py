@@ -5,7 +5,6 @@ from . import integrator
 from . import sympy_tools
 from .diff_equation import *
 from .integrator import *
-from .. import numpy as np
 from .. import profile
 
 _SUPPORT_METHODS = [
@@ -23,7 +22,7 @@ _SUPPORT_METHODS = [
 ]
 
 
-def integrate(func=None, noise=None, method=None):
+def integrate(func=None, method=None):
     """Generate the one-step integrator function for differential equations.
 
     Using this method, the users only need to define the right side of the equation.
@@ -54,9 +53,6 @@ def integrate(func=None, noise=None, method=None):
         The function at the right hand of the differential equation.
         If a stochastic equation (SDE) is defined, then `func` is the drift coefficient
         (the deterministic part) of the SDE.
-    noise : callable, float
-        The diffusion coefficient (the stochastic part) of the SDE. `noise` can be a float
-        number, or a function.
     method : None, str, callable
         The method of numerical integrator.
 
@@ -67,32 +63,11 @@ def integrate(func=None, noise=None, method=None):
         if not, the wrapper will be provided.
     """
 
-    if noise is None:
-        has_noise = False
-    elif callable(noise):
-        has_noise = True
-    else:
-        if np.all(noise == 0.):
-            has_noise = False
-        else:
-            has_noise = True
     method = method if method is not None else profile.get_method()
     _integrator_ = get_integrator(method)
 
     if func is None:
-        if not has_noise:  # ODE
-            def wrapper(f):
-                return _integrator_(DiffEquation(f=f))
-
-            return wrapper
-        else:  # SDE
-            def wrapper(f):
-                return _integrator_(DiffEquation(f=f, g=noise))
-
-            return wrapper
+        return lambda f: _integrator_(DiffEquation(func=f))
 
     else:
-        if not has_noise:  # ODE
-            return _integrator_(DiffEquation(f=func))
-        else:  # SDE
-            return _integrator_(DiffEquation(f=func, g=noise))
+        return _integrator_(DiffEquation(func=func))

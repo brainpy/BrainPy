@@ -307,7 +307,7 @@ class BaseEnsemble(object):
         try:
             attr = getattr(self, arg)
         except AttributeError:
-            raise ModelUseError(f'"{self.model.name}" need "{arg}", but it isn\'t defined in this model.')
+            return False
         if self._cls_type == _NEU_GROUP:
             return isinstance(attr, NeuState)
         elif self._cls_type == _SYN_CONN:
@@ -340,6 +340,13 @@ class BaseEnsemble(object):
 
         # merge
         calls = self.runner.merge_steps(results, mode=mode)
+
+        if self._cls_type == _SYN_CONN:
+            for func in self.model.steps:
+                for arg in inspect.getfullargspec(func).args:
+                    if self._is_state_attr(arg):
+                        calls.append(f'{self.name}.{arg}._update_delay_indices()')
+
         return calls
 
     @property
@@ -380,7 +387,8 @@ class BaseEnsemble(object):
             if isinstance(inputs[0], str):
                 inputs = [inputs]
             else:
-                raise ModelUseError('Unknown input structure.')
+                raise ModelUseError('Unknown input structure, only support inputs '
+                                    'with format of "(key, value, [operation])".')
         for inp in inputs:
             try:
                 assert 2 <= len(inp) <= 3

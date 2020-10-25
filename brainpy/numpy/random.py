@@ -52,7 +52,7 @@ logseries = numpy.random.logseries
 multinomial = numpy.random.multinomial
 negative_binomial = numpy.random.negative_binomial
 normal = numpy.random.normal
-_normal_sample_ = lambda x: normal(size=numpy.shape(x))
+_normal_like = lambda x: normal(size=numpy.shape(x))
 pareto = numpy.random.pareto
 poisson = numpy.random.poisson
 power = numpy.random.power
@@ -84,7 +84,7 @@ def _reload(backend):
                 global_vars[__ops] = getattr(numba, __ops)
             else:
                 global_vars[__ops] = getattr(numpy.random, __ops)
-        global_vars['_normal_sample_'] = getattr(numba, '_normal_sample_')
+        global_vars['_normal_like'] = getattr(numba, '_normal_like')
         # print(global_vars['_normal_sample_'])
 
     elif backend == 'jax':
