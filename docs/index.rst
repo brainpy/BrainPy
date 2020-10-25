@@ -1,7 +1,7 @@
-NumpyBrain documentation
+BrainPy documentation
 ========================
 
-``NumpyBrain`` is a microkernel framework for SNN (spiking neural network) simulation
+``BrainPy`` is a microkernel framework for neuronal dynamics simulation
 purely based on **native** python. It only relies on `NumPy <https://numpy.org/>`_.
 However, if you want to get faster performance,you can additionally
 install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FORTRAN can
@@ -10,9 +10,9 @@ be obtained in the simulation.
 
 .. note::
 
-    NumpyBrain is a project under development.
+    BrainPy is a project under development.
     More features are coming soon. Contributions are welcome.
-    https://github.com/chaoming0625/NumpyBrain
+    https://github.com/PKU-NIP-Lab/BrainPy
 
 
 .. toctree::
@@ -31,16 +31,6 @@ be obtained in the simulation.
    guides/neurons
    guides/synapses
    guides/numerical_integrators
-
-.. toctree::
-   :maxdepth: 2
-   :caption: API references
-
-   apis/core
-   apis/neurons
-   apis/synapses
-   apis/utils
-   apis/changelog
 
 
 Indices and tables
