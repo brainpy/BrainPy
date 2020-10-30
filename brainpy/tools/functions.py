@@ -12,7 +12,10 @@ from ..integration.integrator import Integrator
 
 try:
     import numba as nb
-    from numba.core.dispatcher import Dispatcher
+    if hasattr(nb, 'dispatcher'):
+        from numba.dispatcher import Dispatcher
+    else:
+        from numba.core.dispatcher import Dispatcher
 except ImportError as e:
     nb = None
     Dispatcher = None
