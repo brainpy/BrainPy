@@ -6,15 +6,15 @@ Installation
     :depth: 1
 
 
-NumpyBrain is designed to run on across-platforms, including Windows,
-GNU/Linux and OSX. It only relies on Python (NumPy and Numba) libraries.
+``BrainPy`` is designed to run on across-platforms, including Windows,
+GNU/Linux and OSX. It only relies on Python libraries.
 
 Installation with Anaconda
 --------------------------
 
-You can install NumpyBrain from the ``anaconda cloud``. To do so, use::
+You can install ``BrainPy`` from the ``anaconda cloud``. To do so, use::
 
-    conda install -c oujago npbrain
+    conda install -c brainpy brainpy
 
 Other useful packages are also recommended, such as matplotlib_ (for visualization),
 jupyter_ (a web-based interactive Python development environment).
@@ -22,14 +22,18 @@ jupyter_ (a web-based interactive Python development environment).
 Installation with pip
 ---------------------
 
-If you decide not to use ``conda``, you can install NumpyBrain from the Python
+If you decide not to use ``conda``, you can install ``BrainPy`` from the Python
 package index: https://pypi.python.org/pypi/
 
 To do so, use::
 
-    pip install npbrain
+    pip install brain.py
 
-That's all.
+Or, to be in line with the latest update, you can also install ``BrainPy`` from
+the github:
+
+
+
 
 
 .. _matplotlib: http://matplotlib.org/

@@ -1,7 +1,7 @@
 BrainPy documentation
 ========================
 
-``BrainPy`` is a microkernel framework for neuronal dynamics simulation
+``BrainPy`` is a lightweight framework for neuronal dynamics simulation
 purely based on **native** python. It only relies on `NumPy <https://numpy.org/>`_.
 However, if you want to get faster performance,you can additionally
 install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FORTRAN can

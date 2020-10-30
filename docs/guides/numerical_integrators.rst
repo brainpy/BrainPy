@@ -1,8 +1,8 @@
 Numerical integrators
 =====================
 
-``NumpyBrain`` provides several explicit and implicit methods for
-the numerical integration of Ordinary Differential Equations (ODEs)
+``BrainPy`` provides several methods for the numerical integration
+of Ordinary Differential Equations (ODEs)
 and Stochastic Differential Equations (SDEs).
 
 Numerical methods for ordinary differential equations

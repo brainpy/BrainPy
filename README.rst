@@ -32,8 +32,8 @@
 Why to use BrainPy
 =====================
 
-``BrainPy`` is a microkernel framework based on the Just-In-Time (JIT) compilers.
-The goal of ``BrainPy`` is to provide
+``BrainPy`` is a lightweight framework based on latest Just-In-Time (JIT)
+compilers. The goal of ``BrainPy`` is to provide
 a highly flexible and efficient neural simulation framework for Python users.
 It endows the users with the fully data/logic flow control.
 The core of the framework is a micro-kernel, and it's easy to understand (see
@@ -61,7 +61,7 @@ Install ``BrainPy`` using ``conda``::
 
 Install ``BrainPy`` using ``pip``::
 
-    > pip install Brain.Py
+    > pip install brain.py
 
 Install from source code::
 

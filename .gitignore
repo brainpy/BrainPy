@@ -19,8 +19,8 @@ docs/intro/.ipynb_checkpoints
 
 docs/guides/_autosummary
 docs/guides/.ipynb_checkpoints
-docs/guides/fast_synapse_computation.py
-docs/guides/fast_synapse_computation2.py
+develop/fast_synapse_computation.py
+develop/fast_synapse_computation2.py
 
 docs/apis/_autosummary
 docs/apis/usage_of_inputfactory.py

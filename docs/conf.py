@@ -19,7 +19,7 @@ import brainpy
 
 # -- Project information -----------------------------------------------------
 
-project = 'brainpy'
+project = 'BrainPy'
 copyright = '2020, Chaoming Wang'
 author = 'Chaoming Wang'
 
