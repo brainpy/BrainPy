@@ -134,7 +134,7 @@ def pre2syn(i, j, num_pre):
     else:
         post2syn_list = []
         for pre_i in range(num_pre):
-            index = np.where(j == pre_i)[0]
+            index = np.where(i == pre_i)[0]
             post2syn_list.append(np.uint64(index))
     return post2syn_list
 

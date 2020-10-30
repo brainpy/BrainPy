@@ -8,7 +8,6 @@ import autopep8
 
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
-from .constants import _SYN_CONN
 from .types import ObjState
 from .. import numpy as np
 from .. import profile
@@ -451,34 +450,38 @@ class Runner(object):
                     code_arg2call['post_ids'] = f'{self._name}.post_ids'
 
                     code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for pre_idx in range({self.ensemble.pre_group.num}):',
-                                  f'    pre = {self._name}_pre.extract_by_index(pre_idx)',
-                                  f'    for _obj_i_ in pre2syn[pre_idx]:',
+                                  f'  for pre_i in range({self.ensemble.pre_group.num}):',
+                                  f'    pre = {self._name}_pre.extract_by_index(pre_i)',
+                                  f'    for _obj_i_ in pre2syn[pre_i]:',
                                   f'      post_i = post_ids[_obj_i_]',
                                   f'      post = {self._name}_post.extract_by_index(post_i)']
                     prefix = '  ' * 3
+                    post_lines = [f'      {self._name}_post.update_by_index(post_i, post)',
+                                  f'    {self._name}_pre.update_by_index(pre_i, pre)']
                 elif has_pre:
                     code_arg.append('pre2syn')
                     code_arg2call['pre2syn'] = f'{self._name}.pre2syn'
 
                     code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for pre_idx in range({self.ensemble.pre_group.num}):',
-                                  f'    pre = {self._name}_pre.extract_by_index(pre_idx)',
-                                  f'    for _obj_i_ in pre2syn[pre_idx]:']
+                                  f'  for pre_i in range({self.ensemble.pre_group.num}):',
+                                  f'    pre = {self._name}_pre.extract_by_index(pre_i)',
+                                  f'    for _obj_i_ in pre2syn[pre_i]:']
                     prefix = '  ' * 3
+                    post_lines = [f'    {self._name}_pre.update_by_index(pre_i, pre)']
                 elif has_post:
                     code_arg.append('post2syn')
                     code_arg2call['post2syn'] = f'{self._name}.post2syn'
-
                     code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for post_id in range({self.ensemble.post_group.num}):',
-                                  f'    post = {self._name}_post.extract_by_index(post_id)',
-                                  f'    for _obj_i_ in post2syn[post_id]:']
+                                  f'  for post_i in range({self.ensemble.post_group.num}):',
+                                  f'    post = {self._name}_post.extract_by_index(post_i)',
+                                  f'    for _obj_i_ in post2syn[post_i]:']
                     prefix = '  ' * 3
+                    post_lines = [f'    {self._name}_post.update_by_index(post_i, post)']
                 else:
                     code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
                                   f'  for _obj_i_ in range({self.ensemble.num}):']
                     prefix = '  ' * 2
+                    post_lines = []
 
                 if func_name.startswith('_npbrain_delayed_'):
                     # Function with "delayed" decorator should use STATE pulled from the delay queue
@@ -486,6 +489,7 @@ class Runner(object):
                         if k not in func_args: continue
                         code_lines.append(prefix + f'{k} = {self._name}_{k}.extract_by_index(_obj_i_, delay_pull=True)')
                     code_lines.append(prefix + f'{stripped_fname}_origin({tools.func_call(func_args)})')
+                    code_lines.extend(post_lines)
                 else:
                     if len(delay_keys):
                         # Other function without "delayed" decorator
@@ -496,11 +500,13 @@ class Runner(object):
                         for k in delay_keys.keys():
                             if k not in func_args: continue
                             code_lines.append(prefix + f'{self._name}_{k}.update_by_index(_obj_i_, {k})')
+                        code_lines.extend(post_lines)
+
+                        # Function without "delayed" decorator should push their
+                        # updated STATE to the delay queue
                         func_code = tools.get_main_code(func)
                         func_code_left = '\n'.join(tools.format_code(func_code).lefts)
                         for k, v in delay_keys.items():
-                            # Function without "delayed" decorator should push their
-                            # updated STATE to the delay queue
                             func_keys = set(re.findall(r'' + k + r'\[[\'"](\w+)[\'"]\]', func_code_left))
                             func_delay_keys = func_keys.intersection(v)
                             if len(func_delay_keys) > 0:

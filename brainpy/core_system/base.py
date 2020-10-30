@@ -10,8 +10,6 @@ from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
 from .constants import _NEU_GROUP
 from .constants import _SYN_CONN
-from ..errors import ModelDefError
-from ..errors import ModelUseError
 from .runner import Runner
 from .types import NeuState
 from .types import SynState
@@ -20,6 +18,8 @@ from .types import TypeMismatchError
 from .. import numpy as np
 from .. import profile
 from .. import tools
+from ..errors import ModelDefError
+from ..errors import ModelUseError
 
 __all__ = [
     'BaseType',
@@ -342,10 +342,13 @@ class BaseEnsemble(object):
         calls = self.runner.merge_steps(results, mode=mode)
 
         if self._cls_type == _SYN_CONN:
+            index_update_items = set()
             for func in self.model.steps:
                 for arg in inspect.getfullargspec(func).args:
                     if self._is_state_attr(arg):
-                        calls.append(f'{self.name}.{arg}._update_delay_indices()')
+                        index_update_items.add(arg)
+            for arg in index_update_items:
+                calls.append(f'{self.name}.{arg}._update_delay_indices()')
 
         return calls
 
