@@ -24,6 +24,7 @@ from ..errors import ModelUseError
 __all__ = [
     'BaseType',
     'BaseEnsemble',
+    'ParsUpdate',
 ]
 
 
@@ -135,6 +136,9 @@ class BaseType(object):
 
 
 class ParsUpdate(dict):
+    """Class for parameter updating.
+
+    """
     def __init__(self, all_pars, num, model):
         assert isinstance(all_pars, dict)
         assert isinstance(num, int)
@@ -174,12 +178,38 @@ class ParsUpdate(dict):
         return str(self.all)
 
     def keys(self):
+        """All parameters can be updated.
+
+        Returns
+        -------
+        keys : list
+            List of parameter names.
+        """
         return self.origins.keys()
 
     def items(self):
-        return self.all.keys()
+        """All parameters, including keys and values.
+
+        Returns
+        -------
+        items : iterable
+            The iterable parameter items.
+        """
+        return self.all.items()
 
     def get(self, item):
+        """Get the parameter value by its key.
+
+        Parameters
+        ----------
+        item : str
+            Parameter name.
+
+        Returns
+        -------
+        value : any
+            Parameter value.
+        """
         return self.all.__getitem__(item)
 
     @property

@@ -23,8 +23,8 @@ develop/fast_synapse_computation.py
 develop/fast_synapse_computation2.py
 
 docs/apis/_autosummary
-docs/apis/usage_of_inputfactory.py
-docs/apis/usage_of_utils_connect.py
+docs/guides/usage_of_inputfactory.py
+docs/guides/usage_of_utils_connect.py
 
 examples/benchmark/brian2*
 examples/benchmark/annarchy*

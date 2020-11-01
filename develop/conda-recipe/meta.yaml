@@ -1,6 +1,6 @@
 package:
     name: brainpy
-    version: "0.2.0"
+    version: "0.2.1"
 
 source:
     path: ../../
@@ -40,5 +40,5 @@ about:
         performance, you can additionally install Numba. With Numba,
         the speed of C or FORTRAN can be gained in the simulation.
     dev_url: https://github.com/PKU-NIP-Lab/BrainPy
-    doc_url: https://numpybrain.readthedocs.io/en/latest/
+    doc_url: https://brainpy.readthedocs.io/en/latest/
     doc_source_url: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/README.rst

@@ -2,7 +2,7 @@
 Usage of ``connect`` module
 ============================
 
-Here, NumpyBrain pre-defined several commonly used connection methods.
+Here, ``BrainPy`` pre-defines several commonly used connection methods.
 
 .. contents::
     :local:
@@ -25,9 +25,9 @@ Usage of the method:
 
 .. code-block:: python
 
-    import npbrain as nn
+    import brainpy as bp
 
-    pre_ids, post_ids, anchors = nn.connect.one2one(num_pre, num_post)
+    pre_ids, post_ids = bp.connect.one2one(num_pre, num_post)
 
 all-to-all connection
 ---------------------
@@ -46,13 +46,14 @@ Usage of the method:
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.one2one(num_pre, num_post, include_self=True)
+    all2all = bp.connect.All2All(include_self=True)
+    pre_ids, post_ids = all2all(pre_geom, post_geom)
 
 
 grid-four connection
 --------------------
 
-`grid-four connection` is four nearest neighbors connection. Each neuron connect to its
+`grid-four connection` is the four nearest neighbors connection. Each neuron connect to its
 nearest four neurons.
 
 .. figure:: ../images/grid_four.png
@@ -62,7 +63,8 @@ nearest four neurons.
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.grid_four(height, width, include_self=True)
+    grid_four = bp.connect.GridFour(include_self=True)
+    pre_ids, post_ids = grid_four(height_and_width)
 
 
 grid-eight connection
@@ -78,7 +80,8 @@ nearest eight neurons.
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.grid_eight(height, width, include_self=True)
+    grid_eight = bp.connect.GridEight(include_self=False)
+    pre_ids, post_ids = grid_eight(height_and_width)
 
 
 
@@ -97,7 +100,8 @@ nearest :math:`2N \cdot 2N` neurons.
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.grid_N(height, width, N=1, include_self=True)
+    grid_n = bp.connect.GridN(n=2, include_self=True)
+    pre_ids, post_ids = grid_n(height_and_width)
 
 
 
@@ -115,8 +119,8 @@ except some synapses are not created, making the projection sparser.
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.fixed_prob(
-            num_pre, num_post, prob=0.2, include_self=True, seed=None)
+    fixed_prob = bp.connect.FixedProb(prob=0.1, include_self=True, seed=123)
+    pre_ids, post_ids = fixed_prob(pre_geom, post_geom)
 
 
 fixed pre-synaptic number connection
@@ -135,8 +139,8 @@ nothing.
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.fixed_prenum(
-            num_pre, num_post, num=10, include_self=True, seed=None)
+    fixed_num = bp.connect.FixedPreNum(num=10, include_self=True, seed=123)
+    pre_ids, post_ids = fixed_num(pre_geom, post_geom)
 
 
 
@@ -155,8 +159,8 @@ no connection at all.
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.fixed_postnum(
-            num_pre, num_post, num=10, include_self=True, seed=None)
+    fixed_num = bp.connect.FixedPostNum(num=10, include_self=True, seed=123)
+    pre_ids, post_ids = fixed_num(pre_geom, post_geom)
 
 
 gaussian probability connection
@@ -180,9 +184,10 @@ as the follows:
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors = nn.connect.gaussian_prob(
-            pre_geometry, post_geometry, sigma=2.236, normalize=False,
-            include_self=True, seed=None)
+    gaussian_prob = bp.connect.GaussianProb(sigma=2.236, normalize=False,
+                                            include_self=True, seed=123)
+    pre_ids, post_ids = gaussian_prob(pre_geom, post_geom)
+
 
 .. figure:: ../images/gaussian_prob.png
     :alt: gaussian_probability connection
@@ -236,11 +241,13 @@ to :math:`w_{min}`. Default is :math:`0.01 w_{max}`.
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors, weights = nn.connect.gaussian_weight(
-        (30, 30), (30, 30), sigma=0.1, w_max=1., w_min=0.,
-        normalize=True, include_self=True)
+    gaussian_weight = bp.connect.GaussianWeight(
+                      sigma=0.1, w_max=1., w_min=0.,
+                      normalize=True, include_self=True)
+    pre_geom = post_geom = (30, 30)
+    pre_ids, post_ids, weights = gaussian_weight(pre_geom, post_geom)
 
-    show_weight(pre_ids, post_ids, weights, (30, 30), 465)
+    show_weight(pre_ids, post_ids, weights, pre_geom, 465)
 
 
 .. figure:: ../images/gaussian_weight.png
@@ -267,11 +274,14 @@ self-connections are avoided by default (parameter allow_self_connections).
 
 .. code-block:: python
 
-    pre_ids, post_ids, anchors, weights = nn.connect.dog(
-        (40, 40), (40, 40), sigmas=[0.08, 0.15], ws_max=[1.0, 0.7], w_min=0.01,
-        normalize=True, include_self=True)
+    dog = bp.connect.DOG(
+             sigmas=[0.08, 0.15], ws_max=[1.0, 0.7], w_min=0.01,
+             normalize=True, include_self=True)
+    pre_geom = post_geom = (40, 40)
+    pre_ids, post_ids, weights = dog(pre_geom, post_geom)
 
-    show_weight(pre_ids, post_ids, weights, (40, 40), 820)
+    show_weight(pre_ids, post_ids, weights, pre_geom, 820)
+
 
 
 .. figure:: ../images/dog.png

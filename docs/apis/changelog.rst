@@ -1,9 +1,18 @@
 Release notes
 =============
 
+BrainPy 0.2.1
+-------------
 
-NumpyBrain 0.2.0
-----------------
+API changes
+~~~~~~~~~~~
+
+- Fix bugs in `numba import`
+- Fix bugs in `numpy` mode with `scalar` model
+
+
+BrainPy 0.2.0
+-------------
 
 API changes
 ~~~~~~~~~~~

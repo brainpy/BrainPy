@@ -62,9 +62,6 @@ class SynType(BaseType):
             # self._delay_keys = _delay_keys.get('ST', set())
             self._delay_keys = _delay_keys
 
-    def run(self):
-        raise NotImplementedError
-
 
 class SynConn(BaseEnsemble):
     """Synaptic connections.

@@ -25,7 +25,6 @@ class NeuType(BaseType):
                                       heter_params_replace=heter_params_replace)
 
 
-
 class NeuGroup(BaseEnsemble):
     """Neuron Group.
 

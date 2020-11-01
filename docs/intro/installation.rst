@@ -16,8 +16,6 @@ You can install ``BrainPy`` from the ``anaconda cloud``. To do so, use::
 
     conda install -c brainpy brainpy
 
-Other useful packages are also recommended, such as matplotlib_ (for visualization),
-jupyter_ (a web-based interactive Python development environment).
 
 Installation with pip
 ---------------------
@@ -30,12 +28,7 @@ To do so, use::
     pip install brain.py
 
 Or, to be in line with the latest update, you can also install ``BrainPy`` from
-the github:
+the github::
 
-
-
-
-
-.. _matplotlib: http://matplotlib.org/
-.. _jupyter: http://jupyter.org/
+    pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 

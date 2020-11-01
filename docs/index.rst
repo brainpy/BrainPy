@@ -1,11 +1,18 @@
 BrainPy documentation
 ========================
 
-``BrainPy`` is a lightweight framework for neuronal dynamics simulation
-purely based on **native** python. It only relies on `NumPy <https://numpy.org/>`_.
-However, if you want to get faster performance,you can additionally
-install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FORTRAN can
-be obtained in the simulation.
+``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
+compilers. The goal of ``BrainPy`` is to provide
+a highly flexible and efficient neural simulation framework for Python users.
+It endows the users with the fully data/logic flow control.
+The core of the framework is a micro-kernel, and it's easy to understand (see
+*the document coming soon*).
+Based on the kernel, the extension of the new models or the customization of the
+data/logic flows are very simple for users. Ample examples (such as LIF neuron,
+HH neuron, or AMPA synapse, GABA synapse and GapJunction) are also provided.
+Besides the consideration of **flexibility**, for accelerating the running
+**speed** of NumPy codes, `Numba` is used. For most of the times,
+models running on `Numba` backend is very fast.
 
 
 .. note::
@@ -21,16 +28,31 @@ be obtained in the simulation.
 
    intro/installation
    intro/motivations
-   intro/quick_start
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: User guides
 
-   guides/how_it_works
-   guides/neurons
-   guides/synapses
-   guides/numerical_integrators
+   guides/usage_of_connect_module
+   guides/usage_of_inputs_module
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API documentation
+
+
+   apis/profile
+   apis/numpy
+   apis/core
+   apis/integration
+   apis/connectivity
+   apis/visualization
+   apis/tools
+   apis/measure
+   apis/running
+   apis/inputs
+   apis/errors
+   apis/changelog
 
 
 Indices and tables

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 # "profile" module
 from . import profile
 
-# "_numpy" module
+# "numpy" module
 from . import numpy as numpy
 
 # "connectivity" module

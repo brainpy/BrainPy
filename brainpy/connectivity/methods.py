@@ -27,18 +27,15 @@ class One2One(Connector):
     The two neuron groups should have the same size.
     """
 
-    def __int__(self):
-        pass
-
-    def __call__(self, geom_pre, geom_post):
-        assert onp.array_equal(np.asarray(geom_pre), np.asarray(geom_post))
-        id_list = [i for i in range(_product(geom_post))]
+    def __call__(self, pre_geom, post_geom):
+        assert onp.array_equal(np.asarray(pre_geom), np.asarray(post_geom))
+        id_list = [i for i in range(_product(post_geom))]
         pre_ids = np.asarray(id_list)
         post_ids = np.asarray(id_list)
-        return {'i': pre_ids, 'j': post_ids}
+        return pre_ids, post_ids
 
 
-one2one = One2One
+one2one = One2One()
 
 
 class All2All(Connector):
@@ -50,9 +47,9 @@ class All2All(Connector):
     def __init__(self, include_self=True):
         self.include_self = include_self
 
-    def __call__(self, geom_pre, geom_post):
-        num_pre = _product(geom_pre)
-        num_post = _product(geom_post)
+    def __call__(self, pre_geom, post_geom):
+        num_pre = _product(pre_geom)
+        num_post = _product(post_geom)
 
         pre_ids, post_ids = [], []
         for i_ in range(num_pre):
@@ -64,7 +61,7 @@ class All2All(Connector):
                     post_ids.append(j_)
         pre_ids = np.asarray(pre_ids)
         post_ids = np.asarray(post_ids)
-        return {'i': pre_ids, 'j': post_ids}
+        return pre_ids, post_ids
 
 
 all2all = All2All(include_self=True)
@@ -106,7 +103,7 @@ class GridFour(Connector):
                     conn_j.append(i_index)
         conn_i = np.asarray(conn_i)
         conn_j = np.asarray(conn_j)
-        return {'i': conn_i, 'j': conn_j}
+        return conn_i, conn_j
 
 
 grid_four = GridFour()
@@ -139,7 +136,7 @@ class GridEight(Connector):
         conn_i = np.asarray(conn_i)
         conn_j = np.asarray(conn_j)
 
-        return {'i': conn_i, 'j': conn_j}
+        return conn_i, conn_j
 
 
 grid_eight = GridEight()
@@ -190,7 +187,7 @@ class GridN(Connector):
         conn_i = np.asarray(conn_i)
         conn_j = np.asarray(conn_j)
 
-        return {'i': conn_i, 'j': conn_j}
+        return conn_i, conn_j
 
 
 class FixedProb(Connector):
@@ -210,11 +207,11 @@ class FixedProb(Connector):
         self.prob = prob
         self.include_self = include_self
         self.seed = seed
-        self.rng = np.random if seed is None else np.random.RandomState(seed)
+        self.rng = np.random if seed is None else onp.random.RandomState(seed)
 
-    def __call__(self, geom_pre, geom_post):
-        num_post = _product(geom_post)
-        num_pre = _product(geom_pre)
+    def __call__(self, pre_geom, post_geom):
+        num_post = _product(post_geom)
+        num_pre = _product(pre_geom)
 
         pre_ids = []
         post_ids = []
@@ -228,7 +225,7 @@ class FixedProb(Connector):
                 post_ids.append(post_idx)
         pre_ids = np.asarray(pre_ids)
         post_ids = np.asarray(post_ids)
-        return {'i': pre_ids, 'j': post_ids}
+        return pre_ids, post_ids
 
 
 class FixedPreNum(Connector):
@@ -256,11 +253,11 @@ class FixedPreNum(Connector):
         self.num = num
         self.include_self = include_self
         self.seed = seed
-        self.rng = np.random if seed is None else np.random.RandomState(seed)
+        self.rng = np.random if seed is None else onp.random.RandomState(seed)
 
-    def __call__(self, geom_pre, geom_post):
-        num_post = _product(geom_post)
-        num_pre = _product(geom_pre)
+    def __call__(self, pre_geom, post_geom):
+        num_post = _product(post_geom)
+        num_pre = _product(pre_geom)
 
         pre_ids, post_ids = [], []
         num = self.num if isinstance(self.num, int) else self.num * num_pre
@@ -273,7 +270,7 @@ class FixedPreNum(Connector):
             post_ids.extend([j] * size_pre)
         pre_ids = np.asarray(pre_ids)
         post_ids = np.asarray(post_ids)
-        return {'i': pre_ids, 'j': post_ids}
+        return pre_ids, post_ids
 
 
 class FixedPostNum(Connector):
@@ -301,10 +298,10 @@ class FixedPostNum(Connector):
         self.num = num
         self.include_self = include_self
         self.seed = seed
-        self.rng = np.random if seed is None else np.random.RandomState(seed)
+        self.rng = np.random if seed is None else onp.random.RandomState(seed)
 
-    def __call__(self, geom_pre, geom_post):
-        num_post, num_pre = _product(geom_post), _product(geom_pre)
+    def __call__(self, pre_geom, post_geom):
+        num_post, num_pre = _product(post_geom), _product(pre_geom)
         pre_ids, post_ids = [], []
         num = self.num if isinstance(self.num, int) else self.num * num_post
         for i in range(num_pre):
@@ -316,7 +313,7 @@ class FixedPostNum(Connector):
             post_ids.extend(idx_selected)
         pre_ids = np.asarray(pre_ids)
         post_ids = np.asarray(post_ids)
-        return {'i': pre_ids, 'j': post_ids}
+        return pre_ids, post_ids
 
 
 class GaussianWeight(Connector):
@@ -357,27 +354,27 @@ class GaussianWeight(Connector):
         self.normalize = normalize
         self.include_self = include_self
 
-    def __call__(self, geom_pre, geom_post):
-        num_post, num_pre = _product(geom_post), _product(geom_pre)
+    def __call__(self, pre_geom, post_geom):
+        num_post, num_pre = _product(post_geom), _product(pre_geom)
 
         # get the connections and weights
         i, j, w = [], [], []  # conn_i, conn_j, weights
         for pre_i in range(num_pre):
             # get normalized coordination
-            pre_coords = (pre_i // geom_pre[1], pre_i % geom_pre[1])
+            pre_coords = (pre_i // pre_geom[1], pre_i % pre_geom[1])
             if self.normalize:
-                pre_coords = (pre_coords[0] / (geom_pre[0] - 1) if geom_pre[0] > 1 else 1.,
-                              pre_coords[1] / (geom_pre[1] - 1) if geom_pre[1] > 1 else 1.)
+                pre_coords = (pre_coords[0] / (pre_geom[0] - 1) if pre_geom[0] > 1 else 1.,
+                              pre_coords[1] / (pre_geom[1] - 1) if pre_geom[1] > 1 else 1.)
 
             for post_i in range(num_post):
                 if (pre_i == post_i) and (not self.include_self):
                     continue
 
                 # get normalized coordination
-                post_coords = (post_i // geom_post[1], post_i % geom_post[1])
+                post_coords = (post_i // post_geom[1], post_i % post_geom[1])
                 if self.normalize:
-                    post_coords = (post_coords[0] / (geom_post[0] - 1) if geom_post[0] > 1 else 1.,
-                                   post_coords[1] / (geom_post[1] - 1) if geom_post[1] > 1 else 1.)
+                    post_coords = (post_coords[0] / (post_geom[0] - 1) if post_geom[0] > 1 else 1.,
+                                   post_coords[1] / (post_geom[1] - 1) if post_geom[1] > 1 else 1.)
 
                 # Compute Euclidean distance between two coordinates
                 distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
@@ -388,10 +385,10 @@ class GaussianWeight(Connector):
                     j.append(post_i)
                     w.append(value)
 
-        pre_idxs = np.asarray(i, dtype=np.int_)
-        post_idxs = np.asarray(j, dtype=np.int_)
-        weights = np.asarray(w, dtype=np.int_)
-        return {'i': pre_idxs, 'j': post_idxs, 'w': weights}
+        pre_ids = np.asarray(i, dtype=np.int_)
+        post_ids = np.asarray(j, dtype=np.int_)
+        weights = np.asarray(w, dtype=np.float_)
+        return pre_ids, post_ids, weights
 
 
 class GaussianProb(Connector):
@@ -423,29 +420,29 @@ class GaussianProb(Connector):
         self.sigma = sigma
         self.normalize = normalize
         self.include_self = include_self
-        self.rng = np.random if seed is None else np.random.RandomState(seed=seed)
+        self.rng = np.random if seed is None else onp.random.RandomState(seed=seed)
 
-    def __call__(self, geom_pre, geom_post):
-        num_post, num_pre = _product(geom_post), _product(geom_pre)
+    def __call__(self, pre_geom, post_geom):
+        num_post, num_pre = _product(post_geom), _product(pre_geom)
 
         # get the connections
         i, j, p = [], [], []  # conn_i, conn_j, probabilities
         for pre_i in range(num_pre):
             # get normalized coordination
-            pre_coords = (pre_i // geom_pre[1], pre_i % geom_pre[1])
+            pre_coords = (pre_i // pre_geom[1], pre_i % pre_geom[1])
             if self.normalize:
-                pre_coords = (pre_coords[0] / (geom_pre[0] - 1) if geom_pre[0] > 1 else 1.,
-                              pre_coords[1] / (geom_pre[1] - 1) if geom_pre[1] > 1 else 1.)
+                pre_coords = (pre_coords[0] / (pre_geom[0] - 1) if pre_geom[0] > 1 else 1.,
+                              pre_coords[1] / (pre_geom[1] - 1) if pre_geom[1] > 1 else 1.)
 
             for post_i in range(num_post):
                 if (pre_i == post_i) and (not self.include_self):
                     continue
 
                 # get normalized coordination
-                post_coords = (post_i // geom_post[1], post_i % geom_post[1])
+                post_coords = (post_i // post_geom[1], post_i % post_geom[1])
                 if self.normalize:
-                    post_coords = (post_coords[0] / (geom_post[0] - 1) if geom_post[0] > 1 else 1.,
-                                   post_coords[1] / (geom_post[1] - 1) if geom_post[1] > 1 else 1.)
+                    post_coords = (post_coords[0] / (post_geom[0] - 1) if post_geom[0] > 1 else 1.,
+                                   post_coords[1] / (post_geom[1] - 1) if post_geom[1] > 1 else 1.)
 
                 # Compute Euclidean distance between two coordinates
                 distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
@@ -457,7 +454,7 @@ class GaussianProb(Connector):
         i, j, p = np.asarray(i), np.asarray(j), np.asarray(p)
         selected_idxs = np.where(self.rng.random(len(p)) < p)
         i, j = i[selected_idxs], j[selected_idxs]
-        return {'i': i, 'j': j}
+        return i, j
 
 
 class DOG(Connector):
@@ -495,27 +492,27 @@ class DOG(Connector):
         self.normalize = normalize
         self.include_self = include_self
 
-    def __call__(self, geom_pre, geom_post):
-        num_post, num_pre = _product(geom_post), _product(geom_pre)
+    def __call__(self, pre_geom, post_geom):
+        num_post, num_pre = _product(post_geom), _product(pre_geom)
 
         # get the connections and weights
         i, j, w = [], [], []  # conn_i, conn_j, weights
         for pre_i in range(num_pre):
             # get normalized coordination
-            pre_coords = (pre_i // geom_pre[1], pre_i % geom_pre[1])
+            pre_coords = (pre_i // pre_geom[1], pre_i % pre_geom[1])
             if self.normalize:
-                pre_coords = (pre_coords[0] / (geom_pre[0] - 1) if geom_pre[0] > 1 else 1.,
-                              pre_coords[1] / (geom_pre[1] - 1) if geom_pre[1] > 1 else 1.)
+                pre_coords = (pre_coords[0] / (pre_geom[0] - 1) if pre_geom[0] > 1 else 1.,
+                              pre_coords[1] / (pre_geom[1] - 1) if pre_geom[1] > 1 else 1.)
 
             for post_i in range(num_post):
                 if (pre_i == post_i) and (not self.include_self):
                     continue
 
                 # get normalized coordination
-                post_coords = (post_i // geom_post[1], post_i % geom_post[1])
+                post_coords = (post_i // post_geom[1], post_i % post_geom[1])
                 if self.normalize:
-                    post_coords = (post_coords[0] / (geom_post[0] - 1) if geom_post[0] > 1 else 1.,
-                                   post_coords[1] / (geom_post[1] - 1) if geom_post[1] > 1 else 1.)
+                    post_coords = (post_coords[0] / (post_geom[0] - 1) if post_geom[0] > 1 else 1.,
+                                   post_coords[1] / (post_geom[1] - 1) if post_geom[1] > 1 else 1.)
 
                 # Compute Euclidean distance between two coordinates
                 distance = sum([(pre_coords[i] - post_coords[i]) ** 2 for i in range(2)])
@@ -530,8 +527,8 @@ class DOG(Connector):
         # format connections and weights
         i = np.asarray(i, dtype=np.int_)
         j = np.asarray(j, dtype=np.int_)
-        w = np.asarray(w, dtype=np.int_)
-        return {'i': i, 'j': j, 'w': w}
+        w = np.asarray(w, dtype=np.float_)
+        return i, j, w
 
 
 class ScaleFree(Connector):
