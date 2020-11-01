@@ -299,21 +299,21 @@ class Runner(object):
     def format_step_codes(self, mode):
         if self._model.vector_based:
             if mode == 'numpy':
-                return self.__step_mode_np_group()
+                return self.__step_mode_np_vector()
             elif mode == 'numba':
-                return self.__step_mode_nb_group()
+                return self.__step_mode_nb_vector()
             else:
                 raise NotImplementedError
 
         else:
             if mode == 'numpy':
-                return self.__step_mode_np_single()
+                return self.__step_mode_np_scalar()
             elif mode == 'numba':
-                return self.__step_mode_nb_single()
+                return self.__step_mode_nb_scalar()
             else:
                 raise NotImplementedError
 
-    def __step_mode_np_group(self):
+    def __step_mode_np_vector(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
@@ -392,7 +392,7 @@ class Runner(object):
 
         return results
 
-    def __step_mode_np_single(self):
+    def __step_mode_np_scalar(self):
         results = dict()
 
         # check number of the neurons/synapses,
@@ -641,7 +641,7 @@ class Runner(object):
         # return code lines and code scope
         return '\n'.join(code_lines), code_scope
 
-    def __step_mode_nb_group(self):
+    def __step_mode_nb_vector(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
@@ -771,7 +771,7 @@ class Runner(object):
 
         return results
 
-    def __step_mode_nb_single(self):
+    def __step_mode_nb_scalar(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
