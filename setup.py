@@ -27,7 +27,7 @@ setup(
     author='Chaoming Wang',
     author_email='adaduo@outlook.com',
     packages=find_packages(),
-    python_requires='>=3.5',
+    python_requires='>=3.7',
     install_requires=[
         'numpy>=1.15',
         'matplotlib>=2.0',
