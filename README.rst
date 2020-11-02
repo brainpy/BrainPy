@@ -88,13 +88,13 @@ Define a Hodgkin–Huxley neuron model
 
 .. code-block:: python
 
-    import npbrain.numpy as np
-    import npbrain as nb
+    import brainpy.numpy as np
+    import brainpy as bp
 
     def HH(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36.,
            E_Leak=-54.387, g_Leak=0.03, C=1.0, Vth=20.):
 
-        ST = nb.types.NeuState(
+        ST = bp.types.NeuState(
             {'V': -65., 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
             help='Hodgkin–Huxley neuron state.\n'
                  '"V" denotes membrane potential.\n'
@@ -105,25 +105,25 @@ Define a Hodgkin–Huxley neuron model
                  '"inp" denotes synaptic input.\n'
         )
 
-        @nb.integrate
+        @bp.integrate
         def int_m(m, t, V):
             alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
             beta = 4.0 * np.exp(-(V + 65) / 18)
             return alpha * (1 - m) - beta * m
 
-        @nb.integrate
+        @bp.integrate
         def int_h(h, t, V):
             alpha = 0.07 * np.exp(-(V + 65) / 20.)
             beta = 1 / (1 + np.exp(-(V + 35) / 10))
             return alpha * (1 - h) - beta * h
 
-        @nb.integrate
+        @bp.integrate
         def int_n(n, t, V):
             alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
             beta = 0.125 * np.exp(-(V + 65) / 80)
             return alpha * (1 - n) - beta * n
 
-        @nb.integrate
+        @bp.integrate
         def int_V(V, t, m, h, n, Isyn):
             INa = g_Na * m ** 3 * h * (V - E_Na)
             IK = g_K * n ** 4 * (V - E_K)
@@ -144,7 +144,9 @@ Define a Hodgkin–Huxley neuron model
             ST['n'] = n
             ST['inp'] = 0.
 
-        return nb.NeuType(name='HH', requires=dict(ST=ST), steps=update)
+        return bp.NeuType(name='HH',
+                          requires=dict(ST=ST),
+                          steps=update)
 
 
 
@@ -156,15 +158,15 @@ Define an AMPA synapse model
     def AMPA(g_max=0.10, E=0., tau_decay=2.0):
 
         requires = dict(
-            ST=nb.types.SynState(
+            ST=bp.types.SynState(
                 ['s'], help='AMPA synapse state.'),
-            pre=nb.types.NeuState(
+            pre=bp.types.NeuState(
                 ['sp'], help='Pre-synaptic state must have "sp" item.'),
-            post=nb.types.NeuState(
+            post=bp.types.NeuState(
                 ['V', 'inp'], help='Post-synaptic neuron must have "V" and "inp" items.')
         )
 
-        @nb.integrate(method='euler')
+        @bp.integrate(method='euler')
         def ints(s, t):
             return - s / tau_decay
 
@@ -173,12 +175,12 @@ Define an AMPA synapse model
             s += pre['sp']
             ST['s'] = s
 
-        @nb.delayed
+        @bp.delayed
         def output(ST, post):
             post_val = - g_max * ST['s'] * (post['V'] - E)
             post['inp'] += post_val
 
-        return nb.SynType(name='AMPA',
+        return bp.SynType(name='AMPA',
                           requires=requires,
                           steps=(update, output),
                           vector_based=False)
