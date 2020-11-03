@@ -30,6 +30,7 @@ docs/guides/usage_of_utils_connect.py
 
 examples/benchmark/brian2*
 examples/benchmark/annarchy*
+examples/networks/EI_net_for_fast_reponse.py
 
 
 MANIFEST.in

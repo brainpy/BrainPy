@@ -190,6 +190,14 @@ class GridN(Connector):
         return conn_i, conn_j
 
 
+def _random(pre_idx, num_post, include_self, prob):
+    random_vals = np.random.random(num_post)
+    if not include_self:
+        random_vals[pre_idx] = 1.
+    idx_selected = np.where(random_vals < prob)[0]
+    return np.ones_like(idx_selected, dtype=np.int_), idx_selected
+
+
 class FixedProb(Connector):
     """Connect the post-synaptic neurons with fixed probability.
 
@@ -209,22 +217,21 @@ class FixedProb(Connector):
         self.seed = seed
         self.rng = np.random if seed is None else onp.random.RandomState(seed)
 
-    def __call__(self, pre_geom, post_geom):
-        num_post = _product(post_geom)
-        num_pre = _product(pre_geom)
+    def __call__(self, pre_indices, post_indices):
+        pre_indices = pre_indices.flatten()
+        post_indices = post_indices.flatten()
+        num_pre, num_post = len(pre_indices), len(post_indices)
 
         pre_ids = []
         post_ids = []
         for pre_idx in range(num_pre):
-            random_vals = self.rng.random(num_post)
-            idx_selected = list(np.where(random_vals < self.prob)[0])
-            if (not self.include_self) and (pre_idx in idx_selected):
-                idx_selected.remove(pre_idx)
-            for post_idx in idx_selected:
-                pre_ids.append(pre_idx)
-                post_ids.append(post_idx)
-        pre_ids = np.asarray(pre_ids)
-        post_ids = np.asarray(post_ids)
+            pres, posts = _random(pre_idx, num_post, self.include_self, self.prob)
+            pre_ids.append(pres)
+            post_ids.append(posts)
+        pre_ids = np.asarray(np.concatenate(pre_ids), dtype=np.int_)
+        post_ids = np.asarray(np.concatenate(post_ids), dtype=np.int_)
+        pre_ids = pre_indices[pre_ids]
+        post_ids = post_indices[post_ids]
         return pre_ids, post_ids
 
 

@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba', device='cpu', dt=0.05, merge_steps=True,
+bp.profile.set(backend='numba',
+               device='cpu',
+               dt=0.05,
+               merge_steps=True,
                numerical_method='exponential')
 
 # HH neuron model #
