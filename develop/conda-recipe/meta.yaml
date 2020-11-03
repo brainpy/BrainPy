@@ -32,7 +32,7 @@ test:
 about:
     home: https://github.com/PKU-NIP-Lab/BrainPy
     license: GPL-3.0
-    summary: 'A Just-In-Time compilation approach for neuronal dynamics simulation.'
+    summary: 'A simulation toolbox for researches in computational neuroscience and brain-inspired computation.'
     description: |
         BrainPy is a microkernel framework for neuronal dynamics
         simulation purely based on native python. It only

@@ -4,8 +4,6 @@ import re
 
 from .base import BaseEnsemble
 from .base import BaseType
-from .base import ModelDefError
-from .base import ModelUseError
 from .constants import _SYN_CONN
 from .neurons import NeuGroup
 from .types import SynState
@@ -15,6 +13,8 @@ from .. import tools
 from ..connectivity import Connector
 from ..connectivity import post2syn
 from ..connectivity import pre2syn
+from ..errors import ModelDefError
+from ..errors import ModelUseError
 
 __all__ = [
     'SynType',
@@ -32,7 +32,10 @@ class SynType(BaseType):
     """
 
     def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None):
-        super(SynType, self).__init__(requires=requires, steps=steps, name=name, vector_based=vector_based,
+        super(SynType, self).__init__(requires=requires,
+                                      steps=steps,
+                                      name=name,
+                                      vector_based=vector_based,
                                       heter_params_replace=heter_params_replace)
 
         # inspect delay keys
@@ -51,15 +54,16 @@ class SynType(BaseType):
             _delay_keys = dict()
             for arg, state in self.requires.items():
                 if isinstance(state, SynState):
-                    delay_keys_in_left = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', delay_func_code_left))
+                    delay_keys_in_left = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]',
+                                                        delay_func_code_left))
                     if len(delay_keys_in_left) > 0:
                         raise ModelDefError(f'Delayed function cannot assign value to "{arg}".')
-                    delay_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', delay_func_code))
+                    delay_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]',
+                                                delay_func_code))
                     if len(delay_keys) > 0:
                         if arg not in _delay_keys:
                             _delay_keys[arg] = set()
                         _delay_keys[arg].update(delay_keys)
-            # self._delay_keys = _delay_keys.get('ST', set())
             self._delay_keys = _delay_keys
 
 
@@ -169,15 +173,17 @@ class SynConn(BaseEnsemble):
 
         if not model.vector_based:
             if self.pre_group is None or self.post_group is None:
-                raise ModelUseError('Using of scalar-based synapse model must '
+                raise ModelUseError('Connection based on scalar-based synapse model must '
                                     'provide "pre_group" and "post_group".')
 
         # initialize
         # ----------
         super(SynConn, self).__init__(model=model,
                                       pars_update=pars_update,
-                                      name=name, num=num,
-                                      monitors=monitors, cls_type=_SYN_CONN)
+                                      name=name,
+                                      num=num,
+                                      monitors=monitors,
+                                      cls_type=_SYN_CONN)
 
         # ST
         # --
@@ -191,6 +197,20 @@ class SynConn(BaseEnsemble):
 
 
 def post_cond_by_post2syn(syn_val, post2syn):
+    """Get post-synaptic conductance be post2syn connection.
+
+    Parameters
+    ----------
+    syn_val : np.ndarray
+        The synaptic value.
+    post2syn : list, tuple
+        The post2syn connection.
+
+    Returns
+    -------
+    conductance : np.ndarray
+        The delayed conductance.
+    """
     num_post = len(post2syn)
     g_val = np.zeros(num_post, dtype=np.float_)
     for i in range(num_post):
@@ -200,5 +220,17 @@ def post_cond_by_post2syn(syn_val, post2syn):
 
 
 def delayed(func):
+    """Decorator for synapse delay.
+
+    Parameters
+    ----------
+    func : callable
+        The step function which use delayed synapse state.
+
+    Returns
+    -------
+    func : callable
+        The modified step function.
+    """
     func.__name__ = f'_npbrain_delayed_{func.__name__}'
     return func

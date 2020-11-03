@@ -9,7 +9,6 @@ from .constants import CONSTANT_NOISE
 from .constants import FUNCTIONAL_NOISE
 from .sympy_tools import str2sympy
 from .sympy_tools import sympy2str
-from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..errors import DiffEquationError
