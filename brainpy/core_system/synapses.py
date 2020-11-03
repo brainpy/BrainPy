@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from typing import Union
 
 from .base import BaseEnsemble
 from .base import BaseType
@@ -101,8 +102,8 @@ class SynConn(BaseEnsemble):
     def __init__(self,
                  model: SynType,
                  pars_update: dict = None,
-                 pre_group: NeuGroup = None,
-                 post_group=None,
+                 pre_group: Union[NeuGroup, NeuSubGroup] = None,
+                 post_group: Union[NeuGroup, NeuSubGroup]=None,
                  conn=None,
                  num: int = None,
                  delay: float = 0.,
@@ -182,8 +183,6 @@ class SynConn(BaseEnsemble):
             self.post_ids = post_idx
             self.pre = pre_group.ST
             self.post = post_group.ST
-            self.pre_indices = pre_group.indices
-            self.post_indices = post_group.indices
 
         else:
             try:
@@ -199,10 +198,12 @@ class SynConn(BaseEnsemble):
         # delay
         # -------
         if delay is None:
-            delay_len = 0
+            delay_len = 1
         elif isinstance(delay, (int, float)):
             dt = profile.get_dt()
             delay_len = int(np.ceil(delay / dt))
+            if delay_len == 0:
+                delay_len = 1
         else:
             raise ValueError("BrainPy currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length

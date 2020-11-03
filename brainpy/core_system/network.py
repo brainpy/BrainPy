@@ -91,7 +91,8 @@ class Network(object):
             assert isinstance(inputs, (tuple, list))
         except AssertionError:
             raise ModelUseError('"inputs" must be a tuple/list.')
-        if not isinstance(inputs[0], (list, tuple)):
+
+        if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
             if isinstance(inputs[0], BaseEnsemble):
                 inputs = [inputs]
             else:
