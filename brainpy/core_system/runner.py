@@ -435,6 +435,7 @@ class Runner(object):
                     else:
                         code_arg2call[arg] = f'{self._name}.{arg}'
                         code_arg.append(arg)
+            code_arg = set(code_arg)
 
             # scope
             code_scope = {f'{stripped_fname}_origin': func}
@@ -445,12 +446,13 @@ class Runner(object):
             has_post = 'post' in func_args
             if has_ST:  # have ST
                 if has_pre and has_post:
-                    code_arg.extend(['pre2syn', 'post_ids'])
+                    code_arg.update(['pre2syn', 'post_ids', 'pre_indices'])
                     code_arg2call['pre2syn'] = f'{self._name}.pre2syn'
                     code_arg2call['post_ids'] = f'{self._name}.post_ids'
+                    code_arg2call['pre_indices'] = f'{self._name}.pre_group.indices'
 
                     code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for pre_i in range({self.ensemble.pre_group.num}):',
+                                  f'  for pre_i in pre_indices.flatten():',
                                   f'    pre = {self._name}_pre.extract_by_index(pre_i)',
                                   f'    for _obj_i_ in pre2syn[pre_i]:',
                                   f'      post_i = post_ids[_obj_i_]',
@@ -459,20 +461,22 @@ class Runner(object):
                     post_lines = [f'      {self._name}_post.update_by_index(post_i, post)',
                                   f'    {self._name}_pre.update_by_index(pre_i, pre)']
                 elif has_pre:
-                    code_arg.append('pre2syn')
+                    code_arg.update(['pre2syn', 'pre_indices'])
                     code_arg2call['pre2syn'] = f'{self._name}.pre2syn'
+                    code_arg2call['pre_indices'] = f'{self._name}.pre_group.indices'
 
                     code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for pre_i in range({self.ensemble.pre_group.num}):',
+                                  f'  for pre_i in pre_indices.flatten():',
                                   f'    pre = {self._name}_pre.extract_by_index(pre_i)',
                                   f'    for _obj_i_ in pre2syn[pre_i]:']
                     prefix = '  ' * 3
                     post_lines = [f'    {self._name}_pre.update_by_index(pre_i, pre)']
                 elif has_post:
-                    code_arg.append('post2syn')
+                    code_arg.update(['post2syn', 'post_indices'])
                     code_arg2call['post2syn'] = f'{self._name}.post2syn'
+                    code_arg2call['post_indices'] = f'{self._name}.post_group.indices'
                     code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for post_i in range({self.ensemble.post_group.num}):',
+                                  f'  for post_i in post_indices.flatten():',
                                   f'    post = {self._name}_post.extract_by_index(post_i)',
                                   f'    for _obj_i_ in post2syn[post_i]:']
                     prefix = '  ' * 3
@@ -523,7 +527,7 @@ class Runner(object):
                     assert not has_post and not has_pre
                 except AssertionError:
                     raise ModelDefError(f'Unknown "{stripped_fname}" function structure.')
-                code_lines = [f'def {stripped_fname}({", ".join(code_arg)}):',
+                code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
                               f'  for _obj_i_ in range({self.ensemble.num}):',
                               f'    {stripped_fname}_origin({tools.func_call(func_args)})']
 
@@ -544,7 +548,7 @@ class Runner(object):
             setattr(self, stripped_fname, func)
 
             # function call
-            arg2calls = [code_arg2call[arg] for arg in code_arg]
+            arg2calls = [code_arg2call[arg] for arg in sorted(list(code_arg))]
             func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg2calls)})'
 
             # final
@@ -612,14 +616,6 @@ class Runner(object):
                         if callable(v_):
                             v_ = tools.numba_func(v_, params=self._pars.updates)
                         scope_to_add[k_] = v_
-                    # # noise term (g) is a 1D array
-                    # g_array = f'_g_{v.py_func_name}'
-                    # if g_array in v.code_scope:
-                    #     self._hetero_pars[g_array] = v.code_scope[g_array]
-                    # # deterministic term (f) is a 1D array
-                    # f_array = f'_f_{v.py_func_name}'
-                    # if f_array in v.code_scope:
-                    #     self._hetero_pars[f_array] = v.code_scope[f_array]
 
                 else:
                     if not self._model.vector_based:
@@ -884,20 +880,33 @@ class Runner(object):
                 code_arg2call[f'{self._name}_post_ids'] = f'{self._name}.post_ids'
                 code_args.add(f'{self._name}_pre2syn')
                 code_arg2call[f'{self._name}_pre2syn'] = f'{self._name}.pre2syn'
-                code_lines = [f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
+                code_args.add(f'{self._name}_pre_indices')
+                code_arg2call[f'{self._name}_pre_indices'] = f'{self._name}.pre_group.indices'
+                # # f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
+                code_lines = [f'{self._name}_pre_indices = {self._name}_pre_indices.flatten()',
+                              f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
+                              f'  _pre_i_ = {self._name}_pre_indices[_pre_i_]',
                               f'  for _syn_i_ in {self._name}_pre2syn[_pre_i_]:',
                               f'    _obj_i_ = {self._name}_post_idx[_syn_i_]']
                 blank = '  ' * 2
             elif has_pre:
                 code_args.add(f'{self._name}_pre2syn')
                 code_arg2call[f'{self._name}_pre2syn'] = f'{self._name}.pre2syn'
-                code_lines = [f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
+                code_args.add(f'{self._name}_pre_indices')
+                code_arg2call[f'{self._name}_pre_indices'] = f'{self._name}.pre_group.indices'
+                code_lines = [f'{self._name}_pre_indices = {self._name}_pre_indices.flatten()',
+                              f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
+                              f'  _pre_i_ = {self._name}_pre_indices[_pre_i_]',
                               f'  for _obj_i_ in {self._name}_pre2syn[_pre_i_]:']
                 blank = '  ' * 2
             elif has_post:
                 code_args.add(f'{self._name}_post2syn')
                 code_arg2call[f'{self._name}_post2syn'] = f'{self._name}.post2syn'
-                code_lines = [f'for _post_i_ in numba.prange({self.ensemble.post_group.num}):',
+                code_args.add(f'{self._name}_post_indices')
+                code_arg2call[f'{self._name}_post_indices'] = f'{self._name}.post_group.indices'
+                code_lines = [f'{self._name}_post_indices = {self._name}_post_indices.flatten()',
+                              f'for _post_i_ in numba.prange({self.ensemble.post_group.num}):',
+                              f'  _post_i_ = {self._name}_post_indices[_post_i_]',
                               f'  for _obj_i_ in {self._name}_post2syn[_post_i_]:']
                 blank = '  ' * 2
             else:
@@ -991,7 +1000,6 @@ class Runner(object):
 
         else:
             raise NotImplementedError
-
 
         return codes_of_calls
 

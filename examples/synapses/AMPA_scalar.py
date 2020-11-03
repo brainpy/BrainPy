@@ -125,7 +125,7 @@ def run_ampa_single(define, duration=350.):
 
 
 if __name__ == '__main__':
-    bp.profile.set(backend='numpy', merge_steps=True, dt=0.1, show_code=True)
+    bp.profile.set(backend='numba', merge_steps=True, dt=0.1, show_code=True)
 
     run_ampa_single(define_AMPA1)
     run_ampa_single(define_AMPA2)

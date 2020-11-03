@@ -6,6 +6,7 @@ from .base import BaseEnsemble
 from .base import BaseType
 from .constants import _SYN_CONN
 from .neurons import NeuGroup
+from .neurons import NeuSubGroup
 from .types import SynState
 from .. import numpy as np
 from .. import profile
@@ -31,7 +32,12 @@ class SynType(BaseType):
     It can be defined based on a collection of synapses or a single synapse model.
     """
 
-    def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None):
+    def __init__(self,
+                 name,
+                 requires,
+                 steps,
+                 vector_based=True,
+                 heter_params_replace=None):
         super(SynType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
@@ -72,7 +78,7 @@ class SynConn(BaseEnsemble):
 
     Parameters
     ----------
-    model : NeuType
+    model : SynType
         The instantiated neuron type model.
     pars_update : dict, None
         Parameters to update.
@@ -92,10 +98,16 @@ class SynConn(BaseEnsemble):
         The name of the neuron group.
     """
 
-    def __init__(self, model, pars_update=None,
-                 pre_group=None, post_group=None, conn=None,
-                 num=None,
-                 delay=0., monitors=None, name=None):
+    def __init__(self,
+                 model: SynType,
+                 pars_update: dict = None,
+                 pre_group: NeuGroup = None,
+                 post_group=None,
+                 conn=None,
+                 num: int = None,
+                 delay: float = 0.,
+                 monitors=None,
+                 name: str = None):
         # name
         # ----
         if name is None:
@@ -112,20 +124,39 @@ class SynConn(BaseEnsemble):
         if pre_group is not None and post_group is not None:
             # check
             # ------
-            assert isinstance(pre_group, NeuGroup), '"pre" must be an instance of NeuGroup.'
-            assert isinstance(post_group, NeuGroup), '"post" must be an instance of NeuGroup.'
-            assert conn is not None, '"conn" must be provided.'
+            try:
+                assert isinstance(pre_group, (NeuGroup, NeuSubGroup))
+            except AssertionError:
+                raise ModelUseError('"pre_group" must be an instance of NeuGroup/NeuSubGroup.')
+            try:
+                assert isinstance(post_group, (NeuGroup, NeuSubGroup))
+            except AssertionError:
+                raise ModelUseError('"post_group" must be an instance of NeuGroup/NeuSubGroup.')
+            try:
+                assert isinstance(post_group, (NeuGroup, NeuSubGroup))
+            except AssertionError:
+                raise ModelUseError('"conn" must be provided.')
 
             # connections
             # ------------
+            self.weights = None
             if isinstance(conn, Connector):
-                conn_res = conn(pre_group.geometry, post_group.geometry)
-                pre_idx, post_idx = conn_res['i'], conn_res['j']
+                conn_res = conn(pre_group.indices, post_group.indices)
+                pre_idx, post_idx = conn_res[0], conn_res[1]
+                if len(conn_res) == 3:
+                    self.weights = conn_res[2]
             elif isinstance(conn, np.ndarray):
-                assert np.ndim(conn) == 2, f'"conn" must be a 2D array, not {np.ndim(conn)}D.'
+                try:
+                    assert np.ndim(conn) == 2
+                except AssertionError:
+                    raise ModelUseError(f'"conn" must be a 2D array, not {np.ndim(conn)}D.')
+
                 conn_shape = np.shape(conn)
-                assert conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num, \
-                    f'The shape of "conn" must be ({pre_group.num}, {post_group.num})'
+                try:
+                    assert conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num
+                except AssertionError:
+                    raise ModelUseError(f'The shape of "conn" must be ({pre_group.num}, {post_group.num})')
+
                 pre_idx, post_idx = [], []
                 for i in enumerate(pre_group.num):
                     idx = np.where(conn[i] > 0)[0]
@@ -133,24 +164,37 @@ class SynConn(BaseEnsemble):
                     post_idx.extend(idx)
                 pre_idx = np.asarray(pre_idx, dtype=np.int_)
                 post_idx = np.asarray(post_idx, dtype=np.int_)
+                pre_idx = pre_group.indices.flatten()[pre_idx]
+                post_idx = post_group.indices.flatten()[post_idx]
             else:
                 assert isinstance(conn, dict), '"conn" only support "dict" or a 2D "array".'
                 assert 'i' in conn, '"conn" must provide "i" item.'
                 assert 'j' in conn, '"conn" must provide "j" item.'
                 pre_idx = np.asarray(conn['i'], dtype=np.int_)
                 post_idx = np.asarray(conn['j'], dtype=np.int_)
+                pre_idx = pre_group.indices.flatten()[pre_idx]
+                post_idx = post_group.indices.flatten()[post_idx]
 
             num = len(pre_idx)
-            self.pre2syn = pre2syn(pre_idx, post_idx, pre_group.num)
-            self.post2syn = post2syn(pre_idx, post_idx, post_group.num)
+            self.pre2syn = pre2syn(pre_idx, post_idx, pre_group.size)
+            self.post2syn = post2syn(pre_idx, post_idx, post_group.size)
             self.pre_ids = pre_idx
             self.post_ids = post_idx
             self.pre = pre_group.ST
             self.post = post_group.ST
+            self.pre_indices = pre_group.indices
+            self.post_indices = post_group.indices
 
         else:
-            assert num is not None, '"num" must be provided when "pre" and "post" are none.'
-        assert 0 < num < 2 ** 64, 'Total synapse number "num" must be a valid number in "uint64".'
+            try:
+                assert num is not None
+            except AssertionError:
+                raise ModelUseError('"num" must be provided when "pre_group" and "post_group" are none.')
+
+        try:
+            assert 0 < num < 2 ** 64
+        except AssertionError:
+            raise ModelUseError('Total synapse number "num" must be a valid number in "uint64".')
 
         # delay
         # -------
@@ -188,12 +232,12 @@ class SynConn(BaseEnsemble):
         # ST
         # --
         if 'ST' in self.model._delay_keys:
-            self.ST = self.requires['ST'].make_copy(
-                size=self.num, delay=delay_len,
-                delay_vars=list(self.model._delay_keys['ST']))
+            self.ST = self.requires['ST'].make_copy(size=self.num,
+                                                    delay=delay_len,
+                                                    delay_vars=list(self.model._delay_keys['ST']))
         else:
-            self.ST = self.requires['ST'].make_copy(
-                size=self.num, delay=delay_len)
+            self.ST = self.requires['ST'].make_copy(size=self.num,
+                                                    delay=delay_len)
 
 
 def post_cond_by_post2syn(syn_val, post2syn):

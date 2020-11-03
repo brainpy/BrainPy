@@ -27,11 +27,14 @@ class One2One(Connector):
     The two neuron groups should have the same size.
     """
 
-    def __call__(self, pre_geom, post_geom):
-        assert onp.array_equal(np.asarray(pre_geom), np.asarray(post_geom))
-        id_list = [i for i in range(_product(post_geom))]
-        pre_ids = np.asarray(id_list)
-        post_ids = np.asarray(id_list)
+    def __call__(self, pre_indices, post_indices):
+        assert np.shape(pre_indices) == np.shape(post_indices)
+        pre_ids, post_ids = [], []
+        for i, j in zip(pre_indices.flatten(), post_indices.flatten()):
+            pre_ids.append(i)
+            post_ids.append(j)
+        pre_ids = np.asarray(pre_ids, dtype=np.int_)
+        post_ids = np.asarray(post_ids, dtype=np.int_)
         return pre_ids, post_ids
 
 
@@ -47,20 +50,17 @@ class All2All(Connector):
     def __init__(self, include_self=True):
         self.include_self = include_self
 
-    def __call__(self, pre_geom, post_geom):
-        num_pre = _product(pre_geom)
-        num_post = _product(post_geom)
-
+    def __call__(self, pre_indices, post_indices):
         pre_ids, post_ids = [], []
-        for i_ in range(num_pre):
-            for j_ in range(num_post):
-                if (not self.include_self) and (i_ == j_):
+        for i_idx, i_ in enumerate(pre_indices.flatten()):
+            for j_idx, j_ in enumerate(post_indices.flatten()):
+                if (not self.include_self) and (i_idx == j_idx):
                     continue
                 else:
                     pre_ids.append(i_)
                     post_ids.append(j_)
-        pre_ids = np.asarray(pre_ids)
-        post_ids = np.asarray(post_ids)
+        pre_ids = np.asarray(pre_ids, dtype=np.int_)
+        post_ids = np.asarray(post_ids, dtype=np.int_)
         return pre_ids, post_ids
 
 
