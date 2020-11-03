@@ -169,3 +169,9 @@ def post2syn(i, j, num_post):
             index = np.where(j == post_i)[0]
             post2syn_list.append(np.uint64(index))
     return post2syn_list
+
+
+def forward_slicing():
+    pass
+
+

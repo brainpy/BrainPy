@@ -4,6 +4,7 @@ import numpy as onp
 
 from .base import Connector
 from .. import numpy as np
+from ..errors import ModelUseError
 
 __all__ = ['One2One', 'All2All',
            'GridFour', 'grid_four',
@@ -28,13 +29,12 @@ class One2One(Connector):
     """
 
     def __call__(self, pre_indices, post_indices):
-        assert np.shape(pre_indices) == np.shape(post_indices)
-        pre_ids, post_ids = [], []
-        for i, j in zip(pre_indices.flatten(), post_indices.flatten()):
-            pre_ids.append(i)
-            post_ids.append(j)
-        pre_ids = np.asarray(pre_ids, dtype=np.int_)
-        post_ids = np.asarray(post_ids, dtype=np.int_)
+        try:
+            assert np.shape(pre_indices) == np.shape(post_indices)
+        except AssertionError:
+            raise ModelUseError('One2One connection must be defined in two groups with the same shape.')
+        pre_ids = np.asarray(pre_indices.flatten(), dtype=np.int_)
+        post_ids = np.asarray(post_indices.flatten(), dtype=np.int_)
         return pre_ids, post_ids
 
 
@@ -51,8 +51,13 @@ class All2All(Connector):
         self.include_self = include_self
 
     def __call__(self, pre_indices, post_indices):
+        pre_indices = pre_indices.flatten().copy()
+        post_indices = post_indices.flatten().copy()
+
         pre_ids, post_ids = [], []
         for i_idx, i_ in enumerate(pre_indices.flatten()):
+
+
             for j_idx, j_ in enumerate(post_indices.flatten()):
                 if (not self.include_self) and (i_idx == j_idx):
                     continue
