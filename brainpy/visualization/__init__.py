@@ -152,7 +152,7 @@ def plot_potential(mon, ts, neuron_index=None, ax=None, label=True,
         plt.show()
 
 
-def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, xlim=None, show=False):
+def plot_raster(mon, times, ax=None, markersize=2, color='k', label=True, xlim=None, show=False):
     """Show the rater plot of the spikes.
 
     Parameters
@@ -174,18 +174,9 @@ def plot_raster(mon, times=None, ax=None, markersize=2, color='k', label=True, x
     """
 
     # get index and time
-    if hasattr(mon, 'spike'):  # StateMonitor
-        elements = np.where(mon.spike > 0.)
-        index = elements[1]
-        if hasattr(mon, 'spike_time'):
-            time = mon.spike_time[elements]
-        else:
-            assert times is not None, 'Must provide "times" when StateMonitor has no "spike_time" attribute.'
-            time = times[elements[0]]
-    else:  # SpikeMonitor
-        assert hasattr(mon, 'index'), 'Must be a SpikeMonitor.'
-        index = np.array(mon.index)
-        time = np.array(mon.time)
+    elements = np.where(mon.sp > 0.)
+    index = elements[1]
+    time = times[elements[0]]
 
     # plot rater
     if ax is None:
