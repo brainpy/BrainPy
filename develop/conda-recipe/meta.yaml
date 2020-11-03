@@ -11,13 +11,13 @@ build:
 
 requirements:
     host:
-        - python
+        - python>=3.7
         - setuptools>=24
         - numpy>= 1.13
         - sympy>=1.2
         - numba>=0.40
     run:
-        - python
+        - python>=3.7
         - numpy>=1.13
         - sympy>=1.2
         - numba>=0.40
