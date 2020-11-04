@@ -109,7 +109,7 @@ see `Numerical integrators <numerical_integrators.rst>`_.
 Define your own neuron models
 -----------------------------
 
-Learky integrate-and-fire model
+Leaky integrate-and-fire model
 *******************************
 
 Let's take LIF neuron as an example to learn how to define your own neuron models.

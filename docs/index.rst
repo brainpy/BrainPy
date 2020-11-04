@@ -33,6 +33,7 @@ models running on `Numba` backend is very fast.
    :maxdepth: 1
    :caption: User guides
 
+   guides/numerical_integrators
    guides/usage_of_connect_module
    guides/usage_of_inputs_module
 
@@ -47,11 +48,11 @@ models running on `Numba` backend is very fast.
    apis/integration
    apis/connectivity
    apis/visualization
-   apis/tools
    apis/measure
    apis/running
    apis/inputs
    apis/errors
+   apis/tools
    apis/changelog
 
 
