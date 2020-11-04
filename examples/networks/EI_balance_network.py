@@ -12,7 +12,7 @@ bp.profile.set(backend='numba',
 
 num_exc = 500
 num_inh = 500
-prob = 0.2
+prob = 0.15
 
 # -------
 # neuron
@@ -93,14 +93,20 @@ syn = bp.SynType(name='alpha_synapse',
 # network
 # -------
 
-group = bp.NeuGroup(neu, geometry=num_exc + num_inh, monitors=['sp'])
+group = bp.NeuGroup(neu,
+                    geometry=num_exc + num_inh,
+                    monitors=['sp'])
 group.ST['V'] = np.random.random(num_exc + num_inh) * (V_threshld - V_rest) + V_rest
 
-exc_conn = bp.SynConn(syn, pre_group=group[:num_exc], post_group=group,
+exc_conn = bp.SynConn(syn,
+                      pre_group=group[:num_exc],
+                      post_group=group,
                       conn=bp.connect.FixedProb(prob=prob))
 exc_conn.ST['w'] = JE
 
-inh_conn = bp.SynConn(syn, pre_group=group[num_exc:], post_group=group,
+inh_conn = bp.SynConn(syn,
+                      pre_group=group[num_exc:],
+                      post_group=group,
                       conn=bp.connect.FixedProb(prob=prob))
 inh_conn.ST['w'] = -JI
 
@@ -114,11 +120,11 @@ net.run(duration=1000., inputs=(group, 'ST.inp', 3.), report=True)
 fig, gs = bp.visualize.get_figure(4, 1, 2, 12)
 
 fig.add_subplot(gs[:3, 0])
-bp.visualize.plot_raster(group.mon, net.ts, )
+bp.visualize.plot_raster(group.mon, net.ts, xlim=(50, 950))
 
 fig.add_subplot(gs[3, 0])
 rates = bp.measure.firing_rate(group.mon.sp, 5.)
 plt.plot(net.ts, rates)
-# plt.xlim(50, 950)
+plt.xlim(50, 950)
 plt.show()
 

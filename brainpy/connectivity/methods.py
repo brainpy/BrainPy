@@ -136,19 +136,6 @@ class GridFour(Connector):
 grid_four = GridFour()
 
 
-class GridEight(Connector):
-    """The nearest eight neighbors conn method."""
-
-    def __init__(self, include_self=False):
-        self.include_self = include_self
-        self.connector = GridN(n=1)
-
-    def __call__(self, pre_indices, post_indices=None):
-        return self.connector(pre_indices, post_indices)
-
-
-grid_eight = GridEight()
-
 
 def _grid_n(height, width, row, n, include_self):
     conn_i = []
@@ -216,6 +203,20 @@ class GridN(Connector):
             return pre_indices.flatten()[conn_i], pre_indices.flatten()[conn_j]
         else:
             return pre_indices.flatten()[conn_i], post_indices.flatten()[conn_j]
+
+
+class GridEight(Connector):
+    """The nearest eight neighbors conn method."""
+
+    def __init__(self, include_self=False):
+        self.include_self = include_self
+        self.connector = GridN(n=1)
+
+    def __call__(self, pre_indices, post_indices=None):
+        return self.connector(pre_indices, post_indices)
+
+
+grid_eight = GridEight()
 
 
 class FixedProb(Connector):
