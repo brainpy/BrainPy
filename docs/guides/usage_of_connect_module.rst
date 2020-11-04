@@ -13,7 +13,7 @@ one-to-one connection
 
 The neurons in the pre-synaptic neuron group only connect to the neurons
 in the same position of the post-synaptic group. Thus, this connection
-requires the geometry of two neuron groups same. Otherwise, an error will
+requires the indicesetry of two neuron groups same. Otherwise, an error will
 occurs.
 
 .. figure:: ../images/one2one.png
@@ -47,7 +47,7 @@ Usage of the method:
 .. code-block:: python
 
     all2all = bp.connect.All2All(include_self=True)
-    pre_ids, post_ids = all2all(pre_geom, post_geom)
+    pre_ids, post_ids = all2all(pre_indices, post_indices)
 
 
 grid-four connection
@@ -120,7 +120,7 @@ except some synapses are not created, making the projection sparser.
 .. code-block:: python
 
     fixed_prob = bp.connect.FixedProb(prob=0.1, include_self=True, seed=123)
-    pre_ids, post_ids = fixed_prob(pre_geom, post_geom)
+    pre_ids, post_ids = fixed_prob(pre_indices, post_indices)
 
 
 fixed pre-synaptic number connection
@@ -140,7 +140,7 @@ nothing.
 .. code-block:: python
 
     fixed_num = bp.connect.FixedPreNum(num=10, include_self=True, seed=123)
-    pre_ids, post_ids = fixed_num(pre_geom, post_geom)
+    pre_ids, post_ids = fixed_num(pre_indices, post_indices)
 
 
 
@@ -160,7 +160,7 @@ no connection at all.
 .. code-block:: python
 
     fixed_num = bp.connect.FixedPostNum(num=10, include_self=True, seed=123)
-    pre_ids, post_ids = fixed_num(pre_geom, post_geom)
+    pre_ids, post_ids = fixed_num(pre_indices, post_indices)
 
 
 gaussian probability connection
@@ -186,7 +186,7 @@ as the follows:
 
     gaussian_prob = bp.connect.GaussianProb(sigma=2.236, normalize=False,
                                             include_self=True, seed=123)
-    pre_ids, post_ids = gaussian_prob(pre_geom, post_geom)
+    pre_ids, post_ids = gaussian_prob(pre_indices, post_indices)
 
 
 .. figure:: ../images/gaussian_prob.png
@@ -219,15 +219,15 @@ to :math:`w_{min}`. Default is :math:`0.01 w_{max}`.
     import numpy as np
     import matplotlib.pyplot as plt
 
-    def show_weight(pre_ids, post_ids, weights, geometry, neu_id):
-        height, width = geometry
+    def show_weight(pre_ids, post_ids, weights, indicesetry, neu_id):
+        height, width = indicesetry
         ids = np.where(pre_ids == neu_id)[0]
         post_ids = post_ids[ids]
         weights = weights[ids]
 
         X, Y = np.arange(height), np.arange(width)
         X, Y = np.meshgrid(X, Y)
-        Z = np.zeros(geometry)
+        Z = np.zeros(indicesetry)
         for id_, weight in zip(post_ids, weights):
             h, w = id_ // width, id_ % width
             Z[h, w] = weight
@@ -244,10 +244,10 @@ to :math:`w_{min}`. Default is :math:`0.01 w_{max}`.
     gaussian_weight = bp.connect.GaussianWeight(
                       sigma=0.1, w_max=1., w_min=0.,
                       normalize=True, include_self=True)
-    pre_geom = post_geom = (30, 30)
-    pre_ids, post_ids, weights = gaussian_weight(pre_geom, post_geom)
+    pre_indices = post_indices = np.arange(30*30).reshape((30, 30))
+    pre_ids, post_ids, weights = gaussian_weight(pre_indices, post_indices)
 
-    show_weight(pre_ids, post_ids, weights, pre_geom, 465)
+    show_weight(pre_ids, post_ids, weights, pre_indices, 465)
 
 
 .. figure:: ../images/gaussian_weight.png
@@ -277,10 +277,10 @@ self-connections are avoided by default (parameter allow_self_connections).
     dog = bp.connect.DOG(
              sigmas=[0.08, 0.15], ws_max=[1.0, 0.7], w_min=0.01,
              normalize=True, include_self=True)
-    pre_geom = post_geom = (40, 40)
-    pre_ids, post_ids, weights = dog(pre_geom, post_geom)
+    pre_indices = post_indices = np.arange(40*40).reshape((40, 40))
+    pre_ids, post_ids, weights = dog(pre_indices, post_indices)
 
-    show_weight(pre_ids, post_ids, weights, pre_geom, 820)
+    show_weight(pre_ids, post_ids, weights, pre_indices, 820)
 
 
 

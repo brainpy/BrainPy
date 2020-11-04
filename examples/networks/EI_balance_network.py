@@ -2,6 +2,8 @@
 
 import brainpy as bp
 import brainpy.numpy as np
+import matplotlib.pyplot as plt
+
 
 bp.profile.set(backend='numba',
                device='cpu',
@@ -21,7 +23,6 @@ tau = 10.
 V_rest = -52.
 V_reset = -60.
 V_threshld = -50.
-noise = 0.1
 
 neu_ST = bp.types.NeuState(
     {'V': 0, 'sp': 0., 'inp': 0.},
@@ -30,7 +31,7 @@ neu_ST = bp.types.NeuState(
 
 @bp.integrate
 def int_f(V, t, Isyn):
-    return (-V + V_rest + Isyn) / tau, noise / tau
+    return (-V + V_rest + Isyn) / tau
 
 
 def update(ST, _t_):
@@ -44,7 +45,10 @@ def update(ST, _t_):
     ST['inp'] = 0.
 
 
-neu = bp.NeuType(name='LIF', requires=dict(ST=neu_ST), steps=update, vector_based=False)
+neu = bp.NeuType(name='LIF',
+                 requires=dict(ST=neu_ST),
+                 steps=update,
+                 vector_based=False)
 
 # -------
 # synapse
@@ -107,4 +111,14 @@ net.run(duration=1000., inputs=(group, 'ST.inp', 3.), report=True)
 # visualization
 # --------------
 
-bp.visualize.plot_raster(group.mon, net.ts, xlim=(500., 1000.), show=True)
+fig, gs = bp.visualize.get_figure(4, 1, 2, 12)
+
+fig.add_subplot(gs[:3, 0])
+bp.visualize.plot_raster(group.mon, net.ts, )
+
+fig.add_subplot(gs[3, 0])
+rates = bp.measure.firing_rate(group.mon.sp, 5.)
+plt.plot(net.ts, rates)
+# plt.xlim(50, 950)
+plt.show()
+
