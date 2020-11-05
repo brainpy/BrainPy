@@ -111,7 +111,7 @@ inh_conn = bp.SynConn(syn,
 inh_conn.ST['w'] = -JI
 
 net = bp.Network(group, exc_conn, inh_conn)
-net.run(duration=1000., inputs=(group, 'ST.inp', 3.), report=True)
+net.run(duration=1000., inputs=[(group, 'ST.inp', 3.)], report=True)
 
 # --------------
 # visualization
