@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+"""
+Implementation of E/I balance network.
+"""
+
+
 import brainpy as bp
 import brainpy.numpy as np
 import matplotlib.pyplot as plt

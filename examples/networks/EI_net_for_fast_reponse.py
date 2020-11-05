@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+""""
+Implementation of the paper：
+
+Tian, Gengshuo, et al. "Excitation-Inhibition Balanced
+Neural Networks for Fast Signal Detection." Frontiers in
+Computational Neuroscience 14 (2020): 79.
+
+"""
+
 
 import brainpy as bp
 import brainpy.numpy as np
