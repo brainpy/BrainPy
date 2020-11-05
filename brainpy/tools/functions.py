@@ -51,7 +51,7 @@ def jit(func=None):
     """
     if nb is None:
         raise ImportError('Please install numba.')
-    if not isinstance(func, nb.core.dispatcher.Dispatcher):
+    if not isinstance(func, Dispatcher):
         if not callable(func):
             raise ValueError(f'"func" must be a callable function, but got "{type(func)}".')
         op = profile.get_numba_profile()
