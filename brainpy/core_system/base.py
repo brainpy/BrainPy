@@ -39,7 +39,12 @@ class BaseType(object):
         Whether the model is written in the neuron-group level or in the single-neuron level.
     """
 
-    def __init__(self, requires, steps, name, vector_based=True, heter_params_replace=None):
+    def __init__(self,
+                 requires,
+                 steps,
+                 name,
+                 vector_based=True,
+                 heter_params_replace=None):
         # type : neuron based or group based code
         # ---------------------------------------
         self.vector_based = vector_based
@@ -104,6 +109,13 @@ class BaseType(object):
             # set attribute
             setattr(self, func_name, func)
 
+        # integrators
+        # -----------
+        self.integrators = []
+        for step in self.steps:
+            self.integrators.extend(tools.find_integrators(step))
+        self.integrators = list(set(self.integrators))
+
         # heterogeneous parameter replace
         # --------------------------------
         if heter_params_replace is None:
@@ -138,21 +150,26 @@ class BaseType(object):
 class ParsUpdate(dict):
     """Class for parameter updating.
 
+    Structure of ``ParsUpdate``
+
+    - origins : original parameters
+    - num : number of the neurons
+    - updates : parameters to update
+    - heters : parameters to update, and they are heterogeneous
+    - model : the model which this ParsUpdate belongs to
+
     """
-    def __init__(self, all_pars, num, model):
+    def __init__(self,
+                 all_pars,
+                 num,
+                 model):
         assert isinstance(all_pars, dict)
         assert isinstance(num, int)
 
-        # structure of the ParsUpdate #
-        # --------------------------- #
-        # origins : original parameters
-        # num : number of the neurons
-        # heters : heterogeneous parameters
-        # updates : parameters to update
-        # model : the model belongs to
-
-        super(ParsUpdate, self).__init__(origins=all_pars, num=num,
-                                         heters=dict(), updates=dict(),
+        super(ParsUpdate, self).__init__(origins=all_pars,
+                                         num=num,
+                                         heters=dict(),
+                                         updates=dict(),
                                          model=model)
 
     def __setitem__(self, key, value):
@@ -258,7 +275,13 @@ class BaseEnsemble(object):
         Class type.
     """
 
-    def __init__(self, name, num, model, monitors, pars_update, cls_type):
+    def __init__(self,
+                 name,
+                 num,
+                 model,
+                 monitors,
+                 pars_update,
+                 cls_type):
         # class type
         # -----------
         assert cls_type in [_NEU_GROUP, _SYN_CONN], f'Only support "{_NEU_GROUP}" and "{_SYN_CONN}".'

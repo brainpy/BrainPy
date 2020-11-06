@@ -177,8 +177,8 @@ class SynConn(BaseEnsemble):
                 post_idx = post_group.indices.flatten()[post_idx]
 
             num = len(pre_idx)
-            self.pre2syn = pre2syn(pre_idx, post_idx, pre_group.size)
-            self.post2syn = post2syn(pre_idx, post_idx, post_group.size)
+            self.pre2syn = pre2syn(pre_idx, pre_group.size)
+            self.post2syn = post2syn(post_idx, post_group.size)
             self.pre_ids = pre_idx
             self.post_ids = post_idx
             self.pre = pre_group.ST

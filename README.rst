@@ -1,6 +1,5 @@
 
 
-
 .. image:: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/logo.png
     :target: https://github.com/PKU-NIP-Lab/BrainPy
     :align: center
@@ -65,8 +64,11 @@ Install ``BrainPy`` using ``pip``::
 
 Install from source code::
 
+    > git clone https://github.com/PKU-NIP-Lab/BrainPy
     > python setup.py install
+    >
     > # or
+    >
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
 

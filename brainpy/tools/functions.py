@@ -26,6 +26,7 @@ __all__ = [
     'numba_func',
     'get_func_name',
     'get_func_scope',
+    'find_integrators',
 ]
 
 
@@ -51,7 +52,7 @@ def jit(func=None):
     """
     if nb is None:
         raise ImportError('Please install numba.')
-    if not isinstance(func, nb.core.dispatcher.Dispatcher):
+    if not isinstance(func, Dispatcher):
         if not callable(func):
             raise ValueError(f'"func" must be a callable function, but got "{type(func)}".')
         op = profile.get_numba_profile()
@@ -178,4 +179,31 @@ def get_func_scope(func, include_dispatcher=False):
 
     return scope
 
+
+def find_integrators(func):
+    """Find integrators in a given function.
+
+    Parameters
+    ----------
+    func : callable
+        The function.
+
+    Returns
+    -------
+    integrators : list
+        A list of integrators.
+    """
+    if not callable(func) or type(func).__name__ != 'function':
+        return []
+
+    ints = []
+    variables = inspect.getclosurevars(func)
+    scope = dict(variables.nonlocals)
+    scope.update(variables.globals)
+    for val in scope.values():
+        if isinstance(val, Integrator):
+            ints.append(val)
+        elif callable(val):
+            ints.extend(find_integrators(val))
+    return ints
 

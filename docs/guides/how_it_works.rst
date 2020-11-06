@@ -1,20 +1,20 @@
-How NumpyBrain works
-====================
+How BrainPy works
+=================
 
-The goal of ``NumpyBrain`` is to provide a highly **flexible** and
-**efficient** SNN framework. In this section, we will illustrate that how
-we design NumpyBrain to achieve our goals.
+The goal of ``BrainPy`` is to provide a highly **flexible** and
+**efficient** neuronal dynamics simulation framework. In this section,
+we will illustrate that how we design BrainPy to achieve our goals.
 
 .. contents::
     :local:
     :depth: 1
 
 
-The framework of NumpyBrain
----------------------------
+The framework of BrainPy
+------------------------
 
 In order to obtain good **extensibility and flexibility**, we implement
-NumpyBrain, from the perspective of software engineering, with the
+BrainPy, from the perspective of software engineering, with the
 microkernel architecture pattern (see Figure 1). The overall framework
 consists of two types of architecture components: a *core system* and 
 *plug-in modules* (including various neuron and synapse models). The former 
@@ -23,21 +23,21 @@ operational, while the latter are stand-alone, independent components that
 contain specialized custom code to produce specific computations. 
 In order to decouple the dependence between various models, we make the 
 plug-in modules (i.e., neurons, synapses and monitors) independent to each 
-other, while prodvide interfaces to keep the communication between neurons 
+other, while provide interfaces to keep the communication between neurons
 and synapses to a minimum.
 
 .. figure:: ../images/numpybrain_arch.png
-    :alt: Design architecture of NumpyBrain
+    :alt: Design architecture of BrainPy
     :width: 300px
     :figclass: align-center
 
-    Figure 1. The microkernel architecture of NumpyBrain.
+    Figure 1. The microkernel architecture of BrainPy.
 
 
 To achieve the high **efficiency** of the model running, we design the
 framework with the consideration of `Numba <http://numba.pydata.org/>`_
 compatibility. Numba is a powerful optimizing compiler for NumPy.
-Unfortunately, it has a poor support for python class. Thus, NumpyBrain
+Unfortunately, it has a poor support for python class. Thus, BrainPy
 uses python functions as the basic units to update object states.
 With the uncertainty of the number of state variables and parameters,
 the arguments of each function will be highly diverse, making a unified
@@ -57,22 +57,22 @@ become possible.
 The design of the kernel
 -------------------------
 
-The core system of NumpyBrain is implemented in ``npbrain.core`` package. 
+The core system of BrainPy is implemented in ``npbrain.core`` package. 
 
 Any network can be decomposed of ``neurons`` and ``synapses``. In addition, to
 inspect the inner dynamics of neurons or synapses, we need ``Monitor`` to record
-the trajectory of the various dynamical variables. Here, NumpyBrain abstracts
+the trajectory of the various dynamical variables. Here, BrainPy abstracts
 the essential attributes for each object, and defines the communication 
 interfaces between these three objects. Essentially speaking, the core system of 
-NumpyBrain just did one thing: make a requirement for the state management of 
+BrainPy just did one thing: make a requirement for the state management of 
 each object and the communication interfaces between objects. Any models satisfy 
 these requirements can be easily and fastly runned in this framework (see Figure 2).
 
 .. figure:: ../images/kernel_architecture.png
-    :alt: Design architecture of NumpyBrain kernel
+    :alt: Design architecture of BrainPy kernel
     :figclass: align-center
 
-    Figure 2. The design pattern of the ``core system`` of NumpyBrain. 
+    Figure 2. The design pattern of the ``core system`` of BrainPy. 
 
 Specifically, the state of each object (neurons, synapses or monitor) is encapsulated
 into matrices ``state`` (see Figure 2; users must prodvide the function 
@@ -82,7 +82,7 @@ communication interfaces between neurons and synapses are defined as
 ``output_synapse()`` in synapses (see Figure 2). As you can see, 
 the *collect_inputs()* operation of neurons is equal to *output_synapse()*
 operation of synapses, and *output_spikes()* function is equivalent to 
-*collect_spikes()* in synapses. In NumpyBrain, we require the users to 
+*collect_spikes()* in synapses. In BrainPy, we require the users to 
 implement ``collect_spikes()`` and ``output_synapse()``. In such way, any neurons 
 or synapses object is an independent component, and can be plug arbitrarily in 
 the users' defined networks.
@@ -132,14 +132,14 @@ meanwhile get the fast run-time speed. However, problems come together.
   highly diverse. Any fixed code template can not guarantee it can
   implement users' various requirements.
 
-Therefore, compared with other SNN simulators, NumpyBrain do not provide any
+Therefore, compared with other SNN simulators, BrainPy do not provide any
 fixed running template for users. It just define the way of state management
 of each object, and the necessary communication interface between objects.
 The data flow and the logic flow in each object is fully controlled by users.
 Any user-defined neuronal object satisfies with such requirements, can be
 easily simulated and accelerated in this framework. User-defines does not
 mean that the definition of each object becomes difficult. In contrast,
-with the plenty of useful functions provided by NumpyBrain, users are able
+with the plenty of useful functions provided by BrainPy, users are able
 to define a neuron or synapse model easily. More details please check our
 document of `Neuron models <neurons.rst>`_ and `Synapse models <synapses.rst>`_.
 
