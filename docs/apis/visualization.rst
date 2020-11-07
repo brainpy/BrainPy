@@ -1,8 +1,8 @@
 brainpy.visualize package
 =========================
 
-.. currentmodule:: brainpy.visualize
-.. automodule:: brainpy.visualize
+.. currentmodule:: brainpy.visualization
+.. automodule:: brainpy.visualization
 
 
 .. autosummary::
