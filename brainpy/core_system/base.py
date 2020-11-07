@@ -80,7 +80,10 @@ class BaseType(object):
 
         # steps
         # ------
-        self.steps, self.step_names, self.steps_scope = [], [], dict()
+        self.steps = []
+        self.step_names = []
+        self.step_scopes = dict()
+        self.step_args = set()
         if callable(steps):
             steps = [steps]
         elif isinstance(steps, (list, tuple)):
@@ -95,19 +98,25 @@ class BaseType(object):
             # function name
             func_name = tools.get_func_name(func, replace=True)
             self.step_names.append(func_name)
-            # function
-            self.steps.append(func)
+            # function arg
+            for arg in inspect.getfullargspec(func).args:
+                if arg in ARG_KEYWORDS:
+                    continue
+                self.step_args.add(arg)
             # function scope
             scope = tools.get_func_scope(func, include_dispatcher=True)
             for k, v in scope.items():
-                if k in self.steps_scope:
-                    if v != self.steps_scope[k]:
+                if k in self.step_scopes:
+                    if v != self.step_scopes[k]:
                         raise ModelDefError(f'Find scope variable {k} have different values in '
-                                            f'{self.name}: {k} = {v} and {k} = {self.steps_scope[k]}.\n'
+                                            f'{self.name}: {k} = {v} and {k} = {self.step_scopes[k]}.\n'
                                             f'This maybe cause a grievous mistake in the future. Please change!')
-                self.steps_scope[k] = v
+                self.step_scopes[k] = v
+            # function
+            self.steps.append(func)
             # set attribute
             setattr(self, func_name, func)
+        self.step_args = list(self.step_args)
 
         # integrators
         # -----------
@@ -130,13 +139,10 @@ class BaseType(object):
         # arguments and model attributes
         # ----------------------------------
         warnings = []
-        for func in self.steps:
-            for arg in inspect.getfullargspec(func).args:
-                if arg in ARG_KEYWORDS:
-                    continue
-                if arg not in self.requires:
-                    warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "requires".'
-                    warnings.append(warn)
+        for arg in self.step_args:
+            if arg not in self.requires:
+                warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "requires".'
+                warnings.append(warn)
         if len(warnings):
             print('\n'.join(warnings) + '\n')
 
@@ -304,7 +310,7 @@ class BaseEnsemble(object):
 
         # parameters
         # ----------
-        self.pars = ParsUpdate(all_pars=model.steps_scope, num=num, model=model)
+        self.pars = ParsUpdate(all_pars=model.step_scopes, num=num, model=model)
         pars_update = dict() if pars_update is None else pars_update
         try:
             assert isinstance(pars_update, dict)

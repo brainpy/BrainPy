@@ -2,5 +2,4 @@
 
 
 from .base import *
-from .formatter import *
 from .methods import *
