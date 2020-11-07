@@ -1,5 +1,5 @@
 brainpy.profile package
-====================
+=======================
 
 .. currentmodule:: brainpy.profile
 .. automodule:: brainpy.profile
