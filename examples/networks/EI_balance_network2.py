@@ -82,11 +82,10 @@ def update(ST, _t_, pre, pre2syn):
     ST['g'] = ST['w'] * s
 
 
-def output(ST, post, post2syn):
-    post_cond = np.zeros(len(post2syn), dtype=np.float_)
-    for post_id, syn_ids in enumerate(post2syn):
-        post_cond[post_id] = np.sum(ST['g'][syn_ids])
-    post['inp'] += post_cond
+def output(ST, post, post_slice_syn):
+    for post_id in range(post_slice_syn.shape[0]):
+        pos = post_slice_syn[post_id]
+        post['inp'][post_id] += np.sum(ST['g'][pos[0]: pos[1]])
 
 
 syn = bp.SynType(name='alpha_synapse',
