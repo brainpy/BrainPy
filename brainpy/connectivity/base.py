@@ -255,8 +255,8 @@ def pre_slice_syn(i, j, num_pre=None):
     # pre2post slicing
     slicing = []
     start = 0
-    for post_ids in pre2post_list:
-        end = start + len(post_ids)
+    for posts in pre2post_list:
+        end = start + len(posts)
         slicing.append([start, end])
         start = end
     slicing = np.asarray(slicing, dtype=np.int_)
@@ -301,8 +301,8 @@ def post_slice_syn(i, j, num_post=None):
     # post2pre slicing
     slicing = []
     start = 0
-    for pre_ids in post2pre_list:
-        end = start + len(pre_ids)
+    for pres in post2pre_list:
+        end = start + len(pres)
         slicing.append([start, end])
         start = end
     slicing = np.asarray(slicing, dtype=np.int_)
