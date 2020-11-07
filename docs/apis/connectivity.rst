@@ -1,8 +1,24 @@
 brainpy.connect package
 ============================
 
-.. currentmodule:: brainpy.connect
-.. automodule:: brainpy.connect
+.. currentmodule:: brainpy.connectivity
+.. automodule:: brainpy.connectivity
+
+
+``formatter`` functions
+------------------------
+
+.. autosummary::
+    :toctree: _autosummary
+
+    ij2mat
+    mat2ij
+    pre2post
+    post2pre
+    pre2syn
+    post2syn
+    pre_slice_syn
+    post_slice_syn
 
 
 ``connector`` methods
@@ -71,15 +87,3 @@ brainpy.connect package
 .. autoclass:: ScaleFree
    :members:
 
-
-``formatter`` functions
-------------------------
-
-.. autosummary::
-    :toctree: _autosummary
-
-    mat2ij
-    pre2post
-    pre2syn
-    post2syn
-    post2pre
