@@ -7,15 +7,15 @@ import brainpy.numpy as np
 
 bp.profile.set(backend='numba',
                device='cpu',
-               dt=0.05,
+               dt=0.04,
                merge_steps=True,
                numerical_method='exponential')
 
 # HH neuron model #
 # --------------- #
 
-spike_threshold = 0.
 
+V_th = 0.
 C = 1.0
 gLeak = 0.1
 ELeak = -65
@@ -60,7 +60,7 @@ def update(ST, _t_):
     h = int_h(ST['h'], _t_, ST['V'])
     n = int_n(ST['n'], _t_, ST['V'])
     V = int_V(ST['V'], _t_, ST['h'], ST['n'], ST['inp'])
-    sp = np.logical_and(ST['V'] < spike_threshold, V >= spike_threshold)
+    sp = np.logical_and(ST['V'] < V_th, V >= V_th)
     ST['sp'] = sp
     ST['V'] = V
     ST['h'] = h
@@ -73,7 +73,7 @@ HH = bp.NeuType('HH_neuron', requires={"ST": HH_ST}, steps=update)
 # GABAa #
 # ----- #
 
-g_max = 0.1
+g_max = 0.1 / 100
 E = -75.
 alpha = 12.
 beta = 0.1
@@ -82,8 +82,6 @@ requires = dict(
     ST=bp.types.SynState(['g', 's', 'pre_above_th']),
     pre=bp.types.NeuState(['V']),
     post=bp.types.NeuState(['V', 'inp']),
-    pre2syn=bp.types.ListConn(),
-    post2syn=bp.types.ListConn(),
 )
 
 
@@ -93,18 +91,21 @@ def int_s(s, t, TT):
 
 
 def update(ST, _t_, pre, pre2syn):
+    pre_above_th = pre['V'] - V_th
     for pre_id, syn_ids in enumerate(pre2syn):
-        ST['pre_above_th'][syn_ids] = pre['V'][pre_id] - spike_threshold
+        ST['pre_above_th'][syn_ids] = pre_above_th[pre_id]
     T = 1 / (1 + np.exp(-ST['pre_above_th'] / 2))
     s = int_s(ST['s'], _t_, T)
     ST['s'] = s
     ST['g'] = g_max * s
 
 
-def output(ST, post, post2syn):
-    post_cond = np.zeros(len(post2syn), dtype=np.float_)
-    for post_id, syn_ids in enumerate(post2syn):
-        post_cond[post_id] = np.sum(ST['g'][syn_ids])
+def output(ST, post, post_slice_syn):
+    num_post = post_slice_syn.shape[0]
+    post_cond = np.empty(num_post, dtype=np.float_)
+    for post_id in range(num_post):
+        pos = post_slice_syn[post_id]
+        post_cond[post_id] = np.sum(ST['g'][pos[0]: pos[1]])
     post['inp'] -= post_cond * (post['V'] - E)
 
 
@@ -128,7 +129,7 @@ if __name__ == '__main__':
     syn = bp.SynConn(GABAa, pre_group=neu, post_group=neu,
                      conn=bp.connect.All2All(include_self=False),
                      monitors=['s', 'g'])
-    syn.pars['g_max'] = 0.1 / num
+    # syn.pars['g_max'] = 0.1 / num
 
     net = bp.Network(neu, syn)
     net.run(duration=500., inputs=[neu, 'ST.inp', 1.2], report=True, report_percent=0.2)

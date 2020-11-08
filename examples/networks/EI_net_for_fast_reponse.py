@@ -90,11 +90,10 @@ def get_syn(tau):
         ST['s'] = s
         ST['g'] = ST['w'] * s
 
-    def output(ST, post, post2syn):
-        post_cond = np.zeros(len(post2syn), dtype=np.float_)
-        for post_id, syn_ids in enumerate(post2syn):
-            post_cond[post_id] = np.sum(ST['g'][syn_ids])
-        post['inp'] += post_cond
+    def output(ST, post, post_slice_syn):
+        for post_id in range(post_slice_syn.shape[0]):
+            pos = post_slice_syn[post_id]
+            post['inp'][post_id] += np.sum(ST['g'][pos[0]: pos[1]])
 
     return bp.SynType(name='alpha_synapse',
                       requires=dict(ST=syn_ST),
@@ -108,7 +107,7 @@ def get_syn(tau):
 
 E_neu = get_neu(tau_E)
 E_group = bp.NeuGroup(E_neu, geometry=num_exc, monitors=['sp'])
-E_group.ST['V'] = np.random.random(num) * (V_threshold - V_reset) + V_reset
+E_group.ST['V'] = np.random.random(num_exc) * (V_threshold - V_reset) + V_reset
 
 I_neu = get_neu(tau_I)
 I_group = bp.NeuGroup(I_neu, geometry=num_inh, monitors=['sp'])
@@ -144,12 +143,14 @@ net.run(duration=100.,
 
 fig, gs = bp.visualize.get_figure(5, 1, 2, 10)
 
-bp.visualize.plot_raster(E_group.mon, net.ts,
+bp.visualize.raster_plot(net.ts,
+                         E_group.mon.sp,
                          ax=fig.add_subplot(gs[:4, 0]),
                          xlim=(0, 100),
                          show=False)
 
-bp.visualize.plot_raster(I_group.mon, net.ts,
+bp.visualize.raster_plot(net.ts,
+                         I_group.mon.sp,
                          ax=fig.add_subplot(gs[4, 0]),
                          xlim=(0, 100),
                          show=True)

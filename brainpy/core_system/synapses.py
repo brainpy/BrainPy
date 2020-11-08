@@ -12,6 +12,7 @@ from .types import SynState
 from .. import numpy as np
 from .. import profile
 from .. import tools
+from ..connectivity import mat2ij
 from ..connectivity import Connector
 from ..connectivity import post2syn
 from ..connectivity import pre2syn
@@ -34,11 +35,11 @@ class SynType(BaseType):
     """
 
     def __init__(self,
-                 name,
-                 requires,
-                 steps,
-                 vector_based=True,
-                 heter_params_replace=None):
+                 name: str,
+                 requires: dict,
+                 steps: Union[callable, list, tuple],
+                 vector_based: bool = True,
+                 heter_params_replace: dict = None):
         super(SynType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
@@ -103,11 +104,11 @@ class SynConn(BaseEnsemble):
                  model: SynType,
                  pars_update: dict = None,
                  pre_group: Union[NeuGroup, NeuSubGroup] = None,
-                 post_group: Union[NeuGroup, NeuSubGroup]=None,
-                 conn=None,
+                 post_group: Union[NeuGroup, NeuSubGroup] = None,
+                 conn: Union[Connector, np.ndarray, dict] = None,
                  num: int = None,
                  delay: float = 0.,
-                 monitors=None,
+                 monitors: Union[tuple, list] = None,
                  name: str = None):
         # name
         # ----
@@ -118,10 +119,24 @@ class SynConn(BaseEnsemble):
         else:
             name = name
 
+        # model
+        # ------
+        try:
+            assert isinstance(model, SynType)
+        except AssertionError:
+            raise ModelUseError(f'{type(self).__name__} receives an instance of {SynType.__name__}, '
+                                f'not {type(model).__name__}.')
+
+        if not model.vector_based:
+            if pre_group is None or post_group is None:
+                raise ModelUseError('Connection based on scalar-based synapse model must '
+                                    'provide "pre_group" and "post_group".')
+
         # pre or post neuron group
         # ------------------------
         self.pre_group = pre_group
         self.post_group = post_group
+        self.conn = None
         if pre_group is not None and post_group is not None:
             # check
             # ------
@@ -134,55 +149,65 @@ class SynConn(BaseEnsemble):
             except AssertionError:
                 raise ModelUseError('"post_group" must be an instance of NeuGroup/NeuSubGroup.')
             try:
-                assert isinstance(post_group, (NeuGroup, NeuSubGroup))
+                assert conn is not None
             except AssertionError:
-                raise ModelUseError('"conn" must be provided.')
+                raise ModelUseError('"conn" must be provided when "pre_group" and "post_group" are not None.')
+
+            # pre and post synaptic state
+            self.pre = pre_group.ST
+            self.post = post_group.ST
 
             # connections
             # ------------
-            self.weights = None
             if isinstance(conn, Connector):
-                conn_res = conn(pre_group.indices, post_group.indices)
-                pre_idx, post_idx = conn_res[0], conn_res[1]
-                if len(conn_res) == 3:
-                    self.weights = conn_res[2]
-            elif isinstance(conn, np.ndarray):
-                try:
-                    assert np.ndim(conn) == 2
-                except AssertionError:
-                    raise ModelUseError(f'"conn" must be a 2D array, not {np.ndim(conn)}D.')
-
-                conn_shape = np.shape(conn)
-                try:
-                    assert conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num
-                except AssertionError:
-                    raise ModelUseError(f'The shape of "conn" must be ({pre_group.num}, {post_group.num})')
-
-                pre_idx, post_idx = [], []
-                for i in enumerate(pre_group.num):
-                    idx = np.where(conn[i] > 0)[0]
-                    pre_idx.extend([i * len(idx)])
-                    post_idx.extend(idx)
-                pre_idx = np.asarray(pre_idx, dtype=np.int_)
-                post_idx = np.asarray(post_idx, dtype=np.int_)
-                pre_idx = pre_group.indices.flatten()[pre_idx]
-                post_idx = post_group.indices.flatten()[post_idx]
+                self.conn = conn
+                self.conn(pre_group.indices, post_group.indices)
             else:
-                assert isinstance(conn, dict), '"conn" only support "dict" or a 2D "array".'
-                assert 'i' in conn, '"conn" must provide "i" item.'
-                assert 'j' in conn, '"conn" must provide "j" item.'
-                pre_idx = np.asarray(conn['i'], dtype=np.int_)
-                post_idx = np.asarray(conn['j'], dtype=np.int_)
-                pre_idx = pre_group.indices.flatten()[pre_idx]
-                post_idx = post_group.indices.flatten()[post_idx]
+                if isinstance(conn, np.ndarray):
+                    # check matrix dimension
+                    try:
+                        assert np.ndim(conn) == 2
+                    except AssertionError:
+                        raise ModelUseError(f'"conn" must be a 2D array, not {np.ndim(conn)}D.')
+                    # check matrix shape
+                    conn_shape = np.shape(conn)
+                    try:
+                        assert conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num
+                    except AssertionError:
+                        raise ModelUseError(f'The shape of "conn" must be ({pre_group.num}, {post_group.num})')
+                    # get pre_ids and post_ids
+                    pre_ids, post_ids = np.where(conn > 0)
+                else:
+                    # check conn type
+                    try:
+                        assert isinstance(conn, dict)
+                    except AssertionError:
+                        raise ModelUseError(f'"conn" only support "dict", 2D ndarray, '
+                                            f'or instance of bp.connect.Connector.')
+                    # check conn content
+                    try:
+                        assert 'i' in conn
+                        assert 'j' in conn
+                    except AssertionError:
+                        raise ModelUseError('When provided "conn" is a dict, "i" and "j" must in "conn".')
+                    # get pre_ids and post_ids
+                    pre_ids = np.asarray(conn['i'], dtype=np.int_)
+                    post_ids = np.asarray(conn['j'], dtype=np.int_)
+                self.conn = Connector()
+                self.conn.pre_ids = pre_group.indices.flatten()[pre_ids]
+                self.conn.post_ids = post_group.indices.flatten()[post_ids]
 
-            num = len(pre_idx)
-            self.pre2syn = pre2syn(pre_idx, pre_group.size)
-            self.post2syn = post2syn(post_idx, post_group.size)
-            self.pre_ids = pre_idx
-            self.post_ids = post_idx
-            self.pre = pre_group.ST
-            self.post = post_group.ST
+            # get synaptic structures
+            self.conn.set_size(num_post=post_group.size, num_pre=pre_group.size)
+            if not model.vector_based:
+                self.conn.set_requires(model.step_args + ['post2syn', 'pre2syn'])
+            else:
+                self.conn.set_requires(model.step_args)
+            for k in self.conn.requires:
+                setattr(self, k, getattr(self.conn, k))
+            self.pre_ids = self.conn.pre_ids
+            self.post_ids = self.conn.post_ids
+            num = len(self.pre_ids)
 
         else:
             try:
@@ -208,18 +233,6 @@ class SynConn(BaseEnsemble):
             raise ValueError("BrainPy currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
 
-        # model
-        # ------
-        try:
-            assert isinstance(model, SynType)
-        except AssertionError:
-            raise ModelUseError(f'{type(self).__name__} receives an instance of {SynType.__name__}, '
-                                f'not {type(model).__name__}.')
-
-        if not model.vector_based:
-            if self.pre_group is None or self.post_group is None:
-                raise ModelUseError('Connection based on scalar-based synapse model must '
-                                    'provide "pre_group" and "post_group".')
 
         # initialize
         # ----------

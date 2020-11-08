@@ -1,8 +1,8 @@
 brainpy.core package
 ====================
 
-.. currentmodule:: brainpy.core
-.. automodule:: brainpy.core
+.. currentmodule:: brainpy.core_system
+.. automodule:: brainpy.core_system
 
 .. autosummary::
     :toctree: _autosummary
@@ -15,7 +15,6 @@ brainpy.core package
     SynConn
     Network
     ParsUpdate
-    post_cond_by_post2syn
     delayed
 
 .. autoclass:: BaseType

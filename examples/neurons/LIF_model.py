@@ -48,7 +48,6 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
 
 if __name__ == '__main__':
     bp.profile.set(backend='numba', dt=0.02, merge_steps=True)
-    bp.profile._show_formatted_code = True
 
     LIF = define_LIF(noise=1.)
 

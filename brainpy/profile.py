@@ -5,8 +5,7 @@ The setting of the overall framework.
 
 Using the API in ``profile.py``, you can set
 
-- the _numpy of numerical algorithm, ``numpy`` or ``numba``,
-- the compilation options of JIT function in ``numba``,
+- the backend of numerical algorithm, ``numpy`` or ``numba``,
 - the precision of the numerical integrator,
 - the method of the numerical integrator.
 
@@ -39,7 +38,7 @@ _numba_setting = {'nopython': True, 'fastmath': True,
 _show_formatted_code = False
 _auto_pep8 = True
 _substitute_equation = False
-_merge_steps = False
+_merge_steps = True
 
 
 def set(backend=None, device=None, numerical_method=None, dt=None, float_type=None, int_type=None,

@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 
-import numpy as onp
-
 from .base import Connector
 from .. import numpy as np
 from ..errors import ModelUseError
 
 try:
     import numba as nb
+
+    if hasattr(nb.core, 'dispatcher'):
+        from numba.core.dispatcher import Dispatcher
+    else:
+        from numba.core import Dispatcher
 except ImportError:
     nb = None
+    Dispatcher = None
+
 
 __all__ = ['One2One', 'All2All',
            'GridFour', 'grid_four',
@@ -20,27 +25,27 @@ __all__ = ['One2One', 'All2All',
            'SmallWorld', 'ScaleFree']
 
 
-def _product(a_list):
-    p = 1
-    for i in a_list:
-        p *= i
-    return p
-
-
 class One2One(Connector):
     """
     Connect two neuron groups one by one. This means
     The two neuron groups should have the same size.
     """
+    def __init__(self):
+        super(One2One, self).__init__()
 
     def __call__(self, pre_indices, post_indices):
+        pre_indices = np.asarray(pre_indices)
+        post_indices = np.asarray(post_indices)
         try:
             assert np.shape(pre_indices) == np.shape(post_indices)
         except AssertionError:
             raise ModelUseError('One2One connection must be defined in two groups with the same shape.')
-        pre_ids = np.asarray(pre_indices.flatten(), dtype=np.int_)
-        post_ids = np.asarray(post_indices.flatten(), dtype=np.int_)
-        return pre_ids, post_ids
+        self.pre_ids = np.asarray(pre_indices.flatten(), dtype=np.int_)
+        self.post_ids = np.asarray(post_indices.flatten(), dtype=np.int_)
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 one2one = One2One()
@@ -54,20 +59,23 @@ class All2All(Connector):
 
     def __init__(self, include_self=True):
         self.include_self = include_self
+        super(All2All, self).__init__()
 
     def __call__(self, pre_indices, post_indices):
         pre_indices = pre_indices.flatten()
         post_indices = post_indices.flatten()
-        num_pre = len(pre_indices)
-        num_post = len(post_indices)
+        num_pre, num_post = len(pre_indices), len(post_indices)
         mat = np.ones((num_pre, num_post))
         if not self.include_self:
             for i in range(min([num_post, num_pre])):
                 mat[i, i] = 0
         pre_ids, post_ids = np.where(mat > 0)
-        pre_ids = np.asarray(pre_ids, dtype=np.int_)
-        post_ids = np.asarray(post_ids, dtype=np.int_)
-        return pre_ids, post_ids
+        self.pre_ids = np.asarray(pre_ids, dtype=np.int_)
+        self.post_ids = np.asarray(post_ids, dtype=np.int_)
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 all2all = All2All(include_self=True)
@@ -105,36 +113,42 @@ class GridFour(Connector):
     """The nearest four neighbors conn method."""
 
     def __init__(self, include_self=False):
+        super(GridFour, self).__init__()
         self.include_self = include_self
 
     def __call__(self, pre_indices, post_indices=None):
         assert np.ndim(pre_indices) == 2
         if post_indices is not None:
             assert np.shape(pre_indices) == np.shape(post_indices)
-        height, width = pre_indices.shape
 
+        global _grid_four
         if nb is not None:
-            f = nb.njit(_grid_four)
-        else:
-            f = _grid_four
+            if not isinstance(_grid_four, Dispatcher):
+                _grid_four = nb.njit(_grid_four)
 
+        height, width = pre_indices.shape
         conn_i = []
         conn_j = []
         for row in range(height):
-            a = f(height, width, row, include_self=self.include_self)
+            a = _grid_four(height, width, row, include_self=self.include_self)
             conn_i.extend(a[0])
             conn_j.extend(a[1])
         conn_i = np.asarray(conn_i)
         conn_j = np.asarray(conn_j)
 
+        pre_indices = pre_indices.flatten()
+        self.pre_ids = pre_indices[conn_i]
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
         if post_indices is None:
-            return pre_indices.flatten()[conn_i], pre_indices.flatten()[conn_j]
+            self.post_ids = pre_indices[conn_j]
         else:
-            return pre_indices.flatten()[conn_i], post_indices.flatten()[conn_j]
-
+            post_indices = post_indices.flatten()
+            self.post_ids = post_indices[conn_j]
+            if self.num_post is None:
+                self.num_post = post_indices.max()
 
 grid_four = GridFour()
-
 
 
 def _grid_n(height, width, row, n, include_self):
@@ -175,6 +189,7 @@ class GridN(Connector):
     """
 
     def __init__(self, n=1, include_self=False):
+        super(GridN, self).__init__()
         self.n = n
         self.include_self = include_self
 
@@ -183,37 +198,40 @@ class GridN(Connector):
         if post_indices is not None:
             assert np.shape(pre_indices) == np.shape(post_indices)
 
-        height, width = pre_indices.shape
-
+        global _grid_n
         if nb is not None:
-            f = nb.njit(_grid_n)
-        else:
-            f = _grid_n
+            if not isinstance(_grid_n, Dispatcher):
+                _grid_n = nb.njit(_grid_n)
 
+        height, width = pre_indices.shape
         conn_i = []
         conn_j = []
         for row in range(height):
-            res = f(height=height, width=width, row=row,
-                    n=self.n, include_self=self.include_self)
+            res = _grid_n(height=height, width=width, row=row,
+                          n=self.n, include_self=self.include_self)
             conn_i.extend(res[0])
             conn_j.extend(res[1])
         conn_i = np.asarray(conn_i, dtype=np.int_)
         conn_j = np.asarray(conn_j, dtype=np.int_)
+
+        pre_indices = pre_indices.flatten()
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        self.pre_ids = pre_indices[conn_i]
         if post_indices is None:
-            return pre_indices.flatten()[conn_i], pre_indices.flatten()[conn_j]
+            self.post_ids = pre_indices[conn_j]
         else:
-            return pre_indices.flatten()[conn_i], post_indices.flatten()[conn_j]
+            post_indices = post_indices.flatten()
+            self.post_ids = post_indices[conn_j]
+            if self.num_post is None:
+                self.num_post = post_indices.max()
 
 
-class GridEight(Connector):
+class GridEight(GridN):
     """The nearest eight neighbors conn method."""
 
     def __init__(self, include_self=False):
-        self.include_self = include_self
-        self.connector = GridN(n=1)
-
-    def __call__(self, pre_indices, post_indices=None):
-        return self.connector(pre_indices, post_indices)
+        super(GridEight, self).__init__(n=1, include_self=include_self)
 
 
 grid_eight = GridEight()
@@ -233,6 +251,7 @@ class FixedProb(Connector):
     """
 
     def __init__(self, prob, include_self=True, seed=None):
+        super(FixedProb, self).__init__()
         self.prob = prob
         self.include_self = include_self
         self.seed = seed
@@ -242,14 +261,17 @@ class FixedProb(Connector):
         post_indices = post_indices.flatten()
 
         num_pre, num_post = len(pre_indices), len(post_indices)
-        mat = np.random.random(size=(num_pre, num_post))
+        prob_mat = np.random.random(size=(num_pre, num_post))
         if not self.include_self:
-            for i in range(min([num_pre, num_post])):
-                mat[i, i] = 1.
-        pre_ids, post_ids = np.where(mat < self.prob)
-        pre_ids = pre_indices[pre_ids]
-        post_ids = post_indices[post_ids]
-        return pre_ids, post_ids
+            diag_index = np.arange(min([num_pre, num_post]))
+            prob_mat[diag_index, diag_index] = 1.
+        pre_ids, post_ids = np.where(prob_mat < self.prob)
+        self.pre_ids = pre_indices[pre_ids]
+        self.post_ids = post_indices[post_ids]
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 class FixedPreNum(Connector):
@@ -268,6 +290,7 @@ class FixedPreNum(Connector):
     """
 
     def __init__(self, num, include_self=True, seed=None):
+        super(FixedPreNum, self).__init__()
         if isinstance(num, int):
             assert num >= 0, '"num" must be bigger than 0.'
         elif isinstance(num, float):
@@ -281,19 +304,20 @@ class FixedPreNum(Connector):
     def __call__(self, pre_indices, post_indices):
         pre_indices = pre_indices.flatten()
         post_indices = post_indices.flatten()
-        num_pre = len(pre_indices)
-        num_post = len(post_indices)
+        num_pre, num_post = len(pre_indices), len(post_indices)
         num = self.num if isinstance(self.num, int) else int(self.num * num_pre)
         assert num <= num_pre, f'"num" must be less than "num_pre", but got {num} > {num_pre}'
-
-        pre_ids, post_ids = [], []
-        for j in range(num_post):
-            idx_selected = np.random.choice(num_pre, num, replace=False)
-            pre_ids.extend(idx_selected)
-            post_ids.extend(np.ones_like(idx_selected) * j)
-        pre_ids = np.asarray(pre_ids, dtype=np.int64)
-        post_ids = np.asarray(post_ids, dtype=np.int64)
-        return pre_ids, post_ids
+        prob_mat = np.random.random(size=(num_pre, num_post))
+        if not self.include_self:
+            diag_index = np.arange(min([num_pre, num_post]))
+            prob_mat[diag_index, diag_index] = 1.1
+        arg_sort = np.argsort(prob_mat, axis=0)[:num]
+        self.pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
+        self.post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int64)
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 class FixedPostNum(Connector):
@@ -321,7 +345,7 @@ class FixedPostNum(Connector):
         self.num = num
         self.include_self = include_self
         self.seed = seed
-        self.rng = np.random if seed is None else onp.random.RandomState(seed)
+        super(FixedPostNum, self).__init__()
 
     def __call__(self, pre_indices, post_indices):
         pre_indices = pre_indices.flatten()
@@ -330,15 +354,17 @@ class FixedPostNum(Connector):
         num_post = len(post_indices)
         num = self.num if isinstance(self.num, int) else int(self.num * num_post)
         assert num <= num_post, f'"num" must be less than "num_post", but got {num} > {num_post}'
-
-        pre_ids, post_ids = [], []
-        for i in range(num_pre):
-            idx_selected = self.rng.choice(num_post, num, replace=False).tolist()
-            post_ids.extend(idx_selected)
-            pre_ids.extend(np.ones_like(idx_selected) * i)
-        pre_ids = np.asarray(pre_ids, dtype=np.int64)
-        post_ids = np.asarray(post_ids, dtype=np.int64)
-        return pre_ids, post_ids
+        prob_mat = np.random.random(size=(num_pre, num_post))
+        if not self.include_self:
+            diag_index = np.arange(min([num_pre, num_post]))
+            prob_mat[diag_index, diag_index] = 1.1
+        arg_sort = np.argsort(prob_mat, axis=1)[:, num]
+        self.post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
+        self.pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 def _gaussian_weight(pre_i, pre_width, pre_height,
@@ -408,6 +434,7 @@ class GaussianWeight(Connector):
     """
 
     def __init__(self, sigma, w_max, w_min=None, normalize=True, include_self=True):
+        super(GaussianWeight, self).__init__()
         self.sigma = sigma
         self.w_max = w_max
         self.w_min = w_max * 0.01 if w_min is None else w_min
@@ -417,34 +444,46 @@ class GaussianWeight(Connector):
     def __call__(self, pre_indices, post_indices):
         num_pre = np.size(pre_indices)
         num_post = np.size(post_indices)
-
         assert np.ndim(pre_indices) == 2
         assert np.ndim(post_indices) == 2
         pre_height, pre_width = pre_indices.shape
         post_height, post_width = post_indices.shape
 
+        global _gaussian_weight
         if nb is not None:
-            f_gaussian_weight = nb.njit(_gaussian_weight)
-        else:
-            f_gaussian_weight = _gaussian_weight
+            if not isinstance(_gaussian_weight, Dispatcher):
+                _gaussian_weight = nb.njit(_gaussian_weight)
 
         # get the connections and weights
         i, j, w = [], [], []
         for pre_i in range(num_pre):
-            a = f_gaussian_weight(pre_i=pre_i, pre_width=pre_width, pre_height=pre_height,
-                                  num_post=num_post, post_width=post_width, post_height=post_height,
-                                  w_max=self.w_max, w_min=self.w_min, sigma=self.sigma,
-                                  normalize=self.normalize, include_self=self.include_self)
+            a = _gaussian_weight(pre_i=pre_i,
+                                 pre_width=pre_width,
+                                 pre_height=pre_height,
+                                 num_post=num_post,
+                                 post_width=post_width,
+                                 post_height=post_height,
+                                 w_max=self.w_max,
+                                 w_min=self.w_min,
+                                 sigma=self.sigma,
+                                 normalize=self.normalize,
+                                 include_self=self.include_self)
             i.extend(a[0])
             j.extend(a[1])
             w.extend(a[2])
 
         pre_ids = np.asarray(i, dtype=np.int_)
-        pre_ids = pre_indices.flatten()[pre_ids]
         post_ids = np.asarray(j, dtype=np.int_)
-        post_ids = post_indices.flatten()[post_ids]
-        weights = np.asarray(w, dtype=np.float_)
-        return pre_ids, post_ids, weights
+        w = np.asarray(w, dtype=np.float_)
+        pre_indices = pre_indices.flatten()
+        post_indices = post_indices.flatten()
+        self.pre_ids = pre_indices[pre_ids]
+        self.post_ids = post_indices[post_ids]
+        self.weights = w
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 def _gaussian_prob(pre_i, pre_width, pre_height,
@@ -508,6 +547,7 @@ class GaussianProb(Connector):
     """
 
     def __init__(self, sigma, p_min=0., normalize=True, include_self=True, seed=None):
+        super(GaussianProb, self).__init__()
         self.sigma = sigma
         self.p_min = p_min
         self.normalize = normalize
@@ -516,35 +556,44 @@ class GaussianProb(Connector):
     def __call__(self, pre_indices, post_indices):
         num_pre = np.size(pre_indices)
         num_post = np.size(post_indices)
-
         assert np.ndim(pre_indices) == 2
         assert np.ndim(post_indices) == 2
         pre_height, pre_width = pre_indices.shape
         post_height, post_width = post_indices.shape
 
+        global _gaussian_prob
         if nb is not None:
-            f = nb.njit(_gaussian_prob)
-        else:
-            f = _gaussian_prob
+            if not isinstance(_grid_four, Dispatcher):
+                _gaussian_prob = nb.njit(_gaussian_prob)
 
         # get the connections
         i, j, p = [], [], []  # conn_i, conn_j, probabilities
         for pre_i in range(num_pre):
-            a = f(pre_i=pre_i, pre_width=pre_width, pre_height=pre_height,
-                  num_post=num_post, post_width=post_width, post_height=post_height,
-                  p_min=self.p_min, sigma=self.sigma,
-                  normalize=self.normalize, include_self=self.include_self)
+            a = _gaussian_prob(pre_i=pre_i,
+                               pre_width=pre_width,
+                               pre_height=pre_height,
+                               num_post=num_post,
+                               post_width=post_width,
+                               post_height=post_height,
+                               p_min=self.p_min,
+                               sigma=self.sigma,
+                               normalize=self.normalize,
+                               include_self=self.include_self)
             i.extend(a[0])
             j.extend(a[1])
             p.extend(a[2])
-
-        i = np.asarray(i, dtype=np.int_)
-        j = np.asarray(j, dtype=np.int_)
         p = np.asarray(p, dtype=np.float_)
-
         selected_idxs = np.where(np.random.random(len(p)) < p)[0]
-        i, j = i[selected_idxs], j[selected_idxs]
-        return pre_indices.flatten()[i], post_indices.flatten()[j]
+        i = np.asarray(i, dtype=np.int_)[selected_idxs]
+        j = np.asarray(j, dtype=np.int_)[selected_idxs]
+        pre_indices = pre_indices.flatten()
+        post_indices = post_indices.flatten()
+        self.pre_ids = pre_indices[i]
+        self.post_ids = post_indices[j]
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 def _dog(pre_i, pre_width, pre_height,
@@ -613,6 +662,7 @@ class DOG(Connector):
     """
 
     def __init__(self, sigmas, ws_max, w_min=None, normalize=True, include_self=True):
+        super(DOG, self).__init__()
         self.sigma_p, self.sigma_n = sigmas
         self.w_max_p, self.w_max_n = ws_max
         self.w_min = np.abs(ws_max[0] - ws_max[1]) * 0.01 if w_min is None else w_min
@@ -622,25 +672,32 @@ class DOG(Connector):
     def __call__(self, pre_indices, post_indices):
         num_pre = np.size(pre_indices)
         num_post = np.size(post_indices)
-
         assert np.ndim(pre_indices) == 2
         assert np.ndim(post_indices) == 2
         pre_height, pre_width = pre_indices.shape
         post_height, post_width = post_indices.shape
 
+        global _dog
         if nb is not None:
-            f = nb.njit(_dog)
-        else:
-            f = _dog
+            if not isinstance(_grid_four, Dispatcher):
+                _dog = nb.njit(_dog)
 
         # get the connections and weights
         i, j, w = [], [], []  # conn_i, conn_j, weights
         for pre_i in range(num_pre):
-            a = f(pre_i=pre_i, pre_width=pre_width, pre_height=pre_height,
-                  num_post=num_post, post_width=post_width, post_height=post_height,
-                  w_max_p=self.w_max_p, w_max_n=self.w_max_n,
-                  w_min=self.w_min, sigma_p=self.sigma_p, sigma_n=self.sigma_n,
-                  normalize=self.normalize, include_self=self.include_self)
+            a = _dog(pre_i=pre_i,
+                     pre_width=pre_width,
+                     pre_height=pre_height,
+                     num_post=num_post,
+                     post_width=post_width,
+                     post_height=post_height,
+                     w_max_p=self.w_max_p,
+                     w_max_n=self.w_max_n,
+                     w_min=self.w_min,
+                     sigma_p=self.sigma_p,
+                     sigma_n=self.sigma_n,
+                     normalize=self.normalize,
+                     include_self=self.include_self)
             i.extend(a[0])
             j.extend(a[1])
             w.extend(a[2])
@@ -649,7 +706,15 @@ class DOG(Connector):
         i = np.asarray(i, dtype=np.int_)
         j = np.asarray(j, dtype=np.int_)
         w = np.asarray(w, dtype=np.float_)
-        return i, j, w
+        pre_indices = pre_indices.flatten()
+        post_indices = post_indices.flatten()
+        self.pre_ids = pre_indices[i]
+        self.post_ids = post_indices[j]
+        self.weights = w
+        if self.num_pre is None:
+            self.num_pre = pre_indices.max()
+        if self.num_post is None:
+            self.num_post = post_indices.max()
 
 
 class ScaleFree(Connector):

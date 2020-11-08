@@ -199,10 +199,9 @@ class Euler(Integrator):
 
 
 class RK2(Integrator):
-    """Parametric second-order Runge-Kutta (RK2).
-    Also named as ``RK2``.
+    """Parametric second-order Runge-Kutta (RK2). Also named as ``RK2``.
 
-    It is given in parametric form by [1]_ .
+    It is given in parametric form by [3]_ .
 
     .. math::
 
@@ -216,12 +215,9 @@ class RK2(Integrator):
         The differential equation.
     beta : float
         Popular choices for 'beta':
-        1/2 :
-            explicit midpoint method
-        2/3 :
-            Ralston's method
-        1 :
-            Heun's method, also known as the explicit trapezoid rule
+        1/2 : explicit midpoint method
+        2/3 : Ralston's method
+        1 : Heun's method, also known as the explicit trapezoid rule
 
     Returns
     -------
@@ -230,7 +226,7 @@ class RK2(Integrator):
 
     References
     ----------
-    .. [1] https://lpsa.swarthmore.edu/NumInt/NumIntSecond.html
+    .. [3] https://lpsa.swarthmore.edu/NumInt/NumIntSecond.html
 
     See Also
     --------
@@ -309,7 +305,7 @@ class Heun(Integrator):
     For ODE, please see "RK2".
 
     For stochastic Stratonovich integral, the Heun algorithm is given by,
-    according to paper [1]_ [2]_.
+    according to paper [4]_ [5]_.
 
     .. math::
         Y_{n+1} &= Y_n + f_n h + {1 \\over 2}[g_n + g(\\overline{Y}_n)] \\Delta W_n
@@ -317,7 +313,7 @@ class Heun(Integrator):
         \\overline{Y}_n &= Y_n + g_n \\Delta W_n
 
 
-    Or, it is written as [22]_
+    Or, it is written as
 
     .. math::
 
@@ -337,10 +333,10 @@ class Heun(Integrator):
 
     References
     ----------
-    .. [1] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
+    .. [4] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
          equations in MATLAB, Journal of Computational and Applied Mathematics 205 (2007),
          no. 2, 1002-1018.
-    .. [2] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE through computer
+    .. [5] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE through computer
          experiments, Springer, 1994.
 
     See Also
@@ -462,7 +458,7 @@ class MidPoint(Integrator):
 
 class RK3(Integrator):
     """Kutta's third-order method (commonly known as RK3).
-    Also named as ``RK3`` [1]_ [2]_ [3]_ .
+    Also named as ``RK3`` [6]_ [7]_ [8]_ .
 
     .. math::
 
@@ -483,9 +479,9 @@ class RK3(Integrator):
 
     References
     ----------
-    .. [1] http://mathworld.wolfram.com/Runge-KuttaMethod.html
-    .. [2] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
-    .. [3] https://zh.wikipedia.org/wiki/龙格－库塔法
+    .. [6] http://mathworld.wolfram.com/Runge-KuttaMethod.html
+    .. [7] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+    .. [8] https://zh.wikipedia.org/wiki/龙格－库塔法
 
     """
 
@@ -563,7 +559,7 @@ class RK3(Integrator):
 
 
 class RK4(Integrator):
-    """Fourth-order Runge-Kutta (RK4) [1]_ [2]_ [3]_ .
+    """Fourth-order Runge-Kutta (RK4) [9]_ [10]_ [11]_ .
 
     .. math::
 
@@ -585,9 +581,9 @@ class RK4(Integrator):
 
     References
     ----------
-    .. [1] http://mathworld.wolfram.com/Runge-KuttaMethod.html
-    .. [2] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
-    .. [3] https://zh.wikipedia.org/wiki/龙格－库塔法
+    .. [9] http://mathworld.wolfram.com/Runge-KuttaMethod.html
+    .. [10] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+    .. [11] https://zh.wikipedia.org/wiki/龙格－库塔法
 
     """
 
@@ -678,7 +674,7 @@ class RK4Alternative(Integrator):
     Also named as ``RK4_alternative`` ("3/8" rule).
 
     It is a less often used fourth-order
-    explicit RK method, and was also proposed by Kutta [1]_:
+    explicit RK method, and was also proposed by Kutta [12]_:
 
     .. math::
 
@@ -701,7 +697,7 @@ class RK4Alternative(Integrator):
     References
     ----------
 
-    .. [1] https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods
+    .. [12] https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods
     """
 
     def __init__(self, diff_eq):
@@ -817,7 +813,7 @@ class ExponentialEuler(Integrator):
 
         d y=(Ay+ F(y))dt + g(y)dW(t) = f(y)dt + g(y)dW(t), \\quad y(0)=y_{0}
 
-    its schema is given by [1]_
+    its schema is given by [16]_
 
     .. math::
 
@@ -835,6 +831,11 @@ class ExponentialEuler(Integrator):
     -------
     func : callable
         The one-step numerical integrator function.
+
+    References
+    ----------
+    .. [16] Erdoğan, Utku, and Gabriel J. Lord. "A new class of exponential integrators for stochastic
+           differential equations with multiplicative noise." arXiv preprint arXiv:1608.07096 (2016).
     """
 
     def __init__(self, diff_eq):
@@ -917,7 +918,7 @@ class MilsteinIto(Integrator):
     an order 1.0 strong Taylor schema.
 
     The following implementation approximates this derivative thanks to a
-    Runge-Kutta approach [1]_.
+    Runge-Kutta approach [13]_.
 
     In Itô scheme, it is expressed as
 
@@ -940,7 +941,7 @@ class MilsteinIto(Integrator):
 
     References
     ----------
-    .. [1] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE
+    .. [13] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE
            through computer experiments, Springer, 1994.
 
     """
@@ -1016,7 +1017,7 @@ class MilsteinStra(Integrator):
     """Heun two-stage stochastic numerical method for Stratonovich integral.
 
     Use the Stratonovich Heun algorithm to integrate Stratonovich equation,
-    according to paper [1]_ [2]_.
+    according to paper [14]_ [15]_.
 
     .. math::
         Y_{n+1} &= Y_n + f_n h + {1 \\over 2}[g_n + g(\\overline{Y}_n)] \\Delta W_n
@@ -1024,7 +1025,7 @@ class MilsteinStra(Integrator):
         \\overline{Y}_n &= Y_n + g_n \\Delta W_n
 
 
-    Or, it is written as [22]_
+    Or, it is written as
 
     .. math::
 
@@ -1046,10 +1047,10 @@ class MilsteinStra(Integrator):
     References
     ----------
 
-    .. [1] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
+    .. [14] H. Gilsing and T. Shardlow, SDELab: A package for solving stochastic differential
          equations in MATLAB, Journal of Computational and Applied Mathematics 205 (2007),
          no. 2, 1002-1018.
-    .. [2] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE through computer
+    .. [15] P.reversal_potential. Kloeden, reversal_potential. Platen, and H. Schurz, Numerical solution of SDE through computer
          experiments, Springer, 1994.
 
     See Also

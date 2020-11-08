@@ -2,16 +2,8 @@ BrainPy documentation
 =====================
 
 ``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
-compilers. The goal of ``BrainPy`` is to provide
-a highly flexible and efficient neural simulation framework for Python users.
-It endows the users with the fully data/logic flow control.
-The core of the framework is a micro-kernel, and it's easy to understand.
-Based on the kernel, the extension of the new models or the customization of the
-data/logic flows are very simple for users. Ample examples (such as LIF neuron,
-HH neuron, or AMPA synapse, GABA synapse and GapJunction) are also provided.
-Besides the consideration of **flexibility**, for accelerating the running
-**speed** of NumPy codes, `Numba` is used. For most of the times,
-models running on `Numba` backend is very fast.
+compilers. The goal of ``BrainPy`` is to provide a highly flexible and
+efficient neural simulation framework for Python users.
 
 
 .. note::
@@ -20,27 +12,33 @@ models running on `Numba` backend is very fast.
     More features are coming soon. Contributions are welcome.
     https://github.com/PKU-NIP-Lab/BrainPy
 
+.. warning::
+
+    The documentation of BrainPy is incomplete. We will
+    speed up this progress as we can.
+
 
 .. toctree::
    :maxdepth: 1
    :caption: Tutorials
 
-   intro/installation
-   intro/quick_start
-   intro/build_neurons
-   intro/build_synapses
-   intro/build_network
-   intro/dynamics_analysis
+   tutorials/installation
+   tutorials/quick_start
+   tutorials/build_neurons
+   tutorials/build_synapses
+   tutorials/build_network
+   tutorials/dynamics_analysis
 
 
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   guides/numerical_integrators
-   guides/usage_of_connect_module
-   guides/usage_of_inputs_module
-   guides/how_it_works
+   advanced/numerical_integrators
+   advanced/tips_on_jit
+   advanced/how_it_works
+   advanced/usage_of_connect_module
+   advanced/usage_of_inputs_module
 
 
 .. toctree::
@@ -48,7 +46,6 @@ models running on `Numba` backend is very fast.
    :caption: API documentation
 
    apis/profile
-   apis/numpy
    apis/core
    apis/integration
    apis/connectivity
