@@ -30,10 +30,10 @@ efficient neural simulation framework for Python users.
    :caption: Advanced Tutorials
 
    guides/numerical_integrators
-   guides/usage_of_connect_module
-   guides/usage_of_inputs_module
    guides/tips_on_jit
    guides/how_it_works
+   guides/usage_of_connect_module
+   guides/usage_of_inputs_module
 
 
 .. toctree::

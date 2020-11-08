@@ -276,6 +276,19 @@ class MatConn(TypeChecker):
         return 'MatConn'
 
 
+class SliceConn(TypeChecker):
+    def __init__(self, help=''):
+        super(SliceConn, self).__init__(help=help)
+
+    def check(self, cls):
+        if not (isinstance(cls, np.ndarray) and np.shape[1] == 2):
+            raise TypeMismatchError(f'')
+
+    def __str__(self):
+        return 'SliceConn'
+
+
+
 class Array(TypeChecker):
     """NumPy ndarray."""
 

@@ -37,10 +37,10 @@ several principles are kept in mind during the development of BrainPy.
   Just-In-Time compilers (now support Numba, future will support JAX and others) 
   into BrainPy. Moreover, an unified NumPy-like API are provided for these compilers. 
   The aim of the API design is to let the user *code once and run everywhere*
-  (same code run on CPU, multi-core, GPU, OpenCL, etc.).
+  (the same code runs on CPU, multi-core, GPU, OpenCL, etc.).
 
 
-
+continue ...
 
 .. _code generation: https://www.frontiersin.org/articles/10.3389/fninf.2018.00068/full
 .. _Python: https://www.w3schools.com/python/
