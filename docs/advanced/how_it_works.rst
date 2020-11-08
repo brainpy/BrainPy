@@ -40,7 +40,7 @@ several principles are kept in mind during the development of BrainPy.
   (the same code runs on CPU, multi-core, GPU, OpenCL, etc.).
 
 
-continue ...
+Continue ...
 
 .. _code generation: https://www.frontiersin.org/articles/10.3389/fninf.2018.00068/full
 .. _Python: https://www.w3schools.com/python/

@@ -12,28 +12,33 @@ efficient neural simulation framework for Python users.
     More features are coming soon. Contributions are welcome.
     https://github.com/PKU-NIP-Lab/BrainPy
 
+.. warning::
+
+    The documentation of BrainPy is incomplete. We will
+    speed up this progress as we can.
+
 
 .. toctree::
    :maxdepth: 1
    :caption: Tutorials
 
-   intro/installation
-   intro/quick_start
-   intro/build_neurons
-   intro/build_synapses
-   intro/build_network
-   intro/dynamics_analysis
+   tutorials/installation
+   tutorials/quick_start
+   tutorials/build_neurons
+   tutorials/build_synapses
+   tutorials/build_network
+   tutorials/dynamics_analysis
 
 
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   guides/numerical_integrators
-   guides/tips_on_jit
-   guides/how_it_works
-   guides/usage_of_connect_module
-   guides/usage_of_inputs_module
+   advanced/numerical_integrators
+   advanced/tips_on_jit
+   advanced/how_it_works
+   advanced/usage_of_connect_module
+   advanced/usage_of_inputs_module
 
 
 .. toctree::

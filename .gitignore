@@ -13,17 +13,17 @@ docs/images/neuron_structure.xlsx
 docs/images/neuron_structure.pdf
 docs/images/connection_methods.pptx
 
-docs/intro/_autosummary
-docs/intro/.ipynb_checkpoints
+docs/tutorials/_autosummary
+docs/tutorials/.ipynb_checkpoints
 
-docs/guides/_autosummary
-docs/guides/.ipynb_checkpoints
+docs/advanced/_autosummary
+docs/advanced/.ipynb_checkpoints
 develop/fast_synapse_computation.py
 develop/fast_synapse_computation2.py
 
 docs/apis/_autosummary
-docs/guides/usage_of_inputfactory.py
-docs/guides/usage_of_utils_connect.py
+docs/advanced/usage_of_inputfactory.py
+docs/advanced/usage_of_utils_connect.py
 
 examples/benchmark/brian2*
 examples/benchmark/annarchy*
