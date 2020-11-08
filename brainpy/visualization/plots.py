@@ -22,13 +22,13 @@ def line_plot(ts,
               ylim=None,
               xlabel='Time (ms)',
               ylabel='value',
-              legend_prefix='N',
+              legend=None,
               show=False):
     """Show the specified value in the given object (Neurons or Synapses.)
 
     Parameters
     ----------
-    ts : a_list, numpy.ndarray
+    ts : np.ndarray
         The time steps.
     val_matrix : np.ndarray
         The value matrix which record the history trajectory.
@@ -47,7 +47,7 @@ def line_plot(ts,
         The xlabel.
     ylabel : str
         The ylabel.
-    legend_prefix : str
+    legend : str
         The prefix of legend for plot.
     show : bool
         Whether show the figure.
@@ -65,15 +65,18 @@ def line_plot(ts,
 
     # get ax
     if ax is None:
-        plt.figure()
         ax = plt
 
     # plot
-    for idx in plot_ids:
-        ax.plot(ts, val_matrix[:, idx], label=f'{legend_prefix}-{idx}')
+    if legend:
+        for idx in plot_ids:
+            ax.plot(ts, val_matrix[:, idx], label=f'{legend}-{idx}')
+    else:
+        for idx in plot_ids:
+            ax.plot(ts, val_matrix[:, idx])
 
     # legend
-    if len(plot_ids) > 1:
+    if legend:
         ax.legend()
 
     # xlim
@@ -111,7 +114,7 @@ def raster_plot(ts,
 
     Parameters
     ----------
-    ts : numpy.ndarray
+    ts : np.ndarray
         The run times.
     sp_matrix : np.ndarray
         The spike matrix which records the spike information.
@@ -169,7 +172,7 @@ def animate_potential(potentials, size, dt, min=None, max=None, cmap=None,
 
     Parameters
     ----------
-    potentials : numpy.ndarray
+    potentials : np.ndarray
         The membrane potentials of the neuron group.
     size : tuple
         The size of the neuron group.

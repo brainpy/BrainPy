@@ -96,18 +96,10 @@ if __name__ == '__main__':
     ts = neu.mon.ts
     fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
 
-    fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0], label='N')
-    plt.ylabel('Membrane potential')
-    plt.xlim(-0.1, 100.1)
-    plt.legend()
+    ax = fig.add_subplot(gs[0, 0])
+    bp.visualize.line_plot(ts, neu.mon.V, ax=ax, ylabel='Membrane potential', xlim=(-0.1, 100.1))
 
-    fig.add_subplot(gs[1, 0])
-    plt.plot(ts, neu.mon.m[:, 0], label='m')
-    plt.plot(ts, neu.mon.h[:, 0], label='h')
-    plt.plot(ts, neu.mon.n[:, 0], label='n')
-    plt.legend()
-    plt.xlim(-0.1, 100.1)
-    plt.xlabel('Time (ms)')
-
-    plt.show()
+    ax = fig.add_subplot(gs[1, 0])
+    bp.visualize.line_plot(ts, neu.mon.m, ax=ax, legend='m')
+    bp.visualize.line_plot(ts, neu.mon.n, ax=ax, legend='n')
+    bp.visualize.line_plot(ts, neu.mon.h, ax=ax, legend='h', xlim=(-0.1, 100.1), show=True)
