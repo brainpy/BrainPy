@@ -266,7 +266,7 @@ class Network(object):
         times : numpy.ndarray
             The running time-steps of the network.
         """
-        return np.asarray(np.arange(self.t_start, self.t_end, self.dt), dtype=np.float_)
+        return np.array(np.arange(self.t_start, self.t_end, self.dt), dtype=np.float_)
 
     @property
     def dt(self):

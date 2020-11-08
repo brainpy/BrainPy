@@ -142,13 +142,13 @@ if __name__ == '__main__':
     indexes = [0, 1, 2]
     fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
 
-    fig.add_subplot(gs[0, 0])
-    bp.visualize.plot_potential(neu.mon, neu.mon.ts, neuron_index=indexes)
+    bp.visualize.line_plot(neu.mon.ts, neu.mon.V, plot_ids=indexes, ylabel='V',
+                           ax=fig.add_subplot(gs[0, 0]))
     plt.xlim(-0.1, 100.1)
     plt.legend()
 
-    fig.add_subplot(gs[1, 0])
-    bp.visualize.plot_value(neu.mon, neu.mon.ts, 'u', val_index=indexes)
+    bp.visualize.line_plot(neu.mon.ts, neu.mon.u, plot_ids=indexes, xlabel='u',
+                           ax=fig.add_subplot(gs[1, 0]))
     plt.xlim(-0.1, 10.1)
     plt.xlabel('Time (ms)')
     plt.legend()

@@ -10,10 +10,9 @@ brainpy.visualize package
 
     get_figure
     mpl_style1
-    plot_value
-    plot_potential
-    plot_raster
-    animation_potential
+    line_plot
+    raster_plot
+    animate_potential
 
 
 

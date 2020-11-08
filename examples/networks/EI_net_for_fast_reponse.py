@@ -143,12 +143,14 @@ net.run(duration=100.,
 
 fig, gs = bp.visualize.get_figure(5, 1, 2, 10)
 
-bp.visualize.plot_raster(E_group.mon, net.ts,
+bp.visualize.raster_plot(net.ts,
+                         E_group.mon.sp,
                          ax=fig.add_subplot(gs[:4, 0]),
                          xlim=(0, 100),
                          show=False)
 
-bp.visualize.plot_raster(I_group.mon, net.ts,
+bp.visualize.raster_plot(net.ts,
+                         I_group.mon.sp,
                          ax=fig.add_subplot(gs[4, 0]),
                          xlim=(0, 100),
                          show=True)

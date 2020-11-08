@@ -125,7 +125,7 @@ net.run(duration=1000., inputs=[(group, 'ST.inp', 3.)], report=True)
 fig, gs = bp.visualize.get_figure(4, 1, 2, 12)
 
 fig.add_subplot(gs[:3, 0])
-bp.visualize.plot_raster(group.mon, net.ts, xlim=(50, 950))
+bp.visualize.raster_plot(net.ts, group.mon.sp, xlim=(50, 950))
 
 fig.add_subplot(gs[3, 0])
 rates = bp.measure.firing_rate(group.mon.sp, 5.)
