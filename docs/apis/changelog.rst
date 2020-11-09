@@ -1,6 +1,17 @@
 Release notes
 =============
 
+BrainPy 0.2.2
+-------------
+
+API changes
+~~~~~~~~~~~
+
+- Redesign visualization
+- Redesign connectivity
+- Update docs
+
+
 BrainPy 0.2.1
 -------------
 
