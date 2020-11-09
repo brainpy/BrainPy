@@ -21,7 +21,7 @@ requirements:
         - numpy>=1.13
         - sympy>=1.2
         - numba>=0.40
-        - matplotlib>=4.0
+        - matplotlib>=3.0
         - setuptools>=40.0.0
         - autopep8
 
