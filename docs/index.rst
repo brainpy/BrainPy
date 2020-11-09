@@ -34,6 +34,7 @@ efficient neural simulation framework for Python users.
    :maxdepth: 1
    :caption: Advanced Tutorials
 
+   advanced/differential_equations
    advanced/numerical_integrators
    advanced/tips_on_jit
    advanced/how_it_works
