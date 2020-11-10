@@ -11,7 +11,7 @@ from . import random
 _math_funcs = [
     # Basics
     # --------
-    'real', 'imag', 'conj', 'conjugate', 'ndim',  # 'angle',
+    'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', # 'angle',
 
     # Arithmetic operations
     # ----------------------
