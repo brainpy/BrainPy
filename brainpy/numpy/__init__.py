@@ -52,6 +52,7 @@ _math_funcs = [
     'heaviside', 'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip',
 ]
 
+isreal = numpy.isreal
 real = numpy.real
 imag = numpy.imag
 conj = numpy.conj
