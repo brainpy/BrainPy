@@ -111,6 +111,7 @@ def pre2post(i, j, num_pre=None):
     pre2post_list = [[] for _ in range(num_pre)]
     for pre_id, post_id in zip(i, j):
         pre2post_list[pre_id].append(post_id)
+    pre2post_list = [np.array(l) for l in pre2post_list]
 
     if profile.is_numba_bk():
         pre2post_list_nb = nb.typed.List()
@@ -149,6 +150,7 @@ def post2pre(i, j, num_post=None):
     post2pre_list = [[] for _ in range(num_post)]
     for pre_id, post_id in zip(i, j):
         post2pre_list[post_id].append(pre_id)
+    post2pre_list = [np.array(l) for l in post2pre_list]
 
     if profile.is_numba_bk():
         post2pre_list_nb = nb.typed.List()
@@ -180,12 +182,14 @@ def pre2syn(i, num_pre=None):
     pre2syn_list = [[] for _ in range(num_pre)]
     for syn_id, pre_id in enumerate(i):
         pre2syn_list[pre_id].append(syn_id)
+    pre2syn_list = [np.array(l) for l in pre2syn_list]
 
     if profile.is_numba_bk():
         pre2syn_list_nb = nb.typed.List()
         for pre_ids in pre2syn_list:
             pre2syn_list_nb.append(np.int64(pre_ids))
         pre2syn_list = pre2syn_list_nb
+
     return pre2syn_list
 
 
@@ -211,12 +215,15 @@ def post2syn(j, num_post=None):
     post2syn_list = [[] for _ in range(num_post)]
     for syn_id, post_id in enumerate(j):
         post2syn_list[post_id].append(syn_id)
+    post2syn_list = [np.array(l) for l in post2syn_list]
 
     if profile.is_numba_bk():
         post2syn_list_nb = nb.typed.List()
         for pre_ids in post2syn_list:
             post2syn_list_nb.append(np.int64(pre_ids))
         post2syn_list = post2syn_list_nb
+
+
     return post2syn_list
 
 
