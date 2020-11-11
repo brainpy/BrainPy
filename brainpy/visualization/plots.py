@@ -103,6 +103,7 @@ def line_plot(ts,
 def raster_plot(ts,
                 sp_matrix,
                 ax=None,
+                marker='.',
                 markersize=2,
                 color='k',
                 xlabel='Time (ms)',
@@ -145,7 +146,7 @@ def raster_plot(ts,
     # plot rater
     if ax is None:
         ax = plt
-    ax.plot(time, index, '.' + color, markersize=markersize)
+    ax.plot(time, index, marker + color, markersize=markersize)
 
     # xlable
     if xlabel:

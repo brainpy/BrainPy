@@ -272,8 +272,6 @@ class SympyRender(object):
     def render_Name(self, node):
         if node.id in CONSTANT_MAPPING:
             return CONSTANT_MAPPING[node.id]
-        elif node.id in ['t', 'dt']:
-            return sympy.Symbol(node.id, real=True, positive=True)
         else:
             return sympy.Symbol(node.id, real=True)
 

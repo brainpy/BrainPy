@@ -1,6 +1,6 @@
 package:
     name: brainpy
-    version: "0.2.1"
+    version: "0.2.2"
 
 source:
     path: ../../
@@ -11,13 +11,13 @@ build:
 
 requirements:
     host:
-        - python>=3.7
+        - python
         - setuptools>=40.0.0
         - numpy>= 1.13
         - sympy>=1.2
         - numba>=0.40
     run:
-        - python>=3.7
+        - python
         - numpy>=1.13
         - sympy>=1.2
         - numba>=0.40

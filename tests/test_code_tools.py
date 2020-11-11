@@ -16,7 +16,8 @@ for d in range(10):
     else:
       b['b'] = 0
       c = f()
-      while b > 10:
+      while \
+      b > 10:
         b += 1
 else:
     d = hh()

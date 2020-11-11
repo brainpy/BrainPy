@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""
+Implementation of the paper:
+
+Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
+synaptic inhibition in a hippocampal interneuronal network
+model.” Journal of neuroscience 16.20 (1996): 6402-6413.
+
+"""
+
 import matplotlib.pyplot as plt
 
 import brainpy as bp
@@ -73,7 +82,7 @@ HH = bp.NeuType('HH_neuron', requires={"ST": HH_ST}, steps=update)
 # GABAa #
 # ----- #
 
-g_max = 0.1 / 100
+g_max = 0.1
 E = -75.
 alpha = 12.
 beta = 0.1
@@ -114,22 +123,23 @@ GABAa = bp.SynType('GABAa', requires=requires, steps=(update, output))
 if __name__ == '__main__':
     num = 100
     v_init = -70. + np.random.random(num) * 20
-    h_alpha = 0.07 * np.exp(-(v_init + 58) / 20)
-    h_beta = 1 / (np.exp(-0.1 * (v_init + 28)) + 1)
-    h_init = h_alpha / (h_alpha + h_beta)
-    n_alpha = -0.01 * (v_init + 34) / (np.exp(-0.1 * (v_init + 34)) - 1)
-    n_beta = 0.125 * np.exp(-(v_init + 44) / 80)
-    n_init = n_alpha / (n_alpha + n_beta)
+    # h_alpha = 0.07 * np.exp(-(v_init + 58) / 20)
+    # h_beta = 1 / (np.exp(-0.1 * (v_init + 28)) + 1)
+    # h_init = h_alpha / (h_alpha + h_beta)
+    # n_alpha = -0.01 * (v_init + 34) / (np.exp(-0.1 * (v_init + 34)) - 1)
+    # n_beta = 0.125 * np.exp(-(v_init + 44) / 80)
+    # n_init = n_alpha / (n_alpha + n_beta)
 
+    num = 100
     neu = bp.NeuGroup(HH, geometry=num, monitors=['sp', 'V'])
-    neu.ST['V'] = v_init
-    neu.ST['h'] = h_init
-    neu.ST['n'] = n_init
+    neu.ST['V'] = -70. + np.random.random(num) * 20
+    # neu.ST['h'] = h_init
+    # neu.ST['n'] = n_init
 
     syn = bp.SynConn(GABAa, pre_group=neu, post_group=neu,
                      conn=bp.connect.All2All(include_self=False),
                      monitors=['s', 'g'])
-    # syn.pars['g_max'] = 0.1 / num
+    syn.pars['g_max'] = 0.1 / num
 
     net = bp.Network(neu, syn)
     net.run(duration=500., inputs=[neu, 'ST.inp', 1.2], report=True, report_percent=0.2)

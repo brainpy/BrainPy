@@ -882,12 +882,12 @@ class Runner(object):
                 code_arg2call[f'{self._name}_pre2syn'] = f'{self._name}.pre2syn'
                 code_args.add(f'{self._name}_pre_indices')
                 code_arg2call[f'{self._name}_pre_indices'] = f'{self._name}.pre_group.indices'
-                # # f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
+                # f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
                 code_lines = [f'{self._name}_pre_indices = {self._name}_pre_indices.flatten()',
                               f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
                               f'  _pre_i_ = {self._name}_pre_indices[_pre_i_]',
-                              f'  for _syn_i_ in {self._name}_pre2syn[_pre_i_]:',
-                              f'    _obj_i_ = {self._name}_post_idx[_syn_i_]']
+                              f'  for _obj_i_ in {self._name}_pre2syn[_pre_i_]:',
+                              f'    _post_i_ = {self._name}_post_idx[_obj_i_]']
                 blank = '  ' * 2
             elif has_pre:
                 code_args.add(f'{self._name}_pre2syn')

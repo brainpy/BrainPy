@@ -11,7 +11,7 @@ from . import random
 _math_funcs = [
     # Basics
     # --------
-    'real', 'imag', 'conj', 'conjugate', 'ndim',  # 'angle',
+    'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', # 'angle',
 
     # Arithmetic operations
     # ----------------------
@@ -52,6 +52,7 @@ _math_funcs = [
     'heaviside', 'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip',
 ]
 
+isreal = numpy.isreal
 real = numpy.real
 imag = numpy.imag
 conj = numpy.conj
