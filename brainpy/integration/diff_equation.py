@@ -189,7 +189,6 @@ class DiffEquation(object):
     def get_f_expressions(self, substitute=None):
         if self.f_expr is None:
             return []
-
         self._substitute(self.f_expr, self.expressions, mode=substitute)
 
         return_expressions = []

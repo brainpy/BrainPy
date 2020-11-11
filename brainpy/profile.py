@@ -11,6 +11,8 @@ Using the API in ``profile.py``, you can set
 
 """
 
+from typing import Any
+
 __all__ = [
     'set',
     'set_backend',
@@ -123,7 +125,7 @@ def set_backend(backend, device=None):
             elif backend == 'numba':
                 if device == 'cpu':
                     set_numba_profile(parallel=False)
-                elif device == 'multi-core':
+                elif device == 'multi-cpu':
                     set_numba_profile(parallel=True)
                 elif device == 'gpu':
                     raise NotImplementedError('BrainPy currently doesn\'t support GPU.')
@@ -184,7 +186,7 @@ def set_numba_profile(**kwargs):
 
     Parameters
     ----------
-    kwargs : dict
+    kwargs : Any
         The arguments, including ``cache``, ``fastmath``,
         ``parallel``, ``nopython``.
     """

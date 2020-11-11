@@ -67,7 +67,8 @@ def try_integrate():
     def int_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
-        return alpha * (1 - m) - beta * m, alpha, beta
+        dmdt = alpha * (1 - m) - beta * m
+        return (dmdt,), alpha, beta
 
     print(type(int_m))
     print(int_m._update_code)
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     # try_analyse_func()
     # try_analyse_func2()
     # try_analyse_func3()
-    # try_integrate()
+    try_integrate()
     # try_diff_eq_analyser()
-    try_diff_eq_analyser2()
+    # try_diff_eq_analyser2()
 

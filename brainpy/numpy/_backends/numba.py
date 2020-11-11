@@ -124,13 +124,11 @@ def _reload():
         if isinstance(weights, numba.types.NoneType):
             def func(a, axis=None, weights=None):
                 return numpy.mean(a, axis)
-
             return func
 
         else:
             def func(a, axis=None, weights=None):
                 return numpy.sum(a * weights, axis=axis) / sum(weights)
-
             return func
 
     # Compute the weighted average along the specified axis.
