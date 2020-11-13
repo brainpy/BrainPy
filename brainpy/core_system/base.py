@@ -428,7 +428,7 @@ class BaseEnsemble(object):
             kws += self.model.step_names
         return kws
 
-    def run(self, duration, inputs=None, report=False, report_percent=0.1):
+    def run(self, duration, inputs=(), report=False, report_percent=0.1):
         # times
         # ------
         if isinstance(duration, (int, float)):
@@ -449,7 +449,7 @@ class BaseEnsemble(object):
             assert isinstance(inputs, (tuple, list))
         except AssertionError:
             raise ModelUseError('"inputs" must be a tuple/list.')
-        if not isinstance(inputs[0], (list, tuple)):
+        if len(inputs) and not isinstance(inputs[0], (list, tuple)):
             if isinstance(inputs[0], str):
                 inputs = [inputs]
             else:
