@@ -189,7 +189,7 @@ class Network(object):
 
         Parameters
         ----------
-        duration : int, float
+        duration : int, float, tuple, list
             The amount of simulation time to run for.
         inputs : list, tuple
             The receivers, external inputs and durations.

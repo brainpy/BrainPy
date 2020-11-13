@@ -627,6 +627,10 @@ class Runner(object):
                                                     f'merge parameter "{ks}" into the step functions.')
                     code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
+            elif type(v).__name__ == 'function':
+                code_scope[k] = tools.numba_func(v, params=self._pars.updates)
+
+
         # update code scope
         if need_add_mapping_scope:
             code_scope.update(get_mapping_scope())

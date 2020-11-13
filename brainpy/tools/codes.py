@@ -123,7 +123,7 @@ class DiffEquationAnalyser(ast.NodeTransformer):
         return node
 
     def visit_AugAssign(self, node):
-        var = node.targets.id
+        var = node.target.id
         self.variables.append(var)
         op = ast2code(ast.fix_missing_locations(node.op))
         expr = ast2code(ast.fix_missing_locations(node.value))
