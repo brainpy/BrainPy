@@ -12,12 +12,12 @@ from .. import numpy as np
 from ..integration import sympy_tools
 
 __all__ = [
-    'DynamicsAnalyzer2D'
+    'PhasePortraitAnalyzer2D'
 ]
 
 
-class DynamicsAnalyzer2D(object):
-    r"""Analyzer for 2-dimensional dynamical systems. 
+class PhasePortraitAnalyzer2D(object):
+    r"""Phase Portrait Analyzer for 2-dimensional dynamical systems.
 
     This class can be used for vector field visualization, nullcline solving 
     and fixed point finding.
