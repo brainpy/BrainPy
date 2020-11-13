@@ -65,7 +65,7 @@ def mat2ij(conn_mat):
 
     Parameters
     ----------
-    conn_mat : numpy.ndarray
+    conn_mat : np.ndarray
         Connectivity matrix with `(num_pre, num_post)` shape.
 
     Returns
@@ -88,9 +88,9 @@ def pre2post(i, j, num_pre=None):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : list, np.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : list, np.ndarray
         The post-synaptic neuron indexes.
     num_pre : int, None
         The number of the pre-synaptic neurons.
@@ -126,9 +126,9 @@ def post2pre(i, j, num_post=None):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : list, np.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : list, np.ndarray
         The post-synaptic neuron indexes.
     num_post : int, None
         The number of the post-synaptic neurons.
@@ -165,7 +165,7 @@ def pre2syn(i, num_pre=None):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : list, np.ndarray
         The pre-synaptic neuron indexes.
     num_pre : int
         The number of the pre-synaptic neurons.
@@ -198,7 +198,7 @@ def post2syn(j, num_post=None):
 
     Parameters
     ----------
-    j : list, numpy.ndarray
+    j : list, np.ndarray
         The post-synaptic neuron indexes.
     num_post : int
         The number of the post-synaptic neurons.
@@ -232,9 +232,9 @@ def pre_slice_syn(i, j, num_pre=None):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : list, np.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : list, np.ndarray
         The post-synaptic neuron indexes.
     num_pre : int
         The number of the pre-synaptic neurons.
@@ -279,9 +279,9 @@ def post_slice_syn(i, j, num_post=None):
 
     Parameters
     ----------
-    i : list, numpy.ndarray
+    i : list, np.ndarray
         The pre-synaptic neuron indexes.
-    j : list, numpy.ndarray
+    j : list, np.ndarray
         The post-synaptic neuron indexes.
     num_post : int
         The number of the post-synaptic neurons.
