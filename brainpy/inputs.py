@@ -154,7 +154,7 @@ class PoissonInput(NeuGroup):
     ----------
     geometry : int, tuple, list
         The neuron group geometry.
-    rates : float, int, np.ndarray
+    freqs : float, int, np.ndarray
         The spike rates.
     monitors : list, tuple
         The targets for monitoring.
@@ -162,16 +162,20 @@ class PoissonInput(NeuGroup):
         The neuron group name.
     """
 
-    def __init__(self, geometry, rates, monitors=None, name=None):
+    def __init__(self, geometry, freqs, monitors=None, name=None):
         # firing rate
-        if isinstance(rates, np.ndarray):
-            rates = rates.flatten()
+        if isinstance(freqs, np.ndarray):
+            freqs = freqs.flatten()
+        if not np.allclose(freqs <= 1000. / profile.get_dt()):
+            print(f'WARNING: The maximum supported frequency at dt={profile.get_dt()} ms '
+                  f'is {1000. / profile.get_dt()} Hz. While we get your "freq" setting which '
+                  f'is bigger than that.')
 
         # neuron model
         dt = profile.get_dt() / 1000.
 
         def update(ST):
-            ST['spike'] = np.random.random(ST['spike'].shape) < rates * dt
+            ST['spike'] = np.random.random(ST['spike'].shape) < freqs * dt
 
         model = NeuType(name='poisson_input', requires=dict(ST=NeuState(['spike'])),
                         steps=update, vector_based=True)
@@ -270,7 +274,7 @@ class FreqInput(NeuGroup):
     ----------
     geometry : int, list, tuple
         The geometry of neuron group.
-    freq : int, float
+    freqs : int, float, np.ndarray
         The output spike frequency.
     start_time : float
         The time of the first spike.
@@ -278,15 +282,18 @@ class FreqInput(NeuGroup):
         The targets for monitoring.
     name : str
         The name of the neuron group.
-
     """
+    def __init__(self, geometry, freqs, start_time=0., monitors=None, name=None):
+        if not np.allclose(freqs <= 1000. / profile.get_dt()):
+            print(f'WARNING: The maximum supported frequency at dt={profile.get_dt()} ms '
+                  f'is {1000. / profile.get_dt()} Hz. While we get your "freq" setting which '
+                  f'is bigger than that.')
 
-    def __init__(self, geometry, freq, start_time=0., monitors=None, name=None):
         def update_state(ST, _t_):
             if _t_ >= ST['t_next_spike']:
                 ST['spike'] = 1.
                 ST['t_last_spike'] = _t_
-                ST['t_next_spike'] += 1000 / freq
+                ST['t_next_spike'] += 1000. / freqs
             else:
                 ST['spike'] = 0.
 
@@ -300,8 +307,8 @@ class FreqInput(NeuGroup):
         super(FreqInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
         self.ST['t_next_spike'] = start_time
         if profile.is_numpy_bk():
-            if np.size(freq) != 1:
+            if np.size(freqs) != 1:
                 raise ValueError('NumPy mode cannot set heterogeneous firing frequency. '
                                  '"freq" must be a constant.')
         else:
-            self.pars['freq'] = freq
+            self.pars['freq'] = freqs
