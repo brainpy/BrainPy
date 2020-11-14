@@ -5,12 +5,14 @@ from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
 from .. import numpy as np
+from .. import profile
 from ..errors import ModelUseError
 
 __all__ = [
     'line_plot',
     'raster_plot',
     'animate_2D',
+    'animate_1D',
 ]
 
 
@@ -168,7 +170,7 @@ def raster_plot(ts,
 
 def animate_2D(values,
                net_size,
-               dt,
+               dt=None,
                val_min=None,
                val_max=None,
                cmap=None,
@@ -222,6 +224,7 @@ def animate_2D(values,
     figure : plt.figure
         The created figure instance.
     """
+    dt = profile.get_dt() if dt is None else dt
     num_step, num_neuron = values.shape
     height, width = net_size
     val_min = values.min() if val_min is None else val_min
@@ -261,7 +264,8 @@ def animate_2D(values,
 
 
 def animate_1D(lines,
-               dt,
+               xticks=None,
+               dt=None,
                xlim=None,
                ylim=None,
                frame_delay=1.,
@@ -272,5 +276,49 @@ def animate_1D(lines,
                video_fps=None,
                save_path=None,
                show=True):
-    pass
+    dt = profile.get_dt() if dt is None else dt
+    fig = plt.figure(figsize=(figsize or (6, 6)), constrained_layout=True)
+    gs = GridSpec(1, 1, figure=fig)
+    fig.add_subplot(gs[0, 0])
 
+    if ylim is None:
+        ylim = [lines.min(), lines.max()]
+        if ylim[0] > 0:
+            ylim[0] = ylim[0] * 0.98
+        else:
+            ylim[0] = ylim[0] * 1.02
+        if ylim[1] > 0:
+            ylim[1] = ylim[1] * 1.02
+        else:
+            ylim[1] = ylim[1] * 0.98
+
+    def frame(t):
+        line = lines[t]
+        fig.clf()
+        if xticks is None:
+            plt.plot(line)
+        else:
+            plt.plot(xticks, line)
+        if xlim is not None:
+            plt.xlim(xlim[0], xlim[1])
+        plt.ylim(ylim[0], ylim[1])
+        fig.suptitle("Time: {:.2f} ms".format((t + 1) * dt),
+                     fontsize=title_size, fontweight='bold')
+        return [fig.gca()]
+
+    anim_result = animation.FuncAnimation(
+        fig, frame, frames=range(1, lines.shape[0], frame_step),
+        init_func=None, interval=frame_delay, repeat_delay=3000)
+
+    # save or show
+    if save_path is None:
+        if show:
+            plt.show()
+    else:
+        if save_path[-3:] == 'gif':
+            anim_result.save(save_path, dpi=gif_dpi, writer='imagemagick')
+        elif save_path[-3:] == 'mp4':
+            anim_result.save(save_path, writer='ffmpeg', fps=video_fps, bitrate=3000)
+        else:
+            anim_result.save(save_path + '.mp4', writer='ffmpeg', fps=video_fps, bitrate=3000)
+    return fig

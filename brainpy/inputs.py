@@ -19,6 +19,7 @@ def constant_current(Iext, dt=None):
     If you want to get an input where the size is 0 bwteen 0-100 ms,
     and the size is 1. between 100-200 ms.
     >>> constant_current([(0, 100), (1, 100)])
+    >>> constant_current([(np.zeros(100), 100), (np.random.rand(100), 100)])
 
     Parameters
     ----------
@@ -35,14 +36,25 @@ def constant_current(Iext, dt=None):
     """
     dt = profile.get_dt() if dt is None else dt
 
-    total_duration = sum([a[1] for a in Iext])
-    current = np.zeros(int(np.ceil(total_duration / dt)))
+    # get input current dimension, shape, and duration
+    I_duration = 0.
+    I_dim = 0
+    I_shape = ()
+    for I in Iext:
+        I_duration += I[1]
+        dim = np.ndim(I[0])
+        if dim > I_dim:
+            I_dim = dim
+            I_shape = np.shape(I[0])
+
+    # get the current
+    I_current = np.zeros((int(np.ceil(I_duration / dt)), ) + I_shape)
     start = 0
     for c_size, duration in Iext:
         length = int(duration / dt)
-        current[start: start + length] = c_size
+        I_current[start: start + length, :] = c_size
         start += length
-    return current, total_duration
+    return I_current, I_duration
 
 
 def spike_current(points, lengths, sizes, duration, dt=None):
