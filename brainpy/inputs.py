@@ -52,7 +52,7 @@ def constant_current(Iext, dt=None):
     start = 0
     for c_size, duration in Iext:
         length = int(duration / dt)
-        I_current[start: start + length, :] = c_size
+        I_current[start: start + length] = c_size
         start += length
     return I_current, I_duration
 
