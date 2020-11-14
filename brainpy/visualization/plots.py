@@ -10,7 +10,7 @@ from ..errors import ModelUseError
 __all__ = [
     'line_plot',
     'raster_plot',
-    'animate_potential',
+    'animate_2D',
 ]
 
 
@@ -166,24 +166,35 @@ def raster_plot(ts,
         plt.show()
 
 
-def animate_potential(potentials, size, dt, min=None, max=None, cmap=None,
-                      frame_delay=1., frame_step=1, title_size=10, figsize=None,
-                      gif_dpi=None, video_fps=None, save_path=None, show=True):
+def animate_2D(values,
+               net_size,
+               dt,
+               val_min=None,
+               val_max=None,
+               cmap=None,
+               frame_delay=1.,
+               frame_step=1,
+               title_size=10,
+               figsize=None,
+               gif_dpi=None,
+               video_fps=None,
+               save_path=None,
+               show=True):
     """Animate the potentials of the neuron group.
 
     Parameters
     ----------
-    potentials : np.ndarray
+    values : np.ndarray
         The membrane potentials of the neuron group.
-    size : tuple
+    net_size : tuple
         The size of the neuron group.
     dt : float
         The time duration of each step.
-    min : float, int
+    val_min : float, int
         The minimum of the potential.
-    max : float, int
+    val_max : float, int
         The maximum of the potential.
-    cmap : None, str
+    cmap : str
         The colormap.
     frame_delay : int, float
         The delay to show each frame.
@@ -211,10 +222,10 @@ def animate_potential(potentials, size, dt, min=None, max=None, cmap=None,
     figure : plt.figure
         The created figure instance.
     """
-    num_step, num_neuron = potentials.shape
-    height, width = size
-    min = potentials.min() if min is None else min
-    max = potentials.max() if max is None else max
+    num_step, num_neuron = values.shape
+    height, width = net_size
+    val_min = values.min() if val_min is None else val_min
+    val_max = values.max() if val_max is None else val_max
 
     figsize = figsize or (6, 6)
 
@@ -223,16 +234,16 @@ def animate_potential(potentials, size, dt, min=None, max=None, cmap=None,
     fig.add_subplot(gs[0, 0])
 
     def frame(t):
-        img = potentials[t]
+        img = values[t]
         fig.clf()
-        plt.pcolor(img, cmap=cmap, vmin=min, vmax=max)
+        plt.pcolor(img, cmap=cmap, vmin=val_min, vmax=val_max)
         plt.colorbar()
         plt.axis('off')
         fig.suptitle("Time: {:.2f} ms".format((t + 1) * dt),
                      fontsize=title_size, fontweight='bold')
         return [fig.gca()]
 
-    potentials = potentials.reshape((num_step, height, width))
+    values = values.reshape((num_step, height, width))
     anim_result = animation.FuncAnimation(
         fig, frame, frames=list(range(1, num_step, frame_step)),
         init_func=None, interval=frame_delay, repeat_delay=3000)
@@ -247,3 +258,19 @@ def animate_potential(potentials, size, dt, min=None, max=None, cmap=None,
         else:
             anim_result.save(save_path + '.mp4', writer='ffmpeg', fps=video_fps, bitrate=3000)
     return fig
+
+
+def animate_1D(lines,
+               dt,
+               xlim=None,
+               ylim=None,
+               frame_delay=1.,
+               frame_step=1,
+               title_size=10,
+               figsize=None,
+               gif_dpi=None,
+               video_fps=None,
+               save_path=None,
+               show=True):
+    pass
+
