@@ -166,7 +166,7 @@ class PoissonInput(NeuGroup):
         # firing rate
         if isinstance(freqs, np.ndarray):
             freqs = freqs.flatten()
-        if not np.allclose(freqs <= 1000. / profile.get_dt()):
+        if not np.all(freqs <= 1000. / profile.get_dt()):
             print(f'WARNING: The maximum supported frequency at dt={profile.get_dt()} ms '
                   f'is {1000. / profile.get_dt()} Hz. While we get your "freq" setting which '
                   f'is bigger than that.')
