@@ -156,7 +156,9 @@ class BaseType(object):
         if callable(extra_functions):
             extra_functions = (extra_functions, )
         try:
-            assert isinstance(extra_functions, (tuple, list)) and callable(extra_functions[0])
+            assert isinstance(extra_functions, (tuple, list))
+            if len(extra_functions):
+                assert callable(extra_functions[0])
         except AssertionError:
             raise ModelUseError('extra_functions must be a list/tuple of functions.')
         self.extra_functions = extra_functions
