@@ -1,6 +1,16 @@
 Release notes
 =============
 
+BrainPy 0.2.4
+-------------
+
+API changes
+~~~~~~~~~~~
+
+- Fix bugs
+
+
+
 BrainPy 0.2.3
 -------------
 

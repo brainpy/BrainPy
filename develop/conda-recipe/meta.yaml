@@ -1,6 +1,6 @@
 package:
     name: brainpy
-    version: "0.2.3"
+    version: "0.2.4"
 
 source:
     path: ../../
@@ -15,12 +15,12 @@ requirements:
         - setuptools>=40.0.0
         - numpy>= 1.13
         - sympy>=1.2
-        - numba>=0.40
+        - numba>=0.50
     run:
         - python
         - numpy>=1.13
         - sympy>=1.2
-        - numba>=0.40
+        - numba>=0.50
         - matplotlib>=3.0
         - setuptools>=40.0.0
         - autopep8
