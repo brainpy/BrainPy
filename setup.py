@@ -30,7 +30,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'numpy>=1.15',
-        'matplotlib>=2.0',
+        'matplotlib>=3.0',
         'sympy>=1.2',
         'autopep8',
     ],

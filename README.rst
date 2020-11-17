@@ -28,21 +28,18 @@
 *More features are coming soon. Contributions are welcome.*
 
 
+
 Why to use BrainPy
 =====================
 
-``BrainPy`` is a lightweight framework based on latest Just-In-Time (JIT)
-compilers. The goal of ``BrainPy`` is to provide
-a highly flexible and efficient neural simulation framework for Python users.
+``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
+compilers (especially `Numba <https://numba.pydata.org/>`_).
+The goal of ``BrainPy`` is to provide a highly flexible and efficient
+neural simulation framework for Python users.
 It endows the users with the fully data/logic flow control.
-The core of the framework is a micro-kernel, and it's easy to understand (see
-*the document coming soon*).
-Based on the kernel, the extension of the new models or the customization of the
-data/logic flows are very simple for users. Ample examples (such as LIF neuron,
-HH neuron, or AMPA synapse, GABA synapse and GapJunction) are also provided.
-Besides the consideration of **flexibility**, for accelerating the running
-**speed** of NumPy codes, `Numba` is used. For most of the times,
-models running on `Numba` backend is very fast.
+Besides highly flexible, BrainPy is very fast (see the following comparison figure).
+Currently, BrainPy supports JIT acceleration on CPU. In future, we will
+support GPU acceleration.
 
 .. figure:: https://github.com/PKU-NIP-Lab/NumpyBrain/blob/master/docs/images/speed.png
     :alt: Speed of BrainPy
@@ -53,15 +50,6 @@ models running on `Numba` backend is very fast.
 Installation
 ============
 
-Install ``BrainPy`` using ``conda``::
-
-    > conda install -c brainpy brainpy
-
-
-Install ``BrainPy`` using ``pip``::
-
-    > pip install brain.py
-
 Install from source code::
 
     > git clone https://github.com/PKU-NIP-Lab/BrainPy
@@ -71,13 +59,21 @@ Install from source code::
     >
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
+Install ``BrainPy`` using ``conda``::
+
+    > conda install -c brainpy brainpy
+
+Install ``BrainPy`` using ``pip``::
+
+    > pip install brain.py
+
 
 The following packages need to be installed to use ``BrainPy``:
 
 - Python >= 3.7
 - NumPy >= 1.13
 - Sympy >= 1.2
-- Matplotlib >= 2.0
+- Matplotlib >= 3.0
 - autopep8
 
 Packages recommended to install:

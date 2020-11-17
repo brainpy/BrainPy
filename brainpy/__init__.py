@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 # "profile" module
 from . import profile
