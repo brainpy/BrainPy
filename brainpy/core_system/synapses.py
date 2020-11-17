@@ -39,12 +39,14 @@ class SynType(BaseType):
                  requires: dict,
                  steps: Union[callable, list, tuple],
                  vector_based: bool = True,
-                 heter_params_replace: dict = None):
+                 heter_params_replace: dict = None,
+                 extra_functions=()):
         super(SynType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
                                       vector_based=vector_based,
-                                      heter_params_replace=heter_params_replace)
+                                      heter_params_replace=heter_params_replace,
+                                      extra_functions=extra_functions)
 
         # inspect delay keys
         # ------------------

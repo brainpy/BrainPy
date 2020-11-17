@@ -44,7 +44,8 @@ class BaseType(object):
                  steps,
                  name,
                  vector_based=True,
-                 heter_params_replace=None):
+                 heter_params_replace=None,
+                 extra_functions=()):
         # type : neuron based or group based code
         # ---------------------------------------
         self.vector_based = vector_based
@@ -147,7 +148,18 @@ class BaseType(object):
             print('\n'.join(warnings) + '\n')
 
         # delay keys
+        # ----------
         self._delay_keys = {}
+
+        # extra functions
+        # ---------------
+        if callable(extra_functions):
+            extra_functions = (extra_functions, )
+        try:
+            assert isinstance(extra_functions, (tuple, list)) and callable(extra_functions[0])
+        except AssertionError:
+            raise ModelUseError('extra_functions must be a list/tuple of functions.')
+        self.extra_functions = extra_functions
 
     def __str__(self):
         return f'{self.name}'
@@ -348,6 +360,11 @@ class BaseEnsemble(object):
         # runner
         # -------
         self.runner = Runner(ensemble=self)
+
+        # extra_functions
+        # ---------------
+        for func in model.extra_functions:
+            setattr(self, func.__name__, func)
 
     def _type_checking(self):
         # check attribute and its type

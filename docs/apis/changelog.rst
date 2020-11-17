@@ -16,7 +16,7 @@ Models and examples
 ~~~~~~~~~~~~~~~~~~~
 
 - Add CANN examples
--
+
 
 BrainPy 0.2.2
 -------------
