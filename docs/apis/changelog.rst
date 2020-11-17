@@ -1,6 +1,23 @@
 Release notes
 =============
 
+BrainPy 0.2.3
+-------------
+
+API changes
+~~~~~~~~~~~
+
+- Add "animate_1D" in ``visualization`` module
+- Add "PoissonInput", "SpikeTimeInput" and "FreqInput" in ``inputs`` module
+- Update phase_portrait_analyzer.py
+
+
+Models and examples
+~~~~~~~~~~~~~~~~~~~
+
+- Add CANN examples
+-
+
 BrainPy 0.2.2
 -------------
 
