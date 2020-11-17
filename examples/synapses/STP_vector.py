@@ -37,10 +37,6 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
         Time constant of short-term facilitation .
     U : float
         The increment of :math:`u` produced by a spike.
-    x0 : float
-        Initial value of :math:`x`.
-    u0 : float
-        Initial value of :math:`u`.
 
     References
     ----------
@@ -51,16 +47,16 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
     requires = dict(
         ST=bp.types.SynState({'u': 0., 'x': 1., 'w': 1., 'g': 0.}),
         pre=bp.types.NeuState(['sp']),
-        post=bp.types.NeuState(['V', 'inp']),
+        post=bp.types.NeuState(['V', 'input']),
         pre2syn=bp.types.ListConn(),
-        post2syn=bp.types.ListConn(),
+        post_slice_syn=bp.types.Array(dim=2),
     )
 
-    @bp.integrate(method='exponential')
+    @bp.integrate
     def int_u(u, t):
         return - u / tau_f
 
-    @bp.integrate(method='exponential')
+    @bp.integrate
     def int_x(x, t):
         return (1 - x) / tau_d
 
@@ -77,11 +73,13 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
         ST['g'] = ST['w'] * ST['u'] * ST['x']
 
     @bp.delayed
-    def output(ST, post, post2syn):
-        post_cond = np.zeros(len(post2syn), dtype=np.float_)
-        for post_id, syn_ids in enumerate(post2syn):
-            post_cond[post_id] = np.sum(ST['g'][syn_ids])
-        post['inp'] += post_cond
+    def output(ST, post, post_slice_syn):
+        num_post = post_slice_syn.shape[0]
+        post_cond = np.zeros(num_post, dtype=np.float_)
+        for post_id in range(num_post):
+            pos = post_slice_syn[post_id]
+            post_cond[post_id] = np.sum(ST['g'][pos[0]: pos[1]])
+        post['input'] += post_cond
 
     return bp.SynType(name='STP',
                       requires=requires,

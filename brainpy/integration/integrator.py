@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import sympy
+import copy
 
 from . import methods
 from .diff_equation import DiffEquation
 from .sympy_tools import str2sympy
+from .sympy_tools import get_mapping_scope
 from .sympy_tools import sympy2str
 from .. import numpy as np
 from .. import profile
@@ -840,12 +842,18 @@ class ExponentialEuler(Integrator):
 
     def __init__(self, diff_eq):
         super(ExponentialEuler, self).__init__(diff_eq)
-        if profile.is_numpy_bk():
-            raise IntegratorError('Exponential method does not support numpy backend.')
         if not profile._merge_steps:
             raise IntegratorError('Exponential method only supports "_merge_steps=True". '
                                   'Please set "profile._merge_steps= = True."')
         self._update_code = self.get_nb_step(diff_eq)
+
+        func_args = ', '.join([f'_{diff_eq.func_name}_{arg}' for arg in diff_eq.func_args])
+        func_code = '''def int_func({}): \n'''.format(func_args)
+        func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
+        code_scopes = copy.copy(diff_eq.func_scope)
+        code_scopes.update(get_mapping_scope())
+        exec(compile(func_code, '', 'exec'), code_scopes)
+        self._update_func = code_scopes['int_func']
 
     @staticmethod
     def get_nb_step(diff_eq, *args):

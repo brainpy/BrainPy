@@ -627,6 +627,10 @@ class Runner(object):
                                                     f'merge parameter "{ks}" into the step functions.')
                     code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
+            elif type(v).__name__ == 'function':
+                code_scope[k] = tools.numba_func(v, params=self._pars.updates)
+
+
         # update code scope
         if need_add_mapping_scope:
             code_scope.update(get_mapping_scope())
@@ -887,7 +891,7 @@ class Runner(object):
                               f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
                               f'  _pre_i_ = {self._name}_pre_indices[_pre_i_]',
                               f'  for _obj_i_ in {self._name}_pre2syn[_pre_i_]:',
-                              f'    _post_i_ = {self._name}_post_idx[_obj_i_]']
+                              f'    _post_i_ = {self._name}_post_ids[_obj_i_]']
                 blank = '  ' * 2
             elif has_pre:
                 code_args.add(f'{self._name}_pre2syn')

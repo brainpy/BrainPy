@@ -12,7 +12,8 @@ brainpy.visualize package
     mpl_style1
     line_plot
     raster_plot
-    animate_potential
+    animate_2D
+    animate_1D
 
 
 

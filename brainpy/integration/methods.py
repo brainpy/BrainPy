@@ -64,7 +64,7 @@ def euler(diff_eqs, *args):
             if diff_eqs.return_type == '(x,),':
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
-                    y = y0 + __dt * val[0]
+                    y = y0 + __dt * val[0][0]
                     return (y,) + tuple(val[1:])
             else:
                 raise IntegratorError(f'Unrecognized differential return type: '

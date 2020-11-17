@@ -9,27 +9,28 @@ from scipy import optimize
 from sympy import Derivative as D
 
 from .. import numpy as np
+from ..core_system import NeuGroup
 from ..integration import sympy_tools
 
 __all__ = [
-    'DynamicsAnalyzer2D'
+    'PhasePortraitAnalyzer2D'
 ]
 
 
-class DynamicsAnalyzer2D(object):
+class PhasePortraitAnalyzer2D(object):
     r"""Analyzer for 2-dimensional dynamical systems. 
 
     This class can be used for vector field visualization, nullcline solving 
     and fixed point finding.
 
-    Nullcines are obtrained by algebraically solving the following equations:
+    Nullcines are obtained by algebraically solving the following equations:
 
     .. math::
 
         \dot{x} = f(x,y)
         \dot{y} = g(x,y)
 
-    Note this class can only handle two-dimensional dynamical system. For high
+    Note this class can only handle two-dimensional dynamical systems. For high
     dimensional dynamical systems, it's often desirable to reduce them
     to low dimensions for the benefits of visualization, by fixing certain 
     variables. This class can take a dynamical system with arbitrary
@@ -39,16 +40,16 @@ class DynamicsAnalyzer2D(object):
 
     Parameters
     -------------
-    neuro : NeuType of BrainPy
+    neuron : NeuType of BrainPy
         An abstract neuronal type defined in BrainPy.
 
-    plot_variables : list of str
+    plot_variables : list of strs
         A list containing two str specifying the two free variables. The 
         first variable will become the y-axis, while the second the x-axis.
     """
 
-    def __init__(self, neuro, plot_variables):
-        self.neuro = neuro
+    def __init__(self, neuron, plot_variables):
+        self.neuro = neuron
         self.var_list = None
         self.eq_sympy_dict = None
         self.plot_variables = plot_variables
@@ -97,8 +98,10 @@ class DynamicsAnalyzer2D(object):
 
         inherit : bool, optional 
             Whether to inherit settings from the last plot. If set to `True`,
-            will ignore all the other parameters values. Default is `False`.   
+            will ignore all the other parameters. Default is `False`.   
         """
+        if sub_dict is None:
+            sub_dict = {}
 
         if inherit:
             ylim = self.ylim
@@ -119,54 +122,72 @@ class DynamicsAnalyzer2D(object):
         y_eq = _eq_sympy_dict[y_var]
         x_eq = _eq_sympy_dict[x_var]
 
-        # Nullcline of the 1st variable
-        x = np.linspace(*xlim, 100)
-        y = np.linspace(*ylim, 100)
+        # Nullcline of the y variable
+        x = np.linspace(*xlim, 10000)
+        y = np.linspace(*ylim, 10000)
 
         try:
             sub_relation = sympy.solve(y_eq, y_var)
-            nc1_ = sympy.lambdify(x_var, sub_relation, "numpy")(x)[0]
-            nc1 = nc1_[np.bitwise_and(nc1_ < ylim[1], nc1_ > ylim[0])]
-            x1 = x[np.bitwise_and(nc1_ < ylim[1], nc1_ > ylim[0])]
-            y1 = y
+            nc1_list, x1_list, y1_list = [], [], []
+            for i_sub in sub_relation:
+                nc1_ = sympy.lambdify(x_var, i_sub, "numpy")(x)
+                nc1_list.append(nc1_[np.bitwise_and(nc1_ < ylim[1], nc1_ > ylim[0])])
+                x1_list.append(x[np.bitwise_and(nc1_ < ylim[1], nc1_ > ylim[0])])
+                y1_list.append(y)
+
         except NotImplementedError:
             sub_relation = sympy.solve(y_eq, x_var)
-            nc1_ = sympy.lambdify(y_var, sub_relation, "numpy")(y)[0]
-            nc1 = nc1_[np.bitwise_and(nc1_ < xlim[1], nc1_ > xlim[0])]
-            y1 = x[np.bitwise_and(nc1_ < xlim[1], nc1_ > xlim[0])]
-            x1 = x
+            nc1_list, x1_list, y1_list = [], [], []
+            for i_sub in sub_relation:
+                nc1_ = sympy.lambdify(y_var, i_sub, "numpy")(y)
+                nc1_list.append(nc1_[np.bitwise_and(nc1_ < xlim[1], nc1_ > xlim[0])])
+                y1_list.append(x[np.bitwise_and(nc1_ < xlim[1], nc1_ > xlim[0])])
+                x1_list.append(x)
             reverse_axis[0] = True
 
-        # Nullcline of the 2nd variable
+        # Nullcline of the x variable
+
         try:
             sub_relation = sympy.solve(x_eq, y_var)
-            nc2_ = sympy.lambdify(x_var, sub_relation, "numpy")(x)[0]
-            nc2 = nc2_[np.bitwise_and(nc2_ < ylim[1], nc2_ > ylim[0])]
-            x2 = x[np.bitwise_and(nc2_ < ylim[1], nc2_ > ylim[0])]
-            y2 = y
+            nc2_list, x2_list, y2_list = [], [], []
+            for i_sub in sub_relation:
+                nc2_ = sympy.lambdify(x_var, i_sub, "numpy")(x)
+                nc2_list.append(nc2_[np.bitwise_and(nc2_ < ylim[1], nc2_ > ylim[0])])
+                x2_list.append(x[np.bitwise_and(nc2_ < ylim[1], nc2_ > ylim[0])])
+                y2_list.append(y)
+
         except NotImplementedError:
             sub_relation = sympy.solve(x_eq, x_var)
-            nc2_ = sympy.lambdify(y_var, sub_relation, "numpy")(y)[0]
-            nc2 = nc2_[np.bitwise_and(nc2_ < xlim[1], nc2_ > xlim[0])]
-            y2 = x[np.bitwise_and(nc2_ < xlim[1], nc2_ > xlim[0])]
-            x2 = x
+            nc2_list, x2_list, y2_list = [], [], []
+            for i_sub in sub_relation:
+                nc2_ = sympy.lambdify(y_var, i_sub, "numpy")(y)
+                nc2_list.append(nc2_[np.bitwise_and(nc2_ < xlim[1], nc2_ > xlim[0])])
+                y2_list.append(x[np.bitwise_and(nc2_ < xlim[1], nc2_ > xlim[0])])
+                x2_list.append(x)
             reverse_axis = True
 
-        nc = [nc1, nc2]
-        xx = [x1, x2]
-        yy = [y1, y2]
+        nc = [nc1_list, nc2_list]
+        xx = [x1_list, x2_list]
+        yy = [y1_list, y2_list]
 
         for i in range(2):
             if reverse_axis[i]:
                 nc[i], xx[i] = yy[i], nc[i]
 
-        for i in range(2):
-            plt.plot(xx[i], nc[i])
+        x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
+        y_style = dict(color='cornflowerblue', alpha=.7, linewidth=4)
+
+        for i in range(len(nc[0])):
+            label = self.plot_variables[0] + " nullcline" if i == 0 else None
+            plt.plot(xx[0][i], nc[0][i], **y_style, label=label)
+        for i in range(len(nc[1])):
+            label = self.plot_variables[1] + " nullcline" if i == 0 else None
+            plt.plot(xx[1][i], nc[1][i], **x_style, label=label)
 
         plt.xlabel(str(x_var))
         plt.ylabel(str(y_var))
 
-        plt.legend([f"{self.plot_variables[i]} nullcline" for i in range(2)])
+        plt.legend()
 
         return
 
@@ -198,8 +219,11 @@ class DynamicsAnalyzer2D(object):
 
         inherit : bool, optional 
             Whether to inherit settings from the last plot. If set to `True`,
-            will ignore all the other parameters values. Default is `False`.       
+            will ignore all the other parameters. Default is `False`.       
         """
+
+        if sub_dict is None:
+            sub_dict = {}
 
         if inherit:
             ylim = self.ylim
@@ -257,8 +281,11 @@ class DynamicsAnalyzer2D(object):
 
         inherit : bool, optional 
             Whether to inherit settings from the last plot. If set to `True`,
-            will ignore all the other parameters values. Default is `False`.   
+            will ignore all the other parameters. Default is `False`.   
         """
+
+        if sub_dict is None:
+            sub_dict = {}
 
         if inherit:
             ylim = self.ylim
@@ -331,11 +358,15 @@ class DynamicsAnalyzer2D(object):
         x_sol, y_sol = [], []
         for i in range(len(fixed_points)):
             if x_pivot:
-                x_sol.append(fixed_points[i])
-                y_sol.append(sub_relation[y_var].subs(x_var, fixed_points[i]))
+                _y_sol = sub_relation[y_var].subs(x_var, fixed_points[i])
+                if _y_sol >= ylim[0] and _y_sol <= ylim[1]:
+                    x_sol.append(fixed_points[i])
+                    y_sol.append(_y_sol)
             else:
-                y_sol.append(fixed_points[i])
-                x_sol.append(sub_relation[x_var].subs(y_var, fixed_points[i]))
+                _x_sol = sub_relation[x_var].subs(y_var, fixed_points[i])
+                if _x_sol >= xlim[0] and _x_sol <= xlim[1]:
+                    y_sol.append(fixed_points[i])
+                    x_sol.append(_x_sol)
 
         n_sol = len(x_sol)
 
@@ -399,6 +430,58 @@ class DynamicsAnalyzer2D(object):
             plt.plot(x_sol[i], y_sol[i], '.', **plot_type)
             plt.xlabel(str(x_var))
             plt.ylabel(str(y_var))
+
+    def plot_trajectory(self, initial_states, input=None, dur=1000.):
+        '''Plot the trajectory given initial states
+
+        initial_states : dict
+            A dict containing two items, with (key, value) pair specifying the initial values
+            of the states (i.e. the `plot_variables` in the class constructor). If the `value`s in 
+            the pair are lists of numbers, multiple corresponding trajectories will be plotted.
+
+        input : float or array-like, optional
+            The input provided to the neuron during simulation. Default is `None`.
+
+        dur : float, optional
+            A number specifying trajectory simulation duration. Default is 1000.
+        '''
+
+        # FIXME: Only 2D system is supported! Cannot be used to plot trajectories of reduced systems
+        # as variables cannot be clamped during simulation !!!
+
+        assert isinstance(initial_states, dict)
+
+        x_str = str(self.var_list[self.x_ind])
+        y_str = str(self.var_list[self.y_ind])
+
+        x_val, y_val = initial_states[x_str], initial_states[y_str]
+
+        if not (isinstance(x_val, (list, tuple)) and isinstance(y_val, (list, tuple))):
+            assert isinstance(x_val, numbers.Number)
+            assert isinstance(y_val, numbers.Number)
+
+            x_val = [x_val]
+            y_val = [y_val]
+
+
+        else:
+
+            assert isinstance(x_val, (list, tuple))
+            assert isinstance(y_val, (list, tuple))
+            assert len(x_val) == len(y_val)
+
+        n_r = len(x_val)
+        group = NeuGroup(self.neuro, geometry=n_r, monitors=[x_str, y_str])
+        group.ST[x_str] = x_val
+        group.ST[y_str] = y_val
+
+        if input is None: input = 0
+
+        group.run(duration=dur, inputs=('ST.input', input))
+
+        plt.plot(group.mon[x_str], group.mon[y_str], color="darkgoldenrod", linewidth=.7, alpha=.7)
+
+        return
 
     @property
     def axes(self):

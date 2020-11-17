@@ -21,12 +21,13 @@ class NeuType(BaseType):
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None):
+    def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None, extra_functions=()):
         super(NeuType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
                                       vector_based=vector_based,
-                                      heter_params_replace=heter_params_replace)
+                                      heter_params_replace=heter_params_replace,
+                                      extra_functions=extra_functions)
 
 
 class NeuGroup(BaseEnsemble):
