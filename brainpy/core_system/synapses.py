@@ -12,10 +12,7 @@ from .types import SynState
 from .. import numpy as np
 from .. import profile
 from .. import tools
-from ..connectivity import mat2ij
 from ..connectivity import Connector
-from ..connectivity import post2syn
-from ..connectivity import pre2syn
 from ..errors import ModelDefError
 from ..errors import ModelUseError
 
