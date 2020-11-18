@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import typing
+
 from .base import BaseEnsemble
 from .base import BaseType
 from .constants import _NEU_GROUP
@@ -21,7 +23,13 @@ class NeuType(BaseType):
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(self, name, requires, steps, vector_based=True, heter_params_replace=None, extra_functions=()):
+    def __init__(self,
+                 name: str,
+                 requires: dict,
+                 steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
+                 vector_based: bool = True,
+                 heter_params_replace: typing.Dict = None,
+                 extra_functions: typing.Union[typing.Callable, typing.List, typing.Tuple] = ()):
         super(NeuType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
@@ -47,7 +55,12 @@ class NeuGroup(BaseEnsemble):
         The name of the neuron group.
     """
 
-    def __init__(self, model, geometry, pars_update=None, monitors=None, name=None):
+    def __init__(self,
+                 model,
+                 geometry,
+                 pars_update=None,
+                 monitors=None,
+                 name=None):
         # name
         # -----
         if name is None:
@@ -83,7 +96,8 @@ class NeuGroup(BaseEnsemble):
         try:
             assert isinstance(model, NeuType)
         except AssertionError:
-            raise ModelUseError(f'{NeuGroup.__name__} receives an instance of {NeuType.__name__}, '
+            raise ModelUseError(f'{NeuGroup.__name__} receives an '
+                                f'instance of {NeuType.__name__}, '
                                 f'not {type(model).__name__}.')
 
         # initialize

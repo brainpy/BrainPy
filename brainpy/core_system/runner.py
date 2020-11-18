@@ -12,6 +12,7 @@ from .types import ObjState
 from .. import numpy as np
 from .. import profile
 from .. import tools
+from . neurons import NeuGroup
 from ..errors import ModelDefError
 from ..errors import ModelUseError
 from ..integration.integrator import Integrator
@@ -19,6 +20,13 @@ from ..integration.sympy_tools import get_mapping_scope
 
 
 class Runner(object):
+    """Basic runner class.
+
+    Parameters
+    ----------
+    ensemble : NeuGroup, SynConn
+        The ensemble of the models.
+    """
     def __init__(self, ensemble):
         # ensemble: NeuGroup / SynConn
         self.ensemble = ensemble
@@ -1022,3 +1030,24 @@ class Runner(object):
             except AssertionError:
                 raise ModelUseError(f'Unknown step function "{s}" for model "{self._name}".')
         self._schedule = schedule
+
+
+class TrajectoryRunner(Runner):
+    """Runner class for trajectory.
+
+    Parameters
+    ----------
+    ensemble : NeuGroup
+        The neuron ensemble.
+    """
+    def __init__(self, ensemble, target_vars):
+        try:
+            assert isinstance(ensemble, NeuGroup)
+        except AssertionError:
+            raise ModelUseError('TrajectoryRunner only supports the instance of NeuGroup.')
+        self.target_vars = target_vars
+        super(TrajectoryRunner, self).__init__(ensemble=ensemble)
+
+
+
+
