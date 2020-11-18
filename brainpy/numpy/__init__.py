@@ -11,7 +11,7 @@ from . import random
 _math_funcs = [
     # Basics
     # --------
-    'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', # 'angle',
+    'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',  # 'angle',
 
     # Arithmetic operations
     # ----------------------
@@ -53,6 +53,7 @@ _math_funcs = [
 ]
 
 isreal = numpy.isreal
+isscalar = numpy.isscalar
 real = numpy.real
 imag = numpy.imag
 conj = numpy.conj
@@ -446,14 +447,11 @@ hanning = numpy.hanning
 kaiser = numpy.kaiser
 
 # https://numpy.org/doc/stable/reference/constants.html
-_constants = ['e', 'pi', 'inf', 'nan', 'newaxis', 'euler_gamma']
+_constants = ['e', 'pi', 'inf']
 
 e = numpy.e
 pi = numpy.pi
 inf = numpy.inf
-nan = numpy.nan
-newaxis = numpy.newaxis
-euler_gamma = numpy.euler_gamma
 
 # https://numpy.org/doc/stable/reference/routines.linalg.html
 _linear_algebra = [
@@ -531,11 +529,15 @@ def _reload(backend):
             else:
                 global_vars[__ops] = getattr(numpy, __ops)
 
-    elif backend == 'jax':
-        jax = import_module('jax')
+    elif backend == 'tf-numpy':
+        tf_numpy = import_module('tensorflow.experimental.numpy')
+        from ._backends import tensorflow
 
         for __ops in _all:
-            global_vars[__ops] = getattr(jax, __ops)
+            if hasattr(tf_numpy, __ops):
+                global_vars[__ops] = getattr(tf_numpy, __ops)
+            else:
+                global_vars[__ops] = getattr(tensorflow, __ops)
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')

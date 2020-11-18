@@ -18,7 +18,7 @@ __all__ = [
     'set_backend',
     'get_backend',
 
-    'is_jax_bk',
+    'is_tensorflow_bk',
     'is_numpy_bk',
     'is_numba_bk',
     'set_numba_profile',
@@ -101,7 +101,7 @@ def set_backend(backend, device=None):
     global _backend
 
     backend = backend.lower()
-    if backend not in ['numpy', 'numba', 'jax']:
+    if backend not in ['numpy', 'numba', 'tf-numpy']:
         raise ValueError(f'Unsupported backend: {backend}.')
 
     if backend != _backend:
@@ -132,8 +132,10 @@ def set_backend(backend, device=None):
                 else:
                     raise ValueError(f'Unknown device in Numba mode: {device}.')
                 _device = device
-            elif backend == 'jax':
-                raise NotImplementedError
+            elif backend == 'tf-numpy':
+                if device == 'gpu':
+                    raise NotImplementedError(f"TensorFlow-NumPy mode currently doesn't support GPU.")
+                _device = device
 
 
 def get_backend():
@@ -148,15 +150,15 @@ def get_backend():
     return _backend
 
 
-def is_jax_bk():
-    """Check whether the backend is ``JAX``.
+def is_tensorflow_bk():
+    """Check whether the backend is ``TensorFlow``.
 
     Returns
     -------
-    jax_backend : bool
+    tf_backend : bool
         True or False.
     """
-    return _backend.startswith('jax')
+    return _backend.startswith('tf-numpy')
 
 
 def is_numpy_bk():

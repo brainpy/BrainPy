@@ -4,11 +4,24 @@
 from matplotlib import rcParams
 
 __all__ = [
-    'mpl_style1',
+    'plot_style1',
 ]
 
 
-def mpl_style1(fontsize=22, axes_edgecolor='black', figsize='5,4', lw=1):
+def plot_style1(fontsize=22, axes_edgecolor='black', figsize='5,4', lw=1):
+    """Plot style for publication.
+
+    Parameters
+    ----------
+    fontsize : int
+        The font size.
+    axes_edgecolor : str
+        The exes edge color.
+    figsize : str, tuple
+        The figure size.
+    lw : int
+        Line width.
+    """
     rcParams['text.latex.preamble'] = [r"\usepackage{amsmath, lmodern}"]
     params = {
         'text.usetex': True,

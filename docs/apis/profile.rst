@@ -10,7 +10,7 @@ brainpy.profile package
     set
     set_backend
     get_backend
-    is_jax_bk
+    is_tensorflow_bk
     is_numpy_bk
     is_numba_bk
     set_numba_profile

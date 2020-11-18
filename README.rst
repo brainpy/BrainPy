@@ -78,7 +78,8 @@ The following packages need to be installed to use ``BrainPy``:
 
 Packages recommended to install:
 
-- Numba >= 0.40.0
+- Numba >= 0.50.0
+- TensorFlow >= 2.4
 
 
 Define a Hodgkin–Huxley neuron model
