@@ -12,7 +12,6 @@ from .types import ObjState
 from .. import numpy as np
 from .. import profile
 from .. import tools
-from . neurons import NeuGroup
 from ..errors import ModelDefError
 from ..errors import ModelUseError
 from ..integration.integrator import Integrator
@@ -1041,8 +1040,9 @@ class TrajectoryRunner(Runner):
         The neuron ensemble.
     """
     def __init__(self, ensemble, target_vars):
+        from brainpy.core_system.neurons import NeuGroup
         try:
-            assert isinstance(ensemble, NeuGroup)
+            isinstance(ensemble, NeuGroup)
         except AssertionError:
             raise ModelUseError('TrajectoryRunner only supports the instance of NeuGroup.')
         self.target_vars = target_vars
