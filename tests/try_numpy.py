@@ -16,3 +16,15 @@ print(numpy.random.uniform)
 print(numpy.random.seed)
 print(numpy.linalg.det)
 print('-' * 30)
+
+print('tensorflow')
+numpy._reload('tf-numpy')
+print(numpy.array)
+print(numpy.ones)
+print(numpy.random.uniform)
+print(numpy.random.seed)
+print(numpy.linalg.det)
+print('-' * 30)
+
+
+

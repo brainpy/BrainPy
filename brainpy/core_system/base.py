@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import re
 import inspect
 import time
+import typing
 from copy import deepcopy
 
 import autopep8
@@ -40,12 +42,12 @@ class BaseType(object):
     """
 
     def __init__(self,
-                 requires,
-                 steps,
-                 name,
-                 vector_based=True,
-                 heter_params_replace=None,
-                 extra_functions=()):
+                 requires: typing.Dict,
+                 steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
+                 name: str,
+                 vector_based: bool = True,
+                 heter_params_replace: typing.Dict = None,
+                 extra_functions: typing.Union[typing.Callable, typing.List, typing.Tuple] = ()):
         # type : neuron based or group based code
         # ---------------------------------------
         self.vector_based = vector_based
@@ -75,16 +77,13 @@ class BaseType(object):
                 raise ModelDefError(f'In "requires", each value must be a {TypeChecker.__name__}, '
                                     f'but got "{type(v)}" for "{k}".')
 
-        # variables
-        # ----------
-        self.variables = self.requires['ST']._vars
-
         # steps
         # ------
         self.steps = []
         self.step_names = []
         self.step_scopes = dict()
         self.step_args = set()
+        step_vars = set()
         if callable(steps):
             steps = [steps]
         elif isinstance(steps, (list, tuple)):
@@ -96,14 +95,17 @@ class BaseType(object):
                 assert callable(func)
             except AssertionError:
                 raise ModelDefError('"steps" must be a list/tuple of callable functions.')
+
             # function name
             func_name = tools.get_func_name(func, replace=True)
             self.step_names.append(func_name)
+
             # function arg
             for arg in inspect.getfullargspec(func).args:
                 if arg in ARG_KEYWORDS:
                     continue
                 self.step_args.add(arg)
+
             # function scope
             scope = tools.get_func_scope(func, include_dispatcher=True)
             for k, v in scope.items():
@@ -113,11 +115,24 @@ class BaseType(object):
                                             f'{self.name}: {k} = {v} and {k} = {self.step_scopes[k]}.\n'
                                             f'This maybe cause a grievous mistake in the future. Please change!')
                 self.step_scopes[k] = v
+
             # function
             self.steps.append(func)
+
             # set attribute
             setattr(self, func_name, func)
+
+            # get the STATE variables
+            step_vars.update(re.findall(r'ST\[[\'"](\w+)[\'"]\]', tools.get_main_code(func)))
+
         self.step_args = list(self.step_args)
+
+        # variables
+        # ----------
+        self.variables = self.requires['ST']._vars
+        for var in step_vars:
+            if var not in self.variables:
+                raise ModelDefError(f'Variable "{var}" is used in {self.name}, but not defined in "ST".')
 
         # integrators
         # -----------
@@ -154,7 +169,7 @@ class BaseType(object):
         # extra functions
         # ---------------
         if callable(extra_functions):
-            extra_functions = (extra_functions, )
+            extra_functions = (extra_functions,)
         try:
             assert isinstance(extra_functions, (tuple, list))
             if len(extra_functions):
@@ -179,6 +194,7 @@ class ParsUpdate(dict):
     - model : the model which this ParsUpdate belongs to
 
     """
+
     def __init__(self,
                  all_pars,
                  num,
@@ -300,12 +316,12 @@ class BaseEnsemble(object):
     """
 
     def __init__(self,
-                 name,
-                 num,
-                 model,
-                 monitors,
-                 pars_update,
-                 cls_type):
+                 name: str,
+                 num: int,
+                 model: BaseType,
+                 monitors: typing.Tuple,
+                 pars_update: typing.Dict,
+                 cls_type: str):
         # class type
         # -----------
         assert cls_type in [_NEU_GROUP, _SYN_CONN], f'Only support "{_NEU_GROUP}" and "{_SYN_CONN}".'

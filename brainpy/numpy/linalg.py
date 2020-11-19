@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from importlib import import_module
 
 import numpy.linalg
 
@@ -42,15 +41,11 @@ def _reload(backend):
             else:
                 global_vars[__ops] = getattr(numpy.linalg, __ops)
 
-    elif backend == 'jax':
-        jax = import_module('jax')
+    elif backend == 'tf-numpy':
+        from ._backends import tensorflow
 
         for __ops in _all:
-            global_vars[__ops] = getattr(jax.linalg, __ops)
-
-    elif backend == 'tensorflow':
-        pass
-
+            global_vars[__ops] = getattr(tensorflow, __ops)
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')

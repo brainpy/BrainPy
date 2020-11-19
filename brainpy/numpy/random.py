@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from importlib import import_module
+
 import numpy
 import numpy.random
 
@@ -23,6 +25,7 @@ _all = [
     'negative_binomial', 'normal', 'pareto', 'poisson', 'power', 'rayleigh', 'standard_cauchy',
     'standard_exponential', 'standard_gamma', 'standard_normal', 'standard_t', 'triangular',
     'uniform', 'vonmises', 'wald', 'weibull', 'zipf',
+    '_normal_like',
 ]
 
 seed = numpy.random.seed
@@ -84,17 +87,16 @@ def _reload(backend):
                 global_vars[__ops] = getattr(numba, __ops)
             else:
                 global_vars[__ops] = getattr(numpy.random, __ops)
-        global_vars['_normal_like'] = getattr(numba, '_normal_like')
-        # print(global_vars['_normal_sample_'])
 
-    elif backend == 'jax':
-        from ._backends import jax
+    elif backend == 'tf-numpy':
+        tf_random = import_module('tensorflow.experimental.numpy.random')
+        from ._backends import tensorflow
 
         for __ops in _all:
-            global_vars[__ops] = getattr(jax, __ops)
-
-    elif backend == 'tensorflow':
-        pass
+            if hasattr(tf_random, __ops):
+                global_vars[__ops] = getattr(tf_random, __ops)
+            else:
+                global_vars[__ops] = getattr(tensorflow, __ops)
 
 
     else:

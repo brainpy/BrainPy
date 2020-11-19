@@ -395,7 +395,7 @@ class CodeLineFormatter(ast.NodeTransformer):
             self.visit_While(node, level)
         else:
             code = ast2code(ast.fix_missing_locations(node))
-            raise CodeError(f'Do not support {type(node)}.\n\n{code}')
+            raise CodeError(f'BrainPy does not support {type(node)}.\n\n{code}')
 
     def visit_If(self, node, level=0):
         # If condition
