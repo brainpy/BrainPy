@@ -78,7 +78,7 @@ def _reload(backend):
     if backend == 'numpy':
         from ._backends import numpy_
         for __ops in _all:
-            if hasattr(numpy_, __ops):
+            if hasattr(numpy.random, __ops):
                 global_vars[__ops] = getattr(numpy.random, __ops)
             else:
                 global_vars[__ops] = getattr(numpy_, __ops)
