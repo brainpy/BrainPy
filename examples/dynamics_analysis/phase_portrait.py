@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 import brainpy as bp
 import brainpy.numpy as np
-from brainpy.dynamics import PhasePortraitAnalyzer2D
+from brainpy.dynamics import PhasePortrait2D
 
 bp.profile.set_dt(0.02)
 bp.profile.merge_integral = False
@@ -120,7 +120,7 @@ def define_NaK_model(V_th=20., type='low-threshold'):
 
 NaK_neuron = define_NaK_model()
 
-da = PhasePortraitAnalyzer2D(
+da = PhasePortrait2D(
     neuro=NaK_neuron,
     plot_variables=["n", "V"])
 da.plot_nullcline(ylim=[0, 0.7],

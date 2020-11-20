@@ -23,19 +23,23 @@ class NeuType(BaseType):
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(self,
-                 name: str,
-                 requires: dict,
-                 steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-                 vector_based: bool = True,
-                 heter_params_replace: typing.Dict = None,
-                 extra_functions: typing.Union[typing.Callable, typing.List, typing.Tuple] = ()):
+    def __init__(
+            self,
+            name: str,
+            requires: dict,
+            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
+            vector_based: bool = True,
+            heter_params_replace: typing.Dict = None,
+            extra_functions: typing.Union[typing.List, typing.Tuple] = (),
+            extra_attributes: typing.Dict[str, typing.Any] = None,
+    ):
         super(NeuType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
                                       vector_based=vector_based,
                                       heter_params_replace=heter_params_replace,
-                                      extra_functions=extra_functions)
+                                      extra_functions=extra_functions,
+                                      extra_attributes=extra_attributes)
 
 
 class NeuGroup(BaseEnsemble):
@@ -77,14 +81,14 @@ class NeuGroup(BaseEnsemble):
             self.indices = np.asarray(np.arange(int(geometry)), dtype=np.int_)
         elif isinstance(geometry, (tuple, list)):
             if len(geometry) == 1:
-                height, width = 1, geometry[0]
+                geometry = num = geometry[0]
+                indices = np.arange(num)
             elif len(geometry) == 2:
                 height, width = geometry[0], geometry[1]
+                num = height * width
+                indices = np.arange(num).reshape((height, width))
             else:
                 raise ModelUseError('Do not support 3+ dimensional networks.')
-            geometry = (height, width)
-            num = height * width
-            indices = np.arange(num).reshape((height, width))
             self.indices = np.asarray(indices, dtype=np.int_)
         else:
             raise ValueError()
@@ -137,12 +141,12 @@ class NeuGroup(BaseEnsemble):
                 raise ModelUseError(f'Index error, because the maximum number of neurons'
                                     f'is {self.num}, but got "item={item}".')
             d1_start, d1_end, d1_step = item, item + 1, 1
-            indices = self.indices[d1_start:d1_end:d1_step]
             check_slice(d1_start, d1_end, self.num)
+            indices = self.indices[d1_start:d1_end:d1_step]
         elif isinstance(item, slice):
             d1_start, d1_end, d1_step = item.indices(self.num)
-            indices = self.indices[d1_start:d1_end:d1_step]
             check_slice(d1_start, d1_end, self.num)
+            indices = self.indices[d1_start:d1_end:d1_step]
         elif isinstance(item, tuple):
             if not isinstance(self.geometry, (tuple, list)):
                 raise ModelUseError(f'{self.name} has a 1D geometry, cannot use a tuple of slice.')

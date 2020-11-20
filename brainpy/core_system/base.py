@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import re
 import inspect
+import re
 import time
 import typing
 from copy import deepcopy
@@ -41,13 +41,16 @@ class BaseType(object):
         Whether the model is written in the neuron-group level or in the single-neuron level.
     """
 
-    def __init__(self,
-                 requires: typing.Dict,
-                 steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-                 name: str,
-                 vector_based: bool = True,
-                 heter_params_replace: typing.Dict = None,
-                 extra_functions: typing.Union[typing.Callable, typing.List, typing.Tuple] = ()):
+    def __init__(
+            self,
+            requires: typing.Dict,
+            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
+            name: str,
+            vector_based: bool = True,
+            heter_params_replace: typing.Dict = None,
+            extra_functions: typing.Union[typing.List, typing.Tuple] = (),
+            extra_attributes: typing.Dict[str, typing.Any] = None,
+    ):
         # type : neuron based or group based code
         # ---------------------------------------
         self.vector_based = vector_based
@@ -168,15 +171,24 @@ class BaseType(object):
 
         # extra functions
         # ---------------
-        if callable(extra_functions):
-            extra_functions = (extra_functions,)
         try:
             assert isinstance(extra_functions, (tuple, list))
             if len(extra_functions):
                 assert callable(extra_functions[0])
         except AssertionError:
-            raise ModelUseError('extra_functions must be a list/tuple of functions.')
+            raise ModelUseError('"extra_functions" must be a list/tuple of functions.')
         self.extra_functions = extra_functions
+
+        # extra attributes
+        # ----------------
+        if extra_attributes is None:
+            extra_attributes = dict()
+        try:
+            for key, val in extra_attributes.items():
+                assert isinstance(key, str)
+        except AssertionError:
+            raise ModelUseError('"extra_attributes" must be a dict with string keys.')
+        self.extra_attributes = extra_attributes
 
     def __str__(self):
         return f'{self.name}'
@@ -231,6 +243,14 @@ class ParsUpdate(dict):
         # update
         self.updates[key] = value
 
+    def __getitem__(self, item):
+        if item in self.updates:
+            return self.updates[item]
+        elif item in self.origins:
+            return self.origins[item]
+        else:
+            super(ParsUpdate, self).__getitem__(item)
+
     def __dir__(self):
         return str(self.all)
 
@@ -271,23 +291,23 @@ class ParsUpdate(dict):
 
     @property
     def origins(self):
-        return self.__getitem__('origins')
+        return super(ParsUpdate, self).__getitem__('origins')
 
     @property
     def heters(self):
-        return self.__getitem__('heters')
+        return super(ParsUpdate, self).__getitem__('heters')
 
     @property
     def updates(self):
-        return self.__getitem__('updates')
+        return super(ParsUpdate, self).__getitem__('updates')
 
     @property
     def num(self):
-        return self.__getitem__('num')
+        return super(ParsUpdate, self).__getitem__('num')
 
     @property
     def model(self):
-        return self.__getitem__('model')
+        return super(ParsUpdate, self).__getitem__('model')
 
     @property
     def all(self):
@@ -315,13 +335,15 @@ class BaseEnsemble(object):
         Class type.
     """
 
-    def __init__(self,
-                 name: str,
-                 num: int,
-                 model: BaseType,
-                 monitors: typing.Tuple,
-                 pars_update: typing.Dict,
-                 cls_type: str):
+    def __init__(
+            self,
+            name: str,
+            num: int,
+            model: BaseType,
+            monitors: typing.Tuple,
+            pars_update: typing.Dict,
+            cls_type: str
+    ):
         # class type
         # -----------
         assert cls_type in [_NEU_GROUP, _SYN_CONN], f'Only support "{_NEU_GROUP}" and "{_SYN_CONN}".'
@@ -379,10 +401,15 @@ class BaseEnsemble(object):
         # -------
         self.runner = Runner(ensemble=self)
 
-        # extra_functions
-        # ---------------
+        # extra functions
+        # ------------------
         for func in model.extra_functions:
             setattr(self, func.__name__, func)
+
+        # extra attributes
+        # ------------------
+        for attr_key, attr_val in model.extra_attributes.items():
+            setattr(self, attr_key, attr_val)
 
     def _type_checking(self):
         # check attribute and its type
@@ -578,5 +605,6 @@ class BaseEnsemble(object):
     def __setattr__(self, key, value):
         if key in self._keywords:
             if hasattr(self, key):
-                raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, please change another name.')
+                raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, '
+                               f'please change another name.')
         super(BaseEnsemble, self).__setattr__(key, value)

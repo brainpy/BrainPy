@@ -29,7 +29,7 @@ tau = 1.  # The synaptic time constant
 k = 8.1  # Degree of the rescaled inhibition
 a = 0.5  # Half-width of the range of excitatory connections
 A = 10.  # Magnitude of the external input
-J0 = 1.
+J0 = 4. / (N / 128)
 z_min = -np.pi
 z_max = np.pi
 z_range = z_max - z_min
@@ -80,7 +80,7 @@ cann = bp.NeuType(name='CANN',
 def make_conn(x):
     assert np.ndim(x) == 1
     x_left = np.reshape(x, (len(x), 1))
-    x_right = np.tile(x, (len(x), 1))
+    x_right = np.repeat(x.reshape((1, -1)), len(x), axis=0)
     d = dist(x_left - x_right)
     jxx = J0 * np.exp(-0.5 * np.square(d / a)) / (np.sqrt(2 * np.pi) * a)
     return jxx
@@ -106,7 +106,7 @@ def population_coding():
         show=True,
         frame_step=5,
         frame_delay=50,
-        save_path='encoding.mp4'
+        # save_path='encoding.mp4'
     )
 
 
@@ -123,7 +123,7 @@ def template_matching():
     num2 = int(dur2 / bp.profile.get_dt())
     num3 = int(dur3 / bp.profile.get_dt())
     Iext = np.zeros((num1 + num2 + num3, group.num))
-    Iext[:num1] = A * np.exp(-0.25 * np.square(dist(group.ST['x'] + np.pi / 2) / a))
+    Iext[:num1] = A * np.exp(-0.25 * np.square(dist(group.ST['x'] + 0.5) / a))
     Iext[num1:num1 + num2] = A * np.exp(-0.25 * np.square(dist(group.ST['x'] - 0.) / a))
     Iext[num1:num1 + num2] += 0.1 * A * np.random.randn(num2, group.num)
     group.run(duration=dur1 + dur2 + dur3, inputs=('ST.input', Iext))
@@ -133,7 +133,7 @@ def template_matching():
                         {'ys': Iext, 'xs': group.ST['x'], 'legend': 'Iext'}],
         show=True,
         frame_step=5,
-        frame_delay=25,
+        frame_delay=50,
         # save_path='decoding.mp4'
     )
 
@@ -160,7 +160,7 @@ def smooth_tracking():
         show=True,
         frame_step=5,
         frame_delay=25,
-        save_path='tracking.mp4'
+        # save_path='tracking.mp4'
     )
 
 

@@ -76,8 +76,12 @@ def _reload(backend):
     global_vars = globals()
 
     if backend == 'numpy':
+        from ._backends import numpy_
         for __ops in _all:
-            global_vars[__ops] = getattr(numpy.random, __ops)
+            if hasattr(numpy.random, __ops):
+                global_vars[__ops] = getattr(numpy.random, __ops)
+            else:
+                global_vars[__ops] = getattr(numpy_, __ops)
 
     elif backend == 'numba':
         from ._backends import numba

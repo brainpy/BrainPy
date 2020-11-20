@@ -172,6 +172,13 @@ class SympyRender(object):
         except AttributeError:
             raise SyntaxError(f"Unknown syntax: {nodename}, {node}")
 
+    def render_Attribute(self, node):
+        if node.attr in CONSTANT_MAPPING:
+            return CONSTANT_MAPPING[node.attr]
+        else:
+            names = self._get_attr_value(node, [])
+            return sympy.Symbol('.'.join(names), real=True)
+
     def render_Constant(self, node):
         if node.value is True or node.value is False or node.value is None:
             return self.render_NameConstant(node)
