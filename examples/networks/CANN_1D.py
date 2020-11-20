@@ -80,7 +80,7 @@ cann = bp.NeuType(name='CANN',
 def make_conn(x):
     assert np.ndim(x) == 1
     x_left = np.reshape(x, (len(x), 1))
-    x_right = np.tile(x, (len(x), 1))
+    x_right = np.repeat(x.reshape((1, -1)), len(x), axis=0)
     d = dist(x_left - x_right)
     jxx = J0 * np.exp(-0.5 * np.square(d / a)) / (np.sqrt(2 * np.pi) * a)
     return jxx
