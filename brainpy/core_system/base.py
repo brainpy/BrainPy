@@ -49,7 +49,7 @@ class BaseType(object):
             vector_based: bool = True,
             heter_params_replace: typing.Dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
-            extra_attributes: typing.Dict[str, typing.Any] = (),
+            extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
         # type : neuron based or group based code
         # ---------------------------------------
@@ -181,6 +181,8 @@ class BaseType(object):
 
         # extra attributes
         # ----------------
+        if extra_attributes is None:
+            extra_attributes = dict()
         try:
             for key, val in extra_attributes.items():
                 assert isinstance(key, str)
