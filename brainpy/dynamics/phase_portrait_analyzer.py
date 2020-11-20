@@ -1,5 +1,3 @@
-import sys
-sys.path.append("../BrainPy/")
 import matplotlib.pyplot as plt
 
 import brainpy as nb
@@ -11,11 +9,6 @@ import warnings
 from brainpy.integration import sympy_tools
 from scipy import optimize
 from sympy import Derivative as D
-
-nb.profile.set_backend('numba')
-nb.profile.set_method('euler')
-nb.profile.set_dt(0.02)
-nb.profile.merge_integral = False
 
 
 def _convert2sympy_dict(d):
