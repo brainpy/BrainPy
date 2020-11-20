@@ -3,9 +3,9 @@
 """"
 Implementation of the paper：
 
-Tian, Gengshuo, et al. "Excitation-Inhibition Balanced
-Neural Networks for Fast Signal Detection." Frontiers in
-Computational Neuroscience 14 (2020): 79.
+- Tian, Gengshuo, et al. "Excitation-Inhibition Balanced
+  Neural Networks for Fast Signal Detection." Frontiers in
+  Computational Neuroscience 14 (2020): 79.
 
 """
 

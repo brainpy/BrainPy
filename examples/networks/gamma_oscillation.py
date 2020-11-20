@@ -3,9 +3,9 @@
 """
 Implementation of the paper:
 
-Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
-synaptic inhibition in a hippocampal interneuronal network
-model.” Journal of neuroscience 16.20 (1996): 6402-6413.
+- Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
+  synaptic inhibition in a hippocampal interneuronal network
+  model.” Journal of neuroscience 16.20 (1996): 6402-6413.
 
 """
 
