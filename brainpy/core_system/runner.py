@@ -17,6 +17,11 @@ from ..errors import ModelUseError
 from ..integration.integrator import Integrator
 from ..integration.sympy_tools import get_mapping_scope
 
+__all__ = [
+    'Runner',
+    'TrajectoryRunner',
+]
+
 
 class Runner(object):
     """Basic runner class.
@@ -26,6 +31,7 @@ class Runner(object):
     ensemble : NeuGroup, SynConn
         The ensemble of the models.
     """
+
     def __init__(self, ensemble):
         # ensemble: NeuGroup / SynConn
         self.ensemble = ensemble
@@ -144,7 +150,7 @@ class Runner(object):
             func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
         self.input_step = code_scope['input_step']
-        if mode != 'numpy':
+        if mode == 'numba':
             self.input_step = tools.jit(self.input_step)
         if profile._show_formatted_code:
             if not (profile._merge_steps and mode != 'numpy'):
@@ -286,7 +292,7 @@ class Runner(object):
             func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
         monitor_step = code_scope['monitor_step']
-        if mode != 'numpy':
+        if mode == 'numba':
             monitor_step = tools.jit(monitor_step)
         self.monitor_step = monitor_step
 
@@ -306,28 +312,28 @@ class Runner(object):
     def format_step_codes(self, mode):
         if self._model.vector_based:
             if mode == 'numpy':
-                return self.__step_mode_np_vector()
-            elif mode == 'numba':
-                return self.__step_mode_nb_vector()
+                return self.step_mode_np_vector()
+            elif mode in ['numba', 'tf-numpy']:
+                return self.step_mode_nb_vector()
             else:
                 raise NotImplementedError
 
         else:
             if mode == 'numpy':
-                return self.__step_mode_np_scalar()
-            elif mode == 'numba':
-                return self.__step_mode_nb_scalar()
+                return self.step_mode_np_scalar()
+            elif mode in ['numba', 'tf-numpy']:
+                return self.step_mode_nb_scalar()
             else:
                 raise NotImplementedError
 
-    def __step_mode_np_vector(self):
+    def step_mode_np_vector(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
             raise ModelUseError(f'This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in numpy mode.')
+                                f'it cannot be compiled in NumPy mode.')
 
         # get the delay keys
         delay_keys = self._delay_keys
@@ -399,7 +405,7 @@ class Runner(object):
 
         return results
 
-    def __step_mode_np_scalar(self):
+    def step_mode_np_scalar(self):
         results = dict()
 
         # check number of the neurons/synapses,
@@ -412,7 +418,7 @@ class Runner(object):
         if len(self._pars.heters) > 0:
             raise ModelUseError(f'This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in numpy mode.')
+                                f'it cannot be compiled in NumPy mode.')
 
         # get the delay keys
         delay_keys = self._delay_keys
@@ -563,10 +569,13 @@ class Runner(object):
 
         return results
 
-    def __step_substitute_integrator(self, func):
-        # get code and code lines
+    def step_format_code(self, func):
         func_code = tools.deindent(tools.get_main_code(func))
-        code_lines = tools.format_code(func_code).lines
+        return tools.format_code(func_code).lines
+
+    def step_substitute_integrator(self, func):
+        # get code and code lines
+        code_lines = self.step_format_code(func)
 
         # get function scope
         vars = inspect.getclosurevars(func)
@@ -586,10 +595,15 @@ class Runner(object):
                     need_add_mapping_scope = True
 
                     # locate the integration function
+                    need_replace = False
                     int_func_name = v.py_func_name
                     for line_no, line in enumerate(code_lines):
                         if int_func_name in tools.get_identifiers(line):
+                            need_replace = True
                             break
+                    if not need_replace:
+                        scope_to_del.add(k)
+                        continue
 
                     # get integral function line indent
                     line_indent = tools.get_line_indent(line)
@@ -597,7 +611,6 @@ class Runner(object):
 
                     # get the replace line and arguments need to replace
                     new_line, args, kwargs = tools.replace_func(line, int_func_name)
-
                     # append code line of argument replacement
                     func_args = v.diff_eq.func_args
                     append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
@@ -608,9 +621,9 @@ class Runner(object):
                     # append numerical integration code lines
                     try:
                         append_lines.extend([indent + l for l in v.update_code.split('\n')])
-                    except AttributeError:
+                    except:
                         raise ModelUseError(f'Integrator {v} has no "update_code". This may be caused by \n'
-                                            f'the declaration of "profile.set(backend="numba")" is not \n'
+                                            f'that "profile.set(backend="numba")" is not declared \n'
                                             f'before the definition of the model.')
                     append_lines.append(indent + new_line)
 
@@ -630,13 +643,12 @@ class Runner(object):
                             if ks in self._pars.heters:
                                 raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in step functions, '
                                                     f'it will not work.\n'
-                                                    f'Please set "brainpy.profile._merge_steps = True" to try to '
+                                                    f'Please set "brainpy.profile.set(merge_steps=True)" to try to '
                                                     f'merge parameter "{ks}" into the step functions.')
                     code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
             elif type(v).__name__ == 'function':
                 code_scope[k] = tools.numba_func(v, params=self._pars.updates)
-
 
         # update code scope
         if need_add_mapping_scope:
@@ -648,7 +660,7 @@ class Runner(object):
         # return code lines and code scope
         return '\n'.join(code_lines), code_scope
 
-    def __step_mode_nb_vector(self):
+    def step_mode_nb_vector(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
@@ -664,7 +676,7 @@ class Runner(object):
 
             # initialize code namespace
             used_args, code_arg2call, code_lines = set(), {}, []
-            func_code, code_scope = self.__step_substitute_integrator(func)
+            func_code, code_scope = self.step_substitute_integrator(func)
 
             # check function code
             try:
@@ -778,7 +790,7 @@ class Runner(object):
 
         return results
 
-    def __step_mode_nb_scalar(self):
+    def step_mode_nb_scalar(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
@@ -791,7 +803,7 @@ class Runner(object):
             # get code scope
             used_args, code_arg2call, code_lines = set(), {}, []
             func_args = inspect.getfullargspec(func).args
-            func_code, code_scope = self.__step_substitute_integrator(func)
+            func_code, code_scope = self.step_substitute_integrator(func)
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
                           if k not in ARG_KEYWORDS and
@@ -975,7 +987,7 @@ class Runner(object):
                     func_call = compiled_result[item]['call']
                     codes_of_calls.append(func_call)
 
-        elif mode == 'numba':  # numba mode
+        elif mode in ['numba', 'tf-numpy']:  # numba mode
 
             if profile._merge_steps:
                 lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
@@ -1038,16 +1050,191 @@ class TrajectoryRunner(Runner):
     ----------
     ensemble : NeuGroup
         The neuron ensemble.
+    target_vars : tuple, list
+        The targeted variables for trajectory.
+    fixed_vars : dict
+        The fixed variables.
     """
-    def __init__(self, ensemble, target_vars):
+
+    def __init__(self, ensemble, target_vars, fixed_vars=None):
+        # check ensemble
         from brainpy.core_system.neurons import NeuGroup
         try:
             isinstance(ensemble, NeuGroup)
         except AssertionError:
-            raise ModelUseError('TrajectoryRunner only supports the instance of NeuGroup.')
-        self.target_vars = target_vars
+            raise ModelUseError(f'{self.__name__} only supports the instance of NeuGroup.')
+
+        # initialization
         super(TrajectoryRunner, self).__init__(ensemble=ensemble)
 
+        # check targeted variables
+        try:
+            isinstance(target_vars, (list, tuple))
+        except AssertionError:
+            raise ModelUseError('"target_vars" must be a list/tuple.')
+        for var in target_vars:
+            try:
+                assert var in self._model.variables
+            except AssertionError:
+                raise ModelUseError(f'"{var}" in "target_vars" is not defined in model "{self._model.name}".')
+        self.target_vars = target_vars
 
+        # check fixed variables
+        try:
+            if fixed_vars is not None:
+                isinstance(fixed_vars, dict)
+            else:
+                fixed_vars = dict()
+        except AssertionError:
+            raise ModelUseError('"fixed_vars" must be a dict.')
+        for var in fixed_vars.keys():
+            try:
+                assert var in self._model.variables
+            except AssertionError:
+                raise ModelUseError(f'"{var}" in "fixed_vars" is not defined in model "{self._model.name}".')
+        self.fixed_vars = dict()
+        for integrator in self._model.integrators:
+            var_name = integrator.diff_eq.var_name
+            if var_name not in target_vars:
+                if var_name in fixed_vars:
+                    self.fixed_vars[var_name] = fixed_vars.get(var_name)
+                else:
+                    self.fixed_vars[var_name] = self._model.variables.get(var_name)
 
+    def step_mode_np_vector(self):
+        results = dict()
 
+        # check whether the model include heterogeneous parameters
+        if len(self._pars.heters) > 0:
+            raise ModelUseError(f'This model has heterogeneous parameters '
+                                f'"{list(self._pars.heters.keys())}", '
+                                f'it cannot be compiled in NumPy mode.')
+
+        # get the delay keys
+        for func in self._steps:
+            stripped_fname = tools.get_func_name(func, replace=True)
+            func_args = inspect.getfullargspec(func).args
+
+            # get code and code lines
+            func_code = tools.deindent(tools.get_main_code(func))
+            code_lines = tools.format_code_for_trajectory(func_code, self.fixed_vars).lines
+
+            # code to compile
+            code_to_compile = [f'def {stripped_fname}({tools.func_call(func_args)}):'] + code_lines
+            func_code = '\n '.join(code_to_compile)
+            if profile._auto_pep8:
+                func_code = autopep8.fix_code(func_code)
+
+            # code scope
+            vars = inspect.getclosurevars(func)
+            code_scope = dict(vars.nonlocals)
+            code_scope.update(vars.globals)
+            exec(compile(func_code, '', 'exec'), code_scope)
+            func = code_scope[stripped_fname]
+            if profile._show_formatted_code:
+                tools.show_code_str(func_code)
+                tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
+
+            # set the function to the this model
+            setattr(self, stripped_fname, func)
+
+            # get the function call
+            arg_calls = []
+            for arg in func_args:
+                arg_calls.append(arg if arg in ARG_KEYWORDS else f"{self._name}.{arg}")
+            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg_calls)})'
+
+            # get the function result
+            results[stripped_fname] = {'call': func_call}
+
+        return results
+
+    def step_mode_np_scalar(self):
+        results = dict()
+
+        # check number of the neurons,
+        # too huge number of neurons sharply reduce running speed
+        if self.ensemble.num > 4000:
+            raise ModelUseError(f'The number of elements in {self._name} is too huge (>4000), '
+                                f'please use numba backend or define vector_based model.')
+
+        # check whether the model include heterogeneous parameters
+        if len(self._pars.heters) > 0:
+            raise ModelUseError(f'This model has heterogeneous parameters '
+                                f'"{list(self._pars.heters.keys())}", '
+                                f'it cannot be compiled in NumPy mode.')
+
+        for func in self._steps:
+            stripped_fname = tools.get_func_name(func, replace=True)
+
+            # function argument
+            func_args = inspect.getfullargspec(func).args
+
+            # arg and arg2call
+            code_arg, code_arg2call = [], {}
+            for arg in func_args:
+                if arg in ARG_KEYWORDS:
+                    code_arg2call[arg] = arg
+                    code_arg.append(arg)
+                else:
+                    try:
+                        attr = getattr(self.ensemble, arg)
+                    except AttributeError:
+                        raise ModelUseError(f'Model "{self._name}" does not have the required attribute "{arg}".')
+                    if isinstance(attr, ObjState):
+                        code_arg2call[f'{self._name}_{arg}'] = f'{self._name}.{arg}'
+                        code_arg.append(f'{self._name}_{arg}')
+                    else:
+                        code_arg2call[arg] = f'{self._name}.{arg}'
+                        code_arg.append(arg)
+            code_arg = set(code_arg)
+
+            # get code and code lines
+            func_code = tools.deindent(tools.get_main_code(func))
+            code_lines1 = tools.format_code_for_trajectory(func_code, self.fixed_vars).lines
+
+            # scope
+            vars = inspect.getclosurevars(func)
+            code_scope = dict(vars.nonlocals)
+            code_scope.update(vars.globals)
+
+            # codes
+            if 'ST' in func_args:  # have ST
+                code_lines2 = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
+                               f'  for _obj_i_ in range({self.ensemble.num}):']
+                code_lines2.append('    ' + f'ST = {self._name}_ST.extract_by_index(_obj_i_)')
+                code_lines2.extend(['    ' + line for line in code_lines1])
+                code_lines2.append('    ' + f'{self._name}_ST.update_by_index(_obj_i_, ST)')
+            else:  # doesn't have ST
+                code_lines2 = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
+                               f'  for _obj_i_ in range({self.ensemble.num}):',]
+                code_lines2.extend(['    ' + line for line in code_lines1])
+
+            # append the final results
+            code_lines2.insert(0, f'# "{stripped_fname}" step function in {self._name}')
+
+            # compile the updated function
+            func_code = '\n'.join(code_lines2)
+            if profile._auto_pep8:
+                func_code = autopep8.fix_code(func_code)
+            exec(compile(func_code, '', 'exec'), code_scope)
+            func = code_scope[stripped_fname]
+            if profile._show_formatted_code:
+                tools.show_code_str(func_code)
+                tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
+
+            # set the function to the model
+            setattr(self, stripped_fname, func)
+
+            # function call
+            arg2calls = [code_arg2call[arg] for arg in sorted(list(code_arg))]
+            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg2calls)})'
+
+            # final
+            results[stripped_fname] = {'call': func_call}
+
+        return results
+
+    def step_format_code(self, func):
+        func_code = tools.deindent(tools.get_main_code(func))
+        return tools.format_code_for_trajectory(func_code, self.fixed_vars).lines

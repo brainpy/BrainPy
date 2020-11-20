@@ -18,6 +18,9 @@ __all__ = [
     'get_main_code',
     'get_line_indent',
     'format_code',
+    'CodeLineFormatter',
+    'format_code_for_trajectory',
+    'LineFormatterForTrajectory',
     'indent',
     'deindent',
     'word_replace',
@@ -484,6 +487,102 @@ def format_code(code_string):
     formatter.visit(tree)
     return formatter
 
+
+class LineFormatterForTrajectory(CodeLineFormatter):
+    def __init__(self, fixed_vars):
+        super(LineFormatterForTrajectory, self).__init__()
+        self.fixed_vars = fixed_vars
+
+    def visit_Assign(self, node, level=0):
+        targets = node.targets
+        try:
+            assert len(targets) == 1
+        except AssertionError:
+            raise DiffEquationError(f'Do not support multiple assignment. \n'
+                                    f'Error in code line: \n\n'
+                                    f'{ast2code(ast.fix_missing_locations(node))}')
+        prefix = '  ' * level
+        target = targets[0]
+        append_lines = []
+
+        if isinstance(target, ast.Subscript):
+            if target.value.id == 'ST' and target.slice.value.s in self.fixed_vars:
+                left = ast2code(ast.fix_missing_locations(target))
+                self.lefts.append(left)
+                self.lines.append(f'{prefix}{left} = {self.fixed_vars[target.slice.value.s]}')
+                return node
+
+        elif hasattr(target, 'elts'):
+            if len(target.elts) == 1:
+                elt = target.elts[0]
+                if isinstance(elt, ast.Subscript):
+                    if elt.value.id == 'ST' and elt.slice.value.s in self.fixed_vars:
+                        left = ast2code(ast.fix_missing_locations(elt))
+                        self.lefts.append(left)
+                        self.lines.append(f'{prefix}{left} = {self.fixed_vars[elt.slice.value.s]}')
+                        return node
+                left = ast2code(ast.fix_missing_locations(elt))
+                expr = ast2code(ast.fix_missing_locations(node.value))
+                self.lefts.append(left)
+                self.rights.append(expr)
+                self.lines.append(f'{prefix}{left} = {expr}')
+                return node
+            else:
+                for elt in target.elts:
+                    if isinstance(elt, ast.Subscript):
+                        if elt.value.id == 'ST' and elt.slice.value.s in self.fixed_vars:
+                            left = ast2code(ast.fix_missing_locations(elt))
+                            append_lines.append(f'{prefix}{left} = {self.fixed_vars[elt.slice.value.s]}')
+                left = ast2code(ast.fix_missing_locations(target))
+                expr = ast2code(ast.fix_missing_locations(node.value))
+                self.lefts.append(target)
+                self.rights.append(expr)
+                self.lines.append(f'{prefix}{left} = {expr}')
+                self.lines.extend(append_lines)
+                return node
+
+        left = ast2code(ast.fix_missing_locations(target))
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        self.lefts.append(left)
+        self.rights.append(expr)
+        self.lines.append(f'{prefix}{left} = {expr}')
+        return node
+
+    def visit_AugAssign(self, node, level=0):
+        prefix = '  ' * level
+        if isinstance(node.target, ast.Subscript):
+            if node.target.value.id == 'ST' and node.target.slice.value.s in self.fixed_vars:
+                left = ast2code(ast.fix_missing_locations(node.target))
+                self.lefts.append(left)
+                self.lines.append(f'{prefix}{left} = {self.fixed_vars[node.target.slice.value.s]}')
+                return node
+
+        op = ast2code(ast.fix_missing_locations(node.op))
+        left = ast2code(ast.fix_missing_locations(node.target))
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        self.lefts.append(left)
+        self.rights.append(f"{left} {op} {expr}")
+        self.lines.append(f"{prefix}{left} {op}= {expr}")
+        return node
+
+
+def format_code_for_trajectory(code_string, fixed_vars):
+    """Get _code lines from the string.
+
+    Parameters
+    ----------
+    code_string
+
+    Returns
+    -------
+    code_lines : list
+    """
+
+    code_string = autopep8.fix_code(deindent(code_string))
+    tree = ast.parse(code_string.strip())
+    formatter = LineFormatterForTrajectory(fixed_vars)
+    formatter.visit(tree)
+    return formatter
 
 ######################################
 # String tools
