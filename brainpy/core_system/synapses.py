@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from typing import Union
+import typing
 
 from .base import BaseEnsemble
 from .base import BaseType
@@ -31,19 +31,23 @@ class SynType(BaseType):
     It can be defined based on a collection of synapses or a single synapse model.
     """
 
-    def __init__(self,
-                 name: str,
-                 requires: dict,
-                 steps: Union[callable, list, tuple],
-                 vector_based: bool = True,
-                 heter_params_replace: dict = None,
-                 extra_functions=()):
+    def __init__(
+            self,
+            name: str,
+            requires: dict,
+            steps: typing.Union[callable, list, tuple],
+            vector_based: bool = True,
+            heter_params_replace: dict = None,
+            extra_functions: typing.Union[typing.List, typing.Tuple] = (),
+            extra_attributes: typing.Dict[str, typing.Any] = None,
+    ):
         super(SynType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
                                       vector_based=vector_based,
                                       heter_params_replace=heter_params_replace,
-                                      extra_functions=extra_functions)
+                                      extra_functions=extra_functions,
+                                      extra_attributes=extra_attributes)
 
         # inspect delay keys
         # ------------------
@@ -99,16 +103,18 @@ class SynConn(BaseEnsemble):
         The name of the neuron group.
     """
 
-    def __init__(self,
-                 model: SynType,
-                 pars_update: dict = None,
-                 pre_group: Union[NeuGroup, NeuSubGroup] = None,
-                 post_group: Union[NeuGroup, NeuSubGroup] = None,
-                 conn: Union[Connector, np.ndarray, dict] = None,
-                 num: int = None,
-                 delay: float = 0.,
-                 monitors: Union[tuple, list] = None,
-                 name: str = None):
+    def __init__(
+            self,
+            model: SynType,
+            pars_update: dict = None,
+            pre_group: typing.Union[NeuGroup, NeuSubGroup] = None,
+            post_group: typing.Union[NeuGroup, NeuSubGroup] = None,
+            conn: typing.Union[Connector, np.ndarray, dict] = None,
+            num: int = None,
+            delay: float = 0.,
+            monitors: typing.Union[tuple, list] = None,
+            name: str = None
+    ):
         # name
         # ----
         if name is None:
@@ -231,7 +237,6 @@ class SynConn(BaseEnsemble):
         else:
             raise ValueError("BrainPy currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
-
 
         # initialize
         # ----------

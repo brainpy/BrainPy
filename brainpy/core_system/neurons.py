@@ -23,19 +23,23 @@ class NeuType(BaseType):
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(self,
-                 name: str,
-                 requires: dict,
-                 steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-                 vector_based: bool = True,
-                 heter_params_replace: typing.Dict = None,
-                 extra_functions: typing.Union[typing.Callable, typing.List, typing.Tuple] = ()):
+    def __init__(
+            self,
+            name: str,
+            requires: dict,
+            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
+            vector_based: bool = True,
+            heter_params_replace: typing.Dict = None,
+            extra_functions: typing.Union[typing.List, typing.Tuple] = (),
+            extra_attributes: typing.Dict[str, typing.Any] = None,
+    ):
         super(NeuType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
                                       vector_based=vector_based,
                                       heter_params_replace=heter_params_replace,
-                                      extra_functions=extra_functions)
+                                      extra_functions=extra_functions,
+                                      extra_attributes=extra_attributes)
 
 
 class NeuGroup(BaseEnsemble):
