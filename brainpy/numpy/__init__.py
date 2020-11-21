@@ -521,23 +521,23 @@ def _reload(backend):
             global_vars[__ops] = getattr(numpy, __ops)
 
     elif backend == 'numba':
-        from ._backends import numba
+        from ._backends import _numba
 
         for __ops in _all:
-            if hasattr(numba, __ops):
-                global_vars[__ops] = getattr(numba, __ops)
+            if hasattr(_numba, __ops):
+                global_vars[__ops] = getattr(_numba, __ops)
             else:
                 global_vars[__ops] = getattr(numpy, __ops)
 
     elif backend == 'tf-numpy':
         tf_numpy = import_module('tensorflow.experimental.numpy')
-        from ._backends import tensorflow
+        from ._backends import _tensorflow
 
         for __ops in _all:
             if hasattr(tf_numpy, __ops):
                 global_vars[__ops] = getattr(tf_numpy, __ops)
             else:
-                global_vars[__ops] = getattr(tensorflow, __ops)
+                global_vars[__ops] = getattr(_tensorflow, __ops)
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')

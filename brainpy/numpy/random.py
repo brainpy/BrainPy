@@ -84,23 +84,23 @@ def _reload(backend):
                 global_vars[__ops] = getattr(numpy_, __ops)
 
     elif backend == 'numba':
-        from ._backends import numba
+        from ._backends import _numba
 
         for __ops in _all:
-            if hasattr(numba, __ops):
-                global_vars[__ops] = getattr(numba, __ops)
+            if hasattr(_numba, __ops):
+                global_vars[__ops] = getattr(_numba, __ops)
             else:
                 global_vars[__ops] = getattr(numpy.random, __ops)
 
     elif backend == 'tf-numpy':
         tf_random = import_module('tensorflow.experimental.numpy.random')
-        from ._backends import tensorflow
+        from ._backends import _tensorflow
 
         for __ops in _all:
             if hasattr(tf_random, __ops):
                 global_vars[__ops] = getattr(tf_random, __ops)
             else:
-                global_vars[__ops] = getattr(tensorflow, __ops)
+                global_vars[__ops] = getattr(_tensorflow, __ops)
 
 
     else:
