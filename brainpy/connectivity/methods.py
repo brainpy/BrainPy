@@ -16,7 +16,8 @@ except ImportError:
     Dispatcher = None
 
 
-__all__ = ['One2One', 'All2All',
+__all__ = ['One2One', 'one2one',
+           'All2All', 'all2all',
            'GridFour', 'grid_four',
            'GridEight', 'grid_eight',
            'GridN',
