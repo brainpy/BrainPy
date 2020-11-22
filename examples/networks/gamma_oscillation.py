@@ -144,19 +144,11 @@ if __name__ == '__main__':
     net = bp.Network(neu, syn)
     net.run(duration=500., inputs=[neu, 'ST.inp', 1.2], report=True, report_percent=0.2)
 
-    ts = net.ts
     fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
+    xlim = (net.t_start - 0.1, net.t_end + 0.1)
 
     fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0])
-    plt.ylabel('Membrane potential (N0)')
-    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
+    bp.visualize.line_plot(net.ts, neu.mon.V, xlim=xlim, ylabel='Membrane potential (N0)')
 
     fig.add_subplot(gs[1, 0])
-    index, time = bp.measure.raster_plot(neu.mon.sp, net.ts)
-    plt.plot(time, index, '.')
-    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
-    plt.xlabel('Time (ms)')
-    plt.ylabel('Raster plot')
-
-    plt.show()
+    bp.visualize.raster_plot(net.ts, neu.mon.sp, xlim=xlim, show=True)
