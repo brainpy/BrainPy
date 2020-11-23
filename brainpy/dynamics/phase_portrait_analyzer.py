@@ -11,6 +11,11 @@ from scipy import optimize
 from sympy import Derivative as D
 
 
+__all__ = [
+    'PhasePortraitAnalyzer1D',
+    'PhasePortraitAnalyzer2D',
+]
+
 def _convert2sympy_dict(d):
     if isinstance(d, dict):
         _d = {}
