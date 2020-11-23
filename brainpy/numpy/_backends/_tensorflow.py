@@ -9,9 +9,10 @@ https://www.tensorflow.org/api_docs/python/tf/experimental/numpy
 """
 
 from importlib import import_module
+from typing import Iterable
 
 tf = import_module('tensorflow')
-tf_numpy = import_module('tensorflow.experimental.numpy')
+tnp = import_module('tensorflow.experimental.numpy')
 
 
 # ----------------
@@ -19,19 +20,42 @@ tf_numpy = import_module('tensorflow.experimental.numpy')
 # ----------------
 
 
-def fmod(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
+def fmod(x1, x2):
+    return tnp.remainder(x1, x2)
+
+
+def trunc(x):
+    return tnp.where(x > 0., tnp.floor(x), -tnp.floor(-x))
+
+
+def degrees(x):
+    return tnp.rad2deg(x)
+
+
+def radians(x):
+    return tnp.deg2rad(x)
+
+
+def invert(x):
+    return tnp.bitwise_not(x)
+
+
+def fmin(x1, x2):
+    return tnp.where(x1 <= x2, x1, x2)
+
+
+def fmax(x1, x2):
+    return tnp.where(x1 >= x2, x1, x2)
+
+
+def column_stack(tup):
+    assert isinstance(tup, Iterable), 'Inputs must be a iterable object.'
+    for t in tup:
+        assert tnp.ndim(t) == 1, "Must be a 1D array."
+    return tnp.vstack(tup).T
 
 
 def modf(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
-
-
-def degrees(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
-
-
-def radians(**kwargs):
     raise NotImplementedError("Don't support in TensorFlow backend.")
 
 
@@ -40,10 +64,6 @@ def round_(**kwargs):
 
 
 def rint(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
-
-
-def trunc(**kwargs):
     raise NotImplementedError("Don't support in TensorFlow backend.")
 
 
@@ -83,19 +103,7 @@ def convolve(**kwargs):
     raise NotImplementedError("Don't support in TensorFlow backend.")
 
 
-def fmax(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
-
-
-def fmin(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
-
-
 def interp(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
-
-
-def invert(**kwargs):
     raise NotImplementedError("Don't support in TensorFlow backend.")
 
 
@@ -104,10 +112,6 @@ def left_shift(**kwargs):
 
 
 def right_shift(**kwargs):
-    raise NotImplementedError("Don't support in TensorFlow backend.")
-
-
-def column_stack(**kwargs):
     raise NotImplementedError("Don't support in TensorFlow backend.")
 
 
@@ -264,8 +268,6 @@ def MachAr(**kwargs):
 # -----------------
 
 
-
-
 def standard_normal(**kwargs):
     raise NotImplementedError("Don't support in TensorFlow backend.")
 
@@ -411,7 +413,7 @@ def zipf(**kwargs):
 
 
 def _normal_like(x):
-    return tf_numpy.random.randn(*tf_numpy.shape(x))
+    return tnp.random.randn(*tnp.shape(x))
 
 
 # ----------------
@@ -419,65 +421,69 @@ def _normal_like(x):
 # ----------------
 
 
-def cholesky(input):
-    return tf_numpy.array(tf.linalg.cholesky(input.data))
-
-
 def cond():
     pass
 
 
-def det():
-    pass
+def cholesky(tensor, name=None):
+    return tnp.array(tf.linalg.cholesky(tensor.data, name))
 
 
-def eig():
-    pass
+def det(tensor, name=None):
+    return tnp.array(tf.linalg.det(tensor.data, name))
 
 
-def eigh():
-    pass
+def eig(tensor, name=None):
+    return tnp.array(tf.linalg.eig(tensor.data, name))
 
 
-def eigvals():
-    pass
+def eigh(tensor, name=None):
+    return tnp.array(tf.linalg.eigh(tensor.data, name))
 
 
-def eigvalsh():
-    pass
+def eigvals(tensor, name=None):
+    return tnp.array(tf.linalg.eigvals(tensor.data, name))
 
 
-def inv():
-    pass
+def eigvalsh(tensor, name=None):
+    return tnp.array(tf.linalg.eigvalsh(tensor.data, name))
 
 
-def svd():
-    pass
+def inv(tensor, adjoint=False, name=None):
+    return tnp.array(tf.linalg.inv(tensor.data, adjoint, name))
 
 
-def lstsq():
-    pass
+def lstsq(matrix, rhs, l2_regularizer=0.0, fast=True, name=None):
+    return tnp.array(tf.linalg.lstsq(matrix.data, rhs.data, l2_regularizer, fast, name))
+
+
+def matrix_rank(a, tol=None, validate_args=False, name=None):
+    return tnp.array(tf.linalg.matrix_rank(a.data, tol, validate_args, name))
+
+
+def norm(tensor, ord='euclidean', axis=None, keepdims=None, name=None):
+    return tnp.array(tf.linalg.norm(tensor.data, ord, axis, keepdims, name))
+
+
+def pinv(a, rcond=None, validate_args=False, name=None):
+    return tnp.array(tf.linalg.pinv(a.data, rcond, validate_args, name))
+
+
+def qr(input, full_matrices=False, name=None):
+    return tnp.array(tf.linalg.qr(input.data, full_matrices, name))
+
+
+def slogdet(input, name=None):
+    return tnp.array(tf.linalg.slogdet(input.data, name))
+
+
+def solve(matrix, rhs, adjoint=False, name=None):
+    return tnp.array(tf.linalg.solve(matrix.data, rhs.data, adjoint, name))
+
+
+def svd(tensor, full_matrices=False, compute_uv=True, name=None):
+    return tnp.array(tf.linalg.svd(tensor.data, full_matrices, compute_uv, name))
 
 
 def matrix_power():
-    pass
-
-
-def matrix_rank():
-    pass
-
-
-def norm():
-    pass
-
-
-def pinv():
-    pass
-
-
-def qr():
-    pass
-def slogdet():
-    pass
-def solve():
     pass

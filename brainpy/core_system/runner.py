@@ -331,9 +331,9 @@ class Runner(object):
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
-                                f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+            print(f'WARNING: This model has heterogeneous parameters '
+                  f'"{list(self._pars.heters.keys())}", '
+                  f'it will not work in NumPy mode.')
 
         # get the delay keys
         delay_keys = self._delay_keys
@@ -416,9 +416,9 @@ class Runner(object):
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
+            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+                                f'it will not work in NumPy mode.')
 
         # get the delay keys
         delay_keys = self._delay_keys
@@ -1106,9 +1106,9 @@ class TrajectoryRunner(Runner):
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
+            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+                                f'it will not work in NumPy mode.')
 
         # get the delay keys
         for func in self._steps:
@@ -1160,9 +1160,9 @@ class TrajectoryRunner(Runner):
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
+            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+                                f'it will not work in NumPy mode.')
 
         for func in self._steps:
             stripped_fname = tools.get_func_name(func, replace=True)
@@ -1207,7 +1207,7 @@ class TrajectoryRunner(Runner):
                 code_lines2.append('    ' + f'{self._name}_ST.update_by_index(_obj_i_, ST)')
             else:  # doesn't have ST
                 code_lines2 = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                               f'  for _obj_i_ in range({self.ensemble.num}):',]
+                               f'  for _obj_i_ in range({self.ensemble.num}):', ]
                 code_lines2.extend(['    ' + line for line in code_lines1])
 
             # append the final results

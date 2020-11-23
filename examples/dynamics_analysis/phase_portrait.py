@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 import brainpy as bp
 import brainpy.numpy as np
-from brainpy.dynamics import PhasePortrait2D
+from brainpy.dynamics import PhasePortraitAnalyzer2D
 
 bp.profile.set_dt(0.02)
 bp.profile.merge_integral = False
@@ -120,12 +120,20 @@ def define_NaK_model(V_th=20., type='low-threshold'):
 
 NaK_neuron = define_NaK_model()
 
-da = PhasePortrait2D(
-    neuro=NaK_neuron,
+
+group = bp.NeuGroup(NaK_neuron, 1, monitors=['V'])
+group.run(50., inputs=('ST.inp', 50.))
+
+bp.visualize.line_plot(group.mon.ts, group.mon.V, ylabel='Potential (mV)', show=True)
+
+
+
+da = PhasePortraitAnalyzer2D(
+    neuron=NaK_neuron,
     plot_variables=["n", "V"])
-da.plot_nullcline(ylim=[0, 0.7],
-                  xlim=[-90, 20],
-                  sub_dict={"input": 0})
+da.plot_nullcline(var_lim={'n': [0, 0.7],
+                  'V':[-90, 20]},
+                  sub_dict={"input": 50.})
 da.plot_vector_field(inherit=True)
 da.find_fixed_point(inherit=True)
 plt.show()

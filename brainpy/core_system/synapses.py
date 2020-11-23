@@ -106,10 +106,10 @@ class SynConn(BaseEnsemble):
     def __init__(
             self,
             model: SynType,
-            pars_update: dict = None,
             pre_group: typing.Union[NeuGroup, NeuSubGroup] = None,
             post_group: typing.Union[NeuGroup, NeuSubGroup] = None,
             conn: typing.Union[Connector, np.ndarray, dict] = None,
+            pars_update: dict = None,
             num: int = None,
             delay: float = 0.,
             monitors: typing.Union[tuple, list] = None,

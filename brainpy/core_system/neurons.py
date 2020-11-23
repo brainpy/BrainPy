@@ -59,12 +59,14 @@ class NeuGroup(BaseEnsemble):
         The name of the neuron group.
     """
 
-    def __init__(self,
-                 model,
-                 geometry,
-                 pars_update=None,
-                 monitors=None,
-                 name=None):
+    def __init__(
+            self,
+            model: NeuType,
+            geometry: typing.Union[typing.Tuple[int], typing.List[int], int],
+            pars_update: typing.Dict = None,
+            monitors: typing.Union[typing.List, typing.Tuple] = None,
+            name: str = None
+    ):
         # name
         # -----
         if name is None:
@@ -192,7 +194,9 @@ class NeuSubGroup(object):
     """Subset of a `NeuGroup`.
     """
 
-    def __init__(self, source, indices):
+    def __init__(self,
+                 source: NeuGroup,
+                 indices: np.ndarray):
         try:
             assert isinstance(source, NeuGroup)
         except AssertionError:
