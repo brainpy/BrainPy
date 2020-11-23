@@ -222,8 +222,8 @@ class ParsUpdate(dict):
 
     def __setitem__(self, key, value):
         if profile.is_numpy_bk():
-            raise ModelUseError('NumPy mode do not support modify parameters. '
-                                'Please update parameters at the initialization of NeuType/SynType.')
+            print('WARNING: NumPy mode do not support modify parameters. '
+                  'Please update parameters at the initialization of NeuType/SynType.')
 
         # check the existence of "key"
         if key not in self.origins:
