@@ -10,7 +10,7 @@ __all__ = ['brentq']
 _ECONVERGED = 0
 _ECONVERR = -1
 
-results = namedtuple('results', 'root function_calls iterations converged')
+results = namedtuple('results', ['root', 'function_calls', 'iterations', 'converged'])
 
 
 @njit
