@@ -84,22 +84,23 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
 
 if __name__ == '__main__':
     bp.profile.set(backend='numba', device='cpu', dt=0.02,
-                   numerical_method='exponential', merge_steps=True)
+                   numerical_method='exponential')
 
     HH = define_hh(noise=1.)
     neu = bp.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])
     neu.ST['V'] = np.random.random(100) * 20 + -75  # set initial variable state
     neu.pars['g_K'] = np.random.random(100) * 2 + 35  # update parameters
 
-    neu.run(duration=100., inputs=['ST.inp', 10.], report=True)
+    neu.run(duration=50., inputs=['ST.inp', 10.], report=True)
 
     ts = neu.mon.ts
-    fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
+    fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    xlim = (-0.1, 50.1)
 
     ax = fig.add_subplot(gs[0, 0])
-    bp.visualize.line_plot(ts, neu.mon.V, ax=ax, ylabel='Membrane potential', xlim=(-0.1, 100.1))
+    bp.visualize.line_plot(ts, neu.mon.V, ax=ax, ylabel='Membrane potential', xlim=xlim)
 
     ax = fig.add_subplot(gs[1, 0])
     bp.visualize.line_plot(ts, neu.mon.m, ax=ax, legend='m')
     bp.visualize.line_plot(ts, neu.mon.n, ax=ax, legend='n')
-    bp.visualize.line_plot(ts, neu.mon.h, ax=ax, legend='h', xlim=(-0.1, 100.1), show=True)
+    bp.visualize.line_plot(ts, neu.mon.h, ax=ax, legend='h', xlim=xlim, show=True)

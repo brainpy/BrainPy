@@ -123,7 +123,7 @@ def AMPA2(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
                       vector_based=True)
 
 
-def run_ampa_group(define, duration=650.):
+def run_ampa_group(define, duration=450.):
     cls = define()
     ampa = bp.SynConn(model=cls, num=1, monitors=['s'], delay=10.)
     ampa.pre = bp.types.NeuState(['sp'])(1)
@@ -136,11 +136,9 @@ def run_ampa_group(define, duration=650.):
     Iext = bp.inputs.spike_current([10, 110, 210, 310, 410], bp.profile._dt, 1., duration=duration)
     net.run(duration, inputs=(ampa, 'pre.sp', Iext, '='), report=True)
 
-    fig, gs = bp.visualize.get_figure(1, 1, 5, 10)
+    fig, gs = bp.visualize.get_figure(1, 1, 5, 8)
     fig.add_subplot(gs[0, 0])
-    plt.plot(net.ts, ampa.mon.s[:, 0], label='s')
-    plt.legend()
-    plt.show()
+    bp.visualize.line_plot(net.ts, ampa.mon.s, ylabel='s', show=True)
 
 
 if __name__ == '__main__':

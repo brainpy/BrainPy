@@ -1,6 +1,6 @@
 
 
-.. image:: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/logo.png
+.. image:: docs/images/logo.png
     :target: https://github.com/PKU-NIP-Lab/BrainPy
     :align: center
     :alt: Logo
@@ -91,66 +91,65 @@ Neurodynamics simulation
     <table border="0">
         <tr>
             <td border="0" width="30%">
-                <a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/neurons/HH_model.py">
-                <img src="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/HH_neuron.png">
+                <a href="examples/neurons/HH_model.py">
+                <img src="docs/images/HH_neuron.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/neurons/HH_model.py">HH Neuron Model</a></h3>
-                <p>The Hodgkin–Huxley model, or conductance-based model, is a mathematical model that describes how action potentials in neurons are initiated and propagated. It is a set of nonlinear differential equations that approximates the electrical characteristics of excitable cells such as neurons and cardiac myocytes. It is a continuous-time dynamical system.</p>
+                <h3><a href="examples/neurons/HH_model.py">HH Neuron Model</a></h3>
+                <p>The Hodgkin–Huxley model, or conductance-based model,
+                is a mathematical model that describes how action potentials
+                in neurons are initiated and propagated. It is a set of nonlinear
+                differential equations that approximates the electrical characteristics
+                of excitable cells such as neurons and cardiac myocytes.</p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/synapses/AMPA_vector.py">
-                <img src="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/AMPA_model.png">
+                <a href="examples/synapses/AMPA_vector.py">
+                <img src="docs/images/AMPA_model.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/synapses/AMPA_vector.py">AMPA Synapse Model</a></h3>
+                <h3><a href="examples/synapses/AMPA_vector.py">AMPA Synapse Model</a></h3>
                 <p>AMPA synapse model.</p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/networks/gamma_oscillation.py">
-                <img src="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/gamma_oscillation.png">
+                <a href="examples/networks/gamma_oscillation.py">
+                <img src="docs/images/gamma_oscillation.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/networks/gamma_oscillation.py">Gamma Oscillation Model</a></h3>
-                <p>Implementation of the paper:
-                    <ul>
-                    <li> Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
+                <h3><a href="examples/networks/gamma_oscillation.py">Gamma Oscillation Model</a></h3>
+                <p>Implementation of the paper: <i> Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
                       synaptic inhibition in a hippocampal interneuronal network
-                      model.” Journal of neuroscience 16.20 (1996): 6402-6413. </li>
-                    </ul>
+                      model.” Journal of neuroscience 16.20 (1996): 6402-6413. </i>
                 </p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/networks/EI_balance_network.py">
-                <img src="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/EI_balance_net.png">
+                <a href="examples/networks/EI_balance_network.py">
+                <img src="docs/images/EI_balance_net.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/networks/EI_balance_network.py">E/I Balance Network</a></h3>
+                <h3><a href="examples/networks/EI_balance_network.py">E/I Balance Network</a></h3>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/networks/CANN_1D.py">
-                <img src="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/docs/images/CANN1d.png">
+                <a href="examples/networks/CANN_1D.py">
+                <img src="docs/images/CANN1d.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/examples/networks/CANN_1D.py">Continuous-attractor Network</a></h3>
-                <p>Implementation of the paper:
-                    <ul> <li> Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and
+                <h3><a href="examples/networks/CANN_1D.py">Continuous-attractor Network</a></h3>
+                <p>Implementation of the paper: <i> Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and
                         computation of continuous attractors." Neural
-                        computation 20.4 (2008): 994-1025. </li>
-                    </ul>
+                        computation 20.4 (2008): 994-1025. </i>
                 </p>
             </td>
         </tr>
