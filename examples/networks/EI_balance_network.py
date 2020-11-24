@@ -115,20 +115,20 @@ inh_conn = bp.SynConn(syn,
 inh_conn.ST['w'] = -JI
 
 net = bp.Network(group, exc_conn, inh_conn)
-net.run(duration=1000., inputs=[(group, 'ST.inp', 3.)], report=True)
+net.run(duration=500., inputs=[(group, 'ST.inp', 3.)], report=True)
 
 # --------------
 # visualization
 # --------------
 
-fig, gs = bp.visualize.get_figure(4, 1, 2, 12)
+fig, gs = bp.visualize.get_figure(4, 1, 2, 10)
 
 fig.add_subplot(gs[:3, 0])
-bp.visualize.raster_plot(net.ts, group.mon.sp, xlim=(50, 950))
+bp.visualize.raster_plot(net.ts, group.mon.sp, xlim=(50, 450))
 
 fig.add_subplot(gs[3, 0])
 rates = bp.measure.firing_rate(group.mon.sp, 5.)
 plt.plot(net.ts, rates)
-plt.xlim(50, 950)
+plt.xlim(50, 450)
 plt.show()
 

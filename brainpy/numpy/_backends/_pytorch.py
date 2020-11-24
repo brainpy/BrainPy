@@ -13,7 +13,7 @@ Axes = Tuple[int, ...]
 AxisAxes = Union[int, Axes]
 Shape = Tuple[int, ...]
 ShapeOrScalar = Union[Shape, int]
-ArrayOrScalar = Union["BaseArray", int, float]
+ArrayOrScalar = Union["ndarray", int, float]
 
 
 class ndarray:
