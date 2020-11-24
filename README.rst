@@ -167,6 +167,24 @@ Neurodynamics analysis
 ======================
 
 
+.. raw:: html
 
+    <table border="0">
+        <tr>
+            <td border="0" width="30%">
+                <a href="examples/dynamics_analysis/phase_portrait.py">
+                <img src="docs/images/phase_plane_analysis.png">
+                </a>
+            </td>
+            <td border="0" valign="top">
+                <h3><a href="examples/dynamics_analysis/phase_portrait.py">Phase Plane Analysis</a></h3>
+                <p>Phase plane analysis of a two-dimensional system model.</p>
+            </td>
+        </tr>
+    </table>
+
+
+More examples please see
+`dynamics analysis <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/dynamics_analysis>`_.
 
 

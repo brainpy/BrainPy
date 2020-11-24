@@ -127,7 +127,6 @@ group.run(50., inputs=('ST.inp', 50.))
 bp.visualize.line_plot(group.mon.ts, group.mon.V, ylabel='Potential (mV)', show=True)
 
 
-
 da = PhasePortraitAnalyzer2D(
     neuron=NaK_neuron,
     plot_variables=["n", "V"])
