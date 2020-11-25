@@ -188,7 +188,8 @@ Neurodynamics analysis
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/bifurcation_codim-1.py">Bifurcation Analysis of Co-dimension 1</a></h3>
+                <h3><a href="examples/dynamics_analysis/bifurcation_codim-1.py">Codimension 1 Bifurcation Analysis</a></h3>
+                <p>An example of codimension 1 bifurcation analysis.</p>
             </td>
         </tr>
         <tr>
@@ -198,7 +199,8 @@ Neurodynamics analysis
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/bifurcation_codim-2.py">Bifurcation Analysis of Co-dimension 2</a></h3>
+                <h3><a href="examples/dynamics_analysis/bifurcation_codim-2.py">Codimension 2 Bifurcation Analysis</a></h3>
+                <p>An example of codimension 2 bifurcation analysis.</p>
             </td>
         </tr>
     </table>
