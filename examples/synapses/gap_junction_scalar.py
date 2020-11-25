@@ -3,7 +3,7 @@
 import brainpy as bp
 
 
-def GapJunction():
+def define_gap_junction():
     requires = dict(
         ST=bp.types.SynState(['w'], help='w : gap junction conductance.'),
         pre=bp.types.NeuState(['V']),
@@ -16,7 +16,7 @@ def GapJunction():
     return bp.SynType(name='GapJunction', requires=requires, steps=update, vector_based=False)
 
 
-def LIFGapJunction(spikelet=0.1):
+def define_lif_gap_junction(spikelet=0.1):
     requires = dict(
         ST=bp.types.SynState(
             ['w', 'spikelet'],
