@@ -181,6 +181,26 @@ Neurodynamics analysis
                 <p>Phase plane analysis of a two-dimensional system model.</p>
             </td>
         </tr>
+        <tr>
+            <td border="0" width="30%">
+                <a href="examples/dynamics_analysis/bifurcation_codim-1.py">
+                <img src="docs/images/codimension1.png">
+                </a>
+            </td>
+            <td border="0" valign="top">
+                <h3><a href="examples/dynamics_analysis/bifurcation_codim-1.py">Bifurcation Analysis of Co-dimension 1</a></h3>
+            </td>
+        </tr>
+        <tr>
+            <td border="0" width="30%">
+                <a href="examples/dynamics_analysis/bifurcation_codim-2.py">
+                <img src="docs/images/codimension2.png">
+                </a>
+            </td>
+            <td border="0" valign="top">
+                <h3><a href="examples/dynamics_analysis/bifurcation_codim-2.py">Bifurcation Analysis of Co-dimension 2</a></h3>
+            </td>
+        </tr>
     </table>
 
 
