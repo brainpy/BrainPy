@@ -155,12 +155,11 @@ Neurodynamics simulation
         </tr>
     </table>
 
-
-Network examples please see `networks <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/networks>`_.
-
 More neuron examples please see `neurons <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/neurons>`_.
 
 More synapse examples please see `synapses <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/synapses>`_.
+
+More network examples please see `networks <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/networks>`_.
 
 
 Neurodynamics analysis

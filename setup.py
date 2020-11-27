@@ -20,13 +20,14 @@ with io.open(os.path.join(here, 'README.rst'), 'r', encoding='utf-8') as f:
 
 # setup
 setup(
-    name='Brain.Py',
+    name='brain.py',
     version=version,
     description='BrainPy: A Just-In-Time compilation approach for neuronal dynamics simulation.',
     long_description=README,
     author='Chaoming Wang',
     author_email='adaduo@outlook.com',
-    packages=find_packages(),
+    packages=find_packages(exclude=('examples', 'examples.*', 'docs', 'docs.*',
+                           'develop', 'develop.*', 'tests', 'tests.*')),
     python_requires='>=3.7',
     install_requires=[
         'numpy>=1.15',
