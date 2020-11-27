@@ -4,7 +4,7 @@ import brainpy as bp
 import brainpy.numpy as np
 
 
-def NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0.5, tau_rise=2.):
+def get_NMDA(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0.5, tau_rise=2.):
     """NMDA conductance-based synapse.
 
     .. math::

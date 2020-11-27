@@ -29,31 +29,35 @@ def _convert2sympy_dict(d):
 
 
 class _PhasePortraitAnalyzerBase(object):
-    def __init__(self, neuron, plot_variables):
+    def __init__(self, neuron, plot_variables, param_update=None):
         self.neuro = neuron
         self.var_list = None
         self.eq_sympy_dict = None
         self.plot_variables = plot_variables
-        self._get_sympy_equation()
-        self.fig = plt.figure()
+        self._get_sympy_equation(param_update)
         self.sub_dict = None
         self.var_ind = [list(map(str, self.var_list)).index(_var) 
                                         for _var in plot_variables]
         self.var_lim = None
         self.sub_dict = None
 
-    def _get_sympy_equation(self):
+
+    def _get_sympy_equation(self, param_update=None):
         self.var_list = []
         self.eq_sympy_dict = {}
+
         for int_exp in self.neuro.integrators:
             diff_eq  = int_exp.diff_eq
             var_name = sympy.Symbol(int_exp.diff_eq.var_name, real=True)
             eq_array = int_exp.diff_eq.get_f_expressions(substitute="all")
             params   = int_exp.diff_eq.func_scope
 
+            if param_update:
+                params.update(param_update)
+
             sub_params = {sympy.Symbol(k, real=True):v 
                 for (k,v) in params.items() if isinstance(v, numbers.Number)}
-            assert len(eq_array) == 1
+            assert len(eq_array) == 1       # todo: error message
             eq_sympy = sympy_tools.str2sympy(eq_array[0].code)
             eq_sympy = eq_sympy.subs(sub_params)
             self.eq_sympy_dict[var_name] = eq_sympy
@@ -61,19 +65,20 @@ class _PhasePortraitAnalyzerBase(object):
 
 
     def plot_vector_field(self, var_lim=None, sub_dict=None, 
-                            var_res=50, inherit=False):
+                            resolution=50, inherit=False):
         '''Plot the vector field.
 
         Parameter
         -----------
         var_lim: dict, optional
-            todo
+            A dictionary containing the range of each variable. 
+            Format: {'Varible A': [A_min, A_max], 'Variable B': [B_min, B_max]}
 
         sub_dict : dict, optional
             A dictionary containing the freeze values for other non-free 
             parameters. Default is `None`.
 
-        var_res : int or dict, optional
+        resolution : int or dict, optional
             The vector field spatial resolution. Default is `50`.
 
         inherit : bool, optional 
@@ -90,13 +95,12 @@ class _PhasePortraitAnalyzerBase(object):
             self.sub_dict = sub_dict
 
         n_var = len(self.var_list)
-        # _var_list = list(map(str, self.var_list))
 
-        if isinstance(var_res, numbers.Number):
-            var_res = {v:var_res for v in self.var_list}
-        elif isinstance(var_res, dict):
-            assert len(var_res.items()) == n_var
-            var_res = _convert2sympy_dict(var_res)
+        if isinstance(resolution, numbers.Number):
+            resolution = {v:resolution for v in self.var_list}
+        elif isinstance(resolution, dict):
+            assert len(resolution.items()) == n_var
+            resolution = _convert2sympy_dict(resolution)
         else:
             raise TypeError
 
@@ -107,7 +111,7 @@ class _PhasePortraitAnalyzerBase(object):
         v_vec = {}
 
         for var in self.var_list:
-            v_vec[var] = np.linspace(var_lim[var][0], var_lim[var][1], var_res[var])
+            v_vec[var] = np.linspace(var_lim[var][0], var_lim[var][1], resolution[var])
 
         if n_var == 1:
             eval_points = [v_vec[self.var_list[0]]]
@@ -138,17 +142,39 @@ class _PhasePortraitAnalyzerBase(object):
         raise NotImplementedError
 
 
-    @property
-    def axes(self):
-        return self.fig.axes
-
-
-
 
 
 class PhasePortraitAnalyzer1D(_PhasePortraitAnalyzerBase):
-    def __init__(self, neuron, plot_variables):
-        super(PhasePortraitAnalyzer1D, self).__init__(neuron, plot_variables)
+    r"""Analyzer for 1-dimensional dynamical systems. 
+
+    .. math::
+
+        \dot{x} = f(x)
+
+    Note this class can only handle one-dimensional dynamical systems. For high
+    dimensional dynamical systems, it's often desirable to reduce them
+    to low dimensions for the benefits of visualization, by fixing certain 
+    variables. This class can take a dynamical system with arbitrary
+    number of dimensionalities as input, as long as enough contraints are 
+    provided to reduce the system to two dimensions.
+
+
+    Parameters
+    -------------
+    neuron : NeuType of BrainPy
+        An abstract neuronal type defined in BrainPy.
+
+    plot_variables : list of strs
+        A list containing two str specifying the two free variables. The 
+        first variable will become the y-axis, while the second the x-axis.
+
+    param_update : dict, optional
+        A dict for overriding default parameter settings in the neuron model.
+    """
+    def __init__(self, neuron, plot_variables, param_update=None):
+        super(PhasePortraitAnalyzer1D, self).__init__(neuron, 
+                                                      plot_variables, 
+                                                      param_update)
         assert len(plot_variables) == 1
         self.x_var = self.var_list[0]
 
@@ -163,26 +189,26 @@ class PhasePortraitAnalyzer1D(_PhasePortraitAnalyzerBase):
         plt.plot(_x, dv[self.x_var], **dv_style)
         plt.plot(_x, _y, **x_style)
 
-        ax = self.axes[0]
-
         X, Y = np.meshgrid(_x, _y)  
         _X, _Y = X.reshape(-1,), Y.reshape(-1,) 
 
         dx = dv[self.x_var][None,:].repeat(_y.shape[0], 0)
         dy = np.ones(dx.shape) * dx.min() * 0.01
 
-        ax.streamplot(X, Y, dx, dy, color='dimgrey')
+        plt.streamplot(X, Y, dx, dy, color='dimgrey')
 
         plt.xlabel(str(self.x_var))
         plt.ylabel(f"f'({str(self.x_var)})")
 
 
-    def find_fixed_point(self, var_lim=None, sub_dict=None, inherit=False):
+    def find_fixed_point(self, var_lim=None, sub_dict=None, inherit=False, 
+                            suppress_print=False, suppress_plot=False):
         """
         Parameters
         ----------
-        var_lim: dict, optional
-            todo
+        var_lim : dict, optional
+            A dictionary containing the range of each variable. 
+            Format: {'Varible A': [A_min, A_max], 'Variable B': [B_min, B_max]}
 
         sub_dict : dict, optional
             A dictionary containing the freeze values for other non-free 
@@ -191,6 +217,18 @@ class PhasePortraitAnalyzer1D(_PhasePortraitAnalyzerBase):
         inherit : bool, optional 
             Whether to inherit settings from the last plot. If set to `True`,
             will ignore all the other parameters. Default is `False`.   
+
+        suppress_print : bool, optional
+            Whether to suppress printing information to stdout. Default is False.
+
+        suppress_plot : bool, optional
+            Whether to suppress plotting fixed point on figures. Default is False.
+
+
+        Return
+        ----------
+        sol_list : list
+            A list containing fixed point solutions and their stability information. 
         """
         var_lim = _convert2sympy_dict(var_lim)
 
@@ -215,7 +253,7 @@ class PhasePortraitAnalyzer1D(_PhasePortraitAnalyzerBase):
         f_range = xlim
 
         f_optimizer = lambda x: sympy.lambdify(f_var, f_eq, "numpy")(x)
-        fs = np.arange(*f_range) + 1e-6
+        fs = np.linspace(*f_range, 1000) + 1e-6
         fs_len = len(fs)
 
         vals = f_optimizer(fs)
@@ -248,35 +286,47 @@ class PhasePortraitAnalyzer1D(_PhasePortraitAnalyzerBase):
         x_sol = fixed_points
         n_sol = len(x_sol)
 
-        if n_sol == 0:
+        if n_sol == 0 and not suppress_print:
             print("No fixed point existed in this area. If you are in doubt, you can"
                 "resort to numerical methods by using ...(not implemented yet)")
-            return
+            return x_sol
 
-        hollow = dict(markerfacecolor='white', markeredgecolor='black', markeredgewidth=2, markersize=20)
+        hollow = dict(markerfacecolor='white', markeredgecolor='black', 
+                      markeredgewidth=2, markersize=20)
         solid = dict(color='black', markersize=20)
 
         fp_info = lambda ind, fptype: print(f"Fixed point #{ind+1} at {str(self.x_var)}={x_sol[i]}"
                                                 f" is a/an {fptype}.")
 
         ddx = D(x_eq, self.x_var).doit()
+        sol_list = []
 
         for i in range(n_sol):
             ddx_ = ddx.subs({self.x_var:x_sol[i]})
             if ddx_ < 0:
                 plot_type = solid
-                plt.plot(x_sol[i], 0, '.', **plot_type)
-                fp_info(i, "stable node")
+                if not suppress_plot:
+                    plt.plot(x_sol[i], 0, '.', **plot_type)
+                if not suppress_print:
+                    fp_info(i, "stable node")
+                sol_list.append([x_sol[i], "stable node"])
             elif ddx_ > 0:         
                 plot_type = hollow
-                plt.plot(x_sol[i], 0, '.', **plot_type)
-                fp_info(i, "unstable node")
-
+                if not suppress_plot:
+                    plt.plot(x_sol[i], 0, '.', **plot_type)
+                if not suppress_print:
+                    fp_info(i, "unstable node")
+                sol_list.append([x_sol[i], "unstable node"])
             else:           # todo: take higher-order derivatives
                 plot_type = hollow
-                plt.plot(x_sol[i], 0, '.', **plot_type)
-                fp_info(i, "undetermined type because higher-order derivative need to be calculated. "
-                    "This will be fixed in a future update.")
+                if not suppress_plot:
+                    plt.plot(x_sol[i], 0, '.', **plot_type)
+                if not suppress_print:
+                    fp_info(i, "undetermined type because higher-order derivatives need  "
+                        "to be calculated. This will be fixed in a future update.")
+                sol_list.append([x_sol[i], "undetermined"])
+
+        return sol_list
 
 
 
@@ -309,9 +359,14 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
     plot_variables : list of strs
         A list containing two str specifying the two free variables. The 
         first variable will become the y-axis, while the second the x-axis.
+
+    param_update : dict, optional
+        A dict for overriding default parameter settings in the neuron model.
     """
-    def __init__(self, neuron, plot_variables):
-        super(PhasePortraitAnalyzer2D, self).__init__(neuron, plot_variables)
+    def __init__(self, neuron, plot_variables, param_update=None):
+        super(PhasePortraitAnalyzer2D, self).__init__(neuron, 
+                                                      plot_variables, 
+                                                      param_update)
         assert len(plot_variables) == 2
         self.y_var = self.var_list[self.var_ind[0]]
         self.x_var = self.var_list[self.var_ind[1]]
@@ -322,8 +377,7 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
         Y, X = pts
         speed = np.sqrt(dx**2 + dy**2)
         lw = 0.5 + 5.5*speed / speed.max()
-        ax = self.axes[0]
-        ax.streamplot(X, Y, dx, dy, linewidth=lw, arrowsize=1.2, density=1, color='thistle')
+        plt.streamplot(X, Y, dx, dy, linewidth=lw, arrowsize=1.2, density=1, color='thistle')
 
         plt.xlabel(str(self.x_var))
         plt.ylabel(str(self.y_var))
@@ -336,7 +390,8 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
         Parameters
         ----------
         var_lim : dict, optional
-            todo
+            A dictionary containing the range of each variable. 
+            Format: {'Varible A': [A_min, A_max], 'Variable B': [B_min, B_max]}
 
         sub_dict : dict, optional
             A dictionary containing the freeze values for other non-free 
@@ -439,12 +494,14 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
     
 
 
-    def find_fixed_point(self, var_lim=None, sub_dict=None, inherit=False):
+    def find_fixed_point(self, var_lim=None, sub_dict=None, inherit=False, 
+                    suppress_print=False, suppress_plot=False):
         """
         Parameters
         ----------
-        var_lim: dict, optional
-            todo
+        var_lim : dict, optional
+            A dictionary containing the range of each variable. 
+            Format: {'Varible A': [A_min, A_max], 'Variable B': [B_min, B_max]}
 
         sub_dict : dict, optional
             A dictionary containing the freeze values for other non-free 
@@ -453,6 +510,18 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
         inherit : bool, optional 
             Whether to inherit settings from the last plot. If set to `True`,
             will ignore all the other parameters. Default is `False`.   
+
+        suppress_print : bool, optional
+            Whether to suppress printing information to stdout. Default is False.
+
+        suppress_plot : bool, optional
+            Whether to suppress plotting fixed point on figures. Default is False.
+
+
+        Return
+        ----------
+        sol_list : list
+            A list containing fixed point solutions and their stability information. 
         """
 
         var_lim = _convert2sympy_dict(var_lim)
@@ -494,7 +563,7 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
 
         f_range = xlim if x_pivot else ylim
         f_optimizer = lambda x: sympy.lambdify(f_var, f_eq, "numpy")(x)
-        fs = np.arange(*f_range) + 1e-6
+        fs = np.linspace(*f_range, 1000) + 1e-6
         fs_len = len(fs)
 
         vals = f_optimizer(fs)
@@ -535,13 +604,14 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
 
         n_sol = len(x_sol)
 
-        if n_sol == 0:
+        if n_sol == 0 and not suppress_print:
             print("No fixed point existed in this area. If you are in doubt, you can"
                 "resort to numerical methods by using ...(not implemented yet)")
             return
 
         jacob_mat_sympy = [[D(x_eq, self.x_var).doit(), D(x_eq, self.y_var).doit()], 
                            [D(y_eq, self.x_var).doit(), D(y_eq, self.y_var).doit()]]
+        sol_list = []
 
         for i in range(n_sol):
             jacob_mat = [[jacob_mat_sympy[0][0].subs({self.x_var:x_sol[i], self.y_var:y_sol[i]}),
@@ -574,31 +644,45 @@ class PhasePortraitAnalyzer2D(_PhasePortraitAnalyzerBase):
             # Judging types
             if np.all(np.isreal(eigenval)):
                 if np.prod(eigenval)<0:
-                    fp_info(i, "saddle node")
+                    if not suppress_print:
+                        fp_info(i, "saddle node")
                     plot_type = hollow
+                    sol_list.append([(x_sol[i], y_sol[i]), "saddle node"])
                 elif eigenval[0]>0:
-                    fp_info(i, "unstable node")
+                    if not suppress_print:
+                        fp_info(i, "unstable node")
                     plot_type = hollow
+                    sol_list.append([(x_sol[i], y_sol[i]), "unstable node"])
                 else:
-                    fp_info(i, "stable node")
+                    if not suppress_print:
+                        fp_info(i, "stable node")
                     plot_type = solid
+                    sol_list.append([(x_sol[i], y_sol[i]), "stable node"])
             else:
                 if np.all(np.real(eigenval)>0):
-                    fp_info(i, "unstable focus")
+                    if not suppress_print:
+                        fp_info(i, "unstable focus")
                     plot_type = hollow
+                    sol_list.append([(x_sol[i], y_sol[i]), "unstable focus"])
                 elif np.all(np.real(eigenval)<0):
-                    fp_info(i, "stable focus")
+                    if not suppress_print:
+                        fp_info(i, "stable focus")
                     plot_type = solid
+                    sol_list.append([(x_sol[i], y_sol[i]), "stable focus"])
                 else:
-                    fp_info(i, "saddle focus")     # FIXME: undefined, need correction !!!
+                    if not suppress_print:
+                        fp_info(i, "saddle focus")     # FIXME: undefined, need correction !!!
                     plot_type = hollow
+                    sol_list.append([(x_sol[i], y_sol[i]), "saddle focus"])
 
-            plt.plot(x_sol[i], y_sol[i], '.', **plot_type)
+            if not suppress_plot:
+                plt.plot(x_sol[i], y_sol[i], '.', **plot_type)
 
-        plt.xlabel(str(self.x_var))
-        plt.ylabel(str(self.y_var))
+        if not suppress_plot:
+            plt.xlabel(str(self.x_var))
+            plt.ylabel(str(self.y_var))
 
-        return
+        return sol_list
 
 
 
