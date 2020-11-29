@@ -23,7 +23,6 @@ from collections import OrderedDict
 
 import brainpy as bp
 import brainpy.numpy as np
-from brainpy.dynamics import PhasePortraitAnalyzer
 
 bp.profile.set(dt=0.01)
 
@@ -113,16 +112,16 @@ def get_NaK_model(V_th=20., type='low-threshold'):
 
 NaK_neuron = get_NaK_model()
 
-group = bp.NeuGroup(NaK_neuron, 1, monitors=['V'])
-group.run(50., inputs=('ST.inp', 50.))
-bp.visualize.line_plot(group.mon.ts, group.mon.V, ylabel='Potential (mV)', show=True)
+# group = bp.NeuGroup(NaK_neuron, 1, monitors=['V'])
+# group.run(50., inputs=('ST.inp', 50.))
+# bp.visualize.line_plot(group.mon.ts, group.mon.V, ylabel='Potential (mV)', show=True)
 
-pp = PhasePortraitAnalyzer(model=NaK_neuron,
-                           target_vars=OrderedDict(V=[-90, 20], n=[0., 1.]),
-                           fixed_vars={'input': 50., 'inp': 50.})
-pp.plot_nullcline()
-pp.plot_vector_filed()
-pp.plot_fixed_point()
-pp.plot_trajectory([(-10, 0.2, 100.), (-80, 0.4, 100.)],
-                   show=True)
-
+analyzer = bp.PhasePortraitAnalyzer(
+    model=NaK_neuron,
+    target_vars=OrderedDict(V=[-90, 20], n=[0., 1.]),
+    fixed_vars={'input': 50., 'inp': 50.})
+analyzer.plot_nullcline()
+analyzer.plot_vector_filed()
+analyzer.plot_fixed_point()
+analyzer.plot_trajectory([(-10, 0.2, 100.), (-80, 0.4, 100.)],
+                         show=True)

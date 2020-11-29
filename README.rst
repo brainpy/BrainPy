@@ -156,11 +156,11 @@ Neurodynamics simulation
     </table>
 
 
-More neuron examples please see `neurons <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/neurons>`_.
+More neuron examples please see `examples/neurons <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/neurons>`_.
 
-More synapse examples please see `synapses <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/synapses>`_.
+More synapse examples please see `examples/synapses <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/synapses>`_.
 
-More network examples please see `networks <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/networks>`_.
+More network examples please see `examples/networks <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/networks>`_.
 
 
 Neurodynamics analysis
@@ -173,7 +173,7 @@ Neurodynamics analysis
         <tr>
             <td border="0" width="30%">
                 <a href="examples/dynamics_analysis/phase_portrait_of_NaK_model.py">
-                <img src="docs/images/phase_plane_analysis.png">
+                <img src="docs/images/phase_plane_analysis1.png">
                 </a>
             </td>
             <td border="0" valign="top">
@@ -210,6 +210,6 @@ Neurodynamics analysis
 
 
 More examples please see
-`dynamics analysis <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/dynamics_analysis>`_.
+`examples/dynamics_analysis <https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/dynamics_analysis>`_.
 
 
