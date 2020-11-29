@@ -173,7 +173,7 @@ Neurodynamics analysis
         <tr>
             <td border="0" width="30%">
                 <a href="examples/dynamics_analysis/phase_portrait_of_NaK_model.py">
-                <img src="docs/images/phase_plane_analysis.png">
+                <img src="docs/images/phase_plane_analysis1.png">
                 </a>
             </td>
             <td border="0" valign="top">
