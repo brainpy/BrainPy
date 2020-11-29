@@ -19,32 +19,32 @@ Reference: Izhikevich, Eugene M. Dynamical systems in neuroscience (Chapter
 Author: Lin Xiaohan (Oct. 9th, 2020)
 """
 
-import matplotlib.pyplot as plt
+from collections import OrderedDict
 
 import brainpy as bp
 import brainpy.numpy as np
-from brainpy.dynamics import PhasePortraitAnalyzer2D
+from brainpy.dynamics import PhasePortraitAnalyzer
 
-bp.profile.set_dt(0.02)
-bp.profile.merge_integral = False
+bp.profile.set(dt=0.01)
 
 
-def define_NaK_model(V_th=20., type='low-threshold'):
-    r"""The I-Na,p+I-K model.
+def get_NaK_model(V_th=20., type='low-threshold'):
+    """The I-Na,p+I-K model.
 
     Parameters
     ----------
-    noise
-    V_th (float): a float number that specifies the threshold of treating 
-            elevated membrane potential as a spike. Unit in ``mV``. Default 
-            is 20.
-    type (str): a string that specifies whether the I-Na,p+I-K model has a high
-            (``high-threshold``) or low threshold (``low-threshold``). Default
-            is ``low-threshold``.
+    V_th : float
+        A float number that specifies the threshold of treating
+        elevated membrane potential as a spike. Unit in ``mV``.
+        Default is 20.
+    type : str
+        A string that specifies whether the I-Na,p+I-K model has a high
+        (``high-threshold``) or low threshold (``low-threshold``).
+        Default is ``low-threshold``.
 
     Returns
     -------
-    return_dict : dict
+    return_dict : bp.NeuType
         The necessary variables.
     """
 
@@ -79,14 +79,7 @@ def define_NaK_model(V_th=20., type='low-threshold'):
         k_n = 5
         tau = 1
 
-    ST = bp.types.NeuState(
-        {'V': -65., 'n': 0., 'sp': 0., 'inp': 0.},
-        help='I-Na,p+I-K model neuron state.\n'
-             '"V" denotes membrane potential.\n'
-             '"n" denotes potassium channel activation probability.\n'
-             '"sp" denotes spiking state.\n'
-             '"inp" denotes synaptic input.\n'
-    )
+    ST = bp.types.NeuState({'V': -65., 'n': 0., 'sp': 0., 'inp': 0.})
 
     @bp.integrate
     def int_n(n, t, V):
@@ -118,21 +111,18 @@ def define_NaK_model(V_th=20., type='low-threshold'):
                       vector_based=True)
 
 
-NaK_neuron = define_NaK_model()
-
+NaK_neuron = get_NaK_model()
 
 group = bp.NeuGroup(NaK_neuron, 1, monitors=['V'])
 group.run(50., inputs=('ST.inp', 50.))
-
 bp.visualize.line_plot(group.mon.ts, group.mon.V, ylabel='Potential (mV)', show=True)
 
+pp = PhasePortraitAnalyzer(model=NaK_neuron,
+                           target_vars=OrderedDict(V=[-90, 20], n=[0., 1.]),
+                           fixed_vars={'input': 50., 'inp': 50.})
+pp.plot_nullcline()
+pp.plot_vector_filed()
+pp.plot_fixed_point()
+pp.plot_trajectory([(-10, 0.2, 100.), (-80, 0.4, 100.)],
+                   show=True)
 
-da = PhasePortraitAnalyzer2D(
-    neuron=NaK_neuron,
-    plot_variables=["n", "V"])
-da.plot_nullcline(var_lim={'n': [0, 0.7],
-                  'V':[-90, 20]},
-                  sub_dict={"input": 50.})
-da.plot_vector_field(inherit=True)
-da.find_fixed_point(inherit=True)
-plt.show()

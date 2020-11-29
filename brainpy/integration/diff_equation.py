@@ -138,7 +138,7 @@ class DiffEquation(object):
             else:
                 self.g_value = eval(g_code, self.func_scope)
 
-    def _substitute(self, final_exp, expressions, mode='var_dependent'):
+    def _substitute(self, final_exp, expressions, substitute_vars=None):
         """Substitute expressions to get the final single expression
 
         Parameters
@@ -148,11 +148,13 @@ class DiffEquation(object):
         expressions : list, tuple
             The list/tuple of expressions.
         """
-        if mode is None:
+        if substitute_vars is None:
             return
         if final_exp is None:
             return
-        assert mode in ['var_dependent', 'all']
+        assert substitute_vars == 'all' or \
+               substitute_vars == self.var_name or \
+               isinstance(substitute_vars, (tuple, list))
 
         # Goal: Substitute dependent variables into the expresion
         # Hint: This step doesn't require the left variables are unique
@@ -169,11 +171,16 @@ class DiffEquation(object):
                 expr._substituted_code = new_str_expr
                 dependencies[expr.var_name] = expr
             else:
-                if mode == 'var_dependent':
-                    if self.var_name in expr.identifiers:
-                        dependencies[expr.var_name] = expr
-                else:
+                if substitute_vars == 'all':
                     dependencies[expr.var_name] = expr
+                elif substitute_vars == self.var_name:
+                    dependencies[expr.var_name] = expr
+                else:
+                    ids = expr.identifiers
+                    for var in substitute_vars:
+                        if var in ids:
+                            dependencies[expr.var_name] = expr
+                            break
 
         # Goal: get the final differential equation
         # Hint: the step requires the expression variables must be unique
@@ -186,10 +193,10 @@ class DiffEquation(object):
             new_str_expr = sympy2str(new_sympy_expr)
             final_exp._substituted_code = new_str_expr
 
-    def get_f_expressions(self, substitute=None):
+    def get_f_expressions(self, substitute_vars=None):
         if self.f_expr is None:
             return []
-        self._substitute(self.f_expr, self.expressions, mode=substitute)
+        self._substitute(self.f_expr, self.expressions, substitute_vars=substitute_vars)
 
         return_expressions = []
         # the derivative expression

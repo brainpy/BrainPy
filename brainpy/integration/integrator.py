@@ -253,7 +253,7 @@ class RK2(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -367,7 +367,7 @@ class Heun(Integrator):
                 # ------- #
 
                 # df
-                f_k1_expressions = diff_eq.get_f_expressions(substitute=None)
+                f_k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
                 code_lines = [str(expr) for expr in f_k1_expressions[:-1]]
                 code_lines.append(f'_df{var_name}_dt_k1 = {f_k1_expressions[-1].code}')
 
@@ -504,7 +504,7 @@ class RK3(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -606,7 +606,7 @@ class RK4(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -719,7 +719,7 @@ class RK4Alternative(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -858,7 +858,7 @@ class ExponentialEuler(Integrator):
     @staticmethod
     def get_nb_step(diff_eq, *args):
         dt = profile.get_dt()
-        f_expressions = diff_eq.get_f_expressions(substitute='var_dependent')
+        f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
         # code lines
         code_lines = [str(expr) for expr in f_expressions[:-1]]
@@ -978,7 +978,7 @@ class MilsteinIto(Integrator):
                 # ------- #
 
                 # df
-                f_k1_expressions = diff_eq.get_f_expressions(substitute=None)
+                f_k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
                 code_lines = [str(expr) for expr in f_k1_expressions]  # _df{var_name}_dt
 
                 # dg
@@ -1091,7 +1091,7 @@ class MilsteinStra(Integrator):
                 # ------- #
 
                 # df
-                f_k1_expressions = diff_eq.get_f_expressions(substitute=None)
+                f_k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
                 code_lines = [str(expr) for expr in f_k1_expressions]  # _df{var_name}_dt
 
                 # dg

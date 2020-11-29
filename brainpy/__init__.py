@@ -19,11 +19,16 @@ from .core_system.synapses import *
 from .core_system.network import *
 from .core_system import types
 
-# "dynamics" module
+# "integration" module
 from . import integration
 from .integration import integrate
 from .integration import DiffEquation
 from .integration.integrator import *
+
+# "dynamics" module
+from . import dynamics
+from .dynamics import PhasePortraitAnalyzer
+from .dynamics import BifurcationAnalyzer
 
 # "tools" module
 from . import tools
