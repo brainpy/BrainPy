@@ -225,30 +225,30 @@ if __name__ == '__main__1':
 
 if __name__ == '__main__':
     pass
-    from brainpy.dynamics.trajectory import plot_trajectory
+    from brainpy.dynamics.phase_portrait_analyzer import get_trajectories
 
     # Try LIF neuron model
-    trajectories = plot_trajectory(LIF, target_vars=['V'], target_setting=(0., (20., 100.)), inputs=('ST.inp', 12.))
+    trajectories = get_trajectories(LIF, target_vars=['V'], target_setting=(0., (20., 100.)), inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try LIF neuron model: variable "V"
-    trajectories = plot_trajectory(Izhikevich, target_vars=['V'], target_setting=(0., (20., 100.)),
+    trajectories = get_trajectories(Izhikevich, target_vars=['V'], target_setting=(0., (20., 100.)),
                                    inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try LIF neuron model: variable "u"
-    trajectories = plot_trajectory(Izhikevich, target_vars=['u'], target_setting=(0., (20., 100.)),
+    trajectories = get_trajectories(Izhikevich, target_vars=['u'], target_setting=(0., (20., 100.)),
                                    inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].u, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try HH neuron model: variable 'V', 'n'
-    trajectories = plot_trajectory(HH,
+    trajectories = get_trajectories(HH,
                                    target_vars=['V', 'n'],
                                    target_setting=[(-65., 0., (20., 100.)),
                                                    (-75., 0.1, 60.)],

@@ -3,9 +3,11 @@
 from collections import namedtuple
 
 import numpy as np
-from numba import njit
 
-__all__ = ['brentq']
+__all__ = [
+    'brentq',
+    'find_root'
+]
 
 _ECONVERGED = 0
 _ECONVERR = -1
@@ -13,34 +15,8 @@ _ECONVERR = -1
 results = namedtuple('results', ['root', 'function_calls', 'iterations', 'converged'])
 
 
-@njit
-def _bisect_interval(a, b, fa, fb):
-    """Conditional checks for intervals in methods involving bisection"""
-    if fa * fb > 0:
-        raise ValueError("f(a) and f(b) must have different signs")
-    root = 0.0
-    status = _ECONVERR
-
-    # Root found at either end of [a,b]
-    if fa == 0:
-        root = a
-        status = _ECONVERGED
-    if fb == 0:
-        root = b
-        status = _ECONVERGED
-
-    return root, status
-
-
-@njit
-def brentq(f,
-           a,
-           b,
-           args=(),
-           xtol=2e-12,
-           rtol=4 * np.finfo(float).eps,
-           maxiter=100,
-           disp=True):
+def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
+           rtol=4 * np.finfo(float).eps):
     """
     Find a root of a function in a bracketing interval using Brent's method
     adapted from Scipy's brentq.
@@ -67,8 +43,6 @@ def brentq(f,
         atol=xtol, rtol=rtol)``, where ``x`` is the exact root.
     maxiter : number, optional(default=100)
         Maximum number of iterations.
-    disp : bool, optional(default=True)
-        If True, raise a RuntimeError if the algorithm didn't converge.
 
     Returns
     -------
@@ -84,11 +58,25 @@ def brentq(f,
     xpre = a * 1.0
     xcur = b * 1.0
 
+    # Conditional checks for intervals in methods involving bisection
     fpre = f(xpre, *args)
     fcur = f(xcur, *args)
     funcalls = 2
 
-    root, status = _bisect_interval(xpre, xcur, fpre, fcur)
+    if fpre * fcur > 0:
+        raise ValueError("f(a) and f(b) must have different signs")
+    root = 0.0
+    status = _ECONVERR
+
+    # Root found at either end of [a,b]
+    if fpre == 0:
+        root = xpre
+        status = _ECONVERGED
+    if fcur == 0:
+        root = xcur
+        status = _ECONVERGED
+
+    root, status = root, status
 
     # Check for sign error and early termination
     if status == _ECONVERGED:
@@ -96,7 +84,6 @@ def brentq(f,
     else:
         # Perform Brent's method
         for itr in range(maxiter):
-
             if fpre * fcur < 0:
                 xblk = xpre
                 fblk = fpre
@@ -131,7 +118,7 @@ def brentq(f,
                     stry = -fcur * (fblk * dblk - fpre * dpre) / \
                            (dblk * dpre * (fblk - fpre))
 
-                if (2 * abs(stry) < min(abs(spre), 3 * abs(sbis) - delta)):
+                if 2 * abs(stry) < min(abs(spre), 3 * abs(sbis) - delta):
                     # good short step
                     spre = scur
                     scur = stry
@@ -146,15 +133,77 @@ def brentq(f,
 
             xpre = xcur
             fpre = fcur
-            if (abs(scur) > delta):
+            if abs(scur) > delta:
                 xcur += scur
             else:
                 xcur += (delta if sbis > 0 else -delta)
             fcur = f(xcur, *args)
             funcalls += 1
 
-    if disp and status == _ECONVERR:
+    if status == _ECONVERR:
         raise RuntimeError("Failed to converge")
 
-    x, funcalls, iterations, flag = root, funcalls, itr, status
-    return results(x, funcalls, iterations, flag == 0)
+    x, funcalls, iterations = root, funcalls, itr
+
+    return x
+
+
+try:
+    from numba import njit
+
+    brentq = njit(brentq)
+except ImportError:
+    try:
+        from scipy.optimize import brentq
+    except ImportError:
+        pass
+
+
+def find_root(f, f_points, args=()):
+    """Find the roots of the given function by numerical methods.
+
+    Parameters
+    ----------
+    f : callable
+        The function.
+    f_points : onp.ndarray, list, tuple
+        The value points.
+
+
+    Returns
+    -------
+    roots : list
+        The roots.
+    """
+    vals = f(f_points, *args)
+    fs_len = len(f_points)
+    fs_sign = np.sign(vals)
+
+    roots = []
+    fl_sign = fs_sign[0]
+    f_i = 1
+    while f_i < fs_len and fl_sign == 0.:
+        roots.append(f_points[f_i - 1])
+        fl_sign = fs_sign[f_i]
+        f_i += 1
+    while f_i < fs_len:
+        fr_sign = fs_sign[f_i]
+        if fr_sign == 0.:
+            roots.append(f_points[f_i])
+            if f_i + 1 < fs_len:
+                fl_sign = fs_sign[f_i + 1]
+            else:
+                break
+            f_i += 2
+        else:
+            if not np.isnan(fr_sign) and fl_sign != fr_sign:
+                root = brentq(f, f_points[f_i - 1], f_points[f_i], args)
+                roots.append(root)
+            fl_sign = fr_sign
+            f_i += 1
+
+    return roots
+
+
+if njit is not None:
+    find_root = njit(find_root)

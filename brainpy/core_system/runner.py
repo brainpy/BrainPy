@@ -1087,11 +1087,11 @@ class TrajectoryRunner(Runner):
                 fixed_vars = dict()
         except AssertionError:
             raise ModelUseError('"fixed_vars" must be a dict.')
-        for var in fixed_vars.keys():
-            try:
-                assert var in self._model.variables
-            except AssertionError:
-                raise ModelUseError(f'"{var}" in "fixed_vars" is not defined in model "{self._model.name}".')
+        # for var in fixed_vars.keys():
+        #     try:
+        #         assert var in self._model.variables
+        #     except AssertionError:
+        #         raise ModelUseError(f'"{var}" in "fixed_vars" is not defined in model "{self._model.name}".')
         self.fixed_vars = dict()
         for integrator in self._model.integrators:
             var_name = integrator.diff_eq.var_name
@@ -1100,6 +1100,9 @@ class TrajectoryRunner(Runner):
                     self.fixed_vars[var_name] = fixed_vars.get(var_name)
                 else:
                     self.fixed_vars[var_name] = self._model.variables.get(var_name)
+        for var in fixed_vars.keys():
+            if var not in self.fixed_vars:
+                self.fixed_vars[var] = fixed_vars.get(var)
 
     def step_mode_np_vector(self):
         results = dict()

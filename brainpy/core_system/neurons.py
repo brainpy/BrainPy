@@ -62,7 +62,7 @@ class NeuGroup(BaseEnsemble):
     def __init__(
             self,
             model: NeuType,
-            geometry: typing.Union[typing.Tuple[int], typing.List[int], int],
+            geometry: typing.Union[typing.Tuple, typing.List, int],
             pars_update: typing.Dict = None,
             monitors: typing.Union[typing.List, typing.Tuple] = None,
             name: str = None
