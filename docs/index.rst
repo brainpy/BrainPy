@@ -49,6 +49,7 @@ efficient neural simulation framework for Python users.
    apis/profile
    apis/core
    apis/integration
+   apis/dynamics
    apis/connectivity
    apis/visualization
    apis/measure

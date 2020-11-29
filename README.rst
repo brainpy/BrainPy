@@ -172,35 +172,38 @@ Neurodynamics analysis
     <table border="0">
         <tr>
             <td border="0" width="30%">
-                <a href="examples/dynamics_analysis/phase_portrait.py">
+                <a href="examples/dynamics_analysis/phase_portrait_of_NaK_model.py">
                 <img src="docs/images/phase_plane_analysis.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/phase_portrait.py">Phase Plane Analysis</a></h3>
-                <p>Phase plane analysis of a two-dimensional system model.</p>
+                <h3><a href="examples/dynamics_analysis/phase_portrait_of_NaK_model.py">Phase Plane Analysis</a></h3>
+                <p>Phase plane analysis of a two-dimensional system model:
+                    the I<sub>Na,p+</sub>-I<sub>K</sub> model.</p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="examples/dynamics_analysis/bifurcation_codim-1.py">
+                <a href="examples/dynamics_analysis/1D_system_bifur_codim1.py">
                 <img src="docs/images/codimension1.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/bifurcation_codim-1.py">Codimension 1 Bifurcation Analysis</a></h3>
-                <p>An example of codimension 1 bifurcation analysis.</p>
+                <h3><a href="examples/dynamics_analysis/1D_system_bifur_codim1.py">Codimension 1 Bifurcation Analysis</a></h3>
+                <p>Codimension 1 bifurcation analysis of a one-dimensional system.</p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="examples/dynamics_analysis/bifurcation_codim-2.py">
+                <a href="examples/dynamics_analysis/2D_system_bifur_codim2.py">
                 <img src="docs/images/codimension2.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/bifurcation_codim-2.py">Codimension 2 Bifurcation Analysis</a></h3>
-                <p>An example of codimension 2 bifurcation analysis.</p>
+                <h3><a href="examples/dynamics_analysis/2D_system_bifur_codim2.py">
+                    Codimension 2 Bifurcation Analysis</a></h3>
+                <p>Codimension 2 bifurcation analysis of a two-variable neuron model:
+                    the I<sub>Na,p+</sub>-I<sub>K</sub> model.</p>
             </td>
         </tr>
     </table>
