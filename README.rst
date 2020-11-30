@@ -206,6 +206,18 @@ Neurodynamics analysis
                     the I<sub>Na,p+</sub>-I<sub>K</sub> model.</p>
             </td>
         </tr>
+        <tr>
+            <td border="0" width="30%">
+                <a href="examples/dynamics_analysis/FitzHugh_Nagumo_analysis.py">
+                <img src="docs/images/FitzHugh_Nagumo_codimension2.png">
+                </a>
+            </td>
+            <td border="0" valign="top">
+                <h3><a href="examples/dynamics_analysis/FitzHugh_Nagumo_analysis.py">
+                    Codimension 2 Bifurcation Analysis 2</a></h3>
+                <p>Codimension 2 bifurcation analysis of FitzHugh Nagumo model.</p>
+            </td>
+        </tr>
     </table>
 
 
