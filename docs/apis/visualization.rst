@@ -9,7 +9,7 @@ brainpy.visualize package
     :toctree: _autosummary
 
     get_figure
-    mpl_style1
+    plot_style1
     line_plot
     raster_plot
     animate_2D
