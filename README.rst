@@ -178,33 +178,35 @@ Neurodynamics analysis
             </td>
             <td border="0" valign="top">
                 <h3><a href="examples/dynamics_analysis/phase_portrait_of_NaK_model.py">Phase Plane Analysis</a></h3>
-                <p>Phase plane analysis of a two-dimensional system model:
-                    the I<sub>Na,p+</sub>-I<sub>K</sub> model.</p>
+                <p>Phase plane analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model, where
+                "input" is 50., and "Vn_half" is -45..</p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="examples/dynamics_analysis/1D_system_bifur_codim1.py">
-                <img src="docs/images/codimension1.png">
+                <a href="examples/dynamics_analysis/2D_system_bifur_codim1.py">
+                <img src="docs/images/NaK_model_codimension1.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/1D_system_bifur_codim1.py">
+                <h3><a href="examples/dynamics_analysis/2D_system_bifur_codim1.py">
                     Codimension 1 Bifurcation Analysis (1)</a></h3>
-                <p>Codimension 1 bifurcation analysis of a one-dimensional system.</p>
+                <p>Codimension 1 bifurcation analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model,
+                    in which "input" is varied in [0., 50.].</p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
                 <a href="examples/dynamics_analysis/2D_system_bifur_codim2.py">
-                <img src="docs/images/codimension2.png">
+                <img src="docs/images/NaK_model_codimension2.png">
                 </a>
             </td>
             <td border="0" valign="top">
                 <h3><a href="examples/dynamics_analysis/2D_system_bifur_codim2.py">
                     Codimension 2 Bifurcation Analysis (1)</a></h3>
                 <p>Codimension 2 bifurcation analysis of a two-variable neuron model:
-                    the I<sub>Na,p+</sub>-I<sub>K</sub> model.</p>
+                    the I<sub>Na,p+</sub>-I<sub>K</sub> model, in which "input" is varied
+                    in [0., 50.], and "Vn_half" is varied in [-50, -40].</p>
             </td>
         </tr>
         <tr>

@@ -94,10 +94,12 @@ neuron = get_Izhikevich()
 
 analyzer = bp.PhasePortraitAnalyzer(
     model=neuron,
-    target_vars=OrderedDict(V=[-90, 40], u=[-40., 40.]),
-    fixed_vars={'input': 30., 'Isyn': 30.})
+    target_vars=OrderedDict(V=[-100, 40], u=[-40., 40.]),
+    fixed_vars={'Isyn': 30.})
 plt.axvline(Vth, label='threshold')
 analyzer.plot_nullcline()
 analyzer.plot_vector_filed()
 analyzer.plot_fixed_point()
-analyzer.plot_trajectory([(-10, 0., 100.), (-10, 0., (50, 100.))], show=True)
+analyzer.plot_trajectory([(-10, 0., 100.), (-10, 0., (50, 100.))],
+                         inputs=('ST.input', 30.),
+                         show=True)
