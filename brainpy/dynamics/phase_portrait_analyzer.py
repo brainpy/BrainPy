@@ -166,7 +166,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         self.x_var = list(self.target_vars.keys())[0]
         self.f_dfdx = None
         self.f_dx = None
-    
+
     def get_f_dx(self):
         if self.f_dx is None:
             eqs_of_x = self.target_eqs[self.x_var]
@@ -182,18 +182,18 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             func = scope['func']
             self.f_dx = func
         return self.f_dx
-    
+
     def get_f_dfdx(self):
         if self.f_dfdx is None:
             x_symbol = sympy.Symbol(self.x_var, real=True)
             x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
             x_eq_group = self.target_eqs[self.x_var]
-    
+
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
             eq_x_scope.update(sympy_tools.get_mapping_scope())
             eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
-    
+
             # dfxdx
             try:
                 dfxdx_expr = sympy.diff(x_eq, x_symbol)
@@ -276,7 +276,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             x_range = onp.arange(*self.target_vars[self.x_var], resolution)
             x_values = find_root(optimizer, x_range)
             x_values = onp.array(x_values)
-        
+
         # differential #
         # ------------ #
 
@@ -783,7 +783,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 x_values = onp.array(x_values)
                 y_values = onp.array(y_values)
 
-                plt.plot(x_values, y_values, **y_style, label=f"{self.y_var} nullcline" )
+                plt.plot(x_values, y_values, **y_style, label=f"{self.y_var} nullcline")
 
         # Nullcline of the x variable
         eq_x_scope = deepcopy(self.pars_update)

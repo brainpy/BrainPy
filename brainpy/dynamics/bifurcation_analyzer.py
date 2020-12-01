@@ -3,11 +3,11 @@
 import typing
 from collections import OrderedDict
 from copy import deepcopy
-from pprint import pprint
 
 import matplotlib.pyplot as plt
 import numpy as onp
 import sympy
+from mpl_toolkits.mplot3d import Axes3D
 
 from .solver import find_root
 from .utils import get_1d_classification
@@ -18,8 +18,6 @@ from .. import tools
 from ..core_system import NeuType
 from ..errors import ModelUseError
 from ..integration import sympy_tools
-
-from mpl_toolkits.mplot3d import Axes3D
 
 try:
     from numba import njit
@@ -821,4 +819,3 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
 if __name__ == '__main__':
     Axes3D
-
