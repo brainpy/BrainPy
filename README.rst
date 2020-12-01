@@ -189,7 +189,8 @@ Neurodynamics analysis
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/1D_system_bifur_codim1.py">Codimension 1 Bifurcation Analysis</a></h3>
+                <h3><a href="examples/dynamics_analysis/1D_system_bifur_codim1.py">
+                    Codimension 1 Bifurcation Analysis (1)</a></h3>
                 <p>Codimension 1 bifurcation analysis of a one-dimensional system.</p>
             </td>
         </tr>
@@ -201,9 +202,22 @@ Neurodynamics analysis
             </td>
             <td border="0" valign="top">
                 <h3><a href="examples/dynamics_analysis/2D_system_bifur_codim2.py">
-                    Codimension 2 Bifurcation Analysis</a></h3>
+                    Codimension 2 Bifurcation Analysis (1)</a></h3>
                 <p>Codimension 2 bifurcation analysis of a two-variable neuron model:
                     the I<sub>Na,p+</sub>-I<sub>K</sub> model.</p>
+            </td>
+        </tr>
+        <tr>
+            <td border="0" width="30%">
+                <a href="examples/dynamics_analysis/FitzHugh_Nagumo_analysis.py">
+                <img src="docs/images/FitzHugh_Nagumo_codimension1.png">
+                </a>
+            </td>
+            <td border="0" valign="top">
+                <h3><a href="examples/dynamics_analysis/FitzHugh_Nagumo_analysis.py">
+                    Codimension 1 Bifurcation Analysis (2)</a></h3>
+                <p>Codimension 1 bifurcation analysis of FitzHugh Nagumo model, in which
+                    "a" is equal to 0.7, and "Iext" is varied in [0., 1.].</p>
             </td>
         </tr>
         <tr>
@@ -214,8 +228,9 @@ Neurodynamics analysis
             </td>
             <td border="0" valign="top">
                 <h3><a href="examples/dynamics_analysis/FitzHugh_Nagumo_analysis.py">
-                    Codimension 2 Bifurcation Analysis 2</a></h3>
-                <p>Codimension 2 bifurcation analysis of FitzHugh Nagumo model.</p>
+                    Codimension 2 Bifurcation Analysis (2)</a></h3>
+                <p>Codimension 2 bifurcation analysis of FitzHugh Nagumo model, in which "a"
+                   is varied in [0.5, 1.0], and "Iext" is varied in [0., 1.].</p>
             </td>
         </tr>
     </table>

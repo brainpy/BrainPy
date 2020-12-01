@@ -50,13 +50,13 @@ neuron = get_model()
 # analyzer.plot_trajectory([(-2.8, -1.8, 100.)], show=True)
 
 
-# analyzer = bp.BifurcationAnalyzer(
-#     model=neuron,
-#     target_pars={'Iext': [0., 1.]},
-#     dynamical_vars={'v': [-3, 3], 'w': [-3., 3.]},
-#     par_resolution=0.001,
-# )
-# analyzer.plot_bifurcation(plot_vars=['v'], show=True)
+analyzer = bp.BifurcationAnalyzer(
+    model=neuron,
+    target_pars={'Iext': [0., 1.]},
+    dynamical_vars={'v': [-3, 3], 'w': [-3., 3.]},
+    par_resolution=0.001,
+)
+analyzer.plot_bifurcation(plot_vars=['v'], show=True)
 
 
 analyzer = bp.BifurcationAnalyzer(
