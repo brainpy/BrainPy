@@ -17,8 +17,8 @@
     :target: https://anaconda.org/brainpy/brain.py
     :alt: Conda version
 
-.. image:: https://badge.fury.io/py/Brain.Py.svg
-    :target: https://badge.fury.io/py/Brain.Py
+.. image:: https://badge.fury.io/py/brain.py.svg
+    :target: https://badge.fury.io/py/brain.py
     :alt: Pypi Version
 
 
