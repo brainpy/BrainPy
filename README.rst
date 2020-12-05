@@ -101,12 +101,12 @@ Neurodynamics simulation
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="examples/synapses/AMPA_vector.py">
+                <a href="examples/synapses/AMPA.py">
                 <img src="docs/images/AMPA_model.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/synapses/AMPA_vector.py">AMPA Synapse Model</a></h3>
+                <h3><a href="examples/synapses/AMPA.py">AMPA Synapse Model</a></h3>
                 <p>AMPA synapse model.</p>
             </td>
         </tr>
