@@ -9,16 +9,11 @@ Implementation of the paper:
 
 """
 
-import matplotlib.pyplot as plt
 
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba',
-               device='cpu',
-               dt=0.04,
-               merge_steps=True,
-               numerical_method='exponential')
+bp.profile.set(backend='numba', dt=0.04, numerical_method='exponential')
 
 # HH neuron model #
 # --------------- #

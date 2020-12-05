@@ -164,10 +164,9 @@ class Network(object):
         # inputs
         format_inputs = self._format_inputs(inputs, run_length)
 
-        mode = profile.get_backend()
         for obj in self._all_objects:
             code_scopes[obj.name] = obj
-            lines_of_call = obj._build(mode, inputs=format_inputs.get(obj.name, None), mon_length=run_length)
+            lines_of_call = obj._build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)
             code_lines.extend(lines_of_call)
         func_code = '\n  '.join(code_lines)
         if profile._auto_pep8:
@@ -224,7 +223,7 @@ class Network(object):
         if report:
             t0 = time.time()
             _step_func(_t_=ts[0], _i_=0, _dt_=dt)
-            print('Compilation used {:.4f} ms.'.format(time.time() - t0))
+            print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)

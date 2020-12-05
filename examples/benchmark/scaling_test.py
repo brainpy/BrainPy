@@ -62,7 +62,7 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['n'] = n
         ST['inp'] = 0.
 
-    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update, vector_based=True)
+    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update)
 
 
 bp.profile.set(dt=0.1,

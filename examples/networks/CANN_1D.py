@@ -69,8 +69,7 @@ requires = {
 
 cann = bp.NeuType(name='CANN',
                   steps=neu_update,
-                  requires=requires,
-                  vector_based=True)
+                  requires=requires)
 
 
 # connection #

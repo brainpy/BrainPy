@@ -124,10 +124,6 @@ class NeuGroup(BrainEnsemble):
         # --
         self.ST = self.requires['ST'].make_copy(num)
 
-    @property
-    def _keywords(self):
-        return super(NeuGroup, self)._keywords + ['geometry', ]
-
     def __getitem__(self, item):
         """Return a subset of neuron group.
 

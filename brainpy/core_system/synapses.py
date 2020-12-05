@@ -256,7 +256,7 @@ class SynConn(BrainEnsemble):
             size = (pre_size, post_size)
         else:
             size = (self.num,)
-        delay_vars = list(self.model._delay_keys['ST'])
+        delay_vars = list(self.model._delay_keys.get('ST', []))
         self.ST = self.requires['ST'].make_copy(size=size,
                                                 delay=delay_len,
                                                 delay_vars=delay_vars)

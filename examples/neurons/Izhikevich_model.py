@@ -125,11 +125,14 @@ def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., m
             ST['u'] = u
             ST['inp'] = 0.
 
-    return bp.NeuType(name='Izhikevich', requires={'ST': state}, steps=update, vector_based=False)
+    return bp.NeuType(name='Izhikevich',
+                      requires={'ST': state},
+                      steps=update,
+                      mode='scalar')
 
 
 if __name__ == '__main__':
-    bp.profile.set(backend='numba', merge_steps=True)
+    bp.profile.set(backend='numba')
 
     Izhikevich = define_Izhikevich()
     neu = bp.NeuGroup(Izhikevich, 10, monitors=['V', 'u'])

@@ -44,4 +44,4 @@ def get_VoltageJumpSynapse(post_has_refractory=False):
     return bp.SynType(name='VoltageJumpSynapse',
                       requires=requires,
                       steps=(update, output),
-                      vector_based=True)
+                      mode='vector')

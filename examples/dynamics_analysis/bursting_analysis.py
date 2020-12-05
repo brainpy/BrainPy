@@ -50,8 +50,7 @@ def get_model(a=1., b=3., c=1., d=5., s=4., x_r=-1.6, r=0.001, Vth=1.9):
 
     return bp.NeuType(name='Hindmarsh_Rose_model',
                       requires={'ST': state},
-                      steps=update,
-                      vector_based=True)
+                      steps=update)
 
 
 neuron = get_model()

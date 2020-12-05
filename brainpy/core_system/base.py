@@ -221,8 +221,8 @@ class ParsUpdate(dict):
                                          model=model)
 
     def __setitem__(self, key, value):
-        if profile.is_numpy_bk():
-            print('WARNING: NumPy mode do not support modify parameters. '
+        if profile.is_debug():
+            print('WARNING: DEBUG mode do not support modify parameters. '
                   'Please update parameters at the initialization of NeuType/SynType.')
 
         # check the existence of "key"
@@ -440,7 +440,7 @@ class BrainEnsemble(object):
         else:
             raise ValueError
 
-    def _build(self, mode, inputs=None, mon_length=0):
+    def _build(self, inputs=None, mon_length=0):
         # prerequisite
         self._type_checking()
 
@@ -449,22 +449,22 @@ class BrainEnsemble(object):
 
         # inputs
         if inputs:
-            r = self.runner.format_input_code(inputs, mode=mode)
+            r = self.runner.format_input_code(inputs)
             results.update(r)
 
         # monitors
         if len(self._mon_vars):
-            mon, r = self.runner.format_monitor_code(self._mon_vars, run_length=mon_length, mode=mode)
+            mon, r = self.runner.format_monitor_code(self._mon_vars, run_length=mon_length)
             results.update(r)
             self.mon.clear()
             self.mon.update(mon)
 
         # steps
-        r = self.runner.format_step_codes(mode=mode)
+        r = self.runner.format_step_codes()
         results.update(r)
 
         # merge
-        calls = self.runner.merge_steps(results, mode=mode)
+        calls = self.runner.merge_steps(results)
 
         if self._cls_type == _SYN_CONN:
             index_update_items = set()
@@ -480,15 +480,6 @@ class BrainEnsemble(object):
     @property
     def requires(self):
         return self.model.requires
-
-    @property
-    def _keywords(self):
-        kws = [
-            'model', 'num', '_mon_vars', 'mon', '_cls_type', '_keywords',
-        ]
-        if hasattr(self, 'model'):
-            kws += self.model.step_names
-        return kws
 
     def run(self, duration, inputs=(), report=False, report_percent=0.1):
         # times
@@ -565,8 +556,7 @@ class BrainEnsemble(object):
 
         # get step function
         # -------------------
-        lines_of_call = self._build(mode=profile.get_backend(),
-                                    inputs=formatted_inputs,
+        lines_of_call = self._build(inputs=formatted_inputs,
                                     mon_length=run_length)
         code_lines = ['def step_func(_t_, _i_, _dt_):']
         code_lines.extend(lines_of_call)
@@ -585,7 +575,7 @@ class BrainEnsemble(object):
         if report:
             t0 = time.time()
             step_func(_t_=times[0], _i_=0, _dt_=dt)
-            print('Compilation used {:.4f} ms.'.format(time.time() - t0))
+            print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)
@@ -601,10 +591,3 @@ class BrainEnsemble(object):
                 step_func(_t_=times[run_idx], _i_=run_idx, _dt_=dt)
 
         self.mon['ts'] = times
-
-    def __setattr__(self, key, value):
-        if key in self._keywords:
-            if hasattr(self, key):
-                raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, '
-                               f'please change another name.')
-        super(BrainEnsemble, self).__setattr__(key, value)
