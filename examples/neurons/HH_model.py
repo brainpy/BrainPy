@@ -86,7 +86,7 @@ if __name__ == '__main__':
     bp.profile.set(backend='numba', device='cpu', dt=0.02,
                    numerical_method='exponential')
 
-    HH = define_hh(noise=1.)
+    HH = define_hh(noise=0.)
     neu = bp.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])
     neu.ST['V'] = np.random.random(100) * 20 + -75  # set initial variable state
     neu.pars['g_K'] = np.random.random(100) * 2 + 35  # update parameters

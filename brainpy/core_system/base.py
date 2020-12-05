@@ -46,14 +46,14 @@ class BaseType(object):
             requires: typing.Dict,
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
             name: str,
-            vector_based: bool = True,
+            mode: str = 'vector',
             heter_params_replace: typing.Dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
             extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
         # type : neuron based or group based code
         # ---------------------------------------
-        self.vector_based = vector_based
+        self.mode = mode
 
         # name
         # -----

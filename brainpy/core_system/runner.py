@@ -6,8 +6,7 @@ from importlib import import_module
 
 import autopep8
 
-from .constants import ARG_KEYWORDS
-from .constants import INPUT_OPERATIONS
+from . import constants
 from .types import ObjState
 from .. import numpy as np
 from .. import profile
@@ -76,9 +75,9 @@ class Runner(object):
         # ----------------------
         for _, _, ops, _ in key_val_ops_types:
             try:
-                assert ops in INPUT_OPERATIONS
+                assert ops in constants.INPUT_OPERATIONS
             except AssertionError:
-                raise ModelUseError(f'Only support five input operations: {list(INPUT_OPERATIONS.keys())}')
+                raise ModelUseError(f'Only support five input operations: {list(constants.INPUT_OPERATIONS.keys())}')
 
         # generate code of input function
         # --------------------------------
@@ -310,7 +309,7 @@ class Runner(object):
                                  'codes': code_lines, 'call': func_call}}
 
     def format_step_codes(self, mode):
-        if self._model.vector_based:
+        if self._model.mode == constants.SCALAR_MODE:
             if mode == 'numpy':
                 return self.step_mode_np_vector()
             elif mode in ['numba', 'tf-numpy']:
@@ -397,7 +396,7 @@ class Runner(object):
             # get the function call
             arg_calls = []
             for arg in func_args:
-                arg_calls.append(arg if arg in ARG_KEYWORDS else f"{self._name}.{arg}")
+                arg_calls.append(arg if arg in constants.ARG_KEYWORDS else f"{self._name}.{arg}")
             func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg_calls)})'
 
             # get the function result
@@ -433,7 +432,7 @@ class Runner(object):
             # arg and arg2call
             code_arg, code_arg2call = [], {}
             for arg in func_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     code_arg2call[arg] = arg
                     code_arg.append(arg)
                 else:
@@ -638,7 +637,7 @@ class Runner(object):
                         scope_to_add[k_] = v_
 
                 else:
-                    if not self._model.vector_based:
+                    if self._model.mode == constants.SCALAR_MODE:
                         for ks, vs in tools.get_func_scope(v.update_func, include_dispatcher=True).items():
                             if ks in self._pars.heters:
                                 raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in step functions, '
@@ -681,7 +680,7 @@ class Runner(object):
             # check function code
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
-                          if k not in ARG_KEYWORDS and
+                          if k not in constants.ARG_KEYWORDS and
                           isinstance(getattr(self.ensemble, k), ObjState)}
             except AttributeError:
                 raise ModelUseError(f'Model "{self._name}" does not have all the '
@@ -732,7 +731,7 @@ class Runner(object):
             code_args = add_args
             arg_substitute = {}
             for arg in used_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     new_arg = arg
                     code_arg2call[arg] = arg
                 else:
@@ -806,7 +805,7 @@ class Runner(object):
             func_code, code_scope = self.step_substitute_integrator(func)
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
-                          if k not in ARG_KEYWORDS and
+                          if k not in constants.ARG_KEYWORDS and
                           isinstance(getattr(self.ensemble, k), ObjState)}
             except AttributeError:
                 raise ModelUseError(f'Model "{self._name}" does not have all the '
@@ -873,7 +872,7 @@ class Runner(object):
             code_args = add_args
             arg_substitute = {}
             for arg in used_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     new_arg = arg
                     code_arg2call[arg] = arg
                 else:
@@ -1144,7 +1143,7 @@ class TrajectoryRunner(Runner):
             # get the function call
             arg_calls = []
             for arg in func_args:
-                arg_calls.append(arg if arg in ARG_KEYWORDS else f"{self._name}.{arg}")
+                arg_calls.append(arg if arg in constants.ARG_KEYWORDS else f"{self._name}.{arg}")
             func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg_calls)})'
 
             # get the function result
@@ -1176,7 +1175,7 @@ class TrajectoryRunner(Runner):
             # arg and arg2call
             code_arg, code_arg2call = [], {}
             for arg in func_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     code_arg2call[arg] = arg
                     code_arg.append(arg)
                 else:

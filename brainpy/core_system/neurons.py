@@ -6,6 +6,7 @@ from .base import BaseEnsemble
 from .base import BaseType
 from .constants import _NEU_GROUP
 from .. import numpy as np
+from ..errors import ModelDefError
 from ..errors import ModelUseError
 
 __all__ = [
@@ -28,15 +29,19 @@ class NeuType(BaseType):
             name: str,
             requires: dict,
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-            vector_based: bool = True,
+            mode: str = 'vector',
             heter_params_replace: typing.Dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
             extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
+
+        if mode not in ['scalar', 'vector']:
+            raise ModelDefError('NeuType only support "scalar" or "vector".')
+
         super(NeuType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
-                                      vector_based=vector_based,
+                                      mode=mode,
                                       heter_params_replace=heter_params_replace,
                                       extra_functions=extra_functions,
                                       extra_attributes=extra_attributes)
