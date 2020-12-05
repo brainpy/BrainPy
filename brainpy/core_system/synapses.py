@@ -3,8 +3,8 @@
 import re
 import typing
 
-from .base import BaseEnsemble
-from .base import BaseType
+from .base import BrainEnsemble
+from .base import BrainType
 from . import constants
 from .neurons import NeuGroup
 from .neurons import NeuSubGroup
@@ -25,7 +25,7 @@ __all__ = [
 _SYN_CONN_NO = 0
 
 
-class SynType(BaseType):
+class SynType(BrainType):
     """Abstract Synapse Type.
 
     It can be defined based on a collection of synapses or a single synapse model.
@@ -84,7 +84,7 @@ class SynType(BaseType):
             self._delay_keys = _delay_keys
 
 
-class SynConn(BaseEnsemble):
+class SynConn(BrainEnsemble):
     """Synaptic connections.
 
     Parameters

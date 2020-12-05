@@ -24,13 +24,13 @@ from ..errors import ModelDefError
 from ..errors import ModelUseError
 
 __all__ = [
-    'BaseType',
-    'BaseEnsemble',
+    'BrainType',
+    'BrainEnsemble',
     'ParsUpdate',
 ]
 
 
-class BaseType(object):
+class BrainType(object):
     """The base type of neuron and synapse.
 
     Parameters
@@ -316,7 +316,7 @@ class ParsUpdate(dict):
         return origins
 
 
-class BaseEnsemble(object):
+class BrainEnsemble(object):
     """Base Ensemble class.
 
     Parameters
@@ -325,7 +325,7 @@ class BaseEnsemble(object):
         Name of the (neurons/synapses) ensemble.
     num : int
         The number of the neurons/synapses.
-    model : BaseType
+    model : BrainType
         The (neuron/synapse) model.
     monitors : list, tuple, None
         Variables to monitor.
@@ -339,7 +339,7 @@ class BaseEnsemble(object):
             self,
             name: str,
             num: int,
-            model: BaseType,
+            model: BrainType,
             monitors: typing.Tuple,
             pars_update: typing.Dict,
             cls_type: str
@@ -607,4 +607,4 @@ class BaseEnsemble(object):
             if hasattr(self, key):
                 raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, '
                                f'please change another name.')
-        super(BaseEnsemble, self).__setattr__(key, value)
+        super(BrainEnsemble, self).__setattr__(key, value)

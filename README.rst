@@ -13,8 +13,8 @@
     :target: https://brainpy.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://anaconda.org/brainpy/brainpy/badges/version.svg
-    :target: https://anaconda.org/brainpy/brainpy
+.. image:: https://anaconda.org/brainpy/brain.py/badges/version.svg
+    :target: https://anaconda.org/brainpy/brain.py
     :alt: Conda version
 
 .. image:: https://badge.fury.io/py/Brain.Py.svg
@@ -51,16 +51,11 @@ Installation
 
 Install from source code::
 
-    > git clone https://github.com/PKU-NIP-Lab/BrainPy
-    > python setup.py install
-    >
-    > # or
-    >
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
 Install ``BrainPy`` using ``conda``::
 
-    > conda install -c brainpy brainpy
+    > conda install brain.py -c brainpy
 
 Install ``BrainPy`` using ``pip``::
 
