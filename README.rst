@@ -13,12 +13,12 @@
     :target: https://brainpy.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://anaconda.org/brainpy/brainpy/badges/version.svg
-    :target: https://anaconda.org/brainpy/brainpy
+.. image:: https://anaconda.org/brainpy/brain.py/badges/version.svg
+    :target: https://anaconda.org/brainpy/brain.py
     :alt: Conda version
 
-.. image:: https://badge.fury.io/py/Brain.Py.svg
-    :target: https://badge.fury.io/py/Brain.Py
+.. image:: https://badge.fury.io/py/brain.py.svg
+    :target: https://badge.fury.io/py/brain.py
     :alt: Pypi Version
 
 
@@ -51,16 +51,11 @@ Installation
 
 Install from source code::
 
-    > git clone https://github.com/PKU-NIP-Lab/BrainPy
-    > python setup.py install
-    >
-    > # or
-    >
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
 Install ``BrainPy`` using ``conda``::
 
-    > conda install -c brainpy brainpy
+    > conda install brain.py -c brainpy
 
 Install ``BrainPy`` using ``pip``::
 
@@ -106,12 +101,12 @@ Neurodynamics simulation
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="examples/synapses/AMPA_vector.py">
+                <a href="examples/synapses/AMPA.py">
                 <img src="docs/images/AMPA_model.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/synapses/AMPA_vector.py">AMPA Synapse Model</a></h3>
+                <h3><a href="examples/synapses/AMPA.py">AMPA Synapse Model</a></h3>
                 <p>AMPA synapse model.</p>
             </td>
         </tr>

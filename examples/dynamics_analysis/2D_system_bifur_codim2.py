@@ -83,8 +83,7 @@ def get_NaK_model(V_th=20., type='low-threshold'):
 
     return bp.NeuType(name="NaK_model",
                       requires=dict(ST=ST),
-                      steps=update,
-                      vector_based=True)
+                      steps=update)
 
 
 analyzer = bp.BifurcationAnalyzer(

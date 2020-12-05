@@ -28,8 +28,7 @@ def define_model():
 
     return bp.NeuType(name="dummy_model",
                       requires=dict(ST=ST),
-                      steps=update,
-                      vector_based=True)
+                      steps=update)
 
 
 an = bp.BifurcationAnalyzer(

@@ -3,9 +3,9 @@
 import re
 import typing
 
-from .base import BaseEnsemble
-from .base import BaseType
-from .constants import _SYN_CONN
+from .base import BrainEnsemble
+from .base import BrainType
+from . import constants
 from .neurons import NeuGroup
 from .neurons import NeuSubGroup
 from .types import SynState
@@ -25,7 +25,7 @@ __all__ = [
 _SYN_CONN_NO = 0
 
 
-class SynType(BaseType):
+class SynType(BrainType):
     """Abstract Synapse Type.
 
     It can be defined based on a collection of synapses or a single synapse model.
@@ -36,15 +36,21 @@ class SynType(BaseType):
             name: str,
             requires: dict,
             steps: typing.Union[callable, list, tuple],
-            vector_based: bool = True,
+            mode: str = 'vector',
             heter_params_replace: dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
             extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
+        if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE, constants.MATRIX_MODE]:
+            raise ModelDefError('NeuType only support "scalar", "vector" or "matrix".')
+
+        if mode == constants.SCALAR_MODE:
+            print("WARNING: scalar-based synapse model will not be supported in future.")
+
         super(SynType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
-                                      vector_based=vector_based,
+                                      mode=mode,
                                       heter_params_replace=heter_params_replace,
                                       extra_functions=extra_functions,
                                       extra_attributes=extra_attributes)
@@ -78,7 +84,7 @@ class SynType(BaseType):
             self._delay_keys = _delay_keys
 
 
-class SynConn(BaseEnsemble):
+class SynConn(BrainEnsemble):
     """Synaptic connections.
 
     Parameters
@@ -108,12 +114,12 @@ class SynConn(BaseEnsemble):
             model: SynType,
             pre_group: typing.Union[NeuGroup, NeuSubGroup] = None,
             post_group: typing.Union[NeuGroup, NeuSubGroup] = None,
-            conn: typing.Union[Connector, np.ndarray, dict] = None,
-            pars_update: dict = None,
-            num: int = None,
+            conn: typing.Union[Connector, np.ndarray, typing.Dict] = None,
+            pars_update: typing.Dict = None,
             delay: float = 0.,
-            monitors: typing.Union[tuple, list] = None,
-            name: str = None
+            monitors: typing.Union[typing.Tuple, typing.List] = None,
+            name: str = None,
+            **kwargs: typing.Any,
     ):
         # name
         # ----
@@ -132,7 +138,7 @@ class SynConn(BaseEnsemble):
             raise ModelUseError(f'{type(self).__name__} receives an instance of {SynType.__name__}, '
                                 f'not {type(model).__name__}.')
 
-        if not model.vector_based:
+        if model.mode == 'scalar':
             if pre_group is None or post_group is None:
                 raise ModelUseError('Connection based on scalar-based synapse model must '
                                     'provide "pre_group" and "post_group".')
@@ -145,17 +151,11 @@ class SynConn(BaseEnsemble):
         if pre_group is not None and post_group is not None:
             # check
             # ------
-            try:
-                assert isinstance(pre_group, (NeuGroup, NeuSubGroup))
-            except AssertionError:
+            if not isinstance(pre_group, (NeuGroup, NeuSubGroup)):
                 raise ModelUseError('"pre_group" must be an instance of NeuGroup/NeuSubGroup.')
-            try:
-                assert isinstance(post_group, (NeuGroup, NeuSubGroup))
-            except AssertionError:
+            if not isinstance(post_group, (NeuGroup, NeuSubGroup)):
                 raise ModelUseError('"post_group" must be an instance of NeuGroup/NeuSubGroup.')
-            try:
-                assert conn is not None
-            except AssertionError:
+            if conn is None:
                 raise ModelUseError('"conn" must be provided when "pre_group" and "post_group" are not None.')
 
             # pre and post synaptic state
@@ -170,30 +170,21 @@ class SynConn(BaseEnsemble):
             else:
                 if isinstance(conn, np.ndarray):
                     # check matrix dimension
-                    try:
-                        assert np.ndim(conn) == 2
-                    except AssertionError:
+                    if np.ndim(conn) != 2:
                         raise ModelUseError(f'"conn" must be a 2D array, not {np.ndim(conn)}D.')
                     # check matrix shape
                     conn_shape = np.shape(conn)
-                    try:
-                        assert conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num
-                    except AssertionError:
+                    if not (conn_shape[0] == pre_group.num and conn_shape[1] == post_group.num):
                         raise ModelUseError(f'The shape of "conn" must be ({pre_group.num}, {post_group.num})')
                     # get pre_ids and post_ids
                     pre_ids, post_ids = np.where(conn > 0)
                 else:
                     # check conn type
-                    try:
-                        assert isinstance(conn, dict)
-                    except AssertionError:
+                    if not isinstance(conn, dict):
                         raise ModelUseError(f'"conn" only support "dict", 2D ndarray, '
                                             f'or instance of bp.connect.Connector.')
                     # check conn content
-                    try:
-                        assert 'i' in conn
-                        assert 'j' in conn
-                    except AssertionError:
+                    if not ('i' in conn and 'j' in conn):
                         raise ModelUseError('When provided "conn" is a dict, "i" and "j" must in "conn".')
                     # get pre_ids and post_ids
                     pre_ids = np.asarray(conn['i'], dtype=np.int_)
@@ -204,7 +195,7 @@ class SynConn(BaseEnsemble):
 
             # get synaptic structures
             self.conn.set_size(num_post=post_group.size, num_pre=pre_group.size)
-            if not model.vector_based:
+            if model.mode == constants.SCALAR_MODE:
                 self.conn.set_requires(model.step_args + ['post2syn', 'pre2syn'])
             else:
                 self.conn.set_requires(model.step_args)
@@ -215,15 +206,23 @@ class SynConn(BaseEnsemble):
             num = len(self.pre_ids)
 
         else:
-            try:
-                assert num is not None
-            except AssertionError:
+            if 'num' not in kwargs:
                 raise ModelUseError('"num" must be provided when "pre_group" and "post_group" are none.')
+            num = kwargs['num']
 
         try:
             assert 0 < num < 2 ** 64
         except AssertionError:
             raise ModelUseError('Total synapse number "num" must be a valid number in "uint64".')
+
+        # initialize
+        # ----------
+        super(SynConn, self).__init__(model=model,
+                                      pars_update=pars_update,
+                                      name=name,
+                                      num=num,
+                                      monitors=monitors,
+                                      cls_type=constants._SYN_CONN)
 
         # delay
         # -------
@@ -238,24 +237,29 @@ class SynConn(BaseEnsemble):
             raise ValueError("BrainPy currently doesn't support other kinds of delay.")
         self.delay_len = delay_len  # delay length
 
-        # initialize
-        # ----------
-        super(SynConn, self).__init__(model=model,
-                                      pars_update=pars_update,
-                                      name=name,
-                                      num=num,
-                                      monitors=monitors,
-                                      cls_type=_SYN_CONN)
-
         # ST
         # --
-        if 'ST' in self.model._delay_keys:
-            self.ST = self.requires['ST'].make_copy(size=self.num,
-                                                    delay=delay_len,
-                                                    delay_vars=list(self.model._delay_keys['ST']))
+        if self.model.mode == 'matrix':
+            if pre_group is None:
+                if 'pre_size' not in kwargs:
+                    raise ModelUseError('"pre_size" must be provided when "pre_group" is none.')
+                pre_size = kwargs['pre_size']
+            else:
+                pre_size = pre_group.size
+
+            if post_group is None:
+                if 'post_size' not in kwargs:
+                    raise ModelUseError('"post_size" must be provided when "post_group" is none.')
+                post_size = kwargs['post_size']
+            else:
+                post_size = post_group.size
+            size = (pre_size, post_size)
         else:
-            self.ST = self.requires['ST'].make_copy(size=self.num,
-                                                    delay=delay_len)
+            size = (self.num,)
+        delay_vars = list(self.model._delay_keys.get('ST', []))
+        self.ST = self.requires['ST'].make_copy(size=size,
+                                                delay=delay_len,
+                                                delay_vars=delay_vars)
 
 
 def post_cond_by_post2syn(syn_val, post2syn):

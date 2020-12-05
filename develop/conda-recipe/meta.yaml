@@ -1,5 +1,5 @@
 package:
-    name: brainpy
+    name: brain.py
     version: "0.2.5"
 
 source:

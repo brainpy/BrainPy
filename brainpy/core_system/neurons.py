@@ -2,10 +2,11 @@
 
 import typing
 
-from .base import BaseEnsemble
-from .base import BaseType
+from .base import BrainEnsemble
+from .base import BrainType
 from .constants import _NEU_GROUP
 from .. import numpy as np
+from ..errors import ModelDefError
 from ..errors import ModelUseError
 
 __all__ = [
@@ -17,7 +18,7 @@ __all__ = [
 _NEU_GROUP_NO = 0
 
 
-class NeuType(BaseType):
+class NeuType(BrainType):
     """Abstract Neuron Type.
 
     It can be defined based on a group of neurons or a single neuron.
@@ -28,21 +29,25 @@ class NeuType(BaseType):
             name: str,
             requires: dict,
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-            vector_based: bool = True,
+            mode: str = 'vector',
             heter_params_replace: typing.Dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
             extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
+
+        if mode not in ['scalar', 'vector']:
+            raise ModelDefError('NeuType only support "scalar" or "vector".')
+
         super(NeuType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,
-                                      vector_based=vector_based,
+                                      mode=mode,
                                       heter_params_replace=heter_params_replace,
                                       extra_functions=extra_functions,
                                       extra_attributes=extra_attributes)
 
 
-class NeuGroup(BaseEnsemble):
+class NeuGroup(BrainEnsemble):
     """Neuron Group.
 
     Parameters
@@ -118,10 +123,6 @@ class NeuGroup(BaseEnsemble):
         # ST
         # --
         self.ST = self.requires['ST'].make_copy(num)
-
-    @property
-    def _keywords(self):
-        return super(NeuGroup, self)._keywords + ['geometry', ]
 
     def __getitem__(self, item):
         """Return a subset of neuron group.

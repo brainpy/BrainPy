@@ -62,7 +62,7 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['n'] = n
         ST['inp'] = 0.
 
-    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update, vector_based=True)
+    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update)
 
 
 bp.profile.set(dt=0.1,
@@ -73,9 +73,11 @@ bp.profile.set(dt=0.1,
 def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
     print(f'HH, vector_based={vector}, device=cpu', end=', ')
     bp.profile.set(backend='numba', device='cpu')
+
     HH = define_hh()
-    HH.vector_based = vector
+    HH.mode = 'vector' if vector else 'scalar'
     neu = bp.NeuGroup(HH, geometry=num)
+
     t0 = time.time()
     neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
     t_cpu = time.time() - t0
@@ -83,7 +85,6 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
 
     print(f'HH, vector_based={vector}, device=multi-cpu', end=', ')
     bp.profile.set(backend='numba', device='multi-cpu')
-    HH.vector_based = vector
     neu = bp.NeuGroup(HH, geometry=num)
     t0 = time.time()
     neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)

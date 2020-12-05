@@ -26,8 +26,7 @@ def get_model(a=0.7, b=0.8, tau=12.5, Vth=1.9):
 
     return bp.NeuType(name='FitzHugh_Nagumo',
                       requires={'ST': state},
-                      steps=update,
-                      vector_based=True)
+                      steps=update)
 
 
 neuron = get_model()

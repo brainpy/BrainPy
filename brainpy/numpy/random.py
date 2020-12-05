@@ -92,7 +92,7 @@ def _reload(backend):
             else:
                 global_vars[__ops] = getattr(numpy.random, __ops)
 
-    elif backend == 'tf-numpy':
+    elif backend == 'tensorflow':
         tf_random = import_module('tensorflow.experimental.numpy.random')
         from ._backends import _tensorflow
 

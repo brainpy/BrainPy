@@ -130,7 +130,7 @@ class SynState(ObjState):
         self._delay_in = 0
         self._delay_out = 0
 
-    def __call__(self, size, delay=None, delay_vars=('cond',)):
+    def __call__(self, size, delay=None, delay_vars=()):
         # check size
         if isinstance(size, int):
             size = (size,)

@@ -529,7 +529,7 @@ def _reload(backend):
             else:
                 global_vars[__ops] = getattr(numpy, __ops)
 
-    elif backend == 'tf-numpy':
+    elif backend == 'tensorflow':
         tf_numpy = import_module('tensorflow.experimental.numpy')
         from ._backends import _tensorflow
 

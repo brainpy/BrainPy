@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba')
+bp.profile.set(backend='numpy')
 
 tau = 100.  # ms
 Vth = 1.  # mV
@@ -34,8 +34,9 @@ def update(ST, _t_):
 
 
 ST = bp.types.NeuState({'V': 0, 'spike': 0., 'input': 0.})
-lif = bp.NeuType(name='LIF', requires=dict(ST=ST),
-                 steps=update, vector_based=True)
+lif = bp.NeuType(name='LIF',
+                 requires=dict(ST=ST),
+                 steps=update)
 
 group = bp.NeuGroup(lif, geometry=2000, monitors=['spike'])
 inputs = np.linspace(2., 4., group.num)

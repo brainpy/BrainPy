@@ -10,10 +10,7 @@ import brainpy.numpy as np
 import matplotlib.pyplot as plt
 
 
-bp.profile.set(backend='numba',
-               device='cpu',
-               merge_steps=True,
-               numerical_method='exponential')
+bp.profile.set(backend='numba', numerical_method='exponential')
 
 num_exc = 500
 num_inh = 500
@@ -53,7 +50,7 @@ def update(ST, _t_):
 neu = bp.NeuType(name='LIF',
                  requires=dict(ST=neu_ST),
                  steps=update,
-                 vector_based=False)
+                 mode='scalar')
 
 # -------
 # synapse
@@ -90,8 +87,7 @@ def output(ST, post, post_slice_syn):
 
 syn = bp.SynType(name='alpha_synapse',
                  requires=dict(ST=syn_ST),
-                 steps=(update, output),
-                 vector_based=True)
+                 steps=(update, output))
 
 # -------
 # network

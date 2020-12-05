@@ -41,7 +41,7 @@ def _reload(backend):
             else:
                 global_vars[__ops] = getattr(numpy.linalg, __ops)
 
-    elif backend == 'tf-numpy':
+    elif backend == 'tensorflow':
         from ._backends import _tensorflow
 
         for __ops in _all:

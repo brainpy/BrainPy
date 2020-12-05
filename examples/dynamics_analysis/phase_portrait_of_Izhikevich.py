@@ -82,7 +82,7 @@ def get_Izhikevich(mode=None):
     return bp.NeuType(name='Izhikevich',
                       requires={'ST': state},
                       steps=update,
-                      vector_based=False)
+                      mode='scalar')
 
 
 neuron = get_Izhikevich()

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import matplotlib.pyplot as plt
-
 import brainpy as bp
 import brainpy.numpy as np
 
@@ -79,14 +77,16 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['n'] = n
         ST['inp'] = 0.
 
-    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update, vector_based=True)
+    return bp.NeuType(name='HH_neuron',
+                      requires={"ST": ST},
+                      steps=update,
+                      mode='vector')
 
 
 if __name__ == '__main__':
-    bp.profile.set(backend='numba', device='cpu', dt=0.02,
-                   numerical_method='exponential')
+    bp.profile.set(backend='numpy', dt=0.02, numerical_method='exponential')
 
-    HH = define_hh(noise=1.)
+    HH = define_hh(noise=0.)
     neu = bp.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])
     neu.ST['V'] = np.random.random(100) * 20 + -75  # set initial variable state
     neu.pars['g_K'] = np.random.random(100) * 2 + 35  # update parameters
