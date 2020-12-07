@@ -75,7 +75,7 @@ def spike_current(points, lengths, sizes, duration, dt=None):
     >>> spike_current(points=[10, 20, 30, 200, 300],
     >>>               lengths=1.,  # can be a list to specify the spike length at each point
     >>>               sizes=0.5,  # can be a list to specify the current size at each point
-    >>>               duration=0.5)
+    >>>               duration=400.)
 
     Parameters
     ----------

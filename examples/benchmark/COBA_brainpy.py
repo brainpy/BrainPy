@@ -27,7 +27,7 @@ ref = 5.0
 neu_ST = bp.types.NeuState(
     {'sp_t': -1e7,
      'V': 0.,
-     'sp': 0.,
+     'spike': 0.,
      'ge': 0.,
      'gi': 0.}
 )
@@ -47,13 +47,13 @@ def neu_update(ST, _t_):
         ST['V'] = V
         if V >= Vt:
             ST['V'] = Vr
-            ST['sp'] = 1.
+            ST['spike'] = 1.
             ST['sp_t'] = _t_
         else:
-            ST['sp'] = 0.
+            ST['spike'] = 0.
             ST['V'] = V
     else:
-        ST['sp'] = 0.
+        ST['spike'] = 0.
 
 
 neuron = bp.NeuType(name='COBA',
@@ -64,7 +64,7 @@ neuron = bp.NeuType(name='COBA',
 
 def update1(ST, pre, post, pre2post):
     for pre_id in range(len(pre2post)):
-        if pre['sp'][pre_id] > 0.:
+        if pre['spike'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
             post['ge'][post_ids] += we
 
@@ -76,7 +76,7 @@ exc_syn = bp.SynType('exc_syn',
 
 def update2(ST, pre, post, pre2post):
     for pre_id in range(len(pre2post)):
-        if pre['sp'][pre_id] > 0.:
+        if pre['spike'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
             post['gi'][post_ids] += wi
 
@@ -87,7 +87,7 @@ inh_syn = bp.SynType('inh_syn',
 
 group = bp.NeuGroup(neuron,
                     geometry=num_exc + num_inh,
-                    monitors=['sp'])
+                    monitors=['spike'])
 group.ST['V'] = np.random.randn(num_exc + num_inh) * 5. - 55.
 
 exc_conn = bp.SynConn(exc_syn,
@@ -100,9 +100,12 @@ inh_conn = bp.SynConn(inh_syn,
                       post_group=group,
                       conn=bp.connect.FixedProb(prob=0.02))
 
-net = bp.Network(group, exc_conn, inh_conn)
+net = bp.Network(group, exc_conn, inh_conn, mode='repeat')
 t0 = time.time()
-net.run(5 * 1000., report=True)
+# net.run(3000., report=True)
+net.run(1000., report=True)
+net.run((1000., 2000.), report=True)
+net.run((2000., 3000.), report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
-bp.visualize.raster_plot(net.ts, group.mon.sp, show=True)
+bp.visualize.raster_plot(net.ts, group.mon.spike, show=True)

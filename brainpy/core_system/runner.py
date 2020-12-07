@@ -47,6 +47,7 @@ class Runner(object):
         self._step_names = ensemble.model.step_names
         # model update schedule
         self._schedule = ['input'] + ensemble.model.step_names + ['monitor']
+        self._inputs = {}
 
     def format_input_code(self, key_val_ops_types):
         try:
@@ -83,6 +84,11 @@ class Runner(object):
         # --------------------------------
         input_idx = 0
         for key, val, ops, data_type in key_val_ops_types:
+            if key in self._inputs:
+                raise ModelUseError('Only support assignment for each key once.')
+            else:
+                self._inputs[key] = (val, ops, data_type)
+
             attr_item = key.split('.')
 
             # get the left side #
@@ -125,8 +131,10 @@ class Runner(object):
                     code_arg2call[f'{self._name}_{attr}'] = f'{self._name}.{attr}["_data"]'
 
             # get the right side #
-            right = f'{self._name}_inp{input_idx}'
-            code_scope[right] = val
+            right = f'{key.replace(".", "_")}_inp'
+            setattr(self, right, val)
+            code_args.add(right)
+            code_arg2call[right] = f'{self._name}.runner.{right}'
             if data_type == 'iter':
                 right = right + '[_i_]'
             input_idx += 1

@@ -88,7 +88,7 @@ def func_copy(f):
 def numba_func(func, params={}):
     if func == np.func_by_name(func.__name__):
         return func
-    if isinstance(func, Dispatcher):
+    if Dispatcher is not None and isinstance(func, Dispatcher):
         return func
 
     vars = inspect.getclosurevars(func)
@@ -100,8 +100,9 @@ def numba_func(func, params={}):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            code_scope[k] = numba_func(v, params)
-            modified = True
+            if v != np.func_by_name(v.__name__) and (Dispatcher is None or not isinstance(v, Dispatcher)):
+                code_scope[k] = numba_func(v, params)
+                modified = True
     # check scope changed parameters
     for p, v in params.items():
         if p in code_scope:

@@ -29,7 +29,7 @@ class Network(object):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, mode='once', **kwargs):
         # store and neurons and synapses
         self._all_neu_groups = []
         self._all_syn_conns = []
@@ -45,6 +45,12 @@ class Network(object):
         # add objects
         self.add(*args, **kwargs)
 
+        # check
+        assert mode in ['once', 'repeat']
+        self.mode = mode
+
+        self._step_func = None
+
     def _add_obj(self, obj, name=None):
         # check object type
         self._all_objects.append(obj)
@@ -59,8 +65,6 @@ class Network(object):
         name = obj.name if name is None else name
         if name in self._objsets:
             raise KeyError(f'Name "{name}" has been used in the network, please change another name.')
-        if name in self._keywords:
-            raise ValueError(f'"{name}" is a keyword of "Network" class, please choose another name.')
 
         # add object in the network
         self._objsets[name] = obj
@@ -215,46 +219,61 @@ class Network(object):
 
         # 1. build
         # ----------
-        _step_func = self.build(run_length, inputs)
+        if self.mode != 'repeat' or self._step_func is None:
+            self._step_func = self.build(run_length, inputs)
+        else:
+            # reset inputs
+            formatted_inputs = self._format_inputs(inputs, run_length)
+            for obj_name, inps in formatted_inputs.items():
+                obj = getattr(self, obj_name)
+                obj_inputs = obj.runner._inputs
+                all_keys = list(obj_inputs.keys())
+                for key, val, ops, data_type in inps:
+                    if np.shape(obj_inputs[key][0]) != np.shape(val):
+                        raise ModelUseError(f'The input shape for {key} should keep the same. However, we got '
+                                            f'the last input shape = {np.shape(obj_inputs[key][0])}, '
+                                            f'and the current input shape = {np.shape(val)}')
+                    if obj_inputs[key][1] != ops:
+                        raise ModelUseError(f'The input operation for {key} should keep the same. However, we got '
+                                            f'the last operation is {obj_inputs[key][1]}, '
+                                            f'and the current operation is {ops}')
+                    if np.isscalar(val):
+                        setattr(obj.runner, f'{key.replace(".", "_")}_inp', val)
+                    else:
+                        getattr(obj.runner, f'{key.replace(".", "_")}_inp')[:] = val
+                    all_keys.remove(key)
+                if len(all_keys):
+                    raise ModelUseError(f'The inputs of {all_keys} are not provided.')
+
+            # reset monitors
+            for obj in self._all_objects:
+                for val in obj.mon.values():
+                    val[:] = 0.
 
         # 2. run
         # ---------
         dt = self.dt
         if report:
             t0 = time.time()
-            _step_func(_t_=ts[0], _i_=0, _dt_=dt)
+            self._step_func(_t_=ts[0], _i_=0, _dt_=dt)
             print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)
             t0 = time.time()
             for run_idx in range(1, run_length):
-                _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
+                self._step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
                 if (run_idx + 1) % report_gap == 0:
                     percent = (run_idx + 1) / run_length * 100
                     print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
         else:
             for run_idx in range(run_length):
-                _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
+                self._step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
 
         # monitor
         for obj in self._all_objects:
             obj.mon['ts'] = self.ts
-
-
-
-    @property
-    def _keywords(self):
-        return [
-            # attributes
-            '_all_neu_groups', '_all_syn_conns', '_objsets', '_all_objects',
-            't_start', 't_end',
-            # self functions
-            'add', 'run', '_add_obj',
-            # property
-            'ts', '_keywords', 'dt',
-        ]
 
     @property
     def ts(self):
