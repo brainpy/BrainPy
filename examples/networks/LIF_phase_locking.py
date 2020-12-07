@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numpy')
+bp.profile.set(backend='numba')
 
 tau = 100.  # ms
 Vth = 1.  # mV
@@ -49,14 +49,7 @@ def method1():
 
 
 def method2():
-    net = bp.Network(group)
-    net.run(duration=5 * 1000., inputs=(group, 'input', inputs), report=True, repeat=True)
-    net.run(duration=5 * 1000., inputs=(group, 'input', inputs), report=True, repeat=True)
-    return group.mon.spike, group.mon.ts
-
-
-def method3():
-    net = bp.Network(group)
+    net = bp.Network(group, mode='repeat')
     net.run(duration=5 * 1000., inputs=(group, 'input', inputs), report=True)
     net.run(duration=5 * 1000., inputs=(group, 'input', inputs), report=True)
     return group.mon.spike, group.mon.ts
@@ -72,6 +65,5 @@ def show(spikes, times):
 
 # show(*method1())
 show(*method2())
-# show(*method3())
 
 

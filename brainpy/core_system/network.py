@@ -29,7 +29,7 @@ class Network(object):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, mode='once', **kwargs):
         # store and neurons and synapses
         self._all_neu_groups = []
         self._all_syn_conns = []
@@ -44,6 +44,10 @@ class Network(object):
 
         # add objects
         self.add(*args, **kwargs)
+
+        # check
+        assert mode in ['once', 'repeat']
+        self.mode = mode
 
         self._step_func = None
 
@@ -180,7 +184,7 @@ class Network(object):
 
         return step_func
 
-    def run(self, duration, inputs=(), report=False, report_percent=0.1, repeat=True):
+    def run(self, duration, inputs=(), report=False, report_percent=0.1):
         """Run the simulation for the given duration.
 
         This function provides the most convenient way to run the network.
@@ -215,8 +219,36 @@ class Network(object):
 
         # 1. build
         # ----------
-        if not repeat or self._step_func is None:
+        if self.mode != 'repeat' or self._step_func is None:
             self._step_func = self.build(run_length, inputs)
+        else:
+            # reset inputs
+            formatted_inputs = self._format_inputs(inputs, run_length)
+            for obj_name, inps in formatted_inputs.items():
+                obj = getattr(self, obj_name)
+                obj_inputs = obj.runner._inputs
+                all_keys = list(obj_inputs.keys())
+                for key, val, ops, data_type in inps:
+                    if np.shape(obj_inputs[key][0]) != np.shape(val):
+                        raise ModelUseError(f'The input shape for {key} should keep the same. However, we got '
+                                            f'the last input shape = {np.shape(obj_inputs[key][0])}, '
+                                            f'and the current input shape = {np.shape(val)}')
+                    if obj_inputs[key][1] != ops:
+                        raise ModelUseError(f'The input operation for {key} should keep the same. However, we got '
+                                            f'the last operation is {obj_inputs[key][1]}, '
+                                            f'and the current operation is {ops}')
+                    if np.isscalar(val):
+                        setattr(obj.runner, f'{key.replace(".", "_")}_inp', val)
+                    else:
+                        getattr(obj.runner, f'{key.replace(".", "_")}_inp')[:] = val
+                    all_keys.remove(key)
+                if len(all_keys):
+                    raise ModelUseError(f'The inputs of {all_keys} are not provided.')
+
+            # reset monitors
+            for obj in self._all_objects:
+                for val in obj.mon.values():
+                    val[:] = 0.
 
         # 2. run
         # ---------

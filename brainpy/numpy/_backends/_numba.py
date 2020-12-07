@@ -10,7 +10,6 @@ from brainpy.tools import jit
 def _reload():
     global_vars = globals()
 
-    global_vars['isscalar'] = jit(lambda x: numpy.ndim(x) == 0)
 
     # Return the cube-root of an array, element-wise.
     global_vars['cbrt'] = jit(lambda x: numpy.power(x, 1. / 3))
