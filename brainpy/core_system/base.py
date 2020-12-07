@@ -37,8 +37,6 @@ class BrainType(object):
     ----------
     name : str, optional
         Model name.
-    vector_based : bool
-        Whether the model is written in the neuron-group level or in the single-neuron level.
     """
 
     def __init__(

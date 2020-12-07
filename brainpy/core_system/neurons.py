@@ -70,7 +70,8 @@ class NeuGroup(BrainEnsemble):
             geometry: typing.Union[typing.Tuple, typing.List, int],
             pars_update: typing.Dict = None,
             monitors: typing.Union[typing.List, typing.Tuple] = None,
-            name: str = None
+            name: str = None,
+            **kwargs
     ):
         # name
         # -----
