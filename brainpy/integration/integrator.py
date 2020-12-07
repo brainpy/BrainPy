@@ -843,9 +843,6 @@ class ExponentialEuler(Integrator):
 
     def __init__(self, diff_eq):
         super(ExponentialEuler, self).__init__(diff_eq)
-        if not profile._merge_steps:
-            raise IntegratorError('Exponential method only supports "_merge_steps=True". '
-                                  'Please set "profile._merge_steps= = True."')
         self._update_code = self.get_nb_step(diff_eq)
 
         func_args = ', '.join([f'_{diff_eq.func_name}_{arg}' for arg in diff_eq.func_args])
