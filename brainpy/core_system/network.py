@@ -45,6 +45,8 @@ class Network(object):
         # add objects
         self.add(*args, **kwargs)
 
+        self._step_func = None
+
     def _add_obj(self, obj, name=None):
         # check object type
         self._all_objects.append(obj)
@@ -59,8 +61,6 @@ class Network(object):
         name = obj.name if name is None else name
         if name in self._objsets:
             raise KeyError(f'Name "{name}" has been used in the network, please change another name.')
-        if name in self._keywords:
-            raise ValueError(f'"{name}" is a keyword of "Network" class, please choose another name.')
 
         # add object in the network
         self._objsets[name] = obj
@@ -180,7 +180,7 @@ class Network(object):
 
         return step_func
 
-    def run(self, duration, inputs=(), report=False, report_percent=0.1):
+    def run(self, duration, inputs=(), report=False, report_percent=0.1, repeat=True):
         """Run the simulation for the given duration.
 
         This function provides the most convenient way to run the network.
@@ -215,46 +215,33 @@ class Network(object):
 
         # 1. build
         # ----------
-        _step_func = self.build(run_length, inputs)
+        if not repeat or self._step_func is None:
+            self._step_func = self.build(run_length, inputs)
 
         # 2. run
         # ---------
         dt = self.dt
         if report:
             t0 = time.time()
-            _step_func(_t_=ts[0], _i_=0, _dt_=dt)
+            self._step_func(_t_=ts[0], _i_=0, _dt_=dt)
             print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)
             t0 = time.time()
             for run_idx in range(1, run_length):
-                _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
+                self._step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
                 if (run_idx + 1) % report_gap == 0:
                     percent = (run_idx + 1) / run_length * 100
                     print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
         else:
             for run_idx in range(run_length):
-                _step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
+                self._step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
 
         # monitor
         for obj in self._all_objects:
             obj.mon['ts'] = self.ts
-
-
-
-    @property
-    def _keywords(self):
-        return [
-            # attributes
-            '_all_neu_groups', '_all_syn_conns', '_objsets', '_all_objects',
-            't_start', 't_end',
-            # self functions
-            'add', 'run', '_add_obj',
-            # property
-            'ts', '_keywords', 'dt',
-        ]
 
     @property
     def ts(self):
