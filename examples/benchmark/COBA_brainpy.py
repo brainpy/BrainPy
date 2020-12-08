@@ -43,15 +43,12 @@ def neu_update(ST, _t_):
     if (_t_ - ST['sp_t']) > ref:
         V = ST['V']
         dvdt = (ge * (Erev_exc - V) + gi * (Erev_inh - V) + (El - V) + I) / taum
-        V += dvdt * dt
-        ST['V'] = V
+        ST['V'] = V + dvdt * dt
+        ST['spike'] = 0.
         if V >= Vt:
             ST['V'] = Vr
             ST['spike'] = 1.
             ST['sp_t'] = _t_
-        else:
-            ST['spike'] = 0.
-            ST['V'] = V
     else:
         ST['spike'] = 0.
 
@@ -66,7 +63,10 @@ def update1(ST, pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['spike'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            post['ge'][post_ids] += we
+            # post['ge'][post_ids] += we
+            for i in post_ids:
+                post['ge'][i] += we
+
 
 
 exc_syn = bp.SynType('exc_syn',
@@ -78,7 +78,10 @@ def update2(ST, pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['spike'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            post['gi'][post_ids] += wi
+            # post['gi'][post_ids] += wi
+            for i in post_ids:
+                post['gi'][i] += wi
+
 
 
 inh_syn = bp.SynType('inh_syn',
@@ -102,10 +105,10 @@ inh_conn = bp.SynConn(inh_syn,
 
 net = bp.Network(group, exc_conn, inh_conn, mode='repeat')
 t0 = time.time()
-# net.run(3000., report=True)
-net.run(1000., report=True)
-net.run((1000., 2000.), report=True)
-net.run((2000., 3000.), report=True)
+
+net.run(5000., report=True)
+# net.run(2500., report=True)
+# net.run((2500., 5000.), report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
 bp.visualize.raster_plot(net.ts, group.mon.spike, show=True)

@@ -13,7 +13,7 @@ Implementation of the paper：
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba', numerical_method='exponential')
+bp.profile.set(backend='numba', device='cpu', numerical_method='exponential')
 
 num = 10000
 num_inh = int(num * 0.2)
@@ -78,24 +78,19 @@ def get_syn(tau):
     def ints(s, t):
         return - s / tau
 
-    def update(ST, _t_, pre, pre2syn):
+    def update(ST, _t_, pre):
         s = ints(ST['s'], _t_)
-
-        for i in range(pre['sp'].shape[0]):
-            if pre['sp'][i] > 0.:
-                syn_ids = pre2syn[i]
-                s[syn_ids] += 1.
+        s += pre['sp']
         ST['s'] = s
         ST['g'] = ST['w'] * s
 
-    def output(ST, post, post_slice_syn):
-        for post_id in range(post_slice_syn.shape[0]):
-            pos = post_slice_syn[post_id]
-            post['inp'][post_id] += np.sum(ST['g'][pos[0]: pos[1]])
+    def output(ST, post):
+        post['inp'] += ST['g']
 
     return bp.SynType(name='alpha_synapse',
                       requires=dict(ST=syn_ST),
-                      steps=(update, output))
+                      steps=(update, output),
+                      mode='scalar')
 
 
 # -------

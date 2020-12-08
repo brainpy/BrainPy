@@ -901,36 +901,24 @@ class Runner(object):
             if has_pre and has_post:
                 code_args.add(f'{self._name}_post_ids')
                 code_arg2call[f'{self._name}_post_ids'] = f'{self._name}.post_ids'
-                code_args.add(f'{self._name}_pre2syn')
-                code_arg2call[f'{self._name}_pre2syn'] = f'{self._name}.pre2syn'
-                code_args.add(f'{self._name}_pre_indices')
-                code_arg2call[f'{self._name}_pre_indices'] = f'{self._name}.pre_group.indices'
-                # f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
-                code_lines = [f'{self._name}_pre_indices = {self._name}_pre_indices.flatten()',
-                              f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
-                              f'  _pre_i_ = {self._name}_pre_indices[_pre_i_]',
-                              f'  for _obj_i_ in {self._name}_pre2syn[_pre_i_]:',
-                              f'    _post_i_ = {self._name}_post_ids[_obj_i_]']
+                code_args.add(f'{self._name}_pre_ids')
+                code_arg2call[f'{self._name}_pre_ids'] = f'{self._name}.pre_ids'
+
+                code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):',
+                              f'  _pre_i_ = {self._name}_pre_ids[_obj_i_]',
+                              f'  _post_i_ = {self._name}_post_ids[_obj_i_]']
                 blank = '  ' * 2
             elif has_pre:
-                code_args.add(f'{self._name}_pre2syn')
-                code_arg2call[f'{self._name}_pre2syn'] = f'{self._name}.pre2syn'
-                code_args.add(f'{self._name}_pre_indices')
-                code_arg2call[f'{self._name}_pre_indices'] = f'{self._name}.pre_group.indices'
-                code_lines = [f'{self._name}_pre_indices = {self._name}_pre_indices.flatten()',
-                              f'for _pre_i_ in numba.prange({self.ensemble.pre_group.num}):',
-                              f'  _pre_i_ = {self._name}_pre_indices[_pre_i_]',
-                              f'  for _obj_i_ in {self._name}_pre2syn[_pre_i_]:']
+                code_args.add(f'{self._name}_pre_ids')
+                code_arg2call[f'{self._name}_pre_ids'] = f'{self._name}.pre_ids'
+                code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):',
+                              f'  _pre_i_ = {self._name}_pre_ids[_obj_i_]']
                 blank = '  ' * 2
             elif has_post:
-                code_args.add(f'{self._name}_post2syn')
-                code_arg2call[f'{self._name}_post2syn'] = f'{self._name}.post2syn'
-                code_args.add(f'{self._name}_post_indices')
-                code_arg2call[f'{self._name}_post_indices'] = f'{self._name}.post_group.indices'
-                code_lines = [f'{self._name}_post_indices = {self._name}_post_indices.flatten()',
-                              f'for _post_i_ in numba.prange({self.ensemble.post_group.num}):',
-                              f'  _post_i_ = {self._name}_post_indices[_post_i_]',
-                              f'  for _obj_i_ in {self._name}_post2syn[_post_i_]:']
+                code_args.add(f'{self._name}_post_ids')
+                code_arg2call[f'{self._name}_post_ids'] = f'{self._name}.post_ids'
+                code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):',
+                              f'  _post_i_ = {self._name}_post_ids[_obj_i_]']
                 blank = '  ' * 2
             else:
                 code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):']

@@ -44,9 +44,6 @@ class SynType(BrainType):
         if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE, constants.MATRIX_MODE]:
             raise ModelDefError('NeuType only support "scalar", "vector" or "matrix".')
 
-        if mode == constants.SCALAR_MODE:
-            print("WARNING: scalar-based synapse model will not be supported in future.")
-
         super(SynType, self).__init__(requires=requires,
                                       steps=steps,
                                       name=name,

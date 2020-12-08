@@ -62,7 +62,8 @@ def update1(ST, pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['sp'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            post['ge'][post_ids] += we
+            for i in post_ids:
+                post['ge'][i] += we
 
 
 exc_syn = bp.SynType('exc_syn',
@@ -74,7 +75,8 @@ def update2(ST, pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['sp'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            post['gi'][post_ids] += wi
+            for i in post_ids:
+                post['gi'][i] += wi
 
 
 inh_syn = bp.SynType('inh_syn',
@@ -96,9 +98,13 @@ inh_conn = bp.SynConn(inh_syn,
                       post_group=group,
                       conn=bp.connect.FixedProb(prob=0.02))
 
-net = bp.Network(group, exc_conn, inh_conn)
+net = bp.Network(group, exc_conn, inh_conn, mode='repeat')
 t0 = time.time()
-net.run(5 * 1000., report=True)
+# net.run(5 * 1000., report_percent=1., report=True)
+net.run(1250., report=True)
+net.run((1250., 2500.), report=True)
+net.run((2500., 3750.), report=True)
+net.run((3750., 5000.), report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
 bp.visualize.raster_plot(net.ts, group.mon.sp, show=True)
