@@ -22,7 +22,7 @@ def HH_model(num=20000):
     Vth = 20.
 
     # ['V', 'm', 'h', 'n', Isyn]
-    neu_state =  np.zeros((6, num))
+    neu_state = np.zeros((6, num))
     neu_state[0] = Vr
     neu_state[5] = 5.
     neu_state = cuda.to_device(neu_state)
@@ -118,6 +118,9 @@ def HH_model(num=20000):
     #     post_val = - g_max * g * (post_st[0] - E)
     #     post_st[4] += post_val
 
+    threads_per_block = 1024
+    blocks_per_grid = math.ceil(num / threads_per_block)
+
     duration = 100.
     t0 = time.time()
     ts = np.arange(0, duration, dt)
@@ -126,12 +129,84 @@ def HH_model(num=20000):
         t = ts[ti]
         # syn_update_state(syn_state, t, neu_state, neu_state)
         # neu_update_state[512, 512](neu_state)
-        neu_update_state[256, 256](neu_state)
+        neu_update_state[blocks_per_grid, threads_per_block](neu_state)
+        cuda.synchronize()
         if (ti + 1) * 10 % tlen == 0:
             t1 = time.time()
             print('{} percent {} s'.format((ti + 1) / tlen * 100, t1 - t0))
 
+def HH_model2(num=20000):
+    E_Na = 50.
+    g_Na = 120.
+    E_K = -77.
+    g_K = 36.
+    E_Leak = -54.387
+    g_Leak = 0.03
+    C = 1.0
+    Vr = -65.
 
-# HH_model(int(5e7))
-HH_model(int(1e8))
+    # ['V', 'm', 'h', 'n', Isyn]
+
+    @cuda.jit
+    def neu_update_state(st):
+        tx = cuda.threadIdx.x
+        ty = cuda.blockIdx.x
+        bw = cuda.blockDim.x
+        i = tx + ty * bw
+
+        if i < st.shape[1]:
+            V = st[0]
+            m = st[1]
+            h = st[2]
+            n = st[3]
+            Isyn = st[4]
+
+            alpha = 0.1 * (V[i] + 40) / (1 - math.exp(-(V[i] + 40) / 10))
+            beta = 4.0 * math.exp(-(V[i] + 65) / 18)
+            dmdt = alpha * (1 - m[i]) - beta * m[i]
+            m[i] = m[i] + dmdt * dt
+
+            alpha = 0.07 * math.exp(-(V[i] + 65) / 20.)
+            beta = 1 / (1 + math.exp(-(V[i] + 35) / 10))
+            dhdt = alpha * (1 - h[i]) - beta * h[i]
+            h[i] = h[i] + dhdt * dt
+
+            alpha = 0.01 * (V[i] + 55) / (1 - math.exp(-(V[i] + 55) / 10))
+            beta = 0.125 * math.exp(-(V[i] + 65) / 80)
+            dndt = alpha * (1 - n[i]) - beta * n[i]
+            n[i] = n[i] + dndt * dt
+
+            INa = g_Na * m[i] ** 3 * h[i] * (V[i] - E_Na)
+            IK = g_K * n[i] ** 4 * (V[i] - E_K)
+            IL = g_Leak * (V[i] - E_Leak)
+            Icur = - INa - IK - IL
+            dvdt = (Icur + Isyn[i]) / C
+            V[i] += dvdt * dt
+
+    neu_state = np.zeros((6, num))
+    neu_state[0] = Vr
+    neu_state[5] = 5.
+
+
+    threads_per_block = 1024
+    blocks_per_grid = math.ceil(num / threads_per_block)
+
+    duration = 100.
+    t0 = time.time()
+    ts = np.arange(0, duration, dt)
+    tlen = len(ts)
+    stream = cuda.stream()
+    neu_state = cuda.to_device(neu_state, stream)
+    for ti in range(tlen):
+        neu_update_state[blocks_per_grid, threads_per_block, stream](neu_state)
+        stream.synchronize()
+        if (ti + 1) * 10 % tlen == 0:
+            t1 = time.time()
+            print('{} percent {} s'.format((ti + 1) / tlen * 100, t1 - t0))
+
+# HH_model(int(1e4))
+# HH_model(int(1e5))
+# HH_model(int(1e6))
+HH_model2(int(1e7))
+# HH_model(int(1e8))
 
