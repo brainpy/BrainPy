@@ -334,5 +334,4 @@ class FreqInput(NeuGroup):
         super(FreqInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
 
         self.ST['t_next_spike'] = start_time
-        if not profile.is_debug():
-            self.pars['freqs'] = freqs
+        self.pars['freqs'] = freqs

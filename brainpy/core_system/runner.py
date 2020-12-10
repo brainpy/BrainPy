@@ -49,7 +49,19 @@ class Runner(object):
         self._schedule = ['input'] + ensemble.model.step_names + ['monitor']
         self._inputs = {}
 
-    def format_input_code(self, key_val_ops_types):
+    def get_codes_of_input(self, key_val_ops_types):
+        """Format the code of external input.
+
+        Parameters
+        ----------
+        key_val_ops_types : list, tuple
+            The inputs.
+
+        Returns
+        -------
+        code : dict
+            The formatted code.
+        """
         try:
             assert len(key_val_ops_types) > 0
         except AssertionError:
@@ -104,12 +116,9 @@ class Runner(object):
                 except AssertionError:
                     raise ModelUseError(f'BrainPy only support input to arrays.')
 
-                if profile.is_debug():
-                    left = f'{self._name}.{attr}'
-                else:
-                    left = f'{self._name}_{attr}'
-                    code_args.add(left)
-                    code_arg2call[left] = f'{self._name}.{attr}'
+                left = f'{self._name}_{attr}'
+                code_args.add(left)
+                code_arg2call[left] = f'{self._name}.{attr}'
             else:
                 if len(attr_item) == 1:
                     attr, item = 'ST', attr_item[0]
@@ -122,13 +131,10 @@ class Runner(object):
                 except AssertionError:
                     raise ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
 
-                if profile.is_debug():
-                    left = f'{self._name}.{attr}["{item}"]'
-                else:
-                    idx = getattr(self.ensemble, attr)['_var2idx'][item]
-                    left = f'{self._name}_{attr}[{idx}]'
-                    code_args.add(f'{self._name}_{attr}')
-                    code_arg2call[f'{self._name}_{attr}'] = f'{self._name}.{attr}["_data"]'
+                idx = getattr(self.ensemble, attr)['_var2idx'][item]
+                left = f'{self._name}_{attr}[{idx}]'
+                code_args.add(f'{self._name}_{attr}')
+                code_arg2call[f'{self._name}_{attr}'] = f'{self._name}.{attr}["_data"]'
 
             # get the right side #
             right = f'{key.replace(".", "_")}_inp'
@@ -160,7 +166,7 @@ class Runner(object):
         if profile.is_numba_bk():
             self.input_step = tools.jit(self.input_step)
         if profile._show_formatted_code:
-            if not (profile._merge_steps and profile.is_debug()):
+            if not profile._merge_steps:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
@@ -172,7 +178,20 @@ class Runner(object):
                           'arg2calls': code_arg2call,
                           'codes': code_lines, 'call': func_call}}
 
-    def format_monitor_code(self, mon_vars, run_length):
+    def get_codes_of_monitor(self, mon_vars, run_length):
+        """Get the code of the monitors.
+
+        Parameters
+        ----------
+        mon_vars : tuple, list
+            The variables to monitor.
+        run_length
+
+        Returns
+        -------
+        code : dict
+            The formatted code.
+        """
         try:
             assert len(mon_vars) > 0
         except AssertionError:
@@ -221,27 +240,18 @@ class Runner(object):
                 shape = getattr(self.ensemble, attr).shape
 
                 idx_name = f'{self._name}_idx{mon_idx}_{attr}'
-                if profile.is_debug():
-                    if indices is None:
-                        line = f'{self._name}.mon["{key}"][i] = {self._name}.{attr}'
-                    else:
-                        line = f'{self._name}.mon["{key}"][i] = {self._name}.{attr}[{idx_name}]'
-                        code_scope[idx_name] = indices
-                        mon_idx += 1
-
+                mon_name = f'{self._name}_mon_{attr}'
+                target_name = f'{self._name}_{attr}'
+                if indices is None:
+                    line = f'{mon_name}[_i_] = {target_name}'
                 else:
-                    mon_name = f'{self._name}_mon_{attr}'
-                    target_name = f'{self._name}_{attr}'
-                    if indices is None:
-                        line = f'{mon_name}[_i_] = {target_name}'
-                    else:
-                        line = f'{mon_name}[_i_] = {target_name}[{idx_name}]'
-                        code_scope[idx_name] = indices
-                        mon_idx += 1
-                    code_args.add(mon_name)
-                    code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
-                    code_args.add(target_name)
-                    code_arg2call[target_name] = f'{self._name}.{attr}'
+                    line = f'{mon_name}[_i_] = {target_name}[{idx_name}]'
+                    code_scope[idx_name] = indices
+                    mon_idx += 1
+                code_args.add(mon_name)
+                code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
+                code_args.add(target_name)
+                code_arg2call[target_name] = f'{self._name}.{attr}'
             else:
                 if len(attr_item) == 1:
                     item, attr = attr_item[0], 'ST'
@@ -253,27 +263,19 @@ class Runner(object):
                 shape = getattr(self.ensemble, attr)[item].shape
 
                 idx_name = f'{self._name}_idx{mon_idx}_{attr}_{item}'
-                if profile.is_debug():
-                    if indices is None:
-                        line = f'{self._name}.mon["{key}"][_i_] = {self._name}.{attr}["{item}"]'
-                    else:
-                        line = f'{self._name}.mon["{key}"][_i_] = {self._name}.{attr}["{item}"][{idx_name}]'
-                        code_scope[idx_name] = indices
-                        mon_idx += 1
+                idx = getattr(self.ensemble, attr)['_var2idx'][item]
+                mon_name = f'{self._name}_mon_{attr}_{item}'
+                target_name = f'{self._name}_{attr}'
+                if indices is None:
+                    line = f'{mon_name}[_i_] = {target_name}[{idx}]'
                 else:
-                    idx = getattr(self.ensemble, attr)['_var2idx'][item]
-                    mon_name = f'{self._name}_mon_{attr}_{item}'
-                    target_name = f'{self._name}_{attr}'
-                    if indices is None:
-                        line = f'{mon_name}[_i_] = {target_name}[{idx}]'
-                    else:
-                        line = f'{mon_name}[_i_] = {target_name}[{idx}][{idx_name}]'
-                        code_scope[idx_name] = indices
-                    mon_idx += 1
-                    code_args.add(mon_name)
-                    code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
-                    code_args.add(target_name)
-                    code_arg2call[target_name] = f'{self._name}.{attr}["_data"]'
+                    line = f'{mon_name}[_i_] = {target_name}[{idx}][{idx_name}]'
+                    code_scope[idx_name] = indices
+                mon_idx += 1
+                code_args.add(mon_name)
+                code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
+                code_args.add(target_name)
+                code_arg2call[target_name] = f'{self._name}.{attr}["_data"]'
 
             # initialize monitor array #
             key = key.replace(',', '_')
@@ -308,7 +310,7 @@ class Runner(object):
         func_call = f'{self._name}.runner.monitor_step({tools.func_call(arg2call)})'
 
         if profile._show_formatted_code:
-            if not (profile._merge_steps and profile.is_debug()):
+            if not profile._merge_steps:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
@@ -316,263 +318,50 @@ class Runner(object):
                                  'arg2calls': code_arg2call,
                                  'codes': code_lines, 'call': func_call}}
 
-    def format_step_codes(self):
-        if profile.is_debug():
-            if self._model.mode == constants.SCALAR_MODE:
-                return self.step_scalar_model_debug()
-            else:
-                return self.step_vector_model_debug()
+    def get_codes_of_steps(self):
+        """Get the code of user defined update steps.
+
+        Returns
+        -------
+        code : dict
+            The formatted code.
+        """
+        if self._model.mode == constants.SCALAR_MODE:
+            return self.step_scalar_model()
         else:
-            if self._model.mode == constants.SCALAR_MODE:
-                return self.step_scalar_model()
-            else:
-                return self.step_vector_model()
+            return self.step_vector_model()
 
+    def format_step_code(self, func):
+        """Format code of user defined step function.
 
-    def step_vector_model_debug(self):
-        results = dict()
+        Parameters
+        ----------
+        func : callable
+            The user defined function.
 
-        # check whether the model include heterogeneous parameters
-        if len(self._pars.heters) > 0:
-            print(f'WARNING: This model has heterogeneous parameters '
-                  f'"{list(self._pars.heters.keys())}", '
-                  f'it will not work in DEBUG mode.')
-
-        # get the delay keys
-        delay_keys = self._delay_keys
-        for func in self._steps:
-            func_name = func.__name__
-            stripped_fname = tools.get_func_name(func, replace=True)
-            func_args = inspect.getfullargspec(func).args
-
-            if len(delay_keys) > 0:
-                func_code = tools.get_main_code(func)
-                if func_name.startswith('_npbrain_delayed_'):
-                    # In the delayed function,
-                    # synapse state should pull out from the delay queues
-                    code_scope = {stripped_fname: func}
-                    code_lines = [f'def {stripped_fname}_enhanced({tools.func_call(func_args)}):']
-                    # pull delayed keys
-                    for arg in delay_keys.keys():
-                        if arg not in func_args:
-                            continue
-                        code_lines.append(f'  new_{arg} = dict()')
-                        func_delay_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code))
-                        for key in func_delay_keys:
-                            code_lines.append(f'  new_{arg}["{key}"] = {arg}.delay_pull("{key}")')
-                        code_lines.append(f'  {arg} = new_{arg}')
-                    code_lines.append(f'  {stripped_fname}({tools.func_call(func_args)})')
-
-                else:
-                    # In other un-delayed function,
-                    # the calculated values of delayed keys should be push into the delay queues
-                    code_lines = []
-                    code_scope = {}
-                    func_code_left = '\n'.join(tools.format_code(func_code).lefts)
-                    # push delayed keys
-                    for arg in delay_keys.keys():
-                        if arg not in func_args:
-                            continue
-                        func_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code_left))
-                        func_delay_keys = func_keys.intersection(delay_keys[arg])
-                        for key in func_delay_keys:
-                            code_lines.append(f'  {arg}.delay_push({arg}["{key}"], var="{key}")')
-                    if len(code_lines):
-                        code_scope = {stripped_fname: func}
-                        code_lines = [f'def {stripped_fname}_enhanced({tools.func_call(func_args)}):',
-                                      f'  {stripped_fname}({tools.func_call(func_args)})'] + code_lines
-
-                if len(code_lines):
-                    # Compile the modified step function
-                    func_code = '\n'.join(code_lines)
-                    if profile._auto_pep8:
-                        func_code = autopep8.fix_code(func_code)
-                    exec(compile(func_code, '', 'exec'), code_scope)
-                    func = code_scope[stripped_fname + '_enhanced']
-
-                    if profile._show_formatted_code:
-                        tools.show_code_str(func_code)
-                        tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
-
-            # set the function to the this model
-            setattr(self, stripped_fname, func)
-
-            # get the function call
-            arg_calls = []
-            for arg in func_args:
-                arg_calls.append(arg if arg in constants.ARG_KEYWORDS else f"{self._name}.{arg}")
-            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg_calls)})'
-
-            # get the function result
-            results[stripped_fname] = {'call': func_call}
-
-        return results
-
-    def step_scalar_model_debug(self):
-        results = dict()
-
-        # check whether the model include heterogeneous parameters
-        if len(self._pars.heters) > 0:
-            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
-                                f'"{list(self._pars.heters.keys())}", '
-                                f'it will not work in DEBUG mode.')
-
-        # get the delay keys
-        delay_keys = self._delay_keys
-
-        for func in self._steps:
-            func_name = func.__name__
-            stripped_fname = tools.get_func_name(func, replace=True)
-
-            # function argument
-            func_args = inspect.getfullargspec(func).args
-
-            # arg and arg2call
-            code_arg, code_arg2call = [], {}
-            for arg in func_args:
-                if arg in constants.ARG_KEYWORDS:
-                    code_arg2call[arg] = arg
-                    code_arg.append(arg)
-                else:
-                    try:
-                        attr = getattr(self.ensemble, arg)
-                    except AttributeError:
-                        raise ModelUseError(f'Model "{self._name}" does not have the '
-                                            f'required attribute "{arg}".')
-                    if isinstance(attr, ObjState):
-                        code_arg2call[f'{self._name}_{arg}'] = f'{self._name}.{arg}'
-                        code_arg.append(f'{self._name}_{arg}')
-                    else:
-                        code_arg2call[arg] = f'{self._name}.{arg}'
-                        code_arg.append(arg)
-            code_arg = set(code_arg)
-
-            # scope
-            code_scope = {f'{stripped_fname}_origin': func}
-
-            # codes
-            has_ST = 'ST' in func_args
-            has_pre = 'pre' in func_args
-            has_post = 'post' in func_args
-            if has_ST:  # have ST
-                if has_pre and has_post:
-                    code_arg.update(['pre2syn', 'post_ids', 'pre_indices'])
-                    code_arg2call['pre2syn'] = f'{self._name}.pre2syn'
-                    code_arg2call['post_ids'] = f'{self._name}.post_ids'
-                    code_arg2call['pre_indices'] = f'{self._name}.pre_group.indices'
-
-                    code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for pre_i in pre_indices.flatten():',
-                                  f'    pre = {self._name}_pre.extract_by_index(pre_i)',
-                                  f'    for _obj_i_ in pre2syn[pre_i]:',
-                                  f'      post_i = post_ids[_obj_i_]',
-                                  f'      post = {self._name}_post.extract_by_index(post_i)']
-                    prefix = '  ' * 3
-                    post_lines = [f'      {self._name}_post.update_by_index(post_i, post)',
-                                  f'    {self._name}_pre.update_by_index(pre_i, pre)']
-                elif has_pre:
-                    code_arg.update(['pre2syn', 'pre_indices'])
-                    code_arg2call['pre2syn'] = f'{self._name}.pre2syn'
-                    code_arg2call['pre_indices'] = f'{self._name}.pre_group.indices'
-
-                    code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for pre_i in pre_indices.flatten():',
-                                  f'    pre = {self._name}_pre.extract_by_index(pre_i)',
-                                  f'    for _obj_i_ in pre2syn[pre_i]:']
-                    prefix = '  ' * 3
-                    post_lines = [f'    {self._name}_pre.update_by_index(pre_i, pre)']
-                elif has_post:
-                    code_arg.update(['post2syn', 'post_indices'])
-                    code_arg2call['post2syn'] = f'{self._name}.post2syn'
-                    code_arg2call['post_indices'] = f'{self._name}.post_group.indices'
-                    code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for post_i in post_indices.flatten():',
-                                  f'    post = {self._name}_post.extract_by_index(post_i)',
-                                  f'    for _obj_i_ in post2syn[post_i]:']
-                    prefix = '  ' * 3
-                    post_lines = [f'    {self._name}_post.update_by_index(post_i, post)']
-                else:
-                    code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                                  f'  for _obj_i_ in range({self.ensemble.num}):']
-                    prefix = '  ' * 2
-                    post_lines = []
-
-                if func_name.startswith('_npbrain_delayed_'):
-                    # Function with "delayed" decorator should use STATE pulled from the delay queue
-                    for k in delay_keys.keys():
-                        if k not in func_args: continue
-                        code_lines.append(prefix + f'{k} = {self._name}_{k}.extract_by_index(_obj_i_, delay_pull=True)')
-                    code_lines.append(prefix + f'{stripped_fname}_origin({tools.func_call(func_args)})')
-                    code_lines.extend(post_lines)
-                else:
-                    if len(delay_keys):
-                        # Other function without "delayed" decorator
-                        for k in delay_keys.keys():
-                            if k not in func_args: continue
-                            code_lines.append(prefix + f'{k} = {self._name}_{k}.extract_by_index(_obj_i_)')
-                        code_lines.append(prefix + f'{stripped_fname}_origin({tools.func_call(func_args)})')
-                        for k in delay_keys.keys():
-                            if k not in func_args: continue
-                            code_lines.append(prefix + f'{self._name}_{k}.update_by_index(_obj_i_, {k})')
-                        code_lines.extend(post_lines)
-
-                        # Function without "delayed" decorator should push their
-                        # updated STATE to the delay queue
-                        func_code = tools.get_main_code(func)
-                        func_code_left = '\n'.join(tools.format_code(func_code).lefts)
-                        for k, v in delay_keys.items():
-                            func_keys = set(re.findall(r'' + k + r'\[[\'"](\w+)[\'"]\]', func_code_left))
-                            func_delay_keys = func_keys.intersection(v)
-                            if len(func_delay_keys) > 0:
-                                for key in func_delay_keys:
-                                    code_lines.append(f'  {self._name}_{k}.delay_push('
-                                                      f'{self._name}_{k}["{key}"], "{key}")')
-                    else:
-                        code_lines.append(prefix + f'ST = {self._name}_ST.extract_by_index(_obj_i_)')
-                        code_lines.append(prefix + f'{stripped_fname}_origin({tools.func_call(func_args)})')
-                        code_lines.append(prefix + f'{self._name}_ST.update_by_index(_obj_i_, ST)')
-
-            else:  # doesn't have ST
-                try:
-                    assert not has_post and not has_pre
-                except AssertionError:
-                    raise ModelDefError(f'Unknown "{stripped_fname}" function structure.')
-                code_lines = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                              f'  for _obj_i_ in range({self.ensemble.num}):',
-                              f'    {stripped_fname}_origin({tools.func_call(func_args)})']
-
-            # append the final results
-            code_lines.insert(0, f'# "{stripped_fname}" step function in {self._name}')
-
-            # compile the updated function
-            func_code = '\n'.join(code_lines)
-            if profile._auto_pep8:
-                func_code = autopep8.fix_code(func_code)
-            exec(compile(func_code, '', 'exec'), code_scope)
-            func = code_scope[stripped_fname]
-            if profile._show_formatted_code:
-                tools.show_code_str(func_code)
-                tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
-
-            # set the function to the model
-            setattr(self, stripped_fname, func)
-
-            # function call
-            arg2calls = [code_arg2call[arg] for arg in sorted(list(code_arg))]
-            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg2calls)})'
-
-            # final
-            results[stripped_fname] = {'call': func_call}
-
-        return results
-
-    def step_format_code(self, func):
+        Returns
+        -------
+        code_lines : list, tuple
+            The code lines.
+        """
         func_code = tools.deindent(tools.get_main_code(func))
         return tools.format_code(func_code).lines
 
     def step_substitute_integrator(self, func):
+        """Substitute the user defined integrators into the main step functions.
+
+        Parameters
+        ----------
+        func : callable
+            The user defined (main) step function.
+
+        Returns
+        -------
+        results : tuple
+            The codes and code scope.
+        """
         # get code and code lines
-        code_lines = self.step_format_code(func)
+        code_lines = self.format_step_code(func)
 
         # get function scope
         vars = inspect.getclosurevars(func)
@@ -967,51 +756,44 @@ class Runner(object):
 
         return results
 
-    def merge_steps(self, compiled_result):
+    def merge_codes(self, compiled_result):
         codes_of_calls = []  # call the compiled functions
 
-        if profile.is_debug():
+        if profile._merge_steps:
+            lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
+            for item in self._schedule:
+                if item in compiled_result:
+                    lines.extend(compiled_result[item]['codes'])
+                    code_scopes.update(compiled_result[item]['scopes'])
+                    args = args | compiled_result[item]['args']
+                    arg2calls.update(compiled_result[item]['arg2calls'])
+
+            args = sorted(list(args))
+            arg2calls_list = [arg2calls[arg] for arg in args]
+            lines.insert(0, f'\n# {self._name} "merge_func"'
+                            f'\ndef merge_func({tools.func_call(args)}):')
+            func_code = '\n  '.join(lines)
+            if profile._auto_pep8:
+                func_code = autopep8.fix_code(func_code)
+            exec(compile(func_code, '', 'exec'), code_scopes)
+
+            if profile.is_numba_bk():
+                func = tools.jit(code_scopes['merge_func'])
+            else:
+                func =  code_scopes['merge_func']
+            self.merge_func = func
+            func_call = f'{self._name}.runner.merge_func({tools.func_call(arg2calls_list)})'
+            codes_of_calls.append(func_call)
+
+            if profile._show_formatted_code:
+                tools.show_code_str(func_code)
+                tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
+
+        else:
             for item in self._schedule:
                 if item in compiled_result:
                     func_call = compiled_result[item]['call']
                     codes_of_calls.append(func_call)
-
-        else:
-            if profile._merge_steps:
-                lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
-                for item in self._schedule:
-                    if item in compiled_result:
-                        lines.extend(compiled_result[item]['codes'])
-                        code_scopes.update(compiled_result[item]['scopes'])
-                        args = args | compiled_result[item]['args']
-                        arg2calls.update(compiled_result[item]['arg2calls'])
-
-                args = sorted(list(args))
-                arg2calls_list = [arg2calls[arg] for arg in args]
-                lines.insert(0, f'\n# {self._name} "merge_func"'
-                                f'\ndef merge_func({tools.func_call(args)}):')
-                func_code = '\n  '.join(lines)
-                if profile._auto_pep8:
-                    func_code = autopep8.fix_code(func_code)
-                exec(compile(func_code, '', 'exec'), code_scopes)
-
-                if profile.is_numba_bk():
-                    func = tools.jit(code_scopes['merge_func'])
-                else:
-                    func =  code_scopes['merge_func']
-                self.merge_func = func
-                func_call = f'{self._name}.runner.merge_func({tools.func_call(arg2calls_list)})'
-                codes_of_calls.append(func_call)
-
-                if profile._show_formatted_code:
-                    tools.show_code_str(func_code)
-                    tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
-
-            else:
-                for item in self._schedule:
-                    if item in compiled_result:
-                        func_call = compiled_result[item]['call']
-                        codes_of_calls.append(func_call)
 
         return codes_of_calls
 
@@ -1093,140 +875,18 @@ class TrajectoryRunner(Runner):
             if var not in self.fixed_vars:
                 self.fixed_vars[var] = fixed_vars.get(var)
 
-    def step_vector_model_debug(self):
-        results = dict()
+    def format_step_code(self, func):
+        """Format code of user defined step function.
 
-        # check whether the model include heterogeneous parameters
-        if len(self._pars.heters) > 0:
-            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
-                                f'"{list(self._pars.heters.keys())}", '
-                                f'it will not work in NumPy mode.')
+        Parameters
+        ----------
+        func : callable
+            The user defined function.
 
-        # get the delay keys
-        for func in self._steps:
-            stripped_fname = tools.get_func_name(func, replace=True)
-            func_args = inspect.getfullargspec(func).args
-
-            # get code and code lines
-            func_code = tools.deindent(tools.get_main_code(func))
-            code_lines = tools.format_code_for_trajectory(func_code, self.fixed_vars).lines
-
-            # code to compile
-            code_to_compile = [f'def {stripped_fname}({tools.func_call(func_args)}):'] + code_lines
-            func_code = '\n '.join(code_to_compile)
-            if profile._auto_pep8:
-                func_code = autopep8.fix_code(func_code)
-
-            # code scope
-            vars = inspect.getclosurevars(func)
-            code_scope = dict(vars.nonlocals)
-            code_scope.update(vars.globals)
-            exec(compile(func_code, '', 'exec'), code_scope)
-            func = code_scope[stripped_fname]
-            if profile._show_formatted_code:
-                tools.show_code_str(func_code)
-                tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
-
-            # set the function to the this model
-            setattr(self, stripped_fname, func)
-
-            # get the function call
-            arg_calls = []
-            for arg in func_args:
-                arg_calls.append(arg if arg in constants.ARG_KEYWORDS else f"{self._name}.{arg}")
-            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg_calls)})'
-
-            # get the function result
-            results[stripped_fname] = {'call': func_call}
-
-        return results
-
-    def step_scalar_model_debug(self):
-        results = dict()
-
-        # check number of the neurons,
-        # too huge number of neurons sharply reduce running speed
-        if self.ensemble.num > 4000:
-            raise ModelUseError(f'The number of elements in {self._name} is too huge (>4000), '
-                                f'please use numba backend or define vector_based model.')
-
-        # check whether the model include heterogeneous parameters
-        if len(self._pars.heters) > 0:
-            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
-                                f'"{list(self._pars.heters.keys())}", '
-                                f'it will not work in NumPy mode.')
-
-        for func in self._steps:
-            stripped_fname = tools.get_func_name(func, replace=True)
-
-            # function argument
-            func_args = inspect.getfullargspec(func).args
-
-            # arg and arg2call
-            code_arg, code_arg2call = [], {}
-            for arg in func_args:
-                if arg in constants.ARG_KEYWORDS:
-                    code_arg2call[arg] = arg
-                    code_arg.append(arg)
-                else:
-                    try:
-                        attr = getattr(self.ensemble, arg)
-                    except AttributeError:
-                        raise ModelUseError(f'Model "{self._name}" does not have the required attribute "{arg}".')
-                    if isinstance(attr, ObjState):
-                        code_arg2call[f'{self._name}_{arg}'] = f'{self._name}.{arg}'
-                        code_arg.append(f'{self._name}_{arg}')
-                    else:
-                        code_arg2call[arg] = f'{self._name}.{arg}'
-                        code_arg.append(arg)
-            code_arg = set(code_arg)
-
-            # get code and code lines
-            func_code = tools.deindent(tools.get_main_code(func))
-            code_lines1 = tools.format_code_for_trajectory(func_code, self.fixed_vars).lines
-
-            # scope
-            vars = inspect.getclosurevars(func)
-            code_scope = dict(vars.nonlocals)
-            code_scope.update(vars.globals)
-
-            # codes
-            if 'ST' in func_args:  # have ST
-                code_lines2 = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                               f'  for _obj_i_ in range({self.ensemble.num}):']
-                code_lines2.append('    ' + f'ST = {self._name}_ST.extract_by_index(_obj_i_)')
-                code_lines2.extend(['    ' + line for line in code_lines1])
-                code_lines2.append('    ' + f'{self._name}_ST.update_by_index(_obj_i_, ST)')
-            else:  # doesn't have ST
-                code_lines2 = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                               f'  for _obj_i_ in range({self.ensemble.num}):', ]
-                code_lines2.extend(['    ' + line for line in code_lines1])
-
-            # append the final results
-            code_lines2.insert(0, f'# "{stripped_fname}" step function in {self._name}')
-
-            # compile the updated function
-            func_code = '\n'.join(code_lines2)
-            if profile._auto_pep8:
-                func_code = autopep8.fix_code(func_code)
-            exec(compile(func_code, '', 'exec'), code_scope)
-            func = code_scope[stripped_fname]
-            if profile._show_formatted_code:
-                tools.show_code_str(func_code)
-                tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
-
-            # set the function to the model
-            setattr(self, stripped_fname, func)
-
-            # function call
-            arg2calls = [code_arg2call[arg] for arg in sorted(list(code_arg))]
-            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg2calls)})'
-
-            # final
-            results[stripped_fname] = {'call': func_call}
-
-        return results
-
-    def step_format_code(self, func):
+        Returns
+        -------
+        code_lines : list, tuple
+            The code lines.
+        """
         func_code = tools.deindent(tools.get_main_code(func))
         return tools.format_code_for_trajectory(func_code, self.fixed_vars).lines

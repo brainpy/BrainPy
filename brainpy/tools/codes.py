@@ -470,7 +470,7 @@ class CodeLineFormatter(ast.NodeTransformer):
 
 
 def format_code(code_string):
-    """Get _code lines from the string.
+    """Get code lines from the string.
 
     Parameters
     ----------

@@ -219,10 +219,6 @@ class ParsUpdate(dict):
                                          model=model)
 
     def __setitem__(self, key, value):
-        if profile.is_debug():
-            print('WARNING: DEBUG mode do not support modify parameters. '
-                  'Please update parameters at the initialization of NeuType/SynType.')
-
         # check the existence of "key"
         if key not in self.origins:
             raise ModelUseError(f'Parameter "{key}" may be not defined in "{self.model.name}" variable scope.\n'
@@ -447,22 +443,22 @@ class BrainEnsemble(object):
 
         # inputs
         if inputs:
-            r = self.runner.format_input_code(inputs)
+            r = self.runner.get_codes_of_input(inputs)
             results.update(r)
 
         # monitors
         if len(self._mon_vars):
-            mon, r = self.runner.format_monitor_code(self._mon_vars, run_length=mon_length)
+            mon, r = self.runner.get_codes_of_monitor(self._mon_vars, run_length=mon_length)
             results.update(r)
             self.mon.clear()
             self.mon.update(mon)
 
         # steps
-        r = self.runner.format_step_codes()
+        r = self.runner.get_codes_of_steps()
         results.update(r)
 
         # merge
-        calls = self.runner.merge_steps(results)
+        calls = self.runner.merge_codes(results)
 
         if self._cls_type == _SYN_CONN:
             index_update_items = set()

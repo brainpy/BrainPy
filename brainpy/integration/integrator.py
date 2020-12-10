@@ -159,8 +159,7 @@ class Euler(Integrator):
 
     def __init__(self, diff_eq):
         super(Euler, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.euler(diff_eq)
         self.get_np_step = methods.euler
 
@@ -239,8 +238,7 @@ class RK2(Integrator):
     def __init__(self, diff_eq, beta=2 / 3):
         super(RK2, self).__init__(diff_eq)
         self.beta = beta
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq, beta)
+        self._update_code = self.get_nb_step(diff_eq, beta)
         self._update_func = methods.rk2(diff_eq, __beta=beta)
         self.get_np_step = methods.rk2
 
@@ -349,8 +347,7 @@ class Heun(Integrator):
 
     def __init__(self, diff_eq):
         super(Heun, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=1.0)
         self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=1.0)
 
@@ -446,8 +443,7 @@ class MidPoint(Integrator):
 
     def __init__(self, diff_eq):
         super(MidPoint, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=0.5)
         self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=0.5)
 
@@ -490,8 +486,7 @@ class RK3(Integrator):
 
     def __init__(self, diff_eq):
         super(RK3, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk3(diff_eq)
         self.get_np_step = methods.rk3
 
@@ -592,8 +587,7 @@ class RK4(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4(diff_eq)
         self.get_np_step = methods.rk4
 
@@ -705,8 +699,7 @@ class RK4Alternative(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4Alternative, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4_alternative(diff_eq)
         self.get_np_step = methods.rk4_alternative
 
@@ -955,8 +948,7 @@ class MilsteinIto(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinIto, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Ito(diff_eq)
         self.get_np_step = methods.milstein_Ito
 
@@ -1068,8 +1060,7 @@ class MilsteinStra(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinStra, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Stra(diff_eq)
         self.get_np_step = methods.milstein_Stra
 

@@ -17,7 +17,6 @@ __all__ = [
     'set_backend',
     'get_backend',
 
-    'is_debug',
     'is_pytorch_bk',
     'is_tensorflow_bk',
     'is_numpy_bk',
@@ -38,7 +37,6 @@ _method = 'euler'
 _numba_setting = {'nopython': True, 'fastmath': True,
                   'nogil': True, 'parallel': False}
 
-_debug = False
 _show_formatted_code = False
 _auto_pep8 = True
 _substitute_equation = False
@@ -53,13 +51,12 @@ def set(backend=None,
         int_type=None,
         merge_steps=None,
         substitute=None,
-        show_code=None,
-        debug=False):
-    # backend, device and debug mode
+        show_code=None):
+    # backend, device
     if device is not None and backend is None:
         raise ValueError('Please set backend. BrainPy now supports "numpy" and "numba" backends.')
     if backend is not None:
-        set_backend(backend, device=device, debug=debug)
+        set_backend(backend, device=device)
 
     # numerical integration method
     if numerical_method is not None:
@@ -95,7 +92,7 @@ def set(backend=None,
         _show_formatted_code = show_code
 
 
-def set_backend(backend, device=None, debug=False):
+def set_backend(backend, device=None):
     """Set the backend and the device to deploy the models.
 
     Parameters
@@ -104,14 +101,7 @@ def set_backend(backend, device=None, debug=False):
         The backend name.
     device : str, optional
         The device name.
-    debug : bool
-        Whether debug.
     """
-
-    # debug #
-
-    global _debug
-    _debug = debug
 
     # backend #
 
@@ -120,9 +110,6 @@ def set_backend(backend, device=None, debug=False):
     backend = backend.lower()
     if backend not in ['numpy', 'numba', 'tensorflow', 'pytorch']:
         raise ValueError(f'Unsupported backend: {backend}.')
-
-    if debug and backend == 'numba':
-        backend = 'numpy'
 
     if backend != _backend:
         _backend = backend
@@ -168,10 +155,6 @@ def get_backend():
 
     """
     return _backend
-
-
-def is_debug():
-    return _debug
 
 
 def is_pytorch_bk():
