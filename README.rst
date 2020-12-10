@@ -167,24 +167,24 @@ Neurodynamics analysis
     <table border="0">
         <tr>
             <td border="0" width="30%">
-                <a href="examples/dynamics_analysis/phase_portrait_of_NaK_model.py">
+                <a href="examples/dynamics_analysis/NaK_model_analysis.py">
                 <img src="docs/images/phase_plane_analysis1.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/phase_portrait_of_NaK_model.py">Phase Plane Analysis</a></h3>
+                <h3><a href="examples/dynamics_analysis/NaK_model_analysis.py">Phase Plane Analysis</a></h3>
                 <p>Phase plane analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model, where
                 "input" is 50., and "Vn_half" is -45..</p>
             </td>
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="examples/dynamics_analysis/2D_system_bifur_codim1.py">
+                <a href="examples/dynamics_analysis/NaK_model_analysis.py">
                 <img src="docs/images/NaK_model_codimension1.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/2D_system_bifur_codim1.py">
+                <h3><a href="examples/dynamics_analysis/NaK_model_analysis.py">
                     Codimension 1 Bifurcation Analysis (1)</a></h3>
                 <p>Codimension 1 bifurcation analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model,
                     in which "input" is varied in [0., 50.].</p>
@@ -192,12 +192,12 @@ Neurodynamics analysis
         </tr>
         <tr>
             <td border="0" width="30%">
-                <a href="examples/dynamics_analysis/2D_system_bifur_codim2.py">
+                <a href="examples/dynamics_analysis/NaK_model_analysis.py">
                 <img src="docs/images/NaK_model_codimension2.png">
                 </a>
             </td>
             <td border="0" valign="top">
-                <h3><a href="examples/dynamics_analysis/2D_system_bifur_codim2.py">
+                <h3><a href="examples/dynamics_analysis/NaK_model_analysis.py">
                     Codimension 2 Bifurcation Analysis (1)</a></h3>
                 <p>Codimension 2 bifurcation analysis of a two-variable neuron model:
                     the I<sub>Na,p+</sub>-I<sub>K</sub> model, in which "input" is varied

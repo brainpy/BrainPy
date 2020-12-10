@@ -178,7 +178,7 @@ class Network(object):
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
 
-        if profile._show_formatted_code:
+        if profile._show_format_code:
             tools.show_code_str(func_code)
             tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 

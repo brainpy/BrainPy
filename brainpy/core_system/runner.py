@@ -165,8 +165,8 @@ class Runner(object):
         self.input_step = code_scope['input_step']
         if profile.is_numba_bk():
             self.input_step = tools.jit(self.input_step)
-        if profile._show_formatted_code:
-            if not profile._merge_steps:
+        if profile._show_format_code:
+            if not profile._merge_integrators:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
@@ -309,8 +309,8 @@ class Runner(object):
         arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
         func_call = f'{self._name}.runner.monitor_step({tools.func_call(arg2call)})'
 
-        if profile._show_formatted_code:
-            if not profile._merge_steps:
+        if profile._show_format_code:
+            if not profile._merge_integrators:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
@@ -377,7 +377,7 @@ class Runner(object):
         need_add_mapping_scope = False
         for k, v in code_scope.items():
             if isinstance(v, Integrator):
-                if profile._merge_steps:
+                if profile._merge_integrators:
                     need_add_mapping_scope = True
 
                     # locate the integration function
@@ -558,7 +558,7 @@ class Runner(object):
             exec(compile(func_code, '', 'exec'), code_scope)
             func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
                 else code_scope[stripped_fname]
-            if profile._show_formatted_code and not profile._merge_steps:
+            if profile._show_format_code and not profile._merge_integrators:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
 
@@ -735,7 +735,7 @@ class Runner(object):
             exec(compile(func_code, '', 'exec'), code_scope)
             func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
                 else code_scope[stripped_fname]
-            if profile._show_formatted_code and not profile._merge_steps:
+            if profile._show_format_code and not profile._merge_integrators:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
             # set the function to the model
@@ -759,7 +759,7 @@ class Runner(object):
     def merge_codes(self, compiled_result):
         codes_of_calls = []  # call the compiled functions
 
-        if profile._merge_steps:
+        if profile._merge_integrators:
             lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
             for item in self._schedule:
                 if item in compiled_result:
@@ -785,7 +785,7 @@ class Runner(object):
             func_call = f'{self._name}.runner.merge_func({tools.func_call(arg2calls_list)})'
             codes_of_calls.append(func_call)
 
-            if profile._show_formatted_code:
+            if profile._show_format_code:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
 
@@ -801,15 +801,11 @@ class Runner(object):
         return self._schedule
 
     def set_schedule(self, schedule):
-        try:
-            assert isinstance(schedule, (list, tuple))
-        except AssertionError:
+        if not isinstance(schedule, (list, tuple)):
             raise ModelUseError('"schedule" must be a list/tuple.')
         all_func_names = ['input', 'monitor'] + self._step_names
         for s in schedule:
-            try:
-                assert s in all_func_names
-            except AssertionError:
+            if s not in all_func_names:
                 raise ModelUseError(f'Unknown step function "{s}" for model "{self._name}".')
         self._schedule = schedule
 

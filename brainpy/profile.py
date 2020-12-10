@@ -37,10 +37,11 @@ _method = 'euler'
 _numba_setting = {'nopython': True, 'fastmath': True,
                   'nogil': True, 'parallel': False}
 
-_show_formatted_code = False
 _auto_pep8 = True
+_show_format_code = False
 _substitute_equation = False
-_merge_steps = True
+_merge_integrators = True
+_merge_steps = False
 
 
 def set(backend=None,
@@ -49,7 +50,7 @@ def set(backend=None,
         dt=None,
         float_type=None,
         int_type=None,
-        merge_steps=None,
+        merge_integrators=None,
         substitute=None,
         show_code=None):
     # backend, device
@@ -77,9 +78,9 @@ def set(backend=None,
         _set_default_int(int_type)
 
     # option of merging integral functions
-    if merge_steps is not None:
-        global _merge_steps
-        _merge_steps = merge_steps
+    if merge_integrators is not None:
+        global _merge_integrators
+        _merge_integrators = merge_integrators
 
     # option of equation substitution
     if substitute is not None:
@@ -88,8 +89,8 @@ def set(backend=None,
 
     # option of formatted code output
     if show_code is not None:
-        global _show_formatted_code
-        _show_formatted_code = show_code
+        global _show_format_code
+        _show_format_code = show_code
 
 
 def set_backend(backend, device=None):

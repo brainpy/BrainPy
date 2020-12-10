@@ -67,7 +67,7 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
 
 bp.profile.set(dt=0.1,
                numerical_method='exponential',
-               merge_steps=True)
+               merge_integrators=True)
 
 
 def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):

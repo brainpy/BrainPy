@@ -560,7 +560,7 @@ class BrainEnsemble(object):
             func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
-        if profile._show_formatted_code:
+        if profile._show_format_code:
             tools.show_code_str(func_code)
             tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
@@ -585,3 +585,9 @@ class BrainEnsemble(object):
                 step_func(_t_=times[run_idx], _i_=run_idx, _dt_=dt)
 
         self.mon['ts'] = times
+
+    def get_schedule(self):
+        return self.runner.get_schedule()
+
+    def set_schedule(self, schedule):
+        self.runner.set_schedule(schedule)

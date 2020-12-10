@@ -299,7 +299,7 @@ def run_ampa_single(define, duration=350.):
                       conn=bp.connect.All2All(),
                       monitors=['s'],
                       delay=10.)
-    ampa.runner.set_schedule(['input', 'update', 'output', 'monitor'])
+    ampa.set_schedule(['input', 'update', 'output', 'monitor'])
 
     net = bp.Network(pre, ampa, post)
     Iext = bp.inputs.spike_current([10, 110, 210, 310, 410], bp.profile._dt, 1., duration=duration)
