@@ -10,10 +10,7 @@ import brainpy.numpy as np
 import matplotlib.pyplot as plt
 
 
-bp.profile.set(backend='numba',
-               device='cpu',
-               merge_steps=True,
-               numerical_method='exponential')
+bp.profile.set(backend='numba', numerical_method='exponential')
 
 num_exc = 500
 num_inh = 500
@@ -53,7 +50,7 @@ def update(ST, _t_):
 neu = bp.NeuType(name='LIF',
                  requires=dict(ST=neu_ST),
                  steps=update,
-                 vector_based=False)
+                 mode='scalar')
 
 # -------
 # synapse
@@ -90,8 +87,7 @@ def output(ST, post, post_slice_syn):
 
 syn = bp.SynType(name='alpha_synapse',
                  requires=dict(ST=syn_ST),
-                 steps=(update, output),
-                 vector_based=True)
+                 steps=(update, output))
 
 # -------
 # network
@@ -115,20 +111,20 @@ inh_conn = bp.SynConn(syn,
 inh_conn.ST['w'] = -JI
 
 net = bp.Network(group, exc_conn, inh_conn)
-net.run(duration=1000., inputs=[(group, 'ST.inp', 3.)], report=True)
+net.run(duration=500., inputs=[(group, 'ST.inp', 3.)], report=True)
 
 # --------------
 # visualization
 # --------------
 
-fig, gs = bp.visualize.get_figure(4, 1, 2, 12)
+fig, gs = bp.visualize.get_figure(4, 1, 2, 10)
 
 fig.add_subplot(gs[:3, 0])
-bp.visualize.raster_plot(net.ts, group.mon.sp, xlim=(50, 950))
+bp.visualize.raster_plot(net.ts, group.mon.sp, xlim=(50, 450))
 
 fig.add_subplot(gs[3, 0])
 rates = bp.measure.firing_rate(group.mon.sp, 5.)
 plt.plot(net.ts, rates)
-plt.xlim(50, 950)
+plt.xlim(50, 450)
 plt.show()
 

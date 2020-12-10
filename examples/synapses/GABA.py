@@ -4,7 +4,7 @@ import brainpy as bp
 import brainpy.numpy as np
 
 
-def GABAa1(g_max=0.4, reversal_potential=-80., tau_decay=6.):
+def define_GABAa1_vector(g_max=0.4, reversal_potential=-80., tau_decay=6.):
     requires = dict(
         ST=bp.types.SynState(['s', 'g']),
         pre=bp.types.NeuState(['sp']),
@@ -33,10 +33,10 @@ def GABAa1(g_max=0.4, reversal_potential=-80., tau_decay=6.):
     return bp.SynType(name='GABAa1',
                       requires=requires,
                       steps=(update, output),
-                      vector_based=True)
+                      mode='vector')
 
 
-def GABAa2(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
+def define_GABAa2_vector(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
     requires = dict(
         ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
         pre=bp.types.NeuState(['sp']),
@@ -67,10 +67,10 @@ def GABAa2(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
     return bp.SynType(name='GABAa2',
                       requires=requires,
                       steps=(update, output),
-                      vector_based=True)
+                      mode='vector')
 
 
-def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_duration=0.3):
+def define_GABAb1_vector(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_duration=0.3):
     """GABAb conductance-based synapse (type 1).
 
     .. math::
@@ -135,11 +135,11 @@ def GABAb1(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.0012, T=0.5, T_d
     return bp.SynType(name='GABAb1',
                       requires=requires,
                       steps=(update, output),
-                      vector_based=True)
+                      mode='vector')
 
 
-def GABAb2(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
-           k5=8.3e-5, k6=7.9e-3, T=0.5, T_duration=0.5):
+def define_GABAb2_vector(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
+                         k5=8.3e-5, k6=7.9e-3, T=0.5, T_duration=0.5):
     """GABAb conductance-based synapse (type 2).
 
     .. math::
@@ -212,4 +212,4 @@ def GABAb2(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.017,
     return bp.SynType(name='GABAb2',
                       requires=requires,
                       steps=(update, output),
-                      vector_based=True)
+                      mode='vector')

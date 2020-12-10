@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import io
 import os
 import re
 
@@ -15,18 +14,33 @@ with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
 version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 
 # obtain long description from README and CHANGES
-with io.open(os.path.join(here, 'README.rst'), 'r', encoding='utf-8') as f:
-    README = f.read()
+README = '''
+``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
+compilers (especially `Numba <https://numba.pydata.org/>`_).
+The goal of ``BrainPy`` is to provide a unified simulation and analysis framework
+for neuronal dynamics with the feature of high flexibility and efficiency.
+BrainPy is flexible because it endows the users with the fully data/logic flow control.
+BrainPy is efficient because it supports JIT acceleration on CPUs
+(In future, we will support JIT acceleration on GPUs).
+
+'''
 
 # setup
 setup(
-    name='Brain.Py',
+    name='brain.py',
     version=version,
     description='BrainPy: A Just-In-Time compilation approach for neuronal dynamics simulation.',
     long_description=README,
     author='Chaoming Wang',
     author_email='adaduo@outlook.com',
-    packages=find_packages(),
+    packages=find_packages(exclude=('examples',
+                                    'examples.*',
+                                    'docs',
+                                    'docs.*',
+                                    'develop',
+                                    'develop.*',
+                                    'tests',
+                                    'tests.*')),
     python_requires='>=3.7',
     install_requires=[
         'numpy>=1.15',

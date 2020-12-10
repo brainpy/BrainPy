@@ -110,7 +110,7 @@ def neu_update(ST):
 neuron = bp.NeuType(name='CUBA',
                     requires=dict(ST=neu_ST),
                     steps=neu_update,
-                    vector_based=True)
+                    mode='vector')
 
 
 def exc_update(ST, pre, post, pre2post):

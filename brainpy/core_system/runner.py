@@ -6,8 +6,7 @@ from importlib import import_module
 
 import autopep8
 
-from .constants import ARG_KEYWORDS
-from .constants import INPUT_OPERATIONS
+from . import constants
 from .types import ObjState
 from .. import numpy as np
 from .. import profile
@@ -49,7 +48,7 @@ class Runner(object):
         # model update schedule
         self._schedule = ['input'] + ensemble.model.step_names + ['monitor']
 
-    def format_input_code(self, key_val_ops_types, mode):
+    def format_input_code(self, key_val_ops_types):
         try:
             assert len(key_val_ops_types) > 0
         except AssertionError:
@@ -76,9 +75,9 @@ class Runner(object):
         # ----------------------
         for _, _, ops, _ in key_val_ops_types:
             try:
-                assert ops in INPUT_OPERATIONS
+                assert ops in constants.INPUT_OPERATIONS
             except AssertionError:
-                raise ModelUseError(f'Only support five input operations: {list(INPUT_OPERATIONS.keys())}')
+                raise ModelUseError(f'Only support five input operations: {list(constants.INPUT_OPERATIONS.keys())}')
 
         # generate code of input function
         # --------------------------------
@@ -99,7 +98,7 @@ class Runner(object):
                 except AssertionError:
                     raise ModelUseError(f'BrainPy only support input to arrays.')
 
-                if mode == 'numpy':
+                if profile.is_debug():
                     left = f'{self._name}.{attr}'
                 else:
                     left = f'{self._name}_{attr}'
@@ -117,7 +116,7 @@ class Runner(object):
                 except AssertionError:
                     raise ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
 
-                if mode == 'numpy':
+                if profile.is_debug():
                     left = f'{self._name}.{attr}["{item}"]'
                 else:
                     idx = getattr(self.ensemble, attr)['_var2idx'][item]
@@ -150,10 +149,10 @@ class Runner(object):
             func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
         self.input_step = code_scope['input_step']
-        if mode == 'numba':
+        if profile.is_numba_bk():
             self.input_step = tools.jit(self.input_step)
         if profile._show_formatted_code:
-            if not (profile._merge_steps and mode != 'numpy'):
+            if not (profile._merge_steps and profile.is_debug()):
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
@@ -165,7 +164,7 @@ class Runner(object):
                           'arg2calls': code_arg2call,
                           'codes': code_lines, 'call': func_call}}
 
-    def format_monitor_code(self, mon_vars, run_length, mode):
+    def format_monitor_code(self, mon_vars, run_length):
         try:
             assert len(mon_vars) > 0
         except AssertionError:
@@ -214,7 +213,7 @@ class Runner(object):
                 shape = getattr(self.ensemble, attr).shape
 
                 idx_name = f'{self._name}_idx{mon_idx}_{attr}'
-                if mode == 'numpy':
+                if profile.is_debug():
                     if indices is None:
                         line = f'{self._name}.mon["{key}"][i] = {self._name}.{attr}'
                     else:
@@ -246,7 +245,7 @@ class Runner(object):
                 shape = getattr(self.ensemble, attr)[item].shape
 
                 idx_name = f'{self._name}_idx{mon_idx}_{attr}_{item}'
-                if mode == 'numpy':
+                if profile.is_debug():
                     if indices is None:
                         line = f'{self._name}.mon["{key}"][_i_] = {self._name}.{attr}["{item}"]'
                     else:
@@ -292,7 +291,7 @@ class Runner(object):
             func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
         monitor_step = code_scope['monitor_step']
-        if mode == 'numba':
+        if profile.is_numba_bk():
             monitor_step = tools.jit(monitor_step)
         self.monitor_step = monitor_step
 
@@ -301,7 +300,7 @@ class Runner(object):
         func_call = f'{self._name}.runner.monitor_step({tools.func_call(arg2call)})'
 
         if profile._show_formatted_code:
-            if not (profile._merge_steps and mode != 'numpy'):
+            if not (profile._merge_steps and profile.is_debug()):
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
@@ -309,31 +308,27 @@ class Runner(object):
                                  'arg2calls': code_arg2call,
                                  'codes': code_lines, 'call': func_call}}
 
-    def format_step_codes(self, mode):
-        if self._model.vector_based:
-            if mode == 'numpy':
-                return self.step_mode_np_vector()
-            elif mode in ['numba', 'tf-numpy']:
-                return self.step_mode_nb_vector()
+    def format_step_codes(self):
+        if profile.is_debug():
+            if self._model.mode == constants.SCALAR_MODE:
+                return self.step_scalar_model_debug()
             else:
-                raise NotImplementedError
-
+                return self.step_vector_model_debug()
         else:
-            if mode == 'numpy':
-                return self.step_mode_np_scalar()
-            elif mode in ['numba', 'tf-numpy']:
-                return self.step_mode_nb_scalar()
+            if self._model.mode == constants.SCALAR_MODE:
+                return self.step_scalar_model()
             else:
-                raise NotImplementedError
+                return self.step_vector_model()
 
-    def step_mode_np_vector(self):
+
+    def step_vector_model_debug(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
-                                f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+            print(f'WARNING: This model has heterogeneous parameters '
+                  f'"{list(self._pars.heters.keys())}", '
+                  f'it will not work in DEBUG mode.')
 
         # get the delay keys
         delay_keys = self._delay_keys
@@ -397,7 +392,7 @@ class Runner(object):
             # get the function call
             arg_calls = []
             for arg in func_args:
-                arg_calls.append(arg if arg in ARG_KEYWORDS else f"{self._name}.{arg}")
+                arg_calls.append(arg if arg in constants.ARG_KEYWORDS else f"{self._name}.{arg}")
             func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg_calls)})'
 
             # get the function result
@@ -405,20 +400,14 @@ class Runner(object):
 
         return results
 
-    def step_mode_np_scalar(self):
+    def step_scalar_model_debug(self):
         results = dict()
-
-        # check number of the neurons/synapses,
-        # too huge number of neurons/synapses sharply reduce running speed
-        if self.ensemble.num > 4000:
-            raise ModelUseError(f'The number of elements in {self._name} is too huge (>4000), '
-                                f'please use numba backend or define vector_based model.')
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
+            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+                                f'it will not work in DEBUG mode.')
 
         # get the delay keys
         delay_keys = self._delay_keys
@@ -433,7 +422,7 @@ class Runner(object):
             # arg and arg2call
             code_arg, code_arg2call = [], {}
             for arg in func_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     code_arg2call[arg] = arg
                     code_arg.append(arg)
                 else:
@@ -633,22 +622,24 @@ class Runner(object):
                     # get scope variables to delete
                     scope_to_del.add(k)
                     for k_, v_ in v.code_scope.items():
-                        if callable(v_):
+                        if profile.is_numba_bk() and callable(v_):
                             v_ = tools.numba_func(v_, params=self._pars.updates)
                         scope_to_add[k_] = v_
 
                 else:
-                    if not self._model.vector_based:
+                    if self._model.mode == constants.SCALAR_MODE:
                         for ks, vs in tools.get_func_scope(v.update_func, include_dispatcher=True).items():
                             if ks in self._pars.heters:
                                 raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in step functions, '
                                                     f'it will not work.\n'
                                                     f'Please set "brainpy.profile.set(merge_steps=True)" to try to '
                                                     f'merge parameter "{ks}" into the step functions.')
-                    code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
+                    if profile.is_numba_bk():
+                        code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
             elif type(v).__name__ == 'function':
-                code_scope[k] = tools.numba_func(v, params=self._pars.updates)
+                if profile.is_numba_bk():
+                    code_scope[k] = tools.numba_func(v, params=self._pars.updates)
 
         # update code scope
         if need_add_mapping_scope:
@@ -660,7 +651,7 @@ class Runner(object):
         # return code lines and code scope
         return '\n'.join(code_lines), code_scope
 
-    def step_mode_nb_vector(self):
+    def step_vector_model(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
@@ -681,7 +672,7 @@ class Runner(object):
             # check function code
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
-                          if k not in ARG_KEYWORDS and
+                          if k not in constants.ARG_KEYWORDS and
                           isinstance(getattr(self.ensemble, k), ObjState)}
             except AttributeError:
                 raise ModelUseError(f'Model "{self._name}" does not have all the '
@@ -732,7 +723,7 @@ class Runner(object):
             code_args = add_args
             arg_substitute = {}
             for arg in used_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     new_arg = arg
                     code_arg2call[arg] = arg
                 else:
@@ -768,7 +759,8 @@ class Runner(object):
             if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)
-            func = tools.jit(code_scope[stripped_fname])
+            func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
+                else code_scope[stripped_fname]
             if profile._show_formatted_code and not profile._merge_steps:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
@@ -790,7 +782,7 @@ class Runner(object):
 
         return results
 
-    def step_mode_nb_scalar(self):
+    def step_scalar_model(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
@@ -806,7 +798,7 @@ class Runner(object):
             func_code, code_scope = self.step_substitute_integrator(func)
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
-                          if k not in ARG_KEYWORDS and
+                          if k not in constants.ARG_KEYWORDS and
                           isinstance(getattr(self.ensemble, k), ObjState)}
             except AttributeError:
                 raise ModelUseError(f'Model "{self._name}" does not have all the '
@@ -814,7 +806,7 @@ class Runner(object):
 
             # update functions in code scope
             for k, v in code_scope.items():
-                if callable(v):
+                if profile.is_numba_bk() and callable(v):
                     code_scope[k] = tools.numba_func(func=v, params=self._pars.updates)
 
             add_args = set()
@@ -873,7 +865,7 @@ class Runner(object):
             code_args = add_args
             arg_substitute = {}
             for arg in used_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     new_arg = arg
                     code_arg2call[arg] = arg
                 else:
@@ -956,7 +948,8 @@ class Runner(object):
             if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)
-            func = tools.jit(code_scope[stripped_fname])
+            func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
+                else code_scope[stripped_fname]
             if profile._show_formatted_code and not profile._merge_steps:
                 tools.show_code_str(func_code)
                 tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
@@ -978,17 +971,16 @@ class Runner(object):
 
         return results
 
-    def merge_steps(self, compiled_result, mode):
+    def merge_steps(self, compiled_result):
         codes_of_calls = []  # call the compiled functions
 
-        if mode == 'numpy':  # numpy mode
+        if profile.is_debug():
             for item in self._schedule:
                 if item in compiled_result:
                     func_call = compiled_result[item]['call']
                     codes_of_calls.append(func_call)
 
-        elif mode in ['numba', 'tf-numpy']:  # numba mode
-
+        else:
             if profile._merge_steps:
                 lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
                 for item in self._schedule:
@@ -1007,7 +999,11 @@ class Runner(object):
                     func_code = autopep8.fix_code(func_code)
                 exec(compile(func_code, '', 'exec'), code_scopes)
 
-                self.merge_func = tools.jit(code_scopes['merge_func'])
+                if profile.is_numba_bk():
+                    func = tools.jit(code_scopes['merge_func'])
+                else:
+                    func =  code_scopes['merge_func']
+                self.merge_func = func
                 func_call = f'{self._name}.runner.merge_func({tools.func_call(arg2calls_list)})'
                 codes_of_calls.append(func_call)
 
@@ -1020,9 +1016,6 @@ class Runner(object):
                     if item in compiled_result:
                         func_call = compiled_result[item]['call']
                         codes_of_calls.append(func_call)
-
-        else:
-            raise NotImplementedError
 
         return codes_of_calls
 
@@ -1087,11 +1080,11 @@ class TrajectoryRunner(Runner):
                 fixed_vars = dict()
         except AssertionError:
             raise ModelUseError('"fixed_vars" must be a dict.')
-        for var in fixed_vars.keys():
-            try:
-                assert var in self._model.variables
-            except AssertionError:
-                raise ModelUseError(f'"{var}" in "fixed_vars" is not defined in model "{self._model.name}".')
+        # for var in fixed_vars.keys():
+        #     try:
+        #         assert var in self._model.variables
+        #     except AssertionError:
+        #         raise ModelUseError(f'"{var}" in "fixed_vars" is not defined in model "{self._model.name}".')
         self.fixed_vars = dict()
         for integrator in self._model.integrators:
             var_name = integrator.diff_eq.var_name
@@ -1100,15 +1093,18 @@ class TrajectoryRunner(Runner):
                     self.fixed_vars[var_name] = fixed_vars.get(var_name)
                 else:
                     self.fixed_vars[var_name] = self._model.variables.get(var_name)
+        for var in fixed_vars.keys():
+            if var not in self.fixed_vars:
+                self.fixed_vars[var] = fixed_vars.get(var)
 
-    def step_mode_np_vector(self):
+    def step_vector_model_debug(self):
         results = dict()
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
+            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+                                f'it will not work in NumPy mode.')
 
         # get the delay keys
         for func in self._steps:
@@ -1141,7 +1137,7 @@ class TrajectoryRunner(Runner):
             # get the function call
             arg_calls = []
             for arg in func_args:
-                arg_calls.append(arg if arg in ARG_KEYWORDS else f"{self._name}.{arg}")
+                arg_calls.append(arg if arg in constants.ARG_KEYWORDS else f"{self._name}.{arg}")
             func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg_calls)})'
 
             # get the function result
@@ -1149,7 +1145,7 @@ class TrajectoryRunner(Runner):
 
         return results
 
-    def step_mode_np_scalar(self):
+    def step_scalar_model_debug(self):
         results = dict()
 
         # check number of the neurons,
@@ -1160,9 +1156,9 @@ class TrajectoryRunner(Runner):
 
         # check whether the model include heterogeneous parameters
         if len(self._pars.heters) > 0:
-            raise ModelUseError(f'This model has heterogeneous parameters '
+            raise ModelUseError(f'WARNING: This model has heterogeneous parameters '
                                 f'"{list(self._pars.heters.keys())}", '
-                                f'it cannot be compiled in NumPy mode.')
+                                f'it will not work in NumPy mode.')
 
         for func in self._steps:
             stripped_fname = tools.get_func_name(func, replace=True)
@@ -1173,7 +1169,7 @@ class TrajectoryRunner(Runner):
             # arg and arg2call
             code_arg, code_arg2call = [], {}
             for arg in func_args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     code_arg2call[arg] = arg
                     code_arg.append(arg)
                 else:
@@ -1207,7 +1203,7 @@ class TrajectoryRunner(Runner):
                 code_lines2.append('    ' + f'{self._name}_ST.update_by_index(_obj_i_, ST)')
             else:  # doesn't have ST
                 code_lines2 = [f'def {stripped_fname}({tools.func_call(code_arg)}):',
-                               f'  for _obj_i_ in range({self.ensemble.num}):',]
+                               f'  for _obj_i_ in range({self.ensemble.num}):', ]
                 code_lines2.extend(['    ' + line for line in code_lines1])
 
             # append the final results

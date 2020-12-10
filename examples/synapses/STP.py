@@ -4,7 +4,7 @@ import brainpy as bp
 import brainpy.numpy as np
 
 
-def STP(U=0.15, tau_f=1500., tau_d=200.):
+def get_STP_vector(U=0.15, tau_f=1500., tau_d=200.):
     """Short-term plasticity proposed by Tsodyks and Markram (Tsodyks 98) [1]_.
 
     The model is given by
@@ -84,4 +84,4 @@ def STP(U=0.15, tau_f=1500., tau_d=200.):
     return bp.SynType(name='STP',
                       requires=requires,
                       steps=(update, output),
-                      vector_based=True)
+                      mode='vector')

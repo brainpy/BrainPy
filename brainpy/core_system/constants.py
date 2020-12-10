@@ -17,3 +17,9 @@ INPUT_OPERATIONS = {'-': 'sub',
                     '/': 'div',
                     '=': 'assign'}
 
+# model mode
+SCALAR_MODE = 'scalar'
+VECTOR_MODE = 'vector'
+MATRIX_MODE = 'matrix'
+
+

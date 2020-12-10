@@ -13,10 +13,7 @@ Implementation of the paper：
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba',
-               device='cpu',
-               merge_steps=True,
-               numerical_method='exponential')
+bp.profile.set(backend='numba', numerical_method='exponential')
 
 num = 10000
 num_inh = int(num * 0.2)
@@ -66,7 +63,7 @@ def get_neu(tau):
     return bp.NeuType(name='LIF',
                       requires=dict(ST=neu_ST),
                       steps=update,
-                      vector_based=False)
+                      mode='scalar')
 
 
 # -------
@@ -83,6 +80,7 @@ def get_syn(tau):
 
     def update(ST, _t_, pre, pre2syn):
         s = ints(ST['s'], _t_)
+
         for i in range(pre['sp'].shape[0]):
             if pre['sp'][i] > 0.:
                 syn_ids = pre2syn[i]
@@ -97,8 +95,7 @@ def get_syn(tau):
 
     return bp.SynType(name='alpha_synapse',
                       requires=dict(ST=syn_ST),
-                      steps=(update, output),
-                      vector_based=True)
+                      steps=(update, output))
 
 
 # -------

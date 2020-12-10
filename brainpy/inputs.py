@@ -177,8 +177,10 @@ class PoissonInput(NeuGroup):
         def update(ST):
             ST['spike'] = np.random.random(ST['spike'].shape) < freqs * dt
 
-        model = NeuType(name='poisson_input', requires=dict(ST=NeuState(['spike'])),
-                        steps=update, vector_based=True)
+        model = NeuType(name='poisson_input',
+                        requires=dict(ST=NeuState(['spike'])),
+                        steps=update,
+                        mode='vector')
 
         # neuron group
         super(PoissonInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
@@ -232,7 +234,8 @@ class SpikeTimeInput(NeuGroup):
         model = NeuType(name='time_input',
                         requires=dict(ST=NeuState(['spike']),
                                       input_idx=Array(dim=1, help='The current index.')),
-                        steps=update, vector_based=True)
+                        steps=update,
+                        mode='vector')
 
         # neuron group
         super(SpikeTimeInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
@@ -289,26 +292,47 @@ class FreqInput(NeuGroup):
                   f'is {1000. / profile.get_dt()} Hz. While we get your "freq" setting which '
                   f'is bigger than that.')
 
-        def update_state(ST, _t_):
-            if _t_ >= ST['t_next_spike']:
-                ST['spike'] = 1.
-                ST['t_last_spike'] = _t_
-                ST['t_next_spike'] += 1000. / freqs
-            else:
-                ST['spike'] = 0.
-
         ST = NeuState({'spike': 0., 't_next_spike': 0., 't_last_spike': -1e7})
-        model = NeuType(name='poisson_input',
-                        requires=dict(ST=ST),
-                        steps=update_state,
-                        vector_based=False)
+
+        if profile.is_numba_bk():
+            def update_state(ST, _t_):
+                if _t_ >= ST['t_next_spike']:
+                    ST['spike'] = 1.
+                    ST['t_last_spike'] = _t_
+                    ST['t_next_spike'] += 1000. / freqs
+                else:
+                    ST['spike'] = 0.
+
+            model = NeuType(name='poisson_input',
+                            requires=dict(ST=ST),
+                            steps=update_state,
+                            mode='scalar')
+
+        else:
+            if np.size(freqs) == 1:
+                def update_state(ST, _t_):
+                    should_spike = _t_ >= ST['t_next_spike']
+                    ST['spike'] = should_spike
+                    spike_ids = np.where(should_spike)[0]
+                    ST['t_last_spike'][spike_ids] = _t_
+                    ST['t_next_spike'][spike_ids] += 1000. / freqs
+
+            else:
+                def update_state(ST, _t_):
+                    should_spike = _t_ >= ST['t_next_spike']
+                    ST['spike'] = should_spike
+                    spike_ids = np.where(should_spike)[0]
+                    ST['t_last_spike'][spike_ids] = _t_
+                    ST['t_next_spike'][spike_ids] += 1000. / freqs[spike_ids]
+
+            model = NeuType(name='poisson_input',
+                            requires=dict(ST=ST),
+                            steps=update_state,
+                            mode='vector')
 
         # neuron group
         super(FreqInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
+
         self.ST['t_next_spike'] = start_time
-        if profile.is_numpy_bk():
-            if np.size(freqs) != 1:
-                raise ValueError('NumPy mode cannot set heterogeneous firing frequency. '
-                                 '"freq" must be a constant.')
-        else:
-            self.pars['freq'] = freqs
+        if not profile.is_debug():
+            self.pars['freqs'] = freqs

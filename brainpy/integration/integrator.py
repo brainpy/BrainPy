@@ -4,6 +4,7 @@ import sympy
 import copy
 
 from . import methods
+from ..numpy import random
 from .diff_equation import DiffEquation
 from .sympy_tools import str2sympy
 from .sympy_tools import get_mapping_scope
@@ -158,7 +159,7 @@ class Euler(Integrator):
 
     def __init__(self, diff_eq):
         super(Euler, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.euler(diff_eq)
         self.get_np_step = methods.euler
@@ -238,7 +239,7 @@ class RK2(Integrator):
     def __init__(self, diff_eq, beta=2 / 3):
         super(RK2, self).__init__(diff_eq)
         self.beta = beta
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq, beta)
         self._update_func = methods.rk2(diff_eq, __beta=beta)
         self.get_np_step = methods.rk2
@@ -253,7 +254,7 @@ class RK2(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -348,7 +349,7 @@ class Heun(Integrator):
 
     def __init__(self, diff_eq):
         super(Heun, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=1.0)
         self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=1.0)
@@ -367,7 +368,7 @@ class Heun(Integrator):
                 # ------- #
 
                 # df
-                f_k1_expressions = diff_eq.get_f_expressions(substitute=None)
+                f_k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
                 code_lines = [str(expr) for expr in f_k1_expressions[:-1]]
                 code_lines.append(f'_df{var_name}_dt_k1 = {f_k1_expressions[-1].code}')
 
@@ -445,7 +446,7 @@ class MidPoint(Integrator):
 
     def __init__(self, diff_eq):
         super(MidPoint, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=0.5)
         self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=0.5)
@@ -489,7 +490,7 @@ class RK3(Integrator):
 
     def __init__(self, diff_eq):
         super(RK3, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk3(diff_eq)
         self.get_np_step = methods.rk3
@@ -504,7 +505,7 @@ class RK3(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -591,7 +592,7 @@ class RK4(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4(diff_eq)
         self.get_np_step = methods.rk4
@@ -606,7 +607,7 @@ class RK4(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -704,7 +705,7 @@ class RK4Alternative(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4Alternative, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4_alternative(diff_eq)
         self.get_np_step = methods.rk4_alternative
@@ -719,7 +720,7 @@ class RK4Alternative(Integrator):
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
-        k1_expressions = diff_eq.get_f_expressions(substitute=None)
+        k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
         code_lines = [str(expr) for expr in k1_expressions[:-1]]
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
@@ -852,13 +853,14 @@ class ExponentialEuler(Integrator):
         func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
         code_scopes = copy.copy(diff_eq.func_scope)
         code_scopes.update(get_mapping_scope())
+        code_scopes['_normal_like'] = random._normal_like
         exec(compile(func_code, '', 'exec'), code_scopes)
         self._update_func = code_scopes['int_func']
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
         dt = profile.get_dt()
-        f_expressions = diff_eq.get_f_expressions(substitute='var_dependent')
+        f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
         # code lines
         code_lines = [str(expr) for expr in f_expressions[:-1]]
@@ -956,7 +958,7 @@ class MilsteinIto(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinIto, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Ito(diff_eq)
         self.get_np_step = methods.milstein_Ito
@@ -978,7 +980,7 @@ class MilsteinIto(Integrator):
                 # ------- #
 
                 # df
-                f_k1_expressions = diff_eq.get_f_expressions(substitute=None)
+                f_k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
                 code_lines = [str(expr) for expr in f_k1_expressions]  # _df{var_name}_dt
 
                 # dg
@@ -1069,7 +1071,7 @@ class MilsteinStra(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinStra, self).__init__(diff_eq)
-        if profile.is_numba_bk():
+        if not profile.is_debug():
             self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Stra(diff_eq)
         self.get_np_step = methods.milstein_Stra
@@ -1091,7 +1093,7 @@ class MilsteinStra(Integrator):
                 # ------- #
 
                 # df
-                f_k1_expressions = diff_eq.get_f_expressions(substitute=None)
+                f_k1_expressions = diff_eq.get_f_expressions(substitute_vars=None)
                 code_lines = [str(expr) for expr in f_k1_expressions]  # _df{var_name}_dt
 
                 # dg

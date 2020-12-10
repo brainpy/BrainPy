@@ -70,6 +70,7 @@ def line_plot(ts,
         ax = plt
 
     # plot
+    val_matrix = val_matrix.reshape((val_matrix.shape[0], -1))
     if legend:
         for idx in plot_ids:
             ax.plot(ts, val_matrix[:, idx], label=f'{legend}-{idx}')

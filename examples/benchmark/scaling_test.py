@@ -62,37 +62,10 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['n'] = n
         ST['inp'] = 0.
 
-    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update, vector_based=True)
+    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update)
 
 
-def define_LIF(tau=10., Vr=0., Vth=10., ref=0.):
-    ST = bp.types.NeuState(
-        {'V': 0, 'sp_t': -1e7, 'sp': 0., 'inp': 0.},
-    )
-
-    @bp.integrate
-    def int_f(V, t, Isyn):
-        return (-V + Vr + Isyn) / tau
-
-    def update(ST, _t_):
-        if _t_ - ST['sp_t'] > ref:
-            V = int_f(ST['V'], _t_, ST['inp'])
-            if V >= Vth:
-                V = Vr
-                ST['sp_t'] = _t_
-                ST['sp'] = 1.
-            ST['V'] = V
-        else:
-            ST['sp'] = 0.
-        ST['inp'] = 0.
-
-    return bp.NeuType(name='LIF',
-                      requires=dict(ST=ST),
-                      steps=update,
-                      vector_based=False)
-
-
-bp.profile.set(dt=0.02,
+bp.profile.set(dt=0.1,
                numerical_method='exponential',
                merge_steps=True)
 
@@ -100,20 +73,21 @@ bp.profile.set(dt=0.02,
 def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
     print(f'HH, vector_based={vector}, device=cpu', end=', ')
     bp.profile.set(backend='numba', device='cpu')
+
     HH = define_hh()
-    HH.vector_based = vector
+    HH.mode = 'vector' if vector else 'scalar'
     neu = bp.NeuGroup(HH, geometry=num)
+
     t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=False)
+    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
     t_cpu = time.time() - t0
     print('used {:.3f} ms'.format(t_cpu))
 
     print(f'HH, vector_based={vector}, device=multi-cpu', end=', ')
     bp.profile.set(backend='numba', device='multi-cpu')
-    HH.vector_based = vector
     neu = bp.NeuGroup(HH, geometry=num)
     t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=False)
+    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
     t_multi_cpu = time.time() - t0
     print('used {:.3f} ms'.format(t_multi_cpu))
 
@@ -121,37 +95,14 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
     print()
 
 
-def lif_compare_cpu_and_multi_cpu(num=1000):
-    print(f'HH, device=cpu', end=', ')
-    bp.profile.set(backend='numba', device='cpu')
-    lif = define_LIF()
-    neu = bp.NeuGroup(lif, geometry=num)
-    t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=False)
-    t_cpu = time.time() - t0
-    print('used {:.3f} ms'.format(t_cpu))
-
-    print(f'HH, device=multi-cpu', end=', ')
-    bp.profile.set(backend='numba', device='multi-cpu')
-    neu = bp.NeuGroup(lif, geometry=num)
-    t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=False)
-    t_multi_cpu = time.time() - t0
-    print('used {:.3f} ms'.format(t_multi_cpu))
-
-    print(f"LIF model with multi-cpu speeds up {t_cpu / t_multi_cpu}")
-    print()
-
-
 if __name__ == '__main__':
-    hh_compare_cpu_and_multi_cpu(num=10000, vector=False)
-    hh_compare_cpu_and_multi_cpu(num=10000, vector=True)
-    hh_compare_cpu_and_multi_cpu(num=100000, vector=False)
-    hh_compare_cpu_and_multi_cpu(num=100000, vector=True)
+    pass
+    # hh_compare_cpu_and_multi_cpu(num=10000, vector=False)
+    # hh_compare_cpu_and_multi_cpu(num=100000, vector=False)
+    # hh_compare_cpu_and_multi_cpu(num=500000, vector=False)
+    # hh_compare_cpu_and_multi_cpu(num=10000, vector=True)
+    # hh_compare_cpu_and_multi_cpu(num=100000, vector=True)
 
-    lif_compare_cpu_and_multi_cpu(num=10000)
-    lif_compare_cpu_and_multi_cpu(num=100000)
-    lif_compare_cpu_and_multi_cpu(num=1000000)
 
 
 

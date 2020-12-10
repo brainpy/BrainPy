@@ -9,16 +9,11 @@ Implementation of the paper:
 
 """
 
-import matplotlib.pyplot as plt
 
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba',
-               device='cpu',
-               dt=0.04,
-               merge_steps=True,
-               numerical_method='exponential')
+bp.profile.set(backend='numba', dt=0.04, numerical_method='exponential')
 
 # HH neuron model #
 # --------------- #
@@ -123,18 +118,18 @@ GABAa = bp.SynType('GABAa', requires=requires, steps=(update, output))
 if __name__ == '__main__':
     num = 100
     v_init = -70. + np.random.random(num) * 20
-    # h_alpha = 0.07 * np.exp(-(v_init + 58) / 20)
-    # h_beta = 1 / (np.exp(-0.1 * (v_init + 28)) + 1)
-    # h_init = h_alpha / (h_alpha + h_beta)
-    # n_alpha = -0.01 * (v_init + 34) / (np.exp(-0.1 * (v_init + 34)) - 1)
-    # n_beta = 0.125 * np.exp(-(v_init + 44) / 80)
-    # n_init = n_alpha / (n_alpha + n_beta)
+    h_alpha = 0.07 * np.exp(-(v_init + 58) / 20)
+    h_beta = 1 / (np.exp(-0.1 * (v_init + 28)) + 1)
+    h_init = h_alpha / (h_alpha + h_beta)
+    n_alpha = -0.01 * (v_init + 34) / (np.exp(-0.1 * (v_init + 34)) - 1)
+    n_beta = 0.125 * np.exp(-(v_init + 44) / 80)
+    n_init = n_alpha / (n_alpha + n_beta)
 
     num = 100
     neu = bp.NeuGroup(HH, geometry=num, monitors=['sp', 'V'])
     neu.ST['V'] = -70. + np.random.random(num) * 20
-    # neu.ST['h'] = h_init
-    # neu.ST['n'] = n_init
+    neu.ST['h'] = h_init
+    neu.ST['n'] = n_init
 
     syn = bp.SynConn(GABAa, pre_group=neu, post_group=neu,
                      conn=bp.connect.All2All(include_self=False),
@@ -144,19 +139,11 @@ if __name__ == '__main__':
     net = bp.Network(neu, syn)
     net.run(duration=500., inputs=[neu, 'ST.inp', 1.2], report=True, report_percent=0.2)
 
-    ts = net.ts
-    fig, gs = bp.visualize.get_figure(2, 1, 3, 12)
+    fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    xlim = (net.t_start - 0.1, net.t_end + 0.1)
 
     fig.add_subplot(gs[0, 0])
-    plt.plot(ts, neu.mon.V[:, 0])
-    plt.ylabel('Membrane potential (N0)')
-    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
+    bp.visualize.line_plot(net.ts, neu.mon.V, xlim=xlim, ylabel='Membrane potential (N0)')
 
     fig.add_subplot(gs[1, 0])
-    index, time = bp.measure.raster_plot(neu.mon.sp, net.ts)
-    plt.plot(time, index, '.')
-    plt.xlim(net.t_start - 0.1, net.t_end + 0.1)
-    plt.xlabel('Time (ms)')
-    plt.ylabel('Raster plot')
-
-    plt.show()
+    bp.visualize.raster_plot(net.ts, neu.mon.sp, xlim=xlim, show=True)

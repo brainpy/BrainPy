@@ -24,13 +24,13 @@ from ..errors import ModelDefError
 from ..errors import ModelUseError
 
 __all__ = [
-    'BaseType',
-    'BaseEnsemble',
+    'BrainType',
+    'BrainEnsemble',
     'ParsUpdate',
 ]
 
 
-class BaseType(object):
+class BrainType(object):
     """The base type of neuron and synapse.
 
     Parameters
@@ -46,14 +46,14 @@ class BaseType(object):
             requires: typing.Dict,
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
             name: str,
-            vector_based: bool = True,
+            mode: str = 'vector',
             heter_params_replace: typing.Dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
             extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
         # type : neuron based or group based code
         # ---------------------------------------
-        self.vector_based = vector_based
+        self.mode = mode
 
         # name
         # -----
@@ -221,9 +221,9 @@ class ParsUpdate(dict):
                                          model=model)
 
     def __setitem__(self, key, value):
-        if profile.is_numpy_bk():
-            raise ModelUseError('NumPy mode do not support modify parameters. '
-                                'Please update parameters at the initialization of NeuType/SynType.')
+        if profile.is_debug():
+            print('WARNING: DEBUG mode do not support modify parameters. '
+                  'Please update parameters at the initialization of NeuType/SynType.')
 
         # check the existence of "key"
         if key not in self.origins:
@@ -316,7 +316,7 @@ class ParsUpdate(dict):
         return origins
 
 
-class BaseEnsemble(object):
+class BrainEnsemble(object):
     """Base Ensemble class.
 
     Parameters
@@ -325,7 +325,7 @@ class BaseEnsemble(object):
         Name of the (neurons/synapses) ensemble.
     num : int
         The number of the neurons/synapses.
-    model : BaseType
+    model : BrainType
         The (neuron/synapse) model.
     monitors : list, tuple, None
         Variables to monitor.
@@ -339,7 +339,7 @@ class BaseEnsemble(object):
             self,
             name: str,
             num: int,
-            model: BaseType,
+            model: BrainType,
             monitors: typing.Tuple,
             pars_update: typing.Dict,
             cls_type: str
@@ -440,7 +440,7 @@ class BaseEnsemble(object):
         else:
             raise ValueError
 
-    def _build(self, mode, inputs=None, mon_length=0):
+    def _build(self, inputs=None, mon_length=0):
         # prerequisite
         self._type_checking()
 
@@ -449,22 +449,22 @@ class BaseEnsemble(object):
 
         # inputs
         if inputs:
-            r = self.runner.format_input_code(inputs, mode=mode)
+            r = self.runner.format_input_code(inputs)
             results.update(r)
 
         # monitors
         if len(self._mon_vars):
-            mon, r = self.runner.format_monitor_code(self._mon_vars, run_length=mon_length, mode=mode)
+            mon, r = self.runner.format_monitor_code(self._mon_vars, run_length=mon_length)
             results.update(r)
             self.mon.clear()
             self.mon.update(mon)
 
         # steps
-        r = self.runner.format_step_codes(mode=mode)
+        r = self.runner.format_step_codes()
         results.update(r)
 
         # merge
-        calls = self.runner.merge_steps(results, mode=mode)
+        calls = self.runner.merge_steps(results)
 
         if self._cls_type == _SYN_CONN:
             index_update_items = set()
@@ -480,15 +480,6 @@ class BaseEnsemble(object):
     @property
     def requires(self):
         return self.model.requires
-
-    @property
-    def _keywords(self):
-        kws = [
-            'model', 'num', '_mon_vars', 'mon', '_cls_type', '_keywords',
-        ]
-        if hasattr(self, 'model'):
-            kws += self.model.step_names
-        return kws
 
     def run(self, duration, inputs=(), report=False, report_percent=0.1):
         # times
@@ -565,8 +556,7 @@ class BaseEnsemble(object):
 
         # get step function
         # -------------------
-        lines_of_call = self._build(mode=profile.get_backend(),
-                                    inputs=formatted_inputs,
+        lines_of_call = self._build(inputs=formatted_inputs,
                                     mon_length=run_length)
         code_lines = ['def step_func(_t_, _i_, _dt_):']
         code_lines.extend(lines_of_call)
@@ -585,7 +575,7 @@ class BaseEnsemble(object):
         if report:
             t0 = time.time()
             step_func(_t_=times[0], _i_=0, _dt_=dt)
-            print('Compilation used {:.4f} ms.'.format(time.time() - t0))
+            print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)
@@ -601,10 +591,3 @@ class BaseEnsemble(object):
                 step_func(_t_=times[run_idx], _i_=run_idx, _dt_=dt)
 
         self.mon['ts'] = times
-
-    def __setattr__(self, key, value):
-        if key in self._keywords:
-            if hasattr(self, key):
-                raise KeyError(f'"{key}" is a keyword in "{self._cls_type}" model, '
-                               f'please change another name.')
-        super(BaseEnsemble, self).__setattr__(key, value)

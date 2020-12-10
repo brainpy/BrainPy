@@ -16,7 +16,8 @@ except ImportError:
     Dispatcher = None
 
 
-__all__ = ['One2One', 'All2All',
+__all__ = ['One2One', 'one2one',
+           'All2All', 'all2all',
            'GridFour', 'grid_four',
            'GridEight', 'grid_eight',
            'GridN',
@@ -117,16 +118,24 @@ class GridFour(Connector):
         self.include_self = include_self
 
     def __call__(self, pre_indices, post_indices=None):
-        assert np.ndim(pre_indices) == 2
         if post_indices is not None:
-            assert np.shape(pre_indices) == np.shape(post_indices)
+            try:
+                assert np.shape(pre_indices) == np.shape(post_indices)
+            except AssertionError:
+                raise ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
+                                    f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
 
         global _grid_four
         if nb is not None:
             if not isinstance(_grid_four, Dispatcher):
                 _grid_four = nb.njit(_grid_four)
 
-        height, width = pre_indices.shape
+        if len(pre_indices.shape) == 1:
+            height, width = pre_indices.shape[0], 1
+        elif len(pre_indices.shape) == 2:
+            height, width = pre_indices.shape
+        else:
+            raise ModelUseError('Currently only support two-dimensional geometry.')
         conn_i = []
         conn_j = []
         for row in range(height):
@@ -147,6 +156,7 @@ class GridFour(Connector):
             self.post_ids = post_indices[conn_j]
             if self.num_post is None:
                 self.num_post = post_indices.max()
+
 
 grid_four = GridFour()
 
@@ -194,16 +204,25 @@ class GridN(Connector):
         self.include_self = include_self
 
     def __call__(self, pre_indices, post_indices=None):
-        assert np.ndim(pre_indices) == 2
         if post_indices is not None:
-            assert np.shape(pre_indices) == np.shape(post_indices)
+            try:
+                assert np.shape(pre_indices) == np.shape(post_indices)
+            except AssertionError:
+                raise ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
+                                    f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
 
         global _grid_n
         if nb is not None:
             if not isinstance(_grid_n, Dispatcher):
                 _grid_n = nb.njit(_grid_n)
 
-        height, width = pre_indices.shape
+        if len(pre_indices.shape) == 1:
+            height, width = pre_indices.shape[0], 1
+        elif len(pre_indices.shape) == 2:
+            height, width = pre_indices.shape
+        else:
+            raise ModelUseError('Currently only support two-dimensional geometry.')
+
         conn_i = []
         conn_j = []
         for row in range(height):
