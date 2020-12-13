@@ -1,105 +1,43 @@
-npbrain.core package
+brainpy.core package
 ====================
 
-.. currentmodule:: npbrain.core
-.. automodule:: npbrain.core
-
-
-.. contents::
-    :local:
-    :depth: 2
-
-
-Numerical integration methods
------------------------------
-
-The most commonly used function is `integrate`:
+.. currentmodule:: brainpy.core_system
+.. automodule:: brainpy.core_system
 
 .. autosummary::
     :toctree: _autosummary
 
-    integrate
+    BaseType
+    NeuType
+    SynType
+    BaseEnsemble
+    NeuGroup
+    SynConn
+    Network
+    ParsUpdate
+    delayed
 
-Methods for ordinary differential equations.
-
-.. autosummary::
-    :toctree: _autosummary
-
-    ode_euler
-    ode_rk2
-    midpoint
-    ode_heun
-    ode_rk3
-    ode_rk4
-    ode_rk4_alternative
-    ode_backward_euler
-    trapezoidal_rule
-    ode_exponential_euler
-
-Methods for stochastic differential equations.
-
-.. autosummary::
-    :toctree: _autosummary
-
-    sde_euler
-    Milstein_dfree_Ito
-    sde_heun
-    Milstein_dfree_Stra
-
-    sde_exponential_euler
-
-
-Neurons
--------
-
-.. autosummary::
-    :toctree: _autosummary
-
-    judge_spike
-    initial_neu_state
-    format_geometry
-    format_refractory
-    generate_fake_neuron
-
-.. autoclass:: Neurons
-    :members:
-
-
-Synapses
---------
-
-.. autosummary::
-    :toctree: _autosummary
-
-    format_delay
-    initial_syn_state
-
-.. autoclass:: Synapses
-    :members:
-
-
-Monitors
---------
-
-.. autoclass:: Monitor
+.. autoclass:: BaseType
    :members:
 
-.. autoclass:: SpikeMonitor
+.. autoclass:: NeuType
    :members:
 
-.. autoclass:: StateMonitor
+.. autoclass:: SynType
    :members:
 
-.. autosummary::
-    :toctree: _autosummary
+.. autoclass:: BaseEnsemble
+   :members:
 
-    raster_plot
-    firing_rate
+.. autoclass:: NeuGroup
+   :members:
 
-Network
--------
+.. autoclass:: SynConn
+   :members:
 
 .. autoclass:: Network
-   :members: add, run, run_time
+   :members: add, build, run
 
+.. autoclass:: ParsUpdate
+   :members: get, keys, items
 

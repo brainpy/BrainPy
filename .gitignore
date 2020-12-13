@@ -1,12 +1,8 @@
-conda-recipe
 publishment.md
 #experimental/
 TRN_oscillation/
 TODO.md
 .vscode
-
-try1.py
-try2.py
 
 docs/images/numpybrain_arch.pptx
 docs/images/synapses_index.pdf
@@ -15,17 +11,17 @@ docs/images/neuron_structure.xlsx
 docs/images/neuron_structure.pdf
 docs/images/connection_methods.pptx
 
-docs/intro/_autosummary
-docs/intro/.ipynb_checkpoints
+docs/tutorials/_autosummary
+docs/tutorials/.ipynb_checkpoints
 
-docs/guides/_autosummary
-docs/guides/.ipynb_checkpoints
-docs/guides/fast_synapse_computation.py
-docs/guides/fast_synapse_computation2.py
+docs/advanced/_autosummary
+docs/advanced/.ipynb_checkpoints
+develop/fast_synapse_computation.py
+develop/fast_synapse_computation2.py
 
 docs/apis/_autosummary
-docs/apis/usage_of_inputfactory.py
-docs/apis/usage_of_utils_connect.py
+docs/advanced/usage_of_inputfactory.py
+docs/advanced/usage_of_utils_connect.py
 
 examples/benchmark/brian2*
 examples/benchmark/annarchy*
@@ -46,6 +42,7 @@ build/
 docs/images/logo1.tif
 docs/images/logo2.tif
 docs/images/logo3.tif
+docs/images/logo4.tif
 
 */__pycache__
 docs/c4_examples/
@@ -60,9 +57,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/

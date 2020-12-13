@@ -1,0 +1,42 @@
+package:
+    name: brain.py
+    version: "0.2.5"
+
+source:
+    path: ../../
+
+build:
+    number: 0
+    script: python -m pip install --no-deps --ignore-installed .
+
+requirements:
+    host:
+        - python
+        - setuptools>=40.0.0
+        - numpy>= 1.13
+        - sympy>=1.2
+        - numba>=0.50
+    run:
+        - python
+        - numpy>=1.13
+        - sympy>=1.2
+        - numba>=0.50
+        - matplotlib>=3.0
+        - setuptools>=40.0.0
+        - autopep8
+
+test:
+  imports:
+    - brainpy
+
+about:
+    home: https://github.com/PKU-NIP-Lab/BrainPy
+    license: GPL-3.0
+    summary: 'A simulation toolbox for researches in computational neuroscience and brain-inspired computation.'
+    description: |
+        BrainPy is a lightweight framework based
+        on the latest Just-In-Time compilers
+        for neuronal dynamics simulation.
+    dev_url: https://github.com/PKU-NIP-Lab/BrainPy
+    doc_url: https://brainpy.readthedocs.io/en/latest/
+    doc_source_url: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/README.rst

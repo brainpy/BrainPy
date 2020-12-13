@@ -1,45 +1,63 @@
-NumpyBrain documentation
-========================
+BrainPy documentation
+=====================
 
-``NumpyBrain`` is a microkernel framework for SNN (spiking neural network) simulation
-purely based on **native** python. It only relies on `NumPy <https://numpy.org/>`_.
-However, if you want to get faster performance,you can additionally
-install `Numba <http://numba.pydata.org/>`_. With `Numba`, the speed of C or FORTRAN can
-be obtained in the simulation.
+``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
+compilers. The goal of ``BrainPy`` is to provide a unified simulation and
+analysis framework for neuronal dynamics with the feature of high
+flexibility and efficiency.
 
 
 .. note::
 
-    NumpyBrain is a project under development.
+    BrainPy is a project under development.
     More features are coming soon. Contributions are welcome.
-    https://github.com/chaoming0625/NumpyBrain
+    https://github.com/PKU-NIP-Lab/BrainPy
+
+.. warning::
+
+    The documentation of BrainPy is incomplete. We will
+    speed up this progress as we can.
 
 
 .. toctree::
    :maxdepth: 1
-   :caption: Introduction
+   :caption: Tutorials
 
-   intro/installation
-   intro/motivations
-   intro/quick_start
+   tutorials/installation
+   tutorials/quick_start
+   tutorials/build_neurons
+   tutorials/build_synapses
+   tutorials/build_network
+   tutorials/dynamics_analysis
 
-.. toctree::
-   :maxdepth: 2
-   :caption: User guides
-
-   guides/how_it_works
-   guides/neurons
-   guides/synapses
-   guides/numerical_integrators
 
 .. toctree::
-   :maxdepth: 2
-   :caption: API references
+   :maxdepth: 1
+   :caption: Advanced Tutorials
 
+   advanced/differential_equations
+   advanced/numerical_integrators
+   advanced/tips_on_jit
+   advanced/how_it_works
+   advanced/usage_of_connect_module
+   advanced/usage_of_inputs_module
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API documentation
+
+   apis/profile
    apis/core
-   apis/neurons
-   apis/synapses
-   apis/utils
+   apis/integration
+   apis/dynamics
+   apis/connectivity
+   apis/visualization
+   apis/measure
+   apis/running
+   apis/inputs
+   apis/errors
+   apis/tools
    apis/changelog
 
 
