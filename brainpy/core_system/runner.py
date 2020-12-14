@@ -696,19 +696,19 @@ class Runner(object):
                 code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):',
                               f'  _pre_i_ = {self._name}_pre_ids[_obj_i_]',
                               f'  _post_i_ = {self._name}_post_ids[_obj_i_]']
-                blank = '  ' * 2
+                blank = '  ' * 1
             elif has_pre:
                 code_args.add(f'{self._name}_pre_ids')
                 code_arg2call[f'{self._name}_pre_ids'] = f'{self._name}.pre_ids'
                 code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):',
                               f'  _pre_i_ = {self._name}_pre_ids[_obj_i_]']
-                blank = '  ' * 2
+                blank = '  ' * 1
             elif has_post:
                 code_args.add(f'{self._name}_post_ids')
                 code_arg2call[f'{self._name}_post_ids'] = f'{self._name}.post_ids'
                 code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):',
                               f'  _post_i_ = {self._name}_post_ids[_obj_i_]']
-                blank = '  ' * 2
+                blank = '  ' * 1
             else:
                 code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):']
                 blank = '  ' * 1
@@ -729,7 +729,7 @@ class Runner(object):
 
             # code to compile
             code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
-            func_code = '\n '.join(code_to_compile)
+            func_code = '\n  '.join(code_to_compile)
             if profile._auto_pep8:
                 func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)

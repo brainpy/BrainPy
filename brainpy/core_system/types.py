@@ -184,7 +184,8 @@ class SynState(ObjState):
         elif key in ['_data', '_var2idx', '_idx2var', '_cond_delay']:
             raise KeyError(f'"{key}" cannot be modified.')
         else:
-            raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
+            raise KeyError(f'"{key}" is not defined in {type(self).__name__}, '
+                           f'only finds "{str(self._keys)}".')
 
     def extract_by_index(self, idx, delay_pull=False):
         if delay_pull:

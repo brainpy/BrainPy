@@ -41,6 +41,7 @@ class Network(object):
         # record the current step
         self.t_start = 0.
         self.t_end = 0.
+        self.t_duration = 0.
 
         # add objects
         self.add(*args, **kwargs)
@@ -221,7 +222,14 @@ class Network(object):
         # ----------
         if self.mode != 'repeat' or self._step_func is None:
             self._step_func = self.build(run_length, inputs)
+            self.t_duration = end - start
         else:
+            # check running duration
+            if self.t_duration != (end - start):
+                raise ModelUseError(f'Each run in "repeat" mode must be done '
+                                    f'with the same duration, but got '
+                                    f'{self.t_duration} != {end - start}.')
+
             # reset inputs
             formatted_inputs = self._format_inputs(inputs, run_length)
             for obj_name, inps in formatted_inputs.items():
@@ -230,13 +238,13 @@ class Network(object):
                 all_keys = list(obj_inputs.keys())
                 for key, val, ops, data_type in inps:
                     if np.shape(obj_inputs[key][0]) != np.shape(val):
-                        raise ModelUseError(f'The input shape for {key} should keep the same. However, we got '
+                        raise ModelUseError(f'The input shape for "{key}" should keep the same. However, we got '
                                             f'the last input shape = {np.shape(obj_inputs[key][0])}, '
                                             f'and the current input shape = {np.shape(val)}')
                     if obj_inputs[key][1] != ops:
-                        raise ModelUseError(f'The input operation for {key} should keep the same. However, we got '
-                                            f'the last operation is {obj_inputs[key][1]}, '
-                                            f'and the current operation is {ops}')
+                        raise ModelUseError(f'The input operation for "{key}" should keep the same. However, we got '
+                                            f'the last operation is "{obj_inputs[key][1]}", '
+                                            f'and the current operation is "{ops}"')
                     if np.isscalar(val):
                         setattr(obj.runner, f'{key.replace(".", "_")}_inp', val)
                     else:
