@@ -1,0 +1,8 @@
+language: python
+python:
+ - "3.8"
+install:
+ - "pip install pytest"
+ - "pip install -r requirements.txt"
+ - "pip install ."
+script: python -m pytest tests/
