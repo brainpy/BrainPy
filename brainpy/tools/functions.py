@@ -150,6 +150,8 @@ def get_func_scope(func, include_dispatcher=False):
         func_name = get_func_name(func, replace=True)
         variables = inspect.getclosurevars(func)
     else:
+        if type(func).__name__ == 'ufunc':
+            return {}
         raise ValueError(f'Unknown type: {type(func)}')
     scope = dict(variables.nonlocals)
     scope.update(variables.globals)
