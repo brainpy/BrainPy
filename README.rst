@@ -1,6 +1,3 @@
-.. image:: https://travis-ci.org/PKU-NIP-Lab/BrainPy.svg?branch=master
-    :target: https://travis-ci.org/PKU-NIP-Lab/BrainPy
-
 .. image:: docs/images/logo.png
     :target: https://github.com/PKU-NIP-Lab/BrainPy
     :align: center
@@ -22,6 +19,8 @@
     :target: https://badge.fury.io/py/brain.py
     :alt: Pypi Version
 
+.. image:: https://travis-ci.org/PKU-NIP-Lab/BrainPy.svg?branch=master
+    :target: https://travis-ci.org/PKU-NIP-Lab/BrainPy
 
 
 
