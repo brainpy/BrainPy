@@ -271,7 +271,9 @@ class FixedProb(Connector):
         if not self.include_self:
             diag_index = np.arange(min([num_pre, num_post]))
             prob_mat[diag_index, diag_index] = 1.
-        pre_ids, post_ids = np.where(prob_mat < self.prob)
+        conn_mat = prob_mat < self.prob
+        pre_ids, post_ids = np.where(conn_mat)
+        self.conn_mat = np.float_(conn_mat)
         self.pre_ids = pre_indices[pre_ids]
         self.post_ids = post_indices[post_ids]
         if self.num_pre is None:

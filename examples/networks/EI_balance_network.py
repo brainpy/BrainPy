@@ -10,7 +10,7 @@ import brainpy.numpy as np
 import matplotlib.pyplot as plt
 
 
-bp.profile.set(backend='numba', device='cpu', numerical_method='exponential')
+bp.profile.set(jit=True, device='cpu', numerical_method='exponential')
 
 num_exc = 500
 num_inh = 500

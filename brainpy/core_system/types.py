@@ -226,7 +226,7 @@ class ListConn(TypeChecker):
         super(ListConn, self).__init__(help=help)
 
     def check(self, cls):
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             if not isinstance(cls, nb.typed.List):
                 raise TypeMismatchError(f'In numba mode, "cls" must be an instance of {type(nb.typed.List)}, '
                                         f'but got {type(cls)}. Hint: you can use "ListConn.create()" method.')
@@ -245,7 +245,7 @@ class ListConn(TypeChecker):
     def make_copy(cls, conn):
         assert isinstance(conn, (list, tuple)), '"conn" must be a tuple/list.'
         assert isinstance(conn[0], (list, tuple)), 'Elements of "conn" must be tuple/list.'
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             a_list = nb.typed.List()
             for l in conn:
                 a_list.append(np.uint64(l))
@@ -353,7 +353,7 @@ class List(TypeChecker):
         super(List, self).__init__(help=help)
 
     def check(self, cls):
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             if not isinstance(cls, nb.typed.List):
                 raise TypeMismatchError(f'In numba, "List" requires an instance of {type(nb.typed.List)}, '
                                         f'but got {type(cls)}.')
@@ -380,7 +380,7 @@ class Dict(TypeChecker):
         super(Dict, self).__init__(help=help)
 
     def check(self, cls):
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             if not isinstance(cls, nb.typed.Dict):
                 raise TypeMismatchError(f'In numba, "Dict" requires an instance of {type(nb.typed.Dict)}, '
                                         f'but got {type(cls)}.')

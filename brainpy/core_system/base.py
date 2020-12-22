@@ -11,6 +11,7 @@ from .constants import INPUT_OPERATIONS
 from .constants import _NEU_GROUP
 from .constants import _SYN_CONN
 from .runner import Runner
+from .types import ObjState
 from .types import NeuState
 from .types import SynState
 from .types import TypeChecker
@@ -39,9 +40,10 @@ class BrainType(object):
 
     def __init__(
             self,
-            requires: typing.Dict,
-            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
             name: str,
+            state: ObjState,
+            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
+            requires: typing.Dict = None,
             mode: str = 'vector',
             heter_params_replace: typing.Dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),

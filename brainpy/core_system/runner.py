@@ -159,7 +159,7 @@ class Runner(object):
         func_code = '\n  '.join(code_to_compile)
         exec(compile(func_code, '', 'exec'), code_scope)
         self.input_step = code_scope['input_step']
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             self.input_step = tools.jit(self.input_step)
         if profile._show_format_code:
             if not profile._merge_integrators:
@@ -295,7 +295,7 @@ class Runner(object):
         func_code = '\n  '.join(code_to_compile)
         exec(compile(func_code, '', 'exec'), code_scope)
         monitor_step = code_scope['monitor_step']
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             monitor_step = tools.jit(monitor_step)
         self.monitor_step = monitor_step
 
@@ -413,7 +413,7 @@ class Runner(object):
                     # get scope variables to delete
                     scope_to_del.add(k)
                     for k_, v_ in v.code_scope.items():
-                        if profile.is_numba_bk() and callable(v_):
+                        if profile.is_jit_backend() and callable(v_):
                             v_ = tools.numba_func(v_, params=self._pars.updates)
                         scope_to_add[k_] = v_
 
@@ -425,11 +425,11 @@ class Runner(object):
                                                     f'it will not work.\n'
                                                     f'Please set "brainpy.profile.set(merge_steps=True)" to try to '
                                                     f'merge parameter "{ks}" into the step functions.')
-                    if profile.is_numba_bk():
+                    if profile.is_jit_backend():
                         code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
             elif type(v).__name__ == 'function':
-                if profile.is_numba_bk():
+                if profile.is_jit_backend():
                     code_scope[k] = tools.numba_func(v, params=self._pars.updates)
 
         # update code scope
@@ -548,7 +548,7 @@ class Runner(object):
             code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
-            func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
+            func = tools.jit(code_scope[stripped_fname]) if profile.is_jit_backend() \
                 else code_scope[stripped_fname]
             if profile._show_format_code and not profile._merge_integrators:
                 tools.show_code_str(func_code)
@@ -595,7 +595,7 @@ class Runner(object):
 
             # update functions in code scope
             for k, v in code_scope.items():
-                if profile.is_numba_bk() and callable(v):
+                if profile.is_jit_backend() and callable(v):
                     code_scope[k] = tools.numba_func(func=v, params=self._pars.updates)
 
             add_args = set()
@@ -723,7 +723,7 @@ class Runner(object):
             code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
-            func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
+            func = tools.jit(code_scope[stripped_fname]) if profile.is_jit_backend() \
                 else code_scope[stripped_fname]
             if profile._show_format_code and not profile._merge_integrators:
                 tools.show_code_str(func_code)
@@ -765,7 +765,7 @@ class Runner(object):
             func_code = '\n  '.join(lines)
             exec(compile(func_code, '', 'exec'), code_scopes)
 
-            if profile.is_numba_bk():
+            if profile.is_jit_backend():
                 func = tools.jit(code_scopes['merge_func'])
             else:
                 func =  code_scopes['merge_func']

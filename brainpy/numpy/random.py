@@ -76,32 +76,21 @@ def _reload(backend):
     global_vars = globals()
 
     if backend == 'numpy':
-        from ._backends import numpy_
+        from . import _numpy_cpu
         for __ops in _all:
             if hasattr(numpy.random, __ops):
                 global_vars[__ops] = getattr(numpy.random, __ops)
             else:
-                global_vars[__ops] = getattr(numpy_, __ops)
+                global_vars[__ops] = getattr(_numpy_cpu, __ops)
 
     elif backend == 'numba':
-        from brainpy.numpy import _numba_cpu
+        from . import _numba_cpu
 
         for __ops in _all:
             if hasattr(_numba_cpu, __ops):
                 global_vars[__ops] = getattr(_numba_cpu, __ops)
             else:
                 global_vars[__ops] = getattr(numpy.random, __ops)
-
-    elif backend == 'tensorflow':
-        tf_random = import_module('tensorflow.experimental.numpy.random')
-        from ._backends import _tensorflow
-
-        for __ops in _all:
-            if hasattr(tf_random, __ops):
-                global_vars[__ops] = getattr(tf_random, __ops)
-            else:
-                global_vars[__ops] = getattr(_tensorflow, __ops)
-
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')

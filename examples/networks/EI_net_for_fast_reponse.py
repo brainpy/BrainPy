@@ -13,7 +13,7 @@ Implementation of the paper：
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba', device='cpu', numerical_method='exponential')
+bp.profile.set(jit=True, device='cpu', numerical_method='exponential')
 
 num = 10000
 num_inh = int(num * 0.2)

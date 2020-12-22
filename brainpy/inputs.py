@@ -294,7 +294,7 @@ class FreqInput(NeuGroup):
 
         ST = NeuState({'spike': 0., 't_next_spike': 0., 't_last_spike': -1e7})
 
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             def update_state(ST, _t_):
                 if _t_ >= ST['t_next_spike']:
                     ST['spike'] = 1.

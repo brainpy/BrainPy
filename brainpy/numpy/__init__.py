@@ -528,22 +528,14 @@ def _reload(backend):
             else:
                 global_vars[__ops] = getattr(numpy, __ops)
 
-    elif backend == 'tensorflow':
-        tf_numpy = import_module('tensorflow.experimental.numpy')
-        from ._backends import _tensorflow
-
-        for __ops in _all:
-            if hasattr(tf_numpy, __ops):
-                global_vars[__ops] = getattr(tf_numpy, __ops)
-            else:
-                global_vars[__ops] = getattr(_tensorflow, __ops)
-
     else:
         raise ValueError(f'Unknown backend device: {backend}')
 
 
 def _set_default_int(itype):
     """Set default int type.
+
+    TODO:
 
     Parameters
     ----------
@@ -559,6 +551,8 @@ def _set_default_int(itype):
 
 def _set_default_float(ftype):
     """Set default float type.
+
+    TODO:
 
     Parameters
     ----------
