@@ -15,21 +15,21 @@ from .types import ObjState
 from .types import NeuState
 from .types import SynState
 from .types import TypeChecker
-from .types import TypeMismatchError
 from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..errors import ModelDefError
+from ..errors import TypeMismatchError
 from ..errors import ModelUseError
 
 __all__ = [
-    'BrainType',
-    'BrainEnsemble',
+    'BaseType',
+    'BaseEnsemble',
     'ParsUpdate',
 ]
 
 
-class BrainType(object):
+class BaseType(object):
     """The base type of neuron and synapse.
 
     Parameters
@@ -41,7 +41,7 @@ class BrainType(object):
     def __init__(
             self,
             name: str,
-            state: ObjState,
+            ST: ObjState,
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
             requires: typing.Dict = None,
             mode: str = 'vector',
@@ -57,24 +57,24 @@ class BrainType(object):
         # -----
         self.name = name
 
+        # state
+        # -----
+        if not isinstance(ST, ObjState):
+            raise ModelDefError('"ST" must be an instance of ObjState.')
+        self.ST = ST
+
         # requires
-        # -----------
-        try:
-            assert isinstance(requires, dict)
-        except AssertionError:
+        # ---------
+        if requires is None:
+            requires = dict()
+        if not isinstance(requires, dict):
             raise ModelDefError('"requires" only supports dict.')
-        try:
-            assert 'ST' in requires
-        except AssertionError:
-            raise ModelDefError('"ST" must be defined in "requires".')
         self.requires = requires
         for k, v in requires.items():
             if isinstance(v, type):
                 raise ModelDefError(f'In "requires", you must instantiate the type checker of "{k}". '
                                     f'Like "{v.__name__}()".')
-            try:
-                assert isinstance(v, TypeChecker)
-            except AssertionError:
+            if not isinstance(v, TypeChecker):
                 raise ModelDefError(f'In "requires", each value must be a {TypeChecker.__name__}, '
                                     f'but got "{type(v)}" for "{k}".')
 
@@ -130,7 +130,7 @@ class BrainType(object):
 
         # variables
         # ----------
-        self.variables = self.requires['ST']._vars
+        self.variables = ST._vars
         for var in step_vars:
             if var not in self.variables:
                 raise ModelDefError(f'Variable "{var}" is used in {self.name}, but not defined in "ST".')
@@ -146,26 +146,13 @@ class BrainType(object):
         # --------------------------------
         if heter_params_replace is None:
             heter_params_replace = dict()
-        try:
-            assert isinstance(heter_params_replace, dict)
-        except AssertionError:
+        if not isinstance(heter_params_replace, dict):
             raise ModelDefError('"heter_params_replace" must be a dict.')
         self.heter_params_replace = heter_params_replace
 
-        # check consistence between function
-        # arguments and model attributes
-        # ----------------------------------
-        warnings = []
-        for arg in self.step_args:
-            if arg not in self.requires:
-                warn = f'"{self.name}" requires "{arg}" as argument, but "{arg}" isn\'t declared in "requires".'
-                warnings.append(warn)
-        if len(warnings):
-            print('\n'.join(warnings) + '\n')
-
         # delay keys
         # ----------
-        self._delay_keys = {}
+        self._delay_keys = []
 
         # extra functions
         # ---------------
@@ -310,7 +297,7 @@ class ParsUpdate(dict):
         return origins
 
 
-class BrainEnsemble(object):
+class BaseEnsemble(object):
     """Base Ensemble class.
 
     Parameters
@@ -319,7 +306,7 @@ class BrainEnsemble(object):
         Name of the (neurons/synapses) ensemble.
     num : int
         The number of the neurons/synapses.
-    model : BrainType
+    model : BaseType
         The (neuron/synapse) model.
     monitors : list, tuple, None
         Variables to monitor.
@@ -333,7 +320,7 @@ class BrainEnsemble(object):
             self,
             name: str,
             num: int,
-            model: BrainType,
+            model: BaseType,
             monitors: typing.Tuple,
             pars_update: typing.Dict,
             cls_type: str
@@ -406,6 +393,14 @@ class BrainEnsemble(object):
             setattr(self, attr_key, attr_val)
 
     def _type_checking(self):
+        # check state and its type
+        if not hasattr(self, 'ST'):
+            raise ModelUseError(f'"{self.name}" doesn\'t have "ST" attribute.')
+        try:
+            self.model.ST.check(self.ST)
+        except TypeMismatchError as e:
+            raise ModelUseError(f'"{self.name}.ST" doesn\'t satisfy TypeChecker "{str(self.model.ST)}".')
+
         # check attribute and its type
         for key, type_checker in self.model.requires.items():
             if not hasattr(self, key):
@@ -552,7 +547,7 @@ class BrainEnsemble(object):
         # -------------------
         lines_of_call = self._build(inputs=formatted_inputs,
                                     mon_length=run_length)
-        code_lines = ['def step_func(_t_, _i_, _dt_):']
+        code_lines = ['def step_func(_t, _i, _dt):']
         code_lines.extend(lines_of_call)
         code_scopes = {self.name: self}
         func_code = '\n  '.join(code_lines)
@@ -566,21 +561,21 @@ class BrainEnsemble(object):
         # -------------
         if report:
             t0 = time.time()
-            step_func(_t_=times[0], _i_=0, _dt_=dt)
+            step_func(_t=times[0], _i=0, _dt=dt)
             print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)
             t0 = time.time()
             for run_idx in range(1, run_length):
-                step_func(_t_=times[run_idx], _i_=run_idx, _dt_=dt)
+                step_func(_t=times[run_idx], _i=run_idx, _dt=dt)
                 if (run_idx + 1) % report_gap == 0:
                     percent = (run_idx + 1) / run_length * 100
                     print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
         else:
             for run_idx in range(run_length):
-                step_func(_t_=times[run_idx], _i_=run_idx, _dt_=dt)
+                step_func(_t=times[run_idx], _i=run_idx, _dt=dt)
 
         self.mon['ts'] = times
 

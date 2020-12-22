@@ -2,7 +2,7 @@
 
 import time
 
-from .base import BrainEnsemble
+from .base import BaseEnsemble
 from .constants import INPUT_OPERATIONS
 from .neurons import NeuGroup
 from .synapses import SynConn
@@ -96,19 +96,15 @@ class Network(object):
             raise ModelUseError('"inputs" must be a tuple/list.')
 
         if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
-            if isinstance(inputs[0], BrainEnsemble):
+            if isinstance(inputs[0], BaseEnsemble):
                 inputs = [inputs]
             else:
                 raise ModelUseError('Unknown input structure.')
         for inp in inputs:
-            try:
-                assert 3 <= len(inp) <= 4
-            except AssertionError:
+            if not 3 <= len(inp) <= 4:
                 raise ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
             if len(inp) == 4:
-                try:
-                    assert inp[3] in INPUT_OPERATIONS
-                except AssertionError:
+                if inp[3] not in INPUT_OPERATIONS:
                     raise ModelUseError(f'Input operation only support '
                                         f'"{list(INPUT_OPERATIONS.keys())}", not "{inp[3]}".')
 
@@ -118,15 +114,13 @@ class Network(object):
             # target
             if isinstance(inp[0], str):
                 target = getattr(self, inp[0]).name
-            elif isinstance(inp[0], BrainEnsemble):
+            elif isinstance(inp[0], BaseEnsemble):
                 target = inp[0].name
             else:
                 raise KeyError(f'Unknown input target: {str(inp[0])}')
 
             # key
-            try:
-                assert isinstance(inp[1], str)
-            except AssertionError:
+            if not isinstance(inp[1], str):
                 raise ModelUseError('For each input, input[1] must be a string '
                                     'to specify variable of the target.')
             key = inp[1]
@@ -162,7 +156,7 @@ class Network(object):
         assert isinstance(run_length, int)
         code_scopes = {}
         code_lines = ['# network step function\n'
-                      'def step_func(_t_, _i_, _dt_):']
+                      'def step_func(_t, _i, _dt):']
 
         # inputs
         format_inputs = self._format_inputs(inputs, run_length)
@@ -176,7 +170,7 @@ class Network(object):
         step_func = code_scopes['step_func']
 
         if profile._show_format_code:
-            tools.show_code_str(func_code)
+            tools.show_code_str(func_code.replace('def ', f'def network_'))
             tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         return step_func
@@ -259,21 +253,21 @@ class Network(object):
         dt = self.dt
         if report:
             t0 = time.time()
-            self._step_func(_t_=ts[0], _i_=0, _dt_=dt)
+            self._step_func(_t=ts[0], _i=0, _dt=dt)
             print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
             print("Start running ...")
             report_gap = int(run_length * report_percent)
             t0 = time.time()
             for run_idx in range(1, run_length):
-                self._step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
+                self._step_func(_t=ts[run_idx], _i=run_idx, _dt=dt)
                 if (run_idx + 1) % report_gap == 0:
                     percent = (run_idx + 1) / run_length * 100
                     print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
         else:
             for run_idx in range(run_length):
-                self._step_func(_t_=ts[run_idx], _i_=run_idx, _dt_=dt)
+                self._step_func(_t=ts[run_idx], _i=run_idx, _dt=dt)
 
         # monitor
         for obj in self._all_objects:

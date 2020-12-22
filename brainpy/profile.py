@@ -73,7 +73,7 @@ def set(
 
     # numerical integration method
     if numerical_method is not None:
-        assert isinstance(dt, str), '"numerical_method" must be a string.'
+        assert isinstance(numerical_method, str), '"numerical_method" must be a string.'
         set_numerical_method(numerical_method)
 
     # numerical integration precision

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # argument keywords
-ARG_KEYWORDS = ['_dt_', '_t_', '_i_']
+KW_DT = '_dt'
+KW_T = '_t'
+KW_I = '_i'
+ARG_KEYWORDS = ['_dt', '_t', '_i']
 
 # name of the neuron group
 _NEU_GROUP = 'NeuGroup'
