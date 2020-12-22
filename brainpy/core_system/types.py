@@ -6,13 +6,7 @@ from .. import numpy as np
 from .. import profile
 from ..errors import TypeMismatchError
 
-try:
-    import numba as nb
-except ImportError as e:
-    if profile.is_numba_bk():
-        raise e
-
-    nb = None
+import numba as nb
 
 __all__ = [
     'TypeChecker',

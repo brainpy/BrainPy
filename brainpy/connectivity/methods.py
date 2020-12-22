@@ -4,16 +4,11 @@ from .base import Connector
 from .. import numpy as np
 from ..errors import ModelUseError
 
-try:
-    import numba as nb
-
-    if hasattr(nb.core, 'dispatcher'):
-        from numba.core.dispatcher import Dispatcher
-    else:
-        from numba.core import Dispatcher
-except ImportError:
-    nb = None
-    Dispatcher = None
+import numba as nb
+if hasattr(nb.core, 'dispatcher'):
+    from numba.core.dispatcher import Dispatcher
+else:
+    from numba.core import Dispatcher
 
 
 __all__ = ['One2One', 'one2one',
@@ -81,7 +76,7 @@ class All2All(Connector):
 
 all2all = All2All(include_self=True)
 
-
+@nb.njit
 def _grid_four(height, width, row, include_self):
     conn_i = []
     conn_j = []
@@ -125,11 +120,6 @@ class GridFour(Connector):
                 raise ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
                                     f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
 
-        global _grid_four
-        if nb is not None:
-            if not isinstance(_grid_four, Dispatcher):
-                _grid_four = nb.njit(_grid_four)
-
         if len(pre_indices.shape) == 1:
             height, width = pre_indices.shape[0], 1
         elif len(pre_indices.shape) == 2:
@@ -161,6 +151,7 @@ class GridFour(Connector):
 grid_four = GridFour()
 
 
+@nb.njit
 def _grid_n(height, width, row, n, include_self):
     conn_i = []
     conn_j = []
@@ -210,11 +201,6 @@ class GridN(Connector):
             except AssertionError:
                 raise ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
                                     f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
-
-        global _grid_n
-        if nb is not None:
-            if not isinstance(_grid_n, Dispatcher):
-                _grid_n = nb.njit(_grid_n)
 
         if len(pre_indices.shape) == 1:
             height, width = pre_indices.shape[0], 1
@@ -386,6 +372,7 @@ class FixedPostNum(Connector):
             self.num_post = post_indices.max()
 
 
+@nb.njit
 def _gaussian_weight(pre_i, pre_width, pre_height,
                      num_post, post_width, post_height,
                      w_max, w_min, sigma, normalize, include_self):
@@ -468,11 +455,6 @@ class GaussianWeight(Connector):
         pre_height, pre_width = pre_indices.shape
         post_height, post_width = post_indices.shape
 
-        global _gaussian_weight
-        if nb is not None:
-            if not isinstance(_gaussian_weight, Dispatcher):
-                _gaussian_weight = nb.njit(_gaussian_weight)
-
         # get the connections and weights
         i, j, w = [], [], []
         for pre_i in range(num_pre):
@@ -505,6 +487,7 @@ class GaussianWeight(Connector):
             self.num_post = post_indices.max()
 
 
+@nb.njit
 def _gaussian_prob(pre_i, pre_width, pre_height,
                    num_post, post_width, post_height,
                    p_min, sigma, normalize, include_self):
@@ -580,11 +563,6 @@ class GaussianProb(Connector):
         pre_height, pre_width = pre_indices.shape
         post_height, post_width = post_indices.shape
 
-        global _gaussian_prob
-        if nb is not None:
-            if not isinstance(_grid_four, Dispatcher):
-                _gaussian_prob = nb.njit(_gaussian_prob)
-
         # get the connections
         i, j, p = [], [], []  # conn_i, conn_j, probabilities
         for pre_i in range(num_pre):
@@ -615,6 +593,7 @@ class GaussianProb(Connector):
             self.num_post = post_indices.max()
 
 
+@nb.njit
 def _dog(pre_i, pre_width, pre_height,
          num_post, post_width, post_height,
          w_max_p, w_max_n, w_min, sigma_p, sigma_n,
@@ -695,11 +674,6 @@ class DOG(Connector):
         assert np.ndim(post_indices) == 2
         pre_height, pre_width = pre_indices.shape
         post_height, post_width = post_indices.shape
-
-        global _dog
-        if nb is not None:
-            if not isinstance(_grid_four, Dispatcher):
-                _dog = nb.njit(_dog)
 
         # get the connections and weights
         i, j, w = [], [], []  # conn_i, conn_j, weights

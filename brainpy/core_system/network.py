@@ -2,8 +2,6 @@
 
 import time
 
-import autopep8
-
 from .base import BrainEnsemble
 from .constants import INPUT_OPERATIONS
 from .neurons import NeuGroup
@@ -174,8 +172,6 @@ class Network(object):
             lines_of_call = obj._build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)
             code_lines.extend(lines_of_call)
         func_code = '\n  '.join(code_lines)
-        if profile._auto_pep8:
-            func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
 

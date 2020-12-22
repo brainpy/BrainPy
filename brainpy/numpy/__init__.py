@@ -4,7 +4,7 @@ from importlib import import_module
 
 import numpy
 
-from . import linalg
+from . import linalg, _numba_cpu
 from . import random
 
 # https://numpy.org/doc/stable/reference/routines.math.html
@@ -521,11 +521,10 @@ def _reload(backend):
             global_vars[__ops] = getattr(numpy, __ops)
 
     elif backend == 'numba':
-        from ._backends import _numba
 
         for __ops in _all:
-            if hasattr(_numba, __ops):
-                global_vars[__ops] = getattr(_numba, __ops)
+            if hasattr(_numba_cpu, __ops):
+                global_vars[__ops] = getattr(_numba_cpu, __ops)
             else:
                 global_vars[__ops] = getattr(numpy, __ops)
 

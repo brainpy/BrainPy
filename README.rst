@@ -1,3 +1,4 @@
+
 .. image:: docs/images/logo.png
     :target: https://github.com/PKU-NIP-Lab/BrainPy
     :align: center
@@ -11,13 +12,9 @@
     :target: https://brainpy.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://anaconda.org/brainpy/brain.py/badges/version.svg
-    :target: https://anaconda.org/brainpy/brain.py
+.. image:: https://anaconda.org/brainpy/brainpy/badges/version.svg
+    :target: https://anaconda.org/brainpy/brainpy
     :alt: Conda version
-
-.. image:: https://badge.fury.io/py/brain.py.svg
-    :target: https://badge.fury.io/py/brain.py
-    :alt: Pypi Version
 
 .. image:: https://travis-ci.org/PKU-NIP-Lab/BrainPy.svg?branch=master
     :target: https://travis-ci.org/PKU-NIP-Lab/BrainPy
@@ -49,17 +46,13 @@ BrainPy is efficient because it supports JIT acceleration on CPUs
 Installation
 ============
 
-Install from source code::
-
-    > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
-
 Install ``BrainPy`` using ``conda``::
 
-    > conda install brain.py -c brainpy
+    > conda install brainpy -c brainpy
 
 Install ``BrainPy`` using ``pip``::
 
-    > pip install brain.py
+    > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
 
 The following packages need to be installed to use ``BrainPy``:
@@ -68,13 +61,7 @@ The following packages need to be installed to use ``BrainPy``:
 - NumPy >= 1.13
 - Sympy >= 1.2
 - Matplotlib >= 3.0
-- autopep8
-
-Packages recommended to install:
-
 - Numba >= 0.50.0
-- TensorFlow >= 2.4
-- PyTorch >= 1.7
 
 
 Neurodynamics simulation

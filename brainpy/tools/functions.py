@@ -10,15 +10,13 @@ from .. import numpy as np
 from .. import profile
 from ..integration.integrator import Integrator
 
-try:
-    import numba as nb
-    if hasattr(nb, 'dispatcher'):
-        from numba.dispatcher import Dispatcher
-    else:
-        from numba.core.dispatcher import Dispatcher
-except ImportError as e:
-    nb = None
-    Dispatcher = None
+import numba as nb
+if hasattr(nb, 'dispatcher'):
+    from numba.dispatcher import Dispatcher
+else:
+    from numba.core.dispatcher import Dispatcher
+
+
 
 __all__ = [
     'jit',
@@ -88,7 +86,7 @@ def func_copy(f):
 def numba_func(func, params={}):
     if func == np.func_by_name(func.__name__):
         return func
-    if Dispatcher is not None and isinstance(func, Dispatcher):
+    if isinstance(func, Dispatcher):
         return func
 
     vars = inspect.getclosurevars(func)
@@ -100,7 +98,7 @@ def numba_func(func, params={}):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            if v != np.func_by_name(v.__name__) and (Dispatcher is None or not isinstance(v, Dispatcher)):
+            if v != np.func_by_name(v.__name__) and (not isinstance(v, Dispatcher)):
                 code_scope[k] = numba_func(v, params)
                 modified = True
     # check scope changed parameters
@@ -159,7 +157,7 @@ def get_func_scope(func, include_dispatcher=False):
     for k, v in list(scope.items()):
         # get the scope of the function item
         if callable(v):
-            if Dispatcher is not None and isinstance(v, Dispatcher):
+            if isinstance(v, Dispatcher):
                 if include_dispatcher:
                     for k2, v2 in get_func_scope(v.py_func).items():
                         try:

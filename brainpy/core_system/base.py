@@ -6,8 +6,6 @@ import time
 import typing
 from copy import deepcopy
 
-import autopep8
-
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
 from .constants import _NEU_GROUP
@@ -556,8 +554,6 @@ class BrainEnsemble(object):
         code_lines.extend(lines_of_call)
         code_scopes = {self.name: self}
         func_code = '\n  '.join(code_lines)
-        if profile._auto_pep8:
-            func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
         if profile._show_format_code:

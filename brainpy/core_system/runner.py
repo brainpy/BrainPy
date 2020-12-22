@@ -4,8 +4,6 @@ import inspect
 import re
 from importlib import import_module
 
-import autopep8
-
 from . import constants
 from .types import ObjState
 from .. import numpy as np
@@ -159,8 +157,6 @@ class Runner(object):
         # compile function
         code_to_compile = [f'def input_step({tools.func_call(code_args)}):'] + code_lines
         func_code = '\n  '.join(code_to_compile)
-        if profile._auto_pep8:
-            func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
         self.input_step = code_scope['input_step']
         if profile.is_numba_bk():
@@ -297,8 +293,6 @@ class Runner(object):
         # compile function
         code_to_compile = [f'def monitor_step({tools.func_call(code_args)}):'] + code_lines
         func_code = '\n  '.join(code_to_compile)
-        if profile._auto_pep8:
-            func_code = autopep8.fix_code(func_code)
         exec(compile(func_code, '', 'exec'), code_scope)
         monitor_step = code_scope['monitor_step']
         if profile.is_numba_bk():
@@ -553,8 +547,6 @@ class Runner(object):
             # code to compile
             code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n '.join(code_to_compile)
-            if profile._auto_pep8:
-                func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)
             func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
                 else code_scope[stripped_fname]
@@ -730,8 +722,6 @@ class Runner(object):
             # code to compile
             code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
-            if profile._auto_pep8:
-                func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scope)
             func = tools.jit(code_scope[stripped_fname]) if profile.is_numba_bk() \
                 else code_scope[stripped_fname]
@@ -773,8 +763,6 @@ class Runner(object):
             lines.insert(0, f'\n# {self._name} "merge_func"'
                             f'\ndef merge_func({tools.func_call(args)}):')
             func_code = '\n  '.join(lines)
-            if profile._auto_pep8:
-                func_code = autopep8.fix_code(func_code)
             exec(compile(func_code, '', 'exec'), code_scopes)
 
             if profile.is_numba_bk():

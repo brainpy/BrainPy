@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import numba as nb
 
 from .. import numpy as np
 from .. import profile
 from ..errors import ModelUseError
-
-try:
-    import numba as nb
-except ImportError:
-    nb = None
 
 __all__ = [
     'Connector',

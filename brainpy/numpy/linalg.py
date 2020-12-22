@@ -33,11 +33,11 @@ def _reload(backend):
             global_vars[__ops] = getattr(numpy.linalg, __ops)
 
     elif backend == 'numba':
-        from ._backends import _numba
+        from brainpy.numpy import _numba_cpu
 
         for __ops in _all:
-            if hasattr(_numba, __ops):
-                global_vars[__ops] = getattr(_numba, __ops)
+            if hasattr(_numba_cpu, __ops):
+                global_vars[__ops] = getattr(_numba_cpu, __ops)
             else:
                 global_vars[__ops] = getattr(numpy.linalg, __ops)
 
