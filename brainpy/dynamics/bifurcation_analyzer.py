@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as onp
 import sympy
 from mpl_toolkits.mplot3d import Axes3D
+from numba import njit
 
 from .solver import find_root
 from .utils import get_1d_classification
@@ -18,8 +19,6 @@ from .. import tools
 from ..core_system import NeuType
 from ..errors import ModelUseError
 from ..integration import sympy_tools
-
-from numba import njit
 
 __all__ = [
     'BifurcationAnalyzer',

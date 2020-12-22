@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import numba as nb
+
 from .base import Connector
 from .. import numpy as np
 from ..errors import ModelUseError
 
-import numba as nb
 if hasattr(nb.core, 'dispatcher'):
     from numba.core.dispatcher import Dispatcher
 else:

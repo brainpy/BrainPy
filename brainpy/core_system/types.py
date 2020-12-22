@@ -2,11 +2,11 @@
 
 from collections import OrderedDict
 
+import numba as nb
+
 from .. import numpy as np
 from .. import profile
 from ..errors import TypeMismatchError
-
-import numba as nb
 
 __all__ = [
     'TypeChecker',

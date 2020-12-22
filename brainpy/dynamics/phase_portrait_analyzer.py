@@ -7,6 +7,7 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as onp
 import sympy
+from numba import njit
 
 from .solver import find_root
 from .utils import get_1d_classification
@@ -22,8 +23,6 @@ from ..core_system.neurons import NeuGroup
 from ..core_system.runner import TrajectoryRunner
 from ..errors import ModelUseError
 from ..integration import sympy_tools
-
-from numba import njit
 
 __all__ = [
     'PhasePortraitAnalyzer',
