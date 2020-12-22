@@ -78,9 +78,9 @@ class Network(object):
 
         Parameters
         ----------
-        args : list, tuple
+        args
             The nameless objects.
-        kwargs : dict
+        kwargs
             The named objects, which can be accessed by `net.xxx`
             (xxx is the name of the object).
         """
