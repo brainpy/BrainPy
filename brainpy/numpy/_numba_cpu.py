@@ -7,12 +7,46 @@ from brainpy import profile
 from brainpy.tools import jit
 
 
+@numba.njit
+def cbrt(x):
+    return numpy.power(x, 1. / 3)
+
+
+@numba.generated_jit(**profile.get_numba_profile())
+def squeeze(a, axis=None):
+    if isinstance(axis, numba.types.NoneType):
+        def squeeze_func(a, axis=None):
+            shape = []
+            for s in a.shape:
+                if s != 1:
+                    shape.append(s)
+            return numpy.reshape(a, shape)
+
+        return squeeze_func
+
+    elif isinstance(axis, numba.types.Integer):
+        def squeeze_func(a, axis=None):
+            shape = []
+            for i, s in enumerate(a.shape):
+                if s != 1 or i != axis:
+                    shape.append(s)
+            return numpy.reshape(a, shape)
+
+        return squeeze_func
+
+    else:
+        def squeeze_func(a, axis=None):
+            shape = []
+            for i, s in enumerate(a.shape):
+                if s != 1 or i not in axis:
+                    shape.append(s)
+            return numpy.reshape(a, shape)
+
+        return squeeze_func
+
+
 def _reload():
     global_vars = globals()
-
-
-    # Return the cube-root of an array, element-wise.
-    global_vars['cbrt'] = jit(lambda x: numpy.power(x, 1. / 3))
 
     # First array elements raised to powers from second array, element-wise.
     global_vars['float_power'] = jit(lambda x1, x2: numpy.power(numpy.float(x1), x2))
@@ -56,41 +90,6 @@ def _reload():
     global_vars['logspace'] = jit(
         lambda start, stop, num=50, endpoint=True, base=10.0, dtype=None:
         numpy.power(base, numpy.linspace(start, stop, num=num, endpoint=endpoint)).astype(dtype))
-
-    @numba.generated_jit(**profile.get_numba_profile())
-    def squeeze(a, axis=None):
-        if isinstance(axis, numba.types.NoneType):
-            def squeeze_func(a, axis=None):
-                shape = []
-                for s in a.shape:
-                    if s != 1:
-                        shape.append(s)
-                return numpy.reshape(a, shape)
-
-            return squeeze_func
-
-        elif isinstance(axis, numba.types.Integer):
-            def squeeze_func(a, axis=None):
-                shape = []
-                for i, s in enumerate(a.shape):
-                    if s != 1 or i != axis:
-                        shape.append(s)
-                return numpy.reshape(a, shape)
-
-            return squeeze_func
-
-        else:
-            def squeeze_func(a, axis=None):
-                shape = []
-                for i, s in enumerate(a.shape):
-                    if s != 1 or i not in axis:
-                        shape.append(s)
-                return numpy.reshape(a, shape)
-
-            return squeeze_func
-
-    # Remove single-dimensional entries from the shape of an array.
-    global_vars['squeeze'] = func
 
     # Inner product of two arrays.
     global_vars['inner'] = jit(lambda a, b: numpy.sum(a * b))

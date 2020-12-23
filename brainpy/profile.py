@@ -43,6 +43,7 @@ _numba_setting = {'nopython': True,
                   'parallel': False}
 
 _show_format_code = False
+_show_code_scope = False
 _substitute_equation = False
 _merge_integrators = True
 _merge_steps = False
@@ -58,7 +59,8 @@ def set(
         merge_integrators=None,
         merge_steps=None,
         substitute=None,
-        show_code=None
+        show_code=None,
+        show_code_scope=None
 ):
 
     # JIT and device
@@ -114,6 +116,12 @@ def set(
         assert isinstance(show_code, bool), '"show_code" must be True or False.'
         global _show_format_code
         _show_format_code = show_code
+
+    # option of the formatted code scope
+    if show_code_scope is not None:
+        assert isinstance(show_code_scope, bool), '"show_code_scope" must be True or False.'
+        global _show_code_scope
+        _show_code_scope = show_code_scope
 
 
 def set_device(jit, device=None):

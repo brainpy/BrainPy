@@ -555,6 +555,7 @@ class BaseEnsemble(object):
         step_func = code_scopes['step_func']
         if profile._show_format_code:
             tools.show_code_str(func_code)
+        if profile._show_code_scope:
             tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         # run the model

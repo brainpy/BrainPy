@@ -153,9 +153,10 @@ class Runner(object):
         self.input_step = code_scope['input_step']
         # if profile.is_jit_backend():
         #     self.input_step = tools.jit(self.input_step)
-        if profile._show_format_code:
-            if not profile._merge_integrators:
+        if not profile._merge_integrators:
+            if profile._show_format_code:
                 tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+            if profile._show_code_scope:
                 tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
         # format function call
@@ -295,9 +296,10 @@ class Runner(object):
         arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
         func_call = f'{self._name}.runner.monitor_step({tools.func_call(arg2call)})'
 
-        if profile._show_format_code:
-            if not profile._merge_steps:
+        if not profile._merge_steps:
+            if profile._show_format_code:
                 tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+            if profile._show_code_scope:
                 tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
         return mon, {'monitor': {'scopes': code_scope,
@@ -544,9 +546,11 @@ class Runner(object):
             func = tools.jit(code_scope[stripped_fname]) \
                 if profile.is_jit_backend() \
                 else code_scope[stripped_fname]
-            if profile._show_format_code and not profile._merge_steps:
-                tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
+            if not profile._merge_steps:
+                if profile._show_format_code:
+                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                if profile._show_code_scope:
+                    tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
 
             # set the function to the model
             setattr(self, stripped_fname, func)
@@ -699,9 +703,11 @@ class Runner(object):
             exec(compile(func_code, '', 'exec'), code_scope)
             func = tools.jit(code_scope[stripped_fname]) if profile.is_jit_backend() \
                 else code_scope[stripped_fname]
-            if profile._show_format_code and not profile._merge_steps:
-                tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
+            if not profile._merge_steps:
+                if profile._show_format_code:
+                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                if profile._show_code_scope:
+                    tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
             # set the function to the model
             setattr(self, stripped_fname, func)
             # function call
@@ -751,6 +757,7 @@ class Runner(object):
 
             if profile._show_format_code:
                 tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+            if profile._show_code_scope:
                 tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
 
         else:
