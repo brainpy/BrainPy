@@ -9,11 +9,10 @@ Implementation of the paper:
 
 """
 
-
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba', dt=0.04, numerical_method='exponential')
+bp.profile.set(jit=True, dt=0.04, numerical_method='exponential')
 
 # HH neuron model #
 # --------------- #
@@ -60,10 +59,10 @@ def int_V(V, t, h, n, Isyn):
     return dvdt
 
 
-def update(ST, _t_):
-    h = int_h(ST['h'], _t_, ST['V'])
-    n = int_n(ST['n'], _t_, ST['V'])
-    V = int_V(ST['V'], _t_, ST['h'], ST['n'], ST['inp'])
+def update(ST, _t):
+    h = int_h(ST['h'], _t, ST['V'])
+    n = int_n(ST['n'], _t, ST['V'])
+    V = int_V(ST['V'], _t, ST['h'], ST['n'], ST['inp'])
     sp = np.logical_and(ST['V'] < V_th, V >= V_th)
     ST['sp'] = sp
     ST['V'] = V
@@ -72,7 +71,7 @@ def update(ST, _t_):
     ST['inp'] = 0.
 
 
-HH = bp.NeuType('HH_neuron', requires={"ST": HH_ST}, steps=update)
+HH = bp.NeuType('HH_neuron', ST=HH_ST, steps=update)
 
 # GABAa #
 # ----- #
@@ -83,7 +82,6 @@ alpha = 12.
 beta = 0.1
 
 requires = dict(
-    ST=bp.types.SynState(['g', 's', 'pre_above_th']),
     pre=bp.types.NeuState(['V']),
     post=bp.types.NeuState(['V', 'inp']),
 )
@@ -94,12 +92,12 @@ def int_s(s, t, TT):
     return alpha * TT * (1 - s) - beta * s
 
 
-def update(ST, _t_, pre, pre2syn):
+def update(ST, _t, pre, pre2syn):
     pre_above_th = pre['V'] - V_th
     for pre_id, syn_ids in enumerate(pre2syn):
         ST['pre_above_th'][syn_ids] = pre_above_th[pre_id]
     T = 1 / (1 + np.exp(-ST['pre_above_th'] / 2))
-    s = int_s(ST['s'], _t_, T)
+    s = int_s(ST['s'], _t, T)
     ST['s'] = s
     ST['g'] = g_max * s
 
@@ -113,7 +111,10 @@ def output(ST, post, post_slice_syn):
     post['inp'] -= post_cond * (post['V'] - E)
 
 
-GABAa = bp.SynType('GABAa', requires=requires, steps=(update, output))
+GABAa = bp.SynType('GABAa',
+                   ST=bp.types.SynState(['g', 's', 'pre_above_th']),
+                   requires=requires,
+                   steps=(update, output))
 
 if __name__ == '__main__':
     num = 100

@@ -4,7 +4,8 @@ from importlib import import_module
 
 import numpy
 
-from . import linalg, _numba_cpu
+from . import _numba_cpu
+from . import linalg
 from . import random
 
 # https://numpy.org/doc/stable/reference/routines.math.html

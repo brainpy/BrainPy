@@ -57,18 +57,18 @@ def int_u(u, t, Jxx, Iext):
     return (dudt,), r
 
 
-def neu_update(ST, _t_, Jxx):
-    ST['u'], ST['r'] = int_u(ST['u'], _t_, Jxx, ST['input'])
+def neu_update(ST, _t, Jxx):
+    ST['u'], ST['r'] = int_u(ST['u'], _t, Jxx, ST['input'])
     ST['input'] = 0.
 
 
 requires = {
-    'ST': bp.types.NeuState(['x', 'u', 'r', 'input']),
     'Jxx': bp.types.Array(dim=2, help='Weight connection matrix.')
 }
 
 cann = bp.NeuType(name='CANN',
                   steps=neu_update,
+                  ST=bp.types.NeuState(['x', 'u', 'r', 'input']),
                   requires=requires)
 
 

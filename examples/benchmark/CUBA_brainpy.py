@@ -7,7 +7,7 @@ import numpy as np
 import brainpy as bp
 
 dt = 0.1
-bp.profile.set(backend='numba', dt=dt)
+bp.profile.set(jit=True, dt=dt)
 
 num_exc = 3200
 num_inh = 800
@@ -53,12 +53,12 @@ def neu_update(ST, _t_):
 
 
 neuron = bp.NeuType(name='CUBA',
-                    requires=dict(ST=neu_ST),
+                    ST=neu_ST,
                     steps=neu_update,
                     mode='scalar')
 
 
-def update1(ST, pre, post, pre2post):
+def update1(pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['sp'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
@@ -68,10 +68,10 @@ def update1(ST, pre, post, pre2post):
 
 exc_syn = bp.SynType('exc_syn',
                      steps=update1,
-                     requires=dict(ST=bp.types.SynState([])))
+                     ST=bp.types.SynState([]))
 
 
-def update2(ST, pre, post, pre2post):
+def update2(pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['sp'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
@@ -81,7 +81,7 @@ def update2(ST, pre, post, pre2post):
 
 inh_syn = bp.SynType('inh_syn',
                      steps=update2,
-                     requires=dict(ST=bp.types.SynState([])))
+                     ST=bp.types.SynState([]))
 
 group = bp.NeuGroup(neuron,
                     geometry=num_exc + num_inh,

@@ -818,11 +818,6 @@ class TrajectoryRunner(Runner):
                 fixed_vars = dict()
         except AssertionError:
             raise ModelUseError('"fixed_vars" must be a dict.')
-        # for var in fixed_vars.keys():
-        #     try:
-        #         assert var in self._model.variables
-        #     except AssertionError:
-        #         raise ModelUseError(f'"{var}" in "fixed_vars" is not defined in model "{self._model.name}".')
         self.fixed_vars = dict()
         for integrator in self._model.integrators:
             var_name = integrator.diff_eq.var_name

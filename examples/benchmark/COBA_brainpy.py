@@ -6,7 +6,7 @@ import numpy as np
 import brainpy as bp
 
 dt = 0.05
-bp.profile.set(backend='numba', dt=dt)
+bp.profile.set(jit=True, dt=dt)
 
 # Parameters
 num_exc = 3200
@@ -32,7 +32,7 @@ neu_ST = bp.types.NeuState(
      'gi': 0.}
 )
 
-def neu_update(ST, _t_):
+def neu_update(ST, _t):
     ge = ST['ge']
     gi = ST['gi']
     ge -= ge / taue
@@ -40,7 +40,7 @@ def neu_update(ST, _t_):
     ST['ge'] = ge
     ST['gi'] = gi
 
-    if (_t_ - ST['sp_t']) > ref:
+    if (_t - ST['sp_t']) > ref:
         V = ST['V']
         dvdt = (ge * (Erev_exc - V) + gi * (Erev_inh - V) + (El - V) + I) / taum
         ST['V'] = V + dvdt * dt
@@ -48,18 +48,18 @@ def neu_update(ST, _t_):
         if V >= Vt:
             ST['V'] = Vr
             ST['spike'] = 1.
-            ST['sp_t'] = _t_
+            ST['sp_t'] = _t
     else:
         ST['spike'] = 0.
 
 
 neuron = bp.NeuType(name='COBA',
-                    requires=dict(ST=neu_ST),
+                    ST=neu_ST,
                     steps=neu_update,
                     mode='scalar')
 
 
-def update1(ST, pre, post, pre2post):
+def update1(pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['spike'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
@@ -68,10 +68,9 @@ def update1(ST, pre, post, pre2post):
                 post['ge'][i] += we
 
 
-
 exc_syn = bp.SynType('exc_syn',
                      steps=update1,
-                     requires=dict(ST=bp.types.SynState([])))
+                     ST=bp.types.SynState([]))
 
 
 def update2(ST, pre, post, pre2post):
@@ -86,7 +85,7 @@ def update2(ST, pre, post, pre2post):
 
 inh_syn = bp.SynType('inh_syn',
                      steps=update2,
-                     requires=dict(ST=bp.types.SynState([])))
+                     ST=bp.types.SynState([]))
 
 group = bp.NeuGroup(neuron,
                     geometry=num_exc + num_inh,
