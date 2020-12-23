@@ -34,8 +34,8 @@ The following packages need to be installed to use ``BrainPy``:
 - Python >= 3.7
 - NumPy >= 1.13
 - Sympy >= 1.2
-- Matplotlib >= 3.0
 - Numba >= 0.50.0
+- Matplotlib >= 3.0
 
 
 ## Neurodynamics simulation
