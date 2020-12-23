@@ -475,21 +475,21 @@ class Runner(object):
                         # Function with "delayed" decorator should use
                         # ST pulled from the delay queue
                         if func_name.startswith('_npbrain_delayed_'):
-                            if arg in delay_keys:
+                            if len(delay_keys):
                                 dout = f'{arg}_dout'
                                 add_args.add(dout)
                                 code_arg2call[dout] = f'{self._name}.{arg}._delay_out'
-                                for st_k in delay_keys[arg]:
+                                for st_k in delay_keys:
                                     p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                                     r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}]"
                                     func_code = re.sub(r'' + p, r, func_code)
                         else:
                             # Function without "delayed" decorator should push their
                             # updated ST to the delay queue
-                            if arg in delay_keys:
+                            if len(delay_keys):
                                 func_code_left = '\n'.join(tools.format_code(func_code).lefts)
                                 func_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code_left))
-                                func_delay_keys = func_keys.intersection(delay_keys[arg])
+                                func_delay_keys = func_keys.intersection(delay_keys)
                                 if len(func_delay_keys) > 0:
                                     din = f'{arg}_din'
                                     add_args.add(din)
@@ -605,22 +605,22 @@ class Runner(object):
                     var2idx = st['_var2idx']
                     if self.ensemble._is_state_attr(arg):
                         if func_name.startswith('_npbrain_delayed_'):
-                            if arg in delay_keys:
+                            if len(delay_keys):
                                 dout = f'{arg}_dout'
                                 add_args.add(dout)
                                 code_arg2call[dout] = f'{self._name}.{arg}._delay_out'
                                 # Function with "delayed" decorator should use ST pulled from the delay queue
-                                for st_k in delay_keys[arg]:
+                                for st_k in delay_keys:
                                     p = f'{arg}\[([\'"]{st_k}[\'"])\]'
                                     r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}, _obj_i_]"
                                     func_code = re.sub(r'' + p, r, func_code)
                         else:
-                            if arg in delay_keys:
+                            if len(delay_keys):
                                 # Function without "delayed" decorator should push
                                 # their updated ST to the delay queue
                                 func_code_left = '\n'.join(tools.format_code(func_code).lefts)
                                 func_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code_left))
-                                func_delay_keys = func_keys.intersection(delay_keys[arg])
+                                func_delay_keys = func_keys.intersection(delay_keys)
                                 if len(func_delay_keys) > 0:
                                     din = f'{arg}_din'
                                     add_args.add(din)

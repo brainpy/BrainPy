@@ -20,13 +20,15 @@
 
 ## Installation
 
-Install ``BrainPy`` using ``conda``::
+Install ``BrainPy`` using ``conda``:
 
     > conda install brainpy -c brainpy
 
-Install ``BrainPy`` using ``pip``::
+Install ``BrainPy`` using ``pip``:
 
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
+    > # or
+    > pip install git+https://git.openi.org.cn/OpenI/BrainPy
 
 
 The following packages need to be installed to use ``BrainPy``:
