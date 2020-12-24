@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import matplotlib.pyplot as plt
-
 import brainpy as bp
 from brainpy import numpy as np
 from examples.neurons.LIF_model import define_LIF
@@ -27,7 +25,6 @@ def define_AMPA1_scalar(g_max=0.10, E=0., tau_decay=2.0):
     """
 
     requires = dict(
-        ST=bp.types.SynState(['s'], help='AMPA synapse state.'),
         pre=bp.types.NeuState(['spike'], help='Pre-synaptic neuron state must have "sp" item.'),
         post=bp.types.NeuState(['V', 'input'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
     )
@@ -47,6 +44,7 @@ def define_AMPA1_scalar(g_max=0.10, E=0., tau_decay=2.0):
         post['input'] += post_val
 
     return bp.SynType(name='AMPA',
+                      ST=bp.types.SynState(['s']),
                       requires=requires,
                       steps=(update, output),
                       mode='scalar')
@@ -74,10 +72,6 @@ def define_AMPA2_scalar(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
     """
 
     requires = {
-        'ST': bp.types.SynState({'s': 0., 'sp_t': -1e7},
-                                help=""" "s": Synaptic state.
-                                    "sp_t": Pre-synaptic neuron spike time.
-                                """),
         'pre': bp.types.NeuState(['spike'], help='Pre-synaptic neuron state must have "sp" item.'),
         'post': bp.types.NeuState(['V', 'input'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
     }
@@ -99,6 +93,7 @@ def define_AMPA2_scalar(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
         post['input'] += post_val
 
     return bp.SynType(name='AMPA',
+                      ST= bp.types.SynState({'s': 0., 'sp_t': -1e7}),
                       requires=requires,
                       steps=(update, output),
                       mode='scalar')
@@ -131,7 +126,6 @@ def define_AMPA1_vector(g_max=0.10, E=0., tau_decay=2.0):
     # ------------
 
     requires = {
-        'ST': bp.types.SynState(['s', 'g'], help='AMPA synapse state.'),
         'pre': bp.types.NeuState(['spike'], help='Pre-synaptic neuron state must have "sp" item.'),
         'post': bp.types.NeuState(['V', 'input'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
         'pre2syn': bp.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
@@ -158,6 +152,7 @@ def define_AMPA1_vector(g_max=0.10, E=0., tau_decay=2.0):
         post['input'] -= post_cond * (post['V'] - E)
 
     return bp.SynType(name='AMPA1',
+                      ST=bp.types.SynState(['s', 'g']),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')
@@ -189,10 +184,6 @@ def define_AMPA2_vector(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
         return alpha * TT * (1 - s) - beta * s
 
     requires = dict(
-        ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.},
-                             help='AMPA synapse state.\n'
-                                  '"s": Synaptic state.\n'
-                                  '"sp_t": Pre-synaptic neuron spike time.'),
         pre=bp.types.NeuState(['spike'], help='Pre-synaptic neuron state must have "sp" item.'),
         post=bp.types.NeuState(['V', 'input'], help='Pre-synaptic neuron state must have "V" and "inp" item.'),
         pre2syn=bp.types.ListConn(help='Pre-synaptic neuron index -> synapse index'),
@@ -216,6 +207,7 @@ def define_AMPA2_vector(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
         post['input'] -= post_cond * (post['V'] - E)
 
     return bp.SynType(name='AMPA',
+                      ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')
@@ -230,7 +222,6 @@ def define_AMPA1_matrix(g_max=0.10, E=0., tau_decay=2.0):
     # ------------
 
     requires = {
-        'ST': bp.types.SynState(['s', 'g']),
         'pre': bp.types.NeuState(['spike']),
         'post': bp.types.NeuState(['V', 'input']),
         'conn_mat': bp.types.MatConn(),
@@ -251,6 +242,7 @@ def define_AMPA1_matrix(g_max=0.10, E=0., tau_decay=2.0):
         post['input'] -= post_cond * (post['V'] - E)
 
     return bp.SynType(name='AMPA1',
+                      ST=bp.types.SynState(['s', 'g']),
                       requires=requires,
                       steps=(update, output),
                       mode='matrix')
@@ -258,7 +250,6 @@ def define_AMPA1_matrix(g_max=0.10, E=0., tau_decay=2.0):
 
 def define_AMPA2_matrix(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_duration=0.5):
     requires = dict(
-        ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
         pre=bp.types.NeuState(['spike']),
         post=bp.types.NeuState(['V', 'input']),
         conn_mat=bp.types.MatConn(),
@@ -283,6 +274,7 @@ def define_AMPA2_matrix(g_max=0.42, E=0., alpha=0.98, beta=0.18, T=0.5, T_durati
         post['input'] -= post_cond * (post['V'] - E)
 
     return bp.SynType(name='AMPA',
+                      ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
                       requires=requires,
                       steps=(update, output),
                       mode='matrix')
@@ -311,7 +303,7 @@ def run_ampa_single(define, duration=350.):
 
 
 if __name__ == '__main__':
-    bp.profile.set(backend='numpy', dt=0.1)
+    bp.profile.set(jit=False, dt=0.1)
 
     # run_ampa_single(define_AMPA1_scalar)
     # run_ampa_single(define_AMPA2_scalar)

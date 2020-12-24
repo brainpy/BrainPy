@@ -45,7 +45,6 @@ def get_STP_vector(U=0.15, tau_f=1500., tau_d=200.):
            with dynamic synapses." Neural computation 10.4 (1998): 821-835.
     """
     requires = dict(
-        ST=bp.types.SynState({'u': 0., 'x': 1., 'w': 1., 'g': 0.}),
         pre=bp.types.NeuState(['sp']),
         post=bp.types.NeuState(['V', 'input']),
         pre2syn=bp.types.ListConn(),
@@ -82,6 +81,7 @@ def get_STP_vector(U=0.15, tau_f=1500., tau_d=200.):
         post['input'] += post_cond
 
     return bp.SynType(name='STP',
+                      ST=bp.types.SynState({'u': 0., 'x': 1., 'w': 1., 'g': 0.}),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')

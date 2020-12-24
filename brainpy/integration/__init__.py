@@ -64,7 +64,7 @@ def integrate(func=None, method=None):
         if not, the wrapper will be provided.
     """
 
-    method = method if method is not None else profile.get_method()
+    method = method if method is not None else profile.get_numerical_method()
     _integrator_ = get_integrator(method)
 
     if func is None:

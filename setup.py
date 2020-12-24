@@ -27,9 +27,9 @@ BrainPy is efficient because it supports JIT acceleration on CPUs
 
 # setup
 setup(
-    name='brain.py',
+    name='brainpy',
     version=version,
-    description='BrainPy: A Just-In-Time compilation approach for neuronal dynamics simulation.',
+    description='BrainPy: A Toolbox for Computational Neuroscience Study and Research',
     long_description=README,
     author='Chaoming Wang',
     author_email='adaduo@outlook.com',
@@ -46,7 +46,7 @@ setup(
         'numpy>=1.15',
         'matplotlib>=3.0',
         'sympy>=1.2',
-        'autopep8',
+        'numba>=0.50.0',
     ],
     url='https://github.com/PKU-NIP-Lab/BrainPy',
     keywords='computational neuroscience',

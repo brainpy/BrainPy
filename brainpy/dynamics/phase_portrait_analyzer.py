@@ -7,6 +7,7 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as onp
 import sympy
+from numba import njit
 
 from .solver import find_root
 from .utils import get_1d_classification
@@ -22,11 +23,6 @@ from ..core_system.neurons import NeuGroup
 from ..core_system.runner import TrajectoryRunner
 from ..errors import ModelUseError
 from ..integration import sympy_tools
-
-try:
-    from numba import njit
-except ImportError:
-    njit = None
 
 __all__ = [
     'PhasePortraitAnalyzer',
@@ -271,8 +267,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
             exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
             optimizer = scope['optimizer_x']
-            if njit is not None:
-                optimizer = njit(optimizer)
+            optimizer = njit(optimizer)
             x_range = onp.arange(*self.target_vars[self.x_var], resolution)
             x_values = find_root(optimizer, x_range)
             x_values = onp.array(x_values)
@@ -616,11 +611,10 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         eq_xy_scope.update(sympy_tools.get_mapping_scope())
         eq_xy_scope.update(x_eq_group['diff_eq'].func_scope)
         eq_xy_scope.update(y_eq_group['diff_eq'].func_scope)
-        if njit:
-            for key in eq_xy_scope.keys():
-                v = eq_xy_scope[key]
-                if callable(v):
-                    eq_xy_scope[key] = tools.numba_func(v, self.pars_update)
+        for key in eq_xy_scope.keys():
+            v = eq_xy_scope[key]
+            if callable(v):
+                eq_xy_scope[key] = tools.numba_func(v, self.pars_update)
 
         if can_substitute_y_group_to_x_group:
             if f_get_y_by_x is not None:
@@ -629,8 +623,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_x']
-                if njit is not None:
-                    optimizer = njit(optimizer)
+                optimizer = njit(optimizer)
                 x_range = onp.arange(*self.target_vars[self.x_var], resolution)
                 x_values = find_root(optimizer, x_range)
                 x_values = onp.array(x_values)
@@ -642,8 +635,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_y']
-                if njit is not None:
-                    optimizer = njit(optimizer)
+                optimizer = njit(optimizer)
                 y_range = onp.arange(*self.target_vars[self.y_var], resolution)
                 y_values = find_root(optimizer, y_range)
                 y_values = onp.array(y_values)
@@ -656,8 +648,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_x']
-                if njit is not None:
-                    optimizer = njit(optimizer)
+                optimizer = njit(optimizer)
                 x_range = onp.arange(*self.target_vars[self.x_var], resolution)
                 x_values = find_root(optimizer, x_range)
                 x_values = onp.array(x_values)
@@ -669,8 +660,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_y']
-                if njit is not None:
-                    optimizer = njit(optimizer)
+                optimizer = njit(optimizer)
                 y_range = onp.arange(*self.target_vars[self.y_var], resolution)
                 y_values = find_root(optimizer, y_range)
                 y_values = onp.array(y_values)
@@ -771,8 +761,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 optimizer = eq_y_scope['optimizer_x']
-                if njit is not None:
-                    optimizer = njit(optimizer)
+                optimizer = njit(optimizer)
 
                 x_values, y_values = [], []
                 for y in y_range:
@@ -835,8 +824,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 optimizer = eq_x_scope['optimizer_x']
-                if njit is not None:
-                    optimizer = njit(optimizer)
+                optimizer = njit(optimizer)
 
                 x_values, y_values = [], []
                 for y in y_range:

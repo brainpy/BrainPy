@@ -40,16 +40,16 @@ def get_model(a=1., b=3., c=1., d=5., s=4., x_r=-1.6, r=0.001, Vth=1.9):
     def int_z(z, t, x):
         return r*(s * (x - x_r) - z)
 
-    def update(ST, _t_):
-        ST['y'] = int_y(ST['y'], _t_, ST['x'])
-        ST['z'] = int_z(ST['z'], _t_, ST['x'])
-        x = int_x(ST['x'], _t_, ST['y'], ST['z'], ST['input'])
+    def update(ST, _t):
+        ST['y'] = int_y(ST['y'], _t, ST['x'])
+        ST['z'] = int_z(ST['z'], _t, ST['x'])
+        x = int_x(ST['x'], _t, ST['y'], ST['z'], ST['input'])
         ST['spike'] = np.logical_and(x >= Vth, ST['x'] < Vth)
         ST['x'] = x
         ST['input'] = 0.
 
     return bp.NeuType(name='Hindmarsh_Rose_model',
-                      requires={'ST': state},
+                      ST=state,
                       steps=update)
 
 

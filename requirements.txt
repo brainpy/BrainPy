@@ -2,4 +2,3 @@ numpy>=1.13
 numba>=0.50
 matplotlib>=3.0
 sympy>=1.2
-autopep8

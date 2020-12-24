@@ -95,9 +95,9 @@ def get_NaK_model(V_th=20., type='low-threshold'):
         dvdt = (-I_leak - I_Na - I_K + input) / C
         return dvdt
 
-    def update(ST, _t_):
-        n = np.clip(int_n(ST['n'], _t_, ST['V']), 0., 1.)
-        V = int_V(ST['V'], _t_, n, ST['inp'])
+    def update(ST, _t):
+        n = np.clip(int_n(ST['n'], _t, ST['V']), 0., 1.)
+        V = int_V(ST['V'], _t, n, ST['inp'])
         sp = np.logical_and(ST['V'] < V_th, V >= V_th)
         ST['V'] = V
         ST['n'] = n
@@ -105,7 +105,7 @@ def get_NaK_model(V_th=20., type='low-threshold'):
         ST['inp'] = 0.
 
     return bp.NeuType(name="NaK_model",
-                      requires=dict(ST=ST),
+                      ST=ST,
                       steps=update,
                       mode='vector')
 

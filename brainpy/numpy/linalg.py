@@ -33,19 +33,13 @@ def _reload(backend):
             global_vars[__ops] = getattr(numpy.linalg, __ops)
 
     elif backend == 'numba':
-        from ._backends import _numba
+        from . import _numba_cpu
 
         for __ops in _all:
-            if hasattr(_numba, __ops):
-                global_vars[__ops] = getattr(_numba, __ops)
+            if hasattr(_numba_cpu, __ops):
+                global_vars[__ops] = getattr(_numba_cpu, __ops)
             else:
                 global_vars[__ops] = getattr(numpy.linalg, __ops)
-
-    elif backend == 'tensorflow':
-        from ._backends import _tensorflow
-
-        for __ops in _all:
-            global_vars[__ops] = getattr(_tensorflow, __ops)
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')

@@ -1,6 +1,31 @@
 Release notes
 =============
 
+BrainPy 0.2.6
+-------------
+
+API changes
+~~~~~~~~~~~
+
+- Delete "backend" profile setting, add "jit"
+- Delete the format code prefix
+- Delete "pytorch", "tensorflow" backends
+- Delete "autopepe8" requirement
+- Add "numba" requirement
+- Change keywords "_t_, _dt_, _i_" to "_t, _dt, _i"
+- Change the "ST" declaration out of "requires"
+- Remove "pypi" installation, installation now only rely on "conda"
+
+BrainPy 0.2.5
+-------------
+
+API changes
+~~~~~~~~~~~
+
+- Fix bugs
+
+
+
 BrainPy 0.2.4
 -------------
 

@@ -31,3 +31,10 @@ getter.visit(tree)
 pprint(getter.lefts)
 pprint(getter.rights)
 pprint(getter.lines)
+
+
+def test_code_tools():
+    tree = ast.parse(code.strip())
+    getter = CodeLineFormatter()
+    getter.visit(tree)
+    assert getter.lefts == ['d', 'a', 'c', 'd', "b['b']", 'c', 'b', 'd']

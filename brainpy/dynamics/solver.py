@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 
+import numba as nb
 import numpy as np
 
 __all__ = [
@@ -15,6 +16,7 @@ _ECONVERR = -1
 results = namedtuple('results', ['root', 'function_calls', 'iterations', 'converged'])
 
 
+@nb.njit
 def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
            rtol=4 * np.finfo(float).eps):
     """
@@ -148,17 +150,7 @@ def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
     return x
 
 
-try:
-    from numba import njit
-
-    brentq = njit(brentq)
-except ImportError:
-    try:
-        from scipy.optimize import brentq
-    except ImportError:
-        pass
-
-
+@nb.njit
 def find_root(f, f_points, args=()):
     """Find the roots of the given function by numerical methods.
 
@@ -203,7 +195,3 @@ def find_root(f, f_points, args=()):
             f_i += 1
 
     return roots
-
-
-if njit is not None:
-    find_root = njit(find_root)

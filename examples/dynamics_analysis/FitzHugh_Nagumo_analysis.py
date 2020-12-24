@@ -17,15 +17,15 @@ def get_model(a=0.7, b=0.8, tau=12.5, Vth=1.9):
     def int_v(v, t, w, Iext):
         return v - v * v * v / 3 - w + Iext
 
-    def update(ST, _t_):
-        ST['w'] = int_w(ST['w'], _t_, ST['v'])
-        v = int_v(ST['v'], _t_, ST['w'], ST['input'])
+    def update(ST, _t):
+        ST['w'] = int_w(ST['w'], _t, ST['v'])
+        v = int_v(ST['v'], _t, ST['w'], ST['input'])
         ST['spike'] = np.logical_and(v >= Vth, ST['v'] < Vth)
         ST['v'] = v
         ST['input'] = 0.
 
     return bp.NeuType(name='FitzHugh_Nagumo',
-                      requires={'ST': state},
+                      ST=state,
                       steps=update)
 
 

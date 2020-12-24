@@ -4,6 +4,7 @@ from importlib import import_module
 
 import numpy
 
+from . import _numba_cpu
 from . import linalg
 from . import random
 
@@ -521,23 +522,12 @@ def _reload(backend):
             global_vars[__ops] = getattr(numpy, __ops)
 
     elif backend == 'numba':
-        from ._backends import _numba
 
         for __ops in _all:
-            if hasattr(_numba, __ops):
-                global_vars[__ops] = getattr(_numba, __ops)
+            if hasattr(_numba_cpu, __ops):
+                global_vars[__ops] = getattr(_numba_cpu, __ops)
             else:
                 global_vars[__ops] = getattr(numpy, __ops)
-
-    elif backend == 'tensorflow':
-        tf_numpy = import_module('tensorflow.experimental.numpy')
-        from ._backends import _tensorflow
-
-        for __ops in _all:
-            if hasattr(tf_numpy, __ops):
-                global_vars[__ops] = getattr(tf_numpy, __ops)
-            else:
-                global_vars[__ops] = getattr(_tensorflow, __ops)
 
     else:
         raise ValueError(f'Unknown backend device: {backend}')
@@ -545,6 +535,8 @@ def _reload(backend):
 
 def _set_default_int(itype):
     """Set default int type.
+
+    TODO:
 
     Parameters
     ----------
@@ -560,6 +552,8 @@ def _set_default_int(itype):
 
 def _set_default_float(ftype):
     """Set default float type.
+
+    TODO:
 
     Parameters
     ----------

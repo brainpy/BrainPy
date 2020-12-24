@@ -13,7 +13,7 @@ Implementation of the paper：
 import brainpy as bp
 import brainpy.numpy as np
 
-bp.profile.set(backend='numba', device='cpu', numerical_method='exponential')
+bp.profile.set(jit=True, device='cpu', numerical_method='exponential')
 
 num = 10000
 num_inh = int(num * 0.2)
@@ -50,8 +50,8 @@ def get_neu(tau):
     def int_f(V, t, Isyn):
         return (-V + Isyn) / tau
 
-    def update(ST, _t_):
-        V = int_f(ST['V'], _t_, ST['inp'])
+    def update(ST, _t):
+        V = int_f(ST['V'], _t, ST['inp'])
         if V >= V_threshold:
             ST['sp'] = 1.
             V = V_reset
@@ -61,7 +61,7 @@ def get_neu(tau):
         ST['inp'] = 0.
 
     return bp.NeuType(name='LIF',
-                      requires=dict(ST=neu_ST),
+                      ST=neu_ST,
                       steps=update,
                       mode='scalar')
 
@@ -78,8 +78,8 @@ def get_syn(tau):
     def ints(s, t):
         return - s / tau
 
-    def update(ST, _t_, pre):
-        s = ints(ST['s'], _t_)
+    def update(ST, _t, pre):
+        s = ints(ST['s'], _t)
         s += pre['sp']
         ST['s'] = s
         ST['g'] = ST['w'] * s
@@ -88,7 +88,7 @@ def get_syn(tau):
         post['inp'] += ST['g']
 
     return bp.SynType(name='alpha_synapse',
-                      requires=dict(ST=syn_ST),
+                      ST=syn_ST,
                       steps=(update, output),
                       mode='scalar')
 

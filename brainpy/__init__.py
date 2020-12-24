@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 
 # "profile" module
 from . import profile
@@ -13,8 +13,8 @@ from . import connectivity as connect
 
 # "core_system" module
 from . import core_system as core
-from .core_system.base import BrainType
-from .core_system.base import BrainEnsemble
+from .core_system.base import BaseType
+from .core_system.base import BaseEnsemble
 from .core_system.neurons import NeuType
 from .core_system.neurons import NeuGroup
 from .core_system.synapses import SynType

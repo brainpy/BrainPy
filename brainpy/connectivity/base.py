@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import numba as nb
 
 from .. import numpy as np
 from .. import profile
 from ..errors import ModelUseError
-
-try:
-    import numba as nb
-except ImportError:
-    nb = None
 
 __all__ = [
     'Connector',
@@ -113,7 +109,7 @@ def pre2post(i, j, num_pre=None):
         pre2post_list[pre_id].append(post_id)
     pre2post_list = [np.array(l) for l in pre2post_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit_backend():
         pre2post_list_nb = nb.typed.List()
         for pre_id in range(num_pre):
             pre2post_list_nb.append(np.int64(pre2post_list[pre_id]))
@@ -152,7 +148,7 @@ def post2pre(i, j, num_post=None):
         post2pre_list[post_id].append(pre_id)
     post2pre_list = [np.array(l) for l in post2pre_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit_backend():
         post2pre_list_nb = nb.typed.List()
         for post_id in range(num_post):
             post2pre_list_nb.append(np.int64(post2pre_list[post_id]))
@@ -184,7 +180,7 @@ def pre2syn(i, num_pre=None):
         pre2syn_list[pre_id].append(syn_id)
     pre2syn_list = [np.array(l) for l in pre2syn_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit_backend():
         pre2syn_list_nb = nb.typed.List()
         for pre_ids in pre2syn_list:
             pre2syn_list_nb.append(np.int64(pre_ids))
@@ -217,7 +213,7 @@ def post2syn(j, num_post=None):
         post2syn_list[post_id].append(syn_id)
     post2syn_list = [np.array(l) for l in post2syn_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit_backend():
         post2syn_list_nb = nb.typed.List()
         for pre_ids in post2syn_list:
             post2syn_list_nb.append(np.int64(pre_ids))

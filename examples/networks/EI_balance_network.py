@@ -10,7 +10,9 @@ import brainpy.numpy as np
 import matplotlib.pyplot as plt
 
 
-bp.profile.set(backend='numba', device='cpu', numerical_method='exponential')
+bp.profile.set(jit=True, device='cpu',
+               numerical_method='exponential',
+               show_code=True)
 
 num_exc = 500
 num_inh = 500
@@ -26,18 +28,14 @@ V_rest = -52.
 V_reset = -60.
 V_threshld = -50.
 
-neu_ST = bp.types.NeuState(
-    {'V': 0, 'sp': 0., 'inp': 0.},
-)
-
 
 @bp.integrate
 def int_f(V, t, Isyn):
     return (-V + V_rest + Isyn) / tau
 
 
-def update(ST, _t_):
-    V = int_f(ST['V'], _t_, ST['inp'])
+def update(ST, _t):
+    V = int_f(ST['V'], _t, ST['inp'])
     if V >= V_threshld:
         ST['sp'] = 1.
         V = V_reset
@@ -48,7 +46,7 @@ def update(ST, _t_):
 
 
 neu = bp.NeuType(name='LIF',
-                 requires=dict(ST=neu_ST),
+                 ST=bp.types.NeuState({'V': 0, 'sp': 0., 'inp': 0.}),
                  steps=update,
                  mode='scalar')
 
@@ -61,16 +59,13 @@ tau_decay = 2.
 JE = 1 / np.sqrt(prob * num_exc)
 JI = 1 / np.sqrt(prob * num_inh)
 
-syn_ST = bp.types.SynState(['s', 'g', 'w'])
-
-
 @bp.integrate
 def ints(s, t):
     return - s / tau_decay
 
 
-def update(ST, _t_, pre):
-    s = ints(ST['s'], _t_)
+def update(ST, _t, pre):
+    s = ints(ST['s'], _t)
     s += pre['sp']
     ST['s'] = s
     ST['g'] = ST['w'] * s
@@ -81,7 +76,7 @@ def output(ST, post):
 
 
 syn = bp.SynType(name='alpha_synapse',
-                 requires=dict(ST=syn_ST),
+                 ST=bp.types.SynState(['s', 'g', 'w']),
                  steps=(update, output),
                  mode='scalar')
 

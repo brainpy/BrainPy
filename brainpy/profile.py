@@ -14,57 +14,73 @@ Using the API in ``profile.py``, you can set
 
 __all__ = [
     'set',
-    'set_backend',
-    'get_backend',
 
-    'is_pytorch_bk',
-    'is_tensorflow_bk',
-    'is_numpy_bk',
-    'is_numba_bk',
+    'is_jit_backend',
+    'is_cpu_device',
+
     'set_numba_profile',
     'get_numba_profile',
 
+    'set_device',
+    'get_device',
+
     'set_dt',
     'get_dt',
-    'set_method',
-    'get_method',
+
+    'set_numerical_method',
+    'get_numerical_method',
 ]
 
+
+_jit = False
 _backend = 'numpy'
 _device = 'cpu'
 _dt = 0.1
 _method = 'euler'
-_numba_setting = {'nopython': True, 'fastmath': True,
-                  'nogil': True, 'parallel': False}
+_numba_setting = {'nopython': True,
+                  'fastmath': True,
+                  'nogil': True,
+                  'parallel': False}
 
-_auto_pep8 = True
 _show_format_code = False
+_show_code_scope = False
 _substitute_equation = False
 _merge_integrators = True
 _merge_steps = False
 
 
-def set(backend=None,
+def set(
+        jit=None,
         device=None,
         numerical_method=None,
         dt=None,
         float_type=None,
         int_type=None,
         merge_integrators=None,
+        merge_steps=None,
         substitute=None,
-        show_code=None):
-    # backend, device
-    if device is not None and backend is None:
-        raise ValueError('Please set backend. BrainPy now supports "numpy" and "numba" backends.')
-    if backend is not None:
-        set_backend(backend, device=device)
+        show_code=None,
+        show_code_scope=None
+):
+
+    # JIT and device
+    if device is not None and jit is None:
+        assert isinstance(device, str), "'device' must a string."
+        set_device(_jit, device=device)
+    if jit is not None:
+        assert isinstance(jit, bool), "'jit' must be True or False."
+        if device is not None:
+            assert isinstance(device, str), "'device' must a string."
+        set_device(jit, device=device)
 
     # numerical integration method
     if numerical_method is not None:
-        set_method(numerical_method)
+        assert isinstance(numerical_method, str), '"numerical_method" must be a string.'
+        set_numerical_method(numerical_method)
 
     # numerical integration precision
     if dt is not None:
+        assert isinstance(dt, (float, int)), '"dt" must be float or int.'
         set_dt(dt)
 
     # default float type
@@ -77,130 +93,118 @@ def set(backend=None,
         from .numpy import _set_default_int
         _set_default_int(int_type)
 
-    # option of merging integral functions
+    # option to merge integral functions
     if merge_integrators is not None:
+        assert isinstance(merge_integrators, bool), '"merge_integrators" must be True or False.'
         global _merge_integrators
         _merge_integrators = merge_integrators
 
-    # option of equation substitution
+    # option to merge step functions
+    if merge_steps is not None:
+        assert isinstance(merge_steps, bool), '"merge_steps" must be True or False.'
+        global _merge_steps
+        _merge_steps = merge_steps
+
+    # option of the equation substitution
     if substitute is not None:
+        assert isinstance(substitute, bool), '"substitute" must be True or False.'
         global _substitute_equation
         _substitute_equation = substitute
 
-    # option of formatted code output
+    # option of the formatted code output
     if show_code is not None:
+        assert isinstance(show_code, bool), '"show_code" must be True or False.'
         global _show_format_code
         _show_format_code = show_code
 
+    # option of the formatted code scope
+    if show_code_scope is not None:
+        assert isinstance(show_code_scope, bool), '"show_code_scope" must be True or False.'
+        global _show_code_scope
+        _show_code_scope = show_code_scope
 
-def set_backend(backend, device=None):
+
+def set_device(jit, device=None):
     """Set the backend and the device to deploy the models.
 
     Parameters
     ----------
-    backend : str
-        The backend name.
+    jit : book
+        Whether use the jit acceleration.
     device : str, optional
         The device name.
     """
 
-    # backend #
+    # jit
+    # ---
 
-    global _backend
+    global _jit
 
-    backend = backend.lower()
-    if backend not in ['numpy', 'numba', 'tensorflow', 'pytorch']:
-        raise ValueError(f'Unsupported backend: {backend}.')
-
-    if backend != _backend:
-        _backend = backend
+    if _jit != jit:
         from .numpy import _reload
-        _reload(_backend)
+        _reload('numba' if jit else 'numpy')
 
-    # device #
+        _jit = jit
+
+    # device
+    # ------
 
     global _device
 
-    if device:
-        device = device.lower()
+    if device is None:
+        return
 
-        if _device != device:
-            if backend == 'numpy':
-                if device != 'cpu':
-                    print(f'NumPy mode only support "cpu" device, not "{device}".')
-                else:
-                    _device = device
-            elif backend == 'numba':
-                if device == 'cpu':
-                    set_numba_profile(parallel=False)
-                elif device == 'multi-cpu':
-                    set_numba_profile(parallel=True)
-                elif device == 'gpu':
-                    raise NotImplementedError('BrainPy currently doesn\'t support GPU.')
-                else:
-                    raise ValueError(f'Unknown device in Numba mode: {device}.')
+    device = device.lower()
+    if _device != device:
+        if not jit:
+            if device != 'cpu':
+                print(f'Non-jit mode only support "cpu" device, not "{device}".')
+            else:
                 _device = device
-            elif backend == 'tensorflow':
-                if device == 'gpu':
-                    raise NotImplementedError(f"TensorFlow-NumPy mode currently doesn't support GPU.")
-                _device = device
+        else:
+            if device == 'cpu':
+                set_numba_profile(parallel=False)
+            elif device == 'multi-cpu':
+                set_numba_profile(parallel=True)
+            elif device == 'gpu':
+                raise NotImplementedError('BrainPy currently doesn\'t support GPU.')
+            else:
+                raise ValueError(f'Unknown device in Numba mode: {device}.')
+            _device = device
 
 
-def get_backend():
-    """Get the _numpy.
-
-    Returns
-    -------
-    _numpy: str
-        Backend name.
-
-    """
-    return _backend
-
-
-def is_pytorch_bk():
-    """Check whether the backend is ``PyToch``.
+def get_device():
+    """Get the device name.
 
     Returns
     -------
-    tf_backend : bool
-        True or False.
+    device: str
+        Device name.
+
     """
-    return _backend.startswith('pytorch')
+    return _device
 
 
-
-def is_tensorflow_bk():
-    """Check whether the backend is ``TensorFlow``.
-
-    Returns
-    -------
-    tf_backend : bool
-        True or False.
-    """
-    return _backend.startswith('tensorflow')
-
-
-def is_numpy_bk():
-    """Check whether the backend is ``Numpy``.
-
-    Returns
-    -------
-    numpy_backend : bool
-        True or False.
-    """
-    return _backend.startswith('numpy')
-
-
-def is_numba_bk():
+def is_jit_backend():
     """Check whether the backend is ``numba``.
 
     Returns
     -------
-    numba_backend : bool
+    jit : bool
         True or False.
     """
-    return _backend.startswith('numba')
+    return _jit
+
+
+def is_cpu_device():
+    """Check whether the device is "CPU".
+
+    Returns
+    -------
+    device : bool
+        True or False.
+    """
+    return _device.endswith('cpu')
 
 
 def set_numba_profile(**kwargs):
@@ -230,7 +234,7 @@ def get_numba_profile():
     Returns
     -------
     numba_setting : dict
-        numba setting.
+        Numba setting.
     """
     return _numba_setting
 
@@ -241,7 +245,7 @@ def set_dt(dt):
     Parameters
     ----------
     dt : float
-        precision.
+        Numerical integration precision.
     """
     assert isinstance(dt, float)
     global _dt
@@ -259,7 +263,7 @@ def get_dt():
     return _dt
 
 
-def set_method(method):
+def set_numerical_method(method):
     """Set the default numerical integrator method for differential equations.
 
     Parameters
@@ -278,7 +282,7 @@ def set_method(method):
     _method = method
 
 
-def get_method():
+def get_numerical_method():
     """Get the default numerical integrator method.
 
     Returns
