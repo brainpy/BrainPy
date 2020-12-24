@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-from brainpy import numpy as np
+import numpy as np
 from examples.neurons.LIF_model import define_LIF
 
 

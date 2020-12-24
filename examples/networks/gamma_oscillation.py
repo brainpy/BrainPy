@@ -10,7 +10,7 @@ Implementation of the paper:
 """
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 bp.profile.set(jit=True, dt=0.04, numerical_method='exponential')
 

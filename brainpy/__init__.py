@@ -5,8 +5,8 @@ __version__ = "0.2.6"
 # "profile" module
 from . import profile
 
-# "numpy" module
-from . import numpy as numpy
+# "backend" module
+# from . import backend as backend
 
 # "connectivity" module
 from . import connectivity as connect

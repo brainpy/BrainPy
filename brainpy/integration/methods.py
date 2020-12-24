@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 from .diff_equation import DiffEquation
-from .. import numpy as np
 from .. import profile
 from ..errors import IntegratorError
 

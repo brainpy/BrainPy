@@ -11,7 +11,7 @@ Implementation of the paper:
 import matplotlib.pyplot as plt
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 bp.profile.set(jit=True)
 

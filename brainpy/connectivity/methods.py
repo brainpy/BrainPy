@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import numba as nb
+import numpy as np
 
 from .base import Connector
-from .. import numpy as np
 from ..errors import ModelUseError
 
 if hasattr(nb.core, 'dispatcher'):

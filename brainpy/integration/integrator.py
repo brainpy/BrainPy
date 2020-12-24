@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import sympy
 import copy
 
+import numpy as np
+import sympy
+
 from . import methods
-from ..numpy import random
 from .diff_equation import DiffEquation
-from .sympy_tools import str2sympy
 from .sympy_tools import get_mapping_scope
+from .sympy_tools import str2sympy
 from .sympy_tools import sympy2str
-from .. import numpy as np
 from .. import profile
 from .. import tools
+from ..backend import random
 from ..errors import IntegratorError
 
 __all__ = [

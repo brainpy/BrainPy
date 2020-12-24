@@ -377,15 +377,15 @@ _indexing_funcs = [
     'nditer', 'ndenumerate', 'ndindex',
 ]
 
-# nonzero = numpy.nonzero
-# where = numpy.where
+# nonzero = backend.nonzero
+# where = backend.where
 tril_indices = numpy.tril_indices
 tril_indices_from = numpy.tril_indices_from
 triu_indices = numpy.triu_indices
 triu_indices_from = numpy.triu_indices_from
 
 take = numpy.take
-# diag = numpy.diag
+# diag = backend.diag
 select = numpy.select
 
 nditer = numpy.nditer
@@ -420,7 +420,7 @@ nanpercentile = numpy.nanpercentile
 quantile = numpy.quantile
 nanquantile = numpy.nanquantile
 
-# median = numpy.median
+# median = backend.median
 average = numpy.average
 mean = numpy.mean
 std = numpy.std
@@ -517,7 +517,7 @@ def _reload(backend):
 
     global_vars = globals()
 
-    if backend == 'numpy':
+    if backend == 'backend':
         for __ops in _all:
             global_vars[__ops] = getattr(numpy, __ops)
 
@@ -540,7 +540,7 @@ def _set_default_int(itype):
 
     Parameters
     ----------
-    itype : str, numpy.generic
+    itype : str, backend.generic
         Int type.
     """
     global int_
@@ -557,7 +557,7 @@ def _set_default_float(ftype):
 
     Parameters
     ----------
-    ftype : str, numpy.generic
+    ftype : str, backend.generic
         float type.
     """
     global float_
@@ -569,7 +569,7 @@ def _set_default_float(ftype):
 
 
 def func_by_name(name):
-    """Get numpy function by its name.
+    """Get backend function by its name.
 
     Parameters
     ----------

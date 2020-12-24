@@ -5,7 +5,7 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
-import numpy as onp
+import numpy as np
 import sympy
 from numba import njit
 
@@ -15,7 +15,6 @@ from .utils import get_2d_classification
 from .utils import plot_scheme
 from .utils import rescale
 from .utils import stability_analysis
-from .. import numpy as bnp
 from .. import profile
 from .. import tools
 from ..core_system import NeuType
@@ -937,14 +936,14 @@ def get_trajectories(
     #                    (0.5, 1.5, 100.)]  # two trajectory
 
     durations = []
-    simulating_duration = [bnp.inf, -bnp.inf]
+    simulating_duration = [np.inf, -np.inf]
 
     # format target setting
     if isinstance(target_setting[0], (int, float)):
         target_setting = (target_setting,)
 
     # initial values
-    initials = bnp.zeros((len(target_vars), len(target_setting)), dtype=bnp.float_)
+    initials = np.zeros((len(target_vars), len(target_setting)), dtype=np.float_)
 
     # format duration and initial values
     for i, setting in enumerate(target_setting):

@@ -20,7 +20,7 @@ I_{ext} = A\exp\left[-\frac{|x-z(t)|^2}{4a^2}\right]
 """
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 bp.profile.set(numerical_method='rk4', dt=0.05)
 

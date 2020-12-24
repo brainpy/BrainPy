@@ -3,13 +3,14 @@
 import re
 import typing
 
+import numpy as np
+
+from . import constants
 from .base import BaseEnsemble
 from .base import BaseType
-from . import constants
 from .neurons import NeuGroup
 from .neurons import NeuSubGroup
 from .types import SynState
-from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..connectivity import Connector

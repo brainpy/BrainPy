@@ -2,7 +2,7 @@
 
 import brainpy as bp
 
-import brainpy.numpy as np
+import numpy as np
 
 
 def define_gap_junction_scalar():

@@ -4,9 +4,10 @@ import inspect
 import re
 from importlib import import_module
 
+import numpy as np
+
 from . import constants
 from .types import ObjState
-from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..errors import ModelDefError

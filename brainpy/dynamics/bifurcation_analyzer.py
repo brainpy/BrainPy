@@ -5,7 +5,7 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
-import numpy as onp
+import numpy as np
 import sympy
 from mpl_toolkits.mplot3d import Axes3D
 from numba import njit
@@ -226,9 +226,9 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
             optimizer = njit(optimizer)
 
             # function
-            x_range = onp.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
+            x_range = np.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
             scope = {'optimizer': optimizer, 'find_root': find_root,
-                     'onp': onp, 'x_range': x_range}
+                     'onp': np, 'x_range': x_range}
             func_codes = [f'def solve_x({arg_of_pars}):']
             func_codes.append(f'x_values = find_root(optimizer, x_range, ({arg_of_pars}, ))')
             func_codes.append('return onp.array(x_values)')
@@ -296,7 +296,7 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
             # fixed point
             par_name = list(self.target_pars.keys())[0]
             par_lim = list(self.target_pars.values())[0]
-            for p in onp.arange(par_lim[0], par_lim[1], self.par_resolution):
+            for p in np.arange(par_lim[0], par_lim[1], self.par_resolution):
                 xs = f_fixed_point(p)
                 for x in xs:
                     dfdx = f_dfdx(x, p)
@@ -324,8 +324,8 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
             par_lims = list(self.target_pars.values())
             par_lim1 = par_lims[0]
             par_lim2 = par_lims[1]
-            for p1 in onp.arange(par_lim1[0], par_lim1[1], self.par_resolution):
-                for p2 in onp.arange(par_lim2[0], par_lim2[1], self.par_resolution):
+            for p1 in np.arange(par_lim1[0], par_lim1[1], self.par_resolution):
+                for p2 in np.arange(par_lim2[0], par_lim2[1], self.par_resolution):
                     xs = f_fixed_point(p1, p2)
                     for x in xs:
                         dfdx = f_dfdx(x, p1, p2)
@@ -500,7 +500,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
             # jacobian matrix
             scope = dict(f_dfydy=dfydy, f_dfydx=dfydx,
-                         f_dfxdy=dfxdy, f_dfxdx=dfxdx, np=onp)
+                         f_dfxdy=dfxdy, f_dfxdx=dfxdx, np=np)
             func_codes = [f'def f_jacobian({self.x_var}, {self.y_var}, {arg_of_pars}):']
             func_codes.append(f'dfxdx = f_dfxdx({self.x_var}, {self.y_var}, {arg_of_pars})')
             func_codes.append(f'dfxdy = f_dfxdy({self.x_var}, {self.y_var}, {arg_of_pars})')
@@ -647,9 +647,9 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     optimizer = eq_xy_scope['optimizer_x']
                     optimizer = njit(optimizer)
 
-                    x_range = onp.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
+                    x_range = np.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'x_range': x_range,
-                             'find_root': find_root, 'np': onp,
+                             'find_root': find_root, 'np': np,
                              'f_get_y_by_x': f_get_y_by_x}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'x_values = find_root(optimizer, x_range, ({arg_of_pars},))')
@@ -669,9 +669,9 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     optimizer = eq_xy_scope['optimizer_y']
                     optimizer = njit(optimizer)
 
-                    y_range = onp.arange(*self.dynamical_vars[self.y_var], self.var_resolution)
+                    y_range = np.arange(*self.dynamical_vars[self.y_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'y_range': y_range,
-                             'find_root': find_root, 'np': onp,
+                             'find_root': find_root, 'np': np,
                              'f_get_x_by_y': f_get_x_by_y}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'y_values = find_root(optimizer, y_range, ({arg_of_pars},))')
@@ -692,9 +692,9 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     optimizer = eq_xy_scope['optimizer_x']
                     optimizer = njit(optimizer)
 
-                    x_range = onp.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
+                    x_range = np.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'x_range': x_range,
-                             'find_root': find_root, 'np': onp,
+                             'find_root': find_root, 'np': np,
                              'f_get_y_by_x': f_get_y_by_x}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'x_values = find_root(optimizer, x_range, ({arg_of_pars},))')
@@ -714,9 +714,9 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     optimizer = eq_xy_scope['optimizer_y']
                     optimizer = njit(optimizer)
 
-                    y_range = onp.arange(*self.dynamical_vars[self.y_var], self.var_resolution)
+                    y_range = np.arange(*self.dynamical_vars[self.y_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'y_range': y_range,
-                             'find_root': find_root, 'np': onp,
+                             'find_root': find_root, 'np': np,
                              'f_get_x_by_y': f_get_x_by_y}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'y_values = find_root(optimizer, y_range, ({arg_of_pars},))')
@@ -745,7 +745,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
             # fixed point
             par_name = list(self.target_pars.keys())[0]
             par_lim = list(self.target_pars.values())[0]
-            for p in onp.arange(par_lim[0], par_lim[1], self.par_resolution):
+            for p in np.arange(par_lim[0], par_lim[1], self.par_resolution):
                 xs, ys = f_fixed_point(p)
                 for x, y in zip(xs, ys):
                     dfdx = f_jacobian(x, y, p)
@@ -777,8 +777,8 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
             par_lims = list(self.target_pars.values())
             par_lim1 = par_lims[0]
             par_lim2 = par_lims[1]
-            for p1 in onp.arange(par_lim1[0], par_lim1[1], self.par_resolution):
-                for p2 in onp.arange(par_lim2[0], par_lim2[1], self.par_resolution):
+            for p1 in np.arange(par_lim1[0], par_lim1[1], self.par_resolution):
+                for p2 in np.arange(par_lim2[0], par_lim2[1], self.par_resolution):
                     xs, ys = f_fixed_point(p1, p2)
                     for x, y in zip(xs, ys):
                         dfdx = f_jacobian(x, y, p1, p2)

@@ -20,7 +20,7 @@ from brian2 import __version__
 print(__version__)
 
 seed(12345)
-prefs.codegen.target = "numpy"
+prefs.codegen.target = "backend"
 
 import matplotlib.patches as patches
 import brainpy as nn

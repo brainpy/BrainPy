@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from . import numpy as np
+import numpy as np
+
 from . import profile
 from .core_system import NeuGroup
 from .core_system import NeuType

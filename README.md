@@ -29,6 +29,8 @@ Install ``BrainPy`` using ``pip``:
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
     > # or
     > pip install git+https://git.openi.org.cn/OpenI/BrainPy
+    > # Or
+    > pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V0.2.5
 
 
 The following packages need to be installed to use ``BrainPy``:

@@ -23,7 +23,7 @@ J\left(x,x^\prime\right) = \frac{1}{\sqrt{2\pi}a}\exp\left(
 """
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 tau = 1.
 tau_v = 48.

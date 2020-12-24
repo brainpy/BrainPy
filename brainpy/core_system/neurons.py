@@ -2,11 +2,12 @@
 
 import typing
 
+import numpy as np
+
+from . import constants
 from .base import BaseEnsemble
 from .base import BaseType
-from . import constants
 from .types import NeuState
-from .. import numpy as np
 from ..errors import ModelDefError
 from ..errors import ModelUseError
 

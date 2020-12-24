@@ -5,6 +5,7 @@ from importlib import import_module
 import numpy
 import numpy.random
 
+
 _all = [
     # Initialization
     # ----------------
@@ -75,7 +76,7 @@ weibull = numpy.random.weibull
 def _reload(backend):
     global_vars = globals()
 
-    if backend == 'numpy':
+    if backend == 'backend':
         from . import _numpy_cpu
         for __ops in _all:
             if hasattr(numpy.random, __ops):

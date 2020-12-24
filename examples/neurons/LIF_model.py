@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):

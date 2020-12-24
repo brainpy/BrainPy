@@ -6,21 +6,22 @@ import time
 import typing
 from copy import deepcopy
 
+import numpy as np
+
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
 from .constants import _NEU_GROUP
 from .constants import _SYN_CONN
 from .runner import Runner
-from .types import ObjState
 from .types import NeuState
+from .types import ObjState
 from .types import SynState
 from .types import TypeChecker
-from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..errors import ModelDefError
-from ..errors import TypeMismatchError
 from ..errors import ModelUseError
+from ..errors import TypeMismatchError
 
 __all__ = [
     'BaseType',

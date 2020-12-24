@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numba as nb
+import numpy as np
 
-from .. import numpy as np
 from .. import profile
 from ..errors import ModelUseError
 

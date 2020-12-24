@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
-from .. import numpy as np
 from .. import profile
 from ..errors import ModelUseError
 

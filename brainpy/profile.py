@@ -5,7 +5,7 @@ The setting of the overall framework.
 
 Using the API in ``profile.py``, you can set
 
-- the backend of numerical algorithm, ``numpy`` or ``numba``,
+- the backend of numerical algorithm, ``backend`` or ``numba``,
 - the precision of the numerical integrator,
 - the method of the numerical integrator.
 
@@ -33,7 +33,7 @@ __all__ = [
 
 
 _jit = False
-_backend = 'numpy'
+_backend = 'backend'
 _device = 'cpu'
 _dt = 0.1
 _method = 'euler'
@@ -85,12 +85,12 @@ def set(
 
     # default float type
     if float_type is not None:
-        from .numpy import _set_default_float
+        from .backend import _set_default_float
         _set_default_float(float_type)
 
     # default int type
     if int_type is not None:
-        from .numpy import _set_default_int
+        from .backend import _set_default_int
         _set_default_int(int_type)
 
     # option to merge integral functions
@@ -141,8 +141,8 @@ def set_device(jit, device=None):
     global _jit
 
     if _jit != jit:
-        from .numpy import _reload
-        _reload('numba' if jit else 'numpy')
+        from .backend import _reload
+        _reload('numba' if jit else 'backend')
 
         _jit = jit
 

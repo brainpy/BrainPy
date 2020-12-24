@@ -2,11 +2,12 @@
 
 import time
 
+import numpy as np
+
 from .base import BaseEnsemble
 from .constants import INPUT_OPERATIONS
 from .neurons import NeuGroup
 from .synapses import SynConn
-from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..errors import ModelUseError

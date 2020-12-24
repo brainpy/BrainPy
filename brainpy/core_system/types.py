@@ -3,8 +3,8 @@
 from collections import OrderedDict
 
 import numba as nb
+import numpy as np
 
-from .. import numpy as np
 from .. import profile
 from ..errors import TypeMismatchError
 

@@ -5,10 +5,10 @@ import inspect
 import types
 
 import numba as nb
+import numpy as np
 
 from .codes import deindent
 from .codes import get_func_source
-from .. import numpy as np
 from .. import profile
 from ..integration.integrator import Integrator
 

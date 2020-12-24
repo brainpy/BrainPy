@@ -7,7 +7,7 @@ Test the network scaling ability.
 
 import time
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,

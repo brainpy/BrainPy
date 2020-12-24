@@ -43,7 +43,7 @@ setup(
                                     'tests.*')),
     python_requires='>=3.7',
     install_requires=[
-        'numpy>=1.15',
+        'backend>=1.15',
         'matplotlib>=3.0',
         'sympy>=1.2',
         'numba>=0.50.0',

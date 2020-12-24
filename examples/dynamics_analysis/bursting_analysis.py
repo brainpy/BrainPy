@@ -19,7 +19,7 @@ of the Royal society of London. Series B. Biological sciences,
 
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 bp.profile.set(dt=0.02, numerical_method='rk4')
 

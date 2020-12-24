@@ -5,7 +5,7 @@ import time
 
 from numba import cuda
 
-import brainpy.numpy as np
+import brainpy.backend as np
 
 dt = 0.01
 

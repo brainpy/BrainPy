@@ -28,7 +28,7 @@ qr = numpy.linalg.qr
 def _reload(backend):
     global_vars = globals()
 
-    if backend == 'numpy':
+    if backend == 'backend':
         for __ops in _all:
             global_vars[__ops] = getattr(numpy.linalg, __ops)
 

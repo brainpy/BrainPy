@@ -22,7 +22,7 @@ Author: Lin Xiaohan (Oct. 9th, 2020)
 from collections import OrderedDict
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 bp.profile.set(dt=0.01)
 
