@@ -22,23 +22,25 @@ You can install ``BrainPy`` from the ``anaconda cloud``. To do so, use:
 Installation with pip
 ---------------------
 
-If you decide not to use ``conda``, you can install ``BrainPy`` from the Python
-package index: https://pypi.python.org/pypi/
+If you decide not to use ``conda``, you can install ``BrainPy`` from the
+`GitHub <https://github.com/PKU-NIP-Lab/BrainPy>`_,
+or `OpenI <https://git.openi.org.cn/OpenI/BrainPy>`_.
 
 To do so, use:
 
 .. code-block:: bash
 
-    pip install brain.py
+    pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 
-
-Installation from source code
------------------------------
-
-Or, to be in line with the latest update, you can also install ``BrainPy`` from
-the github:
+Or
 
 .. code-block:: bash
 
-    pip install git+https://github.com/PKU-NIP-Lab/BrainPy
+    pip install git+https://git.openi.org.cn/OpenI/BrainPy
+
+To install the specific version of ``BrainPy``, your can use
+
+.. code-block:: bash
+
+    pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V0.2.5
 

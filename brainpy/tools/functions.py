@@ -9,6 +9,7 @@ import numpy as np
 
 from .codes import deindent
 from .codes import get_func_source
+from .. import backend
 from .. import profile
 from ..integration.integrator import Integrator
 
@@ -83,7 +84,7 @@ def func_copy(f):
 
 
 def numba_func(func, params={}):
-    if func == np.func_by_name(func.__name__):
+    if func == backend.func_by_name(func.__name__):
         return func
     if isinstance(func, Dispatcher):
         return func

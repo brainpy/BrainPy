@@ -52,11 +52,11 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
 if __name__ == '__main__':
     bp.profile.set(jit=True, dt=0.02)
 
-    LIF = define_LIF(noise=0., ref=5.)
+    LIF = define_LIF(noise=1., ref=5.)
 
     neu = bp.NeuGroup(LIF, geometry=(1,), monitors=['spike', 'V'])
     Iext, duration = bp.inputs.constant_current([(0, 20), (30, 50), (0, 30)])
-    neu.run(duration=duration, inputs=['ST.inp', Iext], report=True)
+    neu.run(duration=duration, inputs=['ST.input', Iext], report=True)
 
     fig, gs = bp.visualize.get_figure(1, 1, 4, 6)
     fig.add_subplot(gs[0, 0])

@@ -141,9 +141,6 @@ def set_device(jit, device=None):
     global _jit
 
     if _jit != jit:
-        from .backend import _reload
-        _reload('numba' if jit else 'backend')
-
         _jit = jit
 
     # device

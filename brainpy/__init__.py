@@ -6,7 +6,7 @@ __version__ = "0.2.6"
 from . import profile
 
 # "backend" module
-# from . import backend as backend
+from . import backend
 
 # "connectivity" module
 from . import connectivity as connect
@@ -42,3 +42,4 @@ from . import visualization as visualize
 from . import inputs
 from . import measure
 from . import running
+

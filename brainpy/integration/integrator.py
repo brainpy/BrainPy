@@ -10,9 +10,9 @@ from .diff_equation import DiffEquation
 from .sympy_tools import get_mapping_scope
 from .sympy_tools import str2sympy
 from .sympy_tools import sympy2str
+from .. import backend
 from .. import profile
 from .. import tools
-from ..backend import random
 from ..errors import IntegratorError
 
 __all__ = [
@@ -94,8 +94,11 @@ class Integrator(object):
     @property
     def code_scope(self):
         scope = self.diff_eq.func_scope
-        scope['_normal_like'] = np.random._normal_like
-        # scope['np'] = np
+        if profile._jit:
+            scope['_normal_like'] = backend.numba_cpu.normal_like
+        else:
+            scope['_normal_like'] = backend.normal_like
+            # scope['np'] = np
         return scope
 
 
@@ -844,7 +847,10 @@ class ExponentialEuler(Integrator):
         func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
         code_scopes = copy.copy(diff_eq.func_scope)
         code_scopes.update(get_mapping_scope())
-        code_scopes['_normal_like'] = random._normal_like
+        if profile._jit:
+            code_scopes['_normal_like'] = backend.numba_cpu.normal_like
+        else:
+            code_scopes['_normal_like'] = backend.normal_like
         exec(compile(func_code, '', 'exec'), code_scopes)
         self._update_func = code_scopes['int_func']
 
