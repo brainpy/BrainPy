@@ -11,12 +11,16 @@ Using the API in ``profile.py``, you can set
 
 """
 
+from numba import cuda
+
 
 __all__ = [
     'set',
 
-    'is_jit_backend',
-    'is_cpu_device',
+    'is_jit',
+
+    'run_on_cpu',
+    'run_on_gpu',
 
     'set_numba_profile',
     'get_numba_profile',
@@ -33,7 +37,7 @@ __all__ = [
 
 
 _jit = False
-_backend = 'backend'
+_backend = 'numpy'
 _device = 'cpu'
 _dt = 0.1
 _method = 'euler'
@@ -47,6 +51,7 @@ _show_code_scope = False
 _substitute_equation = False
 _merge_integrators = True
 _merge_steps = False
+_num_thread_gpu = None
 
 
 def set(
@@ -147,6 +152,7 @@ def set_device(jit, device=None):
     # ------
 
     global _device
+    global _num_thread_gpu
 
     if device is None:
         return
@@ -155,7 +161,7 @@ def set_device(jit, device=None):
     if _device != device:
         if not jit:
             if device != 'cpu':
-                print(f'Non-jit mode only support "cpu" device, not "{device}".')
+                print(f'Non-jit mode now only support "cpu" device, not "{device}".')
             else:
                 _device = device
         else:
@@ -163,10 +169,27 @@ def set_device(jit, device=None):
                 set_numba_profile(parallel=False)
             elif device == 'multi-cpu':
                 set_numba_profile(parallel=True)
-            elif device == 'gpu':
-                raise NotImplementedError('BrainPy currently doesn\'t support GPU.')
             else:
-                raise ValueError(f'Unknown device in Numba mode: {device}.')
+                if device.startswith('gpu'):
+                    # get cuda id
+                    cuda_id = device.replace('gpu', '')
+                    if cuda_id == '':
+                        cuda_id = 0
+                        device = f'{device}0'
+                    else:
+                        cuda_id = float(cuda_id)
+
+                    # set cuda
+                    if cuda.is_available():
+                        cuda.select_device(cuda_id)
+                    else:
+                        raise ValueError('Cuda is not available. Cannot set gpu backend.')
+
+                    gpu = cuda.get_current_device()
+                    _num_thread_gpu = gpu.MAX_THREADS_PER_BLOCK
+
+                else:
+                    raise ValueError(f'Unknown device in Numba mode: {device}.')
             _device = device
 
 
@@ -182,7 +205,7 @@ def get_device():
     return _device
 
 
-def is_jit_backend():
+def is_jit():
     """Check whether the backend is ``numba``.
 
     Returns
@@ -193,7 +216,7 @@ def is_jit_backend():
     return _jit
 
 
-def is_cpu_device():
+def run_on_cpu():
     """Check whether the device is "CPU".
 
     Returns
@@ -202,6 +225,21 @@ def is_cpu_device():
         True or False.
     """
     return _device.endswith('cpu')
+
+
+def run_on_gpu():
+    """Check whether the device is "GPU".
+
+    Returns
+    -------
+    device : bool
+        True or False.
+    """
+    return _device.startswith('gpu')
+
+
+
+
 
 
 def set_numba_profile(**kwargs):

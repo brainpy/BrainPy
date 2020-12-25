@@ -13,8 +13,8 @@ from . import connectivity as connect
 
 # "core_system" module
 from . import core_system as core
-from .core_system.base import BaseType
-from .core_system.base import BaseEnsemble
+from .core_system.base import ObjType
+from .core_system.base import Ensemble
 from .core_system.neurons import NeuType
 from .core_system.neurons import NeuGroup
 from .core_system.synapses import SynType
@@ -22,6 +22,9 @@ from .core_system.synapses import SynConn
 from .core_system.synapses import delayed
 from .core_system.network import Network
 from .core_system import types
+from .core_system.types import ObjState
+from .core_system.types import NeuState
+from .core_system.types import SynState
 
 # "integration" module
 from . import integration

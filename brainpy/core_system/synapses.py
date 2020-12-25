@@ -6,8 +6,8 @@ import typing
 import numpy as np
 
 from . import constants
-from .base import BaseEnsemble
-from .base import BaseType
+from .base import Ensemble
+from .base import ObjType
 from .neurons import NeuGroup
 from .neurons import NeuSubGroup
 from .types import SynState
@@ -26,7 +26,7 @@ __all__ = [
 _SYN_CONN_NO = 0
 
 
-class SynType(BaseType):
+class SynType(ObjType):
     """Abstract Synapse Type.
 
     It can be defined based on a collection of synapses or a single synapse model.
@@ -79,7 +79,7 @@ class SynType(BaseType):
             self._delay_keys = list(_delay_keys)
 
 
-class SynConn(BaseEnsemble):
+class SynConn(Ensemble):
     """Synaptic connections.
 
     Parameters

@@ -24,13 +24,13 @@ from ..errors import ModelUseError
 from ..errors import TypeMismatchError
 
 __all__ = [
-    'BaseType',
-    'BaseEnsemble',
+    'ObjType',
+    'Ensemble',
     'ParsUpdate',
 ]
 
 
-class BaseType(object):
+class ObjType(object):
     """The base type of neuron and synapse.
 
     Parameters
@@ -298,7 +298,7 @@ class ParsUpdate(dict):
         return origins
 
 
-class BaseEnsemble(object):
+class Ensemble(object):
     """Base Ensemble class.
 
     Parameters
@@ -307,7 +307,7 @@ class BaseEnsemble(object):
         Name of the (neurons/synapses) ensemble.
     num : int
         The number of the neurons/synapses.
-    model : BaseType
+    model : ObjType
         The (neuron/synapse) model.
     monitors : list, tuple, None
         Variables to monitor.
@@ -321,7 +321,7 @@ class BaseEnsemble(object):
             self,
             name: str,
             num: int,
-            model: BaseType,
+            model: ObjType,
             monitors: typing.Tuple,
             pars_update: typing.Dict,
             cls_type: str

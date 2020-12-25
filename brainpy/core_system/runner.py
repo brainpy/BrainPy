@@ -2,9 +2,11 @@
 
 import inspect
 import re
-from importlib import import_module
+import math
 
+import numba
 import numpy as np
+from numba import cuda
 
 from . import constants
 from .types import ObjState
@@ -61,25 +63,27 @@ class Runner(object):
         code : dict
             The formatted code.
         """
+
+        def check_attr(attr_):
+            if not hasattr(self, attr_):
+                raise ModelUseError(f'Model "{self._name}" doesn\'t have "{attr_}" attribute", '
+                                    f'and "{self._name}.ST" doesn\'t have "{attr_}" field.')
+
         if len(key_val_ops_types) <= 0:
             raise ModelUseError(f'{self._name} has no input, cannot call this function.')
-
-        code_scope = {self._name: self.ensemble}
-        code_args, code_arg2call, code_lines = set(), {}, []
 
         # check datatype of the input
         # ----------------------------
         has_iter = False
-        for _, _, _, t in key_val_ops_types:
-            try:
-                assert t in ['iter', 'fix']
-            except AssertionError:
+        for key, val, ops, t in key_val_ops_types:
+            if t not in ['iter', 'fix']:
                 raise ModelUseError('Only support inputs of "iter" and "fix" types.')
             if t == 'iter':
                 has_iter = True
-        if has_iter:
-            code_args.add('_i')
-            code_arg2call['_i'] = '_i'
+            if key in self._inputs:
+                raise ModelUseError('Only support assignment for each key once.')
+            else:
+                self._inputs[key] = (val, ops, t)
 
         # check data operations
         # ----------------------
@@ -89,86 +93,201 @@ class Runner(object):
 
         # generate code of input function
         # --------------------------------
-        input_idx = 0
-        for key, val, ops, data_type in key_val_ops_types:
-            if key in self._inputs:
-                raise ModelUseError('Only support assignment for each key once.')
-            else:
-                self._inputs[key] = (val, ops, data_type)
+        if profile.run_on_cpu():
+            code_scope = {self._name: self.ensemble}
+            code_args, code_arg2call, code_lines = set(), {}, []
+            if has_iter:
+                code_args.add('_i')
+                code_arg2call['_i'] = '_i'
 
-            attr_item = key.split('.')
+            input_idx = 0
+            for key, val, ops, data_type in key_val_ops_types:
+                # get the left side #
+                attr_item = key.split('.')
+                if len(attr_item) == 1 and (attr_item[0] not in self.ensemble.ST):
+                    # if "item" is the model attribute
+                    attr, item = attr_item[0], ''
+                    target = getattr(self.ensemble, attr)
+                    check_attr(attr)
+                    if not isinstance(target, np.ndarray):
+                        raise ModelUseError(f'BrainPy only support input to arrays.')
 
-            # get the left side #
-            if len(attr_item) == 1 and (attr_item[0] not in self.ensemble.ST):  # if "item" is the model attribute
-                attr, item = attr_item[0], ''
-                if not hasattr(self, attr):
-                    raise ModelUseError(f'Model "{self._name}" doesn\'t have "{attr}" attribute", '
-                                        f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
-                if not isinstance(getattr(self.ensemble, attr), np.ndarray):
-                    raise ModelUseError(f'BrainPy only support input to arrays.')
-
-                left = attr
-                code_args.add(left)
-                code_arg2call[left] = f'{self._name}.{attr}'
-            else:
-                if len(attr_item) == 1:
-                    attr, item = 'ST', attr_item[0]
-                elif len(attr_item) == 2:
-                    attr, item = attr_item[0], attr_item[1]
+                    left = attr
+                    code_args.add(left)
+                    code_arg2call[left] = f'{self._name}.{attr}'
                 else:
-                    raise ModelUseError(f'Unknown target : {key}.')
-                try:
-                    assert item in getattr(self.ensemble, attr)
-                except AssertionError:
-                    raise ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
+                    if len(attr_item) == 1:
+                        attr, item = 'ST', attr_item[0]
+                    elif len(attr_item) == 2:
+                        attr, item = attr_item[0], attr_item[1]
+                    else:
+                        raise ModelUseError(f'Unknown target : {key}.')
+                    data = getattr(self.ensemble, attr)
+                    if item not in data:
+                        raise ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
+                    idx = data['_var2idx'][item]
+                    left = f'{attr}[{idx}]'
+                    code_args.add(attr)
+                    code_arg2call[attr] = f'{self._name}.{attr}["_data"]'
 
-                idx = getattr(self.ensemble, attr)['_var2idx'][item]
-                left = f'{attr}[{idx}]'
+                # get the right side #
+                right = f'{key.replace(".", "_")}_inp'
+                code_args.add(right)
+                code_arg2call[right] = f'{self._name}.runner.{right}'
+                setattr(self, right, val)
+                if data_type == 'iter':
+                    right = right + '[_i]'
+                    if np.ndim(val) > 1:
+                        pass
+
+                input_idx += 1
+
+                # final code line #
+                if ops == '=':
+                    code_lines.append(f"{left} = {right}")
+                else:
+                    code_lines.append(f"{left} {ops}= {right}")
+
+            # final code
+            # ----------
+            code_lines.insert(0, f'# "input" step function of {self._name}')
+            code_lines.append('\n')
+
+            # compile function
+            code_to_compile = [f'def input_step({tools.func_call(code_args)}):'] + code_lines
+            func_code = '\n  '.join(code_to_compile)
+            exec(compile(func_code, '', 'exec'), code_scope)
+            self.input_step = code_scope['input_step']
+            # if profile.is_jit():
+            #     self.input_step = tools.jit(self.input_step)
+            if not profile._merge_steps:
+                if profile._show_format_code:
+                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                if profile._show_code_scope:
+                    tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
+
+            # format function call
+            arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
+            func_call = f'{self._name}.runner.input_step({tools.func_call(arg2call)})'
+
+            return {'input': {'scopes': code_scope,
+                              'args': code_args,
+                              'arg2calls': code_arg2call,
+                              'codes': code_lines,
+                              'call': func_call}}
+
+        else:
+            input_idx = 0
+            results = {}
+            for key, val, ops, data_type in key_val_ops_types:
+                code_scope = {self._name: self.ensemble, f'{self._name}_runner': self, 'cuda': cuda}
+                code_args, code_arg2call, code_lines = set(), {}, []
+                if has_iter:
+                    code_args.add('_i')
+                    code_arg2call['_i'] = '_i'
+
+                attr_item = key.split('.')
+                if len(attr_item) == 1 and (attr_item[0] not in self.ensemble.ST):
+                    # if "item" is the model attribute
+                    attr, item = attr_item[0], ''
+                    check_attr(attr)
+                    target = getattr(self.ensemble, attr)
+                    if not isinstance(target, np.ndarray):
+                        raise ModelUseError(f'BrainPy only supports input to arrays.')
+                    # get the left side
+                    left = f'{attr}[cuda_i]'
+                else:
+                    # if "item" is the ObjState
+                    if len(attr_item) == 1:
+                        attr, item = 'ST', attr_item[0]
+                    elif len(attr_item) == 2:
+                        attr, item = attr_item[0], attr_item[1]
+                    else:
+                        raise ModelUseError(f'Unknown target : {key}.')
+                    data = getattr(self.ensemble, attr)
+                    if item not in data:
+                        raise ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
+                    # get the left side
+                    target = data[item]
+                    idx = data['_var2idx'][item]
+                    left = f'{attr}[{idx}, cuda_i]'
                 code_args.add(attr)
-                code_arg2call[attr] = f'{self._name}.{attr}["_data"]'
+                code_arg2call[attr] = f'{self._name}.{attr}_cuda'
 
-            # get the right side #
-            right = f'{key.replace(".", "_")}_inp'
-            setattr(self, right, val)
-            code_args.add(right)
-            code_arg2call[right] = f'{self._name}.runner.{right}'
-            if data_type == 'iter':
-                right = right + '[_i]'
-            input_idx += 1
+                # get the right side #
+                right = f'{key.replace(".", "_")}_inp'
+                val_cuda = cuda.to_device(val)
+                setattr(self, right, val_cuda)
+                code_args.add(right)
+                code_arg2call[right] = f'{self._name}_runner.{right}'
 
-            # final code line #
-            if ops == '=':
-                code_lines.append(f"{left} = {right}")
-            else:
-                code_lines.append(f"{left} {ops}= {right}")
+                # check data type
+                iter_along_time = data_type == 'iter'
+                if np.isscalar(val):
+                    iter_along_data = False
+                else:
+                    if iter_along_time:
+                        if np.isscalar(val[0]):
+                            iter_along_data = False
+                        else:
+                            assert len(val[0]) == len(target)
+                            iter_along_data = True
+                    else:
+                        assert len(val[0]) == len(target)
+                        iter_along_data = True
+                if iter_along_time and iter_along_data:
+                    right = right + '[_i, cuda_i]'
+                elif iter_along_time:
+                    right = right + '[_i]'
+                elif iter_along_data:
+                    right = right + '[cuda_i]'
+                else:
+                    right = right
 
-        # final code
-        # ----------
-        code_lines.insert(0, f'# "input" step function of {self._name}')
-        code_lines.append('\n')
+                # final code line
+                if ops == '=':
+                    code_lines.append(f"{left} = {right}")
+                else:
+                    code_lines.append(f"{left} {ops}= {right}")
 
-        # compile function
-        code_to_compile = [f'def input_step({tools.func_call(code_args)}):'] + code_lines
-        func_code = '\n  '.join(code_to_compile)
-        exec(compile(func_code, '', 'exec'), code_scope)
-        self.input_step = code_scope['input_step']
-        # if profile.is_jit_backend():
-        #     self.input_step = tools.jit(self.input_step)
-        if not profile._merge_integrators:
-            if profile._show_format_code:
-                tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-            if profile._show_code_scope:
-                tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
+                # final code
+                func_name = f'input_of_{attr}_{item}'
+                code_to_compile = [f'# "input" of {self._name}.{attr}.{item}',
+                                   f'def {func_name}({tools.func_call(code_args)}):',
+                                   f'  cuda_i = cuda.grid(1)',
+                                   f'  if cuda_i < {len(target)}:']
+                code_to_compile += [f'    {line}' for line in code_lines]
 
-        # format function call
-        arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
-        func_call = f'{self._name}.runner.input_step({tools.func_call(arg2call)})'
+                # compile function
+                func_code = '\n'.join(code_to_compile)
+                exec(compile(func_code, '', 'exec'), code_scope)
+                step_func = code_scope[f'{func_name}']
+                step_func = cuda.jit(step_func)
+                setattr(self, func_name, step_func)
+                if not profile._merge_steps:
+                    if profile._show_format_code:
+                        tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                    if profile._show_code_scope:
+                        tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
-        return {'input': {'scopes': code_scope,
-                          'args': code_args,
-                          'arg2calls': code_arg2call,
-                          'codes': code_lines,
-                          'call': func_call}}
+                # format function call
+                num_thread = profile._num_thread_gpu
+                num_block = math.ceil(len(target) / profile._num_thread_gpu)
+                arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
+                func_call = f'{self._name}_runner.{func_name}[{num_block}, {num_thread}]({tools.func_call(arg2call)})'
+
+                # function result
+                results[f'input-{input_idx}'] = {'scopes': code_scope,
+                                                 'args': code_args,
+                                                 'arg2calls': code_arg2call,
+                                                 'codes': code_lines,
+                                                 'call': func_call,
+                                                 'num_data': len(target)}
+
+                # iteration
+                input_idx += 1
+
+            return results
 
     def get_codes_of_monitor(self, mon_vars, run_length):
         """Get the code of the monitors.
@@ -410,7 +529,7 @@ class Runner(object):
                     # get scope variables to delete
                     scope_to_del.add(k)
                     for k_, v_ in v.code_scope.items():
-                        if profile.is_jit_backend() and callable(v_):
+                        if profile.is_jit() and callable(v_):
                             v_ = tools.numba_func(v_, params=self._pars.updates)
                         scope_to_add[k_] = v_
 
@@ -422,11 +541,11 @@ class Runner(object):
                                                     f'it will not work.\n'
                                                     f'Please set "brainpy.profile.set(merge_steps=True)" to try to '
                                                     f'merge parameter "{ks}" into the step functions.')
-                    if profile.is_jit_backend():
+                    if profile.is_jit():
                         code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
             elif type(v).__name__ == 'function':
-                if profile.is_jit_backend():
+                if profile.is_jit():
                     code_scope[k] = tools.numba_func(v, params=self._pars.updates)
 
         # update code scope
@@ -545,7 +664,7 @@ class Runner(object):
             func_code = '\n '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
             func = tools.jit(code_scope[stripped_fname]) \
-                if profile.is_jit_backend() \
+                if profile.is_jit() \
                 else code_scope[stripped_fname]
             if not profile._merge_steps:
                 if profile._show_format_code:
@@ -596,7 +715,7 @@ class Runner(object):
 
             # update functions in code scope
             for k, v in code_scope.items():
-                if profile.is_jit_backend() and callable(v):
+                if profile.is_jit() and callable(v):
                     code_scope[k] = tools.numba_func(func=v, params=self._pars.updates)
 
             add_args = set()
@@ -691,7 +810,7 @@ class Runner(object):
             code_lines.insert(0, f'# "{stripped_fname}" step function of {self._name}')
 
             # update code scope
-            code_scope['numba'] = import_module('numba')
+            code_scope['numba'] = numba
             for k in list(code_scope.keys()):
                 if k in self._pars.updates:
                     code_scope[k] = self._pars.updates[k]
@@ -702,7 +821,7 @@ class Runner(object):
             code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
-            func = tools.jit(code_scope[stripped_fname]) if profile.is_jit_backend() \
+            func = tools.jit(code_scope[stripped_fname]) if profile.is_jit() \
                 else code_scope[stripped_fname]
             if not profile._merge_steps:
                 if profile._show_format_code:
@@ -734,7 +853,7 @@ class Runner(object):
 
         if profile._merge_steps:
             lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
-            for item in self._schedule:
+            for item in self.get_schedule():
                 if item in compiled_result:
                     lines.extend(compiled_result[item]['codes'])
                     code_scopes.update(compiled_result[item]['scopes'])
@@ -748,7 +867,7 @@ class Runner(object):
             func_code = '\n  '.join(lines)
             exec(compile(func_code, '', 'exec'), code_scopes)
 
-            if profile.is_jit_backend():
+            if profile.is_jit():
                 func = tools.jit(code_scopes['merge_func'])
             else:
                 func = code_scopes['merge_func']
@@ -762,7 +881,7 @@ class Runner(object):
                 tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
 
         else:
-            for item in self._schedule:
+            for item in self.get_schedule():
                 if item in compiled_result:
                     func_call = compiled_result[item]['call']
                     codes_of_calls.append(func_call)
