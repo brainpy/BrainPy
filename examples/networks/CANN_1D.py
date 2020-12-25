@@ -20,7 +20,7 @@ I_{ext} = A\exp\left[-\frac{|x-z(t)|^2}{4a^2}\right]
 """
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 bp.profile.set(numerical_method='rk4', dt=0.05)
 
@@ -57,18 +57,18 @@ def int_u(u, t, Jxx, Iext):
     return (dudt,), r
 
 
-def neu_update(ST, _t_, Jxx):
-    ST['u'], ST['r'] = int_u(ST['u'], _t_, Jxx, ST['input'])
+def neu_update(ST, _t, Jxx):
+    ST['u'], ST['r'] = int_u(ST['u'], _t, Jxx, ST['input'])
     ST['input'] = 0.
 
 
 requires = {
-    'ST': bp.types.NeuState(['x', 'u', 'r', 'input']),
     'Jxx': bp.types.Array(dim=2, help='Weight connection matrix.')
 }
 
 cann = bp.NeuType(name='CANN',
                   steps=neu_update,
+                  ST=bp.types.NeuState(['x', 'u', 'r', 'input']),
                   requires=requires)
 
 

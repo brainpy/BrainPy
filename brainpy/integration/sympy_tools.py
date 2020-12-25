@@ -2,6 +2,7 @@
 
 import ast
 
+import numpy as np
 import sympy
 import sympy.functions.elementary.complexes
 import sympy.functions.elementary.exponential
@@ -12,8 +13,6 @@ import sympy.functions.elementary.trigonometric
 from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
-
-from .. import numpy as np
 
 __all__ = [
     'FUNCTION_MAPPING',

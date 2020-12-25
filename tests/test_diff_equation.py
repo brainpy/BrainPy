@@ -3,7 +3,7 @@ from brainpy.integration import DiffEquation
 from brainpy import integrate
 from brainpy import tools
 from brainpy import profile
-profile.set_backend('numba')
+profile.set_device('numba')
 
 
 def try_analyse_func():

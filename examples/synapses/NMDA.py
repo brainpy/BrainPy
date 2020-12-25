@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def get_NMDA_scalar(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_decay=100., a=0.5, tau_rise=2.):
@@ -43,7 +43,6 @@ def get_NMDA_scalar(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_deca
     a : float
     """
     requires = dict(
-        ST=bp.types.SynState(['x', 's']),
         pre=bp.types.NeuState(['sp']),
         post=bp.types.NeuState(['V', 'inp']),
         pre2syn=bp.types.ListConn(),
@@ -72,6 +71,7 @@ def get_NMDA_scalar(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_deca
         post['inp'] -= g * g_inf
 
     return bp.SynType(name='NMDA',
+                      ST=bp.types.SynState(['x', 's']),
                       requires=requires,
                       steps=(update, output),
                       mode='scalar')
@@ -116,7 +116,6 @@ def get_NMDA_vector(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_deca
     a : float
     """
     requires = dict(
-        ST=bp.types.SynState(['x', 's', 'g']),
         pre=bp.types.NeuState(['sp']),
         post=bp.types.NeuState(['V', 'inp']),
         pre2syn=bp.types.ListConn(),
@@ -151,6 +150,7 @@ def get_NMDA_vector(g_max=0.15, E=0, alpha=0.062, beta=3.75, cc_Mg=1.2, tau_deca
         post['inp'] -= g * g_inf
 
     return bp.SynType(name='NMDA',
+                      ST=bp.types.SynState(['x', 's', 'g']),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')

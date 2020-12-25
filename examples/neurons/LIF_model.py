@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
@@ -31,12 +31,12 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
     def int_f(V, t, Isyn):
         return (-V + Vr + Isyn) / tau, noise / tau
 
-    def update(ST, _t_):
-        if _t_ - ST['sp_t'] > ref:
-            V = int_f(ST['V'], _t_, ST['input'])
+    def update(ST, _t):
+        if _t - ST['sp_t'] > ref:
+            V = int_f(ST['V'], _t, ST['input'])
             if V >= Vth:
                 V = Vr
-                ST['sp_t'] = _t_
+                ST['sp_t'] = _t
                 ST['spike'] = True
             ST['V'] = V
         else:
@@ -44,19 +44,19 @@ def define_LIF(tau=10., Vr=0., Vth=10., noise=0., ref=0.):
         ST['input'] = 0.
 
     return bp.NeuType(name='LIF', 
-                      requires=dict(ST=ST), 
+                      ST=ST,
                       steps=update, 
                       mode='scalar')
 
 
 if __name__ == '__main__':
-    bp.profile.set(backend='numba', dt=0.02)
+    bp.profile.set(jit=True, dt=0.02)
 
-    LIF = define_LIF(noise=0., ref=5.)
+    LIF = define_LIF(noise=1., ref=5.)
 
     neu = bp.NeuGroup(LIF, geometry=(1,), monitors=['spike', 'V'])
     Iext, duration = bp.inputs.constant_current([(0, 20), (30, 50), (0, 30)])
-    neu.run(duration=duration, inputs=['ST.inp', Iext], report=True)
+    neu.run(duration=duration, inputs=['ST.input', Iext], report=True)
 
     fig, gs = bp.visualize.get_figure(1, 1, 4, 6)
     fig.add_subplot(gs[0, 0])
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
 
 if __name__ == '__main__1':
-    bp.profile.set(backend='numba', dt=0.02)
+    bp.profile.set(jit=True, dt=0.02)
 
     LIF = define_LIF(noise=1., ref=5.)
 

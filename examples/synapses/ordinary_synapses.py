@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def get_VoltageJumpSynapse(post_has_refractory=False):
@@ -13,7 +13,6 @@ def get_VoltageJumpSynapse(post_has_refractory=False):
     """
 
     requires = dict(
-        ST=bp.types.SynState(['s']),
         pre=bp.types.NeuState(['sp']),
         pre2post=bp.types.ListConn(),
     )
@@ -42,6 +41,7 @@ def get_VoltageJumpSynapse(post_has_refractory=False):
         ST['s'] = s
 
     return bp.SynType(name='VoltageJumpSynapse',
+                      ST=bp.types.SynState(['s']),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')

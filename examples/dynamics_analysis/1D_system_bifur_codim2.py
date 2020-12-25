@@ -17,18 +17,16 @@ def define_model():
     lambd = 0
     mu = 0
 
-    ST = bp.types.NeuState({'x': 0.})
-
     @bp.integrate
     def int_x(x, t):
         dxdt = mu + lambd * x - x ** 3
         return dxdt
 
-    def update(ST, _t_):
-        ST['x'] = int_x(ST['x'], _t_)
+    def update(ST, _t):
+        ST['x'] = int_x(ST['x'], _t)
 
     return bp.NeuType(name="dummy_model",
-                      requires=dict(ST=ST),
+                      ST=bp.types.NeuState({'x': 0.}),
                       steps=update)
 
 

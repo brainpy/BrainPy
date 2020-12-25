@@ -11,9 +11,9 @@ Implementation of the paper：
 
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
-bp.profile.set(backend='numba', numerical_method='exponential')
+bp.profile.set(jit=True, device='cpu', numerical_method='exponential')
 
 num = 10000
 num_inh = int(num * 0.2)
@@ -50,8 +50,8 @@ def get_neu(tau):
     def int_f(V, t, Isyn):
         return (-V + Isyn) / tau
 
-    def update(ST, _t_):
-        V = int_f(ST['V'], _t_, ST['inp'])
+    def update(ST, _t):
+        V = int_f(ST['V'], _t, ST['inp'])
         if V >= V_threshold:
             ST['sp'] = 1.
             V = V_reset
@@ -61,7 +61,7 @@ def get_neu(tau):
         ST['inp'] = 0.
 
     return bp.NeuType(name='LIF',
-                      requires=dict(ST=neu_ST),
+                      ST=neu_ST,
                       steps=update,
                       mode='scalar')
 
@@ -78,24 +78,19 @@ def get_syn(tau):
     def ints(s, t):
         return - s / tau
 
-    def update(ST, _t_, pre, pre2syn):
-        s = ints(ST['s'], _t_)
-
-        for i in range(pre['sp'].shape[0]):
-            if pre['sp'][i] > 0.:
-                syn_ids = pre2syn[i]
-                s[syn_ids] += 1.
+    def update(ST, _t, pre):
+        s = ints(ST['s'], _t)
+        s += pre['sp']
         ST['s'] = s
         ST['g'] = ST['w'] * s
 
-    def output(ST, post, post_slice_syn):
-        for post_id in range(post_slice_syn.shape[0]):
-            pos = post_slice_syn[post_id]
-            post['inp'][post_id] += np.sum(ST['g'][pos[0]: pos[1]])
+    def output(ST, post):
+        post['inp'] += ST['g']
 
     return bp.SynType(name='alpha_synapse',
-                      requires=dict(ST=syn_ST),
-                      steps=(update, output))
+                      ST=syn_ST,
+                      steps=(update, output),
+                      mode='scalar')
 
 
 # -------

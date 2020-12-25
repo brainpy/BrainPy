@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def define_GABAa1_vector(g_max=0.4, reversal_potential=-80., tau_decay=6.):
     requires = dict(
-        ST=bp.types.SynState(['s', 'g']),
         pre=bp.types.NeuState(['sp']),
         pre2syn=bp.types.ListConn(),
     )
@@ -31,6 +30,7 @@ def define_GABAa1_vector(g_max=0.4, reversal_potential=-80., tau_decay=6.):
         post['inp'] -= post_cond * (post['V'] - reversal_potential)
 
     return bp.SynType(name='GABAa1',
+                      ST=bp.types.SynState(['s', 'g']),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')
@@ -38,7 +38,6 @@ def define_GABAa1_vector(g_max=0.4, reversal_potential=-80., tau_decay=6.):
 
 def define_GABAa2_vector(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_duration=1.):
     requires = dict(
-        ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
         pre=bp.types.NeuState(['sp']),
         pre2syn=bp.types.ListConn(),
         post2syn=bp.types.ListConn(),
@@ -65,6 +64,7 @@ def define_GABAa2_vector(g_max=0.04, E=-80., alpha=0.53, beta=0.18, T=1., T_dura
         post['inp'] -= post_cond * (post['V'] - E)
 
     return bp.SynType(name='GABAa2',
+                      ST=bp.types.SynState({'s': 0., 'sp_t': -1e7, 'g': 0.}),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')
@@ -99,7 +99,6 @@ def define_GABAb1_vector(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.00
     """
 
     requires = dict(
-        ST=bp.types.SynState({'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
         pre=bp.types.NeuState(['sp']),
         post=bp.types.NeuState(['V', 'inp']),
         pre2syn=bp.types.ListConn(),
@@ -133,6 +132,7 @@ def define_GABAb1_vector(g_max=0.02, E=-95., k1=0.18, k2=0.034, k3=0.09, k4=0.00
         post['inp'] -= post_cond * (post['V'] - E)
 
     return bp.SynType(name='GABAb1',
+                      ST=bp.types.SynState({'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')
@@ -169,7 +169,6 @@ def define_GABAb2_vector(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.0
     T_duration
     """
     requires = dict(
-        ST=bp.types.SynState({'D': 0., 'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
         pre=bp.types.NeuState(['sp']),
         post=bp.types.NeuState(['V', 'inp']),
         pre2syn=bp.types.ListConn(),
@@ -210,6 +209,7 @@ def define_GABAb2_vector(g_max=0.02, E=-95., k1=0.66, k2=0.02, k3=0.0053, k4=0.0
         post['inp'] -= post_cond * (post['V'] - E)
 
     return bp.SynType(name='GABAb2',
+                      ST=bp.types.SynState({'D': 0., 'R': 0., 'G': 0., 'sp_t': -1e7, 'g': 0.}),
                       requires=requires,
                       steps=(update, output),
                       mode='vector')

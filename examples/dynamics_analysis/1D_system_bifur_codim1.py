@@ -13,21 +13,17 @@ def define_model():
 
     """
 
-    ST = bp.types.NeuState(
-        {'x': -10, 'input': 0.}
-    )
-
     @bp.integrate
     def int_x(x, t, input):
         dxdt = x ** 3 - x + input
         return dxdt
 
-    def update(ST, _t_):
-        ST['x'] = int_x(ST['x'], _t_, ST['input'])
+    def update(ST, _t):
+        ST['x'] = int_x(ST['x'], _t, ST['input'])
         ST['input'] = 0.
 
     return bp.NeuType(name="dummy_model",
-                      requires=dict(ST=ST),
+                      ST=bp.types.NeuState({'x': -10, 'input': 0.}),
                       steps=update)
 
 

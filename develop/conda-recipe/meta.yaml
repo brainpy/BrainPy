@@ -1,6 +1,6 @@
 package:
     name: brain.py
-    version: "0.2.5"
+    version: "0.2.6"
 
 source:
     path: ../../
@@ -13,12 +13,12 @@ requirements:
     host:
         - python
         - setuptools>=40.0.0
-        - numpy>= 1.13
+        - backend>= 1.13
         - sympy>=1.2
         - numba>=0.50
     run:
         - python
-        - numpy>=1.13
+        - backend>=1.13
         - sympy>=1.2
         - numba>=0.50
         - matplotlib>=3.0
@@ -39,4 +39,4 @@ about:
         for neuronal dynamics simulation.
     dev_url: https://github.com/PKU-NIP-Lab/BrainPy
     doc_url: https://brainpy.readthedocs.io/en/latest/
-    doc_source_url: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/README.rst
+    doc_source_url: https://github.com/PKU-NIP-Lab/BrainPy/blob/master/README.md

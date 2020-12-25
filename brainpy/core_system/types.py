@@ -2,17 +2,11 @@
 
 from collections import OrderedDict
 
-from .. import numpy as np
+import numba as nb
+import numpy as np
+
 from .. import profile
 from ..errors import TypeMismatchError
-
-try:
-    import numba as nb
-except ImportError as e:
-    if profile.is_numba_bk():
-        raise e
-
-    nb = None
 
 __all__ = [
     'TypeChecker',
@@ -184,7 +178,8 @@ class SynState(ObjState):
         elif key in ['_data', '_var2idx', '_idx2var', '_cond_delay']:
             raise KeyError(f'"{key}" cannot be modified.')
         else:
-            raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
+            raise KeyError(f'"{key}" is not defined in {type(self).__name__}, '
+                           f'only finds "{str(self._keys)}".')
 
     def extract_by_index(self, idx, delay_pull=False):
         if delay_pull:
@@ -231,7 +226,7 @@ class ListConn(TypeChecker):
         super(ListConn, self).__init__(help=help)
 
     def check(self, cls):
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             if not isinstance(cls, nb.typed.List):
                 raise TypeMismatchError(f'In numba mode, "cls" must be an instance of {type(nb.typed.List)}, '
                                         f'but got {type(cls)}. Hint: you can use "ListConn.create()" method.')
@@ -250,7 +245,7 @@ class ListConn(TypeChecker):
     def make_copy(cls, conn):
         assert isinstance(conn, (list, tuple)), '"conn" must be a tuple/list.'
         assert isinstance(conn[0], (list, tuple)), 'Elements of "conn" must be tuple/list.'
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             a_list = nb.typed.List()
             for l in conn:
                 a_list.append(np.uint64(l))
@@ -358,7 +353,7 @@ class List(TypeChecker):
         super(List, self).__init__(help=help)
 
     def check(self, cls):
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             if not isinstance(cls, nb.typed.List):
                 raise TypeMismatchError(f'In numba, "List" requires an instance of {type(nb.typed.List)}, '
                                         f'but got {type(cls)}.')
@@ -385,7 +380,7 @@ class Dict(TypeChecker):
         super(Dict, self).__init__(help=help)
 
     def check(self, cls):
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             if not isinstance(cls, nb.typed.Dict):
                 raise TypeMismatchError(f'In numba, "Dict" requires an instance of {type(nb.typed.Dict)}, '
                                         f'but got {type(cls)}.')

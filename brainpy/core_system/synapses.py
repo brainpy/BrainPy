@@ -3,13 +3,14 @@
 import re
 import typing
 
-from .base import BrainEnsemble
-from .base import BrainType
+import numpy as np
+
 from . import constants
+from .base import BaseEnsemble
+from .base import BaseType
 from .neurons import NeuGroup
 from .neurons import NeuSubGroup
 from .types import SynState
-from .. import numpy as np
 from .. import profile
 from .. import tools
 from ..connectivity import Connector
@@ -25,7 +26,7 @@ __all__ = [
 _SYN_CONN_NO = 0
 
 
-class SynType(BrainType):
+class SynType(BaseType):
     """Abstract Synapse Type.
 
     It can be defined based on a collection of synapses or a single synapse model.
@@ -34,26 +35,26 @@ class SynType(BrainType):
     def __init__(
             self,
             name: str,
-            requires: dict,
+            ST: SynState,
             steps: typing.Union[callable, list, tuple],
             mode: str = 'vector',
+            requires: dict = None,
             heter_params_replace: dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
             extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
         if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE, constants.MATRIX_MODE]:
-            raise ModelDefError('NeuType only support "scalar", "vector" or "matrix".')
+            raise ModelDefError('SynType only support "scalar", "vector" or "matrix".')
 
-        if mode == constants.SCALAR_MODE:
-            print("WARNING: scalar-based synapse model will not be supported in future.")
-
-        super(SynType, self).__init__(requires=requires,
-                                      steps=steps,
-                                      name=name,
-                                      mode=mode,
-                                      heter_params_replace=heter_params_replace,
-                                      extra_functions=extra_functions,
-                                      extra_attributes=extra_attributes)
+        super(SynType, self).__init__(
+            ST=ST,
+            requires=requires,
+            steps=steps,
+            name=name,
+            mode=mode,
+            heter_params_replace=heter_params_replace,
+            extra_functions=extra_functions,
+            extra_attributes=extra_attributes)
 
         # inspect delay keys
         # ------------------
@@ -68,23 +69,17 @@ class SynType(BrainType):
             delay_func_code_left = '\n'.join(tools.format_code(delay_func_code).lefts)
 
             # get delayed variables
-            _delay_keys = dict()
-            for arg, state in self.requires.items():
-                if isinstance(state, SynState):
-                    delay_keys_in_left = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]',
-                                                        delay_func_code_left))
-                    if len(delay_keys_in_left) > 0:
-                        raise ModelDefError(f'Delayed function cannot assign value to "{arg}".')
-                    delay_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]',
-                                                delay_func_code))
-                    if len(delay_keys) > 0:
-                        if arg not in _delay_keys:
-                            _delay_keys[arg] = set()
-                        _delay_keys[arg].update(delay_keys)
-            self._delay_keys = _delay_keys
+            _delay_keys = set()
+            delay_keys_in_left = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_code_left))
+            if len(delay_keys_in_left) > 0:
+                raise ModelDefError(f'Delayed function cannot assign value to "ST".')
+            delay_keys = set(re.findall(r'ST\[[\'"](\w+)[\'"]\]', delay_func_code))
+            if len(delay_keys) > 0:
+                _delay_keys.update(delay_keys)
+            self._delay_keys = list(_delay_keys)
 
 
-class SynConn(BrainEnsemble):
+class SynConn(BaseEnsemble):
     """Synaptic connections.
 
     Parameters
@@ -125,7 +120,7 @@ class SynConn(BrainEnsemble):
         # ----
         if name is None:
             global _SYN_CONN_NO
-            name = f'SC{_SYN_CONN_NO}'
+            name = f'SynConn{_SYN_CONN_NO}'
             _SYN_CONN_NO += 1
         else:
             name = name
@@ -239,7 +234,7 @@ class SynConn(BrainEnsemble):
 
         # ST
         # --
-        if self.model.mode == 'matrix':
+        if self.model.mode == constants.MATRIX_MODE:
             if pre_group is None:
                 if 'pre_size' not in kwargs:
                     raise ModelUseError('"pre_size" must be provided when "pre_group" is none.')
@@ -256,33 +251,9 @@ class SynConn(BrainEnsemble):
             size = (pre_size, post_size)
         else:
             size = (self.num,)
-        delay_vars = list(self.model._delay_keys.get('ST', []))
-        self.ST = self.requires['ST'].make_copy(size=size,
-                                                delay=delay_len,
-                                                delay_vars=delay_vars)
-
-
-def post_cond_by_post2syn(syn_val, post2syn):
-    """Get post-synaptic conductance be post2syn connection.
-
-    Parameters
-    ----------
-    syn_val : np.ndarray
-        The synaptic value.
-    post2syn : list, tuple
-        The post2syn connection.
-
-    Returns
-    -------
-    conductance : np.ndarray
-        The delayed conductance.
-    """
-    num_post = len(post2syn)
-    g_val = np.zeros(num_post, dtype=np.float_)
-    for i in range(num_post):
-        syn_idx = post2syn[i]
-        g_val[i] = syn_val[syn_idx]
-    return g_val
+        self.ST = self.model.ST.make_copy(size=size,
+                                          delay=delay_len,
+                                          delay_vars=self.model._delay_keys)
 
 
 def delayed(func):

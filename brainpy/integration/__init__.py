@@ -2,8 +2,8 @@
 
 from . import diff_equation
 from . import integrator
-from . import sympy_tools
 from . import methods
+from . import sympy_tools
 from .diff_equation import *
 from .integrator import *
 from .. import profile
@@ -39,7 +39,7 @@ def integrate(func=None, method=None):
 
     Using ``BrainPy``, this ODE function can be written as
 
-    >>> import brainpy.numpy as np
+    >>> import brainpy.backend as np
     >>> from brainpy import integrate
     >>>
     >>> @integrate(method='rk4')
@@ -64,7 +64,7 @@ def integrate(func=None, method=None):
         if not, the wrapper will be provided.
     """
 
-    method = method if method is not None else profile.get_method()
+    method = method if method is not None else profile.get_numerical_method()
     _integrator_ = get_integrator(method)
 
     if func is None:

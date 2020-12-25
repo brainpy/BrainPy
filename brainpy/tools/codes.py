@@ -5,8 +5,6 @@ import inspect
 import re
 from types import LambdaType
 
-import autopep8
-
 from .ast2code import ast2code
 from ..errors import CodeError
 from ..errors import DiffEquationError
@@ -470,7 +468,7 @@ class CodeLineFormatter(ast.NodeTransformer):
 
 
 def format_code(code_string):
-    """Get _code lines from the string.
+    """Get code lines from the string.
 
     Parameters
     ----------
@@ -481,7 +479,6 @@ def format_code(code_string):
     code_lines : list
     """
 
-    code_string = autopep8.fix_code(deindent(code_string))
     tree = ast.parse(code_string.strip())
     formatter = CodeLineFormatter()
     formatter.visit(tree)
@@ -578,7 +575,6 @@ def format_code_for_trajectory(code_string, fixed_vars):
     code_lines : list
     """
 
-    code_string = autopep8.fix_code(deindent(code_string))
     tree = ast.parse(code_string.strip())
     formatter = LineFormatterForTrajectory(fixed_vars)
     formatter.visit(tree)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., mode=None):
@@ -98,14 +98,14 @@ def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., m
 
     if np.any(ref > 0.):
 
-        def update(ST, _t_):
-            if (_t_ - ST['sp_t']) > ref:
-                V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
-                u = int_u(ST['u'], _t_, ST['V'])
+        def update(ST, _t):
+            if (_t - ST['sp_t']) > ref:
+                V = int_V(ST['V'], _t, ST['u'], ST['inp'])
+                u = int_u(ST['u'], _t, ST['V'])
                 if V >= Vth:
                     V = c
                     u += d
-                    ST['sp_t'] = _t_
+                    ST['sp_t'] = _t
                     ST['sp'] = True
                 ST['V'] = V
                 ST['u'] = u
@@ -113,26 +113,26 @@ def define_Izhikevich(a=0.02, b=0.20, c=-65., d=8., ref=0., noise=0., Vth=30., m
 
     else:
 
-        def update(ST, _t_):
-            V = int_V(ST['V'], _t_, ST['u'], ST['inp'])
-            u = int_u(ST['u'], _t_, ST['V'])
+        def update(ST, _t):
+            V = int_V(ST['V'], _t, ST['u'], ST['inp'])
+            u = int_u(ST['u'], _t, ST['V'])
             if V >= Vth:
                 V = c
                 u += d
-                ST['sp_t'] = _t_
+                ST['sp_t'] = _t
                 ST['sp'] = True
             ST['V'] = V
             ST['u'] = u
             ST['inp'] = 0.
 
     return bp.NeuType(name='Izhikevich',
-                      requires={'ST': state},
+                      ST=state,
                       steps=update,
                       mode='scalar')
 
 
 if __name__ == '__main__':
-    bp.profile.set(backend='numba')
+    bp.profile.set(jit=True)
 
     Izhikevich = define_Izhikevich()
     neu = bp.NeuGroup(Izhikevich, 10, monitors=['V', 'u'])

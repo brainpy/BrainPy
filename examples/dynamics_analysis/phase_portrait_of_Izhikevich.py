@@ -68,9 +68,9 @@ def get_Izhikevich(mode=None):
     def int_V(V, t, u, Isyn):
         return 0.04 * V * V + 5 * V + 140 - u + Isyn
 
-    def update(ST, _t_):
-        V = int_V(ST['V'], _t_, ST['u'], ST['input'])
-        u = int_u(ST['u'], _t_, ST['V'])
+    def update(ST, _t):
+        V = int_V(ST['V'], _t, ST['u'], ST['input'])
+        u = int_u(ST['u'], _t, ST['V'])
         if V >= Vth:
             V = c
             u += d
@@ -80,7 +80,7 @@ def get_Izhikevich(mode=None):
         ST['input'] = 0.
 
     return bp.NeuType(name='Izhikevich',
-                      requires={'ST': state},
+                      ST=state,
                       steps=update,
                       mode='scalar')
 

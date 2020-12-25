@@ -4,21 +4,21 @@ import functools
 import inspect
 import types
 
+import numba as nb
+import numpy as np
+
 from .codes import deindent
 from .codes import get_func_source
-from .. import numpy as np
+from .. import backend
 from .. import profile
 from ..integration.integrator import Integrator
 
-try:
-    import numba as nb
-    if hasattr(nb, 'dispatcher'):
-        from numba.dispatcher import Dispatcher
-    else:
-        from numba.core.dispatcher import Dispatcher
-except ImportError as e:
-    nb = None
-    Dispatcher = None
+if hasattr(nb, 'dispatcher'):
+    from numba.dispatcher import Dispatcher
+else:
+    from numba.core.dispatcher import Dispatcher
+
+
 
 __all__ = [
     'jit',
@@ -50,8 +50,6 @@ def jit(func=None):
     jit_func : callable
         function.
     """
-    if nb is None:
-        raise ImportError('Please install numba.')
     if not isinstance(func, Dispatcher):
         if not callable(func):
             raise ValueError(f'"func" must be a callable function, but got "{type(func)}".')
@@ -86,7 +84,7 @@ def func_copy(f):
 
 
 def numba_func(func, params={}):
-    if func == np.func_by_name(func.__name__):
+    if func == backend.func_by_name(func.__name__):
         return func
     if isinstance(func, Dispatcher):
         return func
@@ -100,8 +98,9 @@ def numba_func(func, params={}):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            code_scope[k] = numba_func(v, params)
-            modified = True
+            if v != np.func_by_name(v.__name__) and (not isinstance(v, Dispatcher)):
+                code_scope[k] = numba_func(v, params)
+                modified = True
     # check scope changed parameters
     for p, v in params.items():
         if p in code_scope:
@@ -149,6 +148,8 @@ def get_func_scope(func, include_dispatcher=False):
         func_name = get_func_name(func, replace=True)
         variables = inspect.getclosurevars(func)
     else:
+        if type(func).__name__ == 'ufunc':
+            return {}
         raise ValueError(f'Unknown type: {type(func)}')
     scope = dict(variables.nonlocals)
     scope.update(variables.globals)
@@ -156,7 +157,7 @@ def get_func_scope(func, include_dispatcher=False):
     for k, v in list(scope.items()):
         # get the scope of the function item
         if callable(v):
-            if Dispatcher is not None and isinstance(v, Dispatcher):
+            if isinstance(v, Dispatcher):
                 if include_dispatcher:
                     for k2, v2 in get_func_scope(v.py_func).items():
                         try:

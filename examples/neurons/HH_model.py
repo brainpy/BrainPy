@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 
 
 def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
@@ -21,10 +21,6 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
     C : float
     Vth : float
 
-    Returns
-    -------
-    return_dict : dict
-        The necessary variables.
     """
 
     ST = bp.types.NeuState(
@@ -64,11 +60,11 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         dvdt = (- INa - IK - IL + Isyn) / C
         return dvdt, noise / C
 
-    def update(ST, _t_):
-        m = np.clip(int_m(ST['m'], _t_, ST['V']), 0., 1.)
-        h = np.clip(int_h(ST['h'], _t_, ST['V']), 0., 1.)
-        n = np.clip(int_n(ST['n'], _t_, ST['V']), 0., 1.)
-        V = int_V(ST['V'], _t_, m, h, n, ST['inp'])
+    def update(ST, _t):
+        m = np.clip(int_m(ST['m'], _t, ST['V']), 0., 1.)
+        h = np.clip(int_h(ST['h'], _t, ST['V']), 0., 1.)
+        n = np.clip(int_n(ST['n'], _t, ST['V']), 0., 1.)
+        V = int_V(ST['V'], _t, m, h, n, ST['inp'])
         sp = np.logical_and(ST['V'] < Vth, V >= Vth)
         ST['sp'] = sp
         ST['V'] = V
@@ -78,13 +74,13 @@ def define_hh(noise=0., E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['inp'] = 0.
 
     return bp.NeuType(name='HH_neuron',
-                      requires={"ST": ST},
+                      ST=ST,
                       steps=update,
                       mode='vector')
 
 
 if __name__ == '__main__':
-    bp.profile.set(backend='numpy', dt=0.02, numerical_method='exponential')
+    bp.profile.set(jit=False, dt=0.02, numerical_method='exponential')
 
     HH = define_hh(noise=0.)
     neu = bp.NeuGroup(HH, geometry=(100,), monitors=['sp', 'V', 'm', 'h', 'n'])

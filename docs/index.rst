@@ -2,8 +2,9 @@ BrainPy documentation
 =====================
 
 ``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
-compilers. The goal of ``BrainPy`` is to provide a highly flexible and
-efficient neural simulation framework for Python users.
+compilers. The goal of ``BrainPy`` is to provide a unified simulation and
+analysis framework for neuronal dynamics with the feature of high
+flexibility and efficiency.
 
 
 .. note::

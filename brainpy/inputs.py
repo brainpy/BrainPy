@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from . import numpy as np
+import numpy as np
+
 from . import profile
 from .core_system import NeuGroup
 from .core_system import NeuType
@@ -75,7 +76,7 @@ def spike_current(points, lengths, sizes, duration, dt=None):
     >>> spike_current(points=[10, 20, 30, 200, 300],
     >>>               lengths=1.,  # can be a list to specify the spike length at each point
     >>>               sizes=0.5,  # can be a list to specify the current size at each point
-    >>>               duration=0.5)
+    >>>               duration=400.)
 
     Parameters
     ----------
@@ -178,7 +179,7 @@ class PoissonInput(NeuGroup):
             ST['spike'] = np.random.random(ST['spike'].shape) < freqs * dt
 
         model = NeuType(name='poisson_input',
-                        requires=dict(ST=NeuState(['spike'])),
+                        ST=NeuState(['spike']),
                         steps=update,
                         mode='vector')
 
@@ -232,8 +233,8 @@ class SpikeTimeInput(NeuGroup):
                 ST['spike'] = 0.
 
         model = NeuType(name='time_input',
-                        requires=dict(ST=NeuState(['spike']),
-                                      input_idx=Array(dim=1, help='The current index.')),
+                        ST=NeuState(['spike']),
+                        requires=dict(input_idx=Array(dim=1, help='The current index.')),
                         steps=update,
                         mode='vector')
 
@@ -294,7 +295,7 @@ class FreqInput(NeuGroup):
 
         ST = NeuState({'spike': 0., 't_next_spike': 0., 't_last_spike': -1e7})
 
-        if profile.is_numba_bk():
+        if profile.is_jit_backend():
             def update_state(ST, _t_):
                 if _t_ >= ST['t_next_spike']:
                     ST['spike'] = 1.
@@ -304,7 +305,7 @@ class FreqInput(NeuGroup):
                     ST['spike'] = 0.
 
             model = NeuType(name='poisson_input',
-                            requires=dict(ST=ST),
+                            ST=ST,
                             steps=update_state,
                             mode='scalar')
 
@@ -326,7 +327,7 @@ class FreqInput(NeuGroup):
                     ST['t_next_spike'][spike_ids] += 1000. / freqs[spike_ids]
 
             model = NeuType(name='poisson_input',
-                            requires=dict(ST=ST),
+                            ST=ST,
                             steps=update_state,
                             mode='vector')
 
@@ -334,5 +335,4 @@ class FreqInput(NeuGroup):
         super(FreqInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
 
         self.ST['t_next_spike'] = start_time
-        if not profile.is_debug():
-            self.pars['freqs'] = freqs
+        self.pars['freqs'] = freqs

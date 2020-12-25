@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import sympy
 import copy
 
+import numpy as np
+import sympy
+
 from . import methods
-from ..numpy import random
 from .diff_equation import DiffEquation
-from .sympy_tools import str2sympy
 from .sympy_tools import get_mapping_scope
+from .sympy_tools import str2sympy
 from .sympy_tools import sympy2str
-from .. import numpy as np
+from .. import backend
 from .. import profile
 from .. import tools
 from ..errors import IntegratorError
@@ -93,8 +94,11 @@ class Integrator(object):
     @property
     def code_scope(self):
         scope = self.diff_eq.func_scope
-        scope['_normal_like'] = np.random._normal_like
-        # scope['np'] = np
+        if profile._jit:
+            scope['_normal_like'] = backend.numba_cpu.normal_like
+        else:
+            scope['_normal_like'] = backend.normal_like
+            # scope['np'] = np
         return scope
 
 
@@ -159,8 +163,7 @@ class Euler(Integrator):
 
     def __init__(self, diff_eq):
         super(Euler, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.euler(diff_eq)
         self.get_np_step = methods.euler
 
@@ -239,8 +242,7 @@ class RK2(Integrator):
     def __init__(self, diff_eq, beta=2 / 3):
         super(RK2, self).__init__(diff_eq)
         self.beta = beta
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq, beta)
+        self._update_code = self.get_nb_step(diff_eq, beta)
         self._update_func = methods.rk2(diff_eq, __beta=beta)
         self.get_np_step = methods.rk2
 
@@ -349,8 +351,7 @@ class Heun(Integrator):
 
     def __init__(self, diff_eq):
         super(Heun, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=1.0)
         self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=1.0)
 
@@ -446,8 +447,7 @@ class MidPoint(Integrator):
 
     def __init__(self, diff_eq):
         super(MidPoint, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=0.5)
         self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=0.5)
 
@@ -490,8 +490,7 @@ class RK3(Integrator):
 
     def __init__(self, diff_eq):
         super(RK3, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk3(diff_eq)
         self.get_np_step = methods.rk3
 
@@ -592,8 +591,7 @@ class RK4(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4(diff_eq)
         self.get_np_step = methods.rk4
 
@@ -705,8 +703,7 @@ class RK4Alternative(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4Alternative, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4_alternative(diff_eq)
         self.get_np_step = methods.rk4_alternative
 
@@ -843,9 +840,6 @@ class ExponentialEuler(Integrator):
 
     def __init__(self, diff_eq):
         super(ExponentialEuler, self).__init__(diff_eq)
-        if not profile._merge_steps:
-            raise IntegratorError('Exponential method only supports "_merge_steps=True". '
-                                  'Please set "profile._merge_steps= = True."')
         self._update_code = self.get_nb_step(diff_eq)
 
         func_args = ', '.join([f'_{diff_eq.func_name}_{arg}' for arg in diff_eq.func_args])
@@ -853,7 +847,10 @@ class ExponentialEuler(Integrator):
         func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
         code_scopes = copy.copy(diff_eq.func_scope)
         code_scopes.update(get_mapping_scope())
-        code_scopes['_normal_like'] = random._normal_like
+        if profile._jit:
+            code_scopes['_normal_like'] = backend.numba_cpu.normal_like
+        else:
+            code_scopes['_normal_like'] = backend.normal_like
         exec(compile(func_code, '', 'exec'), code_scopes)
         self._update_func = code_scopes['int_func']
 
@@ -958,8 +955,7 @@ class MilsteinIto(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinIto, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Ito(diff_eq)
         self.get_np_step = methods.milstein_Ito
 
@@ -1071,8 +1067,7 @@ class MilsteinStra(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinStra, self).__init__(diff_eq)
-        if not profile.is_debug():
-            self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Stra(diff_eq)
         self.get_np_step = methods.milstein_Stra
 

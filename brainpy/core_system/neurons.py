@@ -2,10 +2,12 @@
 
 import typing
 
-from .base import BrainEnsemble
-from .base import BrainType
-from .constants import _NEU_GROUP
-from .. import numpy as np
+import numpy as np
+
+from . import constants
+from .base import BaseEnsemble
+from .base import BaseType
+from .types import NeuState
 from ..errors import ModelDefError
 from ..errors import ModelUseError
 
@@ -18,7 +20,7 @@ __all__ = [
 _NEU_GROUP_NO = 0
 
 
-class NeuType(BrainType):
+class NeuType(BaseType):
     """Abstract Neuron Type.
 
     It can be defined based on a group of neurons or a single neuron.
@@ -27,27 +29,29 @@ class NeuType(BrainType):
     def __init__(
             self,
             name: str,
-            requires: dict,
+            ST: NeuState,
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
             mode: str = 'vector',
+            requires: dict = None,
             heter_params_replace: typing.Dict = None,
             extra_functions: typing.Union[typing.List, typing.Tuple] = (),
             extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
-
-        if mode not in ['scalar', 'vector']:
+        if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE]:
             raise ModelDefError('NeuType only support "scalar" or "vector".')
 
-        super(NeuType, self).__init__(requires=requires,
-                                      steps=steps,
-                                      name=name,
-                                      mode=mode,
-                                      heter_params_replace=heter_params_replace,
-                                      extra_functions=extra_functions,
-                                      extra_attributes=extra_attributes)
+        super(NeuType, self).__init__(
+            ST=ST,
+            requires=requires,
+            steps=steps,
+            name=name,
+            mode=mode,
+            heter_params_replace=heter_params_replace,
+            extra_functions=extra_functions,
+            extra_attributes=extra_attributes)
 
 
-class NeuGroup(BrainEnsemble):
+class NeuGroup(BaseEnsemble):
     """Neuron Group.
 
     Parameters
@@ -70,13 +74,14 @@ class NeuGroup(BrainEnsemble):
             geometry: typing.Union[typing.Tuple, typing.List, int],
             pars_update: typing.Dict = None,
             monitors: typing.Union[typing.List, typing.Tuple] = None,
-            name: str = None
+            name: str = None,
+            **kwargs
     ):
         # name
         # -----
         if name is None:
             global _NEU_GROUP_NO
-            name = f'NG{_NEU_GROUP_NO}'
+            name = f'NeuGroup{_NEU_GROUP_NO}'
             _NEU_GROUP_NO += 1
         else:
             name = name
@@ -118,11 +123,11 @@ class NeuGroup(BrainEnsemble):
                                        name=name,
                                        num=num,
                                        monitors=monitors,
-                                       cls_type=_NEU_GROUP)
+                                       cls_type=constants._NEU_GROUP)
 
         # ST
         # --
-        self.ST = self.requires['ST'].make_copy(num)
+        self.ST = self.model.ST.make_copy(num)
 
     def __getitem__(self, item):
         """Return a subset of neuron group.

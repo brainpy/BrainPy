@@ -6,11 +6,13 @@ Implementation of E/I balance network.
 
 
 import brainpy as bp
-import brainpy.numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 
 
-bp.profile.set(backend='numba', numerical_method='exponential')
+bp.profile.set(jit=True, device='cpu',
+               numerical_method='exponential',
+               show_code=True)
 
 num_exc = 500
 num_inh = 500
@@ -26,18 +28,14 @@ V_rest = -52.
 V_reset = -60.
 V_threshld = -50.
 
-neu_ST = bp.types.NeuState(
-    {'V': 0, 'sp': 0., 'inp': 0.},
-)
-
 
 @bp.integrate
 def int_f(V, t, Isyn):
     return (-V + V_rest + Isyn) / tau
 
 
-def update(ST, _t_):
-    V = int_f(ST['V'], _t_, ST['inp'])
+def update(ST, _t):
+    V = int_f(ST['V'], _t, ST['inp'])
     if V >= V_threshld:
         ST['sp'] = 1.
         V = V_reset
@@ -48,7 +46,7 @@ def update(ST, _t_):
 
 
 neu = bp.NeuType(name='LIF',
-                 requires=dict(ST=neu_ST),
+                 ST=bp.types.NeuState({'V': 0, 'sp': 0., 'inp': 0.}),
                  steps=update,
                  mode='scalar')
 
@@ -61,33 +59,26 @@ tau_decay = 2.
 JE = 1 / np.sqrt(prob * num_exc)
 JI = 1 / np.sqrt(prob * num_inh)
 
-syn_ST = bp.types.SynState(['s', 'g', 'w'])
-
-
 @bp.integrate
 def ints(s, t):
     return - s / tau_decay
 
 
-def update(ST, _t_, pre, pre2syn):
-    s = ints(ST['s'], _t_)
-    for i in range(pre['sp'].shape[0]):
-        if pre['sp'][i] > 0.:
-            syn_ids = pre2syn[i]
-            s[syn_ids] += 1.
+def update(ST, _t, pre):
+    s = ints(ST['s'], _t)
+    s += pre['sp']
     ST['s'] = s
     ST['g'] = ST['w'] * s
 
 
-def output(ST, post, post_slice_syn):
-    for post_id in range(post_slice_syn.shape[0]):
-        pos = post_slice_syn[post_id]
-        post['inp'][post_id] += np.sum(ST['g'][pos[0]: pos[1]])
+def output(ST, post):
+    post['inp'] += ST['g']
 
 
 syn = bp.SynType(name='alpha_synapse',
-                 requires=dict(ST=syn_ST),
-                 steps=(update, output))
+                 ST=bp.types.SynState(['s', 'g', 'w']),
+                 steps=(update, output),
+                 mode='scalar')
 
 # -------
 # network
