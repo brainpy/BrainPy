@@ -5,6 +5,7 @@ import inspect
 import types
 
 import numba as nb
+from numba import cuda
 import numpy as np
 
 from .codes import deindent

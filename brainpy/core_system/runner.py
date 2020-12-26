@@ -211,8 +211,8 @@ class Runner(object):
                     idx = data['_var2idx'][item]
                     left = f'{attr}_cuda[{idx}, cuda_i]'
                     self.set_gpu_data(f'{attr}_cuda', data)
-                code_args.add(attr)
-                code_arg2call[attr] = f'{self._name}_runner.{attr}_cuda'
+                code_args.add(f'{attr}_cuda')
+                code_arg2call[f'{attr}_cuda'] = f'{self._name}_runner.{attr}_cuda'
 
                 # get the right side #
                 right = f'{key.replace(".", "_")}_inp'
@@ -232,7 +232,7 @@ class Runner(object):
                             assert len(val[0]) == len(target)
                             iter_along_data = True
                     else:
-                        assert len(val[0]) == len(target)
+                        assert len(val) == len(target)
                         iter_along_data = True
                 if iter_along_time and iter_along_data:
                     right = right + '[_i, cuda_i]'
@@ -448,8 +448,8 @@ class Runner(object):
                     else:
                         num_data = len(indices)
                         idx_name = f'idx{mon_idx}_{attr}'
-                        code_lines.append(f'idx = {idx_name}[cuda_i]')
-                        line = f'{mon_name}[_i, cuda_i] = {target_name}[idx]'
+                        code_lines.append(f'mon_idx = {idx_name}[cuda_i]')
+                        line = f'{mon_name}[_i, cuda_i] = {target_name}[mon_idx]'
                         code_scope[idx_name] = cuda.to_device(indices)
                     code_args.add(mon_name)
                     code_arg2call[mon_name] = f'{self._name}_runner.mon_{key}_cuda'
@@ -474,8 +474,8 @@ class Runner(object):
                     else:
                         num_data = len(indices)
                         idx_name = f'idx{mon_idx}_{attr}_{item}'
-                        code_lines.append(f'idx2 = {idx_name}[cuda_i]')
-                        line = f'{mon_name}[_i, cuda_i] = {target_name}[{idx}, idx2]'
+                        code_lines.append(f'mon_idx = {idx_name}[cuda_i]')
+                        line = f'{mon_name}[_i, cuda_i] = {target_name}[{idx}, mon_idx]'
                         code_scope[idx_name] = cuda.to_device(indices)
                     code_args.add(mon_name)
                     code_arg2call[mon_name] = f'{self._name}_runner.mon_{key}_cuda'
@@ -625,12 +625,7 @@ class Runner(object):
                         append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
 
                     # append numerical integration code lines
-                    try:
-                        append_lines.extend([indent + l for l in v.update_code.split('\n')])
-                    except:
-                        raise ModelUseError(f'Integrator {v} has no "update_code". This may be caused by \n'
-                                            f'that "profile.set(backend="numba")" is not declared \n'
-                                            f'before the definition of the model.')
+                    append_lines.extend([indent + l for l in v.update_code.split('\n')])
                     append_lines.append(indent + new_line)
 
                     # add appended lines into the main function code lines
@@ -1101,4 +1096,7 @@ class TrajectoryRunner(Runner):
             The code lines.
         """
         func_code = tools.deindent(tools.get_main_code(func))
-        return tools.format_code_for_trajectory(func_code, self.fixed_vars).lines
+        tree = ast.parse(func_code.strip())
+        formatter = tools.LineFormatterForTrajectory(self.fixed_vars)
+        formatter.visit(tree)
+        return formatter.lines

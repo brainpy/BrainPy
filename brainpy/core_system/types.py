@@ -37,16 +37,18 @@ class TypeChecker(object):
         raise NotImplementedError
 
 
-@cuda.jit(['(float64[:, :], float64, int64)',
-           '(float32[:, :], float32, int64)',])
+# @cuda.jit(['(float64[:, :], float64, int64)',
+#            '(float32[:, :], float32, int64)',])
+@cuda.jit('(float64[:, :], float64, int64)')
 def gpu_set_scalar_val(data, val, idx):
     i = cuda.grid(1)
     if i < data.shape[1]:
         data[idx, i] = val
 
 
-@cuda.jit(['(float64[:, :], float64[:], int64)',
-           '(float32[:, :], float32[:], int64)',])
+# @cuda.jit(['(float64[:, :], float64[:], int64)',
+#            '(float32[:, :], float32[:], int64)',])
+@cuda.jit('(float64[:, :], float64[:], int64)')
 def gpu_set_vector_val(data, val, idx):
     i = cuda.grid(1)
     if i < data.shape[1]:
@@ -79,7 +81,7 @@ class ObjState(dict, TypeChecker):
         if _data_cuda is None:
             _data = self.__getitem__('_data')
             _data_cuda = cuda.to_device(_data)
-            self.__setitem__('_data_cuda', _data_cuda)
+            super(ObjState, self).__setitem__('_data_cuda', _data_cuda)
         return _data_cuda
 
     def __setitem__(self, key, val):
