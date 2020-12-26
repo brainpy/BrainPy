@@ -111,9 +111,16 @@ def numba_func(func, params={}):
     if modified:
         func_code = deindent(get_func_source(func))
         exec(compile(func_code, '', "exec"), code_scope)
-        return jit(code_scope[func.__name__])
+        func = code_scope[func.__name__]
+        if profile.run_on_cpu():
+            return jit(func)
+        else:
+            return cuda.jit(device=True)(func)
     else:
-        return jit(func)
+        if profile.run_on_cpu():
+            return jit(func)
+        else:
+            return cuda.jit(device=True)(func)
 
 
 def _update_scope(k, v, scope):

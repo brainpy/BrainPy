@@ -1,4 +1,4 @@
--r requirements-doc.txt
+-r requirements.txt
 
-# document building requirements
+# test requirements
 pytest

@@ -37,17 +37,16 @@ class TypeChecker(object):
         raise NotImplementedError
 
 
-# @cuda.jit(['(float64[:, :], float64, int64)',
-#            '(float32[:, :], float32, int64)',])
-@cuda.jit('(float64[:, :], float64, int64)')
 def gpu_set_scalar_val(data, val, idx):
     i = cuda.grid(1)
     if i < data.shape[1]:
         data[idx, i] = val
 
 
-# @cuda.jit(['(float64[:, :], float64[:], int64)',
-#            '(float32[:, :], float32[:], int64)',])
+if cuda.is_available():
+    gpu_set_scalar_val = cuda.jit('(float64[:, :], float64, int64)')(gpu_set_scalar_val)
+
+
 @cuda.jit('(float64[:, :], float64[:], int64)')
 def gpu_set_vector_val(data, val, idx):
     i = cuda.grid(1)

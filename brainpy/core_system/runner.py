@@ -271,8 +271,12 @@ class Runner(object):
                         tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
                 # format function call
-                num_thread = profile._num_thread_gpu
-                num_block = math.ceil(len(target) / profile._num_thread_gpu)
+                if len(target) <= profile._num_thread_gpu:
+                    num_thread = len(target)
+                    num_block = 1
+                else:
+                    num_thread = profile._num_thread_gpu
+                    num_block = math.ceil(len(target) / profile._num_thread_gpu)
                 arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
                 func_call = f'{self._name}_runner.{func_name}[{num_block}, {num_thread}]({tools.func_call(arg2call)})'
 
@@ -519,8 +523,12 @@ class Runner(object):
                         tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
                 # format function call
-                num_thread = profile._num_thread_gpu
-                num_block = math.ceil(num_data / profile._num_thread_gpu)
+                if num_data <= profile._num_thread_gpu:
+                    num_thread = num_data
+                    num_block = 1
+                else:
+                    num_thread = profile._num_thread_gpu
+                    num_block = math.ceil(num_data / profile._num_thread_gpu)
                 arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
                 func_call = f'{self._name}_runner.{func_name}[{num_block}, {num_thread}]({tools.func_call(arg2call)})'
 
@@ -567,7 +575,7 @@ class Runner(object):
         formatter.visit(tree)
         return formatter.lines
 
-    def step_substitute_integrator(self, func):
+    def merge_integrators(self, func):
         """Substitute the user defined integrators into the main step functions.
 
         Parameters
@@ -679,7 +687,7 @@ class Runner(object):
 
             # initialize code namespace
             used_args, code_arg2call, code_lines = set(), {}, []
-            func_code, code_scope = self.step_substitute_integrator(func)
+            func_code, code_scope = self.merge_integrators(func)
 
             # check function code
             try:
@@ -806,10 +814,16 @@ class Runner(object):
         for i, func in enumerate(self._steps):
             func_name = func.__name__
 
-            # get code scope
+            # get necessary code data
+            # -----------------------
+            # 1. code arguments
+            # 2. code argument_to_call
+            # 3. code lines
+            # 4. code scope variables
             used_args, code_arg2call, code_lines = set(), {}, []
             func_args = inspect.getfullargspec(func).args
-            func_code, code_scope = self.step_substitute_integrator(func)
+            func_code, code_scope = self.merge_integrators(func)
+            code_scope[f'{self._name}_runner'] = self
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
                           if k not in constants.ARG_KEYWORDS and
@@ -819,6 +833,8 @@ class Runner(object):
                                     f'required attributes: {func_args}.')
 
             # update functions in code scope
+            # 1. recursively jit the function
+            # 2. update the function parameters
             for k, v in code_scope.items():
                 if profile.is_jit() and callable(v):
                     code_scope[k] = tools.numba_func(func=v, params=self._pars.updates)
@@ -829,76 +845,93 @@ class Runner(object):
                 used_args.add(arg)
                 if len(states) == 0:
                     continue
-                if arg in states:
-                    st = states[arg]
-                    var2idx = st['_var2idx']
-                    if self.ensemble._is_state_attr(arg):
-                        if func_name.startswith('_npbrain_delayed_'):
-                            if len(delay_keys):
-                                dout = f'{arg}_dout'
-                                add_args.add(dout)
-                                code_arg2call[dout] = f'{self._name}.{arg}._delay_out'
-                                # Function with "delayed" decorator should use ST pulled from the delay queue
-                                for st_k in delay_keys:
-                                    p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                                    r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}, _obj_i_]"
-                                    func_code = re.sub(r'' + p, r, func_code)
-                        else:
-                            if len(delay_keys):
-                                # Function without "delayed" decorator should push
-                                # their updated ST to the delay queue
-                                func_code_left = '\n'.join(tools.format_code(func_code).lefts)
-                                func_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code_left))
-                                func_delay_keys = func_keys.intersection(delay_keys)
-                                if len(func_delay_keys) > 0:
-                                    din = f'{arg}_din'
-                                    add_args.add(din)
-                                    code_arg2call[din] = f'{self._name}.{arg}._delay_in'
-                                    for st_k in func_delay_keys:
-                                        right = f'{arg}[{var2idx[st_k]}]'
-                                        left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}]"
-                                        func_code += f'\n{left} = {right}'
-                            for st_k in st._keys:
-                                p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                                r = f"{arg}[{var2idx[st_k]}, _obj_i_]"
-                                func_code = re.sub(r'' + p, r, func_code)
-                    elif arg == 'pre':
-                        for st_k in st._keys:
-                            p = f'pre\[([\'"]{st_k}[\'"])\]'
-                            r = f"pre[{var2idx[st_k]}, _pre_i_]"
-                            func_code = re.sub(r'' + p, r, func_code)
-                    elif arg == 'post':
-                        for st_k in st._keys:
-                            p = f'post\[([\'"]{st_k}[\'"])\]'
-                            r = f"post[{var2idx[st_k]}, _post_i_]"
-                            func_code = re.sub(r'' + p, r, func_code)
-                    else:
-                        raise ValueError
 
-            # substitute arguments
+                st = states[arg]
+                var2idx = st['_var2idx']
+                if self.ensemble._is_state_attr(arg):
+                    if func_name.startswith('_npbrain_delayed_'):
+                        if len(delay_keys):
+                            dout = f'{arg}_dout'
+                            add_args.add(dout)
+                            code_arg2call[dout] = f'{self._name}.{arg}._delay_out'
+                            # Function with "delayed" decorator should use ST pulled from the delay queue
+                            for st_k in delay_keys:
+                                p = f'{arg}\[([\'"]{st_k}[\'"])\]'
+                                r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}, _obj_i_]"
+                                func_code = re.sub(r'' + p, r, func_code)
+                    else:
+                        if len(delay_keys):
+                            # Function without "delayed" decorator should push
+                            # their updated ST to the delay queue
+                            func_code_left = '\n'.join(tools.format_code(func_code).lefts)
+                            func_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code_left))
+                            func_delay_keys = func_keys.intersection(delay_keys)
+                            if len(func_delay_keys) > 0:
+                                din = f'{arg}_din'
+                                add_args.add(din)
+                                code_arg2call[din] = f'{self._name}.{arg}._delay_in'
+                                for st_k in func_delay_keys:
+                                    right = f'{arg}[{var2idx[st_k]}]'
+                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}]"
+                                    func_code += f'\n{left} = {right}'
+                        for st_k in st._keys:
+                            p = f'{arg}\[([\'"]{st_k}[\'"])\]'
+                            r = f"{arg}[{var2idx[st_k]}, _obj_i_]"
+                            func_code = re.sub(r'' + p, r, func_code)
+                elif arg == 'pre':
+                    for st_k in st._keys:
+                        p = f'pre\[([\'"]{st_k}[\'"])\]'
+                        r = f"pre[{var2idx[st_k]}, _pre_i_]"
+                        func_code = re.sub(r'' + p, r, func_code)
+                elif arg == 'post':
+                    for st_k in st._keys:
+                        p = f'post\[([\'"]{st_k}[\'"])\]'
+                        r = f"post[{var2idx[st_k]}, _post_i_]"
+                        func_code = re.sub(r'' + p, r, func_code)
+                else:
+                    raise ValueError
+
+            # get formatted function arguments
+            # 1. For argument in "ARG_KEYWORDS", keep it unchanged
+            # 2. For argument is an instance of ObjState, get it's cuda data
+            # 3. For other argument, get it's cuda data
             code_args = add_args
             for arg in used_args:
                 if arg in constants.ARG_KEYWORDS:
                     code_arg2call[arg] = arg
                 else:
-                    if isinstance(getattr(self.ensemble, arg), ObjState):
-                        code_arg2call[arg] = f'{self._name}.{arg}["_data"]'
+                    data = getattr(self.ensemble, arg)
+                    if profile.run_on_cpu():
+                        if isinstance(data, ObjState):
+                            code_arg2call[arg] = f'{self._name}.{arg}["_data"]'
+                        else:
+                            code_arg2call[arg] = f'{self._name}.{arg}'
                     else:
-                        code_arg2call[arg] = f'{self._name}.{arg}'
+                        if isinstance(data, ObjState):
+                            code_arg2call[arg] = f'{self._name}_runner.{arg}_cuda'
+                        else:
+                            code_arg2call[arg] = f'{self._name}_runner.{arg}_cuda'
+                        self.set_gpu_data(f'{arg}_cuda', data)
                 code_args.add(arg)
-            # substitute multi-dimensional parameter "p" to "p[_ni_]"
+
+            # substitute multi-dimensional parameter "p" to "p[_obj_i_]"
             arg_substitute = {}
             for p in self._pars.heters.keys():
                 if p in code_scope:
                     arg_substitute[p] = f'{p}[_obj_i_]'
-            # substitute
             if len(arg_substitute):
                 func_code = tools.word_replace(func_code, arg_substitute)
 
             # add the for loop in the start of the main code
             has_pre = 'pre' in func_args
             has_post = 'post' in func_args
-            code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):']
+            if profile.run_on_cpu():
+                code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):']
+                code_scope['numba'] = numba
+            else:
+                code_lines = [f'_obj_i_ = cuda.grid(1)', f'if _obj_i_ < {len(self.ensemble.num)}:']
+                code_scope['cuda'] = cuda
+
             if has_pre:
                 code_args.add(f'pre_ids')
                 code_arg2call[f'pre_ids'] = f'{self._name}.pre_ids'
@@ -915,7 +948,6 @@ class Runner(object):
             code_lines.insert(0, f'# "{stripped_fname}" step function of {self._name}')
 
             # update code scope
-            code_scope['numba'] = numba
             for k in list(code_scope.keys()):
                 if k in self._pars.updates:
                     code_scope[k] = self._pars.updates[k]
@@ -923,21 +955,41 @@ class Runner(object):
                     all_heter_pars.remove(k)
 
             # code to compile
-            code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
+            # -----------------
+            # 1. get the codes to compile
+            code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):']
+            code_to_compile += code_lines
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
-            func = tools.jit(code_scope[stripped_fname]) if profile.is_jit() \
-                else code_scope[stripped_fname]
+            # 2. output the function codes
             if not profile._merge_steps:
                 if profile._show_format_code:
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile._show_code_scope:
                     tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
-            # set the function to the model
+            # 3. jit the compiled function
+            func = code_scope[stripped_fname]
+            if profile.run_on_cpu():
+                if profile.is_jit():
+                    func = tools.jit(func)
+            else:
+                func = cuda.jit(func)
+            # 4. set the function to the model
             setattr(self, stripped_fname, func)
-            # function call
+
+            # get function call
+            # -----------------
             arg2calls = [code_arg2call[arg] for arg in sorted(list(code_args))]
-            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg2calls)})'
+            arg_code = tools.func_call(arg2calls)
+            if profile.run_on_cpu():
+                func_call = f'{self._name}_runner.{stripped_fname}({arg_code})'
+            else:
+                if self.ensemble.num < profile._num_thread_gpu:
+                    num_block, num_thread = 1, self.ensemble.num
+                else:
+                    num_thread = profile._num_thread_gpu
+                    num_block = math.ceil(self.ensemble.num / num_thread)
+                func_call = f'{self._name}_runner.{stripped_fname}[{num_block}, {num_thread}]({arg_code})'
 
             # the final results
             results[stripped_fname] = {'scopes': code_scope,
@@ -956,40 +1008,50 @@ class Runner(object):
     def merge_codes(self, compiled_result):
         codes_of_calls = []  # call the compiled functions
 
-        if profile._merge_steps:
-            lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
-            for item in self.get_schedule():
-                if item in compiled_result:
-                    lines.extend(compiled_result[item]['codes'])
-                    code_scopes.update(compiled_result[item]['scopes'])
-                    args = args | compiled_result[item]['args']
-                    arg2calls.update(compiled_result[item]['arg2calls'])
+        if profile.run_on_cpu():
+            if profile._merge_steps:
+                lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
+                for item in self.get_schedule():
+                    if item in compiled_result:
+                        lines.extend(compiled_result[item]['codes'])
+                        code_scopes.update(compiled_result[item]['scopes'])
+                        args = args | compiled_result[item]['args']
+                        arg2calls.update(compiled_result[item]['arg2calls'])
 
-            args = sorted(list(args))
-            arg2calls_list = [arg2calls[arg] for arg in args]
-            lines.insert(0, f'\n# {self._name} "merge_func"'
-                            f'\ndef merge_func({tools.func_call(args)}):')
-            func_code = '\n  '.join(lines)
-            exec(compile(func_code, '', 'exec'), code_scopes)
+                args = sorted(list(args))
+                arg2calls_list = [arg2calls[arg] for arg in args]
+                lines.insert(0, f'\n# {self._name} "merge_func"'
+                                f'\ndef merge_func({tools.func_call(args)}):')
+                func_code = '\n  '.join(lines)
+                exec(compile(func_code, '', 'exec'), code_scopes)
 
-            if profile.is_jit():
-                func = tools.jit(code_scopes['merge_func'])
-            else:
                 func = code_scopes['merge_func']
-            self.merge_func = func
-            func_call = f'{self._name}.runner.merge_func({tools.func_call(arg2calls_list)})'
-            codes_of_calls.append(func_call)
+                if profile.is_jit():
+                    func = tools.jit(func)
+                self.merge_func = func
+                func_call = f'{self._name}_runner.merge_func({tools.func_call(arg2calls_list)})'
+                codes_of_calls.append(func_call)
 
-            if profile._show_format_code:
-                tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-            if profile._show_code_scope:
-                tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
+                if profile._show_format_code:
+                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                if profile._show_code_scope:
+                    tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
+
+            else:
+                for item in self.get_schedule():
+                    if item in compiled_result:
+                        func_call = compiled_result[item]['call']
+                        codes_of_calls.append(func_call)
 
         else:
+            if profile._merge_steps:
+                print('WARNING: GPU mode do not support merge steps.')
+
             for item in self.get_schedule():
-                if item in compiled_result:
-                    func_call = compiled_result[item]['call']
-                    codes_of_calls.append(func_call)
+                for compiled_key in compiled_result.keys():
+                    if compiled_key.startswith(item):
+                        func_call = compiled_result[item]['call']
+                        codes_of_calls.append(func_call)
 
         return codes_of_calls
 

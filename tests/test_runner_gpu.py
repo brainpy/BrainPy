@@ -106,7 +106,6 @@ def test_monitor():
 
     runner = Runner(group)
     mon, res = runner.get_codes_of_monitor([('ST.spike', None)], 1000)
-    pprint(res)
     assert res['monitor-0']['num_data'] == num
     assert res['monitor-0']['codes'][-1].endswith('ST[2, cuda_i]')
 
@@ -118,3 +117,36 @@ def test_monitor():
     assert res['monitor-0']['num_data'] == 3
     assert res['monitor-0']['codes'][-1].endswith('= ST[2, mon_idx]')
     pprint(res)
+
+
+def test_neuron_steps():
+    if not cuda.is_available():
+        return
+
+    bp.profile.set(jit=True, device='gpu')
+
+    lif = define_lif()
+
+    num = 100
+    group = bp.NeuGroup(lif, geometry=(num,))
+
+    runner = Runner(group)
+    res = runner.step_scalar_model()
+    pprint(res)
+    # assert res['monitor-0']['num_data'] == num
+    # assert res['monitor-0']['codes'][-1].endswith('ST[2, cuda_i]')
+    #
+    # pprint(res)
+    print('\n' * 4)
+
+    # runner = Runner(group)
+    # mon, res = runner.get_codes_of_monitor([('ST.spike', [1, 2, 4])], 1000)
+    # assert res['monitor-0']['num_data'] == 3
+    # assert res['monitor-0']['codes'][-1].endswith('= ST[2, mon_idx]')
+    # pprint(res)
+
+
+
+
+
+
