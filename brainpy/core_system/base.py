@@ -7,6 +7,7 @@ import typing
 from copy import deepcopy
 
 import numpy as np
+from numba import cuda
 
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
@@ -219,7 +220,17 @@ class ParsUpdate(dict):
                 self.heters[key] = value
 
         # update
-        self.updates[key] = value
+        if profile.run_on_cpu():
+            self.updates[key] = value
+        else:
+            if isinstance(value, (int, float)):
+                self.updates[key] = value
+            elif value.__class__.__name__ == 'DeviceNDArray':
+                self.updates[key] = value
+            elif isinstance(value, np.ndarray):
+                self.updates[key] = cuda.to_device(value)
+            else:
+                raise ValueError(f'GPU mode cannot support {type(value)}.')
 
     def __getitem__(self, item):
         if item in self.updates:
