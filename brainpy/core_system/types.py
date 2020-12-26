@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import math
 from collections import OrderedDict
 
 import numba as nb
+from numba import cuda
 import numpy as np
 
 from .. import profile
@@ -35,6 +37,22 @@ class TypeChecker(object):
         raise NotImplementedError
 
 
+@cuda.jit(['(float64[:, :], float64, int64)',
+           '(float32[:, :], float32, int64)',])
+def gpu_set_scalar_val(data, val, idx):
+    i = cuda.grid(1)
+    if i < data.shape[1]:
+        data[idx, i] = val
+
+
+@cuda.jit(['(float64[:, :], float64[:], int64)',
+           '(float32[:, :], float32[:], int64)',])
+def gpu_set_vector_val(data, val, idx):
+    i = cuda.grid(1)
+    if i < data.shape[1]:
+        data[idx, i] = val[i]
+
+
 class ObjState(dict, TypeChecker):
     def __init__(self, fields, help=''):
         TypeChecker.__init__(self, help=help)
@@ -49,21 +67,47 @@ class ObjState(dict, TypeChecker):
         self._values = list(variables.values())
         self._vars = variables
 
-    # def extract_by_index(self, idx):
-    #     return {k: self.__getitem__(k)[idx] for k in self._keys}
-    #
-    # def update_by_index(self, idx, val):
-    #     data = self.__getitem__('_data')
-    #     for k, v in val.items():
-    #         _var2idx = self.__getitem__('_var2idx')
-    #         data[_var2idx[k], idx] = v
-
     def check(self, cls):
         if not isinstance(cls, type(self)):
             raise TypeMismatchError(f'Must be an instance of "{type(self)}", but got "{type(cls)}".')
         for k in self._keys:
             if k not in cls:
                 raise TypeMismatchError(f'Key "{k}" is not found in "cls".')
+
+    def get_cuda_data(self):
+        _data_cuda = self.__getitem__('_data_cuda')
+        if _data_cuda is None:
+            _data = self.__getitem__('_data')
+            _data_cuda = cuda.to_device(_data)
+            self.__setitem__('_data_cuda', _data_cuda)
+        return _data_cuda
+
+    def __setitem__(self, key, val):
+        if key in self._vars:
+            # get data
+            data = self.__getitem__('_data')
+            _var2idx = self.__getitem__('_var2idx')
+            idx = _var2idx[key]
+            # gpu setattr
+            if profile.run_on_gpu():
+                gpu_data = self.get_cuda_data()
+                num_thread = profile._num_thread_gpu
+                num_block = math.ceil(data.shape[1] / profile._num_thread_gpu)
+                if np.isscalar(val):
+                    gpu_set_scalar_val[num_block, num_thread](gpu_data, val, idx)
+                else:
+                    if val.shape[0] != data.shape[1]:
+                        raise ValueError(f'Wrong value dimension {val.shape[0]} != {data.shape[1]}')
+                    gpu_set_vector_val[num_block, num_thread](gpu_data, val, idx)
+                cuda.synchronize()
+            # cpu setattr
+            else:
+                data[idx] = val
+        elif key in ['_data', '_var2idx', '_idx2var']:
+            raise KeyError(f'"{key}" cannot be modified.')
+        else:
+            raise KeyError(f'"{key}" is not defined in {type(self).__name__}, '
+                           f'only finds "{str(self._keys)}".')
 
     def __str__(self):
         return f'{self.__class__.__name__} ({str(self._keys)})'
@@ -93,22 +137,13 @@ class NeuState(ObjState):
             var2idx[k] = i
             idx2var[i] = k
         state['_data'] = data
+        state['_data_cuda'] = None
         state['_var2idx'] = var2idx
         state['_idx2var'] = idx2var
 
         dict.__init__(self, state)
 
         return self
-
-    def __setitem__(self, key, val):
-        if key in self._vars:
-            data = self.__getitem__('_data')
-            _var2idx = self.__getitem__('_var2idx')
-            data[_var2idx[key]] = val
-        elif key in ['_data', '_var2idx', '_idx2var']:
-            raise KeyError(f'"{key}" cannot be modified.')
-        else:
-            raise KeyError(f'"{key}" is not defined in "{str(self._keys)}".')
 
     def make_copy(self, size):
         obj = NeuState(self._vars)
@@ -163,35 +198,13 @@ class SynState(ObjState):
             var2idx[f'_{v}_offset'] = i * delay + index_offset
             state[f'_{v}_delay'] = data[i * delay + index_offset: (i + 1) * delay + index_offset]
         state['_data'] = data
+        state['_data_cuda'] = None
         state['_var2idx'] = var2idx
         state['_idx2var'] = idx2var
 
         dict.__init__(self, state)
 
         return self
-
-    def __setitem__(self, key, val):
-        if key in self._vars:
-            data = self.__getitem__('_data')
-            _var2idx = self.__getitem__('_var2idx')
-            data[_var2idx[key]] = val
-        elif key in ['_data', '_var2idx', '_idx2var', '_cond_delay']:
-            raise KeyError(f'"{key}" cannot be modified.')
-        else:
-            raise KeyError(f'"{key}" is not defined in {type(self).__name__}, '
-                           f'only finds "{str(self._keys)}".')
-
-    def extract_by_index(self, idx, delay_pull=False):
-        if delay_pull:
-            res = {}
-            for k in self._keys:
-                if f'_{k}_delay' in self:
-                    res[k] = self.delay_pull(k)[idx]
-                else:
-                    res[k] = self.__getitem__(k)[idx]
-            return res
-        else:
-            return {k: self.__getitem__(k)[idx] for k in self._keys}
 
     def make_copy(self, size, delay=None, delay_vars=('cond',)):
         obj = SynState(self._vars)

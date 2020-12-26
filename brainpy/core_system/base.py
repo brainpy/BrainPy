@@ -93,9 +93,7 @@ class ObjType(object):
         else:
             raise ModelDefError('"steps" must be a callable, or a list/tuple of callable functions.')
         for func in steps:
-            try:
-                assert callable(func)
-            except AssertionError:
+            if not callable(func):
                 raise ModelDefError('"steps" must be a list/tuple of callable functions.')
 
             # function name
@@ -169,11 +167,9 @@ class ObjType(object):
         # ----------------
         if extra_attributes is None:
             extra_attributes = dict()
-        try:
-            for key, val in extra_attributes.items():
-                assert isinstance(key, str)
-        except AssertionError:
-            raise ModelUseError('"extra_attributes" must be a dict with string keys.')
+        for key, val in extra_attributes.items():
+            if not isinstance(key, str):
+                raise ModelUseError('"extra_attributes" must be a dict with string keys.')
         self.extra_attributes = extra_attributes
 
     def __str__(self):
@@ -393,6 +389,9 @@ class Ensemble(object):
         for attr_key, attr_val in model.extra_attributes.items():
             setattr(self, attr_key, attr_val)
 
+    def to_cuda(self, key, val):
+        pass
+
     def _type_checking(self):
         # check state and its type
         if not hasattr(self, 'ST'):
@@ -488,9 +487,7 @@ class Ensemble(object):
 
         # check inputs
         # -------------
-        try:
-            assert isinstance(inputs, (tuple, list))
-        except AssertionError:
+        if not isinstance(inputs, (tuple, list)):
             raise ModelUseError('"inputs" must be a tuple/list.')
         if len(inputs) and not isinstance(inputs[0], (list, tuple)):
             if isinstance(inputs[0], str):
@@ -499,9 +496,7 @@ class Ensemble(object):
                 raise ModelUseError('Unknown input structure, only support inputs '
                                     'with format of "(key, value, [operation])".')
         for inp in inputs:
-            try:
-                assert 2 <= len(inp) <= 3
-            except AssertionError:
+            if not 2 <= len(inp) <= 3:
                 raise ModelUseError('For each target, you must specify "(key, value, [operation])".')
             if len(inp) == 3:
                 try:
@@ -515,9 +510,7 @@ class Ensemble(object):
         formatted_inputs = []
         for inp in inputs:
             # key
-            try:
-                assert isinstance(inp[0], str)
-            except AssertionError:
+            if not isinstance(inp[0], str):
                 raise ModelUseError('For each input, input[0] must be a string '
                                     'to specify variable of the target.')
             key = inp[0]

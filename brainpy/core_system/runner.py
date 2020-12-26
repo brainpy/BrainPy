@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import ast
 import inspect
-import re
 import math
+import re
 
 import numba
 import numpy as np
@@ -49,6 +50,12 @@ class Runner(object):
         # model update schedule
         self._schedule = ['input'] + ensemble.model.step_names + ['monitor']
         self._inputs = {}
+        self.gpu_data = {}
+
+    def check_attr(self, attr):
+        if not hasattr(self, attr):
+            raise ModelUseError(f'Model "{self._name}" doesn\'t have "{attr}" attribute", '
+                                f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
 
     def get_codes_of_input(self, key_val_ops_types):
         """Format the code of external input.
@@ -63,12 +70,6 @@ class Runner(object):
         code : dict
             The formatted code.
         """
-
-        def check_attr(attr_):
-            if not hasattr(self, attr_):
-                raise ModelUseError(f'Model "{self._name}" doesn\'t have "{attr_}" attribute", '
-                                    f'and "{self._name}.ST" doesn\'t have "{attr_}" field.')
-
         if len(key_val_ops_types) <= 0:
             raise ModelUseError(f'{self._name} has no input, cannot call this function.')
 
@@ -94,7 +95,7 @@ class Runner(object):
         # generate code of input function
         # --------------------------------
         if profile.run_on_cpu():
-            code_scope = {self._name: self.ensemble}
+            code_scope = {self._name: self.ensemble, f'{self._name}_runner': self}
             code_args, code_arg2call, code_lines = set(), {}, []
             if has_iter:
                 code_args.add('_i')
@@ -108,10 +109,9 @@ class Runner(object):
                     # if "item" is the model attribute
                     attr, item = attr_item[0], ''
                     target = getattr(self.ensemble, attr)
-                    check_attr(attr)
+                    self.check_attr(attr)
                     if not isinstance(target, np.ndarray):
                         raise ModelUseError(f'BrainPy only support input to arrays.')
-
                     left = attr
                     code_args.add(left)
                     code_arg2call[left] = f'{self._name}.{attr}'
@@ -133,8 +133,8 @@ class Runner(object):
                 # get the right side #
                 right = f'{key.replace(".", "_")}_inp'
                 code_args.add(right)
-                code_arg2call[right] = f'{self._name}.runner.{right}'
-                setattr(self, right, val)
+                code_arg2call[right] = f'{self._name}_runner.{right}'
+                self.set_input_data(right, val)
                 if data_type == 'iter':
                     right = right + '[_i]'
                     if np.ndim(val) > 1:
@@ -166,7 +166,7 @@ class Runner(object):
 
             # format function call
             arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
-            func_call = f'{self._name}.runner.input_step({tools.func_call(arg2call)})'
+            func_call = f'{self._name}_runner.input_step({tools.func_call(arg2call)})'
 
             return {'input': {'scopes': code_scope,
                               'args': code_args,
@@ -188,12 +188,13 @@ class Runner(object):
                 if len(attr_item) == 1 and (attr_item[0] not in self.ensemble.ST):
                     # if "item" is the model attribute
                     attr, item = attr_item[0], ''
-                    check_attr(attr)
+                    self.check_attr(attr)
                     target = getattr(self.ensemble, attr)
                     if not isinstance(target, np.ndarray):
                         raise ModelUseError(f'BrainPy only supports input to arrays.')
                     # get the left side
-                    left = f'{attr}[cuda_i]'
+                    left = f'{attr}_cuda[cuda_i]'
+                    self.set_gpu_data(f'{attr}_cuda', target)
                 else:
                     # if "item" is the ObjState
                     if len(attr_item) == 1:
@@ -208,14 +209,14 @@ class Runner(object):
                     # get the left side
                     target = data[item]
                     idx = data['_var2idx'][item]
-                    left = f'{attr}[{idx}, cuda_i]'
+                    left = f'{attr}_cuda[{idx}, cuda_i]'
+                    self.set_gpu_data(f'{attr}_cuda', data)
                 code_args.add(attr)
-                code_arg2call[attr] = f'{self._name}.{attr}_cuda'
+                code_arg2call[attr] = f'{self._name}_runner.{attr}_cuda'
 
                 # get the right side #
                 right = f'{key.replace(".", "_")}_inp'
-                val_cuda = cuda.to_device(val)
-                setattr(self, right, val_cuda)
+                self.set_input_data(right, val)
                 code_args.add(right)
                 code_arg2call[right] = f'{self._name}_runner.{right}'
 
@@ -248,19 +249,19 @@ class Runner(object):
                 else:
                     code_lines.append(f"{left} {ops}= {right}")
                 code_lines = ['  ' + line for line in code_lines]
-                code_lines.insert(0, 'if cuda_i < {len(target)}:')
+                code_lines.insert(0, f'if cuda_i < {len(target)}:')
 
                 # final code
                 func_name = f'input_of_{attr}_{item}'
                 code_to_compile = [f'# "input" of {self._name}.{attr}.{item}',
                                    f'def {func_name}({tools.func_call(code_args)}):',
                                    f'  cuda_i = cuda.grid(1)']
-                code_to_compile += [f'    {line}' for line in code_lines]
+                code_to_compile += [f'  {line}' for line in code_lines]
 
                 # compile function
                 func_code = '\n'.join(code_to_compile)
                 exec(compile(func_code, '', 'exec'), code_scope)
-                step_func = code_scope[f'{func_name}']
+                step_func = code_scope[func_name]
                 step_func = cuda.jit(step_func)
                 setattr(self, func_name, step_func)
                 if not profile._merge_steps:
@@ -305,17 +306,8 @@ class Runner(object):
         if len(mon_vars) <= 0:
             raise ModelUseError(f'{self._name} has no monitor, cannot call this function.')
 
-        code_scope = {self._name: self.ensemble}
-        code_args, code_arg2call, code_lines = set(), {}, []
-
-        # monitor
-        mon = tools.DictPlus()
-
-        # generate code of monitor function
-        # ---------------------------------
-        mon_idx = 0
+        # check indices #
         for key, indices in mon_vars:
-            # check indices #
             if indices is not None:
                 if isinstance(indices, list):
                     if not isinstance(indices[0], int):
@@ -326,96 +318,222 @@ class Runner(object):
                 else:
                     raise ModelUseError(f'Unknown monitor index type: {type(indices)}.')
 
-            attr_item = key.split('.')
+        if profile.run_on_cpu():
+            # monitor
+            mon = tools.DictPlus()
 
-            # get the code line #
-            if (len(attr_item) == 1) and (attr_item[0] not in self.ensemble.ST):
-                attr = attr_item[0]
-                if not hasattr(self.ensemble, attr):
-                    raise ModelUseError(f'Model "{self._name}" doesn\'t have "{attr}" attribute", '
-                                        f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
-                if not isinstance(getattr(self.ensemble, attr), np.ndarray):
-                    assert ModelUseError(f'BrainPy only support monitor of arrays.')
+            code_scope = {self._name: self.ensemble}
+            code_args, code_arg2call, code_lines = set(), {}, []
 
-                shape = getattr(self.ensemble, attr).shape
+            # generate code of monitor function
+            # ---------------------------------
+            mon_idx = 0
+            for key, indices in mon_vars:
+                if indices is not None:
+                    indices = np.asarray(indices)
+                attr_item = key.split('.')
 
-                idx_name = f'idx{mon_idx}_{attr}'
-                mon_name = f'mon_{attr}'
-                target_name = attr
-                if indices is None:
-                    line = f'{mon_name}[_i] = {target_name}'
+                # get the code line #
+                if (len(attr_item) == 1) and (attr_item[0] not in self.ensemble.ST):
+                    attr = attr_item[0]
+                    self.check_attr(attr)
+                    if not isinstance(getattr(self.ensemble, attr), np.ndarray):
+                        assert ModelUseError(f'BrainPy only supports monitor of arrays.')
+                    shape = getattr(self.ensemble, attr).shape
+                    mon_name = f'mon_{attr}'
+                    target_name = attr
+                    if indices is None:
+                        line = f'{mon_name}[_i] = {target_name}'
+                    else:
+                        idx_name = f'idx{mon_idx}_{attr}'
+                        line = f'{mon_name}[_i] = {target_name}[{idx_name}]'
+                        code_scope[idx_name] = indices
+                    code_args.add(mon_name)
+                    code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
+                    code_args.add(target_name)
+                    code_arg2call[target_name] = f'{self._name}.{attr}'
                 else:
-                    line = f'{mon_name}[_i] = {target_name}[{idx_name}]'
-                    code_scope[idx_name] = indices
-                    mon_idx += 1
-                code_args.add(mon_name)
-                code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
-                code_args.add(target_name)
-                code_arg2call[target_name] = f'{self._name}.{attr}'
-            else:
-                if len(attr_item) == 1:
-                    item, attr = attr_item[0], 'ST'
-                elif len(attr_item) == 2:
-                    attr, item = attr_item
-                else:
-                    raise ModelUseError(f'Unknown target : {key}.')
+                    if len(attr_item) == 1:
+                        item, attr = attr_item[0], 'ST'
+                    elif len(attr_item) == 2:
+                        attr, item = attr_item
+                    else:
+                        raise ModelUseError(f'Unknown target : {key}.')
 
-                shape = getattr(self.ensemble, attr)[item].shape
+                    shape = getattr(self.ensemble, attr)[item].shape
 
-                idx_name = f'idx{mon_idx}_{attr}_{item}'
-                idx = getattr(self.ensemble, attr)['_var2idx'][item]
-                mon_name = f'mon_{attr}_{item}'
-                target_name = attr
-                if indices is None:
-                    line = f'{mon_name}[_i] = {target_name}[{idx}]'
-                else:
-                    line = f'{mon_name}[_i] = {target_name}[{idx}][{idx_name}]'
-                    code_scope[idx_name] = indices
+                    idx = getattr(self.ensemble, attr)['_var2idx'][item]
+                    mon_name = f'mon_{attr}_{item}'
+                    target_name = attr
+                    if indices is None:
+                        line = f'{mon_name}[_i] = {target_name}[{idx}]'
+                    else:
+                        idx_name = f'idx{mon_idx}_{attr}_{item}'
+                        line = f'{mon_name}[_i] = {target_name}[{idx}][{idx_name}]'
+                        code_scope[idx_name] = indices
+                    code_args.add(mon_name)
+                    code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
+                    code_args.add(target_name)
+                    code_arg2call[target_name] = f'{self._name}.{attr}["_data"]'
                 mon_idx += 1
-                code_args.add(mon_name)
-                code_arg2call[mon_name] = f'{self._name}.mon["{key}"]'
-                code_args.add(target_name)
-                code_arg2call[target_name] = f'{self._name}.{attr}["_data"]'
 
-            # initialize monitor array #
-            key = key.replace(',', '_')
-            if indices is None:
-                mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
-            else:
-                mon[key] = np.zeros((run_length, len(indices)) + shape[1:], dtype=np.float_)
+                # initialize monitor array #
+                key = key.replace('.', '_')
+                if indices is None:
+                    mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
+                else:
+                    mon[key] = np.zeros((run_length, len(indices)) + shape[1:], dtype=np.float_)
 
-            # add line #
-            code_lines.append(line)
+                # add line #
+                code_lines.append(line)
 
-        # final code
-        # ----------
-        code_lines.insert(0, f'# "monitor" step function of {self._name}')
-        code_lines.append('\n')
-        code_args.add('_i')
-        code_arg2call['_i'] = '_i'
+            # final code
+            # ----------
+            code_lines.insert(0, f'# "monitor" step function of {self._name}')
+            code_lines.append('\n')
+            code_args.add('_i')
+            code_arg2call['_i'] = '_i'
 
-        # compile function
-        code_to_compile = [f'def monitor_step({tools.func_call(code_args)}):'] + code_lines
-        func_code = '\n  '.join(code_to_compile)
-        exec(compile(func_code, '', 'exec'), code_scope)
-        monitor_step = code_scope['monitor_step']
-        self.monitor_step = monitor_step
+            # compile function
+            code_to_compile = [f'def monitor_step({tools.func_call(code_args)}):'] + code_lines
+            func_code = '\n  '.join(code_to_compile)
+            exec(compile(func_code, '', 'exec'), code_scope)
+            monitor_step = code_scope['monitor_step']
+            self.monitor_step = monitor_step
 
-        # format function call
-        arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
-        func_call = f'{self._name}.runner.monitor_step({tools.func_call(arg2call)})'
+            # format function call
+            arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
+            func_call = f'{self._name}.runner.monitor_step({tools.func_call(arg2call)})'
 
-        if not profile._merge_steps:
-            if profile._show_format_code:
-                tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-            if profile._show_code_scope:
-                tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
+            if not profile._merge_steps:
+                if profile._show_format_code:
+                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                if profile._show_code_scope:
+                    tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
-        return mon, {'monitor': {'scopes': code_scope,
-                                 'args': code_args,
-                                 'arg2calls': code_arg2call,
-                                 'codes': code_lines,
-                                 'call': func_call}}
+            return mon, {'monitor': {'scopes': code_scope,
+                                     'args': code_args,
+                                     'arg2calls': code_arg2call,
+                                     'codes': code_lines,
+                                     'call': func_call}}
+
+        else:
+            results = {}
+            mon = tools.DictPlus()
+
+            # generate code of monitor function
+            # ---------------------------------
+            mon_idx = 0
+            for key, indices in mon_vars:
+                if indices is not None:
+                    indices = np.asarray(indices)
+                code_scope = {self._name: self.ensemble, f'{self._name}_runner': self}
+                code_args, code_arg2call, code_lines = set(), {}, []
+
+                attr_item = key.split('.')
+                key = key.replace(".", "_")
+                # get the code line #
+                if (len(attr_item) == 1) and (attr_item[0] not in self.ensemble.ST):
+                    attr, item = attr_item[0], ''
+                    self.check_attr(attr)
+                    if not isinstance(getattr(self.ensemble, attr), np.ndarray):
+                        assert ModelUseError(f'BrainPy only supports monitor of arrays.')
+                    data = getattr(self.ensemble, attr)
+                    shape = data.shape
+                    mon_name = f'mon_{attr}'
+                    target_name = f'{attr}_cuda'
+                    if indices is None:
+                        num_data = shape[0]
+                        line = f'{mon_name}[_i, cuda_i] = {target_name}[cuda_i]'
+                    else:
+                        num_data = len(indices)
+                        idx_name = f'idx{mon_idx}_{attr}'
+                        code_lines.append(f'idx = {idx_name}[cuda_i]')
+                        line = f'{mon_name}[_i, cuda_i] = {target_name}[idx]'
+                        code_scope[idx_name] = cuda.to_device(indices)
+                    code_args.add(mon_name)
+                    code_arg2call[mon_name] = f'{self._name}_runner.mon_{key}_cuda'
+                    self.set_gpu_data(f'{attr}_cuda', data)
+                    code_args.add(target_name)
+                    code_arg2call[target_name] = f'{self._name}_runner.{attr}_cuda'
+                else:
+                    if len(attr_item) == 1:
+                        item, attr = attr_item[0], 'ST'
+                    elif len(attr_item) == 2:
+                        attr, item = attr_item
+                    else:
+                        raise ModelUseError(f'Unknown target : {key}.')
+                    data = getattr(self.ensemble, attr)
+                    shape = data[item].shape
+                    idx = getattr(self.ensemble, attr)['_var2idx'][item]
+                    mon_name = f'mon_{attr}_{item}'
+                    target_name = attr
+                    if indices is None:
+                        num_data = shape[0]
+                        line = f'{mon_name}[_i, cuda_i] = {target_name}[{idx}, cuda_i]'
+                    else:
+                        num_data = len(indices)
+                        idx_name = f'idx{mon_idx}_{attr}_{item}'
+                        code_lines.append(f'idx2 = {idx_name}[cuda_i]')
+                        line = f'{mon_name}[_i, cuda_i] = {target_name}[{idx}, idx2]'
+                        code_scope[idx_name] = cuda.to_device(indices)
+                    code_args.add(mon_name)
+                    code_arg2call[mon_name] = f'{self._name}_runner.mon_{key}_cuda'
+                    self.set_gpu_data(f'{attr}_cuda', data)
+                    code_args.add(target_name)
+                    code_arg2call[target_name] = f'{self._name}_runner.{attr}_cuda'
+
+                # initialize monitor array #
+                if indices is None:
+                    mon[key] = np.zeros((run_length,) + shape, dtype=np.float_)
+                else:
+                    mon[key] = np.zeros((run_length, num_data) + shape[1:], dtype=np.float_)
+                self.set_gpu_data(f'mon_{key}_cuda', mon[key])
+
+                # add line #
+                code_args.add('_i')
+                code_arg2call['_i'] = '_i'
+
+                # final code
+                # ----------
+                code_lines.append(line)
+                code_lines = ['  ' + line for line in code_lines]
+                code_lines.insert(0, f'if cuda_i < {num_data}:')
+
+                # compile function
+                func_name = f'monitor_of_{attr}_{item}'
+                code_to_compile = [f'# "monitor" of {self._name}.{attr}.{item}',
+                                   f'def {func_name}({tools.func_call(code_args)}):',
+                                   f'  cuda_i = cuda.grid(1)']
+                code_to_compile += [f'  {line}' for line in code_lines]
+                func_code = '\n'.join(code_to_compile)
+                exec(compile(func_code, '', 'exec'), code_scope)
+                monitor_step = code_scope[func_name]
+                monitor_step = cuda.jit(monitor_step)
+                setattr(self, func_name, monitor_step)
+
+                if not profile._merge_steps:
+                    if profile._show_format_code:
+                        tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                    if profile._show_code_scope:
+                        tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
+
+                # format function call
+                num_thread = profile._num_thread_gpu
+                num_block = math.ceil(num_data / profile._num_thread_gpu)
+                arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
+                func_call = f'{self._name}_runner.{func_name}[{num_block}, {num_thread}]({tools.func_call(arg2call)})'
+
+                results[f'monitor-{mon_idx}'] = {'scopes': code_scope,
+                                                 'args': code_args,
+                                                 'arg2calls': code_arg2call,
+                                                 'codes': code_lines,
+                                                 'call': func_call,
+                                                 'num_data': num_data}
+
+                mon_idx += 1
+
+            return mon, results
 
     def get_codes_of_steps(self):
         """Get the code of user defined update steps.
@@ -444,7 +562,10 @@ class Runner(object):
             The code lines.
         """
         func_code = tools.deindent(tools.get_main_code(func))
-        return tools.format_code(func_code).lines
+        tree = ast.parse(func_code.strip())
+        formatter = tools.CodeLineFormatter()
+        formatter.visit(tree)
+        return formatter.lines
 
     def step_substitute_integrator(self, func):
         """Substitute the user defined integrators into the main step functions.
@@ -888,6 +1009,26 @@ class Runner(object):
             if s not in all_func_names:
                 raise ModelUseError(f'Unknown step function "{s}" for model "{self._name}".')
         self._schedule = schedule
+
+    def set_input_data(self, key, data):
+        if profile.run_on_gpu():
+            data_cuda = cuda.to_device(data)
+            setattr(self, key, data_cuda)
+        else:
+            setattr(self, key, data)
+
+    def set_gpu_data(self, key, val):
+        if key not in self.gpu_data:
+            if isinstance(val, np.ndarray):
+                val = cuda.to_device(val)
+            elif isinstance(val, ObjState):
+                val = val.get_cuda_data()
+            setattr(self, key, val)
+            self.gpu_data[key] = val
+
+    def gpu_data_to_cpu(self):
+        for val in self.gpu_data.values():
+            val.to_host()
 
 
 class TrajectoryRunner(Runner):

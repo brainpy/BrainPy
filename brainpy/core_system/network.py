@@ -237,10 +237,11 @@ class Network(object):
                         raise ModelUseError(f'The input operation for "{key}" should keep the same. However, we got '
                                             f'the last operation is "{obj_inputs[key][1]}", '
                                             f'and the current operation is "{ops}"')
-                    if np.isscalar(val):
-                        setattr(obj.runner, f'{key.replace(".", "_")}_inp', val)
-                    else:
-                        getattr(obj.runner, f'{key.replace(".", "_")}_inp')[:] = val
+                    obj.runner.set_input_data(f'{key.replace(".", "_")}_inp', val)
+                    # if np.isscalar(val):
+                    #     setattr(obj.runner, f'{key.replace(".", "_")}_inp', val)
+                    # else:
+                    #     getattr(obj.runner, f'{key.replace(".", "_")}_inp')[:] = val
                     all_keys.remove(key)
                 if len(all_keys):
                     raise ModelUseError(f'The inputs of {all_keys} are not provided.')
