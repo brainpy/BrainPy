@@ -158,8 +158,6 @@ class Runner(object):
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
             self.input_step = code_scope['input_step']
-            # if profile.is_jit():
-            #     self.input_step = tools.jit(self.input_step)
             if not profile._merge_steps:
                 if profile._show_format_code:
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
@@ -249,13 +247,14 @@ class Runner(object):
                     code_lines.append(f"{left} = {right}")
                 else:
                     code_lines.append(f"{left} {ops}= {right}")
+                code_lines = ['  ' + line for line in code_lines]
+                code_lines.insert(0, 'if cuda_i < {len(target)}:')
 
                 # final code
                 func_name = f'input_of_{attr}_{item}'
                 code_to_compile = [f'# "input" of {self._name}.{attr}.{item}',
                                    f'def {func_name}({tools.func_call(code_args)}):',
-                                   f'  cuda_i = cuda.grid(1)',
-                                   f'  if cuda_i < {len(target)}:']
+                                   f'  cuda_i = cuda.grid(1)']
                 code_to_compile += [f'    {line}' for line in code_lines]
 
                 # compile function
@@ -319,14 +318,10 @@ class Runner(object):
             # check indices #
             if indices is not None:
                 if isinstance(indices, list):
-                    try:
-                        isinstance(indices[0], int)
-                    except AssertionError:
+                    if not isinstance(indices[0], int):
                         raise ModelUseError('Monitor index only supports list [int] or 1D array.')
                 elif isinstance(indices, np.ndarray):
-                    try:
-                        assert np.ndim(indices) == 1
-                    except AssertionError:
+                    if np.ndim(indices) != 1:
                         raise ModelUseError('Monitor index only supports list [int] or 1D array.')
                 else:
                     raise ModelUseError(f'Unknown monitor index type: {type(indices)}.')
@@ -336,14 +331,10 @@ class Runner(object):
             # get the code line #
             if (len(attr_item) == 1) and (attr_item[0] not in self.ensemble.ST):
                 attr = attr_item[0]
-                try:
-                    assert hasattr(self.ensemble, attr)
-                except AssertionError:
+                if not hasattr(self.ensemble, attr):
                     raise ModelUseError(f'Model "{self._name}" doesn\'t have "{attr}" attribute", '
                                         f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
-                try:
-                    assert isinstance(getattr(self.ensemble, attr), np.ndarray)
-                except AssertionError:
+                if not isinstance(getattr(self.ensemble, attr), np.ndarray):
                     assert ModelUseError(f'BrainPy only support monitor of arrays.')
 
                 shape = getattr(self.ensemble, attr).shape
@@ -408,8 +399,6 @@ class Runner(object):
         func_code = '\n  '.join(code_to_compile)
         exec(compile(func_code, '', 'exec'), code_scope)
         monitor_step = code_scope['monitor_step']
-        # if profile.is_jit_backend():
-        #     monitor_step = tools.jit(monitor_step)
         self.monitor_step = monitor_step
 
         # format function call

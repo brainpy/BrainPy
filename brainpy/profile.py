@@ -22,8 +22,8 @@ __all__ = [
     'run_on_cpu',
     'run_on_gpu',
 
-    'set_numba_profile',
-    'get_numba_profile',
+    'set_backend',
+    'get_backend',
 
     'set_device',
     'get_device',
@@ -33,6 +33,9 @@ __all__ = [
 
     'set_numerical_method',
     'get_numerical_method',
+
+    'set_numba_profile',
+    'get_numba_profile',
 ]
 
 
@@ -261,6 +264,33 @@ def set_numba_profile(**kwargs):
         _numba_setting['nogil'] = kwargs.pop('nogil')
     if 'parallel' in kwargs:
         _numba_setting['parallel'] = kwargs.pop('parallel')
+
+
+def set_backend(backend):
+    """Set the running backend.
+
+    Parameters
+    ----------
+    backend : str
+        The backend name.
+    """
+    if backend not in ['numpy', 'pytorch']:
+        raise ValueError(f'BrainPy now supports "numpy" or "pytorch" backend, not "{backend}".')
+
+    global _backend
+    _backend = backend
+
+
+def get_backend():
+    """Get the used backend of BrainPy.
+
+    Returns
+    -------
+    backend : str
+        The backend name.
+    """
+    return _backend
+
 
 
 def get_numba_profile():
