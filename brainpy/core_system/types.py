@@ -43,15 +43,16 @@ def gpu_set_scalar_val(data, val, idx):
         data[idx, i] = val
 
 
-if cuda.is_available():
-    gpu_set_scalar_val = cuda.jit('(float64[:, :], float64, int64)')(gpu_set_scalar_val)
-
-
 @cuda.jit('(float64[:, :], float64[:], int64)')
 def gpu_set_vector_val(data, val, idx):
     i = cuda.grid(1)
     if i < data.shape[1]:
         data[idx, i] = val[i]
+
+
+if cuda.is_available():
+    gpu_set_scalar_val = cuda.jit('(float64[:, :], float64, int64)')(gpu_set_scalar_val)
+    gpu_set_vector_val = cuda.jit('(float64[:, :], float64[:], int64)')(gpu_set_vector_val)
 
 
 class ObjState(dict, TypeChecker):
