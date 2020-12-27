@@ -210,7 +210,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         return self.f_dfdx
 
     def plot_vector_filed(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
-        x = onp.arange(*self.target_vars[self.x_var], resolution)
+        x = np.arange(*self.target_vars[self.x_var], resolution)
         x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
 
         # Nullcline of the x variable
@@ -256,7 +256,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             # function
             exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
             x_values = scope['solve_x']()
-            x_values = onp.array([x_values])
+            x_values = np.array([x_values])
 
         except NotImplementedError:
             # function codes
@@ -267,9 +267,9 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
             optimizer = scope['optimizer_x']
             optimizer = njit(optimizer)
-            x_range = onp.arange(*self.target_vars[self.x_var], resolution)
+            x_range = np.arange(*self.target_vars[self.x_var], resolution)
             x_values = find_root(optimizer, x_range)
-            x_values = onp.array(x_values)
+            x_values = np.array(x_values)
 
         # differential #
         # ------------ #
@@ -454,7 +454,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             # jacobian matrix
             scope = dict(f_dfydy=dfydy, f_dfydx=dfydx,
-                         f_dfxdy=dfxdy, f_dfxdx=dfxdx, np=onp)
+                         f_dfxdy=dfxdy, f_dfxdx=dfxdx, np=np)
             func_codes = [f'def f_jacobian({self.x_var}, {self.y_var}):']
             func_codes.append(f'dfxdx = f_dfxdx({self.x_var}, {self.y_var})')
             func_codes.append(f'dfxdy = f_dfxdy({self.x_var}, {self.y_var})')
@@ -467,9 +467,9 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         return self.f_jacobian
 
     def plot_vector_filed(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
-        X = onp.arange(*self.target_vars[self.x_var], resolution)
-        Y = onp.arange(*self.target_vars[self.y_var], resolution)
-        X, Y = onp.meshgrid(X, Y)
+        X = np.arange(*self.target_vars[self.x_var], resolution)
+        Y = np.arange(*self.target_vars[self.y_var], resolution)
+        X, Y = np.meshgrid(X, Y)
 
         # dy
         func = self.get_f_dy()
@@ -488,7 +488,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                                 'variables to "fixed_vars".')
 
         # vector field
-        speed = onp.sqrt(dx ** 2 + dy ** 2)
+        speed = np.sqrt(dx ** 2 + dy ** 2)
         lw_min, lw_max = lw_lim
         lw = lw_min + lw_max * speed / speed.max()
         plt.streamplot(X, Y, dx, dy, linewidth=lw, arrowsize=1.2, density=1, color='thistle')
@@ -623,9 +623,9 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_x']
                 optimizer = njit(optimizer)
-                x_range = onp.arange(*self.target_vars[self.x_var], resolution)
+                x_range = np.arange(*self.target_vars[self.x_var], resolution)
                 x_values = find_root(optimizer, x_range)
-                x_values = onp.array(x_values)
+                x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
             else:
@@ -635,9 +635,9 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_y']
                 optimizer = njit(optimizer)
-                y_range = onp.arange(*self.target_vars[self.y_var], resolution)
+                y_range = np.arange(*self.target_vars[self.y_var], resolution)
                 y_values = find_root(optimizer, y_range)
-                y_values = onp.array(y_values)
+                y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
 
         elif can_substitute_x_group_to_y_group:
@@ -648,9 +648,9 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_x']
                 optimizer = njit(optimizer)
-                x_range = onp.arange(*self.target_vars[self.x_var], resolution)
+                x_range = np.arange(*self.target_vars[self.x_var], resolution)
                 x_values = find_root(optimizer, x_range)
-                x_values = onp.array(x_values)
+                x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
             else:
@@ -660,9 +660,9 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_y']
                 optimizer = njit(optimizer)
-                y_range = onp.arange(*self.target_vars[self.y_var], resolution)
+                y_range = np.arange(*self.target_vars[self.y_var], resolution)
                 y_values = find_root(optimizer, y_range)
-                y_values = onp.array(y_values)
+                y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
 
         # jacobian matrix
@@ -704,8 +704,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
         y_group = self.target_eqs[self.y_var]
         x_group = self.target_eqs[self.x_var]
-        x_range = onp.arange(*self.target_vars[self.x_var], resolution)
-        y_range = onp.arange(*self.target_vars[self.y_var], resolution)
+        x_range = np.arange(*self.target_vars[self.x_var], resolution)
+        y_range = np.arange(*self.target_vars[self.y_var], resolution)
         x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
         y_style = dict(color='cornflowerblue', alpha=.7, linewidth=4)
 
@@ -768,8 +768,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     for x in xs:
                         x_values.append(x)
                         y_values.append(y)
-                x_values = onp.array(x_values)
-                y_values = onp.array(y_values)
+                x_values = np.array(x_values)
+                y_values = np.array(y_values)
 
                 plt.plot(x_values, y_values, **y_style, label=f"{self.y_var} nullcline")
 
@@ -831,8 +831,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     for x in xs:
                         x_values.append(x)
                         y_values.append(y)
-                x_values = onp.array(x_values)
-                y_values = onp.array(y_values)
+                x_values = np.array(x_values)
+                y_values = np.array(y_values)
                 plt.plot(x_values, y_values, **x_style, label=f"{self.x_var} nullcline")
 
         # finally
