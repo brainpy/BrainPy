@@ -15,6 +15,7 @@ __all__ = [
     'ObjState',
     'NeuState',
     'SynState',
+    'gpu_set_vector_val',
     'ListConn',
     'MatConn',
     'Array',
@@ -43,7 +44,6 @@ def gpu_set_scalar_val(data, val, idx):
         data[idx, i] = val
 
 
-@cuda.jit('(float64[:, :], float64[:], int64)')
 def gpu_set_vector_val(data, val, idx):
     i = cuda.grid(1)
     if i < data.shape[1]:
@@ -93,8 +93,12 @@ class ObjState(dict, TypeChecker):
             # gpu setattr
             if profile.run_on_gpu():
                 gpu_data = self.get_cuda_data()
-                num_thread = profile._num_thread_gpu
-                num_block = math.ceil(data.shape[1] / profile._num_thread_gpu)
+                if data.shape[1] <= profile._num_thread_gpu:
+                    num_thread = data.shape[1]
+                    num_block = 1
+                else:
+                    num_thread = profile._num_thread_gpu
+                    num_block = math.ceil(data.shape[1] / profile._num_thread_gpu)
                 if np.isscalar(val):
                     gpu_set_scalar_val[num_block, num_thread](gpu_data, val, idx)
                 else:
