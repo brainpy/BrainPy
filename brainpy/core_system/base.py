@@ -467,13 +467,8 @@ class Ensemble(object):
         calls = self.runner.merge_codes(results)
 
         if self._cls_type == _SYN_CONN:
-            index_update_items = set()
-            for func in self.model.steps:
-                for arg in inspect.getfullargspec(func).args:
-                    if self._is_state_attr(arg):
-                        index_update_items.add(arg)
-            for arg in index_update_items:
-                calls.append(f'{self.name}.{arg}._update_delay_indices()')
+            if self.delay_len > 1:
+                calls.append(f'{self.name}.ST._update_delay_indices()')
 
         return calls
 
@@ -554,7 +549,9 @@ class Ensemble(object):
                                     mon_length=run_length)
         code_lines = ['def step_func(_t, _i, _dt):']
         code_lines.extend(lines_of_call)
-        code_scopes = {self.name: self}
+        code_scopes = {self.name: self, f"{self.name}_runner": self.runner}
+        if profile.run_on_gpu():
+            code_scopes['cuda'] = cuda
         func_code = '\n  '.join(code_lines)
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']

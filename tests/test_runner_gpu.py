@@ -57,6 +57,7 @@ def test_input_fix():
     res = runner.get_codes_of_input([('ST.input', 1., '=', 'fix')])
     assert res['input-0']['num_data'] == num
     assert res['input-0']['codes'][-1].endswith('ST_input_inp')
+    print()
     pprint(res)
 
     print('\n' * 3)

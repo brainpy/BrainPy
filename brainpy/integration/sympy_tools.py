@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import math
 import ast
+
+from .. import profile
 
 import numpy as np
 import sympy
@@ -71,7 +74,8 @@ CONSTANT_MAPPING = {
 
 
 def get_mapping_scope():
-    return {
+    # if profile.run_on_cpu():
+        return {
         'real': np.real,
         'imag': np.imag,
         'conjugate': np.conjugate,

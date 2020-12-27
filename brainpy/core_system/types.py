@@ -151,6 +151,14 @@ class NeuState(ObjState):
         return obj(size=size)
 
 
+@nb.njit([nb.types.UniTuple(nb.int64[:], 2)(nb.int64[:], nb.int64[:], nb.int64[:]),
+          nb.types.UniTuple(nb.int64, 2)(nb.int64, nb.int64, nb.int64)])
+def update_delay_indices(delay_in, delay_out, delay_len):
+    _delay_in = (delay_in + 1) % delay_len
+    _delay_out = (delay_out + 1) % delay_len
+    return _delay_in, delay_out
+
+
 class SynState(ObjState):
     """Synapse State Management. """
 
@@ -207,17 +215,17 @@ class SynState(ObjState):
 
         return self
 
-    def make_copy(self, size, delay=None, delay_vars=('cond',)):
+    def make_copy(self, size, delay=None, delay_vars=()):
         obj = SynState(self._vars)
         return obj(size=size, delay=delay, delay_vars=delay_vars)
 
-    def delay_push(self, g, var='cond'):
+    def delay_push(self, g, var):
         if self._delay_len > 0:
             data = self.__getitem__('_data')
             offset = self.__getitem__('_var2idx')[f'_{var}_offset']
             data[self._delay_in + offset] = g
 
-    def delay_pull(self, var='cond'):
+    def delay_pull(self, var):
         if self._delay_len > 0:
             data = self.__getitem__('_data')
             offset = self.__getitem__('_var2idx')[f'_{var}_offset']
@@ -228,9 +236,9 @@ class SynState(ObjState):
             return data[var2idx[var]]
 
     def _update_delay_indices(self):
-        if self._delay_len > 0:
-            self._delay_in = (self._delay_in + 1) % self._delay_len
-            self._delay_out = (self._delay_out + 1) % self._delay_len
+        din, dout = update_delay_indices(self._delay_in, self._delay_out, self._delay_len)
+        self._delay_in = din
+        self._delay_out = dout
 
 
 class ListConn(TypeChecker):

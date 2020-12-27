@@ -3,6 +3,7 @@
 import time
 
 import numpy as np
+from numba import cuda
 
 from .base import Ensemble
 from .constants import INPUT_OPERATIONS
@@ -164,8 +165,11 @@ class Network(object):
 
         for obj in self._all_objects:
             code_scopes[obj.name] = obj
+            code_scopes[f'{obj.name}_runner'] = obj.runner
             lines_of_call = obj._build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)
             code_lines.extend(lines_of_call)
+        if profile.run_on_gpu():
+            code_scopes['cuda'] = cuda
         func_code = '\n  '.join(code_lines)
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']

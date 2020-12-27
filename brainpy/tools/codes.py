@@ -332,6 +332,141 @@ def get_line_indent(line, spaces_per_tab=4):
     return len(line) - len(line.lstrip())
 
 
+class FindAtomicOp(ast.NodeTransformer):
+    def __init__(self, var2idx):
+        self.left = None
+        self.right = None
+
+    def visit_Assign(self, node, level=0):
+        targets = node.targets
+        try:
+            assert len(targets) == 1
+        except AssertionError:
+            raise DiffEquationError('Do not support multiple assignment.')
+        target = ast2code(ast.fix_missing_locations(targets[0]))
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        prefix = '  ' * level
+        self.lefts.append(target)
+        self.rights.append(expr)
+        self.lines.append(f'{prefix}{target} = {expr}')
+        return node
+
+    def visit_AugAssign(self, node, level=0):
+        target = ast2code(ast.fix_missing_locations(node.target))
+        op = ast2code(ast.fix_missing_locations(node.op))
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        prefix = '  ' * level
+        self.lefts.append(target)
+        self.rights.append(f"{target} {op} {expr}")
+        self.lines.append(f"{prefix}{target} {op}= {expr}")
+        return node
+
+    def visit_AnnAssign(self, node):
+        raise NotImplementedError('Do not support an assignment with a type annotation.')
+
+    def visit_node_not_assign(self, node, level=0):
+        prefix = '  ' * level
+        expr = ast2code(ast.fix_missing_locations(node))
+        self.lines.append(f'{prefix}{expr}')
+
+    def visit_Assert(self, node, level=0):
+        self.visit_node_not_assign(node, level)
+
+    def visit_Expr(self, node, level=0):
+        self.visit_node_not_assign(node, level)
+
+    def visit_Expression(self, node, level=0):
+        self.visit_node_not_assign(node, level)
+
+    def visit_content_in_condition_control(self, node, level):
+        if isinstance(node, ast.Expr):
+            self.visit_Expr(node, level)
+        elif isinstance(node, ast.Assert):
+            self.visit_Assert(node, level)
+        elif isinstance(node, ast.Assign):
+            self.visit_Assign(node, level)
+        elif isinstance(node, ast.AugAssign):
+            self.visit_AugAssign(node, level)
+        elif isinstance(node, ast.If):
+            self.visit_If(node, level)
+        elif isinstance(node, ast.For):
+            self.visit_For(node, level)
+        elif isinstance(node, ast.While):
+            self.visit_While(node, level)
+        else:
+            code = ast2code(ast.fix_missing_locations(node))
+            raise CodeError(f'BrainPy does not support {type(node)}.\n\n{code}')
+
+    def visit_If(self, node, level=0):
+        # If condition
+        prefix = '  ' * level
+        compare = ast2code(ast.fix_missing_locations(node.test))
+        self.lines.append(f'{prefix}if {compare}:')
+        # body
+        for expr in node.body:
+            self.visit_content_in_condition_control(expr, level + 1)
+
+        # elif
+        while node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+            node = node.orelse[0]
+            compare = ast2code(ast.fix_missing_locations(node.test))
+            self.lines.append(f'{prefix}elif {compare}:')
+            for expr in node.body:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+        # else:
+        if len(node.orelse) > 0:
+            self.lines.append(f'{prefix}else:')
+            for expr in node.orelse:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+    def visit_For(self, node, level=0):
+        prefix = '  ' * level
+        # target
+        target = ast2code(ast.fix_missing_locations(node.target))
+        # iter
+        iter = ast2code(ast.fix_missing_locations(node.iter))
+        self.lefts.append(target)
+        self.rights.append(iter)
+        self.lines.append(prefix + f'for {target} in {iter}:')
+        # body
+        for expr in node.body:
+            self.visit_content_in_condition_control(expr, level + 1)
+        # else
+        if len(node.orelse) > 0:
+            self.lines.append(prefix + 'else:')
+            for expr in node.orelse:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+    def visit_While(self, node, level=0):
+        prefix = '  ' * level
+        # test
+        test = ast2code(ast.fix_missing_locations(node.test))
+        self.rights.append(test)
+        self.lines.append(prefix + f'while {test}:')
+        # body
+        for expr in node.body:
+            self.visit_content_in_condition_control(expr, level + 1)
+        # else
+        if len(node.orelse) > 0:
+            self.lines.append(prefix + 'else:')
+            for expr in node.orelse:
+                self.visit_content_in_condition_control(expr, level + 1)
+
+    def visit_Try(self, node):
+        raise CodeError('Do not support "try" handler.')
+
+    def visit_With(self, node):
+        raise CodeError('Do not support "with" block.')
+
+    def visit_Raise(self, node):
+        raise CodeError('Do not support "raise" statement.')
+
+    def visit_Delete(self, node):
+        raise CodeError('Do not support "del" operation.')
+
+
+
 class CodeLineFormatter(ast.NodeTransformer):
     def __init__(self):
         self.lefts = []

@@ -62,7 +62,7 @@ class SynType(ObjType):
         # delay function
         delay_funcs = []
         for func in self.steps:
-            if func.__name__.startswith('_npbrain_delayed_'):
+            if func.__name__.startswith('_brainpy_delayed_'):
                 delay_funcs.append(func)
         if len(delay_funcs):
             delay_func_code = '\n'.join([tools.deindent(tools.get_main_code(func)) for func in delay_funcs])
@@ -269,5 +269,5 @@ def delayed(func):
     func : callable
         The modified step function.
     """
-    func.__name__ = f'_npbrain_delayed_{func.__name__}'
+    func.__name__ = f'_brainpy_delayed_{func.__name__}'
     return func

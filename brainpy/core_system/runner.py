@@ -193,7 +193,7 @@ class Runner(object):
                     if not isinstance(target, np.ndarray):
                         raise ModelUseError(f'BrainPy only supports input to arrays.')
                     # get the left side
-                    left = f'{attr}_cuda[cuda_i]'
+                    left = f'{attr}[cuda_i]'
                     self.set_gpu_data(f'{attr}_cuda', target)
                 else:
                     # if "item" is the ObjState
@@ -209,10 +209,10 @@ class Runner(object):
                     # get the left side
                     target = data[item]
                     idx = data['_var2idx'][item]
-                    left = f'{attr}_cuda[{idx}, cuda_i]'
+                    left = f'{attr}[{idx}, cuda_i]'
                     self.set_gpu_data(f'{attr}_cuda', data)
-                code_args.add(f'{attr}_cuda')
-                code_arg2call[f'{attr}_cuda'] = f'{self._name}_runner.{attr}_cuda'
+                code_args.add(f'{attr}')
+                code_arg2call[f'{attr}'] = f'{self._name}_runner.{attr}_cuda'
 
                 # get the right side #
                 right = f'{key.replace(".", "_")}_inp'
@@ -326,7 +326,7 @@ class Runner(object):
             # monitor
             mon = tools.DictPlus()
 
-            code_scope = {self._name: self.ensemble}
+            code_scope = {self._name: self.ensemble, f'{self._name}_runner': self}
             code_args, code_arg2call, code_lines = set(), {}, []
 
             # generate code of monitor function
@@ -341,9 +341,10 @@ class Runner(object):
                 if (len(attr_item) == 1) and (attr_item[0] not in self.ensemble.ST):
                     attr = attr_item[0]
                     self.check_attr(attr)
-                    if not isinstance(getattr(self.ensemble, attr), np.ndarray):
+                    data = getattr(self.ensemble, attr)
+                    if not isinstance(data, np.ndarray):
                         assert ModelUseError(f'BrainPy only supports monitor of arrays.')
-                    shape = getattr(self.ensemble, attr).shape
+                    shape = data.shape
                     mon_name = f'mon_{attr}'
                     target_name = attr
                     if indices is None:
@@ -363,10 +364,9 @@ class Runner(object):
                         attr, item = attr_item
                     else:
                         raise ModelUseError(f'Unknown target : {key}.')
-
-                    shape = getattr(self.ensemble, attr)[item].shape
-
-                    idx = getattr(self.ensemble, attr)['_var2idx'][item]
+                    data = getattr(self.ensemble, attr)
+                    shape = data[item].shape
+                    idx = data['_var2idx'][item]
                     mon_name = f'mon_{attr}_{item}'
                     target_name = attr
                     if indices is None:
@@ -401,19 +401,20 @@ class Runner(object):
             # compile function
             code_to_compile = [f'def monitor_step({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
-            exec(compile(func_code, '', 'exec'), code_scope)
-            monitor_step = code_scope['monitor_step']
-            self.monitor_step = monitor_step
-
-            # format function call
-            arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
-            func_call = f'{self._name}.runner.monitor_step({tools.func_call(arg2call)})'
 
             if not profile._merge_steps:
                 if profile._show_format_code:
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile._show_code_scope:
                     tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
+
+            exec(compile(func_code, '', 'exec'), code_scope)
+            monitor_step = code_scope['monitor_step']
+            self.monitor_step = monitor_step
+
+            # format function call
+            arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
+            func_call = f'{self._name}_runner.monitor_step({tools.func_call(arg2call)})'
 
             return mon, {'monitor': {'scopes': code_scope,
                                      'args': code_args,
@@ -556,24 +557,18 @@ class Runner(object):
         else:
             return self.step_vector_model()
 
-    def format_step_code(self, func):
+    def format_step_code(self, func_code):
         """Format code of user defined step function.
 
         Parameters
         ----------
-        func : callable
-            The user defined function.
-
-        Returns
-        -------
-        code_lines : list, tuple
-            The code lines.
+        func_code : str
+            The user defined function codes.
         """
-        func_code = tools.deindent(tools.get_main_code(func))
         tree = ast.parse(func_code.strip())
         formatter = tools.CodeLineFormatter()
         formatter.visit(tree)
-        return formatter.lines
+        return formatter
 
     def merge_integrators(self, func):
         """Substitute the user defined integrators into the main step functions.
@@ -589,7 +584,9 @@ class Runner(object):
             The codes and code scope.
         """
         # get code and code lines
-        code_lines = self.format_step_code(func)
+        func_code = tools.deindent(tools.get_main_code(func))
+        formatter = self.format_step_code(func_code)
+        code_lines = formatter.lines
 
         # get function scope
         vars = inspect.getclosurevars(func)
@@ -669,7 +666,7 @@ class Runner(object):
             code_scope.pop(k)
 
         # return code lines and code scope
-        return '\n'.join(code_lines), code_scope
+        return '\n'.join(code_lines), code_scope, formatter
 
     def step_vector_model(self):
         results = dict()
@@ -688,6 +685,7 @@ class Runner(object):
             # initialize code namespace
             used_args, code_arg2call, code_lines = set(), {}, []
             func_code, code_scope = self.merge_integrators(func)
+            code_scope[f'{self._name}_runner'] = self
 
             # check function code
             try:
@@ -709,7 +707,7 @@ class Runner(object):
                     if self.ensemble._is_state_attr(arg):
                         # Function with "delayed" decorator should use
                         # ST pulled from the delay queue
-                        if func_name.startswith('_npbrain_delayed_'):
+                        if func_name.startswith('_brainpy_delayed_'):
                             if len(delay_keys):
                                 dout = f'{arg}_dout'
                                 add_args.add(dout)
@@ -776,9 +774,9 @@ class Runner(object):
             code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
-            func = tools.jit(code_scope[stripped_fname]) \
-                if profile.is_jit() \
-                else code_scope[stripped_fname]
+            func = code_scope[stripped_fname]
+            if profile.is_jit():
+                func = tools.jit(func)
             if not profile._merge_steps:
                 if profile._show_format_code:
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
@@ -789,7 +787,7 @@ class Runner(object):
             setattr(self, stripped_fname, func)
             # function call
             arg2calls = [code_arg2call[arg] for arg in sorted(list(code_args))]
-            func_call = f'{self._name}.runner.{stripped_fname}({tools.func_call(arg2calls)})'
+            func_call = f'{self._name}_runner.{stripped_fname}({tools.func_call(arg2calls)})'
 
             results[stripped_fname] = {'scopes': code_scope,
                                        'args': code_args,
@@ -822,7 +820,7 @@ class Runner(object):
             # 4. code scope variables
             used_args, code_arg2call, code_lines = set(), {}, []
             func_args = inspect.getfullargspec(func).args
-            func_code, code_scope = self.merge_integrators(func)
+            func_code, code_scope, formatter = self.merge_integrators(func)
             code_scope[f'{self._name}_runner'] = self
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
@@ -845,11 +843,13 @@ class Runner(object):
                 used_args.add(arg)
                 if len(states) == 0:
                     continue
+                if arg not in states:
+                    continue
 
                 st = states[arg]
                 var2idx = st['_var2idx']
                 if self.ensemble._is_state_attr(arg):
-                    if func_name.startswith('_npbrain_delayed_'):
+                    if func_name.startswith('_brainpy_delayed_'):
                         if len(delay_keys):
                             dout = f'{arg}_dout'
                             add_args.add(dout)
@@ -863,7 +863,7 @@ class Runner(object):
                         if len(delay_keys):
                             # Function without "delayed" decorator should push
                             # their updated ST to the delay queue
-                            func_code_left = '\n'.join(tools.format_code(func_code).lefts)
+                            func_code_left = '\n'.join(formatter.lefts)
                             func_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code_left))
                             func_delay_keys = func_keys.intersection(delay_keys)
                             if len(func_delay_keys) > 0:
@@ -879,11 +879,49 @@ class Runner(object):
                             r = f"{arg}[{var2idx[st_k]}, _obj_i_]"
                             func_code = re.sub(r'' + p, r, func_code)
                 elif arg == 'pre':
+                    # 1. implement the atomic operations for "pre"
+                    if profile.run_on_gpu():
+                        code_lines = func_code.split('\n')
+                        add_cuda = False
+                        line_no = 0
+                        while line_no < len(code_lines):
+                            line = code_lines[line_no]
+                            blank_no = len(line) - len(line.lstrip())
+                            if line.startswith('pre'):
+                                pre_transformer = ...
+                                if pre_transformer.left is not None:
+                                    left = pre_transformer.left
+                                    right = pre_transformer.right
+                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i_, {right})'
+                                    add_cuda = True
+                        if add_cuda:
+                            code_scope['cuda'] = cuda
+                        func_code = '\n'.join(code_lines)
+                    # 2. transform the key access to index access
                     for st_k in st._keys:
                         p = f'pre\[([\'"]{st_k}[\'"])\]'
                         r = f"pre[{var2idx[st_k]}, _pre_i_]"
                         func_code = re.sub(r'' + p, r, func_code)
                 elif arg == 'post':
+                    # 1. implement the atomic operations for "post"
+                    if profile.run_on_gpu():
+                        code_lines = func_code.split('\n')
+                        add_cuda = False
+                        line_no = 0
+                        while line_no < len(code_lines):
+                            line = code_lines[line_no]
+                            blank_no = len(line) - len(line.lstrip())
+                            if line.startswith('post'):
+                                pre_transformer = ...
+                                if pre_transformer.left is not None:
+                                    left = pre_transformer.left
+                                    right = pre_transformer.right
+                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i_, {right})'
+                                    add_cuda = True
+                        if add_cuda:
+                            code_scope['cuda'] = cuda
+                        func_code = '\n'.join(code_lines)
+                    # 2. transform the key access to index access
                     for st_k in st._keys:
                         p = f'post\[([\'"]{st_k}[\'"])\]'
                         r = f"post[{var2idx[st_k]}, _post_i_]"
@@ -892,6 +930,7 @@ class Runner(object):
                     raise ValueError
 
             # get formatted function arguments
+            # --------------------------------
             # 1. For argument in "ARG_KEYWORDS", keep it unchanged
             # 2. For argument is an instance of ObjState, get it's cuda data
             # 3. For other argument, get it's cuda data
@@ -914,14 +953,6 @@ class Runner(object):
                         self.set_gpu_data(f'{arg}_cuda', data)
                 code_args.add(arg)
 
-            # substitute multi-dimensional parameter "p" to "p[_obj_i_]"
-            arg_substitute = {}
-            for p in self._pars.heters.keys():
-                if p in code_scope:
-                    arg_substitute[p] = f'{p}[_obj_i_]'
-            if len(arg_substitute):
-                func_code = tools.word_replace(func_code, arg_substitute)
-
             # add the for loop in the start of the main code
             has_pre = 'pre' in func_args
             has_post = 'post' in func_args
@@ -929,7 +960,8 @@ class Runner(object):
                 code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):']
                 code_scope['numba'] = numba
             else:
-                code_lines = [f'_obj_i_ = cuda.grid(1)', f'if _obj_i_ < {len(self.ensemble.num)}:']
+                code_lines = [f'_obj_i_ = cuda.grid(1)',
+                              f'if _obj_i_ < {self.ensemble.num}:']
                 code_scope['cuda'] = cuda
 
             if has_pre:
@@ -941,18 +973,43 @@ class Runner(object):
                 code_arg2call[f'post_ids'] = f'{self._name}.post_ids'
                 code_lines.append(f'  _post_i_ = post_ids[_obj_i_]')
 
+            # substitute heterogeneous parameter "p" to "p[_obj_i_]"
+            # ------------------------------------------------------
+            arg_substitute = {}
+            for p in self._pars.heters.keys():
+                if p in code_scope:
+                    arg_substitute[p] = f'{p}[_obj_i_]'
+            if len(arg_substitute):
+                func_code = tools.word_replace(func_code, arg_substitute)
+
             # add the main code (user defined)
-            code_lines.extend(['  ' + l for l in func_code.split('\n')])
+            # ------------------
+            for l in func_code.split('\n'):
+                code_lines.append('  ' + l)
             code_lines.append('\n')
             stripped_fname = tools.get_func_name(func, replace=True)
             code_lines.insert(0, f'# "{stripped_fname}" step function of {self._name}')
 
             # update code scope
+            # ------------------
             for k in list(code_scope.keys()):
                 if k in self._pars.updates:
-                    code_scope[k] = self._pars.updates[k]
-                if k in all_heter_pars:
-                    all_heter_pars.remove(k)
+                    if profile.run_on_cpu():
+                        # run on cpu :
+                        # 1. update the parameter
+                        # 2. remove the heterogeneous parameter
+                        code_scope[k] = self._pars.updates[k]
+                        if k in all_heter_pars:
+                            all_heter_pars.remove(k)
+                    else:
+                        # run on gpu :
+                        # 1. update the parameter
+                        # 2. transform the heterogeneous parameter to function argument
+                        if k in all_heter_pars:
+                            code_args.add(k)
+                            code_arg2call[k] = cuda.to_device(self._pars.updates[k])
+                        else:
+                            code_scope[k] = self._pars.updates[k]
 
             # code to compile
             # -----------------
@@ -979,11 +1036,14 @@ class Runner(object):
 
             # get function call
             # -----------------
+            # 1. get the functional arguments
             arg2calls = [code_arg2call[arg] for arg in sorted(list(code_args))]
             arg_code = tools.func_call(arg2calls)
             if profile.run_on_cpu():
+                # 2. function call on cpu
                 func_call = f'{self._name}_runner.{stripped_fname}({arg_code})'
             else:
+                # 3. function call on gpu
                 if self.ensemble.num < profile._num_thread_gpu:
                     num_block, num_thread = 1, self.ensemble.num
                 else:
@@ -991,17 +1051,31 @@ class Runner(object):
                     num_block = math.ceil(self.ensemble.num / num_thread)
                 func_call = f'{self._name}_runner.{stripped_fname}[{num_block}, {num_thread}]({arg_code})'
 
-            # the final results
+            # the final result
+            # ------------------
             results[stripped_fname] = {'scopes': code_scope,
                                        'args': code_args,
                                        'arg2calls': code_arg2call,
                                        'codes': code_lines,
-                                       'call': func_call}
+                                       'call': func_call,
+                                       'num_data': self.ensemble.num}
 
         # WARNING: heterogeneous parameter may not in the main step functions
         if len(all_heter_pars) > 0:
-            raise ModelDefError(f'Heterogeneous parameters "{list(all_heter_pars)}" are not defined '
-                                f'in main step function. NumpyBrain cannot recognize. Please check.')
+            raise ModelDefError(f'''
+Heterogeneous parameters "{list(all_heter_pars)}" are not defined 
+in main step function. BrainPy can not recognize. 
+
+This error may be caused by:
+1. Heterogeneous par is defined in other non-main step functions.
+2. Heterogeneous par is defined in "integrators", but do not call 
+   "profile.set(merge_integrators=True)".
+
+Several ways to correct this error is:
+1. Define the heterogeneous parameter in the "ST".
+2. Call "profile.set(merge_integrators=True)" define the network definition.
+
+''')
 
         return results
 
@@ -1045,13 +1119,14 @@ class Runner(object):
 
         else:
             if profile._merge_steps:
-                print('WARNING: GPU mode do not support merge steps.')
+                print('WARNING: GPU mode do not support to merge steps.')
 
             for item in self.get_schedule():
                 for compiled_key in compiled_result.keys():
                     if compiled_key.startswith(item):
-                        func_call = compiled_result[item]['call']
+                        func_call = compiled_result[compiled_key]['call']
                         codes_of_calls.append(func_call)
+                        codes_of_calls.append('cuda.synchronize()')
 
         return codes_of_calls
 
@@ -1069,7 +1144,10 @@ class Runner(object):
 
     def set_input_data(self, key, data):
         if profile.run_on_gpu():
-            data_cuda = cuda.to_device(data)
+            if np.isscalar(data):
+                data_cuda = data
+            else:
+                data_cuda = cuda.to_device(data)
             setattr(self, key, data_cuda)
         else:
             setattr(self, key, data)
@@ -1144,21 +1222,15 @@ class TrajectoryRunner(Runner):
             if var not in self.fixed_vars:
                 self.fixed_vars[var] = fixed_vars.get(var)
 
-    def format_step_code(self, func):
+    def format_step_code(self, func_code):
         """Format code of user defined step function.
 
         Parameters
         ----------
-        func : callable
+        func_code : str
             The user defined function.
-
-        Returns
-        -------
-        code_lines : list, tuple
-            The code lines.
         """
-        func_code = tools.deindent(tools.get_main_code(func))
         tree = ast.parse(func_code.strip())
         formatter = tools.LineFormatterForTrajectory(self.fixed_vars)
         formatter.visit(tree)
-        return formatter.lines
+        return formatter
