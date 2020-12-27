@@ -62,7 +62,6 @@ def HH_model(num=20000):
 
 
     duration = 100.
-    t0 = time.time()
     ts = np.arange(0, duration, dt)
     tlen = len(ts)
 
@@ -82,6 +81,7 @@ def HH_model(num=20000):
 
         neu_update_state[blocks_per_grid, threads_per_block, stream](neu_state_cuda, mon_cuda, 0)
         stream.synchronize()
+        t0 = time.time()
         for ti in range(1, tlen):
             neu_update_state[blocks_per_grid, threads_per_block, stream](neu_state_cuda, mon_cuda, ti)
             stream.synchronize()
@@ -99,6 +99,7 @@ def HH_model(num=20000):
 
         neu_update_state[blocks_per_grid, threads_per_block](neu_state_cuda, mon_cuda, 0)
         cuda.synchronize()
+        t0 = time.time()
         for ti in range(1, tlen):
             neu_update_state[blocks_per_grid, threads_per_block](neu_state_cuda, mon_cuda, ti)
             cuda.synchronize()
@@ -110,9 +111,31 @@ def HH_model(num=20000):
         plt.plot(mon)
         plt.show()
 
-    use_stream()
-    t0 = time.time()
-    no_stream()
+
+    def no_stream_to_host():
+        neu_state_cuda = cuda.to_device(neu_state)
+        mon_cuda = cuda.to_device(mon)
+
+        neu_update_state[blocks_per_grid, threads_per_block](neu_state_cuda, mon_cuda, 0)
+        cuda.synchronize()
+        t0 = time.time()
+        for ti in range(1, tlen):
+            neu_update_state[blocks_per_grid, threads_per_block](neu_state_cuda, mon_cuda, ti)
+            cuda.synchronize()
+            if (ti + 1) * 10 % tlen == 0:
+                t1 = time.time()
+                print('{} percent {} s'.format((ti + 1) / tlen * 100, t1 - t0))
+                mon_cuda.to_host()
+        mon_cuda.to_host()
+
+        plt.plot(mon)
+        plt.show()
+
+    # use_stream()
+    # t0 = time.time()
+    # no_stream()
+
+    no_stream_to_host()
 
 
 HH_model(int(1e5))
