@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 bp.profile.set(jit=True,
                device='gpu',
                numerical_method='exponential',
-               show_code=True)
+               show_code=True,
+               show_code_scope=True)
 
 num_exc = 500
 num_inh = 500

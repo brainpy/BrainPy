@@ -16,7 +16,7 @@ from .utils import get_2d_classification
 from .utils import plot_scheme
 from .utils import stability_analysis
 from .. import tools
-from ..core_system import NeuType
+from ..core import NeuType
 from ..errors import ModelUseError
 from ..integration import sympy_tools
 

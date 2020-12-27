@@ -498,6 +498,7 @@ class Runner(object):
                 # add line #
                 code_args.add('_i')
                 code_arg2call['_i'] = '_i'
+                code_scope['cuda'] = cuda
 
                 # final code
                 # ----------
@@ -887,13 +888,15 @@ class Runner(object):
                         while line_no < len(code_lines):
                             line = code_lines[line_no]
                             blank_no = len(line) - len(line.lstrip())
+                            line = line.strip()
                             if line.startswith('pre'):
-                                pre_transformer = ...
+                                pre_transformer = tools.find_atomic_op(line, var2idx)
                                 if pre_transformer.left is not None:
                                     left = pre_transformer.left
                                     right = pre_transformer.right
                                     code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i_, {right})'
                                     add_cuda = True
+                            line_no += 1
                         if add_cuda:
                             code_scope['cuda'] = cuda
                         func_code = '\n'.join(code_lines)
@@ -911,13 +914,15 @@ class Runner(object):
                         while line_no < len(code_lines):
                             line = code_lines[line_no]
                             blank_no = len(line) - len(line.lstrip())
+                            line = line.strip()
                             if line.startswith('post'):
-                                pre_transformer = ...
-                                if pre_transformer.left is not None:
-                                    left = pre_transformer.left
-                                    right = pre_transformer.right
-                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i_, {right})'
+                                post_transformer = tools.find_atomic_op(line, var2idx)
+                                if post_transformer.left is not None:
+                                    left = post_transformer.left
+                                    right = post_transformer.right
+                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _post_i_, {right})'
                                     add_cuda = True
+                            line_no += 1
                         if add_cuda:
                             code_scope['cuda'] = cuda
                         func_code = '\n'.join(code_lines)
@@ -1181,7 +1186,7 @@ class TrajectoryRunner(Runner):
 
     def __init__(self, ensemble, target_vars, fixed_vars=None):
         # check ensemble
-        from brainpy.core_system.neurons import NeuGroup
+        from brainpy.core.neurons import NeuGroup
         try:
             isinstance(ensemble, NeuGroup)
         except AssertionError:

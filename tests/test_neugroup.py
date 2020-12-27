@@ -1,5 +1,5 @@
-from brainpy.core_system import types
-from brainpy.core_system.neurons import NeuGroup, NeuType
+from brainpy.core import types
+from brainpy.core.neurons import NeuGroup, NeuType
 import numpy as np
 from brainpy import profile
 

@@ -6,7 +6,7 @@ import numpy as np
 from numba import cuda
 
 import brainpy as bp
-from brainpy.core_system.runner import Runner
+from brainpy.core.runner import Runner
 
 
 def define_lif():

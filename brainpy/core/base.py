@@ -580,7 +580,9 @@ class Ensemble(object):
             for run_idx in range(run_length):
                 step_func(_t=times[run_idx], _i=run_idx, _dt=dt)
 
+        self.runner.gpu_data_to_cpu()
         self.mon['ts'] = times
+
 
     def get_schedule(self):
         return self.runner.get_schedule()

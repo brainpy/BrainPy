@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import math
 import ast
-
-from .. import profile
+import math
 
 import numpy as np
 import sympy
@@ -17,6 +15,8 @@ from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
+from .. import profile
+
 __all__ = [
     'FUNCTION_MAPPING',
     'CONSTANT_MAPPING',
@@ -28,95 +28,124 @@ __all__ = [
 ]
 
 FUNCTION_MAPPING = {
-    'real': sympy.functions.elementary.complexes.re,
-    'imag': sympy.functions.elementary.complexes.im,
-    'conjugate': sympy.functions.elementary.complexes.conjugate,
-    'sign': sympy.sign,
+    # 'real': sympy.functions.elementary.complexes.re,
+    # 'imag': sympy.functions.elementary.complexes.im,
+    # 'conjugate': sympy.functions.elementary.complexes.conjugate,
+
+    # functions in inherit python
+    # ---------------------------
     'abs': sympy.functions.elementary.complexes.Abs,
 
-    'cos': sympy.functions.elementary.trigonometric.cos,
-    'sin': sympy.functions.elementary.trigonometric.sin,
-    'tan': sympy.functions.elementary.trigonometric.tan,
+    # functions in numpy
+    # ------------------
+    'sign': sympy.sign,
     'sinc': sympy.functions.elementary.trigonometric.sinc,
     'arcsin': sympy.functions.elementary.trigonometric.asin,
     'arccos': sympy.functions.elementary.trigonometric.acos,
     'arctan': sympy.functions.elementary.trigonometric.atan,
     'arctan2': sympy.functions.elementary.trigonometric.atan2,
-
-    'cosh': sympy.functions.elementary.hyperbolic.cosh,
-    'sinh': sympy.functions.elementary.hyperbolic.sinh,
-    'tanh': sympy.functions.elementary.hyperbolic.tanh,
     'arcsinh': sympy.functions.elementary.hyperbolic.asinh,
     'arccosh': sympy.functions.elementary.hyperbolic.acosh,
     'arctanh': sympy.functions.elementary.hyperbolic.atanh,
+    'log2': cfunctions.log2,
+    'log1p': cfunctions.log1p,
+
+    'expm1': cfunctions.expm1,
+    'exp2': cfunctions.exp2,
+
+    # functions in math
+    # ------------------
+    'asin': sympy.functions.elementary.trigonometric.asin,
+    'acos': sympy.functions.elementary.trigonometric.acos,
+    'atan': sympy.functions.elementary.trigonometric.atan,
+    'atan2': sympy.functions.elementary.trigonometric.atan2,
+    'asinh': sympy.functions.elementary.hyperbolic.asinh,
+    'acosh': sympy.functions.elementary.hyperbolic.acosh,
+    'atanh': sympy.functions.elementary.hyperbolic.atanh,
+
+    # functions in both numpy and math
+    # --------------------------------
+
+    'cos': sympy.functions.elementary.trigonometric.cos,
+    'sin': sympy.functions.elementary.trigonometric.sin,
+    'tan': sympy.functions.elementary.trigonometric.tan,
+    'cosh': sympy.functions.elementary.hyperbolic.cosh,
+    'sinh': sympy.functions.elementary.hyperbolic.sinh,
+    'tanh': sympy.functions.elementary.hyperbolic.tanh,
+
+    'log': sympy.functions.elementary.exponential.log,
+    'log10': cfunctions.log10,
+    'sqrt': sympy.functions.elementary.miscellaneous.sqrt,
+    'exp': sympy.functions.elementary.exponential.exp,
+    'hypot': cfunctions.hypot,
 
     'ceil': sympy.functions.elementary.integers.ceiling,
     'floor': sympy.functions.elementary.integers.floor,
-
-    'log': sympy.functions.elementary.exponential.log,
-    'log2': cfunctions.log2,
-    'log1p': cfunctions.log1p,
-    'log10': cfunctions.log10,
-    'exp': sympy.functions.elementary.exponential.exp,
-    'expm1': cfunctions.expm1,
-    'exp2': cfunctions.exp2,
-    'hypot': cfunctions.hypot,
-
-    'sqrt': sympy.functions.elementary.miscellaneous.sqrt,
 }
 
 CONSTANT_MAPPING = {
+    # constants in both numpy and math
+    # --------------------------------
     'pi': sympy.pi,
     'e': sympy.E,
     'inf': sympy.S.Infinity,
-    '-inf': sympy.S.NegativeInfinity
 }
 
 
 def get_mapping_scope():
-    # if profile.run_on_cpu():
+    if profile.run_on_cpu():
+        return {'sign': np.sign, 'cos': np.cos, 'sin': np.sin, 'tan': np.tan,
+                'sinc': np.sinc, 'arcsin': np.arcsin, 'arccos': np.arccos,
+                'arctan': np.arctan, 'arctan2': np.arctan2, 'cosh': np.cosh,
+                'sinh': np.cosh, 'tanh': np.tanh, 'arcsinh': np.arcsinh,
+                'arccosh': np.arccosh, 'arctanh': np.arctanh, 'ceil': np.ceil,
+                'floor': np.floor, 'log': np.log, 'log2': np.log2, 'log1p': np.log1p,
+                'log10': np.log10, 'exp': np.exp, 'expm1': np.expm1, 'exp2': np.exp2,
+                'hypot': np.hypot, 'sqrt': np.sqrt, 'pi': np.pi, 'e': np.e, 'inf': np.inf,
+                'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
+                'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh}
+    else:
         return {
-        'real': np.real,
-        'imag': np.imag,
-        'conjugate': np.conjugate,
-        'sign': np.sign,
-        'abs': np.abs,
+            # functions in numpy
+            # ------------------
+            'arcsin': math.asin, 'arccos': math.acos,
+            'arctan': math.atan, 'arctan2': math.atan2, 'arcsinh': math.asinh,
+            'arccosh': math.acosh, 'arctanh': math.atanh,
+            'sign': np.sign, 'sinc': np.sinc,
+            'log2': np.log2, 'log1p': np.log1p,
+            'expm1': np.expm1, 'exp2': np.exp2,
 
-        'cos': np.cos,
-        'sin': np.sin,
-        'tan': np.tan,
-        'sinc': np.sinc,
-        'arcsin': np.arcsin,
-        'arccos': np.arccos,
-        'arctan': np.arctan,
-        'arctan2': np.arctan2,
+            # functions in math
+            # ------------------
+            'asin': math.asin,
+            'acos': math.acos,
+            'atan': math.atan,
+            'atan2': math.atan2,
+            'asinh': math.asinh,
+            'acosh': math.acosh,
+            'atanh': math.atanh,
 
-        'cosh': np.cosh,
-        'sinh': np.cosh,
-        'tanh': np.tanh,
-        'arcsinh': np.arcsinh,
-        'arccosh': np.arccosh,
-        'arctanh': np.arctanh,
+            # functions in both numpy and math
+            # --------------------------------
+            'cos': math.cos,
+            'sin': math.sin,
+            'tan': math.tan,
+            'cosh': math.cosh,
+            'sinh': math.sinh,
+            'tanh': math.tanh,
+            'log': math.log,
+            'log10': math.log10,
+            'sqrt': math.sqrt,
+            'exp': math.exp,
+            'hypot': math.hypot,
+            'ceil': math.ceil,
+            'floor': math.floor,
 
-        'ceil': np.ceil,
-        'floor': np.floor,
-
-        'log': np.log,
-        'log2': np.log2,
-        'log1p': np.log1p,
-        'log10': np.log10,
-        'exp': np.exp,
-        'expm1': np.expm1,
-        'exp2': np.exp2,
-        'hypot': np.hypot,
-
-        'sqrt': np.sqrt,
-
-        'pi': np.pi,
-        'e': np.e,
-        'inf': np.inf,
-        '-inf': -np.inf
-    }
+            # constants in both numpy and math
+            # --------------------------------
+            'pi': math.pi,
+            'e': math.e,
+            'inf': math.inf}
 
 
 class SympyRender(object):

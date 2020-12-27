@@ -17,9 +17,9 @@ from .utils import rescale
 from .utils import stability_analysis
 from .. import profile
 from .. import tools
-from ..core_system import NeuType
-from ..core_system.neurons import NeuGroup
-from ..core_system.runner import TrajectoryRunner
+from ..core import NeuType
+from ..core.neurons import NeuGroup
+from ..core.runner import TrajectoryRunner
 from ..errors import ModelUseError
 from ..integration import sympy_tools
 

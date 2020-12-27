@@ -55,6 +55,7 @@ if cuda.is_available():
     gpu_set_vector_val = cuda.jit('(float64[:, :], float64[:], int64)')(gpu_set_vector_val)
 
 
+
 class ObjState(dict, TypeChecker):
     def __init__(self, fields, help=''):
         TypeChecker.__init__(self, help=help)

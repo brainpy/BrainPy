@@ -3,10 +3,10 @@
 import numpy as np
 
 from . import profile
-from .core_system import NeuGroup
-from .core_system import NeuType
-from .core_system.types import Array
-from .core_system.types import NeuState
+from .core import NeuGroup
+from .core import NeuType
+from .core.types import Array
+from .core.types import NeuState
 
 __all__ = [
     'constant_current',

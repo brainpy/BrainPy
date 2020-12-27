@@ -4,7 +4,7 @@ from pprint import pprint
 
 import brainpy as bp
 import numpy as np
-from brainpy.core_system.runner import TrajectoryRunner
+from brainpy.core.runner import TrajectoryRunner
 import matplotlib.pyplot as plt
 
 bp.profile.set(jit=True, show_code=True)
