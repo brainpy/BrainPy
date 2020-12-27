@@ -7,6 +7,7 @@ from numba import cuda
 
 from .base import Ensemble
 from .constants import INPUT_OPERATIONS
+from .constants import SCALAR_MODE
 from .neurons import NeuGroup
 from .synapses import SynConn
 from .. import profile
@@ -164,6 +165,10 @@ class Network(object):
         format_inputs = self._format_inputs(inputs, run_length)
 
         for obj in self._all_objects:
+            if profile.run_on_gpu():
+                if obj.model.mode != SCALAR_MODE:
+                    raise ModelUseError('GPU mode only support scalar-based mode.')
+
             code_scopes[obj.name] = obj
             code_scopes[f'{obj.name}_runner'] = obj.runner
             lines_of_call = obj._build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)

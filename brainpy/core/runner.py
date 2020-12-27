@@ -685,7 +685,7 @@ class Runner(object):
 
             # initialize code namespace
             used_args, code_arg2call, code_lines = set(), {}, []
-            func_code, code_scope = self.merge_integrators(func)
+            func_code, code_scope, formatter = self.merge_integrators(func)
             code_scope[f'{self._name}_runner'] = self
 
             # check function code
@@ -721,7 +721,7 @@ class Runner(object):
                             # Function without "delayed" decorator should push their
                             # updated ST to the delay queue
                             if len(delay_keys):
-                                func_code_left = '\n'.join(tools.format_code(func_code).lefts)
+                                func_code_left = '\n'.join(formatter.lefts)
                                 func_keys = set(re.findall(r'' + arg + r'\[[\'"](\w+)[\'"]\]', func_code_left))
                                 func_delay_keys = func_keys.intersection(delay_keys)
                                 if len(func_delay_keys) > 0:

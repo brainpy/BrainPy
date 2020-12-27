@@ -11,10 +11,12 @@
 
 ## Why to use BrainPy
 
-``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT) compilers (especially [Numba](https://numba.pydata.org/)). The goal of ``BrainPy`` is to provide a unified simulation and analysis framework for neuronal dynamics with the feature of high flexibility and efficiency. BrainPy is flexible because it endows the users with the fully data/logic flow control. BrainPy is efficient because it supports JIT acceleration on CPUs (see the following comparison figure. In future, we will support JIT acceleration on GPUs).
+``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT) compilers (especially [Numba](https://numba.pydata.org/)). The goal of ``BrainPy`` is to provide a unified simulation and analysis framework for neuronal dynamics with the feature of high flexibility and efficiency. BrainPy is flexible because it endows the users with the fully data/logic flow control. BrainPy is efficient because it supports JIT acceleration on CPUs  and GPUs.
 
 
-![Speed of BrainPy](docs/images/speed.png)
+![Speed Comparison with Brian2](docs/images/speed.png)
+
+![Scaling of BrainPy](docs/images/speed_scaling.png)
 
 
 
@@ -29,7 +31,7 @@ Install ``BrainPy`` using ``pip``:
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
     > # or
     > pip install git+https://git.openi.org.cn/OpenI/BrainPy
-    > # Or
+    > # or
     > pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V0.2.5
 
 

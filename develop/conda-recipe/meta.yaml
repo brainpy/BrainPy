@@ -1,6 +1,6 @@
 package:
     name: brain.py
-    version: "0.2.6"
+    version: "0.3.0"
 
 source:
     path: ../../

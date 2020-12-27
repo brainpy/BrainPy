@@ -11,6 +11,7 @@ from numba import cuda
 
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
+from .constants import SCALAR_MODE
 from .constants import _NEU_GROUP
 from .constants import _SYN_CONN
 from .runner import Runner
@@ -441,6 +442,10 @@ class Ensemble(object):
             raise ValueError
 
     def _build(self, inputs=None, mon_length=0):
+        if profile.run_on_gpu():
+            if self.model.mode != SCALAR_MODE:
+                raise ModelUseError('GPU mode only support scalar-based mode.')
+
         # prerequisite
         self._type_checking()
 
@@ -580,9 +585,9 @@ class Ensemble(object):
             for run_idx in range(run_length):
                 step_func(_t=times[run_idx], _i=run_idx, _dt=dt)
 
-        self.runner.gpu_data_to_cpu()
+        if profile.run_on_gpu():
+            self.runner.gpu_data_to_cpu()
         self.mon['ts'] = times
-
 
     def get_schedule(self):
         return self.runner.get_schedule()
