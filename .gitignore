@@ -23,8 +23,8 @@ docs/apis/_autosummary
 docs/advanced/usage_of_inputfactory.py
 docs/advanced/usage_of_utils_connect.py
 
-examples/benchmark/brian2*
-examples/benchmark/annarchy*
+develop/benchmark/brian2*
+develop/benchmark/annarchy*
 
 
 MANIFEST.in
