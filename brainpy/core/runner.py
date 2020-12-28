@@ -8,6 +8,7 @@ import re
 import numba
 import numpy as np
 from numba import cuda
+from numba.cuda.random import create_xoroshiro128p_states
 
 from . import constants
 from .types import ObjState
@@ -271,12 +272,12 @@ class Runner(object):
                         tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
                 # format function call
-                if len(target) <= profile._num_thread_gpu:
+                if len(target) <= profile.get_num_thread_gpu():
                     num_thread = len(target)
                     num_block = 1
                 else:
-                    num_thread = profile._num_thread_gpu
-                    num_block = math.ceil(len(target) / profile._num_thread_gpu)
+                    num_thread = profile.get_num_thread_gpu()
+                    num_block = math.ceil(len(target) / profile.get_num_thread_gpu())
                 arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
                 func_call = f'{self._name}_runner.{func_name}[{num_block}, {num_thread}]({tools.func_call(arg2call)})'
 
@@ -525,12 +526,12 @@ class Runner(object):
                         tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
                 # format function call
-                if num_data <= profile._num_thread_gpu:
+                if num_data <= profile.get_num_thread_gpu():
                     num_thread = num_data
                     num_block = 1
                 else:
-                    num_thread = profile._num_thread_gpu
-                    num_block = math.ceil(num_data / profile._num_thread_gpu)
+                    num_thread = profile.get_num_thread_gpu()
+                    num_block = math.ceil(num_data / profile.get_num_thread_gpu())
                 arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
                 func_call = f'{self._name}_runner.{func_name}[{num_block}, {num_thread}]({tools.func_call(arg2call)})'
 
@@ -603,7 +604,7 @@ class Runner(object):
         need_add_mapping_scope = False
         for k, v in code_scope.items():
             if isinstance(v, Integrator):
-                if profile._merge_integrators:
+                if profile.is_merge_integrators():
                     need_add_mapping_scope = True
 
                     # locate the integration function
@@ -834,6 +835,7 @@ class Runner(object):
             # update functions in code scope
             # 1. recursively jit the function
             # 2. update the function parameters
+            has_noise_term = False
             for k, v in code_scope.items():
                 if profile.is_jit() and callable(v):
                     code_scope[k] = tools.numba_func(func=v, params=self._pars.updates)
@@ -971,12 +973,14 @@ class Runner(object):
 
             if has_pre:
                 code_args.add(f'pre_ids')
-                code_arg2call[f'pre_ids'] = f'{self._name}.pre_ids'
+                code_arg2call[f'pre_ids'] = f'{self._name}_runner.pre_ids'
                 code_lines.append(f'  _pre_i_ = pre_ids[_obj_i_]')
+                self.set_input_data('pre_ids', getattr(self.ensemble, 'pre_ids'))
             if has_post:
                 code_args.add(f'post_ids')
-                code_arg2call[f'post_ids'] = f'{self._name}.post_ids'
+                code_arg2call[f'post_ids'] = f'{self._name}_runner.post_ids'
                 code_lines.append(f'  _post_i_ = post_ids[_obj_i_]')
+                self.set_input_data('post_ids', getattr(self.ensemble, 'post_ids'))
 
             # substitute heterogeneous parameter "p" to "p[_obj_i_]"
             # ------------------------------------------------------
@@ -1015,6 +1019,19 @@ class Runner(object):
                             code_arg2call[k] = cuda.to_device(self._pars.updates[k])
                         else:
                             code_scope[k] = self._pars.updates[k]
+            
+            if profile.run_on_gpu():
+                if 'xoroshiro128p_normal_float64' in '\n'.join(code_lines):
+                    if self.ensemble.num < profile.get_num_thread_gpu():
+                        num_block, num_thread = 1, self.ensemble.num
+                    else:
+                        num_thread = profile.get_num_thread_gpu()
+                        num_block = math.ceil(self.ensemble.num / num_thread)
+                    code_args.add('rng_states')
+                    code_arg2call['rng_states'] = f'{self._name}_runner.rng_states'
+                    rng_state = create_xoroshiro128p_states(
+                        num_block * num_thread, seed=np.random.randint(100000))
+                    setattr(self, 'rng_states', rng_state)
 
             # code to compile
             # -----------------
@@ -1024,10 +1041,10 @@ class Runner(object):
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
             # 2. output the function codes
-            if not profile._merge_steps:
-                if profile._show_format_code:
+            if not profile.is_merge_steps():
+                if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                if profile._show_code_scope:
+                if profile.show_format_code():
                     tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
             # 3. jit the compiled function
             func = code_scope[stripped_fname]
@@ -1049,10 +1066,10 @@ class Runner(object):
                 func_call = f'{self._name}_runner.{stripped_fname}({arg_code})'
             else:
                 # 3. function call on gpu
-                if self.ensemble.num < profile._num_thread_gpu:
+                if self.ensemble.num < profile.get_num_thread_gpu():
                     num_block, num_thread = 1, self.ensemble.num
                 else:
-                    num_thread = profile._num_thread_gpu
+                    num_thread = profile.get_num_thread_gpu()
                     num_block = math.ceil(self.ensemble.num / num_thread)
                 func_call = f'{self._name}_runner.{stripped_fname}[{num_block}, {num_thread}]({arg_code})'
 

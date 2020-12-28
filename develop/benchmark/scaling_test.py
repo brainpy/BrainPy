@@ -49,12 +49,12 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         dvdt = (- INa - IK - IL + Isyn) / C
         return dvdt
 
-    def update(ST, _t_):
-        m = np.clip(int_m(ST['m'], _t_, ST['V']), 0., 1.)
-        h = np.clip(int_h(ST['h'], _t_, ST['V']), 0., 1.)
-        n = np.clip(int_n(ST['n'], _t_, ST['V']), 0., 1.)
-        V = int_V(ST['V'], _t_, m, h, n, ST['inp'])
-        sp = np.logical_and(ST['V'] < Vth, V >= Vth)
+    def update(ST, _t):
+        m = int_m(ST['m'], _t, ST['V'])
+        h = int_h(ST['h'], _t, ST['V'])
+        n = int_n(ST['n'], _t, ST['V'])
+        V = int_V(ST['V'], _t, m, h, n, ST['inp'])
+        sp = (ST['V'] < Vth) and (V >= Vth)
         ST['sp'] = sp
         ST['V'] = V
         ST['m'] = m
@@ -62,17 +62,16 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['n'] = n
         ST['inp'] = 0.
 
-    return bp.NeuType(name='HH_neuron', requires={"ST": ST}, steps=update)
+    return bp.NeuType(name='HH_neuron', ST=ST, steps=update)
 
 
 bp.profile.set(dt=0.1,
-               numerical_method='exponential',
-               merge_integrators=True)
+               numerical_method='exponential')
 
 
 def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
     print(f'HH, vector_based={vector}, device=cpu', end=', ')
-    bp.profile.set(backend='numba', device='cpu')
+    bp.profile.set(jit=True, device='cpu')
 
     HH = define_hh()
     HH.mode = 'vector' if vector else 'scalar'
@@ -84,7 +83,32 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
     print('used {:.3f} ms'.format(t_cpu))
 
     print(f'HH, vector_based={vector}, device=multi-cpu', end=', ')
-    bp.profile.set(backend='numba', device='multi-cpu')
+    bp.profile.set(jit=True, device='multi-cpu')
+    neu = bp.NeuGroup(HH, geometry=num)
+    t0 = time.time()
+    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
+    t_multi_cpu = time.time() - t0
+    print('used {:.3f} ms'.format(t_multi_cpu))
+
+    print(f"HH model with multi-cpu speeds up {t_cpu / t_multi_cpu}")
+    print()
+
+
+def hh_compare_cpu_and_gpu(num=1000):
+    print(f'HH, device=cpu', end=', ')
+    bp.profile.set(jit=True, device='cpu', show_code=True)
+
+    HH = define_hh()
+    HH.mode = 'scalar'
+    neu = bp.NeuGroup(HH, geometry=num)
+
+    t0 = time.time()
+    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
+    t_cpu = time.time() - t0
+    print('used {:.3f} ms'.format(t_cpu))
+
+    print(f'HH, device=gpu', end=', ')
+    bp.profile.set(jit=True, device='gpu')
     neu = bp.NeuGroup(HH, geometry=num)
     t0 = time.time()
     neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
@@ -97,11 +121,15 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
 
 if __name__ == '__main__':
     pass
-    # hh_compare_cpu_and_multi_cpu(num=10000, vector=False)
-    # hh_compare_cpu_and_multi_cpu(num=100000, vector=False)
-    # hh_compare_cpu_and_multi_cpu(num=500000, vector=False)
-    # hh_compare_cpu_and_multi_cpu(num=10000, vector=True)
-    # hh_compare_cpu_and_multi_cpu(num=100000, vector=True)
+
+    # hh_compare_cpu_and_multi_cpu(int(1e4))
+    # hh_compare_cpu_and_multi_cpu(int(1e5))
+    # hh_compare_cpu_and_multi_cpu(int(1e6))
+
+    # hh_compare_cpu_and_gpu(int(1e4))
+    # hh_compare_cpu_and_gpu(int(1e5))
+    # hh_compare_cpu_and_gpu(int(1e6))
+    # hh_compare_cpu_and_gpu(int(1e7))
 
 
 

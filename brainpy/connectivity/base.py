@@ -2,7 +2,6 @@
 
 import numba as nb
 import numpy as np
-from numba import cuda
 
 from .. import profile
 from ..errors import ModelUseError
@@ -73,8 +72,8 @@ def mat2ij(conn_mat):
     if np.ndim(conn_mat) != 2:
         raise ModelUseError('Connectivity matrix must be in the shape of (num_pre, num_post).')
     pre_ids, post_ids = np.where(conn_mat > 0)
-    pre_ids = np.int_(pre_ids)
-    post_ids = np.int_(post_ids)
+    pre_ids = np.ascontiguousarray(pre_ids, dtype=np.int_)
+    post_ids = np.ascontiguousarray(post_ids, dtype=np.int_)
     return pre_ids, post_ids
 
 
@@ -379,28 +378,10 @@ class Connector(object):
     def make_conn_mat(self):
         if self.conn_mat is None:
             self.conn_mat = ij2mat(self.pre_ids, self.post_ids, self.num_pre, self.num_post)
-        # if profile.run_on_gpu():
-        #     if self.conn_mat.__class__.__name__ != 'DeviceNDArray':
-        #         self.conn_mat = cuda.to_device(self.conn_mat)
 
     def make_mat2ij(self):
         if self.pre_ids is None or self.post_ids is None:
             self.pre_ids, self.post_ids = mat2ij(self.conn_mat)
-        # if profile.run_on_gpu():
-        #     if self.pre_ids.__class__.__name__ != 'DeviceNDArray':
-        #         self.pre_ids = cuda.to_device(self.pre_ids)
-        #     if self.post_ids.__class__.__name__ != 'DeviceNDArray':
-        #         self.post_ids = cuda.to_device(self.post_ids)
-
-    # def make_pre_ids(self):
-    #     if profile.run_on_gpu():
-    #         if self.pre_ids.__class__.__name__ != 'DeviceNDArray':
-    #             self.pre_ids = cuda.to_device(self.pre_ids)
-
-    # def make_post_ids(self):
-    #     if profile.run_on_gpu():
-    #         if self.post_ids.__class__.__name__ != 'DeviceNDArray':
-    #             self.post_ids = cuda.to_device(self.post_ids)
 
     def make_pre2post(self):
         self.pre2post = pre2post(self.pre_ids, self.post_ids, self.num_pre)

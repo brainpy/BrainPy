@@ -1,8 +1,9 @@
 publishment.md
 #experimental/
-TRN_oscillation/
 TODO.md
 .vscode
+
+examples/
 
 docs/images/numpybrain_arch.pptx
 docs/images/synapses_index.pdf

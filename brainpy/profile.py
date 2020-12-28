@@ -13,11 +13,8 @@ Using the API in ``profile.py``, you can set
 
 from numba import cuda
 
-
 __all__ = [
     'set',
-
-    'is_jit',
 
     'run_on_cpu',
     'run_on_gpu',
@@ -36,19 +33,28 @@ __all__ = [
 
     'set_numba_profile',
     'get_numba_profile',
-]
 
+    'get_num_thread_gpu',
+
+    'is_jit',
+    'is_merge_integrators',
+    'is_merge_steps',
+    'is_substitute_equation',
+    'show_code_scope',
+    'show_format_code',
+]
 
 _jit = False
 _backend = 'numpy'
 _device = 'cpu'
 _dt = 0.1
 _method = 'euler'
-_numba_setting = {'nopython': True,
-                  'fastmath': True,
-                  'nogil': True,
-                  'parallel': False}
-
+_numba_setting = {
+    'nopython': True,
+    'fastmath': True,
+    'nogil': True,
+    'parallel': False
+}
 _show_format_code = False
 _show_code_scope = False
 _substitute_equation = False
@@ -70,7 +76,6 @@ def set(
         show_code=None,
         show_code_scope=None
 ):
-
     # JIT and device
     if device is not None and jit is None:
         assert isinstance(device, str), "'device' must a string."
@@ -104,6 +109,8 @@ def set(
     # option to merge integral functions
     if merge_integrators is not None:
         assert isinstance(merge_integrators, bool), '"merge_integrators" must be True or False.'
+        if run_on_gpu() and not merge_integrators:
+            raise ValueError('GPU mode do not support "merge_integrators = False".')
         global _merge_integrators
         _merge_integrators = merge_integrators
 
@@ -137,7 +144,7 @@ def set_device(jit, device=None):
 
     Parameters
     ----------
-    jit : book
+    jit : bool
         Whether use the jit acceleration.
     device : str, optional
         The device name.
@@ -164,7 +171,7 @@ def set_device(jit, device=None):
     if _device != device:
         if not jit:
             if device != 'cpu':
-                print(f'Non-jit mode now only support "cpu" device, not "{device}".')
+                print(f'Non-JIT mode now only supports "cpu" device, not "{device}".')
             else:
                 _device = device
         else:
@@ -241,31 +248,6 @@ def run_on_gpu():
     return _device.startswith('gpu')
 
 
-
-
-
-
-def set_numba_profile(**kwargs):
-    """Set the compilation options of Numba JIT function.
-
-    Parameters
-    ----------
-    kwargs : Any
-        The arguments, including ``cache``, ``fastmath``,
-        ``parallel``, ``nopython``.
-    """
-    global _numba_setting
-
-    if 'fastmath' in kwargs:
-        _numba_setting['fastmath'] = kwargs.pop('fastmath')
-    if 'nopython' in kwargs:
-        _numba_setting['nopython'] = kwargs.pop('nopython')
-    if 'nogil' in kwargs:
-        _numba_setting['nogil'] = kwargs.pop('nogil')
-    if 'parallel' in kwargs:
-        _numba_setting['parallel'] = kwargs.pop('parallel')
-
-
 def set_backend(backend):
     """Set the running backend.
 
@@ -291,6 +273,26 @@ def get_backend():
     """
     return _backend
 
+
+def set_numba_profile(**kwargs):
+    """Set the compilation options of Numba JIT function.
+
+    Parameters
+    ----------
+    kwargs : Any
+        The arguments, including ``cache``, ``fastmath``,
+        ``parallel``, ``nopython``.
+    """
+    global _numba_setting
+
+    if 'fastmath' in kwargs:
+        _numba_setting['fastmath'] = kwargs.pop('fastmath')
+    if 'nopython' in kwargs:
+        _numba_setting['nopython'] = kwargs.pop('nopython')
+    if 'nogil' in kwargs:
+        _numba_setting['nogil'] = kwargs.pop('nogil')
+    if 'parallel' in kwargs:
+        _numba_setting['parallel'] = kwargs.pop('parallel')
 
 
 def get_numba_profile():
@@ -356,3 +358,27 @@ def get_numerical_method():
         The default numerical integrator method.
     """
     return _method
+
+
+def is_merge_integrators():
+    return _merge_integrators
+
+
+def is_merge_steps():
+    return _merge_steps
+
+
+def is_substitute_equation():
+    return _substitute_equation
+
+
+def show_code_scope():
+    return _show_code_scope
+
+
+def show_format_code():
+    return _show_format_code
+
+
+def get_num_thread_gpu():
+    return _num_thread_gpu
