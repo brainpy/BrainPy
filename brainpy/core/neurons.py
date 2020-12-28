@@ -5,8 +5,8 @@ import typing
 import numpy as np
 
 from . import constants
-from .base import BaseEnsemble
-from .base import BaseType
+from .base import Ensemble
+from .base import ObjType
 from .types import NeuState
 from ..errors import ModelDefError
 from ..errors import ModelUseError
@@ -20,7 +20,7 @@ __all__ = [
 _NEU_GROUP_NO = 0
 
 
-class NeuType(BaseType):
+class NeuType(ObjType):
     """Abstract Neuron Type.
 
     It can be defined based on a group of neurons or a single neuron.
@@ -51,7 +51,7 @@ class NeuType(BaseType):
             extra_attributes=extra_attributes)
 
 
-class NeuGroup(BaseEnsemble):
+class NeuGroup(Ensemble):
     """Neuron Group.
 
     Parameters

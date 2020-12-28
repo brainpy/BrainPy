@@ -4,6 +4,7 @@ import numpy as np
 
 from .diff_equation import DiffEquation
 from .. import profile
+from ..backend import normal_like
 from ..errors import IntegratorError
 
 __all__ = [
@@ -33,7 +34,7 @@ def euler(diff_eqs, *args):
                     val = __f(y0, t, *args)
                     dfdg = val[0]
                     df = dfdg[0] * __dt
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = __dt_sqrt * dfdg[1] * dW
                     y = y0 + df + dg
                     return (y,) + tuple(val[1:])
@@ -45,7 +46,7 @@ def euler(diff_eqs, *args):
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)[0]
                     df = val[0] * __dt
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = __dt_sqrt * val[1] * dW
                     return y0 + df + dg
 
@@ -53,7 +54,7 @@ def euler(diff_eqs, *args):
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     df = val[0] * __dt
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = __dt_sqrt * val[1] * dW
                     return y0 + df + dg
             else:
@@ -139,7 +140,7 @@ def heun(diff_eqs, *args):
                         dfdg = val[0]
                         dg = dfdg[1]
                         df = dfdg[0] * __dt
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         y_bar = y0 + dg * dW * __dt_sqrt
                         dg_bar = __f(y_bar, t, *args)[0][1]
                         dg = 0.5 * (dg + dg_bar) * dW * __dt_sqrt
@@ -154,7 +155,7 @@ def heun(diff_eqs, *args):
                         val = __f(y0, t, *args)[0]
                         df = val[0] * __dt
                         dg = val[1]
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         y_bar = y0 + dg * dW * __dt_sqrt
                         dg_bar = __f(y_bar, t, *args)[0][1]
                         dg = 0.5 * (dg + dg_bar) * dW * __dt_sqrt
@@ -165,7 +166,7 @@ def heun(diff_eqs, *args):
                         val = __f(y0, t, *args)
                         df = val[0] * __dt
                         dg = val[1]
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         y_bar = y0 + dg * dW * __dt_sqrt
                         dg_bar = __f(y_bar, t, *args)[1]
                         dg = 0.5 * (dg + dg_bar) * dW * __dt_sqrt
@@ -332,7 +333,7 @@ def exponential_euler(diff_eq, *args):
                 def int_f(y0, t, *args):
                     val = f(y0, t, *args)
                     dydt, linear_part = val[0], val[1]
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g(y0, t, *args) * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -342,7 +343,7 @@ def exponential_euler(diff_eq, *args):
 
                 def int_f(y0, t, *args):
                     dydt, linear_part = f(y0, t, *args)
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g(y0, t, *args) * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -356,7 +357,7 @@ def exponential_euler(diff_eq, *args):
                 def int_f(y0, t, *args):
                     val = f(y0, t, *args)
                     dydt, linear_part = val[0], val[1]
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -366,7 +367,7 @@ def exponential_euler(diff_eq, *args):
 
                 def int_f(y0, t, *args):
                     dydt, linear_part = f(y0, t, *args)
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -402,7 +403,7 @@ def milstein_Ito(diff_eq, *args):
             if diff_eq.return_type == '(x,x),':
                 if diff_eq.is_multi_return:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0][0]
                         df = dfdg[0] * __dt
@@ -414,7 +415,7 @@ def milstein_Ito(diff_eq, *args):
                         return (y1,) + tuple(val[1:])
                 else:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0][0]
                         df = dfdg[0] * __dt
@@ -426,7 +427,7 @@ def milstein_Ito(diff_eq, *args):
                         return y1
             elif diff_eq.return_type == 'x,x':
                 def int_func(y0, t, *args):
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     val = __f(y0, t, *args)
                     df = val[0] * __dt
                     g_n = val[1]
@@ -454,7 +455,7 @@ def milstein_Stra(diff_eq, *args):
 
                 if diff_eq.is_multi_return:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0]
                         df = dfdg[0] * __dt
@@ -467,7 +468,7 @@ def milstein_Stra(diff_eq, *args):
                         return (y1,) + tuple(val[1:])
                 else:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0]
                         df = dfdg[0] * __dt
@@ -480,7 +481,7 @@ def milstein_Stra(diff_eq, *args):
                         return y1
             elif diff_eq.return_type == 'x,x':
                 def int_func(y0, t, *args):
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dfdg = __f(y0, t, *args)
                     df = dfdg[0] * __dt
                     g_n = dfdg[1]

@@ -3,9 +3,11 @@
 import time
 
 import numpy as np
+from numba import cuda
 
-from .base import BaseEnsemble
+from .base import Ensemble
 from .constants import INPUT_OPERATIONS
+from .constants import SCALAR_MODE
 from .neurons import NeuGroup
 from .synapses import SynConn
 from .. import profile
@@ -97,7 +99,7 @@ class Network(object):
             raise ModelUseError('"inputs" must be a tuple/list.')
 
         if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
-            if isinstance(inputs[0], BaseEnsemble):
+            if isinstance(inputs[0], Ensemble):
                 inputs = [inputs]
             else:
                 raise ModelUseError('Unknown input structure.')
@@ -115,7 +117,7 @@ class Network(object):
             # target
             if isinstance(inp[0], str):
                 target = getattr(self, inp[0]).name
-            elif isinstance(inp[0], BaseEnsemble):
+            elif isinstance(inp[0], Ensemble):
                 target = inp[0].name
             else:
                 raise KeyError(f'Unknown input target: {str(inp[0])}')
@@ -163,9 +165,16 @@ class Network(object):
         format_inputs = self._format_inputs(inputs, run_length)
 
         for obj in self._all_objects:
+            if profile.run_on_gpu():
+                if obj.model.mode != SCALAR_MODE:
+                    raise ModelUseError('GPU mode only support scalar-based mode.')
+
             code_scopes[obj.name] = obj
+            code_scopes[f'{obj.name}_runner'] = obj.runner
             lines_of_call = obj._build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)
             code_lines.extend(lines_of_call)
+        if profile.run_on_gpu():
+            code_scopes['cuda'] = cuda
         func_code = '\n  '.join(code_lines)
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
@@ -194,9 +203,8 @@ class Network(object):
         report_percent : float
             The speed to report simulation progress.
         """
-        # initialization
+        # check the duration
         # ------------------
-        # times
         if isinstance(duration, (int, float)):
             start, end = 0, duration
         elif isinstance(duration, (tuple, list)):
@@ -206,23 +214,24 @@ class Network(object):
             raise ValueError(f'Unknown duration type: {type(duration)}')
         self.t_start, self.t_end = start, end
         dt = profile.get_dt()
-        ts = np.arange(start, end, dt)
-        ts = np.asarray(ts, dtype=np.float_)
+        ts = np.asarray(np.arange(start, end, dt), dtype=np.float_)
         run_length = ts.shape[0]
 
-        # 1. build
-        # ----------
         if self.mode != 'repeat' or self._step_func is None:
+            # initialize the function
+            # -----------------------
             self._step_func = self.build(run_length, inputs)
             self.t_duration = end - start
         else:
             # check running duration
+            # ----------------------
             if self.t_duration != (end - start):
                 raise ModelUseError(f'Each run in "repeat" mode must be done '
                                     f'with the same duration, but got '
                                     f'{self.t_duration} != {end - start}.')
 
-            # reset inputs
+            # check and reset inputs
+            # ----------------------
             formatted_inputs = self._format_inputs(inputs, run_length)
             for obj_name, inps in formatted_inputs.items():
                 obj = getattr(self, obj_name)
@@ -230,30 +239,24 @@ class Network(object):
                 all_keys = list(obj_inputs.keys())
                 for key, val, ops, data_type in inps:
                     if np.shape(obj_inputs[key][0]) != np.shape(val):
-                        raise ModelUseError(f'The input shape for "{key}" should keep the same. However, we got '
-                                            f'the last input shape = {np.shape(obj_inputs[key][0])}, '
+                        raise ModelUseError(f'The input shape for "{key}" should keep the same. '
+                                            f'However, we got the last input shape '
+                                            f'= {np.shape(obj_inputs[key][0])}, '
                                             f'and the current input shape = {np.shape(val)}')
                     if obj_inputs[key][1] != ops:
-                        raise ModelUseError(f'The input operation for "{key}" should keep the same. However, we got '
-                                            f'the last operation is "{obj_inputs[key][1]}", '
-                                            f'and the current operation is "{ops}"')
-                    if np.isscalar(val):
-                        setattr(obj.runner, f'{key.replace(".", "_")}_inp', val)
-                    else:
-                        getattr(obj.runner, f'{key.replace(".", "_")}_inp')[:] = val
+                        raise ModelUseError(f'The input operation for "{key}" should keep the same. '
+                                            f'However, we got the last operation is '
+                                            f'"{obj_inputs[key][1]}", and the current operation '
+                                            f'is "{ops}"')
+                    obj.runner.set_input_data(f'{key.replace(".", "_")}_inp', val)
                     all_keys.remove(key)
                 if len(all_keys):
                     raise ModelUseError(f'The inputs of {all_keys} are not provided.')
 
-            # reset monitors
-            for obj in self._all_objects:
-                for val in obj.mon.values():
-                    val[:] = 0.
-
-        # 2. run
-        # ---------
         dt = self.dt
         if report:
+            # Run the model with progress report
+            # ----------------------------------
             t0 = time.time()
             self._step_func(_t=ts[0], _i=0, _dt=dt)
             print('Compilation used {:.4f} s.'.format(time.time() - t0))
@@ -268,11 +271,16 @@ class Network(object):
                     print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
             print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
         else:
+            # Run the model
+            # -------------
             for run_idx in range(run_length):
                 self._step_func(_t=ts[run_idx], _i=run_idx, _dt=dt)
 
-        # monitor
+        # format monitor
+        # --------------
         for obj in self._all_objects:
+            if profile.run_on_gpu():
+                obj.runner.gpu_data_to_cpu()
             obj.mon['ts'] = self.ts
 
     @property

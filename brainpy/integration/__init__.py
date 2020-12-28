@@ -39,7 +39,7 @@ def integrate(func=None, method=None):
 
     Using ``BrainPy``, this ODE function can be written as
 
-    >>> import brainpy.backend as np
+    >>> import numpy as np
     >>> from brainpy import integrate
     >>>
     >>> @integrate(method='rk4')

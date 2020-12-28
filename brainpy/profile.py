@@ -11,15 +11,16 @@ Using the API in ``profile.py``, you can set
 
 """
 
+from numba import cuda
 
 __all__ = [
     'set',
 
-    'is_jit_backend',
-    'is_cpu_device',
+    'run_on_cpu',
+    'run_on_gpu',
 
-    'set_numba_profile',
-    'get_numba_profile',
+    'set_backend',
+    'get_backend',
 
     'set_device',
     'get_device',
@@ -29,24 +30,37 @@ __all__ = [
 
     'set_numerical_method',
     'get_numerical_method',
+
+    'set_numba_profile',
+    'get_numba_profile',
+
+    'get_num_thread_gpu',
+
+    'is_jit',
+    'is_merge_integrators',
+    'is_merge_steps',
+    'is_substitute_equation',
+    'show_code_scope',
+    'show_format_code',
 ]
 
-
 _jit = False
-_backend = 'backend'
+_backend = 'numpy'
 _device = 'cpu'
 _dt = 0.1
 _method = 'euler'
-_numba_setting = {'nopython': True,
-                  'fastmath': True,
-                  'nogil': True,
-                  'parallel': False}
-
+_numba_setting = {
+    'nopython': True,
+    'fastmath': True,
+    'nogil': True,
+    'parallel': False
+}
 _show_format_code = False
 _show_code_scope = False
 _substitute_equation = False
 _merge_integrators = True
 _merge_steps = False
+_num_thread_gpu = None
 
 
 def set(
@@ -62,7 +76,6 @@ def set(
         show_code=None,
         show_code_scope=None
 ):
-
     # JIT and device
     if device is not None and jit is None:
         assert isinstance(device, str), "'device' must a string."
@@ -96,6 +109,8 @@ def set(
     # option to merge integral functions
     if merge_integrators is not None:
         assert isinstance(merge_integrators, bool), '"merge_integrators" must be True or False.'
+        if run_on_gpu() and not merge_integrators:
+            raise ValueError('GPU mode do not support "merge_integrators = False".')
         global _merge_integrators
         _merge_integrators = merge_integrators
 
@@ -129,7 +144,7 @@ def set_device(jit, device=None):
 
     Parameters
     ----------
-    jit : book
+    jit : bool
         Whether use the jit acceleration.
     device : str, optional
         The device name.
@@ -147,6 +162,7 @@ def set_device(jit, device=None):
     # ------
 
     global _device
+    global _num_thread_gpu
 
     if device is None:
         return
@@ -155,7 +171,7 @@ def set_device(jit, device=None):
     if _device != device:
         if not jit:
             if device != 'cpu':
-                print(f'Non-jit mode only support "cpu" device, not "{device}".')
+                print(f'Non-JIT mode now only supports "cpu" device, not "{device}".')
             else:
                 _device = device
         else:
@@ -163,10 +179,27 @@ def set_device(jit, device=None):
                 set_numba_profile(parallel=False)
             elif device == 'multi-cpu':
                 set_numba_profile(parallel=True)
-            elif device == 'gpu':
-                raise NotImplementedError('BrainPy currently doesn\'t support GPU.')
             else:
-                raise ValueError(f'Unknown device in Numba mode: {device}.')
+                if device.startswith('gpu'):
+                    # get cuda id
+                    cuda_id = device.replace('gpu', '')
+                    if cuda_id == '':
+                        cuda_id = 0
+                        device = f'{device}0'
+                    else:
+                        cuda_id = float(cuda_id)
+
+                    # set cuda
+                    if cuda.is_available():
+                        cuda.select_device(cuda_id)
+                    else:
+                        raise ValueError('Cuda is not available. Cannot set gpu backend.')
+
+                    gpu = cuda.get_current_device()
+                    _num_thread_gpu = gpu.MAX_THREADS_PER_BLOCK
+
+                else:
+                    raise ValueError(f'Unknown device in Numba mode: {device}.')
             _device = device
 
 
@@ -182,7 +215,7 @@ def get_device():
     return _device
 
 
-def is_jit_backend():
+def is_jit():
     """Check whether the backend is ``numba``.
 
     Returns
@@ -193,7 +226,7 @@ def is_jit_backend():
     return _jit
 
 
-def is_cpu_device():
+def run_on_cpu():
     """Check whether the device is "CPU".
 
     Returns
@@ -202,6 +235,43 @@ def is_cpu_device():
         True or False.
     """
     return _device.endswith('cpu')
+
+
+def run_on_gpu():
+    """Check whether the device is "GPU".
+
+    Returns
+    -------
+    device : bool
+        True or False.
+    """
+    return _device.startswith('gpu')
+
+
+def set_backend(backend):
+    """Set the running backend.
+
+    Parameters
+    ----------
+    backend : str
+        The backend name.
+    """
+    if backend not in ['numpy', 'pytorch']:
+        raise ValueError(f'BrainPy now supports "numpy" or "pytorch" backend, not "{backend}".')
+
+    global _backend
+    _backend = backend
+
+
+def get_backend():
+    """Get the used backend of BrainPy.
+
+    Returns
+    -------
+    backend : str
+        The backend name.
+    """
+    return _backend
 
 
 def set_numba_profile(**kwargs):
@@ -288,3 +358,27 @@ def get_numerical_method():
         The default numerical integrator method.
     """
     return _method
+
+
+def is_merge_integrators():
+    return _merge_integrators
+
+
+def is_merge_steps():
+    return _merge_steps
+
+
+def is_substitute_equation():
+    return _substitute_equation
+
+
+def show_code_scope():
+    return _show_code_scope
+
+
+def show_format_code():
+    return _show_format_code
+
+
+def get_num_thread_gpu():
+    return _num_thread_gpu

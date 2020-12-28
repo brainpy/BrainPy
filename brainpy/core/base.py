@@ -7,9 +7,11 @@ import typing
 from copy import deepcopy
 
 import numpy as np
+from numba import cuda
 
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
+from .constants import SCALAR_MODE
 from .constants import _NEU_GROUP
 from .constants import _SYN_CONN
 from .runner import Runner
@@ -24,13 +26,13 @@ from ..errors import ModelUseError
 from ..errors import TypeMismatchError
 
 __all__ = [
-    'BaseType',
-    'BaseEnsemble',
+    'ObjType',
+    'Ensemble',
     'ParsUpdate',
 ]
 
 
-class BaseType(object):
+class ObjType(object):
     """The base type of neuron and synapse.
 
     Parameters
@@ -93,9 +95,7 @@ class BaseType(object):
         else:
             raise ModelDefError('"steps" must be a callable, or a list/tuple of callable functions.')
         for func in steps:
-            try:
-                assert callable(func)
-            except AssertionError:
+            if not callable(func):
                 raise ModelDefError('"steps" must be a list/tuple of callable functions.')
 
             # function name
@@ -169,11 +169,9 @@ class BaseType(object):
         # ----------------
         if extra_attributes is None:
             extra_attributes = dict()
-        try:
-            for key, val in extra_attributes.items():
-                assert isinstance(key, str)
-        except AssertionError:
-            raise ModelUseError('"extra_attributes" must be a dict with string keys.')
+        for key, val in extra_attributes.items():
+            if not isinstance(key, str):
+                raise ModelUseError('"extra_attributes" must be a dict with string keys.')
         self.extra_attributes = extra_attributes
 
     def __str__(self):
@@ -223,7 +221,17 @@ class ParsUpdate(dict):
                 self.heters[key] = value
 
         # update
-        self.updates[key] = value
+        if profile.run_on_cpu():
+            self.updates[key] = value
+        else:
+            if isinstance(value, (int, float)):
+                self.updates[key] = value
+            elif value.__class__.__name__ == 'DeviceNDArray':
+                self.updates[key] = value
+            elif isinstance(value, np.ndarray):
+                self.updates[key] = cuda.to_device(value)
+            else:
+                raise ValueError(f'GPU mode cannot support {type(value)}.')
 
     def __getitem__(self, item):
         if item in self.updates:
@@ -298,7 +306,7 @@ class ParsUpdate(dict):
         return origins
 
 
-class BaseEnsemble(object):
+class Ensemble(object):
     """Base Ensemble class.
 
     Parameters
@@ -307,7 +315,7 @@ class BaseEnsemble(object):
         Name of the (neurons/synapses) ensemble.
     num : int
         The number of the neurons/synapses.
-    model : BaseType
+    model : ObjType
         The (neuron/synapse) model.
     monitors : list, tuple, None
         Variables to monitor.
@@ -321,7 +329,7 @@ class BaseEnsemble(object):
             self,
             name: str,
             num: int,
-            model: BaseType,
+            model: ObjType,
             monitors: typing.Tuple,
             pars_update: typing.Dict,
             cls_type: str
@@ -393,6 +401,9 @@ class BaseEnsemble(object):
         for attr_key, attr_val in model.extra_attributes.items():
             setattr(self, attr_key, attr_val)
 
+    def to_cuda(self, key, val):
+        pass
+
     def _type_checking(self):
         # check state and its type
         if not hasattr(self, 'ST'):
@@ -431,6 +442,10 @@ class BaseEnsemble(object):
             raise ValueError
 
     def _build(self, inputs=None, mon_length=0):
+        if profile.run_on_gpu():
+            if self.model.mode != SCALAR_MODE:
+                raise ModelUseError('GPU mode only support scalar-based mode.')
+
         # prerequisite
         self._type_checking()
 
@@ -457,13 +472,8 @@ class BaseEnsemble(object):
         calls = self.runner.merge_codes(results)
 
         if self._cls_type == _SYN_CONN:
-            index_update_items = set()
-            for func in self.model.steps:
-                for arg in inspect.getfullargspec(func).args:
-                    if self._is_state_attr(arg):
-                        index_update_items.add(arg)
-            for arg in index_update_items:
-                calls.append(f'{self.name}.{arg}._update_delay_indices()')
+            if self.delay_len > 1:
+                calls.append(f'{self.name}.ST._update_delay_indices()')
 
         return calls
 
@@ -488,9 +498,7 @@ class BaseEnsemble(object):
 
         # check inputs
         # -------------
-        try:
-            assert isinstance(inputs, (tuple, list))
-        except AssertionError:
+        if not isinstance(inputs, (tuple, list)):
             raise ModelUseError('"inputs" must be a tuple/list.')
         if len(inputs) and not isinstance(inputs[0], (list, tuple)):
             if isinstance(inputs[0], str):
@@ -499,9 +507,7 @@ class BaseEnsemble(object):
                 raise ModelUseError('Unknown input structure, only support inputs '
                                     'with format of "(key, value, [operation])".')
         for inp in inputs:
-            try:
-                assert 2 <= len(inp) <= 3
-            except AssertionError:
+            if not 2 <= len(inp) <= 3:
                 raise ModelUseError('For each target, you must specify "(key, value, [operation])".')
             if len(inp) == 3:
                 try:
@@ -515,9 +521,7 @@ class BaseEnsemble(object):
         formatted_inputs = []
         for inp in inputs:
             # key
-            try:
-                assert isinstance(inp[0], str)
-            except AssertionError:
+            if not isinstance(inp[0], str):
                 raise ModelUseError('For each input, input[0] must be a string '
                                     'to specify variable of the target.')
             key = inp[0]
@@ -550,7 +554,9 @@ class BaseEnsemble(object):
                                     mon_length=run_length)
         code_lines = ['def step_func(_t, _i, _dt):']
         code_lines.extend(lines_of_call)
-        code_scopes = {self.name: self}
+        code_scopes = {self.name: self, f"{self.name}_runner": self.runner}
+        if profile.run_on_gpu():
+            code_scopes['cuda'] = cuda
         func_code = '\n  '.join(code_lines)
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
@@ -579,6 +585,8 @@ class BaseEnsemble(object):
             for run_idx in range(run_length):
                 step_func(_t=times[run_idx], _i=run_idx, _dt=dt)
 
+        if profile.run_on_gpu():
+            self.runner.gpu_data_to_cpu()
         self.mon['ts'] = times
 
     def get_schedule(self):

@@ -4,6 +4,7 @@ import copy
 
 import numpy as np
 import sympy
+from numba.cuda.random import xoroshiro128p_normal_float64
 
 from . import methods
 from .diff_equation import DiffEquation
@@ -94,11 +95,13 @@ class Integrator(object):
     @property
     def code_scope(self):
         scope = self.diff_eq.func_scope
-        if profile._jit:
-            scope['_normal_like'] = backend.numba_cpu.normal_like
+        if profile.run_on_cpu():
+            if profile.is_jit():
+                scope['_normal_like'] = backend.numba_cpu.normal_like
+            else:
+                scope['_normal_like'] = backend.normal_like
         else:
-            scope['_normal_like'] = backend.normal_like
-            # scope['np'] = np
+            scope['xoroshiro128p_normal_float64'] = xoroshiro128p_normal_float64
         return scope
 
 
@@ -182,7 +185,11 @@ class Euler(Integrator):
 
         # get code lines of dg part
         if diff_eq.is_stochastic:
-            code_lines.append(f'_{var_name}_dW = _normal_like({var_name})')
+            if profile.run_on_gpu():
+                noise = f'xoroshiro128p_normal_float64'
+            else:
+                noise = f'_normal_like({var_name})'
+            code_lines.append(f'_{var_name}_dW = {noise}')
             code_lines.extend([str(expr) for expr in diff_eq.get_g_expressions()])
             dgdt = sympy.Symbol(f'_{var_name}_dW') * sympy.Symbol(f'_dg{var_name}_dt')
         else:
@@ -375,7 +382,11 @@ class Heun(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * _normal_like({var_name})')
+                if profile.run_on_gpu():
+                    noise = f'xoroshiro128p_normal_float64'
+                else:
+                    noise = f'_normal_like({var_name})'
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions[:-1]])
                 code_lines.append(f'_dg{var_name}_dt_k1 = {g_k1_expressions[-1].code}')
@@ -847,7 +858,7 @@ class ExponentialEuler(Integrator):
         func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
         code_scopes = copy.copy(diff_eq.func_scope)
         code_scopes.update(get_mapping_scope())
-        if profile._jit:
+        if profile.is_jit():
             code_scopes['_normal_like'] = backend.numba_cpu.normal_like
         else:
             code_scopes['_normal_like'] = backend.normal_like
@@ -893,7 +904,11 @@ class ExponentialEuler(Integrator):
         # get dg part
         if diff_eq.is_stochastic:
             # dW
-            code_lines.append(f'_{diff_eq.var_name}_dW = _normal_like({diff_eq.var_name})')
+            if profile.run_on_gpu():
+                noise = f'xoroshiro128p_normal_float64'
+            else:
+                noise = f'_normal_like({diff_eq.var_name})'
+            code_lines.append(f'_{diff_eq.var_name}_dW = {noise}')
             # expressions of the stochastic part
             g_expressions = diff_eq.get_g_expressions()
             code_lines.extend([str(expr) for expr in g_expressions[:-1]])
@@ -981,7 +996,11 @@ class MilsteinIto(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * _normal_like({var_name})')
+                if profile.run_on_gpu():
+                    noise = f'xoroshiro128p_normal_float64'
+                else:
+                    noise = f'_normal_like({var_name})'
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
@@ -1093,7 +1112,11 @@ class MilsteinStra(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * _normal_like({var_name})')
+                if profile.run_on_gpu():
+                    noise = f'xoroshiro128p_normal_float64'
+                else:
+                    noise = f'_normal_like({var_name})'
+                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
