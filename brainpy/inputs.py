@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from numba.cuda.random import xoroshiro128p_uniform_float64
 
 from . import profile
 from .core import NeuGroup
@@ -175,13 +176,22 @@ class PoissonInput(NeuGroup):
         # neuron model
         dt = profile.get_dt() / 1000.
 
-        def update(ST):
-            ST['spike'] = np.random.random(ST['spike'].shape) < freqs * dt
+        if profile.run_on_cpu():
+            def update(ST):
+                ST['spike'] = np.random.random(ST['spike'].shape) < freqs * dt
 
-        model = NeuType(name='poisson_input',
-                        ST=NeuState(['spike']),
-                        steps=update,
-                        mode='vector')
+            model = NeuType(name='poisson_input',
+                            ST=NeuState(['spike']),
+                            steps=update,
+                            mode='vector')
+        else:
+            def update(ST):
+                ST['spike'] = xoroshiro128p_uniform_float64 < freqs * dt
+
+            model = NeuType(name='poisson_input',
+                            ST=NeuState(['spike']),
+                            steps=update,
+                            mode='scalar')
 
         # neuron group
         super(PoissonInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
@@ -239,7 +249,10 @@ class SpikeTimeInput(NeuGroup):
                         mode='vector')
 
         # neuron group
-        super(SpikeTimeInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
+        super(SpikeTimeInput, self).__init__(model=model,
+                                             geometry=geometry,
+                                             monitors=monitors,
+                                             name=name)
         self.input_idx = np.array([0], dtype=np.int_)
 
         # indices
@@ -293,7 +306,7 @@ class FreqInput(NeuGroup):
                   f'is {1000. / profile.get_dt()} Hz. While we get your "freq" setting which '
                   f'is bigger than that.')
 
-        ST = NeuState({'spike': 0., 't_next_spike': 0., 't_last_spike': -1e7})
+        state = NeuState({'spike': 0., 't_next_spike': 0., 't_last_spike': -1e7})
 
         if profile.is_jit():
             def update_state(ST, _t_):
@@ -305,7 +318,7 @@ class FreqInput(NeuGroup):
                     ST['spike'] = 0.
 
             model = NeuType(name='poisson_input',
-                            ST=ST,
+                            ST=state,
                             steps=update_state,
                             mode='scalar')
 
@@ -327,7 +340,7 @@ class FreqInput(NeuGroup):
                     ST['t_next_spike'][spike_ids] += 1000. / freqs[spike_ids]
 
             model = NeuType(name='poisson_input',
-                            ST=ST,
+                            ST=state,
                             steps=update_state,
                             mode='vector')
 

@@ -9,6 +9,10 @@ import numba
 import numpy as np
 from numba import cuda
 from numba.cuda.random import create_xoroshiro128p_states
+from numba.cuda.random import xoroshiro128p_uniform_float64
+from numba.cuda.random import xoroshiro128p_uniform_float32
+from numba.cuda.random import xoroshiro128p_normal_float64
+from numba.cuda.random import xoroshiro128p_normal_float32
 
 from . import constants
 from .types import ObjState
@@ -835,7 +839,6 @@ class Runner(object):
             # update functions in code scope
             # 1. recursively jit the function
             # 2. update the function parameters
-            has_noise_term = False
             for k, v in code_scope.items():
                 if profile.is_jit() and callable(v):
                     code_scope[k] = tools.numba_func(func=v, params=self._pars.updates)
@@ -1019,9 +1022,33 @@ class Runner(object):
                             code_arg2call[k] = cuda.to_device(self._pars.updates[k])
                         else:
                             code_scope[k] = self._pars.updates[k]
-            
+
+            # add noise term for GPU mode
+            # ---------------------------
             if profile.run_on_gpu():
-                if 'xoroshiro128p_normal_float64' in '\n'.join(code_lines):
+                func_code = '\n'.join(code_lines)
+                has_noise_term = False
+                if 'xoroshiro128p_normal_float64' in func_code:
+                    func_code = func_code.replace('xoroshiro128p_normal_float64',
+                                                  'xoroshiro128p_normal_float64(rng_states, _obj_i_)')
+                    code_scope['xoroshiro128p_normal_float64'] = xoroshiro128p_normal_float64
+                    has_noise_term = True
+                if 'xoroshiro128p_uniform_float64' in func_code:
+                    func_code = func_code.replace('xoroshiro128p_uniform_float64',
+                                                  'xoroshiro128p_uniform_float64(rng_states, _obj_i_)')
+                    code_scope['xoroshiro128p_uniform_float64'] = xoroshiro128p_uniform_float64
+                    has_noise_term = True
+                if 'xoroshiro128p_normal_float32' in func_code:
+                    func_code = func_code.replace('xoroshiro128p_normal_float32',
+                                                  'xoroshiro128p_normal_float32(rng_states, _obj_i_)')
+                    code_scope['xoroshiro128p_normal_float32'] = xoroshiro128p_normal_float32
+                    has_noise_term = True
+                if 'xoroshiro128p_uniform_float32' in func_code:
+                    func_code = func_code.replace('xoroshiro128p_uniform_float32',
+                                                  'xoroshiro128p_uniform_float32(rng_states, _obj_i_)')
+                    code_scope['xoroshiro128p_uniform_float32'] = xoroshiro128p_uniform_float32
+                    has_noise_term = True
+                if has_noise_term:
                     if self.ensemble.num < profile.get_num_thread_gpu():
                         num_block, num_thread = 1, self.ensemble.num
                     else:
@@ -1029,9 +1056,9 @@ class Runner(object):
                         num_block = math.ceil(self.ensemble.num / num_thread)
                     code_args.add('rng_states')
                     code_arg2call['rng_states'] = f'{self._name}_runner.rng_states'
-                    rng_state = create_xoroshiro128p_states(
-                        num_block * num_thread, seed=np.random.randint(100000))
+                    rng_state = create_xoroshiro128p_states(num_block * num_thread, seed=np.random.randint(100000))
                     setattr(self, 'rng_states', rng_state)
+                    code_lines = func_code.split('\n')
 
             # code to compile
             # -----------------

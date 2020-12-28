@@ -186,7 +186,7 @@ class Euler(Integrator):
         # get code lines of dg part
         if diff_eq.is_stochastic:
             if profile.run_on_gpu():
-                noise = f'xoroshiro128p_normal_float64(rng_states, _obj_i_)'
+                noise = f'xoroshiro128p_normal_float64'
             else:
                 noise = f'_normal_like({var_name})'
             code_lines.append(f'_{var_name}_dW = {noise}')
@@ -383,7 +383,7 @@ class Heun(Integrator):
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
                 if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64(rng_states, _obj_i_)'
+                    noise = f'xoroshiro128p_normal_float64'
                 else:
                     noise = f'_normal_like({var_name})'
                 code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
@@ -905,7 +905,7 @@ class ExponentialEuler(Integrator):
         if diff_eq.is_stochastic:
             # dW
             if profile.run_on_gpu():
-                noise = f'xoroshiro128p_normal_float64(rng_states, _obj_i_)'
+                noise = f'xoroshiro128p_normal_float64'
             else:
                 noise = f'_normal_like({diff_eq.var_name})'
             code_lines.append(f'_{diff_eq.var_name}_dW = {noise}')
@@ -997,7 +997,7 @@ class MilsteinIto(Integrator):
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
                 if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64(rng_states, _obj_i_)'
+                    noise = f'xoroshiro128p_normal_float64'
                 else:
                     noise = f'_normal_like({var_name})'
                 code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
@@ -1113,7 +1113,7 @@ class MilsteinStra(Integrator):
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
                 if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64(rng_states, _obj_i_)'
+                    noise = f'xoroshiro128p_normal_float64'
                 else:
                     noise = f'_normal_like({var_name})'
                 code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')

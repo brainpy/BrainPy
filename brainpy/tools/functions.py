@@ -155,8 +155,10 @@ def get_func_scope(func, include_dispatcher=False):
     elif type(func).__name__ == 'function':
         func_name = get_func_name(func, replace=True)
         variables = inspect.getclosurevars(func)
+        if func_name.startswith('xoroshiro128p_'):
+            return {}
     else:
-        if type(func).__name__ == 'ufunc':
+        if backend.func_in_numpy_or_math(func):
             return {}
         raise ValueError(f'Unknown type: {type(func)}')
     scope = dict(variables.nonlocals)
