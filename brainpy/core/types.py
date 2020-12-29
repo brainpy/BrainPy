@@ -162,7 +162,7 @@ class NeuState(ObjState):
 def update_delay_indices(delay_in, delay_out, delay_len):
     _delay_in = (delay_in + 1) % delay_len
     _delay_out = (delay_out + 1) % delay_len
-    return _delay_in, delay_out
+    return _delay_in, _delay_out
 
 
 class SynState(ObjState):
