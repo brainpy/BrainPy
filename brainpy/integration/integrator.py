@@ -96,7 +96,7 @@ class Integrator(object):
     def code_scope(self):
         scope = self.diff_eq.func_scope
         if profile.run_on_cpu():
-            scope['_normal_like'] = backend.numba_cpu.normal_like
+            scope['_normal_like'] = backend.normal_like
         else:
             scope['xoroshiro128p_normal_float64'] = xoroshiro128p_normal_float64
         return scope
@@ -855,7 +855,7 @@ class ExponentialEuler(Integrator):
         func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
         code_scopes = copy.copy(diff_eq.func_scope)
         code_scopes.update(get_mapping_scope())
-        code_scopes['_normal_like'] = backend.numba_cpu.normal_like
+        code_scopes['_normal_like'] = backend.normal_like
         exec(compile(func_code, '', 'exec'), code_scopes)
         self._update_func = code_scopes['int_func']
 

@@ -4,7 +4,7 @@ import numpy as np
 
 from .diff_equation import DiffEquation
 from .. import profile
-from ..backend.numba_cpu import normal_like
+from ..backend import normal_like
 from ..errors import IntegratorError
 
 __all__ = [
