@@ -17,7 +17,7 @@ brainpy.core package
     ParsUpdate
     delayed
 
-.. autoclass:: BaseType
+.. autoclass:: ObjType
    :members:
 
 .. autoclass:: NeuType
@@ -26,7 +26,7 @@ brainpy.core package
 .. autoclass:: SynType
    :members:
 
-.. autoclass:: BaseEnsemble
+.. autoclass:: Ensemble
    :members:
 
 .. autoclass:: NeuGroup
