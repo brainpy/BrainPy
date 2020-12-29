@@ -13,11 +13,6 @@ flexibility and efficiency.
     More features are coming soon. Contributions are welcome.
     https://github.com/PKU-NIP-Lab/BrainPy
 
-.. warning::
-
-    The documentation of BrainPy is incomplete. We will
-    speed up this progress as we can.
-
 
 .. toctree::
    :maxdepth: 1

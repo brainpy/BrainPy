@@ -21,17 +21,29 @@ brainpy.tools package
 .. autosummary::
     :toctree: _autosummary
 
+    CodeLineFormatter
+    format_code
+
+    LineFormatterForTrajectory
+    format_code_for_trajectory
+
+    FindAtomicOp
+    find_atomic_op
+
+    FuncCallFinder
+    replace_func
+
+    DiffEquationAnalyser
+    analyse_diff_eq
+
     get_identifiers
     get_main_code
     get_line_indent
-    format_code
+
     indent
     deindent
     word_replace
-    replace_func
-    FuncCallFinder
-    analyse_diff_eq
-    DiffEquationAnalyser
+
     is_lambda_function
     func_call
     get_func_source
