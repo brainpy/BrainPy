@@ -31,6 +31,3 @@ def func_in_numpy_or_math(func):
     return func in _functions_in_math or func in _functions_in_numpy
 
 
-def normal_like(x):
-    return numpy.random.normal(size=numpy.shape(x))
-
