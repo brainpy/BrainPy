@@ -32,6 +32,7 @@ flexibility and efficiency.
 
    advanced/differential_equations
    advanced/numerical_integrators
+   advanced/debugging
    advanced/tips_on_jit
    advanced/how_it_works
    advanced/usage_of_connect_module
