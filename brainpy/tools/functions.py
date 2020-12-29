@@ -34,7 +34,7 @@ __all__ = [
 def get_func_name(func, replace=False):
     func_name = func.__name__
     if replace:
-        func_name = func_name.replace('_npbrain_delayed_', '')
+        func_name = func_name.replace('_brainpy_delayed_', '')
     return func_name
 
 
@@ -99,7 +99,8 @@ def numba_func(func, params={}):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            if v != np.func_by_name(v.__name__) and (not isinstance(v, Dispatcher)):
+            if (not backend.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
+            # if v != np.func_by_name(v.__name__)
                 code_scope[k] = numba_func(v, params)
                 modified = True
     # check scope changed parameters
