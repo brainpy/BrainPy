@@ -63,7 +63,7 @@ def euler(diff_eqs, *args):
     # ODE
     else:
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     y = y0 + __dt * val[0][0]
@@ -76,7 +76,10 @@ def euler(diff_eqs, *args):
             if diff_eqs.return_type == 'x':
                 def int_func(y0, t, *args):
                     return y0 + __dt * __f(y0, t, *args)
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type == '(x,x)':
+                def int_func(y0, t, *args):
+                    return y0 + __dt * __f(y0, t, *args)[0]
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     return y0 + __dt * __f(y0, t, *args)[0][0]
             else:
@@ -94,7 +97,7 @@ def rk2(diff_eqs, __beta=2 / 3):
     else:
 
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -112,7 +115,13 @@ def rk2(diff_eqs, __beta=2 / 3):
                     k2 = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)
                     y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
                     return y
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type == '(x,x)':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)[0]
+                    y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
+                    return y
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)[0][0]
@@ -193,7 +202,7 @@ def rk3(diff_eqs, *args):
     else:
         if diff_eqs.is_multi_return:
 
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -213,7 +222,14 @@ def rk3(diff_eqs, *args):
                     k3 = __f(y0 - __dt * k1 + 2 * __dt * k2, t + __dt, *args)
                     return y0 + __dt / 6 * (k1 + 4 * k2 + k3)
 
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type == '(x,x)':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0]
+                    k3 = __f(y0 - __dt * k1 + 2 * __dt * k2, t + __dt, *args)[0]
+                    return y0 + __dt / 6 * (k1 + 4 * k2 + k3)
+
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0][0]
@@ -235,7 +251,7 @@ def rk4(diff_eqs, *args):
 
     else:
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -258,7 +274,15 @@ def rk4(diff_eqs, *args):
                     k4 = __f(y0 + __dt * k3, t + __dt, *args)
                     return y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
 
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type  == '(x,x)':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0]
+                    k3 = __f(y0 + __dt / 2 * k2, t + __dt / 2, *args)[0]
+                    k4 = __f(y0 + __dt * k3, t + __dt, *args)[0]
+                    return y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0][0]
@@ -281,7 +305,7 @@ def rk4_alternative(diff_eqs, *args):
 
     else:
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -302,7 +326,14 @@ def rk4_alternative(diff_eqs, *args):
                     k3 = __f(y0 - __dt / 3 * k1 + __dt * k2, t + 2 * __dt / 3, *args)
                     k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)
                     return y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type  == '(x,x)':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __dt / 3 * k1, t + __dt / 3, *args)[0]
+                    k3 = __f(y0 - __dt / 3 * k1 + __dt * k2, t + 2 * __dt / 3, *args)[0]
+                    k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)[0]
+                    return y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __dt / 3 * k1, t + __dt / 3, *args)[0][0]
