@@ -1,4 +1,4 @@
-Tips on JIT programming
+Tips on JIT Programming
 =======================
 
 BrainPy heavily relies on JIT compilation. Minimal knowledge about

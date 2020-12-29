@@ -1,4 +1,4 @@
-How BrainPy works
+How BrainPy Works
 =================
 
 The goal of ``BrainPy`` is to provide a highly flexible and
