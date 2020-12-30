@@ -16,7 +16,6 @@ import ANNarchy
 import bindsnet
 
 import brainpy as bp
-import brainpy.numpy as np
 import bpmodels
 from bpmodels.neurons import get_HH
 from bpmodels.synapses import get_AMPA1
@@ -36,40 +35,36 @@ del x
 # BRIAN2 clock
 defaultclock = 1.0 * b2.ms
         
-def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode = 'vector'):
+def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode = 'matrix'):
 
+    ST = bp.types.SynState(['s'])
+    
     requires = {
-        'ST': bp.types.SynState(['s']),
         'pre': bp.types.NeuState(['spike']),
-        'post': bp.types.NeuState(['V', 'input'])
+        'post': bp.types.NeuState(['V', 'input']),
+        'conn_mat': bp.types.MatConn()
     }
-
-    requires['post2syn']=bp.types.ListConn()
-        
-    def update(ST, _t_):
-        ST['s'] = ST['s']
-
+    
     @bp.delayed
-    def output(ST, post, post2syn):
-        g = np.zeros(len(post2syn), dtype=np.float_)
-        for post_id, syn_ids in enumerate(post2syn):
-            g[post_id] = np.sum(g_max * ST['s'][syn_ids])
-        post['input'] -= g * (post['V'] - E)
+    def output(ST, pre, post, conn_mat):
+        g = g_max * (pre['spike'].reshape((-1, 1)) * conn_mat)
+        post['input'] -= g.sum(axis=0) * (post['V'] - E)
 
     return bp.SynType(name='simple_synapse',
+                      ST=ST,
                       requires=requires,
                       steps=output,
                       mode = mode)
 
 def BrainPy_cpu(n_neurons, time):  #HH yes
     t0 = t()
-    dt = 1.  # update variables per <dt> ms
-    bp.profile.set(backend="numba", dt=dt, merge_steps=True)
+    dt = 1.0  # update variables per <dt> ms
+    bp.profile.set(jit=True, device = 'cpu', dt=dt, merge_steps=True)
     
     t1 = t()
     
     LIF_neuron = get_HH()
-    sim_synapse = get_simple()  ###??? synapse type???
+    sim_synapse = get_simple()
     pre_neu = bp.inputs.PoissonInput(geometry = (n_neurons,), freqs = 15.)
     post_neu = bp.NeuGroup(LIF_neuron, geometry = (n_neurons, ))
     syn = bp.SynConn(sim_synapse, pre_group = pre_neu, post_group = post_neu,
@@ -77,7 +72,7 @@ def BrainPy_cpu(n_neurons, time):  #HH yes
     net = bp.Network(pre_neu, syn, post_neu)
     
     t2 = t()
-    net.run(duration=time, inputs=[], report=False)
+    net.run(duration=time, inputs=[], report=True)
         
     return t() - t0, t() - t1, t() - t2
 
@@ -86,6 +81,7 @@ def BindsNET_cpu(n_neurons, time): #HH no
     t0 = t()
 
     torch.set_default_tensor_type("torch.FloatTensor")
+    torch.set_num_threads(1)
 
     t1 = t()
 
@@ -108,33 +104,33 @@ def BindsNET_cpu(n_neurons, time): #HH no
 def BRIAN2(n_neurons, time):  #hh yes
     t0 = t()
     
-    b2.set_device('cpp_standalone', directory='brian2_COBAHH', build_on_run=False)
+    b2.set_device('cpp_standalone', build_on_run=False)
     np.random.seed(42)
-    b2.defaultclock.dt = 0.1 * b2.ms
+    b2.defaultclock.dt = 1.0 * b2.ms
 
     monitor = 'spike'
     area = 0.02
     unit = 1e6
-    Cm = 200 / unit
+    Cm = 200. / unit
     gl = 10. / unit
-    g_na = 20 * 1000 / unit
+    g_na = 20. * 1000 / unit
     g_kd = 6. * 1000 / unit
     
     time_unit = 1 * b2.ms
-    El = -60
-    EK = -90
-    ENa = 50
-    VT = -63
+    El = -60.
+    EK = -90.
+    ENa = 50.
+    VT = -63.
     # Time constants
-    taue = 5 * b2.ms
-    taui = 10 * b2.ms
+    taue = 5. * b2.ms
+    taui = 10. * b2.ms
     # Reversal potentials
-    Ee = 0
-    Ei = -80
+    Ee = 0.
+    Ei = -80.
     # excitatory synaptic weight
-    we = 6 / unit
+    we = 6. / unit
     # inhibitory synaptic weight
-    wi = 67 / unit
+    wi = 67. / unit
 
     t1 = t()
 
@@ -148,10 +144,10 @@ def BRIAN2(n_neurons, time):  #hh yes
         dh/dt = (alpha_h*(1-h)-beta_h*h)/time_unit : 1
         dge/dt = -ge/taue : 1
         dgi/dt = -gi/taui : 1
-        alpha_m = 0.32*(13-v+VT)/(exp((13-v+VT)/4)-1.) : 1
+        alpha_m = 0.32*(13.-v+VT)/(exp((13.-v+VT)/4)-1.) : 1
         beta_m = 0.28*(v-VT-40)/(exp((v-VT-40)/5)-1) : 1
-        alpha_h = 0.128*exp((17-v+VT)/18) : 1
-        beta_h = 4./(1+exp((40-v+VT)/5)) : 1
+        alpha_h = 0.128*exp((17.-v+VT)/18) : 1
+        beta_h = 4./(1.+exp((40-v+VT)/5)) : 1
         alpha_n = 0.032*(15-v+VT)/(exp((15-v+VT)/5)-1.) : 1
         beta_n = .5*exp((10-v+VT)/40) : 1
     ''')
@@ -169,7 +165,7 @@ def BRIAN2(n_neurons, time):  #hh yes
 
 
     t2 = t()
-    b2.run(time * b2.ms, report='text')
+    b2.run(time * b2.ms)
 
     return t() - t0, t() - t1, t() - t2
 
@@ -198,7 +194,7 @@ def PyNEST(n_neurons, time):  #hh yes
 
 def ANNarchy_cpu(n_neurons, time):  #hh yes
     t0 = t()
-    ANNarchy.setup(paradigm="openmp", dt=1.0)
+    ANNarchy.setup(paradigm="openmp", num_threads = 1, dt=1.0)
     ANNarchy.clear()
 
     t1 = t()
@@ -256,8 +252,8 @@ def ANNarchy_cpu(n_neurons, time):  #hh yes
     proj = ANNarchy.Projection(pre=Input, post=Output, target="exc", synapse=None)
     proj.connect_all_to_all(weights=ANNarchy.Uniform(0.0, 1.0))
 
-    t2 = t()  ##??? put here? or after compile?
     ANNarchy.compile()
+    t2 = t()
     ANNarchy.simulate(duration=time)
 
     return t() - t0, t() - t1, t() - t2

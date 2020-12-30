@@ -76,7 +76,7 @@ def BrainPy_cpu(n_neurons, time):
     t1 = t()
     
     LIF_neuron = get_LIF()
-    sim_synapse = get_simple()  ###??? synapse type???
+    sim_synapse = get_simple()
     pre_neu = bp.inputs.PoissonInput(geometry = (n_neurons,), freqs = 15.)
     post_neu = bp.NeuGroup(LIF_neuron, geometry = (n_neurons, ))
     post_neu.pars['tau'] = 10.
