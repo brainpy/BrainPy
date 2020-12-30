@@ -1,8 +1,8 @@
 from brian2 import *
 
 defaultclock.dt = 0.05 * ms
-# set_device('cpp_standalone', directory='brian2_COBA')
-prefs.codegen.target = "cython"
+set_device('cpp_standalone', directory='brian2_COBA')
+# prefs.codegen.target = "cython"
 
 # ###########################################
 # Network parameters
@@ -55,7 +55,7 @@ Ci.connect(p=0.02)
 # ###########################################
 # Simulation
 # ###########################################
-s_mon = SpikeMonitor(P)
+# s_mon = SpikeMonitor(P)
 
 
 # Run for 0 second in order to measure compilation time
@@ -67,7 +67,7 @@ print('Done in', t2 - t1)
 # ###########################################
 # Data analysis
 # ###########################################
-plot(s_mon.t / ms, s_mon.i, '.k')
-xlabel('Time (ms)')
-ylabel('Neuron index')
-show()
+# plot(s_mon.t / ms, s_mon.i, '.k')
+# xlabel('Time (ms)')
+# ylabel('Neuron index')
+# show()

@@ -1,23 +1,20 @@
-from nest import *
-import nest.raster_plot
-import time, pickle
+import time
+
 import numpy
+from nest import *
 
 # ###########################################
 # Configuration
 # ###########################################
 numpy.random.seed(98765)
 SetKernelStatus({"resolution": 0.1})
-if len(sys.argv) > 1:
-    nb_threads = sys.argv[1]
-else:
-    nb_threads = 1
-SetKernelStatus({"local_num_threads": int(nb_threads)})
+# nb_threads = 4
+# SetKernelStatus({"local_num_threads": int(nb_threads)})
 
 # ###########################################
 # Network parameters
 # ###########################################
-simtime = 10000.0  # [ms] Simulation time
+simtime = 5 * 1000.0  # [ms] Simulation time
 NE = 3200  # number of exc. neurons
 NI = 800  # number of inh. neurons
 
@@ -64,14 +61,24 @@ CopyModel("static_synapse", "inhibitory",
           {"weight": w_inh})
 
 # Create the projections
-mate = pickle.load(open('exc.data', 'rb'))
-mati = pickle.load(open('inh.data', 'rb'))
-for i in range(NE):
-    post = list(mate.rows[i])
-    Connect([nodes_ex[i]], [nodes[p] for p in post], 'all_to_all', syn_spec="excitatory")
-for i in range(NI):
-    post = list(mati.rows[i])
-    Connect([nodes_in[i]], [nodes[p] for p in post], 'all_to_all', syn_spec="inhibitory")
+# mate = sparse_random_matrix(3200, 4000, 0.02, 1.0)
+# mati = sparse_random_matrix(800, 4000, 0.02, 1.0)
+# for i in range(NE):
+#     post = list(mate.rows[i])
+#     Connect([nodes_ex[i]],
+#             [nodes[p] for p in post],
+#             'all_to_all',
+#             syn_spec="excitatory")
+# for i in range(NI):
+#     post = list(mati.rows[i])
+#     Connect([nodes_in[i]],
+#             [nodes[p] for p in post],
+#             'all_to_all',
+#             syn_spec="inhibitory")
+
+conn_dict  = {'rule': 'pairwise_bernoulli', 'p': 0.02}
+Connect(nodes_ex, nodes, conn_dict, syn_spec="excitatory")
+Connect(nodes_in, nodes, conn_dict, syn_spec="inhibitory")
 
 # Connect(nodes_ex, nodes,{'rule': 'pairwise_bernoulli', 'p': 0.02}, syn_spec="excitatory")
 # Connect(nodes_in, nodes,{'rule': 'pairwise_bernoulli', 'p': 0.02}, syn_spec="inhibitory")

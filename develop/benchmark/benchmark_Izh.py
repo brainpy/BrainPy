@@ -1,30 +1,25 @@
+# modify from https://github.com/BindsNET/bindsnet
 
-#modify from https://github.com/BindsNET/bindsnet
-
-import os
-import nengo
-import torch
 import argparse
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+import os
 from time import time as t
 
-import brian2 as b2
-import nest
 import ANNarchy
 import bindsnet
+import brainpy.numpy as np
+import brian2 as b2
+import nengo
+import nest
+import numpy as np
+import pandas as pd
+import torch
+from bpmodels.neurons import get_Izhikevich
 
 import brainpy as bp
-import brainpy.numpy as np
-import bpmodels
-from bpmodels.neurons import get_Izhikevich
-from bpmodels.synapses import get_AMPA1
-import pdb
 
-#from experiments.benchmark import plot_benchmark
-figure_path = os.path.abspath('.')
-benchmark_path = os.path.abspath('.')
+# from experiments.benchmark import plot_benchmark
+figure_path = os.path.abspath('benchmark')
+benchmark_path = os.path.abspath('benchmark')
 if not os.path.isdir(benchmark_path):
     os.makedirs(benchmark_path)
 
@@ -35,17 +30,17 @@ del x
 
 # BRIAN2 clock
 defaultclock = 1.0 * b2.ms
-        
-def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode = 'vector'):
 
+
+def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode='vector'):
     requires = {
         'ST': bp.types.SynState(['s']),
         'pre': bp.types.NeuState(['spike']),
         'post': bp.types.NeuState(['V', 'input'])
     }
 
-    requires['post2syn']=bp.types.ListConn()
-        
+    requires['post2syn'] = bp.types.ListConn()
+
     def update(ST, _t_):
         ST['s'] = ST['s']
 
@@ -59,30 +54,31 @@ def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode = 'vector'):
     return bp.SynType(name='simple_synapse',
                       requires=requires,
                       steps=output,
-                      mode = mode)
+                      mode=mode)
 
-def BrainPy_cpu(n_neurons, time):  #Izh yes
+
+def BrainPy_cpu(n_neurons, time):  # Izh yes
     t0 = t()
     dt = 1.  # update variables per <dt> ms
     bp.profile.set(backend="numba", dt=dt, merge_steps=True)
-    
+
     t1 = t()
-    
+
     LIF_neuron = get_Izhikevich()
     sim_synapse = get_simple()
-    pre_neu = bp.inputs.PoissonInput(geometry = (n_neurons,), freqs = 15.)
-    post_neu = bp.NeuGroup(LIF_neuron, geometry = (n_neurons, ))
-    syn = bp.SynConn(sim_synapse, pre_group = pre_neu, post_group = post_neu,
-                     conn = bp.connect.All2All(), delay = 10.)
+    pre_neu = bp.inputs.PoissonInput(geometry=(n_neurons,), freqs=15.)
+    post_neu = bp.NeuGroup(LIF_neuron, geometry=(n_neurons,))
+    syn = bp.SynConn(sim_synapse, pre_group=pre_neu, post_group=post_neu,
+                     conn=bp.connect.All2All(), delay=10.)
     net = bp.Network(pre_neu, syn, post_neu)
-    
+
     t2 = t()
     net.run(duration=time, inputs=[], report=False)
-        
+
     return t() - t0, t() - t1, t() - t2
 
 
-def BindsNET_cpu(n_neurons, time): #HH no
+def BindsNET_cpu(n_neurons, time):  # HH no
     t0 = t()
 
     torch.set_default_tensor_type("torch.FloatTensor")
@@ -105,14 +101,14 @@ def BindsNET_cpu(n_neurons, time): #HH no
     return t() - t0, t() - t1, t() - t2
 
 
-def BRIAN2(n_neurons, time):  #hh yes
+def BRIAN2(n_neurons, time):  # hh yes
     t0 = t()
-    
+
     b2.set_device('cpp_standalone', directory='brian2_COBAHH', build_on_run=False)
     np.random.seed(42)
     b2.defaultclock.dt = 0.1 * b2.ms
 
-	## Neurons
+    ## Neurons
     taum = 10 * b2.ms
     Ee = 0 * b2.mV
     vt = -54 * b2.mV
@@ -129,7 +125,7 @@ def BRIAN2(n_neurons, time):  #hh yes
         dge/dt = -ge / taue : 1
         '''
     )
-    
+
     input = b2.PoissonGroup(n_neurons, rates=15 * b2.Hz)
     neurons = b2.NeuronGroup(n_neurons, model=eqs, threshold='v>vt', method='exponential_euler')
 
@@ -143,7 +139,7 @@ def BRIAN2(n_neurons, time):  #hh yes
     return t() - t0, t() - t1, t() - t2
 
 
-def PyNEST(n_neurons, time):  #hh yes
+def PyNEST(n_neurons, time):  # hh yes
     t0 = t()
 
     nest.ResetKernel()
@@ -165,7 +161,7 @@ def PyNEST(n_neurons, time):  #hh yes
     return t() - t0, t() - t1, t() - t2
 
 
-def ANNarchy_cpu(n_neurons, time):  #hh yes
+def ANNarchy_cpu(n_neurons, time):  # hh yes
     t0 = t()
     ANNarchy.setup(paradigm="openmp", dt=1.0)
     ANNarchy.clear()
@@ -173,7 +169,7 @@ def ANNarchy_cpu(n_neurons, time):  #hh yes
     t1 = t()
 
     Izhikevich = ANNarchy.Neuron(
-        parameters = """
+        parameters="""
             noise = 0.0
             a = 0.02
             b = 0.2
@@ -181,17 +177,16 @@ def ANNarchy_cpu(n_neurons, time):  #hh yes
             d = 8.0
             v_thresh = 30.0
             i_offset = 0.0
-        """, 
-        equations = """
+        """,
+        equations="""
             I = g_exc - g_inh + noise * Normal(0.0, 1.0) + i_offset
             dv/dt = 0.04 * v^2 + 5.0 * v + 140.0 - u + I : init = -65.0
             du/dt = a * (b*v - u) : init= -13.0
         """,
-        spike = "v > v_thresh",
-        reset = "v = c; u += d",
-        refractory = 0.0
+        spike="v > v_thresh",
+        reset="v = c; u += d",
+        refractory=0.0
     )
-
 
     Input = ANNarchy.PoissonPopulation(name="Input", geometry=n_neurons, rates=50.0)
     Output = ANNarchy.Population(name="Output", geometry=n_neurons, neuron=Izhikevich)
@@ -203,15 +198,14 @@ def ANNarchy_cpu(n_neurons, time):  #hh yes
     ANNarchy.simulate(duration=time)
 
     return t() - t0, t() - t1, t() - t2
-    
-    
-    
-def Nengo(n_neurons, time):  #HH no
+
+
+def Nengo(n_neurons, time):  # HH no
     t0 = t()
     t1 = t()
 
     model = nengo.Network()
-    #pdb.set_trace()
+    # pdb.set_trace()
     with model:
         X = nengo.Ensemble(n_neurons, dimensions=n_neurons, neuron_type=nengo.Izhikevich())
         Y = nengo.Ensemble(n_neurons, dimensions=n_neurons, neuron_type=nengo.Izhikevich())
@@ -224,7 +218,7 @@ def Nengo(n_neurons, time):  #HH no
     return t() - t0, t() - t1, t() - t2
 
 
-def write(start=100, stop=1000, step=100, time=1000, name = None, data = None):
+def write(start=100, stop=1000, step=100, time=1000, name=None, data=None):
     print(data)
 
     filename = "benchmark_Izh_" + name + f"_{start}_{stop}_{step}_{time}.csv"
@@ -242,7 +236,6 @@ def write(start=100, stop=1000, step=100, time=1000, name = None, data = None):
 
 
 def main(start=100, stop=1000, step=100, time=1000):
-    
     total_times = {
         "BindsNET_cpu": [],
         "BRIAN2": [],
@@ -251,7 +244,7 @@ def main(start=100, stop=1000, step=100, time=1000):
         'Nengo': [],
         'BrainPy_cpu': []
     }
-    
+
     build_times = {
         "BindsNET_cpu": [],
         "BRIAN2": [],
@@ -260,7 +253,7 @@ def main(start=100, stop=1000, step=100, time=1000):
         'Nengo': [],
         'BrainPy_cpu': []
     }
-    
+
     sim_times = {
         "BindsNET_cpu": [],
         "BRIAN2": [],
@@ -278,7 +271,7 @@ def main(start=100, stop=1000, step=100, time=1000):
                 build_times[framework].append(np.nan)
                 sim_times[framework].append(np.nan)
                 continue
-                
+
             if n_neurons > 2500 and framework == "PyNEST":
                 total_times[framework].append(np.nan)
                 build_times[framework].append(np.nan)
@@ -294,10 +287,11 @@ def main(start=100, stop=1000, step=100, time=1000):
             sim_times[framework].append(sim)
 
             print(f"(total: {total:.4f}; build: {build:.4f};sim: {sim:.4f})")
-            
-    write(start = start, stop = stop, step = step, time = time, name = 'total', data = total_times)
-    write(start = start, stop = stop, step = step, time = time, name = 'build', data = build_times)
-    write(start = start, stop = stop, step = step, time = time, name = 'sim', data = sim_times)
+
+    write(start=start, stop=stop, step=step, time=time, name='total', data=total_times)
+    write(start=start, stop=stop, step=step, time=time, name='build', data=build_times)
+    write(start=start, stop=stop, step=step, time=time, name='sim', data=sim_times)
+
 
 if __name__ == "__main__":
     # get params

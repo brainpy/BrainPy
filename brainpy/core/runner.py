@@ -415,6 +415,8 @@ class Runner(object):
 
             exec(compile(func_code, '', 'exec'), code_scope)
             monitor_step = code_scope['monitor_step']
+            # if profile.is_jit():
+            #     monitor_step = tools.jit(monitor_step)
             self.monitor_step = monitor_step
 
             # format function call

@@ -286,11 +286,6 @@ class Network(object):
     @property
     def ts(self):
         """Get the time points of the network.
-
-        Returns
-        -------
-        times : numpy.ndarray
-            The running time-steps of the network.
         """
         return np.array(np.arange(self.t_start, self.t_end, self.dt), dtype=np.float_)
 

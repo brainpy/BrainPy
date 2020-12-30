@@ -6,8 +6,8 @@ import pandas as pd
 
 # from experiments import ROOT_DIR
 
-figure_path = os.path.abspath('.')
-benchmark_path = os.path.abspath('.')
+figure_path = os.path.abspath('benchmark')
+benchmark_path = os.path.abspath('benchmark')
 
 if not os.path.isdir(benchmark_path):
     os.makedirs(benchmark_path)

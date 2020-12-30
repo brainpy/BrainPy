@@ -1,29 +1,25 @@
+# modify from https://github.com/BindsNET/bindsnet
 
-#modify from https://github.com/BindsNET/bindsnet
-
-import os
-import nengo
-import torch
 import argparse
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+import os
+import pdb
 from time import time as t
 
-import brian2 as b2
-import nest
 import ANNarchy
 import bindsnet
+import brian2 as b2
+import nengo
+import nest
+import numpy as np
+import pandas as pd
+import torch
+from bpmodels.neurons import get_HH
 
 import brainpy as bp
-import bpmodels
-from bpmodels.neurons import get_HH
-from bpmodels.synapses import get_AMPA1
-import pdb
 
-#from experiments.benchmark import plot_benchmark
-figure_path = os.path.abspath('.')
-benchmark_path = os.path.abspath('.')
+# from experiments.benchmark import plot_benchmark
+figure_path = os.path.abspath('benchmark')
+benchmark_path = os.path.abspath('benchmark')
 if not os.path.isdir(benchmark_path):
     os.makedirs(benchmark_path)
 
@@ -34,17 +30,17 @@ del x
 
 # BRIAN2 clock
 defaultclock = 1.0 * b2.ms
-        
-def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode = 'matrix'):
 
+
+def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode='matrix'):
     ST = bp.types.SynState(['s'])
-    
+
     requires = {
         'pre': bp.types.NeuState(['spike']),
         'post': bp.types.NeuState(['V', 'input']),
         'conn_mat': bp.types.MatConn()
     }
-    
+
     @bp.delayed
     def output(ST, pre, post, conn_mat):
         g = g_max * (pre['spike'].reshape((-1, 1)) * conn_mat)
@@ -54,30 +50,31 @@ def get_simple(g_max=0.10, E=0., tau_decay=2.0, mode = 'matrix'):
                       ST=ST,
                       requires=requires,
                       steps=output,
-                      mode = mode)
+                      mode=mode)
 
-def BrainPy_cpu(n_neurons, time):  #HH yes
+
+def BrainPy_cpu(n_neurons, time):  # HH yes
     t0 = t()
     dt = 1.0  # update variables per <dt> ms
-    bp.profile.set(jit=True, device = 'cpu', dt=dt, merge_steps=True)
-    
+    bp.profile.set(jit=True, device='cpu', dt=dt, merge_steps=True)
+
     t1 = t()
-    
+
     LIF_neuron = get_HH()
     sim_synapse = get_simple()
-    pre_neu = bp.inputs.PoissonInput(geometry = (n_neurons,), freqs = 15.)
-    post_neu = bp.NeuGroup(LIF_neuron, geometry = (n_neurons, ))
-    syn = bp.SynConn(sim_synapse, pre_group = pre_neu, post_group = post_neu,
-                     conn = bp.connect.All2All(), delay = 10.)
+    pre_neu = bp.inputs.PoissonInput(geometry=(n_neurons,), freqs=15.)
+    post_neu = bp.NeuGroup(LIF_neuron, geometry=(n_neurons,))
+    syn = bp.SynConn(sim_synapse, pre_group=pre_neu, post_group=post_neu,
+                     conn=bp.connect.All2All(), delay=10.)
     net = bp.Network(pre_neu, syn, post_neu)
-    
+
     t2 = t()
     net.run(duration=time, inputs=[], report=True)
-        
+
     return t() - t0, t() - t1, t() - t2
 
 
-def BindsNET_cpu(n_neurons, time): #HH no
+def BindsNET_cpu(n_neurons, time):  # HH no
     t0 = t()
 
     torch.set_default_tensor_type("torch.FloatTensor")
@@ -101,9 +98,9 @@ def BindsNET_cpu(n_neurons, time): #HH no
     return t() - t0, t() - t1, t() - t2
 
 
-def BRIAN2(n_neurons, time):  #hh yes
+def BRIAN2(n_neurons, time):  # hh yes
     t0 = t()
-    
+
     b2.set_device('cpp_standalone', build_on_run=False)
     np.random.seed(42)
     b2.defaultclock.dt = 1.0 * b2.ms
@@ -115,7 +112,7 @@ def BRIAN2(n_neurons, time):  #hh yes
     gl = 10. / unit
     g_na = 20. * 1000 / unit
     g_kd = 6. * 1000 / unit
-    
+
     time_unit = 1 * b2.ms
     El = -60.
     EK = -90.
@@ -151,7 +148,7 @@ def BRIAN2(n_neurons, time):  #hh yes
         alpha_n = 0.032*(15-v+VT)/(exp((15-v+VT)/5)-1.) : 1
         beta_n = .5*exp((10-v+VT)/40) : 1
     ''')
-    
+
     input = b2.PoissonGroup(n_neurons, rates=15 * b2.Hz)
     neurons = b2.NeuronGroup(n_neurons, model=eqs, threshold='v>-20', method='exponential_euler')
     # Initialization
@@ -163,14 +160,13 @@ def BRIAN2(n_neurons, time):  #hh yes
     S.connect(p=1.0)
     S.w = "rand() * 0.01"
 
-
     t2 = t()
     b2.run(time * b2.ms)
 
     return t() - t0, t() - t1, t() - t2
 
 
-def PyNEST(n_neurons, time):  #hh yes
+def PyNEST(n_neurons, time):  # hh yes
     t0 = t()
 
     nest.ResetKernel()
@@ -192,15 +188,15 @@ def PyNEST(n_neurons, time):  #hh yes
     return t() - t0, t() - t1, t() - t2
 
 
-def ANNarchy_cpu(n_neurons, time):  #hh yes
+def ANNarchy_cpu(n_neurons, time):  # hh yes
     t0 = t()
-    ANNarchy.setup(paradigm="openmp", num_threads = 1, dt=1.0)
+    ANNarchy.setup(paradigm="openmp", num_threads=1, dt=1.0)
     ANNarchy.clear()
 
     t1 = t()
 
     HH_cond_exp = ANNarchy.Neuron(
-        parameters = """
+        parameters="""
             gbar_Na = 20.0
             gbar_K = 6.0
             gleak = 0.01
@@ -215,8 +211,8 @@ def ANNarchy_cpu(n_neurons, time):  #hh yes
             tau_syn_I = 2.0
             i_offset = 0.0
             v_thresh = 0.0
-        """, 
-        equations = """
+        """,
+        equations="""
             # Previous membrane potential
             prev_v = v
 
@@ -243,8 +239,8 @@ def ANNarchy_cpu(n_neurons, time):  #hh yes
             tau_syn_E * dg_exc/dt = - g_exc : exponential
             tau_syn_I * dg_inh/dt = - g_inh : exponential
         """,
-        spike = "(v > v_thresh) and (prev_v <= v_thresh)",
-        reset = ""
+        spike="(v > v_thresh) and (prev_v <= v_thresh)",
+        reset=""
     )
 
     Input = ANNarchy.PoissonPopulation(name="Input", geometry=n_neurons, rates=50.0)
@@ -257,12 +253,13 @@ def ANNarchy_cpu(n_neurons, time):  #hh yes
     ANNarchy.simulate(duration=time)
 
     return t() - t0, t() - t1, t() - t2
-    
+
 
 '''class HH(nengo.neurons.NeuronType):
     def __init__()'''
-    
-def Nengo(n_neurons, time):  #HH no
+
+
+def Nengo(n_neurons, time):  # HH no
     t0 = t()
     t1 = t()
 
@@ -278,9 +275,9 @@ def Nengo(n_neurons, time):  #HH no
         sim.run(time / 1000)
 
     return t() - t0, t() - t1, t() - t2
-    
 
-def write(start=100, stop=1000, step=100, time=1000, name = None, data = None):
+
+def write(start=100, stop=1000, step=100, time=1000, name=None, data=None):
     print(data)
 
     filename = "benchmark_HH_" + name + f"_{start}_{stop}_{step}_{time}.csv"
@@ -298,31 +295,30 @@ def write(start=100, stop=1000, step=100, time=1000, name = None, data = None):
 
 
 def main(start=100, stop=1000, step=100, time=1000):
-    
     total_times = {
-        #"BindsNET_cpu": [],
+        # "BindsNET_cpu": [],
         "BRIAN2": [],
         "PyNEST": [],
         "ANNarchy_cpu": [],
-        #'Nengo': [],
+        # 'Nengo': [],
         'BrainPy_cpu': []
     }
-    
+
     build_times = {
-        #"BindsNET_cpu": [],
+        # "BindsNET_cpu": [],
         "BRIAN2": [],
         "PyNEST": [],
         "ANNarchy_cpu": [],
-        #'Nengo': [],
+        # 'Nengo': [],
         'BrainPy_cpu': []
     }
-    
+
     sim_times = {
-        #"BindsNET_cpu": [],
+        # "BindsNET_cpu": [],
         "BRIAN2": [],
         "PyNEST": [],
         "ANNarchy_cpu": [],
-        #'Nengo': [],
+        # 'Nengo': [],
         'BrainPy_cpu': []
     }
 
@@ -330,7 +326,7 @@ def main(start=100, stop=1000, step=100, time=1000):
         print(f"\nRunning benchmark with {n_neurons} neurons.")
         for framework in sim_times.keys():
             if (n_neurons > 5000 and framework == "ANNarchy_cpu") or \
-               (n_neurons > 2500 and framework == "PyNEST"):
+                    (n_neurons > 2500 and framework == "PyNEST"):
                 total_times[framework].append(np.nan)
                 build_times[framework].append(np.nan)
                 sim_times[framework].append(np.nan)
@@ -345,10 +341,11 @@ def main(start=100, stop=1000, step=100, time=1000):
             sim_times[framework].append(sim)
 
             print(f"(total: {total:.4f}; build: {build:.4f};sim: {sim:.4f})")
-            
-    write(start = start, stop = stop, step = step, time = time, name = 'total', data = total_times)
-    write(start = start, stop = stop, step = step, time = time, name = 'build', data = build_times)
-    write(start = start, stop = stop, step = step, time = time, name = 'sim', data = sim_times)
+
+    write(start=start, stop=stop, step=step, time=time, name='total', data=total_times)
+    write(start=start, stop=stop, step=step, time=time, name='build', data=build_times)
+    write(start=start, stop=stop, step=step, time=time, name='sim', data=sim_times)
+
 
 if __name__ == "__main__":
     # get params
