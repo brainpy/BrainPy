@@ -5,10 +5,12 @@ import inspect
 import types
 
 import numba as nb
+from numba import cuda
+import numpy as np
 
 from .codes import deindent
 from .codes import get_func_source
-from .. import numpy as np
+from .. import backend
 from .. import profile
 from ..integration.integrator import Integrator
 
@@ -32,7 +34,7 @@ __all__ = [
 def get_func_name(func, replace=False):
     func_name = func.__name__
     if replace:
-        func_name = func_name.replace('_npbrain_delayed_', '')
+        func_name = func_name.replace('_brainpy_delayed_', '')
     return func_name
 
 
@@ -83,7 +85,7 @@ def func_copy(f):
 
 
 def numba_func(func, params={}):
-    if func == np.func_by_name(func.__name__):
+    if backend.func_in_numpy_or_math(func):
         return func
     if isinstance(func, Dispatcher):
         return func
@@ -97,7 +99,8 @@ def numba_func(func, params={}):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            if v != np.func_by_name(v.__name__) and (not isinstance(v, Dispatcher)):
+            if (not backend.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
+            # if v != np.func_by_name(v.__name__)
                 code_scope[k] = numba_func(v, params)
                 modified = True
     # check scope changed parameters
@@ -109,9 +112,16 @@ def numba_func(func, params={}):
     if modified:
         func_code = deindent(get_func_source(func))
         exec(compile(func_code, '', "exec"), code_scope)
-        return jit(code_scope[func.__name__])
+        func = code_scope[func.__name__]
+        if profile.run_on_cpu():
+            return jit(func)
+        else:
+            return cuda.jit(device=True)(func)
     else:
-        return jit(func)
+        if profile.run_on_cpu():
+            return jit(func)
+        else:
+            return cuda.jit(device=True)(func)
 
 
 def _update_scope(k, v, scope):
@@ -146,8 +156,10 @@ def get_func_scope(func, include_dispatcher=False):
     elif type(func).__name__ == 'function':
         func_name = get_func_name(func, replace=True)
         variables = inspect.getclosurevars(func)
+        if func_name.startswith('xoroshiro128p_'):
+            return {}
     else:
-        if type(func).__name__ == 'ufunc':
+        if backend.func_in_numpy_or_math(func):
             return {}
         raise ValueError(f'Unknown type: {type(func)}')
     scope = dict(variables.nonlocals)

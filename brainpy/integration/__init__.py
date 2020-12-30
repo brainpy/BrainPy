@@ -2,10 +2,11 @@
 
 from . import diff_equation
 from . import integrator
-from . import sympy_tools
 from . import methods
+from . import sympy_tools
 from .diff_equation import *
 from .integrator import *
+from .sympy_tools import *
 from .. import profile
 
 _SUPPORT_METHODS = [
@@ -39,7 +40,7 @@ def integrate(func=None, method=None):
 
     Using ``BrainPy``, this ODE function can be written as
 
-    >>> import brainpy.numpy as np
+    >>> import numpy as np
     >>> from brainpy import integrate
     >>>
     >>> @integrate(method='rk4')

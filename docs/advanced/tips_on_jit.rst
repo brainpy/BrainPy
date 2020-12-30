@@ -1,4 +1,4 @@
-Tips on JIT programming
+Tips on JIT Programming
 =======================
 
 BrainPy heavily relies on JIT compilation. Minimal knowledge about
@@ -17,7 +17,7 @@ every call of the step function, some value want to be stored in the array:
 .. code-block:: python
 
     import brainpy as bp
-    import brainpy.numpy as np
+    import numpy as np
 
     array_to_store = np.zeros(100)
 

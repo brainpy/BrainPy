@@ -307,12 +307,19 @@ class DiffEquation(object):
 
     @property
     def is_multi_return(self):
-        return len(self.returns) > 0
+        return len(self.returns) > 1
 
     @property
     def is_stochastic(self):
-        # return not (self.g_expr is None or np.all(self.g_value == 0.))
-        return self.g_expr is not None
+        if self.g_expr is not None:
+            try:
+                if eval(self.g_expr.code, self.func_scope) == 0.:
+                    return False
+            except Exception as e:
+                pass
+            return True
+        else:
+            return False
 
     @property
     def is_functional_noise(self):

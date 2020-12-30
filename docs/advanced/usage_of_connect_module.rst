@@ -1,4 +1,3 @@
-
 Usage of ``connect`` module
 ============================
 
@@ -7,6 +6,7 @@ Here, ``BrainPy`` pre-defines several commonly used connection methods.
 .. contents::
     :local:
     :depth: 2
+
 
 one-to-one connection
 ---------------------
@@ -87,7 +87,6 @@ nearest eight neurons.
 
 grid-N connection
 -----------------
-
 
 `grid-N connection` is also a nearest neighbors connection. Each neuron connect to its
 nearest :math:`2N \cdot 2N` neurons.

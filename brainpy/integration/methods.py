@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 from .diff_equation import DiffEquation
-from .. import numpy as np
 from .. import profile
+from ..backend import normal_like
 from ..errors import IntegratorError
 
 __all__ = [
@@ -32,7 +34,7 @@ def euler(diff_eqs, *args):
                     val = __f(y0, t, *args)
                     dfdg = val[0]
                     df = dfdg[0] * __dt
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = __dt_sqrt * dfdg[1] * dW
                     y = y0 + df + dg
                     return (y,) + tuple(val[1:])
@@ -44,7 +46,7 @@ def euler(diff_eqs, *args):
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)[0]
                     df = val[0] * __dt
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = __dt_sqrt * val[1] * dW
                     return y0 + df + dg
 
@@ -52,7 +54,7 @@ def euler(diff_eqs, *args):
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     df = val[0] * __dt
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = __dt_sqrt * val[1] * dW
                     return y0 + df + dg
             else:
@@ -61,7 +63,7 @@ def euler(diff_eqs, *args):
     # ODE
     else:
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     y = y0 + __dt * val[0][0]
@@ -74,7 +76,10 @@ def euler(diff_eqs, *args):
             if diff_eqs.return_type == 'x':
                 def int_func(y0, t, *args):
                     return y0 + __dt * __f(y0, t, *args)
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type == 'x,x':
+                def int_func(y0, t, *args):
+                    return y0 + __dt * __f(y0, t, *args)[0]
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     return y0 + __dt * __f(y0, t, *args)[0][0]
             else:
@@ -92,7 +97,7 @@ def rk2(diff_eqs, __beta=2 / 3):
     else:
 
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -110,7 +115,13 @@ def rk2(diff_eqs, __beta=2 / 3):
                     k2 = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)
                     y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
                     return y
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type == 'x,x':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)[0]
+                    y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
+                    return y
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __beta * __dt * k1, t + __beta * __dt, *args)[0][0]
@@ -138,7 +149,7 @@ def heun(diff_eqs, *args):
                         dfdg = val[0]
                         dg = dfdg[1]
                         df = dfdg[0] * __dt
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         y_bar = y0 + dg * dW * __dt_sqrt
                         dg_bar = __f(y_bar, t, *args)[0][1]
                         dg = 0.5 * (dg + dg_bar) * dW * __dt_sqrt
@@ -153,7 +164,7 @@ def heun(diff_eqs, *args):
                         val = __f(y0, t, *args)[0]
                         df = val[0] * __dt
                         dg = val[1]
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         y_bar = y0 + dg * dW * __dt_sqrt
                         dg_bar = __f(y_bar, t, *args)[0][1]
                         dg = 0.5 * (dg + dg_bar) * dW * __dt_sqrt
@@ -164,7 +175,7 @@ def heun(diff_eqs, *args):
                         val = __f(y0, t, *args)
                         df = val[0] * __dt
                         dg = val[1]
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         y_bar = y0 + dg * dW * __dt_sqrt
                         dg_bar = __f(y_bar, t, *args)[1]
                         dg = 0.5 * (dg + dg_bar) * dW * __dt_sqrt
@@ -191,7 +202,7 @@ def rk3(diff_eqs, *args):
     else:
         if diff_eqs.is_multi_return:
 
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -211,7 +222,14 @@ def rk3(diff_eqs, *args):
                     k3 = __f(y0 - __dt * k1 + 2 * __dt * k2, t + __dt, *args)
                     return y0 + __dt / 6 * (k1 + 4 * k2 + k3)
 
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type == 'x,x':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0]
+                    k3 = __f(y0 - __dt * k1 + 2 * __dt * k2, t + __dt, *args)[0]
+                    return y0 + __dt / 6 * (k1 + 4 * k2 + k3)
+
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0][0]
@@ -233,7 +251,7 @@ def rk4(diff_eqs, *args):
 
     else:
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -256,7 +274,15 @@ def rk4(diff_eqs, *args):
                     k4 = __f(y0 + __dt * k3, t + __dt, *args)
                     return y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
 
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type  == 'x,x':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0]
+                    k3 = __f(y0 + __dt / 2 * k2, t + __dt / 2, *args)[0]
+                    k4 = __f(y0 + __dt * k3, t + __dt, *args)[0]
+                    return y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0][0]
@@ -279,7 +305,7 @@ def rk4_alternative(diff_eqs, *args):
 
     else:
         if diff_eqs.is_multi_return:
-            if diff_eqs.return_type == '(x,),':
+            if diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     val = __f(y0, t, *args)
                     k1 = val[0][0]
@@ -300,7 +326,14 @@ def rk4_alternative(diff_eqs, *args):
                     k3 = __f(y0 - __dt / 3 * k1 + __dt * k2, t + 2 * __dt / 3, *args)
                     k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)
                     return y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
-            elif diff_eqs.return_type == '(x,),':
+            elif diff_eqs.return_type  == 'x,x':
+                def int_func(y0, t, *args):
+                    k1 = __f(y0, t, *args)[0]
+                    k2 = __f(y0 + __dt / 3 * k1, t + __dt / 3, *args)[0]
+                    k3 = __f(y0 - __dt / 3 * k1 + __dt * k2, t + 2 * __dt / 3, *args)[0]
+                    k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)[0]
+                    return y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
+            elif diff_eqs.return_type in ['(x,),', '(x,x),']:
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0][0]
                     k2 = __f(y0 + __dt / 3 * k1, t + __dt / 3, *args)[0][0]
@@ -331,7 +364,7 @@ def exponential_euler(diff_eq, *args):
                 def int_f(y0, t, *args):
                     val = f(y0, t, *args)
                     dydt, linear_part = val[0], val[1]
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g(y0, t, *args) * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -341,7 +374,7 @@ def exponential_euler(diff_eq, *args):
 
                 def int_f(y0, t, *args):
                     dydt, linear_part = f(y0, t, *args)
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g(y0, t, *args) * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -355,7 +388,7 @@ def exponential_euler(diff_eq, *args):
                 def int_f(y0, t, *args):
                     val = f(y0, t, *args)
                     dydt, linear_part = val[0], val[1]
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -365,7 +398,7 @@ def exponential_euler(diff_eq, *args):
 
                 def int_f(y0, t, *args):
                     dydt, linear_part = f(y0, t, *args)
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dg = dt_sqrt * g * dW
                     exp = np.exp(linear_part * dt)
                     y1 = y0 + (exp - 1) / linear_part * dydt + exp * dg
@@ -401,7 +434,7 @@ def milstein_Ito(diff_eq, *args):
             if diff_eq.return_type == '(x,x),':
                 if diff_eq.is_multi_return:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0][0]
                         df = dfdg[0] * __dt
@@ -413,7 +446,7 @@ def milstein_Ito(diff_eq, *args):
                         return (y1,) + tuple(val[1:])
                 else:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0][0]
                         df = dfdg[0] * __dt
@@ -425,7 +458,7 @@ def milstein_Ito(diff_eq, *args):
                         return y1
             elif diff_eq.return_type == 'x,x':
                 def int_func(y0, t, *args):
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     val = __f(y0, t, *args)
                     df = val[0] * __dt
                     g_n = val[1]
@@ -453,7 +486,7 @@ def milstein_Stra(diff_eq, *args):
 
                 if diff_eq.is_multi_return:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0]
                         df = dfdg[0] * __dt
@@ -466,7 +499,7 @@ def milstein_Stra(diff_eq, *args):
                         return (y1,) + tuple(val[1:])
                 else:
                     def int_func(y0, t, *args):
-                        dW = np.random._normal_like(y0)
+                        dW = normal_like(y0)
                         val = __f(y0, t, *args)
                         dfdg = val[0]
                         df = dfdg[0] * __dt
@@ -479,7 +512,7 @@ def milstein_Stra(diff_eq, *args):
                         return y1
             elif diff_eq.return_type == 'x,x':
                 def int_func(y0, t, *args):
-                    dW = np.random._normal_like(y0)
+                    dW = normal_like(y0)
                     dfdg = __f(y0, t, *args)
                     df = dfdg[0] * __dt
                     g_n = dfdg[1]

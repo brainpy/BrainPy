@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import numba as nb
+import numpy as np
 
 from .base import Connector
-from .. import numpy as np
 from ..errors import ModelUseError
 
 if hasattr(nb.core, 'dispatcher'):
@@ -37,8 +37,8 @@ class One2One(Connector):
             assert np.shape(pre_indices) == np.shape(post_indices)
         except AssertionError:
             raise ModelUseError('One2One connection must be defined in two groups with the same shape.')
-        self.pre_ids = np.asarray(pre_indices.flatten(), dtype=np.int_)
-        self.post_ids = np.asarray(post_indices.flatten(), dtype=np.int_)
+        self.pre_ids = np.ascontiguousarray(pre_indices.flatten(), dtype=np.int_)
+        self.post_ids = np.ascontiguousarray(post_indices.flatten(), dtype=np.int_)
         if self.num_pre is None:
             self.num_pre = pre_indices.max()
         if self.num_post is None:
@@ -67,8 +67,8 @@ class All2All(Connector):
             for i in range(min([num_post, num_pre])):
                 mat[i, i] = 0
         pre_ids, post_ids = np.where(mat > 0)
-        self.pre_ids = np.asarray(pre_ids, dtype=np.int_)
-        self.post_ids = np.asarray(post_ids, dtype=np.int_)
+        self.pre_ids = np.ascontiguousarray(pre_ids, dtype=np.int_)
+        self.post_ids = np.ascontiguousarray(post_ids, dtype=np.int_)
         if self.num_pre is None:
             self.num_pre = pre_indices.max()
         if self.num_post is None:

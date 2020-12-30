@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+from numba import njit
+
 from . import profile
-from . import numpy as bnp
 
 __all__ = [
     'cross_correlation',
@@ -14,6 +16,14 @@ __all__ = [
 ###############################
 # NeuGroup synchronization
 ###############################
+
+
+@njit
+def _cc(states, i, j):
+    sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
+    k = 0. if sqrt_ij == 0. else np.sum(states[i] * states[j]) / sqrt_ij
+    return k
+
 
 def cross_correlation(spikes, bin_size):
     """Calculate cross correlation index between neurons.
@@ -56,19 +66,16 @@ def cross_correlation(spikes, bin_size):
     """
 
     num_hist, num_neu = spikes.shape
-    num_bin = int(bnp.ceil(num_hist / bin_size))
+    num_bin = int(np.ceil(num_hist / bin_size))
     if num_bin * bin_size != num_hist:
-        spikes = bnp.append(spikes, bnp.zeros(num_bin * num_hist - num_hist, num_neu), axis=0)
-    states = spikes.T.reshape(num_neu, num_bin, bin_size)
-    states = bnp.float64(bnp.sum(states, axis=2) > 0.)
-
+        spikes = np.append(spikes, np.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
+    states = spikes.T.reshape((num_neu, num_bin, bin_size))
+    states = (np.sum(states, axis=2) > 0.).astype(np.float_)
     all_k = []
     for i in range(num_neu):
         for j in range(i + 1, num_neu):
-            sqrt_ij = bnp.sqrt(bnp.sum(states[i]) * bnp.sum(states[j]))
-            k = 0. if sqrt_ij == 0. else bnp.sum(states[i] * states[j]) / sqrt_ij
-            all_k.append(k)
-    return bnp.mean(all_k)
+            all_k.append(_cc(states, i, j))
+    return np.mean(all_k)
 
 
 def voltage_fluctuation(potentials):
@@ -128,13 +135,13 @@ def voltage_fluctuation(potentials):
     """
 
     num_hist, num_neu = potentials.shape
-    avg = bnp.mean(potentials, axis=1)
-    avg_var = bnp.mean(avg * avg) - bnp.mean(avg) ** 2
+    avg = np.mean(potentials, axis=1)
+    avg_var = np.mean(avg * avg) - np.mean(avg) ** 2
     neu_vars = []
     for i in range(num_neu):
         neu = potentials[:, i]
-        neu_vars.append(bnp.mean(neu * neu) - bnp.mean(neu) ** 2)
-    var_mean = bnp.mean(neu_vars)
+        neu_vars.append(np.mean(neu * neu) - np.mean(neu) ** 2)
+    var_mean = np.mean(neu_vars)
     return avg_var / var_mean if var_mean != 0. else 1.
 
 
@@ -154,7 +161,7 @@ def raster_plot(sp_matrix, times):
     raster_plot : tuple
         Include (neuron index, spike time).
     """
-    elements = bnp.where(sp_matrix > 0.)
+    elements = np.where(sp_matrix > 0.)
     index = elements[1]
     time = times[elements[0]]
     return index, time
@@ -197,19 +204,19 @@ def firing_rate(sp_matrix, width, window='gaussian'):
         The population rate in Hz, smoothed with the given window.
     """
     # rate
-    rate = bnp.sum(sp_matrix, axis=1)
+    rate = np.sum(sp_matrix, axis=1)
 
     # window
     dt = profile.get_dt()
     if window == 'gaussian':
         width1 = 2 * width / dt
-        width2 = int(bnp.around(width1))
-        window = bnp.exp(-bnp.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 / 2))
+        width2 = int(np.around(width1))
+        window = np.exp(-np.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 / 2))
     elif window == 'flat':
         width1 = int(width / 2 / dt) * 2 + 1
-        window = bnp.ones(width1)
+        window = np.ones(width1)
     else:
         raise ValueError('Unknown window type "{}".'.format(window))
-    window = bnp.float_(window)
+    window = np.float_(window)
 
-    return bnp.convolve(rate, window / sum(window), mode='same')
+    return np.convolve(rate, window / sum(window), mode='same')
