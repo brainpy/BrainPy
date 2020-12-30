@@ -94,8 +94,8 @@ class PhasePortraitAnalyzer(object):
                                 'Or, you can set "fixed_vars" to fix other variables, '
                                 'then make 1D/2D phase plane analysis.')
 
-    def plot_vector_filed(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
-        self.analyzer.plot_vector_filed(resolution=resolution, lw_lim=lw_lim, show=show)
+    def plot_vector_field(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
+        self.analyzer.plot_vector_field(resolution=resolution, lw_lim=lw_lim, show=show)
 
     def plot_fixed_point(self, resolution=0.1, show=False):
         self.analyzer.plot_fixed_point(resolution=resolution, show=show)
@@ -209,7 +209,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             self.f_dfdx = dfxdx
         return self.f_dfdx
 
-    def plot_vector_filed(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
+    def plot_vector_field(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
         x = np.arange(*self.target_vars[self.x_var], resolution)
         x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
 
@@ -466,7 +466,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         return self.f_jacobian
 
-    def plot_vector_filed(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
+    def plot_vector_field(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
         X = np.arange(*self.target_vars[self.x_var], resolution)
         Y = np.arange(*self.target_vars[self.y_var], resolution)
         X, Y = np.meshgrid(X, Y)

@@ -88,13 +88,13 @@ brainpy.integration package
 .. autosummary::
     :toctree: _autosummary
 
-    sympy_tools.SympyRender
-    sympy_tools.SympyPrinter
-    sympy_tools.str2sympy
-    sympy_tools.sympy2str
+    SympyRender
+    SympyPrinter
+    str2sympy
+    sympy2str
 
-.. autoclass:: sympy_tools.SympyRender
+.. autoclass:: SympyRender
     :members:
 
-.. autoclass:: sympy_tools.SympyPrinter
+.. autoclass:: SympyPrinter
     :members:
