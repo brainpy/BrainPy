@@ -6,6 +6,7 @@ from . import methods
 from . import sympy_tools
 from .diff_equation import *
 from .integrator import *
+from .sympy_tools import *
 from .. import profile
 
 _SUPPORT_METHODS = [

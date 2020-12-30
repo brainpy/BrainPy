@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from numba import njit
 
 from . import profile
 
@@ -15,6 +16,14 @@ __all__ = [
 ###############################
 # NeuGroup synchronization
 ###############################
+
+
+@njit
+def _cc(states, i, j):
+    sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
+    k = 0. if sqrt_ij == 0. else np.sum(states[i] * states[j]) / sqrt_ij
+    return k
+
 
 def cross_correlation(spikes, bin_size):
     """Calculate cross correlation index between neurons.
@@ -59,16 +68,13 @@ def cross_correlation(spikes, bin_size):
     num_hist, num_neu = spikes.shape
     num_bin = int(np.ceil(num_hist / bin_size))
     if num_bin * bin_size != num_hist:
-        spikes = np.append(spikes, np.zeros(num_bin * num_hist - num_hist, num_neu), axis=0)
-    states = spikes.T.reshape(num_neu, num_bin, bin_size)
-    states = np.float64(np.sum(states, axis=2) > 0.)
-
+        spikes = np.append(spikes, np.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
+    states = spikes.T.reshape((num_neu, num_bin, bin_size))
+    states = (np.sum(states, axis=2) > 0.).astype(np.float_)
     all_k = []
     for i in range(num_neu):
         for j in range(i + 1, num_neu):
-            sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
-            k = 0. if sqrt_ij == 0. else np.sum(states[i] * states[j]) / sqrt_ij
-            all_k.append(k)
+            all_k.append(_cc(states, i, j))
     return np.mean(all_k)
 
 
