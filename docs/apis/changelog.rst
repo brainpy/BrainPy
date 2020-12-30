@@ -1,23 +1,24 @@
 Release notes
 =============
 
-BrainPy 0.2.6
+BrainPy 0.3.0
 -------------
 
-API changes
-~~~~~~~~~~~
-
-About Computation API:
+Computation API
+~~~~~~~~~~~~~~~
 
 - Rename "brainpy.numpy" to "brainpy.backend"
 - Delete "pytorch", "tensorflow" backends
 - Add "numba" requirement
+- Add GPU support
 
-About profile setting:
+Profile setting
+~~~~~~~~~~~~~~~
 
 - Delete "backend" profile setting, add "jit"
 
-About core systems:
+Core systems
+~~~~~~~~~~~~
 
 - Delete "autopepe8" requirement
 - Delete the format code prefix
@@ -26,10 +27,10 @@ About core systems:
 - Add "repeat" mode run in Network
 - Change "vector-based" to "mode" in NeuType and SynType definition
 
-About package installation:
+Package installation
+~~~~~~~~~~~~~~~~~~~~
 
 - Remove "pypi" installation, installation now only rely on "conda"
-
 
 
 

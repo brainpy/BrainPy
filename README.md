@@ -115,11 +115,11 @@ The following packages need to be installed to use ``BrainPy``:
 
 
 
-More neuron examples please see [examples/neurons](https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/neurons);
+More neuron examples please see [bpmodels/neurons](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/neurons);
 
-More synapse examples please see [examples/synapses](https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/synapses);
+More synapse examples please see [bpmodels/synapses](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/synapses);
 
-More network examples please see [examples/networks](https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/networks).
+More network examples please see [brainpy-examples/networks](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/networks) and [brainpy-examples/from_papers](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/from_papers).
 
 
 
@@ -198,7 +198,7 @@ More network examples please see [examples/networks](https://github.com/PKU-NIP-
 
 
 
-More examples please see [examples/dynamics_analysis](https://github.com/PKU-NIP-Lab/BrainPy/tree/master/examples/dynamics_analysis).
+More examples please see [brainpy-examples/dynamics_analysis](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/dynamics_analysis).
 
 
 

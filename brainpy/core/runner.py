@@ -139,7 +139,7 @@ class Runner(object):
                 right = f'{key.replace(".", "_")}_inp'
                 code_args.add(right)
                 code_arg2call[right] = f'{self._name}_runner.{right}'
-                self.set_input_data(right, val)
+                self.set_data(right, val)
                 if data_type == 'iter':
                     right = right + '[_i]'
                     if np.ndim(val) > 1:
@@ -164,9 +164,9 @@ class Runner(object):
             exec(compile(func_code, '', 'exec'), code_scope)
             self.input_step = code_scope['input_step']
             if not profile._merge_steps:
-                if profile._show_format_code:
+                if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                if profile._show_code_scope:
+                if profile.show_code_scope():
                     tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
             # format function call
@@ -221,7 +221,7 @@ class Runner(object):
 
                 # get the right side #
                 right = f'{key.replace(".", "_")}_inp'
-                self.set_input_data(right, val)
+                self.set_data(right, val)
                 code_args.add(right)
                 code_arg2call[right] = f'{self._name}_runner.{right}'
 
@@ -270,9 +270,9 @@ class Runner(object):
                 step_func = cuda.jit(step_func)
                 setattr(self, func_name, step_func)
                 if not profile._merge_steps:
-                    if profile._show_format_code:
+                    if profile.show_format_code():
                         tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                    if profile._show_code_scope:
+                    if profile.show_code_scope():
                         tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
                 # format function call
@@ -408,9 +408,9 @@ class Runner(object):
             func_code = '\n  '.join(code_to_compile)
 
             if not profile._merge_steps:
-                if profile._show_format_code:
+                if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                if profile._show_code_scope:
+                if profile.show_code_scope():
                     tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
             exec(compile(func_code, '', 'exec'), code_scope)
@@ -524,9 +524,9 @@ class Runner(object):
                 setattr(self, func_name, monitor_step)
 
                 if not profile._merge_steps:
-                    if profile._show_format_code:
+                    if profile.show_format_code():
                         tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                    if profile._show_code_scope:
+                    if profile.show_code_scope():
                         tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
                 # format function call
@@ -784,9 +784,9 @@ class Runner(object):
             if profile.is_jit():
                 func = tools.jit(func)
             if not profile._merge_steps:
-                if profile._show_format_code:
+                if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                if profile._show_code_scope:
+                if profile.show_code_scope():
                     tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
 
             # set the function to the model
@@ -877,8 +877,8 @@ class Runner(object):
                                 add_args.add(din)
                                 code_arg2call[din] = f'{self._name}.{arg}._delay_in'
                                 for st_k in func_delay_keys:
-                                    right = f'{arg}[{var2idx[st_k]}]'
-                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}]"
+                                    right = f'{arg}[{var2idx[st_k]}, _obj_i_]'
+                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}, _obj_i_]"
                                     func_code += f'\n{left} = {right}'
                         for st_k in st._keys:
                             p = f'{arg}\[([\'"]{st_k}[\'"])\]'
@@ -978,12 +978,12 @@ class Runner(object):
                 code_args.add(f'pre_ids')
                 code_arg2call[f'pre_ids'] = f'{self._name}_runner.pre_ids'
                 code_lines.append(f'  _pre_i_ = pre_ids[_obj_i_]')
-                self.set_input_data('pre_ids', getattr(self.ensemble, 'pre_ids'))
+                self.set_data('pre_ids', getattr(self.ensemble, 'pre_ids'))
             if has_post:
                 code_args.add(f'post_ids')
                 code_arg2call[f'post_ids'] = f'{self._name}_runner.post_ids'
                 code_lines.append(f'  _post_i_ = post_ids[_obj_i_]')
-                self.set_input_data('post_ids', getattr(self.ensemble, 'post_ids'))
+                self.set_data('post_ids', getattr(self.ensemble, 'post_ids'))
 
             # substitute heterogeneous parameter "p" to "p[_obj_i_]"
             # ------------------------------------------------------
@@ -1071,7 +1071,7 @@ class Runner(object):
             if not profile.is_merge_steps():
                 if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                if profile.show_format_code():
+                if profile.show_code_scope():
                     tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
             # 3. jit the compiled function
             func = code_scope[stripped_fname]
@@ -1155,9 +1155,9 @@ Several ways to correct this error is:
                 func_call = f'{self._name}_runner.merge_func({tools.func_call(arg2calls_list)})'
                 codes_of_calls.append(func_call)
 
-                if profile._show_format_code:
+                if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
-                if profile._show_code_scope:
+                if profile.show_code_scope():
                     tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
 
             else:
@@ -1191,7 +1191,7 @@ Several ways to correct this error is:
                 raise ModelUseError(f'Unknown step function "{s}" for model "{self._name}".')
         self._schedule = schedule
 
-    def set_input_data(self, key, data):
+    def set_data(self, key, data):
         if profile.run_on_gpu():
             if np.isscalar(data):
                 data_cuda = data

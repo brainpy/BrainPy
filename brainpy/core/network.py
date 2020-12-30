@@ -248,7 +248,7 @@ class Network(object):
                                             f'However, we got the last operation is '
                                             f'"{obj_inputs[key][1]}", and the current operation '
                                             f'is "{ops}"')
-                    obj.runner.set_input_data(f'{key.replace(".", "_")}_inp', val)
+                    obj.runner.set_data(f'{key.replace(".", "_")}_inp', val)
                     all_keys.remove(key)
                 if len(all_keys):
                     raise ModelUseError(f'The inputs of {all_keys} are not provided.')

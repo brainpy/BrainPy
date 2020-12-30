@@ -1,14 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-The setting of the overall framework.
-
-Using the API in ``profile.py``, you can set
-
-- the backend of numerical algorithm, ``backend`` or ``numba``,
-- the precision of the numerical integrator,
-- the method of the numerical integrator.
-
+The setting of the overall framework by ``profile.py`` API.
 """
 
 from numba import cuda

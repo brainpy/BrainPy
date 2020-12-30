@@ -723,12 +723,13 @@ def func_call(args):
         args = sorted(list(args))
     else:
         assert isinstance(args, (tuple, list))
-    func_args = []
-    for i in range(0, len(args), 5):
-        for arg in args[i: i + 5]:
-            func_args.append(f'{arg},')
-        func_args.append('\n')
-    return ' '.join(func_args).strip()
+    # func_args = []
+    # for i in range(0, len(args), 5):
+    #     for arg in args[i: i + 5]:
+    #         func_args.append(f'{arg},')
+    #     func_args.append('\n')
+    # return ' '.join(func_args).strip()
+    return ', '.join(args).strip()
 
 
 def get_func_source(func):

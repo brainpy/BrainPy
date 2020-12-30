@@ -13,11 +13,6 @@ flexibility and efficiency.
     More features are coming soon. Contributions are welcome.
     https://github.com/PKU-NIP-Lab/BrainPy
 
-.. warning::
-
-    The documentation of BrainPy is incomplete. We will
-    speed up this progress as we can.
-
 
 .. toctree::
    :maxdepth: 1
@@ -37,6 +32,8 @@ flexibility and efficiency.
 
    advanced/differential_equations
    advanced/numerical_integrators
+   advanced/debugging
+   advanced/parameter_searching
    advanced/tips_on_jit
    advanced/how_it_works
    advanced/usage_of_connect_module
