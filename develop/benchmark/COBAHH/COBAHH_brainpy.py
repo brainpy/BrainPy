@@ -6,15 +6,15 @@ import numpy as np
 import brainpy as bp
 
 dt = 0.1
-bp.profile.set(jit=True, dt=dt)
+bp.profile.set(jit=True, dt=dt, numerical_method='exponential')
 
 num_exc = 3200
 num_inh = 800
 unit = 1e6 * 1.
 Cm = 200 / unit
 gl = 10. / unit
-g_na = 20. * 1000 / unit
-g_kd = 6. * 1000 / unit
+g_Na = 20. * 1000 / unit
+g_Kd = 6. * 1000 / unit
 
 El = -60.
 EK = -90.
@@ -43,65 +43,61 @@ neu_ST = bp.types.NeuState(
 )
 
 
-def neu_update(ST):
-    # get neuron state
-    V = ST['V']
-    m = ST['m']
-    h = ST['h']
-    n = ST['n']
-    ge = ST['ge']
-    gi = ST['gi']
+@bp.integrate
+def int_ge(ge, t):
+    return - ge / taue
 
-    # calculate neuron state
+
+@bp.integrate
+def int_gi(gi, t):
+    return - gi / taui
+
+
+@bp.integrate
+def int_m(m, t, V):
     a = 13 - V + VT
     b = V - VT - 40
-    c = 15 - V + VT
     m_alpha = 0.32 * a / (np.exp(a / 4) - 1.)
     m_beta = 0.28 * b / (np.exp(b / 5) - 1)
+    dmdt = (m_alpha * (1 - m) - m_beta * m)
+    return dmdt
+
+
+@bp.integrate
+def int_h(h, t, V):
     h_alpha = 0.128 * np.exp((17 - V + VT) / 18)
-    h_beta = 4. / (1 + np.exp(-b / 5))
+    h_beta = 4. / (1 + np.exp(-(V - VT - 40) / 5))
+    dhdt = (h_alpha * (1 - h) - h_beta * h)
+    return dhdt
+
+
+@bp.integrate
+def int_n(n, t, V):
+    c = 15 - V + VT
+
     n_alpha = 0.032 * c / (np.exp(c / 5) - 1.)
     n_beta = .5 * np.exp((10 - V + VT) / 40)
 
-    # m channel
-    fm = (m_alpha * (1 - m) - m_beta * m)
-    dfm_dm = - m_alpha - m_beta
-    m = m + (np.exp(dfm_dm * dt) - 1) / dfm_dm * fm
-    ST['m'] = m
+    dndt = (n_alpha * (1 - n) - n_beta * n)
+    return dndt
 
-    # h channel
-    fh = (h_alpha * (1 - h) - h_beta * h)
-    dfh_dh = - h_alpha - h_beta
-    h = h + (np.exp(dfh_dh * dt) - 1) / dfh_dh * fh
-    ST['h'] = h
 
-    # n channel
-    fn = (n_alpha * (1 - n) - n_beta * n)
-    dfn_dn = - n_alpha - h_beta
-    n = n + (np.exp(dfn_dn * dt) - 1) / dfn_dn * fn
-    ST['n'] = n
+@bp.integrate
+def int_V(V, t, m, h, n, ge, gi):
+    g_na_ = g_Na * (m * m * m) * h
+    g_kd_ = g_Kd * (n * n * n * n)
+    dvdt = (gl * (El - V) + ge * (Ee - V) + gi * (Ei - V) -
+            g_na_ * (V - ENa) - g_kd_ * (V - EK)) / Cm
+    return dvdt
 
-    # ge
-    fge = - ge / taue
-    dfge_dge = - 1 / taue
-    ge = ge + (np.exp(dfge_dge * dt) - 1) / dfge_dge * fge
-    ST['ge'] = ge
 
-    # gi
-    fgi = - gi / taui
-    dfgi_dgi = - 1 / taui
-    gi = gi + (np.exp(dfgi_dgi * dt) - 1) / dfgi_dgi * fgi
-    ST['gi'] = gi
-
-    # V
-    g_na_ = g_na * (m * m * m) * h
-    g_kd_ = g_kd * (n * n * n * n)
-    fv = (gl * (El - V) + ge * (Ee - V) + gi * (Ei - V) -
-          g_na_ * (V - ENa) - g_kd_ * (V - EK)) / Cm
-    dfv_dv = (-gl - ge - gi - g_na_ - g_kd_) / Cm
-    V = V + (np.exp(dfv_dv * dt) - 1) / dfv_dv * fv
-
-    # spike
+def neu_update(ST, _t):
+    ST['ge'] = int_ge(ST['ge'], _t)
+    ST['gi'] = int_gi(ST['gi'], _t)
+    ST['m'] = int_m(ST['m'], _t, ST['V'])
+    ST['h'] = int_h(ST['h'], _t, ST['V'])
+    ST['n'] = int_n(ST['n'], _t, ST['V'])
+    V = int_V(ST['V'], _t, ST['m'], ST['h'], ST['n'], ST['ge'], ST['gi'])
     sp = np.logical_and(ST['V'] < Vt, V >= Vt)
     ST['sp'] = sp
     ST['V'] = V

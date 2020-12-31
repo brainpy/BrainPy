@@ -3,16 +3,17 @@ from brian2 import *
 from nest import *
 import brainpy as bp
 
+import os
+import json
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 dt = 0.05
 setup(dt=dt)
 
 
-def run_brianpy(num_neu, duration, device='cpu', f=None):
+def run_brianpy(num_neu, duration, device='cpu'):
     num_inh = int(num_neu / 5)
     num_exc = num_neu - num_inh
 
@@ -113,12 +114,10 @@ def run_brianpy(num_neu, duration, device='cpu', f=None):
     net.run(duration)
     t = time.time() - t0
     print(f'BrainPy ({device}) used time {t} s.')
-    if f is not None:
-        f.write(f'BrainPy ({device}) used time {t} s.\n')
     return t
 
 
-def run_annarchy(num_neu, duration, device='cpu', f=None):
+def run_annarchy(num_neu, duration, device='cpu'):
     NI = int(num_neu / 5)
     NE = num_neu - NI
 
@@ -174,12 +173,10 @@ def run_annarchy(num_neu, duration, device='cpu', f=None):
     simulate(duration)
     t = time.time() - t0
     print(f'ANNarchy ({device}) used time {t} s.')
-    if f is not None:
-        f.write(f'ANNarchy ({device}) used time {t} s.\n')
     return t
 
 
-def run_brian2(num_neu, duration, f=None):
+def run_brian2(num_neu, duration):
     num_inh = int(num_neu / 5)
     num_exc = num_neu - num_inh
 
@@ -236,12 +233,10 @@ def run_brian2(num_neu, duration, f=None):
     net.run(duration * ms)
     t = time.time() - t1
     print(f'Brian2 used {t} s')
-    if f is not None:
-        f.write(f'Brian2 used {t} s.\n')
     return t
 
 
-def run_pynest(num_neu, duration, f=None):
+def run_pynest(num_neu, duration):
     NI = int(num_neu / 5)
     NE = num_neu - NI
 
@@ -301,48 +296,48 @@ def run_pynest(num_neu, duration, f=None):
     Simulate(duration)
     t = time.time() - t0
     print(f'PyNest used {t} s')
-    if f is not None:
-        f.write(f'PyNest used {t} s.\n')
     return t
 
 
-def main(num_neurons, duration=1000):
-    total_times = {
-        "BRIAN2": [],
-        "PyNEST": [],
-        "ANNarchy_cpu": [],
-        'BrainPy_cpu': []
-    }
-
-    fout = open('res.txt', 'w')
+def main(num_neurons, duration=1000, fn_output=None):
+    final_results = {'setting': dict(num_neurons=num_neurons,
+                                     duration=duration,
+                                     dt=dt),
+                     "BRIAN2": [],
+                     "PyNEST": [],
+                     "ANNarchy_cpu": [],
+                     'BrainPy_cpu': []}
 
     for num_neu in num_neurons:
         print(f"Running benchmark with {num_neu} neurons.")
-        fout.write(f"Running benchmark with {num_neu} neurons.\n")
 
         if num_neu > 2500:
-            total_times['PyNEST'].append(np.nan)
+            final_results['PyNEST'].append(np.nan)
         else:
-            t = run_pynest(num_neu, duration, f=fout)
-            total_times['PyNEST'].append(t)
+            t = run_pynest(num_neu, duration)
+            final_results['PyNEST'].append(t)
 
-        t = run_brianpy(num_neu, duration, device='cpu', f=fout)
-        total_times['BrainPy_cpu'].append(t)
+        t = run_brianpy(num_neu, duration, device='cpu')
+        final_results['BrainPy_cpu'].append(t)
 
-        t = run_annarchy(num_neu, duration, device='cpu', f=fout)
-        total_times['ANNarchy_cpu'].append(t)
+        t = run_annarchy(num_neu, duration, device='cpu')
+        final_results['ANNarchy_cpu'].append(t)
 
-        t = run_brian2(num_neu, duration, f=fout)
-        total_times['BRIAN2'].append(t)
+        t = run_brian2(num_neu, duration)
+        final_results['BRIAN2'].append(t)
 
-    fout.close()
+    if fn_output is not None:
+        if not os.path.exists(os.path.dirname(fn_output)):
+            os.makedirs(os.path.dirname(fn_output))
+        with open(fn_output, 'w') as fout:
+            json.dump(final_results, fout, indent=2)
 
-    plt.plot(num_neurons, total_times["BRIAN2"], label="BRIAN2", linestyle="--", color="r")
-    plt.plot(num_neurons, total_times["PyNEST"], label="PyNEST", linestyle="--", color="y")
-    plt.plot(num_neurons, total_times["ANNarchy_cpu"], label="ANNarchy", linestyle="--", color="m")
-    plt.plot(num_neurons, total_times["BrainPy_cpu"], label="BrainPy", linestyle="--", color="g")
+    plt.plot(num_neurons, final_results["BRIAN2"], label="BRIAN2", linestyle="--", color="r")
+    plt.plot(num_neurons, final_results["PyNEST"], label="PyNEST", linestyle="--", color="y")
+    plt.plot(num_neurons, final_results["ANNarchy_cpu"], label="ANNarchy", linestyle="--", color="m")
+    plt.plot(num_neurons, final_results["BrainPy_cpu"], label="BrainPy", linestyle="--", color="g")
 
-    plt.title("Benchmark comparison of SNN simulation libraries")
+    plt.title("Benchmark comparison of neural simulators")
     plt.xlabel("Number of input / output neurons")
     plt.ylabel("Simulation time (seconds)")
     plt.legend(loc=1, prop={"size": 5})
@@ -351,11 +346,7 @@ def main(num_neurons, duration=1000):
     plt.yscale("log")
     plt.legend()
     plt.show()
-    # plt.savefig(os.path.join(figure_path, name + ".png"))
 
 
 if __name__ == "__main__":
-    main(list(range(500, 9001, 500)), 5000)
-
-
-
+    main(list(range(500, 9001, 500)), 5000, 'results/COBA.json')

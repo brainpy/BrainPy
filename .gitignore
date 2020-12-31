@@ -4,7 +4,7 @@ TODO.md
 .vscode
 
 examples/
-develop/benchmark/results
+develop/benchmark/COBA/results
 
 docs/images/numpybrain_arch.pptx
 docs/images/synapses_index.pdf

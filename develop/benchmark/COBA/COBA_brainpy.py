@@ -78,23 +78,10 @@ def update1(pre, post, pre2post):
                 post['ge'][i] += we
 
 
-#
 exc_syn = bp.SynType('exc_syn',
                      steps=update1,
                      ST=bp.types.SynState([]),
                      mode='vector')
-
-
-# def update1_2(pre, post, conn_mat):
-#     # print(pre['spike'].shape)
-#     # print(conn_mat.shape)
-#     post['ge'] += we * np.dot(pre['spike'][:num_exc], conn_mat)
-#
-#
-# exc_syn = bp.SynType('exc_syn',
-#                      steps=update1_2,
-#                      ST=bp.types.SynState([]),
-#                      mode='matrix')
 
 
 def update2(pre, post, pre2post):
@@ -110,19 +97,10 @@ inh_syn = bp.SynType('inh_syn',
                      ST=bp.types.SynState([]),
                      mode='vector')
 
-# def update2_2(pre, post, conn_mat):
-#     post['gi'] += wi * np.dot(pre['spike'][num_exc:], conn_mat)
-#
-#
-# inh_syn = bp.SynType('inh_syn',
-#                      steps=update2_2,
-#                      ST=bp.types.SynState([]),
-#                      mode='matrix')
 
 group = bp.NeuGroup(neuron,
                     geometry=num_exc + num_inh,
-                    # monitors=['spike']
-                    )
+                    monitors=['spike'])
 group.ST['V'] = np.random.randn(num_exc + num_inh) * 5. - 55.
 
 exc_conn = bp.SynConn(exc_syn,
@@ -139,8 +117,6 @@ net = bp.Network(group, exc_conn, inh_conn)
 t0 = time.time()
 
 net.run(5000., report=True)
-# net.run(2500., report=True)
-# net.run((2500., 5000.), report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
-# bp.visualize.raster_plot(net.ts, group.mon.spike, show=True)
+bp.visualize.raster_plot(net.ts, group.mon.spike, show=True)
