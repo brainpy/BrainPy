@@ -4,6 +4,7 @@ TODO.md
 .vscode
 
 examples/
+develop/benchmark/results
 
 docs/images/numpybrain_arch.pptx
 docs/images/synapses_index.pdf

@@ -1,19 +1,18 @@
-import time
-import argparse
-
-import numpy as np
 from ANNarchy import *
 from brian2 import *
 from nest import *
-
-import matplotlib.pyplot as plt
-
 import brainpy as bp
 
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+
+
 dt = 0.05
+setup(dt=dt)
 
 
-def run_brianpy(num_neu, duration, device='cpu'):
+def run_brianpy(num_neu, duration, device='cpu', f=None):
     num_inh = int(num_neu / 5)
     num_exc = num_neu - num_inh
 
@@ -32,7 +31,6 @@ def run_brianpy(num_neu, duration, device='cpu'):
     we = 0.6  # excitatory synaptic weight (voltage)
     wi = 6.7  # inhibitory synaptic weight
     ref = 5.0
-
 
     neu_ST = bp.types.NeuState(
         {'sp_t': -1e7,
@@ -112,17 +110,19 @@ def run_brianpy(num_neu, duration, device='cpu'):
     net = bp.Network(group, exc_conn, inh_conn)
 
     t0 = time.time()
-    net.run(duration, report=True)
+    net.run(duration)
     t = time.time() - t0
     print(f'BrainPy ({device}) used time {t} s.')
+    if f is not None:
+        f.write(f'BrainPy ({device}) used time {t} s.\n')
     return t
 
 
-def run_annarchy(num_neu, duration, device='cpu'):
+def run_annarchy(num_neu, duration, device='cpu', f=None):
     NI = int(num_neu / 5)
     NE = num_neu - NI
 
-    setup(dt=dt)
+    clear()
 
     COBA = Neuron(
         parameters="""
@@ -171,18 +171,25 @@ def run_annarchy(num_neu, duration, device='cpu'):
 
     t0 = time.time()
     compile()
-    simulate(duration, measure_time=True)
+    simulate(duration)
     t = time.time() - t0
     print(f'ANNarchy ({device}) used time {t} s.')
+    if f is not None:
+        f.write(f'ANNarchy ({device}) used time {t} s.\n')
     return t
 
 
-def run_brian2(num_neu, duration):
+def run_brian2(num_neu, duration, f=None):
     num_inh = int(num_neu / 5)
     num_exc = num_neu - num_inh
 
+    start_scope()
+    device.reinit()
+    device.activate()
+
     defaultclock.dt = dt * ms
     set_device('cpp_standalone', directory='brian2_COBA')
+    # device.build()
     # prefs.codegen.target = "cython"
 
     taum = 20 * ms
@@ -209,6 +216,7 @@ def run_brian2(num_neu, duration):
                     model=eqs,
                     threshold='v>Vt', reset='v = Vr',
                     refractory=5 * ms, method='euler')
+    net.add(P)
 
     # ###########################################
     # Projections
@@ -216,25 +224,29 @@ def run_brian2(num_neu, duration):
 
     we = 0.6  # excitatory synaptic weight (voltage)
     wi = 6.7  # inhibitory synaptic weight
-    Ce = Synapses(P[:3200], P, on_pre='ge += we')
-    Ci = Synapses(P[3200:], P, on_pre='gi += wi')
+    Ce = Synapses(P[:num_exc], P, on_pre='ge += we')
+    Ci = Synapses(P[num_exc:], P, on_pre='gi += wi')
+    net.add(Ce, Ci)
 
     P.v = (np.random.randn(num_exc + num_inh) * 5. - 55.) * mvolt
     Ce.connect(p=0.02)
     Ci.connect(p=0.02)
 
     t1 = time.time()
-    run(duration * ms, report='text')
+    net.run(duration * ms)
     t = time.time() - t1
     print(f'Brian2 used {t} s')
+    if f is not None:
+        f.write(f'Brian2 used {t} s.\n')
     return t
 
 
-def run_pynest(num_neu, duration):
+def run_pynest(num_neu, duration, f=None):
     NI = int(num_neu / 5)
     NE = num_neu - NI
 
-    SetKernelStatus({"resolution": 0.1})
+    ResetKernel()
+    SetKernelStatus({"resolution": dt})
     # nb_threads = 4
     # SetKernelStatus({"local_num_threads": int(nb_threads)})
 
@@ -272,7 +284,6 @@ def run_pynest(num_neu, duration):
     CopyModel("static_synapse", "excitatory", {"weight": w_exc})
     CopyModel("static_synapse", "inhibitory", {"weight": w_inh})
 
-
     conn_dict = {'rule': 'pairwise_bernoulli', 'p': 0.02}
     Connect(nodes_ex, nodes, conn_dict, syn_spec="excitatory")
     Connect(nodes_in, nodes, conn_dict, syn_spec="inhibitory")
@@ -290,6 +301,8 @@ def run_pynest(num_neu, duration):
     Simulate(duration)
     t = time.time() - t0
     print(f'PyNest used {t} s')
+    if f is not None:
+        f.write(f'PyNest used {t} s.\n')
     return t
 
 
@@ -301,24 +314,28 @@ def main(num_neurons, duration=1000):
         'BrainPy_cpu': []
     }
 
+    fout = open('res.txt', 'w')
+
     for num_neu in num_neurons:
         print(f"Running benchmark with {num_neu} neurons.")
-        if num_neu > 5000:
-            total_times['ANNarchy_cpu'].append(np.nan)
+        fout.write(f"Running benchmark with {num_neu} neurons.\n")
+
         if num_neu > 2500:
             total_times['PyNEST'].append(np.nan)
+        else:
+            t = run_pynest(num_neu, duration, f=fout)
+            total_times['PyNEST'].append(t)
 
-        t = run_brianpy(num_neu, duration, device='cpu')
+        t = run_brianpy(num_neu, duration, device='cpu', f=fout)
         total_times['BrainPy_cpu'].append(t)
 
-        t = run_annarchy(num_neu, duration, device='cpu')
+        t = run_annarchy(num_neu, duration, device='cpu', f=fout)
         total_times['ANNarchy_cpu'].append(t)
 
-        t = run_brian2(num_neu, duration)
+        t = run_brian2(num_neu, duration, f=fout)
         total_times['BRIAN2'].append(t)
 
-        t = run_pynest(num_neu, duration)
-        total_times['PyNEST'].append(t)
+    fout.close()
 
     plt.plot(num_neurons, total_times["BRIAN2"], label="BRIAN2", linestyle="--", color="r")
     plt.plot(num_neurons, total_times["PyNEST"], label="PyNEST", linestyle="--", color="y")
@@ -329,6 +346,8 @@ def main(num_neurons, duration=1000):
     plt.xlabel("Number of input / output neurons")
     plt.ylabel("Simulation time (seconds)")
     plt.legend(loc=1, prop={"size": 5})
+    xticks = [num_neurons[0], num_neurons[len(num_neurons) // 2], num_neurons[-1]]
+    plt.xticks(xticks)
     plt.yscale("log")
     plt.legend()
     plt.show()
@@ -336,7 +355,7 @@ def main(num_neurons, duration=1000):
 
 
 if __name__ == "__main__":
-    main()
+    main(list(range(500, 9001, 500)), 5000)
 
 
 
