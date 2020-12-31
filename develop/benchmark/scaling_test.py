@@ -11,7 +11,7 @@ import numpy as np
 
 
 def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
-              g_Leak=0.03, C=1.0, Vth=20.):
+              g_Leak=0.03, C=1.0, Vth=20., Iext=10.):
     ST = bp.types.NeuState(
         {'V': -65., 'm': 0., 'h': 0., 'n': 0., 'sp': 0., 'inp': 0.},
         help='Hodgkin–Huxley neuron state.\n'
@@ -60,13 +60,15 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
         ST['m'] = m
         ST['h'] = h
         ST['n'] = n
-        ST['inp'] = 0.
+        ST['inp'] = Iext
 
-    return bp.NeuType(name='HH_neuron', ST=ST, steps=update)
+    return bp.NeuType(name='HH_neuron',
+                      ST=ST,
+                      steps=update,
+                      mode='scalar')
 
 
-bp.profile.set(dt=0.1,
-               numerical_method='exponential')
+bp.profile.set(dt=0.1, numerical_method='exponential')
 
 
 def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
@@ -78,7 +80,7 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
     neu = bp.NeuGroup(HH, geometry=num)
 
     t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
+    neu.run(duration=1000., report=True)
     t_cpu = time.time() - t0
     print('used {:.3f} ms'.format(t_cpu))
 
@@ -86,7 +88,7 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
     bp.profile.set(jit=True, device='multi-cpu')
     neu = bp.NeuGroup(HH, geometry=num)
     t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
+    neu.run(duration=1000., report=True)
     t_multi_cpu = time.time() - t0
     print('used {:.3f} ms'.format(t_multi_cpu))
 
@@ -103,7 +105,7 @@ def hh_compare_cpu_and_gpu(num=1000):
     neu = bp.NeuGroup(HH, geometry=num)
 
     t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
+    neu.run(duration=1000., report=True)
     t_cpu = time.time() - t0
     print('used {:.3f} ms'.format(t_cpu))
 
@@ -111,7 +113,7 @@ def hh_compare_cpu_and_gpu(num=1000):
     bp.profile.set(jit=True, device='gpu')
     neu = bp.NeuGroup(HH, geometry=num)
     t0 = time.time()
-    neu.run(duration=1000., inputs=['ST.inp', 10.], report=True)
+    neu.run(duration=1000., report=True)
     t_multi_cpu = time.time() - t0
     print('used {:.3f} ms'.format(t_multi_cpu))
 
