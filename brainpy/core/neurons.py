@@ -33,9 +33,8 @@ class NeuType(ObjType):
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
             mode: str = 'vector',
             requires: dict = None,
+            hand_overs: typing.Dict = None,
             heter_params_replace: typing.Dict = None,
-            extra_functions: typing.Union[typing.List, typing.Tuple] = (),
-            extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
         if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE]:
             raise ModelDefError('NeuType only support "scalar" or "vector".')
@@ -47,8 +46,7 @@ class NeuType(ObjType):
             name=name,
             mode=mode,
             heter_params_replace=heter_params_replace,
-            extra_functions=extra_functions,
-            extra_attributes=extra_attributes)
+            hand_overs=hand_overs)
 
 
 class NeuGroup(Ensemble):
@@ -72,10 +70,10 @@ class NeuGroup(Ensemble):
             self,
             model: NeuType,
             geometry: typing.Union[typing.Tuple, typing.List, int],
-            pars_update: typing.Dict = None,
             monitors: typing.Union[typing.List, typing.Tuple] = None,
             name: str = None,
-            **kwargs
+            satisfies: typing.Dict = None,
+            pars_update: typing.Dict = None,
     ):
         # name
         # -----
@@ -123,7 +121,8 @@ class NeuGroup(Ensemble):
                                        name=name,
                                        num=num,
                                        monitors=monitors,
-                                       cls_type=constants._NEU_GROUP)
+                                       cls_type=constants.NEU_GROUP_TYPE,
+                                       satisfies=satisfies)
 
         # ST
         # --

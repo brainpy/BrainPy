@@ -11,9 +11,9 @@ from numba import cuda
 
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
+from .constants import NEU_GROUP_TYPE
 from .constants import SCALAR_MODE
-from .constants import _NEU_GROUP
-from .constants import _SYN_CONN
+from .constants import SYN_CONN_TYPE
 from .runner import Runner
 from .types import NeuState
 from .types import ObjState
@@ -43,14 +43,13 @@ class ObjType(object):
 
     def __init__(
             self,
-            name: str,
             ST: ObjState,
+            name: str,
             steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
             requires: typing.Dict = None,
             mode: str = 'vector',
+            hand_overs: typing.Dict = None,
             heter_params_replace: typing.Dict = None,
-            extra_functions: typing.Union[typing.List, typing.Tuple] = (),
-            extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
         # type : neuron based or group based code
         # ---------------------------------------
@@ -155,24 +154,14 @@ class ObjType(object):
         # ----------
         self._delay_keys = []
 
-        # extra functions
+        # hand overs
         # ---------------
-        try:
-            assert isinstance(extra_functions, (tuple, list))
-            if len(extra_functions):
-                assert callable(extra_functions[0])
-        except AssertionError:
-            raise ModelUseError('"extra_functions" must be a list/tuple of functions.')
-        self.extra_functions = extra_functions
-
-        # extra attributes
-        # ----------------
-        if extra_attributes is None:
-            extra_attributes = dict()
-        for key, val in extra_attributes.items():
-            if not isinstance(key, str):
-                raise ModelUseError('"extra_attributes" must be a dict with string keys.')
-        self.extra_attributes = extra_attributes
+        if hand_overs is not None:
+            if not isinstance(hand_overs, dict):
+                raise ModelUseError('"hand_overs" must be a dict.')
+        else:
+            hand_overs = dict()
+        self.hand_overs = hand_overs
 
     def __str__(self):
         return f'{self.name}'
@@ -332,11 +321,12 @@ class Ensemble(object):
             model: ObjType,
             monitors: typing.Tuple,
             pars_update: typing.Dict,
-            cls_type: str
+            cls_type: str,
+            satisfies: dict = None,
     ):
         # class type
         # -----------
-        assert cls_type in [_NEU_GROUP, _SYN_CONN], f'Only support "{_NEU_GROUP}" and "{_SYN_CONN}".'
+        assert cls_type in [NEU_GROUP_TYPE, SYN_CONN_TYPE], f'Only support "{NEU_GROUP_TYPE}" and "{SYN_CONN_TYPE}".'
         self._cls_type = cls_type
 
         # model
@@ -391,20 +381,20 @@ class Ensemble(object):
         # -------
         self.runner = Runner(ensemble=self)
 
-        # extra functions
-        # ------------------
-        for func in model.extra_functions:
-            setattr(self, func.__name__, func)
-
-        # extra attributes
-        # ------------------
-        for attr_key, attr_val in model.extra_attributes.items():
+        # hand overs about attributes and functions
+        # -----------------------------------------
+        for attr_key, attr_val in model.hand_overs.items():
             setattr(self, attr_key, attr_val)
 
-    def to_cuda(self, key, val):
-        pass
+        # satisfies
+        # ---------
+        if satisfies is not None:
+            if not isinstance(satisfies, dict):
+                raise ModelUseError('"satisfies" must be dict.')
+            for key, val in satisfies.items():
+                setattr(self, key, val)
 
-    def _type_checking(self):
+    def type_checking(self):
         # check state and its type
         if not hasattr(self, 'ST'):
             raise ModelUseError(f'"{self.name}" doesn\'t have "ST" attribute.')
@@ -434,9 +424,9 @@ class Ensemble(object):
             attr = getattr(self, arg)
         except AttributeError:
             return False
-        if self._cls_type == _NEU_GROUP:
+        if self._cls_type == NEU_GROUP_TYPE:
             return isinstance(attr, NeuState)
-        elif self._cls_type == _SYN_CONN:
+        elif self._cls_type == SYN_CONN_TYPE:
             return isinstance(attr, SynState)
         else:
             raise ValueError
@@ -447,7 +437,7 @@ class Ensemble(object):
                 raise ModelUseError('GPU mode only support scalar-based mode.')
 
         # prerequisite
-        self._type_checking()
+        self.type_checking()
 
         # results
         results = dict()
@@ -471,7 +461,7 @@ class Ensemble(object):
         # merge
         calls = self.runner.merge_codes(results)
 
-        if self._cls_type == _SYN_CONN:
+        if self._cls_type == SYN_CONN_TYPE:
             if self.delay_len > 1:
                 calls.append(f'{self.name}.ST._update_delay_indices()')
 
@@ -485,7 +475,7 @@ class Ensemble(object):
         # times
         # ------
         if isinstance(duration, (int, float)):
-            start, end = 0, duration
+            start, end = 0., duration
         elif isinstance(duration, (tuple, list)):
             assert len(duration) == 2, 'Only support duration with the format of "(start, end)".'
             start, end = duration

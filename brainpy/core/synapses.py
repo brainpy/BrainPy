@@ -39,9 +39,8 @@ class SynType(ObjType):
             steps: typing.Union[callable, list, tuple],
             mode: str = 'vector',
             requires: dict = None,
+            hand_overs: typing.Dict = None,
             heter_params_replace: dict = None,
-            extra_functions: typing.Union[typing.List, typing.Tuple] = (),
-            extra_attributes: typing.Dict[str, typing.Any] = None,
     ):
         if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE, constants.MATRIX_MODE]:
             raise ModelDefError('SynType only support "scalar", "vector" or "matrix".')
@@ -53,8 +52,7 @@ class SynType(ObjType):
             name=name,
             mode=mode,
             heter_params_replace=heter_params_replace,
-            extra_functions=extra_functions,
-            extra_attributes=extra_attributes)
+            hand_overs=hand_overs)
 
         # inspect delay keys
         # ------------------
@@ -110,11 +108,11 @@ class SynConn(Ensemble):
             pre_group: typing.Union[NeuGroup, NeuSubGroup] = None,
             post_group: typing.Union[NeuGroup, NeuSubGroup] = None,
             conn: typing.Union[Connector, np.ndarray, typing.Dict] = None,
-            pars_update: typing.Dict = None,
             delay: float = 0.,
-            monitors: typing.Union[typing.Tuple, typing.List] = None,
             name: str = None,
-            **kwargs: typing.Any,
+            monitors: typing.Union[typing.Tuple, typing.List] = None,
+            satisfies: typing.Dict = None,
+            pars_update: typing.Dict = None,
     ):
         # name
         # ----
@@ -127,15 +125,13 @@ class SynConn(Ensemble):
 
         # model
         # ------
-        try:
-            assert isinstance(model, SynType)
-        except AssertionError:
+        if not isinstance(model, SynType):
             raise ModelUseError(f'{type(self).__name__} receives an instance of {SynType.__name__}, '
                                 f'not {type(model).__name__}.')
 
         if model.mode == 'scalar':
             if pre_group is None or post_group is None:
-                raise ModelUseError('Connection based on scalar-based synapse model must '
+                raise ModelUseError('Using scalar-based synapse model must '
                                     'provide "pre_group" and "post_group".')
 
         # pre or post neuron group
@@ -201,9 +197,10 @@ class SynConn(Ensemble):
             num = len(self.pre_ids)
 
         else:
-            if 'num' not in kwargs:
-                raise ModelUseError('"num" must be provided when "pre_group" and "post_group" are none.')
-            num = kwargs['num']
+            if 'num' not in satisfies:
+                raise ModelUseError('"num" must be provided in "satisfies" when '
+                                    '"pre_group" and "post_group" are none.')
+            num = satisfies['num']
 
         try:
             assert 0 < num < 2 ** 64
@@ -217,7 +214,8 @@ class SynConn(Ensemble):
                                       name=name,
                                       num=num,
                                       monitors=monitors,
-                                      cls_type=constants._SYN_CONN)
+                                      cls_type=constants.SYN_CONN_TYPE,
+                                      satisfies=satisfies)
 
         # delay
         # -------
@@ -236,16 +234,16 @@ class SynConn(Ensemble):
         # --
         if self.model.mode == constants.MATRIX_MODE:
             if pre_group is None:
-                if 'pre_size' not in kwargs:
-                    raise ModelUseError('"pre_size" must be provided when "pre_group" is none.')
-                pre_size = kwargs['pre_size']
+                if 'pre_size' not in satisfies:
+                    raise ModelUseError('"pre_size" must be provided in "satisfies" when "pre_group" is none.')
+                pre_size = satisfies['pre_size']
             else:
                 pre_size = pre_group.size
 
             if post_group is None:
-                if 'post_size' not in kwargs:
-                    raise ModelUseError('"post_size" must be provided when "post_group" is none.')
-                post_size = kwargs['post_size']
+                if 'post_size' not in satisfies:
+                    raise ModelUseError('"post_size" must be provided in "satisfies" when "post_group" is none.')
+                post_size = satisfies['post_size']
             else:
                 post_size = post_group.size
             size = (pre_size, post_size)

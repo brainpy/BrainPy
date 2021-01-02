@@ -7,10 +7,10 @@ KW_I = '_i'
 ARG_KEYWORDS = ['_dt', '_t', '_i']
 
 # name of the neuron group
-_NEU_GROUP = 'NeuGroup'
+NEU_GROUP_TYPE = 'NeuGroup'
 
 # name of the synapse connection
-_SYN_CONN = 'SynConn'
+SYN_CONN_TYPE = 'SynConn'
 
 # input operations
 INPUT_OPERATIONS = {'-': 'sub',
