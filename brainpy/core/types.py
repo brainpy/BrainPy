@@ -55,17 +55,30 @@ if cuda.is_available():
     gpu_set_vector_val = cuda.jit('(float64[:, :], float64[:], int64)')(gpu_set_vector_val)
 
 
-
 class ObjState(dict, TypeChecker):
-    def __init__(self, fields, help=''):
+    def __init__(self, *args, help='', **kwargs):
+        # 1. initialize TypeChecker
         TypeChecker.__init__(self, help=help)
+
+        # 2. get variables
         variables = OrderedDict()
-        if isinstance(fields, (tuple, list)):
-            variables.update({v: 0. for v in fields})
-        elif isinstance(fields, dict):
-            variables.update(fields)
-        else:
-            assert ValueError(f'"fields" only supports tuple/list/dict, not {type(variables)}.')
+        for a in args:
+            if isinstance(a, str):
+                variables.update({a: 0.})
+            elif isinstance(a, (tuple, list)):
+                variables.update({v: 0. for v in a})
+            elif isinstance(a, dict):
+                for val in a.values():
+                    if not isinstance(val, (int, float)):
+                        raise ValueError(f'The default value setting in a dict must be int/float.')
+                variables.update(a)
+            else:
+                raise ValueError(f'Only support str/tuple/list/dict, not {type(variables)}.')
+        for val in kwargs.values():
+            if not isinstance(val, (int, float)):
+                raise ValueError(f'The default value setting must be int/float.')
+
+        # 3. others
         self._keys = list(variables.keys())
         self._values = list(variables.values())
         self._vars = variables
