@@ -326,7 +326,8 @@ class Ensemble(object):
     ):
         # class type
         # -----------
-        assert cls_type in [NEU_GROUP_TYPE, SYN_CONN_TYPE], f'Only support "{NEU_GROUP_TYPE}" and "{SYN_CONN_TYPE}".'
+        if not cls_type in [NEU_GROUP_TYPE, SYN_CONN_TYPE]:
+            raise ModelUseError(f'Only support "{NEU_GROUP_TYPE}" and "{SYN_CONN_TYPE}".')
         self._cls_type = cls_type
 
         # model
@@ -348,9 +349,7 @@ class Ensemble(object):
         # ----------
         self.pars = ParsUpdate(all_pars=model.step_scopes, num=num, model=model)
         pars_update = dict() if pars_update is None else pars_update
-        try:
-            assert isinstance(pars_update, dict)
-        except AssertionError:
+        if not isinstance(pars_update, dict):
             raise ModelUseError('"pars_update" must be a dict.')
         for k, v in pars_update.items():
             self.pars[k] = v
@@ -381,8 +380,10 @@ class Ensemble(object):
         # -------
         self.runner = Runner(ensemble=self)
 
-        # hand overs about attributes and functions
-        # -----------------------------------------
+        # hand overs
+        # ----------
+        # 1. attributes
+        # 2. functions
         for attr_key, attr_val in model.hand_overs.items():
             setattr(self, attr_key, attr_val)
 
