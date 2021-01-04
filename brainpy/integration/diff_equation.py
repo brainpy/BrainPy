@@ -307,7 +307,7 @@ class DiffEquation(object):
 
     @property
     def is_multi_return(self):
-        return len(self.returns) > 1
+        return len(self.returns) > 0
 
     @property
     def is_stochastic(self):
