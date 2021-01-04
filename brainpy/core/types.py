@@ -64,19 +64,21 @@ class ObjState(dict, TypeChecker):
         variables = OrderedDict()
         for a in args:
             if isinstance(a, str):
-                variables.update({a: 0.})
+                variables[a] = 0.
             elif isinstance(a, (tuple, list)):
-                variables.update({v: 0. for v in a})
+                for v in a:
+                    variables[v] = 0.
             elif isinstance(a, dict):
-                for val in a.values():
+                for key, val in a.items():
                     if not isinstance(val, (int, float)):
                         raise ValueError(f'The default value setting in a dict must be int/float.')
-                variables.update(a)
+                    variables[key] = val
             else:
                 raise ValueError(f'Only support str/tuple/list/dict, not {type(variables)}.')
-        for val in kwargs.values():
+        for key, val in kwargs.items():
             if not isinstance(val, (int, float)):
                 raise ValueError(f'The default value setting must be int/float.')
+            variables[key] = val
 
         # 3. others
         self._keys = list(variables.keys())
@@ -181,8 +183,8 @@ def update_delay_indices(delay_in, delay_out, delay_len):
 class SynState(ObjState):
     """Synapse State Management. """
 
-    def __init__(self, fields, help=''):
-        super(SynState, self).__init__(fields=fields, help=help)
+    def __init__(self, *args, help='', **kwargs):
+        super(SynState, self).__init__(*args, help=help, **kwargs)
         self._delay_len = 1
         self._delay_in = 0
         self._delay_out = 0
