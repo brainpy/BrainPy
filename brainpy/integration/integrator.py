@@ -73,10 +73,6 @@ class Integrator(object):
     def get_nb_step(diff_eq, *args):
         raise NotImplementedError
 
-    @staticmethod
-    def get_np_step(diff_eq, *args):
-        raise NotImplementedError
-
     def __call__(self, y0, t, *args):
         return self._update_func(y0, t, *args)
 
@@ -165,7 +161,6 @@ class Euler(Integrator):
         super(Euler, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.euler(diff_eq)
-        self.get_np_step = methods.euler
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
@@ -248,7 +243,6 @@ class RK2(Integrator):
         self.beta = beta
         self._update_code = self.get_nb_step(diff_eq, beta)
         self._update_func = methods.rk2(diff_eq, __beta=beta)
-        self.get_np_step = methods.rk2
 
     @staticmethod
     def get_nb_step(diff_eq, beta=2 / 3):
@@ -357,7 +351,6 @@ class Heun(Integrator):
         super(Heun, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=1.0)
-        self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=1.0)
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
@@ -457,7 +450,6 @@ class MidPoint(Integrator):
         super(MidPoint, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=0.5)
-        self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=0.5)
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
@@ -500,7 +492,6 @@ class RK3(Integrator):
         super(RK3, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk3(diff_eq)
-        self.get_np_step = methods.rk3
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
@@ -601,7 +592,6 @@ class RK4(Integrator):
         super(RK4, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4(diff_eq)
-        self.get_np_step = methods.rk4
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
@@ -713,7 +703,6 @@ class RK4Alternative(Integrator):
         super(RK4Alternative, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.rk4_alternative(diff_eq)
-        self.get_np_step = methods.rk4_alternative
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
@@ -966,7 +955,6 @@ class MilsteinIto(Integrator):
         super(MilsteinIto, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Ito(diff_eq)
-        self.get_np_step = methods.milstein_Ito
 
     @staticmethod
     def get_nb_step(diff_eq, *args):
@@ -1082,7 +1070,6 @@ class MilsteinStra(Integrator):
         super(MilsteinStra, self).__init__(diff_eq)
         self._update_code = self.get_nb_step(diff_eq)
         self._update_func = methods.milstein_Stra(diff_eq)
-        self.get_np_step = methods.milstein_Stra
 
     @staticmethod
     def get_nb_step(diff_eq, *args):

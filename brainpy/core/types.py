@@ -55,17 +55,32 @@ if cuda.is_available():
     gpu_set_vector_val = cuda.jit('(float64[:, :], float64[:], int64)')(gpu_set_vector_val)
 
 
-
 class ObjState(dict, TypeChecker):
-    def __init__(self, fields, help=''):
+    def __init__(self, *args, help='', **kwargs):
+        # 1. initialize TypeChecker
         TypeChecker.__init__(self, help=help)
+
+        # 2. get variables
         variables = OrderedDict()
-        if isinstance(fields, (tuple, list)):
-            variables.update({v: 0. for v in fields})
-        elif isinstance(fields, dict):
-            variables.update(fields)
-        else:
-            assert ValueError(f'"fields" only supports tuple/list/dict, not {type(variables)}.')
+        for a in args:
+            if isinstance(a, str):
+                variables[a] = 0.
+            elif isinstance(a, (tuple, list)):
+                for v in a:
+                    variables[v] = 0.
+            elif isinstance(a, dict):
+                for key, val in a.items():
+                    if not isinstance(val, (int, float)):
+                        raise ValueError(f'The default value setting in a dict must be int/float.')
+                    variables[key] = val
+            else:
+                raise ValueError(f'Only support str/tuple/list/dict, not {type(variables)}.')
+        for key, val in kwargs.items():
+            if not isinstance(val, (int, float)):
+                raise ValueError(f'The default value setting must be int/float.')
+            variables[key] = val
+
+        # 3. others
         self._keys = list(variables.keys())
         self._values = list(variables.values())
         self._vars = variables
@@ -168,8 +183,8 @@ def update_delay_indices(delay_in, delay_out, delay_len):
 class SynState(ObjState):
     """Synapse State Management. """
 
-    def __init__(self, fields, help=''):
-        super(SynState, self).__init__(fields=fields, help=help)
+    def __init__(self, *args, help='', **kwargs):
+        super(SynState, self).__init__(*args, help=help, **kwargs)
         self._delay_len = 1
         self._delay_in = 0
         self._delay_out = 0

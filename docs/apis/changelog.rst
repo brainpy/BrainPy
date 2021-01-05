@@ -1,6 +1,18 @@
 Release notes
 =============
 
+BrainPy 0.3.1
+-------------
+
+- Add a more flexible way for NeuState/SynState initialization
+- Fix bugs of "is_multi_return"
+- Add "hand_overs", "requires" and "satisfies".
+- Update documentation
+- Auto-transform `range` to `numba.prange`
+- Support `_obj_i`, `_pre_i`, `_post_i` for more flexible operation in scalar-based models
+
+
+
 BrainPy 0.3.0
 -------------
 

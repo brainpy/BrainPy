@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-def euler(diff_eqs, *args):
+def euler(diff_eqs):
     __f = diff_eqs.func
     __dt = profile.get_dt()
 
@@ -134,7 +134,7 @@ def rk2(diff_eqs, __beta=2 / 3):
     return int_func
 
 
-def heun(diff_eqs, *args):
+def heun(diff_eqs):
     __f = diff_eqs.func
     __dt = profile.get_dt()
 
@@ -192,7 +192,7 @@ def heun(diff_eqs, *args):
         return rk2(diff_eqs, __beta=1.)
 
 
-def rk3(diff_eqs, *args):
+def rk3(diff_eqs):
     __f = diff_eqs.func
     __dt = profile.get_dt()
 
@@ -242,7 +242,7 @@ def rk3(diff_eqs, *args):
     return int_func
 
 
-def rk4(diff_eqs, *args):
+def rk4(diff_eqs):
     __f = diff_eqs.func
     __dt = profile.get_dt()
 
@@ -274,7 +274,7 @@ def rk4(diff_eqs, *args):
                     k4 = __f(y0 + __dt * k3, t + __dt, *args)
                     return y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
 
-            elif diff_eqs.return_type  == 'x,x':
+            elif diff_eqs.return_type == 'x,x':
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0]
                     k2 = __f(y0 + __dt / 2 * k1, t + __dt / 2, *args)[0]
@@ -296,7 +296,7 @@ def rk4(diff_eqs, *args):
     return int_func
 
 
-def rk4_alternative(diff_eqs, *args):
+def rk4_alternative(diff_eqs):
     __f = diff_eqs.func
     __dt = profile.get_dt()
 
@@ -326,7 +326,7 @@ def rk4_alternative(diff_eqs, *args):
                     k3 = __f(y0 - __dt / 3 * k1 + __dt * k2, t + 2 * __dt / 3, *args)
                     k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)
                     return y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
-            elif diff_eqs.return_type  == 'x,x':
+            elif diff_eqs.return_type == 'x,x':
                 def int_func(y0, t, *args):
                     k1 = __f(y0, t, *args)[0]
                     k2 = __f(y0 + __dt / 3 * k1, t + __dt / 3, *args)[0]
@@ -347,7 +347,7 @@ def rk4_alternative(diff_eqs, *args):
     return int_func
 
 
-def exponential_euler(diff_eq, *args):
+def exponential_euler(diff_eq):
     assert isinstance(diff_eq, DiffEquation)
 
     f = diff_eq.f
@@ -424,7 +424,7 @@ def exponential_euler(diff_eq, *args):
     return int_f
 
 
-def milstein_Ito(diff_eq, *args):
+def milstein_Ito(diff_eq):
     __f = diff_eq.func
     __dt = profile.get_dt()
     __dt_sqrt = np.sqrt(profile.get_dt())
@@ -475,7 +475,7 @@ def milstein_Ito(diff_eq, *args):
     return euler(diff_eq)
 
 
-def milstein_Stra(diff_eq, *args):
+def milstein_Stra(diff_eq):
     __f = diff_eq.func
     __dt = profile.get_dt()
     __dt_sqrt = np.sqrt(profile.get_dt())

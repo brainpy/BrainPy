@@ -407,7 +407,7 @@ class Runner(object):
             code_to_compile = [f'def monitor_step({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
 
-            if not profile._merge_steps:
+            if not profile.is_merge_steps():
                 if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
@@ -525,7 +525,7 @@ class Runner(object):
                 monitor_step = cuda.jit(monitor_step)
                 setattr(self, func_name, monitor_step)
 
-                if not profile._merge_steps:
+                if not profile.is_merge_steps():
                     if profile.show_format_code():
                         tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                     if profile.show_code_scope():
@@ -764,6 +764,10 @@ class Runner(object):
                     arg_substitute[k] = self._model.heter_params_replace[k]
                     if k in all_heter_pars:
                         all_heter_pars.remove(k)
+            # substitute "range" to "numba.prange"
+            if ' range' in func_code:
+                arg_substitute['range'] = 'numba.prange'
+                code_scope['numba'] = numba
             # substitute
             if len(arg_substitute):
                 func_code = tools.word_replace(func_code, arg_substitute)
@@ -865,7 +869,7 @@ class Runner(object):
                             # Function with "delayed" decorator should use ST pulled from the delay queue
                             for st_k in delay_keys:
                                 p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                                r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}, _obj_i_]"
+                                r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}, _obj_i]"
                                 func_code = re.sub(r'' + p, r, func_code)
                     else:
                         if len(delay_keys):
@@ -879,12 +883,12 @@ class Runner(object):
                                 add_args.add(din)
                                 code_arg2call[din] = f'{self._name}.{arg}._delay_in'
                                 for st_k in func_delay_keys:
-                                    right = f'{arg}[{var2idx[st_k]}, _obj_i_]'
-                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}, _obj_i_]"
+                                    right = f'{arg}[{var2idx[st_k]}, _obj_i]'
+                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}, _obj_i]"
                                     func_code += f'\n{left} = {right}'
                         for st_k in st._keys:
                             p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                            r = f"{arg}[{var2idx[st_k]}, _obj_i_]"
+                            r = f"{arg}[{var2idx[st_k]}, _obj_i]"
                             func_code = re.sub(r'' + p, r, func_code)
                 elif arg == 'pre':
                     # 1. implement the atomic operations for "pre"
@@ -901,7 +905,7 @@ class Runner(object):
                                 if pre_transformer.left is not None:
                                     left = pre_transformer.left
                                     right = pre_transformer.right
-                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i_, {right})'
+                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i, {right})'
                                     add_cuda = True
                             line_no += 1
                         if add_cuda:
@@ -910,7 +914,7 @@ class Runner(object):
                     # 2. transform the key access to index access
                     for st_k in st._keys:
                         p = f'pre\[([\'"]{st_k}[\'"])\]'
-                        r = f"pre[{var2idx[st_k]}, _pre_i_]"
+                        r = f"pre[{var2idx[st_k]}, _pre_i]"
                         func_code = re.sub(r'' + p, r, func_code)
                 elif arg == 'post':
                     # 1. implement the atomic operations for "post"
@@ -927,7 +931,7 @@ class Runner(object):
                                 if post_transformer.left is not None:
                                     left = post_transformer.left
                                     right = post_transformer.right
-                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _post_i_, {right})'
+                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _post_i, {right})'
                                     add_cuda = True
                             line_no += 1
                         if add_cuda:
@@ -936,7 +940,7 @@ class Runner(object):
                     # 2. transform the key access to index access
                     for st_k in st._keys:
                         p = f'post\[([\'"]{st_k}[\'"])\]'
-                        r = f"post[{var2idx[st_k]}, _post_i_]"
+                        r = f"post[{var2idx[st_k]}, _post_i]"
                         func_code = re.sub(r'' + p, r, func_code)
                 else:
                     raise ValueError
@@ -969,30 +973,30 @@ class Runner(object):
             has_pre = 'pre' in func_args
             has_post = 'post' in func_args
             if profile.run_on_cpu():
-                code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):']
+                code_lines = [f'for _obj_i in numba.prange({self.ensemble.num}):']
                 code_scope['numba'] = numba
             else:
-                code_lines = [f'_obj_i_ = cuda.grid(1)',
-                              f'if _obj_i_ < {self.ensemble.num}:']
+                code_lines = [f'_obj_i = cuda.grid(1)',
+                              f'if _obj_i < {self.ensemble.num}:']
                 code_scope['cuda'] = cuda
 
             if has_pre:
                 code_args.add(f'pre_ids')
                 code_arg2call[f'pre_ids'] = f'{self._name}_runner.pre_ids'
-                code_lines.append(f'  _pre_i_ = pre_ids[_obj_i_]')
+                code_lines.append(f'  _pre_i = pre_ids[_obj_i]')
                 self.set_data('pre_ids', getattr(self.ensemble, 'pre_ids'))
             if has_post:
                 code_args.add(f'post_ids')
                 code_arg2call[f'post_ids'] = f'{self._name}_runner.post_ids'
-                code_lines.append(f'  _post_i_ = post_ids[_obj_i_]')
+                code_lines.append(f'  _post_i = post_ids[_obj_i]')
                 self.set_data('post_ids', getattr(self.ensemble, 'post_ids'))
 
-            # substitute heterogeneous parameter "p" to "p[_obj_i_]"
+            # substitute heterogeneous parameter "p" to "p[_obj_i]"
             # ------------------------------------------------------
             arg_substitute = {}
             for p in self._pars.heters.keys():
                 if p in code_scope:
-                    arg_substitute[p] = f'{p}[_obj_i_]'
+                    arg_substitute[p] = f'{p}[_obj_i]'
             if len(arg_substitute):
                 func_code = tools.word_replace(func_code, arg_substitute)
 
@@ -1032,22 +1036,22 @@ class Runner(object):
                 has_noise_term = False
                 if 'xoroshiro128p_normal_float64' in func_code:
                     func_code = func_code.replace('xoroshiro128p_normal_float64',
-                                                  'xoroshiro128p_normal_float64(rng_states, _obj_i_)')
+                                                  'xoroshiro128p_normal_float64(rng_states, _obj_i)')
                     code_scope['xoroshiro128p_normal_float64'] = xoroshiro128p_normal_float64
                     has_noise_term = True
                 if 'xoroshiro128p_uniform_float64' in func_code:
                     func_code = func_code.replace('xoroshiro128p_uniform_float64',
-                                                  'xoroshiro128p_uniform_float64(rng_states, _obj_i_)')
+                                                  'xoroshiro128p_uniform_float64(rng_states, _obj_i)')
                     code_scope['xoroshiro128p_uniform_float64'] = xoroshiro128p_uniform_float64
                     has_noise_term = True
                 if 'xoroshiro128p_normal_float32' in func_code:
                     func_code = func_code.replace('xoroshiro128p_normal_float32',
-                                                  'xoroshiro128p_normal_float32(rng_states, _obj_i_)')
+                                                  'xoroshiro128p_normal_float32(rng_states, _obj_i)')
                     code_scope['xoroshiro128p_normal_float32'] = xoroshiro128p_normal_float32
                     has_noise_term = True
                 if 'xoroshiro128p_uniform_float32' in func_code:
                     func_code = func_code.replace('xoroshiro128p_uniform_float32',
-                                                  'xoroshiro128p_uniform_float32(rng_states, _obj_i_)')
+                                                  'xoroshiro128p_uniform_float32(rng_states, _obj_i)')
                     code_scope['xoroshiro128p_uniform_float32'] = xoroshiro128p_uniform_float32
                     has_noise_term = True
                 if has_noise_term:
