@@ -165,7 +165,6 @@ class Euler(Integrator):
     @staticmethod
     def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
         var = sympy.Symbol(var_name, real=True)
@@ -188,7 +187,7 @@ class Euler(Integrator):
             dgdt = 0
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -247,7 +246,6 @@ class RK2(Integrator):
     @staticmethod
     def get_integral_step(diff_eq, beta=2 / 3):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -287,7 +285,7 @@ class RK2(Integrator):
                 raise NotImplementedError('RK2 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -357,7 +355,6 @@ class Heun(Integrator):
         if diff_eq.is_stochastic:
             if diff_eq.is_functional_noise:
                 dt = profile.get_dt()
-                dt_sqrt = np.sqrt(dt)
                 var_name = diff_eq.var_name
                 func_name = diff_eq.func_name
                 var = sympy.Symbol(var_name, real=True)
@@ -376,7 +373,7 @@ class Heun(Integrator):
                     noise = f'xoroshiro128p_normal_float64'
                 else:
                     noise = f'_normal_like({var_name})'
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
+                code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions[:-1]])
                 code_lines.append(f'_dg{var_name}_dt_k1 = {g_k1_expressions[-1].code}')
@@ -496,7 +493,6 @@ class RK3(Integrator):
     @staticmethod
     def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -544,7 +540,7 @@ class RK3(Integrator):
                 raise NotImplementedError('RK3 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -596,7 +592,6 @@ class RK4(Integrator):
     @staticmethod
     def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -653,7 +648,7 @@ class RK4(Integrator):
                 raise NotImplementedError('RK4 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -707,7 +702,6 @@ class RK4Alternative(Integrator):
     @staticmethod
     def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -765,7 +759,7 @@ class RK4Alternative(Integrator):
                 raise NotImplementedError('RK4 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -965,7 +959,6 @@ class MilsteinIto(Integrator):
                     return Euler.get_integral_step(diff_eq)
 
                 dt = profile.get_dt()
-                dt_sqrt = np.sqrt(dt)
                 var_name = diff_eq.var_name
                 func_name = diff_eq.func_name
 
@@ -982,13 +975,13 @@ class MilsteinIto(Integrator):
                     noise = f'xoroshiro128p_normal_float64'
                 else:
                     noise = f'_normal_like({var_name})'
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
+                code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
                 # k1
                 code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dt_sqrt}')
+                                  f'_dg{var_name}_dt * sqrt({dt})')
 
                 # high order part #
                 # --------------- #
@@ -998,7 +991,7 @@ class MilsteinIto(Integrator):
                 g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
                 code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
                 code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
-                code_lines.append(f'{high_order.name} = {1 / 2. / dt_sqrt} * '
+                code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
                                   f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
                                   f'({dW_sb.name} * {dW_sb.name} - {dt})')
 
@@ -1080,7 +1073,6 @@ class MilsteinStra(Integrator):
                     return Euler.get_integral_step(diff_eq)
 
                 dt = profile.get_dt()
-                dt_sqrt = np.sqrt(dt)
                 var_name = diff_eq.var_name
                 func_name = diff_eq.func_name
 
@@ -1097,13 +1089,13 @@ class MilsteinStra(Integrator):
                     noise = f'xoroshiro128p_normal_float64'
                 else:
                     noise = f'_normal_like({var_name})'
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
+                code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
                 # k1
                 code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dt_sqrt}')
+                                  f'_dg{var_name}_dt * sqrt({dt})')
 
                 # high order part #
                 # --------------- #
@@ -1113,7 +1105,7 @@ class MilsteinStra(Integrator):
                 g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
                 code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
                 code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
-                code_lines.append(f'{high_order.name} = {1 / 2. / dt_sqrt} * '
+                code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
                                   f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
                                   f'{dW_sb.name} * {dW_sb.name}')
 
