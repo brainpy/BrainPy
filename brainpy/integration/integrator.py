@@ -70,7 +70,7 @@ class Integrator(object):
         self._update_func = None
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         raise NotImplementedError
 
     def __call__(self, y0, t, *args):
@@ -159,11 +159,11 @@ class Euler(Integrator):
 
     def __init__(self, diff_eq):
         super(Euler, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.euler(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
         var_name = diff_eq.var_name
@@ -241,11 +241,11 @@ class RK2(Integrator):
     def __init__(self, diff_eq, beta=2 / 3):
         super(RK2, self).__init__(diff_eq)
         self.beta = beta
-        self._update_code = self.get_nb_step(diff_eq, beta)
+        self._update_code = self.get_integral_step(diff_eq, beta)
         self._update_func = methods.rk2(diff_eq, __beta=beta)
 
     @staticmethod
-    def get_nb_step(diff_eq, beta=2 / 3):
+    def get_integral_step(diff_eq, beta=2 / 3):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
@@ -349,11 +349,11 @@ class Heun(Integrator):
 
     def __init__(self, diff_eq):
         super(Heun, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=1.0)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             if diff_eq.is_functional_noise:
                 dt = profile.get_dt()
@@ -423,9 +423,9 @@ class Heun(Integrator):
                 code = tools.word_replace(code, subs_dict)
                 return code
             else:
-                return Euler.get_nb_step(diff_eq)
+                return Euler.get_integral_step(diff_eq)
         else:
-            return RK2.get_nb_step(diff_eq, 1.0)
+            return RK2.get_integral_step(diff_eq, 1.0)
 
 
 class MidPoint(Integrator):
@@ -448,15 +448,15 @@ class MidPoint(Integrator):
 
     def __init__(self, diff_eq):
         super(MidPoint, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=0.5)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             raise NotImplementedError
         else:
-            return RK2.get_nb_step(diff_eq, 0.5)
+            return RK2.get_integral_step(diff_eq, 0.5)
 
 
 class RK3(Integrator):
@@ -490,11 +490,11 @@ class RK3(Integrator):
 
     def __init__(self, diff_eq):
         super(RK3, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk3(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
@@ -590,11 +590,11 @@ class RK4(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk4(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
@@ -701,11 +701,11 @@ class RK4Alternative(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4Alternative, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk4_alternative(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
         dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
@@ -837,7 +837,7 @@ class ExponentialEuler(Integrator):
 
     def __init__(self, diff_eq):
         super(ExponentialEuler, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
 
         func_args = ', '.join([f'_{diff_eq.func_name}_{arg}' for arg in diff_eq.func_args])
         func_code = '''def int_func({}): \n'''.format(func_args)
@@ -849,7 +849,7 @@ class ExponentialEuler(Integrator):
         self._update_func = code_scopes['int_func']
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
         f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
@@ -880,7 +880,7 @@ class ExponentialEuler(Integrator):
 
         else:
             # linear exponential
-            code_lines.append(f'{s_linear_exp.name} = np.sqrt({dt})')
+            code_lines.append(f'{s_linear_exp.name} = sqrt({dt})')
             # df part
             code_lines.append(f'{s_df_part.name} = {sympy2str(dt * s_df)}')
 
@@ -953,16 +953,16 @@ class MilsteinIto(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinIto, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.milstein_Ito(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             if diff_eq.is_functional_noise:
                 g_dependent_on_var = diff_eq.replace_f_expressions('test', y_sub=f'test')
                 if len(g_dependent_on_var) == 0:
-                    return Euler.get_nb_step(diff_eq)
+                    return Euler.get_integral_step(diff_eq)
 
                 dt = profile.get_dt()
                 dt_sqrt = np.sqrt(dt)
@@ -1017,7 +1017,7 @@ class MilsteinIto(Integrator):
                 code = tools.word_replace(code, subs_dict)
                 return code
 
-        return Euler.get_nb_step(diff_eq)
+        return Euler.get_integral_step(diff_eq)
 
 
 class MilsteinStra(Integrator):
@@ -1068,16 +1068,16 @@ class MilsteinStra(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinStra, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.milstein_Stra(diff_eq)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             if diff_eq.is_functional_noise:
                 g_dependent_on_var = diff_eq.replace_f_expressions('test', y_sub=f'test')
                 if len(g_dependent_on_var) == 0:
-                    return Euler.get_nb_step(diff_eq)
+                    return Euler.get_integral_step(diff_eq)
 
                 dt = profile.get_dt()
                 dt_sqrt = np.sqrt(dt)
@@ -1132,4 +1132,4 @@ class MilsteinStra(Integrator):
                 code = tools.word_replace(code, subs_dict)
                 return code
 
-        return Euler.get_nb_step(diff_eq)
+        return Euler.get_integral_step(diff_eq)

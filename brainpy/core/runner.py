@@ -655,10 +655,10 @@ class Runner(object):
                     if self._model.mode == constants.SCALAR_MODE:
                         for ks, vs in tools.get_func_scope(v.update_func, include_dispatcher=True).items():
                             if ks in self._pars.heters:
-                                raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in step functions, '
-                                                    f'it will not work.\n'
-                                                    f'Please set "brainpy.profile.set(merge_steps=True)" to try to '
-                                                    f'merge parameter "{ks}" into the step functions.')
+                                raise ModelUseError(
+                                    f'Heterogeneous parameter "{ks}" is not in step functions, '
+                                    f'it will not work. Please set "brainpy.profile.set(merge_integrators=True)" '
+                                    f'to try to merge parameter "{ks}" into the step functions.')
                     if profile.is_jit():
                         code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
