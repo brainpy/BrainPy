@@ -979,25 +979,26 @@ class MilsteinIto(Integrator):
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
-                # k1
-                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * sqrt({dt})')
-
                 # high order part #
                 # --------------- #
-
-                # dg high order
+                k1_expr = f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
+                          f'_dg{var_name}_dt * sqrt({dt})'
                 high_order = sympy.Symbol(f'_dg{var_name}_high_order')
                 g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
-                code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
-                code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
-                code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
-                                  f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
-                                  f'({dW_sb.name} * {dW_sb.name} - {dt})')
 
-                # update expression
-                code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                # dg high order
+                if len(g_k2_expressions):
+                    code_lines.append(k1_expr)
+                    code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
+                    code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
+                    code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
+                                      f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
+                                      f'({dW_sb.name} * {dW_sb.name} - {dt})')
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                      f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                else:
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                  f'_dg{var_name}_dt * {dW_sb.name}')
 
                 # multiple returns
                 return_expr = ', '.join([var_name] + diff_eq.returns)
@@ -1093,25 +1094,25 @@ class MilsteinStra(Integrator):
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
-                # k1
-                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * sqrt({dt})')
-
                 # high order part #
                 # --------------- #
 
-                # dg high order
+                k1_expr = f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
+                          f'_dg{var_name}_dt * sqrt({dt})'
                 high_order = sympy.Symbol(f'_dg{var_name}_high_order')
                 g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
-                code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
-                code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
-                code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
-                                  f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
-                                  f'{dW_sb.name} * {dW_sb.name}')
-
-                # update expression
-                code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                if len(g_k2_expressions):
+                    code_lines.append(k1_expr)
+                    code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
+                    code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
+                    code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
+                                      f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
+                                      f'{dW_sb.name} * {dW_sb.name}')
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                      f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                else:
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                      f'_dg{var_name}_dt * {dW_sb.name}')
 
                 # multiple returns
                 return_expr = ', '.join([var_name] + diff_eq.returns)

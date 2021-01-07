@@ -182,7 +182,7 @@ class Network(object):
 
         if profile.show_format_code():
             tools.show_code_str(func_code.replace('def ', f'def network_'))
-        if profile.show_format_code():
+        if profile.show_code_scope():
             tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         return step_func
