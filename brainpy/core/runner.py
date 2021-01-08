@@ -177,7 +177,7 @@ class Runner(object):
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
             self.input_step = code_scope['input_step']
-            if not profile._merge_steps:
+            if not profile.is_merge_steps():
                 if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
@@ -283,7 +283,7 @@ class Runner(object):
                 step_func = code_scope[func_name]
                 step_func = cuda.jit(step_func)
                 setattr(self, func_name, step_func)
-                if not profile._merge_steps:
+                if not profile.is_merge_steps():
                     if profile.show_format_code():
                         tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                     if profile.show_code_scope():
