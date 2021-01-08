@@ -131,24 +131,24 @@ More network examples please see [brainpy-examples/networks](https://github.com/
 <table border="0">
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">
             <img src="docs/images/phase_plane_analysis1.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#">Phase Plane Analysis</a></h3>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">Phase Plane Analysis</a></h3>
             <p>Phase plane analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model, where
             "input" is 50., and "Vn_half" is -45..</p>
         </td>
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
             <img src="docs/images/NaK_model_codimension1.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
                 Codimension 1 Bifurcation Analysis (1)</a></h3>
             <p>Codimension 1 bifurcation analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model,
                 in which "input" is varied in [0., 50.].</p>
@@ -156,12 +156,12 @@ More network examples please see [brainpy-examples/networks](https://github.com/
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
             <img src="docs/images/NaK_model_codimension2.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
                 Codimension 2 Bifurcation Analysis (1)</a></h3>
             <p>Codimension 2 bifurcation analysis of a two-variable neuron model:
                 the I<sub>Na,p+</sub>-I<sub>K</sub> model, in which "input" is varied
@@ -170,12 +170,12 @@ More network examples please see [brainpy-examples/networks](https://github.com/
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
             <img src="docs/images/FitzHugh_Nagumo_codimension1.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
                 Codimension 1 Bifurcation Analysis (2)</a></h3>
             <p>Codimension 1 bifurcation analysis of FitzHugh Nagumo model, in which
                 "a" is equal to 0.7, and "Iext" is varied in [0., 1.].</p>
@@ -183,12 +183,12 @@ More network examples please see [brainpy-examples/networks](https://github.com/
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
             <img src="docs/images/FitzHugh_Nagumo_codimension2.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
                 Codimension 2 Bifurcation Analysis (2)</a></h3>
             <p>Codimension 2 bifurcation analysis of FitzHugh Nagumo model, in which "a"
                is varied in [0.5, 1.0], and "Iext" is varied in [0., 1.].</p>
