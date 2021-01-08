@@ -4,7 +4,6 @@ import copy
 
 import numpy as np
 import sympy
-from numba.cuda.random import xoroshiro128p_normal_float64
 
 from . import methods
 from .diff_equation import DiffEquation
@@ -92,9 +91,7 @@ class Integrator(object):
     def code_scope(self):
         scope = self.diff_eq.func_scope
         if profile.run_on_cpu():
-            scope['_normal_like'] = backend.normal_like
-        else:
-            scope['xoroshiro128p_normal_float64'] = xoroshiro128p_normal_float64
+            scope['_normal_like_'] = backend.normal_like
         return scope
 
 
@@ -176,10 +173,7 @@ class Euler(Integrator):
 
         # get code lines of dg part
         if diff_eq.is_stochastic:
-            if profile.run_on_gpu():
-                noise = f'xoroshiro128p_normal_float64'
-            else:
-                noise = f'_normal_like({var_name})'
+            noise = f'_normal_like_({var_name})'
             code_lines.append(f'_{var_name}_dW = {noise}')
             code_lines.extend([str(expr) for expr in diff_eq.get_g_expressions()])
             dgdt = sympy.Symbol(f'_{var_name}_dW') * sympy.Symbol(f'_dg{var_name}_dt')
@@ -369,10 +363,7 @@ class Heun(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64'
-                else:
-                    noise = f'_normal_like({var_name})'
+                noise = f'_normal_like_({var_name})'
                 code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions[:-1]])
@@ -838,7 +829,7 @@ class ExponentialEuler(Integrator):
         func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
         code_scopes = copy.copy(diff_eq.func_scope)
         code_scopes.update(get_mapping_scope())
-        code_scopes['_normal_like'] = backend.normal_like
+        code_scopes['_normal_like_'] = backend.normal_like
         exec(compile(func_code, '', 'exec'), code_scopes)
         self._update_func = code_scopes['int_func']
 
@@ -881,10 +872,7 @@ class ExponentialEuler(Integrator):
         # get dg part
         if diff_eq.is_stochastic:
             # dW
-            if profile.run_on_gpu():
-                noise = f'xoroshiro128p_normal_float64'
-            else:
-                noise = f'_normal_like({diff_eq.var_name})'
+            noise = f'_normal_like_({diff_eq.var_name})'
             code_lines.append(f'_{diff_eq.var_name}_dW = {noise}')
             # expressions of the stochastic part
             g_expressions = diff_eq.get_g_expressions()
@@ -971,10 +959,7 @@ class MilsteinIto(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64'
-                else:
-                    noise = f'_normal_like({var_name})'
+                noise = f'_normal_like_({var_name})'
                 code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
@@ -1086,10 +1071,7 @@ class MilsteinStra(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64'
-                else:
-                    noise = f'_normal_like({var_name})'
+                noise = f'_normal_like_({var_name})'
                 code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
