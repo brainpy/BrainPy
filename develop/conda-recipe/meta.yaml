@@ -1,5 +1,5 @@
 package:
-    name: brainpy
+    name: brainpy-simulator
     version: "0.3.2"
 
 source:
