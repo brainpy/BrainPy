@@ -5,8 +5,7 @@ import time
 import numpy as np
 import brainpy as bp
 
-dt = 0.1
-bp.profile.set(jit=True, dt=dt, numerical_method='exponential')
+bp.profile.set(jit=True, dt=0.1, numerical_method='exponential')
 
 duration = 10 * 1000.  # ms
 num_exc = 3200
