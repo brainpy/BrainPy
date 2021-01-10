@@ -73,9 +73,7 @@ def update1(pre, post, pre2post):
                 post['ge'][i] += we
 
 
-exc_syn = bp.SynType('exc_syn',
-                     steps=update1,
-                     ST=bp.types.SynState())
+exc_syn = bp.SynType('exc_syn', steps=update1, ST=bp.types.SynState())
 
 
 def update2(pre, post, pre2post):
@@ -86,9 +84,7 @@ def update2(pre, post, pre2post):
                 post['gi'][i] += wi
 
 
-inh_syn = bp.SynType('inh_syn',
-                     steps=update2,
-                     ST=bp.types.SynState())
+inh_syn = bp.SynType('inh_syn', steps=update2, ST=bp.types.SynState())
 
 group = bp.NeuGroup(neuron,
                     geometry=num_exc + num_inh,
