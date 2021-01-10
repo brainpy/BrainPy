@@ -174,7 +174,8 @@ class DiffEquation(object):
                 if substitute_vars == 'all':
                     dependencies[expr.var_name] = expr
                 elif substitute_vars == self.var_name:
-                    dependencies[expr.var_name] = expr
+                    if self.var_name in expr.identifiers:
+                        dependencies[expr.var_name] = expr
                 else:
                     ids = expr.identifiers
                     for var in substitute_vars:

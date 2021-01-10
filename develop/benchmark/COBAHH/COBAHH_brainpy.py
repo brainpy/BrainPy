@@ -1,46 +1,38 @@
 # -*- coding: utf-8 -*-
+
 import time
 
 import numpy as np
-
 import brainpy as bp
 
 dt = 0.1
 bp.profile.set(jit=True, dt=dt, numerical_method='exponential')
 
+duration = 10 * 1000.  # ms
 num_exc = 3200
 num_inh = 800
-unit = 1e6 * 1.
-Cm = 200 / unit
-gl = 10. / unit
-g_Na = 20. * 1000 / unit
-g_Kd = 6. * 1000 / unit
+Cm = 200  # Membrane Capacitance [pF]
 
-El = -60.
-EK = -90.
-ENa = 50.
+gl = 10.  # Leak Conductance   [nS]
+El = -60.  # Resting Potential [mV]
+g_Na = 20. * 1000
+ENa = 50.  # reversal potential (Sodium) [mV]
+g_Kd = 6. * 1000  # K Conductance      [nS]
+EK = -90.  # reversal potential (Potassium) [mV]
 VT = -63.
 Vt = -20.
 # Time constants
-taue = 5.
-taui = 10.
+taue = 5.  # Excitatory synaptic time constant [ms]
+taui = 10.  # Inhibitory synaptic time constant [ms]
 # Reversal potentials
-Ee = 0.
-Ei = -80.
+Ee = 0.  # Excitatory reversal potential (mV)
+Ei = -80.  # Inhibitory reversal potential (Potassium) [mV]
 # excitatory synaptic weight
-we = 6. / unit
+we = 6.  # excitatory synaptic conductance [nS]
 # inhibitory synaptic weight
-wi = 67. / unit
+wi = 67.  # inhibitory synaptic conductance [nS]
 
-neu_ST = bp.types.NeuState(
-    {'V': 0.,
-     'm': 0.,
-     'n': 0.,
-     'h': 0.,
-     'sp': 0.,
-     'ge': 0.,
-     'gi': 0.}
-)
+neu_ST = bp.types.NeuState('V', 'm', 'n', 'h', 'sp', 'ge', 'gi')
 
 
 @bp.integrate
@@ -74,10 +66,8 @@ def int_h(h, t, V):
 @bp.integrate
 def int_n(n, t, V):
     c = 15 - V + VT
-
     n_alpha = 0.032 * c / (np.exp(c / 5) - 1.)
     n_beta = .5 * np.exp((10 - V + VT) / 40)
-
     dndt = (n_alpha * (1 - n) - n_beta * n)
     return dndt
 
@@ -103,54 +93,45 @@ def neu_update(ST, _t):
     ST['V'] = V
 
 
-neuron = bp.NeuType(name='CUBA',
-                    ST=neu_ST,
-                    steps=neu_update,
-                    mode='vector')
+neuron = bp.NeuType(name='CUBA-HH', ST=neu_ST, steps=neu_update, mode='vector')
 
 
 def exc_update(pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['sp'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            post['ge'][post_ids] += we
+            # post['ge'][post_ids] += we
+            for p_id in post_ids:
+                post['ge'][p_id] += we
 
 
 def inh_update(pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['sp'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            post['gi'][post_ids] += wi
+            # post['gi'][post_ids] += wi
+            for p_id in post_ids:
+                post['gi'][p_id] += wi
 
 
-exc_syn = bp.SynType('exc_syn',
-                     steps=exc_update,
-                     ST=bp.types.SynState([]))
+exc_syn = bp.SynType('exc_syn', steps=exc_update, ST=bp.types.SynState())
 
-inh_syn = bp.SynType('inh_syn',
-                     steps=inh_update,
-                     ST=bp.types.SynState([]))
+inh_syn = bp.SynType('inh_syn', steps=inh_update, ST=bp.types.SynState())
 
-group = bp.NeuGroup(neuron,
-                    geometry=num_exc + num_inh,
-                    monitors=['sp'])
+group = bp.NeuGroup(neuron, geometry=num_exc + num_inh, monitors=['sp'])
 group.ST['V'] = El + (np.random.randn(num_exc + num_inh) * 5 - 5)
-group.ST['ge'] = (np.random.randn(num_exc + num_inh) * 1.5 + 4) * 10. / unit
-group.ST['gi'] = (np.random.randn(num_exc + num_inh) * 12 + 20) * 10. / unit
+group.ST['ge'] = (np.random.randn(num_exc + num_inh) * 1.5 + 4) * 10.
+group.ST['gi'] = (np.random.randn(num_exc + num_inh) * 12 + 20) * 10.
 
-exc_conn = bp.SynConn(exc_syn,
-                      pre_group=group[:num_exc],
-                      post_group=group,
+exc_conn = bp.SynConn(exc_syn, pre_group=group[:num_exc], post_group=group,
                       conn=bp.connect.FixedProb(prob=0.02))
 
-inh_conn = bp.SynConn(inh_syn,
-                      pre_group=group[num_exc:],
-                      post_group=group,
+inh_conn = bp.SynConn(inh_syn, pre_group=group[num_exc:], post_group=group,
                       conn=bp.connect.FixedProb(prob=0.02))
 
 net = bp.Network(group, exc_conn, inh_conn)
 t0 = time.time()
-net.run(10 * 1000., report=True)
+net.run(duration, report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
 bp.visualize.raster_plot(net.ts, group.mon.sp, show=True)
