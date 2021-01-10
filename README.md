@@ -79,12 +79,12 @@ The following packages need to be installed to use ``BrainPy``:
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/Gamma_oscillations.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wang_1996_gamma_oscillation.html">
             <img src="docs/images/gamma_oscillation.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/Gamma_oscillations.html">Gamma Oscillation Model</a></h3>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wang_1996_gamma_oscillation.html">Gamma Oscillation Model</a></h3>
             <p>Implementation of the paper: <i> Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
                   synaptic inhibition in a hippocampal interneuronal network
                   model.” Journal of neuroscience 16.20 (1996): 6402-6413. </i>
@@ -93,22 +93,25 @@ The following packages need to be installed to use ``BrainPy``:
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/EI_balanced_network.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Vreeswijk_1996_EI_net.html">
             <img src="docs/images/EI_balance_net.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/EI_balanced_network.html">E/I Balance Network</a></h3>
-        </td>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Vreeswijk_1996_EI_net.html">E/I Balance Network</a></h3>
+        <p>Implementation of the paper: <i>Van Vreeswijk, Carl, and Haim Sompolinsky. 
+        “Chaos in neuronal networks with balanced excitatory and inhibitory activity.” 
+        Science 274.5293 (1996): 1724-1726.</i></p>        
+</td>
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/CANN.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wu_2008_CANN.html">
             <img src="docs/images/CANN1d.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/CANN.html">Continuous-attractor Network</a></h3>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wu_2008_CANN.html">Continuous-attractor Network</a></h3>
             <p>Implementation of the paper: <i> Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and
                     computation of continuous attractors." Neural
                     computation 20.4 (2008): 994-1025. </i>
@@ -119,11 +122,11 @@ The following packages need to be installed to use ``BrainPy``:
 
 
 
-More neuron examples please see [bpmodels/neurons](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/neurons);
+More neuron examples please see [BrainPy-Models/neurons](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/neurons);
 
-More synapse examples please see [bpmodels/synapses](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/synapses);
+More synapse examples please see [BrainPy-Models/synapses](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/synapses);
 
-More network examples please see [brainpy-examples/networks](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/networks) and [brainpy-examples/from_papers](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/from_papers).
+More network examples please see [BrainPy-Models/from_papers](https://brainpy-models.readthedocs.io/en/latest/examples/from_papers.html).
 
 
 
@@ -202,7 +205,7 @@ More network examples please see [brainpy-examples/networks](https://github.com/
 
 
 
-More examples please see [brainpy-examples/dynamics_analysis](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/dynamics_analysis).
+More examples please see [BrainPy-Models/dynamics_analysis](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/dynamics_analysis).
 
 
 
