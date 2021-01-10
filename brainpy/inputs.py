@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from . import numpy as np
+import numpy as np
+from numba.cuda import random
+
 from . import profile
-from .core_system import NeuGroup
-from .core_system import NeuType
-from .core_system.types import Array
-from .core_system.types import NeuState
+from . import tools
+from .core import NeuGroup
+from .core import NeuType
+from .core.types import NeuState
+from .errors import ModelUseError
 
 __all__ = [
     'constant_current',
@@ -75,7 +78,7 @@ def spike_current(points, lengths, sizes, duration, dt=None):
     >>> spike_current(points=[10, 20, 30, 200, 300],
     >>>               lengths=1.,  # can be a list to specify the spike length at each point
     >>>               sizes=0.5,  # can be a list to specify the current size at each point
-    >>>               duration=0.5)
+    >>>               duration=400.)
 
     Parameters
     ----------
@@ -163,6 +166,8 @@ class PoissonInput(NeuGroup):
     """
 
     def __init__(self, geometry, freqs, monitors=None, name=None):
+        dt = profile.get_dt() / 1000.
+
         # firing rate
         if isinstance(freqs, np.ndarray):
             freqs = freqs.flatten()
@@ -171,19 +176,37 @@ class PoissonInput(NeuGroup):
                   f'is {1000. / profile.get_dt()} Hz. While we get your "freq" setting which '
                   f'is bigger than that.')
 
-        # neuron model
-        dt = profile.get_dt() / 1000.
+        # neuron model on CPU
+        # -------------------
+        if profile.run_on_cpu():
+            def update(ST):
+                ST['spike'] = np.random.random(ST['spike'].shape) < freqs * dt
 
-        def update(ST):
-            ST['spike'] = np.random.random(ST['spike'].shape) < freqs * dt
+            model = NeuType(name='poisson_input', ST=NeuState('spike'), steps=update, mode='vector')
 
-        model = NeuType(name='poisson_input',
-                        requires=dict(ST=NeuState(['spike'])),
-                        steps=update,
-                        mode='vector')
+        # neuron model on GPU
+        # -------------------
+        else:
+            def update(ST, rng_states, _obj_i):
+                ST['spike'] = random.xoroshiro128p_uniform_float64(rng_states, _obj_i) < freqs * dt
 
-        # neuron group
+            model = NeuType(name='poisson_input', ST=NeuState('spike'), steps=update, mode='scalar')
+
+        # initialize neuron group
+        # -----------------------
         super(PoissonInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
+
+        # will automatically handle
+        # the heterogeneous problem
+        # -------------------------
+        self.pars['freqs'] = freqs
+
+        # rng states
+        # ----------
+        if profile.run_on_gpu():
+            num_block, num_thread = tools.get_cuda_size(self.num)
+            self.rng_states = random.create_xoroshiro128p_states(
+                num_block * num_thread, seed=np.random.randint(100000))
 
 
 class SpikeTimeInput(NeuGroup):
@@ -193,14 +216,14 @@ class SpikeTimeInput(NeuGroup):
     >>> SpikeTimeInput(2, times=[10, 20])
     >>> # or
     >>> # Get 2 neurons, the neuron 0 fires spikes at 10 ms and 20 ms.
-    >>> SpikeTimeInput(2, times=[10, 20], indices=0)
+    >>> SpikeTimeInput(2, times=[10, 20], indices=[0, 0])
     >>> # or
     >>> # Get 2 neurons, neuron 0 fires at 10 ms and 30 ms, neuron 1 fires at 20 ms.
     >>> SpikeTimeInput(2, times=[10, 20, 30], indices=[0, 1, 0])
     >>> # or
     >>> # Get 2 neurons; at 10 ms, neuron 0 fires; at 20 ms, neuron 0 and 1 fire;
     >>> # at 30 ms, neuron 1 fires.
-    >>> SpikeTimeInput(2, times=[10, 20, 30], indices=[0, [0, 1], 1])
+    >>> SpikeTimeInput(2, times=[10, 20, 20, 30], indices=[0, 0, 1, 1])
 
     Parameters
     ----------
@@ -216,50 +239,89 @@ class SpikeTimeInput(NeuGroup):
         The group name.
     """
 
-    def __init__(self, geometry, times, indices=None, monitors=None, name=None):
-        # times
-        assert (isinstance(times, (list, tuple)) and isinstance(times[0], (int, float))) or \
-               (isinstance(times, np.ndarray) and np.ndim(times) == 1)
-        times = np.array(times)
-        num_times = len(times)
+    def __init__(self, geometry, times, indices=None, monitors=None, name=None, need_sort=True):
+        # number of neurons
+        # -----------------
+        if isinstance(geometry, (int, float)):
+            num = int(geometry)
+        elif isinstance(geometry, (tuple, list)):
+            num = int(np.prod(geometry))
+        else:
+            raise ModelUseError(f'"geometry" must be a int, or a tuple/list of int, '
+                                f'but we got {type(geometry)}.')
 
-        def update(ST, _t_, input_idx):
-            in_idx = input_idx[0]
-            if (in_idx < num_times) and (_t_ >= times[in_idx]):
-                ST['spike'] = indices[in_idx]
-                input_idx += 1
+        # indices is not provided
+        # -----------------------
+        if indices is None:
+            # data about times
+            times = np.ascontiguousarray(times, dtype=np.float_)
+            if need_sort: times = np.sort(times)
+            num_times = len(times)
+
+            # model on CPU
+            if profile.run_on_cpu():
+                def update(ST, _t, idx):
+                    in_idx = idx[0]
+                    if (in_idx < num_times) and (_t >= times[in_idx]):
+                        ST['spike'] = 1.
+                        idx += 1
+                    else:
+                        ST['spike'] = 0.
+
+                model = NeuType(name='time_input', ST=NeuState('spike'),
+                                steps=update, mode='vector',
+                                hand_overs={'idx': np.array([0])})
+
             else:
-                ST['spike'] = 0.
+                def update(ST, _t, idxs, _obj_i):
+                    in_idx = idxs[_obj_i]
+                    if (in_idx < num_times) and (_t >= times[in_idx]):
+                        ST['spike'] = 1.
+                        idxs[_obj_i] += 1
+                    else:
+                        ST['spike'] = 0.
 
-        model = NeuType(name='time_input',
-                        requires=dict(ST=NeuState(['spike']),
-                                      input_idx=Array(dim=1, help='The current index.')),
-                        steps=update,
-                        mode='vector')
+                model = NeuType(name='time_input', ST=NeuState('spike'),
+                                steps=update, mode='scalar',
+                                hand_overs={'idxs': np.zeros(num, dtype=np.int_)})
+
+        # indices and times are provided
+        # ------------------------------
+
+        else:
+            if len(indices) != len(times):
+                raise ModelUseError(f'The length of "indices" and "times" must be the same. '
+                                    f'However, we got {len(indices)} != {len(times)}.')
+
+            if profile.run_on_cpu():
+
+                # data about times and indices
+                times = np.ascontiguousarray(times, dtype=np.float_)
+                indices = np.ascontiguousarray(indices, dtype=np.int_)
+                num_times = len(times)
+                if need_sort:
+                    sort_idx = np.argsort(times)
+                    indices = indices[sort_idx]
+
+                # update logic
+                def update(ST, _t, idx):
+                    ST['spike'] = 0.
+                    while idx[0] < num_times and _t >= times[idx[0]]:
+                        ST['spike'][indices[idx[0]]] = 1.
+                        idx += 1
+
+                model = NeuType(name='time_input', ST=NeuState('spike'),
+                                steps=update, mode='vector',
+                                hand_overs={'idx': np.array([0])})
+
+            else:
+                raise NotImplementedError
 
         # neuron group
-        super(SpikeTimeInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
-        self.input_idx = np.array([0], dtype=np.int_)
-
-        # indices
-        if indices is None:
-            indices = np.ones((len(times), self.size), dtype=np.bool_)
-        elif isinstance(indices, int):
-            idx = indices
-            indices = np.zeros((len(times), self.size), dtype=np.bool_)
-            indices[:, idx] = True
-        elif isinstance(indices, (tuple, list)):
-            old_idx = indices
-            indices = np.zeros((len(times), self.size), dtype=np.bool_)
-            for i, it in enumerate(old_idx):
-                if isinstance(it, int):
-                    indices[i, it] = True
-                elif isinstance(it, (tuple, list)):
-                    indices[i][it] = True
-                else:
-                    raise ValueError('Unknown type.')
-        else:
-            raise ValueError('Unknown type.')
+        super(SpikeTimeInput, self).__init__(model=model,
+                                             geometry=geometry,
+                                             monitors=monitors,
+                                             name=name)
 
 
 class FreqInput(NeuGroup):
@@ -286,15 +348,16 @@ class FreqInput(NeuGroup):
     name : str
         The name of the neuron group.
     """
+
     def __init__(self, geometry, freqs, start_time=0., monitors=None, name=None):
         if not np.allclose(freqs <= 1000. / profile.get_dt()):
             print(f'WARNING: The maximum supported frequency at dt={profile.get_dt()} ms '
                   f'is {1000. / profile.get_dt()} Hz. While we get your "freq" setting which '
                   f'is bigger than that.')
 
-        ST = NeuState({'spike': 0., 't_next_spike': 0., 't_last_spike': -1e7})
+        state = NeuState({'spike': 0., 't_next_spike': 0., 't_last_spike': -1e7})
 
-        if profile.is_numba_bk():
+        if profile.is_jit():
             def update_state(ST, _t_):
                 if _t_ >= ST['t_next_spike']:
                     ST['spike'] = 1.
@@ -304,7 +367,7 @@ class FreqInput(NeuGroup):
                     ST['spike'] = 0.
 
             model = NeuType(name='poisson_input',
-                            requires=dict(ST=ST),
+                            ST=state,
                             steps=update_state,
                             mode='scalar')
 
@@ -325,8 +388,8 @@ class FreqInput(NeuGroup):
                     ST['t_last_spike'][spike_ids] = _t_
                     ST['t_next_spike'][spike_ids] += 1000. / freqs[spike_ids]
 
-            model = NeuType(name='poisson_input',
-                            requires=dict(ST=ST),
+            model = NeuType(name='freq_input',
+                            ST=state,
                             steps=update_state,
                             mode='vector')
 
@@ -334,5 +397,4 @@ class FreqInput(NeuGroup):
         super(FreqInput, self).__init__(model=model, geometry=geometry, monitors=monitors, name=name)
 
         self.ST['t_next_spike'] = start_time
-        if not profile.is_debug():
-            self.pars['freqs'] = freqs
+        self.pars['freqs'] = freqs

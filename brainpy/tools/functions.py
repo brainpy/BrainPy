@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 
+import math
 import functools
 import inspect
 import types
 
+import numba as nb
+from numba import cuda
+from numba.core.dispatcher import Dispatcher
+
 from .codes import deindent
 from .codes import get_func_source
-from .. import numpy as np
+from .. import backend
 from .. import profile
 from ..integration.integrator import Integrator
 
-try:
-    import numba as nb
-    if hasattr(nb, 'dispatcher'):
-        from numba.dispatcher import Dispatcher
-    else:
-        from numba.core.dispatcher import Dispatcher
-except ImportError as e:
-    nb = None
-    Dispatcher = None
 
 __all__ = [
+    'get_cuda_size',
     'jit',
     'func_copy',
     'numba_func',
@@ -30,10 +27,20 @@ __all__ = [
 ]
 
 
+def get_cuda_size(num):
+    if num < profile.get_num_thread_gpu():
+        num_block, num_thread = 1, num
+    else:
+        num_thread = profile.get_num_thread_gpu()
+        num_block = math.ceil(num / num_thread)
+    return num_block, num_thread
+
+
+
 def get_func_name(func, replace=False):
     func_name = func.__name__
     if replace:
-        func_name = func_name.replace('_npbrain_delayed_', '')
+        func_name = func_name.replace('_brainpy_delayed_', '')
     return func_name
 
 
@@ -50,8 +57,6 @@ def jit(func=None):
     jit_func : callable
         function.
     """
-    if nb is None:
-        raise ImportError('Please install numba.')
     if not isinstance(func, Dispatcher):
         if not callable(func):
             raise ValueError(f'"func" must be a callable function, but got "{type(func)}".')
@@ -86,7 +91,7 @@ def func_copy(f):
 
 
 def numba_func(func, params={}):
-    if func == np.func_by_name(func.__name__):
+    if backend.func_in_numpy_or_math(func):
         return func
     if isinstance(func, Dispatcher):
         return func
@@ -100,8 +105,10 @@ def numba_func(func, params={}):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            code_scope[k] = numba_func(v, params)
-            modified = True
+            if (not backend.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
+            # if v != np.func_by_name(v.__name__)
+                code_scope[k] = numba_func(v, params)
+                modified = True
     # check scope changed parameters
     for p, v in params.items():
         if p in code_scope:
@@ -111,9 +118,16 @@ def numba_func(func, params={}):
     if modified:
         func_code = deindent(get_func_source(func))
         exec(compile(func_code, '', "exec"), code_scope)
-        return jit(code_scope[func.__name__])
+        func = code_scope[func.__name__]
+        if profile.run_on_cpu():
+            return jit(func)
+        else:
+            return cuda.jit(device=True)(func)
     else:
-        return jit(func)
+        if profile.run_on_cpu():
+            return jit(func)
+        else:
+            return cuda.jit(device=True)(func)
 
 
 def _update_scope(k, v, scope):
@@ -148,7 +162,11 @@ def get_func_scope(func, include_dispatcher=False):
     elif type(func).__name__ == 'function':
         func_name = get_func_name(func, replace=True)
         variables = inspect.getclosurevars(func)
+        if func_name.startswith('xoroshiro128p_'):
+            return {}
     else:
+        if backend.func_in_numpy_or_math(func):
+            return {}
         raise ValueError(f'Unknown type: {type(func)}')
     scope = dict(variables.nonlocals)
     scope.update(variables.globals)
@@ -156,7 +174,7 @@ def get_func_scope(func, include_dispatcher=False):
     for k, v in list(scope.items()):
         # get the scope of the function item
         if callable(v):
-            if Dispatcher is not None and isinstance(v, Dispatcher):
+            if isinstance(v, Dispatcher):
                 if include_dispatcher:
                     for k2, v2 in get_func_scope(v.py_func).items():
                         try:

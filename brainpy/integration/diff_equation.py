@@ -174,7 +174,8 @@ class DiffEquation(object):
                 if substitute_vars == 'all':
                     dependencies[expr.var_name] = expr
                 elif substitute_vars == self.var_name:
-                    dependencies[expr.var_name] = expr
+                    if self.var_name in expr.identifiers:
+                        dependencies[expr.var_name] = expr
                 else:
                     ids = expr.identifiers
                     for var in substitute_vars:
@@ -311,8 +312,15 @@ class DiffEquation(object):
 
     @property
     def is_stochastic(self):
-        # return not (self.g_expr is None or np.all(self.g_value == 0.))
-        return self.g_expr is not None
+        if self.g_expr is not None:
+            try:
+                if eval(self.g_expr.code, self.func_scope) == 0.:
+                    return False
+            except Exception as e:
+                pass
+            return True
+        else:
+            return False
 
     @property
     def is_functional_noise(self):

@@ -1,4 +1,4 @@
-Numerical integrators
+Numerical Integrators
 =====================
 
 ``BrainPy`` provides several methods for the numerical integration

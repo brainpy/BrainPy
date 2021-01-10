@@ -2,8 +2,12 @@ BrainPy documentation
 =====================
 
 ``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
-compilers. The goal of ``BrainPy`` is to provide a highly flexible and
-efficient neural simulation framework for Python users.
+compilers. The goal of ``BrainPy`` is to provide a unified simulation and
+analysis framework for neuronal dynamics with the feature of high
+flexibility and efficiency.
+
+Comprehensive examples of BrainPy please see
+`BrainPy-Models <https://brainpy-models.readthedocs.io/en/latest/>`_.
 
 
 .. note::
@@ -11,11 +15,6 @@ efficient neural simulation framework for Python users.
     BrainPy is a project under development.
     More features are coming soon. Contributions are welcome.
     https://github.com/PKU-NIP-Lab/BrainPy
-
-.. warning::
-
-    The documentation of BrainPy is incomplete. We will
-    speed up this progress as we can.
 
 
 .. toctree::
@@ -36,6 +35,8 @@ efficient neural simulation framework for Python users.
 
    advanced/differential_equations
    advanced/numerical_integrators
+   advanced/debugging
+   advanced/repeat_mode
    advanced/tips_on_jit
    advanced/how_it_works
    advanced/usage_of_connect_module

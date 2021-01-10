@@ -1,6 +1,6 @@
-from brainpy.core_system import types
-from brainpy.core_system.neurons import NeuGroup, NeuType
-import brainpy.numpy as np
+from brainpy.core import types
+from brainpy.core.neurons import NeuGroup, NeuType
+import numpy as np
 from brainpy import profile
 
 _dt = 0.02
@@ -66,7 +66,7 @@ def try_add_input():
         ('pre.inp', np.zeros(10), '/', 'iter'),
     ]
 
-    # profile._backend = 'numpy'
+    # profile._backend = 'backend'
     # group._add_input(key_val_types)
 
     profile._backend = 'numba'
@@ -83,14 +83,14 @@ def try_add_monitor():
     group.pre = types.NeuState(['V', 'm', 'h', 'n', 'sp', 'inp'])(100)
     group.x = np.zeros(100)
 
-    profile._backend = 'numpy'
+    profile._backend = 'backend'
     group._add_monitor(1000)
     print('-' * 30)
     profile._backend = 'numba'
     group._add_monitor(1000)
 
     # Case 2
-    profile._backend = 'numpy'
+    profile._backend = 'backend'
     print('-' * 20)
     print('Case 2: with index')
     print('-' * 20)

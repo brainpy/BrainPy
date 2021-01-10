@@ -1,23 +1,23 @@
 brainpy.core package
 ====================
 
-.. currentmodule:: brainpy.core_system
-.. automodule:: brainpy.core_system
+.. currentmodule:: brainpy.core
+.. automodule:: brainpy.core
 
 .. autosummary::
     :toctree: _autosummary
 
-    BaseType
+    ObjType
     NeuType
     SynType
-    BaseEnsemble
+    Ensemble
     NeuGroup
     SynConn
     Network
     ParsUpdate
     delayed
 
-.. autoclass:: BaseType
+.. autoclass:: ObjType
    :members:
 
 .. autoclass:: NeuType
@@ -26,7 +26,7 @@ brainpy.core package
 .. autoclass:: SynType
    :members:
 
-.. autoclass:: BaseEnsemble
+.. autoclass:: Ensemble
    :members:
 
 .. autoclass:: NeuGroup

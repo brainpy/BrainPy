@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import numba as nb
+import numpy as np
 
-from .. import numpy as np
 from .. import profile
 from ..errors import ModelUseError
-
-try:
-    import numba as nb
-except ImportError:
-    nb = None
 
 __all__ = [
     'Connector',
@@ -42,9 +38,7 @@ def ij2mat(i, j, num_pre=None, num_post=None):
     conn_mat : np.ndarray
         A 2D ndarray connectivity matrix.
     """
-    try:
-        assert len(i) == len(j)
-    except AssertionError:
+    if len(i) != len(j):
         raise ModelUseError('"i" and "j" must be the equal length.')
     if num_pre is None:
         print('WARNING: "num_pre" is not provided, the result may not be accurate.')
@@ -75,11 +69,11 @@ def mat2ij(conn_mat):
          post-synaptic neuron indexes).
     """
     conn_mat = np.asarray(conn_mat)
-    try:
-        assert np.ndim(conn_mat) == 2
-    except AssertionError:
+    if np.ndim(conn_mat) != 2:
         raise ModelUseError('Connectivity matrix must be in the shape of (num_pre, num_post).')
     pre_ids, post_ids = np.where(conn_mat > 0)
+    pre_ids = np.ascontiguousarray(pre_ids, dtype=np.int_)
+    post_ids = np.ascontiguousarray(post_ids, dtype=np.int_)
     return pre_ids, post_ids
 
 
@@ -100,9 +94,7 @@ def pre2post(i, j, num_pre=None):
     conn : list
         The conn list of pre2post.
     """
-    try:
-        assert len(i) == len(j)
-    except AssertionError:
+    if len(i) != len(j):
         raise ModelUseError('The length of "i" and "j" must be the same.')
     if num_pre is None:
         print('WARNING: "num_pre" is not provided, the result may not be accurate.')
@@ -113,7 +105,7 @@ def pre2post(i, j, num_pre=None):
         pre2post_list[pre_id].append(post_id)
     pre2post_list = [np.array(l) for l in pre2post_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit():
         pre2post_list_nb = nb.typed.List()
         for pre_id in range(num_pre):
             pre2post_list_nb.append(np.int64(pre2post_list[pre_id]))
@@ -139,9 +131,7 @@ def post2pre(i, j, num_post=None):
         The conn list of post2pre.
     """
 
-    try:
-        assert len(i) == len(j)
-    except AssertionError:
+    if len(i) != len(j):
         raise ModelUseError('The length of "i" and "j" must be the same.')
     if num_post is None:
         print('WARNING: "num_post" is not provided, the result may not be accurate.')
@@ -152,7 +142,7 @@ def post2pre(i, j, num_post=None):
         post2pre_list[post_id].append(pre_id)
     post2pre_list = [np.array(l) for l in post2pre_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit():
         post2pre_list_nb = nb.typed.List()
         for post_id in range(num_post):
             post2pre_list_nb.append(np.int64(post2pre_list[post_id]))
@@ -184,7 +174,7 @@ def pre2syn(i, num_pre=None):
         pre2syn_list[pre_id].append(syn_id)
     pre2syn_list = [np.array(l) for l in pre2syn_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit():
         pre2syn_list_nb = nb.typed.List()
         for pre_ids in pre2syn_list:
             pre2syn_list_nb.append(np.int64(pre_ids))
@@ -217,12 +207,11 @@ def post2syn(j, num_post=None):
         post2syn_list[post_id].append(syn_id)
     post2syn_list = [np.array(l) for l in post2syn_list]
 
-    if profile.is_numba_bk():
+    if profile.is_jit():
         post2syn_list_nb = nb.typed.List()
         for pre_ids in post2syn_list:
             post2syn_list_nb.append(np.int64(pre_ids))
         post2syn_list = post2syn_list_nb
-
 
     return post2syn_list
 
@@ -245,9 +234,7 @@ def pre_slice_syn(i, j, num_pre=None):
         The conn list of post2syn.
     """
     # check
-    try:
-        assert len(i) == len(j)
-    except AssertionError:
+    if len(i) != len(j):
         raise ModelUseError('The length of "i" and "j" must be the same.')
     if num_pre is None:
         print('WARNING: "num_pre" is not provided, the result may not be accurate.')
@@ -291,9 +278,7 @@ def post_slice_syn(i, j, num_post=None):
     conn : list
         The conn list of post2syn.
     """
-    try:
-        assert len(i) == len(j)
-    except AssertionError:
+    if len(i) != len(j):
         raise ModelUseError('The length of "i" and "j" must be the same.')
     if num_post is None:
         print('WARNING: "num_post" is not provided, the result may not be accurate.')
@@ -391,10 +376,12 @@ class Connector(object):
         raise NotImplementedError
 
     def make_conn_mat(self):
-        self.conn_mat = ij2mat(self.pre_ids, self.post_ids, self.num_pre, self.num_post)
+        if self.conn_mat is None:
+            self.conn_mat = ij2mat(self.pre_ids, self.post_ids, self.num_pre, self.num_post)
 
     def make_mat2ij(self):
-        self.pre_ids, self.post_ids = mat2ij(self.conn_mat)
+        if self.pre_ids is None or self.post_ids is None:
+            self.pre_ids, self.post_ids = mat2ij(self.conn_mat)
 
     def make_pre2post(self):
         self.pre2post = pre2post(self.pre_ids, self.post_ids, self.num_pre)

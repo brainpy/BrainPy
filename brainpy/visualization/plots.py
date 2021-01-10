@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
-from .. import numpy as np
 from .. import profile
 from ..errors import ModelUseError
 
@@ -25,6 +25,7 @@ def line_plot(ts,
               xlabel='Time (ms)',
               ylabel='value',
               legend=None,
+              title=None,
               show=False):
     """Show the specified value in the given object (Neurons or Synapses.)
 
@@ -98,6 +99,10 @@ def line_plot(ts,
     if ylabel:
         plt.ylabel(ylabel)
 
+    # title
+    if title:
+        plt.title(title)
+
     # show
     if show:
         plt.show()
@@ -113,6 +118,7 @@ def raster_plot(ts,
                 ylabel='Neuron index',
                 xlim=None,
                 ylim=None,
+                title=None,
                 show=False):
     """Show the rater plot of the spikes.
 
@@ -164,6 +170,9 @@ def raster_plot(ts,
 
     if ylim:
         plt.ylim(ylim[0], ylim[1])
+
+    if title:
+        plt.title(title)
 
     if show:
         plt.show()

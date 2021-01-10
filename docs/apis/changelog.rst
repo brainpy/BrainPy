@@ -1,6 +1,51 @@
 Release notes
 =============
 
+BrainPy 0.3.1
+-------------
+
+- Add a more flexible way for NeuState/SynState initialization
+- Fix bugs of "is_multi_return"
+- Add "hand_overs", "requires" and "satisfies".
+- Update documentation
+- Auto-transform `range` to `numba.prange`
+- Support `_obj_i`, `_pre_i`, `_post_i` for more flexible operation in scalar-based models
+
+
+
+BrainPy 0.3.0
+-------------
+
+Computation API
+~~~~~~~~~~~~~~~
+
+- Rename "brainpy.numpy" to "brainpy.backend"
+- Delete "pytorch", "tensorflow" backends
+- Add "numba" requirement
+- Add GPU support
+
+Profile setting
+~~~~~~~~~~~~~~~
+
+- Delete "backend" profile setting, add "jit"
+
+Core systems
+~~~~~~~~~~~~
+
+- Delete "autopepe8" requirement
+- Delete the format code prefix
+- Change keywords "_t_, _dt_, _i_" to "_t, _dt, _i"
+- Change the "ST" declaration out of "requires"
+- Add "repeat" mode run in Network
+- Change "vector-based" to "mode" in NeuType and SynType definition
+
+Package installation
+~~~~~~~~~~~~~~~~~~~~
+
+- Remove "pypi" installation, installation now only rely on "conda"
+
+
+
 BrainPy 0.2.4
 -------------
 
@@ -8,7 +53,6 @@ API changes
 ~~~~~~~~~~~
 
 - Fix bugs
-
 
 
 BrainPy 0.2.3

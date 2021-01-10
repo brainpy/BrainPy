@@ -5,25 +5,20 @@ import inspect
 import re
 from types import LambdaType
 
-import autopep8
-
 from .ast2code import ast2code
+from .dicts import DictPlus
 from ..errors import CodeError
 from ..errors import DiffEquationError
-from .dicts import DictPlus
 
 __all__ = [
-    # string processing
-    'get_identifiers',
-    'get_main_code',
-    'get_line_indent',
-    'format_code',
     'CodeLineFormatter',
-    'format_code_for_trajectory',
+    'format_code',
+
     'LineFormatterForTrajectory',
-    'indent',
-    'deindent',
-    'word_replace',
+    'format_code_for_trajectory',
+
+    'FindAtomicOp',
+    'find_atomic_op',
 
     # replace function calls
     'replace_func',
@@ -32,6 +27,15 @@ __all__ = [
     # analyse differential equations
     'analyse_diff_eq',
     'DiffEquationAnalyser',
+
+    # string processing
+    'get_identifiers',
+    'get_main_code',
+    'get_line_indent',
+
+    'indent',
+    'deindent',
+    'word_replace',
 
     # others
     'is_lambda_function',
@@ -334,6 +338,80 @@ def get_line_indent(line, spaces_per_tab=4):
     return len(line) - len(line.lstrip())
 
 
+class FindAtomicOp(ast.NodeTransformer):
+    def __init__(self, var2idx):
+        self.var2idx = var2idx
+        self.left = None
+        self.right = None
+
+    def visit_Assign(self, node):
+        targets = node.targets
+        try:
+            assert len(targets) == 1
+        except AssertionError:
+            raise DiffEquationError('Do not support multiple assignment.')
+        left = ast2code(ast.fix_missing_locations(targets[0]))
+        key = targets[0].slice.value.s
+        value = targets[0].value.id
+        if node.value.__class__.__name__ == 'BinOp':
+            r_left = ast2code(ast.fix_missing_locations(node.value.left))
+            r_right = ast2code(ast.fix_missing_locations(node.value.right))
+            op = ast2code(ast.fix_missing_locations(node.value.op))
+            if op not in ['+', '-']:
+                # raise ValueError(f'Unsupported operation "{op}" for {left}.')
+                return node
+            self.left = f'{value}[{self.var2idx[key]}]'
+            if r_left == left:
+                if op == '+':
+                    self.right = r_right
+                if op == '-':
+                    self.right = f'- {r_right}'
+            elif r_left == '-' + left:
+                if op == '+':
+                    self.right = f"2 * {left} + {r_right}"
+                if op == '-':
+                    self.right = f"2 * {left} - {r_right}"
+            elif r_right == left:
+                if op == '+':
+                    self.right = r_left
+                if op == '-':
+                    self.right = f"{r_left} + 2 * {left}"
+            elif r_right == '-' + left:
+                if op == '+':
+                    self.right = f"{r_left} + 2 * {left}"
+                if op == '-':
+                    self.right = r_left
+            else:
+                return node
+        return node
+
+    def visit_AugAssign(self, node):
+        op = ast2code(ast.fix_missing_locations(node.op))
+        expr = ast2code(ast.fix_missing_locations(node.value))
+        if op not in ['+', '-']:
+            # left = ast2code(ast.fix_missing_locations(node.target))
+            # raise ValueError(f'Unsupported operation "{op}" for {left}.')
+            return node
+
+        key = node.target.slice.value.s
+        value = node.target.value.id
+
+        self.left = f'{value}[{self.var2idx[key]}]'
+        if op == '+':
+            self.right = expr
+        if op == '-':
+            self.right = f'- {expr}'
+
+        return node
+
+
+def find_atomic_op(code_line, var2idx):
+    tree = ast.parse(code_line.strip())
+    formatter = FindAtomicOp(var2idx)
+    formatter.visit(tree)
+    return formatter
+
+
 class CodeLineFormatter(ast.NodeTransformer):
     def __init__(self):
         self.lefts = []
@@ -470,7 +548,7 @@ class CodeLineFormatter(ast.NodeTransformer):
 
 
 def format_code(code_string):
-    """Get _code lines from the string.
+    """Get code lines from the string.
 
     Parameters
     ----------
@@ -481,7 +559,6 @@ def format_code(code_string):
     code_lines : list
     """
 
-    code_string = autopep8.fix_code(deindent(code_string))
     tree = ast.parse(code_string.strip())
     formatter = CodeLineFormatter()
     formatter.visit(tree)
@@ -578,11 +655,11 @@ def format_code_for_trajectory(code_string, fixed_vars):
     code_lines : list
     """
 
-    code_string = autopep8.fix_code(deindent(code_string))
     tree = ast.parse(code_string.strip())
     formatter = LineFormatterForTrajectory(fixed_vars)
     formatter.visit(tree)
     return formatter
+
 
 ######################################
 # String tools
@@ -650,8 +727,9 @@ def func_call(args):
     for i in range(0, len(args), 5):
         for arg in args[i: i + 5]:
             func_args.append(f'{arg},')
-        func_args.append('\n')
+        func_args.append('\n    ')
     return ' '.join(func_args).strip()
+    # return ', '.join(args).strip()
 
 
 def get_func_source(func):
@@ -663,4 +741,3 @@ def get_func_source(func):
     except ValueError:
         pass
     return code
-
