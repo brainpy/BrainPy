@@ -33,12 +33,13 @@ class One2One(Connector):
     def __call__(self, pre_indices, post_indices):
         pre_indices = np.asarray(pre_indices)
         post_indices = np.asarray(post_indices)
-        try:
-            assert np.shape(pre_indices) == np.shape(post_indices)
-        except AssertionError:
-            raise ModelUseError('One2One connection must be defined in two groups with the same shape.')
         self.pre_ids = np.ascontiguousarray(pre_indices.flatten(), dtype=np.int_)
         self.post_ids = np.ascontiguousarray(post_indices.flatten(), dtype=np.int_)
+        try:
+            assert np.size(self.pre_ids) == np.size(self.post_ids)
+        except AssertionError:
+            raise ModelUseError(f'One2One connection must be defined in two groups with the same size, '
+                                f'but we got {np.size(self.pre_ids)} != {np.size(self.post_ids)}.')
         if self.num_pre is None:
             self.num_pre = pre_indices.max()
         if self.num_post is None:
