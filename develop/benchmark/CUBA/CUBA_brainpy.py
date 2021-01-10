@@ -30,21 +30,31 @@ neu_ST = bp.types.NeuState(
 )
 
 
-def neu_update(ST, _t_):
-    ge = ST['ge']
-    gi = ST['gi']
-    ge -= ge / taue * dt
-    gi -= gi / taui * dt
-    ST['ge'] = ge
-    ST['gi'] = gi
+@bp.integrate
+def int_ge(ge, t):
+    return -ge / taue
 
-    if _t_ - ST['sp_t'] > ref:
-        V = ST['V']
-        V += (ge + gi - (V - El)) / taum * dt
+
+@bp.integrate
+def int_gi(gi, t):
+    return -gi / taui
+
+
+@bp.integrate
+def int_V(V, t, ge, gi):
+    return (ge + gi - (V - El)) / taum
+
+
+def neu_update(ST, _t):
+    ST['ge'] = int_ge(ST['ge'], _t)
+    ST['gi'] = int_gi(ST['gi'], _t)
+
+    if _t - ST['sp_t'] > ref:
+        V = int_V(ST['V'], _t, ST['ge'], ST['gi'])
         if V >= Vt:
             ST['V'] = Vr
             ST['sp'] = 1.
-            ST['sp_t'] = _t_
+            ST['sp_t'] = _t
         else:
             ST['V'] = V
             ST['sp'] = 0.
@@ -52,10 +62,7 @@ def neu_update(ST, _t_):
         ST['sp'] = 0.
 
 
-neuron = bp.NeuType(name='CUBA',
-                    ST=neu_ST,
-                    steps=neu_update,
-                    mode='scalar')
+neuron = bp.NeuType(name='CUBA', ST=neu_ST, steps=neu_update, mode='scalar')
 
 
 def update1(pre, post, pre2post):
@@ -68,7 +75,7 @@ def update1(pre, post, pre2post):
 
 exc_syn = bp.SynType('exc_syn',
                      steps=update1,
-                     ST=bp.types.SynState([]))
+                     ST=bp.types.SynState())
 
 
 def update2(pre, post, pre2post):
@@ -81,7 +88,7 @@ def update2(pre, post, pre2post):
 
 inh_syn = bp.SynType('inh_syn',
                      steps=update2,
-                     ST=bp.types.SynState([]))
+                     ST=bp.types.SynState())
 
 group = bp.NeuGroup(neuron,
                     geometry=num_exc + num_inh,
