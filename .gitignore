@@ -5,6 +5,7 @@ TODO.md
 
 examples/
 develop/benchmark/COBA/results
+develop/outputdir
 
 docs/images/numpybrain_arch.pptx
 docs/images/synapses_index.pdf
@@ -25,11 +26,14 @@ docs/apis/_autosummary
 docs/advanced/usage_of_inputfactory.py
 docs/advanced/usage_of_utils_connect.py
 
-develop/benchmark/brian2*
-develop/benchmark/annarchy*
+develop/benchmark/COBA/brian2*
+develop/benchmark/COBA/annarchy*
+develop/benchmark/COBAHH/brian2*
+develop/benchmark/COBAHH/annarchy*
+develop/benchmark/CUBA/annarchy*
+develop/benchmark/CUBA/brian2*
 
 
-MANIFEST.in
 
 *~
 \#*\#

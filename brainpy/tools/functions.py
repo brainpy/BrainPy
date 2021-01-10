@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import math
 import functools
 import inspect
 import types
 
 import numba as nb
 from numba import cuda
-import numpy as np
+from numba.core.dispatcher import Dispatcher
 
 from .codes import deindent
 from .codes import get_func_source
@@ -14,14 +15,9 @@ from .. import backend
 from .. import profile
 from ..integration.integrator import Integrator
 
-if hasattr(nb, 'dispatcher'):
-    from numba.dispatcher import Dispatcher
-else:
-    from numba.core.dispatcher import Dispatcher
-
-
 
 __all__ = [
+    'get_cuda_size',
     'jit',
     'func_copy',
     'numba_func',
@@ -29,6 +25,16 @@ __all__ = [
     'get_func_scope',
     'find_integrators',
 ]
+
+
+def get_cuda_size(num):
+    if num < profile.get_num_thread_gpu():
+        num_block, num_thread = 1, num
+    else:
+        num_thread = profile.get_num_thread_gpu()
+        num_block = math.ceil(num / num_thread)
+    return num_block, num_thread
+
 
 
 def get_func_name(func, replace=False):
