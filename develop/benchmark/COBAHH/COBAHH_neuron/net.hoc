@@ -1,0 +1,74 @@
+objref nil
+
+proc netparam() {
+N_I = int(ncell/5.0)		// Number of inibitory cells
+N_E = ncell - N_I		// Number of excitatory cells
+CONNECTIVITY = 0.02		// Connection probability
+C_I = int(N_I*CONNECTIVITY)	// nb inh synapses per neuron
+C_E = int(N_E*CONNECTIVITY)	// nb exc synapses per neuron
+AMPA_GMAX       = 0.006		// (uS)
+GABA_GMAX       = 0.067		// (uS)
+DELAY		= 0		// (ms)
+}
+netparam()
+
+proc create_cells() { local i, gid  localobj cell, nc
+	// Make each CPU create just the cells that "belong" to it.
+	for pcitr(&i, &gid) {  // in common/init.hoc
+		// i ranges from 0 to "number of cells on this cpu".
+		// gid is globally unique and is in the range from 0 to ncell,
+		// where ncell is the total number of cells on all machines.
+		cell = newcell(gid)
+		// Associate this cell and gid with each other.
+		pnm.register_cell(gid, cell)
+		// Create a corresponding new instance of the RandomStream class.
+		ranlist.append(new RandomStream(gid)) // Notice it is the ith RandomStream.
+	}
+}
+
+// Pick exactly C_E and C_I unique non-self random connections for each target.
+// Assume many more sources than target connections.
+proc connect_cells() { local i, j, gid, r, d   localobj cell, u, rs
+	// In the paper, delay is 0.  If it is nonzero, we can run this model 
+	// on a parallel machine, i.e a machine with pc.nhost > 1.
+	d = DELAY
+	// Initialize the pseudorandom number generator.
+	mcell_ran4_init(connect_random_low_start_)
+	u = new Vector(ncell) // for sampling without replacement
+	for pcitr(&i, &gid) { // For each target cell . . .
+		u.fill(0)  // u.x[i]==1 will mean that i has already been chosen. 
+		cell = pnm.cells.object(i)
+		rs = ranlist.object(i) // . . . identify the corresponding RandomStream . . .
+		rs.start()
+		// . . . and make it return pseudorandom integers in the range 0..N_E-1.
+		rs.r.discunif(0, N_E-1)
+		j=0 while(j < C_E) { // Excitatory sources
+			r = rs.repick()
+			// No self connection, and no more than one connection from any source.
+			if (r != gid) if (u.x[r] == 0) {
+				// Set up a connection from source to target.
+				pnm.nc_append(r, gid, AMPA_INDEX, AMPA_GMAX, d)
+				// Mark this source index as "used" and prepare to choose another.
+				u.x[r] = 1
+				j += 1
+			}
+		}
+		// Now make the RandomStream return pseudorandom integers in the range N_E..ncell-1.
+		rs.r.discunif(N_E, ncell-1)
+		j=0 while(j < C_I) { // Inhibitory sources
+			r = rs.repick()
+			if (r != gid) if (u.x[r] == 0) {
+				pnm.nc_append(r, gid, GABA_INDEX, GABA_GMAX, d)
+				u.x[r] = 1
+				j += 1
+			}
+		}
+	}
+}
+
+proc create_net() {
+	create_cells()
+	if (pc.id == 0) printf("Created %d cells; %d on host 0\n", pnm.ncell, pnm.cells.count)
+	connect_cells()
+	if (pc.id == 0) printf("Created %d connections to targets on host 0\n", pnm.nclist.count)
+}

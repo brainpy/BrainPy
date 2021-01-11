@@ -1,0 +1,175 @@
+proc want_all_spikes() { local i, gid
+	for pcitr(&i, &gid) {
+		pnm.spike_record(gid)
+	}
+}
+
+objref mxhist_
+proc mkhist() {
+	if (pnm.myid == 0) {
+		mxhist_ = new Vector($1)
+		pc.max_histogram(mxhist_)
+	}
+}
+
+proc prhist() {local i, j
+	if (pnm.myid == 0 && object_id(mxhist_)) {
+		printf("histogram of #spikes vs #exchanges\n")
+		j = 0
+		for i=0, mxhist_.size-1 {
+			if (mxhist_.x[i] != 0) { j = i }
+		}
+		for i = 0, j {
+			printf("%d\t %d\n", i, mxhist_.x[i])
+		}
+		printf("end of histogram\n")
+	}
+}
+
+objref tdat_
+tdat_ = new Vector(3)
+proc prun() {
+	pnm.pc.set_maxstep(10)
+	runtime=startsw()
+	tdat_.x[0] = pnm.pc.wait_time
+	stdinit()
+	pnm.psolve(tstop)
+	tdat_.x[0] = pnm.pc.wait_time - tdat_.x[0]
+	runtime = startsw() - runtime
+	tdat_.x[1] = pnm.pc.step_time
+	tdat_.x[2] = pnm.pc.send_time	
+//	printf("%d wtime %g\n", pnm.myid, waittime)
+}
+
+proc poststat() {
+	pnm.pc.post("poststat", pnm.myid, tdat_)
+}
+
+objref spstat_
+proc postspstat() {local i
+	spstat_ = new Vector()
+	cvode.spike_stat(spstat_)
+	i = spstat_.size
+	spstat_.resize(spstat_.size + 4)
+	spstat_.x[i] = pc.spike_statistics(&spstat_.x[i+1], &spstat_.x[i+2],\
+		&spstat_.x[i+3])
+	pnm.pc.post("postspstat", pnm.myid, spstat_)
+}
+
+objref tavg_stat, tmin_stat, tmax_stat, idmin_stat, idmax_stat
+
+proc getstat() {local i, j, id localobj tdat
+	tdat = tdat_.c	tavg_stat = tdat_.c  tmin_stat = tdat_.c  tmax_stat = tdat_.c
+	idmin_stat = tdat_.c.fill(0)  idmax_stat = tdat_.c.fill(0)
+	if (pnm.nwork > 1) {
+		pnm.pc.context("poststat()\n")
+		for i=0, pnm.nwork-2 {
+			pnm.pc.take("poststat", &id, tdat)
+			tavg_stat.add(tdat)
+			for j = 0, tdat_.size-1 {
+				if (tdat.x[j] > tmax_stat.x[j]) {
+					idmax_stat.x[j] = id
+					tmax_stat.x[j] = tdat.x[j]
+				}
+				if (tdat.x[j] < tmin_stat.x[j]) {
+					idmin_stat.x[j] = id
+					tmin_stat.x[j] = tdat.x[j]
+				}
+			}
+		}
+	}
+	tavg_stat.div(pnm.nhost)
+}
+
+proc print_spike_stat_info() {local i, j, id  localobj spstat, sum, min, max, idmin, idmax, label
+	spstat = new Vector()
+	spstat_ = new Vector()
+	cvode.spike_stat(spstat_)
+	i = spstat_.size
+	spstat_.resize(spstat_.size + 4)
+	spstat_.x[i] = pc.spike_statistics(&spstat_.x[i+1], &spstat_.x[i+2],\
+		&spstat_.x[i+3])
+	sum = spstat_.c
+	min = spstat_.c
+	max = spstat_.c
+	idmin = spstat_.c.fill(0)
+	idmax = spstat_.c.fill(0)
+	if (pnm.nwork > 1) {
+		pnm.pc.context("postspstat()\n")
+		for i=0, pnm.nwork-2 {
+			pnm.pc.take("postspstat", &id, spstat)
+			sum.add(spstat)
+			for j=0, spstat.size-1 {
+				if (spstat.x[j] > max.x[j]) {
+					idmax.x[j] = id
+					max.x[j] = spstat.x[j]
+				}
+				if (spstat.x[j] < min.x[j]) {
+					idmin.x[j] = id
+					min.x[j] = spstat.x[j]
+				}
+			}
+		}
+	}
+	label = new List()
+	label.append(new String("eqn"))
+	label.append(new String("NetCon"))
+	label.append(new String("deliver"))
+	label.append(new String("NC deliv"))
+	label.append(new String("PS send"))
+	label.append(new String("S deliv"))
+	label.append(new String("S send"))
+	label.append(new String("S move"))
+	label.append(new String("Q insert"))
+	label.append(new String("Q move"))
+	label.append(new String("Q remove"))
+	label.append(new String("max sent"))
+	label.append(new String("sent"))
+	label.append(new String("received"))
+	label.append(new String("used"))
+
+	printf("%10s %13s %10s %10s    %5s   %5s\n",\
+		"", "total", "min", "max", "idmin", "idmax")
+	for i=0, spstat_.size-1 {
+		printf("%-10s %13.0lf %10d %10d    %5d   %5d\n",\
+label.object(i).s, sum.x[i], min.x[i], max.x[i], idmin.x[i], idmax.x[i])
+	}
+
+	printf("\n%-12s %-12s %-12s %-12s %-12s %-12s\n",\
+		"setup", "run", "avgspkxfr", "avgcomp", "avgx2q", "avgvxfr")
+	printf("%-12.4g %-12.4g", setuptime, runtime)
+	for i=0, tdat_.size-1 { printf(" %-12.4g", tavg_stat.x[i]) }
+	
+	printf("\n\n%5s %-15s %-15s %-15s %-15s\n", \
+		"", "id   spkxfr", "id   comp", "id   x2q", "id   vxfr")
+	printf("%-5s", "min")
+	for i=0, tdat_.size-1 { printf(" %-4d %-10.4g", idmin_stat.x[i], tmin_stat.x[i]) }
+	printf("\n%-5s", "max")
+	for i=0, tdat_.size-1 { printf(" %-4d %-10.4g", idmax_stat.x[i], tmax_stat.x[i]) }
+	printf("\n")
+}
+
+proc perf2file() { local i  localobj perf
+	perf = new File()
+	perf.aopen("perf.dat")
+	perf.printf("%d %d     %g %g     ",pnm.nhost, pnm.ncell, setuptime, runtime)
+	for i=0, tdat_.size-1 { perf.printf(" %g", tavg_stat.x[i]) }
+	perf.printf("     ")
+	for i=0, tdat_.size-1 { perf.printf(" %d %g ", idmin_stat.x[i], tmin_stat.x[i]) }
+	perf.printf("     ")
+	for i=0, tdat_.size-1 { perf.printf(" %d %g ", idmax_stat.x[i], tmax_stat.x[i]) }
+	perf.printf("\n")
+
+	perf.close
+}
+
+proc spike2file() { localobj outf
+	outf = new File()
+	outf.wopen("out.dat")
+	for i=0, pnm.idvec.size-1 {
+		outf.printf("%g\t%d\n", pnm.spikevec.x[i], pnm.idvec.x[i])
+	}
+	outf.close
+}
+
+

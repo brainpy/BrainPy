@@ -1,0 +1,14 @@
+load_file("nrngui.hoc")
+
+objref g
+g = new Graph()
+proc spkplt() {localobj x, y
+	clipboard_retrieve($s1)
+	printf("read %d spikes\n", hoc_obj_[1].size)
+	x = hoc_obj_[1]
+	y = hoc_obj_[0]
+	g.size(x.min, x.max, y.min, y.max)
+	y.mark(g, x, "|", 5, $2, 1)
+}
+
+spkplt("out.dat", 1)
