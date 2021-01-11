@@ -1,6 +1,6 @@
 package:
-    name: brainpy
-    version: "0.3.0"
+    name: brainpy-simulator
+    version: "0.3.2"
 
 source:
     path: ../../

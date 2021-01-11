@@ -24,20 +24,13 @@ BrainPy is efficient because it supports JIT acceleration on CPUs and GPUs.
 
 # setup
 setup(
-    name='brainpy',
+    name='brainpy-simulator',
     version=version,
     description='BrainPy: A Toolbox for Computational Neuroscience Study and Research',
     long_description=README,
     author='Chaoming Wang',
     author_email='adaduo@outlook.com',
-    packages=find_packages(exclude=('examples',
-                                    'examples.*',
-                                    'docs',
-                                    'docs.*',
-                                    'develop',
-                                    'develop.*',
-                                    'tests',
-                                    'tests.*')),
+    packages=find_packages(exclude=['examples*', 'docs*', 'develop*', 'tests*']),
     python_requires='>=3.7',
     install_requires=[
         'numpy>=1.15',

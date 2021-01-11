@@ -9,8 +9,6 @@ import numba
 import numpy as np
 from numba import cuda
 from numba.cuda.random import create_xoroshiro128p_states
-from numba.cuda.random import xoroshiro128p_uniform_float64
-from numba.cuda.random import xoroshiro128p_uniform_float32
 from numba.cuda.random import xoroshiro128p_normal_float64
 from numba.cuda.random import xoroshiro128p_normal_float32
 
@@ -27,6 +25,22 @@ __all__ = [
     'Runner',
     'TrajectoryRunner',
 ]
+
+
+class NoiseHandler(object):
+    normal_pattern = re.compile(r'(_normal_like_)\((\w+)\)')
+
+    @staticmethod
+    def vector_replace_f(m):
+        return 'numpy.random.normal(0., 1., ' + m.group(2) + '.shape)'
+
+    @staticmethod
+    def scalar_replace_f(m):
+        return 'numpy.random.normal(0., 1.)'
+
+    @staticmethod
+    def cuda_replace_f(m):
+        return 'xoroshiro128p_normal_float64(rng_states, _obj_i)'
 
 
 class Runner(object):
@@ -163,7 +177,7 @@ class Runner(object):
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
             self.input_step = code_scope['input_step']
-            if not profile._merge_steps:
+            if not profile.is_merge_steps():
                 if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
@@ -269,7 +283,7 @@ class Runner(object):
                 step_func = code_scope[func_name]
                 step_func = cuda.jit(step_func)
                 setattr(self, func_name, step_func)
-                if not profile._merge_steps:
+                if not profile.is_merge_steps():
                     if profile.show_format_code():
                         tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                     if profile.show_code_scope():
@@ -407,7 +421,7 @@ class Runner(object):
             code_to_compile = [f'def monitor_step({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
 
-            if not profile._merge_steps:
+            if not profile.is_merge_steps():
                 if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
@@ -415,6 +429,8 @@ class Runner(object):
 
             exec(compile(func_code, '', 'exec'), code_scope)
             monitor_step = code_scope['monitor_step']
+            # if profile.is_jit():
+            #     monitor_step = tools.jit(monitor_step)
             self.monitor_step = monitor_step
 
             # format function call
@@ -523,7 +539,7 @@ class Runner(object):
                 monitor_step = cuda.jit(monitor_step)
                 setattr(self, func_name, monitor_step)
 
-                if not profile._merge_steps:
+                if not profile.is_merge_steps():
                     if profile.show_format_code():
                         tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                     if profile.show_code_scope():
@@ -653,10 +669,10 @@ class Runner(object):
                     if self._model.mode == constants.SCALAR_MODE:
                         for ks, vs in tools.get_func_scope(v.update_func, include_dispatcher=True).items():
                             if ks in self._pars.heters:
-                                raise ModelUseError(f'Heterogeneous parameter "{ks}" is not in step functions, '
-                                                    f'it will not work.\n'
-                                                    f'Please set "brainpy.profile.set(merge_steps=True)" to try to '
-                                                    f'merge parameter "{ks}" into the step functions.')
+                                raise ModelUseError(
+                                    f'Heterogeneous parameter "{ks}" is not in step functions, '
+                                    f'it will not work. Please set "brainpy.profile.set(merge_integrators=True)" '
+                                    f'to try to merge parameter "{ks}" into the step functions.')
                     if profile.is_jit():
                         code_scope[k] = tools.numba_func(v.update_func, params=self._pars.updates)
 
@@ -689,7 +705,7 @@ class Runner(object):
             func_args = inspect.getfullargspec(func).args
 
             # initialize code namespace
-            used_args, code_arg2call, code_lines = set(), {}, []
+            used_args, code_arg2call = set(), {}
             func_code, code_scope, formatter = self.merge_integrators(func)
             code_scope[f'{self._name}_runner'] = self
 
@@ -762,6 +778,10 @@ class Runner(object):
                     arg_substitute[k] = self._model.heter_params_replace[k]
                     if k in all_heter_pars:
                         all_heter_pars.remove(k)
+            # substitute "range" to "numba.prange"
+            if ' range' in func_code:
+                arg_substitute['range'] = 'numba.prange'
+                code_scope['numba'] = numba
             # substitute
             if len(arg_substitute):
                 func_code = tools.word_replace(func_code, arg_substitute)
@@ -771,19 +791,24 @@ class Runner(object):
                 if k in self._pars.updates:
                     code_scope[k] = self._pars.updates[k]
 
+            # handle the "_normal_like_"
+            func_code = NoiseHandler.normal_pattern.sub(NoiseHandler.vector_replace_f, func_code)
+            code_scope['numpy'] = np
+
             # final
             code_lines = func_code.split('\n')
             code_lines.insert(0, f'# "{stripped_fname}" step function of {self._name}')
             code_lines.append('\n')
 
             # code to compile
-            code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):'] + code_lines
+            code_to_compile = [f'def {stripped_fname}({tools.func_call(code_args)}):']
+            code_to_compile += code_lines
             func_code = '\n '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
             func = code_scope[stripped_fname]
             if profile.is_jit():
                 func = tools.jit(func)
-            if not profile._merge_steps:
+            if not profile.is_merge_steps():
                 if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
@@ -824,7 +849,7 @@ class Runner(object):
             # 2. code argument_to_call
             # 3. code lines
             # 4. code scope variables
-            used_args, code_arg2call, code_lines = set(), {}, []
+            used_args, code_arg2call = set(), {}
             func_args = inspect.getfullargspec(func).args
             func_code, code_scope, formatter = self.merge_integrators(func)
             code_scope[f'{self._name}_runner'] = self
@@ -863,7 +888,7 @@ class Runner(object):
                             # Function with "delayed" decorator should use ST pulled from the delay queue
                             for st_k in delay_keys:
                                 p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                                r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}, _obj_i_]"
+                                r = f"{arg}[{var2idx['_' + st_k + '_offset']} + {dout}, _obj_i]"
                                 func_code = re.sub(r'' + p, r, func_code)
                     else:
                         if len(delay_keys):
@@ -877,12 +902,12 @@ class Runner(object):
                                 add_args.add(din)
                                 code_arg2call[din] = f'{self._name}.{arg}._delay_in'
                                 for st_k in func_delay_keys:
-                                    right = f'{arg}[{var2idx[st_k]}, _obj_i_]'
-                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}, _obj_i_]"
+                                    right = f'{arg}[{var2idx[st_k]}, _obj_i]'
+                                    left = f"{arg}[{var2idx['_' + st_k + '_offset']} + {din}, _obj_i]"
                                     func_code += f'\n{left} = {right}'
                         for st_k in st._keys:
                             p = f'{arg}\[([\'"]{st_k}[\'"])\]'
-                            r = f"{arg}[{var2idx[st_k]}, _obj_i_]"
+                            r = f"{arg}[{var2idx[st_k]}, _obj_i]"
                             func_code = re.sub(r'' + p, r, func_code)
                 elif arg == 'pre':
                     # 1. implement the atomic operations for "pre"
@@ -899,7 +924,7 @@ class Runner(object):
                                 if pre_transformer.left is not None:
                                     left = pre_transformer.left
                                     right = pre_transformer.right
-                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i_, {right})'
+                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _pre_i, {right})'
                                     add_cuda = True
                             line_no += 1
                         if add_cuda:
@@ -908,7 +933,7 @@ class Runner(object):
                     # 2. transform the key access to index access
                     for st_k in st._keys:
                         p = f'pre\[([\'"]{st_k}[\'"])\]'
-                        r = f"pre[{var2idx[st_k]}, _pre_i_]"
+                        r = f"pre[{var2idx[st_k]}, _pre_i]"
                         func_code = re.sub(r'' + p, r, func_code)
                 elif arg == 'post':
                     # 1. implement the atomic operations for "post"
@@ -925,7 +950,7 @@ class Runner(object):
                                 if post_transformer.left is not None:
                                     left = post_transformer.left
                                     right = post_transformer.right
-                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _post_i_, {right})'
+                                    code_lines[line_no] = ' ' * blank_no + f'cuda.atomic.add({left}, _post_i, {right})'
                                     add_cuda = True
                             line_no += 1
                         if add_cuda:
@@ -934,7 +959,7 @@ class Runner(object):
                     # 2. transform the key access to index access
                     for st_k in st._keys:
                         p = f'post\[([\'"]{st_k}[\'"])\]'
-                        r = f"post[{var2idx[st_k]}, _post_i_]"
+                        r = f"post[{var2idx[st_k]}, _post_i]"
                         func_code = re.sub(r'' + p, r, func_code)
                 else:
                     raise ValueError
@@ -967,30 +992,30 @@ class Runner(object):
             has_pre = 'pre' in func_args
             has_post = 'post' in func_args
             if profile.run_on_cpu():
-                code_lines = [f'for _obj_i_ in numba.prange({self.ensemble.num}):']
+                code_lines = [f'for _obj_i in numba.prange({self.ensemble.num}):']
                 code_scope['numba'] = numba
             else:
-                code_lines = [f'_obj_i_ = cuda.grid(1)',
-                              f'if _obj_i_ < {self.ensemble.num}:']
+                code_lines = [f'_obj_i = cuda.grid(1)',
+                              f'if _obj_i < {self.ensemble.num}:']
                 code_scope['cuda'] = cuda
 
             if has_pre:
                 code_args.add(f'pre_ids')
                 code_arg2call[f'pre_ids'] = f'{self._name}_runner.pre_ids'
-                code_lines.append(f'  _pre_i_ = pre_ids[_obj_i_]')
+                code_lines.append(f'  _pre_i = pre_ids[_obj_i]')
                 self.set_data('pre_ids', getattr(self.ensemble, 'pre_ids'))
             if has_post:
                 code_args.add(f'post_ids')
                 code_arg2call[f'post_ids'] = f'{self._name}_runner.post_ids'
-                code_lines.append(f'  _post_i_ = post_ids[_obj_i_]')
+                code_lines.append(f'  _post_i = post_ids[_obj_i]')
                 self.set_data('post_ids', getattr(self.ensemble, 'post_ids'))
 
-            # substitute heterogeneous parameter "p" to "p[_obj_i_]"
+            # substitute heterogeneous parameter "p" to "p[_obj_i]"
             # ------------------------------------------------------
             arg_substitute = {}
             for p in self._pars.heters.keys():
                 if p in code_scope:
-                    arg_substitute[p] = f'{p}[_obj_i_]'
+                    arg_substitute[p] = f'{p}[_obj_i]'
             if len(arg_substitute):
                 func_code = tools.word_replace(func_code, arg_substitute)
 
@@ -1023,42 +1048,22 @@ class Runner(object):
                         else:
                             code_scope[k] = self._pars.updates[k]
 
-            # add noise term for GPU mode
+            # handle the "_normal_like_"
             # ---------------------------
-            if profile.run_on_gpu():
-                func_code = '\n'.join(code_lines)
-                has_noise_term = False
-                if 'xoroshiro128p_normal_float64' in func_code:
-                    func_code = func_code.replace('xoroshiro128p_normal_float64',
-                                                  'xoroshiro128p_normal_float64(rng_states, _obj_i_)')
+            func_code = '\n'.join(code_lines)
+            if len(NoiseHandler.normal_pattern.findall(func_code)):
+                if profile.run_on_gpu():  # gpu noise
+                    func_code = NoiseHandler.normal_pattern.sub(NoiseHandler.cuda_replace_f, func_code)
                     code_scope['xoroshiro128p_normal_float64'] = xoroshiro128p_normal_float64
-                    has_noise_term = True
-                if 'xoroshiro128p_uniform_float64' in func_code:
-                    func_code = func_code.replace('xoroshiro128p_uniform_float64',
-                                                  'xoroshiro128p_uniform_float64(rng_states, _obj_i_)')
-                    code_scope['xoroshiro128p_uniform_float64'] = xoroshiro128p_uniform_float64
-                    has_noise_term = True
-                if 'xoroshiro128p_normal_float32' in func_code:
-                    func_code = func_code.replace('xoroshiro128p_normal_float32',
-                                                  'xoroshiro128p_normal_float32(rng_states, _obj_i_)')
-                    code_scope['xoroshiro128p_normal_float32'] = xoroshiro128p_normal_float32
-                    has_noise_term = True
-                if 'xoroshiro128p_uniform_float32' in func_code:
-                    func_code = func_code.replace('xoroshiro128p_uniform_float32',
-                                                  'xoroshiro128p_uniform_float32(rng_states, _obj_i_)')
-                    code_scope['xoroshiro128p_uniform_float32'] = xoroshiro128p_uniform_float32
-                    has_noise_term = True
-                if has_noise_term:
-                    if self.ensemble.num < profile.get_num_thread_gpu():
-                        num_block, num_thread = 1, self.ensemble.num
-                    else:
-                        num_thread = profile.get_num_thread_gpu()
-                        num_block = math.ceil(self.ensemble.num / num_thread)
+                    num_block, num_thread = tools.get_cuda_size(self.ensemble.num)
                     code_args.add('rng_states')
                     code_arg2call['rng_states'] = f'{self._name}_runner.rng_states'
                     rng_state = create_xoroshiro128p_states(num_block * num_thread, seed=np.random.randint(100000))
                     setattr(self, 'rng_states', rng_state)
-                    code_lines = func_code.split('\n')
+                else:  # cpu noise
+                    func_code = NoiseHandler.normal_pattern.sub(NoiseHandler.scalar_replace_f, func_code)
+                    code_scope['numpy'] = np
+                code_lines = func_code.split('\n')
 
             # code to compile
             # -----------------
@@ -1093,11 +1098,7 @@ class Runner(object):
                 func_call = f'{self._name}_runner.{stripped_fname}({arg_code})'
             else:
                 # 3. function call on gpu
-                if self.ensemble.num < profile.get_num_thread_gpu():
-                    num_block, num_thread = 1, self.ensemble.num
-                else:
-                    num_thread = profile.get_num_thread_gpu()
-                    num_block = math.ceil(self.ensemble.num / num_thread)
+                num_block, num_thread = tools.get_cuda_size(self.ensemble.num)
                 func_call = f'{self._name}_runner.{stripped_fname}[{num_block}, {num_thread}]({arg_code})'
 
             # the final result
@@ -1132,7 +1133,7 @@ Several ways to correct this error is:
         codes_of_calls = []  # call the compiled functions
 
         if profile.run_on_cpu():
-            if profile._merge_steps:
+            if profile.is_merge_steps():
                 lines, code_scopes, args, arg2calls = [], dict(), set(), dict()
                 for item in self.get_schedule():
                     if item in compiled_result:
@@ -1167,7 +1168,7 @@ Several ways to correct this error is:
                         codes_of_calls.append(func_call)
 
         else:
-            if profile._merge_steps:
+            if profile.is_merge_steps():
                 print('WARNING: GPU mode do not support to merge steps.')
 
             for item in self.get_schedule():

@@ -32,25 +32,36 @@ neu_ST = bp.types.NeuState(
      'gi': 0.}
 )
 
-def neu_update(ST, _t):
-    ge = ST['ge']
-    gi = ST['gi']
-    ge -= ge / taue
-    gi -= gi / taui
-    ST['ge'] = ge
-    ST['gi'] = gi
 
+@bp.integrate
+def int_ge(ge, t):
+    return - ge / taue
+
+
+@bp.integrate
+def int_gi(gi, t):
+    return - gi / taui
+
+
+@bp.integrate
+def int_V(V, t, ge, gi):
+    return (ge * (Erev_exc - V) + gi * (Erev_inh - V) + (El - V) + I) / taum
+
+
+def neu_update(ST, _t):
+    ST['ge'] = int_ge(ST['ge'], _t)
+    ST['gi'] = int_gi(ST['gi'], _t)
+
+    ST['spike'] = 0.
     if (_t - ST['sp_t']) > ref:
-        V = ST['V']
-        dvdt = (ge * (Erev_exc - V) + gi * (Erev_inh - V) + (El - V) + I) / taum
-        ST['V'] = V + dvdt * dt
+        V = int_V(ST['V'], _t, ST['ge'], ST['gi'])
         ST['spike'] = 0.
         if V >= Vt:
             ST['V'] = Vr
             ST['spike'] = 1.
             ST['sp_t'] = _t
-    else:
-        ST['spike'] = 0.
+        else:
+            ST['V'] = V
 
 
 neuron = bp.NeuType(name='COBA',
@@ -63,29 +74,29 @@ def update1(pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['spike'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            # post['ge'][post_ids] += we
             for i in post_ids:
                 post['ge'][i] += we
 
 
 exc_syn = bp.SynType('exc_syn',
                      steps=update1,
-                     ST=bp.types.SynState([]))
+                     ST=bp.types.SynState([]),
+                     mode='vector')
 
 
-def update2(ST, pre, post, pre2post):
+def update2(pre, post, pre2post):
     for pre_id in range(len(pre2post)):
         if pre['spike'][pre_id] > 0.:
             post_ids = pre2post[pre_id]
-            # post['gi'][post_ids] += wi
             for i in post_ids:
                 post['gi'][i] += wi
 
 
-
 inh_syn = bp.SynType('inh_syn',
                      steps=update2,
-                     ST=bp.types.SynState([]))
+                     ST=bp.types.SynState([]),
+                     mode='vector')
+
 
 group = bp.NeuGroup(neuron,
                     geometry=num_exc + num_inh,
@@ -102,12 +113,10 @@ inh_conn = bp.SynConn(inh_syn,
                       post_group=group,
                       conn=bp.connect.FixedProb(prob=0.02))
 
-net = bp.Network(group, exc_conn, inh_conn, mode='repeat')
+net = bp.Network(group, exc_conn, inh_conn)
 t0 = time.time()
 
 net.run(5000., report=True)
-# net.run(2500., report=True)
-# net.run((2500., 5000.), report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
 bp.visualize.raster_plot(net.ts, group.mon.spike, show=True)

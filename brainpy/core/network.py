@@ -139,7 +139,8 @@ class Network(object):
                 else:
                     data_type = 'fix'
             else:
-                raise ModelUseError('For each input, input[2] must be a numerical value to specify input values.')
+                raise ModelUseError(f'For each input, input[2] must be a numerical value to '
+                                    f'specify input values, but we get a {type(inp)}')
 
             # operation
             if len(inp) == 4:
@@ -179,9 +180,9 @@ class Network(object):
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
 
-        if profile._show_format_code:
+        if profile.show_format_code():
             tools.show_code_str(func_code.replace('def ', f'def network_'))
-        if profile._show_code_scope:
+        if profile.show_code_scope():
             tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         return step_func
@@ -208,7 +209,8 @@ class Network(object):
         if isinstance(duration, (int, float)):
             start, end = 0, duration
         elif isinstance(duration, (tuple, list)):
-            assert len(duration) == 2, 'Only support duration with the format of "(start, end)".'
+            if len(duration) != 2:
+                raise ModelUseError('Only support duration with the format of "(start, end)".')
             start, end = duration
         else:
             raise ValueError(f'Unknown duration type: {type(duration)}')
@@ -286,11 +288,6 @@ class Network(object):
     @property
     def ts(self):
         """Get the time points of the network.
-
-        Returns
-        -------
-        times : numpy.ndarray
-            The running time-steps of the network.
         """
         return np.array(np.arange(self.t_start, self.t_end, self.dt), dtype=np.float_)
 

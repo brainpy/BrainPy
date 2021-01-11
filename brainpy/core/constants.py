@@ -4,13 +4,14 @@
 KW_DT = '_dt'
 KW_T = '_t'
 KW_I = '_i'
-ARG_KEYWORDS = ['_dt', '_t', '_i']
+ARG_KEYWORDS = ['_dt', '_t', '_i',
+                '_obj_i', '_pre_i', '_post_i']
 
 # name of the neuron group
-_NEU_GROUP = 'NeuGroup'
+NEU_GROUP_TYPE = 'NeuGroup'
 
 # name of the synapse connection
-_SYN_CONN = 'SynConn'
+SYN_CONN_TYPE = 'SynConn'
 
 # input operations
 INPUT_OPERATIONS = {'-': 'sub',

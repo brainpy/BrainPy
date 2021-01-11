@@ -19,9 +19,10 @@ def try_analyse_func():
     df = DiffEquation(int_m)
     pprint(df.expressions)
     pprint(df.returns)
+    pprint(df.is_multi_return)
     pprint(df.get_f_expressions())
     pprint(df.get_g_expressions())
-    print('-'* 30)
+    print('-' * 30)
 
 
 def try_analyse_func2():
@@ -175,5 +176,6 @@ def test_stochastic():
 
 
 if __name__ == '__main__':
-    test_stochastic()
+    try_analyse_func()
+    # test_stochastic()
 

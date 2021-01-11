@@ -6,6 +6,9 @@ compilers. The goal of ``BrainPy`` is to provide a unified simulation and
 analysis framework for neuronal dynamics with the feature of high
 flexibility and efficiency.
 
+Comprehensive examples of BrainPy please see
+`BrainPy-Models <https://brainpy-models.readthedocs.io/en/latest/>`_.
+
 
 .. note::
 

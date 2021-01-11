@@ -1,24 +1,17 @@
 from brian2 import *
 
 set_device('cpp_standalone', directory='brian2_COBAHH')
-# prefs.codegen.target = "cython"
-np.random.seed(12345)
+
 defaultclock.dt = 0.1 * ms
 
-# Parameters
-# area = 0.02 * mmetre ** 2
-# Cm=200 * pF
-# gl = 10. * nsiemens
-# g_na = 20 * usiemens
-# g_kd = 6. * usiemens
 
+duration = 10 * second
 monitor = 'spike'
 area = 0.02
-unit = 1e6
-Cm = 200 / unit
-gl = 10. / unit
-g_na = 20 * 1000 / unit
-g_kd = 6. * 1000 / unit
+Cm = 200
+gl = 10.
+g_na = 20 * 1000
+g_kd = 6. * 1000
 
 time_unit = 1 * ms
 El = -60
@@ -32,9 +25,9 @@ taui = 10 * ms
 Ee = 0
 Ei = -80
 # excitatory synaptic weight
-we = 6 / unit
+we = 6
 # inhibitory synaptic weight
-wi = 67 / unit
+wi = 67
 
 # The model
 eqs = Equations('''
@@ -64,8 +57,8 @@ Ci.connect(p=0.02)
 
 # Initialization
 P.v = 'El + (randn() * 5 - 5)'
-P.ge = '(randn() * 1.5 + 4) * 10. / unit'
-P.gi = '(randn() * 12 + 20) * 10. / unit'
+P.ge = '(randn() * 1.5 + 4) * 10.'
+P.gi = '(randn() * 12 + 20) * 10.'
 
 # monitor
 if monitor == 'V':
@@ -75,7 +68,7 @@ else:
 
 # Record a few traces
 t0 = time.time()
-run(10 * second, report='text')
+run(duration, report='text')
 print('{}. Used time {} s.'.format(prefs.codegen.target, time.time() - t0))
 
 if monitor == 'V':

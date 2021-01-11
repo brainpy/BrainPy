@@ -1,7 +1,7 @@
 
 ![Logo](docs/images/logo.png)
 
-[![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)     [![Conda](https://anaconda.org/brainpy/brainpy/badges/version.svg)](https://anaconda.org/brainpy/brainpy)    [![travis](https://travis-ci.org/PKU-NIP-Lab/BrainPy.svg?branch=master)](https://travis-ci.org/PKU-NIP-Lab/BrainPy)
+[![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)     [![Conda](https://anaconda.org/brainpy/brainpy-simulator/badges/version.svg)](https://anaconda.org/brainpy/brainpy-simulator)    [![travis](https://travis-ci.org/PKU-NIP-Lab/BrainPy.svg?branch=master)](https://travis-ci.org/PKU-NIP-Lab/BrainPy)
 
 
 
@@ -24,9 +24,13 @@
 
 Install ``BrainPy`` using ``conda``:
 
-    > conda install brainpy -c brainpy
+    > conda install brainpy-simulator -c brainpy
 
 Install ``BrainPy`` using ``pip``:
+
+    > pip install brainpy-simulator
+
+Install ``BrainPy`` from source:
 
     > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
     > # or
@@ -75,12 +79,12 @@ The following packages need to be installed to use ``BrainPy``:
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/Gamma_oscillations.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wang_1996_gamma_oscillation.html">
             <img src="docs/images/gamma_oscillation.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/Gamma_oscillations.html">Gamma Oscillation Model</a></h3>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wang_1996_gamma_oscillation.html">Gamma Oscillation Model</a></h3>
             <p>Implementation of the paper: <i> Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
                   synaptic inhibition in a hippocampal interneuronal network
                   model.” Journal of neuroscience 16.20 (1996): 6402-6413. </i>
@@ -89,22 +93,25 @@ The following packages need to be installed to use ``BrainPy``:
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/EI_balanced_network.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Vreeswijk_1996_EI_net.html">
             <img src="docs/images/EI_balance_net.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/EI_balanced_network.html">E/I Balance Network</a></h3>
-        </td>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Vreeswijk_1996_EI_net.html">E/I Balance Network</a></h3>
+        <p>Implementation of the paper: <i>Van Vreeswijk, Carl, and Haim Sompolinsky. 
+        “Chaos in neuronal networks with balanced excitatory and inhibitory activity.” 
+        Science 274.5293 (1996): 1724-1726.</i></p>        
+</td>
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/CANN.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wu_2008_CANN.html">
             <img src="docs/images/CANN1d.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/networks/CANN.html">Continuous-attractor Network</a></h3>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/from_papers/Wu_2008_CANN.html">Continuous-attractor Network</a></h3>
             <p>Implementation of the paper: <i> Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and
                     computation of continuous attractors." Neural
                     computation 20.4 (2008): 994-1025. </i>
@@ -115,11 +122,11 @@ The following packages need to be installed to use ``BrainPy``:
 
 
 
-More neuron examples please see [bpmodels/neurons](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/neurons);
+More neuron examples please see [BrainPy-Models/neurons](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/neurons);
 
-More synapse examples please see [bpmodels/synapses](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/synapses);
+More synapse examples please see [BrainPy-Models/synapses](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/synapses);
 
-More network examples please see [brainpy-examples/networks](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/networks) and [brainpy-examples/from_papers](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/from_papers).
+More network examples please see [BrainPy-Models/from_papers](https://brainpy-models.readthedocs.io/en/latest/examples/from_papers.html).
 
 
 
@@ -131,24 +138,24 @@ More network examples please see [brainpy-examples/networks](https://github.com/
 <table border="0">
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">
             <img src="docs/images/phase_plane_analysis1.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#">Phase Plane Analysis</a></h3>
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">Phase Plane Analysis</a></h3>
             <p>Phase plane analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model, where
             "input" is 50., and "Vn_half" is -45..</p>
         </td>
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
             <img src="docs/images/NaK_model_codimension1.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
                 Codimension 1 Bifurcation Analysis (1)</a></h3>
             <p>Codimension 1 bifurcation analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model,
                 in which "input" is varied in [0., 50.].</p>
@@ -156,12 +163,12 @@ More network examples please see [brainpy-examples/networks](https://github.com/
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
             <img src="docs/images/NaK_model_codimension2.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
                 Codimension 2 Bifurcation Analysis (1)</a></h3>
             <p>Codimension 2 bifurcation analysis of a two-variable neuron model:
                 the I<sub>Na,p+</sub>-I<sub>K</sub> model, in which "input" is varied
@@ -170,12 +177,12 @@ More network examples please see [brainpy-examples/networks](https://github.com/
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
             <img src="docs/images/FitzHugh_Nagumo_codimension1.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
                 Codimension 1 Bifurcation Analysis (2)</a></h3>
             <p>Codimension 1 bifurcation analysis of FitzHugh Nagumo model, in which
                 "a" is equal to 0.7, and "Iext" is varied in [0., 1.].</p>
@@ -183,12 +190,12 @@ More network examples please see [brainpy-examples/networks](https://github.com/
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
+            <a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
             <img src="docs/images/FitzHugh_Nagumo_codimension2.png">
             </a>
         </td>
         <td border="0" valign="top">
-            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/examples/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
+            <h3><a href="https://brainpy-models.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
                 Codimension 2 Bifurcation Analysis (2)</a></h3>
             <p>Codimension 2 bifurcation analysis of FitzHugh Nagumo model, in which "a"
                is varied in [0.5, 1.0], and "Iext" is varied in [0., 1.].</p>
@@ -198,7 +205,7 @@ More network examples please see [brainpy-examples/networks](https://github.com/
 
 
 
-More examples please see [brainpy-examples/dynamics_analysis](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/dynamics_analysis).
+More examples please see [BrainPy-Models/dynamics_analysis](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/brainpy-examples/dynamics_analysis).
 
 
 

@@ -4,7 +4,6 @@ import copy
 
 import numpy as np
 import sympy
-from numba.cuda.random import xoroshiro128p_normal_float64
 
 from . import methods
 from .diff_equation import DiffEquation
@@ -70,11 +69,7 @@ class Integrator(object):
         self._update_func = None
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
-        raise NotImplementedError
-
-    @staticmethod
-    def get_np_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         raise NotImplementedError
 
     def __call__(self, y0, t, *args):
@@ -96,9 +91,7 @@ class Integrator(object):
     def code_scope(self):
         scope = self.diff_eq.func_scope
         if profile.run_on_cpu():
-            scope['_normal_like'] = backend.normal_like
-        else:
-            scope['xoroshiro128p_normal_float64'] = xoroshiro128p_normal_float64
+            scope['_normal_like_'] = backend.normal_like
         return scope
 
 
@@ -163,14 +156,12 @@ class Euler(Integrator):
 
     def __init__(self, diff_eq):
         super(Euler, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.euler(diff_eq)
-        self.get_np_step = methods.euler
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
         var = sympy.Symbol(var_name, real=True)
@@ -182,10 +173,7 @@ class Euler(Integrator):
 
         # get code lines of dg part
         if diff_eq.is_stochastic:
-            if profile.run_on_gpu():
-                noise = f'xoroshiro128p_normal_float64'
-            else:
-                noise = f'_normal_like({var_name})'
+            noise = f'_normal_like_({var_name})'
             code_lines.append(f'_{var_name}_dW = {noise}')
             code_lines.extend([str(expr) for expr in diff_eq.get_g_expressions()])
             dgdt = sympy.Symbol(f'_{var_name}_dW') * sympy.Symbol(f'_dg{var_name}_dt')
@@ -193,7 +181,7 @@ class Euler(Integrator):
             dgdt = 0
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -246,14 +234,12 @@ class RK2(Integrator):
     def __init__(self, diff_eq, beta=2 / 3):
         super(RK2, self).__init__(diff_eq)
         self.beta = beta
-        self._update_code = self.get_nb_step(diff_eq, beta)
+        self._update_code = self.get_integral_step(diff_eq, beta)
         self._update_func = methods.rk2(diff_eq, __beta=beta)
-        self.get_np_step = methods.rk2
 
     @staticmethod
-    def get_nb_step(diff_eq, beta=2 / 3):
+    def get_integral_step(diff_eq, beta=2 / 3):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -293,7 +279,7 @@ class RK2(Integrator):
                 raise NotImplementedError('RK2 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -355,16 +341,14 @@ class Heun(Integrator):
 
     def __init__(self, diff_eq):
         super(Heun, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=1.0)
-        self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=1.0)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             if diff_eq.is_functional_noise:
                 dt = profile.get_dt()
-                dt_sqrt = np.sqrt(dt)
                 var_name = diff_eq.var_name
                 func_name = diff_eq.func_name
                 var = sympy.Symbol(var_name, real=True)
@@ -379,11 +363,8 @@ class Heun(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64'
-                else:
-                    noise = f'_normal_like({var_name})'
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
+                noise = f'_normal_like_({var_name})'
+                code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions[:-1]])
                 code_lines.append(f'_dg{var_name}_dt_k1 = {g_k1_expressions[-1].code}')
@@ -430,9 +411,9 @@ class Heun(Integrator):
                 code = tools.word_replace(code, subs_dict)
                 return code
             else:
-                return Euler.get_nb_step(diff_eq)
+                return Euler.get_integral_step(diff_eq)
         else:
-            return RK2.get_nb_step(diff_eq, 1.0)
+            return RK2.get_integral_step(diff_eq, 1.0)
 
 
 class MidPoint(Integrator):
@@ -455,16 +436,15 @@ class MidPoint(Integrator):
 
     def __init__(self, diff_eq):
         super(MidPoint, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk2(diff_eq, __beta=0.5)
-        self.get_np_step = lambda diff_eq: methods.rk2(diff_eq, __beta=0.5)
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             raise NotImplementedError
         else:
-            return RK2.get_nb_step(diff_eq, 0.5)
+            return RK2.get_integral_step(diff_eq, 0.5)
 
 
 class RK3(Integrator):
@@ -498,14 +478,12 @@ class RK3(Integrator):
 
     def __init__(self, diff_eq):
         super(RK3, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk3(diff_eq)
-        self.get_np_step = methods.rk3
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -553,7 +531,7 @@ class RK3(Integrator):
                 raise NotImplementedError('RK3 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -599,14 +577,12 @@ class RK4(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk4(diff_eq)
-        self.get_np_step = methods.rk4
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -663,7 +639,7 @@ class RK4(Integrator):
                 raise NotImplementedError('RK4 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -711,14 +687,12 @@ class RK4Alternative(Integrator):
 
     def __init__(self, diff_eq):
         super(RK4Alternative, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.rk4_alternative(diff_eq)
-        self.get_np_step = methods.rk4_alternative
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
-        dt_sqrt = np.sqrt(dt)
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
         func_name = diff_eq.func_name
@@ -776,7 +750,7 @@ class RK4Alternative(Integrator):
                 raise NotImplementedError('RK4 currently doesn\'t support SDE.')
 
         # update expression
-        update = var + dfdt * dt + dt_sqrt * dgdt
+        update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
         code_lines.append(f'{var_name} = {sympy2str(update)}')
 
         # multiple returns
@@ -848,19 +822,19 @@ class ExponentialEuler(Integrator):
 
     def __init__(self, diff_eq):
         super(ExponentialEuler, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
 
         func_args = ', '.join([f'_{diff_eq.func_name}_{arg}' for arg in diff_eq.func_args])
         func_code = '''def int_func({}): \n'''.format(func_args)
         func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
         code_scopes = copy.copy(diff_eq.func_scope)
         code_scopes.update(get_mapping_scope())
-        code_scopes['_normal_like'] = backend.normal_like
+        code_scopes['_normal_like_'] = backend.normal_like
         exec(compile(func_code, '', 'exec'), code_scopes)
         self._update_func = code_scopes['int_func']
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
         f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
@@ -891,17 +865,14 @@ class ExponentialEuler(Integrator):
 
         else:
             # linear exponential
-            code_lines.append(f'{s_linear_exp.name} = np.sqrt({dt})')
+            code_lines.append(f'{s_linear_exp.name} = sqrt({dt})')
             # df part
             code_lines.append(f'{s_df_part.name} = {sympy2str(dt * s_df)}')
 
         # get dg part
         if diff_eq.is_stochastic:
             # dW
-            if profile.run_on_gpu():
-                noise = f'xoroshiro128p_normal_float64'
-            else:
-                noise = f'_normal_like({diff_eq.var_name})'
+            noise = f'_normal_like_({diff_eq.var_name})'
             code_lines.append(f'_{diff_eq.var_name}_dW = {noise}')
             # expressions of the stochastic part
             g_expressions = diff_eq.get_g_expressions()
@@ -964,20 +935,18 @@ class MilsteinIto(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinIto, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.milstein_Ito(diff_eq)
-        self.get_np_step = methods.milstein_Ito
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             if diff_eq.is_functional_noise:
                 g_dependent_on_var = diff_eq.replace_f_expressions('test', y_sub=f'test')
                 if len(g_dependent_on_var) == 0:
-                    return Euler.get_nb_step(diff_eq)
+                    return Euler.get_integral_step(diff_eq)
 
                 dt = profile.get_dt()
-                dt_sqrt = np.sqrt(dt)
                 var_name = diff_eq.var_name
                 func_name = diff_eq.func_name
 
@@ -990,33 +959,31 @@ class MilsteinIto(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64'
-                else:
-                    noise = f'_normal_like({var_name})'
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
+                noise = f'_normal_like_({var_name})'
+                code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
 
-                # k1
-                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dt_sqrt}')
-
                 # high order part #
                 # --------------- #
-
-                # dg high order
+                k1_expr = f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
+                          f'_dg{var_name}_dt * sqrt({dt})'
                 high_order = sympy.Symbol(f'_dg{var_name}_high_order')
                 g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
-                code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
-                code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
-                code_lines.append(f'{high_order.name} = {1 / 2. / dt_sqrt} * '
-                                  f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
-                                  f'({dW_sb.name} * {dW_sb.name} - {dt})')
 
-                # update expression
-                code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                # dg high order
+                if len(g_k2_expressions):
+                    code_lines.append(k1_expr)
+                    code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
+                    code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
+                    code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
+                                      f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
+                                      f'({dW_sb.name} * {dW_sb.name} - {dt})')
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                      f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                else:
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                  f'_dg{var_name}_dt * {dW_sb.name}')
 
                 # multiple returns
                 return_expr = ', '.join([var_name] + diff_eq.returns)
@@ -1029,7 +996,7 @@ class MilsteinIto(Integrator):
                 code = tools.word_replace(code, subs_dict)
                 return code
 
-        return Euler.get_nb_step(diff_eq)
+        return Euler.get_integral_step(diff_eq)
 
 
 class MilsteinStra(Integrator):
@@ -1080,20 +1047,18 @@ class MilsteinStra(Integrator):
 
     def __init__(self, diff_eq):
         super(MilsteinStra, self).__init__(diff_eq)
-        self._update_code = self.get_nb_step(diff_eq)
+        self._update_code = self.get_integral_step(diff_eq)
         self._update_func = methods.milstein_Stra(diff_eq)
-        self.get_np_step = methods.milstein_Stra
 
     @staticmethod
-    def get_nb_step(diff_eq, *args):
+    def get_integral_step(diff_eq, *args):
         if diff_eq.is_stochastic:
             if diff_eq.is_functional_noise:
                 g_dependent_on_var = diff_eq.replace_f_expressions('test', y_sub=f'test')
                 if len(g_dependent_on_var) == 0:
-                    return Euler.get_nb_step(diff_eq)
+                    return Euler.get_integral_step(diff_eq)
 
                 dt = profile.get_dt()
-                dt_sqrt = np.sqrt(dt)
                 var_name = diff_eq.var_name
                 func_name = diff_eq.func_name
 
@@ -1106,33 +1071,30 @@ class MilsteinStra(Integrator):
 
                 # dg
                 dW_sb = sympy.Symbol(f'_{var_name}_dW')
-                if profile.run_on_gpu():
-                    noise = f'xoroshiro128p_normal_float64'
-                else:
-                    noise = f'_normal_like({var_name})'
-                code_lines.append(f'{dW_sb.name} = {dt_sqrt} * {noise}')
+                noise = f'_normal_like_({var_name})'
+                code_lines.append(f'{dW_sb.name} = sqrt({dt}) * {noise}')
                 g_k1_expressions = diff_eq.get_g_expressions()
                 code_lines.extend([str(expr) for expr in g_k1_expressions])  # _dg{var_name}_dt
-
-                # k1
-                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dt_sqrt}')
 
                 # high order part #
                 # --------------- #
 
-                # dg high order
+                k1_expr = f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
+                          f'_dg{var_name}_dt * sqrt({dt})'
                 high_order = sympy.Symbol(f'_dg{var_name}_high_order')
                 g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
-                code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
-                code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
-                code_lines.append(f'{high_order.name} = {1 / 2. / dt_sqrt} * '
-                                  f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
-                                  f'{dW_sb.name} * {dW_sb.name}')
-
-                # update expression
-                code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
-                                  f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                if len(g_k2_expressions):
+                    code_lines.append(k1_expr)
+                    code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
+                    code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
+                    code_lines.append(f'{high_order.name} = 0.5 / sqrt({dt}) * '
+                                      f'(_dg{var_name}_dt_k2 - _dg{var_name}_dt) *'
+                                      f'{dW_sb.name} * {dW_sb.name}')
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                      f'_dg{var_name}_dt * {dW_sb.name} + {high_order.name}')
+                else:
+                    code_lines.append(f'{var_name} = {var_name} + _df{var_name}_dt * {dt} + '
+                                      f'_dg{var_name}_dt * {dW_sb.name}')
 
                 # multiple returns
                 return_expr = ', '.join([var_name] + diff_eq.returns)
@@ -1145,4 +1107,4 @@ class MilsteinStra(Integrator):
                 code = tools.word_replace(code, subs_dict)
                 return code
 
-        return Euler.get_nb_step(diff_eq)
+        return Euler.get_integral_step(diff_eq)
