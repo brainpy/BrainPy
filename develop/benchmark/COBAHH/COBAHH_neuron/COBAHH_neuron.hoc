@@ -6,25 +6,25 @@
 // Procedures that set up network architecture and performance reporting.
 {load_file("init.hoc")}
 
-// Called by create_cells() in common/net.hoc
+// Called by create_cells() in net.hoc
 obfunc newcell() {
 	return new CobaHHCell()
 }
 
 // Create the cells, then connect them.
-create_net()  // in common/net.hoc
+create_net()  // in net.hoc
 
 STOPSTIM=10000  // duration of stimulation (ms)
 
 // Randomized spike trains driving excitatory synapses.
-create_stim(run_random_low_start_, AMPA_GMAX)  // in common/netstim.hoc
+create_stim(run_random_low_start_, AMPA_GMAX)  // in netstim.hoc
 
 // A few last items for performance reports, e.g. set up spike time recording, and,
 // if in "demo" mode, create graph for raster plots, and panel with Stop button.
-finish_setup()  // in common/init.hoc
+finish_setup()  // in init.hoc
 
 // Parallel run to tstop.
-prun()  // in common/perfrun.hoc
+prun()  // in perfrun.hoc
 
 // Only the "master" cpu does this.
 if (pc.id == 0) {print "RunTime: ", runtime}
@@ -40,7 +40,7 @@ if (pc.id == 0) {print "RunTime: ", runtime}
 {pc.runworker()}
 
 // Send requests to the workers and handle the results they send back.
-collect_results()  // in common/init.hoc
+collect_results()  // in init.hoc
 
 // Send all workers a QUIT message; those NEURON processes exit.
 // The master waits until all worker output has been transferred to it.
@@ -49,4 +49,4 @@ collect_results()  // in common/init.hoc
 // Only the master executes code beyond this point; all others have exited.
 
 // Times of all spikes, and consolidated performance report.
-output_results()  // in common/perfrun.hoc
+output_results()  // in perfrun.hoc
