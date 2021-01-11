@@ -1,0 +1,14 @@
+Run
+====================
+brainpy:
+> python COBAHH_brainpy.py
+
+brian2:
+> python COBAHH_brian2.py
+
+NEST simulator:
+> nest param_nest.sli COBAHH_nest.sli
+
+NEURON:
+> cd COBAHH_neuron
+> nrngui COBAHH_neuron.hoc

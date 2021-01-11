@@ -1,0 +1,257 @@
+/*
+ *  benchmark.sli
+ *
+ *  This file is part of NEST.
+ *
+ *  Copyright (C) 2004 The NEST Initiative
+ *
+ *  NEST is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  NEST is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/*
+   Simulator review
+
+   The SLI code in this file creates a sparsely coupled network of
+   excitatory and inhibitory neurons which exhibits self-sustained
+   activity after an initial stimulus.  Connections within and across
+   both populations are created at random.  Both neuron populations
+   receive Poissonian background input.  The spike output of 500
+   neurons from each population are recorded. The model is based on
+
+      T.P. Vogels & L.F. Abbott
+      Signal Propagation and Logic Gating in Networks of
+      Integrate-and-Fire Neurons
+      Journal of Neuroscience, 2005, vol 25, pp 10786-10795.
+
+   where neurons are described by the leaky integrate-and-fire
+   model with conductance based synapses. The synaptic conductances
+   are decaying exponentials. The Vogels & Abbott model is integrated
+   on a fixed time grid of 0.1 ms with spike times constrained to this
+   grid.
+
+   The different benchmarks of the FACETS simulator review are variations
+   of the Vogels & Abbott network model with differences in the model of
+   the synapse and in the model of the somatic dynamics. The table below
+   provides an overview
+
+   -----------------------------------------------------------------------------
+       |                     |       synapse model        |
+     # |  name        | soma | quantity     | time course | spike times
+   -----------------------------------------------------------------------------
+     1 | coba.sli     | i&f  | conductance  | exponential | grid-constrained
+     2 | cuba.sli     | i&f  | current      | exponential | grid-constrained
+     3 | hh_coba.sli  | HH   | conductance  | exponential | grid-constrained
+     4 | cuba_ps.sli  | i&f  | current      | delta       | off-grid
+
+   Usage:
+     This file (benchmark.sli) must be used in conjunction with
+     one of the parameter files above, e.g
+
+     nest coba.sli benchmark.sli
+
+   If the number of threads is set to greater than one, the benchmarks can
+   be run in a distributed fashion using mpirun, e.g.
+
+     mpirun -np 2 nest coba.sli benchmark.sli
+
+   In addition to the four official benchmarks of the FACETS review, a fifth
+   benchmark has been defined to demonstrate the capabilities of NEST in
+   simulating large networks with heterogeneous synaptic dynamics. This
+   benchmark is self contained and can be run from the nest command line
+   without this file.
+
+   -----------------------------------------------------------------------------
+     5 | cuba_stdp.sli | i&f  | stdp-current | exponential | grid-constrained
+   -----------------------------------------------------------------------------
+
+
+
+    Marc-Oliver Gewaltig, Abigail Morrison, Tobias Potjans
+*/
+
+%%% FUNCTION SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Take spike detector, find total number of spikes registered,
+% return average rate per neuron in Hz.
+% NOTE: If you are running with several MPI processes, this
+%       function only gives an approximation to the true rate.
+%
+% spike_det ComputeRate -> rate
+/ComputeRate
+{
+  GetStatus /n_events get /nspikes Set
+  % We need to guess how many neurons we record from.
+  % This assumes an even distribution of nodes across
+  % processes, which is ok for the Brette_et_al_2007
+  % benchmarks, but should not be considered a general
+  % solution.
+  Nrec cvd NumProcesses div
+  /nnrn Set
+
+  nspikes nnrn simtime mul div
+  1000 mul         % convert from mHz to Hz, leave on stack
+  end
+} bind             % optional, improves performance
+def
+
+
+%%% CONSTRUCTION SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+/BuildNetwork
+{
+  % set global kernel parameters
+  0
+  <<
+     /resolution  dt
+     /total_num_virtual_procs virtual_processes
+     /overwrite_files true
+  >> SetStatus
+
+  tic % start timer on construction
+
+  % Set initial parameters for all new neurons and devices
+
+  model    model_params    SetDefaults
+
+  (Creating excitatory population.) =  % show message
+  /E_net model [ NE ] LayoutNetwork def
+
+  (Creating inhibitory population.) =  % show message
+  /I_net model [ NI ] LayoutNetwork def
+
+  (Creating excitatory stimulus generator.) =
+  /E_stimulus stimulus Create def
+  E_stimulus stimulus_params SetStatus
+
+  % one detector would in principle be enough,
+  % but by recording the populations separately,
+  % we save ourselves a lot of sorting work later
+
+  (Creating excitatory spike detector.) =
+  /E_detector detector Create def
+  E_detector detector_params SetStatus
+
+  (Creating inhibitory spike detector.) =
+  /I_detector detector Create def
+  I_detector detector_params SetStatus
+
+  % some connecting functions need lists (arrays) over all
+  % neurons they should work on, so we need to extract these
+  % lists from the subnetworks
+
+  % obtain array with GIDs of all excitatory neurons
+  /E_neurons E_net GetLocalNodes def
+
+  % obtain array with GIDs of all inhibitory neurons
+  /I_neurons I_net GetLocalNodes def
+
+  % all neurons
+  /allNeurons E_neurons I_neurons join def
+
+  /N allNeurons length def
+
+  /CE NE epsilon mul iround def %number of incoming excitatory connections
+  /CI NI epsilon mul iround def %number of incomining inhibitory connections
+
+  % number of synapses---just so we know
+  /Nsyn
+    CE CI add  % internal synapses
+    N mul
+    Nrec 2 mul % "synapses" to spike detectors
+    add
+    Nstim add  % "synapses" from poisson generator
+  def
+
+  % Create custom synapse types with appropriate values for
+  % our excitatory and inhibitory connections
+  /static_synapse << /delay delay >> SetDefaults
+  /static_synapse /syn_ex E_synapse_params CopyModel
+  /static_synapse /syn_in I_synapse_params CopyModel
+
+  (Connecting excitatory population.) =
+
+  % E -> E connections
+  E_neurons   % source population [we pick from this]
+  E_neurons   % target neurons [for each we pick CE sources]
+  << /rule  /fixed_indegree /indegree CE >> % number of source neurons to pick
+  /syn_ex     % synapse model
+  Connect
+
+  % I -> E connections
+  % as above, but on a single line
+  I_neurons E_neurons << /rule /fixed_indegree /indegree CI >> /syn_in Connect
+
+
+  (Connecting inhibitory population.) =
+
+  % ... as above, just written more compactly
+  % E -> I
+  E_neurons I_neurons << /rule /fixed_indegree /indegree CE >> /syn_ex Connect
+  % I -> I
+  I_neurons I_neurons << /rule /fixed_indegree /indegree CI >> /syn_in Connect
+
+  %Add external stimulus
+
+  (Connecting Poisson stimulus.) =
+  [E_stimulus]
+  E_neurons Nstim Take     % pick the first Nstim neurons
+  /all_to_all
+  /syn_ex
+  Connect
+
+
+  % Spike detectors are connected to the first Nrec neurons in each
+  % population.  Since neurons are equal and connectivity is homogeneously
+  % randomized, this is equivalent to picking Nrec neurons at random
+  % from each population
+
+  (Connecting spike detectors.) =
+
+  E_neurons Nrec Take     % pick the first Nrec neurons
+  [E_detector] Connect
+
+  I_neurons Nrec Take     % pick the first Nrec neurons
+  [I_detector] Connect
+
+  % read out time used for building
+
+  toc /BuildCPUTime Set
+} def
+
+/RunSimulation
+{
+  BuildNetwork
+
+  % run, measure computer time with tic-toc
+  tic
+  (Simulating...) =
+  simtime Simulate
+  toc /SimCPUTime Set
+
+  % write a little report
+  (Simulation summary) =
+  (Number of Neurons : ) =only N =
+  (Number of Synapses: ) =only Nsyn =
+  (Excitatory rate   : ) =only E_detector ComputeRate =only ( Hz) =
+  (Inhibitory rate   : ) =only I_detector ComputeRate =only ( Hz) =
+  (Building time     : ) =only BuildCPUTime =only ( s) =
+  (Simulation time   : ) =only SimCPUTime   =only ( s\n) =
+} def
+
+/parameters_set lookup {
+  RunSimulation
+} {
+  (Parameters are not set. Please call one of coba.sli, cuba_ps.sli, cuba.sli, cuba_stdp.sli, or hh_coba.sli.) M_ERROR message
+} ifelse

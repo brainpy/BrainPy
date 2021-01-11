@@ -1,0 +1,120 @@
+/*
+    hh_coba.sli
+
+    Copyright (C) 2004 The NEST Initiative
+    This file is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This file is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor,
+    Boston, MA 02110-1301, USA.
+*/
+
+/*
+   Benchmark 3 of the simulator review
+
+   The SLI code in this file creates a sparsely coupled network of
+   excitatory and inhibitory neurons which exhibits self-sustained
+   activity after an initial stimulus.  Connections within and across
+   both populations are created at random.  Both neuron populations
+   receive Poissonian background input.  The spike output of 500
+   neurons from each population are recorded.  Neurons are modeled
+   as Hodgkin-Huxley neurons with conductance based synapses
+   (exponential functions).  The model is based on
+
+      T.P. Vogels & L.F. Abbott
+      Signal Propagation and Logic Gating in Networks of
+      Integrate-and-Fire Neurons
+      Journal of Neuroscience, 2005, vol 25, pp 10786-10795.
+
+    Marc-Oliver Gewaltig, Abigail Morrison, Tobias Potjans
+*/
+
+%%% PARAMETER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% define all relevant parameters: changes should be made here
+% all data is place in the userdict dictionary
+
+% A dictionary is a list of name value pairs, enclosed in << and >>
+% Here we use dictionaries to encapsulate the parameters for the different
+% benchmarks
+
+/hh_coba_params
+<<
+  /model  /hh_cond_exp_traub  % the neuron model to use
+
+  /model_params
+   <<
+     /g_Na 20000.0 nS % Sodium conductance [nS]
+     /g_K   6000.0 nS % K Conductance      [nS]
+     /g_L     10.0 nS % Leak Conductance   [nS]
+     /C_m    200.0 pF % Membrane Capacitance [pF]
+     /E_Na    50.0 mV % reversal potential (Sodium) [mV]
+     /E_K    -90.0 mV % reversal potential (Potassium) [mV]
+     /E_L    -60.0 mV % Resting Potential [mV]
+     /E_ex     0.0 mV % Excitatory reversal potential (mV)
+     /E_in   -80.0 mV % Inhibitory reversal potential (Potassium) [mV]
+     /tau_syn_ex   5.0 ms % Excitatory synaptic time constant [ms]
+     /tau_syn_in  10.0 ms % Inhibitory synaptic time constant [ms]
+   >>
+
+  /delay  0.1 ms         % synaptic delay, all connections [ms]
+
+  % synaptic strengths, here peak conductance
+  /E_synapse_params
+  <<
+     /weight 6.0 nS     % excitatory synaptic conductance
+  >>
+
+  /I_synapse_params
+  <<
+     /weight -67.0 nS   % inhibitory synaptic conductance
+  >>
+
+  /stimulus /poisson_generator
+  /stimulus_params
+  <<
+    /rate 300.0 Hz % rate of inital poisson stimulus
+    /start  1.0 ms   % start of Poisson_generator [ms]
+    /stop  51.0 ms   % stop of Poisson_generator [ms]
+    /origin 0.0 ms   % origin of time, to calculate start_time [ms]
+  >>
+
+  /detector /spike_detector
+  /detector_params
+  <<
+   /withtime true
+   /withgid true
+   /to_file true
+   /label (hh_coba)
+  >>
+
+  % number of neurons per population to record from
+  /Nrec 500
+
+  %number of neurons to stimulate
+  /Nstim 50
+  /simtime 10000.0 ms % simulated time
+  /dt          0.1 ms % simulation step
+
+  /NE 3200       % number of excitatory neurons
+  /NI  800       % number of inhibitory neurons
+  /epsilon 0.02  % Connection probability
+
+  /virtual_processes 1  % number of virtual processes to use
+
+>> def
+
+hh_coba_params using % here we activate the definitions in the dictionary
+
+/parameters_set true def
+statusdict/argv :: size 1 gt { 1 get dirname (/) join } { () } ifelse
+(COBAHH_nest.sli) join run
