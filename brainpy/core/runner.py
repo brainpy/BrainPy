@@ -176,7 +176,10 @@ class Runner(object):
             code_to_compile = [f'def input_step({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
-            self.input_step = code_scope['input_step']
+            input_step = code_scope['input_step']
+            # if profile.is_jit():
+            #     input_step = tools.jit(input_step)
+            self.input_step = input_step
             if not profile.is_merge_steps():
                 if profile.show_format_code():
                     tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
