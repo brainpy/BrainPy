@@ -9,12 +9,14 @@ import numpy as np
 import sympy
 from numba import njit
 
-from .solver import find_root
+from .solver import find_root_of_1d
+from .solver import find_root_of_2d
 from .utils import get_1d_classification
 from .utils import get_2d_classification
 from .utils import plot_scheme
 from .utils import rescale
 from .utils import stability_analysis
+from .utils import timeout
 from .. import profile
 from .. import tools
 from ..core import NeuType
@@ -29,52 +31,63 @@ __all__ = [
 
 
 class PhasePortraitAnalyzer(object):
-    def __init__(self,
-                 model,
-                 target_vars,
-                 fixed_vars=None,
-                 pars_update=None,
-                 lim_scale=1.05):
-        self.lim_scale = lim_scale
+    """Phase Portrait Analyzer.
 
+    PhasePortraitAnalyzer is used to analyze the phase portrait of 1D
+    or 2D dynamical systems. It can also be used to analyze the phase
+    portrait
+
+    """
+
+    def __init__(
+            self,
+            model,
+            target_vars,
+            fixed_vars=None,
+            pars_update=None,
+            options=None,
+    ):
         # check "model"
-        try:
-            assert isinstance(model, NeuType)
-        except AssertionError:
+        if not isinstance(model, NeuType):
             raise ModelUseError('Phase plane analysis only support neuron type model.')
         self.model = model
 
         # check "target_vars"
-        try:
-            assert isinstance(target_vars, dict)
-        except AssertionError:
+        if not isinstance(target_vars, dict):
             raise ModelUseError('"target_vars" must a dict with the format of: '
                                 '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
-
         self.target_vars = target_vars
 
         # check "fixed_vars"
         if fixed_vars is None:
             fixed_vars = dict()
-        try:
-            assert isinstance(fixed_vars, dict)
-        except AssertionError:
-            raise ModelUseError('"fixed_vars" must be a dict the format of: '
+        if not isinstance(fixed_vars, dict):
+            raise ModelUseError('"fixed_vars" must be a dict with the format of: '
                                 '{"Variable A": A_value, "Variable B": B_value}')
         self.fixed_vars = fixed_vars
 
         # check "pars_update"
         if pars_update is None:
             pars_update = dict()
-        try:
-            assert isinstance(pars_update, dict)
-        except AssertionError:
-            raise ModelUseError('"pars_update" must be a dict the format of: '
+        if not isinstance(pars_update, dict):
+            raise ModelUseError('"pars_update" must be a dict with the format of: '
                                 '{"Par A": A_value, "Par B": B_value}')
         for key in pars_update.keys():
             if key not in model.step_scopes:
-                raise ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model. ')
+                raise ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
         self.pars_update = pars_update
+
+        # check for "options"
+        if options is None:
+            options = dict()
+        self.options = tools.DictPlus()
+        self.options['lim_scale'] = options.get('lim_scale', 1.05)
+        self.options['sympy_solver_timeout'] = options.get('sympy_solver_timeout', 5)  # s
+        self.options['escape_sympy_parser'] = options.get('escape_sympy_parser', False)
+        self.options['shgo_args'] = options.get('shgo_args', dict())
+        self.options['disturb'] = options.get('disturb', 1e-4)
+        self.options['fl_tol'] = options.get('fl_tol', 1e-6)
+        self.options['xl_tol'] = options.get('xl_tol', 1e-4)
 
         # analyzer
         if len(target_vars) == 1:
@@ -82,20 +95,20 @@ class PhasePortraitAnalyzer(object):
                                               target_vars=target_vars,
                                               fixed_vars=fixed_vars,
                                               pars_update=pars_update,
-                                              lim_scale=lim_scale)
+                                              options=self.options)
         elif len(target_vars) == 2:
             self.analyzer = _2DSystemAnalyzer(model=model,
                                               target_vars=target_vars,
                                               fixed_vars=fixed_vars,
                                               pars_update=pars_update,
-                                              lim_scale=lim_scale)
+                                              options=self.options)
         else:
             raise ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
                                 'Or, you can set "fixed_vars" to fix other variables, '
                                 'then make 1D/2D phase plane analysis.')
 
-    def plot_vector_field(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
-        self.analyzer.plot_vector_field(resolution=resolution, lw_lim=lw_lim, show=show)
+    def plot_vector_field(self, resolution=0.1, line_widths=(0.5, 5.5), show=False):
+        self.analyzer.plot_vector_field(resolution=resolution, line_widths=line_widths, show=show)
 
     def plot_fixed_point(self, resolution=0.1, show=False):
         self.analyzer.plot_fixed_point(resolution=resolution, show=show)
@@ -113,8 +126,10 @@ class _PPAnalyzer(object):
                  target_vars,
                  fixed_vars=None,
                  pars_update=None,
-                 lim_scale=1.05):
-        self.lim_scale = lim_scale
+                 options=None):
+        if options is None:
+            options = tools.DictPlus()
+        self.options = options
         self.model = model
         self.target_vars = target_vars
         self.pars_update = pars_update
@@ -147,17 +162,8 @@ class _PPAnalyzer(object):
 
 
 class _1DSystemAnalyzer(_PPAnalyzer):
-    def __init__(self,
-                 model,
-                 target_vars,
-                 fixed_vars=None,
-                 pars_update=None,
-                 lim_scale=1.05):
-        super(_1DSystemAnalyzer, self).__init__(model=model,
-                                                target_vars=target_vars,
-                                                fixed_vars=fixed_vars,
-                                                pars_update=pars_update,
-                                                lim_scale=lim_scale)
+    def __init__(self, *args, **kwargs):
+        super(_1DSystemAnalyzer, self).__init__(*args, **kwargs)
         self.x_var = list(self.target_vars.keys())[0]
         self.f_dfdx = None
         self.f_dx = None
@@ -191,7 +197,8 @@ class _1DSystemAnalyzer(_PPAnalyzer):
 
             # dfxdx
             try:
-                dfxdx_expr = sympy.diff(x_eq, x_symbol)
+                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, x_symbol))
+                dfxdx_expr = f()
                 func_codes = [f'def dfxdx({self.x_var}):']
                 for expr in x_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -209,7 +216,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             self.f_dfdx = dfxdx
         return self.f_dfdx
 
-    def plot_vector_field(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
+    def plot_vector_field(self, resolution=0.1, line_widths=(0.5, 5.5), show=False):
         x = np.arange(*self.target_vars[self.x_var], resolution)
         x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
 
@@ -227,7 +234,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
 
         plt.xlabel(self.x_var)
         plt.ylabel(label)
-        plt.xlim(*rescale(self.target_vars[self.x_var], scale=(self.lim_scale - 1.) / 2))
+        plt.xlim(*rescale(self.target_vars[self.x_var], scale=(self.options.lim_scale - 1.) / 2))
         plt.legend()
         if show:
             plt.show()
@@ -242,23 +249,32 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         scope.update(sympy_tools.get_mapping_scope())
         scope.update(x_group.diff_eq.func_scope)
 
-        try:
-            # solve
-            results = sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True))
+        sympy_failed = True
+        if not self.options.escape_sympy_parser:
+            try:
+                # solve
+                f = timeout(self.options.sympy_solver_timeout)(
+                    lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
+                results = f()
+                sympy_failed = False
+                # function codes
+                func_codes = [f'def solve_x():']
+                for expr in x_group['exprs'][:-1]:
+                    func_codes.append(f'{expr.var_name} = {expr.code}')
+                return_expr = ', '.join([sympy_tools.sympy2str(expr) for expr in results])
+                func_codes.append(f'return {return_expr}')
 
-            # function codes
-            func_codes = [f'def solve_x():']
-            for expr in x_group['exprs'][:-1]:
-                func_codes.append(f'{expr.var_name} = {expr.code}')
-            return_expr = ', '.join([sympy_tools.sympy2str(expr) for expr in results])
-            func_codes.append(f'return {return_expr}')
+                # function
+                exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
+                x_values = scope['solve_x']()
+                x_values = np.array([x_values])
+            except NotImplementedError:
+                sympy_failed = True
+            except KeyboardInterrupt:
+                sympy_failed = True
 
-            # function
-            exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
-            x_values = scope['solve_x']()
-            x_values = np.array([x_values])
 
-        except NotImplementedError:
+        if sympy_failed:
             # function codes
             func_codes = [f'def optimizer_x({self.x_var}):']
             for expr in x_group['exprs'][:-1]:
@@ -268,7 +284,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             optimizer = scope['optimizer_x']
             optimizer = njit(optimizer)
             x_range = np.arange(*self.target_vars[self.x_var], resolution)
-            x_values = find_root(optimizer, x_range)
+            x_values = find_root_of_1d(optimizer, x_range)
             x_values = np.array(x_values)
 
         # differential #
@@ -309,28 +325,26 @@ class _1DSystemAnalyzer(_PPAnalyzer):
 
 
 class _2DSystemAnalyzer(_PPAnalyzer):
-    def __init__(self,
-                 model,
-                 target_vars,
-                 fixed_vars=None,
-                 pars_update=None,
-                 lim_scale=1.05):
-        super(_2DSystemAnalyzer, self).__init__(model=model,
-                                                target_vars=target_vars,
-                                                fixed_vars=fixed_vars,
-                                                pars_update=pars_update,
-                                                lim_scale=lim_scale)
+    def __init__(self, *args, **kwargs):
+        super(_2DSystemAnalyzer, self).__init__(*args, **kwargs)
 
-        if isinstance(target_vars, OrderedDict):
+        # get the variables `x` and `y`
+        if isinstance(self.target_vars, OrderedDict):
             self.x_var, self.y_var = list(self.target_vars.keys())
         else:
             self.x_var, self.y_var = list(sorted(self.target_vars.keys()))
 
-        self.f_dy = None
-        self.f_dx = None
-        self.f_jacobian = None
+        self.x_by_y_in_x_eq = None  # solve x_eq to get x_by_y
+        self.y_by_x_in_x_eq = None  # solve x_eq to get y_by_x
+        self.x_by_y_in_y_eq = None  # solve y_eq to get x_by_y
+        self.y_by_x_in_y_eq = None  # solve y_eq to get y_by_x
+        self.f_dx = None  # derivative function of "x" variable
+        self.f_dy = None  # derivative function of "y" variable
+        self.f_jacobian = None  # function to get jacobian matrix
 
     def get_f_dx(self):
+        """Get the derivative function of :math:`x`.
+        """
         if self.f_dx is None:
             eqs_of_x = self.target_eqs[self.x_var]
             scope = deepcopy(self.pars_update)
@@ -347,6 +361,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         return self.f_dx
 
     def get_f_dy(self):
+        """Get the derivative function of :math:`y`.
+        """
         if self.f_dy is None:
             eqs_of_y = self.target_eqs[self.y_var]
             scope = deepcopy(self.pars_update)
@@ -362,6 +378,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         return self.f_dy
 
     def get_f_jacobian(self):
+        """Get the function to solve jacobian matrix.
+        """
         if self.f_jacobian is None:
             x_symbol = sympy.Symbol(self.x_var, real=True)
             y_symbol = sympy.Symbol(self.y_var, real=True)
@@ -382,79 +400,82 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             # dfxdx
             try:
-                dfxdx_expr = sympy.diff(x_eq, x_symbol)
+                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, x_symbol))
+                dfxdx_expr = f()
                 func_codes = [f'def dfxdx({self.x_var}, {self.y_var}):']
                 for expr in x_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
                 func_codes.append(f'return {sympy_tools.sympy2str(dfxdx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdx = eq_x_scope['dfxdx']
-            except:
+            except KeyboardInterrupt:
                 scope = dict(fx=self.get_f_dx())
                 func_codes = [f'def dfxdx({self.x_var}, {self.y_var}):']
                 func_codes.append(f'origin = fx({self.x_var}, {self.y_var}))')
-                func_codes.append(f'disturb = fx({self.x_var}+1e-4, {self.y_var}))')
-                func_codes.append(f'return (disturb - origin) / 1e-4')
+                func_codes.append(f'disturb = fx({self.x_var}+{self.options.disturb}, {self.y_var}))')
+                func_codes.append(f'return (disturb - origin) / {self.options.disturb}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dfxdx = scope['dfxdx']
 
             # dfxdy
             try:
-                dfxdy_expr = sympy.diff(x_eq, y_symbol)
+                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, y_symbol))
+                dfxdy_expr = f()
                 func_codes = [f'def dfxdy({self.x_var}, {self.y_var}):']
                 for expr in x_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
                 func_codes.append(f'return {sympy_tools.sympy2str(dfxdy_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdy = eq_x_scope['dfxdy']
-            except:
+            except KeyboardInterrupt:
                 scope = dict(fx=self.get_f_dx())
                 func_codes = [f'def dfxdy({self.x_var}, {self.y_var}):']
                 func_codes.append(f'origin = fx({self.x_var}, {self.y_var}))')
-                func_codes.append(f'disturb = fx({self.x_var}, {self.y_var}+1e-4))')
-                func_codes.append(f'return (disturb - origin) / 1e-4')
+                func_codes.append(f'disturb = fx({self.x_var}, {self.y_var}+{self.options.disturb}))')
+                func_codes.append(f'return (disturb - origin) / {self.options.disturb}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dfxdy = scope['dfxdy']
 
             # dfydx
             try:
-                dfydx_expr = sympy.diff(y_eq, x_symbol)
+                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(y_eq, x_symbol))
+                dfydx_expr = f()
                 func_codes = [f'def dfydx({self.x_var}, {self.y_var}):']
                 for expr in y_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
                 func_codes.append(f'return {sympy_tools.sympy2str(dfydx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 dfydx = eq_y_scope['dfydx']
-            except:
+            except KeyboardInterrupt:
                 scope = dict(fy=self.get_f_dy())
                 func_codes = [f'def dfydx({self.x_var}, {self.y_var}):']
                 func_codes.append(f'origin = fy({self.x_var}, {self.y_var}))')
-                func_codes.append(f'disturb = fy({self.x_var}+1e-4, {self.y_var}))')
-                func_codes.append(f'return (disturb - origin) / 1e-4')
+                func_codes.append(f'disturb = fy({self.x_var}+{self.options.disturb}, {self.y_var}))')
+                func_codes.append(f'return (disturb - origin) / {self.options.disturb}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dfydx = scope['dfydx']
 
             # dfydy
             try:
-                dfydy_expr = sympy.diff(y_eq, y_symbol)
+                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(y_eq, y_symbol))
+                dfydy_expr = f()
                 func_codes = [f'def dfydy({self.x_var}, {self.y_var}):']
                 for expr in y_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
                 func_codes.append(f'return {sympy_tools.sympy2str(dfydy_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 dfydy = eq_y_scope['dfydy']
-            except:
+            except KeyboardInterrupt:
                 scope = dict(fy=self.get_f_dy())
                 func_codes = [f'def dfydy({self.x_var}, {self.y_var}):']
                 func_codes.append(f'origin = fy({self.x_var}, {self.y_var}))')
-                func_codes.append(f'disturb = fy({self.x_var}, {self.y_var}+1e-4))')
-                func_codes.append(f'return (disturb - origin) / 1e-4')
+                func_codes.append(f'disturb = fy({self.x_var}, {self.y_var}+{self.options.disturb}))')
+                func_codes.append(f'return (disturb - origin) / {self.options.disturb}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dfydy = scope['dfydy']
 
             # jacobian matrix
-            scope = dict(f_dfydy=dfydy, f_dfydx=dfydx,
-                         f_dfxdy=dfxdy, f_dfxdx=dfxdx, np=np)
+            scope = dict(f_dfydy=dfydy, f_dfydx=dfydx, f_dfxdy=dfxdy, f_dfxdx=dfxdx, np=np)
             func_codes = [f'def f_jacobian({self.x_var}, {self.y_var}):']
             func_codes.append(f'dfxdx = f_dfxdx({self.x_var}, {self.y_var})')
             func_codes.append(f'dfxdy = f_dfxdy({self.x_var}, {self.y_var})')
@@ -466,7 +487,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         return self.f_jacobian
 
-    def plot_vector_field(self, resolution=0.1, lw_lim=(0.5, 5.5), show=False):
+    def plot_vector_field(self, resolution=0.1, line_widths=(0.5, 5.5), show=False):
         X = np.arange(*self.target_vars[self.x_var], resolution)
         Y = np.arange(*self.target_vars[self.y_var], resolution)
         X, Y = np.meshgrid(X, Y)
@@ -489,7 +510,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         # vector field
         speed = np.sqrt(dx ** 2 + dy ** 2)
-        lw_min, lw_max = lw_lim
+        lw_min, lw_max = line_widths
         lw = lw_min + lw_max * speed / speed.max()
         plt.streamplot(X, Y, dx, dy, linewidth=lw, arrowsize=1.2, density=1, color='thistle')
         plt.xlabel(self.x_var)
@@ -519,88 +540,132 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         eq_x_scope.update(sympy_tools.get_mapping_scope())
         eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
 
+        timeout_len = self.options.sympy_solver_timeout
+
         # solve y_equations #
         # ------------------
 
-        try:
-            y_eq_by_x = sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True))
-            if len(y_eq_by_x) > 1:
-                raise ValueError('Multiple values.')
-            # subs dict
-            y_eq_by_x = sympy_tools.sympy2str(y_eq_by_x[0])
-            subs_codes = [f'{expr.var_name} = {expr.code}' for expr in y_eq_group['exprs'][:-1]]
-            subs_codes.append(f'{self.y_var} = {y_eq_by_x}')
-            # mapping x -> y
-            func_codes = [f'def get_y_by_x({self.x_var}):'] + subs_codes[:-1]
-            func_codes.append(f'return {y_eq_by_x}')
-            exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
-            f_get_y_by_x = eq_y_scope['get_y_by_x']
-            can_substitute_y_group_to_x_group = True
-
-        except NotImplementedError:
+        # 1. try to solve `f(x, y) = 0` to `y = h(x)`
+        if not self.options.escape_sympy_parser:
             try:
-                y_eq_by_y = sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True))
-                if len(y_eq_by_y) > 1:
-                    raise ValueError('Multiple values.')
+                if self.y_by_x_in_y_eq is None:
+                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = h({self.x_var})", ',
+                          end='')
+                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
+                    y_by_x_in_y_eq = f()
+                    if len(y_by_x_in_y_eq) > 1:
+                        raise NotImplementedError('Do not support multiple values.')
+                    y_by_x_in_y_eq = sympy_tools.sympy2str(y_by_x_in_y_eq[0])
+                    self.y_by_x_in_y_eq = y_by_x_in_y_eq
+                    print('success.')
+                else:
+                    y_by_x_in_y_eq = self.y_by_x_in_y_eq
+
                 # subs dict
-                y_eq_by_y = sympy_tools.sympy2str(y_eq_by_y[0])
                 subs_codes = [f'{expr.var_name} = {expr.code}' for expr in y_eq_group['exprs'][:-1]]
-                subs_codes.append(f'{self.y_var} = {y_eq_by_y}')
+                subs_codes.append(f'{self.y_var} = {y_by_x_in_y_eq}')
+                # mapping x -> y
+                func_codes = [f'def get_y_by_x({self.x_var}):'] + subs_codes[:-1]
+                func_codes.append(f'return {y_by_x_in_y_eq}')
+                exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
+                f_get_y_by_x = eq_y_scope['get_y_by_x']
+                can_substitute_y_group_to_x_group = True
+            except NotImplementedError:
+                print('failed because the equation is too complex.')
+            except KeyboardInterrupt:
+                print(f'failed because {timeout_len} s timeout.')
+
+        if not can_substitute_y_group_to_x_group and not self.options.escape_sympy_parser:
+
+            # 2. try to solve `f(x, y) = 0` to `x = h(y)`
+            try:
+                if self.x_by_y_in_y_eq is None:
+                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = h({self.y_var})", ',
+                          end='')
+                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
+                    x_by_y_in_y_eq = f()
+                    if len(x_by_y_in_y_eq) > 1:
+                        raise NotImplementedError('Multiple values.')
+                    x_by_y_in_y_eq = sympy_tools.sympy2str(x_by_y_in_y_eq[0])
+                    self.x_by_y_in_y_eq = x_by_y_in_y_eq
+                    print('success.')
+                else:
+                    x_by_y_in_y_eq = self.x_by_y_in_y_eq
+                # subs dict
+                subs_codes = [f'{expr.var_name} = {expr.code}' for expr in y_eq_group['exprs'][:-1]]
+                subs_codes.append(f'{self.y_var} = {x_by_y_in_y_eq}')
                 # mapping y -> x
                 func_codes = [f'def get_x_by_y({self.y_var}):'] + subs_codes[:-1]
-                func_codes.append(f'return {y_eq_by_y}')
+                func_codes.append(f'return {x_by_y_in_y_eq}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 f_get_x_by_y = eq_y_scope['get_x_by_y']
                 can_substitute_x_group_to_y_group = True
-
             except NotImplementedError:
-                pass
+                print('failed because the equation is too complex.')
+            except KeyboardInterrupt:
+                print(f'failed because {timeout_len} s timeout.')
 
         # solve x_equations #
         # ----------------- #
 
-        if not can_substitute_y_group_to_x_group:
+        if not can_substitute_y_group_to_x_group and not self.options.escape_sympy_parser:
+
+            # 3. try to solve `g(x, y) = 0` to `y = l(x)`
             try:
-                x_eq_by_y = sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True))
-                if len(x_eq_by_y) > 1:
-                    raise ValueError('Multiple values.')
+                if self.x_by_y_in_x_eq is None:
+                    print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = l({self.y_var})", ',
+                          end='')
+                    f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
+                    x_by_y_in_x_eq = f()
+                    if len(x_by_y_in_x_eq) > 1:
+                        raise NotImplementedError('Multiple solved values.')
+                    x_by_y_in_x_eq = sympy_tools.sympy2str(x_by_y_in_x_eq[0])
+                    self.x_by_y_in_x_eq = x_by_y_in_x_eq
+                    print('success.')
+                else:
+                    x_by_y_in_x_eq = self.x_by_y_in_x_eq
                 # subs dict
-                x_eq_by_y = sympy_tools.sympy2str(x_eq_by_y[0])
                 subs_codes = [f'{expr.var_name} = {expr.code}' for expr in x_eq_group['exprs'][:-1]]
-                subs_codes.append(f'{self.x_var} = {x_eq_by_y}')
+                subs_codes.append(f'{self.x_var} = {x_by_y_in_x_eq}')
                 # mapping y -> x
                 func_codes = [f'def get_x_by_y({self.y_var}):'] + subs_codes[:-1]
-                func_codes.append(f'return {x_eq_by_y}')
+                func_codes.append(f'return {x_by_y_in_x_eq}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 f_get_x_by_y = eq_x_scope['get_x_by_y']
                 can_substitute_x_group_to_y_group = True
-
             except NotImplementedError:
+                print('failed because the equation is too complex.')
+            except KeyboardInterrupt:
+                print(f'failed because {timeout_len} s timeout.')
+
+            # 4. try to solve `g(x, y) = 0` to `x = l(y)`
+            if not can_substitute_x_group_to_y_group and not self.options.escape_sympy_parser:
                 try:
-                    x_eq_by_x = sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True))
-                    if len(x_eq_by_x) > 1:
-                        raise ValueError('Multiple values.')
+                    if self.y_by_x_in_x_eq is None:
+                        print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = l({self.x_var})", ',
+                              end='')
+                        f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
+                        y_by_x_in_x_eq = f()
+                        if len(y_by_x_in_x_eq) > 1:
+                            raise NotImplementedError('Multiple values.')
+                        y_by_x_in_x_eq = sympy_tools.sympy2str(y_by_x_in_x_eq[0])
+                        self.y_by_x_in_x_eq = y_by_x_in_x_eq
+                        print('success.')
+                    else:
+                        y_by_x_in_x_eq = self.y_by_x_in_x_eq
                     # subs dict
-                    x_eq_by_x = sympy_tools.sympy2str(x_eq_by_x[0])
                     subs_codes = [f'{expr.var_name} = {expr.code}' for expr in x_eq_group['exprs'][:-1]]
-                    subs_codes.append(f'{self.y_var} = {x_eq_by_x}')
+                    subs_codes.append(f'{self.y_var} = {y_by_x_in_x_eq}')
                     # mapping x -> y
                     func_codes = [f'def get_y_by_x({self.x_var}):'] + subs_codes[:-1]
-                    func_codes.append(f'return {x_eq_by_x}')
+                    func_codes.append(f'return {y_by_x_in_x_eq}')
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                     f_get_y_by_x = eq_x_scope['get_y_by_x']
                     can_substitute_x_group_to_y_group = True
-
                 except NotImplementedError:
-                    can_substitute_x_group_to_y_group = False
-        else:
-            pass
-
-        # checking
-
-        if (not can_substitute_y_group_to_x_group) and (not can_substitute_x_group_to_y_group):
-            raise NotImplementedError(f'This model is too complex, we cannot solve '
-                                      f'"{self.x_var}" and "{self.y_var}". ')
+                    print('failed because the equation is too complex.')
+                except KeyboardInterrupt:
+                    print(f'failed because {timeout_len} s timeout.')
 
         # get fixed points #
         # ---------------- #
@@ -624,7 +689,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 optimizer = eq_xy_scope['optimizer_x']
                 optimizer = njit(optimizer)
                 x_range = np.arange(*self.target_vars[self.x_var], resolution)
-                x_values = find_root(optimizer, x_range)
+                x_values = find_root_of_1d(optimizer, x_range)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
@@ -636,7 +701,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 optimizer = eq_xy_scope['optimizer_y']
                 optimizer = njit(optimizer)
                 y_range = np.arange(*self.target_vars[self.y_var], resolution)
-                y_values = find_root(optimizer, y_range)
+                y_values = find_root_of_1d(optimizer, y_range)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
 
@@ -649,7 +714,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 optimizer = eq_xy_scope['optimizer_x']
                 optimizer = njit(optimizer)
                 x_range = np.arange(*self.target_vars[self.x_var], resolution)
-                x_values = find_root(optimizer, x_range)
+                x_values = find_root_of_1d(optimizer, x_range)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
@@ -661,9 +726,36 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 optimizer = eq_xy_scope['optimizer_y']
                 optimizer = njit(optimizer)
                 y_range = np.arange(*self.target_vars[self.y_var], resolution)
-                y_values = find_root(optimizer, y_range)
+                y_values = find_root_of_1d(optimizer, y_range)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
+
+        else:
+            # f
+            func_codes = [f'def f_x({self.x_var}, {self.y_var}):']
+            func_codes.extend([f'{expr.var_name} = {expr.code}' for expr in x_eq_group['exprs'][:-1]])
+            func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
+            exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
+            f_x = eq_x_scope['f_x']
+            # g
+            func_codes = [f'def g_y({self.x_var}, {self.y_var}):']
+            func_codes.extend([f'{expr.var_name} = {expr.code}' for expr in y_eq_group['exprs'][:-1]])
+            func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
+            exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
+            g_y = eq_y_scope['g_y']
+            # f**2 + g**2
+            optimizer = lambda x: f_x(x[0], x[1]) ** 2 + g_y(x[0], x[1]) ** 2
+            # optimization results
+            points = find_root_of_2d(optimizer,
+                                     x_bound=self.target_vars[self.x_var],
+                                     y_bound=self.target_vars[self.y_var],
+                                     shgo_args=self.options.shgo_args,
+                                     fl_tol=self.options.fl_tol,
+                                     xl_tol=self.options.xl_tol)
+            x_values, y_values = [], []
+            for p in points:
+                x_values.append(p[0])
+                y_values.append(p[1])
 
         # jacobian matrix
         f_jacobian = self.get_f_jacobian()
@@ -709,20 +801,36 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
         y_style = dict(color='cornflowerblue', alpha=.7, linewidth=4)
 
+        timeout_len = self.options.sympy_solver_timeout
+
         # Nullcline of the y variable
         eq_y_scope = deepcopy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
         eq_y_scope.update(sympy_tools.get_mapping_scope())
         eq_y_scope.update(y_group.diff_eq.func_scope)
 
-        try:
-            y_eq_by_x = sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True))
+        sympy_failed = False
 
-            for i, res in enumerate(y_eq_by_x):
+        # 1. try to solve `f(x, y) = 0` to `y = h(x)`
+        if not self.options.escape_sympy_parser:
+            try:
+                if self.y_by_x_in_y_eq is None:
+                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = h({self.x_var})", ',
+                          end='')
+                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
+                    y_by_x_in_y_eq = f()
+                    if len(y_by_x_in_y_eq) > 1:
+                        raise NotImplementedError('Do not support multiple values.')
+                    y_by_x_in_y_eq = sympy_tools.sympy2str(y_by_x_in_y_eq[0])
+                    self.y_by_x_in_y_eq = y_by_x_in_y_eq
+                    print('success.')
+                else:
+                    y_by_x_in_y_eq = self.y_by_x_in_y_eq
+                sympy_failed = False
                 func_code = f'def func({self.x_var}):\n'
                 for expr in y_group.exprs[:-1]:
                     func_code += f'  {expr.var_name} = {expr.code}\n'
-                func_code += f'  return {sympy_tools.sympy2str(res)}'
+                func_code += f'  return {y_by_x_in_y_eq}'
                 exec(compile(func_code, '', 'exec'), eq_y_scope)
                 func = eq_y_scope['func']
                 try:
@@ -730,62 +838,97 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 except TypeError:
                     raise ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
-
-                label = f"{self.y_var} nullcline" if i == 0 else None
-                plt.plot(x_range, y_val, **y_style, label=label)
-
-        except NotImplementedError:
-            try:
-                y_eq_by_y = sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True))
-
-                for i, res in enumerate(y_eq_by_y):
-                    func_code = f'def func({self.y_var}):\n'
-                    for expr in y_group.exprs[:-1]:
-                        func_code += f'  {expr.var_name} = {expr.code}\n'
-                    func_code += f'  return {sympy_tools.sympy2str(res)}'
-                    exec(compile(func_code, '', 'exec'), eq_y_scope)
-                    func = eq_y_scope['func']
-                    try:
-                        x_val = func(y_range)
-                    except TypeError:
-                        raise ModelUseError('Missing variables. Please check and set missing '
-                                            'variables to "fixed_vars".')
-
-                    label = f"{self.y_var} nullcline" if i == 0 else None
-                    plt.plot(x_val, y_range, **y_style, label=label)
+                plt.plot(x_range, y_val, **y_style, label=f"{self.y_var} nullcline")
             except NotImplementedError:
-                func_codes = [f'def optimizer_x({self.x_var}, {self.y_var}):']
-                for expr in y_group['exprs'][:-1]:
-                    func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
-                exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
-                optimizer = eq_y_scope['optimizer_x']
-                optimizer = njit(optimizer)
+                print('failed because the equation is too complex.')
+                sympy_failed = True
+            except KeyboardInterrupt:
+                print(f'failed because {timeout_len} s timeout.')
+                sympy_failed = True
 
-                x_values, y_values = [], []
-                for y in y_range:
-                    xs = find_root(optimizer, x_range, (y,))
-                    for x in xs:
-                        x_values.append(x)
-                        y_values.append(y)
-                x_values = np.array(x_values)
-                y_values = np.array(y_values)
+        # 2. try to solve `f(x, y) = 0` to `x = h(y)`
+        if sympy_failed and not self.options.escape_sympy_parser:
+            try:
+                if self.x_by_y_in_y_eq is None:
+                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = h({self.y_var})", ',
+                          end='')
+                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
+                    x_by_y_in_y_eq = f()
+                    if len(x_by_y_in_y_eq) > 1:
+                        raise NotImplementedError('Multiple values.')
+                    x_by_y_in_y_eq = sympy_tools.sympy2str(x_by_y_in_y_eq[0])
+                    self.x_by_y_in_y_eq = x_by_y_in_y_eq
+                else:
+                    x_by_y_in_y_eq = self.x_by_y_in_y_eq
+                sympy_failed = False
+                func_code = f'def func({self.y_var}):\n'
+                for expr in y_group.exprs[:-1]:
+                    func_code += f'  {expr.var_name} = {expr.code}\n'
+                func_code += f'  return {x_by_y_in_y_eq}'
+                exec(compile(func_code, '', 'exec'), eq_y_scope)
+                func = eq_y_scope['func']
+                try:
+                    x_val = func(y_range)
+                except TypeError:
+                    raise ModelUseError('Missing variables. Please check and set missing '
+                                        'variables to "fixed_vars".')
+                plt.plot(x_val, y_range, **y_style, label=f"{self.y_var} nullcline")
+            except NotImplementedError:
+                print('failed because the equation is too complex.')
+                sympy_failed = True
+            except KeyboardInterrupt:
+                print(f'failed because {timeout_len} s timeout.')
+                sympy_failed = True
 
-                plt.plot(x_values, y_values, **y_style, label=f"{self.y_var} nullcline")
+        # use optimization method
+        if sympy_failed:
+            func_codes = [f'def optimizer_x({self.x_var}, {self.y_var}):']
+            for expr in y_group['exprs'][:-1]:
+                func_codes.append(f'{expr.var_name} = {expr.code}')
+            func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
+            exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
+            optimizer = eq_y_scope['optimizer_x']
+            optimizer = njit(optimizer)
+
+            x_values, y_values = [], []
+            for y in y_range:
+                xs = find_root_of_1d(optimizer, x_range, (y,))
+                for x in xs:
+                    x_values.append(x)
+                    y_values.append(y)
+            x_values = np.array(x_values)
+            y_values = np.array(y_values)
+
+            plt.plot(x_values, y_values, **y_style, label=f"{self.y_var} nullcline")
 
         # Nullcline of the x variable
         eq_x_scope = deepcopy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
         eq_x_scope.update(sympy_tools.get_mapping_scope())
         eq_x_scope.update(x_group.diff_eq.func_scope)
-        try:
-            x_eq_by_x = sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True))
 
-            for i, res in enumerate(x_eq_by_x):
+        sympy_failed = True
+
+        # 3. try to solve `g(x, y) = 0` to `y = l(x)`
+        if not self.options.escape_sympy_parser:
+            try:
+                if self.y_by_x_in_x_eq is None:
+                    print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = l({self.x_var})", ',
+                          end='')
+                    f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
+                    y_by_x_in_x_eq = f()
+                    if len(y_by_x_in_x_eq) > 1:
+                        raise NotImplementedError('Multiple values.')
+                    y_by_x_in_x_eq = sympy_tools.sympy2str(y_by_x_in_x_eq[0])
+                    self.y_by_x_in_x_eq = y_by_x_in_x_eq
+                    print('success.')
+                else:
+                    y_by_x_in_x_eq = self.y_by_x_in_x_eq
+                sympy_failed = False
                 func_code = f'def func({self.x_var}):\n'
                 for expr in x_group.exprs[:-1]:
                     func_code += f'  {expr.var_name} = {expr.code}\n'
-                func_code += f'  return {sympy_tools.sympy2str(res)}'
+                func_code += f'  return {y_by_x_in_x_eq}'
                 exec(compile(func_code, '', 'exec'), eq_x_scope)
                 func = eq_x_scope['func']
                 try:
@@ -793,52 +936,73 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 except TypeError:
                     raise ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
-
-                label = f"{self.x_var} nullcline" if i == 0 else None
-                plt.plot(x_range, y_val, **x_style, label=label)
-
-        except NotImplementedError:
-            try:
-                x_eq_by_y = sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True))
-
-                for i, res in enumerate(x_eq_by_y):
-                    func_code = f'def func({self.y_var}):\n'
-                    for expr in x_group.exprs[:-1]:
-                        func_code += f'  {expr.var_name} = {expr.code}\n'
-                    func_code += f'  return {sympy_tools.sympy2str(res)}'
-                    exec(compile(func_code, '', 'exec'), eq_x_scope)
-                    func = eq_x_scope['func']
-                    try:
-                        x_val = func(y_range)
-                    except TypeError:
-                        raise ModelUseError('Missing variables. Please check and set missing '
-                                            'variables to "fixed_vars".')
-
-                    label = f"{self.x_var} nullcline" if i == 0 else None
-                    plt.plot(x_val, y_range, **x_style, label=label)
+                plt.plot(x_range, y_val, **x_style, label=f"{self.x_var} nullcline")
             except NotImplementedError:
-                func_codes = [f'def optimizer_x({self.x_var}, {self.y_var}):']
-                for expr in x_group['exprs'][:-1]:
-                    func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
-                exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
-                optimizer = eq_x_scope['optimizer_x']
-                optimizer = njit(optimizer)
+                sympy_failed = True
+                print('failed because the equation is too complex.')
+            except KeyboardInterrupt:
+                sympy_failed = True
+                print(f'failed because {timeout_len} s timeout.')
 
-                x_values, y_values = [], []
-                for y in y_range:
-                    xs = find_root(optimizer, x_range, (y,))
-                    for x in xs:
-                        x_values.append(x)
-                        y_values.append(y)
-                x_values = np.array(x_values)
-                y_values = np.array(y_values)
-                plt.plot(x_values, y_values, **x_style, label=f"{self.x_var} nullcline")
+        # 4. try to solve `g(x, y) = 0` to `x = l(y)`
+        if sympy_failed and not self.options.escape_sympy_parser:
+            try:
+                if self.x_by_y_in_x_eq is None:
+                    print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = l({self.y_var})", ',
+                          end='')
+                    f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
+                    x_by_y_in_x_eq = f()
+                    if len(x_by_y_in_x_eq) > 1:
+                        raise NotImplementedError('Multiple solved values.')
+                    x_by_y_in_x_eq = sympy_tools.sympy2str(x_by_y_in_x_eq[0])
+                    self.x_by_y_in_x_eq = x_by_y_in_x_eq
+                    print('success.')
+                else:
+                    x_by_y_in_x_eq = self.x_by_y_in_x_eq
+                sympy_failed = False
+                func_code = f'def func({self.y_var}):\n'
+                for expr in x_group.exprs[:-1]:
+                    func_code += f'  {expr.var_name} = {expr.code}\n'
+                func_code += f'  return {x_by_y_in_x_eq}'
+                exec(compile(func_code, '', 'exec'), eq_x_scope)
+                func = eq_x_scope['func']
+                try:
+                    x_val = func(y_range)
+                except TypeError:
+                    raise ModelUseError('Missing variables. Please check and set missing '
+                                        'variables to "fixed_vars".')
+                plt.plot(x_val, y_range, **x_style, label=f"{self.x_var} nullcline")
+            except NotImplementedError:
+                print('failed because the equation is too complex.')
+                sympy_failed = True
+            except KeyboardInterrupt:
+                print(f'failed because {timeout_len} s timeout.')
+                sympy_failed = True
+
+        # use optimization method
+        if sympy_failed:
+            func_codes = [f'def optimizer_x({self.x_var}, {self.y_var}):']
+            for expr in x_group['exprs'][:-1]:
+                func_codes.append(f'{expr.var_name} = {expr.code}')
+            func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
+            exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
+            optimizer = eq_x_scope['optimizer_x']
+            optimizer = njit(optimizer)
+
+            x_values, y_values = [], []
+            for y in y_range:
+                xs = find_root_of_1d(optimizer, x_range, (y,))
+                for x in xs:
+                    x_values.append(x)
+                    y_values.append(y)
+            x_values = np.array(x_values)
+            y_values = np.array(y_values)
+            plt.plot(x_values, y_values, **x_style, label=f"{self.x_var} nullcline")
 
         # finally
         plt.xlabel(self.x_var)
         plt.ylabel(self.y_var)
-        scale = (self.lim_scale - 1.) / 2
+        scale = (self.options.lim_scale - 1.) / 2
         plt.xlim(*rescale(self.target_vars[self.x_var], scale=scale))
         plt.ylim(*rescale(self.target_vars[self.y_var], scale=scale))
         plt.legend()
@@ -877,7 +1041,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                          label=trajectory.legend)
             plt.xlabel(self.x_var)
             plt.ylabel(self.y_var)
-            scale = (self.lim_scale - 1.) / 2
+            scale = (self.options.lim_scale - 1.) / 2
             plt.xlim(*rescale(self.target_vars[self.x_var], scale=scale))
             plt.ylim(*rescale(self.target_vars[self.y_var], scale=scale))
             plt.legend()

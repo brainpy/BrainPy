@@ -10,7 +10,7 @@ import sympy
 from mpl_toolkits.mplot3d import Axes3D
 from numba import njit
 
-from .solver import find_root
+from .solver import find_root_of_1d
 from .utils import get_1d_classification
 from .utils import get_2d_classification
 from .utils import plot_scheme
@@ -30,7 +30,7 @@ class BifurcationAnalyzer(object):
     
     The bifurcation analyzer is restricted to analyze the bifurcation
     relation between membrane potential and a given model parameter
-    (codimension-1 case) or two model parameters (codimension-2 case).
+    (co-dimension-1 case) or two model parameters (co-dimension-2 case).
     
     Externally injected current is also treated as a model parameter in
     this class, instead of a model state.
@@ -43,8 +43,16 @@ class BifurcationAnalyzer(object):
 
     """
 
-    def __init__(self, model, target_pars, dynamical_vars, fixed_vars=None,
-                 pars_update=None, par_resolution=0.1, var_resolution=0.1):
+    def __init__(
+            self,
+            model,
+            target_pars,
+            dynamical_vars,
+            fixed_vars=None,
+            pars_update=None,
+            par_resolution=0.1,
+            var_resolution=0.1
+    ):
 
         # check "model"
         try:
@@ -227,7 +235,7 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
 
             # function
             x_range = np.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
-            scope = {'optimizer': optimizer, 'find_root': find_root,
+            scope = {'optimizer': optimizer, 'find_root': find_root_of_1d,
                      'onp': np, 'x_range': x_range}
             func_codes = [f'def solve_x({arg_of_pars}):']
             func_codes.append(f'x_values = find_root(optimizer, x_range, ({arg_of_pars}, ))')
@@ -649,7 +657,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
                     x_range = np.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'x_range': x_range,
-                             'find_root': find_root, 'np': np,
+                             'find_root': find_root_of_1d, 'np': np,
                              'f_get_y_by_x': f_get_y_by_x}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'x_values = find_root(optimizer, x_range, ({arg_of_pars},))')
@@ -671,7 +679,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
                     y_range = np.arange(*self.dynamical_vars[self.y_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'y_range': y_range,
-                             'find_root': find_root, 'np': np,
+                             'find_root': find_root_of_1d, 'np': np,
                              'f_get_x_by_y': f_get_x_by_y}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'y_values = find_root(optimizer, y_range, ({arg_of_pars},))')
@@ -694,7 +702,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
                     x_range = np.arange(*self.dynamical_vars[self.x_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'x_range': x_range,
-                             'find_root': find_root, 'np': np,
+                             'find_root': find_root_of_1d, 'np': np,
                              'f_get_y_by_x': f_get_y_by_x}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'x_values = find_root(optimizer, x_range, ({arg_of_pars},))')
@@ -716,7 +724,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
                     y_range = np.arange(*self.dynamical_vars[self.y_var], self.var_resolution)
                     scope = {'optimizer': optimizer, 'y_range': y_range,
-                             'find_root': find_root, 'np': np,
+                             'find_root': find_root_of_1d, 'np': np,
                              'f_get_x_by_y': f_get_x_by_y}
                     func_codes = [f'def f_fixed_point({arg_of_pars}):']
                     func_codes.append(f'y_values = find_root(optimizer, y_range, ({arg_of_pars},))')

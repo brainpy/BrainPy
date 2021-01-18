@@ -4,10 +4,13 @@ from collections import namedtuple
 
 import numba as nb
 import numpy as np
+from scipy.optimize import shgo
+
 
 __all__ = [
     'brentq',
-    'find_root'
+    'find_root_of_1d',
+    'find_root_of_2d'
 ]
 
 _ECONVERGED = 0
@@ -151,7 +154,7 @@ def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
 
 
 @nb.njit
-def find_root(f, f_points, args=()):
+def find_root_of_1d(f, f_points, args=()):
     """Find the roots of the given function by numerical methods.
 
     Parameters
@@ -195,3 +198,78 @@ def find_root(f, f_points, args=()):
             f_i += 1
 
     return roots
+
+
+def find_root_of_2d(f, x_bound, y_bound, shgo_args, fl_tol=1e-6, xl_tol=1e-4):
+    """Find the root of a two dimensional function.
+
+    This function is aimed to find the root of :math:`f(x) = 0`, where :math:`x`
+    is a vector with the shape of `(2,)`.
+
+    Parameters
+    ----------
+    f : callable
+        he objective function to be minimized.  Must be in the form
+        ``f(x, *args)``, where ``x`` is the argument in the form of a 1-D array
+        and ``args`` is a tuple of any additional fixed parameters needed to
+        completely specify the function.
+    x_bound : sequence
+        Bound for the first variable. It must be a tuple/list with the format of
+        ``(min, max)``, which define the lower and upper bounds for the optimizing
+        argument of `f`.
+    y_bound : sequence
+        Bound for the second variable. It must be a tuple/list with the format of
+        ``(min, max)``, which define the lower and upper bounds for the optimizing
+        argument of `f`.
+    shgo_args : dict
+        A dictionary which contains the arguments or the parameters of `shgo` optimizer.
+        It is defined in a dictionary with fields:
+
+            - args
+            - constraints
+            - n
+            - iters
+            - callback
+            - minimizer_kwargs
+            - options
+            - sampling_method
+    fl_tol : float
+        The tolerance of the function value to recognize it as a condidate of function root point.
+    xl_tol : float
+        The tolerance of the l2 norm distances between this point and previous points.
+        If the norm distances are all bigger than `xl_tol` means this point belong to a
+        new function root point.
+
+    Returns
+    -------
+    res : np.ndarray
+        The roots.
+    """
+    if 'sampling_method' not in shgo_args:
+        shgo_args['sampling_method'] = 'sobol'
+
+    ret = shgo(f, [x_bound, y_bound], **shgo_args)
+
+    points = np.array(ret.xl)
+    values = np.array(ret.funl)
+
+    final_points = []
+    for i in range(len(values)):
+        if values[i] <= fl_tol:
+            # first point which is less than "fl_tol"
+            if len(final_points) == 0:
+                final_points.append(points[i])
+                continue
+            # if the l2 norm distances between points[i] and
+            # previous points are all bigger than "xl_tol"
+            if np.alltrue(np.linalg.norm(np.array(final_points) - points[i], axis=1) > xl_tol):
+                final_points.append(points[i])
+        else:
+            break
+
+    return np.array(final_points)
+
+
+
+
+

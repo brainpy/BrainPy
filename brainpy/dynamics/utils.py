@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import _thread as thread
+import threading
+
 import numpy as np
+
+__all__ = [
+    'stability_analysis',
+    'rescale',
+    'timeout',
+]
 
 _SADDLE_NODE = 'saddle-node'
 _1D_STABLE_POINT = 'stable-point'
@@ -18,11 +27,15 @@ _2D_UNSTABLE_LINE = 'unstable-line'
 plot_scheme = {
     _1D_STABLE_POINT: {"color": 'tab:red'},
     _2D_STABLE_NODE: {"color": 'tab:red'},
+
     _1D_UNSTABLE_POINT: {"color": 'tab:olive'},
     _2D_UNSTABLE_NODE: {"color": 'tab:olive'},
+
     _2D_STABLE_FOCUS: {"color": 'tab:purple'},
     _2D_UNSTABLE_FOCUS: {"color": 'tab:cyan'},
+
     _SADDLE_NODE: {"color": 'tab:blue'},
+
     _2D_STABLE_LINE: {'color': 'orangered'},
     _2D_UNSTABLE_LINE: {'color': 'dodgerblue'},
     _2D_CENTER: {'color': 'lime'},
@@ -110,3 +123,32 @@ def rescale(min_max, scale=0.01):
     min_ -= scale * length
     max_ += scale * length
     return min_, max_
+
+
+def timeout(s):
+    """Add a timeout parameter to a function and return it.
+
+    Parameters
+    ----------
+    s : float
+        Time limit in seconds.
+
+    Returns
+    -------
+    func : callable
+        Functional results. Or, raise an error of KeyboardInterrupt.
+    """
+
+    def outer(fn):
+        def inner(*args, **kwargs):
+            timer = threading.Timer(s, thread.interrupt_main)
+            timer.start()
+            try:
+                result = fn(*args, **kwargs)
+            finally:
+                timer.cancel()
+            return result
+
+        return inner
+
+    return outer

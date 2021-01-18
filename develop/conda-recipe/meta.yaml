@@ -15,11 +15,13 @@ requirements:
         - setuptools>=40.0.0
         - numpy>= 1.13
         - sympy>=1.2
+        - scipy>=1.2.0
         - numba>=0.50
     run:
         - python
         - numpy>=1.13
         - sympy>=1.2
+        - scipy>=1.2.0
         - numba>=0.50
         - matplotlib>=3.0
         - setuptools>=40.0.0
