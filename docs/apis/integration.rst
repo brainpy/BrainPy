@@ -88,13 +88,13 @@ brainpy.integration package
 .. autosummary::
     :toctree: _autosummary
 
-    SympyRender
-    SympyPrinter
+    Parser
+    Printer
     str2sympy
     sympy2str
 
-.. autoclass:: SympyRender
+.. autoclass:: Parser
     :members:
 
-.. autoclass:: SympyPrinter
+.. autoclass:: Printer
     :members:
