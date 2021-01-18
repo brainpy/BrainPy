@@ -20,8 +20,8 @@ from .. import profile
 __all__ = [
     'FUNCTION_MAPPING',
     'CONSTANT_MAPPING',
-    'SympyRender',
-    'SympyPrinter',
+    'Parser',
+    'Printer',
     'str2sympy',
     'sympy2str',
     'get_mapping_scope',
@@ -148,7 +148,7 @@ def get_mapping_scope():
             'inf': math.inf}
 
 
-class SympyRender(object):
+class Parser(object):
     expression_ops = {
         'Add': sympy.Add,
         'Mult': sympy.Mul,
@@ -363,7 +363,7 @@ class SympyRender(object):
             raise ValueError('Unknown unary operator: ' + op_name)
 
 
-class SympyPrinter(StrPrinter):
+class Printer(StrPrinter):
     """
     Printer that overrides the printing of some basic sympy objects. reversal_potential.g.
     print "a and b" instead of "And(a, b)".
@@ -395,12 +395,12 @@ class SympyPrinter(StrPrinter):
             return expr.func.__name__ + f"({self.stringify(expr.args, ', ')})"
 
 
-_RENDER = SympyRender()
-_PRINTER = SympyPrinter()
+_PARSER = Parser()
+_PRINTER = Printer()
 
 
 def str2sympy(str_expr):
-    return _RENDER.render_expr(str_expr)
+    return _PARSER.render_expr(str_expr)
 
 
 def sympy2str(sympy_expr):
