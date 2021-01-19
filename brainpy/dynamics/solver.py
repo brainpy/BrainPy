@@ -154,7 +154,7 @@ def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
 
 
 @nb.njit
-def find_root_of_1d(f, f_points, args=()):
+def find_root_of_1d(f, f_points, args=(), tol=1e-8):
     """Find the roots of the given function by numerical methods.
 
     Parameters
@@ -193,7 +193,8 @@ def find_root_of_1d(f, f_points, args=()):
         else:
             if not np.isnan(fr_sign) and fl_sign != fr_sign:
                 root = brentq(f, f_points[f_i - 1], f_points[f_i], args)
-                roots.append(root)
+                if abs(f(root, *args)) < tol:
+                    roots.append(root)
             fl_sign = fr_sign
             f_i += 1
 

@@ -7,17 +7,16 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy
-from numba import njit
 
 from .solver import find_root_of_1d
 from .solver import find_root_of_2d
-from .utils import get_1d_classification
-from .utils import get_2d_classification
-from .utils import plot_scheme
-from .utils import rescale
-from .utils import stability_analysis
-from .utils import timeout
-from .. import profile
+# from .utils import get_1d_classification
+# from .utils import get_2d_classification
+# from .utils import plot_scheme
+# from .utils import rescale
+# from .utils import stability_analysis
+# from .utils import timeout
+from . import utils
 from .. import tools
 from ..core import NeuType
 from ..core.neurons import NeuGroup
@@ -320,7 +319,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
 
             # dfxdx
             try:
-                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, x_symbol))
+                f = utils.timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, x_symbol))
                 dfxdx_expr = f()
                 func_codes = [f'def dfxdx({self.x_var}):']
                 for expr in x_eq_group.sub_exprs[:-1]:
@@ -356,7 +355,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
 
         plt.xlabel(self.x_var)
         plt.ylabel(label)
-        plt.xlim(*rescale(self.target_vars[self.x_var], scale=(self.options.lim_scale - 1.) / 2))
+        plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=(self.options.lim_scale - 1.) / 2))
         plt.legend()
         if show:
             plt.show()
@@ -375,7 +374,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         if not self.options.escape_sympy_solver:
             try:
                 # solve
-                f = timeout(self.options.sympy_solver_timeout)(
+                f = utils.timeout(self.options.sympy_solver_timeout)(
                     lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
                 results = f()
                 sympy_failed = False
@@ -401,9 +400,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             for expr in x_group.old_exprs[:-1]:
                 func_codes.append(f'{expr.var_name} = {expr.code}')
             func_codes.append(f'return {x_group.old_exprs[-1].code}')
-            exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
-            optimizer = scope['optimizer_x']
-            optimizer = njit(optimizer)
+            optimizer = utils.jit_func(scope, '\n  '.join(func_codes), 'optimizer_x')
             x_values = find_root_of_1d(optimizer, self.xs)
             x_values = np.array(x_values)
 
@@ -415,11 +412,11 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         # stability analysis #
         # ------------------ #
 
-        container = {a: [] for a in get_1d_classification()}
+        container = {a: [] for a in utils.get_1d_classification()}
         for i in range(len(x_values)):
             x = x_values[i]
             dfdx = f_dfdx(x)
-            fp_type = stability_analysis(dfdx)
+            fp_type = utils.stability_analysis(dfdx)
             print(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
             container[fp_type].append(x)
 
@@ -428,7 +425,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
 
         for fp_type, points in container.items():
             if len(points):
-                plot_style = plot_scheme[fp_type]
+                plot_style = utils.plot_scheme[fp_type]
                 plt.plot(points, [0] * len(points), '.', markersize=20, **plot_style, label=fp_type)
 
         plt.legend()
@@ -547,7 +544,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             # dfxdx
             try:
-                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, x_symbol))
+                f = utils.timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, x_symbol))
                 dfxdx_expr = f()
                 func_codes = [f'def dfxdx({self.x_var}, {self.y_var}):']
                 for expr in x_eq_group.sub_exprs[:-1]:
@@ -566,7 +563,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             # dfxdy
             try:
-                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, y_symbol))
+                f = utils.timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(x_eq, y_symbol))
                 dfxdy_expr = f()
                 func_codes = [f'def dfxdy({self.x_var}, {self.y_var}):']
                 for expr in x_eq_group.sub_exprs[:-1]:
@@ -585,7 +582,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             # dfydx
             try:
-                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(y_eq, x_symbol))
+                f = utils.timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(y_eq, x_symbol))
                 dfydx_expr = f()
                 func_codes = [f'def dfydx({self.x_var}, {self.y_var}):']
                 for expr in y_eq_group.sub_exprs[:-1]:
@@ -604,7 +601,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             # dfydy
             try:
-                f = timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(y_eq, y_symbol))
+                f = utils.timeout(self.options.sympy_solver_timeout)(lambda: sympy.diff(y_eq, y_symbol))
                 dfydy_expr = f()
                 func_codes = [f'def dfydy({self.x_var}, {self.y_var}):']
                 for expr in y_eq_group.sub_exprs[:-1]:
@@ -697,7 +694,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 if self.y_by_x_in_y_eq is None:
                     print(f'SymPy solve "{y_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
                           f'"{self.y_var} = f({self.x_var})", ', end='')
-                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
+                    f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
                     y_by_x_in_y_eq = f()
                     if len(y_by_x_in_y_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
@@ -729,7 +726,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 if self.x_by_y_in_y_eq is None:
                     print(f'SymPy solve "{y_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
                           f'"{self.x_var} = f({self.y_var})", ', end='')
-                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
+                    f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_y_eq = f()
                     if len(x_by_y_in_y_eq) > 1:
                         raise NotImplementedError('Multiple values.')
@@ -763,7 +760,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 if self.x_by_y_in_x_eq is None:
                     print(f'SymPy solve "{x_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" '
                           f'to "{self.x_var} = f({self.y_var})", ', end='')
-                    f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
+                    f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_x_eq = f()
                     if len(x_by_y_in_x_eq) > 1:
                         raise NotImplementedError('Multiple solved values.')
@@ -793,7 +790,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     if self.y_by_x_in_x_eq is None:
                         print(f'SymPy solve "{x_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" '
                               f'to "{self.y_var} = f({self.x_var})", ', end='')
-                        f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
+                        f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
                         y_by_x_in_x_eq = f()
                         if len(y_by_x_in_x_eq) > 1:
                             raise NotImplementedError('Multiple values.')
@@ -836,9 +833,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in x_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
-                exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
-                optimizer = eq_xy_scope['optimizer_x']
-                optimizer = njit(optimizer)
+                optimizer = utils.jit_func(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_x')
                 x_values = find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
@@ -848,9 +843,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in x_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
-                exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
-                optimizer = eq_xy_scope['optimizer_y']
-                optimizer = njit(optimizer)
+                optimizer = utils.jit_func(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_y')
                 y_values = find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
@@ -861,9 +854,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in y_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
-                exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
-                optimizer = eq_xy_scope['optimizer_x']
-                optimizer = njit(optimizer)
+                optimizer = utils.jit_func(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_x')
                 x_values = find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
@@ -873,9 +864,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in y_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
-                exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
-                optimizer = eq_xy_scope['optimizer_y']
-                optimizer = njit(optimizer)
+                optimizer = utils.jit_func(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_y')
                 y_values = find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
@@ -916,14 +905,14 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         # stability analysis #
         # ------------------ #
 
-        container = {a: {'x': [], 'y': []} for a in get_2d_classification()}
+        container = {a: {'x': [], 'y': []} for a in utils.get_2d_classification()}
 
         for i in range(len(x_values)):
             x = x_values[i]
             y = y_values[i]
 
             jacobian = f_jacobian(x, y)
-            fp_type = stability_analysis(jacobian)
+            fp_type = utils.stability_analysis(jacobian)
 
             print(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
             container[fp_type]['x'].append(x)
@@ -934,7 +923,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         for fp_type, points in container.items():
             if len(points['x']):
-                plot_style = plot_scheme[fp_type]
+                plot_style = utils.plot_scheme[fp_type]
                 plt.plot(points['x'], points['y'], '.', markersize=20, **plot_style, label=fp_type)
 
         plt.legend()
@@ -967,7 +956,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 if self.y_by_x_in_y_eq is None:
                     print(f'SymPy solve "{y_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
                           f'"{self.y_var} = f({self.x_var})", ', end='')
-                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
+                    f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
                     y_by_x_in_y_eq = f()
                     if len(y_by_x_in_y_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
@@ -1002,7 +991,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 if self.x_by_y_in_y_eq is None:
                     print(f'SymPy solve "{y_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
                           f'"{self.x_var} = f({self.y_var})", ', end='')
-                    f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
+                    f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_y_eq = f()
                     if len(x_by_y_in_y_eq) > 1:
                         raise NotImplementedError('Multiple values.')
@@ -1037,8 +1026,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'{expr.var_name} = {expr.code}')
             func_codes.append(f'return {y_group.old_exprs[-1].code}')
             exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
-            optimizer = eq_y_scope['optimizer_x']
-            optimizer = njit(optimizer)
+            optimizer = utils.jit_func(eq_y_scope, '\n  '.join(func_codes), 'optimizer_x')
 
             x_values, y_values = [], []
             for y in self.ys:
@@ -1065,7 +1053,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 if self.y_by_x_in_x_eq is None:
                     print(f'SymPy solve "{x_group.func_name}({self.x_var}, {self.y_var}) = 0" '
                           f'to "{self.y_var} = f({self.x_var})", ', end='')
-                    f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
+                    f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
                     y_by_x_in_x_eq = f()
                     if len(y_by_x_in_x_eq) > 1:
                         raise NotImplementedError('Multiple values.')
@@ -1100,7 +1088,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 if self.x_by_y_in_x_eq is None:
                     print(f'SymPy solve "{x_group.func_name}({self.x_var}, {self.y_var}) = 0" '
                           f'to "{self.x_var} = f({self.y_var})", ', end='')
-                    f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
+                    f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_x_eq = f()
                     if len(x_by_y_in_x_eq) > 1:
                         raise NotImplementedError('Multiple solved values.')
@@ -1135,9 +1123,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             for expr in x_group.old_exprs[:-1]:
                 func_codes.append(f'{expr.var_name} = {expr.code}')
             func_codes.append(f'return {x_group.old_exprs[-1].code}')
-            exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
-            optimizer = eq_x_scope['optimizer_x']
-            optimizer = njit(optimizer)
+            optimizer = utils.jit_func(eq_x_scope, '\n  '.join(func_codes), 'optimizer_x')
 
             x_values, y_values = [], []
             for y in self.ys:
@@ -1153,8 +1139,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         plt.xlabel(self.x_var)
         plt.ylabel(self.y_var)
         scale = (self.options.lim_scale - 1.) / 2
-        plt.xlim(*rescale(self.target_vars[self.x_var], scale=scale))
-        plt.ylim(*rescale(self.target_vars[self.y_var], scale=scale))
+        plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+        plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
         plt.legend()
         if show:
             plt.show()
@@ -1202,8 +1188,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             plt.xlabel(self.x_var)
             plt.ylabel(self.y_var)
             scale = (self.options.lim_scale - 1.) / 2
-            plt.xlim(*rescale(self.target_vars[self.x_var], scale=scale))
-            plt.ylim(*rescale(self.target_vars[self.y_var], scale=scale))
+            plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+            plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
             plt.legend()
         elif axes == 't-v':
             for trajectory in trajectories:

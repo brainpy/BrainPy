@@ -196,8 +196,8 @@ trn = get_TRN_reduced(rho_p=0.8, IL=dict(g_L=0.05, E_L=-77.),
 
 analyzer = bp.PhasePortraitAnalyzer(
     model=trn,
-    target_vars={'V': [-100., 80.5], 'vy': [-100., 50.]},
-    fixed_vars={'vz': -68., 'Isyn': 0.},
+    target_vars={'V': [-100., 70], 'vy': [-100., 70.]},
+    fixed_vars={'vz': -75., 'Isyn': 0.},
     options={
         'escape_sympy_solver': True,
         'resolution': 0.1,

@@ -22,13 +22,13 @@
 
 ## Installation
 
-Install ``BrainPy`` using ``conda``:
-
-    > conda install brainpy-simulator -c brainpy
-
 Install ``BrainPy`` using ``pip``:
 
     > pip install brainpy-simulator
+
+Install ``BrainPy`` using ``conda``:
+
+    > conda install brainpy-simulator -c brainpy
 
 Install ``BrainPy`` from source:
 
@@ -37,7 +37,6 @@ Install ``BrainPy`` from source:
     > pip install git+https://git.openi.org.cn/OpenI/BrainPy
     > # or
     > pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V0.2.5
-
 
 The following packages need to be installed to use ``BrainPy``:
 

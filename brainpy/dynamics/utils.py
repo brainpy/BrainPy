@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 
+from numba import njit
+import inspect
 import _thread as thread
 import threading
-
+from .. import tools
+from .. import backend
+from numba.core.dispatcher import Dispatcher
 import numpy as np
 
 __all__ = [
     'stability_analysis',
     'rescale',
     'timeout',
+    'jit_func',
 ]
 
 _SADDLE_NODE = 'saddle-node'
@@ -152,3 +157,48 @@ def timeout(s):
         return inner
 
     return outer
+
+
+def jit(func):
+    if backend.func_in_numpy_or_math(func):
+        return func
+    if isinstance(func, Dispatcher):
+        return func
+    vars = inspect.getclosurevars(func)
+    code_scope = dict(vars.nonlocals)
+    code_scope.update(vars.globals)
+
+    modified = False
+    # check scope variables
+    for k, v in code_scope.items():
+        # function
+        if callable(v):
+            if (not backend.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
+                code_scope[k] = jit(v)
+                modified = True
+
+    if modified:
+        func_code = tools.deindent(tools.get_func_source(func))
+        exec(compile(func_code, '', "exec"), code_scope)
+        func = code_scope[func.__name__]
+        return njit(func)
+    else:
+        njit(func)
+
+
+def jit_func(scope, func_code, func_name):
+    # get function scope
+    func_scope = dict()
+    for key, val in scope.items():
+        if callable(val):
+            if backend.func_in_numpy_or_math(val):
+                pass
+            elif isinstance(val, Dispatcher):
+                pass
+            else:
+                val = jit(val)
+        func_scope[key] = val
+
+    # compile function
+    exec(compile(func_code, '', 'exec'), func_scope)
+    return njit(func_scope[func_name])
