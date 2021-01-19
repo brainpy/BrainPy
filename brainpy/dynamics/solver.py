@@ -200,7 +200,7 @@ def find_root_of_1d(f, f_points, args=()):
     return roots
 
 
-def find_root_of_2d(f, x_bound, y_bound, shgo_args, fl_tol=1e-6, xl_tol=1e-4):
+def find_root_of_2d(f, x_bound, y_bound, shgo_args, fl_tol=1e-6, xl_tol=1e-4, verbose=False):
     """Find the root of a two dimensional function.
 
     This function is aimed to find the root of :math:`f(x) = 0`, where :math:`x`
@@ -247,11 +247,17 @@ def find_root_of_2d(f, x_bound, y_bound, shgo_args, fl_tol=1e-6, xl_tol=1e-4):
     """
     if 'sampling_method' not in shgo_args:
         shgo_args['sampling_method'] = 'sobol'
+    if 'n' not in shgo_args:
+        shgo_args['n'] = 400
 
     ret = shgo(f, [x_bound, y_bound], **shgo_args)
 
     points = np.array(ret.xl)
     values = np.array(ret.funl)
+
+    if verbose:
+        print(ret.xl)
+        print(ret.funl)
 
     final_points = []
     for i in range(len(values)):

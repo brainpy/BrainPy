@@ -228,31 +228,31 @@ if __name__ == '__main__':
     from brainpy.dynamics.phase_portrait_analyzer import get_trajectories
 
     # Try LIF neuron model
-    trajectories = get_trajectories(LIF, target_vars=['V'], target_setting=(0., (20., 100.)), inputs=('ST.inp', 12.))
+    trajectories = get_trajectories(LIF, target_vars=['V'], initials=(0., (20., 100.)), inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try LIF neuron model: variable "V"
-    trajectories = get_trajectories(Izhikevich, target_vars=['V'], target_setting=(0., (20., 100.)),
-                                   inputs=('ST.inp', 12.))
+    trajectories = get_trajectories(Izhikevich, target_vars=['V'], initials=(0., (20., 100.)),
+                                    inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try LIF neuron model: variable "u"
-    trajectories = get_trajectories(Izhikevich, target_vars=['u'], target_setting=(0., (20., 100.)),
-                                   inputs=('ST.inp', 12.))
+    trajectories = get_trajectories(Izhikevich, target_vars=['u'], initials=(0., (20., 100.)),
+                                    inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].u, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try HH neuron model: variable 'V', 'n'
     trajectories = get_trajectories(HH,
-                                   target_vars=['V', 'n'],
-                                   target_setting=[(-65., 0., (20., 100.)),
-                                                   (-75., 0.1, 60.)],
-                                   inputs=('ST.inp', 3.))
+                                    target_vars=['V', 'n'],
+                                    initials=[(-65., 0., (20., 100.)),
+                                              (-75., 0.1, 60.)],
+                                    inputs=('ST.inp', 3.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.plot(trajectories[1].ts, trajectories[1].V, label=trajectories[1].legend)
     plt.legend(title='Initial values')

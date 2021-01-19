@@ -53,24 +53,38 @@ class PhasePortraitAnalyzer(object):
     options : dict, optional
         The other setting parameters, which includes:
 
-            - lim_scale : float. The axis limit scale factor. Default is 1.05.
-                          The setting means the axes will be clipped to
-                          `[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]`.
-            - sympy_solver_timeout : float, with the unit of second. The maximum 
-                                     time allowed to use sympy solver to get the 
-                                     variable relationship.
-            - escape_sympy_solver : bool. Whether escape to use sympy solver, and
-                                    directly use numerical optimization method to
-                                    solve the nullcline and fixed points.
-            - shgo_args : arguments of `shgo` optimization method, which can be used
-                          to set the fields of: args, constraints, n, iters, callback,
-                          minimizer_kwargs, options, sampling_method
-            - disturb : float. The small disturb used to solve the function derivative.
-            - fl_tol : float. The tolerance of the function value to recognize it as a
-                       condidate of function root point.
-            - xl_tol : float. The tolerance of the l2 norm distances between this point
-                       and previous points. If the norm distances are all bigger than
-                       `xl_tol` means this point belong to a new function root point.
+            resolution
+                float or dict. Set the resolution of the target variables.
+                This variable will be useful in the solving of nullcline and fixed points
+                by using the iterative optimization method.
+                It can be a float, which will be used as ``numpy.arange(var_min, var_max, resolution)``.
+                Or, it can be a dict, with the format of ``{'var1': resolution1, 'var2': resolution2}``.
+                Or, it can be a dict with the format of ``{'var1': np.arange(x, x, x), 'var2': np.arange(x, x, x)}``.
+            lim_scale
+                float. The axis limit scale factor. Default is 1.05. The setting means
+                the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
+            sympy_solver_timeout
+                float, with the unit of second. The maximum  time allowed to use sympy solver
+                to get the variable relationship.
+            escape_sympy_solver
+                bool. Whether escape to use sympy solver, and directly use numerical optimization
+                method to solve the nullcline and fixed points.
+            shgo_args
+                dict. Arguments of `shgo` optimization method, which can be used to set the
+                fields of: args, constraints, n, iters, callback, minimizer_kwargs, options,
+                sampling_method
+            show_shgo
+                bool. whether print the shgo's value.
+            disturb
+                float. The small disturb used to solve the function derivative.
+            fl_tol
+                float. The tolerance of the function value to recognize it as a condidate of
+                function root point.
+            xl_tol
+                float. The tolerance of the l2 norm distances between this point and previous
+                points. If the norm distances are all bigger than `xl_tol` means this
+                point belong to a new function root point.
+
     """
 
     def __init__(
@@ -116,13 +130,16 @@ class PhasePortraitAnalyzer(object):
         if options is None:
             options = dict()
         self.options = tools.DictPlus()
+        self.options['resolution'] = options.get('resolution', 0.1)
         self.options['lim_scale'] = options.get('lim_scale', 1.05)
         self.options['sympy_solver_timeout'] = options.get('sympy_solver_timeout', 5)  # s
         self.options['escape_sympy_solver'] = options.get('escape_sympy_solver', False)
         self.options['shgo_args'] = options.get('shgo_args', dict())
+        self.options['show_shgo'] = options.get('show_shgo', False)
         self.options['disturb'] = options.get('disturb', 1e-4)
         self.options['fl_tol'] = options.get('fl_tol', 1e-6)
         self.options['xl_tol'] = options.get('xl_tol', 1e-4)
+        self.options['resolution'] = options.get('resolution', 0.1)
 
         # analyzer
         if len(target_vars) == 1:
@@ -142,17 +159,70 @@ class PhasePortraitAnalyzer(object):
                                 'Or, you can set "fixed_vars" to fix other variables, '
                                 'then make 1D/2D phase plane analysis.')
 
-    def plot_vector_field(self, resolution=0.1, line_widths=(0.5, 5.5), show=False):
-        self.analyzer.plot_vector_field(resolution=resolution, line_widths=line_widths, show=show)
+    def plot_vector_field(self, line_widths=(0.5, 5.5), show=False):
+        """Plot vector filed of a 2D/1D system.
 
-    def plot_fixed_point(self, resolution=0.1, show=False):
-        self.analyzer.plot_fixed_point(resolution=resolution, show=show)
+        Parameters
+        ----------
+        line_widths : sequence
+            The vector filed (especially the 2D dynamical system) will be plotted by using
+            the `matplotlib.pyplot.streamplot`. The argument is used to set the width of
+            the stream lines.
+        show : bool
+            Whether show the figure.
+        """
+        self.analyzer.plot_vector_field(line_widths=line_widths, show=show)
 
-    def plot_nullcline(self, resolution=0.1, show=False):
-        self.analyzer.plot_nullcline(resolution=resolution, show=show)
+    def plot_fixed_point(self, show=False):
+        """Plot fixed points.
 
-    def plot_trajectory(self, target_setting, axes='v-v', inputs=(), show=False):
-        self.analyzer.plot_trajectory(target_setting, axes=axes, inputs=inputs, show=show)
+        Parameters
+        ----------
+        show : bool
+            Whether show the figure.
+
+        Returns
+        -------
+        points : np.ndarray
+            The fixed points. For 1d dynamical system, return a 1d vector. For 2d dynamical
+            system, return a 2d vector.
+        """
+        return self.analyzer.plot_fixed_point(show=show)
+
+    def plot_nullcline(self, show=False):
+        """Plot nullcline (only supported in 2D system).
+
+        Parameters
+        ----------
+        show : bool
+            Whether show the figure.
+        """
+        self.analyzer.plot_nullcline(show=show)
+
+    def plot_trajectory(self, initials, duration, axes='v-v', inputs=(), show=False):
+        """Plot trajectories (only supported in 2D system).
+
+        When target_vars = ['m', 'n']
+        then, "initials" can be: (initial v1, initial v2)
+                 (0., 1., 100.)       # initial values: m=0., n=1., duration=100.
+           or,   (0., 1., (10., 90.)) # initial values: m=0., n=1., simulation in [10., 90.]
+           or,   [(0., 1., (10., 90.)),
+                 (0.5, 1.5, 100.)]  # two trajectory
+
+        Parameters
+        ----------
+        initials : list, tuple
+            The initial value setting of the targets.
+        duration : float, tuple
+            The running duration of the trajectory.
+        inputs
+        axes : str
+            The axes.
+        show : bool
+            Whether show or not.
+        """
+        initials = np.array(initials)
+        self.analyzer.plot_trajectory(initials, duration=duration, axes=axes, inputs=inputs, show=show)
 
 
 class _PPAnalyzer(object):
@@ -205,6 +275,22 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         self.f_dfdx = None
         self.f_dx = None
 
+        if isinstance(self.options.resolution, float):
+            self.xs = np.arange(*self.target_vars[self.x_var], self.options.resolution)
+        elif isinstance(self.options.resolution, dict):
+            if self.x_var not in self.options.resolution:
+                raise ModelUseError(f'Must provide the resolution setting of variable "{self.x_var}".')
+            val = self.options.resolution[self.x_var]
+            if isinstance(val, float):
+                self.xs = np.arange(*self.target_vars[self.x_var], val)
+            elif isinstance(val, np.ndarray):
+                assert np.ndim(val) == 1
+                self.xs = np.array(val)
+            else:
+                raise ModelUseError(f'Unknown resolution setting: {self.x_var}: {val}')
+        else:
+            ModelUseError(f'Unknown resolution type: {type(self.options.resolution)}')
+
     def get_f_dx(self):
         if self.f_dx is None:
             eqs_of_x = self.target_eqs[self.x_var]
@@ -253,20 +339,19 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             self.f_dfdx = dfxdx
         return self.f_dfdx
 
-    def plot_vector_field(self, resolution=0.1, line_widths=(0.5, 5.5), show=False):
-        x = np.arange(*self.target_vars[self.x_var], resolution)
+    def plot_vector_field(self, show=False):
         x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
 
         # Nullcline of the x variable
         func = self.get_f_dx()
         try:
-            y_val = func(x)
+            y_val = func(self.xs)
         except TypeError:
             raise ModelUseError('Missing variables. Please check and set missing '
                                 'variables to "fixed_vars".')
 
         label = f"d{self.x_var}dt"
-        plt.plot(x, y_val, **x_style, label=label)
+        plt.plot(self.xs, y_val, **x_style, label=label)
         plt.axhline(0)
 
         plt.xlabel(self.x_var)
@@ -276,7 +361,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         if show:
             plt.show()
 
-    def plot_fixed_point(self, resolution=0.1, show=False):
+    def plot_fixed_point(self, show=False):
         x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
         x_group = self.target_eqs[self.x_var]
 
@@ -319,8 +404,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
             optimizer = scope['optimizer_x']
             optimizer = njit(optimizer)
-            x_range = np.arange(*self.target_vars[self.x_var], resolution)
-            x_values = find_root_of_1d(optimizer, x_range)
+            x_values = find_root_of_1d(optimizer, self.xs)
             x_values = np.array(x_values)
 
         # differential #
@@ -351,12 +435,12 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         if show:
             plt.show()
 
-        return x_values
+        return np.array(x_values)
 
     def plot_nullcline(self, resolution=0.1, show=False):
         raise NotImplementedError('1D phase plane do not support plot_nullcline.')
 
-    def plot_trajectory(self, target_setting, axes='v-v', inputs=(), show=False):
+    def plot_trajectory(self, *args, **kwargs):
         raise NotImplementedError('1D phase plane do not support plot_trajectory.')
 
 
@@ -377,6 +461,33 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         self.f_dx = None  # derivative function of "x" variable
         self.f_dy = None  # derivative function of "y" variable
         self.f_jacobian = None  # function to get jacobian matrix
+
+        if isinstance(self.options.resolution, float):
+            self.xs = np.arange(*self.target_vars[self.x_var], self.options.resolution)
+            self.ys = np.arange(*self.target_vars[self.y_var], self.options.resolution)
+        elif isinstance(self.options.resolution, dict):
+            if self.x_var not in self.options.resolution:
+                raise ModelUseError(f'Must provide the resolution setting of variable "{self.x_var}".')
+            val = self.options.resolution[self.x_var]
+            if isinstance(val, float):
+                self.xs = np.arange(*self.target_vars[self.x_var], val)
+            elif isinstance(val, np.ndarray):
+                assert np.ndim(val) == 1
+                self.xs = np.array(val)
+            else:
+                raise ModelUseError(f'Unknown resolution setting: {self.x_var}: {val}')
+            if self.y_var not in self.options.resolution:
+                raise ModelUseError(f'Must provide the resolution setting of variable "{self.y_var}".')
+            val = self.options.resolution[self.y_var]
+            if isinstance(val, float):
+                self.ys = np.arange(*self.target_vars[self.y_var], val)
+            elif isinstance(val, np.ndarray):
+                assert np.ndim(val) == 1
+                self.ys = np.array(val)
+            else:
+                raise ModelUseError(f'Unknown resolution setting: {self.y_var}: {val}')
+        else:
+            ModelUseError(f'Unknown resolution type: {type(self.options.resolution)}')
 
     def get_f_dx(self):
         """Get the derivative function of :math:`x`.
@@ -444,7 +555,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(dfxdx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdx = eq_x_scope['dfxdx']
-            except KeyboardInterrupt:
+            except (NotImplementedError, KeyboardInterrupt):
                 scope = dict(fx=self.get_f_dx())
                 func_codes = [f'def dfxdx({self.x_var}, {self.y_var}):']
                 func_codes.append(f'origin = fx({self.x_var}, {self.y_var}))')
@@ -463,7 +574,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'return {sympy_tools.sympy2str(dfxdy_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdy = eq_x_scope['dfxdy']
-            except KeyboardInterrupt:
+            except (NotImplementedError, KeyboardInterrupt):
                 scope = dict(fx=self.get_f_dx())
                 func_codes = [f'def dfxdy({self.x_var}, {self.y_var}):']
                 func_codes.append(f'origin = fx({self.x_var}, {self.y_var}))')
@@ -523,39 +634,38 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         return self.f_jacobian
 
-    def plot_vector_field(self, resolution=0.1, line_widths=(0.5, 5.5), show=False):
-        X = np.arange(*self.target_vars[self.x_var], resolution)
-        Y = np.arange(*self.target_vars[self.y_var], resolution)
-        X, Y = np.meshgrid(X, Y)
+    def plot_vector_field(self, line_widths=(0.5, 5.5), show=False):
+        X, Y = np.meshgrid(self.xs, self.ys)
 
         # dy
         func = self.get_f_dy()
         try:
             dy = func(X, Y)
         except TypeError:
-            raise ModelUseError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
+            raise ModelUseError('Missing variables. Please check and set missing variables to "fixed_vars".')
 
         # dx
         func = self.get_f_dx()
         try:
             dx = func(X, Y)
         except TypeError:
-            raise ModelUseError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
+            raise ModelUseError('Missing variables. Please check and set missing variables to "fixed_vars".')
 
         # vector field
-        speed = np.sqrt(dx ** 2 + dy ** 2)
-        lw_min, lw_max = line_widths
-        lw = lw_min + lw_max * speed / speed.max()
-        plt.streamplot(X, Y, dx, dy, linewidth=lw, arrowsize=1.2, density=1, color='thistle')
+        if np.isnan(dx).any() or np.isnan(dy).any():
+            plt.streamplot(X, Y, dx, dy)
+        else:
+            speed = np.sqrt(dx ** 2 + dy ** 2)
+            lw_min, lw_max = line_widths
+            lw = lw_min + lw_max * speed / speed.max()
+            plt.streamplot(X, Y, dx, dy, linewidth=lw, arrowsize=1.2, density=1, color='thistle')
         plt.xlabel(self.x_var)
         plt.ylabel(self.y_var)
 
         if show:
             plt.show()
 
-    def plot_fixed_point(self, resolution=0.1, show=False):
+    def plot_fixed_point(self, show=False):
         x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
         y_eq = sympy_tools.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
         x_eq_group = self.target_eqs[self.x_var]
@@ -585,8 +695,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if not self.options.escape_sympy_solver:
             try:
                 if self.y_by_x_in_y_eq is None:
-                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = h({self.x_var})", ',
-                          end='')
+                    print(f'SymPy solve "{y_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
+                          f'"{self.y_var} = f({self.x_var})", ', end='')
                     f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
                     y_by_x_in_y_eq = f()
                     if len(y_by_x_in_y_eq) > 1:
@@ -617,8 +727,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             # 2. try to solve `f(x, y) = 0` to `x = h(y)`
             try:
                 if self.x_by_y_in_y_eq is None:
-                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = h({self.y_var})", ',
-                          end='')
+                    print(f'SymPy solve "{y_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
+                          f'"{self.x_var} = f({self.y_var})", ', end='')
                     f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_y_eq = f()
                     if len(x_by_y_in_y_eq) > 1:
@@ -651,8 +761,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             # 3. try to solve `g(x, y) = 0` to `y = l(x)`
             try:
                 if self.x_by_y_in_x_eq is None:
-                    print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = l({self.y_var})", ',
-                          end='')
+                    print(f'SymPy solve "{x_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" '
+                          f'to "{self.x_var} = f({self.y_var})", ', end='')
                     f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_x_eq = f()
                     if len(x_by_y_in_x_eq) > 1:
@@ -681,8 +791,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             if not can_substitute_x_group_to_y_group and not self.options.escape_sympy_solver:
                 try:
                     if self.y_by_x_in_x_eq is None:
-                        print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = l({self.x_var})", ',
-                              end='')
+                        print(f'SymPy solve "{x_eq_group.func_name}({self.x_var}, {self.y_var}) = 0" '
+                              f'to "{self.y_var} = f({self.x_var})", ', end='')
                         f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
                         y_by_x_in_x_eq = f()
                         if len(y_by_x_in_x_eq) > 1:
@@ -729,8 +839,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_x']
                 optimizer = njit(optimizer)
-                x_range = np.arange(*self.target_vars[self.x_var], resolution)
-                x_values = find_root_of_1d(optimizer, x_range)
+                x_values = find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
@@ -742,8 +851,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_y']
                 optimizer = njit(optimizer)
-                y_range = np.arange(*self.target_vars[self.y_var], resolution)
-                y_values = find_root_of_1d(optimizer, y_range)
+                y_values = find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
 
@@ -756,8 +864,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_x']
                 optimizer = njit(optimizer)
-                x_range = np.arange(*self.target_vars[self.x_var], resolution)
-                x_values = find_root_of_1d(optimizer, x_range)
+                x_values = find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
@@ -769,8 +876,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                 optimizer = eq_xy_scope['optimizer_y']
                 optimizer = njit(optimizer)
-                y_range = np.arange(*self.target_vars[self.y_var], resolution)
-                y_values = find_root_of_1d(optimizer, y_range)
+                y_values = find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
 
@@ -797,7 +903,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                                      y_bound=self.target_vars[self.y_var],
                                      shgo_args=self.options.shgo_args,
                                      fl_tol=self.options.fl_tol,
-                                     xl_tol=self.options.xl_tol)
+                                     xl_tol=self.options.xl_tol,
+                                     verbose=self.options.show_shgo)
             x_values, y_values = [], []
             for p in points:
                 x_values.append(p[0])
@@ -835,15 +942,13 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if show:
             plt.show()
 
-        return x_values, y_values
+        return np.array([[x, y] for x, y in zip(x_values, y_values)])
 
-    def plot_nullcline(self, resolution=0.1, show=False):
+    def plot_nullcline(self, show=False):
         y_eq = sympy_tools.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
         x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
         y_group = self.target_eqs[self.y_var]
         x_group = self.target_eqs[self.x_var]
-        x_range = np.arange(*self.target_vars[self.x_var], resolution)
-        y_range = np.arange(*self.target_vars[self.y_var], resolution)
         x_style = dict(color='lightcoral', alpha=.7, )
         y_style = dict(color='cornflowerblue', alpha=.7, )
 
@@ -860,8 +965,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if not self.options.escape_sympy_solver:
             try:
                 if self.y_by_x_in_y_eq is None:
-                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to '
-                          f'"{self.y_var} = h({self.x_var})", ', end='')
+                    print(f'SymPy solve "{y_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
+                          f'"{self.y_var} = f({self.x_var})", ', end='')
                     f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.y_var, real=True)))
                     y_by_x_in_y_eq = f()
                     if len(y_by_x_in_y_eq) > 1:
@@ -879,11 +984,11 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile(func_code, '', 'exec'), eq_y_scope)
                 func = eq_y_scope['func']
                 try:
-                    y_val = func(x_range)
+                    y_val = func(self.xs)
                 except TypeError:
                     raise ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
-                plt.plot(x_range, y_val, **y_style, label=f"{self.y_var} nullcline")
+                plt.plot(self.xs, y_val, **y_style, label=f"{self.y_var} nullcline")
             except NotImplementedError:
                 print('failed because the equation is too complex.')
                 sympy_failed = True
@@ -895,8 +1000,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if sympy_failed and not self.options.escape_sympy_solver:
             try:
                 if self.x_by_y_in_y_eq is None:
-                    print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to '
-                          f'"{self.x_var} = h({self.y_var})", ', end='')
+                    print(f'SymPy solve "{y_group.func_name}({self.x_var}, {self.y_var}) = 0" to '
+                          f'"{self.x_var} = f({self.y_var})", ', end='')
                     f = timeout(timeout_len)(lambda: sympy.solve(y_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_y_eq = f()
                     if len(x_by_y_in_y_eq) > 1:
@@ -913,11 +1018,11 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile(func_code, '', 'exec'), eq_y_scope)
                 func = eq_y_scope['func']
                 try:
-                    x_val = func(y_range)
+                    x_val = func(self.ys)
                 except TypeError:
                     raise ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
-                plt.plot(x_val, y_range, **y_style, label=f"{self.y_var} nullcline")
+                plt.plot(x_val, self.ys, **y_style, label=f"{self.y_var} nullcline")
             except NotImplementedError:
                 print('failed because the equation is too complex.')
                 sympy_failed = True
@@ -936,16 +1041,15 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             optimizer = njit(optimizer)
 
             x_values, y_values = [], []
-            for y in y_range:
-                xs = find_root_of_1d(optimizer, x_range, args=(y,))
+            for y in self.ys:
+                xs = find_root_of_1d(optimizer, self.xs, args=(y,))
                 for x in xs:
                     x_values.append(x)
                     y_values.append(y)
             x_values = np.array(x_values)
             y_values = np.array(y_values)
 
-            plt.plot(x_values, y_values, '.', **y_style,
-                     label=f"{self.y_var} nullcline")
+            plt.plot(x_values, y_values, '.', **y_style, label=f"{self.y_var} nullcline")
 
         # Nullcline of the x variable
         eq_x_scope = deepcopy(self.pars_update)
@@ -959,8 +1063,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if not self.options.escape_sympy_solver:
             try:
                 if self.y_by_x_in_x_eq is None:
-                    print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = l({self.x_var})", ',
-                          end='')
+                    print(f'SymPy solve "{x_group.func_name}({self.x_var}, {self.y_var}) = 0" '
+                          f'to "{self.y_var} = f({self.x_var})", ', end='')
                     f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.y_var, real=True)))
                     y_by_x_in_x_eq = f()
                     if len(y_by_x_in_x_eq) > 1:
@@ -978,11 +1082,11 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile(func_code, '', 'exec'), eq_x_scope)
                 func = eq_x_scope['func']
                 try:
-                    y_val = func(x_range)
+                    y_val = func(self.xs)
                 except TypeError:
                     raise ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
-                plt.plot(x_range, y_val, **x_style, label=f"{self.x_var} nullcline")
+                plt.plot(self.xs, y_val, **x_style, label=f"{self.x_var} nullcline")
             except NotImplementedError:
                 sympy_failed = True
                 print('failed because the equation is too complex.')
@@ -994,8 +1098,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if sympy_failed and not self.options.escape_sympy_solver:
             try:
                 if self.x_by_y_in_x_eq is None:
-                    print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = l({self.y_var})", ',
-                          end='')
+                    print(f'SymPy solve "{x_group.func_name}({self.x_var}, {self.y_var}) = 0" '
+                          f'to "{self.x_var} = f({self.y_var})", ', end='')
                     f = timeout(timeout_len)(lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
                     x_by_y_in_x_eq = f()
                     if len(x_by_y_in_x_eq) > 1:
@@ -1013,11 +1117,11 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 exec(compile(func_code, '', 'exec'), eq_x_scope)
                 func = eq_x_scope['func']
                 try:
-                    x_val = func(y_range)
+                    x_val = func(self.ys)
                 except TypeError:
                     raise ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
-                plt.plot(x_val, y_range, **x_style, label=f"{self.x_var} nullcline")
+                plt.plot(x_val, self.ys, **x_style, label=f"{self.x_var} nullcline")
             except NotImplementedError:
                 print('failed because the equation is too complex.')
                 sympy_failed = True
@@ -1036,15 +1140,14 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             optimizer = njit(optimizer)
 
             x_values, y_values = [], []
-            for y in y_range:
-                xs = find_root_of_1d(optimizer, x_range, (y,))
+            for y in self.ys:
+                xs = find_root_of_1d(optimizer, self.xs, (y,))
                 for x in xs:
                     x_values.append(x)
                     y_values.append(y)
             x_values = np.array(x_values)
             y_values = np.array(y_values)
-            plt.plot(x_values, y_values, '.', **x_style,
-                     label=f"{self.x_var} nullcline")
+            plt.plot(x_values, y_values, '.', **x_style, label=f"{self.x_var} nullcline")
 
         # finally
         plt.xlabel(self.x_var)
@@ -1056,7 +1159,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if show:
             plt.show()
 
-    def plot_trajectory(self, target_setting, axes='v-v', inputs=(), show=False):
+    def plot_trajectory(self, initials, duration, inputs=(), axes='v-v', show=False):
         """Plot trajectories according to the settings.
 
         When target_vars = ['m', 'n']
@@ -1068,16 +1171,26 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         Parameters
         ----------
-        target_setting : list, tuple
+        initials : list, tuple
             The initial value setting of the targets.
+        duration : int, float, tuple, list
+            The running duration. Same with the ``duration`` in ``Network.run()``
+        inputs : tuple, list
+            The inputs to the model. Same with the ``inputs`` in ``Network.run()``
         axes : str
-            The axes.
+            The axes to plot. It can be:
+
+                 - 'v-v'
+                        Plot the trajectory in the 'x_var'-'y_var' axis.
+                 - 't-v'
+                        Plot the trajectory in the 'time'-'var' axis.
         show : bool
             Whether show or not.
         """
         trajectories = get_trajectories(model=self.model,
                                         target_vars=list(self.target_vars.keys()),
-                                        target_setting=target_setting,
+                                        initials=initials,
+                                        duration=duration,
                                         pars_update=self.pars_update,
                                         fixed_vars=self.fixed_vars,
                                         inputs=inputs)
@@ -1110,7 +1223,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 def get_trajectories(
         model: NeuType,
         target_vars: typing.Union[typing.List[str], typing.Tuple[str]],
-        target_setting: typing.Union[typing.List, typing.Tuple],
+        initials: typing.Union[typing.List, typing.Tuple],
+        duration: typing.Union[int, typing.List, typing.Tuple],
         fixed_vars: typing.Dict = None,
         inputs: typing.Union[typing.List, typing.Tuple] = (),
         pars_update: typing.Dict = None,
@@ -1123,12 +1237,15 @@ def get_trajectories(
         The neuron model.
     target_vars : list, tuple
         The target variables.
-    target_setting : dict
-        The initial value setting of the targets.
+    initials : tuple, list
+        The initial value setting of the targets. It can be a data with the format of
+        ``[(v1, v2), (v1, v2)]``.
+    duration : int, float, tuple, list
+        The running duration. Same with the ``duration`` in ``Network.run()``.
+    inputs : list, tuple
+        The model inputs. Same with the ``inputs`` in ``Network.run()``.
     fixed_vars : dict
         The fixed variables.
-    inputs : list, tuple
-        The model inputs.
     pars_update : dict
         The parameters to update.
 
@@ -1137,86 +1254,42 @@ def get_trajectories(
     trajectories : list
         The trajectories.
     """
-    # check initial values
-    # ---------------------
-    # When target_vars = ['m', 'n']
-    # then, target_setting can be: (initial v1, initial v2, duration)
-    #                   (0., 1., 100.)       # initial values: m=0., n=1., duration=100.
-    #        or,        (0., 1., (10., 90.)) # initial values: m=0., n=1., simulation in [10., 90.]
-    #        or,        [(0., 1., (10., 90.)),
-    #                    (0.5, 1.5, 100.)]  # two trajectory
 
-    durations = []
-    simulating_duration = [np.inf, -np.inf]
-
-    # format target setting
-    if isinstance(target_setting[0], (int, float)):
-        target_setting = (target_setting,)
-
-    # initial values
-    initials = np.zeros((len(target_vars), len(target_setting)), dtype=np.float_)
+    # format initial value setting
+    if isinstance(initials[0], (int, float)):
+        initials = [initials,]
+    initials = np.array(initials)
 
     # format duration and initial values
-    for i, setting in enumerate(target_setting):
+    initial_states = np.zeros((len(target_vars), len(initials)), dtype=np.float_)
+    for i, initial in enumerate(initials):
         # checking
         try:
-            assert isinstance(setting, (tuple, list))
-            assert len(setting) == len(target_vars) + 1
+            assert len(initial) == len(target_vars)
         except AssertionError:
-            raise ModelUseError('"target_setting" be a tuple with the format of '
-                                '(var1 initial, var2 initial, ..., duration).')
-        # duration
-        duration = setting[-1]
-        if isinstance(duration, (int, float)):
-            durations.append([0., duration])
-            if simulating_duration[0] > 0.:
-                simulating_duration[0] = 0.
-            if simulating_duration[1] < duration:
-                simulating_duration[1] = duration
-        elif isinstance(duration, (tuple, list)):
-            try:
-                assert len(duration) == 2
-                assert duration[0] < duration[1]
-            except AssertionError:
-                raise ModelUseError('duration specification must be a tuple/list with '
-                                    'the form of (start, end).')
-            durations.append(list(duration))
-            if simulating_duration[0] > duration[0]:
-                simulating_duration[0] = duration[0]
-            if simulating_duration[1] < duration[1]:
-                simulating_duration[1] = duration[1]
-        else:
-            raise ValueError(f'Unknown duration type "{type(duration)}", {duration}')
+            raise ModelUseError('"initials" be a tuple/list/array with the format of '
+                                '[[var1 initial, var2 initial]].')
         # initial values
-        for j, val in enumerate(setting[:-1]):
-            initials[j, i] = val
+        for j, val in enumerate(initial):
+            initial_states[j, i] = val
 
     # initialize neuron group
-    num = len(target_setting) if len(target_setting) else 1
+    num = len(initials)
     group = NeuGroup(model, geometry=num, monitors=target_vars, pars_update=pars_update)
-    for i, key in enumerate(target_vars):
-        group.ST[key] = initials[i]
-
-    # initialize runner
+    for j, key in enumerate(target_vars):
+        group.ST[key] = initial_states[j]
     group.runner = TrajectoryRunner(group, target_vars=target_vars, fixed_vars=fixed_vars)
-
-    # run
-    group.run(duration=simulating_duration, inputs=inputs)
+    group.run(duration=duration, inputs=inputs)
 
     # monitors
     trajectories = []
-    times = group.mon.ts
-    dt = profile.get_dt()
-    for i, setting in enumerate(target_setting):
-        duration = durations[i]
-        start = int((duration[0] - simulating_duration[0]) / dt)
-        end = int((duration[1] - simulating_duration[0]) / dt)
+    for i, initial in enumerate(initials):
         trajectory = tools.DictPlus()
         legend = 'traj, '
-        trajectory['ts'] = times[start: end]
+        trajectory['ts'] = group.mon.ts
         for j, var in enumerate(target_vars):
-            legend += f'${var}_0$={setting[j]}, '
-            trajectory[var] = getattr(group.mon, var)[start: end, i]
+            legend += f'${var}_0$={initial[j]}, '
+            trajectory[var] = getattr(group.mon, var)[:, i]
         if legend.strip():
             trajectory['legend'] = legend[:-2]
         trajectories.append(trajectory)

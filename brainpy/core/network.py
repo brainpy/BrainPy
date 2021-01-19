@@ -253,7 +253,7 @@ class Network(object):
                     obj.runner.set_data(f'{key.replace(".", "_")}_inp', val)
                     all_keys.remove(key)
                 if len(all_keys):
-                    raise ModelUseError(f'The inputs of {all_keys} are not provided.')
+                    raise ModelUseError(f'The inputs of {all_keys} in {obj_name} are not provided.')
 
         dt = self.dt
         if report:

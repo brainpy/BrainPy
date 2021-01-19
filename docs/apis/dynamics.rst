@@ -18,8 +18,10 @@ brainpy.dynamics package
 
 .. autoclass:: PhasePortraitAnalyzer
     :toctree:
-    :members:
+    :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
+
 
 .. autoclass:: BifurcationAnalyzer
     :toctree:
-    :members:
+    :members: plot_bifurcation
+

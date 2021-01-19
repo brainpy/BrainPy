@@ -4,6 +4,8 @@ import numpy as np
 
 import brainpy as bp
 
+bp.profile.set(numerical_method='rk4', dt=0.01)
+
 
 def get_TRN_reduced(rho_p=0.99, IL=dict(), IKL=dict()):
     # parameters of INa
@@ -194,13 +196,17 @@ trn = get_TRN_reduced(rho_p=0.8, IL=dict(g_L=0.05, E_L=-77.),
 
 analyzer = bp.PhasePortraitAnalyzer(
     model=trn,
-    target_vars={'V': [-100., 80.], 'vy': [-100., 50.]},
-    fixed_vars={'vz': -75., 'Isyn': 0.},
-    options={'escape_sympy_parser': True}
+    target_vars={'V': [-100., 80.5], 'vy': [-100., 50.]},
+    fixed_vars={'vz': -68., 'Isyn': 0.},
+    options={
+        'escape_sympy_solver': True,
+        'resolution': 0.1,
+        'show_shgo': False,
+    }
 )
-analyzer.plot_nullcline(resolution=0.07)
+analyzer.plot_nullcline()
 analyzer.plot_vector_field()
-analyzer.plot_fixed_point(show=True)
-# analyzer.plot_trajectory([(-75, 75, 100.), (-10.5, 10.4, 100.)],
-#                          show=True)
-#
+analyzer.plot_fixed_point()
+analyzer.plot_trajectory(initials=[(39, 29)],
+                         duration=50.,
+                         show=True)
