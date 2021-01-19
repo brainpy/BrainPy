@@ -33,10 +33,44 @@ __all__ = [
 class PhasePortraitAnalyzer(object):
     """Phase Portrait Analyzer.
 
-    PhasePortraitAnalyzer is used to analyze the phase portrait of 1D
+    `PhasePortraitAnalyzer` is used to analyze the phase portrait of 1D
     or 2D dynamical systems. It can also be used to analyze the phase
-    portrait
+    portrait of high-dimensional system but with the fixation of other
+    variables to preserve only one/two dynamical variables.
 
+    Parameters
+    ----------
+    model : NeuType
+        The neuron model which defines the differential equations by using
+        `brainpy.integrate`.
+    target_vars : dict
+        The target variables to analyze, with the format of
+        `{'var1': [var_min, var_max], 'var2': [var_min, var_max]}`.
+    fixed_vars : dict, optional
+        The fixed variables, which means the variables will not be updated.
+    pars_update : dict, optional
+        The parameters in the differential equations to update.
+    options : dict, optional
+        The other setting parameters, which includes:
+
+            - lim_scale : float. The axis limit scale factor. Default is 1.05.
+                          The setting means the axes will be clipped to
+                          `[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]`.
+            - sympy_solver_timeout : float, with the unit of second. The maximum 
+                                     time allowed to use sympy solver to get the 
+                                     variable relationship.
+            - escape_sympy_solver : bool. Whether escape to use sympy solver, and
+                                    directly use numerical optimization method to
+                                    solve the nullcline and fixed points.
+            - shgo_args : arguments of `shgo` optimization method, which can be used
+                          to set the fields of: args, constraints, n, iters, callback,
+                          minimizer_kwargs, options, sampling_method
+            - disturb : float. The small disturb used to solve the function derivative.
+            - fl_tol : float. The tolerance of the function value to recognize it as a
+                       condidate of function root point.
+            - xl_tol : float. The tolerance of the l2 norm distances between this point
+                       and previous points. If the norm distances are all bigger than
+                       `xl_tol` means this point belong to a new function root point.
     """
 
     def __init__(
@@ -47,6 +81,7 @@ class PhasePortraitAnalyzer(object):
             pars_update=None,
             options=None,
     ):
+
         # check "model"
         if not isinstance(model, NeuType):
             raise ModelUseError('Phase plane analysis only support neuron type model.')
@@ -83,7 +118,7 @@ class PhasePortraitAnalyzer(object):
         self.options = tools.DictPlus()
         self.options['lim_scale'] = options.get('lim_scale', 1.05)
         self.options['sympy_solver_timeout'] = options.get('sympy_solver_timeout', 5)  # s
-        self.options['escape_sympy_parser'] = options.get('escape_sympy_parser', False)
+        self.options['escape_sympy_solver'] = options.get('escape_sympy_solver', False)
         self.options['shgo_args'] = options.get('shgo_args', dict())
         self.options['disturb'] = options.get('disturb', 1e-4)
         self.options['fl_tol'] = options.get('fl_tol', 1e-6)
@@ -252,7 +287,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
         scope.update(x_group.diff_eq.func_scope)
 
         sympy_failed = True
-        if not self.options.escape_sympy_parser:
+        if not self.options.escape_sympy_solver:
             try:
                 # solve
                 f = timeout(self.options.sympy_solver_timeout)(
@@ -547,7 +582,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         # ------------------
 
         # 1. try to solve `f(x, y) = 0` to `y = h(x)`
-        if not self.options.escape_sympy_parser:
+        if not self.options.escape_sympy_solver:
             try:
                 if self.y_by_x_in_y_eq is None:
                     print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = h({self.x_var})", ',
@@ -577,7 +612,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             except KeyboardInterrupt:
                 print(f'failed because {timeout_len} s timeout.')
 
-        if not can_substitute_y_group_to_x_group and not self.options.escape_sympy_parser:
+        if not can_substitute_y_group_to_x_group and not self.options.escape_sympy_solver:
 
             # 2. try to solve `f(x, y) = 0` to `x = h(y)`
             try:
@@ -611,7 +646,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         # solve x_equations #
         # ----------------- #
 
-        if not can_substitute_y_group_to_x_group and not self.options.escape_sympy_parser:
+        if not can_substitute_y_group_to_x_group and not self.options.escape_sympy_solver:
 
             # 3. try to solve `g(x, y) = 0` to `y = l(x)`
             try:
@@ -643,7 +678,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 print(f'failed because {timeout_len} s timeout.')
 
             # 4. try to solve `g(x, y) = 0` to `x = l(y)`
-            if not can_substitute_x_group_to_y_group and not self.options.escape_sympy_parser:
+            if not can_substitute_x_group_to_y_group and not self.options.escape_sympy_solver:
                 try:
                     if self.y_by_x_in_x_eq is None:
                         print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = l({self.x_var})", ',
@@ -822,7 +857,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         sympy_failed = True
         # 1. try to solve `f(x, y) = 0` to `y = h(x)`
-        if not self.options.escape_sympy_parser:
+        if not self.options.escape_sympy_solver:
             try:
                 if self.y_by_x_in_y_eq is None:
                     print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to '
@@ -857,7 +892,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 sympy_failed = True
 
         # 2. try to solve `f(x, y) = 0` to `x = h(y)`
-        if sympy_failed and not self.options.escape_sympy_parser:
+        if sympy_failed and not self.options.escape_sympy_solver:
             try:
                 if self.x_by_y_in_y_eq is None:
                     print(f'SymPy solve "f({self.x_var}, {self.y_var}) = 0" to '
@@ -921,7 +956,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         sympy_failed = True
 
         # 3. try to solve `g(x, y) = 0` to `y = l(x)`
-        if not self.options.escape_sympy_parser:
+        if not self.options.escape_sympy_solver:
             try:
                 if self.y_by_x_in_x_eq is None:
                     print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.y_var} = l({self.x_var})", ',
@@ -956,7 +991,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 print(f'failed because {timeout_len} s timeout.')
 
         # 4. try to solve `g(x, y) = 0` to `x = l(y)`
-        if sympy_failed and not self.options.escape_sympy_parser:
+        if sympy_failed and not self.options.escape_sympy_solver:
             try:
                 if self.x_by_y_in_x_eq is None:
                     print(f'SymPy solve "g({self.x_var}, {self.y_var}) = 0" to "{self.x_var} = l({self.y_var})", ',
