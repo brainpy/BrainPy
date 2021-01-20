@@ -698,8 +698,6 @@ class Runner(object):
 
         # check whether the model include heterogeneous parameters
         delay_keys = self._delay_keys
-        all_heter_pars = list([k for k in self._model.heter_params_replace.keys()
-                               if k in self._pars.updates])
 
         for func in self._steps:
             # information about the function
@@ -774,19 +772,12 @@ class Runner(object):
                     else:
                         code_arg2call[arg] = f'{self._name}.{arg}'
                 code_args.add(arg)
-            arg_substitute = {}
-            # substitute heterogeneous parameters
-            for k in code_scope.keys():
-                if k in self._model.heter_params_replace:
-                    arg_substitute[k] = self._model.heter_params_replace[k]
-                    if k in all_heter_pars:
-                        all_heter_pars.remove(k)
+
             # substitute "range" to "numba.prange"
+            arg_substitute = {}
             if ' range' in func_code:
                 arg_substitute['range'] = 'numba.prange'
                 code_scope['numba'] = numba
-            # substitute
-            if len(arg_substitute):
                 func_code = tools.word_replace(func_code, arg_substitute)
 
             # update code scope
@@ -828,11 +819,6 @@ class Runner(object):
                                        'arg2calls': code_arg2call,
                                        'codes': code_lines,
                                        'call': func_call}
-
-        # WARNING: heterogeneous parameter may not in the main step functions
-        if len(all_heter_pars) > 0:
-            raise ModelDefError(f'Heterogeneous parameters "{list(all_heter_pars)}" are not defined '
-                                f'in main step function. BrainPy cannot recognize. Please check.')
 
         return results
 

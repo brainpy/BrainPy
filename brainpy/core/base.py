@@ -9,6 +9,8 @@ from copy import deepcopy
 import numpy as np
 from numba import cuda
 
+from . import utils
+
 from .constants import ARG_KEYWORDS
 from .constants import INPUT_OPERATIONS
 from .constants import NEU_GROUP_TYPE
@@ -49,7 +51,6 @@ class ObjType(object):
             requires: typing.Dict = None,
             mode: str = 'vector',
             hand_overs: typing.Dict = None,
-            heter_params_replace: typing.Dict = None,
     ):
         # type : neuron based or group based code
         # ---------------------------------------
@@ -139,16 +140,8 @@ class ObjType(object):
         # -----------
         self.integrators = []
         for step in self.steps:
-            self.integrators.extend(tools.find_integrators(step))
+            self.integrators.extend(utils.find_integrators(step))
         self.integrators = list(set(self.integrators))
-
-        # heterogeneous parameter replace
-        # --------------------------------
-        if heter_params_replace is None:
-            heter_params_replace = dict()
-        if not isinstance(heter_params_replace, dict):
-            raise ModelDefError('"heter_params_replace" must be a dict.')
-        self.heter_params_replace = heter_params_replace
 
         # delay keys
         # ----------
