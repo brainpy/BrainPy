@@ -7,9 +7,9 @@ import sympy
 
 from . import methods
 from .diff_equation import DiffEquation
-from .sympy_tools import get_mapping_scope
-from .sympy_tools import str2sympy
-from .sympy_tools import sympy2str
+from .utils import get_mapping_scope
+from .utils import str2sympy
+from .utils import sympy2str
 from .. import backend
 from .. import profile
 from .. import tools

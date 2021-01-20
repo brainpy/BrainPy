@@ -13,7 +13,7 @@ __all__ = [
     'stability_analysis',
     'rescale',
     'timeout',
-    'jit_func',
+    'jit_compile',
 ]
 
 _SADDLE_NODE = 'saddle-node'
@@ -186,7 +186,7 @@ def jit(func):
         njit(func)
 
 
-def jit_func(scope, func_code, func_name):
+def jit_compile(scope, func_code, func_name):
     # get function scope
     func_scope = dict()
     for key, val in scope.items():

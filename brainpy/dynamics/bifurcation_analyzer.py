@@ -18,7 +18,7 @@ from .utils import stability_analysis
 from .. import tools
 from ..core import NeuType
 from ..errors import ModelUseError
-from ..integration import sympy_tools
+from ..integration import utils
 
 __all__ = [
     'BifurcationAnalyzer',
@@ -214,13 +214,13 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
 
     def get_f_fixed_point(self):
         if self.f_fixed_point is None:
-            x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
+            x_eq = utils.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
             x_group = self.target_eqs[self.x_var]
 
             # function scope
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(sympy_tools.get_mapping_scope())
+            eq_x_scope.update(utils.get_mapping_scope())
             eq_x_scope.update(x_group.diff_eq.func_scope)
 
             # optimizer
@@ -228,7 +228,7 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
             func_codes = [f'def optimizer_x({self.x_var}, {arg_of_pars}):']
             for expr in x_group['exprs'][:-1]:
                 func_codes.append(f'{expr.var_name} = {expr.code}')
-            func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
+            func_codes.append(f'return {utils.sympy2str(x_eq)}')
             exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
             optimizer = eq_x_scope['optimizer_x']
             optimizer = njit(optimizer)
@@ -251,7 +251,7 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
             eqs_of_x = self.target_eqs[self.x_var]
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(sympy_tools.get_mapping_scope())
+            scope.update(utils.get_mapping_scope())
             scope.update(eqs_of_x.diff_eq.func_scope)
             func_code = f'def func({self.x_var}, {arg_of_pars}):\n'
             for expr in eqs_of_x.exprs[:-1]:
@@ -266,12 +266,12 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
         if self.f_dfdx is None:
             arg_of_pars = ', '.join(list(self.target_pars.keys()))
             x_symbol = sympy.Symbol(self.x_var, real=True)
-            x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
+            x_eq = utils.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
             x_eq_group = self.target_eqs[self.x_var]
 
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(sympy_tools.get_mapping_scope())
+            eq_x_scope.update(utils.get_mapping_scope())
             eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
 
             # dfxdx
@@ -280,7 +280,7 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
                 func_codes = [f'def dfxdx({self.x_var}, {arg_of_pars}):']
                 for expr in x_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {sympy_tools.sympy2str(dfxdx_expr)}')
+                func_codes.append(f'return {utils.sympy2str(dfxdx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdx = eq_x_scope['dfxdx']
             except:
@@ -385,7 +385,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
             eqs_of_x = self.target_eqs[self.x_var]
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(sympy_tools.get_mapping_scope())
+            scope.update(utils.get_mapping_scope())
             scope.update(eqs_of_x.diff_eq.func_scope)
             arg_of_pars = ', '.join(list(self.target_pars.keys()))
             func_code = f'def func({self.x_var}, {self.y_var}, {arg_of_pars}):\n'
@@ -402,7 +402,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
             eqs_of_y = self.target_eqs[self.y_var]
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(sympy_tools.get_mapping_scope())
+            scope.update(utils.get_mapping_scope())
             scope.update(eqs_of_y.diff_eq.func_scope)
             arg_of_pars = ', '.join(list(self.target_pars.keys()))
             func_code = f'def func({self.x_var}, {self.y_var}, {arg_of_pars}):\n'
@@ -417,19 +417,19 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
         if self.f_jacobian is None:
             x_symbol = sympy.Symbol(self.x_var, real=True)
             y_symbol = sympy.Symbol(self.y_var, real=True)
-            x_eq = sympy_tools.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
-            y_eq = sympy_tools.str2sympy(self.target_eqs[self.y_var].dependent_expr.code)
+            x_eq = utils.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
+            y_eq = utils.str2sympy(self.target_eqs[self.y_var].dependent_expr.code)
             x_eq_group = self.target_eqs[self.x_var]
             y_eq_group = self.target_eqs[self.y_var]
 
             eq_y_scope = deepcopy(self.pars_update)
             eq_y_scope.update(self.fixed_vars)
-            eq_y_scope.update(sympy_tools.get_mapping_scope())
+            eq_y_scope.update(utils.get_mapping_scope())
             eq_y_scope.update(y_eq_group['diff_eq'].func_scope)
 
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(sympy_tools.get_mapping_scope())
+            eq_x_scope.update(utils.get_mapping_scope())
             eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
 
             arg_of_pars = ', '.join(list(self.target_pars.keys()))
@@ -440,7 +440,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                 func_codes = [f'def dfxdx({self.x_var}, {self.y_var}, {arg_of_pars}):']
                 for expr in x_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {sympy_tools.sympy2str(dfxdx_expr)}')
+                func_codes.append(f'return {utils.sympy2str(dfxdx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdx = eq_x_scope['dfxdx']
             except:
@@ -458,7 +458,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                 func_codes = [f'def dfxdy({self.x_var}, {self.y_var}, {arg_of_pars}):']
                 for expr in x_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {sympy_tools.sympy2str(dfxdy_expr)}')
+                func_codes.append(f'return {utils.sympy2str(dfxdy_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdy = eq_x_scope['dfxdy']
             except:
@@ -476,7 +476,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                 func_codes = [f'def dfydx({self.x_var}, {self.y_var}, {arg_of_pars}):']
                 for expr in y_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {sympy_tools.sympy2str(dfydx_expr)}')
+                func_codes.append(f'return {utils.sympy2str(dfydx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 dfydx = eq_y_scope['dfydx']
             except:
@@ -494,7 +494,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                 func_codes = [f'def dfydy({self.x_var}, {self.y_var}, {arg_of_pars}):']
                 for expr in y_eq_group.exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {sympy_tools.sympy2str(dfydy_expr)}')
+                func_codes.append(f'return {utils.sympy2str(dfydy_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 dfydy = eq_y_scope['dfydy']
             except:
@@ -524,8 +524,8 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
         if self.f_fixed_point is None:
             x_eq_group = self.target_eqs[self.x_var]
             y_eq_group = self.target_eqs[self.y_var]
-            x_eq = sympy_tools.str2sympy(x_eq_group['dependent_expr'].code)
-            y_eq = sympy_tools.str2sympy(y_eq_group['dependent_expr'].code)
+            x_eq = utils.str2sympy(x_eq_group['dependent_expr'].code)
+            y_eq = utils.str2sympy(y_eq_group['dependent_expr'].code)
 
             f_get_y_by_x = None
             f_get_x_by_y = None
@@ -534,12 +534,12 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
             eq_y_scope = deepcopy(self.pars_update)
             eq_y_scope.update(self.fixed_vars)
-            eq_y_scope.update(sympy_tools.get_mapping_scope())
+            eq_y_scope.update(utils.get_mapping_scope())
             eq_y_scope.update(y_eq_group['diff_eq'].func_scope)
 
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(sympy_tools.get_mapping_scope())
+            eq_x_scope.update(utils.get_mapping_scope())
             eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
 
             arg_of_pars = ', '.join(list(self.target_pars.keys()))
@@ -552,7 +552,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                 if len(y_eq_by_x) > 1:
                     raise ValueError('Multiple values.')
                 # subs dict
-                y_eq_by_x = sympy_tools.sympy2str(y_eq_by_x[0])
+                y_eq_by_x = utils.sympy2str(y_eq_by_x[0])
                 subs_codes = [f'{expr.var_name} = {expr.code}' for expr in y_eq_group['exprs'][:-1]]
                 subs_codes.append(f'{self.y_var} = {y_eq_by_x}')
                 # mapping x -> y
@@ -569,7 +569,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     if len(y_eq_by_y) > 1:
                         raise ValueError('Multiple values.')
                     # subs dict
-                    y_eq_by_y = sympy_tools.sympy2str(y_eq_by_y[0])
+                    y_eq_by_y = utils.sympy2str(y_eq_by_y[0])
                     subs_codes = [f'{expr.var_name} = {expr.code}' for expr in y_eq_group['exprs'][:-1]]
                     subs_codes.append(f'{self.y_var} = {y_eq_by_y}')
                     # mapping y -> x
@@ -592,7 +592,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     if len(x_eq_by_y) > 1:
                         raise ValueError('Multiple values.')
                     # subs dict
-                    x_eq_by_y = sympy_tools.sympy2str(x_eq_by_y[0])
+                    x_eq_by_y = utils.sympy2str(x_eq_by_y[0])
                     subs_codes = [f'{expr.var_name} = {expr.code}'
                                   for expr in x_eq_group['exprs'][:-1]]
                     subs_codes.append(f'{self.x_var} = {x_eq_by_y}')
@@ -610,7 +610,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                         if len(x_eq_by_x) > 1:
                             raise ValueError('Multiple values.')
                         # subs dict
-                        x_eq_by_x = sympy_tools.sympy2str(x_eq_by_x[0])
+                        x_eq_by_x = utils.sympy2str(x_eq_by_x[0])
                         subs_codes = [f'{expr.var_name} = {expr.code}' for expr in x_eq_group['exprs'][:-1]]
                         subs_codes.append(f'{self.y_var} = {x_eq_by_x}')
                         # mapping x -> y
@@ -636,7 +636,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
 
             eq_xy_scope = deepcopy(self.pars_update)
             eq_xy_scope.update(self.fixed_vars)
-            eq_xy_scope.update(sympy_tools.get_mapping_scope())
+            eq_xy_scope.update(utils.get_mapping_scope())
             eq_xy_scope.update(x_eq_group['diff_eq'].func_scope)
             eq_xy_scope.update(y_eq_group['diff_eq'].func_scope)
             for key in eq_xy_scope.keys():
@@ -650,7 +650,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     func_codes += subs_codes
                     func_codes.extend([f'{expr.var_name} = {expr.code}'
                                        for expr in x_eq_group['exprs'][:-1]])
-                    func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
+                    func_codes.append(f'return {utils.sympy2str(x_eq)}')
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                     optimizer = eq_xy_scope['optimizer_x']
                     optimizer = njit(optimizer)
@@ -672,7 +672,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     func_codes += subs_codes
                     func_codes.extend([f'{expr.var_name} = {expr.code}'
                                        for expr in x_eq_group['exprs'][:-1]])
-                    func_codes.append(f'return {sympy_tools.sympy2str(x_eq)}')
+                    func_codes.append(f'return {utils.sympy2str(x_eq)}')
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                     optimizer = eq_xy_scope['optimizer_y']
                     optimizer = njit(optimizer)
@@ -695,7 +695,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     func_codes += subs_codes
                     func_codes.extend([f'{expr.var_name} = {expr.code}'
                                        for expr in y_eq_group['exprs'][:-1]])
-                    func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
+                    func_codes.append(f'return {utils.sympy2str(y_eq)}')
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                     optimizer = eq_xy_scope['optimizer_x']
                     optimizer = njit(optimizer)
@@ -717,7 +717,7 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
                     func_codes += subs_codes
                     func_codes.extend([f'{expr.var_name} = {expr.code}'
                                        for expr in y_eq_group['exprs'][:-1]])
-                    func_codes.append(f'return {sympy_tools.sympy2str(y_eq)}')
+                    func_codes.append(f'return {utils.sympy2str(y_eq)}')
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_xy_scope)
                     optimizer = eq_xy_scope['optimizer_y']
                     optimizer = njit(optimizer)

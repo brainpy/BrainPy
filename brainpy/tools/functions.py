@@ -23,9 +23,7 @@ __all__ = [
     'numba_func',
     'get_func_name',
     'get_func_scope',
-    'find_integrators',
 ]
-
 
 def get_cuda_size(num):
     if num < profile.get_num_thread_gpu():
@@ -197,31 +195,4 @@ def get_func_scope(func, include_dispatcher=False):
 
     return scope
 
-
-def find_integrators(func):
-    """Find integrators in a given function.
-
-    Parameters
-    ----------
-    func : callable
-        The function.
-
-    Returns
-    -------
-    integrators : list
-        A list of integrators.
-    """
-    if not callable(func) or type(func).__name__ != 'function':
-        return []
-
-    ints = []
-    variables = inspect.getclosurevars(func)
-    scope = dict(variables.nonlocals)
-    scope.update(variables.globals)
-    for val in scope.values():
-        if isinstance(val, Integrator):
-            ints.append(val)
-        elif callable(val):
-            ints.extend(find_integrators(val))
-    return ints
 

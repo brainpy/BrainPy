@@ -2,8 +2,8 @@
 
 from pprint import pprint
 
-from ..integration.sympy_tools import FUNCTION_MAPPING
-from ..integration.sympy_tools import CONSTANT_MAPPING
+from ..integration.utils import FUNCTION_MAPPING
+from ..integration.utils import CONSTANT_MAPPING
 
 __all__ = [
     'show_code_scope',

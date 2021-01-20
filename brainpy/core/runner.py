@@ -19,7 +19,7 @@ from .. import tools
 from ..errors import ModelDefError
 from ..errors import ModelUseError
 from ..integration.integrator import Integrator
-from ..integration.sympy_tools import get_mapping_scope
+from ..integration.utils import get_mapping_scope
 
 __all__ = [
     'Runner',

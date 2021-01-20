@@ -118,7 +118,6 @@ def swapaxes_func(x, axis1, axis2):
 def logspace_func(start, stop, num=50, endpoint=True, base=10.0, dtype=None):
     def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None):
         return numpy.power(base, numpy.linspace(start, stop, num=num, endpoint=endpoint)).astype(dtype)
-
     return logspace
 
 
