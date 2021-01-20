@@ -8,9 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sympy
 
+from . import solver
 from . import utils
-from .solver import find_root_of_1d
-from .solver import find_root_of_2d
 from .. import integration
 from .. import tools
 from ..core import NeuType
@@ -395,7 +394,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
                 func_codes.append(f'{expr.var_name} = {expr.code}')
             func_codes.append(f'return {x_group.old_exprs[-1].code}')
             optimizer = utils.jit_compile(scope, '\n  '.join(func_codes), 'optimizer_x')
-            x_values = find_root_of_1d(optimizer, self.xs)
+            x_values = solver.find_root_of_1d(optimizer, self.xs)
             x_values = np.array(x_values)
 
         # differential #
@@ -828,7 +827,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                                    for expr in x_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {integration.sympy2str(x_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_x')
-                x_values = find_root_of_1d(optimizer, self.xs)
+                x_values = solver.find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
@@ -838,7 +837,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                                    for expr in x_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {integration.sympy2str(x_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_y')
-                y_values = find_root_of_1d(optimizer, self.ys)
+                y_values = solver.find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
 
@@ -849,7 +848,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                                    for expr in y_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {integration.sympy2str(y_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_x')
-                x_values = find_root_of_1d(optimizer, self.xs)
+                x_values = solver.find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
                 y_values = f_get_y_by_x(x_values)
 
@@ -859,7 +858,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                                    for expr in y_eq_group.sub_exprs[:-1]])
                 func_codes.append(f'return {integration.sympy2str(y_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_y')
-                y_values = find_root_of_1d(optimizer, self.ys)
+                y_values = solver.find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
                 x_values = f_get_x_by_y(y_values)
 
@@ -881,13 +880,13 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             # f**2 + g**2
             optimizer = lambda x: f_x(x[0], x[1]) ** 2 + g_y(x[0], x[1]) ** 2
             # optimization results
-            points = find_root_of_2d(optimizer,
-                                     x_bound=self.target_vars[self.x_var],
-                                     y_bound=self.target_vars[self.y_var],
-                                     shgo_args=self.options.shgo_args,
-                                     fl_tol=self.options.fl_tol,
-                                     xl_tol=self.options.xl_tol,
-                                     verbose=self.options.show_shgo)
+            points = solver.find_root_of_2d(optimizer,
+                                            x_bound=self.target_vars[self.x_var],
+                                            y_bound=self.target_vars[self.y_var],
+                                            shgo_args=self.options.shgo_args,
+                                            fl_tol=self.options.fl_tol,
+                                            xl_tol=self.options.xl_tol,
+                                            verbose=self.options.show_shgo)
             x_values, y_values = [], []
             for p in points:
                 x_values.append(p[0])
@@ -1024,7 +1023,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             x_values, y_values = [], []
             for y in self.ys:
-                xs = find_root_of_1d(optimizer, self.xs, args=(y,))
+                xs = solver.find_root_of_1d(optimizer, self.xs, args=(y,))
                 for x in xs:
                     x_values.append(x)
                     y_values.append(y)
@@ -1121,7 +1120,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
             x_values, y_values = [], []
             for y in self.ys:
-                xs = find_root_of_1d(optimizer, self.xs, (y,))
+                xs = solver.find_root_of_1d(optimizer, self.xs, (y,))
                 for x in xs:
                     x_values.append(x)
                     y_values.append(y)
