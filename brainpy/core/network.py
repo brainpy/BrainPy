@@ -12,6 +12,7 @@ from .neurons import NeuGroup
 from .synapses import SynConn
 from .. import profile
 from .. import tools
+from . import utils
 from ..errors import ModelUseError
 
 __all__ = [
@@ -181,9 +182,9 @@ class Network(object):
         step_func = code_scopes['step_func']
 
         if profile.show_format_code():
-            tools.show_code_str(func_code.replace('def ', f'def network_'))
+            utils.show_code_str(func_code.replace('def ', f'def network_'))
         if profile.show_code_scope():
-            tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
+            utils.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         return step_func
 

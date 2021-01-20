@@ -8,15 +8,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sympy
 
+from . import utils
 from .solver import find_root_of_1d
 from .solver import find_root_of_2d
-from . import utils
+from .. import integration
 from .. import tools
 from ..core import NeuType
 from ..core.neurons import NeuGroup
 from ..core.runner import TrajectoryRunner
 from ..errors import ModelUseError
-from ..integration import utils
 
 __all__ = [
     'PhasePortraitAnalyzer',
@@ -289,7 +289,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             eqs_of_x = self.target_eqs[self.x_var]
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(utils.get_mapping_scope())
+            scope.update(integration.get_mapping_scope())
             scope.update(eqs_of_x.diff_eq.func_scope)
             func_code = f'def func({self.x_var}):\n'
             for expr in eqs_of_x.old_exprs[:-1]:
@@ -303,12 +303,12 @@ class _1DSystemAnalyzer(_PPAnalyzer):
     def get_f_dfdx(self):
         if self.f_dfdx is None:
             x_symbol = sympy.Symbol(self.x_var, real=True)
-            x_eq = utils.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
+            x_eq = integration.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
             x_eq_group = self.target_eqs[self.x_var]
 
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(utils.get_mapping_scope())
+            eq_x_scope.update(integration.get_mapping_scope())
             eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
 
             # dfxdx
@@ -318,7 +318,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def dfxdx({self.x_var}):']
                 for expr in x_eq_group.sub_exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {utils.sympy2str(dfxdx_expr)}')
+                func_codes.append(f'return {integration.sympy2str(dfxdx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdx = eq_x_scope['dfxdx']
             except:
@@ -355,13 +355,13 @@ class _1DSystemAnalyzer(_PPAnalyzer):
             plt.show()
 
     def plot_fixed_point(self, show=False):
-        x_eq = utils.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
+        x_eq = integration.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
         x_group = self.target_eqs[self.x_var]
 
         # function scope
         scope = deepcopy(self.pars_update)
         scope.update(self.fixed_vars)
-        scope.update(utils.get_mapping_scope())
+        scope.update(integration.get_mapping_scope())
         scope.update(x_group.diff_eq.func_scope)
 
         sympy_failed = True
@@ -376,7 +376,7 @@ class _1DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def solve_x():']
                 for expr in x_group.sub_exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                return_expr = ', '.join([utils.sympy2str(expr) for expr in results])
+                return_expr = ', '.join([integration.sympy2str(expr) for expr in results])
                 func_codes.append(f'return {return_expr}')
 
                 # function
@@ -487,7 +487,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             eqs_of_x = self.target_eqs[self.x_var]
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(utils.get_mapping_scope())
+            scope.update(integration.get_mapping_scope())
             scope.update(eqs_of_x.diff_eq.func_scope)
             func_code = f'def func({self.x_var}, {self.y_var}):\n'
             for expr in eqs_of_x.old_exprs[:-1]:
@@ -505,7 +505,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             eqs_of_y = self.target_eqs[self.y_var]
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(utils.get_mapping_scope())
+            scope.update(integration.get_mapping_scope())
             scope.update(eqs_of_y.diff_eq.func_scope)
             func_code = f'def func({self.x_var}, {self.y_var}):\n'
             for expr in eqs_of_y.old_exprs[:-1]:
@@ -521,19 +521,19 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         if self.f_jacobian is None:
             x_symbol = sympy.Symbol(self.x_var, real=True)
             y_symbol = sympy.Symbol(self.y_var, real=True)
-            x_eq = utils.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
-            y_eq = utils.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
+            x_eq = integration.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
+            y_eq = integration.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
             x_eq_group = self.target_eqs[self.x_var]
             y_eq_group = self.target_eqs[self.y_var]
 
             eq_y_scope = deepcopy(self.pars_update)
             eq_y_scope.update(self.fixed_vars)
-            eq_y_scope.update(utils.get_mapping_scope())
+            eq_y_scope.update(integration.get_mapping_scope())
             eq_y_scope.update(y_eq_group['diff_eq'].func_scope)
 
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(utils.get_mapping_scope())
+            eq_x_scope.update(integration.get_mapping_scope())
             eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
 
             # dfxdx
@@ -543,7 +543,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def dfxdx({self.x_var}, {self.y_var}):']
                 for expr in x_eq_group.sub_exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {utils.sympy2str(dfxdx_expr)}')
+                func_codes.append(f'return {integration.sympy2str(dfxdx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdx = eq_x_scope['dfxdx']
             except (NotImplementedError, KeyboardInterrupt):
@@ -562,7 +562,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def dfxdy({self.x_var}, {self.y_var}):']
                 for expr in x_eq_group.sub_exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {utils.sympy2str(dfxdy_expr)}')
+                func_codes.append(f'return {integration.sympy2str(dfxdy_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                 dfxdy = eq_x_scope['dfxdy']
             except (NotImplementedError, KeyboardInterrupt):
@@ -581,7 +581,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def dfydx({self.x_var}, {self.y_var}):']
                 for expr in y_eq_group.sub_exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {utils.sympy2str(dfydx_expr)}')
+                func_codes.append(f'return {integration.sympy2str(dfydx_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 dfydx = eq_y_scope['dfydx']
             except KeyboardInterrupt:
@@ -600,7 +600,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def dfydy({self.x_var}, {self.y_var}):']
                 for expr in y_eq_group.sub_exprs[:-1]:
                     func_codes.append(f'{expr.var_name} = {expr.code}')
-                func_codes.append(f'return {utils.sympy2str(dfydy_expr)}')
+                func_codes.append(f'return {integration.sympy2str(dfydy_expr)}')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                 dfydy = eq_y_scope['dfydy']
             except KeyboardInterrupt:
@@ -657,8 +657,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
             plt.show()
 
     def plot_fixed_point(self, show=False):
-        x_eq = utils.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
-        y_eq = utils.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
+        x_eq = integration.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
+        y_eq = integration.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
         x_eq_group = self.target_eqs[self.x_var]
         y_eq_group = self.target_eqs[self.y_var]
 
@@ -669,12 +669,12 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         eq_y_scope = deepcopy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
-        eq_y_scope.update(utils.get_mapping_scope())
+        eq_y_scope.update(integration.get_mapping_scope())
         eq_y_scope.update(y_eq_group['diff_eq'].func_scope)
 
         eq_x_scope = deepcopy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
-        eq_x_scope.update(utils.get_mapping_scope())
+        eq_x_scope.update(integration.get_mapping_scope())
         eq_x_scope.update(x_eq_group['diff_eq'].func_scope)
 
         timeout_len = self.options.sympy_solver_timeout
@@ -692,7 +692,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     y_by_x_in_y_eq = f()
                     if len(y_by_x_in_y_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
-                    y_by_x_in_y_eq = utils.sympy2str(y_by_x_in_y_eq[0])
+                    y_by_x_in_y_eq = integration.sympy2str(y_by_x_in_y_eq[0])
                     self.y_by_x_in_y_eq = y_by_x_in_y_eq
                     print('success.')
                 else:
@@ -724,7 +724,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     x_by_y_in_y_eq = f()
                     if len(x_by_y_in_y_eq) > 1:
                         raise NotImplementedError('Multiple values.')
-                    x_by_y_in_y_eq = utils.sympy2str(x_by_y_in_y_eq[0])
+                    x_by_y_in_y_eq = integration.sympy2str(x_by_y_in_y_eq[0])
                     self.x_by_y_in_y_eq = x_by_y_in_y_eq
                     print('success.')
                 else:
@@ -758,7 +758,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     x_by_y_in_x_eq = f()
                     if len(x_by_y_in_x_eq) > 1:
                         raise NotImplementedError('Multiple solved values.')
-                    x_by_y_in_x_eq = utils.sympy2str(x_by_y_in_x_eq[0])
+                    x_by_y_in_x_eq = integration.sympy2str(x_by_y_in_x_eq[0])
                     self.x_by_y_in_x_eq = x_by_y_in_x_eq
                     print('success.')
                 else:
@@ -788,7 +788,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                         y_by_x_in_x_eq = f()
                         if len(y_by_x_in_x_eq) > 1:
                             raise NotImplementedError('Multiple values.')
-                        y_by_x_in_x_eq = utils.sympy2str(y_by_x_in_x_eq[0])
+                        y_by_x_in_x_eq = integration.sympy2str(y_by_x_in_x_eq[0])
                         self.y_by_x_in_x_eq = y_by_x_in_x_eq
                         print('success.')
                     else:
@@ -813,7 +813,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
 
         eq_xy_scope = deepcopy(self.pars_update)
         eq_xy_scope.update(self.fixed_vars)
-        eq_xy_scope.update(utils.get_mapping_scope())
+        eq_xy_scope.update(integration.get_mapping_scope())
         eq_xy_scope.update(x_eq_group['diff_eq'].func_scope)
         eq_xy_scope.update(y_eq_group['diff_eq'].func_scope)
         for key in eq_xy_scope.keys():
@@ -826,7 +826,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def optimizer_x({self.x_var}):'] + subs_codes
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in x_eq_group.sub_exprs[:-1]])
-                func_codes.append(f'return {utils.sympy2str(x_eq)}')
+                func_codes.append(f'return {integration.sympy2str(x_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_x')
                 x_values = find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
@@ -836,7 +836,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def optimizer_y({self.y_var}):'] + subs_codes
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in x_eq_group.sub_exprs[:-1]])
-                func_codes.append(f'return {utils.sympy2str(x_eq)}')
+                func_codes.append(f'return {integration.sympy2str(x_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_y')
                 y_values = find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
@@ -847,7 +847,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def optimizer_x({self.x_var}):'] + subs_codes
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in y_eq_group.sub_exprs[:-1]])
-                func_codes.append(f'return {utils.sympy2str(y_eq)}')
+                func_codes.append(f'return {integration.sympy2str(y_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_x')
                 x_values = find_root_of_1d(optimizer, self.xs)
                 x_values = np.array(x_values)
@@ -857,7 +857,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                 func_codes = [f'def optimizer_y({self.y_var}):'] + subs_codes
                 func_codes.extend([f'{expr.var_name} = {expr.code}'
                                    for expr in y_eq_group.sub_exprs[:-1]])
-                func_codes.append(f'return {utils.sympy2str(y_eq)}')
+                func_codes.append(f'return {integration.sympy2str(y_eq)}')
                 optimizer = utils.jit_compile(eq_xy_scope, '\n  '.join(func_codes), 'optimizer_y')
                 y_values = find_root_of_1d(optimizer, self.ys)
                 y_values = np.array(y_values)
@@ -928,8 +928,8 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         return np.array([[x, y] for x, y in zip(x_values, y_values)])
 
     def plot_nullcline(self, show=False):
-        y_eq = utils.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
-        x_eq = utils.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
+        y_eq = integration.str2sympy(self.target_eqs[self.y_var].sub_exprs[-1].code)
+        x_eq = integration.str2sympy(self.target_eqs[self.x_var].sub_exprs[-1].code)
         y_group = self.target_eqs[self.y_var]
         x_group = self.target_eqs[self.x_var]
         x_style = dict(color='lightcoral', alpha=.7, )
@@ -940,7 +940,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         # Nullcline of the y variable
         eq_y_scope = deepcopy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
-        eq_y_scope.update(utils.get_mapping_scope())
+        eq_y_scope.update(integration.get_mapping_scope())
         eq_y_scope.update(y_group.diff_eq.func_scope)
 
         sympy_failed = True
@@ -954,7 +954,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     y_by_x_in_y_eq = f()
                     if len(y_by_x_in_y_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
-                    y_by_x_in_y_eq = utils.sympy2str(y_by_x_in_y_eq[0])
+                    y_by_x_in_y_eq = integration.sympy2str(y_by_x_in_y_eq[0])
                     self.y_by_x_in_y_eq = y_by_x_in_y_eq
                     print('success.')
                 else:
@@ -989,7 +989,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     x_by_y_in_y_eq = f()
                     if len(x_by_y_in_y_eq) > 1:
                         raise NotImplementedError('Multiple values.')
-                    x_by_y_in_y_eq = utils.sympy2str(x_by_y_in_y_eq[0])
+                    x_by_y_in_y_eq = integration.sympy2str(x_by_y_in_y_eq[0])
                     self.x_by_y_in_y_eq = x_by_y_in_y_eq
                 else:
                     x_by_y_in_y_eq = self.x_by_y_in_y_eq
@@ -1036,7 +1036,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
         # Nullcline of the x variable
         eq_x_scope = deepcopy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
-        eq_x_scope.update(utils.get_mapping_scope())
+        eq_x_scope.update(integration.get_mapping_scope())
         eq_x_scope.update(x_group.diff_eq.func_scope)
 
         sympy_failed = True
@@ -1051,7 +1051,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     y_by_x_in_x_eq = f()
                     if len(y_by_x_in_x_eq) > 1:
                         raise NotImplementedError('Multiple values.')
-                    y_by_x_in_x_eq = utils.sympy2str(y_by_x_in_x_eq[0])
+                    y_by_x_in_x_eq = integration.sympy2str(y_by_x_in_x_eq[0])
                     self.y_by_x_in_x_eq = y_by_x_in_x_eq
                     print('success.')
                 else:
@@ -1086,7 +1086,7 @@ class _2DSystemAnalyzer(_PPAnalyzer):
                     x_by_y_in_x_eq = f()
                     if len(x_by_y_in_x_eq) > 1:
                         raise NotImplementedError('Multiple solved values.')
-                    x_by_y_in_x_eq = utils.sympy2str(x_by_y_in_x_eq[0])
+                    x_by_y_in_x_eq = integration.sympy2str(x_by_y_in_x_eq[0])
                     self.x_by_y_in_x_eq = x_by_y_in_x_eq
                     print('success.')
                 else:

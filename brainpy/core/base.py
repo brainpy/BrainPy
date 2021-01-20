@@ -94,7 +94,7 @@ class ObjType(object):
                 self.step_args.add(arg)
 
             # function scope
-            scope = tools.get_func_scope(func, include_dispatcher=True)
+            scope = utils.get_func_scope(func, include_dispatcher=True)
             for k, v in scope.items():
                 if k in self.step_scopes:
                     if v != self.step_scopes[k]:
@@ -541,9 +541,9 @@ class Ensemble(object):
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
         if profile.show_format_code():
-            tools.show_code_str(func_code)
+            utils.show_code_str(func_code)
         if profile.show_code_scope():
-            tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
+            utils.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         # run the model
         # -------------

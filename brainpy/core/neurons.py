@@ -34,7 +34,6 @@ class NeuType(ObjType):
             mode: str = 'vector',
             requires: dict = None,
             hand_overs: typing.Dict = None,
-            heter_params_replace: typing.Dict = None,
     ):
         if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE]:
             raise ModelDefError('NeuType only support "scalar" or "vector".')
@@ -45,7 +44,6 @@ class NeuType(ObjType):
             steps=steps,
             name=name,
             mode=mode,
-            heter_params_replace=heter_params_replace,
             hand_overs=hand_overs)
 
 
