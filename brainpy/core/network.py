@@ -205,7 +205,7 @@ class Network(object):
         return step_func
 
     def run(self, duration, inputs=(), report=False, report_percent=0.1,
-            data_to_host=False):
+            data_to_host=False, verbose=True):
         """Run the simulation for the given duration.
 
         This function provides the most convenient way to run the network.
@@ -222,7 +222,9 @@ class Network(object):
         report_percent : float
             The speed to report simulation progress.
         data_to_host : bool
-            Transfer the gpu data to cpu.
+            Transfer the gpu data to cpu. Available in CUDA backend.
+        verbose : bool
+            Show the error information.
         """
         # check the duration
         # ------------------
@@ -246,31 +248,47 @@ class Network(object):
         else:
             # check and reset inputs
             # ----------------------
+            input_keep_same = True
             formatted_inputs = self.format_inputs(inputs, run_length)
-            for obj_name, inps in formatted_inputs.items():
-                obj = getattr(self, obj_name)
-                obj_inputs = obj.runner._inputs
-                all_keys = list(obj_inputs.keys())
-                for key, val, ops, data_type in inps:
-                    if np.shape(obj_inputs[key][0]) != np.shape(val):
-                        raise ModelUseError(f'The input shape for "{key}" should keep the same. '
-                                            f'However, we got the last input shape '
-                                            f'= {np.shape(obj_inputs[key][0])}, '
-                                            f'and the current input shape = {np.shape(val)}')
-                    if obj_inputs[key][1] != ops:
-                        raise ModelUseError(f'The input operation for "{key}" should keep the same. '
-                                            f'However, we got the last operation is '
-                                            f'"{obj_inputs[key][1]}", and the current operation '
-                                            f'is "{ops}"')
-                    obj.runner.set_data(f'{key.replace(".", "_")}_inp', val)
-                    all_keys.remove(key)
-                if len(all_keys):
-                    raise ModelUseError(f'The inputs of {all_keys} in {obj_name} are not provided.')
-
-            # reset monitors
-            # --------------
             for obj in self._all_objects.values():
-                obj.reshape_mon(run_length)
+                obj_name = obj.name
+                obj_inputs = obj.runner._inputs
+                onj_input_keys = list(obj_inputs.keys())
+                if obj_name in formatted_inputs:
+                    current_inputs = formatted_inputs[obj_name]
+                else:
+                    current_inputs = []
+                for key, val, ops, data_type in current_inputs:
+                    if np.shape(obj_inputs[key][0]) != np.shape(val):
+                        if verbose:
+                            print(f'The current "{key}" input shape {np.shape(val)} is different '
+                                  f'from the last input shape {np.shape(obj_inputs[key][0])}.')
+                            input_keep_same = False
+                    if obj_inputs[key][1] != ops:
+                        if verbose:
+                            print(f'The current "{key}" input operation "{ops}" is different '
+                                  f'from the last operation "{obj_inputs[key][1]}".')
+                            input_keep_same = False
+                    obj.runner.set_data(f'{key.replace(".", "_")}_inp', val)
+                    if key in onj_input_keys:
+                        onj_input_keys.remove(key)
+                    else:
+                        input_keep_same = False
+                        if verbose:
+                            print(f'The input to a new key "{key}" in {obj_name}.')
+                if len(onj_input_keys):
+                    input_keep_same = False
+                    if verbose:
+                        print(f'The inputs of {onj_input_keys} in {obj_name} are not provided.')
+            if input_keep_same:
+                # reset monitors
+                # --------------
+                for obj in self._all_objects.values():
+                    obj.reshape_mon(run_length)
+            else:
+                if verbose:
+                    print('The network will be rebuild.')
+                self._step_func = self.build(run_length, inputs)
 
         dt = self.dt
         if report:

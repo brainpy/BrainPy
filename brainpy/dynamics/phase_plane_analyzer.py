@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import typing
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy
 
-from .. import core
 from . import base
 from . import solver
 from . import utils
+from .. import core
 from .. import integration
+from .. import profile
 from .. import tools
-from ..core import NeuType
-from ..core.neurons import NeuGroup
-from ..core.runner import TrajectoryRunner
 from ..errors import ModelUseError
 
 __all__ = [
@@ -93,7 +90,7 @@ class PhasePlaneAnalyzer(object):
     ):
 
         # check "model"
-        if not isinstance(model, NeuType):
+        if not isinstance(model, core.NeuType):
             raise ModelUseError('Phase plane analysis only support neuron type model.')
         self.model = model
 
@@ -230,13 +227,6 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
     def __init__(self, *args, **kwargs):
         super(PhasePlane1DAnalyzer, self).__init__(*args, **kwargs)
 
-        # runner group
-        # ------------
-        # cannot update dynamical parameters
-        group = core.NeuGroup(self.model, geometry=1, monitors=self.dvar_names, pars_update=self.pars_update)
-        group.runner = core.TrajectoryRunner(group, target_vars=self.dvar_names, fixed_vars=self.fixed_vars)
-        self.traj_net = core.Network(group, mode='repeat')
-
     def plot_vector_field(self, show=False):
         # Nullcline of the x variable
         try:
@@ -345,9 +335,15 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
         # runner group
         # ------------
         # cannot update dynamical parameters
-        group = core.NeuGroup(self.model, geometry=1, monitors=self.dvar_names, pars_update=self.pars_update)
-        group.runner = core.TrajectoryRunner(group, target_vars=self.dvar_names, fixed_vars=self.fixed_vars)
-        self.traj_net = core.Network(group, mode='repeat')
+        self.traj_group = core.NeuGroup(self.model,
+                                        geometry=1,
+                                        monitors=self.dvar_names,
+                                        pars_update=self.pars_update)
+        self.traj_group.runner = core.TrajectoryRunner(self.traj_group,
+                                                       target_vars=self.dvar_names,
+                                                       fixed_vars=self.fixed_vars)
+        self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()}
+        self.traj_net = core.Network(self.traj_group)
 
     def plot_vector_field(self, line_widths=(0.5, 5.5), show=False):
         """Plot the vector field.
@@ -558,24 +554,29 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
         return {self.x_eq_group.func_name: (x_values_in_x_eq, y_values_in_x_eq),
                 self.y_eq_group.func_name: (x_values_in_y_eq, y_values_in_y_eq)}
 
-    def plot_trajectory(self, initials, duration, inputs=(), axes='v-v', show=False):
+    def plot_trajectory(self, initials, duration, plot_duration=None, inputs=(), axes='v-v', show=False):
         """Plot trajectories according to the settings.
-
-        When target_vars = ['m', 'n']
-        then, target_setting can be: (initial v1, initial v2, duration)
-                          (0., 1., 100.)       # initial values: m=0., n=1., duration=100.
-               or,        (0., 1., (10., 90.)) # initial values: m=0., n=1., simulation in [10., 90.]
-               or,        [(0., 1., (10., 90.)),
-                           (0.5, 1.5, 100.)]  # two trajectory
 
         Parameters
         ----------
         initials : list, tuple
-            The initial value setting of the targets.
+            The initial value setting of the targets. It can be a tuple/list of floats to specify
+            each value of dynamical variables (for example, ``(a, b)``). It can also be a
+            tuple/list of tuple to specify multiple initial values (for example,
+            ``[(a1, b1), (a2, b2)]``).
         duration : int, float, tuple, list
-            The running duration. Same with the ``duration`` in ``Network.run()``
+            The running duration. Same with the ``duration`` in ``NeuGroup.run()``.
+            It can be a int/float (``t_end``) to specify the same running end time,
+            or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
+            the start and end simulation time. Or, it can be a list of tuple
+            (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
+            start and end simulation time for each initial value.
+        plot_duration : tuple, list, optional
+            The duration to plot. It can be a tuple with ``(start, end)``. It can
+            also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
+            the plot duration for each initial value running.
         inputs : tuple, list
-            The inputs to the model. Same with the ``inputs`` in ``Network.run()``
+            The inputs to the model. Same with the ``inputs`` in ``NeuGroup.run()``
         axes : str
             The axes to plot. It can be:
 
@@ -586,110 +587,79 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
         show : bool
             Whether show or not.
         """
-        trajectories = get_trajectories(model=self.model,
-                                        target_vars=list(self.target_vars.keys()),
-                                        initials=initials,
-                                        duration=duration,
-                                        pars_update=self.pars_update,
-                                        fixed_vars=self.fixed_vars,
-                                        inputs=inputs)
+
+        if axes in ['v-v', 't-v']:
+            raise ModelUseError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
+
+        # 1. format the initial values
+        if isinstance(initials[0], (int, float)):
+            initials = [initials, ]
+        initials = np.array(initials)
+
+        # 2. format the running duration
+        if isinstance(duration, (int, float)):
+            duration = [(0, duration) for _ in range(len(initials))]
+        elif isinstance(duration[0], (int, float)):
+            duration = [duration for _ in range(len(initials))]
+        else:
+            assert len(duration) == len(initials)
+
+        # 3. format the plot duration
+        if plot_duration is None:
+            plot_duration = duration
+        if isinstance(plot_duration[0], (int, float)):
+            plot_duration = [plot_duration for _ in range(len(initials))]
+        else:
+            assert len(plot_duration) == len(initials)
+
+        # 4. run the network
+        for init_i, initial in enumerate(initials):
+            #   4.1 set the initial value
+            for key, val in self.traj_initial.items():
+                self.traj_group.ST[key] = val
+            for key_i, key in enumerate(self.dvar_names):
+                self.traj_group.ST[key] = initial[key_i]
+            for key, val in self.fixed_vars.items():
+                self.traj_group.ST[key] = val
+
+            #   4.2 run the model
+            self.traj_net.run(duration=duration[init_i], inputs=inputs,
+                              report=False, data_to_host=True, verbose=False)
+
+            #   4.3 legend
+            legend = 'traj, '
+            for key_i, key in enumerate(self.dvar_names):
+                legend += f'${key}_{init_i}$={initial[key_i]}, '
+            legend = legend[:-2]
+
+            #   4.4 trajectory
+            start = int(plot_duration[init_i][0] / profile.get_dt())
+            end = int(plot_duration[init_i][1] / profile.get_dt())
+
+            #   4.5 visualization
+            if axes == 'v-v':
+                plt.plot(self.traj_group.mon[self.x_var][start: end, 0],
+                         self.traj_group.mon[self.y_var][start: end, 0],
+                         label=legend)
+            else:
+                plt.plot(self.traj_group.mon.ts[start: end],
+                         self.traj_group.mon[self.x_var][start: end, 0],
+                         label=legend + f', {self.x_var}')
+                plt.plot(self.traj_group.mon.ts[start: end],
+                         self.traj_group.mon[self.y_var][start: end, 0],
+                         label=legend + f', {self.y_var}')
+
+        # 5. visualization
         if axes == 'v-v':
-            for trajectory in trajectories:
-                plt.plot(getattr(trajectory, self.x_var),
-                         getattr(trajectory, self.y_var),
-                         label=trajectory.legend)
             plt.xlabel(self.x_var)
             plt.ylabel(self.y_var)
             scale = (self.options.lim_scale - 1.) / 2
             plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
             plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
             plt.legend()
-        elif axes == 't-v':
-            for trajectory in trajectories:
-                plt.plot(trajectory.ts,
-                         getattr(trajectory, self.x_var),
-                         label=trajectory.legend + f', {self.x_var}')
-                plt.plot(trajectory.ts,
-                         getattr(trajectory, self.y_var),
-                         label=trajectory.legend + f', {self.y_var}')
-            plt.legend(title='Initial values')
         else:
-            raise ModelUseError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
+            plt.legend(title='Initial values')
+
         if show:
             plt.show()
 
-
-def get_trajectories(
-        model: NeuType,
-        target_vars: typing.Union[typing.List[str], typing.Tuple[str]],
-        initials: typing.Union[typing.List, typing.Tuple],
-        duration: typing.Union[int, typing.List, typing.Tuple],
-        fixed_vars: typing.Dict = None,
-        inputs: typing.Union[typing.List, typing.Tuple] = (),
-        pars_update: typing.Dict = None,
-):
-    """Get trajectories.
-
-    Parameters
-    ----------
-    model : NeuType
-        The neuron model.
-    target_vars : list, tuple
-        The target variables.
-    initials : tuple, list
-        The initial value setting of the targets. It can be a data with the format of
-        ``[(v1, v2), (v1, v2)]``.
-    duration : int, float, tuple, list
-        The running duration. Same with the ``duration`` in ``Network.run()``.
-    inputs : list, tuple
-        The model inputs. Same with the ``inputs`` in ``Network.run()``.
-    fixed_vars : dict
-        The fixed variables.
-    pars_update : dict
-        The parameters to update.
-
-    Returns
-    -------
-    trajectories : list
-        The trajectories.
-    """
-
-    # format initial value setting
-    if isinstance(initials[0], (int, float)):
-        initials = [initials, ]
-    initials = np.array(initials)
-
-    # format duration and initial values
-    initial_states = np.zeros((len(target_vars), len(initials)), dtype=np.float_)
-    for i, initial in enumerate(initials):
-        # checking
-        try:
-            assert len(initial) == len(target_vars)
-        except AssertionError:
-            raise ModelUseError('"initials" be a tuple/list/array with the format of '
-                                '[[var1 initial, var2 initial]].')
-        # initial values
-        for j, val in enumerate(initial):
-            initial_states[j, i] = val
-
-    # initialize neuron group
-    num = len(initials)
-    group = NeuGroup(model, geometry=num, monitors=target_vars, pars_update=pars_update)
-    for j, key in enumerate(target_vars):
-        group.ST[key] = initial_states[j]
-    group.runner = TrajectoryRunner(group, target_vars=target_vars, fixed_vars=fixed_vars)
-    group.run(duration=duration, inputs=inputs)
-
-    # monitors
-    trajectories = []
-    for i, initial in enumerate(initials):
-        trajectory = tools.DictPlus()
-        legend = 'traj, '
-        trajectory['ts'] = group.mon.ts
-        for j, var in enumerate(target_vars):
-            legend += f'${var}_0$={initial[j]}, '
-            trajectory[var] = getattr(group.mon, var)[:, i]
-        if legend.strip():
-            trajectory['legend'] = legend[:-2]
-        trajectories.append(trajectory)
-    return trajectories

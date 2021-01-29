@@ -818,5 +818,18 @@ class Bifurcation2DAnalyzer(_CoDimAnalyzer):
                 plt.show()
 
 
+
+
+class SlowFastBifurcation():
+    pass
+
+
+
+
+
 if __name__ == '__main__':
     Axes3D
+
+
+
+
