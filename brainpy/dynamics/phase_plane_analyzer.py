@@ -70,8 +70,8 @@ class PhasePlaneAnalyzer(object):
                 sampling_method.
             show_shgo
                 bool. whether print the shgo's value.
-            disturb
-                float. The small disturb used to solve the function derivative.
+            perturbation
+                float. The small perturbation used to solve the function derivative.
             fl_tol
                 float. The tolerance of the function value to recognize it as a condidate of
                 function root point.
@@ -79,7 +79,6 @@ class PhasePlaneAnalyzer(object):
                 float. The tolerance of the l2 norm distances between this point and previous
                 points. If the norm distances are all bigger than `xl_tol` means this
                 point belong to a new function root point.
-
     """
 
     def __init__(
@@ -126,13 +125,12 @@ class PhasePlaneAnalyzer(object):
         if options is None:
             options = dict()
         self.options = tools.DictPlus()
-        self.options['resolution'] = options.get('resolution', 0.1)
-        self.options['lim_scale'] = options.get('lim_scale', 1.05)
         self.options['sympy_solver_timeout'] = options.get('sympy_solver_timeout', 5)  # s
         self.options['escape_sympy_solver'] = options.get('escape_sympy_solver', False)
         self.options['shgo_args'] = options.get('shgo_args', dict())
         self.options['show_shgo'] = options.get('show_shgo', False)
-        self.options['disturb'] = options.get('disturb', 1e-4)
+        self.options['perturbation'] = options.get('perturbation', 1e-4)
+        self.options['lim_scale'] = options.get('lim_scale', 1.05)
         self.options['fl_tol'] = options.get('fl_tol', 1e-6)
         self.options['xl_tol'] = options.get('xl_tol', 1e-4)
 
@@ -182,10 +180,25 @@ class PhasePortraitAnalyzer(PhasePlaneAnalyzer):
 
 
 class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
+    """Phase plane analyzer for 1D system.
+    """
+
     def __init__(self, *args, **kwargs):
         super(PhasePlane1DAnalyzer, self).__init__(*args, **kwargs)
 
     def plot_vector_field(self, show=False):
+        """Plot the vector filed.
+
+        Parameters
+        ----------
+        show : bool
+            Whether show the figure.
+
+        Returns
+        -------
+        results : np.ndarray
+            The dx values.
+        """
         # Nullcline of the x variable
         try:
             y_val = self.get_f_dx()(self.resolutions[self.x_var])
@@ -205,8 +218,21 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
         plt.legend()
         if show:
             plt.show()
+        return y_val
 
     def plot_fixed_point(self, show=False):
+        """Plot the fixed point.
+
+        Parameters
+        ----------
+        show : bool
+            Whether show the figure.
+
+        Returns
+        -------
+        points : np.ndarray
+            The fixed points.
+        """
         x_eq = integration.str2sympy(self.x_eq_group.sub_exprs[-1].code).expr
         x_group = self.target_eqs[self.x_var]
 
@@ -289,6 +315,10 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
 
 
 class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
+    """Phase plane analyzer for 2D system.
+
+    """
+
     def __init__(self, *args, **kwargs):
         super(PhasePlane2DAnalyzer, self).__init__(*args, **kwargs)
 
@@ -307,19 +337,32 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
                              if not key.startswith('_')}
         self.traj_net = core.Network(self.traj_group)
 
-    def plot_vector_field(self, line_widths=(0.5, 5.5), show=False):
+    def plot_vector_field(self, plot_method='streamplot', plot_style=None, show=False):
         """Plot the vector field.
 
         Parameters
         ----------
-        line_widths :
-        show
+        plot_method : str
+            The method to plot the vector filed.
+            It can be "streamplot" or "quiver".
+        plot_style : dict, optional
+            The style for vector filed plotting.
+
+            - For ``plot_method="streamplot"``, it can set the keywords like "density",
+              "linewidth", "color", "arrowsize". More settings please check
+              https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html.
+            - For ``plot_method="quiver"``, it can set the keywords like "color",
+              "units", "angles", "scale". More settings please check
+              https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html.
 
         Returns
         -------
         result : tuple
             The ``dx``, ``dy`` values.
         """
+        if plot_style is None:
+            plot_style = dict()
+
         xs = self.resolutions[self.x_var]
         ys = self.resolutions[self.y_var]
         X, Y = np.meshgrid(xs, ys)
@@ -339,13 +382,28 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
                                 'variables to "fixed_vars".')
 
         # vector field
-        if np.isnan(dx).any() or np.isnan(dy).any():
-            plt.streamplot(X, Y, dx, dy)
+        if plot_method == 'quiver':
+            styles = dict()
+            styles['units'] = plot_style.get('units', 'xy')
+            if (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
+                speed = np.sqrt(dx ** 2 + dy ** 2)
+                dx = dx / speed
+                dy = dy / speed
+            plt.quiver(X, Y, dx, dy, **styles)
+        elif plot_method == 'streamplot':
+            styles = dict()
+            styles['arrowsize'] = plot_style.get('arrowsize', 1.2)
+            styles['density'] = plot_style.get('density', 1)
+            linewidth = plot_style.get('linewidth', None)
+            if (linewidth is None) and (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
+                min_width = plot_style.get('min_width', 0.5)
+                max_width = plot_style.get('min_width', 5.5)
+                speed = np.sqrt(dx ** 2 + dy ** 2)
+                linewidth = min_width + max_width * speed / speed.max()
+            plt.streamplot(X, Y, dx, dy, linewidth=linewidth, **styles)
         else:
-            speed = np.sqrt(dx ** 2 + dy ** 2)
-            lw_min, lw_max = line_widths
-            lw = lw_min + lw_max * speed / speed.max()
-            plt.streamplot(X, Y, dx, dy, linewidth=lw, arrowsize=1.2, density=1, color='thistle')
+            raise ValueError(f'Unknown plot_method "{plot_method}", only supports "quiver" and "streamplot".')
+
         plt.xlabel(self.x_var)
         plt.ylabel(self.y_var)
 
@@ -625,4 +683,3 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
 
         if show:
             plt.show()
-
