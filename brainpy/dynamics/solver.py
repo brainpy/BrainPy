@@ -284,9 +284,9 @@ def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
 
     # 4. x_values, y_values
     x_values, y_values = [], []
-    for p in points:
-        x_values.append([0])
-        y_values.append([1])
+    for p in final_points:
+        x_values.append(p[0])
+        y_values.append(p[1])
     x_values = np.ascontiguousarray(x_values)
     y_values = np.ascontiguousarray(y_values)
 

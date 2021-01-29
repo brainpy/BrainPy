@@ -26,7 +26,7 @@ __all__ = [
 class PhasePlaneAnalyzer(object):
     """Phase Portrait Analyzer.
 
-    `PhasePortraitAnalyzer` is used to analyze the phase portrait of 1D
+    `PhasePlaneAnalyzer` is used to analyze the phase portrait of 1D
     or 2D dynamical systems. It can also be used to analyze the phase
     portrait of high-dimensional system but with the fixation of other
     variables to preserve only one/two dynamical variables.
@@ -43,16 +43,18 @@ class PhasePlaneAnalyzer(object):
         The fixed variables, which means the variables will not be updated.
     pars_update : dict, optional
         The parameters in the differential equations to update.
+    numerical_resolution : float, dict
+        The variable resolution for numerical iterative solvers.
+        This variable will be useful in the solving of nullcline and fixed points
+        by using the iterative optimization method. It can be a float, which will
+        be used as ``numpy.arange(var_min, var_max, resolution)``. Or, it can be
+        a dict, with the format of ``{'var1': resolution1, 'var2': resolution2}``.
+        Or, it can be a dict with the format of ``{'var1': np.arange(x, x, x),
+        'var2': np.arange(x, x, x)}``.
+
     options : dict, optional
         The other setting parameters, which includes:
 
-            resolution
-                float or dict. Set the resolution of the target variables.
-                This variable will be useful in the solving of nullcline and fixed points
-                by using the iterative optimization method.
-                It can be a float, which will be used as ``numpy.arange(var_min, var_max, resolution)``.
-                Or, it can be a dict, with the format of ``{'var1': resolution1, 'var2': resolution2}``.
-                Or, it can be a dict with the format of ``{'var1': np.arange(x, x, x), 'var2': np.arange(x, x, x)}``.
             lim_scale
                 float. The axis limit scale factor. Default is 1.05. The setting means
                 the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
@@ -86,6 +88,7 @@ class PhasePlaneAnalyzer(object):
             target_vars,
             fixed_vars=None,
             pars_update=None,
+            numerical_resolution=0.1,
             options=None,
     ):
 
@@ -132,87 +135,42 @@ class PhasePlaneAnalyzer(object):
         self.options['disturb'] = options.get('disturb', 1e-4)
         self.options['fl_tol'] = options.get('fl_tol', 1e-6)
         self.options['xl_tol'] = options.get('xl_tol', 1e-4)
-        self.options['resolution'] = options.get('resolution', 0.1)
 
         # analyzer
         if len(target_vars) == 1:
             self.analyzer = PhasePlane1DAnalyzer(model=model,
-                                                 vars_dynamical=target_vars,
-                                                 vars_fixed=fixed_vars,
+                                                 target_vars=target_vars,
+                                                 fixed_vars=fixed_vars,
                                                  pars_update=pars_update,
+                                                 numerical_resolution=numerical_resolution,
                                                  options=self.options)
         elif len(target_vars) == 2:
             self.analyzer = PhasePlane2DAnalyzer(model=model,
-                                                 targevars_dynamicalt_vars=target_vars,
-                                                 vars_fixed=fixed_vars,
+                                                 target_vars=target_vars,
+                                                 fixed_vars=fixed_vars,
                                                  pars_update=pars_update,
+                                                 numerical_resolution=numerical_resolution,
                                                  options=self.options)
         else:
             raise ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
                                 'Or, you can set "fixed_vars" to fix other variables, '
                                 'then make 1D/2D phase plane analysis.')
 
-    def plot_vector_field(self, line_widths=(0.5, 5.5), show=False):
-        """Plot vector filed of a 2D/1D system.
+    def plot_vector_field(self, *args, **kwargs):
+        """Plot vector filed of a 2D/1D system."""
+        self.analyzer.plot_vector_field(*args, **kwargs)
 
-        Parameters
-        ----------
-        line_widths : sequence
-            The vector filed (especially the 2D dynamical system) will be plotted by using
-            the `matplotlib.pyplot.streamplot`. The argument is used to set the width of
-            the stream lines.
-        show : bool
-            Whether show the figure.
-        """
-        self.analyzer.plot_vector_field(line_widths=line_widths, show=show)
+    def plot_fixed_point(self, *args, **kwargs):
+        """Plot fixed points."""
+        return self.analyzer.plot_fixed_point(*args, **kwargs)
 
-    def plot_fixed_point(self, show=False):
-        """Plot fixed points.
+    def plot_nullcline(self, *args, **kwargs):
+        """Plot nullcline (only supported in 2D system)."""
+        self.analyzer.plot_nullcline(*args, **kwargs)
 
-        Parameters
-        ----------
-        show : bool
-            Whether show the figure.
-
-        Returns
-        -------
-        points : np.ndarray
-            The fixed points. For 1d dynamical system, return a 1d vector. For 2d dynamical
-            system, return a 2d vector.
-        """
-        return self.analyzer.plot_fixed_point(show=show)
-
-    def plot_nullcline(self, show=False):
-        """Plot nullcline (only supported in 2D system).
-
-        Parameters
-        ----------
-        show : bool
-            Whether show the figure.
-        """
-        self.analyzer.plot_nullcline(show=show)
-
-    def plot_trajectory(self, initials, duration, axes='v-v', inputs=(), show=False):
-        """Plot trajectories (only supported in 2D system).
-
-        When target_vars = ['m', 'n']
-        then, "initials" can be: [(initial v1, initial v2)]
-
-        Parameters
-        ----------
-        initials : list, tuple
-            The initial value setting of the targets.
-        duration : float, tuple
-            The running duration of the trajectory.
-        inputs : tuple, list
-            Same with the "inputs" in ``Network.run()``
-        axes : str
-            The axes.
-        show : bool
-            Whether show or not.
-        """
-        initials = np.array(initials)
-        self.analyzer.plot_trajectory(initials, duration=duration, axes=axes, inputs=inputs, show=show)
+    def plot_trajectory(self, *args, **kwargs):
+        """Plot trajectories (only supported in 2D system)."""
+        self.analyzer.plot_trajectory(*args, **kwargs)
 
 
 class PhasePortraitAnalyzer(PhasePlaneAnalyzer):
@@ -289,7 +247,8 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
                 func_codes.append(f'{expr.var_name} = {expr.code}')
             func_codes.append(f'return {x_group.old_exprs[-1].code}')
             optimizer = utils.jit_compile(scope, '\n  '.join(func_codes), 'optimizer_x')
-            x_values = solver.find_root_of_1d(optimizer, self.xs)
+            xs = self.resolutions[self.x_var]
+            x_values = solver.find_root_of_1d(optimizer, xs)
             x_values = np.array(x_values)
 
         # differential #
@@ -313,7 +272,8 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
         for fp_type, points in container.items():
             if len(points):
                 plot_style = utils.plot_scheme[fp_type]
-                plt.plot(points, [0] * len(points), '.', markersize=20, **plot_style, label=fp_type)
+                plt.plot(points, [0] * len(points), '.',
+                         markersize=20, **plot_style, label=fp_type)
 
         plt.legend()
         if show:
@@ -332,8 +292,9 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
     def __init__(self, *args, **kwargs):
         super(PhasePlane2DAnalyzer, self).__init__(*args, **kwargs)
 
-        # runner group
-        # ------------
+        # runner for trajectory
+        # ---------------------
+
         # cannot update dynamical parameters
         self.traj_group = core.NeuGroup(self.model,
                                         geometry=1,
@@ -342,7 +303,8 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
         self.traj_group.runner = core.TrajectoryRunner(self.traj_group,
                                                        target_vars=self.dvar_names,
                                                        fixed_vars=self.fixed_vars)
-        self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()}
+        self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
+                             if not key.startswith('_')}
         self.traj_net = core.Network(self.traj_group)
 
     def plot_vector_field(self, line_widths=(0.5, 5.5), show=False):
@@ -588,7 +550,7 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
             Whether show or not.
         """
 
-        if axes in ['v-v', 't-v']:
+        if axes not in ['v-v', 't-v']:
             raise ModelUseError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
 
         # 1. format the initial values
@@ -620,7 +582,8 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
             for key_i, key in enumerate(self.dvar_names):
                 self.traj_group.ST[key] = initial[key_i]
             for key, val in self.fixed_vars.items():
-                self.traj_group.ST[key] = val
+                if key in self.traj_group.ST:
+                    self.traj_group.ST[key] = val
 
             #   4.2 run the model
             self.traj_net.run(duration=duration[init_i], inputs=inputs,

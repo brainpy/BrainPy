@@ -43,12 +43,24 @@ class BaseNeuronAnalyzer(object):
         The fixed variables.
     target_pars : dict, optional
         The parameters which can be dynamical varied.
-    update_pars : dict, optional
+    pars_update : dict, optional
         The parameters to update.
     numerical_resolution : float, dict
         The variable resolution for numerical iterative solvers.
     options : dict, optional
-        The other setting.
+        The other setting parameters, which includes:
+
+            perturbation
+                float. The small perturbation used to solve the function derivative.
+            sympy_solver_timeout
+                float, with the unit of second. The maximum  time allowed to use sympy solver
+                to get the variable relationship.
+            escape_sympy_solver
+                bool. Whether escape to use sympy solver, and directly use numerical optimization
+                method to solve the nullcline and fixed points.
+            lim_scale
+                float. The axis limit scale factor. Default is 1.05. The setting means
+                the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
     """
 
     def __init__(self,
@@ -56,7 +68,7 @@ class BaseNeuronAnalyzer(object):
                  target_vars,
                  fixed_vars,
                  target_pars=None,
-                 update_pars=None,
+                 pars_update=None,
                  numerical_resolution=0.1,
                  options=None):
 
@@ -115,16 +127,16 @@ class BaseNeuronAnalyzer(object):
 
         # parameters to update
         # ---------------------
-        if update_pars is None:
-            update_pars = dict()
-        if not isinstance(update_pars, dict):
+        if pars_update is None:
+            pars_update = dict()
+        if not isinstance(pars_update, dict):
             raise errors.ModelUseError('"pars_update" must be a dict with the format '
                                        'of {"par1": val1, "par2": val2}.')
-        for key in update_pars.keys():
+        for key in pars_update.keys():
             if key not in model.step_scopes:
                 if key not in target_func_args:
                     raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
-        self.pars_update = update_pars
+        self.pars_update = pars_update
 
         # dynamical parameters
         # ---------------------
@@ -196,6 +208,7 @@ class BaseNeuronAnalyzer(object):
         self.options['perturbation'] = options.get('perturbation', 1e-4)
         self.options['sympy_solver_timeout'] = options.get('sympy_solver_timeout', 5)  # s
         self.options['escape_sympy_solver'] = options.get('escape_sympy_solver', False)
+        self.options['lim_scale'] = options.get('lim_scale', 1.05)
 
 
 class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
@@ -210,6 +223,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
 
     def __init__(self, *args, **kwargs):
         super(Base1DNeuronAnalyzer, self).__init__(*args, **kwargs)
+
         self.x_var = self.dvar_names[0]
         self.x_eq_group = self.target_eqs[self.x_var]
 
@@ -291,12 +305,39 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
 
         {dy \over dt} = g(y, t, x)
 
+    Parameters
+    ----------
+
+    options : dict, optional
+        The other setting parameters, which includes:
+
+            shgo_args
+                dict. Arguments of `shgo` optimization method, which can be used to set the
+                fields of: constraints, n, iters, callback, minimizer_kwargs, options,
+                sampling_method.
+            show_shgo
+                bool. whether print the shgo's value.
+            fl_tol
+                float. The tolerance of the function value to recognize it as a condidate of
+                function root point.
+            xl_tol
+                float. The tolerance of the l2 norm distances between this point and previous
+                points. If the norm distances are all bigger than `xl_tol` means this
+                point belong to a new function root point.
+
     """
 
     def __init__(self, *args, **kwargs):
-        super(Base1DNeuronAnalyzer, self).__init__(*args, **kwargs)
+        super(Base2DNeuronAnalyzer, self).__init__(*args, **kwargs)
+
         self.y_var = self.dvar_names[1]
         self.y_eq_group = self.target_eqs[self.y_var]
+
+        options = kwargs.get('options', dict())
+        self.options['shgo_args'] = options.get('shgo_args', dict())
+        self.options['show_shgo'] = options.get('show_shgo', False)
+        self.options['fl_tol'] = options.get('fl_tol', 1e-6)
+        self.options['xl_tol'] = options.get('xl_tol', 1e-4)
 
     def get_f_dy(self):
         """Get the derivative function of the second variable. """
@@ -358,7 +399,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if sympy_failed:
                 scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
                 func_codes = [f'def dfdy({argument}):']
-                func_codes.append(f'origin = _fx({argument}))')
+                func_codes.append(f'origin = _fx({argument})')
                 func_codes.append(f'disturb = _fx({x_var}, {y_var}+perturb, '
                                   f'{",".join(self.dvar_names[2:] + self.dpar_names)})')
                 func_codes.append(f'return (disturb - origin) / perturb')
@@ -471,7 +512,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
     def get_f_jacobian(self):
         """Get the function to solve jacobian matrix.
         """
-        if self.analyzed_results['jacobian'] is None:
+        if 'jacobian' not in self.analyzed_results:
             dfdx = self.get_f_dfdx()
             dfdy = self.get_f_dfdy()
             dgdx = self.get_f_dgdx()
@@ -480,7 +521,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             argument = ','.join(self.dvar_names + self.dpar_names)
             scope = dict(f_dfydy=dgdy, f_dfydx=dgdx, f_dfxdy=dfdy, f_dfxdx=dfdx, np=np)
             func_codes = [f'def f_jacobian({argument}):']
-            func_codes.append(f'dfxdx = f_dfxdx({argument}')
+            func_codes.append(f'dfxdx = f_dfxdx({argument})')
             func_codes.append(f'dfxdy = f_dfxdy({argument})')
             func_codes.append(f'dfydx = f_dfydx({argument})')
             func_codes.append(f'dfydy = f_dfydy({argument})')
