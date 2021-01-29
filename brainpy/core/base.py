@@ -343,21 +343,21 @@ class Ensemble(object):
         # monitors
         # ---------
         self.mon = tools.DictPlus()
-        self._mon_vars = []
+        self._mon_items = []
         if monitors is not None:
             if isinstance(monitors, (list, tuple)):
                 for var in monitors:
                     if isinstance(var, str):
-                        self._mon_vars.append((var, None))
+                        self._mon_items.append((var, None))
                         self.mon[var] = np.empty((1, 1), dtype=np.float_)
                     elif isinstance(var, (tuple, list)):
-                        self._mon_vars.append((var[0], var[1]))
+                        self._mon_items.append((var[0], var[1]))
                         self.mon[var[0]] = np.empty((1, 1), dtype=np.float_)
                     else:
                         raise errors.ModelUseError(f'Unknown monitor item: {str(var)}')
             elif isinstance(monitors, dict):
                 for k, v in monitors.items():
-                    self._mon_vars.append((k, v))
+                    self._mon_items.append((k, v))
                     self.mon[k] = np.empty((1, 1), dtype=np.float_)
             else:
                 raise errors.ModelUseError(f'Unknown monitors type: {type(monitors)}')
@@ -381,32 +381,6 @@ class Ensemble(object):
             for key, val in satisfies.items():
                 setattr(self, key, val)
 
-    def type_checking(self):
-        # check state and its type
-        if not hasattr(self, 'ST'):
-            raise errors.ModelUseError(f'"{self.name}" doesn\'t have "ST" attribute.')
-        try:
-            self.model.ST.check(self.ST)
-        except errors.TypeMismatchError as e:
-            raise errors.ModelUseError(f'"{self.name}.ST" doesn\'t satisfy TypeChecker "{str(self.model.ST)}".')
-
-        # check attribute and its type
-        for key, type_checker in self.model.requires.items():
-            if not hasattr(self, key):
-                raise errors.ModelUseError(f'"{self.name}" doesn\'t have "{key}" attribute.')
-            try:
-                type_checker.check(getattr(self, key))
-            except errors.TypeMismatchError as e:
-                raise errors.ModelUseError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
-
-        # get function arguments
-        for i, func in enumerate(self.model.steps):
-            for arg in inspect.getfullargspec(func).args:
-                if not (arg in constants.ARG_KEYWORDS + ['self']) and not hasattr(self, arg):
-                    raise errors.ModelUseError(
-                        f'Function "{self.model.step_names[i]}" in "{self.model.name}" '
-                        f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
-
     def _is_state_attr(self, arg):
         try:
             attr = getattr(self, arg)
@@ -419,59 +393,126 @@ class Ensemble(object):
         else:
             raise ValueError
 
-    def _build(self, inputs=None, mon_length=0):
+    def type_checking(self):
+        """Check the data type needed for step function.
+        """
+        # 1. check ST and its type
+        if not hasattr(self, 'ST'):
+            raise errors.ModelUseError(f'"{self.name}" doesn\'t have "ST" attribute.')
+        try:
+            self.model.ST.check(self.ST)
+        except errors.TypeMismatchError:
+            raise errors.ModelUseError(f'"{self.name}.ST" doesn\'t satisfy TypeChecker "{str(self.model.ST)}".')
+
+        # 2. check requires and its type
+        for key, type_checker in self.model.requires.items():
+            if not hasattr(self, key):
+                raise errors.ModelUseError(f'"{self.name}" doesn\'t have "{key}" attribute.')
+            try:
+                type_checker.check(getattr(self, key))
+            except errors.TypeMismatchError:
+                raise errors.ModelUseError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
+
+        # 3. check data (function arguments) needed
+        for i, func in enumerate(self.model.steps):
+            for arg in inspect.getfullargspec(func).args:
+                if not (arg in constants.ARG_KEYWORDS + ['self']) and not hasattr(self, arg):
+                    raise errors.ModelUseError(
+                        f'Function "{self.model.step_names[i]}" in "{self.model.name}" '
+                        f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
+
+    def reshape_mon(self, run_length):
+        for key, val in self.mon.items():
+            if key == 'ts':
+                continue
+            shape = val.shape
+            if run_length < shape[0]:
+                self.mon[key] = val[:run_length]
+            elif run_length > shape[0]:
+                append = np.zeros((run_length - shape[0], ) + shape[1:])
+                self.mon[key] = np.vstack([val, append])
+        if profile.run_on_gpu():
+            for key, val in self.mon.items():
+                key_gpu = f'mon_{key}_cuda'
+                val_gpu = cuda.to_device(val)
+                setattr(self.runner, key_gpu, val_gpu)
+                self.runner.gpu_data[key_gpu] = val_gpu
+
+    def build(self, inputs=None, mon_length=0):
+        """Build the object for running.
+
+        Parameters
+        ----------
+        inputs : list, tuple
+            The object inputs.
+        mon_length : int
+            The monitor length.
+
+        Returns
+        -------
+        calls : list, tuple
+            The code lines to call step functions.
+        """
+
+        # 1. prerequisite
+        # ---------------
         if profile.run_on_gpu():
             if self.model.mode != constants.SCALAR_MODE:
-                raise errors.ModelUseError('GPU mode only support scalar-based mode.')
-
-        # prerequisite
+                raise errors.ModelUseError(f'GPU mode only support scalar-based mode. '
+                                           f'But {self.model} is a {self.model.mode}-based model.')
         self.type_checking()
 
-        # results
-        results = dict()
-
+        # 2. Code results
+        # ---------------
+        code_results = dict()
         # inputs
         if inputs:
             r = self.runner.get_codes_of_input(inputs)
-            results.update(r)
-
+            code_results.update(r)
         # monitors
-        if len(self._mon_vars):
-            mon, r = self.runner.get_codes_of_monitor(self._mon_vars, run_length=mon_length)
-            results.update(r)
+        if len(self._mon_items):
+            mon, r = self.runner.get_codes_of_monitor(self._mon_items, run_length=mon_length)
+            code_results.update(r)
             self.mon.clear()
             self.mon.update(mon)
-
         # steps
         r = self.runner.get_codes_of_steps()
-        results.update(r)
+        code_results.update(r)
 
-        # merge
-        calls = self.runner.merge_codes(results)
-
+        # 3. code calls
+        # -------------
+        calls = self.runner.merge_codes(code_results)
         if self._cls_type == constants.SYN_CONN_TYPE:
             if self.delay_len > 1:
                 calls.append(f'{self.name}.ST._update_delay_indices()')
 
         return calls
 
-    @property
-    def requires(self):
-        return self.model.requires
-
     def run(self, duration, inputs=(), report=False, report_percent=0.1):
+        """The running function.
+
+        Parameters
+        ----------
+        duration : float, int, tuple, list
+            The running duration.
+        inputs : list, tuple
+            The model inputs with the format of ``[(key, value [operation])]``.
+        report : bool
+            Whether report the running progress.
+        report_percent : float
+            The percent of progress to report.
+        """
+
         # times
         # ------
         if isinstance(duration, (int, float)):
             start, end = 0., duration
         elif isinstance(duration, (tuple, list)):
-            assert len(duration) == 2, 'Only support duration with the format of "(start, end)".'
+            assert len(duration) == 2, 'Only support duration setting with the format of "(start, end)".'
             start, end = duration
         else:
             raise ValueError(f'Unknown duration type: {type(duration)}')
-        dt = profile.get_dt()
-        times = np.arange(start, end, dt)
-        times = np.asarray(times, dtype=np.float_)
+        times = np.asarray(np.arange(start, end, profile.get_dt()), dtype=np.float_)
         run_length = times.shape[0]
 
         # check inputs
@@ -487,13 +528,10 @@ class Ensemble(object):
         for inp in inputs:
             if not 2 <= len(inp) <= 3:
                 raise errors.ModelUseError('For each target, you must specify "(key, value, [operation])".')
-            if len(inp) == 3:
-                try:
-                    assert inp[2] in constants.INPUT_OPERATIONS
-                except AssertionError:
-                    raise errors.ModelUseError(f'Input operation only support '
-                                               f'"{list(constants.INPUT_OPERATIONS.keys())}", '
-                                               f'not "{inp[2]}".')
+            if len(inp) == 3 and inp[2] not in constants.INPUT_OPERATIONS:
+                raise errors.ModelUseError(f'Input operation only supports '
+                                           f'"{list(constants.INPUT_OPERATIONS.keys())}", '
+                                           f'not "{inp[2]}".')
 
         # format inputs
         # -------------
@@ -504,7 +542,6 @@ class Ensemble(object):
                 raise errors.ModelUseError('For each input, input[0] must be a string '
                                            'to specify variable of the target.')
             key = inp[0]
-
             # value and data type
             if isinstance(inp[1], (int, float)):
                 val = inp[1]
@@ -518,20 +555,18 @@ class Ensemble(object):
             else:
                 raise errors.ModelUseError('For each input, input[1] must be a '
                                            'numerical value to specify input values.')
-
             # operation
             if len(inp) == 3:
                 ops = inp[2]
             else:
                 ops = '+'
-
+            # input
             format_inp = (key, val, ops, data_type)
             formatted_inputs.append(format_inp)
 
         # get step function
         # -------------------
-        lines_of_call = self._build(inputs=formatted_inputs,
-                                    mon_length=run_length)
+        lines_of_call = self.build(inputs=formatted_inputs, mon_length=run_length)
         code_lines = ['def step_func(_t, _i, _dt):']
         code_lines.extend(lines_of_call)
         code_scopes = {self.name: self, f"{self.name}_runner": self.runner}
@@ -547,6 +582,7 @@ class Ensemble(object):
 
         # run the model
         # -------------
+        dt = profile.get_dt()
         if report:
             t0 = time.time()
             step_func(_t=times[0], _i=0, _dt=dt)
@@ -570,7 +606,25 @@ class Ensemble(object):
         self.mon['ts'] = times
 
     def get_schedule(self):
+        """Get the schedule (running order) of the update functions.
+
+        Returns
+        -------
+        schedule : list, tuple
+            The running order of update functions.
+        """
         return self.runner.get_schedule()
 
     def set_schedule(self, schedule):
+        """Set the schedule (running order) of the update functions.
+
+        For example, if the ``self.model`` has two step functions: `step1`, `step2`.
+        Then, you can set the shedule by using:
+
+        >>> set_schedule(['input', 'step1', 'step2', 'monitor'])
+        """
         self.runner.set_schedule(schedule)
+
+    @property
+    def requires(self):
+        return self.model.requires

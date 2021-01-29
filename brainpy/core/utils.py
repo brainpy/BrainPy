@@ -8,6 +8,8 @@ from numba.core.dispatcher import Dispatcher
 from .. import backend
 from .. import integration
 from .. import tools
+from .. import errors
+from . import constants
 
 __all__ = [
     'show_code_str',

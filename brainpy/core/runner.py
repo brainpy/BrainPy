@@ -72,7 +72,7 @@ class Runner(object):
     def check_attr(self, attr):
         if not hasattr(self, attr):
             raise errors.ModelUseError(f'Model "{self._name}" doesn\'t have "{attr}" attribute", '
-                                f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
+                                       f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
 
     def get_codes_of_input(self, key_val_ops_types):
         """Format the code of external input.
@@ -107,7 +107,8 @@ class Runner(object):
         # ----------------------
         for _, _, ops, _ in key_val_ops_types:
             if ops not in constants.INPUT_OPERATIONS:
-                raise errors.ModelUseError(f'Only support five input operations: {list(constants.INPUT_OPERATIONS.keys())}')
+                raise errors.ModelUseError(
+                    f'Only support five input operations: {list(constants.INPUT_OPERATIONS.keys())}')
 
         # generate code of input function
         # --------------------------------
@@ -156,7 +157,6 @@ class Runner(object):
                     right = right + '[_i]'
                     if np.ndim(val) > 1:
                         pass
-
                 input_idx += 1
 
                 # final code line #
@@ -715,7 +715,7 @@ class Runner(object):
                           isinstance(getattr(self.ensemble, k), ObjState)}
             except AttributeError:
                 raise errors.ModelUseError(f'Model "{self._name}" does not have all the '
-                                    f'required attributes: {func_args}.')
+                                           f'required attributes: {func_args}.')
             add_args = set()
             for i, arg in enumerate(func_args):
                 used_args.add(arg)
@@ -846,7 +846,7 @@ class Runner(object):
                           isinstance(getattr(self.ensemble, k), ObjState)}
             except AttributeError:
                 raise errors.ModelUseError(f'Model "{self._name}" does not have all the '
-                                    f'required attributes: {func_args}.')
+                                           f'required attributes: {func_args}.')
 
             # update functions in code scope
             # 1. recursively jit the function

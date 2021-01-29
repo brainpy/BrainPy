@@ -219,9 +219,11 @@ class PhasePlaneAnalyzer(object):
 
 
 class PhasePortraitAnalyzer(PhasePlaneAnalyzer):
-    print('PhasePortraitAnalyzer will be removed in version 0.4.0. '
-          'Please use ``brainpy.PhasePlaneAnalyzer`` instead '
-          'of ``brainpy.PhasePortraitAnalyzer``.')
+    def __init__(self, *args, **kwargs):
+        print('PhasePortraitAnalyzer will be removed after version 0.4.0. '
+              'Please use ``brainpy.PhasePlaneAnalyzer`` instead '
+              'of ``brainpy.PhasePortraitAnalyzer``.')
+        super(PhasePortraitAnalyzer, self).__init__(*args, **kwargs)
 
 
 class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
