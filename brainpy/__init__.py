@@ -32,7 +32,7 @@ from .integration import integrate
 
 # "dynamics" module
 from . import dynamics
-from .dynamics import PhasePortraitAnalyzer
+from .dynamics import PhasePlaneAnalyzer
 from .dynamics import BifurcationAnalyzer
 
 # "tools" module

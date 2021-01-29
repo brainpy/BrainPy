@@ -843,7 +843,7 @@ class ExponentialEuler(Integrator):
 
         # get the linear system using sympy
         f_res = f_expressions[-1]
-        df_expr = str2sympy(f_res.code).expand()
+        df_expr = str2sympy(f_res.code).expr.expand()
         s_df = sympy.Symbol(f"{f_res.var_name}")
         code_lines.append(f'{s_df.name} = {sympy2str(df_expr)}')
         var = sympy.Symbol(diff_eq.var_name, real=True)

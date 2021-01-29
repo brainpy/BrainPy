@@ -20,6 +20,7 @@ from ..core import NeuType
 from ..errors import ModelUseError
 from ..integration import utils
 
+
 __all__ = [
     'BifurcationAnalyzer',
 ]
@@ -47,7 +48,7 @@ class BifurcationAnalyzer(object):
             self,
             model,
             target_pars,
-            dynamical_vars,
+            target_vars,
             fixed_vars=None,
             pars_update=None,
             par_resolution=0.1,
@@ -84,11 +85,11 @@ class BifurcationAnalyzer(object):
 
         # check "dynamical_vars"
         try:
-            assert isinstance(dynamical_vars, dict)
+            assert isinstance(target_vars, dict)
         except AssertionError:
             raise ModelUseError('"target_vars" must a dict with the format of: '
                                 '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
-        self.dynamical_vars = dynamical_vars
+        self.dynamical_vars = target_vars
 
         # check "pars_update"
         if pars_update is None:
@@ -105,22 +106,22 @@ class BifurcationAnalyzer(object):
 
         # bifurcation analysis
         if len(self.dynamical_vars) == 1:
-            self.analyzer = _1DSystemAnalyzer(model=model,
-                                              target_pars=target_pars,
-                                              dynamical_vars=dynamical_vars,
-                                              fixed_vars=fixed_vars,
-                                              pars_update=pars_update,
-                                              par_resolution=par_resolution,
-                                              var_resolution=var_resolution)
+            self.analyzer = Bifurcation1DAnalyzer(model=model,
+                                                  target_pars=target_pars,
+                                                  dynamical_vars=target_vars,
+                                                  fixed_vars=fixed_vars,
+                                                  pars_update=pars_update,
+                                                  par_resolution=par_resolution,
+                                                  var_resolution=var_resolution)
 
         elif len(self.dynamical_vars) == 2:
-            self.analyzer = _2DSystemAnalyzer(model=model,
-                                              target_pars=target_pars,
-                                              dynamical_vars=dynamical_vars,
-                                              fixed_vars=fixed_vars,
-                                              pars_update=pars_update,
-                                              par_resolution=par_resolution,
-                                              var_resolution=var_resolution)
+            self.analyzer = Bifurcation2DAnalyzer(model=model,
+                                                  target_pars=target_pars,
+                                                  dynamical_vars=target_vars,
+                                                  fixed_vars=fixed_vars,
+                                                  pars_update=pars_update,
+                                                  par_resolution=par_resolution,
+                                                  var_resolution=var_resolution)
 
         else:
             raise ModelUseError(f'Cannot analyze three dimensional system: {self.dynamical_vars}')
@@ -193,7 +194,7 @@ class _CoDimAnalyzer(object):
         raise NotImplementedError
 
 
-class _1DSystemAnalyzer(_CoDimAnalyzer):
+class Bifurcation1DAnalyzer(_CoDimAnalyzer):
     """Bifurcation analysis of 1D system.
 
     Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -201,20 +202,21 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
 
     def __init__(self, model, target_pars, dynamical_vars, fixed_vars=None,
                  pars_update=None, par_resolution=0.1, var_resolution=0.1):
-        super(_1DSystemAnalyzer, self).__init__(model=model,
-                                                target_pars=target_pars,
-                                                dynamical_vars=dynamical_vars,
-                                                fixed_vars=fixed_vars,
-                                                pars_update=pars_update,
-                                                par_resolution=par_resolution,
-                                                var_resolution=var_resolution)
+        super(Bifurcation1DAnalyzer, self).__init__(model=model,
+                                                    target_pars=target_pars,
+                                                    dynamical_vars=dynamical_vars,
+                                                    fixed_vars=fixed_vars,
+                                                    pars_update=pars_update,
+                                                    par_resolution=par_resolution,
+                                                    var_resolution=var_resolution)
         self.x_var = list(self.dynamical_vars.keys())[0]
         self.f_dx = None
         self.f_dfdx = None
 
     def get_f_fixed_point(self):
         if self.f_fixed_point is None:
-            x_eq = utils.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
+            code = self.target_eqs[self.x_var].dependent_expr.code
+            x_eq = utils.str2sympy(code).expr
             x_group = self.target_eqs[self.x_var]
 
             # function scope
@@ -266,7 +268,8 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
         if self.f_dfdx is None:
             arg_of_pars = ', '.join(list(self.target_pars.keys()))
             x_symbol = sympy.Symbol(self.x_var, real=True)
-            x_eq = utils.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
+            code = self.target_eqs[self.x_var].dependent_expr.code
+            x_eq = utils.str2sympy(code).expr
             x_eq_group = self.target_eqs[self.x_var]
 
             eq_x_scope = deepcopy(self.pars_update)
@@ -361,16 +364,16 @@ class _1DSystemAnalyzer(_CoDimAnalyzer):
                 plt.show()
 
 
-class _2DSystemAnalyzer(_CoDimAnalyzer):
+class Bifurcation2DAnalyzer(_CoDimAnalyzer):
     def __init__(self, model, target_pars, dynamical_vars, fixed_vars=None,
                  pars_update=None, par_resolution=0.1, var_resolution=0.1):
-        super(_2DSystemAnalyzer, self).__init__(model=model,
-                                                target_pars=target_pars,
-                                                dynamical_vars=dynamical_vars,
-                                                fixed_vars=fixed_vars,
-                                                pars_update=pars_update,
-                                                par_resolution=par_resolution,
-                                                var_resolution=var_resolution)
+        super(Bifurcation2DAnalyzer, self).__init__(model=model,
+                                                    target_pars=target_pars,
+                                                    dynamical_vars=dynamical_vars,
+                                                    fixed_vars=fixed_vars,
+                                                    pars_update=pars_update,
+                                                    par_resolution=par_resolution,
+                                                    var_resolution=var_resolution)
         if isinstance(dynamical_vars, OrderedDict):
             self.x_var, self.y_var = list(dynamical_vars.keys())
         else:
@@ -417,8 +420,8 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
         if self.f_jacobian is None:
             x_symbol = sympy.Symbol(self.x_var, real=True)
             y_symbol = sympy.Symbol(self.y_var, real=True)
-            x_eq = utils.str2sympy(self.target_eqs[self.x_var].dependent_expr.code)
-            y_eq = utils.str2sympy(self.target_eqs[self.y_var].dependent_expr.code)
+            x_eq = utils.str2sympy(self.target_eqs[self.x_var].dependent_expr.code).expr
+            y_eq = utils.str2sympy(self.target_eqs[self.y_var].dependent_expr.code).expr
             x_eq_group = self.target_eqs[self.x_var]
             y_eq_group = self.target_eqs[self.y_var]
 
@@ -524,8 +527,8 @@ class _2DSystemAnalyzer(_CoDimAnalyzer):
         if self.f_fixed_point is None:
             x_eq_group = self.target_eqs[self.x_var]
             y_eq_group = self.target_eqs[self.y_var]
-            x_eq = utils.str2sympy(x_eq_group['dependent_expr'].code)
-            y_eq = utils.str2sympy(y_eq_group['dependent_expr'].code)
+            x_eq = utils.str2sympy(x_eq_group['dependent_expr'].code).expr
+            y_eq = utils.str2sympy(y_eq_group['dependent_expr'].code).expr
 
             f_get_y_by_x = None
             f_get_x_by_y = None

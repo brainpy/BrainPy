@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from numba import njit
-import inspect
 import _thread as thread
+import inspect
 import threading
-from .. import tools
-from .. import backend
-from numba.core.dispatcher import Dispatcher
+
 import numpy as np
+from numba import njit
+from numba.core.dispatcher import Dispatcher
+
+from .. import backend
+from .. import tools
 
 __all__ = [
     'stability_analysis',

@@ -47,11 +47,15 @@ FUNCTION_MAPPING = {
     'arcsinh': sympy.functions.elementary.hyperbolic.asinh,
     'arccosh': sympy.functions.elementary.hyperbolic.acosh,
     'arctanh': sympy.functions.elementary.hyperbolic.atanh,
+
     'log2': cfunctions.log2,
     'log1p': cfunctions.log1p,
 
     'expm1': cfunctions.expm1,
     'exp2': cfunctions.exp2,
+
+    # 'maximum': sympy.functions.elementary.miscellaneous.Max,
+    # 'minimum': sympy.functions.elementary.miscellaneous.Min,
 
     # functions in math
     # ------------------
@@ -94,16 +98,19 @@ CONSTANT_MAPPING = {
 
 def get_mapping_scope():
     if profile.run_on_cpu():
-        return {'sign': np.sign, 'cos': np.cos, 'sin': np.sin, 'tan': np.tan,
-                'sinc': np.sinc, 'arcsin': np.arcsin, 'arccos': np.arccos,
-                'arctan': np.arctan, 'arctan2': np.arctan2, 'cosh': np.cosh,
-                'sinh': np.cosh, 'tanh': np.tanh, 'arcsinh': np.arcsinh,
-                'arccosh': np.arccosh, 'arctanh': np.arctanh, 'ceil': np.ceil,
-                'floor': np.floor, 'log': np.log, 'log2': np.log2, 'log1p': np.log1p,
-                'log10': np.log10, 'exp': np.exp, 'expm1': np.expm1, 'exp2': np.exp2,
-                'hypot': np.hypot, 'sqrt': np.sqrt, 'pi': np.pi, 'e': np.e, 'inf': np.inf,
-                'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
-                'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh}
+        return {
+            'sign': np.sign, 'cos': np.cos, 'sin': np.sin, 'tan': np.tan,
+            'sinc': np.sinc, 'arcsin': np.arcsin, 'arccos': np.arccos,
+            'arctan': np.arctan, 'arctan2': np.arctan2, 'cosh': np.cosh,
+            'sinh': np.cosh, 'tanh': np.tanh, 'arcsinh': np.arcsinh,
+            'arccosh': np.arccosh, 'arctanh': np.arctanh, 'ceil': np.ceil,
+            'floor': np.floor, 'log': np.log, 'log2': np.log2, 'log1p': np.log1p,
+            'log10': np.log10, 'exp': np.exp, 'expm1': np.expm1, 'exp2': np.exp2,
+            'hypot': np.hypot, 'sqrt': np.sqrt, 'pi': np.pi, 'e': np.e, 'inf': np.inf,
+            'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
+            'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh,
+            # 'Max': np.maximum, 'Min': np.minimum
+        }
     else:
         return {
             # functions in numpy
@@ -114,6 +121,7 @@ def get_mapping_scope():
             'sign': np.sign, 'sinc': np.sinc,
             'log2': np.log2, 'log1p': np.log1p,
             'expm1': np.expm1, 'exp2': np.exp2,
+            # 'Max': max, 'Min': min,
 
             # functions in math
             # ------------------
@@ -181,20 +189,10 @@ class Parser(object):
         'AugMod': '%=',
     }
 
-    def __init__(self):
-        pass
-
-    def render_expr(self, expr, strip=True):
-        if strip:
-            expr = expr.strip()
-        node = ast.parse(expr, mode='eval')
-        return self.render_node(node.body)
-
-    def render_code(self, code):
-        lines = []
-        for node in ast.parse(code).body:
-            lines.append(self.render_node(node))
-        return '\n'.join(lines)
+    def __init__(self, expr):
+        self.contain_unknown_func = False
+        node = ast.parse(expr.strip(), mode='eval')
+        self.expr = self.render_node(node.body)
 
     def render_node(self, node):
         nodename = node.__class__.__name__
@@ -237,7 +235,9 @@ class Parser(object):
         This means we still put needless parentheses because we ignore
         precedence rules, e.g. we write "3 + (4 * 5)" but at least we do
         not do "(3) + ((4) + (5))" """
-        ops = {'BitXor': ('^', '**'), 'BitAnd': ('&', 'and'), 'BitOr': ('|', 'or')}
+        ops = {'BitXor': ('^', '**'),
+               'BitAnd': ('&', 'and'),
+               'BitOr': ('|', 'or')}
         op_class = op.__class__.__name__
         # Give a more useful error message when using bit-wise operators
         if op_class in ['BitXor', 'BitAnd', 'BitOr']:
@@ -277,6 +277,7 @@ class Parser(object):
             if node.id == 'int':
                 return sympy.Function("int_")
             else:
+                self.contain_unknown_func = True
                 return sympy.Function(node.id)
         else:
             if node.attr in FUNCTION_MAPPING:
@@ -285,6 +286,7 @@ class Parser(object):
                 return sympy.Function("int_")
             else:
                 names = self._get_attr_value(node, [])
+                self.contain_unknown_func = True
                 return sympy.Function('.'.join(names))
 
     def render_Call(self, node):
@@ -395,12 +397,11 @@ class Printer(StrPrinter):
             return expr.func.__name__ + f"({self.stringify(expr.args, ', ')})"
 
 
-_PARSER = Parser()
 _PRINTER = Printer()
 
 
 def str2sympy(str_expr):
-    return _PARSER.render_expr(str_expr)
+    return Parser(str_expr)
 
 
 def sympy2str(sympy_expr):

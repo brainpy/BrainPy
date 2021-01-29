@@ -225,7 +225,7 @@ if __name__ == '__main__1':
 
 if __name__ == '__main__':
     pass
-    from brainpy.dynamics.phase_portrait_analyzer import get_trajectories
+    from brainpy.dynamics.phase_plane_analyzer import get_trajectories
 
     # Try LIF neuron model
     trajectories = get_trajectories(LIF, target_vars=['V'], initials=(0., (20., 100.)), inputs=('ST.inp', 12.))

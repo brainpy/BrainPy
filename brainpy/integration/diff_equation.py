@@ -162,9 +162,9 @@ class DiffEquation(object):
             for dep_var, dep_expr in dependencies.items():
                 if dep_var in expr.identifiers:
                     code = dep_expr.get_code(subs=True)
-                    substitutions[sympy.Symbol(dep_var, real=True)] = utils.str2sympy(code)
+                    substitutions[sympy.Symbol(dep_var, real=True)] = utils.str2sympy(code).expr
             if len(substitutions):
-                new_sympy_expr = utils.str2sympy(expr.code).xreplace(substitutions)
+                new_sympy_expr = utils.str2sympy(expr.code).expr.xreplace(substitutions)
                 new_str_expr = utils.sympy2str(new_sympy_expr)
                 expr._substituted_code = new_str_expr
                 dependencies[expr.var_name] = expr
@@ -186,9 +186,9 @@ class DiffEquation(object):
         substitutions = {}
         for dep_var, dep_expr in dependencies.items():
             code = dep_expr.get_code(subs=True)
-            substitutions[sympy.Symbol(dep_var, real=True)] = utils.str2sympy(code)
+            substitutions[sympy.Symbol(dep_var, real=True)] = utils.str2sympy(code).expr
         if len(substitutions):
-            new_sympy_expr = utils.str2sympy(final_exp.code).xreplace(substitutions)
+            new_sympy_expr = utils.str2sympy(final_exp.code).expr.xreplace(substitutions)
             new_str_expr = utils.sympy2str(new_sympy_expr)
             final_exp._substituted_code = new_str_expr
 
@@ -322,7 +322,7 @@ class DiffEquation(object):
 
     @property
     def is_functional_noise(self):
-        return self.g_type == FUNCTIONAL_NOISE
+        return self.g_type == constants.FUNCTIONAL_NOISE
 
     @property
     def stochastic_type(self):

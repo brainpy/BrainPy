@@ -7,6 +7,9 @@ brainpy.dynamics package
 .. autosummary::
     :toctree: _autosummary
 
+    NeuronDynamicsAnalyzer
+    NeuronDynamics1D
+    NeuronDynamics2D
     PhasePortraitAnalyzer
     BifurcationAnalyzer
     brentq
@@ -16,8 +19,18 @@ brainpy.dynamics package
     rescale
 
 
+.. autoclass:: NeuronDynamicsAnalyzer
+    :members:
+
+
+.. autoclass:: NeuronDynamics1D
+    :members: get_f_dx, get_f_dfdx
+
+.. autoclass:: NeuronDynamics2D
+    :members: get_f_dy, get_f_dfdy, get_f_dgdx, get_f_dgdy, get_f_jacobian, get_y_by_x_in_y_eq, get_x_by_y_in_y_eq, get_y_by_x_in_x_eq, get_x_by_y_in_x_eq, get_f_fixed_point
+
+
 .. autoclass:: PhasePortraitAnalyzer
-    :toctree:
     :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
 
 

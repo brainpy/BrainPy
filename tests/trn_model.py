@@ -194,7 +194,7 @@ def get_TRN_reduced(rho_p=0.99, IL=dict(), IKL=dict()):
 trn = get_TRN_reduced(rho_p=0.8, IL=dict(g_L=0.05, E_L=-77.),
                       IKL=dict(g_KL=0.00792954, E_KL=-95.))
 
-analyzer = bp.PhasePortraitAnalyzer(
+analyzer = bp.PhasePlaneAnalyzer(
     model=trn,
     target_vars={'V': [-100., 70], 'vy': [-100., 70.]},
     fixed_vars={'vz': -75., 'Isyn': 0.},

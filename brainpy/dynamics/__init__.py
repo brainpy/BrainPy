@@ -2,6 +2,7 @@
 
 from .solver import *
 from .utils import *
-from .phase_portrait_analyzer import *
+from .base import *
+from .phase_plane_analyzer import *
 from .bifurcation_analyzer import *
 

@@ -103,7 +103,7 @@ class Network(object):
             if isinstance(inputs[0], Ensemble):
                 inputs = [inputs]
             else:
-                raise ModelUseError('Unknown input structure.')
+                raise ModelUseError('Unknown input structure. Only supports "(target, key, value, [operation])".')
         for inp in inputs:
             if not 3 <= len(inp) <= 4:
                 raise ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
