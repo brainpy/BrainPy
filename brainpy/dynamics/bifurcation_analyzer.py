@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -142,12 +144,18 @@ class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
                     container[fp_type]['x'].append(x)
 
             # visualization
+            plt.figure(self.x_var)
             for fp_type, points in container.items():
                 if len(points['x']):
                     plot_style = utils.plot_scheme[fp_type]
                     plt.plot(points['p'], points['x'], '.', **plot_style, label=fp_type)
             plt.xlabel(par_a)
             plt.ylabel(self.x_var)
+
+            scale = self.options.lim_scale
+            plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+            plt.ylim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+
             plt.legend()
             if show:
                 plt.show()
@@ -167,8 +175,8 @@ class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
                         container[fp_type]['x'].append(x)
 
             # visualization
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
+            fig = plt.figure(self.x_var)
+            ax = fig.gca(projection='3d')
             for fp_type, points in container.items():
                 if len(points['x']):
                     plot_style = utils.plot_scheme[fp_type]
@@ -176,9 +184,16 @@ class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
                     ys = points['p1']
                     zs = points['x']
                     ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
+
             ax.set_xlabel(self.dpar_names[0])
             ax.set_ylabel(self.dpar_names[1])
             ax.set_zlabel(self.x_var)
+
+            scale = self.options.lim_scale
+            ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+            ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
+            ax.set_zlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+
             ax.grid(True)
             ax.legend()
             if show:
@@ -205,20 +220,7 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
                                                      numerical_resolution=numerical_resolution,
                                                      options=options)
 
-    def plot_bifurcation(self, plot_vars, show=False):
-        # check "plot_vars"
-        if isinstance(plot_vars, str):
-            plot_vars = [plot_vars]
-        if not isinstance(plot_vars, (tuple, list)):
-            raise errors.ModelUseError('"plot_vars" must a tuple/list.')
-        for var in plot_vars:
-            if var in self.fixed_vars:
-                raise errors.ModelUseError(f'"{var}" is defined in "fixed_vars", '
-                                           f'cannot be used to plot.')
-            if var not in self.target_vars:
-                raise errors.ModelUseError(f'"{var}" is not a dynamical variable, '
-                                           f'cannot be used to plot.')
-
+    def plot_bifurcation(self, show=False):
         # functions
         f_fixed_point = self.get_f_fixed_point()
         f_jacobian = self.get_f_jacobian()
@@ -239,14 +241,19 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
                     container[fp_type][self.y_var].append(y)
 
             # visualization
-            for var in plot_vars:
-                plt.figure()
+            for var in self.dvar_names:
+                plt.figure(var)
                 for fp_type, points in container.items():
                     if len(points['p']):
                         plot_style = utils.plot_scheme[fp_type]
                         plt.plot(points['p'], points[var], '.', **plot_style, label=fp_type)
                 plt.xlabel(self.dpar_names[0])
                 plt.ylabel(var)
+
+                scale = self.options.lim_scale
+                plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+                plt.ylim(*utils.rescale(self.target_vars[var], scale=scale))
+
                 plt.legend()
             if show:
                 plt.show()
@@ -269,9 +276,9 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
                         container[fp_type][self.y_var].append(y)
 
             # visualization
-            for var in plot_vars:
-                fig = plt.figure()
-                ax = fig.add_subplot(111, projection='3d')
+            for var in self.dvar_names:
+                fig = plt.figure(var)
+                ax = fig.gca(projection='3d')
                 for fp_type, points in container.items():
                     if len(points['p0']):
                         plot_style = utils.plot_scheme[fp_type]
@@ -279,9 +286,17 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
                         ys = points['p1']
                         zs = points[var]
                         ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
+
                 ax.set_xlabel(self.dpar_names[0])
                 ax.set_ylabel(self.dpar_names[1])
                 ax.set_zlabel(var)
+
+                scale = self.options.lim_scale
+                ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+                ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
+                ax.set_zlim(*utils.rescale(self.target_vars[var], scale=scale))
+
+                ax.grid(True)
                 ax.legend()
             if show:
                 plt.show()
@@ -388,15 +403,29 @@ class _FastSlowTrajectory(object):
         self.slow_vars = slow_vars
         self.fixed_vars = fixed_vars
         self.pars_update = pars_update
+        options = kwargs.get('options', dict())
+        if options is None:
+            options = dict()
+        self.lim_scale = options.get('lim_scale', 1.05)
+
+        if isinstance(fast_vars, OrderedDict):
+            self.fast_var_names = list(fast_vars.keys())
+        else:
+            self.fast_var_names = list(sorted(fast_vars.keys()))
+
+        if isinstance(slow_vars, OrderedDict):
+            self.slow_var_names = list(slow_vars.keys())
+        else:
+            self.slow_var_names = list(sorted(slow_vars.keys()))
 
         # cannot update dynamical parameters
-        self.all_vars = list(fast_vars.keys()) + list(slow_vars.keys())
+        all_vars = self.fast_var_names + self.slow_var_names
         self.traj_group = core.NeuGroup(model,
                                         geometry=1,
-                                        monitors=self.all_vars,
+                                        monitors=all_vars,
                                         pars_update=pars_update)
         self.traj_group.runner = core.TrajectoryRunner(self.traj_group,
-                                                       target_vars=self.all_vars,
+                                                       target_vars=all_vars,
                                                        fixed_vars=fixed_vars)
         self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
                              if not key.startswith('_')}
@@ -419,7 +448,7 @@ class _FastSlowTrajectory(object):
             the start and end simulation time. Or, it can be a list of tuple
             (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
             start and end simulation time for each initial value.
-        plot_duration : tuple, list, optional
+        plot_duration : tuple/list of tuple, optional
             The duration to plot. It can be a tuple with ``(start, end)``. It can
             also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
             the plot duration for each initial value running.
@@ -434,9 +463,9 @@ class _FastSlowTrajectory(object):
             initials = [initials, ]
         initials = np.array(initials)
         for initial in initials:
-            if len(initial) != len(self.all_vars):
-                raise errors.AnalyzerError(f'Should provide all {len(self.all_vars)} fast-slow '
-                                           f'variables initial values, but we only get initial '
+            if len(initial) != len(self.fast_var_names + self.slow_var_names):
+                raise errors.AnalyzerError(f'Should provide all {len(self.fast_var_names + self.slow_var_names)} '
+                                           f'fast-slow variables initial values, but we only get initial '
                                            f'values for {len(initial)} variables.')
 
         # 2. format the running duration
@@ -469,7 +498,7 @@ class _FastSlowTrajectory(object):
             #   5.1 set the initial value
             for key, val in self.traj_initial.items():
                 self.traj_group.ST[key] = val
-            for key_i, key in enumerate(self.dvar_names):
+            for key_i, key in enumerate(self.fast_var_names + self.slow_var_names):
                 self.traj_group.ST[key] = initial[key_i]
             for key, val in self.fixed_vars.items():
                 if key in self.traj_group.ST:
@@ -481,7 +510,7 @@ class _FastSlowTrajectory(object):
 
             #   5.3 legend
             legend = 'traj, '
-            for key_i, key in enumerate(self.dvar_names):
+            for key_i, key in enumerate(self.fast_var_names + self.slow_var_names):
                 legend += f'${key}_{init_i}$={initial[key_i]}, '
             legend = legend[:-2]
 
@@ -490,21 +519,39 @@ class _FastSlowTrajectory(object):
             end = int(plot_duration[init_i][1] / profile.get_dt())
 
             #   5.5 visualization
-            for var_name in self.fast_vars.keys():
-                plt.figure(var_name)
+            for var_name in self.fast_var_names:
+                s0 = self.traj_group.mon[self.slow_var_names[0]][start: end, 0]
+                fast = self.traj_group.mon[var_name][start: end, 0]
 
-                plt.plot(self.traj_group.mon[self.x_var][start: end, 0],
-                         self.traj_group.mon[self.y_var][start: end, 0],
-                         label=legend)
+                fig = plt.figure(var_name)
+                if len(self.slow_var_names) == 1:
+                    plt.plot(s0, fast, label=legend)
+                elif len(self.slow_var_names) == 2:
+                    fig.gca(projection='3d')
+                    s1 = self.traj_group.mon[self.slow_var_names[1]][start: end, 0]
+                    plt.plot(s0, s1, fast, label=legend)
+                else:
+                    raise errors.AnalyzerError
 
         # 6. visualization
         for var_name in self.fast_vars.keys():
-            plt.figure(var_name)
-            plt.xlabel(self.x_var)
-            plt.ylabel(self.y_var)
-            scale = (self.options.lim_scale - 1.) / 2
-            plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
-            plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
+            fig = plt.figure(var_name)
+
+            scale = (self.lim_scale - 1.) / 2
+            if len(self.slow_var_names) == 1:
+                plt.xlim(*utils.rescale(self.slow_vars[self.slow_var_names[0]], scale=scale))
+                plt.ylim(*utils.rescale(self.fast_vars[var_name], scale=scale))
+                plt.xlabel(self.slow_var_names[0])
+                plt.ylabel(var_name)
+            elif len(self.slow_var_names) == 2:
+                ax = fig.gca(projection='3d')
+                ax.set_xlim(*utils.rescale(self.slow_vars[self.slow_var_names[0]], scale=scale))
+                ax.set_ylim(*utils.rescale(self.slow_vars[self.slow_var_names[1]], scale=scale))
+                ax.set_zlim(*utils.rescale(self.fast_vars[var_name], scale=scale))
+                ax.set_xlabel(self.slow_var_names[0])
+                ax.set_ylabel(self.slow_var_names[1])
+                ax.set_zlabel(var_name)
+
             plt.legend()
 
         if show:
@@ -533,8 +580,6 @@ class _FastSlow2DAnalyzer(_Bifurcation2DAnalyzer, _FastSlowTrajectory):
                                                   pars_update=pars_update,
                                                   numerical_resolution=numerical_resolution,
                                                   options=options)
-
-
 
 
 
