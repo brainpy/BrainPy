@@ -46,7 +46,14 @@ class BaseNeuronAnalyzer(object):
     pars_update : dict, optional
         The parameters to update.
     numerical_resolution : float, dict
-        The variable resolution for numerical iterative solvers.
+        The resolution for numerical iterative solvers. Default is 0.1. It can set the
+        numerical resolution of dynamical variables or dynamical parameters. For example,
+        set ``numerical_resolution=0.1`` will generalize it to all variables and parameters;
+        set ``numerical_resolution={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will specify
+        the particular resolutions to variables and parameters. Moreover, you can also set
+        ``numerical_resolution={var1: np.array([...]), var2: 0.1}`` to specify the search points
+        need to explore for variable `var1`. This will be useful to set sense search points at some
+        inflection points.
     options : dict, optional
         The other setting parameters, which includes:
 
@@ -194,6 +201,7 @@ class BaseNeuronAnalyzer(object):
         # 'dgdx' : The derivative of ``g`` by ``x``. It can be used as ``dgdx(x, y, ...)``.
         # 'dgdy' : The derivative of ``g`` by ``y``. It can be used as ``dgdy(x, y, ...)``.
         # 'jacobian' : The jacobian matrix. It can be used as ``jacobian(x, y, ...)``.
+        # 'fixed_point' : The fixed point.
         # 'y_by_x_in_y_eq' :
         # 'x_by_y_in_y_eq' :
         # 'y_by_x_in_x_eq' :
@@ -293,6 +301,73 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
             self.analyzed_results['dfdx'] = dfdx
         return self.analyzed_results['dfdx']
 
+    def get_f_fixed_point(self):
+        """Get the function to solve the fixed point.
+        """
+
+        if 'fixed_point' not in self.analyzed_results:
+            x_eq = integration.str2sympy(self.x_eq_group.sub_exprs[-1].code)
+
+            scope = deepcopy(self.pars_update)
+            scope.update(self.fixed_vars)
+            scope.update(integration.get_mapping_scope())
+            scope.update(self.x_eq_group.diff_eq.func_scope)
+            scope['numpy'] = np
+
+            timeout_len = self.options.sympy_solver_timeout
+
+            sympy_failed = True
+            if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
+                try:
+                    argument1 = ', '.join(self.dvar_names + self.dpar_names)
+                    argument2 = ", ".join(self.dvar_names[1:] + self.dpar_names)
+                    print(f'SymPy solve "{self.x_eq_group.func_name}({argument1}) = 0" '
+                          f'to "{self.x_var} = f({argument2})", ', end='')
+
+                    # solver
+                    f = utils.timeout(timeout_len)(
+                        lambda: sympy.solve(x_eq.expr, sympy.Symbol(self.x_var, real=True)))
+                    results = f()
+
+                    # function codes
+                    func_codes = [f'def solve_x({argument2}):']
+                    for expr in self.x_eq_group.sub_exprs[:-1]:
+                        func_codes.append(f'{expr.var_name} = {expr.code}')
+                    result_expr = ', '.join([integration.sympy2str(expr) for expr in results])
+                    func_codes.append(f'_res_ = {result_expr}')
+                    func_codes.append(f'return np.array(_res_)')
+
+                    # function compilation
+                    exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
+                    self.analyzed_results['fixed_point'] = scope['solve_x']
+                    sympy_failed = False
+                except NotImplementedError:
+                    print('failed because the equation is too complex.')
+                    sympy_failed = True
+                except KeyboardInterrupt:
+                    print(f'failed because {timeout_len} s timeout.')
+                    sympy_failed = True
+
+            if sympy_failed:
+                # function codes
+                func_codes = [f'def optimizer_x({self.x_var}):']
+                for expr in self.x_eq_group.old_exprs[:-1]:
+                    func_codes.append(f'{expr.var_name} = {expr.code}')
+                func_codes.append(f'return {self.x_eq_group.old_exprs[-1].code}')
+
+                # function compile
+                optimizer = utils.jit_compile(scope, '\n  '.join(func_codes), 'optimizer_x')
+                xs = self.resolutions[self.x_var]
+
+                def f(*args):
+                    # `args` corresponds to `self.dpar_names`
+                    x_values = solver.find_root_of_1d(optimizer, xs, args)
+                    return np.array(x_values)
+
+                self.analyzed_results['fixed_point'] = f
+
+        return self.analyzed_results['fixed_point']
+
 
 class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
     """Neuron dynamics analyzer for 2D system.
@@ -334,6 +409,8 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
         self.y_eq_group = self.target_eqs[self.y_var]
 
         options = kwargs.get('options', dict())
+        if options is None:
+            options = dict()
         self.options['shgo_args'] = options.get('shgo_args', dict())
         self.options['show_shgo'] = options.get('show_shgo', False)
         self.options['fl_tol'] = options.get('fl_tol', 1e-6)
@@ -391,6 +468,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                     dfdy = eq_x_scope['dfdy']
                     sympy_failed = False
+                    print('success.')
                 except KeyboardInterrupt:
                     print(f'failed because {time_out} s timeout.')
                 except NotImplementedError:
@@ -441,6 +519,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                     dgdx = eq_y_scope['dgdx']
                     sympy_failed = False
+                    print('success.')
                 except KeyboardInterrupt:
                     print(f'failed because {time_out} s timeout.')
                 except NotImplementedError:
@@ -490,6 +569,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     func_codes.append(f'return {integration.sympy2str(dfydx_expr)}')
                     exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                     dgdy = eq_y_scope['dgdy']
+                    print('success.')
                     sympy_failed = False
                 except KeyboardInterrupt:
                     print(f'failed because {time_out} s timeout.')

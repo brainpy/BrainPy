@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
-
 import matplotlib.pyplot as plt
 import numpy as np
-import sympy
 
 from . import base
-from . import solver
 from . import utils
 from .. import core
-from .. import integration
 from .. import profile
 from .. import tools
 from ..errors import ModelUseError
@@ -24,7 +19,7 @@ __all__ = [
 
 
 class PhasePlaneAnalyzer(object):
-    """Phase Portrait Analyzer.
+    """A tool class for phase plane analyzer.
 
     `PhasePlaneAnalyzer` is used to analyze the phase portrait of 1D
     or 2D dynamical systems. It can also be used to analyze the phase
@@ -199,14 +194,15 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
         results : np.ndarray
             The dx values.
         """
-        # Nullcline of the x variable
+
+        # 1. Nullcline of the x variable
         try:
             y_val = self.get_f_dx()(self.resolutions[self.x_var])
         except TypeError:
             raise ModelUseError('Missing variables. Please check and set missing '
                                 'variables to "fixed_vars".')
 
-        # visualization
+        # 2. visualization
         label = f"d{self.x_var}dt"
         x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
         plt.plot(self.resolutions[self.x_var], y_val, **x_style, label=label)
@@ -233,58 +229,13 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
         points : np.ndarray
             The fixed points.
         """
-        x_eq = integration.str2sympy(self.x_eq_group.sub_exprs[-1].code).expr
-        x_group = self.target_eqs[self.x_var]
 
-        # function scope
-        scope = deepcopy(self.pars_update)
-        scope.update(self.fixed_vars)
-        scope.update(integration.get_mapping_scope())
-        scope.update(self.x_eq_group.diff_eq.func_scope)
-
-        sympy_failed = True
-        if not self.options.escape_sympy_solver:
-            try:
-                # solve
-                f = utils.timeout(self.options.sympy_solver_timeout)(
-                    lambda: sympy.solve(x_eq, sympy.Symbol(self.x_var, real=True)))
-                results = f()
-                sympy_failed = False
-                # function codes
-                func_codes = [f'def solve_x():']
-                for expr in x_group.sub_exprs[:-1]:
-                    func_codes.append(f'{expr.var_name} = {expr.code}')
-                return_expr = ', '.join([integration.sympy2str(expr) for expr in results])
-                func_codes.append(f'return {return_expr}')
-
-                # function
-                exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
-                x_values = scope['solve_x']()
-                x_values = np.array([x_values])
-            except NotImplementedError:
-                sympy_failed = True
-            except KeyboardInterrupt:
-                sympy_failed = True
-
-        if sympy_failed:
-            # function codes
-            func_codes = [f'def optimizer_x({self.x_var}):']
-            for expr in x_group.old_exprs[:-1]:
-                func_codes.append(f'{expr.var_name} = {expr.code}')
-            func_codes.append(f'return {x_group.old_exprs[-1].code}')
-            optimizer = utils.jit_compile(scope, '\n  '.join(func_codes), 'optimizer_x')
-            xs = self.resolutions[self.x_var]
-            x_values = solver.find_root_of_1d(optimizer, xs)
-            x_values = np.array(x_values)
-
-        # differential #
-        # ------------ #
-
+        # 1. functions
+        f_fixed_point = self.get_f_fixed_point()
         f_dfdx = self.get_f_dfdx()
 
-        # stability analysis #
-        # ------------------ #
-
+        # 2. stability analysis
+        x_values = f_fixed_point()
         container = {a: [] for a in utils.get_1d_classification()}
         for i in range(len(x_values)):
             x = x_values[i]
@@ -293,14 +244,12 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
             print(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
             container[fp_type].append(x)
 
-        # visualization #
-        # ------------- #
+        # 3. visualization
         for fp_type, points in container.items():
             if len(points):
                 plot_style = utils.plot_scheme[fp_type]
                 plt.plot(points, [0] * len(points), '.',
                          markersize=20, **plot_style, label=fp_type)
-
         plt.legend()
         if show:
             plt.show()
@@ -394,6 +343,7 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
             styles = dict()
             styles['arrowsize'] = plot_style.get('arrowsize', 1.2)
             styles['density'] = plot_style.get('density', 1)
+            styles['color'] = plot_style.get('color', 'thistle')
             linewidth = plot_style.get('linewidth', None)
             if (linewidth is None) and (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
                 min_width = plot_style.get('min_width', 0.5)
@@ -632,9 +582,18 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
         else:
             assert len(plot_duration) == len(initials)
 
-        # 4. run the network
+        # 4. format the inputs
+        if len(inputs):
+            if isinstance(inputs[0], (tuple, list)):
+                inputs = [(self.traj_group, ) + tuple(input) for input in inputs]
+            elif isinstance(inputs[0], str):
+                inputs = [(self.traj_group, ) + tuple(inputs)]
+            else:
+                raise ModelUseError()
+
+        # 5. run the network
         for init_i, initial in enumerate(initials):
-            #   4.1 set the initial value
+            #   5.1 set the initial value
             for key, val in self.traj_initial.items():
                 self.traj_group.ST[key] = val
             for key_i, key in enumerate(self.dvar_names):
@@ -643,21 +602,21 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
                 if key in self.traj_group.ST:
                     self.traj_group.ST[key] = val
 
-            #   4.2 run the model
+            #   5.2 run the model
             self.traj_net.run(duration=duration[init_i], inputs=inputs,
                               report=False, data_to_host=True, verbose=False)
 
-            #   4.3 legend
+            #   5.3 legend
             legend = 'traj, '
             for key_i, key in enumerate(self.dvar_names):
                 legend += f'${key}_{init_i}$={initial[key_i]}, '
             legend = legend[:-2]
 
-            #   4.4 trajectory
+            #   5.4 trajectory
             start = int(plot_duration[init_i][0] / profile.get_dt())
             end = int(plot_duration[init_i][1] / profile.get_dt())
 
-            #   4.5 visualization
+            #   5.5 visualization
             if axes == 'v-v':
                 plt.plot(self.traj_group.mon[self.x_var][start: end, 0],
                          self.traj_group.mon[self.y_var][start: end, 0],
@@ -670,7 +629,7 @@ class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
                          self.traj_group.mon[self.y_var][start: end, 0],
                          label=legend + f', {self.y_var}')
 
-        # 5. visualization
+        # 6. visualization
         if axes == 'v-v':
             plt.xlabel(self.x_var)
             plt.ylabel(self.y_var)

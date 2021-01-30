@@ -8,7 +8,6 @@ from numba import cuda
 
 from . import base
 from . import constants
-from . import neurons
 from . import utils
 from .. import errors
 from .. import profile
@@ -46,7 +45,7 @@ class Network(object):
 
     def _add_obj(self, obj, name=None):
         # 1. check object type
-        if not isinstance(obj, neurons.Ensemble):
+        if not isinstance(obj, base.Ensemble):
             raise ValueError(f'Unknown object type "{type(obj)}". Network '
                              f'only supports NeuGroup and SynConn.')
         # 2. check object name
