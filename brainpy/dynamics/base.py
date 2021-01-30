@@ -73,7 +73,7 @@ class BaseNeuronAnalyzer(object):
     def __init__(self,
                  model,
                  target_vars,
-                 fixed_vars,
+                 fixed_vars=None,
                  target_pars=None,
                  pars_update=None,
                  numerical_resolution=0.1,
@@ -99,6 +99,8 @@ class BaseNeuronAnalyzer(object):
 
         # fixed variables
         # ----------------
+        if fixed_vars is None:
+            fixed_vars = dict()
         if not isinstance(fixed_vars, dict):
             raise errors.ModelUseError('"fixed_vars" must be a dict with the format '
                                        'of {"var1": val1, "var2": val2}.')

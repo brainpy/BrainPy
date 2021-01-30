@@ -17,8 +17,12 @@ brainpy.dynamics package
     PhasePlane2DAnalyzer
 
     BifurcationAnalyzer
-    Bifurcation1DAnalyzer
-    Bifurcation2DAnalyzer
+    _Bifurcation1DAnalyzer
+    _Bifurcation2DAnalyzer
+
+    FastSlowBifurcation
+    _FastSlow1DAnalyzer
+    _FastSlow2DAnalyzer
 
     brentq
     find_root_of_1d
@@ -46,8 +50,6 @@ brainpy.dynamics package
     :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
     :toctree:
 
-.. autoclass:: PhasePortraitAnalyzer
-
 .. autoclass:: PhasePlane1DAnalyzer
     :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
     :toctree:
@@ -62,11 +64,23 @@ brainpy.dynamics package
     :members: plot_bifurcation
     :toctree:
 
-.. autoclass:: Bifurcation1DAnalyzer
+.. autoclass:: _Bifurcation1DAnalyzer
     :members: plot_bifurcation
     :toctree:
 
-.. autoclass:: Bifurcation2DAnalyzer
+.. autoclass:: _Bifurcation2DAnalyzer
+    :members: plot_bifurcation
+    :toctree:
+
+.. autoclass:: FastSlowBifurcation
+    :members: plot_bifurcation
+    :toctree:
+
+.. autoclass:: _FastSlow1DAnalyzer
+    :members: plot_bifurcation
+    :toctree:
+
+.. autoclass:: _FastSlow2DAnalyzer
     :members: plot_bifurcation
     :toctree:
 
