@@ -12,8 +12,8 @@ from numba.cuda.random import create_xoroshiro128p_states
 from numba.cuda.random import xoroshiro128p_normal_float64
 
 from . import constants
+from . import types
 from . import utils
-from .types import ObjState
 from .. import errors
 from .. import integration
 from .. import profile
@@ -712,7 +712,7 @@ class Runner(object):
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
                           if k not in constants.ARG_KEYWORDS and
-                          isinstance(getattr(self.ensemble, k), ObjState)}
+                          isinstance(getattr(self.ensemble, k), types.ObjState)}
             except AttributeError:
                 raise errors.ModelUseError(f'Model "{self._name}" does not have all the '
                                            f'required attributes: {func_args}.')
@@ -765,7 +765,7 @@ class Runner(object):
                 if arg in constants.ARG_KEYWORDS:
                     code_arg2call[arg] = arg
                 else:
-                    if isinstance(getattr(self.ensemble, arg), ObjState):
+                    if isinstance(getattr(self.ensemble, arg), types.ObjState):
                         code_arg2call[arg] = f'{self._name}.{arg}["_data"]'
                     else:
                         code_arg2call[arg] = f'{self._name}.{arg}'
@@ -843,7 +843,7 @@ class Runner(object):
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
                           if k not in constants.ARG_KEYWORDS and
-                          isinstance(getattr(self.ensemble, k), ObjState)}
+                          isinstance(getattr(self.ensemble, k), types.ObjState)}
             except AttributeError:
                 raise errors.ModelUseError(f'Model "{self._name}" does not have all the '
                                            f'required attributes: {func_args}.')
@@ -963,12 +963,12 @@ class Runner(object):
                 else:
                     data = getattr(self.ensemble, arg)
                     if profile.run_on_cpu():
-                        if isinstance(data, ObjState):
+                        if isinstance(data, types.ObjState):
                             code_arg2call[arg] = f'{self._name}.{arg}["_data"]'
                         else:
                             code_arg2call[arg] = f'{self._name}.{arg}'
                     else:
-                        if isinstance(data, ObjState):
+                        if isinstance(data, types.ObjState):
                             code_arg2call[arg] = f'{self._name}_runner.{arg}_cuda'
                         else:
                             code_arg2call[arg] = f'{self._name}_runner.{arg}_cuda'
@@ -1193,7 +1193,7 @@ Several ways to correct this error is:
         if key not in self.gpu_data:
             if isinstance(val, np.ndarray):
                 val = cuda.to_device(val)
-            elif isinstance(val, ObjState):
+            elif isinstance(val, types.ObjState):
                 val = val.get_cuda_data()
             setattr(self, key, val)
             self.gpu_data[key] = val

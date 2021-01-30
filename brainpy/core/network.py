@@ -10,8 +10,8 @@ from . import base
 from . import constants
 from . import neurons
 from . import utils
+from .. import errors
 from .. import profile
-from ..errors import ModelUseError
 
 __all__ = [
     'Network',
@@ -96,20 +96,21 @@ class Network(object):
         # 1. format the inputs to standard
         #    formats and check the inputs
         if not isinstance(inputs, (tuple, list)):
-            raise ModelUseError('"inputs" must be a tuple/list.')
+            raise errors.ModelUseError('"inputs" must be a tuple/list.')
         if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
             if isinstance(inputs[0], base.Ensemble):
                 inputs = [inputs]
             else:
-                raise ModelUseError('Unknown input structure. Only supports "(target, key, value, [operation])".')
+                raise errors.ModelUseError(
+                    'Unknown input structure. Only supports "(target, key, value, [operation])".')
         for inp in inputs:
             if not 3 <= len(inp) <= 4:
-                raise ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
+                raise errors.ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
             if len(inp) == 4:
                 if inp[3] not in constants.INPUT_OPERATIONS:
-                    raise ModelUseError(f'Input operation only support '
-                                        f'"{list(constants.INPUT_OPERATIONS.keys())}", '
-                                        f'not "{inp[3]}".')
+                    raise errors.ModelUseError(f'Input operation only support '
+                                               f'"{list(constants.INPUT_OPERATIONS.keys())}", '
+                                               f'not "{inp[3]}".')
 
         # 2. format inputs
         formatted_inputs = {}
@@ -124,8 +125,8 @@ class Network(object):
 
             # key
             if not isinstance(inp[1], str):
-                raise ModelUseError('For each input, input[1] must be a string '
-                                    'to specify variable of the target.')
+                raise errors.ModelUseError('For each input, input[1] must be a string '
+                                           'to specify variable of the target.')
             key = inp[1]
 
             # value and data type
@@ -139,8 +140,8 @@ class Network(object):
                 else:
                     data_type = 'fix'
             else:
-                raise ModelUseError(f'For each input, input[2] must be a numerical value to '
-                                    f'specify input values, but we get a {type(inp)}')
+                raise errors.ModelUseError(f'For each input, input[2] must be a numerical value to '
+                                           f'specify input values, but we get a {type(inp)}')
 
             # operation
             if len(inp) == 4:
@@ -171,7 +172,7 @@ class Network(object):
             The step function.
         """
         if not isinstance(run_length, int):
-            raise ModelUseError(f'The running length must be an int, but we get {run_length}')
+            raise errors.ModelUseError(f'The running length must be an int, but we get {run_length}')
 
         # inputs
         format_inputs = self.format_inputs(inputs, run_length)
@@ -182,8 +183,8 @@ class Network(object):
         for obj in self._all_objects.values():
             if profile.run_on_gpu():
                 if obj.model.mode != constants.SCALAR_MODE:
-                    raise ModelUseError(f'GPU mode only support scalar-based mode. '
-                                        f'But {obj.model} is a {obj.model.mode}-based model.')
+                    raise errors.ModelUseError(f'GPU mode only support scalar-based mode. '
+                                               f'But {obj.model} is a {obj.model.mode}-based model.')
             code_scopes[obj.name] = obj
             code_scopes[f'{obj.name}_runner'] = obj.runner
             lines_of_call = obj.build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)
@@ -232,7 +233,7 @@ class Network(object):
             start, end = 0, duration
         elif isinstance(duration, (tuple, list)):
             if len(duration) != 2:
-                raise ModelUseError('Only support duration with the format of "(start, end)".')
+                raise errors.ModelUseError('Only support duration with the format of "(start, end)".')
             start, end = duration
         else:
             raise ValueError(f'Unknown duration type: {type(duration)}')

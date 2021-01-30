@@ -6,17 +6,28 @@ from pprint import pprint
 from numba.core.dispatcher import Dispatcher
 
 from .. import backend
+from .. import errors
 from .. import integration
 from .. import tools
-from .. import errors
-from . import constants
 
 __all__ = [
     'show_code_str',
     'show_code_scope',
     'find_integrators',
     'get_func_scope',
+    'check_slice',
 ]
+
+
+def check_slice(start, end, length):
+    if start >= end:
+        raise errors.ModelUseError(f'Illegal start/end values for subgroup, {start}>={end}')
+    if start >= length:
+        raise errors.ModelUseError(f'Illegal start value for subgroup, {start}>={length}')
+    if end > length:
+        raise errors.ModelUseError(f'Illegal stop value for subgroup, {end}>{length}')
+    if start < 0:
+        raise errors.ModelUseError('Indices have to be positive.')
 
 
 def show_code_str(func_code):

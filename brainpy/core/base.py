@@ -3,16 +3,15 @@
 import inspect
 import re
 import time
-import typing
 from copy import deepcopy
 
 import numpy as np
 from numba import cuda
 
 from . import constants
+from . import runner
 from . import types
 from . import utils
-from .runner import Runner
 from .. import errors
 from .. import profile
 from .. import tools
@@ -33,15 +32,7 @@ class ObjType(object):
         Model name.
     """
 
-    def __init__(
-            self,
-            ST: types.ObjState,
-            name: str,
-            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-            requires: typing.Dict = None,
-            mode: str = 'vector',
-            hand_overs: typing.Dict = None,
-    ):
+    def __init__(self, ST, name, steps, requires=None, mode='vector', hand_overs=None, ):
         self.mode = mode
         self.name = name
         if not isinstance(ST, types.ObjState):
@@ -161,10 +152,7 @@ class ParsUpdate(dict):
 
     """
 
-    def __init__(self,
-                 all_pars,
-                 num,
-                 model):
+    def __init__(self, all_pars, num, model):
         assert isinstance(all_pars, dict)
         assert isinstance(num, int)
 
@@ -298,16 +286,7 @@ class Ensemble(object):
         Class type.
     """
 
-    def __init__(
-            self,
-            name: str,
-            num: int,
-            model: ObjType,
-            monitors: typing.Tuple,
-            pars_update: typing.Dict,
-            cls_type: str,
-            satisfies: dict = None,
-    ):
+    def __init__(self, name, num, model, monitors, pars_update, cls_type, satisfies=None, ):
         # class type
         # -----------
         if not cls_type in [constants.NEU_GROUP_TYPE, constants.SYN_CONN_TYPE]:
@@ -364,7 +343,7 @@ class Ensemble(object):
 
         # runner
         # -------
-        self.runner = Runner(ensemble=self)
+        self.runner = runner.Runner(ensemble=self)
 
         # hand overs
         # ----------
@@ -429,7 +408,7 @@ class Ensemble(object):
             if run_length < shape[0]:
                 self.mon[key] = val[:run_length]
             elif run_length > shape[0]:
-                append = np.zeros((run_length - shape[0], ) + shape[1:])
+                append = np.zeros((run_length - shape[0],) + shape[1:])
                 self.mon[key] = np.vstack([val, append])
         if profile.run_on_gpu():
             for key, val in self.mon.items():

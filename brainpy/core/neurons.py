@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import typing
-
 import numpy as np
 
+from . import base
 from . import constants
-from .base import Ensemble
-from .base import ObjType
-from .types import NeuState
-from ..errors import ModelDefError
-from ..errors import ModelUseError
+from . import utils
+from .. import errors
 
 __all__ = [
     'NeuType',
@@ -20,23 +16,15 @@ __all__ = [
 _NEU_GROUP_NO = 0
 
 
-class NeuType(ObjType):
+class NeuType(base.ObjType):
     """Abstract Neuron Type.
 
     It can be defined based on a group of neurons or a single neuron.
     """
 
-    def __init__(
-            self,
-            name: str,
-            ST: NeuState,
-            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-            mode: str = 'vector',
-            requires: dict = None,
-            hand_overs: typing.Dict = None,
-    ):
+    def __init__(self, name, ST, steps, mode='vector', requires=None, hand_overs=None, ):
         if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE]:
-            raise ModelDefError('NeuType only support "scalar" or "vector".')
+            raise errors.ModelDefError('NeuType only support "scalar" or "vector".')
 
         super(NeuType, self).__init__(
             ST=ST,
@@ -47,7 +35,7 @@ class NeuType(ObjType):
             hand_overs=hand_overs)
 
 
-class NeuGroup(Ensemble):
+class NeuGroup(base.Ensemble):
     """Neuron Group.
 
     Parameters
@@ -64,15 +52,7 @@ class NeuGroup(Ensemble):
         The name of the neuron group.
     """
 
-    def __init__(
-            self,
-            model: NeuType,
-            geometry: typing.Union[typing.Tuple, typing.List, int],
-            monitors: typing.Union[typing.List, typing.Tuple] = None,
-            name: str = None,
-            satisfies: typing.Dict = None,
-            pars_update: typing.Dict = None,
-    ):
+    def __init__(self, model, geometry, monitors=None, name=None, satisfies=None, pars_update=None, ):
         # name
         # -----
         if name is None:
@@ -96,7 +76,7 @@ class NeuGroup(Ensemble):
                 num = height * width
                 indices = np.arange(num).reshape((height, width))
             else:
-                raise ModelUseError('Do not support 3+ dimensional networks.')
+                raise errors.ModelUseError('Do not support 3+ dimensional networks.')
             self.indices = np.asarray(indices, dtype=np.int_)
         else:
             raise ValueError()
@@ -108,9 +88,9 @@ class NeuGroup(Ensemble):
         try:
             assert isinstance(model, NeuType)
         except AssertionError:
-            raise ModelUseError(f'{NeuGroup.__name__} receives an '
-                                f'instance of {NeuType.__name__}, '
-                                f'not {type(model).__name__}.')
+            raise errors.ModelUseError(f'{NeuGroup.__name__} receives an '
+                                       f'instance of {NeuType.__name__}, '
+                                       f'not {type(model).__name__}.')
 
         # initialize
         # ----------
@@ -143,67 +123,52 @@ class NeuGroup(Ensemble):
             try:
                 assert item < self.num
             except AssertionError:
-                raise ModelUseError(f'Index error, because the maximum number of neurons'
-                                    f'is {self.num}, but got "item={item}".')
+                raise errors.ModelUseError(f'Index error, because the maximum number of neurons'
+                                           f'is {self.num}, but got "item={item}".')
             d1_start, d1_end, d1_step = item, item + 1, 1
-            check_slice(d1_start, d1_end, self.num)
+            utils.check_slice(d1_start, d1_end, self.num)
             indices = self.indices[d1_start:d1_end:d1_step]
         elif isinstance(item, slice):
             d1_start, d1_end, d1_step = item.indices(self.num)
-            check_slice(d1_start, d1_end, self.num)
+            utils.check_slice(d1_start, d1_end, self.num)
             indices = self.indices[d1_start:d1_end:d1_step]
         elif isinstance(item, tuple):
             if not isinstance(self.geometry, (tuple, list)):
-                raise ModelUseError(f'{self.name} has a 1D geometry, cannot use a tuple of slice.')
+                raise errors.ModelUseError(f'{self.name} has a 1D geometry, cannot use a tuple of slice.')
             if len(item) != 2:
-                raise ModelUseError(f'Only support 2D network, cannot make {len(item)}D slice.')
+                raise errors.ModelUseError(f'Only support 2D network, cannot make {len(item)}D slice.')
 
             if isinstance(item[0], slice):
                 d1_start, d1_end, d1_step = item[0].indices(self.geometry[0])
             elif isinstance(item[0], int):
                 d1_start, d1_end, d1_step = item[0], item[0] + 1, 1
             else:
-                raise ModelUseError("Only support slicing syntax or a single index.")
-            check_slice(d1_start, d1_end, self.geometry[0])
+                raise errors.ModelUseError("Only support slicing syntax or a single index.")
+            utils.check_slice(d1_start, d1_end, self.geometry[0])
 
             if isinstance(item[1], slice):
                 d2_start, d2_end, d2_step = item[1].indices(self.geometry[1])
             elif isinstance(item[1], int):
                 d2_start, d2_end, d2_step = item[1], item[1] + 1, 1
             else:
-                raise ModelUseError("Only support slicing syntax or a single index.")
-            check_slice(d1_start, d1_end, self.geometry[1])
+                raise errors.ModelUseError("Only support slicing syntax or a single index.")
+            utils.check_slice(d1_start, d1_end, self.geometry[1])
 
             indices = self.indices[d1_start:d1_end:d1_step, d2_start:d2_end:d2_step]
         else:
-            raise ModelUseError('Subgroups can only be constructed using slicing syntax, '
-                                'a single index, or an array of contiguous indices.')
+            raise errors.ModelUseError('Subgroups can only be constructed using slicing syntax, '
+                                       'a single index, or an array of contiguous indices.')
 
         return NeuSubGroup(source=self, indices=indices)
-
-
-def check_slice(start, end, length):
-    if start >= end:
-        raise ModelUseError(f'Illegal start/end values for subgroup, {start}>={end}')
-    if start >= length:
-        raise ModelUseError(f'Illegal start value for subgroup, {start}>={length}')
-    if end > length:
-        raise ModelUseError(f'Illegal stop value for subgroup, {end}>{length}')
-    if start < 0:
-        raise ModelUseError('Indices have to be positive.')
 
 
 class NeuSubGroup(object):
     """Subset of a `NeuGroup`.
     """
 
-    def __init__(self,
-                 source: NeuGroup,
-                 indices: np.ndarray):
-        try:
-            assert isinstance(source, NeuGroup)
-        except AssertionError:
-            raise ModelUseError('NeuSubGroup only support an instance of NeuGroup.')
+    def __init__(self, source, indices):
+        if not isinstance(source, NeuGroup):
+            raise errors.ModelUseError('NeuSubGroup only support an instance of NeuGroup.')
 
         self.source = source
         self.indices = indices
