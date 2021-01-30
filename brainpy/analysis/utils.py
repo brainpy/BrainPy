@@ -204,3 +204,24 @@ def jit_compile(scope, func_code, func_name):
     # compile function
     exec(compile(func_code, '', 'exec'), func_scope)
     return njit(func_scope[func_name])
+
+
+def contain_unknown_symbol(expr, scope):
+    """Examine where the given expression ``expr`` has the unknown symbol in ``scope``.
+
+    Returns
+    -------
+    res : bool
+        True or False.
+    """
+    ids = tools.get_identifiers(expr)
+    for id_ in ids:
+        if '.' in id_:
+            prefix = id_.split('.')[0].strip()
+            if prefix not in scope:
+                return True
+        if id_ not in scope:
+            return True
+    return False
+
+

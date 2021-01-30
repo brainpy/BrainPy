@@ -47,17 +47,17 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: API documentation
 
-   apis/profile
+   apis/analysis
+   apis/connectivity
    apis/core
    apis/integration
-   apis/dynamics
-   apis/connectivity
-   apis/visualization
-   apis/measure
-   apis/running
-   apis/inputs
-   apis/errors
    apis/tools
+   apis/visualization
+   apis/errors
+   apis/inputs
+   apis/measure
+   apis/profile
+   apis/running
    apis/changelog
 
 

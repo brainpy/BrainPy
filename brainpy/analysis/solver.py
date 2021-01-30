@@ -163,7 +163,6 @@ def find_root_of_1d(f, f_points, args=(), tol=1e-8):
     f_points : onp.ndarray, list, tuple
         The value points.
 
-
     Returns
     -------
     roots : list

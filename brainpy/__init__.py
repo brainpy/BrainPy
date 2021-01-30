@@ -30,10 +30,8 @@ from .core.types import SynState
 from . import integration
 from .integration import integrate
 
-# "dynamics" module
-from . import dynamics
-from .dynamics import PhasePlaneAnalyzer
-from .dynamics import BifurcationAnalyzer
+# "analysis" module
+from . import analysis
 
 # "tools" module
 from . import tools

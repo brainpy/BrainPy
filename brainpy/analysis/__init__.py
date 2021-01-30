@@ -3,6 +3,6 @@
 from .solver import *
 from .utils import *
 from .base import *
-from .phase_plane_analyzer import *
-from .bifurcation_analyzer import *
+from .phase_plane import *
+from .bifurcation import *
 

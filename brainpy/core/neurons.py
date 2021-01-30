@@ -44,11 +44,11 @@ class NeuGroup(base.Ensemble):
         The instantiated neuron type model.
     geometry : int, tuple
         The neuron group geometry.
-    pars_update : dict, None
+    pars_update : dict
         Parameters to update.
-    monitors : list, tuple, None
+    monitors : list, tuple
         Variables to monitor.
-    name : str, None
+    name : str
         The name of the neuron group.
     """
 

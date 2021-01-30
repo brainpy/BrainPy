@@ -11,14 +11,13 @@ from .. import tools
 from ..errors import ModelUseError
 
 __all__ = [
-    'PhasePlaneAnalyzer',
-    'PhasePlane1DAnalyzer',
-    'PhasePlane2DAnalyzer',
-    'PhasePortraitAnalyzer',
+    'PhasePlane',
+    '_PhasePlane1D',
+    '_PhasePlane2D',
 ]
 
 
-class PhasePlaneAnalyzer(object):
+class PhasePlane(object):
     """A tool class for phase plane analyzer.
 
     `PhasePlaneAnalyzer` is used to analyze the phase portrait of 1D
@@ -131,19 +130,19 @@ class PhasePlaneAnalyzer(object):
 
         # analyzer
         if len(target_vars) == 1:
-            self.analyzer = PhasePlane1DAnalyzer(model=model,
-                                                 target_vars=target_vars,
-                                                 fixed_vars=fixed_vars,
-                                                 pars_update=pars_update,
-                                                 numerical_resolution=numerical_resolution,
-                                                 options=self.options)
+            self.analyzer = _PhasePlane1D(model=model,
+                                          target_vars=target_vars,
+                                          fixed_vars=fixed_vars,
+                                          pars_update=pars_update,
+                                          numerical_resolution=numerical_resolution,
+                                          options=self.options)
         elif len(target_vars) == 2:
-            self.analyzer = PhasePlane2DAnalyzer(model=model,
-                                                 target_vars=target_vars,
-                                                 fixed_vars=fixed_vars,
-                                                 pars_update=pars_update,
-                                                 numerical_resolution=numerical_resolution,
-                                                 options=self.options)
+            self.analyzer = _PhasePlane2D(model=model,
+                                          target_vars=target_vars,
+                                          fixed_vars=fixed_vars,
+                                          pars_update=pars_update,
+                                          numerical_resolution=numerical_resolution,
+                                          options=self.options)
         else:
             raise ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
                                 'Or, you can set "fixed_vars" to fix other variables, '
@@ -166,20 +165,12 @@ class PhasePlaneAnalyzer(object):
         self.analyzer.plot_trajectory(*args, **kwargs)
 
 
-class PhasePortraitAnalyzer(PhasePlaneAnalyzer):
-    def __init__(self, *args, **kwargs):
-        print('PhasePortraitAnalyzer will be removed after version 0.4.0. '
-              'Please use ``brainpy.PhasePlaneAnalyzer`` instead '
-              'of ``brainpy.PhasePortraitAnalyzer``.')
-        super(PhasePortraitAnalyzer, self).__init__(*args, **kwargs)
-
-
-class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
+class _PhasePlane1D(base.Base1DNeuronAnalyzer):
     """Phase plane analyzer for 1D system.
     """
 
     def __init__(self, *args, **kwargs):
-        super(PhasePlane1DAnalyzer, self).__init__(*args, **kwargs)
+        super(_PhasePlane1D, self).__init__(*args, **kwargs)
 
     def plot_vector_field(self, show=False):
         """Plot the vector filed.
@@ -263,13 +254,13 @@ class PhasePlane1DAnalyzer(base.Base1DNeuronAnalyzer):
         raise NotImplementedError('1D phase plane do not support plot_trajectory.')
 
 
-class PhasePlane2DAnalyzer(base.Base2DNeuronAnalyzer):
+class _PhasePlane2D(base.Base2DNeuronAnalyzer):
     """Phase plane analyzer for 2D system.
 
     """
 
     def __init__(self, *args, **kwargs):
-        super(PhasePlane2DAnalyzer, self).__init__(*args, **kwargs)
+        super(_PhasePlane2D, self).__init__(*args, **kwargs)
 
         # runner for trajectory
         # ---------------------

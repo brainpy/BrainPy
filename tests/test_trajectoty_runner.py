@@ -300,7 +300,7 @@ def get_trajectories(
 
 if __name__ == '__main__':
     pass
-    from brainpy.dynamics.phase_plane_analyzer import get_trajectories
+    from brainpy.analysis.phase_plane import get_trajectories
 
     # Try LIF neuron model
     trajectories = get_trajectories(LIF, target_vars=['V'], initials=(0., (20., 100.)), inputs=('ST.inp', 12.))

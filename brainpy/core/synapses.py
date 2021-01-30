@@ -69,21 +69,21 @@ class SynConn(base.Ensemble):
     ----------
     model : SynType
         The instantiated neuron type model.
-    pars_update : dict, None
+    pars_update : dict
         Parameters to update.
-    pre_group : NeuGroup, None
+    pre_group : neurons.NeuGroup, neurons.NeuSubGroup
         Pre-synaptic neuron group.
-    post_group : NeuGroup, None
+    post_group : neurons.NeuGroup, neurons.NeuSubGroup
         Post-synaptic neuron group.
-    conn : Connector, None
+    conn : connectivity.Connector
         Connection method to create synaptic connectivity.
     num : int
         The number of the synapses.
     delay : float
         The time of the synaptic delay.
-    monitors : list, tuple, None
+    monitors : list, tuple
         Variables to monitor.
-    name : str, None
+    name : str
         The name of the neuron group.
     """
 

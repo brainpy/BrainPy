@@ -17,7 +17,7 @@ README = '''
 ``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
 compilers (especially `Numba <https://numba.pydata.org/>`_).
 The goal of ``BrainPy`` is to provide a unified simulation and analysis framework
-for neuronal dynamics with the feature of high flexibility and efficiency.
+for neuronal analysis with the feature of high flexibility and efficiency.
 BrainPy is flexible because it endows the users with the fully data/logic flow control.
 BrainPy is efficient because it supports JIT acceleration on CPUs and GPUs.
 '''

@@ -13,17 +13,17 @@ from .. import errors
 from .. import profile
 
 __all__ = [
-    'BifurcationAnalyzer',
-    '_Bifurcation1DAnalyzer',
-    '_Bifurcation2DAnalyzer',
+    'Bifurcation',
+    '_Bifurcation1D',
+    '_Bifurcation2D',
 
     'FastSlowBifurcation',
-    '_FastSlow1DAnalyzer',
-    '_FastSlow2DAnalyzer',
+    '_FastSlow1D',
+    '_FastSlow2D',
 ]
 
 
-class BifurcationAnalyzer(object):
+class Bifurcation(object):
     """A tool class for bifurcation analysis.
     
     The bifurcation analyzer is restricted to analyze the bifurcation
@@ -86,22 +86,22 @@ class BifurcationAnalyzer(object):
 
         # bifurcation analysis
         if len(self.target_vars) == 1:
-            self.analyzer = _Bifurcation1DAnalyzer(model=model,
-                                                   target_pars=target_pars,
-                                                   target_vars=target_vars,
-                                                   fixed_vars=fixed_vars,
-                                                   pars_update=pars_update,
-                                                   numerical_resolution=numerical_resolution,
-                                                   options=options)
+            self.analyzer = _Bifurcation1D(model=model,
+                                           target_pars=target_pars,
+                                           target_vars=target_vars,
+                                           fixed_vars=fixed_vars,
+                                           pars_update=pars_update,
+                                           numerical_resolution=numerical_resolution,
+                                           options=options)
 
         elif len(self.target_vars) == 2:
-            self.analyzer = _Bifurcation2DAnalyzer(model=model,
-                                                   target_pars=target_pars,
-                                                   target_vars=target_vars,
-                                                   fixed_vars=fixed_vars,
-                                                   pars_update=pars_update,
-                                                   numerical_resolution=numerical_resolution,
-                                                   options=options)
+            self.analyzer = _Bifurcation2D(model=model,
+                                           target_pars=target_pars,
+                                           target_vars=target_vars,
+                                           fixed_vars=fixed_vars,
+                                           pars_update=pars_update,
+                                           numerical_resolution=numerical_resolution,
+                                           options=options)
 
         else:
             raise errors.ModelUseError(f'Cannot analyze three dimensional system: {self.target_vars}')
@@ -110,7 +110,7 @@ class BifurcationAnalyzer(object):
         self.analyzer.plot_bifurcation(*args, **kwargs)
 
 
-class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
+class _Bifurcation1D(base.Base1DNeuronAnalyzer):
     """Bifurcation analysis of 1D system.
 
     Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -118,13 +118,13 @@ class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
 
     def __init__(self, model, target_pars, target_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_Bifurcation1DAnalyzer, self).__init__(model=model,
-                                                     target_pars=target_pars,
-                                                     target_vars=target_vars,
-                                                     fixed_vars=fixed_vars,
-                                                     pars_update=pars_update,
-                                                     numerical_resolution=numerical_resolution,
-                                                     options=options)
+        super(_Bifurcation1D, self).__init__(model=model,
+                                             target_pars=target_pars,
+                                             target_vars=target_vars,
+                                             fixed_vars=fixed_vars,
+                                             pars_update=pars_update,
+                                             numerical_resolution=numerical_resolution,
+                                             options=options)
 
     def plot_bifurcation(self, show=False):
         f_fixed_point = self.get_f_fixed_point()
@@ -152,9 +152,9 @@ class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
             plt.xlabel(par_a)
             plt.ylabel(self.x_var)
 
-            scale = self.options.lim_scale
-            plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
-            plt.ylim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+            # scale = (self.options.lim_scale - 1) / 2
+            # plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+            # plt.ylim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
 
             plt.legend()
             if show:
@@ -189,10 +189,10 @@ class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
             ax.set_ylabel(self.dpar_names[1])
             ax.set_zlabel(self.x_var)
 
-            scale = self.options.lim_scale
-            ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
-            ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
-            ax.set_zlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+            # scale = (self.options.lim_scale - 1) / 2
+            # ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+            # ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
+            # ax.set_zlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
 
             ax.grid(True)
             ax.legend()
@@ -204,7 +204,7 @@ class _Bifurcation1DAnalyzer(base.Base1DNeuronAnalyzer):
                                        f'bifurcation.')
 
 
-class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
+class _Bifurcation2D(base.Base2DNeuronAnalyzer):
     """Bifurcation analysis of 2D system.
 
     Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -212,13 +212,13 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
 
     def __init__(self, model, target_pars, target_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_Bifurcation2DAnalyzer, self).__init__(model=model,
-                                                     target_pars=target_pars,
-                                                     target_vars=target_vars,
-                                                     fixed_vars=fixed_vars,
-                                                     pars_update=pars_update,
-                                                     numerical_resolution=numerical_resolution,
-                                                     options=options)
+        super(_Bifurcation2D, self).__init__(model=model,
+                                             target_pars=target_pars,
+                                             target_vars=target_vars,
+                                             fixed_vars=fixed_vars,
+                                             pars_update=pars_update,
+                                             numerical_resolution=numerical_resolution,
+                                             options=options)
 
     def plot_bifurcation(self, show=False):
         # functions
@@ -250,9 +250,9 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
                 plt.xlabel(self.dpar_names[0])
                 plt.ylabel(var)
 
-                scale = self.options.lim_scale
-                plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
-                plt.ylim(*utils.rescale(self.target_vars[var], scale=scale))
+                # scale = (self.options.lim_scale - 1) / 2
+                # plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+                # plt.ylim(*utils.rescale(self.target_vars[var], scale=scale))
 
                 plt.legend()
             if show:
@@ -291,10 +291,10 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
                 ax.set_ylabel(self.dpar_names[1])
                 ax.set_zlabel(var)
 
-                scale = self.options.lim_scale
-                ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
-                ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
-                ax.set_zlim(*utils.rescale(self.target_vars[var], scale=scale))
+                # scale = (self.options.lim_scale - 1) / 2
+                # ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+                # ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
+                # ax.set_zlim(*utils.rescale(self.target_vars[var], scale=scale))
 
                 ax.grid(True)
                 ax.legend()
@@ -303,7 +303,7 @@ class _Bifurcation2DAnalyzer(base.Base2DNeuronAnalyzer):
 
 
 class FastSlowBifurcation(object):
-    """Fast slow dynamics analysis proposed by John Rinzel [1]_.
+    """Fast slow analysis analysis proposed by John Rinzel [1]_.
 
     (J Rinzel, 1985) proposed that in a fast-slow dynamical system,
     we can treat the slow variables as the bifurcation parameters, and
@@ -368,22 +368,22 @@ class FastSlowBifurcation(object):
 
         # bifurcation analysis
         if len(self.fast_vars) == 1:
-            self.analyzer = _FastSlow1DAnalyzer(model=model,
-                                                fast_vars=fast_vars,
-                                                slow_vars=slow_vars,
-                                                fixed_vars=fixed_vars,
-                                                pars_update=pars_update,
-                                                numerical_resolution=numerical_resolution,
-                                                options=options)
+            self.analyzer = _FastSlow1D(model=model,
+                                        fast_vars=fast_vars,
+                                        slow_vars=slow_vars,
+                                        fixed_vars=fixed_vars,
+                                        pars_update=pars_update,
+                                        numerical_resolution=numerical_resolution,
+                                        options=options)
 
         elif len(self.fast_vars) == 2:
-            self.analyzer = _FastSlow2DAnalyzer(model=model,
-                                                fast_vars=fast_vars,
-                                                slow_vars=slow_vars,
-                                                fixed_vars=fixed_vars,
-                                                pars_update=pars_update,
-                                                numerical_resolution=numerical_resolution,
-                                                options=options)
+            self.analyzer = _FastSlow2D(model=model,
+                                        fast_vars=fast_vars,
+                                        slow_vars=slow_vars,
+                                        fixed_vars=fixed_vars,
+                                        pars_update=pars_update,
+                                        numerical_resolution=numerical_resolution,
+                                        options=options)
 
         else:
             raise errors.ModelUseError(f'Cannot analyze {len(fast_vars)} dimensional fast system.')
@@ -545,9 +545,9 @@ class _FastSlowTrajectory(object):
                 plt.ylabel(var_name)
             elif len(self.slow_var_names) == 2:
                 ax = fig.gca(projection='3d')
-                ax.set_xlim(*utils.rescale(self.slow_vars[self.slow_var_names[0]], scale=scale))
-                ax.set_ylim(*utils.rescale(self.slow_vars[self.slow_var_names[1]], scale=scale))
-                ax.set_zlim(*utils.rescale(self.fast_vars[var_name], scale=scale))
+                # ax.set_xlim(*utils.rescale(self.slow_vars[self.slow_var_names[0]], scale=scale))
+                # ax.set_ylim(*utils.rescale(self.slow_vars[self.slow_var_names[1]], scale=scale))
+                # ax.set_zlim(*utils.rescale(self.fast_vars[var_name], scale=scale))
                 ax.set_xlabel(self.slow_var_names[0])
                 ax.set_ylabel(self.slow_var_names[1])
                 ax.set_zlabel(var_name)
@@ -558,28 +558,28 @@ class _FastSlowTrajectory(object):
             plt.show()
 
 
-class _FastSlow1DAnalyzer(_Bifurcation1DAnalyzer, _FastSlowTrajectory):
+class _FastSlow1D(_Bifurcation1D, _FastSlowTrajectory):
     def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_FastSlow1DAnalyzer, self).__init__(model=model,
-                                                  target_pars=slow_vars,
-                                                  target_vars=fast_vars,
-                                                  fixed_vars=fixed_vars,
-                                                  pars_update=pars_update,
-                                                  numerical_resolution=numerical_resolution,
-                                                  options=options)
+        super(_FastSlow1D, self).__init__(model=model,
+                                          target_pars=slow_vars,
+                                          target_vars=fast_vars,
+                                          fixed_vars=fixed_vars,
+                                          pars_update=pars_update,
+                                          numerical_resolution=numerical_resolution,
+                                          options=options)
 
 
-class _FastSlow2DAnalyzer(_Bifurcation2DAnalyzer, _FastSlowTrajectory):
+class _FastSlow2D(_Bifurcation2D, _FastSlowTrajectory):
     def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_FastSlow2DAnalyzer, self).__init__(model=model,
-                                                  target_pars=slow_vars,
-                                                  target_vars=fast_vars,
-                                                  fixed_vars=fixed_vars,
-                                                  pars_update=pars_update,
-                                                  numerical_resolution=numerical_resolution,
-                                                  options=options)
+        super(_FastSlow2D, self).__init__(model=model,
+                                          target_pars=slow_vars,
+                                          target_vars=fast_vars,
+                                          fixed_vars=fixed_vars,
+                                          pars_update=pars_update,
+                                          numerical_resolution=numerical_resolution,
+                                          options=options)
 
 
 
