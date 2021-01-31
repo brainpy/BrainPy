@@ -4,7 +4,6 @@ from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
 
 from . import base
 from . import utils
@@ -459,14 +458,25 @@ class _FastSlowTrajectory(object):
         """
 
         # 1. format the initial values
-        if isinstance(initials[0], (int, float)):
-            initials = [initials, ]
-        initials = np.array(initials)
+        all_vars = self.fast_var_names + self.slow_var_names
+        if isinstance(initials, dict):
+            initials = [initials]
+        elif isinstance(initials, (list, tuple)):
+            if isinstance(initials[0], (int, float)):
+                initials = [{all_vars[i]: v for i, v in enumerate(initials)}]
+            elif isinstance(initials[0], dict):
+                initials = initials
+            elif isinstance(initials[0], (tuple, list)) and isinstance(initials[0][0], (int, float)):
+                initials = [{all_vars[i]: v for i, v in enumerate(init)} for init in initials]
+            else:
+                raise ValueError
+        else:
+            raise ValueError
         for initial in initials:
-            if len(initial) != len(self.fast_var_names + self.slow_var_names):
-                raise errors.AnalyzerError(f'Should provide all {len(self.fast_var_names + self.slow_var_names)} '
-                                           f'fast-slow variables initial values, but we only get initial '
-                                           f'values for {len(initial)} variables.')
+            if len(initial) != len(all_vars):
+                raise errors.AnalyzerError(f'Should provide all fast-slow variables ({all_vars}) '
+                                           f' initial values, but we only get initial values for '
+                                           f'variables {list(initial.keys())}.')
 
         # 2. format the running duration
         if isinstance(duration, (int, float)):
@@ -498,8 +508,8 @@ class _FastSlowTrajectory(object):
             #   5.1 set the initial value
             for key, val in self.traj_initial.items():
                 self.traj_group.ST[key] = val
-            for key_i, key in enumerate(self.fast_var_names + self.slow_var_names):
-                self.traj_group.ST[key] = initial[key_i]
+            for key in all_vars:
+                self.traj_group.ST[key] = initial[key]
             for key, val in self.fixed_vars.items():
                 if key in self.traj_group.ST:
                     self.traj_group.ST[key] = val
@@ -510,8 +520,8 @@ class _FastSlowTrajectory(object):
 
             #   5.3 legend
             legend = 'traj, '
-            for key_i, key in enumerate(self.fast_var_names + self.slow_var_names):
-                legend += f'${key}_{init_i}$={initial[key_i]}, '
+            for key in all_vars:
+                legend += f'${key}_{init_i}$={initial[key]}, '
             legend = legend[:-2]
 
             #   5.4 trajectory
@@ -526,6 +536,11 @@ class _FastSlowTrajectory(object):
                 fig = plt.figure(var_name)
                 if len(self.slow_var_names) == 1:
                     plt.plot(s0, fast, label=legend)
+                    # middle = int(s0.shape[0] / 2)
+                    # plt.arrow(s0[middle], fast[middle],
+                    #           s0[middle + 1] - s0[middle], fast[middle + 1] - fast[middle],
+                    #           shape='full')
+
                 elif len(self.slow_var_names) == 2:
                     fig.gca(projection='3d')
                     s1 = self.traj_group.mon[self.slow_var_names[1]][start: end, 0]
@@ -537,10 +552,10 @@ class _FastSlowTrajectory(object):
         for var_name in self.fast_vars.keys():
             fig = plt.figure(var_name)
 
-            scale = (self.lim_scale - 1.) / 2
+            # scale = (self.lim_scale - 1.) / 2
             if len(self.slow_var_names) == 1:
-                plt.xlim(*utils.rescale(self.slow_vars[self.slow_var_names[0]], scale=scale))
-                plt.ylim(*utils.rescale(self.fast_vars[var_name], scale=scale))
+                # plt.xlim(*utils.rescale(self.slow_vars[self.slow_var_names[0]], scale=scale))
+                # plt.ylim(*utils.rescale(self.fast_vars[var_name], scale=scale))
                 plt.xlabel(self.slow_var_names[0])
                 plt.ylabel(var_name)
             elif len(self.slow_var_names) == 2:
@@ -558,7 +573,7 @@ class _FastSlowTrajectory(object):
             plt.show()
 
 
-class _FastSlow1D(_Bifurcation1D, _FastSlowTrajectory):
+class _FastSlow1D(_Bifurcation1D):
     def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
         super(_FastSlow1D, self).__init__(model=model,
@@ -568,9 +583,19 @@ class _FastSlow1D(_Bifurcation1D, _FastSlowTrajectory):
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
                                           options=options)
+        self.traj = _FastSlowTrajectory(model=model,
+                                        fast_vars=fast_vars,
+                                        slow_vars=slow_vars,
+                                        fixed_vars=fixed_vars,
+                                        pars_update=pars_update,
+                                        numerical_resolution=numerical_resolution,
+                                        options=options)
+
+    def plot_trajectory(self, *args, **kwargs):
+        self.traj.plot_trajectory(*args, **kwargs)
 
 
-class _FastSlow2D(_Bifurcation2D, _FastSlowTrajectory):
+class _FastSlow2D(_Bifurcation2D, ):
     def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
         super(_FastSlow2D, self).__init__(model=model,
@@ -580,7 +605,16 @@ class _FastSlow2D(_Bifurcation2D, _FastSlowTrajectory):
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
                                           options=options)
+        self.traj = _FastSlowTrajectory(model=model,
+                                        fast_vars=fast_vars,
+                                        slow_vars=slow_vars,
+                                        fixed_vars=fixed_vars,
+                                        pars_update=pars_update,
+                                        numerical_resolution=numerical_resolution,
+                                        options=options)
 
+    def plot_trajectory(self, *args, **kwargs):
+        self.traj.plot_trajectory(*args, **kwargs)
 
 
 if __name__ == '__main__':

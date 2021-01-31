@@ -30,6 +30,7 @@ _2D_UNSTABLE_NODE = 'unstable-node'
 _2D_UNSTABLE_FOCUS = 'unstable-focus'
 _2D_UNSTABLE_STAR = 'star'
 _2D_UNSTABLE_LINE = 'unstable-line'
+_2D_UNIFORM_MOTION = 'uniform-motion'
 
 plot_scheme = {
     _1D_STABLE_POINT: {"color": 'tab:red'},
@@ -48,6 +49,7 @@ plot_scheme = {
     _2D_CENTER: {'color': 'lime'},
     _2D_UNSTABLE_STAR: {'color': 'green'},
     _2D_STABLE_STAR: {'color': 'orange'},
+    _2D_UNIFORM_MOTION: {'color': 'red'},
 }
 
 
@@ -58,11 +60,12 @@ def get_1d_classification():
 def get_2d_classification():
     return [_SADDLE_NODE, _2D_CENTER, _2D_STABLE_NODE, _2D_STABLE_FOCUS,
             _2D_STABLE_STAR, _2D_STABLE_LINE, _2D_UNSTABLE_NODE,
-            _2D_UNSTABLE_FOCUS, _2D_UNSTABLE_STAR, _2D_UNSTABLE_LINE]
+            _2D_UNSTABLE_FOCUS, _2D_UNSTABLE_STAR, _2D_UNSTABLE_LINE,
+            _2D_UNIFORM_MOTION]
 
 
 def stability_analysis(derivative):
-    """Stability analysis for fixed point.
+    """Stability analysis for fixed point [1]_.
 
     Parameters
     ----------
@@ -73,6 +76,12 @@ def stability_analysis(derivative):
     -------
     fp_type : str
         The type of the fixed point.
+
+    References
+    ----------
+
+    .. [1] http://www.egwald.ca/nonlineardynamics/twodimensionaldynamics.php
+
     """
     if np.size(derivative) == 1:
         if derivative == 0:
@@ -81,6 +90,7 @@ def stability_analysis(derivative):
             return _1D_STABLE_POINT
         else:
             return _1D_UNSTABLE_POINT
+
     elif np.size(derivative) == 4:
         a = derivative[0][0]
         b = derivative[0][1]
@@ -91,8 +101,6 @@ def stability_analysis(derivative):
         p = a + d
         # det
         q = a * d - b * c
-        # parabola
-        e = p * p - 4 * q
 
         # judgement
         if q < 0:
@@ -100,9 +108,13 @@ def stability_analysis(derivative):
         elif q == 0:
             if p < 0:
                 return _2D_STABLE_LINE
-            else:
+            elif p > 0:
                 return _2D_UNSTABLE_LINE
+            else:
+                return _2D_UNIFORM_MOTION
         else:
+            # parabola
+            e = p * p - 4 * q
             if p == 0:
                 return _2D_CENTER
             elif p > 0:

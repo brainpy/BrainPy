@@ -6,6 +6,3 @@ from .runner import *
 from .neurons import *
 from .synapses import *
 from .network import *
-
-
-

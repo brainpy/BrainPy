@@ -215,7 +215,7 @@ class BaseNeuronAnalyzer(object):
         if options is None:
             options = dict()
         self.options = tools.DictPlus()
-        self.options['perturbation'] = options.get('perturbation', 1e-4)
+        self.options['perturbation'] = options.get('perturbation', 1e-6)
         self.options['sympy_solver_timeout'] = options.get('sympy_solver_timeout', 5)  # s
         self.options['escape_sympy_solver'] = options.get('escape_sympy_solver', False)
         self.options['lim_scale'] = options.get('lim_scale', 1.05)
@@ -254,7 +254,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
             self.analyzed_results['dxdt'] = func
         return self.analyzed_results['dxdt']
 
-    def get_f_dfdx(self):
+    def get_f_dfdx(self, origin=True):
         """Get the derivative of ``f`` by variable ``x``. """
         if 'dfdx' not in self.analyzed_results:
             x_var = self.dvar_names[0]
@@ -302,10 +302,14 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
             if sympy_failed:
                 scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
                 func_codes = [f'def dfdx({argument}):']
-                func_codes.append(f'origin = _fx({argument})')
+                if not origin:
+                    func_codes.append(f'origin = _fx({argument})')
                 func_codes.append(f'disturb = _fx({x_var}+perturb, '
                                   f'{",".join(self.dvar_names[1:] + self.dpar_names)})')
-                func_codes.append(f'return (disturb - origin) / perturb')
+                if not origin:
+                    func_codes.append(f'return (disturb - origin) / perturb')
+                else:
+                    func_codes.append(f'return disturb / perturb')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dfdx = scope['dfdx']
             self.analyzed_results['dfdx'] = dfdx
@@ -492,7 +496,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             self.analyzed_results['dydt'] = scope['func']
         return self.analyzed_results['dydt']
 
-    def get_f_dfdy(self):
+    def get_f_dfdy(self, origin=True):
         """Get the derivative of ``f`` by variable ``y``. """
         if 'dfdy' not in self.analyzed_results:
             x_var = self.dvar_names[0]
@@ -541,17 +545,21 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if sympy_failed:
                 scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
                 func_codes = [f'def dfdy({argument}):']
-                func_codes.append(f'origin = _fx({argument})')
+                if not origin:
+                    func_codes.append(f'origin = _fx({argument})')
                 func_codes.append(f'disturb = _fx({x_var}, {y_var}+perturb, '
                                   f'{",".join(self.dvar_names[2:] + self.dpar_names)})')
-                func_codes.append(f'return (disturb - origin) / perturb')
+                if not origin:
+                    func_codes.append(f'return (disturb - origin) / perturb')
+                else:
+                    func_codes.append(f'return disturb / perturb')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dfdy = scope['dfdy']
 
             self.analyzed_results['dfdy'] = dfdy
         return self.analyzed_results['dfdy']
 
-    def get_f_dgdx(self):
+    def get_f_dgdx(self, origin=True):
         """Get the derivative of ``g`` by variable ``x``. """
         if 'dgdx' not in self.analyzed_results:
             x_var = self.dvar_names[0]
@@ -600,17 +608,21 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if sympy_failed:
                 scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
                 func_codes = [f'def dgdx({argument}):']
-                func_codes.append(f'origin = _fy({argument})')
+                if not origin:
+                    func_codes.append(f'origin = _fy({argument})')
                 func_codes.append(f'disturb = _fy({x_var}+perturb, '
                                   f'{",".join(self.dvar_names[1:] + self.dpar_names)})')
-                func_codes.append(f'return (disturb - origin) / perturb')
+                if not origin:
+                    func_codes.append(f'return (disturb - origin) / perturb')
+                else:
+                    func_codes.append(f'return disturb / perturb')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dgdx = scope['dgdx']
 
             self.analyzed_results['dgdx'] = dgdx
         return self.analyzed_results['dgdx']
 
-    def get_f_dgdy(self):
+    def get_f_dgdy(self, origin=True):
         """Get the derivative of ``g`` by variable ``y``. """
         if 'dgdy' not in self.analyzed_results:
             x_var = self.dvar_names[0]
@@ -625,6 +637,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
             argument = ', '.join(self.dvar_names + self.dpar_names)
+            argument2 = ', '.join(self.dvar_names[2:] + self.dpar_names)
             time_out = self.options.sympy_solver_timeout
 
             sympy_failed = True
@@ -659,10 +672,13 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if sympy_failed:
                 scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
                 func_codes = [f'def dgdy({argument}):']
-                func_codes.append(f'origin = _fy({argument})')
-                func_codes.append(f'disturb = _fy({x_var}, {y_var}+perturb, '
-                                  f'{",".join(self.dvar_names[2:] + self.dpar_names)})')
-                func_codes.append(f'return (disturb - origin) / perturb')
+                if not origin:
+                    func_codes.append(f'origin = _fy({argument})')
+                func_codes.append(f'disturb = _fy({x_var}, {y_var}+perturb, {argument2})')
+                if not origin:
+                    func_codes.append(f'return (disturb - origin) / perturb')
+                else:
+                    func_codes.append(f'return disturb / perturb')
                 exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
                 dgdy = scope['dgdy']
 

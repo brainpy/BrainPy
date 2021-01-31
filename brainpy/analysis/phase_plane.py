@@ -7,7 +7,6 @@ from . import base
 from . import utils
 from .. import core
 from .. import profile
-from .. import tools
 from ..errors import ModelUseError
 
 __all__ = [
@@ -115,19 +114,6 @@ class PhasePlane(object):
                 raise ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
         self.pars_update = pars_update
 
-        # check for "options"
-        if options is None:
-            options = dict()
-        self.options = tools.DictPlus()
-        self.options['sympy_solver_timeout'] = options.get('sympy_solver_timeout', 5)  # s
-        self.options['escape_sympy_solver'] = options.get('escape_sympy_solver', False)
-        self.options['shgo_args'] = options.get('shgo_args', dict())
-        self.options['show_shgo'] = options.get('show_shgo', False)
-        self.options['perturbation'] = options.get('perturbation', 1e-4)
-        self.options['lim_scale'] = options.get('lim_scale', 1.05)
-        self.options['fl_tol'] = options.get('fl_tol', 1e-6)
-        self.options['xl_tol'] = options.get('xl_tol', 1e-4)
-
         # analyzer
         if len(target_vars) == 1:
             self.analyzer = _PhasePlane1D(model=model,
@@ -135,14 +121,14 @@ class PhasePlane(object):
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
-                                          options=self.options)
+                                          options=options)
         elif len(target_vars) == 2:
             self.analyzer = _PhasePlane2D(model=model,
                                           target_vars=target_vars,
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
-                                          options=self.options)
+                                          options=options)
         else:
             raise ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
                                 'Or, you can set "fixed_vars" to fix other variables, '
@@ -478,7 +464,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                 raise ModelUseError('Missing variables. Please check and set missing '
                                     'variables to "fixed_vars".')
             x_values_in_x_eq = xs
-            plt.plot(xs, y_values_in_x_eq, **y_style, label=f"{self.y_var} nullcline")
+            plt.plot(xs, y_values_in_x_eq, **x_style, label=f"{self.x_var} nullcline")
 
         else:
             x_by_y = self.get_x_by_y_in_x_eq()
@@ -489,7 +475,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                     raise ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
                 y_values_in_x_eq = ys
-                plt.plot(x_values_in_x_eq, ys, **y_style, label=f"{self.y_var} nullcline")
+                plt.plot(x_values_in_x_eq, ys, **x_style, label=f"{self.x_var} nullcline")
             else:
                 # optimization results
                 optimizer = self.get_f_optimize_x_nullcline(x_coords)
@@ -553,9 +539,19 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             raise ModelUseError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
 
         # 1. format the initial values
-        if isinstance(initials[0], (int, float)):
-            initials = [initials, ]
-        initials = np.array(initials)
+        if isinstance(initials, dict):
+            initials = [initials]
+        elif isinstance(initials, (list, tuple)):
+            if isinstance(initials[0], (int, float)):
+                initials = [{self.dvar_names[i]: v for i, v in enumerate(initials)}]
+            elif isinstance(initials[0], dict):
+                initials = initials
+            elif isinstance(initials[0], (tuple, list)) and isinstance(initials[0][0], (int, float)):
+                initials = [{self.dvar_names[i]: v for i, v in enumerate(init)} for init in initials]
+            else:
+                raise ValueError
+        else:
+            raise ValueError
 
         # 2. format the running duration
         if isinstance(duration, (int, float)):
@@ -587,8 +583,8 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             #   5.1 set the initial value
             for key, val in self.traj_initial.items():
                 self.traj_group.ST[key] = val
-            for key_i, key in enumerate(self.dvar_names):
-                self.traj_group.ST[key] = initial[key_i]
+            for key in self.dvar_names:
+                self.traj_group.ST[key] = initial[key]
             for key, val in self.fixed_vars.items():
                 if key in self.traj_group.ST:
                     self.traj_group.ST[key] = val
@@ -598,9 +594,9 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                               report=False, data_to_host=True, verbose=False)
 
             #   5.3 legend
-            legend = 'traj, '
-            for key_i, key in enumerate(self.dvar_names):
-                legend += f'${key}_{init_i}$={initial[key_i]}, '
+            legend = f'traj{init_i}, '
+            for key in self.dvar_names:
+                legend += f'{key}={initial[key]}, '
             legend = legend[:-2]
 
             #   5.4 trajectory
