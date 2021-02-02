@@ -263,14 +263,14 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                          for c in utils.get_2d_classification()}
 
             # fixed point
-            for p1 in self.resolutions[self.dpar_names[0]]:
-                for p2 in self.resolutions[self.dpar_names[1]]:
-                    xs, ys = f_fixed_point(p1, p2)
+            for p0 in self.resolutions[self.dpar_names[0]]:
+                for p1 in self.resolutions[self.dpar_names[1]]:
+                    xs, ys = f_fixed_point(p0, p1)
                     for x, y in zip(xs, ys):
-                        dfdx = f_jacobian(x, y, p1, p2)
+                        dfdx = f_jacobian(x, y, p0, p1)
                         fp_type = utils.stability_analysis(dfdx)
-                        container[fp_type]['p0'].append(p1)
-                        container[fp_type]['p1'].append(p2)
+                        container[fp_type]['p0'].append(p0)
+                        container[fp_type]['p1'].append(p1)
                         container[fp_type][self.x_var].append(x)
                         container[fp_type][self.y_var].append(y)
 
@@ -302,13 +302,12 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
 
 
 class FastSlowBifurcation(object):
-    """Fast slow analysis analysis proposed by John Rinzel [1]_.
+    """Fast slow analysis analysis proposed by John Rinzel [1]_ [2]_ [3]_.
 
-    (J Rinzel, 1985) proposed that in a fast-slow dynamical system,
-    we can treat the slow variables as the bifurcation parameters, and
-    then study how the different value of slow variables affect the
+    (J Rinzel, 1985, 1986, 1987) proposed that in a fast-slow dynamical
+    system, we can treat the slow variables as the bifurcation parameters,
+    and then study how the different value of slow variables affect the
     bifurcation of the fast sub-system.
-
 
     References
     ----------
@@ -316,6 +315,13 @@ class FastSlowBifurcation(object):
     .. [1] Rinzel, John. "Bursting oscillations in an excitable
            membrane model." In Ordinary and partial differential
            equations, pp. 304-316. Springer, Berlin, Heidelberg, 1985.
+    .. [2] Rinzel, John , and Y. S. Lee . On Different Mechanisms for
+           Membrane Potential Bursting. Nonlinear Oscillations in
+           Biology and Chemistry. Springer Berlin Heidelberg, 1986.
+    .. [3] Rinzel, John. "A formal classification of bursting mechanisms
+           in excitable systems." In Mathematical topics in population
+           biology, morphogenesis and neurosciences, pp. 267-281.
+           Springer, Berlin, Heidelberg, 1987.
 
     """
 
@@ -519,9 +525,9 @@ class _FastSlowTrajectory(object):
                               report=False, data_to_host=True, verbose=False)
 
             #   5.3 legend
-            legend = 'traj, '
+            legend = f'$traj_{init_i}$: '
             for key in all_vars:
-                legend += f'${key}_{init_i}$={initial[key]}, '
+                legend += f'{key}={initial[key]}, '
             legend = legend[:-2]
 
             #   5.4 trajectory
@@ -535,7 +541,8 @@ class _FastSlowTrajectory(object):
 
                 fig = plt.figure(var_name)
                 if len(self.slow_var_names) == 1:
-                    plt.plot(s0, fast, label=legend)
+                    lines = plt.plot(s0, fast, label=legend)
+                    utils.add_arrow(lines[0])
                     # middle = int(s0.shape[0] / 2)
                     # plt.arrow(s0[middle], fast[middle],
                     #           s0[middle + 1] - s0[middle], fast[middle + 1] - fast[middle],
@@ -595,7 +602,7 @@ class _FastSlow1D(_Bifurcation1D):
         self.traj.plot_trajectory(*args, **kwargs)
 
 
-class _FastSlow2D(_Bifurcation2D, ):
+class _FastSlow2D(_Bifurcation2D):
     def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
         super(_FastSlow2D, self).__init__(model=model,

@@ -594,7 +594,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                               report=False, data_to_host=True, verbose=False)
 
             #   5.3 legend
-            legend = f'traj{init_i}, '
+            legend = f'$traj_{init_i}$: '
             for key in self.dvar_names:
                 legend += f'{key}={initial[key]}, '
             legend = legend[:-2]
@@ -605,9 +605,10 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
 
             #   5.5 visualization
             if axes == 'v-v':
-                plt.plot(self.traj_group.mon[self.x_var][start: end, 0],
+                lines = plt.plot(self.traj_group.mon[self.x_var][start: end, 0],
                          self.traj_group.mon[self.y_var][start: end, 0],
                          label=legend)
+                utils.add_arrow(lines[0])
             else:
                 plt.plot(self.traj_group.mon.ts[start: end],
                          self.traj_group.mon[self.x_var][start: end, 0],
