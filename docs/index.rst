@@ -39,7 +39,6 @@ Comprehensive examples of BrainPy please see
    advanced/repeat_mode
    advanced/tips_on_jit
    advanced/how_it_works
-   advanced/usage_of_connect_module
    advanced/usage_of_inputs_module
 
 
