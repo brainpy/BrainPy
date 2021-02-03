@@ -77,15 +77,3 @@ brainpy.tools package
     get_func_name
     get_func_scope
 
-
-
-``logger`` module
----------------------
-
-
-.. autosummary::
-    :toctree: _autosummary
-
-    show_code_scope
-    show_code_str
-

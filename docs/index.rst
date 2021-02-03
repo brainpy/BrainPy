@@ -25,7 +25,6 @@ Comprehensive examples of BrainPy please see
    tutorials/quick_start
    tutorials/build_neurons
    tutorials/build_synapses
-   tutorials/build_network
    tutorials/dynamics_analysis
 
 

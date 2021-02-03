@@ -23,12 +23,6 @@ brainpy.analysis package
     _FastSlow1D
     _FastSlow2D
 
-    brentq
-    find_root_of_1d
-    find_root_of_2d
-    stability_analysis
-    rescale
-
 
 
 .. autoclass:: BaseNeuronAnalyzer

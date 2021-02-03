@@ -35,7 +35,6 @@ brainpy.integration package
     :toctree: _autosummary
 
     integrate
-    get_integrator
     Integrator
     Euler
     Heun

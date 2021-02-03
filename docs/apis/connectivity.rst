@@ -40,8 +40,6 @@ brainpy.connect package
     GaussianProb
     GaussianWeight
     DOG
-    SmallWorld
-    ScaleFree
 
 
 
@@ -79,11 +77,5 @@ brainpy.connect package
    :members:
 
 .. autoclass:: DOG
-   :members:
-
-.. autoclass:: SmallWorld
-   :members:
-
-.. autoclass:: ScaleFree
    :members:
 
