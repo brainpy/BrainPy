@@ -93,15 +93,17 @@ class Runner(object):
         # check datatype of the input
         # ----------------------------
         has_iter = False
+        all_inputs = set()
         for key, val, ops, t in key_val_ops_types:
             if t not in ['iter', 'fix']:
                 raise errors.ModelUseError('Only support inputs of "iter" and "fix" types.')
             if t == 'iter':
                 has_iter = True
-            if key in self._inputs:
+            if key in all_inputs:
                 raise errors.ModelUseError('Only support assignment for each key once.')
             else:
                 self._inputs[key] = (val, ops, t)
+                all_inputs.add(key)
 
         # check data operations
         # ----------------------

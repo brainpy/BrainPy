@@ -262,12 +262,12 @@ class Network(object):
                     if np.shape(obj_inputs[key][0]) != np.shape(val):
                         if verbose:
                             print(f'The current "{key}" input shape {np.shape(val)} is different '
-                                  f'from the last input shape {np.shape(obj_inputs[key][0])}.')
+                                  f'from the last input shape {np.shape(obj_inputs[key][0])}. ')
                             input_keep_same = False
                     if obj_inputs[key][1] != ops:
                         if verbose:
                             print(f'The current "{key}" input operation "{ops}" is different '
-                                  f'from the last operation "{obj_inputs[key][1]}".')
+                                  f'from the last operation "{obj_inputs[key][1]}". ')
                             input_keep_same = False
                     obj.runner.set_data(f'{key.replace(".", "_")}_inp', val)
                     if key in onj_input_keys:

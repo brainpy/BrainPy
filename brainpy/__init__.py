@@ -9,6 +9,7 @@ from . import profile
 from . import backend
 
 # "connectivity" module
+from . import connectivity
 from . import connectivity as connect
 
 # "core" module
@@ -43,4 +44,3 @@ from . import visualization as visualize
 from . import inputs
 from . import measure
 from . import running
-
