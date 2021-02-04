@@ -17,7 +17,7 @@ README = '''
 ``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
 compilers (especially `Numba <https://numba.pydata.org/>`_).
 The goal of ``BrainPy`` is to provide a unified simulation and analysis framework
-for neuronal dynamics with the feature of high flexibility and efficiency.
+for neuronal analysis with the feature of high flexibility and efficiency.
 BrainPy is flexible because it endows the users with the fully data/logic flow control.
 BrainPy is efficient because it supports JIT acceleration on CPUs and GPUs.
 '''
@@ -35,6 +35,7 @@ setup(
     install_requires=[
         'numpy>=1.15',
         'sympy>=1.2',
+        'scipy>=1.2.0',
         'numba>=0.50.0',
         'matplotlib>=3.0',
     ],
@@ -42,10 +43,14 @@ setup(
     keywords='computational neuroscience',
     classifiers=[
         'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering :: Bio-Informatics'
     ]
 )

@@ -3,8 +3,8 @@
 import numba as nb
 import numpy as np
 
-from .base import Connector
-from ..errors import ModelUseError
+from . import base
+from .. import errors
 
 if hasattr(nb.core, 'dispatcher'):
     from numba.core.dispatcher import Dispatcher
@@ -22,7 +22,7 @@ __all__ = ['One2One', 'one2one',
            'SmallWorld', 'ScaleFree']
 
 
-class One2One(Connector):
+class One2One(base.Connector):
     """
     Connect two neuron groups one by one. This means
     The two neuron groups should have the same size.
@@ -38,7 +38,7 @@ class One2One(Connector):
         try:
             assert np.size(self.pre_ids) == np.size(self.post_ids)
         except AssertionError:
-            raise ModelUseError(f'One2One connection must be defined in two groups with the same size, '
+            raise errors.ModelUseError(f'One2One connection must be defined in two groups with the same size, '
                                 f'but we got {np.size(self.pre_ids)} != {np.size(self.post_ids)}.')
         if self.num_pre is None:
             self.num_pre = pre_indices.max()
@@ -49,7 +49,7 @@ class One2One(Connector):
 one2one = One2One()
 
 
-class All2All(Connector):
+class All2All(base.Connector):
     """Connect each neuron in first group to all neurons in the
     post-synaptic neuron groups. It means this kind of conn
     will create (num_pre x num_post) synapses.
@@ -107,7 +107,7 @@ def _grid_four(height, width, row, include_self):
     return conn_i, conn_j
 
 
-class GridFour(Connector):
+class GridFour(base.Connector):
     """The nearest four neighbors conn method."""
 
     def __init__(self, include_self=False):
@@ -119,7 +119,7 @@ class GridFour(Connector):
             try:
                 assert np.shape(pre_indices) == np.shape(post_indices)
             except AssertionError:
-                raise ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
+                raise errors.ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
                                     f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
 
         if len(pre_indices.shape) == 1:
@@ -127,7 +127,7 @@ class GridFour(Connector):
         elif len(pre_indices.shape) == 2:
             height, width = pre_indices.shape
         else:
-            raise ModelUseError('Currently only support two-dimensional geometry.')
+            raise errors.ModelUseError('Currently only support two-dimensional geometry.')
         conn_i = []
         conn_j = []
         for row in range(height):
@@ -170,7 +170,7 @@ def _grid_n(height, width, row, n, include_self):
     return conn_i, conn_j
 
 
-class GridN(Connector):
+class GridN(base.Connector):
     """The nearest (2*N+1) * (2*N+1) neighbors conn method.
 
     Parameters
@@ -201,7 +201,7 @@ class GridN(Connector):
             try:
                 assert np.shape(pre_indices) == np.shape(post_indices)
             except AssertionError:
-                raise ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
+                raise errors.ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
                                     f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
 
         if len(pre_indices.shape) == 1:
@@ -209,7 +209,7 @@ class GridN(Connector):
         elif len(pre_indices.shape) == 2:
             height, width = pre_indices.shape
         else:
-            raise ModelUseError('Currently only support two-dimensional geometry.')
+            raise errors.ModelUseError('Currently only support two-dimensional geometry.')
 
         conn_i = []
         conn_j = []
@@ -244,7 +244,7 @@ class GridEight(GridN):
 grid_eight = GridEight()
 
 
-class FixedProb(Connector):
+class FixedProb(base.Connector):
     """Connect the post-synaptic neurons with fixed probability.
 
     Parameters
@@ -283,7 +283,7 @@ class FixedProb(Connector):
             self.num_post = post_indices.max()
 
 
-class FixedPreNum(Connector):
+class FixedPreNum(base.Connector):
     """Connect the pre-synaptic neurons with fixed number for each
     post-synaptic neuron.
 
@@ -329,7 +329,7 @@ class FixedPreNum(Connector):
             self.num_post = post_indices.max()
 
 
-class FixedPostNum(Connector):
+class FixedPostNum(base.Connector):
     """Connect the post-synaptic neurons with fixed number for each
     pre-synaptic neuron.
 
@@ -412,7 +412,7 @@ def _gaussian_weight(pre_i, pre_width, pre_height,
     return conn_i, conn_j, conn_w
 
 
-class GaussianWeight(Connector):
+class GaussianWeight(base.Connector):
     """Builds a Gaussian conn pattern between the two populations, where
     the weights decay with gaussian function.
 
@@ -527,7 +527,7 @@ def _gaussian_prob(pre_i, pre_width, pre_height,
     return conn_i, conn_j, conn_p
 
 
-class GaussianProb(Connector):
+class GaussianProb(base.Connector):
     """Builds a Gaussian conn pattern between the two populations, where
     the conn probability decay according to the gaussian function.
 
@@ -635,7 +635,7 @@ def _dog(pre_i, pre_width, pre_height,
     return conn_i, conn_j, conn_w
 
 
-class DOG(Connector):
+class DOG(base.Connector):
     """Builds a Difference-Of-Gaussian (dog) conn pattern between the two populations.
 
     Mathematically,
@@ -714,11 +714,11 @@ class DOG(Connector):
             self.num_post = post_indices.max()
 
 
-class ScaleFree(Connector):
+class ScaleFree(base.Connector):
     def __init__(self):
         raise NotImplementedError
 
 
-class SmallWorld(Connector):
+class SmallWorld(base.Connector):
     def __init__(self):
         raise NotImplementedError

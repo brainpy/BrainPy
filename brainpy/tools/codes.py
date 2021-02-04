@@ -91,6 +91,7 @@ def get_identifiers(expr, include_numbers=False):
     >>> print(sorted(list(ids)))
     ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2']
     """
+
     _ID_KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
     identifiers = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_.]*\b', expr))
     # identifiers = set(re.findall(r'\b[A-Za-z_][.?[A-Za-z0-9_]*]*\b', expr))

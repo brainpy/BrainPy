@@ -3,27 +3,18 @@
 import inspect
 import re
 import time
-import typing
 from copy import deepcopy
 
 import numpy as np
 from numba import cuda
 
-from .constants import ARG_KEYWORDS
-from .constants import INPUT_OPERATIONS
-from .constants import NEU_GROUP_TYPE
-from .constants import SCALAR_MODE
-from .constants import SYN_CONN_TYPE
-from .runner import Runner
-from .types import NeuState
-from .types import ObjState
-from .types import SynState
-from .types import TypeChecker
+from . import constants
+from . import runner
+from . import types
+from . import utils
+from .. import errors
 from .. import profile
 from .. import tools
-from ..errors import ModelDefError
-from ..errors import ModelUseError
-from ..errors import TypeMismatchError
 
 __all__ = [
     'ObjType',
@@ -41,28 +32,11 @@ class ObjType(object):
         Model name.
     """
 
-    def __init__(
-            self,
-            ST: ObjState,
-            name: str,
-            steps: typing.Union[typing.Callable, typing.List, typing.Tuple],
-            requires: typing.Dict = None,
-            mode: str = 'vector',
-            hand_overs: typing.Dict = None,
-            heter_params_replace: typing.Dict = None,
-    ):
-        # type : neuron based or group based code
-        # ---------------------------------------
+    def __init__(self, ST, name, steps, requires=None, mode='vector', hand_overs=None, ):
         self.mode = mode
-
-        # name
-        # -----
         self.name = name
-
-        # state
-        # -----
-        if not isinstance(ST, ObjState):
-            raise ModelDefError('"ST" must be an instance of ObjState.')
+        if not isinstance(ST, types.ObjState):
+            raise errors.ModelDefError('"ST" must be an instance of ObjState.')
         self.ST = ST
 
         # requires
@@ -70,15 +44,17 @@ class ObjType(object):
         if requires is None:
             requires = dict()
         if not isinstance(requires, dict):
-            raise ModelDefError('"requires" only supports dict.')
+            raise errors.ModelDefError('"requires" only supports dict.')
         self.requires = requires
         for k, v in requires.items():
             if isinstance(v, type):
-                raise ModelDefError(f'In "requires", you must instantiate the type checker of "{k}". '
-                                    f'Like "{v.__name__}()".')
-            if not isinstance(v, TypeChecker):
-                raise ModelDefError(f'In "requires", each value must be a {TypeChecker.__name__}, '
-                                    f'but got "{type(v)}" for "{k}".')
+                raise errors.ModelDefError(f'In "requires", you must instantiate '
+                                           f'the type checker of "{k}". '
+                                           f'Like "{v.__name__}()".')
+            if not isinstance(v, types.TypeChecker):
+                raise errors.ModelDefError(f'In "requires", each value must be a '
+                                           f'{types.TypeChecker.__name__}, '
+                                           f'but got "{type(v)}" for "{k}".')
 
         # steps
         # ------
@@ -92,10 +68,11 @@ class ObjType(object):
         elif isinstance(steps, (list, tuple)):
             steps = list(steps)
         else:
-            raise ModelDefError('"steps" must be a callable, or a list/tuple of callable functions.')
+            raise errors.ModelDefError('"steps" must be a callable, or a '
+                                       'list/tuple of callable functions.')
         for func in steps:
             if not callable(func):
-                raise ModelDefError('"steps" must be a list/tuple of callable functions.')
+                raise errors.ModelDefError('"steps" must be a list/tuple of callable functions.')
 
             # function name
             func_name = tools.get_func_name(func, replace=True)
@@ -103,18 +80,20 @@ class ObjType(object):
 
             # function arg
             for arg in inspect.getfullargspec(func).args:
-                if arg in ARG_KEYWORDS:
+                if arg in constants.ARG_KEYWORDS:
                     continue
                 self.step_args.add(arg)
 
             # function scope
-            scope = tools.get_func_scope(func, include_dispatcher=True)
+            scope = utils.get_func_scope(func, include_dispatcher=True)
             for k, v in scope.items():
                 if k in self.step_scopes:
                     if v != self.step_scopes[k]:
-                        raise ModelDefError(f'Find scope variable {k} have different values in '
-                                            f'{self.name}: {k} = {v} and {k} = {self.step_scopes[k]}.\n'
-                                            f'This maybe cause a grievous mistake in the future. Please change!')
+                        raise errors.ModelDefError(
+                            f'Find scope variable {k} have different values in '
+                            f'{self.name}: {k} = {v} and {k} = {self.step_scopes[k]}.\n'
+                            f'This maybe cause a grievous mistake in the future. '
+                            f'Please change!')
                 self.step_scopes[k] = v
 
             # function
@@ -133,22 +112,15 @@ class ObjType(object):
         self.variables = ST._vars
         for var in step_vars:
             if var not in self.variables:
-                raise ModelDefError(f'Variable "{var}" is used in {self.name}, but not defined in "ST".')
+                raise errors.ModelDefError(f'Variable "{var}" is used in {self.name}, '
+                                           f'but not defined in "ST".')
 
         # integrators
         # -----------
         self.integrators = []
         for step in self.steps:
-            self.integrators.extend(tools.find_integrators(step))
+            self.integrators.extend(utils.find_integrators(step))
         self.integrators = list(set(self.integrators))
-
-        # heterogeneous parameter replace
-        # --------------------------------
-        if heter_params_replace is None:
-            heter_params_replace = dict()
-        if not isinstance(heter_params_replace, dict):
-            raise ModelDefError('"heter_params_replace" must be a dict.')
-        self.heter_params_replace = heter_params_replace
 
         # delay keys
         # ----------
@@ -158,7 +130,7 @@ class ObjType(object):
         # ---------------
         if hand_overs is not None:
             if not isinstance(hand_overs, dict):
-                raise ModelUseError('"hand_overs" must be a dict.')
+                raise errors.ModelUseError('"hand_overs" must be a dict.')
         else:
             hand_overs = dict()
         self.hand_overs = hand_overs
@@ -180,10 +152,7 @@ class ParsUpdate(dict):
 
     """
 
-    def __init__(self,
-                 all_pars,
-                 num,
-                 model):
+    def __init__(self, all_pars, num, model):
         assert isinstance(all_pars, dict)
         assert isinstance(num, int)
 
@@ -196,16 +165,19 @@ class ParsUpdate(dict):
     def __setitem__(self, key, value):
         # check the existence of "key"
         if key not in self.origins:
-            raise ModelUseError(f'Parameter "{key}" may be not defined in "{self.model.name}" variable scope.\n'
-                                f'Or, "{key}" is used to compute an intermediate variable, and is not '
-                                f'directly used by the step functions.')
+            raise errors.ModelUseError(f'Parameter "{key}" may be not defined in '
+                                       f'"{self.model.name}" variable scope.\n'
+                                       f'Or, "{key}" is used to compute an '
+                                       f'intermediate variable, and is not '
+                                       f'directly used by the step functions.')
 
         # check value size
         val_size = np.size(value)
         if val_size != 1:
             if val_size != self.num:
-                raise ModelUseError(f'The size of parameter "{key}" is wrong, "{val_size}" != 1 '
-                                    f'and "{val_size}" != {self.num}.')
+                raise errors.ModelUseError(
+                    f'The size of parameter "{key}" is wrong, "{val_size}" != 1 '
+                    f'and "{val_size}" != {self.num}.')
             if np.size(self.origins[key]) != val_size:  # maybe default value is a heterogeneous value
                 self.heters[key] = value
 
@@ -314,20 +286,12 @@ class Ensemble(object):
         Class type.
     """
 
-    def __init__(
-            self,
-            name: str,
-            num: int,
-            model: ObjType,
-            monitors: typing.Tuple,
-            pars_update: typing.Dict,
-            cls_type: str,
-            satisfies: dict = None,
-    ):
+    def __init__(self, name, num, model, monitors, pars_update, cls_type, satisfies=None, ):
         # class type
         # -----------
-        if not cls_type in [NEU_GROUP_TYPE, SYN_CONN_TYPE]:
-            raise ModelUseError(f'Only support "{NEU_GROUP_TYPE}" and "{SYN_CONN_TYPE}".')
+        if not cls_type in [constants.NEU_GROUP_TYPE, constants.SYN_CONN_TYPE]:
+            raise errors.ModelUseError(f'Only support "{constants.NEU_GROUP_TYPE}" '
+                                       f'and "{constants.SYN_CONN_TYPE}".')
         self._cls_type = cls_type
 
         # model
@@ -338,8 +302,9 @@ class Ensemble(object):
         # ----
         self.name = name
         if not self.name.isidentifier():
-            raise ModelUseError(f'"{self.name}" isn\'t a valid identifier according to Python '
-                                f'language definition. Please choose another name.')
+            raise errors.ModelUseError(
+                f'"{self.name}" isn\'t a valid identifier according to Python '
+                f'language definition. Please choose another name.')
 
         # num
         # ---
@@ -350,35 +315,35 @@ class Ensemble(object):
         self.pars = ParsUpdate(all_pars=model.step_scopes, num=num, model=model)
         pars_update = dict() if pars_update is None else pars_update
         if not isinstance(pars_update, dict):
-            raise ModelUseError('"pars_update" must be a dict.')
+            raise errors.ModelUseError('"pars_update" must be a dict.')
         for k, v in pars_update.items():
             self.pars[k] = v
 
         # monitors
         # ---------
         self.mon = tools.DictPlus()
-        self._mon_vars = []
+        self._mon_items = []
         if monitors is not None:
             if isinstance(monitors, (list, tuple)):
                 for var in monitors:
                     if isinstance(var, str):
-                        self._mon_vars.append((var, None))
+                        self._mon_items.append((var, None))
                         self.mon[var] = np.empty((1, 1), dtype=np.float_)
                     elif isinstance(var, (tuple, list)):
-                        self._mon_vars.append((var[0], var[1]))
+                        self._mon_items.append((var[0], var[1]))
                         self.mon[var[0]] = np.empty((1, 1), dtype=np.float_)
                     else:
-                        raise ModelUseError(f'Unknown monitor item: {str(var)}')
+                        raise errors.ModelUseError(f'Unknown monitor item: {str(var)}')
             elif isinstance(monitors, dict):
                 for k, v in monitors.items():
-                    self._mon_vars.append((k, v))
+                    self._mon_items.append((k, v))
                     self.mon[k] = np.empty((1, 1), dtype=np.float_)
             else:
-                raise ModelUseError(f'Unknown monitors type: {type(monitors)}')
+                raise errors.ModelUseError(f'Unknown monitors type: {type(monitors)}')
 
         # runner
         # -------
-        self.runner = Runner(ensemble=self)
+        self.runner = runner.Runner(ensemble=self)
 
         # hand overs
         # ----------
@@ -391,121 +356,161 @@ class Ensemble(object):
         # ---------
         if satisfies is not None:
             if not isinstance(satisfies, dict):
-                raise ModelUseError('"satisfies" must be dict.')
+                raise errors.ModelUseError('"satisfies" must be dict.')
             for key, val in satisfies.items():
                 setattr(self, key, val)
-
-    def type_checking(self):
-        # check state and its type
-        if not hasattr(self, 'ST'):
-            raise ModelUseError(f'"{self.name}" doesn\'t have "ST" attribute.')
-        try:
-            self.model.ST.check(self.ST)
-        except TypeMismatchError as e:
-            raise ModelUseError(f'"{self.name}.ST" doesn\'t satisfy TypeChecker "{str(self.model.ST)}".')
-
-        # check attribute and its type
-        for key, type_checker in self.model.requires.items():
-            if not hasattr(self, key):
-                raise ModelUseError(f'"{self.name}" doesn\'t have "{key}" attribute.')
-            try:
-                type_checker.check(getattr(self, key))
-            except TypeMismatchError as e:
-                raise ModelUseError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
-
-        # get function arguments
-        for i, func in enumerate(self.model.steps):
-            for arg in inspect.getfullargspec(func).args:
-                if not (arg in ARG_KEYWORDS + ['self']) and not hasattr(self, arg):
-                    raise ModelUseError(f'Function "{self.model.step_names[i]}" in "{self.model.name}" '
-                                        f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
 
     def _is_state_attr(self, arg):
         try:
             attr = getattr(self, arg)
         except AttributeError:
             return False
-        if self._cls_type == NEU_GROUP_TYPE:
-            return isinstance(attr, NeuState)
-        elif self._cls_type == SYN_CONN_TYPE:
-            return isinstance(attr, SynState)
+        if self._cls_type == constants.NEU_GROUP_TYPE:
+            return isinstance(attr, types.NeuState)
+        elif self._cls_type == constants.SYN_CONN_TYPE:
+            return isinstance(attr, types.SynState)
         else:
             raise ValueError
 
-    def _build(self, inputs=None, mon_length=0):
-        if profile.run_on_gpu():
-            if self.model.mode != SCALAR_MODE:
-                raise ModelUseError('GPU mode only support scalar-based mode.')
+    def type_checking(self):
+        """Check the data type needed for step function.
+        """
+        # 1. check ST and its type
+        if not hasattr(self, 'ST'):
+            raise errors.ModelUseError(f'"{self.name}" doesn\'t have "ST" attribute.')
+        try:
+            self.model.ST.check(self.ST)
+        except errors.TypeMismatchError:
+            raise errors.ModelUseError(f'"{self.name}.ST" doesn\'t satisfy TypeChecker "{str(self.model.ST)}".')
 
-        # prerequisite
+        # 2. check requires and its type
+        for key, type_checker in self.model.requires.items():
+            if not hasattr(self, key):
+                raise errors.ModelUseError(f'"{self.name}" doesn\'t have "{key}" attribute.')
+            try:
+                type_checker.check(getattr(self, key))
+            except errors.TypeMismatchError:
+                raise errors.ModelUseError(f'"{self.name}.{key}" doesn\'t satisfy TypeChecker "{str(type_checker)}".')
+
+        # 3. check data (function arguments) needed
+        for i, func in enumerate(self.model.steps):
+            for arg in inspect.getfullargspec(func).args:
+                if not (arg in constants.ARG_KEYWORDS + ['self']) and not hasattr(self, arg):
+                    raise errors.ModelUseError(
+                        f'Function "{self.model.step_names[i]}" in "{self.model.name}" '
+                        f'requires "{arg}" as argument, but "{arg}" is not defined in "{self.name}".')
+
+    def reshape_mon(self, run_length):
+        for key, val in self.mon.items():
+            if key == 'ts':
+                continue
+            shape = val.shape
+            if run_length < shape[0]:
+                self.mon[key] = val[:run_length]
+            elif run_length > shape[0]:
+                append = np.zeros((run_length - shape[0],) + shape[1:])
+                self.mon[key] = np.vstack([val, append])
+        if profile.run_on_gpu():
+            for key, val in self.mon.items():
+                key_gpu = f'mon_{key}_cuda'
+                val_gpu = cuda.to_device(val)
+                setattr(self.runner, key_gpu, val_gpu)
+                self.runner.gpu_data[key_gpu] = val_gpu
+
+    def build(self, inputs=None, mon_length=0):
+        """Build the object for running.
+
+        Parameters
+        ----------
+        inputs : list, tuple
+            The object inputs.
+        mon_length : int
+            The monitor length.
+
+        Returns
+        -------
+        calls : list, tuple
+            The code lines to call step functions.
+        """
+
+        # 1. prerequisite
+        # ---------------
+        if profile.run_on_gpu():
+            if self.model.mode != constants.SCALAR_MODE:
+                raise errors.ModelUseError(f'GPU mode only support scalar-based mode. '
+                                           f'But {self.model} is a {self.model.mode}-based model.')
         self.type_checking()
 
-        # results
-        results = dict()
-
+        # 2. Code results
+        # ---------------
+        code_results = dict()
         # inputs
         if inputs:
             r = self.runner.get_codes_of_input(inputs)
-            results.update(r)
-
+            code_results.update(r)
         # monitors
-        if len(self._mon_vars):
-            mon, r = self.runner.get_codes_of_monitor(self._mon_vars, run_length=mon_length)
-            results.update(r)
+        if len(self._mon_items):
+            mon, r = self.runner.get_codes_of_monitor(self._mon_items, run_length=mon_length)
+            code_results.update(r)
             self.mon.clear()
             self.mon.update(mon)
-
         # steps
         r = self.runner.get_codes_of_steps()
-        results.update(r)
+        code_results.update(r)
 
-        # merge
-        calls = self.runner.merge_codes(results)
-
-        if self._cls_type == SYN_CONN_TYPE:
+        # 3. code calls
+        # -------------
+        calls = self.runner.merge_codes(code_results)
+        if self._cls_type == constants.SYN_CONN_TYPE:
             if self.delay_len > 1:
                 calls.append(f'{self.name}.ST._update_delay_indices()')
 
         return calls
 
-    @property
-    def requires(self):
-        return self.model.requires
-
     def run(self, duration, inputs=(), report=False, report_percent=0.1):
+        """The running function.
+
+        Parameters
+        ----------
+        duration : float, int, tuple, list
+            The running duration.
+        inputs : list, tuple
+            The model inputs with the format of ``[(key, value [operation])]``.
+        report : bool
+            Whether report the running progress.
+        report_percent : float
+            The percent of progress to report.
+        """
+
         # times
         # ------
         if isinstance(duration, (int, float)):
             start, end = 0., duration
         elif isinstance(duration, (tuple, list)):
-            assert len(duration) == 2, 'Only support duration with the format of "(start, end)".'
+            assert len(duration) == 2, 'Only support duration setting with the format of "(start, end)".'
             start, end = duration
         else:
             raise ValueError(f'Unknown duration type: {type(duration)}')
-        dt = profile.get_dt()
-        times = np.arange(start, end, dt)
-        times = np.asarray(times, dtype=np.float_)
+        times = np.asarray(np.arange(start, end, profile.get_dt()), dtype=np.float_)
         run_length = times.shape[0]
 
         # check inputs
         # -------------
         if not isinstance(inputs, (tuple, list)):
-            raise ModelUseError('"inputs" must be a tuple/list.')
+            raise errors.ModelUseError('"inputs" must be a tuple/list.')
         if len(inputs) and not isinstance(inputs[0], (list, tuple)):
             if isinstance(inputs[0], str):
                 inputs = [inputs]
             else:
-                raise ModelUseError('Unknown input structure, only support inputs '
-                                    'with format of "(key, value, [operation])".')
+                raise errors.ModelUseError('Unknown input structure, only support inputs '
+                                           'with format of "(key, value, [operation])".')
         for inp in inputs:
             if not 2 <= len(inp) <= 3:
-                raise ModelUseError('For each target, you must specify "(key, value, [operation])".')
-            if len(inp) == 3:
-                try:
-                    assert inp[2] in INPUT_OPERATIONS
-                except AssertionError:
-                    raise ModelUseError(f'Input operation only support '
-                                        f'"{list(INPUT_OPERATIONS.keys())}", not "{inp[2]}".')
+                raise errors.ModelUseError('For each target, you must specify "(key, value, [operation])".')
+            if len(inp) == 3 and inp[2] not in constants.INPUT_OPERATIONS:
+                raise errors.ModelUseError(f'Input operation only supports '
+                                           f'"{list(constants.INPUT_OPERATIONS.keys())}", '
+                                           f'not "{inp[2]}".')
 
         # format inputs
         # -------------
@@ -513,10 +518,9 @@ class Ensemble(object):
         for inp in inputs:
             # key
             if not isinstance(inp[0], str):
-                raise ModelUseError('For each input, input[0] must be a string '
-                                    'to specify variable of the target.')
+                raise errors.ModelUseError('For each input, input[0] must be a string '
+                                           'to specify variable of the target.')
             key = inp[0]
-
             # value and data type
             if isinstance(inp[1], (int, float)):
                 val = inp[1]
@@ -528,21 +532,20 @@ class Ensemble(object):
                 else:
                     data_type = 'fix'
             else:
-                raise ModelUseError('For each input, input[1] must be a numerical value to specify input values.')
-
+                raise errors.ModelUseError('For each input, input[1] must be a '
+                                           'numerical value to specify input values.')
             # operation
             if len(inp) == 3:
                 ops = inp[2]
             else:
                 ops = '+'
-
+            # input
             format_inp = (key, val, ops, data_type)
             formatted_inputs.append(format_inp)
 
         # get step function
         # -------------------
-        lines_of_call = self._build(inputs=formatted_inputs,
-                                    mon_length=run_length)
+        lines_of_call = self.build(inputs=formatted_inputs, mon_length=run_length)
         code_lines = ['def step_func(_t, _i, _dt):']
         code_lines.extend(lines_of_call)
         code_scopes = {self.name: self, f"{self.name}_runner": self.runner}
@@ -552,12 +555,13 @@ class Ensemble(object):
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
         if profile.show_format_code():
-            tools.show_code_str(func_code)
+            utils.show_code_str(func_code)
         if profile.show_code_scope():
-            tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
+            utils.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         # run the model
         # -------------
+        dt = profile.get_dt()
         if report:
             t0 = time.time()
             step_func(_t=times[0], _i=0, _dt=dt)
@@ -581,7 +585,25 @@ class Ensemble(object):
         self.mon['ts'] = times
 
     def get_schedule(self):
+        """Get the schedule (running order) of the update functions.
+
+        Returns
+        -------
+        schedule : list, tuple
+            The running order of update functions.
+        """
         return self.runner.get_schedule()
 
     def set_schedule(self, schedule):
+        """Set the schedule (running order) of the update functions.
+
+        For example, if the ``self.model`` has two step functions: `step1`, `step2`.
+        Then, you can set the shedule by using:
+
+        >>> set_schedule(['input', 'step1', 'step2', 'monitor'])
+        """
         self.runner.set_schedule(schedule)
+
+    @property
+    def requires(self):
+        return self.model.requires

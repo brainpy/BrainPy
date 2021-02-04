@@ -4,11 +4,11 @@ import math
 from collections import OrderedDict
 
 import numba as nb
-from numba import cuda
 import numpy as np
+from numba import cuda
 
+from .. import errors
 from .. import profile
-from ..errors import TypeMismatchError
 
 __all__ = [
     'TypeChecker',
@@ -87,10 +87,10 @@ class ObjState(dict, TypeChecker):
 
     def check(self, cls):
         if not isinstance(cls, type(self)):
-            raise TypeMismatchError(f'Must be an instance of "{type(self)}", but got "{type(cls)}".')
+            raise errors.TypeMismatchError(f'Must be an instance of "{type(self)}", but got "{type(cls)}".')
         for k in self._keys:
             if k not in cls:
-                raise TypeMismatchError(f'Key "{k}" is not found in "cls".')
+                raise errors.TypeMismatchError(f'Key "{k}" is not found in "cls".')
 
     def get_cuda_data(self):
         _data_cuda = self.__getitem__('_data_cuda')
@@ -271,18 +271,18 @@ class ListConn(TypeChecker):
     def check(self, cls):
         if profile.is_jit():
             if not isinstance(cls, nb.typed.List):
-                raise TypeMismatchError(f'In numba mode, "cls" must be an instance of {type(nb.typed.List)}, '
-                                        f'but got {type(cls)}. Hint: you can use "ListConn.create()" method.')
+                raise errors.TypeMismatchError(f'In numba mode, "cls" must be an instance of {type(nb.typed.List)}, '
+                                               f'but got {type(cls)}. Hint: you can use "ListConn.create()" method.')
             if not isinstance(cls[0], (nb.typed.List, np.ndarray)):
-                raise TypeMismatchError(f'In numba mode, elements in "cls" must be an instance of '
-                                        f'{type(nb.typed.List)} or ndarray, but got {type(cls[0])}. '
-                                        f'Hint: you can use "ListConn.create()" method.')
+                raise errors.TypeMismatchError(f'In numba mode, elements in "cls" must be an instance of '
+                                               f'{type(nb.typed.List)} or ndarray, but got {type(cls[0])}. '
+                                               f'Hint: you can use "ListConn.create()" method.')
         else:
             if not isinstance(cls, list):
-                raise TypeMismatchError(f'ListConn requires a list, but got {type(cls)}.')
+                raise errors.TypeMismatchError(f'ListConn requires a list, but got {type(cls)}.')
             if not isinstance(cls[0], (list, np.ndarray)):
-                raise TypeMismatchError(f'ListConn requires the elements of the list must be list or '
-                                        f'ndarray, but got {type(cls)}.')
+                raise errors.TypeMismatchError(f'ListConn requires the elements of the list must be list or '
+                                               f'ndarray, but got {type(cls)}.')
 
     @classmethod
     def make_copy(cls, conn):
@@ -308,7 +308,7 @@ class MatConn(TypeChecker):
 
     def check(self, cls):
         if not (isinstance(cls, np.ndarray) and np.ndim(cls) == 2):
-            raise TypeMismatchError(f'MatConn requires a two-dimensional ndarray.')
+            raise errors.TypeMismatchError(f'MatConn requires a two-dimensional ndarray.')
 
     def __str__(self):
         return 'MatConn'
@@ -320,11 +320,10 @@ class SliceConn(TypeChecker):
 
     def check(self, cls):
         if not (isinstance(cls, np.ndarray) and np.shape[1] == 2):
-            raise TypeMismatchError(f'')
+            raise errors.TypeMismatchError(f'')
 
     def __str__(self):
         return 'SliceConn'
-
 
 
 class Array(TypeChecker):
@@ -343,7 +342,7 @@ class Array(TypeChecker):
 
     def check(self, cls):
         if not (isinstance(cls, np.ndarray) and np.ndim(cls) == self.dim):
-            raise TypeMismatchError(f'MatConn requires a {self.dim}-D ndarray.')
+            raise errors.TypeMismatchError(f'MatConn requires a {self.dim}-D ndarray.')
 
     def __str__(self):
         return type(self).__name__ + f' (dim={self.dim})'
@@ -355,7 +354,7 @@ class String(TypeChecker):
 
     def check(self, cls):
         if not isinstance(cls, str):
-            raise TypeMismatchError(f'Require a string, got {type(cls)}.')
+            raise errors.TypeMismatchError(f'Require a string, got {type(cls)}.')
 
     def __str__(self):
         return 'StringType'
@@ -367,7 +366,7 @@ class Int(TypeChecker):
 
     def check(self, cls):
         if not isinstance(cls, int):
-            raise TypeMismatchError(f'Require an int, got {type(cls)}.')
+            raise errors.TypeMismatchError(f'Require an int, got {type(cls)}.')
 
     def __str__(self):
         return 'IntType'
@@ -379,7 +378,7 @@ class Float(TypeChecker):
 
     def check(self, cls):
         if not isinstance(cls, float):
-            raise TypeMismatchError(f'Require a float, got {type(cls)}.')
+            raise errors.TypeMismatchError(f'Require a float, got {type(cls)}.')
 
     def __str__(self):
         return 'Floatype'
@@ -398,12 +397,12 @@ class List(TypeChecker):
     def check(self, cls):
         if profile.is_jit():
             if not isinstance(cls, nb.typed.List):
-                raise TypeMismatchError(f'In numba, "List" requires an instance of {type(nb.typed.List)}, '
-                                        f'but got {type(cls)}.')
+                raise errors.TypeMismatchError(f'In numba, "List" requires an instance of {type(nb.typed.List)}, '
+                                               f'but got {type(cls)}.')
         else:
             if not isinstance(cls, list):
-                raise TypeMismatchError(f'"List" requires an instance of list, '
-                                        f'but got {type(cls)}.')
+                raise errors.TypeMismatchError(f'"List" requires an instance of list, '
+                                               f'but got {type(cls)}.')
 
         if self.item_type is not None:
             self.item_type.check(cls[0])
@@ -425,12 +424,12 @@ class Dict(TypeChecker):
     def check(self, cls):
         if profile.is_jit():
             if not isinstance(cls, nb.typed.Dict):
-                raise TypeMismatchError(f'In numba, "Dict" requires an instance of {type(nb.typed.Dict)}, '
-                                        f'but got {type(cls)}.')
+                raise errors.TypeMismatchError(f'In numba, "Dict" requires an instance of {type(nb.typed.Dict)}, '
+                                               f'but got {type(cls)}.')
         else:
             if not isinstance(cls, dict):
-                raise TypeMismatchError(f'"Dict" requires an instance of dict, '
-                                        f'but got {type(cls)}.')
+                raise errors.TypeMismatchError(f'"Dict" requires an instance of dict, '
+                                               f'but got {type(cls)}.')
 
         if self.key_type is not None:
             for key in cls.keys():

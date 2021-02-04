@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import time
+from collections import OrderedDict
 
 import numpy as np
 from numba import cuda
 
-from .base import Ensemble
-from .constants import INPUT_OPERATIONS
-from .constants import SCALAR_MODE
-from .neurons import NeuGroup
-from .synapses import SynConn
+from . import base
+from . import constants
+from . import utils
+from .. import errors
 from .. import profile
-from .. import tools
-from ..errors import ModelUseError
 
 __all__ = [
     'Network',
@@ -27,55 +25,42 @@ class Network(object):
     actually runs the simulation. The main loop runs according to user add
     orders. The objects in the `Network` are accessible via their names, e.g.
     `net.name` would return the `object` (including neurons and synapses).
-
     """
 
-    def __init__(self, *args, mode='once', **kwargs):
-        # store and neurons and synapses
-        self._all_neu_groups = []
-        self._all_syn_conns = []
-        self._all_objects = []
-
-        # store all objects
-        self._objsets = dict()
-
+    def __init__(self, *args, mode=None, **kwargs):
         # record the current step
         self.t_start = 0.
         self.t_end = 0.
-        self.t_duration = 0.
 
-        # add objects
+        # store all objects
+        self._all_objects = OrderedDict()
         self.add(*args, **kwargs)
 
-        # check
-        assert mode in ['once', 'repeat']
-        self.mode = mode
-
+        # store the step function
         self._step_func = None
 
+        if isinstance(mode, str):
+            print('The "repeat" mode of the network is set to the default. '
+                  'After version 0.4.0, "mode" setting will be removed.')
+
     def _add_obj(self, obj, name=None):
-        # check object type
-        self._all_objects.append(obj)
-        if isinstance(obj, NeuGroup):
-            self._all_neu_groups.append(obj)
-        elif isinstance(obj, SynConn):
-            self._all_syn_conns.append(obj)
-        else:
-            raise ValueError(f'Unknown object type "{type(obj)}". Network only support NeuGroup and SynConn.')
-
-        # check object name
+        # 1. check object type
+        if not isinstance(obj, base.Ensemble):
+            raise ValueError(f'Unknown object type "{type(obj)}". Network '
+                             f'only supports NeuGroup and SynConn.')
+        # 2. check object name
         name = obj.name if name is None else name
-        if name in self._objsets:
-            raise KeyError(f'Name "{name}" has been used in the network, please change another name.')
-
-        # add object in the network
-        self._objsets[name] = obj
+        if name in self._all_objects:
+            raise KeyError(f'Name "{name}" has been used in the network, '
+                           f'please change another name.')
+        self._all_objects[name] = obj
+        # 3. add object to the network
         setattr(self, name, obj)
         if obj.name != name:
             setattr(self, obj.name, obj)
 
     def add(self, *args, **kwargs):
-        """Add object (neurons or synapses or monitor) to the network.
+        """Add object (neurons or synapses) to the network.
 
         Parameters
         ----------
@@ -91,41 +76,56 @@ class Network(object):
         for name, obj in kwargs.items():
             self._add_obj(obj, name)
 
-    def _format_inputs(self, inputs, run_length):
-        # check
-        try:
-            assert isinstance(inputs, (tuple, list))
-        except AssertionError:
-            raise ModelUseError('"inputs" must be a tuple/list.')
+    def format_inputs(self, inputs, run_length):
+        """Format the user defined inputs.
 
+        Parameters
+        ----------
+        inputs : tuple
+            The inputs.
+        run_length : int
+            The running length.
+
+        Returns
+        -------
+        formatted_input : dict
+            The formatted input.
+        """
+
+        # 1. format the inputs to standard
+        #    formats and check the inputs
+        if not isinstance(inputs, (tuple, list)):
+            raise errors.ModelUseError('"inputs" must be a tuple/list.')
         if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
-            if isinstance(inputs[0], Ensemble):
+            if isinstance(inputs[0], base.Ensemble):
                 inputs = [inputs]
             else:
-                raise ModelUseError('Unknown input structure.')
+                raise errors.ModelUseError(
+                    'Unknown input structure. Only supports "(target, key, value, [operation])".')
         for inp in inputs:
             if not 3 <= len(inp) <= 4:
-                raise ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
+                raise errors.ModelUseError('For each target, you must specify "(target, key, value, [operation])".')
             if len(inp) == 4:
-                if inp[3] not in INPUT_OPERATIONS:
-                    raise ModelUseError(f'Input operation only support '
-                                        f'"{list(INPUT_OPERATIONS.keys())}", not "{inp[3]}".')
+                if inp[3] not in constants.INPUT_OPERATIONS:
+                    raise errors.ModelUseError(f'Input operation only support '
+                                               f'"{list(constants.INPUT_OPERATIONS.keys())}", '
+                                               f'not "{inp[3]}".')
 
-        # format input
+        # 2. format inputs
         formatted_inputs = {}
         for inp in inputs:
             # target
             if isinstance(inp[0], str):
                 target = getattr(self, inp[0]).name
-            elif isinstance(inp[0], Ensemble):
+            elif isinstance(inp[0], base.Ensemble):
                 target = inp[0].name
             else:
                 raise KeyError(f'Unknown input target: {str(inp[0])}')
 
             # key
             if not isinstance(inp[1], str):
-                raise ModelUseError('For each input, input[1] must be a string '
-                                    'to specify variable of the target.')
+                raise errors.ModelUseError('For each input, input[1] must be a string '
+                                           'to specify variable of the target.')
             key = inp[1]
 
             # value and data type
@@ -139,8 +139,8 @@ class Network(object):
                 else:
                     data_type = 'fix'
             else:
-                raise ModelUseError(f'For each input, input[2] must be a numerical value to '
-                                    f'specify input values, but we get a {type(inp)}')
+                raise errors.ModelUseError(f'For each input, input[2] must be a numerical value to '
+                                           f'specify input values, but we get a {type(inp)}')
 
             # operation
             if len(inp) == 4:
@@ -148,46 +148,64 @@ class Network(object):
             else:
                 ops = '+'
 
-            # append
+            # final result
             if target not in formatted_inputs:
                 formatted_inputs[target] = []
             format_inp = (key, val, ops, data_type)
             formatted_inputs[target].append(format_inp)
-
         return formatted_inputs
 
     def build(self, run_length, inputs=()):
-        assert isinstance(run_length, int)
-        code_scopes = {}
-        code_lines = ['# network step function\n'
-                      'def step_func(_t, _i, _dt):']
+        """Build the network.
+
+        Parameters
+        ----------
+        run_length : int
+            The running length.
+        inputs : tuple, list
+            The user-defined inputs.
+
+        Returns
+        -------
+        step_func : callable
+            The step function.
+        """
+        if not isinstance(run_length, int):
+            raise errors.ModelUseError(f'The running length must be an int, but we get {run_length}')
 
         # inputs
-        format_inputs = self._format_inputs(inputs, run_length)
+        format_inputs = self.format_inputs(inputs, run_length)
 
-        for obj in self._all_objects:
+        # codes for step function
+        code_scopes = {}
+        code_lines = ['# network step function\ndef step_func(_t, _i, _dt):']
+        for obj in self._all_objects.values():
             if profile.run_on_gpu():
-                if obj.model.mode != SCALAR_MODE:
-                    raise ModelUseError('GPU mode only support scalar-based mode.')
-
+                if obj.model.mode != constants.SCALAR_MODE:
+                    raise errors.ModelUseError(f'GPU mode only support scalar-based mode. '
+                                               f'But {obj.model} is a {obj.model.mode}-based model.')
             code_scopes[obj.name] = obj
             code_scopes[f'{obj.name}_runner'] = obj.runner
-            lines_of_call = obj._build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)
+            lines_of_call = obj.build(inputs=format_inputs.get(obj.name, None), mon_length=run_length)
             code_lines.extend(lines_of_call)
         if profile.run_on_gpu():
             code_scopes['cuda'] = cuda
         func_code = '\n  '.join(code_lines)
+
+        # compile the step function
         exec(compile(func_code, '', 'exec'), code_scopes)
         step_func = code_scopes['step_func']
 
+        # show
         if profile.show_format_code():
-            tools.show_code_str(func_code.replace('def ', f'def network_'))
+            utils.show_code_str(func_code.replace('def ', f'def network_'))
         if profile.show_code_scope():
-            tools.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
+            utils.show_code_scope(code_scopes, ['__builtins__', 'step_func'])
 
         return step_func
 
-    def run(self, duration, inputs=(), report=False, report_percent=0.1):
+    def run(self, duration, inputs=(), report=False, report_percent=0.1,
+            data_to_host=False, verbose=True):
         """Run the simulation for the given duration.
 
         This function provides the most convenient way to run the network.
@@ -203,6 +221,10 @@ class Network(object):
             Report the progress of the simulation.
         report_percent : float
             The speed to report simulation progress.
+        data_to_host : bool
+            Transfer the gpu data to cpu. Available in CUDA backend.
+        verbose : bool
+            Show the error information.
         """
         # check the duration
         # ------------------
@@ -210,7 +232,7 @@ class Network(object):
             start, end = 0, duration
         elif isinstance(duration, (tuple, list)):
             if len(duration) != 2:
-                raise ModelUseError('Only support duration with the format of "(start, end)".')
+                raise errors.ModelUseError('Only support duration with the format of "(start, end)".')
             start, end = duration
         else:
             raise ValueError(f'Unknown duration type: {type(duration)}')
@@ -219,41 +241,54 @@ class Network(object):
         ts = np.asarray(np.arange(start, end, dt), dtype=np.float_)
         run_length = ts.shape[0]
 
-        if self.mode != 'repeat' or self._step_func is None:
+        if self._step_func is None:
             # initialize the function
             # -----------------------
             self._step_func = self.build(run_length, inputs)
-            self.t_duration = end - start
         else:
-            # check running duration
-            # ----------------------
-            if self.t_duration != (end - start):
-                raise ModelUseError(f'Each run in "repeat" mode must be done '
-                                    f'with the same duration, but got '
-                                    f'{self.t_duration} != {end - start}.')
-
             # check and reset inputs
             # ----------------------
-            formatted_inputs = self._format_inputs(inputs, run_length)
-            for obj_name, inps in formatted_inputs.items():
-                obj = getattr(self, obj_name)
+            input_keep_same = True
+            formatted_inputs = self.format_inputs(inputs, run_length)
+            for obj in self._all_objects.values():
+                obj_name = obj.name
                 obj_inputs = obj.runner._inputs
-                all_keys = list(obj_inputs.keys())
-                for key, val, ops, data_type in inps:
+                onj_input_keys = list(obj_inputs.keys())
+                if obj_name in formatted_inputs:
+                    current_inputs = formatted_inputs[obj_name]
+                else:
+                    current_inputs = []
+                for key, val, ops, data_type in current_inputs:
                     if np.shape(obj_inputs[key][0]) != np.shape(val):
-                        raise ModelUseError(f'The input shape for "{key}" should keep the same. '
-                                            f'However, we got the last input shape '
-                                            f'= {np.shape(obj_inputs[key][0])}, '
-                                            f'and the current input shape = {np.shape(val)}')
+                        if verbose:
+                            print(f'The current "{key}" input shape {np.shape(val)} is different '
+                                  f'from the last input shape {np.shape(obj_inputs[key][0])}. ')
+                            input_keep_same = False
                     if obj_inputs[key][1] != ops:
-                        raise ModelUseError(f'The input operation for "{key}" should keep the same. '
-                                            f'However, we got the last operation is '
-                                            f'"{obj_inputs[key][1]}", and the current operation '
-                                            f'is "{ops}"')
+                        if verbose:
+                            print(f'The current "{key}" input operation "{ops}" is different '
+                                  f'from the last operation "{obj_inputs[key][1]}". ')
+                            input_keep_same = False
                     obj.runner.set_data(f'{key.replace(".", "_")}_inp', val)
-                    all_keys.remove(key)
-                if len(all_keys):
-                    raise ModelUseError(f'The inputs of {all_keys} are not provided.')
+                    if key in onj_input_keys:
+                        onj_input_keys.remove(key)
+                    else:
+                        input_keep_same = False
+                        if verbose:
+                            print(f'The input to a new key "{key}" in {obj_name}.')
+                if len(onj_input_keys):
+                    input_keep_same = False
+                    if verbose:
+                        print(f'The inputs of {onj_input_keys} in {obj_name} are not provided.')
+            if input_keep_same:
+                # reset monitors
+                # --------------
+                for obj in self._all_objects.values():
+                    obj.reshape_mon(run_length)
+            else:
+                if verbose:
+                    print('The network will be rebuild.')
+                self._step_func = self.build(run_length, inputs)
 
         dt = self.dt
         if report:
@@ -280,10 +315,10 @@ class Network(object):
 
         # format monitor
         # --------------
-        for obj in self._all_objects:
-            if profile.run_on_gpu():
-                obj.runner.gpu_data_to_cpu()
+        for obj in self._all_objects.values():
             obj.mon['ts'] = self.ts
+            if data_to_host and profile.run_on_gpu():
+                obj.runner.gpu_data_to_cpu()
 
     @property
     def ts(self):
