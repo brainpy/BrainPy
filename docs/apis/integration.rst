@@ -21,7 +21,6 @@ brainpy.integration package
 
 
 .. autoclass:: Expression
-    :toctree:
     :members:
 
 .. autoclass:: DiffEquation
