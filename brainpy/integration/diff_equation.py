@@ -70,13 +70,9 @@ class DiffEquation(object):
 
     def __init__(self, func):
         # check
-        try:
-            assert func is not None
-        except AssertionError:
+        if func is None:
             raise errors.DiffEquationError('"func" cannot be None.')
-        try:
-            assert callable(func) and type(func).__name__ == 'function'
-        except AssertionError:
+        if not (callable(func) and type(func).__name__ == 'function'):
             raise errors.DiffEquationError('"func" must be a function.')
 
         # function

@@ -7,8 +7,8 @@ BrainPy 0.3.5
 - Add 'timeout' in sympy solver in neuron dynamics analysis
 - Reconstruct and generalize phase plane analysis
 - Generalize the repeat mode of ``Network`` to different running duration between two runs
-- Remove ugly "heter_params_replace"
 - Update benchmarks
+- Update detailed documentation
 
 
 BrainPy 0.3.1

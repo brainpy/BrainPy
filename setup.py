@@ -43,7 +43,7 @@ setup(
     keywords='computational neuroscience',
     classifiers=[
         'Intended Audience :: Science/Research',
-        "License :: OSI Approved :: GPLv3 License",
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
