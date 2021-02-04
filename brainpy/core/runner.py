@@ -10,16 +10,14 @@ import numpy as np
 from numba import cuda
 from numba.cuda.random import create_xoroshiro128p_states
 from numba.cuda.random import xoroshiro128p_normal_float64
-from numba.cuda.random import xoroshiro128p_normal_float32
 
 from . import constants
-from .types import ObjState
+from . import types
+from . import utils
+from .. import errors
+from .. import integration
 from .. import profile
 from .. import tools
-from ..errors import ModelDefError
-from ..errors import ModelUseError
-from ..integration.integrator import Integrator
-from ..integration.sympy_tools import get_mapping_scope
 
 __all__ = [
     'Runner',
@@ -73,8 +71,8 @@ class Runner(object):
 
     def check_attr(self, attr):
         if not hasattr(self, attr):
-            raise ModelUseError(f'Model "{self._name}" doesn\'t have "{attr}" attribute", '
-                                f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
+            raise errors.ModelUseError(f'Model "{self._name}" doesn\'t have "{attr}" attribute", '
+                                       f'and "{self._name}.ST" doesn\'t have "{attr}" field.')
 
     def get_codes_of_input(self, key_val_ops_types):
         """Format the code of external input.
@@ -90,26 +88,29 @@ class Runner(object):
             The formatted code.
         """
         if len(key_val_ops_types) <= 0:
-            raise ModelUseError(f'{self._name} has no input, cannot call this function.')
+            raise errors.ModelUseError(f'{self._name} has no input, cannot call this function.')
 
         # check datatype of the input
         # ----------------------------
         has_iter = False
+        all_inputs = set()
         for key, val, ops, t in key_val_ops_types:
             if t not in ['iter', 'fix']:
-                raise ModelUseError('Only support inputs of "iter" and "fix" types.')
+                raise errors.ModelUseError('Only support inputs of "iter" and "fix" types.')
             if t == 'iter':
                 has_iter = True
-            if key in self._inputs:
-                raise ModelUseError('Only support assignment for each key once.')
+            if key in all_inputs:
+                raise errors.ModelUseError('Only support assignment for each key once.')
             else:
                 self._inputs[key] = (val, ops, t)
+                all_inputs.add(key)
 
         # check data operations
         # ----------------------
         for _, _, ops, _ in key_val_ops_types:
             if ops not in constants.INPUT_OPERATIONS:
-                raise ModelUseError(f'Only support five input operations: {list(constants.INPUT_OPERATIONS.keys())}')
+                raise errors.ModelUseError(
+                    f'Only support five input operations: {list(constants.INPUT_OPERATIONS.keys())}')
 
         # generate code of input function
         # --------------------------------
@@ -130,7 +131,7 @@ class Runner(object):
                     target = getattr(self.ensemble, attr)
                     self.check_attr(attr)
                     if not isinstance(target, np.ndarray):
-                        raise ModelUseError(f'BrainPy only support input to arrays.')
+                        raise errors.ModelUseError(f'BrainPy only support input to arrays.')
                     left = attr
                     code_args.add(left)
                     code_arg2call[left] = f'{self._name}.{attr}'
@@ -140,10 +141,10 @@ class Runner(object):
                     elif len(attr_item) == 2:
                         attr, item = attr_item[0], attr_item[1]
                     else:
-                        raise ModelUseError(f'Unknown target : {key}.')
+                        raise errors.ModelUseError(f'Unknown target : {key}.')
                     data = getattr(self.ensemble, attr)
                     if item not in data:
-                        raise ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
+                        raise errors.ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
                     idx = data['_var2idx'][item]
                     left = f'{attr}[{idx}]'
                     code_args.add(attr)
@@ -158,7 +159,6 @@ class Runner(object):
                     right = right + '[_i]'
                     if np.ndim(val) > 1:
                         pass
-
                 input_idx += 1
 
                 # final code line #
@@ -176,12 +176,15 @@ class Runner(object):
             code_to_compile = [f'def input_step({tools.func_call(code_args)}):'] + code_lines
             func_code = '\n  '.join(code_to_compile)
             exec(compile(func_code, '', 'exec'), code_scope)
-            self.input_step = code_scope['input_step']
+            input_step = code_scope['input_step']
+            # if profile.is_jit():
+            #     input_step = tools.jit(input_step)
+            self.input_step = input_step
             if not profile.is_merge_steps():
                 if profile.show_format_code():
-                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                    utils.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
-                    tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
+                    utils.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
             # format function call
             arg2call = [code_arg2call[arg] for arg in sorted(list(code_args))]
@@ -210,7 +213,7 @@ class Runner(object):
                     self.check_attr(attr)
                     target = getattr(self.ensemble, attr)
                     if not isinstance(target, np.ndarray):
-                        raise ModelUseError(f'BrainPy only supports input to arrays.')
+                        raise errors.ModelUseError(f'BrainPy only supports input to arrays.')
                     # get the left side
                     left = f'{attr}[cuda_i]'
                     self.set_gpu_data(f'{attr}_cuda', target)
@@ -221,10 +224,10 @@ class Runner(object):
                     elif len(attr_item) == 2:
                         attr, item = attr_item[0], attr_item[1]
                     else:
-                        raise ModelUseError(f'Unknown target : {key}.')
+                        raise errors.ModelUseError(f'Unknown target : {key}.')
                     data = getattr(self.ensemble, attr)
                     if item not in data:
-                        raise ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
+                        raise errors.ModelUseError(f'"{self._name}.{attr}" doesn\'t have "{item}" field.')
                     # get the left side
                     target = data[item]
                     idx = data['_var2idx'][item]
@@ -285,9 +288,9 @@ class Runner(object):
                 setattr(self, func_name, step_func)
                 if not profile.is_merge_steps():
                     if profile.show_format_code():
-                        tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                        utils.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                     if profile.show_code_scope():
-                        tools.show_code_scope(code_scope, ['__builtins__', 'input_step'])
+                        utils.show_code_scope(code_scope, ['__builtins__', 'input_step'])
 
                 # format function call
                 if len(target) <= profile.get_num_thread_gpu():
@@ -327,19 +330,19 @@ class Runner(object):
             The formatted code.
         """
         if len(mon_vars) <= 0:
-            raise ModelUseError(f'{self._name} has no monitor, cannot call this function.')
+            raise errors.ModelUseError(f'{self._name} has no monitor, cannot call this function.')
 
         # check indices #
         for key, indices in mon_vars:
             if indices is not None:
                 if isinstance(indices, list):
                     if not isinstance(indices[0], int):
-                        raise ModelUseError('Monitor index only supports list [int] or 1D array.')
+                        raise errors.ModelUseError('Monitor index only supports list [int] or 1D array.')
                 elif isinstance(indices, np.ndarray):
                     if np.ndim(indices) != 1:
-                        raise ModelUseError('Monitor index only supports list [int] or 1D array.')
+                        raise errors.ModelUseError('Monitor index only supports list [int] or 1D array.')
                 else:
-                    raise ModelUseError(f'Unknown monitor index type: {type(indices)}.')
+                    raise errors.ModelUseError(f'Unknown monitor index type: {type(indices)}.')
 
         if profile.run_on_cpu():
             # monitor
@@ -362,7 +365,7 @@ class Runner(object):
                     self.check_attr(attr)
                     data = getattr(self.ensemble, attr)
                     if not isinstance(data, np.ndarray):
-                        assert ModelUseError(f'BrainPy only supports monitor of arrays.')
+                        assert errors.ModelUseError(f'BrainPy only supports monitor of arrays.')
                     shape = data.shape
                     mon_name = f'mon_{attr}'
                     target_name = attr
@@ -382,7 +385,7 @@ class Runner(object):
                     elif len(attr_item) == 2:
                         attr, item = attr_item
                     else:
-                        raise ModelUseError(f'Unknown target : {key}.')
+                        raise errors.ModelUseError(f'Unknown target : {key}.')
                     data = getattr(self.ensemble, attr)
                     shape = data[item].shape
                     idx = data['_var2idx'][item]
@@ -423,9 +426,9 @@ class Runner(object):
 
             if not profile.is_merge_steps():
                 if profile.show_format_code():
-                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                    utils.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
-                    tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
+                    utils.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
             exec(compile(func_code, '', 'exec'), code_scope)
             monitor_step = code_scope['monitor_step']
@@ -463,7 +466,7 @@ class Runner(object):
                     attr, item = attr_item[0], ''
                     self.check_attr(attr)
                     if not isinstance(getattr(self.ensemble, attr), np.ndarray):
-                        assert ModelUseError(f'BrainPy only supports monitor of arrays.')
+                        assert errors.ModelUseError(f'BrainPy only supports monitor of arrays.')
                     data = getattr(self.ensemble, attr)
                     shape = data.shape
                     mon_name = f'mon_{attr}'
@@ -488,7 +491,7 @@ class Runner(object):
                     elif len(attr_item) == 2:
                         attr, item = attr_item
                     else:
-                        raise ModelUseError(f'Unknown target : {key}.')
+                        raise errors.ModelUseError(f'Unknown target : {key}.')
                     data = getattr(self.ensemble, attr)
                     shape = data[item].shape
                     idx = getattr(self.ensemble, attr)['_var2idx'][item]
@@ -541,9 +544,9 @@ class Runner(object):
 
                 if not profile.is_merge_steps():
                     if profile.show_format_code():
-                        tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                        utils.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                     if profile.show_code_scope():
-                        tools.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
+                        utils.show_code_scope(code_scope, ('__builtins__', 'monitor_step'))
 
                 # format function call
                 if num_data <= profile.get_num_thread_gpu():
@@ -623,7 +626,7 @@ class Runner(object):
         scope_to_del = set()
         need_add_mapping_scope = False
         for k, v in code_scope.items():
-            if isinstance(v, Integrator):
+            if isinstance(v, integration.Integrator):
                 if profile.is_merge_integrators():
                     need_add_mapping_scope = True
 
@@ -667,9 +670,9 @@ class Runner(object):
 
                 else:
                     if self._model.mode == constants.SCALAR_MODE:
-                        for ks, vs in tools.get_func_scope(v.update_func, include_dispatcher=True).items():
+                        for ks, vs in utils.get_func_scope(v.update_func, include_dispatcher=True).items():
                             if ks in self._pars.heters:
-                                raise ModelUseError(
+                                raise errors.ModelUseError(
                                     f'Heterogeneous parameter "{ks}" is not in step functions, '
                                     f'it will not work. Please set "brainpy.profile.set(merge_integrators=True)" '
                                     f'to try to merge parameter "{ks}" into the step functions.')
@@ -682,7 +685,7 @@ class Runner(object):
 
         # update code scope
         if need_add_mapping_scope:
-            code_scope.update(get_mapping_scope())
+            code_scope.update(integration.get_mapping_scope())
         code_scope.update(scope_to_add)
         for k in scope_to_del:
             code_scope.pop(k)
@@ -695,8 +698,6 @@ class Runner(object):
 
         # check whether the model include heterogeneous parameters
         delay_keys = self._delay_keys
-        all_heter_pars = list([k for k in self._model.heter_params_replace.keys()
-                               if k in self._pars.updates])
 
         for func in self._steps:
             # information about the function
@@ -713,10 +714,10 @@ class Runner(object):
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
                           if k not in constants.ARG_KEYWORDS and
-                          isinstance(getattr(self.ensemble, k), ObjState)}
+                          isinstance(getattr(self.ensemble, k), types.ObjState)}
             except AttributeError:
-                raise ModelUseError(f'Model "{self._name}" does not have all the '
-                                    f'required attributes: {func_args}.')
+                raise errors.ModelUseError(f'Model "{self._name}" does not have all the '
+                                           f'required attributes: {func_args}.')
             add_args = set()
             for i, arg in enumerate(func_args):
                 used_args.add(arg)
@@ -766,24 +767,17 @@ class Runner(object):
                 if arg in constants.ARG_KEYWORDS:
                     code_arg2call[arg] = arg
                 else:
-                    if isinstance(getattr(self.ensemble, arg), ObjState):
+                    if isinstance(getattr(self.ensemble, arg), types.ObjState):
                         code_arg2call[arg] = f'{self._name}.{arg}["_data"]'
                     else:
                         code_arg2call[arg] = f'{self._name}.{arg}'
                 code_args.add(arg)
-            arg_substitute = {}
-            # substitute heterogeneous parameters
-            for k in code_scope.keys():
-                if k in self._model.heter_params_replace:
-                    arg_substitute[k] = self._model.heter_params_replace[k]
-                    if k in all_heter_pars:
-                        all_heter_pars.remove(k)
+
             # substitute "range" to "numba.prange"
+            arg_substitute = {}
             if ' range' in func_code:
                 arg_substitute['range'] = 'numba.prange'
                 code_scope['numba'] = numba
-            # substitute
-            if len(arg_substitute):
                 func_code = tools.word_replace(func_code, arg_substitute)
 
             # update code scope
@@ -810,9 +804,9 @@ class Runner(object):
                 func = tools.jit(func)
             if not profile.is_merge_steps():
                 if profile.show_format_code():
-                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                    utils.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
-                    tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
+                    utils.show_code_scope(code_scope, ['__builtins__', stripped_fname])
 
             # set the function to the model
             setattr(self, stripped_fname, func)
@@ -825,11 +819,6 @@ class Runner(object):
                                        'arg2calls': code_arg2call,
                                        'codes': code_lines,
                                        'call': func_call}
-
-        # WARNING: heterogeneous parameter may not in the main step functions
-        if len(all_heter_pars) > 0:
-            raise ModelDefError(f'Heterogeneous parameters "{list(all_heter_pars)}" are not defined '
-                                f'in main step function. BrainPy cannot recognize. Please check.')
 
         return results
 
@@ -856,10 +845,10 @@ class Runner(object):
             try:
                 states = {k: getattr(self.ensemble, k) for k in func_args
                           if k not in constants.ARG_KEYWORDS and
-                          isinstance(getattr(self.ensemble, k), ObjState)}
+                          isinstance(getattr(self.ensemble, k), types.ObjState)}
             except AttributeError:
-                raise ModelUseError(f'Model "{self._name}" does not have all the '
-                                    f'required attributes: {func_args}.')
+                raise errors.ModelUseError(f'Model "{self._name}" does not have all the '
+                                           f'required attributes: {func_args}.')
 
             # update functions in code scope
             # 1. recursively jit the function
@@ -976,12 +965,12 @@ class Runner(object):
                 else:
                     data = getattr(self.ensemble, arg)
                     if profile.run_on_cpu():
-                        if isinstance(data, ObjState):
+                        if isinstance(data, types.ObjState):
                             code_arg2call[arg] = f'{self._name}.{arg}["_data"]'
                         else:
                             code_arg2call[arg] = f'{self._name}.{arg}'
                     else:
-                        if isinstance(data, ObjState):
+                        if isinstance(data, types.ObjState):
                             code_arg2call[arg] = f'{self._name}_runner.{arg}_cuda'
                         else:
                             code_arg2call[arg] = f'{self._name}_runner.{arg}_cuda'
@@ -1075,9 +1064,9 @@ class Runner(object):
             # 2. output the function codes
             if not profile.is_merge_steps():
                 if profile.show_format_code():
-                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                    utils.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
-                    tools.show_code_scope(code_scope, ['__builtins__', stripped_fname])
+                    utils.show_code_scope(code_scope, ['__builtins__', stripped_fname])
             # 3. jit the compiled function
             func = code_scope[stripped_fname]
             if profile.run_on_cpu():
@@ -1112,7 +1101,7 @@ class Runner(object):
 
         # WARNING: heterogeneous parameter may not in the main step functions
         if len(all_heter_pars) > 0:
-            raise ModelDefError(f'''
+            raise errors.ModelDefError(f'''
 Heterogeneous parameters "{list(all_heter_pars)}" are not defined 
 in main step function. BrainPy can not recognize. 
 
@@ -1157,9 +1146,9 @@ Several ways to correct this error is:
                 codes_of_calls.append(func_call)
 
                 if profile.show_format_code():
-                    tools.show_code_str(func_code.replace('def ', f'def {self._name}_'))
+                    utils.show_code_str(func_code.replace('def ', f'def {self._name}_'))
                 if profile.show_code_scope():
-                    tools.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
+                    utils.show_code_scope(code_scopes, ('__builtins__', 'merge_func'))
 
             else:
                 for item in self.get_schedule():
@@ -1185,11 +1174,11 @@ Several ways to correct this error is:
 
     def set_schedule(self, schedule):
         if not isinstance(schedule, (list, tuple)):
-            raise ModelUseError('"schedule" must be a list/tuple.')
+            raise errors.ModelUseError('"schedule" must be a list/tuple.')
         all_func_names = ['input', 'monitor'] + self._step_names
         for s in schedule:
             if s not in all_func_names:
-                raise ModelUseError(f'Unknown step function "{s}" for model "{self._name}".')
+                raise errors.ModelUseError(f'Unknown step function "{s}" for model "{self._name}".')
         self._schedule = schedule
 
     def set_data(self, key, data):
@@ -1206,7 +1195,7 @@ Several ways to correct this error is:
         if key not in self.gpu_data:
             if isinstance(val, np.ndarray):
                 val = cuda.to_device(val)
-            elif isinstance(val, ObjState):
+            elif isinstance(val, types.ObjState):
                 val = val.get_cuda_data()
             setattr(self, key, val)
             self.gpu_data[key] = val
@@ -1235,7 +1224,7 @@ class TrajectoryRunner(Runner):
         try:
             isinstance(ensemble, NeuGroup)
         except AssertionError:
-            raise ModelUseError(f'{self.__name__} only supports the instance of NeuGroup.')
+            raise errors.ModelUseError(f'{self.__name__} only supports the instance of NeuGroup.')
 
         # initialization
         super(TrajectoryRunner, self).__init__(ensemble=ensemble)
@@ -1244,12 +1233,12 @@ class TrajectoryRunner(Runner):
         try:
             isinstance(target_vars, (list, tuple))
         except AssertionError:
-            raise ModelUseError('"target_vars" must be a list/tuple.')
+            raise errors.ModelUseError('"target_vars" must be a list/tuple.')
         for var in target_vars:
             try:
                 assert var in self._model.variables
             except AssertionError:
-                raise ModelUseError(f'"{var}" in "target_vars" is not defined in model "{self._model.name}".')
+                raise errors.ModelUseError(f'"{var}" in "target_vars" is not defined in model "{self._model.name}".')
         self.target_vars = target_vars
 
         # check fixed variables
@@ -1259,7 +1248,7 @@ class TrajectoryRunner(Runner):
             else:
                 fixed_vars = dict()
         except AssertionError:
-            raise ModelUseError('"fixed_vars" must be a dict.')
+            raise errors.ModelUseError('"fixed_vars" must be a dict.')
         self.fixed_vars = dict()
         for integrator in self._model.integrators:
             var_name = integrator.diff_eq.var_name

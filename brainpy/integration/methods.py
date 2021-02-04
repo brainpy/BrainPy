@@ -2,10 +2,10 @@
 
 import numpy as np
 
-from .diff_equation import DiffEquation
+from . import diff_equation
+from .. import errors
 from .. import profile
 from ..backend import normal_like
-from ..errors import IntegratorError
 
 __all__ = [
     'euler',
@@ -58,7 +58,7 @@ def euler(diff_eqs):
                     dg = __dt_sqrt * val[1] * dW
                     return y0 + df + dg
             else:
-                raise IntegratorError
+                raise errors.IntegratorError
 
     # ODE
     else:
@@ -69,8 +69,8 @@ def euler(diff_eqs):
                     y = y0 + __dt * val[0][0]
                     return (y,) + tuple(val[1:])
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
         else:
             if diff_eqs.return_type == 'x':
@@ -83,8 +83,8 @@ def euler(diff_eqs):
                 def int_func(y0, t, *args):
                     return y0 + __dt * __f(y0, t, *args)[0][0]
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
     return int_func
 
 
@@ -105,8 +105,8 @@ def rk2(diff_eqs, __beta=2 / 3):
                     y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
                     return (y,) + tuple(val[1:])
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
         else:
             if diff_eqs.return_type == 'x':
@@ -128,8 +128,8 @@ def rk2(diff_eqs, __beta=2 / 3):
                     y = y0 + __dt * ((1 - 1 / (2 * __beta)) * k1 + 1 / (2 * __beta) * k2)
                     return y
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
     return int_func
 
@@ -182,7 +182,7 @@ def heun(diff_eqs):
                         y = y0 + df + dg
                         return y
                 else:
-                    raise IntegratorError
+                    raise errors.IntegratorError
 
             return int_func
 
@@ -211,8 +211,8 @@ def rk3(diff_eqs):
                     y = y0 + __dt / 6 * (k1 + 4 * k2 + k3)
                     return (y,) + tuple(val[1:])
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
         else:
             if diff_eqs.return_type == 'x':
@@ -236,8 +236,8 @@ def rk3(diff_eqs):
                     k3 = __f(y0 - __dt * k1 + 2 * __dt * k2, t + __dt, *args)[0][0]
                     return y0 + __dt / 6 * (k1 + 4 * k2 + k3)
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
     return int_func
 
@@ -262,8 +262,8 @@ def rk4(diff_eqs):
                     return (y,) + tuple(val[1:])
 
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
         else:
             if diff_eqs.return_type == 'x':
@@ -290,8 +290,8 @@ def rk4(diff_eqs):
                     k4 = __f(y0 + __dt * k3, t + __dt, *args)[0][0]
                     return y0 + __dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
     return int_func
 
@@ -301,7 +301,7 @@ def rk4_alternative(diff_eqs):
     __dt = profile.get_dt()
 
     if diff_eqs.is_stochastic:
-        raise IntegratorError('"RK4_alternative" method doesn\'t support stochastic differential equation.')
+        raise errors.IntegratorError('"RK4_alternative" method doesn\'t support stochastic differential equation.')
 
     else:
         if diff_eqs.is_multi_return:
@@ -315,8 +315,8 @@ def rk4_alternative(diff_eqs):
                     y = y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
                     return (y,) + tuple(val[1:])
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
         else:
             if diff_eqs.return_type == 'x':
@@ -341,14 +341,14 @@ def rk4_alternative(diff_eqs):
                     k4 = __f(y0 + __dt * k1 - __dt * k2 + __dt * k3, t + __dt, *args)[0][0]
                     return y0 + __dt / 8 * (k1 + 3 * k2 + 3 * k3 + k4)
             else:
-                raise IntegratorError(f'Unrecognized differential return type: '
-                                      f'{diff_eqs.return_type}')
+                raise errors.IntegratorError(f'Unrecognized differential return type: '
+                                             f'{diff_eqs.return_type}')
 
     return int_func
 
 
 def exponential_euler(diff_eq):
-    assert isinstance(diff_eq, DiffEquation)
+    assert isinstance(diff_eq, diff_equation.DiffEquation)
 
     f = diff_eq.f
     dt = profile.get_dt()

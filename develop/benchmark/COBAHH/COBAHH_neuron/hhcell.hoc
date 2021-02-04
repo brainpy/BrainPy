@@ -1,0 +1,89 @@
+// Mostly constructed by cell builder. Lines marked with //* added manually
+{load_file("hhchan.ses")} //*
+
+//Network cell templates
+//   CobaHHCell
+
+AMPA_INDEX = 0 //* synlist synapse indices
+GABA_INDEX = 1 //*
+
+begintemplate CobaHHCell
+public is_art
+public init, topol, basic_shape, subsets, geom, biophys, geom_nseg, biophys_inhomo
+public synlist, x, y, z, position, connect2target
+
+public soma
+public all
+
+objref synlist
+
+proc init() {
+  topol()
+  subsets()
+  geom()
+  biophys()
+  geom_nseg()
+  synlist = new List()
+  synapses()
+  x = y = z = 0 // only change via position
+}
+
+create soma
+
+proc topol() { local i
+  basic_shape()
+}
+proc basic_shape() {
+  soma {pt3dclear() pt3dadd(0, 0, 0, 1) pt3dadd(15, 0, 0, 1)}
+}
+
+objref all
+proc subsets() { local i
+  objref all
+  all = new SectionList()
+    soma all.append()
+
+}
+proc geom() {
+  forsec all {  /*area = 20000 */ L = diam = 79.7885  }
+}
+external lambda_f
+proc geom_nseg() {
+//* performance killer:  soma area(.5) // make sure diam reflects 3d points
+}
+proc biophys() {
+  forsec all {
+    cm = 1
+    insert pas
+      g_pas = 5e-05
+      e_pas = -65
+    insert nahh
+      gmax_nahh = 0.1
+    insert khh
+      gmax_khh = 0.03
+	ena = 50 //*
+	ek = -90 //*
+  }
+}
+proc biophys_inhomo(){}
+proc position() { local i
+  soma for i = 0, n3d()-1 {
+    pt3dchange(i, $1-x+x3d(i), $2-y+y3d(i), $3-z+z3d(i), diam3d(i))
+  }
+  x = $1  y = $2  z = $3
+}
+proc connect2target() { //$o1 target point process, $o2 returned NetCon
+  soma $o2 = new NetCon(&v(1), $o1)
+  $o2.threshold = -10 //*	
+}
+objref syn_
+proc synapses() {
+  /* E0 */   soma syn_ = new ExpSyn(0.5)  synlist.append(syn_)
+    syn_.tau = 5
+  /* I1 */   soma syn_ = new ExpSyn(0.5)  synlist.append(syn_)
+    syn_.tau = 10
+    syn_.e = -80
+}
+func is_art() { return 0 }
+
+endtemplate CobaHHCell

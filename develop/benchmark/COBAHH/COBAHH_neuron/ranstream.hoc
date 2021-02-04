@@ -1,0 +1,18 @@
+random_stream_offset_ = 1000
+
+begintemplate RandomStream
+public r, repick, start, stream
+external random_stream_offset_
+objref r
+proc init() {
+	stream = $1
+	r = new Random()
+	start()
+}
+func start() {
+	return r.MCellRan4(stream*random_stream_offset_ + 1)
+}
+func repick() {
+	return r.repick()
+}
+endtemplate RandomStream

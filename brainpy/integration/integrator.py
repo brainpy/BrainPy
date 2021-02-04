@@ -7,9 +7,9 @@ import sympy
 
 from . import methods
 from .diff_equation import DiffEquation
-from .sympy_tools import get_mapping_scope
-from .sympy_tools import str2sympy
-from .sympy_tools import sympy2str
+from .utils import get_mapping_scope
+from .utils import str2sympy
+from .utils import sympy2str
 from .. import backend
 from .. import profile
 from .. import tools
@@ -843,7 +843,7 @@ class ExponentialEuler(Integrator):
 
         # get the linear system using sympy
         f_res = f_expressions[-1]
-        df_expr = str2sympy(f_res.code).expand()
+        df_expr = str2sympy(f_res.code).expr.expand()
         s_df = sympy.Symbol(f"{f_res.var_name}")
         code_lines.append(f'{s_df.name} = {sympy2str(df_expr)}')
         var = sympy.Symbol(diff_eq.var_name, real=True)

@@ -21,7 +21,6 @@ brainpy.integration package
 
 
 .. autoclass:: Expression
-    :toctree:
     :members:
 
 .. autoclass:: DiffEquation
@@ -35,7 +34,6 @@ brainpy.integration package
     :toctree: _autosummary
 
     integrate
-    get_integrator
     Integrator
     Euler
     Heun
@@ -88,13 +86,13 @@ brainpy.integration package
 .. autosummary::
     :toctree: _autosummary
 
-    SympyRender
-    SympyPrinter
+    Parser
+    Printer
     str2sympy
     sympy2str
 
-.. autoclass:: SympyRender
+.. autoclass:: Parser
     :members:
 
-.. autoclass:: SympyPrinter
+.. autoclass:: Printer
     :members:

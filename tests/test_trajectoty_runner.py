@@ -223,36 +223,111 @@ if __name__ == '__main__1':
     print(runner.fixed_vars)
 
 
+def get_trajectories(
+        model: NeuType,
+        target_vars: typing.Union[typing.List[str], typing.Tuple[str]],
+        initials: typing.Union[typing.List, typing.Tuple],
+        duration: typing.Union[int, typing.List, typing.Tuple],
+        fixed_vars: typing.Dict = None,
+        inputs: typing.Union[typing.List, typing.Tuple] = (),
+        pars_update: typing.Dict = None,
+):
+    """Get trajectories.
+
+    Parameters
+    ----------
+    model : NeuType
+        The neuron model.
+    target_vars : list, tuple
+        The target variables.
+    initials : tuple, list
+        The initial value setting of the targets. It can be a data with the format of
+        ``[(v1, v2), (v1, v2)]``.
+    duration : int, float, tuple, list
+        The running duration. Same with the ``duration`` in ``Network.run()``.
+    inputs : list, tuple
+        The model inputs. Same with the ``inputs`` in ``Network.run()``.
+    fixed_vars : dict
+        The fixed variables.
+    pars_update : dict
+        The parameters to update.
+
+    Returns
+    -------
+    trajectories : list
+        The trajectories.
+    """
+
+    # format initial value setting
+    if isinstance(initials[0], (int, float)):
+        initials = [initials, ]
+    initials = np.array(initials)
+
+    # format duration and initial values
+    initial_states = np.zeros((len(target_vars), len(initials)), dtype=np.float_)
+    for i, initial in enumerate(initials):
+        # checking
+        try:
+            assert len(initial) == len(target_vars)
+        except AssertionError:
+            raise ModelUseError('"initials" be a tuple/list/array with the format of '
+                                '[[var1 initial, var2 initial]].')
+        # initial values
+        for j, val in enumerate(initial):
+            initial_states[j, i] = val
+
+    # initialize neuron group
+    num = len(initials)
+    group = NeuGroup(model, geometry=num, monitors=target_vars, pars_update=pars_update)
+    for j, key in enumerate(target_vars):
+        group.ST[key] = initial_states[j]
+    group.runner = TrajectoryRunner(group, target_vars=target_vars, fixed_vars=fixed_vars)
+    group.run(duration=duration, inputs=inputs)
+
+    # monitors
+    trajectories = []
+    for i, initial in enumerate(initials):
+        trajectory = tools.DictPlus()
+        legend = 'traj, '
+        trajectory['ts'] = group.mon.ts
+        for j, var in enumerate(target_vars):
+            legend += f'${var}_0$={initial[j]}, '
+            trajectory[var] = getattr(group.mon, var)[:, i]
+        if legend.strip():
+            trajectory['legend'] = legend[:-2]
+        trajectories.append(trajectory)
+    return trajectories
+
 if __name__ == '__main__':
     pass
-    from brainpy.dynamics.phase_portrait_analyzer import get_trajectories
+    from brainpy.analysis.phase_plane import get_trajectories
 
     # Try LIF neuron model
-    trajectories = get_trajectories(LIF, target_vars=['V'], target_setting=(0., (20., 100.)), inputs=('ST.inp', 12.))
+    trajectories = get_trajectories(LIF, target_vars=['V'], initials=(0., (20., 100.)), inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try LIF neuron model: variable "V"
-    trajectories = get_trajectories(Izhikevich, target_vars=['V'], target_setting=(0., (20., 100.)),
-                                   inputs=('ST.inp', 12.))
+    trajectories = get_trajectories(Izhikevich, target_vars=['V'], initials=(0., (20., 100.)),
+                                    inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try LIF neuron model: variable "u"
-    trajectories = get_trajectories(Izhikevich, target_vars=['u'], target_setting=(0., (20., 100.)),
-                                   inputs=('ST.inp', 12.))
+    trajectories = get_trajectories(Izhikevich, target_vars=['u'], initials=(0., (20., 100.)),
+                                    inputs=('ST.inp', 12.))
     plt.plot(trajectories[0].ts, trajectories[0].u, label=trajectories[0].legend)
     plt.legend()
     plt.show()
 
     # Try HH neuron model: variable 'V', 'n'
     trajectories = get_trajectories(HH,
-                                   target_vars=['V', 'n'],
-                                   target_setting=[(-65., 0., (20., 100.)),
-                                                   (-75., 0.1, 60.)],
-                                   inputs=('ST.inp', 3.))
+                                    target_vars=['V', 'n'],
+                                    initials=[(-65., 0., (20., 100.)),
+                                              (-75., 0.1, 60.)],
+                                    inputs=('ST.inp', 3.))
     plt.plot(trajectories[0].ts, trajectories[0].V, label=trajectories[0].legend)
     plt.plot(trajectories[1].ts, trajectories[1].V, label=trajectories[1].legend)
     plt.legend(title='Initial values')

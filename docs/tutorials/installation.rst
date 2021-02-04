@@ -9,16 +9,6 @@ Installation
 ``BrainPy`` is designed to run on across-platforms, including Windows,
 GNU/Linux and OSX. It only relies on Python libraries.
 
-Installation with Anaconda
---------------------------
-
-You can install ``BrainPy`` from the `anaconda cloud <https://anaconda.org/brainpy/brainpy-simulator>`_. To do so, use:
-
-.. code-block:: bash
-
-    conda install brainpy-simulator -c brainpy
-
-
 Installation with pip
 ---------------------
 
@@ -28,6 +18,16 @@ To do so, use:
 .. code-block:: bash
 
     pip install brainpy-simulator
+
+
+Installation with Anaconda
+--------------------------
+
+You can install ``BrainPy`` from the `anaconda cloud <https://anaconda.org/brainpy/brainpy-simulator>`_. To do so, use:
+
+.. code-block:: bash
+
+    conda install brainpy-simulator -c brainpy
 
 
 Installation from source

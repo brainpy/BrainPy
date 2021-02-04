@@ -1,0 +1,52 @@
+// Main file for cobahh network (Hodgkin-Huxley model cells with COnductance BAsed synapses).
+
+{load_file("nrngui.hoc")}  // GUI and runtime libraries
+{load_file("hhcell.hoc")}  // defines CobaHHCell class
+
+// Procedures that set up network architecture and performance reporting.
+{load_file("init.hoc")}
+
+// Called by create_cells() in net.hoc
+obfunc newcell() {
+	return new CobaHHCell()
+}
+
+// Create the cells, then connect them.
+create_net()  // in net.hoc
+
+STOPSTIM=10000  // duration of stimulation (ms)
+
+// Randomized spike trains driving excitatory synapses.
+create_stim(run_random_low_start_, AMPA_GMAX)  // in netstim.hoc
+
+// A few last items for performance reports, e.g. set up spike time recording, and,
+// if in "demo" mode, create graph for raster plots, and panel with Stop button.
+finish_setup()  // in init.hoc
+
+// Parallel run to tstop.
+prun()  // in perfrun.hoc
+
+// Only the "master" cpu does this.
+if (pc.id == 0) {print "RunTime: ", runtime}
+
+// Up to this point, all CPUs have executed the same code,
+// except for taking different branches depending on their value of pc.id,
+// which ranges from 0 to pc.nhost-1.
+
+// Gather performance statistics from each CPU.
+
+// Only the master (pc.id == 0) returns from pc.runworker().
+// All other CPUs ("workers") now wait for messages.
+{pc.runworker()}
+
+// Send requests to the workers and handle the results they send back.
+collect_results()  // in init.hoc
+
+// Send all workers a QUIT message; those NEURON processes exit.
+// The master waits until all worker output has been transferred to it.
+{pc.done()}
+
+// Only the master executes code beyond this point; all others have exited.
+
+// Times of all spikes, and consolidated performance report.
+output_results()  // in perfrun.hoc
