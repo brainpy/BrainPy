@@ -6,8 +6,8 @@ import numpy as np
 from . import base
 from . import utils
 from .. import core
+from .. import errors
 from .. import profile
-from ..errors import ModelUseError
 
 __all__ = [
     'PhasePlane',
@@ -86,12 +86,12 @@ class PhasePlane(object):
 
         # check "model"
         if not isinstance(model, core.NeuType):
-            raise ModelUseError('Phase plane analysis only support neuron type model.')
+            raise errors.ModelUseError('Phase plane analysis only support neuron type model.')
         self.model = model
 
         # check "target_vars"
         if not isinstance(target_vars, dict):
-            raise ModelUseError('"target_vars" must a dict with the format of: '
+            raise errors.ModelUseError('"target_vars" must a dict with the format of: '
                                 '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
         self.target_vars = target_vars
 
@@ -99,7 +99,7 @@ class PhasePlane(object):
         if fixed_vars is None:
             fixed_vars = dict()
         if not isinstance(fixed_vars, dict):
-            raise ModelUseError('"fixed_vars" must be a dict with the format of: '
+            raise errors.ModelUseError('"fixed_vars" must be a dict with the format of: '
                                 '{"Variable A": A_value, "Variable B": B_value}')
         self.fixed_vars = fixed_vars
 
@@ -107,11 +107,11 @@ class PhasePlane(object):
         if pars_update is None:
             pars_update = dict()
         if not isinstance(pars_update, dict):
-            raise ModelUseError('"pars_update" must be a dict with the format of: '
+            raise errors.ModelUseError('"pars_update" must be a dict with the format of: '
                                 '{"Par A": A_value, "Par B": B_value}')
         for key in pars_update.keys():
             if key not in model.step_scopes:
-                raise ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
+                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
         self.pars_update = pars_update
 
         # analyzer
@@ -130,7 +130,7 @@ class PhasePlane(object):
                                           numerical_resolution=numerical_resolution,
                                           options=options)
         else:
-            raise ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
+            raise errors.ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
                                 'Or, you can set "fixed_vars" to fix other variables, '
                                 'then make 1D/2D phase plane analysis.')
 
@@ -151,7 +151,9 @@ class PhasePlane(object):
         self.analyzer.plot_trajectory(*args, **kwargs)
 
     def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        """Find the limit cycles through the simulation, and then plot."""
         self.analyzer.plot_limit_cycle_by_sim(*args, **kwargs)
+
 
 class _PhasePlane1D(base.Base1DNeuronAnalyzer):
     """Phase plane analyzer for 1D system.
@@ -173,12 +175,13 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
         results : np.ndarray
             The dx values.
         """
+        print('plot vector field ...')
 
         # 1. Nullcline of the x variable
         try:
             y_val = self.get_f_dx()(self.resolutions[self.x_var])
         except TypeError:
-            raise ModelUseError('Missing variables. Please check and set missing '
+            raise errors.ModelUseError('Missing variables. Please check and set missing '
                                 'variables to "fixed_vars".')
 
         # 2. visualization
@@ -208,6 +211,7 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
         points : np.ndarray
             The fixed points.
         """
+        print('plot fixed point ...')
 
         # 1. functions
         f_fixed_point = self.get_f_fixed_point()
@@ -241,8 +245,8 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
     def plot_trajectory(self, *args, **kwargs):
         raise NotImplementedError('1D phase plane do not support plot_trajectory.')
 
-    def plot_limit_cycle(self, *args, **kwargs):
-        raise NotImplementedError('1D phase plane do not support plot_limit_cycle.')
+    def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
 class _PhasePlane2D(base.Base2DNeuronAnalyzer):
@@ -291,6 +295,8 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         result : tuple
             The ``dx``, ``dy`` values.
         """
+        print('plot vector field ...')
+
         if plot_style is None:
             plot_style = dict()
 
@@ -302,14 +308,14 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         try:
             dx = self.get_f_dx()(X, Y)
         except TypeError:
-            raise ModelUseError('Missing variables. Please check and set missing '
+            raise errors.ModelUseError('Missing variables. Please check and set missing '
                                 'variables to "fixed_vars".')
 
         # dy
         try:
             dy = self.get_f_dy()(X, Y)
         except TypeError:
-            raise ModelUseError('Missing variables. Please check and set missing '
+            raise errors.ModelUseError('Missing variables. Please check and set missing '
                                 'variables to "fixed_vars".')
 
         # vector field
@@ -357,6 +363,8 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         results : tuple
             The value points.
         """
+        print('plot fixed point ...')
+
         # function for fixed point solving
         f_fixed_point = self.get_f_fixed_point()
         x_values, y_values = f_fixed_point()
@@ -412,6 +420,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         values : dict
             A dict with the format of ``{func1: (x_val, y_val), func2: (x_val, y_val)}``.
         """
+        print('plot nullcline ...')
 
         if numerical_setting is None:
             numerical_setting = dict()
@@ -432,7 +441,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             try:
                 y_values_in_y_eq = y_by_x['f'](xs)
             except TypeError:
-                raise ModelUseError('Missing variables. Please check and set missing '
+                raise errors.ModelUseError('Missing variables. Please check and set missing '
                                     'variables to "fixed_vars".')
             x_values_in_y_eq = xs
             plt.plot(xs, y_values_in_y_eq, **y_style, label=f"{self.y_var} nullcline")
@@ -443,7 +452,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                 try:
                     x_values_in_y_eq = x_by_y['f'](ys)
                 except TypeError:
-                    raise ModelUseError('Missing variables. Please check and set missing '
+                    raise errors.ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
                 y_values_in_y_eq = ys
                 plt.plot(x_values_in_y_eq, ys, **y_style, label=f"{self.y_var} nullcline")
@@ -466,7 +475,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             try:
                 y_values_in_x_eq = y_by_x['f'](xs)
             except TypeError:
-                raise ModelUseError('Missing variables. Please check and set missing '
+                raise errors.ModelUseError('Missing variables. Please check and set missing '
                                     'variables to "fixed_vars".')
             x_values_in_x_eq = xs
             plt.plot(xs, y_values_in_x_eq, **x_style, label=f"{self.x_var} nullcline")
@@ -477,7 +486,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                 try:
                     x_values_in_x_eq = x_by_y['f'](ys)
                 except TypeError:
-                    raise ModelUseError('Missing variables. Please check and set missing '
+                    raise errors.ModelUseError('Missing variables. Please check and set missing '
                                         'variables to "fixed_vars".')
                 y_values_in_x_eq = ys
                 plt.plot(x_values_in_x_eq, ys, **x_style, label=f"{self.x_var} nullcline")
@@ -540,8 +549,10 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             Whether show or not.
         """
 
+        print('plot trajectory ...')
+
         if axes not in ['v-v', 't-v']:
-            raise ModelUseError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
+            raise errors.ModelUseError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
 
         # 1. format the initial values
         if isinstance(initials, dict):
@@ -581,7 +592,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             elif isinstance(inputs[0], str):
                 inputs = [(self.traj_group, ) + tuple(inputs)]
             else:
-                raise ModelUseError()
+                raise errors.ModelUseError()
 
         # 5. run the network
         for init_i, initial in enumerate(initials):
@@ -658,6 +669,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         show : bool
             Whether show or not.
         """
+        print('plot limit cycle ...')
 
         # 1. format the initial values
         if isinstance(initials, dict):
@@ -689,7 +701,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             elif isinstance(inputs[0], str):
                 inputs = [(self.traj_group, ) + tuple(inputs)]
             else:
-                raise ModelUseError()
+                raise errors.ModelUseError()
 
         # 5. run the network
         for init_i, initial in enumerate(initials):

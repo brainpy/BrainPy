@@ -330,7 +330,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
             raise ValueError('One-dimensional fast system cannot plot limit cycle.')
         if plot_style is None:
             plot_style = dict()
-        fmt = plot_style.pop('fmt', '-')
+        fmt = plot_style.pop('fmt', '.')
 
         if var not in [self.x_var, self.y_var]:
             raise errors.AnalyzerError()
