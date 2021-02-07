@@ -32,10 +32,10 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   advanced/differential_equations
    advanced/numerical_integrators
-   advanced/debugging
+   advanced/differential_equations
    advanced/repeat_mode
+   advanced/debugging
    advanced/tips_on_jit
    advanced/how_it_works
    advanced/usage_of_inputs_module

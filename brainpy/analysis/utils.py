@@ -175,7 +175,7 @@ def timeout(s):
     return outer
 
 
-def jit(func):
+def _jit(func):
     if backend.func_in_numpy_or_math(func):
         return func
     if isinstance(func, Dispatcher):
@@ -190,7 +190,7 @@ def jit(func):
         # function
         if callable(v):
             if (not backend.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
-                code_scope[k] = jit(v)
+                code_scope[k] = _jit(v)
                 modified = True
 
     if modified:
@@ -212,7 +212,7 @@ def jit_compile(scope, func_code, func_name):
             elif isinstance(val, Dispatcher):
                 pass
             else:
-                val = jit(val)
+                val = _jit(val)
         func_scope[key] = val
 
     # compile function
@@ -264,10 +264,110 @@ def add_arrow(line, position=None, direction='right', size=15, color=None):
     else:
         end_ind = start_ind - 1
 
-    line.axes.annotate('',
-        xytext=(xdata[start_ind], ydata[start_ind]),
-        xy=(xdata[end_ind], ydata[end_ind]),
-        arrowprops=dict(arrowstyle="->", color=color),
-        size=size
-    )
+    line.axes.annotate(text='',
+                       xytext=(xdata[start_ind], ydata[start_ind]),
+                       xy=(xdata[end_ind], ydata[end_ind]),
+                       arrowprops=dict(arrowstyle="->", color=color),
+                       size=size)
 
+
+@njit
+def f1(arr, grad, tol):
+    condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] >= 0)
+    indexes = np.where(condition)[0]
+    if len(indexes) >= 2:
+        data = arr[indexes[-2]: indexes[-1]]
+        length = np.max(data) - np.min(data)
+        a = arr[indexes[-2]]
+        b = arr[indexes[-1]]
+        if np.abs(a - b) < tol * length:
+            return indexes[-2:]
+    return np.array([-1, -1])
+
+
+@njit
+def f2(arr, grad, tol):
+    condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] <= 0)
+    indexes = np.where(condition)[0]
+    if len(indexes) >= 2:
+        data = arr[indexes[-2]: indexes[-1]]
+        length = np.max(data) - np.min(data)
+        a = arr[indexes[-2]]
+        b = arr[indexes[-1]]
+        if np.abs(a - b) < tol * length:
+            return indexes[-2:]
+    return np.array([-1, -1])
+
+
+def find_indexes_of_limit_cycle_max(arr, tol=0.001):
+    grad = np.gradient(arr)
+    return f1(arr, grad, tol)
+
+
+def find_indexes_of_limit_cycle_min(arr, tol=0.001):
+    grad = np.gradient(arr)
+    return f2(arr, grad, tol)
+
+
+@njit
+def _identity(a, b, tol=0.01):
+    if np.abs(a - b) < tol:
+        return True
+    else:
+        return False
+
+
+def find_indexes_of_limit_cycle_max2(arr, tol=0.001):
+    if np.ndim(arr) == 1:
+        grad = np.gradient(arr)
+        condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] >= 0)
+        indexes = np.where(condition)[0]
+        if len(indexes) >= 2:
+            data = arr[indexes[-2]: indexes[-1]]
+            length = np.max(data) - np.min(data)
+            if _identity(arr[indexes[-2]], arr[indexes[-1]], tol * length):
+                return indexes[-2:]
+        return np.array([-1, -1])
+
+    elif np.ndim(arr) == 2:
+        # The data with the shape of (axis_along_time, axis_along_neuron)
+        grads = np.gradient(arr, axis=0)
+        conditions = np.logical_and(grads[:-1] * grads[1:] <= 0, grads[:-1] >= 0)
+        indexes = -np.ones((len(conditions), 2), dtype=int)
+        for i, condition in enumerate(conditions):
+            idx = np.where(condition)[0]
+            if len(idx) >= 2:
+                if _identity(arr[idx[-2]], arr[idx[-1]], tol):
+                    indexes[i] = idx[-2:]
+        return indexes
+
+    else:
+        raise ValueError
+
+
+def find_indexes_of_limit_cycle_min2(arr, tol=0.01):
+    if np.ndim(arr) == 1:
+        grad = np.gradient(arr)
+        condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] <= 0)
+        indexes = np.where(condition)[0]
+        if len(indexes) >= 2:
+            indexes += 1
+            if _identity(arr[indexes[-2]], arr[indexes[-1]], tol):
+                return indexes[-2:]
+        return np.array([-1, -1])
+
+    elif np.ndim(arr) == 2:
+        # The data with the shape of (axis_along_time, axis_along_neuron)
+        grads = np.gradient(arr, axis=0)
+        conditions = np.logical_and(grads[:-1] * grads[1:] <= 0, grads[:-1] <= 0)
+        indexes = -np.ones((len(conditions), 2), dtype=int)
+        for i, condition in enumerate(conditions):
+            idx = np.where(condition)[0]
+            if len(idx) >= 2:
+                idx += 1
+                if _identity(arr[idx[-2]], arr[idx[-1]], tol):
+                    indexes[i] = idx[-2:]
+        return indexes
+
+    else:
+        raise ValueError

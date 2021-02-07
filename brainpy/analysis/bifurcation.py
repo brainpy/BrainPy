@@ -3,6 +3,7 @@
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 from . import base
@@ -126,6 +127,8 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
                                              options=options)
 
     def plot_bifurcation(self, show=False):
+        print('plot bifurcation ...')
+
         f_fixed_point = self.get_f_fixed_point()
         f_dfdx = self.get_f_dfdx()
 
@@ -201,6 +204,11 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
         else:
             raise errors.ModelUseError(f'Cannot visualize co-dimension {len(self.target_pars)} '
                                        f'bifurcation.')
+        return container
+
+    def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
+
 
 
 class _Bifurcation2D(base.Base2DNeuronAnalyzer):
@@ -219,7 +227,14 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                                              numerical_resolution=numerical_resolution,
                                              options=options)
 
+        self.fixed_points = None
+        self.limit_cycle_mon = None
+        self.limit_cycle_p0 = None
+        self.limit_cycle_p1 = None
+
     def plot_bifurcation(self, show=False):
+        print('plot bifurcation ...')
+
         # functions
         f_fixed_point = self.get_f_fixed_point()
         f_jacobian = self.get_f_jacobian()
@@ -300,6 +315,129 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
             if show:
                 plt.show()
 
+        else:
+            raise ValueError('Unknown length of parameters.')
+
+        self.fixed_points = container
+        return container
+    
+    def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(), plot_style=None, tol=0.001, show=False):
+        print('plot limit cycle ...')
+
+        if self.fixed_points is None:
+            raise errors.AnalyzerError('Please call "plot_bifurcation()" before "plot_limit_cycle_by_sim()".')
+        if len(self.dvar_names) == 1:
+            raise ValueError('One-dimensional fast system cannot plot limit cycle.')
+        if plot_style is None:
+            plot_style = dict()
+        fmt = plot_style.pop('fmt', '-')
+
+        if var not in [self.x_var, self.y_var]:
+            raise errors.AnalyzerError()
+
+        if self.limit_cycle_mon is None:
+            all_xs, all_ys, all_p0, all_p1 = [], [], [], []
+
+            # unstable node
+            unstable_node = self.fixed_points[utils._2D_UNSTABLE_NODE]
+            all_xs.extend(unstable_node[self.x_var])
+            all_ys.extend(unstable_node[self.y_var])
+            if len(self.dpar_names) == 1:
+                all_p0.extend(unstable_node['p'])
+            elif len(self.dpar_names) == 2:
+                all_p0.extend(unstable_node['p0'])
+                all_p1.extend(unstable_node['p1'])
+            else:
+                raise ValueError
+
+            # unstable focus
+            unstable_focus = self.fixed_points[utils._2D_UNSTABLE_FOCUS]
+            all_xs.extend(unstable_focus[self.x_var])
+            all_ys.extend(unstable_focus[self.y_var])
+            if len(self.dpar_names) == 1:
+                all_p0.extend(unstable_focus['p'])
+            elif len(self.dpar_names) == 2:
+                all_p0.extend(unstable_focus['p0'])
+                all_p1.extend(unstable_focus['p1'])
+            else:
+                raise ValueError
+
+            # format points
+            all_xs = np.array(all_xs)
+            all_ys = np.array(all_ys)
+            all_p0 = np.array(all_p0)
+            all_p1 = np.array(all_p1)
+
+            # fixed variables
+            fixed_vars = {self.dpar_names[0]: all_p0}
+            if len(self.dpar_names) == 2:
+                fixed_vars = {self.dpar_names[1]: all_p1}
+            fixed_vars.update(self.fixed_vars)
+
+            # initialize neuron group
+            length = all_xs.shape[0]
+            group = core.NeuGroup(self.model, geometry=length,
+                                  monitors=self.dvar_names,
+                                  pars_update=self.pars_update)
+
+            # group initial state
+            group.ST[self.x_var] = all_xs
+            group.ST[self.y_var] = all_ys
+            for key, val in fixed_vars.items():
+                if key in group.ST:
+                    group.ST[key] = val
+
+            # run neuron group
+            group.runner = core.TrajectoryRunner(
+                group, target_vars=self.dvar_names, fixed_vars=fixed_vars)
+            group.run(duration=duration, inputs=inputs)
+
+            self.limit_cycle_mon = group.mon
+            self.limit_cycle_p0 = all_p0
+            self.limit_cycle_p1 = all_p1
+        else:
+            length = self.limit_cycle_mon[var].shape[1]
+
+        # find limit cycles
+        limit_cycle_max = []
+        limit_cycle_min = []
+        limit_cycle = []
+        p0_limit_cycle = []
+        p1_limit_cycle = []
+        for i in range(length):
+            data = self.limit_cycle_mon[var][:, i]
+            max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
+            if max_index[0] != -1:
+                x_cycle = data[max_index[0]: max_index[1]]
+                limit_cycle_max.append(data[max_index[0]])
+                limit_cycle_min.append(x_cycle.min())
+                limit_cycle.append(x_cycle)
+                p0_limit_cycle.append(self.limit_cycle_p0[i])
+                if len(self.dpar_names) == 2:
+                    p1_limit_cycle.append(self.limit_cycle_p1[i])
+        self.fixed_points['limit_cycle'] = {var: {'max': limit_cycle_max,
+                                                  'min': limit_cycle_min,
+                                                  'cycle': limit_cycle}}
+
+        # visualization
+        if len(self.dpar_names) == 2:
+            self.fixed_points['limit_cycle'] = {'p0': p0_limit_cycle, 'p1': p1_limit_cycle}
+            plt.figure(var)
+            plt.plot(p0_limit_cycle, p1_limit_cycle, limit_cycle_max, **plot_style, label='limit cycle (max)')
+            plt.plot(p0_limit_cycle, p1_limit_cycle, limit_cycle_min, **plot_style, label='limit cycle (min)')
+            plt.legend()
+
+        else:
+            self.fixed_points['limit_cycle'] = {'p': p0_limit_cycle}
+            plt.figure(var)
+            plt.plot(p0_limit_cycle, limit_cycle_max, fmt, **plot_style, label='limit cycle (max)')
+            plt.plot(p0_limit_cycle, limit_cycle_min, fmt, **plot_style, label='limit cycle (min)')
+            plt.legend()
+
+        if show:
+            plt.show()
+
+    
 
 class FastSlowBifurcation(object):
     """Fast slow analysis analysis proposed by John Rinzel [1]_ [2]_ [3]_.
@@ -399,6 +537,9 @@ class FastSlowBifurcation(object):
     def plot_trajectory(self, *args, **kwargs):
         self.analyzer.plot_trajectory(*args, **kwargs)
 
+    def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        self.analyzer.plot_limit_cycle_by_sim(*args, **kwargs)
+
 
 class _FastSlowTrajectory(object):
     def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
@@ -413,11 +554,13 @@ class _FastSlowTrajectory(object):
             options = dict()
         self.lim_scale = options.get('lim_scale', 1.05)
 
+        # fast variables
         if isinstance(fast_vars, OrderedDict):
             self.fast_var_names = list(fast_vars.keys())
         else:
             self.fast_var_names = list(sorted(fast_vars.keys()))
 
+        # slow variables
         if isinstance(slow_vars, OrderedDict):
             self.slow_var_names = list(slow_vars.keys())
         else:
@@ -462,6 +605,7 @@ class _FastSlowTrajectory(object):
         show : bool
             Whether show or not.
         """
+        print('plot trajectory ...')
 
         # 1. format the initial values
         all_vars = self.fast_var_names + self.slow_var_names
@@ -580,6 +724,7 @@ class _FastSlowTrajectory(object):
             plt.show()
 
 
+
 class _FastSlow1D(_Bifurcation1D):
     def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
@@ -600,6 +745,12 @@ class _FastSlow1D(_Bifurcation1D):
 
     def plot_trajectory(self, *args, **kwargs):
         self.traj.plot_trajectory(*args, **kwargs)
+
+    def plot_bifurcation(self, *args, **kwargs):
+        super(_FastSlow1D, self).plot_bifurcation(*args, **kwargs)
+
+    def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        super(_FastSlow1D, self).plot_limit_cycle_by_sim(*args, **kwargs)
 
 
 class _FastSlow2D(_Bifurcation2D):
@@ -622,6 +773,12 @@ class _FastSlow2D(_Bifurcation2D):
 
     def plot_trajectory(self, *args, **kwargs):
         self.traj.plot_trajectory(*args, **kwargs)
+
+    def plot_bifurcation(self, *args, **kwargs):
+        super(_FastSlow2D, self).plot_bifurcation(*args, **kwargs)
+
+    def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        super(_FastSlow2D, self).plot_limit_cycle_by_sim(*args, **kwargs)
 
 
 if __name__ == '__main__':

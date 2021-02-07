@@ -618,6 +618,7 @@ class Runner(object):
         code_scope = dict(vars.nonlocals)
         code_scope.update(vars.globals)
         code_scope.update({self._name: self.ensemble})
+        code_scope.update(formatter.scope)
         if len(code_lines) == 0:
             return '', code_scope
 
@@ -1221,23 +1222,17 @@ class TrajectoryRunner(Runner):
     def __init__(self, ensemble, target_vars, fixed_vars=None):
         # check ensemble
         from brainpy.core.neurons import NeuGroup
-        try:
-            isinstance(ensemble, NeuGroup)
-        except AssertionError:
+        if not isinstance(ensemble, NeuGroup):
             raise errors.ModelUseError(f'{self.__name__} only supports the instance of NeuGroup.')
 
         # initialization
         super(TrajectoryRunner, self).__init__(ensemble=ensemble)
 
         # check targeted variables
-        try:
-            isinstance(target_vars, (list, tuple))
-        except AssertionError:
+        if not isinstance(target_vars, (list, tuple)):
             raise errors.ModelUseError('"target_vars" must be a list/tuple.')
         for var in target_vars:
-            try:
-                assert var in self._model.variables
-            except AssertionError:
+            if var not in self._model.variables:
                 raise errors.ModelUseError(f'"{var}" in "target_vars" is not defined in model "{self._model.name}".')
         self.target_vars = target_vars
 

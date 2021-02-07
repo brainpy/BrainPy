@@ -418,6 +418,7 @@ class CodeLineFormatter(ast.NodeTransformer):
         self.lefts = []
         self.rights = []
         self.lines = []
+        self.scope = dict()
 
     def visit_Assign(self, node, level=0):
         targets = node.targets
@@ -587,7 +588,9 @@ class LineFormatterForTrajectory(CodeLineFormatter):
             if target.value.id == 'ST' and target.slice.value.s in self.fixed_vars:
                 left = ast2code(ast.fix_missing_locations(target))
                 self.lefts.append(left)
-                self.lines.append(f'{prefix}{left} = {self.fixed_vars[target.slice.value.s]}')
+                key = target.slice.value.s
+                self.lines.append(f'{prefix}{left} = _fixed_{key}')
+                self.scope[f'_fixed_{key}'] = self.fixed_vars[key]
                 return node
 
         elif hasattr(target, 'elts'):
@@ -597,7 +600,9 @@ class LineFormatterForTrajectory(CodeLineFormatter):
                     if elt.value.id == 'ST' and elt.slice.value.s in self.fixed_vars:
                         left = ast2code(ast.fix_missing_locations(elt))
                         self.lefts.append(left)
-                        self.lines.append(f'{prefix}{left} = {self.fixed_vars[elt.slice.value.s]}')
+                        key = elt.slice.value.s
+                        self.lines.append(f'{prefix}{left} = _fixed_{key}')
+                        self.scope[f'_fixed_{key}'] = self.fixed_vars[key]
                         return node
                 left = ast2code(ast.fix_missing_locations(elt))
                 expr = ast2code(ast.fix_missing_locations(node.value))
@@ -610,7 +615,10 @@ class LineFormatterForTrajectory(CodeLineFormatter):
                     if isinstance(elt, ast.Subscript):
                         if elt.value.id == 'ST' and elt.slice.value.s in self.fixed_vars:
                             left = ast2code(ast.fix_missing_locations(elt))
-                            append_lines.append(f'{prefix}{left} = {self.fixed_vars[elt.slice.value.s]}')
+                            key = elt.slice.value.s
+                            line = f'{prefix}{left} = _fixed_{key}'
+                            self.scope[f'_fixed_{key}'] = self.fixed_vars[key]
+                            append_lines.append(line)
                 left = ast2code(ast.fix_missing_locations(target))
                 expr = ast2code(ast.fix_missing_locations(node.value))
                 self.lefts.append(target)
@@ -632,7 +640,9 @@ class LineFormatterForTrajectory(CodeLineFormatter):
             if node.target.value.id == 'ST' and node.target.slice.value.s in self.fixed_vars:
                 left = ast2code(ast.fix_missing_locations(node.target))
                 self.lefts.append(left)
-                self.lines.append(f'{prefix}{left} = {self.fixed_vars[node.target.slice.value.s]}')
+                key = node.target.slice.value.s
+                self.lines.append(f'{prefix}{left} = _fixed_{key}')
+                self.scope[f'_fixed_{key}'] = self.fixed_vars[key]
                 return node
 
         op = ast2code(ast.fix_missing_locations(node.op))

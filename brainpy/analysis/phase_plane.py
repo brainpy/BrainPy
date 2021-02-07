@@ -150,6 +150,8 @@ class PhasePlane(object):
         """Plot trajectories (only supported in 2D system)."""
         self.analyzer.plot_trajectory(*args, **kwargs)
 
+    def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        self.analyzer.plot_limit_cycle_by_sim(*args, **kwargs)
 
 class _PhasePlane1D(base.Base1DNeuronAnalyzer):
     """Phase plane analyzer for 1D system.
@@ -238,6 +240,9 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
 
     def plot_trajectory(self, *args, **kwargs):
         raise NotImplementedError('1D phase plane do not support plot_trajectory.')
+
+    def plot_limit_cycle(self, *args, **kwargs):
+        raise NotImplementedError('1D phase plane do not support plot_limit_cycle.')
 
 
 class _PhasePlane2D(base.Base2DNeuronAnalyzer):
@@ -630,3 +635,96 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
 
         if show:
             plt.show()
+
+    def plot_limit_cycle_by_sim(self, initials, duration, inputs=(), tol=0.001, show=False):
+        """Plot trajectories according to the settings.
+
+        Parameters
+        ----------
+        initials : list, tuple
+            The initial value setting of the targets. It can be a tuple/list of floats to specify
+            each value of dynamical variables (for example, ``(a, b)``). It can also be a
+            tuple/list of tuple to specify multiple initial values (for example,
+            ``[(a1, b1), (a2, b2)]``).
+        duration : int, float, tuple, list
+            The running duration. Same with the ``duration`` in ``NeuGroup.run()``.
+            It can be a int/float (``t_end``) to specify the same running end time,
+            or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
+            the start and end simulation time. Or, it can be a list of tuple
+            (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
+            start and end simulation time for each initial value.
+        inputs : tuple, list
+            The inputs to the model. Same with the ``inputs`` in ``NeuGroup.run()``
+        show : bool
+            Whether show or not.
+        """
+
+        # 1. format the initial values
+        if isinstance(initials, dict):
+            initials = [initials]
+        elif isinstance(initials, (list, tuple)):
+            if isinstance(initials[0], (int, float)):
+                initials = [{self.dvar_names[i]: v for i, v in enumerate(initials)}]
+            elif isinstance(initials[0], dict):
+                initials = initials
+            elif isinstance(initials[0], (tuple, list)) and isinstance(initials[0][0], (int, float)):
+                initials = [{self.dvar_names[i]: v for i, v in enumerate(init)} for init in initials]
+            else:
+                raise ValueError
+        else:
+            raise ValueError
+
+        # 2. format the running duration
+        if isinstance(duration, (int, float)):
+            duration = [(0, duration) for _ in range(len(initials))]
+        elif isinstance(duration[0], (int, float)):
+            duration = [duration for _ in range(len(initials))]
+        else:
+            assert len(duration) == len(initials)
+
+        # 4. format the inputs
+        if len(inputs):
+            if isinstance(inputs[0], (tuple, list)):
+                inputs = [(self.traj_group, ) + tuple(input) for input in inputs]
+            elif isinstance(inputs[0], str):
+                inputs = [(self.traj_group, ) + tuple(inputs)]
+            else:
+                raise ModelUseError()
+
+        # 5. run the network
+        for init_i, initial in enumerate(initials):
+            #   5.1 set the initial value
+            for key, val in self.traj_initial.items():
+                self.traj_group.ST[key] = val
+            for key in self.dvar_names:
+                self.traj_group.ST[key] = initial[key]
+            for key, val in self.fixed_vars.items():
+                if key in self.traj_group.ST:
+                    self.traj_group.ST[key] = val
+
+            #   5.2 run the model
+            self.traj_net.run(duration=duration[init_i], inputs=inputs,
+                              report=False, data_to_host=True, verbose=False)
+            x_data = self.traj_group.mon[self.x_var][:, 0]
+            y_data = self.traj_group.mon[self.y_var][:, 0]
+            max_index = utils.find_indexes_of_limit_cycle_max(x_data, tol=tol)
+            if max_index[0] != -1:
+                x_cycle = x_data[max_index[0]: max_index[1]]
+                y_cycle = y_data[max_index[0]: max_index[1]]
+                # 5.5 visualization
+                lines = plt.plot(x_cycle, y_cycle, label='limit cycle')
+                utils.add_arrow(lines[0])
+            else:
+                print(f'No limit cycle found for initial value {initial}')
+
+        # 6. visualization
+        plt.xlabel(self.x_var)
+        plt.ylabel(self.y_var)
+        scale = (self.options.lim_scale - 1.) / 2
+        plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+        plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
+        plt.legend()
+
+        if show:
+            plt.show()
+
