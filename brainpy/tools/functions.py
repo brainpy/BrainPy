@@ -86,9 +86,9 @@ def func_copy(f):
 
 
 def numba_func(func, params={}):
-    if backend.func_in_numpy_or_math(func):
-        return func
     if isinstance(func, Dispatcher):
+        return func
+    if backend.func_in_numpy_or_math(func):
         return func
 
     vars = inspect.getclosurevars(func)

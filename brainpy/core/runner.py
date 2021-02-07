@@ -18,27 +18,13 @@ from .. import errors
 from .. import integration
 from .. import profile
 from .. import tools
+from ..tools import NoiseHandler
 
 __all__ = [
     'Runner',
     'TrajectoryRunner',
 ]
 
-
-class NoiseHandler(object):
-    normal_pattern = re.compile(r'(_normal_like_)\((\w+)\)')
-
-    @staticmethod
-    def vector_replace_f(m):
-        return 'numpy.random.normal(0., 1., ' + m.group(2) + '.shape)'
-
-    @staticmethod
-    def scalar_replace_f(m):
-        return 'numpy.random.normal(0., 1.)'
-
-    @staticmethod
-    def cuda_replace_f(m):
-        return 'xoroshiro128p_normal_float64(rng_states, _obj_i)'
 
 
 class Runner(object):

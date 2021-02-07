@@ -103,7 +103,7 @@ class DiffEquation(object):
         self.t_name = self.func_args[1]
 
         # analyse function code
-        res = tools.analyse_diff_eq(self.code)
+        res = utils.analyse_diff_eq(self.code)
         self.expressions = [Expression(v, expr) for v, expr in zip(res.variables, res.expressions)]
         self.returns = res.returns
         self.return_type = res.return_type

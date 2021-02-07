@@ -15,7 +15,9 @@ from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
+from .. import errors
 from .. import profile
+from .. import tools
 
 __all__ = [
     'FUNCTION_MAPPING',
@@ -25,6 +27,8 @@ __all__ = [
     'str2sympy',
     'sympy2str',
     'get_mapping_scope',
+    'DiffEquationAnalyser',
+    'analyse_diff_eq',
 ]
 
 FUNCTION_MAPPING = {
@@ -419,3 +423,138 @@ def sympy2str(sympy_expr):
             sympy_expr = sympy_expr.subs(old, new)
 
     return _PRINTER.doprint(sympy_expr)
+
+
+class DiffEquationAnalyser(ast.NodeTransformer):
+    expression_ops = {
+        'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/',
+        'Mod': '%', 'Pow': '**', 'BitXor': '^', 'BitAnd': '&',
+    }
+
+    def __init__(self):
+        self.variables = []
+        self.expressions = []
+        self.f_expr = None
+        self.g_expr = None
+        self.returns = []
+        self.return_type = None
+
+    # TODO : Multiple assignment like "a = b = 1" or "a, b = f()"
+    def visit_Assign(self, node):
+        targets = node.targets
+        try:
+            assert len(targets) == 1
+        except AssertionError:
+            raise errors.DiffEquationError('BrainPy currently does not support multiple '
+                                           'assignment in differential equation.')
+        self.variables.append(targets[0].id)
+        self.expressions.append(tools.ast2code(ast.fix_missing_locations(node.value)))
+        return node
+
+    def visit_AugAssign(self, node):
+        var = node.target.id
+        self.variables.append(var)
+        op = tools.ast2code(ast.fix_missing_locations(node.op))
+        expr = tools.ast2code(ast.fix_missing_locations(node.value))
+        self.expressions.append(f"{var} {op} {expr}")
+        return node
+
+    def visit_AnnAssign(self, node):
+        raise errors.DiffEquationError('Do not support an assignment with a type annotation.')
+
+    def visit_Return(self, node):
+        value = node.value
+        if isinstance(value, (ast.Tuple, ast.List)):  # a tuple/list return
+            v0 = value.elts[0]
+            if isinstance(v0, (ast.Tuple, ast.List)):  # item 0 is a tuple/list
+                # f expression
+                if isinstance(v0.elts[0], ast.Name):
+                    self.f_expr = ('_f_res_', v0.elts[0].id)
+                else:
+                    self.f_expr = ('_f_res_', tools.ast2code(ast.fix_missing_locations(v0.elts[0])))
+
+                if len(v0.elts) == 1:
+                    self.return_type = '(x,),'
+                elif len(v0.elts) == 2:
+                    self.return_type = '(x,x),'
+                    # g expression
+                    if isinstance(v0.elts[1], ast.Name):
+                        self.g_expr = ('_g_res_', v0.elts[1].id)
+                    else:
+                        self.g_expr = ('_g_res_', tools.ast2code(ast.fix_missing_locations(v0.elts[1])))
+                else:
+                    raise errors.DiffEquationError(f'The dxdt should have the format of (f, g), not '
+                                                   f'"({tools.ast2code(ast.fix_missing_locations(v0.elts))})"')
+
+                # returns
+                for i, item in enumerate(value.elts[1:]):
+                    if isinstance(item, ast.Name):
+                        self.returns.append(item.id)
+                    else:
+                        self.returns.append(tools.ast2code(ast.fix_missing_locations(item)))
+
+            else:  # item 0 is not a tuple/list
+                # f expression
+                if isinstance(v0, ast.Name):
+                    self.f_expr = ('_f_res_', v0.id)
+                else:
+                    self.f_expr = ('_f_res_', tools.ast2code(ast.fix_missing_locations(v0)))
+
+                if len(value.elts) == 1:
+                    self.return_type = 'x,'
+                elif len(value.elts) == 2:
+                    self.return_type = 'x,x'
+                    # g expression
+                    if isinstance(value.elts[1], ast.Name):
+                        self.g_expr = ('_g_res_', value.elts[1].id)
+                    else:
+                        self.g_expr = ("_g_res_", tools.ast2code(ast.fix_missing_locations(value.elts[1])))
+                else:
+                    raise errors.DiffEquationError('Cannot parse return expression. It should have the '
+                                                   'format of "(f, [g]), [return values]"')
+        else:
+            self.return_type = 'x'
+            if isinstance(value, ast.Name):  # a name return
+                self.f_expr = ('_f_res_', value.id)
+            else:  # an expression return
+                self.f_expr = ('_f_res_', tools.ast2code(ast.fix_missing_locations(value)))
+        return node
+
+    def visit_If(self, node):
+        raise errors.DiffEquationError('Do not support "if" statement in differential equation.')
+
+    def visit_IfExp(self, node):
+        raise errors.DiffEquationError('Do not support "if" expression in differential equation.')
+
+    def visit_For(self, node):
+        raise errors.DiffEquationError('Do not support "for" loop in differential equation.')
+
+    def visit_While(self, node):
+        raise errors.DiffEquationError('Do not support "while" loop in differential equation.')
+
+    def visit_Try(self, node):
+        raise errors.DiffEquationError('Do not support "try" handler in differential equation.')
+
+    def visit_With(self, node):
+        raise errors.DiffEquationError('Do not support "with" block in differential equation.')
+
+    def visit_Raise(self, node):
+        raise errors.DiffEquationError('Do not support "raise" statement.')
+
+    def visit_Delete(self, node):
+        raise errors.DiffEquationError('Do not support "del" operation.')
+
+
+def analyse_diff_eq(eq_code):
+    assert eq_code.strip() != ''
+    tree = ast.parse(eq_code)
+    analyser = DiffEquationAnalyser()
+    analyser.visit(tree)
+
+    res = tools.DictPlus(variables=analyser.variables,
+                         expressions=analyser.expressions,
+                         returns=analyser.returns,
+                         return_type=analyser.return_type,
+                         f_expr=analyser.f_expr,
+                         g_expr=analyser.g_expr)
+    return res

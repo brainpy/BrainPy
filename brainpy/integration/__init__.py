@@ -2,7 +2,6 @@
 
 from . import diff_equation
 from . import integrator
-from . import methods
 from . import utils
 from .diff_equation import *
 from .integrator import *
