@@ -73,10 +73,10 @@ class Integrator(object):
 
     def _compile(self):
         # function arguments
-        func_args = ', '.join([f'_{self.diff_eq.func_name}_{arg}' for arg in self.diff_eq.func_args])
+        func_args = ', '.join([f'_{self.py_func_name}_{arg}' for arg in self.diff_eq.func_args])
 
         # function codes
-        func_code = '''def int_func({}): \n'''.format(func_args)
+        func_code = f'def {self.py_func_name}({func_args}): \n'
         func_code += tools.indent(self._update_code + '\n' + f'return _{self.py_func_name}_res')
         tools.NoiseHandler.normal_pattern.sub(
             tools.NoiseHandler.vector_replace_f, func_code)
@@ -92,7 +92,7 @@ class Integrator(object):
 
         # function compilation
         exec(compile(func_code, '', 'exec'), code_scopes)
-        func = code_scopes['int_func']
+        func = code_scopes[self.py_func_name]
         if profile.is_jit():
             func = tools.jit(func)
         self._update_func = func

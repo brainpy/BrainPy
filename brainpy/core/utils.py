@@ -106,18 +106,24 @@ def get_func_scope(func, include_dispatcher=False):
     if isinstance(func, integration.Integrator):
         func_name = func.py_func_name
         variables = inspect.getclosurevars(func.diff_eq.func)
+        scope = dict(variables.nonlocals)
+        scope.update(variables.globals)
     elif type(func).__name__ == 'function':
         func_name = tools.get_func_name(func, replace=True)
         variables = inspect.getclosurevars(func)
         if func_name.startswith('xoroshiro128p_'):
             return {}
+        scope = dict(variables.nonlocals)
+        scope.update(variables.globals)
     else:
         if backend.func_in_numpy_or_math(func):
             return {}
-        raise ValueError(f'Unknown type: {type(func)}')
-    scope = dict(variables.nonlocals)
-    scope.update(variables.globals)
+        elif isinstance(func, Dispatcher) and include_dispatcher:
+            scope = get_func_scope(func.py_func)
+        else:
+            raise ValueError(f'Unknown type: {type(func)}')
 
+    # update scope
     for k, v in list(scope.items()):
         # get the scope of the function item
         if callable(v):

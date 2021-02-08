@@ -326,8 +326,6 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
 
         if self.fixed_points is None:
             raise errors.AnalyzerError('Please call "plot_bifurcation()" before "plot_limit_cycle_by_sim()".')
-        if len(self.dvar_names) == 1:
-            raise ValueError('One-dimensional fast system cannot plot limit cycle.')
         if plot_style is None:
             plot_style = dict()
         fmt = plot_style.pop('fmt', '.')
@@ -369,14 +367,17 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
             all_p1 = np.array(all_p1)
 
             # fixed variables
-            fixed_vars = {self.dpar_names[0]: all_p0}
+            fixed_vars = dict()
+            for key, val in self.fixed_vars.items():
+                fixed_vars[key] = val
+            fixed_vars[self.dpar_names[0]] = all_p0
             if len(self.dpar_names) == 2:
-                fixed_vars = {self.dpar_names[1]: all_p1}
-            fixed_vars.update(self.fixed_vars)
+                fixed_vars[self.dpar_names[1]] = all_p1
 
             # initialize neuron group
             length = all_xs.shape[0]
-            group = core.NeuGroup(self.model, geometry=length,
+            group = core.NeuGroup(self.model,
+                                  geometry=length,
                                   monitors=self.dvar_names,
                                   pars_update=self.pars_update)
 
@@ -388,8 +389,9 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                     group.ST[key] = val
 
             # run neuron group
-            group.runner = core.TrajectoryRunner(
-                group, target_vars=self.dvar_names, fixed_vars=fixed_vars)
+            group.runner = core.TrajectoryRunner(group,
+                                                 target_vars=self.dvar_names,
+                                                 fixed_vars=fixed_vars)
             group.run(duration=duration, inputs=inputs)
 
             self.limit_cycle_mon = group.mon
@@ -401,7 +403,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         # find limit cycles
         limit_cycle_max = []
         limit_cycle_min = []
-        limit_cycle = []
+        # limit_cycle = []
         p0_limit_cycle = []
         p1_limit_cycle = []
         for i in range(length):
@@ -409,15 +411,18 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
             max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
             if max_index[0] != -1:
                 x_cycle = data[max_index[0]: max_index[1]]
-                limit_cycle_max.append(data[max_index[0]])
+                limit_cycle_max.append(data[max_index[1]])
                 limit_cycle_min.append(x_cycle.min())
-                limit_cycle.append(x_cycle)
+                # limit_cycle.append(x_cycle)
                 p0_limit_cycle.append(self.limit_cycle_p0[i])
                 if len(self.dpar_names) == 2:
                     p1_limit_cycle.append(self.limit_cycle_p1[i])
         self.fixed_points['limit_cycle'] = {var: {'max': limit_cycle_max,
                                                   'min': limit_cycle_min,
-                                                  'cycle': limit_cycle}}
+                                                  # 'cycle': limit_cycle
+                                                  }}
+        p0_limit_cycle = np.array(p0_limit_cycle)
+        p1_limit_cycle = np.array(p1_limit_cycle)
 
         # visualization
         if len(self.dpar_names) == 2:
@@ -429,10 +434,11 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
 
         else:
             self.fixed_points['limit_cycle'] = {'p': p0_limit_cycle}
-            plt.figure(var)
-            plt.plot(p0_limit_cycle, limit_cycle_max, fmt, **plot_style, label='limit cycle (max)')
-            plt.plot(p0_limit_cycle, limit_cycle_min, fmt, **plot_style, label='limit cycle (min)')
-            plt.legend()
+            if len(limit_cycle_max):
+                plt.figure(var)
+                plt.plot(p0_limit_cycle, limit_cycle_max, fmt, **plot_style, label='limit cycle (max)')
+                plt.plot(p0_limit_cycle, limit_cycle_min, fmt, **plot_style, label='limit cycle (min)')
+                plt.legend()
 
         if show:
             plt.show()
