@@ -5,13 +5,11 @@ from collections import Counter
 
 import sympy
 
-from .constants import CONSTANT_NOISE
-from .constants import FUNCTIONAL_NOISE
-from .sympy_tools import str2sympy
-from .sympy_tools import sympy2str
+from . import constants
+from . import utils
+from .. import errors
 from .. import profile
 from .. import tools
-from ..errors import DiffEquationError
 
 __all__ = [
     'Expression',
@@ -69,27 +67,22 @@ class DiffEquation(object):
     func : callable
         The user defined differential equation.
     """
+
     def __init__(self, func):
         # check
-        try:
-            assert func is not None
-        except AssertionError:
-            raise DiffEquationError('"func" cannot be None.')
-        try:
-            assert callable(func) and type(func).__name__ == 'function'
-        except AssertionError:
-            raise DiffEquationError('"func" must be a function.')
+        if func is None:
+            raise errors.DiffEquationError('"func" cannot be None.')
+        if not (callable(func) and type(func).__name__ == 'function'):
+            raise errors.DiffEquationError('"func" must be a function.')
 
         # function
         self.func = func
 
         # function string
         self.code = tools.deindent(tools.get_main_code(func))
-        try:
-            assert 'return' in self.code
-        except AssertionError:
-            raise DiffEquationError(f'"func" function must return something, '
-                                    f'but found nothing.\n{self.code}')
+        if 'return' not in self.code:
+            raise errors.DiffEquationError(f'"func" function must return something, '
+                                           f'but found no return.\n{self.code}')
 
         # function arguments
         self.func_args = inspect.getfullargspec(func).args
@@ -110,7 +103,7 @@ class DiffEquation(object):
         self.t_name = self.func_args[1]
 
         # analyse function code
-        res = tools.analyse_diff_eq(self.code)
+        res = utils.analyse_diff_eq(self.code)
         self.expressions = [Expression(v, expr) for v, expr in zip(res.variables, res.expressions)]
         self.returns = res.returns
         self.return_type = res.return_type
@@ -122,18 +115,19 @@ class DiffEquation(object):
             self.g_expr = Expression(res.g_expr[0], res.g_expr[1])
         for k, num in Counter(res.variables).items():
             if num > 1:
-                raise DiffEquationError(f'Found "{k}" {num} times. Please assign each expression '
-                                        f'in differential function with a unique name. ')
+                raise errors.DiffEquationError(
+                    f'Found "{k}" {num} times. Please assign each expression '
+                    f'in differential function with a unique name. ')
 
         # analyse noise type
-        self.g_type = CONSTANT_NOISE
+        self.g_type = constants.CONSTANT_NOISE
         self.g_value = None
         if self.g_expr is not None:
             self._substitute(self.g_expr, self.expressions)
             g_code = self.g_expr.get_code(subs=True)
             for idf in tools.get_identifiers(g_code):
                 if idf not in self.func_scope:
-                    self.g_type = FUNCTIONAL_NOISE
+                    self.g_type = constants.FUNCTIONAL_NOISE
                     break
             else:
                 self.g_value = eval(g_code, self.func_scope)
@@ -164,10 +158,10 @@ class DiffEquation(object):
             for dep_var, dep_expr in dependencies.items():
                 if dep_var in expr.identifiers:
                     code = dep_expr.get_code(subs=True)
-                    substitutions[sympy.Symbol(dep_var, real=True)] = str2sympy(code)
+                    substitutions[sympy.Symbol(dep_var, real=True)] = utils.str2sympy(code).expr
             if len(substitutions):
-                new_sympy_expr = str2sympy(expr.code).xreplace(substitutions)
-                new_str_expr = sympy2str(new_sympy_expr)
+                new_sympy_expr = utils.str2sympy(expr.code).expr.xreplace(substitutions)
+                new_str_expr = utils.sympy2str(new_sympy_expr)
                 expr._substituted_code = new_str_expr
                 dependencies[expr.var_name] = expr
             else:
@@ -188,10 +182,10 @@ class DiffEquation(object):
         substitutions = {}
         for dep_var, dep_expr in dependencies.items():
             code = dep_expr.get_code(subs=True)
-            substitutions[sympy.Symbol(dep_var, real=True)] = str2sympy(code)
+            substitutions[sympy.Symbol(dep_var, real=True)] = utils.str2sympy(code).expr
         if len(substitutions):
-            new_sympy_expr = str2sympy(final_exp.code).xreplace(substitutions)
-            new_str_expr = sympy2str(new_sympy_expr)
+            new_sympy_expr = utils.str2sympy(final_exp.code).expr.xreplace(substitutions)
+            new_str_expr = utils.sympy2str(new_sympy_expr)
             final_exp._substituted_code = new_str_expr
 
     def get_f_expressions(self, substitute_vars=None):
@@ -324,7 +318,7 @@ class DiffEquation(object):
 
     @property
     def is_functional_noise(self):
-        return self.g_type == FUNCTIONAL_NOISE
+        return self.g_type == constants.FUNCTIONAL_NOISE
 
     @property
     def stochastic_type(self):
@@ -336,4 +330,3 @@ class DiffEquation(object):
     @property
     def expr_names(self):
         return [expr.var_name for expr in self.expressions]
-

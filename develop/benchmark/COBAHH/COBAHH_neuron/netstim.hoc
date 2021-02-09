@@ -1,0 +1,74 @@
+// random external input for first 50 ms
+// do not consider part of net so keep out of the pnm data structures
+
+// Stimulation parameters
+
+N_STIM          = ncell/50      // number of neurons stimulated
+STOPSTIM        = 50            // duration of stimulation (ms)
+NSYN_STIM       = 20            // nb of stim (exc) synapses per neuron
+STIM_INTERVAL   = 70            // mean interval between stims (ms)
+
+objref svec, stvec
+svec = new Vector()
+stvec = new Vector()
+objref stimlist, ncstimlist
+proc create_stim() {local i, gid  localobj stim, cell, nc, rs
+	mcell_ran4_init($1)
+	stimlist = new List()
+	ncstimlist = new List()
+
+	// The first N_STIM (excitatory) cells are stimulated.
+	// Each CPU creates NetStims and NetCons that target only its own cells,
+	// i.e. no NetStim's spike train is sent to a cell on a different CPU.
+	// Thus the delay can be 0 and we can still run in parallel.
+	// HOWEVER when the "use_self_queue" performance optimization is requested 
+	// from cvode.queue_mode, that optimization will be refused,
+	// even when running serially, unless ALL NetCon.delay > 0.
+	// This is why nc.delay is set to 1 several lines below.
+	for pcitr(&i, &gid) {  // in common/init.hoc
+		if (gid >= N_STIM) { break }
+
+		// The ith cell and its corresponding RandomStream.
+		cell = pc.gid2cell(gid)
+		rs = ranlist.object(i)
+
+		stim = new NetStim()
+		stim.interval = STIM_INTERVAL
+		stim.number = 1000 // but will shut off after STOPSTIM
+		stim.noise = 1
+		stim.start = 0
+		// Use the gid-specific random generator so random streams are
+		// independent of where and how many stims there are.
+		stim.noiseFromRandom(rs.r)
+		rs.r.negexp(1)
+		rs.start()
+
+		if (hoc_sf_.is_artificial(cell)) {
+			nc = new NetCon(stim, cell)
+		}else{
+			nc = new NetCon(stim, cell.synlist.object(0))
+		}
+		// Set all NetCon.delay > 0 so that "use_self_queue" optimization
+		// will not be refused due to 0 delay between NetStim and its target
+		// (see above comment re: "use_self_queue" performance optimization).
+		// There is no loss of generality, since the NetStim can be set to fire 1 ms
+		// before you want the targets to get the spike.
+		nc.delay = 1
+		nc.weight = $2
+		nc.record(stvec, svec, ncstimlist.count)
+
+		ncstimlist.append(nc)
+		stimlist.append(stim)
+	}
+
+	stim = new NetStim() // will turn off all the others
+	stim.number = 1
+	stim.start = STOPSTIM
+	for i=0, stimlist.count-1 {
+		nc = new NetCon(stim, stimlist.object(i))
+		nc.delay = 1
+		nc.weight = -1
+		ncstimlist.append(nc)
+	}
+	stimlist.append(stim)
+}

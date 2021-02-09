@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.3.2"
+__version__ = "0.3.6"
 
 # "profile" module
 from . import profile
@@ -9,6 +9,7 @@ from . import profile
 from . import backend
 
 # "connectivity" module
+from . import connectivity
 from . import connectivity as connect
 
 # "core" module
@@ -30,10 +31,8 @@ from .core.types import SynState
 from . import integration
 from .integration import integrate
 
-# "dynamics" module
-from . import dynamics
-from .dynamics import PhasePortraitAnalyzer
-from .dynamics import BifurcationAnalyzer
+# "analysis" module
+from . import analysis
 
 # "tools" module
 from . import tools
@@ -45,4 +44,3 @@ from . import visualization as visualize
 from . import inputs
 from . import measure
 from . import running
-

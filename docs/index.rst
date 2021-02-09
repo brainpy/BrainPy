@@ -25,21 +25,19 @@ Comprehensive examples of BrainPy please see
    tutorials/quick_start
    tutorials/build_neurons
    tutorials/build_synapses
-   tutorials/build_network
-   tutorials/dynamics_analysis
+   tutorials/neuron_analysis
 
 
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   advanced/differential_equations
    advanced/numerical_integrators
-   advanced/debugging
+   advanced/differential_equations
    advanced/repeat_mode
+   advanced/debugging
    advanced/tips_on_jit
    advanced/how_it_works
-   advanced/usage_of_connect_module
    advanced/usage_of_inputs_module
 
 
@@ -47,17 +45,17 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: API documentation
 
-   apis/profile
+   apis/analysis
+   apis/connectivity
    apis/core
    apis/integration
-   apis/dynamics
-   apis/connectivity
-   apis/visualization
-   apis/measure
-   apis/running
-   apis/inputs
-   apis/errors
    apis/tools
+   apis/visualization
+   apis/errors
+   apis/inputs
+   apis/measure
+   apis/profile
+   apis/running
    apis/changelog
 
 

@@ -25,3 +25,7 @@ class DiffEquationError(Exception):
 
 class CodeError(Exception):
     pass
+
+
+class AnalyzerError(Exception):
+    pass

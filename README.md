@@ -1,7 +1,7 @@
 
 ![Logo](docs/images/logo.png)
 
-[![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)     [![Conda](https://anaconda.org/brainpy/brainpy-simulator/badges/version.svg)](https://anaconda.org/brainpy/brainpy-simulator)    [![travis](https://travis-ci.org/PKU-NIP-Lab/BrainPy.svg?branch=master)](https://travis-ci.org/PKU-NIP-Lab/BrainPy)
+[![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)     [![Conda](https://anaconda.org/brainpy/brainpy-simulator/badges/version.svg)](https://anaconda.org/brainpy/brainpy-simulator)  [![PyPI version](https://badge.fury.io/py/brainpy-simulator.svg)](https://badge.fury.io/py/brainpy-simulator)  [![travis](https://travis-ci.org/PKU-NIP-Lab/BrainPy.svg?branch=master)](https://travis-ci.org/PKU-NIP-Lab/BrainPy)
 
 
 
@@ -22,13 +22,13 @@
 
 ## Installation
 
-Install ``BrainPy`` using ``conda``:
-
-    > conda install brainpy-simulator -c brainpy
-
 Install ``BrainPy`` using ``pip``:
 
     > pip install brainpy-simulator
+
+Install ``BrainPy`` using ``conda``:
+
+    > conda install brainpy-simulator -c brainpy
 
 Install ``BrainPy`` from source:
 
@@ -38,12 +38,12 @@ Install ``BrainPy`` from source:
     > # or
     > pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V0.2.5
 
+``BrainPy`` is based on Python (>=3.7), and the following packages are 
+required to be installed to use ``BrainPy``:
 
-The following packages need to be installed to use ``BrainPy``:
-
-- Python >= 3.7
 - NumPy >= 1.13
 - SymPy >= 1.2
+- SciPy >= 1.2
 - Numba >= 0.50.0
 - Matplotlib >= 3.0
 

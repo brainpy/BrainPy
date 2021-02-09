@@ -2,11 +2,10 @@
 
 from . import diff_equation
 from . import integrator
-from . import methods
-from . import sympy_tools
+from . import utils
 from .diff_equation import *
 from .integrator import *
-from .sympy_tools import *
+from .utils import *
 from .. import profile
 
 _SUPPORT_METHODS = [

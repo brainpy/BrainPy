@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import copy
-
 import numpy as np
 import sympy
 
-from . import methods
 from .diff_equation import DiffEquation
-from .sympy_tools import get_mapping_scope
-from .sympy_tools import str2sympy
-from .sympy_tools import sympy2str
+from .utils import get_mapping_scope
+from .utils import str2sympy
+from .utils import sympy2str
 from .. import backend
 from .. import profile
 from .. import tools
@@ -63,17 +60,46 @@ def get_integrator(method):
 class Integrator(object):
     def __init__(self, diff_eq):
         if not isinstance(diff_eq, DiffEquation):
-            raise IntegratorError('"diff_eqs" must be an instance of DiffEquation.')
+            if diff_eq.__class__.__name__ != 'function':
+                raise IntegratorError('"diff_eq" must be a function or an instance of DiffEquation .')
+            else:
+                diff_eq = DiffEquation(func=diff_eq)
         self.diff_eq = diff_eq
         self._update_code = None
         self._update_func = None
 
+    def __call__(self, y0, t, *args):
+        return self._update_func(y0, t, *args)
+
+    def _compile(self):
+        # function arguments
+        func_args = ', '.join([f'_{self.py_func_name}_{arg}' for arg in self.diff_eq.func_args])
+
+        # function codes
+        func_code = f'def {self.py_func_name}({func_args}): \n'
+        func_code += tools.indent(self._update_code + '\n' + f'return _{self.py_func_name}_res')
+        tools.NoiseHandler.normal_pattern.sub(
+            tools.NoiseHandler.vector_replace_f, func_code)
+
+        # function scope
+        code_scopes = {'numpy': np}
+        for k_, v_ in self.code_scope.items():
+            if profile.is_jit() and callable(v_):
+                v_ = tools.numba_func(v_)
+            code_scopes[k_] = v_
+        code_scopes.update(get_mapping_scope())
+        code_scopes['_normal_like_'] = backend.normal_like
+
+        # function compilation
+        exec(compile(func_code, '', 'exec'), code_scopes)
+        func = code_scopes[self.py_func_name]
+        if profile.is_jit():
+            func = tools.jit(func)
+        self._update_func = func
+
     @staticmethod
     def get_integral_step(diff_eq, *args):
         raise NotImplementedError
-
-    def __call__(self, y0, t, *args):
-        return self._update_func(y0, t, *args)
 
     @property
     def py_func_name(self):
@@ -136,7 +162,7 @@ class Euler(Integrator):
 
     Parameters
     ----------
-    diff_eq : DiffEquation
+    diff_eq : DiffEquation, callable
         The differential equation.
 
     Returns
@@ -157,7 +183,7 @@ class Euler(Integrator):
     def __init__(self, diff_eq):
         super(Euler, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.euler(diff_eq)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -235,7 +261,7 @@ class RK2(Integrator):
         super(RK2, self).__init__(diff_eq)
         self.beta = beta
         self._update_code = self.get_integral_step(diff_eq, beta)
-        self._update_func = methods.rk2(diff_eq, __beta=beta)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, beta=2 / 3):
@@ -342,7 +368,7 @@ class Heun(Integrator):
     def __init__(self, diff_eq):
         super(Heun, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.rk2(diff_eq, __beta=1.0)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -437,7 +463,7 @@ class MidPoint(Integrator):
     def __init__(self, diff_eq):
         super(MidPoint, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.rk2(diff_eq, __beta=0.5)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -479,7 +505,7 @@ class RK3(Integrator):
     def __init__(self, diff_eq):
         super(RK3, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.rk3(diff_eq)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -578,7 +604,7 @@ class RK4(Integrator):
     def __init__(self, diff_eq):
         super(RK4, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.rk4(diff_eq)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -688,7 +714,7 @@ class RK4Alternative(Integrator):
     def __init__(self, diff_eq):
         super(RK4Alternative, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.rk4_alternative(diff_eq)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -823,15 +849,7 @@ class ExponentialEuler(Integrator):
     def __init__(self, diff_eq):
         super(ExponentialEuler, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-
-        func_args = ', '.join([f'_{diff_eq.func_name}_{arg}' for arg in diff_eq.func_args])
-        func_code = '''def int_func({}): \n'''.format(func_args)
-        func_code += tools.indent(self._update_code + '\n' + f'return _{diff_eq.func_name}_res')
-        code_scopes = copy.copy(diff_eq.func_scope)
-        code_scopes.update(get_mapping_scope())
-        code_scopes['_normal_like_'] = backend.normal_like
-        exec(compile(func_code, '', 'exec'), code_scopes)
-        self._update_func = code_scopes['int_func']
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -843,7 +861,7 @@ class ExponentialEuler(Integrator):
 
         # get the linear system using sympy
         f_res = f_expressions[-1]
-        df_expr = str2sympy(f_res.code).expand()
+        df_expr = str2sympy(f_res.code).expr.expand()
         s_df = sympy.Symbol(f"{f_res.var_name}")
         code_lines.append(f'{s_df.name} = {sympy2str(df_expr)}')
         var = sympy.Symbol(diff_eq.var_name, real=True)
@@ -936,7 +954,7 @@ class MilsteinIto(Integrator):
     def __init__(self, diff_eq):
         super(MilsteinIto, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.milstein_Ito(diff_eq)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
@@ -1048,7 +1066,7 @@ class MilsteinStra(Integrator):
     def __init__(self, diff_eq):
         super(MilsteinStra, self).__init__(diff_eq)
         self._update_code = self.get_integral_step(diff_eq)
-        self._update_func = methods.milstein_Stra(diff_eq)
+        self._compile()
 
     @staticmethod
     def get_integral_step(diff_eq, *args):

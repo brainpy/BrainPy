@@ -1,25 +1,24 @@
 package:
     name: brainpy-simulator
-    version: "0.3.2"
+    version: "0.3.5"
 
 source:
     path: ../../
 
 build:
+    noarch: python
     number: 0
     script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
     host:
         - python
-        - setuptools>=40.0.0
-        - numpy>= 1.13
-        - sympy>=1.2
-        - numba>=0.50
+        - pip
     run:
         - python
         - numpy>=1.13
         - sympy>=1.2
+        - scipy>=1.2.0
         - numba>=0.50
         - matplotlib>=3.0
         - setuptools>=40.0.0
