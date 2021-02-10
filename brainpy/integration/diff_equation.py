@@ -105,7 +105,7 @@ class DiffEquation(object):
         # analyse function code
         res = utils.analyse_diff_eq(self.code)
         self.expressions = [Expression(v, expr) for v, expr in zip(res.variables, res.expressions)]
-        self.returns = res.returns
+        self.return_intermediates = res.return_intermediates
         self.return_type = res.return_type
         self.f_expr = None
         self.g_expr = None
@@ -199,7 +199,7 @@ class DiffEquation(object):
         return_expressions.append(Expression(f'_df{self.var_name}_dt', dif_eq_code))
         # needed variables
         need_vars = tools.get_identifiers(dif_eq_code)
-        need_vars |= tools.get_identifiers(', '.join(self.returns))
+        need_vars |= tools.get_identifiers(', '.join(self.return_intermediates))
         # get the total return expressions
         for expr in self.expressions[::-1]:
             if expr.var_name in need_vars:
@@ -212,6 +212,9 @@ class DiffEquation(object):
         return return_expressions[::-1]
 
     def get_g_expressions(self):
+        if self.g_expr is None:
+            return []
+
         if self.is_functional_noise:
             return_expressions = []
             # the derivative expression
@@ -291,18 +294,18 @@ class DiffEquation(object):
             A list of expressions.
         """
         return self._replace_expressions(self.get_f_expressions(),
-                                         name=name, y_sub=y_sub, t_sub=t_sub)
+                                         name=name,
+                                         y_sub=y_sub,
+                                         t_sub=t_sub)
 
     def replace_g_expressions(self, name, y_sub, t_sub=None):
         if self.is_functional_noise:
             return self._replace_expressions(self.get_g_expressions(),
-                                             name=name, y_sub=y_sub, t_sub=t_sub)
+                                             name=name,
+                                             y_sub=y_sub,
+                                             t_sub=t_sub)
         else:
             return []
-
-    @property
-    def is_multi_return(self):
-        return len(self.returns) > 0
 
     @property
     def is_stochastic(self):

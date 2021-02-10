@@ -426,11 +426,6 @@ def sympy2str(sympy_expr):
 
 
 class DiffEquationAnalyser(ast.NodeTransformer):
-    expression_ops = {
-        'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/',
-        'Mod': '%', 'Pow': '**', 'BitXor': '^', 'BitAnd': '&',
-    }
-
     def __init__(self):
         self.variables = []
         self.expressions = []
@@ -511,7 +506,7 @@ class DiffEquationAnalyser(ast.NodeTransformer):
                         self.g_expr = ("_g_res_", tools.ast2code(ast.fix_missing_locations(value.elts[1])))
                 else:
                     raise errors.DiffEquationError('Cannot parse return expression. It should have the '
-                                                   'format of "(f, [g]), [return values]"')
+                                                   'format of "(f, [g]), [*return_values]"')
         else:
             self.return_type = 'x'
             if isinstance(value, ast.Name):  # a name return
@@ -539,10 +534,10 @@ class DiffEquationAnalyser(ast.NodeTransformer):
         raise errors.DiffEquationError('Do not support "with" block in differential equation.')
 
     def visit_Raise(self, node):
-        raise errors.DiffEquationError('Do not support "raise" statement.')
+        raise errors.DiffEquationError('Do not support "raise" statement in differential equation.')
 
     def visit_Delete(self, node):
-        raise errors.DiffEquationError('Do not support "del" operation.')
+        raise errors.DiffEquationError('Do not support "del" operation in differential equation.')
 
 
 def analyse_diff_eq(eq_code):
@@ -553,7 +548,7 @@ def analyse_diff_eq(eq_code):
 
     res = tools.DictPlus(variables=analyser.variables,
                          expressions=analyser.expressions,
-                         returns=analyser.returns,
+                         return_intermediates=analyser.returns,
                          return_type=analyser.return_type,
                          f_expr=analyser.f_expr,
                          g_expr=analyser.g_expr)

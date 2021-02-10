@@ -636,10 +636,9 @@ class Runner(object):
                     new_line, args, kwargs = tools.replace_func(line, int_func_name)
                     # append code line of argument replacement
                     func_args = v.diff_eq.func_args
-                    append_lines = [indent + f'_{v.py_func_name}_{func_args[i]} = {args[i]}'
-                                    for i in range(len(args))]
+                    append_lines = [indent + f'_{func_args[i]} = {args[i]}' for i in range(len(args))]
                     for arg in func_args[len(args):]:
-                        append_lines.append(indent + f'_{v.py_func_name}_{arg} = {kwargs[arg]}')
+                        append_lines.append(indent + f'_{arg} = {kwargs[arg]}')
 
                     # append numerical integration code lines
                     append_lines.extend([indent + l for l in v.update_code.split('\n')])

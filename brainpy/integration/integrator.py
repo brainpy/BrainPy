@@ -3,14 +3,12 @@
 import numpy as np
 import sympy
 
-from .diff_equation import DiffEquation
-from .utils import get_mapping_scope
-from .utils import str2sympy
-from .utils import sympy2str
+from . import diff_equation
+from . import utils
 from .. import backend
+from .. import errors
 from .. import profile
 from .. import tools
-from ..errors import IntegratorError
 
 __all__ = [
     'get_integrator',
@@ -59,11 +57,11 @@ def get_integrator(method):
 
 class Integrator(object):
     def __init__(self, diff_eq):
-        if not isinstance(diff_eq, DiffEquation):
+        if not isinstance(diff_eq, diff_equation.DiffEquation):
             if diff_eq.__class__.__name__ != 'function':
-                raise IntegratorError('"diff_eq" must be a function or an instance of DiffEquation .')
+                raise errors.IntegratorError('"diff_eq" must be a function or an instance of DiffEquation .')
             else:
-                diff_eq = DiffEquation(func=diff_eq)
+                diff_eq = diff_equation.DiffEquation(func=diff_eq)
         self.diff_eq = diff_eq
         self._update_code = None
         self._update_func = None
@@ -73,11 +71,11 @@ class Integrator(object):
 
     def _compile(self):
         # function arguments
-        func_args = ', '.join([f'_{self.py_func_name}_{arg}' for arg in self.diff_eq.func_args])
+        func_args = ', '.join([f'_{arg}' for arg in self.diff_eq.func_args])
 
         # function codes
         func_code = f'def {self.py_func_name}({func_args}): \n'
-        func_code += tools.indent(self._update_code + '\n' + f'return _{self.py_func_name}_res')
+        func_code += tools.indent(self._update_code + '\n' + f'return _res')
         tools.NoiseHandler.normal_pattern.sub(
             tools.NoiseHandler.vector_replace_f, func_code)
 
@@ -87,7 +85,7 @@ class Integrator(object):
             if profile.is_jit() and callable(v_):
                 v_ = tools.numba_func(v_)
             code_scopes[k_] = v_
-        code_scopes.update(get_mapping_scope())
+        code_scopes.update(utils.get_mapping_scope())
         code_scopes['_normal_like_'] = backend.normal_like
 
         # function compilation
@@ -189,7 +187,6 @@ class Euler(Integrator):
     def get_integral_step(diff_eq, *args):
         dt = profile.get_dt()
         var_name = diff_eq.var_name
-        func_name = diff_eq.func_name
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of df part
@@ -208,16 +205,15 @@ class Euler(Integrator):
 
         # update expression
         update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
-        code_lines.append(f'{var_name} = {sympy2str(update)}')
+        code_lines.append(f'{var_name} = {utils.sympy2str(update)}')
 
         # multiple returns
-        return_expr = ', '.join([var_name] + diff_eq.returns)
-        code_lines.append(f'_{func_name}_res = {return_expr}')
+        return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+        code_lines.append(f'_res = {return_expr}')
 
         # final
         code = '\n'.join(code_lines)
-        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                     diff_eq.func_args + diff_eq.expr_names}
+        subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
         code = tools.word_replace(code, subs_dict)
         return code
 
@@ -268,7 +264,6 @@ class RK2(Integrator):
         dt = profile.get_dt()
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
-        func_name = diff_eq.func_name
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
@@ -277,8 +272,8 @@ class RK2(Integrator):
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
         # k1 -> k2 increment
-        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
-        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        y_1_to_2 = f'_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_t_k1_to_k2'
         code_lines.append(f'{y_1_to_2} = {var_name} + {beta * dt} * _df{var_name}_dt_k1')
         code_lines.append(f'{t_1_to_2} = {t_name} + {beta * dt}')
 
@@ -306,16 +301,15 @@ class RK2(Integrator):
 
         # update expression
         update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
-        code_lines.append(f'{var_name} = {sympy2str(update)}')
+        code_lines.append(f'{var_name} = {utils.sympy2str(update)}')
 
         # multiple returns
-        return_expr = ', '.join([var_name] + diff_eq.returns)
-        code_lines.append(f'_{func_name}_res = {return_expr}')
+        return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+        code_lines.append(f'_res = {return_expr}')
 
         # final
         code = '\n'.join(code_lines)
-        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                     diff_eq.func_args + diff_eq.expr_names}
+        subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
         code = tools.word_replace(code, subs_dict)
         return code
 
@@ -376,7 +370,6 @@ class Heun(Integrator):
             if diff_eq.is_functional_noise:
                 dt = profile.get_dt()
                 var_name = diff_eq.var_name
-                func_name = diff_eq.func_name
                 var = sympy.Symbol(var_name, real=True)
 
                 # k1 part #
@@ -396,7 +389,7 @@ class Heun(Integrator):
                 code_lines.append(f'_dg{var_name}_dt_k1 = {g_k1_expressions[-1].code}')
 
                 # k1
-                code_lines.append(f'_{func_name}_k1 = {var_name} + _df{var_name}_dt_k1 * {dt} + '
+                code_lines.append(f'_k1 = {var_name} + _df{var_name}_dt_k1 * {dt} + '
                                   f'_dg{var_name}_dt_k1 * {dW_sb.name}')
 
                 # k2 part #
@@ -404,7 +397,7 @@ class Heun(Integrator):
 
                 # df
                 dfdt = sympy.Symbol(f'_df{var_name}_dt')
-                f_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=f'_{func_name}_k1')
+                f_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub='_k1')
                 if len(f_k2_expressions):
                     code_lines.extend([str(expr) for expr in f_k2_expressions[:-1]])
                     code_lines.append(f'_df{var_name}_dt_k2 = {f_k2_expressions[-1].code}')
@@ -414,7 +407,7 @@ class Heun(Integrator):
 
                 # dg
                 dgdt = sympy.Symbol(f'_dg{var_name}_dt')
-                g_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub=f'_{func_name}_k1')
+                g_k2_expressions = diff_eq.replace_f_expressions('k2', y_sub='_k1')
                 if len(g_k2_expressions):
                     code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
                     code_lines.append(f'_dg{var_name}_dt_k2 = {g_k2_expressions[-1].code}')
@@ -424,16 +417,15 @@ class Heun(Integrator):
 
                 # update expression
                 update = var + dfdt * dt + dgdt * dW_sb
-                code_lines.append(f'{var_name} = {sympy2str(update)}')
+                code_lines.append(f'{var_name} = {utils.sympy2str(update)}')
 
                 # multiple returns
-                return_expr = ', '.join([var_name] + diff_eq.returns)
-                code_lines.append(f'_{func_name}_res = {return_expr}')
+                return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+                code_lines.append(f'_res = {return_expr}')
 
                 # final
                 code = '\n'.join(code_lines)
-                subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                             diff_eq.func_args + diff_eq.expr_names}
+                subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
                 code = tools.word_replace(code, subs_dict)
                 return code
             else:
@@ -512,7 +504,6 @@ class RK3(Integrator):
         dt = profile.get_dt()
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
-        func_name = diff_eq.func_name
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
@@ -521,8 +512,8 @@ class RK3(Integrator):
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
         # k1 -> k2 increment
-        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
-        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        y_1_to_2 = f'_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_t_k1_to_k2'
         code_lines.append(f'{y_1_to_2} = {var_name} + {dt / 2} * _df{var_name}_dt_k1')
         code_lines.append(f'{t_1_to_2} = {t_name} + {dt / 2}')
 
@@ -535,8 +526,8 @@ class RK3(Integrator):
             code_lines.append(f'_df{var_name}_dt_k2 = {k2_expressions[-1].code}')
 
             # get code lines of k3 df part
-            y_1_to_3 = f'_{func_name}_{var_name}_k1_to_k3'
-            t_1_to_3 = f'_{func_name}_t_k1_to_k3'
+            y_1_to_3 = f'_{var_name}_k1_to_k3'
+            t_1_to_3 = f'_t_k1_to_k3'
             code_lines.append(f'{y_1_to_3} = {var_name} - {dt} * _df{var_name}_dt_k1 + {2 * dt} * _df{var_name}_dt_k2')
             code_lines.append(f'{t_1_to_3} = {t_name} + {dt}')
             k3_expressions = diff_eq.replace_f_expressions('k3', y_sub=y_1_to_3, t_sub=t_1_to_3)
@@ -558,16 +549,15 @@ class RK3(Integrator):
 
         # update expression
         update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
-        code_lines.append(f'{var_name} = {sympy2str(update)}')
+        code_lines.append(f'{var_name} = {utils.sympy2str(update)}')
 
         # multiple returns
-        return_expr = ', '.join([var_name] + diff_eq.returns)
-        code_lines.append(f'_{func_name}_res = {return_expr}')
+        return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+        code_lines.append(f'_res = {return_expr}')
 
         # final
         code = '\n'.join(code_lines)
-        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                     diff_eq.func_args + diff_eq.expr_names}
+        subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
         code = tools.word_replace(code, subs_dict)
         return code
 
@@ -611,7 +601,6 @@ class RK4(Integrator):
         dt = profile.get_dt()
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
-        func_name = diff_eq.func_name
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
@@ -620,8 +609,8 @@ class RK4(Integrator):
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
         # k1 -> k2 increment
-        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
-        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        y_1_to_2 = f'_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_t_k1_to_k2'
         code_lines.append(f'{y_1_to_2} = {var_name} + {dt / 2} * _df{var_name}_dt_k1')
         code_lines.append(f'{t_1_to_2} = {t_name} + {dt / 2}')
 
@@ -634,8 +623,8 @@ class RK4(Integrator):
             code_lines.append(f'_df{var_name}_dt_k2 = {k2_expressions[-1].code}')
 
             # get code lines of k3 df part
-            y_2_to_3 = f'_{func_name}_{var_name}_k2_to_k3'
-            t_2_to_3 = f'_{func_name}_t_k2_to_k3'
+            y_2_to_3 = f'_{var_name}_k2_to_k3'
+            t_2_to_3 = f'_t_k2_to_k3'
             code_lines.append(f'{y_2_to_3} = {var_name} + {dt / 2} * _df{var_name}_dt_k2')
             code_lines.append(f'{t_2_to_3} = {t_name} + {dt / 2}')
             k3_expressions = diff_eq.replace_f_expressions('k3', y_sub=y_2_to_3, t_sub=t_2_to_3)
@@ -643,8 +632,8 @@ class RK4(Integrator):
             code_lines.append(f'_df{var_name}_dt_k3 = {k3_expressions[-1].code}')
 
             # get code lines of k4 df part
-            y_3_to_4 = f'_{func_name}_{var_name}_k3_to_k4'
-            t_3_to_4 = f'_{func_name}_t_k3_to_k4'
+            y_3_to_4 = f'_{var_name}_k3_to_k4'
+            t_3_to_4 = f'_t_k3_to_k4'
             code_lines.append(f'{y_3_to_4} = {var_name} + {dt} * _df{var_name}_dt_k3')
             code_lines.append(f'{t_3_to_4} = {t_name} + {dt}')
             k4_expressions = diff_eq.replace_f_expressions('k4', y_sub=y_3_to_4, t_sub=t_3_to_4)
@@ -666,16 +655,15 @@ class RK4(Integrator):
 
         # update expression
         update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
-        code_lines.append(f'{var_name} = {sympy2str(update)}')
+        code_lines.append(f'{var_name} = {utils.sympy2str(update)}')
 
         # multiple returns
-        return_expr = ', '.join([var_name] + diff_eq.returns)
-        code_lines.append(f'_{func_name}_res = {return_expr}')
+        return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+        code_lines.append(f'_res = {return_expr}')
 
         # final
         code = '\n'.join(code_lines)
-        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                     diff_eq.func_args + diff_eq.expr_names}
+        subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
         code = tools.word_replace(code, subs_dict)
         return code
 
@@ -721,7 +709,6 @@ class RK4Alternative(Integrator):
         dt = profile.get_dt()
         t_name = diff_eq.t_name
         var_name = diff_eq.var_name
-        func_name = diff_eq.func_name
         var = sympy.Symbol(var_name, real=True)
 
         # get code lines of k1 df part
@@ -730,8 +717,8 @@ class RK4Alternative(Integrator):
         code_lines.append(f'_df{var_name}_dt_k1 = {k1_expressions[-1].code}')
 
         # k1 -> k2 increment
-        y_1_to_2 = f'_{func_name}_{var_name}_k1_to_k2'
-        t_1_to_2 = f'_{func_name}_t_k1_to_k2'
+        y_1_to_2 = f'_{var_name}_k1_to_k2'
+        t_1_to_2 = f'_t_k1_to_k2'
         code_lines.append(f'{y_1_to_2} = {var_name} + {dt / 3} * _df{var_name}_dt_k1')
         code_lines.append(f'{t_1_to_2} = {t_name} + {dt / 3}')
 
@@ -744,8 +731,8 @@ class RK4Alternative(Integrator):
             code_lines.append(f'_df{var_name}_dt_k2 = {k2_expressions[-1].code}')
 
             # get code lines of k3 df part
-            y_1_to_3 = f'_{func_name}_{var_name}_k1_to_k3'
-            t_1_to_3 = f'_{func_name}_t_k1_to_k3'
+            y_1_to_3 = f'_{var_name}_k1_to_k3'
+            t_1_to_3 = f'__t_k1_to_k3'
             code_lines.append(f'{y_1_to_3} = {var_name} - {dt / 3} * _df{var_name}_dt_k1 + {dt} * _df{var_name}_dt_k2')
             code_lines.append(f'{t_1_to_3} = {t_name} + {dt * 2 / 3}')
             k3_expressions = diff_eq.replace_f_expressions('k3', y_sub=y_1_to_3, t_sub=t_1_to_3)
@@ -753,8 +740,8 @@ class RK4Alternative(Integrator):
             code_lines.append(f'_df{var_name}_dt_k3 = {k3_expressions[-1].code}')
 
             # get code lines of k4 df part
-            y_1_to_4 = f'_{func_name}_{var_name}_k1_to_k4'
-            t_1_to_4 = f'_{func_name}_t_k1_to_k4'
+            y_1_to_4 = f'_{var_name}_k1_to_k4'
+            t_1_to_4 = f'_t_k1_to_k4'
             code_lines.append(f'{y_1_to_4} = {var_name} + {dt} * _df{var_name}_dt_k1 - {dt} * _df{var_name}_dt_k2'
                               f'+ {dt} * _df{var_name}_dt_k3')
             code_lines.append(f'{t_1_to_4} = {t_name} + {dt}')
@@ -777,16 +764,15 @@ class RK4Alternative(Integrator):
 
         # update expression
         update = var + dfdt * dt + sympy.sqrt(dt) * dgdt
-        code_lines.append(f'{var_name} = {sympy2str(update)}')
+        code_lines.append(f'{var_name} = {utils.sympy2str(update)}')
 
         # multiple returns
-        return_expr = ', '.join([var_name] + diff_eq.returns)
-        code_lines.append(f'_{func_name}_res = {return_expr}')
+        return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+        code_lines.append(f'_res = {return_expr}')
 
         # final
         code = '\n'.join(code_lines)
-        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                     diff_eq.func_args + diff_eq.expr_names}
+        subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
         code = tools.word_replace(code, subs_dict)
         return code
 
@@ -861,9 +847,9 @@ class ExponentialEuler(Integrator):
 
         # get the linear system using sympy
         f_res = f_expressions[-1]
-        df_expr = str2sympy(f_res.code).expr.expand()
+        df_expr = utils.str2sympy(f_res.code).expr.expand()
         s_df = sympy.Symbol(f"{f_res.var_name}")
-        code_lines.append(f'{s_df.name} = {sympy2str(df_expr)}')
+        code_lines.append(f'{s_df.name} = {utils.sympy2str(df_expr)}')
         var = sympy.Symbol(diff_eq.var_name, real=True)
 
         # get df part
@@ -873,19 +859,19 @@ class ExponentialEuler(Integrator):
         if df_expr.has(var):
             # linear
             linear = sympy.collect(df_expr, var, evaluate=False)[var]
-            code_lines.append(f'{s_linear.name} = {sympy2str(linear)}')
+            code_lines.append(f'{s_linear.name} = {utils.sympy2str(linear)}')
             # linear exponential
             linear_exp = sympy.exp(linear * dt)
-            code_lines.append(f'{s_linear_exp.name} = {sympy2str(linear_exp)}')
+            code_lines.append(f'{s_linear_exp.name} = {utils.sympy2str(linear_exp)}')
             # df part
             df_part = (s_linear_exp - 1) / s_linear * s_df
-            code_lines.append(f'{s_df_part.name} = {sympy2str(df_part)}')
+            code_lines.append(f'{s_df_part.name} = {utils.sympy2str(df_part)}')
 
         else:
             # linear exponential
             code_lines.append(f'{s_linear_exp.name} = sqrt({dt})')
             # df part
-            code_lines.append(f'{s_df_part.name} = {sympy2str(dt * s_df)}')
+            code_lines.append(f'{s_df_part.name} = {utils.sympy2str(dt * s_df)}')
 
         # get dg part
         if diff_eq.is_stochastic:
@@ -906,14 +892,13 @@ class ExponentialEuler(Integrator):
         update = var + s_df_part + s_dg_part * s_linear_exp
 
         # The actual update step
-        code_lines.append(f'{diff_eq.var_name} = {sympy2str(update)}')
-        return_expr = ', '.join([diff_eq.var_name] + diff_eq.returns)
-        code_lines.append(f'_{diff_eq.func_name}_res = {return_expr}')
+        code_lines.append(f'{diff_eq.var_name} = {utils.sympy2str(update)}')
+        return_expr = ', '.join([diff_eq.var_name] + diff_eq.return_intermediates)
+        code_lines.append(f'_res = {return_expr}')
 
         # final
         code = '\n'.join(code_lines)
-        subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                     diff_eq.func_args + diff_eq.expr_names}
+        subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
         code = tools.word_replace(code, subs_dict)
         return code
 
@@ -966,7 +951,6 @@ class MilsteinIto(Integrator):
 
                 dt = profile.get_dt()
                 var_name = diff_eq.var_name
-                func_name = diff_eq.func_name
 
                 # k1 part #
                 # ------- #
@@ -984,10 +968,10 @@ class MilsteinIto(Integrator):
 
                 # high order part #
                 # --------------- #
-                k1_expr = f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
+                k1_expr = f'_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
                           f'_dg{var_name}_dt * sqrt({dt})'
                 high_order = sympy.Symbol(f'_dg{var_name}_high_order')
-                g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
+                g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_k1')
 
                 # dg high order
                 if len(g_k2_expressions):
@@ -1004,13 +988,12 @@ class MilsteinIto(Integrator):
                                   f'_dg{var_name}_dt * {dW_sb.name}')
 
                 # multiple returns
-                return_expr = ', '.join([var_name] + diff_eq.returns)
-                code_lines.append(f'_{func_name}_res = {return_expr}')
+                return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+                code_lines.append(f'_res = {return_expr}')
 
                 # final
                 code = '\n'.join(code_lines)
-                subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                             diff_eq.func_args + diff_eq.expr_names}
+                subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
                 code = tools.word_replace(code, subs_dict)
                 return code
 
@@ -1078,7 +1061,6 @@ class MilsteinStra(Integrator):
 
                 dt = profile.get_dt()
                 var_name = diff_eq.var_name
-                func_name = diff_eq.func_name
 
                 # k1 part #
                 # ------- #
@@ -1097,10 +1079,10 @@ class MilsteinStra(Integrator):
                 # high order part #
                 # --------------- #
 
-                k1_expr = f'_{func_name}_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
+                k1_expr = f'_k1 = {var_name} + _df{var_name}_dt * {dt} + ' \
                           f'_dg{var_name}_dt * sqrt({dt})'
                 high_order = sympy.Symbol(f'_dg{var_name}_high_order')
-                g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_{func_name}_k1')
+                g_k2_expressions = diff_eq.replace_g_expressions('k2', y_sub=f'_k1')
                 if len(g_k2_expressions):
                     code_lines.append(k1_expr)
                     code_lines.extend([str(expr) for expr in g_k2_expressions[:-1]])
@@ -1115,13 +1097,12 @@ class MilsteinStra(Integrator):
                                       f'_dg{var_name}_dt * {dW_sb.name}')
 
                 # multiple returns
-                return_expr = ', '.join([var_name] + diff_eq.returns)
-                code_lines.append(f'_{func_name}_res = {return_expr}')
+                return_expr = ', '.join([var_name] + diff_eq.return_intermediates)
+                code_lines.append(f'_res = {return_expr}')
 
                 # final
                 code = '\n'.join(code_lines)
-                subs_dict = {arg: f'_{diff_eq.func_name}_{arg}' for arg in
-                             diff_eq.func_args + diff_eq.expr_names}
+                subs_dict = {arg: f'_{arg}' for arg in diff_eq.func_args + diff_eq.expr_names}
                 code = tools.word_replace(code, subs_dict)
                 return code
 

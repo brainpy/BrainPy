@@ -314,7 +314,7 @@ class Transformer(ast.NodeVisitor):
         self.write(')')
         if getattr(node, 'returns', None):
             self.write(' -> ')
-            self.visit(node.returns)
+            self.visit(node.return_intermediates)
         self.write(':')
         self.write_newline()
 

@@ -102,10 +102,6 @@ def get_identifiers(expr, include_numbers=False):
     return (identifiers - _ID_KEYWORDS) | numbers
 
 
-
-
-
-
 class NoiseHandler(object):
     normal_pattern = re.compile(r'(_normal_like_)\((\w+)\)')
 
@@ -163,7 +159,7 @@ class FuncCallFinder(ast.NodeTransformer):
                 else:
                     s = ast2code(ast.fix_missing_locations(kv.value))
                     self.kwargs[kv.arg] = s.strip()
-            return ast.Name(f'_{self.name}_res')
+            return ast.Name('_res')
         else:
             args = [self.visit(arg) for arg in node.args]
             keywords = [self.visit(kv) for kv in node.keywords]
@@ -609,7 +605,8 @@ def word_replace(expr, substitutions):
     banana*_b+c5+8+func(A)
     """
     for var, replace_var in substitutions.items():
-        expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
+        # expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
+        expr = re.sub(r'\b(?<!\.)' + var + r'\b(?!\.)', str(replace_var), expr)
     return expr
 
 
