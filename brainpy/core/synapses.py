@@ -31,13 +31,12 @@ class SynType(base.ObjType):
         if mode not in [constants.SCALAR_MODE, constants.VECTOR_MODE, constants.MATRIX_MODE]:
             raise errors.ModelDefError('SynType only support "scalar", "vector" or "matrix".')
 
-        super(SynType, self).__init__(
-            ST=ST,
-            requires=requires,
-            steps=steps,
-            name=name,
-            mode=mode,
-            hand_overs=hand_overs)
+        super(SynType, self).__init__(ST=ST,
+                                      requires=requires,
+                                      steps=steps,
+                                      name=name,
+                                      mode=mode,
+                                      hand_overs=hand_overs)
 
         # inspect delay keys
         # ------------------

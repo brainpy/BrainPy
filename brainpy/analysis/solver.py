@@ -19,8 +19,7 @@ results = namedtuple('results', ['root', 'function_calls', 'iterations', 'conver
 
 
 @nb.njit
-def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
-           rtol=4 * np.finfo(float).eps):
+def brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(float).eps):
     """
     Find a root of a function in a bracketing interval using Brent's method
     adapted from Scipy's brentq.
@@ -147,9 +146,9 @@ def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
     if status == _ECONVERR:
         raise RuntimeError("Failed to converge")
 
-    x, funcalls, iterations = root, funcalls, itr
+    # x, funcalls, iterations = root, funcalls, itr
 
-    return x
+    return root, funcalls, itr
 
 
 @nb.njit
@@ -190,7 +189,7 @@ def find_root_of_1d(f, f_points, args=(), tol=1e-8):
             f_i += 2
         else:
             if not np.isnan(fr_sign) and fl_sign != fr_sign:
-                root = brentq(f, f_points[f_i - 1], f_points[f_i], args)
+                root, funcalls, itr = brentq(f, f_points[f_i - 1], f_points[f_i], args)
                 if abs(f(root, *args)) < tol:
                     roots.append(root)
             fl_sign = fr_sign

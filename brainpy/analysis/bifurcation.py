@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import gc
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
@@ -228,9 +229,6 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                                              options=options)
 
         self.fixed_points = None
-        self.limit_cycle_mon = None
-        self.limit_cycle_p0 = None
-        self.limit_cycle_p1 = None
 
     def plot_bifurcation(self, show=False):
         print('plot bifurcation ...')
@@ -333,72 +331,65 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         if var not in [self.x_var, self.y_var]:
             raise errors.AnalyzerError()
 
-        if self.limit_cycle_mon is None:
-            all_xs, all_ys, all_p0, all_p1 = [], [], [], []
+        all_xs, all_ys, all_p0, all_p1 = [], [], [], []
 
-            # unstable node
-            unstable_node = self.fixed_points[utils._2D_UNSTABLE_NODE]
-            all_xs.extend(unstable_node[self.x_var])
-            all_ys.extend(unstable_node[self.y_var])
-            if len(self.dpar_names) == 1:
-                all_p0.extend(unstable_node['p'])
-            elif len(self.dpar_names) == 2:
-                all_p0.extend(unstable_node['p0'])
-                all_p1.extend(unstable_node['p1'])
-            else:
-                raise ValueError
-
-            # unstable focus
-            unstable_focus = self.fixed_points[utils._2D_UNSTABLE_FOCUS]
-            all_xs.extend(unstable_focus[self.x_var])
-            all_ys.extend(unstable_focus[self.y_var])
-            if len(self.dpar_names) == 1:
-                all_p0.extend(unstable_focus['p'])
-            elif len(self.dpar_names) == 2:
-                all_p0.extend(unstable_focus['p0'])
-                all_p1.extend(unstable_focus['p1'])
-            else:
-                raise ValueError
-
-            # format points
-            all_xs = np.array(all_xs)
-            all_ys = np.array(all_ys)
-            all_p0 = np.array(all_p0)
-            all_p1 = np.array(all_p1)
-
-            # fixed variables
-            fixed_vars = dict()
-            for key, val in self.fixed_vars.items():
-                fixed_vars[key] = val
-            fixed_vars[self.dpar_names[0]] = all_p0
-            if len(self.dpar_names) == 2:
-                fixed_vars[self.dpar_names[1]] = all_p1
-
-            # initialize neuron group
-            length = all_xs.shape[0]
-            group = core.NeuGroup(self.model,
-                                  geometry=length,
-                                  monitors=self.dvar_names,
-                                  pars_update=self.pars_update)
-
-            # group initial state
-            group.ST[self.x_var] = all_xs
-            group.ST[self.y_var] = all_ys
-            for key, val in fixed_vars.items():
-                if key in group.ST:
-                    group.ST[key] = val
-
-            # run neuron group
-            group.runner = core.TrajectoryRunner(group,
-                                                 target_vars=self.dvar_names,
-                                                 fixed_vars=fixed_vars)
-            group.run(duration=duration, inputs=inputs)
-
-            self.limit_cycle_mon = group.mon
-            self.limit_cycle_p0 = all_p0
-            self.limit_cycle_p1 = all_p1
+        # unstable node
+        unstable_node = self.fixed_points[utils._2D_UNSTABLE_NODE]
+        all_xs.extend(unstable_node[self.x_var])
+        all_ys.extend(unstable_node[self.y_var])
+        if len(self.dpar_names) == 1:
+            all_p0.extend(unstable_node['p'])
+        elif len(self.dpar_names) == 2:
+            all_p0.extend(unstable_node['p0'])
+            all_p1.extend(unstable_node['p1'])
         else:
-            length = self.limit_cycle_mon[var].shape[1]
+            raise ValueError
+
+        # unstable focus
+        unstable_focus = self.fixed_points[utils._2D_UNSTABLE_FOCUS]
+        all_xs.extend(unstable_focus[self.x_var])
+        all_ys.extend(unstable_focus[self.y_var])
+        if len(self.dpar_names) == 1:
+            all_p0.extend(unstable_focus['p'])
+        elif len(self.dpar_names) == 2:
+            all_p0.extend(unstable_focus['p0'])
+            all_p1.extend(unstable_focus['p1'])
+        else:
+            raise ValueError
+
+        # format points
+        all_xs = np.array(all_xs)
+        all_ys = np.array(all_ys)
+        all_p0 = np.array(all_p0)
+        all_p1 = np.array(all_p1)
+
+        # fixed variables
+        fixed_vars = dict()
+        for key, val in self.fixed_vars.items():
+            fixed_vars[key] = val
+        fixed_vars[self.dpar_names[0]] = all_p0
+        if len(self.dpar_names) == 2:
+            fixed_vars[self.dpar_names[1]] = all_p1
+
+        # initialize neuron group
+        length = all_xs.shape[0]
+        group = core.NeuGroup(self.model,
+                              geometry=length,
+                              monitors=self.dvar_names,
+                              pars_update=self.pars_update)
+
+        # group initial state
+        group.ST[self.x_var] = all_xs
+        group.ST[self.y_var] = all_ys
+        for key, val in fixed_vars.items():
+            if key in group.ST:
+                group.ST[key] = val
+
+        # run neuron group
+        group.runner = core.TrajectoryRunner(group,
+                                             target_vars=self.dvar_names,
+                                             fixed_vars=fixed_vars)
+        group.run(duration=duration, inputs=inputs)
 
         # find limit cycles
         limit_cycle_max = []
@@ -407,16 +398,16 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         p0_limit_cycle = []
         p1_limit_cycle = []
         for i in range(length):
-            data = self.limit_cycle_mon[var][:, i]
+            data = group.mon[var][:, i]
             max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
             if max_index[0] != -1:
                 x_cycle = data[max_index[0]: max_index[1]]
                 limit_cycle_max.append(data[max_index[1]])
                 limit_cycle_min.append(x_cycle.min())
                 # limit_cycle.append(x_cycle)
-                p0_limit_cycle.append(self.limit_cycle_p0[i])
+                p0_limit_cycle.append(all_p0[i])
                 if len(self.dpar_names) == 2:
-                    p1_limit_cycle.append(self.limit_cycle_p1[i])
+                    p1_limit_cycle.append(all_p1[i])
         self.fixed_points['limit_cycle'] = {var: {'max': limit_cycle_max,
                                                   'min': limit_cycle_min,
                                                   # 'cycle': limit_cycle
@@ -443,7 +434,11 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         if show:
             plt.show()
 
-    
+        del group.ST
+        del group.mon
+        del group
+        gc.collect()
+
 
 class FastSlowBifurcation(object):
     """Fast slow analysis analysis proposed by John Rinzel [1]_ [2]_ [3]_.
