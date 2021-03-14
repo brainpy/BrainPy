@@ -3,7 +3,6 @@
 import numpy as np
 from brainpy.integration import DiffEquation
 from brainpy import integrate
-from brainpy import tools
 
 
 def try_analyse_func():
@@ -18,8 +17,7 @@ def try_analyse_func():
 
     df = DiffEquation(int_m)
     pprint(df.expressions)
-    pprint(df.returns)
-    pprint(df.is_multi_return)
+    pprint(df.return_intermediates)
     pprint(df.get_f_expressions())
     pprint(df.get_g_expressions())
     print('-' * 30)
@@ -35,9 +33,9 @@ def try_analyse_func2():
 
     from pprint import pprint
 
-    df = DiffEquation(func=func, g=np.zeros(10))
+    df = DiffEquation(func=func)
     pprint(df.expressions)
-    pprint(df.returns)
+    pprint(df.return_intermediates)
     pprint(df.get_f_expressions())
     pprint(df.get_g_expressions())
     print('-' * 30)
@@ -49,72 +47,95 @@ def try_analyse_func3():
         b = m + 6
         c = a + b
         d = m * 2 + c
-        return d
+        return 0., d
 
     from pprint import pprint
 
-    df = DiffEquation(func=None, g=g_func)
+    df = DiffEquation(func=g_func)
     pprint(df.expressions)
-    pprint(df.returns)
+    pprint(df.return_intermediates)
     pprint(df.get_f_expressions())
     pprint(df.get_g_expressions())
     print('-' * 30)
 
 
-def try_integrate():
-    import numpy as np
+def try_analyse_func4():
+    def g_func(m, t):
+        a = t + 2
+        b = m + 6
+        c = a + b
+        d = m * 2 + c
+        return (d,), a, b
 
-    @integrate(method='exponential')
-    def int_m(m, t, V):
+    from pprint import pprint
+
+    df = DiffEquation(func=g_func)
+    pprint(df.expressions)
+    pprint(df.return_intermediates)
+    pprint(df.get_f_expressions())
+    pprint(df.get_g_expressions())
+    print('-' * 30)
+
+
+def try_analyse_func5():
+    def g_func(m, t):
+        a = t + 2
+        b = m + 6
+        c = a + b
+        d = m * 2 + c
+        return (c,d), a, b
+
+    from pprint import pprint
+
+    df = DiffEquation(func=g_func)
+    pprint(df.expressions)
+    pprint(df.return_intermediates)
+    pprint(df.get_f_expressions())
+    pprint(df.get_g_expressions())
+    print('-' * 30)
+
+
+def test_multi_system():
+    def int_func(array, t, V):
         alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
         beta = 4.0 * np.exp(-(V + 65) / 18)
-        dmdt = alpha * (1 - m) - beta * m
-        return (dmdt,), alpha, beta
+        m = alpha * (1 - array[0]) - beta * array[0]
 
-    print(type(int_m))
-    print(int_m._update_code)
+        alpha2 = 0.07 * np.exp(-(V + 65) / 20.)
+        beta2 = 1 / (1 + np.exp(-(V + 35) / 10))
+        h = alpha2 * (1 - array[1]) - beta2 * array[1]
+        return np.array([m, h])
 
+    from pprint import pprint
 
-def try_diff_eq_analyser():
-    code = '''
-alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
-
-beta = 4.0 * np.exp(-(V + 65) / 18)
-return alpha * (1 - m) - beta * m, f(alpha, beta)
-    '''
-
-    res = tools.analyse_diff_eq(code)
-    print('Return: ', res.returns)
-    print('return_type: ', res.return_type)
-    for var, exp in zip(res.variables, res.expressions):
-        print(var, '=', exp)
-    print('f_expr: ', res.f_expr)
-    print('g_expr: ', res.g_expr)
+    df = DiffEquation(func=int_func)
+    pprint(df.expressions)
+    pprint(df.return_intermediates)
+    pprint(df.get_f_expressions())
+    pprint(df.get_g_expressions())
+    print('-' * 30)
 
 
-def try_diff_eq_analyser2():
+def test_assignment():
+    def int_func(array, t, V):
+        res = np.zeros_like(array)
+        alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+        beta = 4.0 * np.exp(-(V + 65) / 18)
+        res[0] = alpha * (1 - array[0]) - beta * array[0]
 
-    for code in ['return a',
-                 'return a, b',
-                 'return (a, b)',
-                 'return (a, ), b',
-                 'return (a, b), ',
-                 'return (a, b), c, d',
-                 'return ((a, b), c, d)',
-                 'return (a, ), ',
-                 'return (a+b, b*2), ',
-                 'return a, b, c']:
+        alpha2 = 0.07 * np.exp(-(V + 65) / 20.)
+        beta2 = 1 / (1 + np.exp(-(V + 35) / 10))
+        res[1] = alpha2 * (1 - array[1]) - beta2 * array[1]
+        return res
 
-        res = tools.analyse_diff_eq(code)
-        print('Code:\n', code)
+    from pprint import pprint
 
-        print('Return: ', res.returns)
-        print('return_type: ', res.return_type)
-        for var, exp in zip(res.variables, res.expressions):
-            print(var, '=', exp)
-        print('f_expr: ', res.f_expr)
-        print('g_expr: ', res.g_expr)
-        print('\n')
+    df = DiffEquation(func=int_func)
+    pprint(df.expressions)
+    pprint(df.return_intermediates)
+    pprint(df.get_f_expressions())
+    pprint(df.get_g_expressions())
+    print('-' * 30)
 
 
 def test_stochastic():
@@ -176,6 +197,13 @@ def test_stochastic():
 
 
 if __name__ == '__main__':
-    try_analyse_func()
+    # try_analyse_func()
+    # try_analyse_func2()
+    # try_analyse_func3()
+    # try_analyse_func4()
+    # try_analyse_func5()
+
+    # test_multi_system()
+    test_assignment()
     # test_stochastic()
 

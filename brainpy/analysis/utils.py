@@ -20,19 +20,21 @@ __all__ = [
     'contain_unknown_symbol',
 ]
 
-_SADDLE_NODE = 'saddle-node'
-_1D_STABLE_POINT = 'stable-point'
-_1D_UNSTABLE_POINT = 'unstable-point'
+_CENTER_MANIFOLD = 'center manifold'
+_SADDLE_NODE = 'saddle node'
+_1D_STABLE_POINT = 'stable point'
+_1D_UNSTABLE_POINT = 'unstable point'
 _2D_CENTER = 'center'
-_2D_STABLE_NODE = 'stable-node'
-_2D_STABLE_FOCUS = 'stable-focus'
-_2D_STABLE_STAR = 'stable-star'
-_2D_STABLE_LINE = 'stable-line'
-_2D_UNSTABLE_NODE = 'unstable-node'
-_2D_UNSTABLE_FOCUS = 'unstable-focus'
-_2D_UNSTABLE_STAR = 'star'
-_2D_UNSTABLE_LINE = 'unstable-line'
-_2D_UNIFORM_MOTION = 'uniform-motion'
+_2D_STABLE_NODE = 'stable node'
+_2D_STABLE_FOCUS = 'stable focus'
+_2D_STABLE_STAR = 'stable star'
+_2D_STABLE_DEGENERATE = 'stable degenerate'
+# _2D_STABLE_LINE = 'stable line'
+_2D_UNSTABLE_NODE = 'unstable node'
+_2D_UNSTABLE_FOCUS = 'unstable focus'
+_2D_UNSTABLE_STAR = 'unstable star'
+_2D_UNSTABLE_DEGENERATE = 'unstable degenerate'
+_2D_UNSTABLE_LINE = 'unstable line'
 
 plot_scheme = {
     _1D_STABLE_POINT: {"color": 'tab:red'},
@@ -45,13 +47,17 @@ plot_scheme = {
     _2D_UNSTABLE_FOCUS: {"color": 'tab:cyan'},
 
     _SADDLE_NODE: {"color": 'tab:blue'},
-
-    _2D_STABLE_LINE: {'color': 'orangered'},
-    _2D_UNSTABLE_LINE: {'color': 'dodgerblue'},
     _2D_CENTER: {'color': 'lime'},
+    # _2D_UNIFORM_MOTION: {'color': 'red'},
+
+    _CENTER_MANIFOLD: {'color': 'orangered'},
+    _2D_UNSTABLE_LINE: {'color': 'dodgerblue'},
+
     _2D_UNSTABLE_STAR: {'color': 'green'},
     _2D_STABLE_STAR: {'color': 'orange'},
-    _2D_UNIFORM_MOTION: {'color': 'red'},
+
+    _2D_UNSTABLE_DEGENERATE: {'color': 'springgreen'},
+    _2D_STABLE_DEGENERATE: {'color': 'blueviolet'},
 }
 
 
@@ -61,9 +67,9 @@ def get_1d_classification():
 
 def get_2d_classification():
     return [_SADDLE_NODE, _2D_CENTER, _2D_STABLE_NODE, _2D_STABLE_FOCUS,
-            _2D_STABLE_STAR, _2D_STABLE_LINE, _2D_UNSTABLE_NODE,
+            _2D_STABLE_STAR, _CENTER_MANIFOLD, _2D_UNSTABLE_NODE,
             _2D_UNSTABLE_FOCUS, _2D_UNSTABLE_STAR, _2D_UNSTABLE_LINE,
-            _2D_UNIFORM_MOTION]
+            _2D_STABLE_DEGENERATE, _2D_UNSTABLE_DEGENERATE]
 
 
 def stability_analysis(derivative):
@@ -108,12 +114,10 @@ def stability_analysis(derivative):
         if q < 0:
             return _SADDLE_NODE
         elif q == 0:
-            if p < 0:
-                return _2D_STABLE_LINE
-            elif p > 0:
-                return _2D_UNSTABLE_LINE
+            if p <= 0:
+                return _CENTER_MANIFOLD
             else:
-                return _2D_UNIFORM_MOTION
+                return _2D_UNSTABLE_LINE
         else:
             # parabola
             e = p * p - 4 * q
@@ -122,19 +126,32 @@ def stability_analysis(derivative):
             elif p > 0:
                 if e < 0:
                     return _2D_UNSTABLE_FOCUS
-                elif e == 0:
-                    return _2D_UNSTABLE_STAR
-                else:
+                elif e > 0:
                     return _2D_UNSTABLE_NODE
+                else:
+                    w = np.linalg.eigvals(derivative)
+                    if w[0] == w[1]:
+                        return _2D_UNSTABLE_DEGENERATE
+                    else:
+                        return _2D_UNSTABLE_STAR
             else:
                 if e < 0:
                     return _2D_STABLE_FOCUS
-                elif e == 0:
-                    return _2D_STABLE_STAR
-                else:
+                elif e > 0:
                     return _2D_STABLE_NODE
+                else:
+                    w = np.linalg.eigvals(derivative)
+                    if w[0] == w[1]:
+                        return _2D_STABLE_DEGENERATE
+                    else:
+                        return _2D_STABLE_STAR
+
+    elif np.size(derivative) == 9:
+        pass
+
     else:
-        raise ValueError('Unknown derivatives.')
+        raise ValueError('Unknown derivatives, only supports the jacobian  '
+                         'matrixwith the shape of(1), (2, 2), or (3, 3).')
 
 
 def rescale(min_max, scale=0.01):
