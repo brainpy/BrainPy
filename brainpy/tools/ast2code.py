@@ -10,8 +10,9 @@ import ast
 import sys
 from contextlib import contextmanager
 
+
 __all__ = [
-    'ast2code'
+    'ast2code',
 ]
 
 

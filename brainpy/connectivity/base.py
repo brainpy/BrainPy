@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import numba as nb
-import numpy as np
+import abc
 
-from .. import profile
-from ..errors import ModelUseError
+from brainpy import backend
+from brainpy import errors
+
+try:
+    import numba as nb
+except ModuleNotFoundError:
+    nb = None
 
 __all__ = [
-    'Connector',
     'ij2mat',
     'mat2ij',
     'pre2post',
@@ -16,7 +19,17 @@ __all__ = [
     'post2syn',
     'pre_slice_syn',
     'post_slice_syn',
+
+    'AbstractConnector',
+    'Connector',
 ]
+
+
+def _numba_backend():
+    r = backend.get_backend().startswith('numba')
+    if r and nb is None:
+        raise errors.PackageMissingError('Please install numba for numba backend.')
+    return r
 
 
 def ij2mat(i, j, num_pre=None, num_post=None):
@@ -39,17 +52,14 @@ def ij2mat(i, j, num_pre=None, num_post=None):
         A 2D ndarray connectivity matrix.
     """
     if len(i) != len(j):
-        raise ModelUseError('"i" and "j" must be the equal length.')
+        raise errors.ModelUseError('"i" and "j" must be the equal length.')
     if num_pre is None:
         print('WARNING: "num_pre" is not provided, the result may not be accurate.')
-        num_pre = np.max(i)
+        num_pre = i.max()
     if num_post is None:
         print('WARNING: "num_post" is not provided, the result may not be accurate.')
-        num_post = np.max(j)
-
-    i = np.asarray(i, dtype=np.int64)
-    j = np.asarray(j, dtype=np.int64)
-    conn_mat = np.zeros((num_pre, num_post), dtype=np.float_)
+        num_post = j.max()
+    conn_mat = backend.zeros((num_pre, num_post))
     conn_mat[i, j] = 1.
     return conn_mat
 
@@ -61,20 +71,18 @@ def mat2ij(conn_mat):
     ----------
     conn_mat : np.ndarray
         Connectivity matrix with `(num_pre, num_post)` shape.
-
+    
     Returns
     -------
     conn_tuple : tuple
         (Pre-synaptic neuron indexes,
          post-synaptic neuron indexes).
     """
-    conn_mat = np.asarray(conn_mat)
-    if np.ndim(conn_mat) != 2:
-        raise ModelUseError('Connectivity matrix must be in the shape of (num_pre, num_post).')
-    pre_ids, post_ids = np.where(conn_mat > 0)
-    pre_ids = np.ascontiguousarray(pre_ids, dtype=np.int_)
-    post_ids = np.ascontiguousarray(post_ids, dtype=np.int_)
-    return pre_ids, post_ids
+    if len(backend.shape(conn_mat)) != 2:
+        raise errors.ModelUseError('Connectivity matrix must be in the '
+                                   'shape of (num_pre, num_post).')
+    pre_ids, post_ids = backend.where(conn_mat > 0)
+    return backend.as_tensor(pre_ids), backend.as_tensor(post_ids)
 
 
 def pre2post(i, j, num_pre=None):
@@ -95,20 +103,20 @@ def pre2post(i, j, num_pre=None):
         The conn list of pre2post.
     """
     if len(i) != len(j):
-        raise ModelUseError('The length of "i" and "j" must be the same.')
+        raise errors.ModelUseError('The length of "i" and "j" must be the same.')
     if num_pre is None:
         print('WARNING: "num_pre" is not provided, the result may not be accurate.')
-        num_pre = np.max(i)
+        num_pre = i.max()
 
     pre2post_list = [[] for _ in range(num_pre)]
     for pre_id, post_id in zip(i, j):
         pre2post_list[pre_id].append(post_id)
-    pre2post_list = [np.array(l) for l in pre2post_list]
+    pre2post_list = [backend.as_tensor(l) for l in pre2post_list]
 
-    if profile.is_jit():
+    if _numba_backend:
         pre2post_list_nb = nb.typed.List()
         for pre_id in range(num_pre):
-            pre2post_list_nb.append(np.int64(pre2post_list[pre_id]))
+            pre2post_list_nb.append(pre2post_list[pre_id])
         pre2post_list = pre2post_list_nb
     return pre2post_list
 
@@ -132,20 +140,20 @@ def post2pre(i, j, num_post=None):
     """
 
     if len(i) != len(j):
-        raise ModelUseError('The length of "i" and "j" must be the same.')
+        raise errors.ModelUseError('The length of "i" and "j" must be the same.')
     if num_post is None:
         print('WARNING: "num_post" is not provided, the result may not be accurate.')
-        num_post = np.max(j)
+        num_post = j.max()
 
     post2pre_list = [[] for _ in range(num_post)]
     for pre_id, post_id in zip(i, j):
         post2pre_list[post_id].append(pre_id)
-    post2pre_list = [np.array(l) for l in post2pre_list]
+    post2pre_list = [backend.as_tensor(l) for l in post2pre_list]
 
-    if profile.is_jit():
+    if _numba_backend():
         post2pre_list_nb = nb.typed.List()
         for post_id in range(num_post):
-            post2pre_list_nb.append(np.int64(post2pre_list[post_id]))
+            post2pre_list_nb.append(post2pre_list[post_id])
         post2pre_list = post2pre_list_nb
     return post2pre_list
 
@@ -167,17 +175,17 @@ def pre2syn(i, num_pre=None):
     """
     if num_pre is None:
         print('WARNING: "num_pre" is not provided, the result may not be accurate.')
-        num_pre = np.max(i)
+        num_pre = i.max()
 
     pre2syn_list = [[] for _ in range(num_pre)]
     for syn_id, pre_id in enumerate(i):
         pre2syn_list[pre_id].append(syn_id)
-    pre2syn_list = [np.array(l) for l in pre2syn_list]
+    pre2syn_list = [backend.as_tensor(l) for l in pre2syn_list]
 
-    if profile.is_jit():
+    if _numba_backend():
         pre2syn_list_nb = nb.typed.List()
         for pre_ids in pre2syn_list:
-            pre2syn_list_nb.append(np.int64(pre_ids))
+            pre2syn_list_nb.append(pre_ids)
         pre2syn_list = pre2syn_list_nb
 
     return pre2syn_list
@@ -200,17 +208,17 @@ def post2syn(j, num_post=None):
     """
     if num_post is None:
         print('WARNING: "num_post" is not provided, the result may not be accurate.')
-        num_post = np.max(j)
+        num_post = j.max()
 
     post2syn_list = [[] for _ in range(num_post)]
     for syn_id, post_id in enumerate(j):
         post2syn_list[post_id].append(syn_id)
-    post2syn_list = [np.array(l) for l in post2syn_list]
+    post2syn_list = [backend.as_tensor(l) for l in post2syn_list]
 
-    if profile.is_jit():
+    if _numba_backend():
         post2syn_list_nb = nb.typed.List()
         for pre_ids in post2syn_list:
-            post2syn_list_nb.append(np.int64(pre_ids))
+            post2syn_list_nb.append(pre_ids)
         post2syn_list = post2syn_list_nb
 
     return post2syn_list
@@ -235,16 +243,21 @@ def pre_slice_syn(i, j, num_pre=None):
     """
     # check
     if len(i) != len(j):
-        raise ModelUseError('The length of "i" and "j" must be the same.')
+        raise errors.ModelUseError('The length of "i" and "j" must be the same.')
     if num_pre is None:
         print('WARNING: "num_pre" is not provided, the result may not be accurate.')
-        num_pre = np.max(i)
+        num_pre = i.max()
 
     # pre2post connection
     pre2post_list = [[] for _ in range(num_pre)]
     for pre_id, post_id in zip(i, j):
         pre2post_list[pre_id].append(post_id)
-    post_ids = np.asarray(np.concatenate(pre2post_list), dtype=np.int_)
+    pre_ids, post_ids = [], []
+    for pre_i, posts in enumerate(pre2post_list):
+        post_ids.extend(posts)
+        pre_ids.extend([pre_i] * len(posts))
+    post_ids = backend.as_tensor(post_ids)
+    pre_ids = backend.as_tensor(pre_ids)
 
     # pre2post slicing
     slicing = []
@@ -253,10 +266,7 @@ def pre_slice_syn(i, j, num_pre=None):
         end = start + len(posts)
         slicing.append([start, end])
         start = end
-    slicing = np.asarray(slicing, dtype=np.int_)
-
-    # pre_ids
-    pre_ids = np.repeat(np.arange(num_pre), slicing[:, 1] - slicing[:, 0])
+    slicing = backend.as_tensor(slicing)
 
     return pre_ids, post_ids, slicing
 
@@ -279,16 +289,21 @@ def post_slice_syn(i, j, num_post=None):
         The conn list of post2syn.
     """
     if len(i) != len(j):
-        raise ModelUseError('The length of "i" and "j" must be the same.')
+        raise errors.ModelUseError('The length of "i" and "j" must be the same.')
     if num_post is None:
         print('WARNING: "num_post" is not provided, the result may not be accurate.')
-        num_post = np.max(j)
+        num_post = j.max()
 
     # post2pre connection
     post2pre_list = [[] for _ in range(num_post)]
     for pre_id, post_id in zip(i, j):
         post2pre_list[post_id].append(pre_id)
-    pre_ids = np.asarray(np.concatenate(post2pre_list), dtype=np.int_)
+    pre_ids, post_ids = [], []
+    for _post_id, _pre_ids in enumerate(post2pre_list):
+        pre_ids.extend(_pre_ids)
+        post_ids.extend([_post_id] * len(_pre_ids))
+    post_ids = backend.as_tensor(post_ids)
+    pre_ids = backend.as_tensor(pre_ids)
 
     # post2pre slicing
     slicing = []
@@ -297,15 +312,17 @@ def post_slice_syn(i, j, num_post=None):
         end = start + len(pres)
         slicing.append([start, end])
         start = end
-    slicing = np.asarray(slicing, dtype=np.int_)
-
-    # post_ids
-    post_ids = np.repeat(np.arange(num_post), slicing[:, 1] - slicing[:, 0])
+    slicing = backend.as_tensor(slicing)
 
     return pre_ids, post_ids, slicing
 
 
-class Connector(object):
+class AbstractConnector(abc.ABC):
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class Connector(AbstractConnector):
     """Abstract connector class."""
 
     def __init__(self):
@@ -313,6 +330,7 @@ class Connector(object):
         # useful for the construction of pre2post/pre2syn/etc.
         self.num_pre = None
         self.num_post = None
+
         # synaptic structures
         self.pre_ids = None
         self.post_ids = None
@@ -323,26 +341,11 @@ class Connector(object):
         self.post2syn = None
         self.pre_slice_syn = None
         self.post_slice_syn = None
+
         # synaptic weights
         self.weights = None
-        # the required synaptic structures
-        self.requires = ()
 
-    def set_size(self, num_pre, num_post):
-        try:
-            assert isinstance(num_pre, int)
-            assert 0 < num_pre
-        except AssertionError:
-            raise ModelUseError('"num_pre" must be integrator bigger than 0.')
-        try:
-            assert isinstance(num_post, int)
-            assert 0 < num_post
-        except AssertionError:
-            raise ModelUseError('"num_post" must be integrator bigger than 0.')
-        self.num_pre = num_pre
-        self.num_post = num_post
-
-    def set_requires(self, syn_requires):
+    def requires(self, syn_requires):
         # get synaptic requires
         requires = set()
         for n in syn_requires:
@@ -351,19 +354,19 @@ class Connector(object):
                      'pre2syn', 'post2syn',
                      'pre_slice_syn', 'post_slice_syn']:
                 requires.add(n)
-        self.requires = list(requires)
+        requires = list(requires)
 
         # synaptic structure to handle
         needs = []
-        if 'pre_slice_syn' in self.requires and 'post_slice_syn' in self.requires:
-            raise ModelUseError('Cannot use "pre_slice_syn" and "post_slice_syn" simultaneously. \n'
-                                'We recommend you use "pre_slice_syn + post2syn" '
-                                'or "post_slice_syn + pre2syn".')
-        elif 'pre_slice_syn' in self.requires:
+        if 'pre_slice_syn' in requires and 'post_slice_syn' in requires:
+            raise errors.ModelUseError('Cannot use "pre_slice_syn" and "post_slice_syn" '
+                                       'simultaneously. \nWe recommend you use "pre_slice_syn + '
+                                       'post2syn" or "post_slice_syn + pre2syn".')
+        elif 'pre_slice_syn' in requires:
             needs.append('pre_slice_syn')
-        elif 'post_slice_syn' in self.requires:
+        elif 'post_slice_syn' in requires:
             needs.append('post_slice_syn')
-        for n in self.requires:
+        for n in requires:
             if n in ['pre_slice_syn', 'post_slice_syn', 'pre_ids', 'post_ids']:
                 continue
             needs.append(n)
@@ -371,9 +374,6 @@ class Connector(object):
         # make synaptic data structure
         for n in needs:
             getattr(self, f'make_{n}')()
-
-    def __call__(self, pre_indices, post_indices):
-        raise NotImplementedError
 
     def make_conn_mat(self):
         if self.conn_mat is None:

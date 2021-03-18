@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from brainpy.integration import integrate
-from brainpy.integration import integrator
+from brainpy.integrators import integrate
+from brainpy.integrators.sde import integrator
 
 
 def test_exponential_euler_by_linear_system():

@@ -11,15 +11,7 @@ class ModelUseError(Exception):
     pass
 
 
-class TypeMismatchError(Exception):
-    pass
-
-
-class IntegratorError(Exception):
-    pass
-
-
-class DiffEquationError(Exception):
+class DiffEqError(Exception):
     pass
 
 
@@ -29,3 +21,8 @@ class CodeError(Exception):
 
 class AnalyzerError(Exception):
     pass
+
+
+class PackageMissingError(Exception):
+    pass
+

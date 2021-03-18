@@ -117,16 +117,16 @@ exc_syn = bp.SynType('exc_syn', steps=exc_update, ST=bp.types.SynState())
 
 inh_syn = bp.SynType('inh_syn', steps=inh_update, ST=bp.types.SynState())
 
-group = bp.NeuGroup(neuron, geometry=num_exc + num_inh, monitors=['sp'])
+group = bp.NeuGroup(neuron, size=num_exc + num_inh, monitors=['sp'])
 group.ST['V'] = El + (np.random.randn(num_exc + num_inh) * 5 - 5)
 group.ST['ge'] = (np.random.randn(num_exc + num_inh) * 1.5 + 4) * 10.
 group.ST['gi'] = (np.random.randn(num_exc + num_inh) * 12 + 20) * 10.
 
-exc_conn = bp.SynConn(exc_syn, pre_group=group[:num_exc], post_group=group,
-                      conn=bp.connect.FixedProb(prob=0.02))
+exc_conn = bp.TwoEndConn(exc_syn, pre=group[:num_exc], post=group,
+                         conn=bp.connect.FixedProb(prob=0.02))
 
-inh_conn = bp.SynConn(inh_syn, pre_group=group[num_exc:], post_group=group,
-                      conn=bp.connect.FixedProb(prob=0.02))
+inh_conn = bp.TwoEndConn(inh_syn, pre=group[num_exc:], post=group,
+                         conn=bp.connect.FixedProb(prob=0.02))
 
 net = bp.Network(group, exc_conn, inh_conn)
 t0 = time.time()

@@ -10,7 +10,7 @@ import sympy
 #     beta = 4.0 * np.exp(-(V + 65) / 18)
 #     return alpha * (1 - m) - beta * m, (alpha, beta)
 #
-# sympy_eqs = [ bp.integration.str2sympy(str(eq))
+# sympy_eqs = [ bp.integrators.str2sympy(str(eq))
 #     for eq in int_m.diff_eq.get_f_expressions()]
 
 
@@ -23,7 +23,7 @@ f = sympy.Function('f')
 alpha = 0.1 * (V + 40) / (1 - sympy.exp(-(V + 40) / 10))
 beta = 4.0 * sympy.exp(-(V + 65) / 18)
 dvdt = f(alpha) * (1 - m) - beta * m
-# dvdt = bp.integration.str2sympy('alpha * (1 - m) - beta * m')
+# dvdt = bp.integrators.str2sympy('alpha * (1 - m) - beta * m')
 
 # print(sympy.Derivative(dvdt, V).doit())
 diff = sympy.diff(dvdt, V)

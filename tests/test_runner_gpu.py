@@ -6,7 +6,7 @@ import numpy as np
 from numba import cuda
 
 import brainpy as bp
-from brainpy.core.runner import Runner
+from brainpy.backend.runners.numba_cpu_runner import NumbaCPUNodeRunner
 
 
 def define_lif():
@@ -51,9 +51,9 @@ def test_input_fix():
     lif = define_lif()
 
     num = 100
-    group = bp.NeuGroup(lif, geometry=(num,))
+    group = bp.NeuGroup(lif, size=(num,))
 
-    runner = Runner(group)
+    runner = NumbaCPUNodeRunner(group)
     res = runner.get_codes_of_input([('ST.input', 1., '=', 'fix')])
     assert res['input-0']['num_data'] == num
     assert res['input-0']['codes'][-1].endswith('ST_input_inp')
@@ -62,7 +62,7 @@ def test_input_fix():
 
     print('\n' * 3)
 
-    runner = Runner(group)
+    runner = NumbaCPUNodeRunner(group)
     res = runner.get_codes_of_input([('ST.input', np.random.random(100), '=', 'fix')])
     assert res['input-0']['num_data'] == num
     assert res['input-0']['codes'][-1].endswith('ST_input_inp[cuda_i]')
@@ -77,9 +77,9 @@ def test_input_iter():
     bp.profile.set(jit=True, device='gpu')
     lif = define_lif()
     num = 100
-    group = bp.NeuGroup(lif, geometry=(num,))
+    group = bp.NeuGroup(lif, size=(num,))
 
-    runner = Runner(group)
+    runner = NumbaCPUNodeRunner(group)
     res = runner.get_codes_of_input([('ST.input', np.random.random(1000), '=', 'iter')])
     assert res['input-0']['num_data'] == num
     assert res['input-0']['codes'][-1].endswith('ST_input_inp[_i]')
@@ -87,7 +87,7 @@ def test_input_iter():
 
     print('\n' * 3)
 
-    runner = Runner(group)
+    runner = NumbaCPUNodeRunner(group)
     res = runner.get_codes_of_input([('ST.input', np.random.random((1000, num)), '=', 'iter')])
     assert res['input-0']['num_data'] == num
     assert res['input-0']['codes'][-1].endswith('ST_input_inp[_i, cuda_i]')
@@ -103,9 +103,9 @@ def test_monitor():
     lif = define_lif()
 
     num = 100
-    group = bp.NeuGroup(lif, geometry=(num,), monitors=['spike'])
+    group = bp.NeuGroup(lif, size=(num,), monitors=['spike'])
 
-    runner = Runner(group)
+    runner = NumbaCPUNodeRunner(group)
     mon, res = runner.get_codes_of_monitor([('ST.spike', None)], 1000)
     assert res['monitor-0']['num_data'] == num
     assert res['monitor-0']['codes'][-1].endswith('ST[2, cuda_i]')
@@ -113,7 +113,7 @@ def test_monitor():
     pprint(res)
     print('\n' * 4)
 
-    runner = Runner(group)
+    runner = NumbaCPUNodeRunner(group)
     mon, res = runner.get_codes_of_monitor([('ST.spike', [1, 2, 4])], 1000)
     assert res['monitor-0']['num_data'] == 3
     assert res['monitor-0']['codes'][-1].endswith('= ST[2, mon_idx]')
@@ -129,9 +129,9 @@ def test_neuron_steps():
     lif = define_lif()
 
     num = 100
-    group = bp.NeuGroup(lif, geometry=(num,))
+    group = bp.NeuGroup(lif, size=(num,))
 
-    runner = Runner(group)
+    runner = NumbaCPUNodeRunner(group)
     res = runner.step_scalar_model()
     pprint(res)
     # assert res['monitor-0']['num_data'] == num

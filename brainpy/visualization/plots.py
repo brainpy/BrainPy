@@ -5,8 +5,8 @@ import numpy as np
 from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
-from .. import profile
-from ..errors import ModelUseError
+from brainpy import profile
+from brainpy.errors import ModelUseError
 
 __all__ = [
     'line_plot',

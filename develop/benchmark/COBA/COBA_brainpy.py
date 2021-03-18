@@ -99,19 +99,19 @@ inh_syn = bp.SynType('inh_syn',
 
 
 group = bp.NeuGroup(neuron,
-                    geometry=num_exc + num_inh,
+                    size=num_exc + num_inh,
                     monitors=['spike'])
 group.ST['V'] = np.random.randn(num_exc + num_inh) * 5. - 55.
 
-exc_conn = bp.SynConn(exc_syn,
-                      pre_group=group[:num_exc],
-                      post_group=group,
-                      conn=bp.connect.FixedProb(prob=0.02))
+exc_conn = bp.TwoEndConn(exc_syn,
+                         pre=group[:num_exc],
+                         post=group,
+                         conn=bp.connect.FixedProb(prob=0.02))
 
-inh_conn = bp.SynConn(inh_syn,
-                      pre_group=group[num_exc:],
-                      post_group=group,
-                      conn=bp.connect.FixedProb(prob=0.02))
+inh_conn = bp.TwoEndConn(inh_syn,
+                         pre=group[num_exc:],
+                         post=group,
+                         conn=bp.connect.FixedProb(prob=0.02))
 
 net = bp.Network(group, exc_conn, inh_conn)
 t0 = time.time()

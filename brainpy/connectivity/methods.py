@@ -1,84 +1,45 @@
 # -*- coding: utf-8 -*-
 
-import numba as nb
 import numpy as np
 
-from . import base
-from .. import errors
+from brainpy import backend
+from brainpy import errors
+from .base import Connector
 
-if hasattr(nb.core, 'dispatcher'):
-    from numba.core.dispatcher import Dispatcher
-else:
-    from numba.core import Dispatcher
+try:
+    import numba as nb
+except ModuleNotFoundError:
+    nb = None
 
-
-__all__ = ['One2One', 'one2one',
-           'All2All', 'all2all',
-           'GridFour', 'grid_four',
-           'GridEight', 'grid_eight',
-           'GridN',
-           'FixedPostNum', 'FixedPreNum', 'FixedProb',
-           'GaussianProb', 'GaussianWeight', 'DOG',
-           'SmallWorld', 'ScaleFree']
-
-
-class One2One(base.Connector):
-    """
-    Connect two neuron groups one by one. This means
-    The two neuron groups should have the same size.
-    """
-    def __init__(self):
-        super(One2One, self).__init__()
-
-    def __call__(self, pre_indices, post_indices):
-        pre_indices = np.asarray(pre_indices)
-        post_indices = np.asarray(post_indices)
-        self.pre_ids = np.ascontiguousarray(pre_indices.flatten(), dtype=np.int_)
-        self.post_ids = np.ascontiguousarray(post_indices.flatten(), dtype=np.int_)
-        try:
-            assert np.size(self.pre_ids) == np.size(self.post_ids)
-        except AssertionError:
-            raise errors.ModelUseError(f'One2One connection must be defined in two groups with the same size, '
-                                f'but we got {np.size(self.pre_ids)} != {np.size(self.post_ids)}.')
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
+__all__ = [
+    'One2One', 'one2one',
+    'All2All', 'all2all',
+    'GridFour', 'grid_four',
+    'GridEight', 'grid_eight',
+    'GridN',
+    'FixedPostNum',
+    'FixedPreNum',
+    'FixedProb',
+    'GaussianProb',
+    'GaussianWeight',
+    'DOG',
+    'SmallWorld',
+    'ScaleFree'
+]
 
 
-one2one = One2One()
+def _size2len(size):
+    if isinstance(size, int):
+        return size
+    elif isinstance(size, (tuple, list)):
+        a = 1
+        for b in size:
+            a *= b
+        return a
+    else:
+        raise ValueError
 
 
-class All2All(base.Connector):
-    """Connect each neuron in first group to all neurons in the
-    post-synaptic neuron groups. It means this kind of conn
-    will create (num_pre x num_post) synapses.
-    """
-
-    def __init__(self, include_self=True):
-        self.include_self = include_self
-        super(All2All, self).__init__()
-
-    def __call__(self, pre_indices, post_indices):
-        pre_indices = pre_indices.flatten()
-        post_indices = post_indices.flatten()
-        num_pre, num_post = len(pre_indices), len(post_indices)
-        mat = np.ones((num_pre, num_post))
-        if not self.include_self:
-            for i in range(min([num_post, num_pre])):
-                mat[i, i] = 0
-        pre_ids, post_ids = np.where(mat > 0)
-        self.pre_ids = np.ascontiguousarray(pre_ids, dtype=np.int_)
-        self.post_ids = np.ascontiguousarray(post_ids, dtype=np.int_)
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
-
-
-all2all = All2All(include_self=True)
-
-@nb.njit
 def _grid_four(height, width, row, include_self):
     conn_i = []
     conn_j = []
@@ -107,53 +68,6 @@ def _grid_four(height, width, row, include_self):
     return conn_i, conn_j
 
 
-class GridFour(base.Connector):
-    """The nearest four neighbors conn method."""
-
-    def __init__(self, include_self=False):
-        super(GridFour, self).__init__()
-        self.include_self = include_self
-
-    def __call__(self, pre_indices, post_indices=None):
-        if post_indices is not None:
-            try:
-                assert np.shape(pre_indices) == np.shape(post_indices)
-            except AssertionError:
-                raise errors.ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
-                                    f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
-
-        if len(pre_indices.shape) == 1:
-            height, width = pre_indices.shape[0], 1
-        elif len(pre_indices.shape) == 2:
-            height, width = pre_indices.shape
-        else:
-            raise errors.ModelUseError('Currently only support two-dimensional geometry.')
-        conn_i = []
-        conn_j = []
-        for row in range(height):
-            a = _grid_four(height, width, row, include_self=self.include_self)
-            conn_i.extend(a[0])
-            conn_j.extend(a[1])
-        conn_i = np.asarray(conn_i)
-        conn_j = np.asarray(conn_j)
-
-        pre_indices = pre_indices.flatten()
-        self.pre_ids = pre_indices[conn_i]
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if post_indices is None:
-            self.post_ids = pre_indices[conn_j]
-        else:
-            post_indices = post_indices.flatten()
-            self.post_ids = post_indices[conn_j]
-            if self.num_post is None:
-                self.num_post = post_indices.max()
-
-
-grid_four = GridFour()
-
-
-@nb.njit
 def _grid_n(height, width, row, n, include_self):
     conn_i = []
     conn_j = []
@@ -170,213 +84,6 @@ def _grid_n(height, width, row, n, include_self):
     return conn_i, conn_j
 
 
-class GridN(base.Connector):
-    """The nearest (2*N+1) * (2*N+1) neighbors conn method.
-
-    Parameters
-    ----------
-    N : int
-        Extend of the conn scope. For example:
-        When N=1,
-            [x x x]
-            [x I x]
-            [x x x]
-        When N=2,
-            [x x x x x]
-            [x x x x x]
-            [x x I x x]
-            [x x x x x]
-            [x x x x x]
-    include_self : bool
-        Whether create (i, i) conn ?
-    """
-
-    def __init__(self, n=1, include_self=False):
-        super(GridN, self).__init__()
-        self.n = n
-        self.include_self = include_self
-
-    def __call__(self, pre_indices, post_indices=None):
-        if post_indices is not None:
-            try:
-                assert np.shape(pre_indices) == np.shape(post_indices)
-            except AssertionError:
-                raise errors.ModelUseError(f'The shape of pre-synaptic group should be the same with the post group. '
-                                    f'But we got {np.shape(pre_indices)} != {np.shape(post_indices)}.')
-
-        if len(pre_indices.shape) == 1:
-            height, width = pre_indices.shape[0], 1
-        elif len(pre_indices.shape) == 2:
-            height, width = pre_indices.shape
-        else:
-            raise errors.ModelUseError('Currently only support two-dimensional geometry.')
-
-        conn_i = []
-        conn_j = []
-        for row in range(height):
-            res = _grid_n(height=height, width=width, row=row,
-                          n=self.n, include_self=self.include_self)
-            conn_i.extend(res[0])
-            conn_j.extend(res[1])
-        conn_i = np.asarray(conn_i, dtype=np.int_)
-        conn_j = np.asarray(conn_j, dtype=np.int_)
-
-        pre_indices = pre_indices.flatten()
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        self.pre_ids = pre_indices[conn_i]
-        if post_indices is None:
-            self.post_ids = pre_indices[conn_j]
-        else:
-            post_indices = post_indices.flatten()
-            self.post_ids = post_indices[conn_j]
-            if self.num_post is None:
-                self.num_post = post_indices.max()
-
-
-class GridEight(GridN):
-    """The nearest eight neighbors conn method."""
-
-    def __init__(self, include_self=False):
-        super(GridEight, self).__init__(n=1, include_self=include_self)
-
-
-grid_eight = GridEight()
-
-
-class FixedProb(base.Connector):
-    """Connect the post-synaptic neurons with fixed probability.
-
-    Parameters
-    ----------
-    prob : float
-        The conn probability.
-    include_self : bool
-        Whether create (i, i) conn ?
-    seed : None, int
-        Seed the random generator.
-    """
-
-    def __init__(self, prob, include_self=True, seed=None):
-        super(FixedProb, self).__init__()
-        self.prob = prob
-        self.include_self = include_self
-        self.seed = seed
-
-    def __call__(self, pre_indices, post_indices):
-        pre_indices = pre_indices.flatten()
-        post_indices = post_indices.flatten()
-
-        num_pre, num_post = len(pre_indices), len(post_indices)
-        prob_mat = np.random.random(size=(num_pre, num_post))
-        if not self.include_self:
-            diag_index = np.arange(min([num_pre, num_post]))
-            prob_mat[diag_index, diag_index] = 1.
-        conn_mat = prob_mat < self.prob
-        pre_ids, post_ids = np.where(conn_mat)
-        self.conn_mat = np.float_(conn_mat)
-        self.pre_ids = pre_indices[pre_ids]
-        self.post_ids = post_indices[post_ids]
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
-
-
-class FixedPreNum(base.Connector):
-    """Connect the pre-synaptic neurons with fixed number for each
-    post-synaptic neuron.
-
-    Parameters
-    ----------
-    num : float, int
-        The conn probability (if "num" is float) or the fixed number of
-        connectivity (if "num" is int).
-    include_self : bool
-        Whether create (i, i) conn ?
-    seed : None, int
-        Seed the random generator.
-    """
-
-    def __init__(self, num, include_self=True, seed=None):
-        super(FixedPreNum, self).__init__()
-        if isinstance(num, int):
-            assert num >= 0, '"num" must be bigger than 0.'
-        elif isinstance(num, float):
-            assert 0. <= num <= 1., '"num" must be in [0., 1.].'
-        else:
-            raise ValueError(f'Unknown type: {type(num)}')
-        self.num = num
-        self.include_self = include_self
-        self.seed = seed
-
-    def __call__(self, pre_indices, post_indices):
-        pre_indices = pre_indices.flatten()
-        post_indices = post_indices.flatten()
-        num_pre, num_post = len(pre_indices), len(post_indices)
-        num = self.num if isinstance(self.num, int) else int(self.num * num_pre)
-        assert num <= num_pre, f'"num" must be less than "num_pre", but got {num} > {num_pre}'
-        prob_mat = np.random.random(size=(num_pre, num_post))
-        if not self.include_self:
-            diag_index = np.arange(min([num_pre, num_post]))
-            prob_mat[diag_index, diag_index] = 1.1
-        arg_sort = np.argsort(prob_mat, axis=0)[:num]
-        self.pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
-        self.post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int64)
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
-
-
-class FixedPostNum(base.Connector):
-    """Connect the post-synaptic neurons with fixed number for each
-    pre-synaptic neuron.
-
-    Parameters
-    ----------
-    num : float, int
-        The conn probability (if "num" is float) or the fixed number of
-        connectivity (if "num" is int).
-    include_self : bool
-        Whether create (i, i) conn ?
-    seed : None, int
-        Seed the random generator.
-    """
-
-    def __init__(self, num, include_self=True, seed=None):
-        if isinstance(num, int):
-            assert num >= 0, '"num" must be bigger than 0.'
-        elif isinstance(num, float):
-            assert 0. <= num <= 1., '"num" must be in [0., 1.].'
-        else:
-            raise ValueError(f'Unknown type: {type(num)}')
-        self.num = num
-        self.include_self = include_self
-        self.seed = seed
-        super(FixedPostNum, self).__init__()
-
-    def __call__(self, pre_indices, post_indices):
-        pre_indices = pre_indices.flatten()
-        post_indices = post_indices.flatten()
-        num_pre = len(pre_indices)
-        num_post = len(post_indices)
-        num = self.num if isinstance(self.num, int) else int(self.num * num_post)
-        assert num <= num_post, f'"num" must be less than "num_post", but got {num} > {num_post}'
-        prob_mat = np.random.random(size=(num_pre, num_post))
-        if not self.include_self:
-            diag_index = np.arange(min([num_pre, num_post]))
-            prob_mat[diag_index, diag_index] = 1.1
-        arg_sort = np.argsort(prob_mat, axis=1)[:, num]
-        self.post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
-        self.pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
-
-
-@nb.njit
 def _gaussian_weight(pre_i, pre_width, pre_height,
                      num_post, post_width, post_height,
                      w_max, w_min, sigma, normalize, include_self):
@@ -412,7 +119,367 @@ def _gaussian_weight(pre_i, pre_width, pre_height,
     return conn_i, conn_j, conn_w
 
 
-class GaussianWeight(base.Connector):
+def _gaussian_prob(pre_i, pre_width, pre_height,
+                   num_post, post_width, post_height,
+                   p_min, sigma, normalize, include_self):
+    conn_i = []
+    conn_j = []
+    conn_p = []
+
+    # get normalized coordination
+    pre_coords = (pre_i // pre_width, pre_i % pre_width)
+    if normalize:
+        pre_coords = (pre_coords[0] / (pre_height - 1) if pre_height > 1 else 1.,
+                      pre_coords[1] / (pre_width - 1) if pre_width > 1 else 1.)
+
+    for post_i in range(num_post):
+        if (pre_i == post_i) and (not include_self):
+            continue
+
+        # get normalized coordination
+        post_coords = (post_i // post_width, post_i % post_width)
+        if normalize:
+            post_coords = (post_coords[0] / (post_height - 1) if post_height > 1 else 1.,
+                           post_coords[1] / (post_width - 1) if post_width > 1 else 1.)
+
+        # Compute Euclidean distance between two coordinates
+        distance = (pre_coords[0] - post_coords[0]) ** 2
+        distance += (pre_coords[1] - post_coords[1]) ** 2
+        # get weight and conn
+        value = np.exp(-distance / (2.0 * sigma ** 2))
+        if value > p_min:
+            conn_i.append(pre_i)
+            conn_j.append(post_i)
+            conn_p.append(value)
+    return conn_i, conn_j, conn_p
+
+
+def _dog(pre_i, pre_width, pre_height,
+         num_post, post_width, post_height,
+         w_max_p, w_max_n, w_min, sigma_p, sigma_n,
+         normalize, include_self):
+    conn_i = []
+    conn_j = []
+    conn_w = []
+
+    # get normalized coordination
+    pre_coords = (pre_i // pre_width, pre_i % pre_width)
+    if normalize:
+        pre_coords = (pre_coords[0] / (pre_height - 1) if pre_height > 1 else 1.,
+                      pre_coords[1] / (pre_width - 1) if pre_width > 1 else 1.)
+
+    for post_i in range(num_post):
+        if (pre_i == post_i) and (not include_self):
+            continue
+
+        # get normalized coordination
+        post_coords = (post_i // post_width, post_i % post_width)
+        if normalize:
+            post_coords = (post_coords[0] / (post_height - 1) if post_height > 1 else 1.,
+                           post_coords[1] / (post_width - 1) if post_width > 1 else 1.)
+
+        # Compute Euclidean distance between two coordinates
+        distance = (pre_coords[0] - post_coords[0]) ** 2
+        distance += (pre_coords[1] - post_coords[1]) ** 2
+        # get weight and conn
+        value = w_max_p * np.exp(-distance / (2.0 * sigma_p ** 2)) - \
+                w_max_n * np.exp(-distance / (2.0 * sigma_n ** 2))
+        if np.abs(value) > w_min:
+            conn_i.append(pre_i)
+            conn_j.append(post_i)
+            conn_w.append(value)
+    return conn_i, conn_j, conn_w
+
+
+if nb is not None:
+    _grid_four = nb.njit(_grid_four)
+    _grid_n = nb.njit(_grid_n)
+    _gaussian_weight = nb.njit(_gaussian_weight)
+    _gaussian_prob = nb.njit(_gaussian_prob)
+    _dog = nb.njit(_dog)
+
+
+class One2One(Connector):
+    """
+    Connect two neuron groups one by one. This means
+    The two neuron groups should have the same size.
+    """
+
+    def __init__(self):
+        super(One2One, self).__init__()
+
+    def __call__(self, pre_size, post_size):
+        try:
+            assert pre_size == post_size
+        except AssertionError:
+            raise errors.ModelUseError(f'One2One connection must be defined in two groups with the same size, '
+                                       f'but we got {pre_size} != {post_size}.')
+
+        length = _size2len(pre_size)
+        self.num_pre = length
+        self.num_post = length
+
+        self.pre_ids = backend.arange(length)
+        self.post_ids = backend.arange(length)
+
+
+one2one = One2One()
+
+
+class All2All(Connector):
+    """Connect each neuron in first group to all neurons in the
+    post-synaptic neuron groups. It means this kind of conn
+    will create (num_pre x num_post) synapses.
+    """
+
+    def __init__(self, include_self=True):
+        self.include_self = include_self
+        super(All2All, self).__init__()
+
+    def __call__(self, pre_size, post_size):
+        pre_len = _size2len(pre_size)
+        post_len = _size2len(post_size)
+        self.num_pre = pre_len
+        self.num_post = post_len
+
+        mat = np.ones((pre_len, post_len))
+        if not self.include_self:
+            eye = np.arange(min([pre_len, post_len]))
+            self.conn_mat[eye, eye] = 0
+        self.conn_mat = backend.as_tensor(mat)
+
+
+all2all = All2All(include_self=True)
+
+
+class GridFour(Connector):
+    """The nearest four neighbors conn method."""
+
+    def __init__(self, include_self=False):
+        super(GridFour, self).__init__()
+        self.include_self = include_self
+
+    def __call__(self, pre_size, post_size=None):
+        self.num_pre = _size2len(pre_size)
+        if post_size is not None:
+            try:
+                assert pre_size == post_size
+            except AssertionError:
+                raise errors.ModelUseError(f'The shape of pre-synaptic group should be the same with the '
+                                           f'post group. But we got {pre_size} != {post_size}.')
+            self.num_post = _size2len(post_size)
+        else:
+            self.num_post = self.num_pre
+
+        if len(pre_size) == 1:
+            height, width = pre_size[0], 1
+        elif len(pre_size) == 2:
+            height, width = pre_size
+        else:
+            raise errors.ModelUseError('Currently only support two-dimensional geometry.')
+        conn_i = []
+        conn_j = []
+        for row in range(height):
+            a = _grid_four(height, width, row, include_self=self.include_self)
+            conn_i.extend(a[0])
+            conn_j.extend(a[1])
+        self.pre_ids = backend.as_tensor(conn_i)
+        self.post_ids = backend.as_tensor(conn_j)
+
+
+grid_four = GridFour()
+
+
+class GridN(Connector):
+    """The nearest (2*N+1) * (2*N+1) neighbors conn method.
+
+    Parameters
+    ----------
+    N : int
+        Extend of the conn scope. For example:
+        When N=1,
+            [x x x]
+            [x I x]
+            [x x x]
+        When N=2,
+            [x x x x x]
+            [x x x x x]
+            [x x I x x]
+            [x x x x x]
+            [x x x x x]
+    include_self : bool
+        Whether create (i, i) conn ?
+    """
+
+    def __init__(self, n=1, include_self=False):
+        super(GridN, self).__init__()
+        self.n = n
+        self.include_self = include_self
+
+    def __call__(self, pre_size, post_size=None):
+        self.num_pre = _size2len(pre_size)
+        if post_size is not None:
+            try:
+                assert pre_size == post_size
+            except AssertionError:
+                raise errors.ModelUseError(
+                    f'The shape of pre-synaptic group should be the same with the post group. '
+                    f'But we got {pre_size} != {post_size}.')
+            self.num_post = _size2len(post_size)
+        else:
+            self.num_post = self.num_pre
+
+        if len(pre_size) == 1:
+            height, width = pre_size[0], 1
+        elif len(pre_size) == 2:
+            height, width = pre_size
+        else:
+            raise errors.ModelUseError('Currently only support two-dimensional geometry.')
+
+        conn_i = []
+        conn_j = []
+        for row in range(height):
+            res = _grid_n(height=height, width=width, row=row,
+                          n=self.n, include_self=self.include_self)
+            conn_i.extend(res[0])
+            conn_j.extend(res[1])
+        self.pre_ids = backend.as_tensor(conn_i)
+        self.post_ids = backend.as_tensor(conn_j)
+
+
+class GridEight(GridN):
+    """The nearest eight neighbors conn method."""
+
+    def __init__(self, include_self=False):
+        super(GridEight, self).__init__(n=1, include_self=include_self)
+
+
+grid_eight = GridEight()
+
+
+class FixedProb(Connector):
+    """Connect the post-synaptic neurons with fixed probability.
+
+    Parameters
+    ----------
+    prob : float
+        The conn probability.
+    include_self : bool
+        Whether create (i, i) conn ?
+    seed : None, int
+        Seed the random generator.
+    """
+
+    def __init__(self, prob, include_self=True, seed=None):
+        super(FixedProb, self).__init__()
+        self.prob = prob
+        self.include_self = include_self
+        self.seed = seed
+
+    def __call__(self, pre_size, post_size):
+        num_pre, num_post = _size2len(pre_size), _size2len(post_size)
+        self.num_pre, self.num_post = num_pre, num_post
+
+        prob_mat = np.random.random(size=(num_pre, num_post))
+        if not self.include_self:
+            diag_index = np.arange(min([num_pre, num_post]))
+            prob_mat[diag_index, diag_index] = 1.
+        conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
+        pre_ids, post_ids = np.where(conn_mat)
+        self.conn_mat = backend.as_tensor(conn_mat)
+        self.pre_ids = backend.as_tensor(np.ascontiguousarray(pre_ids))
+        self.post_ids = backend.as_tensor(np.ascontiguousarray(post_ids))
+
+
+class FixedPreNum(Connector):
+    """Connect the pre-synaptic neurons with fixed number for each
+    post-synaptic neuron.
+
+    Parameters
+    ----------
+    num : float, int
+        The conn probability (if "num" is float) or the fixed number of
+        connectivity (if "num" is int).
+    include_self : bool
+        Whether create (i, i) conn ?
+    seed : None, int
+        Seed the random generator.
+    """
+
+    def __init__(self, num, include_self=True, seed=None):
+        super(FixedPreNum, self).__init__()
+        if isinstance(num, int):
+            assert num >= 0, '"num" must be bigger than 0.'
+        elif isinstance(num, float):
+            assert 0. <= num <= 1., '"num" must be in [0., 1.].'
+        else:
+            raise ValueError(f'Unknown type: {type(num)}')
+        self.num = num
+        self.include_self = include_self
+        self.seed = seed
+
+    def __call__(self, pre_size, post_size):
+        num_pre, num_post = _size2len(pre_size), _size2len(post_size)
+        self.num_pre, self.num_post = num_pre, num_post
+        num = self.num if isinstance(self.num, int) else int(self.num * num_pre)
+        assert num <= num_pre, f'"num" must be less than "num_pre", but got {num} > {num_pre}'
+        prob_mat = np.random.random(size=(num_pre, num_post))
+        if not self.include_self:
+            diag_index = np.arange(min([num_pre, num_post]))
+            prob_mat[diag_index, diag_index] = 1.1
+        arg_sort = np.argsort(prob_mat, axis=0)[:num]
+        pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int_)
+        post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int_)
+        self.pre_ids = backend.as_tensor(pre_ids)
+        self.post_ids = backend.as_tensor(post_ids)
+
+
+class FixedPostNum(Connector):
+    """Connect the post-synaptic neurons with fixed number for each
+    pre-synaptic neuron.
+
+    Parameters
+    ----------
+    num : float, int
+        The conn probability (if "num" is float) or the fixed number of
+        connectivity (if "num" is int).
+    include_self : bool
+        Whether create (i, i) conn ?
+    seed : None, int
+        Seed the random generator.
+    """
+
+    def __init__(self, num, include_self=True, seed=None):
+        if isinstance(num, int):
+            assert num >= 0, '"num" must be bigger than 0.'
+        elif isinstance(num, float):
+            assert 0. <= num <= 1., '"num" must be in [0., 1.].'
+        else:
+            raise ValueError(f'Unknown type: {type(num)}')
+        self.num = num
+        self.include_self = include_self
+        self.seed = seed
+        super(FixedPostNum, self).__init__()
+
+    def __call__(self, pre_size, post_size):
+        num_pre = _size2len(pre_size)
+        num_post = _size2len(post_size)
+        self.num_pre = num_pre
+        self.num_post = num_post
+        num = self.num if isinstance(self.num, int) else int(self.num * num_post)
+        assert num <= num_post, f'"num" must be less than "num_post", but got {num} > {num_post}'
+        prob_mat = np.random.random(size=(num_pre, num_post))
+        if not self.include_self:
+            diag_index = np.arange(min([num_pre, num_post]))
+            prob_mat[diag_index, diag_index] = 1.1
+        arg_sort = np.argsort(prob_mat, axis=1)[:, num]
+        post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
+        pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
+        self.pre_ids = backend.as_tensor(pre_ids)
+        self.post_ids = backend.as_tensor(post_ids)
+
+
+class GaussianWeight(Connector):
     """Builds a Gaussian conn pattern between the two populations, where
     the weights decay with gaussian function.
 
@@ -451,13 +518,15 @@ class GaussianWeight(base.Connector):
         self.normalize = normalize
         self.include_self = include_self
 
-    def __call__(self, pre_indices, post_indices):
-        num_pre = np.size(pre_indices)
-        num_post = np.size(post_indices)
-        assert np.ndim(pre_indices) == 2
-        assert np.ndim(post_indices) == 2
-        pre_height, pre_width = pre_indices.shape
-        post_height, post_width = post_indices.shape
+    def __call__(self, pre_size, post_size):
+        num_pre = _size2len(pre_size)
+        num_post = _size2len(post_size)
+        self.num_pre = num_pre
+        self.num_post = num_post
+        assert len(pre_size) == 2
+        assert len(post_size) == 2
+        pre_height, pre_width = pre_size
+        post_height, post_width = post_size
 
         # get the connections and weights
         i, j, w = [], [], []
@@ -480,54 +549,12 @@ class GaussianWeight(base.Connector):
         pre_ids = np.asarray(i, dtype=np.int_)
         post_ids = np.asarray(j, dtype=np.int_)
         w = np.asarray(w, dtype=np.float_)
-        pre_indices = pre_indices.flatten()
-        post_indices = post_indices.flatten()
-        self.pre_ids = pre_indices[pre_ids]
-        self.post_ids = post_indices[post_ids]
-        self.weights = w
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
+        self.pre_ids = backend.as_tensor(pre_ids)
+        self.post_ids = backend.as_tensor(post_ids)
+        self.weights = backend.as_tensor(w)
 
 
-@nb.njit
-def _gaussian_prob(pre_i, pre_width, pre_height,
-                   num_post, post_width, post_height,
-                   p_min, sigma, normalize, include_self):
-    conn_i = []
-    conn_j = []
-    conn_p = []
-
-    # get normalized coordination
-    pre_coords = (pre_i // pre_width, pre_i % pre_width)
-    if normalize:
-        pre_coords = (pre_coords[0] / (pre_height - 1) if pre_height > 1 else 1.,
-                      pre_coords[1] / (pre_width - 1) if pre_width > 1 else 1.)
-
-    for post_i in range(num_post):
-        if (pre_i == post_i) and (not include_self):
-            continue
-
-        # get normalized coordination
-        post_coords = (post_i // post_width, post_i % post_width)
-        if normalize:
-            post_coords = (post_coords[0] / (post_height - 1) if post_height > 1 else 1.,
-                           post_coords[1] / (post_width - 1) if post_width > 1 else 1.)
-
-        # Compute Euclidean distance between two coordinates
-        distance = (pre_coords[0] - post_coords[0]) ** 2
-        distance += (pre_coords[1] - post_coords[1]) ** 2
-        # get weight and conn
-        value = np.exp(-distance / (2.0 * sigma ** 2))
-        if value > p_min:
-            conn_i.append(pre_i)
-            conn_j.append(post_i)
-            conn_p.append(value)
-    return conn_i, conn_j, conn_p
-
-
-class GaussianProb(base.Connector):
+class GaussianProb(Connector):
     """Builds a Gaussian conn pattern between the two populations, where
     the conn probability decay according to the gaussian function.
 
@@ -559,13 +586,13 @@ class GaussianProb(base.Connector):
         self.normalize = normalize
         self.include_self = include_self
 
-    def __call__(self, pre_indices, post_indices):
-        num_pre = np.size(pre_indices)
-        num_post = np.size(post_indices)
-        assert np.ndim(pre_indices) == 2
-        assert np.ndim(post_indices) == 2
-        pre_height, pre_width = pre_indices.shape
-        post_height, post_width = post_indices.shape
+    def __call__(self, pre_size, post_size):
+        self.num_pre = num_pre = _size2len(pre_size)
+        self.num_post = num_post = _size2len(post_size)
+        assert len(pre_size) == 2
+        assert len(post_size) == 2
+        pre_height, pre_width = pre_size
+        post_height, post_width = post_size
 
         # get the connections
         i, j, p = [], [], []  # conn_i, conn_j, probabilities
@@ -587,55 +614,11 @@ class GaussianProb(base.Connector):
         selected_idxs = np.where(np.random.random(len(p)) < p)[0]
         i = np.asarray(i, dtype=np.int_)[selected_idxs]
         j = np.asarray(j, dtype=np.int_)[selected_idxs]
-        pre_indices = pre_indices.flatten()
-        post_indices = post_indices.flatten()
-        self.pre_ids = pre_indices[i]
-        self.post_ids = post_indices[j]
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
+        self.pre_ids = backend.as_tensor(i)
+        self.post_ids = backend.as_tensor(j)
 
 
-@nb.njit
-def _dog(pre_i, pre_width, pre_height,
-         num_post, post_width, post_height,
-         w_max_p, w_max_n, w_min, sigma_p, sigma_n,
-         normalize, include_self):
-    conn_i = []
-    conn_j = []
-    conn_w = []
-
-    # get normalized coordination
-    pre_coords = (pre_i // pre_width, pre_i % pre_width)
-    if normalize:
-        pre_coords = (pre_coords[0] / (pre_height - 1) if pre_height > 1 else 1.,
-                      pre_coords[1] / (pre_width - 1) if pre_width > 1 else 1.)
-
-    for post_i in range(num_post):
-        if (pre_i == post_i) and (not include_self):
-            continue
-
-        # get normalized coordination
-        post_coords = (post_i // post_width, post_i % post_width)
-        if normalize:
-            post_coords = (post_coords[0] / (post_height - 1) if post_height > 1 else 1.,
-                           post_coords[1] / (post_width - 1) if post_width > 1 else 1.)
-
-        # Compute Euclidean distance between two coordinates
-        distance = (pre_coords[0] - post_coords[0]) ** 2
-        distance += (pre_coords[1] - post_coords[1]) ** 2
-        # get weight and conn
-        value = w_max_p * np.exp(-distance / (2.0 * sigma_p ** 2)) - \
-                w_max_n * np.exp(-distance / (2.0 * sigma_n ** 2))
-        if np.abs(value) > w_min:
-            conn_i.append(pre_i)
-            conn_j.append(post_i)
-            conn_w.append(value)
-    return conn_i, conn_j, conn_w
-
-
-class DOG(base.Connector):
+class DOG(Connector):
     """Builds a Difference-Of-Gaussian (dog) conn pattern between the two populations.
 
     Mathematically,
@@ -671,13 +654,13 @@ class DOG(base.Connector):
         self.normalize = normalize
         self.include_self = include_self
 
-    def __call__(self, pre_indices, post_indices):
-        num_pre = np.size(pre_indices)
-        num_post = np.size(post_indices)
-        assert np.ndim(pre_indices) == 2
-        assert np.ndim(post_indices) == 2
-        pre_height, pre_width = pre_indices.shape
-        post_height, post_width = post_indices.shape
+    def __call__(self, pre_size, post_size):
+        self.num_pre = num_pre = _size2len(pre_size)
+        self.num_post = num_post = _size2len(post_size)
+        assert len(pre_size) == 2
+        assert len(post_size) == 2
+        pre_height, pre_width = pre_size
+        post_height, post_width = post_size
 
         # get the connections and weights
         i, j, w = [], [], []  # conn_i, conn_j, weights
@@ -703,22 +686,16 @@ class DOG(base.Connector):
         i = np.asarray(i, dtype=np.int_)
         j = np.asarray(j, dtype=np.int_)
         w = np.asarray(w, dtype=np.float_)
-        pre_indices = pre_indices.flatten()
-        post_indices = post_indices.flatten()
-        self.pre_ids = pre_indices[i]
-        self.post_ids = post_indices[j]
-        self.weights = w
-        if self.num_pre is None:
-            self.num_pre = pre_indices.max()
-        if self.num_post is None:
-            self.num_post = post_indices.max()
+        self.pre_ids = backend.as_tensor(i)
+        self.post_ids = backend.as_tensor(j)
+        self.weights = backend.as_tensor(w)
 
 
-class ScaleFree(base.Connector):
+class ScaleFree(Connector):
     def __init__(self):
         raise NotImplementedError
 
 
-class SmallWorld(base.Connector):
+class SmallWorld(Connector):
     def __init__(self):
         raise NotImplementedError

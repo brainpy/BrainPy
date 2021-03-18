@@ -3,11 +3,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from . import base
-from . import utils
-from .. import core
-from .. import errors
-from .. import profile
+from brainpy import simulation
+from brainpy import errors
+from brainpy import profile
+from brainpy.analysis import base
+from brainpy.analysis import utils
 
 __all__ = [
     'PhasePlane',
@@ -26,7 +26,7 @@ class PhasePlane(object):
 
     Parameters
     ----------
-    model : NeuType
+    model_or_intgs : NeuType
         The neuron model which defines the differential equations by using
         `brainpy.integrate`.
     target_vars : dict
@@ -76,7 +76,7 @@ class PhasePlane(object):
 
     def __init__(
             self,
-            model,
+            model_or_intgs,
             target_vars,
             fixed_vars=None,
             pars_update=None,
@@ -85,9 +85,9 @@ class PhasePlane(object):
     ):
 
         # check "model"
-        if not isinstance(model, core.NeuType):
+        if not isinstance(model_or_intgs, simulation.Population):
             raise errors.ModelUseError('Phase plane analysis only support neuron type model.')
-        self.model = model
+        self.model = model_or_intgs
 
         # check "target_vars"
         if not isinstance(target_vars, dict):
@@ -110,20 +110,20 @@ class PhasePlane(object):
             raise errors.ModelUseError('"pars_update" must be a dict with the format of: '
                                 '{"Par A": A_value, "Par B": B_value}')
         for key in pars_update.keys():
-            if key not in model.step_scopes:
-                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
+            if key not in model_or_intgs.step_scopes:
+                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model_or_intgs.name}" model.')
         self.pars_update = pars_update
 
         # analyzer
         if len(target_vars) == 1:
-            self.analyzer = _PhasePlane1D(model=model,
+            self.analyzer = _PhasePlane1D(model=model_or_intgs,
                                           target_vars=target_vars,
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
                                           options=options)
         elif len(target_vars) == 2:
-            self.analyzer = _PhasePlane2D(model=model,
+            self.analyzer = _PhasePlane2D(model=model_or_intgs,
                                           target_vars=target_vars,
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
@@ -261,16 +261,16 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         # ---------------------
 
         # cannot update dynamical parameters
-        self.traj_group = core.NeuGroup(self.model,
-                                        geometry=1,
-                                        monitors=self.dvar_names,
-                                        pars_update=self.pars_update)
-        self.traj_group.runner = core.TrajectoryRunner(self.traj_group,
-                                                       target_vars=self.dvar_names,
-                                                       fixed_vars=self.fixed_vars)
+        self.traj_group = simulation.NeuGroup(self.model,
+                                              size=1,
+                                              monitors=self.dvar_names,
+                                              pars_update=self.pars_update)
+        self.traj_group.runner = simulation.TrajectoryNumbaRunner(self.traj_group,
+                                                                  target_vars=self.dvar_names,
+                                                                  fixed_vars=self.fixed_vars)
         self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
                              if not key.startswith('_')}
-        self.traj_net = core.Network(self.traj_group)
+        self.traj_net = simulation.Network(self.traj_group)
 
     def plot_vector_field(self, plot_method='streamplot', plot_style=None, show=False):
         """Plot the vector field.
