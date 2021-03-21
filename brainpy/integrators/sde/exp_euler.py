@@ -3,11 +3,10 @@
 import numpy as np
 import sympy
 
-from brainpy.integrators import ast_analysis
 from brainpy import backend
 from brainpy import errors
-from brainpy import profile
 from brainpy import tools
+from brainpy.integrators import ast_analysis
 
 __all__ = [
     'exponential_euler',
@@ -41,7 +40,7 @@ class Integrator(object):
         # function scope
         code_scopes = {'numpy': np}
         for k_, v_ in self.code_scope.items():
-            if profile.is_jit() and callable(v_):
+            if backend.is_jit() and callable(v_):
                 v_ = tools.numba_func(v_)
             code_scopes[k_] = v_
         code_scopes.update(ast_analysis.get_mapping_scope())
@@ -50,7 +49,7 @@ class Integrator(object):
         # function compilation
         exec(compile(func_code, '', 'exec'), code_scopes)
         func = code_scopes[self.py_func_name]
-        if profile.is_jit():
+        if backend.is_jit():
             func = tools.jit(func)
         self._update_func = func
 
@@ -73,7 +72,7 @@ class Integrator(object):
     @property
     def code_scope(self):
         scope = self.diff_eq.func_scope
-        if profile.run_on_cpu():
+        if backend.run_on_cpu():
             scope['_normal_like_'] = backend.normal_like
         return scope
 
@@ -140,7 +139,7 @@ class ExponentialEuler(Integrator):
 
     @staticmethod
     def get_integral_step(diff_eq, *args):
-        dt = profile.get_dt()
+        dt = backend.get_dt()
         f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
         # code lines
@@ -205,7 +204,7 @@ class ExponentialEuler(Integrator):
 
 
 def exponential_euler(f):
-    dt = profile.get_dt()
+    dt = backend.get_dt()
     dt_sqrt = dt ** 0.5
 
     def int_f(x, t, *args):

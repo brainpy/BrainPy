@@ -8,14 +8,9 @@ functions for computation backends.
 import numpy as np
 
 
+def sum(tensor, axis=None):
+    """The sum operation. We expect "sum" function will behave like "numpy.sum"
 
-def sum(tensor, axis):
-    """The sum operation.
-    
-    We expect "sum" function will behave like "numpy.sum"
-    
-    
-    
     Parameters
     ----------
     tensor : array_like
@@ -60,7 +55,5 @@ def sum(tensor, axis):
     
     """
     pass
-
-
 
 

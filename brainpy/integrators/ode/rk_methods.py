@@ -4,9 +4,9 @@
 https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Kutta's_third-order_method
 """
 
-from brainpy import profile
-from brainpy.integrators import utils
+from brainpy import backend
 from .wrapper import rk_wrapper
+from .wrapper import wrapper_of_rk2
 
 __all__ = [
     'euler',
@@ -25,7 +25,7 @@ __all__ = [
 
 
 def _base(A, B, C, f, show_code, dt):
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
     show_code = False if show_code is None else show_code
 
     if f is None:
@@ -126,34 +126,6 @@ def ralston2(f=None, show_code=None, dt=None):
     return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
 
 
-def _rk2_wrapper(f, show_code, dt, beta):
-    vars, other_args, org_args = utils.get_args(f)
-
-    code_scope = {f.__name__: f, 'dt': dt, 'beta': beta,
-                  'k1': 1 - 1 / (2 * beta), 'k2': 1 / (2 * beta)}
-    code_lines = [f'def int_{f.__name__}({", ".join(org_args)}):']
-    # k1
-    k1_args = vars + other_args
-    k1_vars_d = [f'd{v}_k1' for v in vars]
-    code_lines.append(f'  {", ".join(k1_vars_d)} = {f.__name__}({", ".join(k1_args)})')
-    # k2
-    k2_args = [f'{v} + d{v}_k1 * dt * beta' for v in vars]
-    k2_args.append('t + dt * beta')
-    k2_args.extend(other_args[1:])
-    k2_vars_d = [f'd{v}_k2' for v in vars]
-    code_lines.append(f'  {", ".join(k2_vars_d)} = {f.__name__}({", ".join(k2_args)})')
-    # returns
-    for v, k1, k2 in zip(vars, k1_vars_d, k2_vars_d):
-        code_lines.append(f'  {v}_new = {v} + ({k1} * k1 + {k2} * k2) * dt')
-    return_vars = [f'{v}_new' for v in vars]
-    code_lines.append(f'  return {", ".join(return_vars)}')
-
-    code = '\n'.join(code_lines)
-    if show_code:
-        print(code)
-        print(code_scope)
-    exec(compile(code, '', 'exec'), code_scope)
-    return code_scope[f'int_{f.__name__}']
 
 
 def rk2(f=None, show_code=None, dt=None, beta=None):
@@ -176,13 +148,13 @@ def rk2(f=None, show_code=None, dt=None, beta=None):
         \\end{array}
     """
     beta = 2 / 3 if beta is None else beta
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
     show_code = False if show_code is None else show_code
 
     if f is None:
-        return lambda f: _rk2_wrapper(f, show_code=show_code, dt=dt, beta=beta)
+        return lambda f: wrapper_of_rk2(f, show_code=show_code, dt=dt, beta=beta)
     else:
-        return _rk2_wrapper(f, show_code=show_code, dt=dt, beta=beta)
+        return wrapper_of_rk2(f, show_code=show_code, dt=dt, beta=beta)
 
 
 def rk3(f=None, show_code=None, dt=None):

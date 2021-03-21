@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
 
 
-class JaxRunner():
+class JaxRunner(object):
     pass

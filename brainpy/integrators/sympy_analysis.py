@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import ast
-import inspect
 import math
 from collections import Counter
 
 import numpy as np
 
 from brainpy import errors
-from brainpy import profile
 from brainpy import tools
 
 try:
@@ -26,22 +24,10 @@ from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
-
 CONSTANT_NOISE = 'CONSTANT'
 FUNCTIONAL_NOISE = 'FUNCTIONAL'
 
-ODE_TYPE = 'ODE'
-SDE_TYPE = 'SDE'
-
-DIFF_EQUATION = 'diff_equation'
-SUB_EXPRESSION = 'sub_expression'
-
-
 FUNCTION_MAPPING = {
-    # 'real': sympy.functions.elementary.complexes.re,
-    # 'imag': sympy.functions.elementary.complexes.im,
-    # 'conjugate': sympy.functions.elementary.complexes.conjugate,
-
     # functions in inherit python
     # ---------------------------
     'abs': sympy.functions.elementary.complexes.Abs,
@@ -63,9 +49,6 @@ FUNCTION_MAPPING = {
 
     'expm1': cfunctions.expm1,
     'exp2': cfunctions.exp2,
-
-    # 'maximum': sympy.functions.elementary.miscellaneous.Max,
-    # 'minimum': sympy.functions.elementary.miscellaneous.Min,
 
     # functions in math
     # ------------------
@@ -105,65 +88,42 @@ CONSTANT_MAPPING = {
     'inf': sympy.S.Infinity,
 }
 
+# Get functions in math
+_functions_in_math = []
+for key in dir(math):
+    if not key.startswith('__'):
+        _functions_in_math.append(getattr(math, key))
+
+# Get functions in NumPy
+_functions_in_numpy = []
+for key in dir(np):
+    if not key.startswith('__'):
+        _functions_in_numpy.append(getattr(np, key))
+for key in dir(np.random):
+    if not key.startswith('__'):
+        _functions_in_numpy.append(getattr(np.random, key))
+for key in dir(np.linalg):
+    if not key.startswith('__'):
+        _functions_in_numpy.append(getattr(np.linalg, key))
+
+
+def func_in_numpy_or_math(func):
+    return func in _functions_in_math or func in _functions_in_numpy
+
 
 def get_mapping_scope():
-    if profile.run_on_cpu():
-        return {
-            'sign': np.sign, 'cos': np.cos, 'sin': np.sin, 'tan': np.tan,
-            'sinc': np.sinc, 'arcsin': np.arcsin, 'arccos': np.arccos,
-            'arctan': np.arctan, 'arctan2': np.arctan2, 'cosh': np.cosh,
-            'sinh': np.cosh, 'tanh': np.tanh, 'arcsinh': np.arcsinh,
-            'arccosh': np.arccosh, 'arctanh': np.arctanh, 'ceil': np.ceil,
-            'floor': np.floor, 'log': np.log, 'log2': np.log2, 'log1p': np.log1p,
-            'log10': np.log10, 'exp': np.exp, 'expm1': np.expm1, 'exp2': np.exp2,
-            'hypot': np.hypot, 'sqrt': np.sqrt, 'pi': np.pi, 'e': np.e, 'inf': np.inf,
-            'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
-            'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh,
-            # 'Max': np.maximum, 'Min': np.minimum
-        }
-    else:
-        return {
-            # functions in numpy
-            # ------------------
-            'arcsin': math.asin, 'arccos': math.acos,
-            'arctan': math.atan, 'arctan2': math.atan2, 'arcsinh': math.asinh,
-            'arccosh': math.acosh, 'arctanh': math.atanh,
-            'sign': np.sign, 'sinc': np.sinc,
-            'log2': np.log2, 'log1p': np.log1p,
-            'expm1': np.expm1, 'exp2': np.exp2,
-            # 'Max': max, 'Min': min,
-
-            # functions in math
-            # ------------------
-            'asin': math.asin,
-            'acos': math.acos,
-            'atan': math.atan,
-            'atan2': math.atan2,
-            'asinh': math.asinh,
-            'acosh': math.acosh,
-            'atanh': math.atanh,
-
-            # functions in both numpy and math
-            # --------------------------------
-            'cos': math.cos,
-            'sin': math.sin,
-            'tan': math.tan,
-            'cosh': math.cosh,
-            'sinh': math.sinh,
-            'tanh': math.tanh,
-            'log': math.log,
-            'log10': math.log10,
-            'sqrt': math.sqrt,
-            'exp': math.exp,
-            'hypot': math.hypot,
-            'ceil': math.ceil,
-            'floor': math.floor,
-
-            # constants in both numpy and math
-            # --------------------------------
-            'pi': math.pi,
-            'e': math.e,
-            'inf': math.inf}
+    return {
+        'sign': np.sign, 'cos': np.cos, 'sin': np.sin, 'tan': np.tan,
+        'sinc': np.sinc, 'arcsin': np.arcsin, 'arccos': np.arccos,
+        'arctan': np.arctan, 'arctan2': np.arctan2, 'cosh': np.cosh,
+        'sinh': np.cosh, 'tanh': np.tanh, 'arcsinh': np.arcsinh,
+        'arccosh': np.arccosh, 'arctanh': np.arctanh, 'ceil': np.ceil,
+        'floor': np.floor, 'log': np.log, 'log2': np.log2, 'log1p': np.log1p,
+        'log10': np.log10, 'exp': np.exp, 'expm1': np.expm1, 'exp2': np.exp2,
+        'hypot': np.hypot, 'sqrt': np.sqrt, 'pi': np.pi, 'e': np.e, 'inf': np.inf,
+        'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
+        'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh,
+    }
 
 
 class Parser(object):
@@ -479,72 +439,36 @@ class SingleDiffEq(object):
 
     Parameters
     ----------
-    func : callable
-        The user defined differential equation.
+    var_name : str
+        The variable names.
+    variables : list
+        The code variables.
+    expressions : list
+        The code expressions for each line.
+    derivative_expr : str
+        The final derivative expression.
+    scope : dict
+        The code scope.
     """
 
-    def __init__(self, func):
-        # check
-        if func is None:
-            raise errors.DiffEqError('"func" cannot be None.')
-        if not (callable(func) and type(func).__name__ == 'function'):
-            raise errors.DiffEqError('"func" must be a function.')
-
-        # function
-        self.func = func
-
-        # function string
-        self.code = tools.deindent(tools.get_main_code(func))
-        if 'return' not in self.code:
-            raise errors.DiffEqError(f'"func" function must return something, '
-                                     f'but found no return.\n{self.code}')
-
-        # function arguments
-        self.func_args = inspect.getfullargspec(func).args
-
-        # function name
-        if tools.is_lambda_function(func):
-            self.func_name = f'_integral_{self.func_args[0]}_'
-        else:
-            self.func_name = func.__name__
-
+    def __init__(self, var_name, variables, expressions, derivative_expr, scope,
+                 func_name):
+        self.func_name = func_name
         # function scope
-        scope = inspect.getclosurevars(func)
-        self.func_scope = dict(scope.nonlocals)
-        self.func_scope.update(scope.globals)
+        self.func_scope = scope
 
         # differential variable name and time name
-        self.var_name = self.func_args[0]
-        self.t_name = self.func_args[1]
+        self.var_name = var_name
+        self.t_name = 't'
 
         # analyse function code
-        res = analyse_diff_eq(self.code)
-        self.expressions = [Expression(v, expr) for v, expr in zip(res.variables, res.expressions)]
-        self.return_type = res.return_type
-        self.f_expr = None
-        self.g_expr = None
-        if res.f_expr is not None:
-            self.f_expr = Expression(res.f_expr[0], res.f_expr[1])
-        if res.g_expr is not None:
-            self.g_expr = Expression(res.g_expr[0], res.g_expr[1])
-        for k, num in Counter(res.variables).items():
+        self.expressions = [Expression(v, expr) for v, expr in zip(variables, expressions)]
+        self.f_expr = Expression('_f_res_', derivative_expr)
+        for k, num in Counter(variables).items():
             if num > 1:
-                raise errors.DiffEqError(
+                raise errors.AnalyzerError(
                     f'Found "{k}" {num} times. Please assign each expression '
                     f'in differential function with a unique name. ')
-
-        # analyse noise type
-        self.g_type = CONSTANT_NOISE
-        self.g_value = None
-        if self.g_expr is not None:
-            self._substitute(self.g_expr, self.expressions)
-            g_code = self.g_expr.get_code(subs=True)
-            for idf in tools.get_identifiers(g_code):
-                if idf not in self.func_scope:
-                    self.g_type = FUNCTIONAL_NOISE
-                    break
-            else:
-                self.g_value = eval(g_code, self.func_scope)
 
     def _substitute(self, final_exp, expressions, substitute_vars=None):
         """Substitute expressions to get the final single expression
@@ -613,7 +537,6 @@ class SingleDiffEq(object):
         return_expressions.append(Expression(f'_df{self.var_name}_dt', dif_eq_code))
         # needed variables
         need_vars = tools.get_identifiers(dif_eq_code)
-        need_vars |= tools.get_identifiers(', '.join(self.return_intermediates))
         # get the total return expressions
         for expr in self.expressions[::-1]:
             if expr.var_name in need_vars:
@@ -624,30 +547,6 @@ class SingleDiffEq(object):
                 return_expressions.append(Expression(expr.var_name, code))
                 need_vars |= tools.get_identifiers(code)
         return return_expressions[::-1]
-
-    def get_g_expressions(self):
-        if self.g_expr is None:
-            return []
-
-        if self.is_functional_noise:
-            return_expressions = []
-            # the derivative expression
-            eq_code = self.g_expr.get_code(subs=True)
-            return_expressions.append(Expression(f'_dg{self.var_name}_dt', eq_code))
-            # needed variables
-            need_vars = tools.get_identifiers(eq_code)
-            # get the total return expressions
-            for expr in self.expressions[::-1]:
-                if expr.var_name in need_vars:
-                    if expr.substituted_code is None:
-                        code = expr.code
-                    else:
-                        code = expr.substituted_code
-                    return_expressions.append(Expression(expr.var_name, code))
-                    need_vars |= tools.get_identifiers(code)
-            return return_expressions[::-1]
-        else:
-            return [Expression(f'_dg{self.var_name}_dt', self.g_expr.get_code(subs=True))]
 
     def _replace_expressions(self, expressions, name, y_sub, t_sub=None):
         """Replace expressions of df part.
@@ -711,31 +610,6 @@ class SingleDiffEq(object):
                                          name=name,
                                          y_sub=y_sub,
                                          t_sub=t_sub)
-
-    def replace_g_expressions(self, name, y_sub, t_sub=None):
-        if self.is_functional_noise:
-            return self._replace_expressions(self.get_g_expressions(),
-                                             name=name,
-                                             y_sub=y_sub,
-                                             t_sub=t_sub)
-        else:
-            return []
-
-    @property
-    def is_stochastic(self):
-        if self.g_expr is not None:
-            try:
-                if eval(self.g_expr.code, self.func_scope) == 0.:
-                    return False
-            except Exception as e:
-                pass
-            return True
-        else:
-            return False
-
-    @property
-    def is_functional_noise(self):
-        return self.g_type == FUNCTIONAL_NOISE
 
     @property
     def expr_names(self):

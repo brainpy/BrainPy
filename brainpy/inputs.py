@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brainpy import profile
+from brainpy import backend
 
 __all__ = [
     'constant_current',
@@ -34,7 +34,7 @@ def constant_current(Iext, dt=None):
     current_and_duration : tuple
         (The formatted current, total duration)
     """
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
 
     # get input current dimension, shape, and duration
     I_duration = 0.
@@ -89,7 +89,7 @@ def spike_current(points, lengths, sizes, duration, dt=None):
     current_and_duration : tuple
         (The formatted current, total duration)
     """
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
     assert isinstance(points, (list, tuple))
     if isinstance(lengths, (float, int)):
         lengths = [lengths] * len(points)
@@ -126,7 +126,7 @@ def ramp_current(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     current_and_duration : tuple
         (The formatted current, total duration)
     """
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
     t_end = duration if t_end is None else t_end
 
     current = np.zeros(int(np.ceil(duration / dt)))

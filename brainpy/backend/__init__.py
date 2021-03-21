@@ -8,14 +8,22 @@ from .operators.bk_numpy import *
 _backend = 'numpy'  # default backend is NumPy
 _node_runner = None
 _net_runner = None
-NEEDED_OPS = ['normal', 'reshape', 'shape', 'exp', 'sum', 'zeros',
+_dt = 0.1
+
+CLASS_KEYWORDS = ['self', 'cls']
+NEEDED_OPS = ['as_tensor', 'normal', 'reshape', 'shape',
+              'exp', 'sum', 'zeros', 'ones',
               'eye', 'matmul', 'vstack', 'arange']
 SUPPORTED_BACKEND = ['numba', 'numba-parallel', 'numba-cuda', 'jax',
                      'numpy', 'pytorch', 'tensorflow', ]
 SYSTEM_KEYWORDS = ['_dt', '_t', '_i']
 
 
-def set(backend, module_or_operations=None, node_runner=None, net_runner=None):
+def set(backend, module_or_operations=None, node_runner=None,
+        net_runner=None, dt=None):
+    if dt is not None:
+        set_dt(dt)
+
     if _backend == backend:
         return
 
@@ -92,6 +100,36 @@ def set(backend, module_or_operations=None, node_runner=None, net_runner=None):
     else:
         raise errors.ModelUseError('"module_or_operations" must be a module '
                                    'or a dict of operations.')
+
+
+
+def set_class_keywords(*args):
+    global CLASS_KEYWORDS
+    CLASS_KEYWORDS = list(args)
+
+
+def set_dt(dt):
+    """Set the numerical integrator precision.
+
+    Parameters
+    ----------
+    dt : float
+        Numerical integration precision.
+    """
+    assert isinstance(dt, float)
+    global _dt
+    _dt = dt
+
+
+def get_dt():
+    """Get the numerical integrator precision.
+
+    Returns
+    -------
+    dt : float
+        Numerical integration precision.
+    """
+    return _dt
 
 
 def set_ops_from_module(module):

@@ -15,8 +15,7 @@ sum = torch.sum
 zeros = torch.zeros
 ones = torch.ones
 eye = torch.eye
-outer = torch.outer
-dot = torch.mm
+matmul = torch.matmul
 vstack = torch.vstack
 arange = torch.arange
 

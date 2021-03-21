@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import ast
+import inspect
 import re
 from types import LambdaType
-
-from brainpy import errors
-from .ast2code import ast2code
 
 __all__ = [
     # tools for code string
@@ -15,10 +12,9 @@ __all__ = [
     'word_replace',
 
     # other tools
-    'NoiseHandler',
-    'FindAtomicOp',
-    'find_atomic_op',
     'is_lambda_function',
+    'get_main_code',
+    'get_func_source',
 ]
 
 
@@ -143,91 +139,52 @@ def is_lambda_function(func):
     return isinstance(func, LambdaType) and func.__name__ == "<lambda>"
 
 
-class NoiseHandler(object):
-    normal_pattern = re.compile(r'(_normal_like_)\((\w+)\)')
-
-    @staticmethod
-    def vector_replace_f(m):
-        return 'numpy.random.normal(0., 1., ' + m.group(2) + '.shape)'
-
-    @staticmethod
-    def scalar_replace_f(m):
-        return 'numpy.random.normal(0., 1.)'
-
-    @staticmethod
-    def cuda_replace_f(m):
-        return 'xoroshiro128p_normal_float64(rng_states, _obj_i)'
+def get_func_source(func):
+    code = inspect.getsource(func)
+    # remove @
+    try:
+        start = code.index('def ')
+        code = code[start:]
+    except ValueError:
+        pass
+    return code
 
 
-class FindAtomicOp(ast.NodeTransformer):
-    def __init__(self, var2idx):
-        self.var2idx = var2idx
-        self.left = None
-        self.right = None
+def get_main_code(func):
+    """Get the main function _code string.
 
-    def visit_Assign(self, node):
-        targets = node.targets
-        try:
-            assert len(targets) == 1
-        except AssertionError:
-            raise errors.DiffEqError('Do not support multiple assignment.')
-        left = ast2code(ast.fix_missing_locations(targets[0]))
-        key = targets[0].slice.value.s
-        value = targets[0].value.id
-        if node.value.__class__.__name__ == 'BinOp':
-            r_left = ast2code(ast.fix_missing_locations(node.value.left))
-            r_right = ast2code(ast.fix_missing_locations(node.value.right))
-            op = ast2code(ast.fix_missing_locations(node.value.op))
-            if op not in ['+', '-']:
-                # raise ValueError(f'Unsupported operation "{op}" for {left}.')
-                return node
-            self.left = f'{value}[{self.var2idx[key]}]'
-            if r_left == left:
-                if op == '+':
-                    self.right = r_right
-                if op == '-':
-                    self.right = f'- {r_right}'
-            elif r_left == '-' + left:
-                if op == '+':
-                    self.right = f"2 * {left} + {r_right}"
-                if op == '-':
-                    self.right = f"2 * {left} - {r_right}"
-            elif r_right == left:
-                if op == '+':
-                    self.right = r_left
-                if op == '-':
-                    self.right = f"{r_left} + 2 * {left}"
-            elif r_right == '-' + left:
-                if op == '+':
-                    self.right = f"{r_left} + 2 * {left}"
-                if op == '-':
-                    self.right = r_left
+    For lambda function, return the
+
+    Parameters
+    ----------
+    func : callable, Optional, int, float
+
+    Returns
+    -------
+
+    """
+    if func is None:
+        return ''
+    elif callable(func):
+        if is_lambda_function(func):
+            func_code = get_func_source(func)
+            splits = func_code.split(':')
+            if len(splits) != 2:
+                raise ValueError(f'Can not parse function: \n{func_code}')
+            return f'return {splits[1]}'
+
+        else:
+            func_codes = inspect.getsourcelines(func)[0]
+            idx = 0
+            for i, line in enumerate(func_codes):
+                idx += 1
+                line = line.replace(' ', '')
+                if '):' in line:
+                    break
             else:
-                return node
-        return node
+                code = "\n".join(func_codes)
+                raise ValueError(f'Can not parse function: \n{code}')
+            return ''.join(func_codes[idx:])
+    else:
+        raise ValueError(f'Unknown function type: {type(func)}.')
 
-    def visit_AugAssign(self, node):
-        op = ast2code(ast.fix_missing_locations(node.op))
-        expr = ast2code(ast.fix_missing_locations(node.value))
-        if op not in ['+', '-']:
-            # left = ast2code(ast.fix_missing_locations(node.target))
-            # raise ValueError(f'Unsupported operation "{op}" for {left}.')
-            return node
-
-        key = node.target.slice.value.s
-        value = node.target.value.id
-
-        self.left = f'{value}[{self.var2idx[key]}]'
-        if op == '+':
-            self.right = expr
-        if op == '-':
-            self.right = f'- {expr}'
-
-        return node
-
-
-def find_atomic_op(code_line, var2idx):
-    tree = ast.parse(code_line.strip())
-    formatter = FindAtomicOp(var2idx)
-    formatter.visit(tree)
-    return formatter

@@ -1,13 +1,34 @@
 # -*- coding: utf-8 -*-
 
 import inspect
+from copy import deepcopy
 
+from brainpy import backend
 from brainpy import errors
-from brainpy import profile
 
 __all__ = [
+    'numba_func',
     'get_args',
 ]
+
+
+def numba_func(code_scope, funcs_to_jit):
+    if backend.get_backend() in ['numba', 'numba-parallel']:
+        from brainpy.backend.runners.numba_cpu_runner import NUMBA_PROFILE
+        import numba as nb
+
+        profiles = deepcopy(NUMBA_PROFILE)
+        profiles.pop('parallel')
+        if isinstance(funcs_to_jit, str):
+            funcs_to_jit = [funcs_to_jit]
+        for f in funcs_to_jit:
+            code_scope[f] = nb.jit(**profiles)(code_scope[f])
+
+    elif backend.get_backend() == 'numba-cuda':
+        from numba import cuda
+
+        for f in funcs_to_jit:
+            code_scope[f] = cuda.jit(code_scope[f], device=True)
 
 
 def get_args(f):
@@ -71,11 +92,11 @@ def get_args(f):
     # 2. analyze the function arguments
     #   2.1 class keywords
     class_kw = []
-    if reduced_args[0] in profile.CLASS_KEYWORDS:
+    if reduced_args[0] in backend.CLASS_KEYWORDS:
         class_kw.append(reduced_args[0])
         reduced_args = reduced_args[1:]
     for a in reduced_args:
-        if a in profile.CLASS_KEYWORDS:
+        if a in backend.CLASS_KEYWORDS:
             raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
                                      f'as the first argument.')
     #  2.2 variable names

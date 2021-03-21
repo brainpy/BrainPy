@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brainpy import profile
+from brainpy import backend
 
 try:
     from numba import njit
@@ -214,7 +214,7 @@ def firing_rate(sp_matrix, width, window='gaussian'):
     rate = np.sum(sp_matrix, axis=1)
 
     # window
-    dt = profile.get_dt()
+    dt = backend.get_dt()
     if window == 'gaussian':
         width1 = 2 * width / dt
         width2 = int(np.around(width1))

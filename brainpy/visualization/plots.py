@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
-from brainpy import profile
+from brainpy import backend
 from brainpy.errors import ModelUseError
 
 __all__ = [
@@ -234,7 +234,7 @@ def animate_2D(values,
     figure : plt.figure
         The created figure instance.
     """
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
     num_step, num_neuron = values.shape
     height, width = net_size
     val_min = values.min() if val_min is None else val_min
@@ -336,7 +336,7 @@ def animate_1D(dynamical_vars,
     """
 
     # check dt
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
 
     # check figure
     fig = plt.figure(figsize=(figsize or (6, 6)), constrained_layout=True)

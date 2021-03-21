@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import backend
-from brainpy import profile
 from brainpy.integrators import constants
 from . import common
 
@@ -126,8 +125,10 @@ def _srk1w1_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
         code_lines.append('  ')
 
     # return and compile
-    common.return_and_compile(code_lines, code_scope, show_code, variables)
-    return code_scope[func_name]
+    return common.return_compile_and_assign_attrs(
+        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
+        variables=variables, parameters=parameters, func_name=func_name,
+        sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
 
 def _srk2w1_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
@@ -222,8 +223,10 @@ def _srk2w1_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
         code_lines.append('  ')
 
     # return and compile
-    common.return_and_compile(code_lines, code_scope, show_code, variables)
-    return code_scope[func_name]
+    return common.return_compile_and_assign_attrs(
+        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
+        variables=variables, parameters=parameters, func_name=func_name,
+        sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
 
 def _KlPl_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
@@ -266,8 +269,10 @@ def _KlPl_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
         code_lines.append('  ')
 
     # return and compile
-    common.return_and_compile(code_lines, code_scope, show_code, variables)
-    return code_scope[func_name]
+    return common.return_compile_and_assign_attrs(
+        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
+        variables=variables, parameters=parameters, func_name=func_name,
+        sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
 
 def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code):
@@ -309,7 +314,7 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code):
                                                    'scalar Wiener Process.'
 
     show_code = False if show_code is None else show_code
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
 
     if f is not None and g is not None:
         return wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,

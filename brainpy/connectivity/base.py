@@ -317,6 +317,12 @@ def post_slice_syn(i, j, num_post=None):
     return pre_ids, post_ids, slicing
 
 
+SUPPORTED_SYN_STRUCTURE = ['pre_ids', 'post_ids', 'conn_mat',
+                           'pre2post', 'post2pre',
+                           'pre2syn', 'post2syn',
+                           'pre_slice_syn', 'post_slice_syn']
+
+
 class AbstractConnector(abc.ABC):
     def __call__(self, *args, **kwargs):
         pass
@@ -345,22 +351,23 @@ class Connector(AbstractConnector):
         # synaptic weights
         self.weights = None
 
-    def requires(self, syn_requires):
+    def requires(self, *syn_requires):
         # get synaptic requires
         requires = set()
         for n in syn_requires:
-            if n in ['pre_ids', 'post_ids', 'conn_mat',
-                     'pre2post', 'post2pre',
-                     'pre2syn', 'post2syn',
-                     'pre_slice_syn', 'post_slice_syn']:
+            if n in SUPPORTED_SYN_STRUCTURE:
                 requires.add(n)
+            else:
+                raise ValueError(f'Unknown synapse structure {n}. We only support '
+                                 f'{SUPPORTED_SYN_STRUCTURE}.')
         requires = list(requires)
 
         # synaptic structure to handle
         needs = []
         if 'pre_slice_syn' in requires and 'post_slice_syn' in requires:
             raise errors.ModelUseError('Cannot use "pre_slice_syn" and "post_slice_syn" '
-                                       'simultaneously. \nWe recommend you use "pre_slice_syn + '
+                                       'simultaneously. \n'
+                                       'We recommend you use "pre_slice_syn + '
                                        'post2syn" or "post_slice_syn + pre2syn".')
         elif 'pre_slice_syn' in requires:
             needs.append('pre_slice_syn')
@@ -374,6 +381,12 @@ class Connector(AbstractConnector):
         # make synaptic data structure
         for n in needs:
             getattr(self, f'make_{n}')()
+
+        # returns
+        if len(requires) == 1:
+            return getattr(self, requires[0])
+        else:
+            return tuple([getattr(self, r) for r in requires])
 
     def make_conn_mat(self):
         if self.conn_mat is None:

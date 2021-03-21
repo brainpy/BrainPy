@@ -123,8 +123,7 @@ class GeneralNodeRunner(runner.NodeRunner):
             }
 
     def get_steps_func(self, show_code=False):
-        for step in self.steps:
-            func_name = step.__name__
+        for func_name, step in self.steps.items():
             class_args, arguments = utils.get_args(step)
             host_name = self.host.name
 
@@ -230,12 +229,15 @@ class GeneralNetRunner(runner.NetRunner):
         code_scope = {}
         code_lines = ['def run_func(_t, _i, _dt):']
         for obj in self.all_nodes.values():
-            f, codes = obj.build(formatted_inputs=formatted_inputs.get(obj.name, []),
+            f, codes = obj.build(inputs=formatted_inputs.get(obj.name, []),
+                                 input_is_formatted=True,
                                  mon_length=run_length,
                                  return_code=True,
                                  show_code=show_code)
             need_rebuild *= codes['need_rebuild']
             for p in obj.get_schedule():
+                if (p not in codes) and (p in ['input', 'monitor']):
+                    continue
                 p_codes = codes[p]
                 code_scope.update(p_codes['scope'])
                 code_lines.extend(p_codes['call'])

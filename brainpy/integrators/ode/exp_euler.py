@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import profile
 from brainpy import backend
 
 __all__ = [
@@ -9,7 +8,7 @@ __all__ = [
 
 
 def exponential_euler(f, return_linear_term=False):
-    dt = profile.get_dt()
+    dt = backend.get_dt()
 
     def int_f(x, t, *args):
         df, linear_part = f(x, t, *args)

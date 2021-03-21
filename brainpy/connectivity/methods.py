@@ -221,6 +221,7 @@ class One2One(Connector):
 
         self.pre_ids = backend.arange(length)
         self.post_ids = backend.arange(length)
+        return self
 
 
 one2one = One2One()
@@ -246,7 +247,11 @@ class All2All(Connector):
         if not self.include_self:
             eye = np.arange(min([pre_len, post_len]))
             self.conn_mat[eye, eye] = 0
+        pre_ids, post_ids = np.where(mat > 0)
+        self.pre_ids = backend.as_tensor(np.ascontiguousarray(pre_ids))
+        self.post_ids = backend.as_tensor(np.ascontiguousarray(post_ids))
         self.conn_mat = backend.as_tensor(mat)
+        return self
 
 
 all2all = All2All(include_self=True)
@@ -285,6 +290,7 @@ class GridFour(Connector):
             conn_j.extend(a[1])
         self.pre_ids = backend.as_tensor(conn_i)
         self.post_ids = backend.as_tensor(conn_j)
+        return self
 
 
 grid_four = GridFour()
@@ -345,6 +351,7 @@ class GridN(Connector):
             conn_j.extend(res[1])
         self.pre_ids = backend.as_tensor(conn_i)
         self.post_ids = backend.as_tensor(conn_j)
+        return self
 
 
 class GridEight(GridN):
@@ -389,6 +396,7 @@ class FixedProb(Connector):
         self.conn_mat = backend.as_tensor(conn_mat)
         self.pre_ids = backend.as_tensor(np.ascontiguousarray(pre_ids))
         self.post_ids = backend.as_tensor(np.ascontiguousarray(post_ids))
+        return self
 
 
 class FixedPreNum(Connector):
@@ -432,6 +440,7 @@ class FixedPreNum(Connector):
         post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int_)
         self.pre_ids = backend.as_tensor(pre_ids)
         self.post_ids = backend.as_tensor(post_ids)
+        return self
 
 
 class FixedPostNum(Connector):
@@ -477,6 +486,7 @@ class FixedPostNum(Connector):
         pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
         self.pre_ids = backend.as_tensor(pre_ids)
         self.post_ids = backend.as_tensor(post_ids)
+        return self
 
 
 class GaussianWeight(Connector):
@@ -552,6 +562,7 @@ class GaussianWeight(Connector):
         self.pre_ids = backend.as_tensor(pre_ids)
         self.post_ids = backend.as_tensor(post_ids)
         self.weights = backend.as_tensor(w)
+        return self
 
 
 class GaussianProb(Connector):
@@ -616,6 +627,7 @@ class GaussianProb(Connector):
         j = np.asarray(j, dtype=np.int_)[selected_idxs]
         self.pre_ids = backend.as_tensor(i)
         self.post_ids = backend.as_tensor(j)
+        return self
 
 
 class DOG(Connector):
@@ -689,6 +701,7 @@ class DOG(Connector):
         self.pre_ids = backend.as_tensor(i)
         self.post_ids = backend.as_tensor(j)
         self.weights = backend.as_tensor(w)
+        return self
 
 
 class ScaleFree(Connector):

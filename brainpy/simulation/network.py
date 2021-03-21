@@ -3,7 +3,6 @@
 from collections import OrderedDict
 
 from brainpy import backend
-from brainpy import profile
 from brainpy.simulation import population
 from brainpy.simulation import utils
 
@@ -95,7 +94,7 @@ class Network(object):
         """
         # preparation
         start, end = utils.check_duration(duration)
-        dt = profile.get_dt()
+        dt = backend.get_dt()
         ts = backend.arange(start, end, dt)
 
         # build the network
@@ -112,9 +111,12 @@ class Network(object):
 
         # end
         self.t_start, self.t_end = start, end
+        for obj in self.all_nodes.values():
+            if len(obj.mon['vars']) > 0:
+                obj.mon['ts'] = ts
 
     @property
     def ts(self):
         """Get the time points of the network.
         """
-        return backend.arange(self.t_start, self.t_end, profile.get_dt())
+        return backend.arange(self.t_start, self.t_end, backend.get_dt())

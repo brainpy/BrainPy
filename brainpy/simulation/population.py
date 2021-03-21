@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+
 from brainpy import backend
-from brainpy import connectivity
 from brainpy import errors
-from brainpy import profile
 from brainpy.simulation import constants
+from brainpy.simulation import delay
 from brainpy.simulation import utils
 from brainpy.simulation.monitors import Monitor
 
 __all__ = [
     'Population',
     'NeuGroup',
+    'SynConn',
     'TwoEndConn',
 ]
 
@@ -37,8 +39,7 @@ class Population(object):
 
     target_backend = None
 
-    def __init__(self, size, steps, monitors, ensemble_type, name,
-                 host=None, show_code=False):
+    def __init__(self, steps, monitors, ensemble_type, name, host=None, show_code=False):
         # host of the data
         # ----------------
         if host is None:
@@ -55,26 +56,14 @@ class Population(object):
         # model
         # -----
         if callable(steps):
-            self.steps = [steps]
+            self.steps = OrderedDict([(steps.__name__, steps)])
         elif isinstance(steps, (list, tuple)) and callable(steps[0]):
-            self.steps = list(steps)
+            self.steps = OrderedDict([(step.__name__, step) for step in steps])
+        elif isinstance(steps, dict):
+            self.steps = steps
         else:
             raise errors.ModelDefError(f'Unknown model type: {type(steps)}. Currently, BrainPy '
-                                       f'only supports: function, list of functions.')
-
-        # size
-        # ----
-        if isinstance(size, (list, tuple)):
-            if len(size) <= 0:
-                raise errors.ModelDefError('size must be int, or a tuple/list of int.')
-            if not isinstance(size[0], int):
-                raise errors.ModelDefError('size must be int, or a tuple/list of int.')
-            size = tuple(size)
-        elif isinstance(size, int):
-            size = (size,)
-        else:
-            raise errors.ModelDefError('size must be int, or a tuple/list of int.')
-        self.size = size
+                                       f'only supports: function, list/tuple/dict of functions.')
 
         # name
         # ----
@@ -109,12 +98,12 @@ class Population(object):
             self.target_backend = [self.target_backend]
         assert isinstance(self.target_backend, (tuple, list)), 'target_backend must be a list/tuple.'
 
-    def build(self, format_inputs, return_code=True, mon_length=0):
+    def build(self, inputs, input_is_formatted=False, return_code=True, mon_length=0, show_code=False):
         """Build the object for running.
 
         Parameters
         ----------
-        format_inputs : list, tuple, optional
+        inputs : list, tuple, optional
             The object inputs.
         return_code : bool
             Whether return the formatted codes.
@@ -126,14 +115,16 @@ class Population(object):
         calls : list, tuple
             The code lines to call step functions.
         """
-        if backend.get_backend() not in self.target_backend:
+        if (self.target_backend[0] != 'general') and (backend.get_backend() not in self.target_backend):
             raise errors.ModelDefError(f'The model {self.name} is target to run on {self.target_backend},'
                                        f'but currently the default backend of BrainPy is '
-                                       f'{profile.get_backend()}')
-        return self.runner.build(formatted_inputs=format_inputs,
+                                       f'{backend.get_backend()}')
+        if not input_is_formatted:
+            inputs = utils.format_pop_level_inputs(inputs, self, mon_length)
+        return self.runner.build(formatted_inputs=inputs,
                                  mon_length=mon_length,
                                  return_code=return_code,
-                                 show_code=self.show_code)
+                                 show_code=(self.show_code or show_code))
 
     def run(self, duration, inputs=(), report=False, report_percent=0.1):
         """The running function.
@@ -153,13 +144,12 @@ class Population(object):
         # times
         # ------
         start, end = utils.check_duration(duration)
-        times = backend.arange(start, end, profile.get_dt())
+        times = backend.arange(start, end, backend.get_dt())
         run_length = backend.shape(times)[0]
 
         # build run function
         # ------------------
-        format_inputs = utils.format_pop_level_inputs(inputs, self, run_length, self.size)
-        self.run_func = self.build(format_inputs, mon_length=run_length, return_code=False)
+        self.run_func = self.build(inputs, input_is_formatted=False, mon_length=run_length, return_code=False)
 
         # run the model
         # -------------
@@ -206,28 +196,77 @@ class NeuGroup(Population):
         The name of the neuron group.
     """
 
-    def __init__(self, size, steps, monitors=None, name=None,
-                 host=None, show_code=False):
+    def __init__(self, steps, size, monitors=None, name=None,
+                 host=None, show_code=False, ensemble_type=None):
         # name
         # -----
         if name is None:
-            name = 'NeuGroup'
+            name = ''
+        else:
+            name = '_' + name
         global _NeuGroup_NO
         _NeuGroup_NO += 1
-        name = f'NG{_NeuGroup_NO}_{name}'
+        name = f'NG{_NeuGroup_NO}{name}'
+
+        # size
+        # ----
+        if isinstance(size, (list, tuple)):
+            if len(size) <= 0:
+                raise errors.ModelDefError('size must be int, or a tuple/list of int.')
+            if not isinstance(size[0], int):
+                raise errors.ModelDefError('size must be int, or a tuple/list of int.')
+            size = tuple(size)
+        elif isinstance(size, int):
+            size = (size,)
+        else:
+            raise errors.ModelDefError('size must be int, or a tuple/list of int.')
+        self.size = size
 
         # initialize
         # ----------
-        super(NeuGroup, self).__init__(size=size,
-                                       steps=steps,
+        ensemble_type = constants.NEU_GROUP_TYPE if ensemble_type is None else ensemble_type
+        super(NeuGroup, self).__init__(steps=steps,
                                        monitors=monitors,
                                        name=name,
                                        host=host,
-                                       ensemble_type=constants.NEU_GROUP_TYPE,
+                                       ensemble_type=ensemble_type,
                                        show_code=show_code)
 
 
-class TwoEndConn(Population):
+class SynConn(Population):
+    """Synaptic Connections.
+    """
+
+    def __init__(self, steps, monitors, ensemble_type, name, host=None, show_code=False):
+        # check delay update
+        if callable(steps):
+            steps = OrderedDict([(steps.__name__, steps)])
+        elif isinstance(steps, (tuple, list)) and callable(steps[0]):
+            steps = OrderedDict([(step.__name__, step) for step in steps])
+        else:
+            assert isinstance(steps, dict)
+        if hasattr(self, 'constant_delays'):
+            for key, delay_var in self.constant_delays.items():
+                if delay_var.update not in steps:
+                    delay_name = f'{key}_delay_update'
+                    setattr(self, delay_name, delay_var.update)
+                    steps[delay_name] = delay_var.update
+        super(SynConn, self).__init__(steps=steps, monitors=monitors, ensemble_type=ensemble_type,
+                                      name=name, host=host, show_code=show_code)
+
+        for key, delay_var in self.constant_delays.items():
+            delay_var.name = f'{self.name}_delay_{key}'
+
+    def register_constant_delay(self, key, size, delay_time):
+        if not hasattr(self, 'constant_delays'):
+            self.constant_delays = {}
+        if key in self.constant_delays:
+            raise errors.ModelDefError(f'"{key}" has been registered as an constant delay.')
+        self.constant_delays[key] = delay.ConstantDelay(size, delay_time)
+        return self.constant_delays[key]
+
+
+class TwoEndConn(SynConn):
     """Two End Synaptic Connections.
 
     Parameters
@@ -238,48 +277,39 @@ class TwoEndConn(Population):
         Pre-synaptic neuron group.
     post : neurons.NeuGroup, neurons.NeuSubGroup
         Post-synaptic neuron group.
-    conn : connectivity.Connector
-        Connection method to create synaptic connectivity.
     monitors : list, tuple
         Variables to monitor.
     name : str
         The name of the neuron group.
     """
 
-    def __init__(self, steps, pre=None, post=None, conn=None, monitors=None,
-                 name=None, host=None, show_code=False):
+    def __init__(self, steps, pre, post, monitors=None, name=None,
+                 host=None, show_code=False, ensemble_type=None):
         # name
         # ----
         if name is None:
-            name = 'TwoEndConn'
+            name = ''
+        else:
+            name = '_' + name
         global _TwoEndSyn_NO
         _TwoEndSyn_NO += 1
-        name = f'TEC{_TwoEndSyn_NO}_{name}'
+        name = f'TEC{_TwoEndSyn_NO}{name}'
 
         # pre or post neuron group
         # ------------------------
+        if not isinstance(pre, NeuGroup):
+            raise errors.ModelUseError('"pre" must be an instance of NeuGroup.')
         self.pre = pre
+        if not isinstance(post, NeuGroup):
+            raise errors.ModelUseError('"post" must be an instance of NeuGroup.')
         self.post = post
-        self.conn = None
-        if pre is not None and post is not None:
-            if not isinstance(pre, NeuGroup):
-                raise errors.ModelUseError('"pre" must be an instance of NeuGroup.')
-            if not isinstance(post, NeuGroup):
-                raise errors.ModelUseError('"post" must be an instance of NeuGroup.')
-
-            if conn is not None:
-                if isinstance(conn, connectivity.Connector):
-                    self.conn = conn(pre.size, post.size)
-                    self.conn = connectivity.Connector()
-
-        size = 1  # TODO
 
         # initialize
         # ----------
+        ensemble_type = constants.TWO_END_TYPE if ensemble_type is None else ensemble_type
         super(TwoEndConn, self).__init__(steps=steps,
                                          name=name,
-                                         size=size,
                                          monitors=monitors,
-                                         ensemble_type=constants.SYN_CONN_TYPE,
+                                         ensemble_type=ensemble_type,
                                          host=host,
                                          show_code=show_code)

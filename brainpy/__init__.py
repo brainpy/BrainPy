@@ -1,43 +1,33 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0.0-rc1"
+__version__ = "1.0.0-alpha"
 
-# "profile" module
-from . import profile
+# "analysis" module
+from . import analysis
 
 # "backend" module
 from . import backend
+
+# "connectivity" module
+from . import connectivity
+from . import connectivity as connect
+
+# "simulation" module
+from . import simulation
+from .simulation.population import *
+from .simulation.network import *
 
 # "integrators" module
 from . import integrators
 from .integrators import ode
 from .integrators import sde
 from .integrators.integrate_wrapper import *
-from .integrators.delay_vars import ConstantDelay
-from .integrators.delay_vars import VaryingDelay
-from .integrators.delay_vars import NeutralDelay
-
-# "simulation" module
-from . import simulation as core
-from .simulation.population import Population
-from .simulation.population import NeuGroup
-from .simulation.population import TwoEndConn
-from .simulation.network import Network
-
-# "connectivity" module
-from . import connectivity
-from . import connectivity as connect
-
-# "analysis" module
-from . import analysis
 
 # "visualization" module
 from . import visualization as visualize
 
-# "tools" module
-from . import tools
-
 # other modules
+from . import tools
 from . import inputs
 from . import measure
 from . import running

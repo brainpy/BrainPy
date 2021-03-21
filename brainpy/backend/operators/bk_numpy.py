@@ -16,7 +16,9 @@ __all__ = [
     'vstack',
     'arange',
     'moveaxis',
+    'where',
 ]
+
 
 as_tensor = np.asarray
 normal = np.random.normal
@@ -30,6 +32,7 @@ matmul = np.matmul
 vstack = np.vstack
 arange = np.arange
 moveaxis = np.moveaxis
+where = np.where
 
 
 def shape(x):

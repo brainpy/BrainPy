@@ -4,9 +4,7 @@ import time
 
 from brainpy import backend
 from brainpy import errors
-from brainpy import profile
 from brainpy.simulation import constants
-
 
 __all__ = [
     'check_duration',
@@ -64,17 +62,17 @@ def run_model(run_func, times, report, report_percent):
         The percent of the total running length for each report.
     """
     run_length = len(times)
-    dt = profile.get_dt()
+    dt = backend.get_dt()
     if report:
         t0 = time.time()
-        for i, t in enumerate(times[:2]):
+        for i, t in enumerate(times[:1]):
             run_func(_t=t, _i=i, _dt=dt)
         print('Compilation used {:.4f} s.'.format(time.time() - t0))
 
         print("Start running ...")
         report_gap = int(run_length * report_percent)
         t0 = time.time()
-        for run_idx in range(2, run_length):
+        for run_idx in range(1, run_length):
             run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
             if (run_idx + 1) % report_gap == 0:
                 percent = (run_idx + 1) / run_length * 100
@@ -86,7 +84,7 @@ def run_model(run_func, times, report, report_percent):
             run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
 
 
-def format_pop_level_inputs(inputs, host, mon_length, size):
+def format_pop_level_inputs(inputs, host, mon_length):
     """Format the inputs of a population.
 
     Parameters
@@ -97,8 +95,6 @@ def format_pop_level_inputs(inputs, host, mon_length, size):
         The host which contains all data.
     mon_length : int
         The monitor length.
-    size : tuple
-        The size of the population.
 
     Returns
     -------
@@ -143,12 +139,8 @@ def format_pop_level_inputs(inputs, host, mon_length, size):
             shape = backend.shape(input[1])
             if shape[0] == mon_length:
                 data_type = 'iter'
-            elif shape == size:
-                data_type = 'fix'
             else:
-                raise errors.ModelUseError(f'Unknown size of input for "{key}", '
-                                           f'it should either be {size}, nor be '
-                                           f'the shape of {(mon_length, ) + size}')
+                data_type = 'fix'
 
         # operation
         if len(input) == 3:
@@ -230,12 +222,8 @@ def format_net_level_inputs(inputs, run_length):
             shape = backend.shape(val)
             if shape[0] == run_length:
                 data_type = 'iter'
-            elif shape == target.size:
-                data_type = 'fix'
             else:
-                raise errors.ModelUseError(f'Unknown size of input for "{key}", it should '
-                                           f'either be {target.size}, nor be the shape '
-                                           f'of {(run_length,) + target.size}')
+                data_type = 'fix'
 
         # operation
         if len(input) == 4:

@@ -1,16 +1,31 @@
 # -*- coding: utf-8 -*-
 
+from pprint import pprint
+
+from brainpy.integrators import constants
 from brainpy.integrators import utils
 
 __all__ = [
     'rk_wrapper',
     'adaptive_rk_wrapper',
+    'wrapper_of_rk2',
 ]
 
 _ODE_UNKNOWN_NO = 0
 
 
-def _step(vars, dt_var, f_name, A, C, code_lines, other_args):
+def _f_names(f):
+    if f.__name__.isidentifier():
+        f_name = f.__name__
+    else:
+        global _ODE_UNKNOWN_NO
+        f_name = f'ode_unknown_{_ODE_UNKNOWN_NO}'
+        _ODE_UNKNOWN_NO += 1
+    f_new_name = constants.NAME_PREFIX + f_name
+    return f_new_name
+
+
+def _step(vars, dt_var, A, C, code_lines, other_args):
     # steps
     for si, sval in enumerate(A):
         # k-step arguments
@@ -46,7 +61,7 @@ def _step(vars, dt_var, f_name, A, C, code_lines, other_args):
         k_derivatives = [f'd{v}_k{si + 1}' for v in vars]
 
         # k-step code line
-        code_lines.append(f'  {", ".join(k_derivatives)} = {f_name}('
+        code_lines.append(f'  {", ".join(k_derivatives)} = f('
                           f'{", ".join(k_args + other_args[1:])})')
 
 
@@ -62,14 +77,26 @@ def _update(vars, dt_var, B, code_lines):
     return return_args
 
 
-def _compile(code_lines, code_scope, show_code):
+def _compile_and_assign_attrs(code_lines, code_scope, show_code,
+                              func_name, variables, parameters, dt):
+    # compile
     code = '\n'.join(code_lines)
     if show_code:
         print(code)
-        print(code_scope)
         print()
+        pprint(code_scope)
+        print()
+    utils.numba_func(code_scope, ['f'])
     exec(compile(code, '', 'exec'), code_scope)
-    return code_scope
+
+    # attribute assignment
+    new_f = code_scope[func_name]
+    new_f.variables = variables
+    new_f.parameters = parameters
+    new_f.origin_f = code_scope['f']
+    new_f.dt = dt
+    utils.numba_func(code_scope, func_name)
+    return code_scope[func_name]
 
 
 def rk_wrapper(f, show_code, dt, A, B, C):
@@ -124,21 +151,17 @@ def rk_wrapper(f, show_code, dt, A, B, C):
     """
     class_kw, variables, parameters, arguments = utils.get_args(f)
     dt_var = 'dt'
-    if f.__name__.isdentifier():
-        f_name = f.__name__
-    else:
-        global _ODE_UNKNOWN_NO
-        f_name = f'ode_unknown_{_ODE_UNKNOWN_NO}'
-        _ODE_UNKNOWN_NO += 1
-    f_new_name = utils.NAME_PREFIX + f_name
+    func_name = _f_names(f)
 
     # code scope
-    code_scope = {f_name: f, 'dt': dt}
+    code_scope = {'f': f, 'dt': dt}
 
     # code lines
-    code_lines = [f'def {f_new_name}({", ".join(arguments)}):']
+    code_lines = [f'def {func_name}({", ".join(arguments)}):']
+
     # step stage
-    _step(variables, dt_var, f_name, A, C, code_lines, parameters)
+    _step(variables, dt_var, A, C, code_lines, parameters)
+
     # variable update
     return_args = _update(variables, dt_var, B, code_lines)
 
@@ -146,8 +169,9 @@ def rk_wrapper(f, show_code, dt, A, B, C):
     code_lines.append(f'  return {", ".join(return_args)}')
 
     # compilation
-    _compile(code_lines, code_scope, show_code)
-    return code_scope[f_new_name]
+    return _compile_and_assign_attrs(
+        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
+        func_name=func_name, variables=variables, parameters=parameters, dt=dt)
 
 
 def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type):
@@ -211,31 +235,26 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
     integral_func : callable
         The one-step numerical integration function.
     """
-    assert var_type in utils.SUPPORTED_VAR_TYPE, \
-        f'"var_type" only supports {utils.SUPPORTED_VAR_TYPE}, not {var_type}.'
+    assert var_type in constants.SUPPORTED_VAR_TYPE, \
+        f'"var_type" only supports {constants.SUPPORTED_VAR_TYPE}, ' \
+        f'not {var_type}.'
 
     class_kw, variables, parameters, arguments = utils.get_args(f)
     dt_var = 'dt'
-    if f.__name__.isdentifier():
-        f_name = f.__name__
-    else:
-        global _ODE_UNKNOWN_NO
-        f_name = f'ode_unknown_{_ODE_UNKNOWN_NO}'
-        _ODE_UNKNOWN_NO += 1
-    f_new_name = utils.NAME_PREFIX + f_name
+    func_name = _f_names(f)
 
     if adaptive:
         # code scope
-        code_scope = {f_name: f, 'tol': tol}
+        code_scope = {'f': f, 'tol': tol}
         arguments = list(arguments) + ['dt']
     else:
         # code scope
-        code_scope = {f_name: f, 'dt': dt}
+        code_scope = {'f': f, 'dt': dt}
 
     # code lines
-    code_lines = [f'def {f_new_name}({", ".join(arguments)}):']
+    code_lines = [f'def {func_name}({", ".join(arguments)}):']
     # stage steps
-    _step(variables, dt_var, f_name, A, C, code_lines, parameters)
+    _step(variables, dt_var, A, C, code_lines, parameters)
     # variable update
     return_args = _update(variables, dt_var, B1, code_lines)
 
@@ -253,7 +272,7 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
                 if diff != 0.:
                     result.append(f'd{v}_k{i + 1} * {dt_var} * {diff}')
             if len(result) > 0:
-                if var_type == utils.SCALAR_VAR:
+                if var_type == constants.SCALAR_VAR:
                     code_lines.append(f'  {v}_te = abs({" + ".join(result)})')
                 else:
                     code_lines.append(f'  {v}_te = sum(abs({" + ".join(result)}))')
@@ -270,5 +289,35 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
     code_lines.append(f'  return {", ".join(return_args)}')
 
     # compilation
-    _compile(code_lines, code_scope, show_code)
-    return code_scope[f_new_name]
+    return _compile_and_assign_attrs(
+        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
+        func_name=func_name, variables=variables, parameters=parameters, dt=dt)
+
+
+def wrapper_of_rk2(f, show_code, dt, beta):
+    class_kw, variables, parameters, arguments = utils.get_args(f)
+    func_name = _f_names(f)
+
+    code_scope = {'f': f, 'dt': dt, 'beta': beta,
+                  'k1': 1 - 1 / (2 * beta), 'k2': 1 / (2 * beta)}
+    code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    # k1
+    k1_args = variables + parameters
+    k1_vars_d = [f'd{v}_k1' for v in variables]
+    code_lines.append(f'  {", ".join(k1_vars_d)} = f({", ".join(k1_args)})')
+    # k2
+    k2_args = [f'{v} + d{v}_k1 * dt * beta' for v in variables]
+    k2_args.append('t + dt * beta')
+    k2_args.extend(parameters[1:])
+    k2_vars_d = [f'd{v}_k2' for v in variables]
+    code_lines.append(f'  {", ".join(k2_vars_d)} = f({", ".join(k2_args)})')
+    # returns
+    for v, k1, k2 in zip(variables, k1_vars_d, k2_vars_d):
+        code_lines.append(f'  {v}_new = {v} + ({k1} * k1 + {k2} * k2) * dt')
+    return_vars = [f'{v}_new' for v in variables]
+    code_lines.append(f'  return {", ".join(return_vars)}')
+
+    return _compile_and_assign_attrs(
+        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
+        func_name=func_name, variables=variables, parameters=parameters, dt=dt)
+

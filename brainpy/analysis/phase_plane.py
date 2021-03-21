@@ -3,10 +3,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from brainpy import simulation
+from brainpy import backend
 from brainpy import errors
-from brainpy import profile
+from brainpy import simulation
 from brainpy.analysis import base
+from brainpy.analysis import dyn_model
+from brainpy.analysis import stability
 from brainpy.analysis import utils
 
 __all__ = [
@@ -26,7 +28,7 @@ class PhasePlane(object):
 
     Parameters
     ----------
-    model_or_intgs : NeuType
+    integrals : NeuType
         The neuron model which defines the differential equations by using
         `brainpy.integrate`.
     target_vars : dict
@@ -76,23 +78,20 @@ class PhasePlane(object):
 
     def __init__(
             self,
-            model_or_intgs,
+            integrals,
             target_vars,
             fixed_vars=None,
             pars_update=None,
             numerical_resolution=0.1,
             options=None,
     ):
-
         # check "model"
-        if not isinstance(model_or_intgs, simulation.Population):
-            raise errors.ModelUseError('Phase plane analysis only support neuron type model.')
-        self.model = model_or_intgs
+        self.model = dyn_model.transform_integrals_to_analyzers(integrals)
 
         # check "target_vars"
         if not isinstance(target_vars, dict):
             raise errors.ModelUseError('"target_vars" must a dict with the format of: '
-                                '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
+                                       '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
         self.target_vars = target_vars
 
         # check "fixed_vars"
@@ -100,7 +99,7 @@ class PhasePlane(object):
             fixed_vars = dict()
         if not isinstance(fixed_vars, dict):
             raise errors.ModelUseError('"fixed_vars" must be a dict with the format of: '
-                                '{"Variable A": A_value, "Variable B": B_value}')
+                                       '{"Variable A": A_value, "Variable B": B_value}')
         self.fixed_vars = fixed_vars
 
         # check "pars_update"
@@ -108,22 +107,22 @@ class PhasePlane(object):
             pars_update = dict()
         if not isinstance(pars_update, dict):
             raise errors.ModelUseError('"pars_update" must be a dict with the format of: '
-                                '{"Par A": A_value, "Par B": B_value}')
+                                       '{"Par A": A_value, "Par B": B_value}')
         for key in pars_update.keys():
-            if key not in model_or_intgs.step_scopes:
-                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model_or_intgs.name}" model.')
+            if (key not in self.model.scopes) and (key not in self.model.parameters):
+                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{integrals}" model.')
         self.pars_update = pars_update
 
         # analyzer
         if len(target_vars) == 1:
-            self.analyzer = _PhasePlane1D(model=model_or_intgs,
+            self.analyzer = _PhasePlane1D(model_or_integrals=self.model,
                                           target_vars=target_vars,
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
                                           options=options)
         elif len(target_vars) == 2:
-            self.analyzer = _PhasePlane2D(model=model_or_intgs,
+            self.analyzer = _PhasePlane2D(model_or_integrals=self.model,
                                           target_vars=target_vars,
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
@@ -131,8 +130,8 @@ class PhasePlane(object):
                                           options=options)
         else:
             raise errors.ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
-                                'Or, you can set "fixed_vars" to fix other variables, '
-                                'then make 1D/2D phase plane analysis.')
+                                       'Or, you can set "fixed_vars" to fix other variables, '
+                                       'then make 1D/2D phase plane analysis.')
 
     def plot_vector_field(self, *args, **kwargs):
         """Plot vector filed of a 2D/1D system."""
@@ -182,7 +181,7 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
             y_val = self.get_f_dx()(self.resolutions[self.x_var])
         except TypeError:
             raise errors.ModelUseError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
+                                       'variables to "fixed_vars".')
 
         # 2. visualization
         label = f"d{self.x_var}dt"
@@ -192,7 +191,8 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
 
         plt.xlabel(self.x_var)
         plt.ylabel(label)
-        plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=(self.options.lim_scale - 1.) / 2))
+        plt.xlim(*utils.rescale(self.target_vars[self.x_var], 
+                                scale=(self.options.lim_scale - 1.) / 2))
         plt.legend()
         if show:
             plt.show()
@@ -219,18 +219,18 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
 
         # 2. stability analysis
         x_values = f_fixed_point()
-        container = {a: [] for a in utils.get_1d_classification()}
+        container = {a: [] for a in stability.get_1d_stability_types()}
         for i in range(len(x_values)):
             x = x_values[i]
             dfdx = f_dfdx(x)
-            fp_type = utils.stability_analysis(dfdx)
+            fp_type = stability.stability_analysis(dfdx)
             print(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
             container[fp_type].append(x)
 
         # 3. visualization
         for fp_type, points in container.items():
             if len(points):
-                plot_style = utils.plot_scheme[fp_type]
+                plot_style = stability.plot_scheme[fp_type]
                 plt.plot(points, [0] * len(points), '.',
                          markersize=20, **plot_style, label=fp_type)
         plt.legend()
@@ -251,26 +251,27 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
 
 class _PhasePlane2D(base.Base2DNeuronAnalyzer):
     """Phase plane analyzer for 2D system.
-
     """
 
     def __init__(self, *args, **kwargs):
         super(_PhasePlane2D, self).__init__(*args, **kwargs)
 
-        # runner for trajectory
-        # ---------------------
 
-        # cannot update dynamical parameters
-        self.traj_group = simulation.NeuGroup(self.model,
-                                              size=1,
-                                              monitors=self.dvar_names,
-                                              pars_update=self.pars_update)
-        self.traj_group.runner = simulation.TrajectoryNumbaRunner(self.traj_group,
-                                                                  target_vars=self.dvar_names,
-                                                                  fixed_vars=self.fixed_vars)
-        self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
-                             if not key.startswith('_')}
-        self.traj_net = simulation.Network(self.traj_group)
+        # TODO
+        # # runner for trajectory
+        # # ---------------------
+        #
+        # # cannot update dynamical parameters
+        # self.traj_group = simulation.NeuGroup(self.model,
+        #                                       size=1,
+        #                                       monitors=self.dvar_names,
+        #                                       pars_update=self.pars_update)
+        # self.traj_group.runner = simulation.TrajectoryNumbaRunner(self.traj_group,
+        #                                                           target_vars=self.dvar_names,
+        #                                                           fixed_vars=self.fixed_vars)
+        # self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
+        #                      if not key.startswith('_')}
+        # self.traj_net = simulation.Network(self.traj_group)
 
     def plot_vector_field(self, plot_method='streamplot', plot_style=None, show=False):
         """Plot the vector field.
@@ -309,14 +310,14 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             dx = self.get_f_dx()(X, Y)
         except TypeError:
             raise errors.ModelUseError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
+                                       'variables to "fixed_vars".')
 
         # dy
         try:
             dy = self.get_f_dy()(X, Y)
         except TypeError:
             raise errors.ModelUseError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
+                                       'variables to "fixed_vars".')
 
         # vector field
         if plot_method == 'quiver':
@@ -374,11 +375,11 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
 
         # stability analysis
         # ------------------
-        container = {a: {'x': [], 'y': []} for a in utils.get_2d_classification()}
+        container = {a: {'x': [], 'y': []} for a in stability.get_2d_stability_types()}
         for i in range(len(x_values)):
             x = x_values[i]
             y = y_values[i]
-            fp_type = utils.stability_analysis(f_jacobian(x, y))
+            fp_type = stability.stability_analysis(f_jacobian(x, y))
             print(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
             container[fp_type]['x'].append(x)
             container[fp_type]['y'].append(y)
@@ -387,7 +388,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         # -------------
         for fp_type, points in container.items():
             if len(points['x']):
-                plot_style = utils.plot_scheme[fp_type]
+                plot_style = stability.plot_scheme[fp_type]
                 plt.plot(points['x'], points['y'], '.', markersize=20, **plot_style, label=fp_type)
         plt.legend()
         if show:
@@ -442,7 +443,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                 y_values_in_y_eq = y_by_x['f'](xs)
             except TypeError:
                 raise errors.ModelUseError('Missing variables. Please check and set missing '
-                                    'variables to "fixed_vars".')
+                                           'variables to "fixed_vars".')
             x_values_in_y_eq = xs
             plt.plot(xs, y_values_in_y_eq, **y_style, label=f"{self.y_var} nullcline")
 
@@ -453,7 +454,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                     x_values_in_y_eq = x_by_y['f'](ys)
                 except TypeError:
                     raise errors.ModelUseError('Missing variables. Please check and set missing '
-                                        'variables to "fixed_vars".')
+                                               'variables to "fixed_vars".')
                 y_values_in_y_eq = ys
                 plt.plot(x_values_in_y_eq, ys, **y_style, label=f"{self.y_var} nullcline")
             else:
@@ -476,7 +477,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                 y_values_in_x_eq = y_by_x['f'](xs)
             except TypeError:
                 raise errors.ModelUseError('Missing variables. Please check and set missing '
-                                    'variables to "fixed_vars".')
+                                           'variables to "fixed_vars".')
             x_values_in_x_eq = xs
             plt.plot(xs, y_values_in_x_eq, **x_style, label=f"{self.x_var} nullcline")
 
@@ -487,7 +488,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
                     x_values_in_x_eq = x_by_y['f'](ys)
                 except TypeError:
                     raise errors.ModelUseError('Missing variables. Please check and set missing '
-                                        'variables to "fixed_vars".')
+                                               'variables to "fixed_vars".')
                 y_values_in_x_eq = ys
                 plt.plot(x_values_in_x_eq, ys, **x_style, label=f"{self.x_var} nullcline")
             else:
@@ -588,9 +589,10 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         # 4. format the inputs
         if len(inputs):
             if isinstance(inputs[0], (tuple, list)):
-                inputs = [(self.traj_group, ) + tuple(input) for input in inputs]
+                inputs = [(self.traj_group,) + tuple(input)
+                          for input in inputs]
             elif isinstance(inputs[0], str):
-                inputs = [(self.traj_group, ) + tuple(inputs)]
+                inputs = [(self.traj_group,) + tuple(inputs)]
             else:
                 raise errors.ModelUseError()
 
@@ -616,14 +618,14 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             legend = legend[:-2]
 
             #   5.4 trajectory
-            start = int(plot_duration[init_i][0] / profile.get_dt())
-            end = int(plot_duration[init_i][1] / profile.get_dt())
+            start = int(plot_duration[init_i][0] / backend.get_dt())
+            end = int(plot_duration[init_i][1] / backend.get_dt())
 
             #   5.5 visualization
             if axes == 'v-v':
                 lines = plt.plot(self.traj_group.mon[self.x_var][start: end, 0],
-                         self.traj_group.mon[self.y_var][start: end, 0],
-                         label=legend)
+                                 self.traj_group.mon[self.y_var][start: end, 0],
+                                 label=legend)
                 utils.add_arrow(lines[0])
             else:
                 plt.plot(self.traj_group.mon.ts[start: end],
@@ -697,9 +699,9 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         # 4. format the inputs
         if len(inputs):
             if isinstance(inputs[0], (tuple, list)):
-                inputs = [(self.traj_group, ) + tuple(input) for input in inputs]
+                inputs = [(self.traj_group,) + tuple(input) for input in inputs]
             elif isinstance(inputs[0], str):
-                inputs = [(self.traj_group, ) + tuple(inputs)]
+                inputs = [(self.traj_group,) + tuple(inputs)]
             else:
                 raise errors.ModelUseError()
 
@@ -739,4 +741,3 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
 
         if show:
             plt.show()
-

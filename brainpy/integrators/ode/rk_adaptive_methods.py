@@ -5,9 +5,9 @@ https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods
 https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
 """
 
-from brainpy import profile
+from brainpy import backend
+from brainpy.integrators import constants
 from .wrapper import adaptive_rk_wrapper
-from brainpy.integrators import utils
 
 __all__ = [
     'rkf45',
@@ -41,10 +41,10 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
 
     """
     adaptive = False if (adaptive is None) else adaptive
-    dt = profile.get_dt() if (dt is None) else dt
+    dt = backend.get_dt() if (dt is None) else dt
     tol = 0.1 if tol is None else tol
     show_code = False if tol is None else show_code
-    var_type = utils.POPU_VAR if var_type is None else var_type
+    var_type = constants.POPU_VAR if var_type is None else var_type
 
     if f is None:
         return lambda f: adaptive_rk_wrapper(f, dt=dt, A=A, B1=B1, B2=B2, C=C, tol=tol,

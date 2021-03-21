@@ -6,9 +6,9 @@ import threading
 
 import numpy as np
 
+from brainpy.integrators import sympy_analysis
 from brainpy import backend
 from brainpy import tools
-from . import stability
 
 try:
     import numba
@@ -16,7 +16,6 @@ try:
 except ModuleNotFoundError:
     numba = None
     Dispatcher = None
-
 
 __all__ = [
     'rescale',
@@ -26,33 +25,6 @@ __all__ = [
     'contain_unknown_symbol',
 ]
 
-plot_scheme = {
-    stability.STABLE_POINT_1D: {"color": 'tab:red'},
-    stability.STABLE_NODE_2D: {"color": 'tab:red'},
-
-    stability.UNSTABLE_POINT_1D: {"color": 'tab:olive'},
-    stability.UNSTABLE_NODE_2D: {"color": 'tab:olive'},
-
-    stability.STABLE_FOCUS_2D: {"color": 'tab:purple'},
-    stability.UNSTABLE_FOCUS_2D: {"color": 'tab:cyan'},
-
-    stability.SADDLE_NODE: {"color": 'tab:blue'},
-    stability.CENTER_2D: {'color': 'lime'},
-    # stability._2D_UNIFORM_MOTION: {'color': 'red'},
-
-    stability.CENTER_MANIFOLD: {'color': 'orangered'},
-    stability.UNSTABLE_LINE_2D: {'color': 'dodgerblue'},
-
-    stability.UNSTABLE_STAR_2D: {'color': 'green'},
-    stability.STABLE_STAR_2D: {'color': 'orange'},
-
-    stability.UNSTABLE_DEGENERATE_2D: {'color': 'springgreen'},
-    stability.STABLE_DEGENERATE_2D: {'color': 'blueviolet'},
-}
-
-
-def get_integrators(population):
-    pass
 
 
 def rescale(min_max, scale=0.01):
@@ -94,7 +66,7 @@ def timeout(s):
 
 
 def _jit(func):
-    if backend.func_in_numpy_or_math(func):
+    if sympy_analysis.func_in_numpy_or_math(func):
         return func
     if isinstance(func, Dispatcher):
         return func
@@ -107,7 +79,7 @@ def _jit(func):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            if (not backend.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
+            if (not sympy_analysis.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
                 code_scope[k] = _jit(v)
                 modified = True
 
@@ -127,7 +99,7 @@ def jit_compile(scope, func_code, func_name):
     func_scope = dict()
     for key, val in scope.items():
         if callable(val):
-            if backend.func_in_numpy_or_math(val):
+            if sympy_analysis.func_in_numpy_or_math(val):
                 pass
             elif isinstance(val, Dispatcher):
                 pass

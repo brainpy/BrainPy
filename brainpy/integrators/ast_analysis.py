@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import ast
+import inspect
+from collections import OrderedDict
 
 from brainpy import errors
 from brainpy import tools
-
 
 __all__ = [
     'DiffEqReader',
@@ -123,13 +124,13 @@ class DiffEqReader(ast.NodeVisitor):
                                  f'analyze "del" operation in differential equation.')
 
 
-def separate_variables(returns, variables, right_exprs, code_lines):
+def separate_variables(func_or_code):
     """Separate the expressions in a differential equation for each variable.
 
     For example, take the HH neuron model as an example:
 
     >>> eq_code = '''
-    >>> def integral(V, m, h, n, t, Iext):
+    >>> def integral(m, h, t, Iext, V):
     >>>    alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
     >>>    beta = 4.0 * np.exp(-(V + 65) / 18)
     >>>    dmdt = alpha * (1 - m) - beta * m
@@ -154,40 +155,66 @@ def separate_variables(returns, variables, right_exprs, code_lines):
 
     Parameters
     ----------
-    returns : list of str
-        The return expressions.
-    variables : list of list
-        The variables on each code line.
-    right_exprs : list of str
-        The right expression for each code line.
-    code_lines : list of str
-        The code lines in the differential equations.
+    func_or_code : callable, str
+        The callable function or the function code.
 
     Returns
     -------
-    expressions_for_returns : dict
+    anlysis : dict
         The expressions for each return variable.
     """
-    return_requires = {r: tools.get_identifiers(r) for r in returns}
-    expressions_for_returns = {r: [] for r in returns}
+    if callable(func_or_code):
+        func_or_code = tools.deindent(inspect.getsource(func_or_code))
+    assert isinstance(func_or_code, str)
+    analyser = DiffEqReader()
+    analyser.visit(ast.parse(func_or_code))
+
+    returns = analyser.returns
+    variables = analyser.variables
+    right_exprs = analyser.rights
+    code_lines = analyser.code_lines
+
+    return_requires = OrderedDict([(r, set(tools.get_identifiers(r))) for r in returns])
+    code_lines_for_returns = OrderedDict([(r, []) for r in returns])
+    variables_for_returns = OrderedDict([(r, []) for r in returns])
+    expressions_for_returns = OrderedDict([(r, []) for r in returns])
 
     length = len(variables)
-    reverse_ids = [i-length for i in range(length)]
-    reverse_ids = reverse_ids[::-1]
-    for r in expressions_for_returns.keys():
+    reverse_ids = list(reversed([i - length for i in range(length)]))
+    for r in code_lines_for_returns.keys():
         for rid in reverse_ids:
             dep = []
             for v in variables[rid]:
                 if v in return_requires[r]:
                     dep.append(v)
             if len(dep):
-                expressions_for_returns[r].append(code_lines[rid])
+                code_lines_for_returns[r].append(code_lines[rid])
+                variables_for_returns[r].append(variables[rid])
                 expr = right_exprs[rid]
-                return_requires[r].update(tools.get_identifiers(expr))
+                expressions_for_returns[r].append(expr)
                 for d in dep:
                     return_requires[r].remove(d)
-    for r, v in expressions_for_returns.items():
-        expressions_for_returns[r] = v[::-1]
+                return_requires[r].update(tools.get_identifiers(expr))
+    for r in list(code_lines_for_returns.keys()):
+        code_lines_for_returns[r] = code_lines_for_returns[r][::-1]
+        variables_for_returns[r] = variables_for_returns[r][::-1]
+        expressions_for_returns[r] = expressions_for_returns[r][::-1]
 
-    return expressions_for_returns
+    analysis = tools.DictPlus(
+        code_lines_for_returns=code_lines_for_returns,
+        variables_for_returns=variables_for_returns,
+        expressions_for_returns=expressions_for_returns,
+    )
+    return analysis
 
+
+# def dissect_diff_eq(func_or_code):
+#     if callable(func_or_code):
+#         func_or_code = tools.deindent(inspect.getsource(func_or_code))
+#     assert isinstance(func_or_code, str)
+#     analyser = DiffEqReader()
+#     analyser.visit(ast.parse(func_or_code))
+#     return separate_variables(returns=analyser.returns,
+#                               variables=analyser.variables,
+#                               right_exprs=analyser.rights,
+#                               code_lines=analyser.code_lines)

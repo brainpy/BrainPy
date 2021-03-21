@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import backend
-from brainpy import profile
 from brainpy.integrators import constants
 from . import common
 
@@ -359,7 +358,7 @@ def _srk1_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter
                          f'supports {constants.SUPPORTED_VAR_TYPE}')
 
     # return and compile
-    common.return_and_compile(code_lines, code_scope, show_code, variables)
+    common.return_compile_and_assign_attrs(code_lines, code_scope, show_code, variables)
     return code_scope[func_name]
 
 
@@ -409,7 +408,7 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_ite
                                                            f'But we got {wiener_type}.'
 
     show_code = False if show_code is None else show_code
-    dt = profile.get_dt() if dt is None else dt
+    dt = backend.get_dt() if dt is None else dt
     num_iter = 10 if num_iter is None else num_iter
 
     if f is not None and g is not None:
