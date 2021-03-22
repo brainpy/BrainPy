@@ -4,6 +4,7 @@ from types import ModuleType
 
 from brainpy import errors
 from .operators.bk_numpy import *
+from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
 
 _backend = 'numpy'  # default backend is NumPy
 _node_runner = None
@@ -14,22 +15,23 @@ CLASS_KEYWORDS = ['self', 'cls']
 NEEDED_OPS = ['as_tensor', 'normal', 'reshape', 'shape',
               'exp', 'sum', 'zeros', 'ones',
               'eye', 'matmul', 'vstack', 'arange']
-SUPPORTED_BACKEND = ['numba', 'numba-parallel', 'numba-cuda', 'jax',
-                     'numpy', 'pytorch', 'tensorflow', ]
+SUPPORTED_BACKEND = {
+    'numba', 'numba-parallel', 'numba-cuda', 'jax',  # JIT framework
+    'numpy', 'pytorch', 'tensorflow',
+}
 SYSTEM_KEYWORDS = ['_dt', '_t', '_i']
 
 
-def set(backend, module_or_operations=None, node_runner=None,
-        net_runner=None, dt=None):
+def set(backend, module_or_operations=None, node_runner=None, net_runner=None, dt=None):
     if dt is not None:
         set_dt(dt)
 
     if _backend == backend:
         return
 
+    global_vars = globals()
     if backend == 'numpy':
         from .operators import bk_numpy
-        from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
 
         node_runner = GeneralNodeRunner if node_runner is None else node_runner
         net_runner = GeneralNetRunner if net_runner is None else net_runner
@@ -37,7 +39,6 @@ def set(backend, module_or_operations=None, node_runner=None,
 
     elif backend == 'pytorch':
         from .operators import bk_pytorch
-        from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
 
         node_runner = GeneralNodeRunner if node_runner is None else node_runner
         net_runner = GeneralNetRunner if net_runner is None else net_runner
@@ -45,7 +46,6 @@ def set(backend, module_or_operations=None, node_runner=None,
 
     elif backend == 'tensorflow':
         from .operators import bk_tensorflow
-        from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
 
         node_runner = GeneralNodeRunner if node_runner is None else node_runner
         net_runner = GeneralNetRunner if net_runner is None else net_runner
@@ -86,10 +86,8 @@ def set(backend, module_or_operations=None, node_runner=None,
             raise errors.ModelUseError(f'Backend "{backend}" is unknown, '
                                        f'please provide the "module_or_operations" '
                                        f'to specify the necessary computation units.')
-        from .runners.general_runner import GeneralNodeRunner
         node_runner = GeneralNodeRunner if node_runner is None else node_runner
 
-    global_vars = globals()
     global_vars['_backend'] = backend
     global_vars['_node_runner'] = node_runner
     global_vars['_net_runner'] = net_runner

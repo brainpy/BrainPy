@@ -33,7 +33,7 @@ class HH(bp.NeuGroup):
         self.spike = np.zeros(size)
         self.input = np.zeros(size)
 
-        super(HH, self).__init__(size=size, steps=[self.update], **kwargs)
+        super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
     @bp.odeint
@@ -88,8 +88,7 @@ class AMPA1_vec(bp.TwoEndConn):
         self.s = bp.backend.zeros(self.size)
         self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
 
-        super(AMPA1_vec, self).__init__(steps=[self.update, ],
-                                        pre=pre, post=post, **kwargs)
+        super(AMPA1_vec, self).__init__(pre=pre, post=post, **kwargs)
 
     @staticmethod
     @bp.odeint(method='euler')
@@ -125,8 +124,7 @@ class AMPA1_mat(bp.TwoEndConn):
         self.s = bp.backend.zeros(self.size)
         self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
 
-        super(AMPA1_mat, self).__init__(steps=[self.update, ],
-                                        pre=pre, post=post, **kwargs)
+        super(AMPA1_mat, self).__init__(pre=pre, post=post, **kwargs)
 
     @staticmethod
     @bp.odeint
@@ -144,7 +142,6 @@ class AMPA1_mat(bp.TwoEndConn):
 
 
 if __name__ == '__main__':
-
     hh = HH(100, monitors=['V'])
     ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All(),
                      delay=10., monitors=['s'])

@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 
-"""
-https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods
-https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
-"""
-
 from brainpy import backend
 from brainpy.integrators import constants
 from .wrapper import adaptive_rk_wrapper
@@ -106,7 +101,6 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
 
     return _base(A=A, B1=B1, B2=B2, C=C, f=f, dt=dt, tol=tol,
                  adaptive=adaptive, show_code=show_code, var_type=var_type)
-
 
 
 def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):

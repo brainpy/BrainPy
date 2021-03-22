@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -7,7 +8,7 @@ import brainpy as bp
 bp.backend.set('numpy', dt=0.005)
 
 
-class LorenzSystem(bp.Population):
+class LorenzSystem(bp.DynamicSystem):
     target_backend = 'general'
 
     def __init__(self, size=0, sigma=10, beta=8 / 3, rho=28, p=0.1, **kwargs):
@@ -23,7 +24,8 @@ class LorenzSystem(bp.Population):
         def lorenz_g(x, y, z, t, sigma, rho, beta, p):
             return p * x, p * y, p * z
 
-        @bp.sdeint(g=lorenz_g, sde_type=bp.ITO_SDE, wiener_type=bp.SCALAR_WIENER)
+        @bp.sdeint(g=lorenz_g, sde_type=bp.ITO_SDE,
+                   wiener_type=bp.SCALAR_WIENER)
         def lorenz_f(x, y, z, t, sigma, rho, beta, p):
             dx = sigma * (y - x)
             dy = x * (rho - z) - y
@@ -49,7 +51,6 @@ ax.set_xlabel('x')
 ax.set_xlabel('y')
 ax.set_xlabel('z')
 plt.show()
-
 
 if __name__ == '__main__':
     Axes3D

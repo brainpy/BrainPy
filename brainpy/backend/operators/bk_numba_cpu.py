@@ -12,13 +12,11 @@ sum = np.sum
 zeros = np.zeros
 ones = np.ones
 eye = np.eye
-outer = np.outer
 matmul = np.matmul
 vstack = np.vstack
 arange = np.arange
 shape = np.shape
 where = np.where
-
 
 
 if __name__ == '__main__':

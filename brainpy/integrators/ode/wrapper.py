@@ -320,4 +320,3 @@ def wrapper_of_rk2(f, show_code, dt, beta):
     return _compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
         func_name=func_name, variables=variables, parameters=parameters, dt=dt)
-

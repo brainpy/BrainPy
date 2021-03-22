@@ -19,8 +19,7 @@ class FitzHughNagumo(bp.NeuGroup):
         self.spike = bp.backend.zeros(size)
         self.input = bp.backend.zeros(size)
 
-        super(FitzHughNagumo, self).__init__(
-            size=size, steps=[self.update], **kwargs)
+        super(FitzHughNagumo, self).__init__(size=size, **kwargs)
 
     @staticmethod
     @bp.odeint(method='rk4')

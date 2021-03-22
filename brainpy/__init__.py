@@ -14,8 +14,8 @@ from . import connectivity as connect
 
 # "simulation" module
 from . import simulation
-from .simulation.population import *
-from .simulation.network import *
+from .simulation.dynamic_system import *
+from .simulation.brain_objects import *
 
 # "integrators" module
 from . import integrators

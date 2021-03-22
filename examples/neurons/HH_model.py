@@ -30,7 +30,7 @@ class HH(bp.NeuGroup):
         self.spike = bp.backend.zeros(size)
         self.input = bp.backend.zeros(size)
 
-        super(HH, self).__init__(size=size, steps=[self.update], **kwargs)
+        super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
     @bp.odeint(method='rk4', show_code=True)

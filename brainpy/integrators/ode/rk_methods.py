@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-"""
-https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Kutta's_third-order_method
-"""
 
 from brainpy import backend
 from .wrapper import rk_wrapper
@@ -124,8 +121,6 @@ def ralston2(f=None, show_code=None, dt=None):
     B = [0.25, 0.75]
     C = [0, '2/3']
     return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
-
-
 
 
 def rk2(f=None, show_code=None, dt=None, beta=None):
