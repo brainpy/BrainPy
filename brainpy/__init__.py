@@ -22,6 +22,7 @@ from . import integrators
 from .integrators import ode
 from .integrators import sde
 from .integrators.integrate_wrapper import *
+from .integrators.constants import *
 
 # "visualization" module
 from . import visualization as visualize

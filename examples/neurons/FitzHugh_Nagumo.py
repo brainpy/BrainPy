@@ -19,7 +19,8 @@ class FitzHughNagumo(bp.NeuGroup):
         self.spike = bp.backend.zeros(size)
         self.input = bp.backend.zeros(size)
 
-        super(FitzHughNagumo, self).__init__(size=size, steps=[self.update], **kwargs)
+        super(FitzHughNagumo, self).__init__(
+            size=size, steps=[self.update], **kwargs)
 
     @staticmethod
     @bp.odeint(method='rk4')
@@ -40,6 +41,9 @@ if __name__ == '__main__':
 
     # simulation
     FNs.run(300., inputs=('input', 1.), report=True)
+    bp.visualize.line_plot(FNs.mon.ts, FNs.mon.V, show=True)
+
+    FNs.run(300., inputs=('input', 0.6), report=True)
     bp.visualize.line_plot(FNs.mon.ts, FNs.mon.V, show=True)
 
     # phase plane analysis

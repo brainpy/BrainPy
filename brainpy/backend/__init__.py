@@ -102,7 +102,6 @@ def set(backend, module_or_operations=None, node_runner=None,
                                    'or a dict of operations.')
 
 
-
 def set_class_keywords(*args):
     global CLASS_KEYWORDS
     CLASS_KEYWORDS = list(args)

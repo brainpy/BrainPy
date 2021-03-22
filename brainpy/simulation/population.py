@@ -16,6 +16,7 @@ __all__ = [
     'TwoEndConn',
 ]
 
+_POPULATION_NO = 0
 _NeuGroup_NO = 0
 _TwoEndSyn_NO = 0
 
@@ -27,19 +28,17 @@ class Population(object):
     ----------
     name : str
         The name of the (neurons/synapses) ensemble.
-    size : int
-        The number of the neurons/synapses.
-    steps : function, list of function
+    steps : callable, list of callable
         The callable function, or a list of callable functions.
     monitors : list, tuple, None
         Variables to monitor.
-    ensemble_type : str
+    pop_type : str
         Class type.
     """
 
     target_backend = None
 
-    def __init__(self, steps, monitors, ensemble_type, name, host=None, show_code=False):
+    def __init__(self, steps, monitors=None, pop_type=None, name=None, host=None, show_code=False):
         # host of the data
         # ----------------
         if host is None:
@@ -48,10 +47,12 @@ class Population(object):
 
         # ensemble type
         # -------------
-        if ensemble_type not in constants.SUPPORTED_TYPES:
-            print(f'Ensemble type {ensemble_type} is not registered in BrainPy. Currently, '
+        if pop_type is None:
+            pop_type = constants.UNKNOWN_TYPE
+        if pop_type not in constants.SUPPORTED_TYPES:
+            print(f'Ensemble type {pop_type} is not registered in BrainPy. Currently, '
                   f'BrainPy has recognized "{constants.SUPPORTED_TYPES}".')
-        self.ensemble_type = ensemble_type
+        self.ensemble_type = pop_type
 
         # model
         # -----
@@ -67,6 +68,10 @@ class Population(object):
 
         # name
         # ----
+        if name is None:
+            global _POPULATION_NO
+            name = f'POP{_POPULATION_NO}'
+            _POPULATION_NO += 1
         if not name.isidentifier():
             raise errors.ModelUseError(
                 f'"{name}" isn\'t a valid identifier according to Python '
@@ -75,6 +80,8 @@ class Population(object):
 
         # monitors
         # ---------
+        if monitors is None:
+            monitors = []
         self.mon = Monitor(monitors)
         for var in self.mon['vars']:
             if not hasattr(self, var):
@@ -196,8 +203,7 @@ class NeuGroup(Population):
         The name of the neuron group.
     """
 
-    def __init__(self, steps, size, monitors=None, name=None,
-                 host=None, show_code=False, ensemble_type=None):
+    def __init__(self, steps, size, monitors=None, name=None, host=None, show_code=False):
         # name
         # -----
         if name is None:
@@ -224,12 +230,11 @@ class NeuGroup(Population):
 
         # initialize
         # ----------
-        ensemble_type = constants.NEU_GROUP_TYPE if ensemble_type is None else ensemble_type
         super(NeuGroup, self).__init__(steps=steps,
                                        monitors=monitors,
                                        name=name,
                                        host=host,
-                                       ensemble_type=ensemble_type,
+                                       pop_type=constants.NEU_GROUP_TYPE,
                                        show_code=show_code)
 
 
@@ -237,7 +242,7 @@ class SynConn(Population):
     """Synaptic Connections.
     """
 
-    def __init__(self, steps, monitors, ensemble_type, name, host=None, show_code=False):
+    def __init__(self, steps, **kwargs):
         # check delay update
         if callable(steps):
             steps = OrderedDict([(steps.__name__, steps)])
@@ -251,8 +256,7 @@ class SynConn(Population):
                     delay_name = f'{key}_delay_update'
                     setattr(self, delay_name, delay_var.update)
                     steps[delay_name] = delay_var.update
-        super(SynConn, self).__init__(steps=steps, monitors=monitors, ensemble_type=ensemble_type,
-                                      name=name, host=host, show_code=show_code)
+        super(SynConn, self).__init__(steps=steps, **kwargs)
 
         for key, delay_var in self.constant_delays.items():
             delay_var.name = f'{self.name}_delay_{key}'
@@ -283,8 +287,7 @@ class TwoEndConn(SynConn):
         The name of the neuron group.
     """
 
-    def __init__(self, steps, pre, post, monitors=None, name=None,
-                 host=None, show_code=False, ensemble_type=None):
+    def __init__(self, steps, pre, post, monitors=None, name=None, host=None, show_code=False):
         # name
         # ----
         if name is None:
@@ -306,10 +309,9 @@ class TwoEndConn(SynConn):
 
         # initialize
         # ----------
-        ensemble_type = constants.TWO_END_TYPE if ensemble_type is None else ensemble_type
         super(TwoEndConn, self).__init__(steps=steps,
                                          name=name,
                                          monitors=monitors,
-                                         ensemble_type=ensemble_type,
+                                         pop_type=constants.TWO_END_TYPE,
                                          host=host,
                                          show_code=show_code)
