@@ -82,7 +82,7 @@ class BaseNeuronAnalyzer(object):
 
         # model
         # -----
-        if isinstance(model_or_integrals, dyn_model.DynamicalModel):
+        if isinstance(model_or_integrals, dyn_model.DynamicModel):
             self.model = model_or_integrals
         elif (isinstance(model_or_integrals, (tuple, list)) and callable(model_or_integrals[0])) or \
                 callable(model_or_integrals):
@@ -359,7 +359,8 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
                         func_codes = [f'def solve_x({argument2}):']
                         for expr in self.x_eq_group.sub_exprs[:-1]:
                             func_codes.append(f'{expr.var_name} = {expr.code}')
-                        result_expr = ', '.join([sympy_analysis.sympy2str(expr) for expr in results])
+                        result_expr = ', '.join([sympy_analysis.sympy2str(expr)
+                                                 for expr in results])
                         func_codes.append(f'_res_ = {result_expr}')
                         func_codes.append(f'return np.array(_res_)')
 

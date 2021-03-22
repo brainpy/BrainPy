@@ -542,7 +542,7 @@ class FastSlowBifurcation(object):
 class _FastSlowTrajectory(object):
     def __init__(self, model_or_intgs, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, **kwargs):
-        if isinstance(model_or_intgs, dyn_model.DynamicalModel):
+        if isinstance(model_or_intgs, dyn_model.DynamicModel):
             self.model = model_or_intgs
         elif (isinstance(model_or_intgs, (list, tuple)) and callable(model_or_intgs[0])) or callable(model_or_intgs):
             self.model = dyn_model.transform_integrals_to_analyzers(model_or_intgs)
@@ -570,18 +570,18 @@ class _FastSlowTrajectory(object):
             self.slow_var_names = list(sorted(slow_vars.keys()))
 
         # TODO
-        # # cannot update dynamical parameters
-        # all_vars = self.fast_var_names + self.slow_var_names
-        # self.traj_group = simulation.NeuGroup(model_or_intgs,
-        #                                       size=1,
-        #                                       monitors=all_vars,
-        #                                       pars_update=pars_update)
-        # self.traj_group.runner = simulation.TrajectoryNumbaRunner(self.traj_group,
-        #                                                           target_vars=all_vars,
-        #                                                           fixed_vars=fixed_vars)
-        # self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
-        #                      if not key.startswith('_')}
-        # self.traj_net = simulation.Network(self.traj_group)
+        # cannot update dynamical parameters
+        all_vars = self.fast_var_names + self.slow_var_names
+        self.traj_group = simulation.NeuGroup(model_or_intgs,
+                                              size=1,
+                                              monitors=all_vars,
+                                              pars_update=pars_update)
+        self.traj_group.runner = simulation.TrajectoryNumbaRunner(self.traj_group,
+                                                                  target_vars=all_vars,
+                                                                  fixed_vars=fixed_vars)
+        self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
+                             if not key.startswith('_')}
+        self.traj_net = simulation.Network(self.traj_group)
 
     def plot_trajectory(self, initials, duration, plot_duration=None, inputs=(), show=False):
         """Plot trajectories according to the settings.

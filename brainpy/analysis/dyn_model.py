@@ -13,7 +13,7 @@ except ModuleNotFoundError:
 
 __all__ = [
     'transform_integrals_to_analyzers',
-    'DynamicalModel',
+    'DynamicModel',
 ]
 
 
@@ -31,8 +31,6 @@ def transform_integrals_to_analyzers(integrals):
             integral = integral.py_func
         else:
             integral = integral
-
-
 
         # original function
         f = integral.origin_f
@@ -70,13 +68,13 @@ def transform_integrals_to_analyzers(integrals):
         all_parameters.update(integral.parameters)
         all_scope.update(code_scope)
 
-    return DynamicalModel(analyzers=analyzers,
-                          variables=list(all_variables),
-                          parameters=list(all_parameters),
-                          scopes=all_scope)
+    return DynamicModel(analyzers=analyzers,
+                        variables=list(all_variables),
+                        parameters=list(all_parameters),
+                        scopes=all_scope)
 
 
-class DynamicalModel(object):
+class DynamicModel(object):
     def __init__(self, analyzers, variables, parameters, scopes):
         self.analyzers = analyzers
         self.variables = variables

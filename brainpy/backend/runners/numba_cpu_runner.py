@@ -3,6 +3,7 @@
 import ast
 import inspect
 import re
+from collections import OrderedDict
 
 import numba
 from numba.core.dispatcher import Dispatcher
@@ -71,43 +72,57 @@ class StepFuncReader(ast.NodeVisitor):
         self.lefts = []
         self.rights = []
         self.lines = []
+        self.visited_nodes = set()
 
         self.host = host
         # get delay information
         self.delay_call = {}
 
     def visit_Assign(self, node, level=0):
+        if node not in self.visited_nodes:
+            prefix = '  ' * level
+            expr = tools.ast2code(ast.fix_missing_locations(node.value))
+            targets = []
+            for target in node.targets:
+                targets.append(tools.ast2code(ast.fix_missing_locations(target)))
+            _target = ' = '.join(targets)
+
+            self.rights.append(expr)
+            self.lefts.append(_target)
+            self.lines.append(f'{prefix}{_target} = {expr}')
+
+            self.visited_nodes.add(node)
+
         self.generic_visit(node)
-        prefix = '  ' * level
-        expr = tools.ast2code(ast.fix_missing_locations(node.value))
-        self.rights.append(expr)
-        targets = []
-        for target in node.targets:
-            targets.append(tools.ast2code(ast.fix_missing_locations(target)))
-        _target = ' = '.join(targets)
-        self.lefts.append(_target)
-        self.lines.append(f'{prefix}{_target} = {expr}')
 
     def visit_AugAssign(self, node, level=0):
+        if node not in self.visited_nodes:
+            prefix = '  ' * level
+            op = tools.ast2code(ast.fix_missing_locations(node.op))
+            expr = tools.ast2code(ast.fix_missing_locations(node.value))
+            target = tools.ast2code(ast.fix_missing_locations(node.target))
+
+            self.lefts.append(target)
+            self.rights.append(f'{target} {op} {expr}')
+            self.lines.append(f"{prefix}{target} = {target} {op} {expr}")
+
+            self.visited_nodes.add(node)
+
         self.generic_visit(node)
-        prefix = '  ' * level
-        op = tools.ast2code(ast.fix_missing_locations(node.op))
-        expr = tools.ast2code(ast.fix_missing_locations(node.value))
-        target = tools.ast2code(ast.fix_missing_locations(node.target))
-        self.lefts.append(target)
-        self.rights.append(f'{target} {op} {expr}')
-        self.lines.append(f"{prefix}{target} = {target} {op} {expr}")
 
     def visit_AnnAssign(self, node):
         raise NotImplementedError('Do not support an assignment with '
                                   'a type annotation in Numba backend.')
 
     def visit_node_not_assign(self, node, level=0):
-        prefix = '  ' * level
-        expr = tools.ast2code(ast.fix_missing_locations(node))
-        self.lines.append(f'{prefix}{expr}')
-        self.lefts.append('')
-        self.rights.append(expr)
+        if node not in self.visited_nodes:
+            prefix = '  ' * level
+            expr = tools.ast2code(ast.fix_missing_locations(node))
+            self.lines.append(f'{prefix}{expr}')
+            self.lefts.append('')
+            self.rights.append(expr)
+            self.visited_nodes.add(node)
+
         self.generic_visit(node)
 
     def visit_Assert(self, node, level=0):
@@ -197,68 +212,83 @@ class StepFuncReader(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_If(self, node, level=0):
-        # If condition
-        prefix = '  ' * level
-        compare = tools.ast2code(ast.fix_missing_locations(node.test))
-        self.rights.append(f'if {compare}:')
-        self.lines.append(f'{prefix}if {compare}:')
-        # body
-        for expr in node.body:
-            self.visit_content_in_condition_control(expr, level + 1)
-
-        # elif
-        while node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
-            node = node.orelse[0]
+        if node not in self.visited_nodes:
+            # If condition
+            prefix = '  ' * level
             compare = tools.ast2code(ast.fix_missing_locations(node.test))
-            self.lines.append(f'{prefix}elif {compare}:')
+            self.rights.append(f'if {compare}:')
+            self.lines.append(f'{prefix}if {compare}:')
+
+            # body
             for expr in node.body:
                 self.visit_content_in_condition_control(expr, level + 1)
 
-        # else:
-        if len(node.orelse) > 0:
-            self.lines.append(f'{prefix}else:')
-            for expr in node.orelse:
-                self.visit_content_in_condition_control(expr, level + 1)
+            # elif
+            while node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+                node = node.orelse[0]
+                compare = tools.ast2code(ast.fix_missing_locations(node.test))
+                self.lines.append(f'{prefix}elif {compare}:')
+                for expr in node.body:
+                    self.visit_content_in_condition_control(expr, level + 1)
+
+            # else:
+            if len(node.orelse) > 0:
+                self.lines.append(f'{prefix}else:')
+                for expr in node.orelse:
+                    self.visit_content_in_condition_control(expr, level + 1)
+
+            self.visited_nodes.add(node)
+
         self.generic_visit(node)
 
     def visit_For(self, node, level=0):
-        prefix = '  ' * level
-        # target
-        target = tools.ast2code(ast.fix_missing_locations(node.target))
-        # iter
-        iter = tools.ast2code(ast.fix_missing_locations(node.iter))
-        self.rights.append(f'{target} in {iter}')
-        self.lines.append(prefix + f'for {target} in {iter}:')
-        # body
-        for expr in node.body:
-            self.visit_content_in_condition_control(expr, level + 1)
-        # else
-        if len(node.orelse) > 0:
-            self.lines.append(prefix + 'else:')
-            for expr in node.orelse:
+        if node not in self.visited_nodes:
+            prefix = '  ' * level
+            # target
+            target = tools.ast2code(ast.fix_missing_locations(node.target))
+            # iter
+            iter = tools.ast2code(ast.fix_missing_locations(node.iter))
+            self.rights.append(f'{target} in {iter}')
+            self.lines.append(prefix + f'for {target} in {iter}:')
+            # body
+            for expr in node.body:
                 self.visit_content_in_condition_control(expr, level + 1)
+            # else
+            if len(node.orelse) > 0:
+                self.lines.append(prefix + 'else:')
+                for expr in node.orelse:
+                    self.visit_content_in_condition_control(expr, level + 1)
+
+            self.visited_nodes.add(node)
         self.generic_visit(node)
 
     def visit_While(self, node, level=0):
-        prefix = '  ' * level
-        # test
-        test = tools.ast2code(ast.fix_missing_locations(node.test))
-        self.rights.append(test)
-        self.lines.append(prefix + f'while {test}:')
-        # body
-        for expr in node.body:
-            self.visit_content_in_condition_control(expr, level + 1)
-        # else
-        if len(node.orelse) > 0:
-            self.lines.append(prefix + 'else:')
-            for expr in node.orelse:
+        if node not in self.visited_nodes:
+            prefix = '  ' * level
+            # test
+            test = tools.ast2code(ast.fix_missing_locations(node.test))
+            self.rights.append(test)
+            self.lines.append(prefix + f'while {test}:')
+            # body
+            for expr in node.body:
                 self.visit_content_in_condition_control(expr, level + 1)
+            # else
+            if len(node.orelse) > 0:
+                self.lines.append(prefix + 'else:')
+                for expr in node.orelse:
+                    self.visit_content_in_condition_control(expr, level + 1)
+
+            self.visited_nodes.add(node)
         self.generic_visit(node)
 
     def visit_Raise(self, node, level=0):
-        prefix = '  ' * level
-        line = tools.ast2code(ast.fix_missing_locations(node))
-        self.lines.append(prefix + line)
+        if node not in self.visited_nodes:
+            prefix = '  ' * level
+            line = tools.ast2code(ast.fix_missing_locations(node))
+            self.lines.append(prefix + line)
+
+            self.visited_nodes.add(node)
+        self.generic_visit(node)
 
     def visit_Try(self, node):
         raise errors.CodeError('Do not support "try" handler in Numba backend.')
@@ -334,7 +364,7 @@ def analyze_step_func(host, f):
 
     analyzed_results = {
         'delay_call': formatter.delay_call,
-        'code_string': code_string,
+        'code_string': '\n'.join(formatter.lines),
         'code_scope': code_scope,
         'self_data_in_right': self_data_in_right,
         'self_data_without_index_in_left': self_data_without_index_in_left,
@@ -443,12 +473,13 @@ def class2func(cls_func, host, func_name=None, show_code=False):
     # analysis
     analyzed_results = analyze_step_func(host=host, f=cls_func)
     delay_call = analyzed_results['delay_call']
-    code_string = analyzed_results['code_string']
+    # code_string = analyzed_results['code_string']
+    main_code = analyzed_results['code_string']
     code_scope = analyzed_results['code_scope']
     self_data_in_right = analyzed_results['self_data_in_right']
     self_data_without_index_in_left = analyzed_results['self_data_without_index_in_left']
     self_data_with_index_in_left = analyzed_results['self_data_with_index_in_left']
-    main_code = get_func_body_code(code_string)
+    # main_code = get_func_body_code(code_string)
     num_indent = get_num_indent(main_code)
     data_need_pass = sorted(list(set(self_data_in_right + self_data_with_index_in_left)))
     data_need_return = self_data_without_index_in_left
@@ -517,9 +548,10 @@ def class2func(cls_func, host, func_name=None, show_code=False):
     code_scope[host_name] = host
 
     # codes
-    main_code = f'def new_{func_name}({", ".join(new_args)}):\n' + main_code
+    header = f'def new_{func_name}({", ".join(new_args)}):\n'
+    main_code = header + tools.indent(main_code, spaces_per_tab=2)
     if len(returns):
-        main_code += f'\n{" " * num_indent}return {", ".join(returns)}'
+        main_code += f'\n{" " * num_indent + "  "}return {", ".join(returns)}'
     main_code = tools.word_replace(main_code, replaces_later)
     if show_code:
         print(main_code)

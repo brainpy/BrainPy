@@ -100,7 +100,7 @@ class AMPA1_vec(bp.TwoEndConn):
             pre_id = self.pre_ids[i]
             self.s[i] = self.int_s(self.s[i], _t, self.tau)
             self.s[i] += self.pre.spike[pre_id]
-            self.g.push(i, self.g_max * self.s[i])
+            self.g.push(i,self.g_max * self.s[i])
             post_id = self.post_ids[i]
             self.post.input[post_id] -= self.g.pull(i) * (self.post.V[post_id] - self.E)
 
@@ -137,7 +137,7 @@ class AMPA1_mat(bp.TwoEndConn):
             if self.pre.spike[i] > 0:
                 self.s[i] += self.conn_mat[i]
         self.g.push(self.g_max * self.s)
-        g = self.g.pull()
+        g=self.g.pull()
         self.post.input -= bp.backend.sum(g, axis=0) * (self.post.V - self.E)
 
 

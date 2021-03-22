@@ -11,7 +11,7 @@ __all__ = [
     'DynamicSystem',
 ]
 
-_DynamicModel_NO = 0
+_DynamicSystem_NO = 0
 
 
 class DynamicSystem(object):
@@ -19,12 +19,16 @@ class DynamicSystem(object):
 
     Parameters
     ----------
-    name : str
-        The name of the dynamic system.
     steps : callable, list of callable, dict
         The callable function, or a list of callable functions.
     monitors : list, tuple, None
         Variables to monitor.
+    name : str
+        The name of the dynamic system.
+    host : any
+        The host to store data, including variables, functions, etc.
+    show_code : bool
+        Whether show the formatted codes.
     """
 
     target_backend = None
@@ -51,9 +55,9 @@ class DynamicSystem(object):
         # name
         # ----
         if name is None:
-            global _DynamicModel_NO
-            name = f'DM{_DynamicModel_NO}'
-            _DynamicModel_NO += 1
+            global _DynamicSystem_NO
+            name = f'DS{_DynamicSystem_NO}'
+            _DynamicSystem_NO += 1
         if not name.isidentifier():
             raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier according to Python '
                                        f'language definition. Please choose another name.')

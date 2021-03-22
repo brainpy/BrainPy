@@ -140,19 +140,31 @@ def set_ops_from_module(module):
 
 def set_ops(**kwargs):
     global_vars = globals()
-    for key in global_vars.keys():
-        if (not key.startswith('__')) and (key in kwargs):
-            global_vars[key] = kwargs.pop(key)
-
-    if len(kwargs):
-        raise ValueError(f'Unknown operations: {list(kwargs.keys())}')
+    for key, value in kwargs.items():
+        if key not in NEEDED_OPS:
+            print(f'"{key}" is not a necessary operation.')
+        global_vars[key] = value
 
 
 def get_backend():
+    """Get the current backend name.
+
+    Returns
+    -------
+    backend : str
+        The name of the current backend name.
+    """
     return _backend
 
 
 def get_node_runner():
+    """Get the current node runner.
+
+    Returns
+    -------
+    node_runner
+        The node runner class.
+    """
     global _node_runner
     if _node_runner is None:
         from .runners.general_runner import GeneralNodeRunner
@@ -161,6 +173,13 @@ def get_node_runner():
 
 
 def get_net_runner():
+    """Get the current network runner.
+
+    Returns
+    -------
+    net_runner
+        The network runner.
+    """
     global _net_runner
     if _net_runner is None:
         from .runners.general_runner import GeneralNetRunner

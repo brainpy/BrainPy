@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import inspect
-from brainpy.backend.runners.numba_cpu_runner import analyze_step_func
-from brainpy.backend.runners.numba_cpu_runner import StepFuncReader
-
-from pprint import pprint
 import ast
+import inspect
+from pprint import pprint
+
 import numpy as np
+
 import brainpy as bp
+from brainpy.backend.runners.numba_cpu_runner import StepFuncReader
+from brainpy.backend.runners.numba_cpu_runner import analyze_step_func
 
 
 def test_analyze_step1():
@@ -141,7 +142,6 @@ def test_analyze_step2():
             self.n[:] = n
             self.input[:] = 0.
 
-
     group = HH(100, ['V'])
     r = analyze_step_func(group.update)
 
@@ -180,7 +180,7 @@ def test_StepFuncReader1():
             self.spike = np.zeros(size)
             self.input = np.zeros(size)
 
-            super(HH, self).__init__(size=size, steps=[self.update], **kwargs)
+            super(HH, self).__init__(size=size, **kwargs)
 
         @staticmethod
         @bp.odeint
@@ -234,8 +234,7 @@ def test_StepFuncReader1():
             self.s = bp.backend.zeros(self.size)
             self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
 
-            super(AMPA1_vec, self).__init__(steps=[self.update, ],
-                                            pre=pre, post=post, **kwargs)
+            super(AMPA1_vec, self).__init__(pre=pre, post=post, **kwargs)
 
         @staticmethod
         @bp.odeint(method='euler')
@@ -275,6 +274,67 @@ def test_StepFuncReader1():
     print()
 
 
+def test_StepFuncReader2():
+    class LIF(bp.NeuGroup):
+        target_backend = ['numba', 'numpy']
+        def __init__(self, size, t_refractory=1., V_rest=0.,
+                     V_reset=-5., V_th=20., R=1., tau=10., **kwargs):
+            # parameters
+            self.V_rest = V_rest
+            self.V_reset = V_reset
+            self.V_th = V_th
+            self.R = R
+            self.tau = tau
+            self.t_refractory = t_refractory
+
+            # variables
+            self.t_last_spike = bp.backend.ones(size) * -1e7
+            self.refractory = bp.backend.zeros(size)
+            self.input = bp.backend.zeros(size)
+            self.spike = bp.backend.zeros(size)
+            self.V = bp.backend.ones(size) * V_reset
+
+            super(LIF, self).__init__(size=size, **kwargs)
+
+        @staticmethod
+        @bp.odeint
+        def int_V(V, t, Iext, V_rest, R, tau):
+            return (- (V - V_rest) + R * Iext) / tau
+
+        def update(self, _t):
+            for i in range(self.size[0]):
+                if _t - self.t_last_spike[i] <= self.t_refractory:
+                    self.refractory[i] = 1.
+                else:
+                    self.refractory[0] = 0.
+                    V = self.int_V(self.V[i], _t, self.input[i], self.V_rest, self.R, self.tau)
+                    if V >= self.V_th:
+                        self.V[i] = self.V_reset
+                        self.spike[i] = 1.
+                        self.t_last_spike[i] = _t
+                    else:
+                        self.spike[i] = 0.
+                        self.V[i] = V
+                self.input[i] = 0.
+
+    lif = LIF(10)
+    code = bp.tools.deindent(inspect.getsource(lif.update))
+
+    formatter = StepFuncReader(host=lif)
+    formatter.visit(ast.parse(code))
+
+    print('lefts:')
+    pprint(formatter.lefts)
+    print()
+    print('rights:')
+    pprint(formatter.rights)
+    print()
+    print('lines:')
+    pprint(formatter.lines)
+    print()
+    print('delay_call:')
+    pprint(formatter.delay_call)
+    print()
+
+
 test_StepFuncReader1()
-
-

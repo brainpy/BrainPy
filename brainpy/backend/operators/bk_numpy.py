@@ -15,8 +15,6 @@ __all__ = [
     'matmul',
     'vstack',
     'arange',
-    'moveaxis',
-    'where',
 ]
 
 
@@ -31,8 +29,6 @@ eye = np.eye
 matmul = np.matmul
 vstack = np.vstack
 arange = np.arange
-moveaxis = np.moveaxis
-where = np.where
 
 
 def shape(x):
