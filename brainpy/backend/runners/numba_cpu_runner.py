@@ -3,10 +3,8 @@
 import ast
 import inspect
 import re
-from collections import OrderedDict
 
 import numba
-from numba.core.dispatcher import Dispatcher
 
 from brainpy import backend
 from brainpy import errors
