@@ -5,11 +5,11 @@ import numpy as np
 
 from brainpy import backend
 from brainpy import errors
-from brainpy import simulation
 from brainpy.analysis import base
-from brainpy.analysis import dyn_model
+from brainpy.analysis import integrals2model
 from brainpy.analysis import stability
 from brainpy.analysis import utils
+from brainpy.analysis.trajectory import Trajectory
 
 __all__ = [
     'PhasePlane',
@@ -86,7 +86,7 @@ class PhasePlane(object):
             options=None,
     ):
         # check "model"
-        self.model = dyn_model.transform_integrals_to_analyzers(integrals)
+        self.model = integrals2model.transform_integrals_to_model(integrals)
 
         # check "target_vars"
         if not isinstance(target_vars, dict):
@@ -145,21 +145,72 @@ class PhasePlane(object):
         """Plot nullcline (only supported in 2D system)."""
         self.analyzer.plot_nullcline(*args, **kwargs)
 
-    def plot_trajectory(self, *args, **kwargs):
-        """Plot trajectories (only supported in 2D system)."""
-        self.analyzer.plot_trajectory(*args, **kwargs)
+    def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
+        """Plot trajectories according to the settings.
 
-    def plot_limit_cycle_by_sim(self, *args, **kwargs):
-        """Find the limit cycles through the simulation, and then plot."""
-        self.analyzer.plot_limit_cycle_by_sim(*args, **kwargs)
+        Parameters
+        ----------
+        initials : list, tuple, dict
+            The initial value setting of the targets. It can be a tuple/list of floats to specify
+            each value of dynamical variables (for example, ``(a, b)``). It can also be a
+            tuple/list of tuple to specify multiple initial values (for example,
+            ``[(a1, b1), (a2, b2)]``).
+        duration : int, float, tuple, list
+            The running duration. Same with the ``duration`` in ``NeuGroup.run()``.
+            It can be a int/float (``t_end``) to specify the same running end time,
+            or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
+            the start and end simulation time. Or, it can be a list of tuple
+            (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
+            start and end simulation time for each initial value.
+        plot_duration : tuple, list, optional
+            The duration to plot. It can be a tuple with ``(start, end)``. It can
+            also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
+            the plot duration for each initial value running.
+        axes : str
+            The axes to plot. It can be:
+
+                 - 'v-v'
+                        Plot the trajectory in the 'x_var'-'y_var' axis.
+                 - 't-v'
+                        Plot the trajectory in the 'time'-'var' axis.
+        show : bool
+            Whether show or not.
+        """
+        self.analyzer.plot_trajectory(initials=initials,
+                                      duration=duration,
+                                      plot_duration=plot_duration,
+                                      axes=axes,
+                                      show=show)
+
+    def plot_limit_cycle_by_sim(self, initials, duration, tol=0.001, show=False):
+        """Plot limit cycles according to the settings.
+
+        Parameters
+        ----------
+        initials : list, tuple
+            The initial value setting of the targets. It can be a tuple/list of floats to specify
+            each value of dynamical variables (for example, ``(a, b)``). It can also be a
+            tuple/list of tuple to specify multiple initial values (for example,
+            ``[(a1, b1), (a2, b2)]``).
+        duration : int, float, tuple, list
+            The running duration. Same with the ``duration`` in ``NeuGroup.run()``.
+            It can be a int/float (``t_end``) to specify the same running end time,
+            or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
+            the start and end simulation time. Or, it can be a list of tuple
+            (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
+            start and end simulation time for each initial value.
+        show : bool
+            Whether show or not.
+        """
+        self.analyzer.plot_limit_cycle_by_sim(initials=initials,
+                                              duration=duration,
+                                              tol=tol,
+                                              show=show)
 
 
 class _PhasePlane1D(base.Base1DNeuronAnalyzer):
     """Phase plane analyzer for 1D system.
     """
-
-    def __init__(self, *args, **kwargs):
-        super(_PhasePlane1D, self).__init__(*args, **kwargs)
 
     def plot_vector_field(self, show=False):
         """Plot the vector filed.
@@ -191,7 +242,7 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
 
         plt.xlabel(self.x_var)
         plt.ylabel(label)
-        plt.xlim(*utils.rescale(self.target_vars[self.x_var], 
+        plt.xlim(*utils.rescale(self.target_vars[self.x_var],
                                 scale=(self.options.lim_scale - 1.) / 2))
         plt.legend()
         if show:
@@ -252,26 +303,6 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
 class _PhasePlane2D(base.Base2DNeuronAnalyzer):
     """Phase plane analyzer for 2D system.
     """
-
-    def __init__(self, *args, **kwargs):
-        super(_PhasePlane2D, self).__init__(*args, **kwargs)
-
-
-        # TODO
-        # # runner for trajectory
-        # # ---------------------
-        #
-        # # cannot update dynamical parameters
-        # self.traj_group = simulation.NeuGroup(self.model,
-        #                                       size=1,
-        #                                       monitors=self.dvar_names,
-        #                                       pars_update=self.pars_update)
-        # self.traj_group.runner = simulation.TrajectoryNumbaRunner(self.traj_group,
-        #                                                           target_vars=self.dvar_names,
-        #                                                           fixed_vars=self.fixed_vars)
-        # self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
-        #                      if not key.startswith('_')}
-        # self.traj_net = simulation.Network(self.traj_group)
 
     def plot_vector_field(self, plot_method='streamplot', plot_style=None, show=False):
         """Plot the vector field.
@@ -516,12 +547,12 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         return {self.x_eq_group.func_name: (x_values_in_x_eq, y_values_in_x_eq),
                 self.y_eq_group.func_name: (x_values_in_y_eq, y_values_in_y_eq)}
 
-    def plot_trajectory(self, initials, duration, plot_duration=None, inputs=(), axes='v-v', show=False):
+    def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
         """Plot trajectories according to the settings.
 
         Parameters
         ----------
-        initials : list, tuple
+        initials : list, tuple, dict
             The initial value setting of the targets. It can be a tuple/list of floats to specify
             each value of dynamical variables (for example, ``(a, b)``). It can also be a
             tuple/list of tuple to specify multiple initial values (for example,
@@ -537,8 +568,6 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             The duration to plot. It can be a tuple with ``(start, end)``. It can
             also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
             the plot duration for each initial value running.
-        inputs : tuple, list
-            The inputs to the model. Same with the ``inputs`` in ``NeuGroup.run()``
         axes : str
             The axes to plot. It can be:
 
@@ -586,30 +615,17 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         else:
             assert len(plot_duration) == len(initials)
 
-        # 4. format the inputs
-        if len(inputs):
-            if isinstance(inputs[0], (tuple, list)):
-                inputs = [(self.traj_group,) + tuple(input)
-                          for input in inputs]
-            elif isinstance(inputs[0], str):
-                inputs = [(self.traj_group,) + tuple(inputs)]
-            else:
-                raise errors.ModelUseError()
-
         # 5. run the network
         for init_i, initial in enumerate(initials):
-            #   5.1 set the initial value
-            for key, val in self.traj_initial.items():
-                self.traj_group.ST[key] = val
-            for key in self.dvar_names:
-                self.traj_group.ST[key] = initial[key]
-            for key, val in self.fixed_vars.items():
-                if key in self.traj_group.ST:
-                    self.traj_group.ST[key] = val
+            traj_group = Trajectory(size=1,
+                                    integrals=self.model.integrals,
+                                    target_vars=initial,
+                                    fixed_vars=self.fixed_vars,
+                                    pars_update=self.pars_update,
+                                    scope=self.model.scopes)
 
             #   5.2 run the model
-            self.traj_net.run(duration=duration[init_i], inputs=inputs,
-                              report=False, data_to_host=True, verbose=False)
+            traj_group.run(duration=duration[init_i], report=False, )
 
             #   5.3 legend
             legend = f'$traj_{init_i}$: '
@@ -623,16 +639,16 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
 
             #   5.5 visualization
             if axes == 'v-v':
-                lines = plt.plot(self.traj_group.mon[self.x_var][start: end, 0],
-                                 self.traj_group.mon[self.y_var][start: end, 0],
+                lines = plt.plot(traj_group.mon[self.x_var][start: end, 0],
+                                 traj_group.mon[self.y_var][start: end, 0],
                                  label=legend)
                 utils.add_arrow(lines[0])
             else:
-                plt.plot(self.traj_group.mon.ts[start: end],
-                         self.traj_group.mon[self.x_var][start: end, 0],
+                plt.plot(traj_group.mon.ts[start: end],
+                         traj_group.mon[self.x_var][start: end, 0],
                          label=legend + f', {self.x_var}')
-                plt.plot(self.traj_group.mon.ts[start: end],
-                         self.traj_group.mon[self.y_var][start: end, 0],
+                plt.plot(traj_group.mon.ts[start: end],
+                         traj_group.mon[self.y_var][start: end, 0],
                          label=legend + f', {self.y_var}')
 
         # 6. visualization
@@ -649,7 +665,7 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         if show:
             plt.show()
 
-    def plot_limit_cycle_by_sim(self, initials, duration, inputs=(), tol=0.001, show=False):
+    def plot_limit_cycle_by_sim(self, initials, duration, tol=0.001, show=False):
         """Plot trajectories according to the settings.
 
         Parameters
@@ -666,8 +682,6 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
             the start and end simulation time. Or, it can be a list of tuple
             (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
             start and end simulation time for each initial value.
-        inputs : tuple, list
-            The inputs to the model. Same with the ``inputs`` in ``NeuGroup.run()``
         show : bool
             Whether show or not.
         """
@@ -696,31 +710,19 @@ class _PhasePlane2D(base.Base2DNeuronAnalyzer):
         else:
             assert len(duration) == len(initials)
 
-        # 4. format the inputs
-        if len(inputs):
-            if isinstance(inputs[0], (tuple, list)):
-                inputs = [(self.traj_group,) + tuple(input) for input in inputs]
-            elif isinstance(inputs[0], str):
-                inputs = [(self.traj_group,) + tuple(inputs)]
-            else:
-                raise errors.ModelUseError()
-
         # 5. run the network
         for init_i, initial in enumerate(initials):
-            #   5.1 set the initial value
-            for key, val in self.traj_initial.items():
-                self.traj_group.ST[key] = val
-            for key in self.dvar_names:
-                self.traj_group.ST[key] = initial[key]
-            for key, val in self.fixed_vars.items():
-                if key in self.traj_group.ST:
-                    self.traj_group.ST[key] = val
+            traj_group = Trajectory(size=1,
+                                    integrals=self.model.integrals,
+                                    target_vars=initial,
+                                    fixed_vars=self.fixed_vars,
+                                    pars_update=self.pars_update,
+                                    scope=self.model.scopes)
 
             #   5.2 run the model
-            self.traj_net.run(duration=duration[init_i], inputs=inputs,
-                              report=False, data_to_host=True, verbose=False)
-            x_data = self.traj_group.mon[self.x_var][:, 0]
-            y_data = self.traj_group.mon[self.y_var][:, 0]
+            traj_group.run(duration=duration[init_i], report=False, )
+            x_data = traj_group.mon[self.x_var][:, 0]
+            y_data = traj_group.mon[self.y_var][:, 0]
             max_index = utils.find_indexes_of_limit_cycle_max(x_data, tol=tol)
             if max_index[0] != -1:
                 x_cycle = x_data[max_index[0]: max_index[1]]

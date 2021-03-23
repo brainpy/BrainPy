@@ -38,12 +38,12 @@ class FitzHughNagumo(bp.NeuGroup):
 if __name__ == '__main__':
     FNs = FitzHughNagumo(100, monitors=['V'])
 
-    # simulation
-    FNs.run(300., inputs=('input', 1.), report=True)
-    bp.visualize.line_plot(FNs.mon.ts, FNs.mon.V, show=True)
-
-    FNs.run(300., inputs=('input', 0.6), report=True)
-    bp.visualize.line_plot(FNs.mon.ts, FNs.mon.V, show=True)
+    # # simulation
+    # FNs.run(duration=300., inputs=('input', 1.), report=True)
+    # bp.visualize.line_plot(FNs.mon.ts, FNs.mon.V, show=True)
+    #
+    # FNs.run(duration=(300., 600.), inputs=('input', 0.6), report=True)
+    # bp.visualize.line_plot(FNs.mon.ts, FNs.mon.V, show=True)
 
     # phase plane analysis
     phase = bp.analysis.PhasePlane(FNs.integral,
@@ -52,6 +52,8 @@ if __name__ == '__main__':
                                    pars_update={'Iext': 1., "a": 0.7, 'b': 0.8, 'tau': 12.5})
     phase.plot_nullcline()
     phase.plot_fixed_point()
+    # phase.plot_trajectory(initials={'V': -1, 'w': 1}, duration=100.)
+    phase.plot_limit_cycle_by_sim(initials={'V': -1, 'w': 1}, duration=100.)
     phase.plot_vector_field(show=True)
 
     # bifurcation analysis

@@ -3,6 +3,7 @@
 
 import inspect
 
+from brainpy import errors
 from brainpy.integrators import ast_analysis
 from brainpy.integrators import sympy_analysis
 
@@ -12,12 +13,12 @@ except ModuleNotFoundError:
     Dispatcher = None
 
 __all__ = [
-    'transform_integrals_to_analyzers',
+    'transform_integrals_to_model',
     'DynamicModel',
 ]
 
 
-def transform_integrals_to_analyzers(integrals):
+def transform_integrals_to_model(integrals):
     if callable(integrals):
         integrals = [integrals]
 
@@ -64,18 +65,24 @@ def transform_integrals_to_analyzers(integrals):
             analyzers.append(DE)
 
         # others
-        all_variables.update(integral.variables)
+        for var in integral.variables:
+            if var in all_variables:
+                raise errors.ModelDefError(f'Variable {var} has been defined before. Cannot group '
+                                           f'this integral as a dynamic system.')
+            all_variables.add(var)
         all_parameters.update(integral.parameters)
         all_scope.update(code_scope)
 
-    return DynamicModel(analyzers=analyzers,
+    return DynamicModel(integrals=integrals,
+                        analyzers=analyzers,
                         variables=list(all_variables),
                         parameters=list(all_parameters),
                         scopes=all_scope)
 
 
 class DynamicModel(object):
-    def __init__(self, analyzers, variables, parameters, scopes):
+    def __init__(self, integrals, analyzers, variables, parameters, scopes):
+        self.integrals = integrals
         self.analyzers = analyzers
         self.variables = variables
         self.parameters = parameters

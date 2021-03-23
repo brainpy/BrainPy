@@ -5,8 +5,12 @@ import numba as nb
 
 import brainpy as bp
 
+bp.backend.set('numpy')
+
 
 class LIF(bp.NeuGroup):
+    target_backend = ['numpy', 'numba']
+
     def __init__(self, size, t_refractory=1., V_rest=0.,
                  V_reset=-5., V_th=20., R=1., tau=10., **kwargs):
         # parameters
@@ -46,3 +50,13 @@ class LIF(bp.NeuGroup):
                     self.spike[i] = 0.
                     self.V[i] = V
             self.input[i] = 0.
+
+
+if __name__ == '__main__':
+    group = LIF(100, monitors=['V'], show_code=True)
+
+    group.run(duration=200., inputs=('input', 26.), report=True)
+    bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)
+
+    group.run(duration=(200, 400.), report=True)
+    bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)

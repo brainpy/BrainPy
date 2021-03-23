@@ -9,11 +9,11 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import backend
 from brainpy import errors
-from brainpy import simulation
 from brainpy.analysis import base
-from brainpy.analysis import dyn_model
+from brainpy.analysis import integrals2model
 from brainpy.analysis import stability
 from brainpy.analysis import utils
+from brainpy.analysis.trajectory import Trajectory
 
 __all__ = [
     'Bifurcation',
@@ -48,7 +48,7 @@ class Bifurcation(object):
     def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
                  numerical_resolution=0.1, options=None):
         # check "model"
-        self.model = dyn_model.transform_integrals_to_analyzers(integrals)
+        self.model = integrals2model.transform_integrals_to_model(integrals)
 
         # check "target_pars"
         if not isinstance(target_pars, dict):
@@ -372,23 +372,13 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
 
         # initialize neuron group
         length = all_xs.shape[0]
-        group = simulation.NeuGroup(self.model,
-                                    size=length,
-                                    monitors=self.dvar_names,
-                                    pars_update=self.pars_update)
-
-        # group initial state
-        group.ST[self.x_var] = all_xs
-        group.ST[self.y_var] = all_ys
-        for key, val in fixed_vars.items():
-            if key in group.ST:
-                group.ST[key] = val
-
-        # run neuron group
-        group.runner = simulation.TrajectoryNumbaRunner(group,
-                                                        target_vars=self.dvar_names,
-                                                        fixed_vars=fixed_vars)
-        group.run(duration=duration, inputs=inputs)
+        traj_group = Trajectory(size=length,
+                                integrals=self.model.integrals,
+                                target_vars={self.x_var: all_xs, self.y_var: all_ys},
+                                fixed_vars=fixed_vars,
+                                pars_update=self.pars_update,
+                                scope=self.model.scopes)
+        traj_group.run(duration=duration)
 
         # find limit cycles
         limit_cycle_max = []
@@ -397,7 +387,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         p0_limit_cycle = []
         p1_limit_cycle = []
         for i in range(length):
-            data = group.mon[var][:, i]
+            data = traj_group.mon[var][:, i]
             max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
             if max_index[0] != -1:
                 x_cycle = data[max_index[0]: max_index[1]]
@@ -433,9 +423,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         if show:
             plt.show()
 
-        del group.ST
-        del group.mon
-        del group
+        del traj_group
         gc.collect()
 
 
@@ -466,7 +454,7 @@ class FastSlowBifurcation(object):
     def __init__(self, integrals, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
         # check "model"
-        self.model = dyn_model.transform_integrals_to_analyzers(integrals)
+        self.model = integrals2model.transform_integrals_to_model(integrals)
 
         # check "fast_vars"
         if not isinstance(fast_vars, dict):
@@ -542,10 +530,10 @@ class FastSlowBifurcation(object):
 class _FastSlowTrajectory(object):
     def __init__(self, model_or_intgs, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, **kwargs):
-        if isinstance(model_or_intgs, dyn_model.DynamicModel):
+        if isinstance(model_or_intgs, integrals2model.DynamicModel):
             self.model = model_or_intgs
         elif (isinstance(model_or_intgs, (list, tuple)) and callable(model_or_intgs[0])) or callable(model_or_intgs):
-            self.model = dyn_model.transform_integrals_to_analyzers(model_or_intgs)
+            self.model = integrals2model.transform_integrals_to_model(model_or_intgs)
         else:
             raise ValueError
         self.fast_vars = fast_vars
@@ -568,20 +556,6 @@ class _FastSlowTrajectory(object):
             self.slow_var_names = list(slow_vars.keys())
         else:
             self.slow_var_names = list(sorted(slow_vars.keys()))
-
-        # TODO
-        # cannot update dynamical parameters
-        all_vars = self.fast_var_names + self.slow_var_names
-        self.traj_group = simulation.NeuGroup(model_or_intgs,
-                                              size=1,
-                                              monitors=all_vars,
-                                              pars_update=pars_update)
-        self.traj_group.runner = simulation.TrajectoryNumbaRunner(self.traj_group,
-                                                                  target_vars=all_vars,
-                                                                  fixed_vars=fixed_vars)
-        self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
-                             if not key.startswith('_')}
-        self.traj_net = simulation.Network(self.traj_group)
 
     def plot_trajectory(self, initials, duration, plot_duration=None, inputs=(), show=False):
         """Plot trajectories according to the settings.
@@ -648,29 +622,15 @@ class _FastSlowTrajectory(object):
         else:
             assert len(plot_duration) == len(initials)
 
-        # 4. format the inputs
-        if len(inputs):
-            if isinstance(inputs[0], (tuple, list)):
-                inputs = [(self.traj_group,) + tuple(input) for input in inputs]
-            elif isinstance(inputs[0], str):
-                inputs = [(self.traj_group,) + tuple(inputs)]
-            else:
-                raise errors.ModelUseError()
-
         # 5. run the network
         for init_i, initial in enumerate(initials):
-            #   5.1 set the initial value
-            for key, val in self.traj_initial.items():
-                self.traj_group.ST[key] = val
-            for key in all_vars:
-                self.traj_group.ST[key] = initial[key]
-            for key, val in self.fixed_vars.items():
-                if key in self.traj_group.ST:
-                    self.traj_group.ST[key] = val
-
-            #   5.2 run the model
-            self.traj_net.run(duration=duration[init_i], inputs=inputs,
-                              report=False, data_to_host=True, verbose=False)
+            traj_group = Trajectory(size=1,
+                                    integrals=self.model.integrals,
+                                    target_vars=initial,
+                                    fixed_vars=self.fixed_vars,
+                                    pars_update=self.pars_update,
+                                    scope=self.model.scopes)
+            traj_group.run(duration=duration, report=False)
 
             #   5.3 legend
             legend = f'$traj_{init_i}$: '
@@ -684,8 +644,8 @@ class _FastSlowTrajectory(object):
 
             #   5.5 visualization
             for var_name in self.fast_var_names:
-                s0 = self.traj_group.mon[self.slow_var_names[0]][start: end, 0]
-                fast = self.traj_group.mon[var_name][start: end, 0]
+                s0 = traj_group.mon[self.slow_var_names[0]][start: end, 0]
+                fast = traj_group.mon[var_name][start: end, 0]
 
                 fig = plt.figure(var_name)
                 if len(self.slow_var_names) == 1:
@@ -698,7 +658,7 @@ class _FastSlowTrajectory(object):
 
                 elif len(self.slow_var_names) == 2:
                     fig.gca(projection='3d')
-                    s1 = self.traj_group.mon[self.slow_var_names[1]][start: end, 0]
+                    s1 = traj_group.mon[self.slow_var_names[1]][start: end, 0]
                     plt.plot(s0, s1, fast, label=legend)
                 else:
                     raise errors.AnalyzerError
