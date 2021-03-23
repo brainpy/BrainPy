@@ -344,7 +344,8 @@ def analyze_step_func(host, f):
         class_p1 = '\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b'
         self_data_without_index_in_left = set(re.findall(class_p1, code))
         class_p2 = '(\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*)\\[.*\\]'
-        self_data_with_index_in_left = set(re.findall(class_p2, code)) - self_data_without_index_in_left
+        self_data_with_index_in_left = set(re.findall(class_p2, code)) #- self_data_without_index_in_left
+        # self_data_with_index_in_left = set(re.findall(class_p2, code)) - self_data_without_index_in_left
         self_data_with_index_in_left = list(self_data_with_index_in_left)
         self_data_without_index_in_left = list(self_data_without_index_in_left)
 
