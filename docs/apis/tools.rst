@@ -21,31 +21,14 @@ brainpy.tools package
 .. autosummary::
     :toctree: _autosummary
 
-    CodeLineFormatter
-    format_code
-
-    LineFormatterForTrajectory
-    format_code_for_trajectory
-
-    FindAtomicOp
-    find_atomic_op
-
-    FuncCallFinder
-    replace_func
-
-    DiffEquationAnalyser
-    analyse_diff_eq
-
     get_identifiers
-    get_main_code
-    get_line_indent
-
     indent
     deindent
     word_replace
 
     is_lambda_function
-    func_call
+    get_main_code
+    get_func_source
 
 
 
@@ -60,17 +43,3 @@ brainpy.tools package
 
 .. autoclass:: DictPlus
    :members:
-
-
-
-``functions`` module
----------------------
-
-
-.. autosummary::
-    :toctree: _autosummary
-
-    jit
-    func_copy
-    numba_func
-

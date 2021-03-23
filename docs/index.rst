@@ -32,13 +32,8 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   advanced/numerical_integrators
-   advanced/differential_equations
-   advanced/repeat_mode
-   advanced/debugging
-   advanced/tips_on_jit
-   advanced/how_it_works
-   advanced/usage_of_inputs_module
+   tutorials_advanced/repeat_mode
+   tutorials_advanced/usage_of_inputs_module
 
 
 .. toctree::
@@ -46,15 +41,15 @@ Comprehensive examples of BrainPy please see
    :caption: API documentation
 
    apis/analysis
+   apis/backend
    apis/connectivity
-   apis/core
-   apis/integration
+   apis/integrators
+   apis/simulation
    apis/tools
    apis/visualization
    apis/errors
    apis/inputs
    apis/measure
-   apis/profile
    apis/running
    apis/changelog
 

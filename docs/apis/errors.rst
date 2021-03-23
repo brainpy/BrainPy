@@ -9,7 +9,7 @@ brainpy.errors package
 
     ModelDefError
     ModelUseError
-    TypeMismatchError
-    IntegratorError
-    DiffEquationError
+    DiffEqError
     CodeError
+    AnalyzerError
+    PackageMissingError

@@ -1,22 +1,16 @@
 # -*- coding: utf-8 -*-
 
 
-
-import inspect
-
-from brainpy import errors
-from brainpy.integrators import ast_analysis
-from brainpy.integrators import sympy_analysis
-
 import _thread as thread
 import inspect
 import threading
 
 import numpy as np
 
-from brainpy.integrators import sympy_analysis
-from brainpy import backend
+from brainpy import errors
 from brainpy import tools
+from brainpy.integrators import ast_analysis
+from brainpy.integrators import sympy_analysis
 
 try:
     import numba

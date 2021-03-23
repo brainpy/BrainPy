@@ -24,8 +24,7 @@ class LorenzSystem(bp.DynamicSystem):
         def lorenz_g(x, y, z, t, sigma, rho, beta, p):
             return p * x, p * y, p * z
 
-        @bp.sdeint(g=lorenz_g, sde_type=bp.ITO_SDE,
-                   wiener_type=bp.SCALAR_WIENER)
+        @bp.sdeint(g=lorenz_g)
         def lorenz_f(x, y, z, t, sigma, rho, beta, p):
             dx = sigma * (y - x)
             dy = x * (rho - z) - y

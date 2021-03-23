@@ -23,6 +23,27 @@ SYSTEM_KEYWORDS = ['_dt', '_t', '_i']
 
 
 def set(backend, module_or_operations=None, node_runner=None, net_runner=None, dt=None):
+    """Basic backend setting function.
+
+    Using this function, users can set the backend they prefer. For backend
+    which is unknown, users can provide `module_or_operations` to specify
+    the operations needed. Also, users can customize the node runner, or the
+    network runner, by providing the `node_runner` or `net_runner` keywords.
+    The default numerical precision `dt` can also be set by this function.
+
+    Parameters
+    ----------
+    backend : str
+        The backend name.
+    module_or_operations : module, dict, optional
+        The module or the a dict containing necessary operations.
+    node_runner : GeneralNodeRunner
+        An instance of node runner.
+    net_runner : GeneralNetRunner
+        An instance of network runner.
+    dt : float
+        The numerical precision.
+    """
     if dt is not None:
         set_dt(dt)
 
@@ -101,6 +122,21 @@ def set(backend, module_or_operations=None, node_runner=None, net_runner=None, d
 
 
 def set_class_keywords(*args):
+    """Set the keywords for class specification.
+
+    For example:
+
+    >>> class A(object):
+    >>>    def __init__(cls):
+    >>>        pass
+    >>>    def f(self, ):
+    >>>        pass
+
+    In this case, I use "cls" to denote the "self". So, I can set this by
+
+    >>> set_class_keywords('cls', 'self')
+
+    """
     global CLASS_KEYWORDS
     CLASS_KEYWORDS = list(args)
 

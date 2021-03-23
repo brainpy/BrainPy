@@ -6,7 +6,6 @@ import numpy as np
 from brainpy import backend
 from brainpy import errors
 from brainpy.analysis import base
-from brainpy.analysis import utils
 from brainpy.analysis import stability
 from brainpy.analysis import utils
 from brainpy.analysis.trajectory import Trajectory

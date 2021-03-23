@@ -10,21 +10,4 @@ brainpy.inputs package
     constant_current
     spike_current
     ramp_current
-    PoissonInput
-    SpikeTimeInput
-    FreqInput
-
-
-.. autoclass:: PoissonInput
-    :toctree:
-    :members:
-
-.. autoclass:: SpikeTimeInput
-    :toctree:
-    :members:
-
-.. autoclass:: FreqInput
-    :toctree:
-    :members:
-
 
