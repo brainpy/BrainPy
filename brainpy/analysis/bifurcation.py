@@ -10,7 +10,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from brainpy import backend
 from brainpy import errors
 from brainpy.analysis import base
-from brainpy.analysis import integrals2model
 from brainpy.analysis import stability
 from brainpy.analysis import utils
 from brainpy.analysis.trajectory import Trajectory
@@ -48,7 +47,7 @@ class Bifurcation(object):
     def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
                  numerical_resolution=0.1, options=None):
         # check "model"
-        self.model = integrals2model.transform_integrals_to_model(integrals)
+        self.model = utils.transform_integrals_to_model(integrals)
 
         # check "target_pars"
         if not isinstance(target_pars, dict):
@@ -454,7 +453,7 @@ class FastSlowBifurcation(object):
     def __init__(self, integrals, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
         # check "model"
-        self.model = integrals2model.transform_integrals_to_model(integrals)
+        self.model = utils.transform_integrals_to_model(integrals)
 
         # check "fast_vars"
         if not isinstance(fast_vars, dict):
@@ -530,10 +529,10 @@ class FastSlowBifurcation(object):
 class _FastSlowTrajectory(object):
     def __init__(self, model_or_intgs, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, **kwargs):
-        if isinstance(model_or_intgs, integrals2model.DynamicModel):
+        if isinstance(model_or_intgs, utils.DynamicModel):
             self.model = model_or_intgs
         elif (isinstance(model_or_intgs, (list, tuple)) and callable(model_or_intgs[0])) or callable(model_or_intgs):
-            self.model = integrals2model.transform_integrals_to_model(model_or_intgs)
+            self.model = utils.transform_integrals_to_model(model_or_intgs)
         else:
             raise ValueError
         self.fast_vars = fast_vars

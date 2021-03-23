@@ -8,7 +8,6 @@ import sympy
 
 from brainpy import errors
 from brainpy import tools
-from brainpy.analysis import integrals2model
 from brainpy.analysis import solver
 from brainpy.analysis import utils
 from brainpy.integrators import sympy_analysis
@@ -82,11 +81,11 @@ class BaseNeuronAnalyzer(object):
 
         # model
         # -----
-        if isinstance(model_or_integrals, integrals2model.DynamicModel):
+        if isinstance(model_or_integrals, utils.DynamicModel):
             self.model = model_or_integrals
         elif (isinstance(model_or_integrals, (tuple, list)) and callable(model_or_integrals[0])) or \
                 callable(model_or_integrals):
-            self.model = integrals2model.transform_integrals_to_model(model_or_integrals)
+            self.model = utils.transform_integrals_to_model(model_or_integrals)
         else:
             raise ValueError
 

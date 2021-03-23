@@ -6,7 +6,7 @@ import numpy as np
 from brainpy import backend
 from brainpy import errors
 from brainpy.analysis import base
-from brainpy.analysis import integrals2model
+from brainpy.analysis import utils
 from brainpy.analysis import stability
 from brainpy.analysis import utils
 from brainpy.analysis.trajectory import Trajectory
@@ -86,7 +86,7 @@ class PhasePlane(object):
             options=None,
     ):
         # check "model"
-        self.model = integrals2model.transform_integrals_to_model(integrals)
+        self.model = utils.transform_integrals_to_model(integrals)
 
         # check "target_vars"
         if not isinstance(target_vars, dict):
