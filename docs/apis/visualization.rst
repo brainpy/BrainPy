@@ -1,5 +1,5 @@
-brainpy.visualize package
-=========================
+brainpy.visualize
+=================
 
 .. currentmodule:: brainpy.visualization
 .. automodule:: brainpy.visualization

@@ -1,5 +1,5 @@
-brainpy.backend package
-========================
+brainpy.backend
+===============
 
 .. currentmodule:: brainpy.backend
 .. automodule:: brainpy.backend

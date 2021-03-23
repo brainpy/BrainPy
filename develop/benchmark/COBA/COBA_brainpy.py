@@ -8,7 +8,7 @@ import numpy as np
 import brainpy as bp
 
 dt = 0.05
-bp.profile.set(jit=True, dt=dt)
+bp.backend.set('numba', dt=dt)
 
 # Parameters
 num_exc = 3200
@@ -26,99 +26,92 @@ we = 0.6  # excitatory synaptic weight (voltage)
 wi = 6.7  # inhibitory synaptic weight
 ref = 5.0
 
-neu_ST = bp.types.NeuState(
-    {'sp_t': -1e7,
-     'V': 0.,
-     'spike': 0.,
-     'ge': 0.,
-     'gi': 0.}
-)
+
+class LIF(bp.NeuGroup):
+    target_backend = ['numpy', 'numba']
+
+    def __init__(self, size, **kwargs):
+        # variables
+        self.V = bp.backend.zeros(size)
+        self.spike = bp.backend.zeros(size)
+        self.ge = bp.backend.zeros(size)
+        self.gi = bp.backend.zeros(size)
+        self.input = bp.backend.zeros(size)
+        self.t_last_spike = bp.backend.ones(size) * -1e7
+
+        super(LIF, self).__init__(size=size, **kwargs)
+
+    @staticmethod
+    @bp.odeint(method='euler')
+    def int_g(ge, gi, t):
+        dge = - ge / taue
+        dgi = - gi / taui
+        return dge, dgi
+
+    @staticmethod
+    @bp.odeint(method='euler')
+    def int_V(V, t, ge, gi):
+        dV = (ge * (Erev_exc - V) + gi * (Erev_inh - V) + El - V + I) / taum
+        return dV
+
+    def update(self, _t):
+        self.ge, self.gi = self.int_g(self.ge, self.gi, _t)
+        for i in range(self.size[0]):
+            self.spike[i] = 0.
+            if (_t - self.t_last_spike[i]) > ref:
+                V = self.int_V(self.V[i], _t, self.ge[i], self.gi[i])
+                if V >= Vt:
+                    self.V[i] = Vr
+                    self.spike[i] = 1.
+                    self.t_last_spike[i] = _t
+                else:
+                    self.V[i] = V
+            self.input[i] = I
 
 
-@bp.integrate
-def int_ge(ge, t):
-    return - ge / taue
+class EecSyn(bp.TwoEndConn):
+    target_backend = ['numpy', 'numba']
+
+    def __init__(self, pre, post, conn, **kwargs):
+        self.conn = conn(pre.size, post.size)
+        self.pre2post = self.conn.requires('pre2post')
+        super(EecSyn, self).__init__(pre=pre, post=post, **kwargs)
+
+    def update(self, _t):
+        for pre_id, spike in enumerate(self.pre.spike):
+            if spike > 0:
+                for post_i in self.pre2post[pre_id]:
+                    self.post.ge[post_i] += we
 
 
-@bp.integrate
-def int_gi(gi, t):
-    return - gi / taui
+class InhSyn(bp.TwoEndConn):
+    target_backend = ['numpy', 'numba']
+
+    def __init__(self, pre, post, conn, **kwargs):
+        self.conn = conn(pre.size, post.size)
+        self.pre2post = self.conn.requires('pre2post')
+        super(InhSyn, self).__init__(pre=pre, post=post, **kwargs)
+
+    def update(self, _t):
+        for pre_id, spike in enumerate(self.pre.spike):
+            if spike > 0:
+                for post_i in self.pre2post[pre_id]:
+                    self.post.gi[post_i] += wi
 
 
-@bp.integrate
-def int_V(V, t, ge, gi):
-    return (ge * (Erev_exc - V) + gi * (Erev_inh - V) + (El - V) + I) / taum
+E_group = LIF(num_exc, monitors=['spike'])
+E_group.V = np.random.randn(num_exc) * 5. - 55.
+I_group = LIF(num_inh, monitors=['spike'])
+I_group.V = np.random.randn(num_inh) * 5. - 55.
+E2E = EecSyn(pre=E_group, post=E_group, conn=bp.connect.FixedProb(0.02))
+E2I = EecSyn(pre=E_group, post=I_group, conn=bp.connect.FixedProb(0.02))
+I2E = InhSyn(pre=I_group, post=E_group, conn=bp.connect.FixedProb(0.02))
+I2I = InhSyn(pre=I_group, post=I_group, conn=bp.connect.FixedProb(0.02))
 
-
-def neu_update(ST, _t):
-    ST['ge'] = int_ge(ST['ge'], _t)
-    ST['gi'] = int_gi(ST['gi'], _t)
-
-    ST['spike'] = 0.
-    if (_t - ST['sp_t']) > ref:
-        V = int_V(ST['V'], _t, ST['ge'], ST['gi'])
-        ST['spike'] = 0.
-        if V >= Vt:
-            ST['V'] = Vr
-            ST['spike'] = 1.
-            ST['sp_t'] = _t
-        else:
-            ST['V'] = V
-
-
-neuron = bp.NeuType(name='COBA',
-                    ST=neu_ST,
-                    steps=neu_update,
-                    mode='scalar')
-
-
-def update1(pre, post, pre2post):
-    for pre_id in range(len(pre2post)):
-        if pre['spike'][pre_id] > 0.:
-            post_ids = pre2post[pre_id]
-            for i in post_ids:
-                post['ge'][i] += we
-
-
-exc_syn = bp.SynType('exc_syn',
-                     steps=update1,
-                     ST=bp.types.SynState([]),
-                     mode='vector')
-
-
-def update2(pre, post, pre2post):
-    for pre_id in range(len(pre2post)):
-        if pre['spike'][pre_id] > 0.:
-            post_ids = pre2post[pre_id]
-            for i in post_ids:
-                post['gi'][i] += wi
-
-
-inh_syn = bp.SynType('inh_syn',
-                     steps=update2,
-                     ST=bp.types.SynState([]),
-                     mode='vector')
-
-
-group = bp.NeuGroup(neuron,
-                    size=num_exc + num_inh,
-                    monitors=['spike'])
-group.ST['V'] = np.random.randn(num_exc + num_inh) * 5. - 55.
-
-exc_conn = bp.TwoEndConn(exc_syn,
-                         pre=group[:num_exc],
-                         post=group,
-                         conn=bp.connect.FixedProb(prob=0.02))
-
-inh_conn = bp.TwoEndConn(inh_syn,
-                         pre=group[num_exc:],
-                         post=group,
-                         conn=bp.connect.FixedProb(prob=0.02))
-
-net = bp.Network(group, exc_conn, inh_conn)
+net = bp.Network(E_group, I_group, E2E, E2I, I2E, I2I)
 t0 = time.time()
 
 net.run(5000., report=True)
 print('Used time {} s.'.format(time.time() - t0))
 
-bp.visualize.raster_plot(net.ts, group.mon.spike, show=True)
+bp.visualize.raster_plot(net.ts, E_group.mon.spike, show=True)

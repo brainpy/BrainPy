@@ -1,5 +1,5 @@
-brainpy.errors package
-============================
+brainpy.errors
+==============
 
 .. currentmodule:: brainpy.errors
 .. automodule:: brainpy.errors

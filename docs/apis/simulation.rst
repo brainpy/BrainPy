@@ -1,5 +1,5 @@
-brainpy.simulation package
-==========================
+brainpy.simulation
+==================
 
 .. currentmodule:: brainpy.simulation
 .. automodule:: brainpy.simulation

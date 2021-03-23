@@ -1,5 +1,5 @@
-brainpy.inputs package
-============================
+brainpy.inputs
+==============
 
 .. currentmodule:: brainpy.inputs
 .. automodule:: brainpy.inputs

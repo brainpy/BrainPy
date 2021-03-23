@@ -1,5 +1,5 @@
-brainpy.integrators package
-===========================
+brainpy.integrators
+===================
 
 .. currentmodule:: brainpy.integrators
 .. automodule:: brainpy.integrators

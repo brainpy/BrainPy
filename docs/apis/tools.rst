@@ -1,5 +1,5 @@
-brainpy.tools package
-=====================
+brainpy.tools
+=============
 
 .. currentmodule:: brainpy.tools
 .. automodule:: brainpy.tools

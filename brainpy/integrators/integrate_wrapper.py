@@ -4,6 +4,10 @@ from . import ode
 from . import sde
 
 __all__ = [
+    'SUPPORTED_ODE_METHODS',
+    'SUPPORTED_SDE_METHODS',
+
+
     'odeint',
     'sdeint',
     'ddeint',
@@ -17,8 +21,8 @@ __all__ = [
 
 _DEFAULT_ODE_METHOD = 'euler'
 _DEFAULT_SDE_METHOD = 'euler'
-SUPPORTED_ODE = [m for m in dir(ode) if not m.startswith('__')]
-SUPPORTED_SDE = [m for m in dir(sde) if not m.startswith('__')]
+SUPPORTED_ODE_METHODS = [m for m in dir(ode) if not m.startswith('__') and callable(getattr(ode, m))]
+SUPPORTED_SDE_METHODS = [m for m in dir(sde) if not m.startswith('__') and callable(getattr(sde, m))]
 
 
 def _wrapper(f, method, module, **kwargs):
@@ -29,9 +33,9 @@ def _wrapper(f, method, module, **kwargs):
 def odeint(f=None, method=None, **kwargs):
     if method is None:
         method = _DEFAULT_ODE_METHOD
-    if method not in SUPPORTED_ODE:
+    if method not in SUPPORTED_ODE_METHODS:
         raise ValueError(f'Unknown ODE numerical method "{method}". Currently '
-                         f'BrainPy only support: {SUPPORTED_ODE}')
+                         f'BrainPy only support: {SUPPORTED_ODE_METHODS}')
 
     if f is None:
         return lambda f: _wrapper(f, method=method, module=ode, **kwargs)
@@ -42,9 +46,9 @@ def odeint(f=None, method=None, **kwargs):
 def sdeint(f=None, method=None, **kwargs):
     if method is None:
         method = _DEFAULT_SDE_METHOD
-    if method not in SUPPORTED_SDE:
+    if method not in SUPPORTED_SDE_METHODS:
         raise ValueError(f'Unknown SDE numerical method "{method}". Currently '
-                         f'BrainPy only support: {SUPPORTED_SDE}')
+                         f'BrainPy only support: {SUPPORTED_SDE_METHODS}')
 
     if f is None:
         return lambda f: _wrapper(f, method=method, module=sde, **kwargs)
@@ -70,7 +74,7 @@ def set_default_odeint(method):
     """
     if not isinstance(method, str):
         raise ValueError(f'Only support string, not {type(method)}.')
-    if method not in SUPPORTED_ODE:
+    if method not in SUPPORTED_ODE_METHODS:
         raise ValueError(f'Unsupported ODE numerical method: {method}.')
 
     global _DEFAULT_ODE_METHOD
@@ -98,7 +102,7 @@ def set_default_sdeint(method):
     """
     if not isinstance(method, str):
         raise ValueError(f'Only support string, not {type(method)}.')
-    if method not in SUPPORTED_SDE:
+    if method not in SUPPORTED_SDE_METHODS:
         raise ValueError(f'Unsupported SDE numerical method: {method}.')
 
     global _DEFAULT_SDE_METHOD

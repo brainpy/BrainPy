@@ -20,8 +20,7 @@ exp = numpy.exp
 sum = numpy.sum
 zeros = numpy.zeros
 eye = numpy.eye
-outer = numpy.outer
-dot = numpy.dot
+matmul = numpy.matmul
 vstack = numpy.vstack
 arange = numpy.arange
 

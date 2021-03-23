@@ -1,10 +1,7 @@
 BrainPy documentation
 =====================
 
-``BrainPy`` is a lightweight framework based on the latest Just-In-Time (JIT)
-compilers. The goal of ``BrainPy`` is to provide a unified simulation and
-analysis framework for neuronal dynamics with the feature of high
-flexibility and efficiency.
+``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation.
 
 Comprehensive examples of BrainPy please see
 `BrainPy-Models <https://brainpy-models.readthedocs.io/en/latest/>`_.
@@ -22,10 +19,9 @@ Comprehensive examples of BrainPy please see
    :caption: Tutorials
 
    tutorials/installation
-   tutorials/quick_start
-   tutorials/build_neurons
-   tutorials/build_synapses
-   tutorials/neuron_analysis
+   tutorials/numerical_solvers
+   tutorials/neurodynamics_simulation
+   tutorials/neurodynamics_analysis
 
 
 .. toctree::

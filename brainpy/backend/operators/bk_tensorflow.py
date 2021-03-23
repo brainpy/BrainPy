@@ -12,12 +12,8 @@ exp = tf.math.exp
 sum = tf.math.reduce_sum
 zeros = tf.zeros
 eye = tf.eye
-dot = tf.matmul
+matmul = tf.matmul
 arange = tf.range
-
-
-def outer(A, B):
-    return tf.tensordot(A, B, axes=0)
 
 
 def vstack(values):
