@@ -13,19 +13,14 @@ with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
 version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 
 # obtain long description from README and CHANGES
-README = '''
-``BrainPy`` is a unified framework for computational neuroscience and brain-inspired computation.
-The goal of ``BrainPy`` is to provide a unified simulation and analysis framework
-for neuronal analysis with the feature of high flexibility and efficiency.
-BrainPy is flexible because it endows the users with the fully data/logic flow control.
-BrainPy is efficient because it supports JIT acceleration on CPUs and GPUs.
-'''
+with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
+    README = f.read()
 
 # setup
 setup(
     name='brainpy-simulator',
     version=version,
-    description='BrainPy: A unified toolbox for computational neuroscience and brain-inspired computation',
+    description='BrainPy: A general platform for computational neuroscience and brain-inspired computation',
     long_description=README,
     author='Chaoming Wang',
     author_email='adaduo@outlook.com',

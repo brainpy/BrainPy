@@ -31,7 +31,7 @@ Moreover, `BrainPy` can effectively satisfy your basic requirements: 1. *Easy to
 Install ``BrainPy`` using ``pip``:
 
 ```bash
-> pip install brainpy-simulator
+> pip install --pre brainpy-simulator
 ```
 
 Install ``BrainPy`` using ``conda``:
