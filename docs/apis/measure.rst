@@ -1,5 +1,5 @@
-brainpy.measure package
-============================
+brainpy.measure
+===============
 
 .. currentmodule:: brainpy.measure
 .. automodule:: brainpy.measure

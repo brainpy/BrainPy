@@ -1,5 +1,5 @@
-brainpy.connect package
-============================
+brainpy.connect
+===============
 
 .. currentmodule:: brainpy.connectivity
 .. automodule:: brainpy.connectivity

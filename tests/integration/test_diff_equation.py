@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from brainpy.integration import DiffEquation
+from brainpy.integrators import DiffEquation
 from brainpy import integrate
 
 

@@ -8,6 +8,7 @@ Test the network scaling ability.
 import time
 import brainpy as bp
 import numpy as np
+import math
 
 
 def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
@@ -25,20 +26,20 @@ def define_hh(E_Na=50., g_Na=120., E_K=-77., g_K=36., E_Leak=-54.387,
 
     @bp.integrate
     def int_m(m, t, V):
-        alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
-        beta = 4.0 * np.exp(-(V + 65) / 18)
+        alpha = 0.1 * (V + 40) / (1 - math.exp(-(V + 40) / 10))
+        beta = 4.0 * math.exp(-(V + 65) / 18)
         return alpha * (1 - m) - beta * m
 
     @bp.integrate
     def int_h(h, t, V):
-        alpha = 0.07 * np.exp(-(V + 65) / 20.)
-        beta = 1 / (1 + np.exp(-(V + 35) / 10))
+        alpha = 0.07 * math.exp(-(V + 65) / 20.)
+        beta = 1 / (1 + math.exp(-(V + 35) / 10))
         return alpha * (1 - h) - beta * h
 
     @bp.integrate
     def int_n(n, t, V):
-        alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
-        beta = 0.125 * np.exp(-(V + 65) / 80)
+        alpha = 0.01 * (V + 55) / (1 - math.exp(-(V + 55) / 10))
+        beta = 0.125 * math.exp(-(V + 65) / 80)
         return alpha * (1 - n) - beta * n
 
     @bp.integrate
@@ -77,7 +78,7 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
 
     HH = define_hh()
     HH.mode = 'vector' if vector else 'scalar'
-    neu = bp.NeuGroup(HH, geometry=num)
+    neu = bp.NeuGroup(HH, size=num)
 
     t0 = time.time()
     neu.run(duration=1000., report=True)
@@ -86,7 +87,7 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
 
     print(f'HH, vector_based={vector}, device=multi-cpu', end=', ')
     bp.profile.set(jit=True, device='multi-cpu')
-    neu = bp.NeuGroup(HH, geometry=num)
+    neu = bp.NeuGroup(HH, size=num)
     t0 = time.time()
     neu.run(duration=1000., report=True)
     t_multi_cpu = time.time() - t0
@@ -98,27 +99,27 @@ def hh_compare_cpu_and_multi_cpu(num=1000, vector=True):
 
 def hh_compare_cpu_and_gpu(num=1000):
     print(f'HH, device=cpu', end=', ')
-    bp.profile.set(jit=True, device='cpu', show_code=True)
+    bp.profile.set(jit=True, device='cpu', show_code=False)
 
     HH = define_hh()
     HH.mode = 'scalar'
-    neu = bp.NeuGroup(HH, geometry=num)
-
-    t0 = time.time()
-    neu.run(duration=1000., report=True)
-    t_cpu = time.time() - t0
-    print('used {:.3f} ms'.format(t_cpu))
+    # neu = bp.NeuGroup(HH, geometry=num)
+    #
+    # t0 = time.time()
+    # neu.run(duration=1000., report=True)
+    # t_cpu = time.time() - t0
+    # print('used {:.3f} ms'.format(t_cpu))
 
     print(f'HH, device=gpu', end=', ')
     bp.profile.set(jit=True, device='gpu')
-    neu = bp.NeuGroup(HH, geometry=num)
+    neu = bp.NeuGroup(HH, size=num)
     t0 = time.time()
     neu.run(duration=1000., report=True)
     t_multi_cpu = time.time() - t0
     print('used {:.3f} ms'.format(t_multi_cpu))
 
-    print(f"HH model with multi-cpu speeds up {t_cpu / t_multi_cpu}")
-    print()
+    # print(f"HH model with multi-cpu speeds up {t_cpu / t_multi_cpu}")
+    # print()
 
 
 if __name__ == '__main__':
@@ -128,9 +129,11 @@ if __name__ == '__main__':
     # hh_compare_cpu_and_multi_cpu(int(1e5))
     # hh_compare_cpu_and_multi_cpu(int(1e6))
 
+    # hh_compare_cpu_and_gpu(int(1e2))
+    # hh_compare_cpu_and_gpu(int(1e3))
     # hh_compare_cpu_and_gpu(int(1e4))
-    # hh_compare_cpu_and_gpu(int(1e5))
-    # hh_compare_cpu_and_gpu(int(1e6))
+    hh_compare_cpu_and_gpu(int(1e5))
+    hh_compare_cpu_and_gpu(int(1e6))
     # hh_compare_cpu_and_gpu(int(1e7))
 
 

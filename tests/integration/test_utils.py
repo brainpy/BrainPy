@@ -2,8 +2,8 @@
 
 import pytest
 
-from brainpy.errors import DiffEquationError
-from brainpy.integration import utils
+from brainpy.errors import DiffEqError
+from brainpy.integrators import ast_analysis
 
 
 def try_diff_eq_analyser():
@@ -14,7 +14,7 @@ beta = 4.0 * np.exp(-(V + 65) / 18)
 return alpha * (1 - m) - beta * m, f(alpha, beta)
     '''
 
-    res = utils.analyse_diff_eq(code)
+    res = ast_analysis.analyse_diff_eq(code)
 
     assert res.return_intermediates == []
     assert res.return_type == 'x,x'
@@ -32,38 +32,38 @@ return alpha * (1 - m) - beta * m, f(alpha, beta)
 
 
 def try_diff_eq_analyser2():
-    res = utils.analyse_diff_eq('return a')
+    res = ast_analysis.analyse_diff_eq('return a')
     assert len(res.return_intermediates) == 0
     assert res.return_type == 'x'
     assert res.f_expr[1] == 'a'
     assert res.g_expr is None
 
-    res = utils.analyse_diff_eq('return a, b')
+    res = ast_analysis.analyse_diff_eq('return a, b')
     assert len(res.return_intermediates) == 0
     assert res.return_type == 'x,x'
     assert res.f_expr[1] == 'a'
     assert res.g_expr[1] == 'b'
 
-    res = utils.analyse_diff_eq('return (a, b)')
+    res = ast_analysis.analyse_diff_eq('return (a, b)')
     assert len(res.return_intermediates) == 0
     assert res.return_type == 'x,x'
     assert res.f_expr[1] == 'a'
     assert res.g_expr[1] == 'b'
 
-    res = utils.analyse_diff_eq('return (a, ), b')
+    res = ast_analysis.analyse_diff_eq('return (a, ), b')
     assert len(res.return_intermediates) == 1
     assert res.return_intermediates[0] == 'b'
     assert res.return_type == '(x,),'
     assert res.f_expr[1] == 'a'
     assert res.g_expr is None
 
-    res = utils.analyse_diff_eq('return (a, b), ')
+    res = ast_analysis.analyse_diff_eq('return (a, b), ')
     assert len(res.return_intermediates) == 0
     assert res.return_type == '(x,x),'
     assert res.f_expr[1] == 'a'
     assert res.g_expr[1] == 'b'
 
-    res = utils.analyse_diff_eq('return (a, b), c, d')
+    res = ast_analysis.analyse_diff_eq('return (a, b), c, d')
     assert len(res.return_intermediates) == 2
     assert res.return_intermediates[0] == 'c'
     assert res.return_intermediates[1] == 'd'
@@ -71,7 +71,7 @@ def try_diff_eq_analyser2():
     assert res.f_expr[1] == 'a'
     assert res.g_expr[1] == 'b'
 
-    res = utils.analyse_diff_eq('return ((a, b), c, d)')
+    res = ast_analysis.analyse_diff_eq('return ((a, b), c, d)')
     assert len(res.return_intermediates) == 2
     assert res.return_intermediates[0] == 'c'
     assert res.return_intermediates[1] == 'd'
@@ -79,19 +79,19 @@ def try_diff_eq_analyser2():
     assert res.f_expr[1] == 'a'
     assert res.g_expr[1] == 'b'
 
-    res = utils.analyse_diff_eq('return (a, ), ')
+    res = ast_analysis.analyse_diff_eq('return (a, ), ')
     assert len(res.return_intermediates) == 0
     assert res.return_type == '(x,),'
     assert res.f_expr[1] == 'a'
     assert res.g_expr is None
 
-    res = utils.analyse_diff_eq('return (a+b, b*2), ')
+    res = ast_analysis.analyse_diff_eq('return (a+b, b*2), ')
     assert len(res.return_intermediates) == 0
     assert res.return_type == '(x,x),'
     assert res.f_expr[1] == 'a + b'
     assert res.g_expr[1] == 'b * 2'
 
-    with pytest.raises(DiffEquationError) as e:
-        utils.analyse_diff_eq('return a, b, c')
+    with pytest.raises(DiffEqError) as e:
+        ast_analysis.analyse_diff_eq('return a, b, c')
 
 

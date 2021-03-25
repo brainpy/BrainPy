@@ -1,18 +1,27 @@
 # -*- coding: utf-8 -*-
 
+
 import _thread as thread
 import inspect
 import threading
 
 import numpy as np
-from numba import njit
-from numba.core.dispatcher import Dispatcher
 
-from .. import backend
-from .. import tools
+from brainpy import errors
+from brainpy import tools
+from brainpy.integrators import ast_analysis
+from brainpy.integrators import sympy_analysis
+
+try:
+    import numba
+    from numba.core.dispatcher import Dispatcher
+except ModuleNotFoundError:
+    numba = None
+    Dispatcher = None
 
 __all__ = [
-    'stability_analysis',
+    'transform_integrals_to_model',
+    'DynamicModel',
     'rescale',
     'timeout',
     'jit_compile',
@@ -20,138 +29,76 @@ __all__ = [
     'contain_unknown_symbol',
 ]
 
-_CENTER_MANIFOLD = 'center manifold'
-_SADDLE_NODE = 'saddle node'
-_1D_STABLE_POINT = 'stable point'
-_1D_UNSTABLE_POINT = 'unstable point'
-_2D_CENTER = 'center'
-_2D_STABLE_NODE = 'stable node'
-_2D_STABLE_FOCUS = 'stable focus'
-_2D_STABLE_STAR = 'stable star'
-_2D_STABLE_DEGENERATE = 'stable degenerate'
-# _2D_STABLE_LINE = 'stable line'
-_2D_UNSTABLE_NODE = 'unstable node'
-_2D_UNSTABLE_FOCUS = 'unstable focus'
-_2D_UNSTABLE_STAR = 'unstable star'
-_2D_UNSTABLE_DEGENERATE = 'unstable degenerate'
-_2D_UNSTABLE_LINE = 'unstable line'
 
-plot_scheme = {
-    _1D_STABLE_POINT: {"color": 'tab:red'},
-    _2D_STABLE_NODE: {"color": 'tab:red'},
+def transform_integrals_to_model(integrals):
+    if callable(integrals):
+        integrals = [integrals]
 
-    _1D_UNSTABLE_POINT: {"color": 'tab:olive'},
-    _2D_UNSTABLE_NODE: {"color": 'tab:olive'},
-
-    _2D_STABLE_FOCUS: {"color": 'tab:purple'},
-    _2D_UNSTABLE_FOCUS: {"color": 'tab:cyan'},
-
-    _SADDLE_NODE: {"color": 'tab:blue'},
-    _2D_CENTER: {'color': 'lime'},
-    # _2D_UNIFORM_MOTION: {'color': 'red'},
-
-    _CENTER_MANIFOLD: {'color': 'orangered'},
-    _2D_UNSTABLE_LINE: {'color': 'dodgerblue'},
-
-    _2D_UNSTABLE_STAR: {'color': 'green'},
-    _2D_STABLE_STAR: {'color': 'orange'},
-
-    _2D_UNSTABLE_DEGENERATE: {'color': 'springgreen'},
-    _2D_STABLE_DEGENERATE: {'color': 'blueviolet'},
-}
-
-
-def get_1d_classification():
-    return [_SADDLE_NODE, _1D_STABLE_POINT, _1D_UNSTABLE_POINT]
-
-
-def get_2d_classification():
-    return [_SADDLE_NODE, _2D_CENTER, _2D_STABLE_NODE, _2D_STABLE_FOCUS,
-            _2D_STABLE_STAR, _CENTER_MANIFOLD, _2D_UNSTABLE_NODE,
-            _2D_UNSTABLE_FOCUS, _2D_UNSTABLE_STAR, _2D_UNSTABLE_LINE,
-            _2D_STABLE_DEGENERATE, _2D_UNSTABLE_DEGENERATE]
-
-
-def stability_analysis(derivative):
-    """Stability analysis for fixed point [1]_.
-
-    Parameters
-    ----------
-    derivative : float, tuple, list, np.ndarray
-        The derivative of the f.
-
-    Returns
-    -------
-    fp_type : str
-        The type of the fixed point.
-
-    References
-    ----------
-
-    .. [1] http://www.egwald.ca/nonlineardynamics/twodimensionaldynamics.php
-
-    """
-    if np.size(derivative) == 1:
-        if derivative == 0:
-            return _SADDLE_NODE
-        elif derivative > 0:
-            return _1D_STABLE_POINT
+    all_scope = dict()
+    all_variables = set()
+    all_parameters = set()
+    analyzers = []
+    for integral in integrals:
+        # integral function
+        if Dispatcher is not None and isinstance(integral, Dispatcher):
+            integral = integral.py_func
         else:
-            return _1D_UNSTABLE_POINT
+            integral = integral
 
-    elif np.size(derivative) == 4:
-        a = derivative[0][0]
-        b = derivative[0][1]
-        c = derivative[1][0]
-        d = derivative[1][1]
+        # original function
+        f = integral.origin_f
+        if Dispatcher is not None and isinstance(f, Dispatcher):
+            f = f.py_func
+        func_name = f.__name__
 
-        # trace
-        p = a + d
-        # det
-        q = a * d - b * c
+        # code scope
+        closure_vars = inspect.getclosurevars(f)
+        code_scope = dict(closure_vars.nonlocals)
+        code_scope.update(dict(closure_vars.globals))
 
-        # judgement
-        if q < 0:
-            return _SADDLE_NODE
-        elif q == 0:
-            if p <= 0:
-                return _CENTER_MANIFOLD
-            else:
-                return _2D_UNSTABLE_LINE
-        else:
-            # parabola
-            e = p * p - 4 * q
-            if p == 0:
-                return _2D_CENTER
-            elif p > 0:
-                if e < 0:
-                    return _2D_UNSTABLE_FOCUS
-                elif e > 0:
-                    return _2D_UNSTABLE_NODE
-                else:
-                    w = np.linalg.eigvals(derivative)
-                    if w[0] == w[1]:
-                        return _2D_UNSTABLE_DEGENERATE
-                    else:
-                        return _2D_UNSTABLE_STAR
-            else:
-                if e < 0:
-                    return _2D_STABLE_FOCUS
-                elif e > 0:
-                    return _2D_STABLE_NODE
-                else:
-                    w = np.linalg.eigvals(derivative)
-                    if w[0] == w[1]:
-                        return _2D_STABLE_DEGENERATE
-                    else:
-                        return _2D_STABLE_STAR
+        # separate variables
+        analysis = ast_analysis.separate_variables(f)
+        variables_for_returns = analysis['variables_for_returns']
+        expressions_for_returns = analysis['expressions_for_returns']
+        for vi, (key, vars) in enumerate(variables_for_returns.items()):
+            variables = []
+            for v in vars:
+                if len(v) > 1:
+                    raise ValueError('Cannot analyze must assignment code line.')
+                variables.append(v[0])
+            expressions = expressions_for_returns[key]
+            var_name = integral.variables[vi]
+            DE = sympy_analysis.SingleDiffEq(var_name=var_name,
+                                             variables=variables,
+                                             expressions=expressions,
+                                             derivative_expr=key,
+                                             scope=code_scope,
+                                             func_name=func_name)
+            analyzers.append(DE)
 
-    elif np.size(derivative) == 9:
-        pass
+        # others
+        for var in integral.variables:
+            if var in all_variables:
+                raise errors.ModelDefError(f'Variable {var} has been defined before. Cannot group '
+                                           f'this integral as a dynamic system.')
+            all_variables.add(var)
+        all_parameters.update(integral.parameters)
+        all_scope.update(code_scope)
 
-    else:
-        raise ValueError('Unknown derivatives, only supports the jacobian  '
-                         'matrixwith the shape of(1), (2, 2), or (3, 3).')
+    return DynamicModel(integrals=integrals,
+                        analyzers=analyzers,
+                        variables=list(all_variables),
+                        parameters=list(all_parameters),
+                        scopes=all_scope)
+
+
+class DynamicModel(object):
+    def __init__(self, integrals, analyzers, variables, parameters, scopes):
+        self.integrals = integrals
+        self.analyzers = analyzers
+        self.variables = variables
+        self.parameters = parameters
+        self.scopes = scopes
 
 
 def rescale(min_max, scale=0.01):
@@ -193,7 +140,7 @@ def timeout(s):
 
 
 def _jit(func):
-    if backend.func_in_numpy_or_math(func):
+    if sympy_analysis.func_in_numpy_or_math(func):
         return func
     if isinstance(func, Dispatcher):
         return func
@@ -206,7 +153,7 @@ def _jit(func):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            if (not backend.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
+            if (not sympy_analysis.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
                 code_scope[k] = _jit(v)
                 modified = True
 
@@ -214,17 +161,19 @@ def _jit(func):
         func_code = tools.deindent(tools.get_func_source(func))
         exec(compile(func_code, '', "exec"), code_scope)
         func = code_scope[func.__name__]
-        return njit(func)
+        return numba.njit(func)
     else:
-        njit(func)
+        return numba.njit(func)
 
 
 def jit_compile(scope, func_code, func_name):
-    # get function scope
+    if numba is None:
+        return
+        # get function scope
     func_scope = dict()
     for key, val in scope.items():
         if callable(val):
-            if backend.func_in_numpy_or_math(val):
+            if sympy_analysis.func_in_numpy_or_math(val):
                 pass
             elif isinstance(val, Dispatcher):
                 pass
@@ -234,7 +183,7 @@ def jit_compile(scope, func_code, func_name):
 
     # compile function
     exec(compile(func_code, '', 'exec'), func_scope)
-    return njit(func_scope[func_name])
+    return numba.njit(func_scope[func_name])
 
 
 def contain_unknown_symbol(expr, scope):
@@ -288,7 +237,6 @@ def add_arrow(line, position=None, direction='right', size=15, color=None):
                        size=size)
 
 
-@njit
 def f1(arr, grad, tol):
     condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] >= 0)
     indexes = np.where(condition)[0]
@@ -302,7 +250,10 @@ def f1(arr, grad, tol):
     return np.array([-1, -1])
 
 
-@njit
+if numba is not None:
+    f1 = numba.njit(f1)
+
+
 def f2(arr, grad, tol):
     condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] <= 0)
     indexes = np.where(condition)[0]
@@ -316,6 +267,10 @@ def f2(arr, grad, tol):
     return np.array([-1, -1])
 
 
+if numba is not None:
+    f2 = numba.njit(f2)
+
+
 def find_indexes_of_limit_cycle_max(arr, tol=0.001):
     grad = np.gradient(arr)
     return f1(arr, grad, tol)
@@ -326,12 +281,15 @@ def find_indexes_of_limit_cycle_min(arr, tol=0.001):
     return f2(arr, grad, tol)
 
 
-@njit
 def _identity(a, b, tol=0.01):
     if np.abs(a - b) < tol:
         return True
     else:
         return False
+
+
+if numba is not None:
+    _identity = numba.njit(_identity)
 
 
 def find_indexes_of_limit_cycle_max2(arr, tol=0.001):

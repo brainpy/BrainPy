@@ -4,7 +4,7 @@ from pprint import pprint
 
 import brainpy as bp
 import numpy as np
-from brainpy.core.runner import TrajectoryRunner
+from brainpy.backend.runners.numba_cpu_runner import TrajectoryNumbaRunner
 import matplotlib.pyplot as plt
 
 bp.profile.set(jit=True, show_code=True)
@@ -216,9 +216,9 @@ Izhikevich = bp.NeuType(name='Izhikevich', requires={'ST': state}, steps=update,
 
 
 if __name__ == '__main__1':
-    group = bp.NeuGroup(HH, geometry=10)
+    group = bp.NeuGroup(HH, size=10)
 
-    runner = TrajectoryRunner(group, target_vars=['m', 'h'])
+    runner = TrajectoryNumbaRunner(group, target_vars=['m', 'h'])
     print(runner.target_vars)
     print(runner.fixed_vars)
 
@@ -281,7 +281,7 @@ def get_trajectories(
     group = NeuGroup(model, geometry=num, monitors=target_vars, pars_update=pars_update)
     for j, key in enumerate(target_vars):
         group.ST[key] = initial_states[j]
-    group.runner = TrajectoryRunner(group, target_vars=target_vars, fixed_vars=fixed_vars)
+    group.runner = TrajectoryNumbaRunner(group, target_vars=target_vars, fixed_vars=fixed_vars)
     group.run(duration=duration, inputs=inputs)
 
     # monitors

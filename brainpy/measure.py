@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from numba import njit
 
-from . import profile
+from brainpy import backend
+
+try:
+    from numba import njit
+except ModuleNotFoundError:
+    njit = None
 
 __all__ = [
     'cross_correlation',
@@ -18,11 +22,14 @@ __all__ = [
 ###############################
 
 
-@njit
 def _cc(states, i, j):
     sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
     k = 0. if sqrt_ij == 0. else np.sum(states[i] * states[j]) / sqrt_ij
     return k
+
+
+if njit is None:
+    _cc = njit(_cc)
 
 
 def cross_correlation(spikes, bin_size):
@@ -207,7 +214,7 @@ def firing_rate(sp_matrix, width, window='gaussian'):
     rate = np.sum(sp_matrix, axis=1)
 
     # window
-    dt = profile.get_dt()
+    dt = backend.get_dt()
     if window == 'gaussian':
         width1 = 2 * width / dt
         width2 = int(np.around(width1))
