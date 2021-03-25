@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .solver import *
-from .utils import *
 from .base import *
-from .phase_plane import *
 from .bifurcation import *
-
+from .phase_plane import *
+from .solver import *
+from .stability import *
+from .trajectory import *
+from .utils import *

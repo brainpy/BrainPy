@@ -10,8 +10,9 @@ import ast
 import sys
 from contextlib import contextmanager
 
+
 __all__ = [
-    'ast2code'
+    'ast2code',
 ]
 
 
@@ -314,7 +315,7 @@ class Transformer(ast.NodeVisitor):
         self.write(')')
         if getattr(node, 'returns', None):
             self.write(' -> ')
-            self.visit(node.returns)
+            self.visit(node.return_intermediates)
         self.write(':')
         self.write_newline()
 

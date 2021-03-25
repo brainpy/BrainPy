@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.3.6"
+__version__ = "1.0.0-alpha"
 
-# "profile" module
-from . import profile
+# "analysis" module
+from . import analysis
 
 # "backend" module
 from . import backend
@@ -12,35 +12,23 @@ from . import backend
 from . import connectivity
 from . import connectivity as connect
 
-# "core" module
-from . import core as core
-from .core.base import ObjType
-from .core.base import Ensemble
-from .core.neurons import NeuType
-from .core.neurons import NeuGroup
-from .core.synapses import SynType
-from .core.synapses import SynConn
-from .core.synapses import delayed
-from .core.network import Network
-from .core import types
-from .core.types import ObjState
-from .core.types import NeuState
-from .core.types import SynState
+# "simulation" module
+from . import simulation
+from .simulation.dynamic_system import *
+from .simulation.brain_objects import *
 
-# "integration" module
-from . import integration
-from .integration import integrate
-
-# "analysis" module
-from . import analysis
-
-# "tools" module
-from . import tools
+# "integrators" module
+from . import integrators
+from .integrators import ode
+from .integrators import sde
+from .integrators.integrate_wrapper import *
+from .integrators.constants import *
 
 # "visualization" module
 from . import visualization as visualize
 
 # other modules
+from . import tools
 from . import inputs
 from . import measure
 from . import running

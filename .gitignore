@@ -3,7 +3,6 @@ publishment.md
 TODO.md
 .vscode
 
-examples/
 develop/benchmark/COBA/results
 develop/outputdir
 
@@ -17,14 +16,14 @@ docs/images/connection_methods.pptx
 docs/tutorials/_autosummary
 docs/tutorials/.ipynb_checkpoints
 
-docs/advanced/_autosummary
-docs/advanced/.ipynb_checkpoints
+docs/tutorials_advanced/_autosummary
+docs/tutorials_advanced/.ipynb_checkpoints
 develop/fast_synapse_computation.py
 develop/fast_synapse_computation2.py
 
 docs/apis/_autosummary
-docs/advanced/usage_of_inputfactory.py
-docs/advanced/usage_of_utils_connect.py
+docs/tutorials_advanced/usage_of_inputfactory.py
+docs/tutorials_advanced/usage_of_utils_connect.py
 
 develop/benchmark/COBA/brian2*
 develop/benchmark/COBA/annarchy*

@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from collections import namedtuple
+from importlib import import_module
 
-import numba as nb
 import numpy as np
-from scipy.optimize import shgo
+
+try:
+    numba = import_module('numba')
+except ModuleNotFoundError:
+    numba = None
 
 __all__ = [
     'brentq',
@@ -18,9 +22,7 @@ _ECONVERR = -1
 results = namedtuple('results', ['root', 'function_calls', 'iterations', 'converged'])
 
 
-@nb.njit
-def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
-           rtol=4 * np.finfo(float).eps):
+def brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(float).eps):
     """
     Find a root of a function in a bracketing interval using Brent's method
     adapted from Scipy's brentq.
@@ -147,12 +149,14 @@ def brentq(f, a, b, args=(), xtol=2e-12, maxiter=100,
     if status == _ECONVERR:
         raise RuntimeError("Failed to converge")
 
-    x, funcalls, iterations = root, funcalls, itr
+    # x, funcalls, iterations = root, funcalls, itr
+    return root, funcalls, itr
 
-    return x
+
+if numba is not None:
+    brentq = numba.njit(brentq)
 
 
-@nb.njit
 def find_root_of_1d(f, f_points, args=(), tol=1e-8):
     """Find the roots of the given function by numerical methods.
 
@@ -190,13 +194,17 @@ def find_root_of_1d(f, f_points, args=(), tol=1e-8):
             f_i += 2
         else:
             if not np.isnan(fr_sign) and fl_sign != fr_sign:
-                root = brentq(f, f_points[f_i - 1], f_points[f_i], args)
+                root, funcalls, itr = brentq(f, f_points[f_i - 1], f_points[f_i], args)
                 if abs(f(root, *args)) < tol:
                     roots.append(root)
             fl_sign = fr_sign
             f_i += 1
 
     return roots
+
+
+if numba is not None:
+    find_root_of_1d = numba.njit(find_root_of_1d)
 
 
 def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
@@ -249,6 +257,7 @@ def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
     res : tuple
         The roots.
     """
+    from scipy.optimize import shgo
 
     # 1. shgo arguments
     if shgo_args is None:

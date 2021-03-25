@@ -1,5 +1,5 @@
-brainpy.running package
-============================
+brainpy.running
+===============
 
 .. currentmodule:: brainpy.running
 .. automodule:: brainpy.running

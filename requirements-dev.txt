@@ -1,4 +1,9 @@
 -r requirements.txt
 
+sympy
+numba
+pytorch
+tensorflow
+
 # test requirements
 pytest

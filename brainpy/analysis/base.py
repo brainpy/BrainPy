@@ -6,12 +6,11 @@ from copy import deepcopy
 import numpy as np
 import sympy
 
-from . import solver
-from . import utils
-from .. import core
-from .. import errors
-from .. import integration
-from .. import tools
+from brainpy import errors
+from brainpy import tools
+from brainpy.analysis import solver
+from brainpy.analysis import utils
+from brainpy.integrators import sympy_analysis
 
 __all__ = [
     'BaseNeuronAnalyzer',
@@ -35,8 +34,9 @@ class BaseNeuronAnalyzer(object):
 
     Parameters
     ----------
-    model : core.NeuType
-        The neuronal type model.
+    model_or_integrals : simulation.Population, function, functions
+        A model of the population, the integrator function,
+        or a list/tuple of integrator functions.
     target_vars : dict
         The target/dynamical variables.
     fixed_vars : dict
@@ -71,7 +71,7 @@ class BaseNeuronAnalyzer(object):
     """
 
     def __init__(self,
-                 model,
+                 model_or_integrals,
                  target_vars,
                  fixed_vars=None,
                  target_pars=None,
@@ -80,11 +80,14 @@ class BaseNeuronAnalyzer(object):
                  options=None):
 
         # model
-        # ------
-        if not isinstance(model, core.NeuType):
-            raise errors.ModelUseError(f'Neuron Dynamics Analyzer now only support NeuType, '
-                                       f'but get {type(model)}.')
-        self.model = model
+        # -----
+        if isinstance(model_or_integrals, utils.DynamicModel):
+            self.model = model_or_integrals
+        elif (isinstance(model_or_integrals, (tuple, list)) and callable(model_or_integrals[0])) or \
+                callable(model_or_integrals):
+            self.model = utils.transform_integrals_to_model(model_or_integrals)
+        else:
+            raise ValueError
 
         # target variables
         # ----------------
@@ -96,43 +99,40 @@ class BaseNeuronAnalyzer(object):
             self.dvar_names = list(self.target_vars.keys())
         else:
             self.dvar_names = list(sorted(self.target_vars.keys()))
+        for key in self.target_vars.keys():
+            if key not in self.model.variables:
+                raise ValueError(f'{key} is not a dynamical variable in {self.model}.')
 
         # fixed variables
         # ----------------
-        if fixed_vars is None:
-            fixed_vars = dict()
         if not isinstance(fixed_vars, dict):
             raise errors.ModelUseError('"fixed_vars" must be a dict with the format '
                                        'of {"var1": val1, "var2": val2}.')
-        self.fixed_vars = dict()
-        for integrator in model.integrators:
-            var_name = integrator.diff_eq.var_name
-            if var_name not in target_vars:
-                if var_name in fixed_vars:
-                    self.fixed_vars[var_name] = fixed_vars.get(var_name)
-                else:
-                    self.fixed_vars[var_name] = model.variables.get(var_name)
         for key in fixed_vars.keys():
-            if key not in self.fixed_vars:
-                self.fixed_vars[key] = fixed_vars.get(key)
+            if key not in self.model.variables:
+                raise ValueError(f'{key} is not a dynamical variable in {self.model}.')
+        self.fixed_vars = fixed_vars
+
+        # check duplicate
+        for key in self.fixed_vars.keys():
+            if key in self.target_vars:
+                raise errors.ModelUseError(f'"{key}" is defined as a target variable in "target_vars", '
+                                           f'but also defined as a fixed variable in "fixed_vars".')
 
         # equations of dynamical variables
         # --------------------------------
-        var2eq = {integrator.diff_eq.var_name: integrator for integrator in model.integrators}
-        target_func_args = set()
+        var2eq = {ana.var_name: ana for ana in self.model.analyzers}
         self.target_eqs = tools.DictPlus()
         for key in self.target_vars.keys():
             if key not in var2eq:
                 raise errors.ModelUseError(f'target "{key}" is not a dynamical variable.')
-            integrator = var2eq[key]
-            diff_eq = integrator.diff_eq
+            diff_eq = var2eq[key]
             sub_exprs = diff_eq.get_f_expressions(substitute_vars=list(self.target_vars.keys()))
             old_exprs = diff_eq.get_f_expressions(substitute_vars=None)
             self.target_eqs[key] = tools.DictPlus(sub_exprs=sub_exprs,
                                                   old_exprs=old_exprs,
                                                   diff_eq=diff_eq,
                                                   func_name=diff_eq.func_name)
-            target_func_args.update(diff_eq.func_args)
 
         # parameters to update
         # ---------------------
@@ -142,9 +142,8 @@ class BaseNeuronAnalyzer(object):
             raise errors.ModelUseError('"pars_update" must be a dict with the format '
                                        'of {"par1": val1, "par2": val2}.')
         for key in pars_update.keys():
-            if key not in model.step_scopes:
-                if key not in target_func_args:
-                    raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
+            if (key not in self.model.scopes) and (key not in self.model.parameters):
+                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{self.model}" model.')
         self.pars_update = pars_update
 
         # dynamical parameters
@@ -152,17 +151,21 @@ class BaseNeuronAnalyzer(object):
         if target_pars is None:
             target_pars = dict()
         if not isinstance(target_pars, dict):
-            raise errors.ModelUseError('"pars_dynamical" must be a dict with the format '
-                                       'of {"par1": (val1, val2)}.')
+            raise errors.ModelUseError('"target_pars" must be a dict with the format of {"par1": (val1, val2)}.')
         for key in target_pars.keys():
-            if key not in model.step_scopes:
-                if key not in target_func_args:
-                    raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model.')
+            if (key not in self.model.scopes) and (key not in self.model.parameters):
+                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{self.model}" model.')
         self.target_pars = target_pars
         if isinstance(self.target_vars, OrderedDict):
             self.dpar_names = list(self.target_pars.keys())
         else:
             self.dpar_names = list(sorted(self.target_pars.keys()))
+
+        # check duplicate
+        for key in self.pars_update.keys():
+            if key in self.target_pars:
+                raise errors.ModelUseError(f'"{key}" is defined as a target parameter in "target_pars", '
+                                           f'but also defined as a fixed parameter in "pars_update".')
 
         # resolutions for numerical methods
         # ---------------------------------
@@ -242,7 +245,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
         if 'dxdt' not in self.analyzed_results:
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(integration.get_mapping_scope())
+            scope.update(sympy_analysis.get_mapping_scope())
             scope.update(self.x_eq_group.diff_eq.func_scope)
             argument = ', '.join(self.dvar_names + self.dpar_names)
             func_code = f'def func({argument}):\n'
@@ -260,11 +263,11 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
             x_var = self.dvar_names[0]
             x_symbol = sympy.Symbol(x_var, real=True)
             x_eq = self.x_eq_group.sub_exprs[-1].code
-            x_eq = integration.str2sympy(x_eq)
+            x_eq = sympy_analysis.str2sympy(x_eq)
 
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(integration.get_mapping_scope())
+            eq_x_scope.update(sympy_analysis.get_mapping_scope())
             eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
             argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -282,7 +285,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
                     # check
                     all_vars = set(eq_x_scope.keys())
                     all_vars.update(self.dvar_names + self.dpar_names)
-                    if utils.contain_unknown_symbol(integration.sympy2str(dfxdx_expr), all_vars):
+                    if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfxdx_expr), all_vars):
                         print('failed because contain unknown symbols.')
                         sympy_failed = True
                     else:
@@ -290,7 +293,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
                         func_codes = [f'def dfdx({argument}):']
                         for expr in self.x_eq_group.sub_exprs[:-1]:
                             func_codes.append(f'{expr.var_name} = {expr.code}')
-                        func_codes.append(f'return {integration.sympy2str(dfxdx_expr)}')
+                        func_codes.append(f'return {sympy_analysis.sympy2str(dfxdx_expr)}')
                         exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                         dfdx = eq_x_scope['dfdx']
                         sympy_failed = False
@@ -320,13 +323,13 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
         """
 
         if 'fixed_point' not in self.analyzed_results:
-            x_eq = integration.str2sympy(self.x_eq_group.sub_exprs[-1].code)
+            x_eq = sympy_analysis.str2sympy(self.x_eq_group.sub_exprs[-1].code)
 
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(integration.get_mapping_scope())
+            scope.update(sympy_analysis.get_mapping_scope())
             scope.update(self.x_eq_group.diff_eq.func_scope)
-            scope['numpy'] = np
+            scope['np'] = np
 
             timeout_len = self.options.sympy_solver_timeout
             argument1 = ', '.join(self.dvar_names + self.dpar_names)
@@ -345,7 +348,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
                     for res in results:
                         all_vars = set(scope.keys())
                         all_vars.update(self.dvar_names + self.dpar_names)
-                        if utils.contain_unknown_symbol(integration.sympy2str(res), all_vars):
+                        if utils.contain_unknown_symbol(sympy_analysis.sympy2str(res), all_vars):
                             print('failed because contain unknown symbols.')
                             sympy_failed = True
                             break
@@ -355,7 +358,8 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
                         func_codes = [f'def solve_x({argument2}):']
                         for expr in self.x_eq_group.sub_exprs[:-1]:
                             func_codes.append(f'{expr.var_name} = {expr.code}')
-                        result_expr = ', '.join([integration.sympy2str(expr) for expr in results])
+                        result_expr = ', '.join([sympy_analysis.sympy2str(expr)
+                                                 for expr in results])
                         func_codes.append(f'_res_ = {result_expr}')
                         func_codes.append(f'return np.array(_res_)')
 
@@ -454,7 +458,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                 # check "f"
                 scope = deepcopy(self.pars_update)
                 scope.update(self.fixed_vars)
-                scope.update(integration.get_mapping_scope())
+                scope.update(sympy_analysis.get_mapping_scope())
                 if a.endswith('y_eq'):
                     scope.update(self.y_eq_group['diff_eq'].func_scope)
                 else:
@@ -485,7 +489,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             y_var = self.dvar_names[1]
             scope = deepcopy(self.pars_update)
             scope.update(self.fixed_vars)
-            scope.update(integration.get_mapping_scope())
+            scope.update(sympy_analysis.get_mapping_scope())
             scope.update(self.y_eq_group.diff_eq.func_scope)
             argument = ', '.join(self.dvar_names + self.dpar_names)
             func_code = f'def func({argument}):\n'
@@ -503,11 +507,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             y_var = self.dvar_names[1]
             y_symbol = sympy.Symbol(y_var, real=True)
             x_eq = self.target_eqs[x_var].sub_exprs[-1].code
-            x_eq = integration.str2sympy(x_eq)
+            x_eq = sympy_analysis.str2sympy(x_eq)
 
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(integration.get_mapping_scope())
+            eq_x_scope.update(sympy_analysis.get_mapping_scope())
             eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
             argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -525,7 +529,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     # check
                     all_vars = set(eq_x_scope.keys())
                     all_vars.update(self.dvar_names + self.dpar_names)
-                    if utils.contain_unknown_symbol(integration.sympy2str(dfxdy_expr), all_vars):
+                    if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfxdy_expr), all_vars):
                         print('failed because contain unknown symbols.')
                         sympy_failed = True
                     else:
@@ -533,7 +537,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                         func_codes = [f'def dfdy({argument}):']
                         for expr in self.x_eq_group.sub_exprs[:-1]:
                             func_codes.append(f'{expr.var_name} = {expr.code}')
-                        func_codes.append(f'return {integration.sympy2str(dfxdy_expr)}')
+                        func_codes.append(f'return {sympy_analysis.sympy2str(dfxdy_expr)}')
                         exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
                         dfdy = eq_x_scope['dfdy']
                         sympy_failed = False
@@ -566,11 +570,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             x_symbol = sympy.Symbol(x_var, real=True)
             y_var = self.dvar_names[1]
             y_eq = self.target_eqs[y_var].sub_exprs[-1].code
-            y_eq = integration.str2sympy(y_eq)
+            y_eq = sympy_analysis.str2sympy(y_eq)
 
             eq_y_scope = deepcopy(self.pars_update)
             eq_y_scope.update(self.fixed_vars)
-            eq_y_scope.update(integration.get_mapping_scope())
+            eq_y_scope.update(sympy_analysis.get_mapping_scope())
             eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
             argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -588,7 +592,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     # check
                     all_vars = set(eq_y_scope.keys())
                     all_vars.update(self.dvar_names + self.dpar_names)
-                    if utils.contain_unknown_symbol(integration.sympy2str(dfydx_expr), all_vars):
+                    if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfydx_expr), all_vars):
                         print('failed because contain unknown symbols.')
                         sympy_failed = True
                     else:
@@ -596,7 +600,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                         func_codes = [f'def dgdx({argument}):']
                         for expr in self.y_eq_group.sub_exprs[:-1]:
                             func_codes.append(f'{expr.var_name} = {expr.code}')
-                        func_codes.append(f'return {integration.sympy2str(dfydx_expr)}')
+                        func_codes.append(f'return {sympy_analysis.sympy2str(dfydx_expr)}')
                         exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                         dgdx = eq_y_scope['dgdx']
                         sympy_failed = False
@@ -629,11 +633,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             y_var = self.dvar_names[1]
             y_symbol = sympy.Symbol(y_var, real=True)
             y_eq = self.target_eqs[y_var].sub_exprs[-1].code
-            y_eq = integration.str2sympy(y_eq)
+            y_eq = sympy_analysis.str2sympy(y_eq)
 
             eq_y_scope = deepcopy(self.pars_update)
             eq_y_scope.update(self.fixed_vars)
-            eq_y_scope.update(integration.get_mapping_scope())
+            eq_y_scope.update(sympy_analysis.get_mapping_scope())
             eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
             argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -652,7 +656,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     # check
                     all_vars = set(eq_y_scope.keys())
                     all_vars.update(self.dvar_names + self.dpar_names)
-                    if utils.contain_unknown_symbol(integration.sympy2str(dfydx_expr), all_vars):
+                    if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfydx_expr), all_vars):
                         print('failed because contain unknown symbols.')
                         sympy_failed = True
                     else:
@@ -660,7 +664,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                         func_codes = [f'def dgdy({argument}):']
                         for expr in self.y_eq_group.sub_exprs[:-1]:
                             func_codes.append(f'{expr.var_name} = {expr.code}')
-                        func_codes.append(f'return {integration.sympy2str(dfydx_expr)}')
+                        func_codes.append(f'return {sympy_analysis.sympy2str(dfydx_expr)}')
                         exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
                         dgdy = eq_y_scope['dgdy']
                         sympy_failed = False
@@ -712,12 +716,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
         """
 
         if 'fixed_point' not in self.analyzed_results:
-
             vars_and_pars = ','.join(self.dvar_names[2:] + self.dpar_names)
 
             eq_xy_scope = deepcopy(self.pars_update)
             eq_xy_scope.update(self.fixed_vars)
-            eq_xy_scope.update(integration.get_mapping_scope())
+            eq_xy_scope.update(sympy_analysis.get_mapping_scope())
             eq_xy_scope.update(self.x_eq_group['diff_eq'].func_scope)
             eq_xy_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
@@ -826,7 +829,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             # f
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(integration.get_mapping_scope())
+            eq_x_scope.update(sympy_analysis.get_mapping_scope())
             eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
             func_codes = [f'def f_x({",".join(self.dvar_names + self.dpar_names)}):']
             func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -838,7 +841,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             # g
             eq_y_scope = deepcopy(self.pars_update)
             eq_y_scope.update(self.fixed_vars)
-            eq_y_scope.update(integration.get_mapping_scope())
+            eq_y_scope.update(sympy_analysis.get_mapping_scope())
             eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
             func_codes = [f'def g_y({",".join(self.dvar_names + self.dpar_names)}):']
             func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -893,7 +896,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             # x equation scope
             eq_x_scope = deepcopy(self.pars_update)
             eq_x_scope.update(self.fixed_vars)
-            eq_x_scope.update(integration.get_mapping_scope())
+            eq_x_scope.update(sympy_analysis.get_mapping_scope())
             eq_x_scope.update(self.x_eq_group.diff_eq.func_scope)
 
             argument = ','.join(self.dvar_names[2:] + self.dpar_names)
@@ -967,7 +970,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             # y equation scope
             eq_y_scope = deepcopy(self.pars_update)
             eq_y_scope.update(self.fixed_vars)
-            eq_y_scope.update(integration.get_mapping_scope())
+            eq_y_scope.update(sympy_analysis.get_mapping_scope())
             eq_y_scope.update(self.y_eq_group.diff_eq.func_scope)
 
             argument = ','.join(self.dvar_names[2:] + self.dpar_names)
@@ -1031,11 +1034,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if not self.options.escape_sympy_solver:
                 y_symbol = sympy.Symbol(self.y_var, real=True)
                 code = self.target_eqs[self.y_var].sub_exprs[-1].code
-                y_eq = integration.str2sympy(code).expr
+                y_eq = sympy_analysis.str2sympy(code).expr
 
                 eq_y_scope = deepcopy(self.pars_update)
                 eq_y_scope.update(self.fixed_vars)
-                eq_y_scope.update(integration.get_mapping_scope())
+                eq_y_scope.update(sympy_analysis.get_mapping_scope())
                 eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
                 argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1051,7 +1054,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     y_by_x_in_y_eq = f()
                     if len(y_by_x_in_y_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
-                    y_by_x_in_y_eq = integration.sympy2str(y_by_x_in_y_eq[0])
+                    y_by_x_in_y_eq = sympy_analysis.sympy2str(y_by_x_in_y_eq[0])
 
                     # check
                     all_vars = set(eq_y_scope.keys())
@@ -1105,11 +1108,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if not self.options.escape_sympy_solver:
                 y_symbol = sympy.Symbol(self.y_var, real=True)
                 code = self.x_eq_group.sub_exprs[-1].code
-                x_eq = integration.str2sympy(code).expr
+                x_eq = sympy_analysis.str2sympy(code).expr
 
                 eq_x_scope = deepcopy(self.pars_update)
                 eq_x_scope.update(self.fixed_vars)
-                eq_x_scope.update(integration.get_mapping_scope())
+                eq_x_scope.update(sympy_analysis.get_mapping_scope())
                 eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
                 argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1126,7 +1129,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     y_by_x_in_x_eq = f()
                     if len(y_by_x_in_x_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
-                    y_by_x_in_x_eq = integration.sympy2str(y_by_x_in_x_eq[0])
+                    y_by_x_in_x_eq = sympy_analysis.sympy2str(y_by_x_in_x_eq[0])
 
                     all_vars = set(eq_x_scope.keys())
                     all_vars.update(self.dvar_names + self.dpar_names)
@@ -1179,11 +1182,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if not self.options.escape_sympy_solver:
                 x_symbol = sympy.Symbol(self.x_var, real=True)
                 code = self.target_eqs[self.y_var].sub_exprs[-1].code
-                y_eq = integration.str2sympy(code).expr
+                y_eq = sympy_analysis.str2sympy(code).expr
 
                 eq_y_scope = deepcopy(self.pars_update)
                 eq_y_scope.update(self.fixed_vars)
-                eq_y_scope.update(integration.get_mapping_scope())
+                eq_y_scope.update(sympy_analysis.get_mapping_scope())
                 eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
                 argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1198,7 +1201,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     x_by_y_in_y_eq = f()
                     if len(x_by_y_in_y_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
-                    x_by_y_in_y_eq = integration.sympy2str(x_by_y_in_y_eq[0])
+                    x_by_y_in_y_eq = sympy_analysis.sympy2str(x_by_y_in_y_eq[0])
 
                     # check
                     all_vars = set(eq_y_scope.keys())
@@ -1252,11 +1255,11 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
             if not self.options.escape_sympy_solver:
                 x_symbol = sympy.Symbol(self.x_var, real=True)
                 code = self.x_eq_group.sub_exprs[-1].code
-                x_eq = integration.str2sympy(code).expr
+                x_eq = sympy_analysis.str2sympy(code).expr
 
                 eq_x_scope = deepcopy(self.pars_update)
                 eq_x_scope.update(self.fixed_vars)
-                eq_x_scope.update(integration.get_mapping_scope())
+                eq_x_scope.update(sympy_analysis.get_mapping_scope())
                 eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
                 argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1271,7 +1274,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
                     x_by_y_in_x_eq = f()
                     if len(x_by_y_in_x_eq) > 1:
                         raise NotImplementedError('Do not support multiple values.')
-                    x_by_y_in_x_eq = integration.sympy2str(x_by_y_in_x_eq[0])
+                    x_by_y_in_x_eq = sympy_analysis.sympy2str(x_by_y_in_x_eq[0])
 
                     # check
                     all_vars = set(eq_x_scope.keys())

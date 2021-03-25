@@ -1,5 +1,5 @@
-brainpy.errors package
-============================
+brainpy.errors
+==============
 
 .. currentmodule:: brainpy.errors
 .. automodule:: brainpy.errors
@@ -9,7 +9,7 @@ brainpy.errors package
 
     ModelDefError
     ModelUseError
-    TypeMismatchError
-    IntegratorError
-    DiffEquationError
+    DiffEqError
     CodeError
+    AnalyzerError
+    PackageMissingError

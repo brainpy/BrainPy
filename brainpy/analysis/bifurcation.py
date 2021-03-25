@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
+import gc
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-from . import base
-from . import utils
-from .. import core
-from .. import errors
-from .. import profile
+from brainpy import backend
+from brainpy import errors
+from brainpy.analysis import base
+from brainpy.analysis import stability
+from brainpy.analysis import utils
+from brainpy.analysis.trajectory import Trajectory
 
 __all__ = [
     'Bifurcation',
@@ -36,18 +38,16 @@ class Bifurcation(object):
     Parameters
     ----------
 
-    model :  NeuType
-        An abstract neuronal type defined in BrainPy.
+    integrals : callable
+        The integral functions defined with `brainpy.odeint` or
+        `brainpy.sdeint` or `brainpy.ddeint`, or `brainpy.fdeint`.
 
     """
 
-    def __init__(self, model, target_pars, target_vars, fixed_vars=None, pars_update=None,
+    def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
                  numerical_resolution=0.1, options=None):
-
         # check "model"
-        if not isinstance(model, core.NeuType):
-            raise errors.ModelUseError('Bifurcation analysis only support neuron type model.')
-        self.model = model
+        self.model = utils.transform_integrals_to_model(integrals)
 
         # check "target_pars"
         if not isinstance(target_pars, dict):
@@ -80,13 +80,13 @@ class Bifurcation(object):
             raise errors.ModelUseError('"pars_update" must be a dict the format of: '
                                        '{"Par A": A_value, "Par B": B_value}')
         for key in pars_update.keys():
-            if key not in model.step_scopes:
-                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model. ')
+            if (key not in self.model.scopes) and (key not in self.model.parameters):
+                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{integrals}". ')
         self.pars_update = pars_update
 
         # bifurcation analysis
         if len(self.target_vars) == 1:
-            self.analyzer = _Bifurcation1D(model=model,
+            self.analyzer = _Bifurcation1D(model_or_integrals=self.model,
                                            target_pars=target_pars,
                                            target_vars=target_vars,
                                            fixed_vars=fixed_vars,
@@ -95,7 +95,7 @@ class Bifurcation(object):
                                            options=options)
 
         elif len(self.target_vars) == 2:
-            self.analyzer = _Bifurcation2D(model=model,
+            self.analyzer = _Bifurcation2D(model_or_integrals=self.model,
                                            target_pars=target_pars,
                                            target_vars=target_vars,
                                            fixed_vars=fixed_vars,
@@ -116,9 +116,9 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
     Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
     """
 
-    def __init__(self, model, target_pars, target_vars, fixed_vars=None,
+    def __init__(self, model_or_integrals, target_pars, target_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_Bifurcation1D, self).__init__(model=model,
+        super(_Bifurcation1D, self).__init__(model_or_integrals=model_or_integrals,
                                              target_pars=target_pars,
                                              target_vars=target_vars,
                                              fixed_vars=fixed_vars,
@@ -133,7 +133,7 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
         f_dfdx = self.get_f_dfdx()
 
         if len(self.target_pars) == 1:
-            container = {c: {'p': [], 'x': []} for c in utils.get_1d_classification()}
+            container = {c: {'p': [], 'x': []} for c in stability.get_1d_stability_types()}
 
             # fixed point
             par_a = self.dpar_names[0]
@@ -141,7 +141,7 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
                 xs = f_fixed_point(p)
                 for x in xs:
                     dfdx = f_dfdx(x, p)
-                    fp_type = utils.stability_analysis(dfdx)
+                    fp_type = stability.stability_analysis(dfdx)
                     container[fp_type]['p'].append(p)
                     container[fp_type]['x'].append(x)
 
@@ -149,7 +149,7 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
             plt.figure(self.x_var)
             for fp_type, points in container.items():
                 if len(points['x']):
-                    plot_style = utils.plot_scheme[fp_type]
+                    plot_style = stability.plot_scheme[fp_type]
                     plt.plot(points['p'], points['x'], '.', **plot_style, label=fp_type)
             plt.xlabel(par_a)
             plt.ylabel(self.x_var)
@@ -163,7 +163,7 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
                 plt.show()
 
         elif len(self.target_pars) == 2:
-            container = {c: {'p0': [], 'p1': [], 'x': []} for c in utils.get_1d_classification()}
+            container = {c: {'p0': [], 'p1': [], 'x': []} for c in stability.get_1d_stability_types()}
 
             # fixed point
             for p0 in self.resolutions[self.dpar_names[0]]:
@@ -171,7 +171,7 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
                     xs = f_fixed_point(p0, p1)
                     for x in xs:
                         dfdx = f_dfdx(x, p0, p1)
-                        fp_type = utils.stability_analysis(dfdx)
+                        fp_type = stability.stability_analysis(dfdx)
                         container[fp_type]['p0'].append(p0)
                         container[fp_type]['p1'].append(p1)
                         container[fp_type]['x'].append(x)
@@ -181,7 +181,7 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
             ax = fig.gca(projection='3d')
             for fp_type, points in container.items():
                 if len(points['x']):
-                    plot_style = utils.plot_scheme[fp_type]
+                    plot_style = stability.plot_scheme[fp_type]
                     xs = points['p0']
                     ys = points['p1']
                     zs = points['x']
@@ -210,16 +210,15 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
         raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-
 class _Bifurcation2D(base.Base2DNeuronAnalyzer):
     """Bifurcation analysis of 2D system.
 
     Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
     """
 
-    def __init__(self, model, target_pars, target_vars, fixed_vars=None,
+    def __init__(self, model_or_integrals, target_pars, target_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_Bifurcation2D, self).__init__(model=model,
+        super(_Bifurcation2D, self).__init__(model_or_integrals=model_or_integrals,
                                              target_pars=target_pars,
                                              target_vars=target_vars,
                                              fixed_vars=fixed_vars,
@@ -228,9 +227,6 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                                              options=options)
 
         self.fixed_points = None
-        self.limit_cycle_mon = None
-        self.limit_cycle_p0 = None
-        self.limit_cycle_p1 = None
 
     def plot_bifurcation(self, show=False):
         print('plot bifurcation ...')
@@ -242,14 +238,14 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         # bifurcation analysis of co-dimension 1
         if len(self.target_pars) == 1:
             container = {c: {'p': [], self.x_var: [], self.y_var: []}
-                         for c in utils.get_2d_classification()}
+                         for c in stability.get_2d_stability_types()}
 
             # fixed point
             for p in self.resolutions[self.dpar_names[0]]:
                 xs, ys = f_fixed_point(p)
                 for x, y in zip(xs, ys):
                     dfdx = f_jacobian(x, y, p)
-                    fp_type = utils.stability_analysis(dfdx)
+                    fp_type = stability.stability_analysis(dfdx)
                     container[fp_type]['p'].append(p)
                     container[fp_type][self.x_var].append(x)
                     container[fp_type][self.y_var].append(y)
@@ -259,7 +255,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                 plt.figure(var)
                 for fp_type, points in container.items():
                     if len(points['p']):
-                        plot_style = utils.plot_scheme[fp_type]
+                        plot_style = stability.plot_scheme[fp_type]
                         plt.plot(points['p'], points[var], '.', **plot_style, label=fp_type)
                 plt.xlabel(self.dpar_names[0])
                 plt.ylabel(var)
@@ -275,7 +271,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         # bifurcation analysis of co-dimension 2
         elif len(self.target_pars) == 2:
             container = {c: {'p0': [], 'p1': [], self.x_var: [], self.y_var: []}
-                         for c in utils.get_2d_classification()}
+                         for c in stability.get_2d_stability_types()}
 
             # fixed point
             for p0 in self.resolutions[self.dpar_names[0]]:
@@ -283,7 +279,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                     xs, ys = f_fixed_point(p0, p1)
                     for x, y in zip(xs, ys):
                         dfdx = f_jacobian(x, y, p0, p1)
-                        fp_type = utils.stability_analysis(dfdx)
+                        fp_type = stability.stability_analysis(dfdx)
                         container[fp_type]['p0'].append(p0)
                         container[fp_type]['p1'].append(p1)
                         container[fp_type][self.x_var].append(x)
@@ -295,7 +291,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
                 ax = fig.gca(projection='3d')
                 for fp_type, points in container.items():
                     if len(points['p0']):
-                        plot_style = utils.plot_scheme[fp_type]
+                        plot_style = stability.plot_scheme[fp_type]
                         xs = points['p0']
                         ys = points['p1']
                         zs = points[var]
@@ -320,7 +316,7 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
 
         self.fixed_points = container
         return container
-    
+
     def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(), plot_style=None, tol=0.001, show=False):
         print('plot limit cycle ...')
 
@@ -333,72 +329,55 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         if var not in [self.x_var, self.y_var]:
             raise errors.AnalyzerError()
 
-        if self.limit_cycle_mon is None:
-            all_xs, all_ys, all_p0, all_p1 = [], [], [], []
+        all_xs, all_ys, all_p0, all_p1 = [], [], [], []
 
-            # unstable node
-            unstable_node = self.fixed_points[utils._2D_UNSTABLE_NODE]
-            all_xs.extend(unstable_node[self.x_var])
-            all_ys.extend(unstable_node[self.y_var])
-            if len(self.dpar_names) == 1:
-                all_p0.extend(unstable_node['p'])
-            elif len(self.dpar_names) == 2:
-                all_p0.extend(unstable_node['p0'])
-                all_p1.extend(unstable_node['p1'])
-            else:
-                raise ValueError
-
-            # unstable focus
-            unstable_focus = self.fixed_points[utils._2D_UNSTABLE_FOCUS]
-            all_xs.extend(unstable_focus[self.x_var])
-            all_ys.extend(unstable_focus[self.y_var])
-            if len(self.dpar_names) == 1:
-                all_p0.extend(unstable_focus['p'])
-            elif len(self.dpar_names) == 2:
-                all_p0.extend(unstable_focus['p0'])
-                all_p1.extend(unstable_focus['p1'])
-            else:
-                raise ValueError
-
-            # format points
-            all_xs = np.array(all_xs)
-            all_ys = np.array(all_ys)
-            all_p0 = np.array(all_p0)
-            all_p1 = np.array(all_p1)
-
-            # fixed variables
-            fixed_vars = dict()
-            for key, val in self.fixed_vars.items():
-                fixed_vars[key] = val
-            fixed_vars[self.dpar_names[0]] = all_p0
-            if len(self.dpar_names) == 2:
-                fixed_vars[self.dpar_names[1]] = all_p1
-
-            # initialize neuron group
-            length = all_xs.shape[0]
-            group = core.NeuGroup(self.model,
-                                  geometry=length,
-                                  monitors=self.dvar_names,
-                                  pars_update=self.pars_update)
-
-            # group initial state
-            group.ST[self.x_var] = all_xs
-            group.ST[self.y_var] = all_ys
-            for key, val in fixed_vars.items():
-                if key in group.ST:
-                    group.ST[key] = val
-
-            # run neuron group
-            group.runner = core.TrajectoryRunner(group,
-                                                 target_vars=self.dvar_names,
-                                                 fixed_vars=fixed_vars)
-            group.run(duration=duration, inputs=inputs)
-
-            self.limit_cycle_mon = group.mon
-            self.limit_cycle_p0 = all_p0
-            self.limit_cycle_p1 = all_p1
+        # unstable node
+        unstable_node = self.fixed_points[stability.UNSTABLE_NODE_2D]
+        all_xs.extend(unstable_node[self.x_var])
+        all_ys.extend(unstable_node[self.y_var])
+        if len(self.dpar_names) == 1:
+            all_p0.extend(unstable_node['p'])
+        elif len(self.dpar_names) == 2:
+            all_p0.extend(unstable_node['p0'])
+            all_p1.extend(unstable_node['p1'])
         else:
-            length = self.limit_cycle_mon[var].shape[1]
+            raise ValueError
+
+        # unstable focus
+        unstable_focus = self.fixed_points[stability.UNSTABLE_FOCUS_2D]
+        all_xs.extend(unstable_focus[self.x_var])
+        all_ys.extend(unstable_focus[self.y_var])
+        if len(self.dpar_names) == 1:
+            all_p0.extend(unstable_focus['p'])
+        elif len(self.dpar_names) == 2:
+            all_p0.extend(unstable_focus['p0'])
+            all_p1.extend(unstable_focus['p1'])
+        else:
+            raise ValueError
+
+        # format points
+        all_xs = np.array(all_xs)
+        all_ys = np.array(all_ys)
+        all_p0 = np.array(all_p0)
+        all_p1 = np.array(all_p1)
+
+        # fixed variables
+        fixed_vars = dict()
+        for key, val in self.fixed_vars.items():
+            fixed_vars[key] = val
+        fixed_vars[self.dpar_names[0]] = all_p0
+        if len(self.dpar_names) == 2:
+            fixed_vars[self.dpar_names[1]] = all_p1
+
+        # initialize neuron group
+        length = all_xs.shape[0]
+        traj_group = Trajectory(size=length,
+                                integrals=self.model.integrals,
+                                target_vars={self.x_var: all_xs, self.y_var: all_ys},
+                                fixed_vars=fixed_vars,
+                                pars_update=self.pars_update,
+                                scope=self.model.scopes)
+        traj_group.run(duration=duration)
 
         # find limit cycles
         limit_cycle_max = []
@@ -407,16 +386,16 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         p0_limit_cycle = []
         p1_limit_cycle = []
         for i in range(length):
-            data = self.limit_cycle_mon[var][:, i]
+            data = traj_group.mon[var][:, i]
             max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
             if max_index[0] != -1:
                 x_cycle = data[max_index[0]: max_index[1]]
                 limit_cycle_max.append(data[max_index[1]])
                 limit_cycle_min.append(x_cycle.min())
                 # limit_cycle.append(x_cycle)
-                p0_limit_cycle.append(self.limit_cycle_p0[i])
+                p0_limit_cycle.append(all_p0[i])
                 if len(self.dpar_names) == 2:
-                    p1_limit_cycle.append(self.limit_cycle_p1[i])
+                    p1_limit_cycle.append(all_p1[i])
         self.fixed_points['limit_cycle'] = {var: {'max': limit_cycle_max,
                                                   'min': limit_cycle_min,
                                                   # 'cycle': limit_cycle
@@ -443,7 +422,9 @@ class _Bifurcation2D(base.Base2DNeuronAnalyzer):
         if show:
             plt.show()
 
-    
+        del traj_group
+        gc.collect()
+
 
 class FastSlowBifurcation(object):
     """Fast slow analysis analysis proposed by John Rinzel [1]_ [2]_ [3]_.
@@ -469,12 +450,10 @@ class FastSlowBifurcation(object):
 
     """
 
-    def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
+    def __init__(self, integrals, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
         # check "model"
-        if not isinstance(model, core.NeuType):
-            raise errors.ModelUseError('FastSlowBifurcation only support neuron type model.')
-        self.model = model
+        self.model = utils.transform_integrals_to_model(integrals)
 
         # check "fast_vars"
         if not isinstance(fast_vars, dict):
@@ -495,6 +474,9 @@ class FastSlowBifurcation(object):
         if len(slow_vars) > 2:
             raise errors.ModelUseError("FastSlowBifurcation can only analyze the system with less "
                                        "than two-variable slow subsystem.")
+        for key in self.slow_vars:
+            self.model.variables.remove(key)
+            self.model.parameters.append(key)
 
         # check "fixed_vars"
         if fixed_vars is None:
@@ -511,13 +493,13 @@ class FastSlowBifurcation(object):
             raise errors.ModelUseError('"pars_update" must be a dict the format of: '
                                        '{"Par A": A_value, "Par B": B_value}')
         for key in pars_update.keys():
-            if key not in model.step_scopes:
-                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{model.name}" model. ')
+            if (key not in self.model.scopes) and (key not in self.model.parameters):
+                raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{integrals}" model. ')
         self.pars_update = pars_update
 
         # bifurcation analysis
         if len(self.fast_vars) == 1:
-            self.analyzer = _FastSlow1D(model=model,
+            self.analyzer = _FastSlow1D(model_or_integrals=self.model,
                                         fast_vars=fast_vars,
                                         slow_vars=slow_vars,
                                         fixed_vars=fixed_vars,
@@ -526,7 +508,7 @@ class FastSlowBifurcation(object):
                                         options=options)
 
         elif len(self.fast_vars) == 2:
-            self.analyzer = _FastSlow2D(model=model,
+            self.analyzer = _FastSlow2D(model_or_integrals=self.model,
                                         fast_vars=fast_vars,
                                         slow_vars=slow_vars,
                                         fixed_vars=fixed_vars,
@@ -548,9 +530,14 @@ class FastSlowBifurcation(object):
 
 
 class _FastSlowTrajectory(object):
-    def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
+    def __init__(self, model_or_intgs, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, **kwargs):
-        self.model = model
+        if isinstance(model_or_intgs, utils.DynamicModel):
+            self.model = model_or_intgs
+        elif (isinstance(model_or_intgs, (list, tuple)) and callable(model_or_intgs[0])) or callable(model_or_intgs):
+            self.model = utils.transform_integrals_to_model(model_or_intgs)
+        else:
+            raise ValueError
         self.fast_vars = fast_vars
         self.slow_vars = slow_vars
         self.fixed_vars = fixed_vars
@@ -572,20 +559,7 @@ class _FastSlowTrajectory(object):
         else:
             self.slow_var_names = list(sorted(slow_vars.keys()))
 
-        # cannot update dynamical parameters
-        all_vars = self.fast_var_names + self.slow_var_names
-        self.traj_group = core.NeuGroup(model,
-                                        geometry=1,
-                                        monitors=all_vars,
-                                        pars_update=pars_update)
-        self.traj_group.runner = core.TrajectoryRunner(self.traj_group,
-                                                       target_vars=all_vars,
-                                                       fixed_vars=fixed_vars)
-        self.traj_initial = {key: val[0] for key, val in self.traj_group.ST.items()
-                             if not key.startswith('_')}
-        self.traj_net = core.Network(self.traj_group)
-
-    def plot_trajectory(self, initials, duration, plot_duration=None, inputs=(), show=False):
+    def plot_trajectory(self, initials, duration, plot_duration=None, show=False):
         """Plot trajectories according to the settings.
 
         Parameters
@@ -606,8 +580,6 @@ class _FastSlowTrajectory(object):
             The duration to plot. It can be a tuple with ``(start, end)``. It can
             also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
             the plot duration for each initial value running.
-        inputs : tuple, list
-            The inputs to the model. Same with the ``inputs`` in ``NeuGroup.run()``
         show : bool
             Whether show or not.
         """
@@ -650,29 +622,15 @@ class _FastSlowTrajectory(object):
         else:
             assert len(plot_duration) == len(initials)
 
-        # 4. format the inputs
-        if len(inputs):
-            if isinstance(inputs[0], (tuple, list)):
-                inputs = [(self.traj_group,) + tuple(input) for input in inputs]
-            elif isinstance(inputs[0], str):
-                inputs = [(self.traj_group,) + tuple(inputs)]
-            else:
-                raise errors.ModelUseError()
-
         # 5. run the network
         for init_i, initial in enumerate(initials):
-            #   5.1 set the initial value
-            for key, val in self.traj_initial.items():
-                self.traj_group.ST[key] = val
-            for key in all_vars:
-                self.traj_group.ST[key] = initial[key]
-            for key, val in self.fixed_vars.items():
-                if key in self.traj_group.ST:
-                    self.traj_group.ST[key] = val
-
-            #   5.2 run the model
-            self.traj_net.run(duration=duration[init_i], inputs=inputs,
-                              report=False, data_to_host=True, verbose=False)
+            traj_group = Trajectory(size=1,
+                                    integrals=self.model.integrals,
+                                    target_vars=initial,
+                                    fixed_vars=self.fixed_vars,
+                                    pars_update=self.pars_update,
+                                    scope=self.model.scopes)
+            traj_group.run(duration=duration[init_i], report=False)
 
             #   5.3 legend
             legend = f'$traj_{init_i}$: '
@@ -681,13 +639,13 @@ class _FastSlowTrajectory(object):
             legend = legend[:-2]
 
             #   5.4 trajectory
-            start = int(plot_duration[init_i][0] / profile.get_dt())
-            end = int(plot_duration[init_i][1] / profile.get_dt())
+            start = int(plot_duration[init_i][0] / backend.get_dt())
+            end = int(plot_duration[init_i][1] / backend.get_dt())
 
             #   5.5 visualization
             for var_name in self.fast_var_names:
-                s0 = self.traj_group.mon[self.slow_var_names[0]][start: end, 0]
-                fast = self.traj_group.mon[var_name][start: end, 0]
+                s0 = traj_group.mon[self.slow_var_names[0]][start: end, 0]
+                fast = traj_group.mon[var_name][start: end, 0]
 
                 fig = plt.figure(var_name)
                 if len(self.slow_var_names) == 1:
@@ -700,7 +658,7 @@ class _FastSlowTrajectory(object):
 
                 elif len(self.slow_var_names) == 2:
                     fig.gca(projection='3d')
-                    s1 = self.traj_group.mon[self.slow_var_names[1]][start: end, 0]
+                    s1 = traj_group.mon[self.slow_var_names[1]][start: end, 0]
                     plt.plot(s0, s1, fast, label=legend)
                 else:
                     raise errors.AnalyzerError
@@ -730,18 +688,17 @@ class _FastSlowTrajectory(object):
             plt.show()
 
 
-
 class _FastSlow1D(_Bifurcation1D):
-    def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
+    def __init__(self, model_or_integrals, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_FastSlow1D, self).__init__(model=model,
+        super(_FastSlow1D, self).__init__(model_or_integrals=model_or_integrals,
                                           target_pars=slow_vars,
                                           target_vars=fast_vars,
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
                                           options=options)
-        self.traj = _FastSlowTrajectory(model=model,
+        self.traj = _FastSlowTrajectory(model_or_intgs=model_or_integrals,
                                         fast_vars=fast_vars,
                                         slow_vars=slow_vars,
                                         fixed_vars=fixed_vars,
@@ -760,16 +717,16 @@ class _FastSlow1D(_Bifurcation1D):
 
 
 class _FastSlow2D(_Bifurcation2D):
-    def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
+    def __init__(self, model_or_integrals, fast_vars, slow_vars, fixed_vars=None,
                  pars_update=None, numerical_resolution=0.1, options=None):
-        super(_FastSlow2D, self).__init__(model=model,
+        super(_FastSlow2D, self).__init__(model_or_integrals=model_or_integrals,
                                           target_pars=slow_vars,
                                           target_vars=fast_vars,
                                           fixed_vars=fixed_vars,
                                           pars_update=pars_update,
                                           numerical_resolution=numerical_resolution,
                                           options=options)
-        self.traj = _FastSlowTrajectory(model=model,
+        self.traj = _FastSlowTrajectory(model_or_intgs=model_or_integrals,
                                         fast_vars=fast_vars,
                                         slow_vars=slow_vars,
                                         fixed_vars=fixed_vars,
