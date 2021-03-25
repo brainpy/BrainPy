@@ -1,5 +1,8 @@
 -r requirements.txt
 
+sympy
+numba
+
 # document requirements
 Jinja2
 sphinx
