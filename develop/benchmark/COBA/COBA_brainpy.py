@@ -2,9 +2,7 @@
 
 
 import time
-
 import numpy as np
-
 import brainpy as bp
 
 dt = 0.05
@@ -69,13 +67,13 @@ class LIF(bp.NeuGroup):
             self.input[i] = I
 
 
-class EecSyn(bp.TwoEndConn):
+class ExcSyn(bp.TwoEndConn):
     target_backend = ['numpy', 'numba']
 
     def __init__(self, pre, post, conn, **kwargs):
         self.conn = conn(pre.size, post.size)
         self.pre2post = self.conn.requires('pre2post')
-        super(EecSyn, self).__init__(pre=pre, post=post, **kwargs)
+        super(ExcSyn, self).__init__(pre=pre, post=post, **kwargs)
 
     def update(self, _t):
         for pre_id, spike in enumerate(self.pre.spike):
@@ -103,8 +101,8 @@ E_group = LIF(num_exc, monitors=['spike'])
 E_group.V = np.random.randn(num_exc) * 5. - 55.
 I_group = LIF(num_inh, monitors=['spike'])
 I_group.V = np.random.randn(num_inh) * 5. - 55.
-E2E = EecSyn(pre=E_group, post=E_group, conn=bp.connect.FixedProb(0.02))
-E2I = EecSyn(pre=E_group, post=I_group, conn=bp.connect.FixedProb(0.02))
+E2E = ExcSyn(pre=E_group, post=E_group, conn=bp.connect.FixedProb(0.02))
+E2I = ExcSyn(pre=E_group, post=I_group, conn=bp.connect.FixedProb(0.02))
 I2E = InhSyn(pre=I_group, post=E_group, conn=bp.connect.FixedProb(0.02))
 I2I = InhSyn(pre=I_group, post=I_group, conn=bp.connect.FixedProb(0.02))
 

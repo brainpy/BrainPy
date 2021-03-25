@@ -1,7 +1,17 @@
 BrainPy documentation
 =====================
 
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation.
+``BrainPy`` is an integrative framework for computational neuroscience
+and brain-inspired computation. It provides three core functions for
+neurodyanmics modeling:
+
+- *General numerical solvers* for ODEs and SDEs (future will support DDEs and FDEs).
+- *Neurodynamics simulation tools* for various brain objects, such like neurons, synapses
+  and networks (future will support soma and dendrites).
+- *Neurodynamics analysis tools* for differential equations, including phase plane
+  analysis and bifurcation analysis (future will support continuation analysis and
+  sensitive analysis).
+
 
 Comprehensive examples of BrainPy please see
 `BrainPy-Models <https://brainpy-models.readthedocs.io/en/latest/>`_.
@@ -28,7 +38,6 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   tutorials_advanced/repeat_mode
    tutorials_advanced/usage_of_inputs_module
 
 

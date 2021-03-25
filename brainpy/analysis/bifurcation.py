@@ -474,6 +474,9 @@ class FastSlowBifurcation(object):
         if len(slow_vars) > 2:
             raise errors.ModelUseError("FastSlowBifurcation can only analyze the system with less "
                                        "than two-variable slow subsystem.")
+        for key in self.slow_vars:
+            self.model.variables.remove(key)
+            self.model.parameters.append(key)
 
         # check "fixed_vars"
         if fixed_vars is None:
@@ -490,7 +493,7 @@ class FastSlowBifurcation(object):
             raise errors.ModelUseError('"pars_update" must be a dict the format of: '
                                        '{"Par A": A_value, "Par B": B_value}')
         for key in pars_update.keys():
-            if (key not in self.model.scopes) or (key not in self.model.parameters):
+            if (key not in self.model.scopes) and (key not in self.model.parameters):
                 raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{integrals}" model. ')
         self.pars_update = pars_update
 
@@ -556,7 +559,7 @@ class _FastSlowTrajectory(object):
         else:
             self.slow_var_names = list(sorted(slow_vars.keys()))
 
-    def plot_trajectory(self, initials, duration, plot_duration=None, inputs=(), show=False):
+    def plot_trajectory(self, initials, duration, plot_duration=None, show=False):
         """Plot trajectories according to the settings.
 
         Parameters
@@ -577,8 +580,6 @@ class _FastSlowTrajectory(object):
             The duration to plot. It can be a tuple with ``(start, end)``. It can
             also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
             the plot duration for each initial value running.
-        inputs : tuple, list
-            The inputs to the model. Same with the ``inputs`` in ``NeuGroup.run()``
         show : bool
             Whether show or not.
         """
@@ -629,7 +630,7 @@ class _FastSlowTrajectory(object):
                                     fixed_vars=self.fixed_vars,
                                     pars_update=self.pars_update,
                                     scope=self.model.scopes)
-            traj_group.run(duration=duration, report=False)
+            traj_group.run(duration=duration[init_i], report=False)
 
             #   5.3 legend
             legend = f'$traj_{init_i}$: '

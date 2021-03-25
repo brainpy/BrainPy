@@ -12,9 +12,9 @@ _net_runner = None
 _dt = 0.1
 
 CLASS_KEYWORDS = ['self', 'cls']
-NEEDED_OPS = ['as_tensor', 'normal', 'reshape', 'shape',
-              'exp', 'sum', 'zeros', 'ones',
-              'eye', 'matmul', 'vstack', 'arange']
+NEEDED_OPS = ['normal', 'exp', 'matmul', 'sum',
+              'as_tensor', 'zeros', 'ones', 'arange',
+              'eye', 'vstack', 'reshape', 'shape', ]
 SUPPORTED_BACKEND = {
     'numba', 'numba-parallel', 'numba-cuda', 'jax',  # JIT framework
     'numpy', 'pytorch', 'tensorflow',
@@ -22,7 +22,7 @@ SUPPORTED_BACKEND = {
 SYSTEM_KEYWORDS = ['_dt', '_t', '_i']
 
 
-def set(backend, module_or_operations=None, node_runner=None, net_runner=None, dt=None):
+def set(backend=None, module_or_operations=None, node_runner=None, net_runner=None, dt=None):
     """Basic backend setting function.
 
     Using this function, users can set the backend they prefer. For backend
@@ -47,7 +47,7 @@ def set(backend, module_or_operations=None, node_runner=None, net_runner=None, d
     if dt is not None:
         set_dt(dt)
 
-    if _backend == backend:
+    if (backend is None) or (_backend == backend):
         return
 
     global_vars = globals()

@@ -21,6 +21,7 @@ __all__ = [
 as_tensor = np.asarray
 normal = np.random.normal
 reshape = np.reshape
+shape = np.shape
 exp = np.exp
 sum = np.sum
 zeros = np.zeros
@@ -30,10 +31,3 @@ matmul = np.matmul
 vstack = np.vstack
 arange = np.arange
 
-
-def shape(x):
-    size = np.shape(x)
-    if len(size) == 0:
-        return (1,)
-    else:
-        return size

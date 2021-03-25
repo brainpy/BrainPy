@@ -230,7 +230,7 @@ class GeneralNetRunner(runner.NetRunner):
         code_lines = ['def run_func(_t, _i, _dt):']
         for obj in self.all_nodes.values():
             f, codes = obj.build(inputs=formatted_inputs.get(obj.name, []),
-                                 input_is_formatted=True,
+                                 inputs_is_formatted=True,
                                  mon_length=run_length,
                                  return_code=True,
                                  show_code=show_code)

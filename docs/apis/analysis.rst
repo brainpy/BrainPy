@@ -39,10 +39,10 @@ brainpy.analysis
 .. autoclass:: PhasePlane
     :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
 
-.. autoclass:: PhasePlane1D
+.. autoclass:: _PhasePlane1D
     :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
 
-.. autoclass:: PhasePlane2D
+.. autoclass:: _PhasePlane2D
     :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
 
 

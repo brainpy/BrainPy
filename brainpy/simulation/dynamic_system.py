@@ -95,13 +95,15 @@ class DynamicSystem(object):
         else:
             raise errors.ModelDefError(f'Unknown setting of "target_backend": {self.target_backend}')
 
-    def build(self, inputs, input_is_formatted=False, return_code=True, mon_length=0, show_code=False):
+    def build(self, inputs, inputs_is_formatted=False, return_code=True, mon_length=0, show_code=False):
         """Build the object for running.
 
         Parameters
         ----------
         inputs : list, tuple, optional
             The object inputs.
+        inputs_is_formatted : bool
+            Whether the "inputs" is formatted.
         return_code : bool
             Whether return the formatted codes.
         mon_length : int
@@ -117,7 +119,7 @@ class DynamicSystem(object):
             raise errors.ModelDefError(f'The model {self.name} is target to run on {self._target_backend},'
                                        f'but currently the default backend of BrainPy is '
                                        f'{backend.get_backend()}')
-        if not input_is_formatted:
+        if not inputs_is_formatted:
             inputs = utils.format_pop_level_inputs(inputs, self, mon_length)
         return self.runner.build(formatted_inputs=inputs,
                                  mon_length=mon_length,
@@ -147,7 +149,7 @@ class DynamicSystem(object):
 
         # build run function
         # ------------------
-        self.run_func = self.build(inputs, input_is_formatted=False, mon_length=run_length, return_code=False)
+        self.run_func = self.build(inputs, inputs_is_formatted=False, mon_length=run_length, return_code=False)
 
         # run the model
         # -------------

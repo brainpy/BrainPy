@@ -14,7 +14,7 @@
 ``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation. Three core functions are provided in `BrainPy`:
 
 - *General numerical solvers* for ODEs and SDEs (future will support DDEs and FDEs).
-- *Neurodynamics simulation tools* for brain objects, such like neurons, synapses and networks (future wille support soma and dendrites).
+- *Neurodynamics simulation tools* for brain objects, such like neurons, synapses and networks (future will support soma and dendrites).
 - *Neurodynamics analysis tools* for differential equations, including phase plane analysis and bifurcation analysis (future will support continuation analysis and sensitive analysis).
 
 Moreover, `BrainPy` can effectively satisfy your basic requirements: 1. *Easy to learn and use*, because it is only based on Python language and has little dependency requirements; 2. *Highly flexible and transparent*, because it endows the users with the fully data/logic flow control; 3. *Simulation can be guided with the analysis*, because the same code in BrainPy can not only be used for simulation, but also for dynamics analysis; 4. *Efficient running speed*, because BrainPy is compatitable with the latest JIT compilers (or any other computing backend you prefer).

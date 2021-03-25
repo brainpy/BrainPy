@@ -106,7 +106,7 @@ class AMPA1_vec(bp.TwoEndConn):
 
 
 class AMPA1_mat(bp.TwoEndConn):
-    target_backend = ['numpy', 'numba', 'numba-parallel']
+    target_backend = ['numpy', 'numba']
 
     def __init__(self, pre, post, conn, delay=0., g_max=0.10, E=0., tau=2.0, **kwargs):
         # parameters
@@ -120,7 +120,7 @@ class AMPA1_mat(bp.TwoEndConn):
         self.conn_mat = conn.requires('conn_mat')
         self.size = bp.backend.shape(self.conn_mat)
 
-        # data
+        # variables
         self.s = bp.backend.zeros(self.size)
         self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
 
@@ -137,7 +137,7 @@ class AMPA1_mat(bp.TwoEndConn):
             if self.pre.spike[i] > 0:
                 self.s[i] += self.conn_mat[i]
         self.g.push(self.g_max * self.s)
-        g=self.g.pull()
+        g = self.g.pull()
         self.post.input -= bp.backend.sum(g, axis=0) * (self.post.V - self.E)
 
 
