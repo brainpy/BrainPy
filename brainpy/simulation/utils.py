@@ -7,11 +7,24 @@ from brainpy import errors
 from brainpy.simulation import constants
 
 __all__ = [
+    'size2len',
     'check_duration',
     'run_model',
     'format_pop_level_inputs',
     'format_net_level_inputs',
 ]
+
+
+def size2len(size):
+    if isinstance(size, int):
+        return size
+    elif isinstance(size, (tuple, list)):
+        a = 1
+        for b in size:
+            a *= b
+        return a
+    else:
+        raise ValueError
 
 
 def check_duration(duration):

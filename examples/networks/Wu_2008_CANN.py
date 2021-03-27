@@ -2,11 +2,7 @@
 
 
 import numpy as np
-
 import brainpy as bp
-
-bp.backend.set(dt=0.05)
-bp.integrators.set_default_odeint('rk4')
 
 
 class CANN1D(bp.NeuGroup):
@@ -56,7 +52,7 @@ class CANN1D(bp.NeuGroup):
         return self.A * np.exp(-0.25 * np.square(self.dist(self.x - pos) / self.a))
 
     @staticmethod
-    @bp.odeint
+    @bp.odeint(method='rk4', dt=0.05)
     def int_u(u, t, conn, k, tau, Iext):
         r1 = np.square(u)
         r2 = 1.0 + k * np.sum(r1)
@@ -66,8 +62,7 @@ class CANN1D(bp.NeuGroup):
         return du
 
     def update(self, _t):
-        self.u = self.int_u(self.u, _t, self.conn_mat,
-                            self.k, self.tau, self.input)
+        self.u = self.int_u(self.u, _t, self.conn_mat, self.k, self.tau, self.input)
         self.input[:] = 0.
 
 

@@ -8,14 +8,12 @@ from . import analysis
 # "backend" module
 from . import backend
 
-# "connectivity" module
-from . import connectivity
-from . import connectivity as connect
-
 # "simulation" module
 from . import simulation
+from .simulation import connectivity as connect
 from .simulation.dynamic_system import *
 from .simulation.brain_objects import *
+from .simulation.utils import size2len
 
 # "integrators" module
 from . import integrators

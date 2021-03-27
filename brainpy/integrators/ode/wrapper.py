@@ -86,7 +86,7 @@ def _compile_and_assign_attrs(code_lines, code_scope, show_code,
         print()
         pprint(code_scope)
         print()
-    utils.numba_func(code_scope, ['f'])
+    utils.numba_func(code_scope, 'f')
     exec(compile(code, '', 'exec'), code_scope)
 
     # attribute assignment

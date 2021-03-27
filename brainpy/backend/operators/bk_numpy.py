@@ -13,8 +13,12 @@ __all__ = [
     'ones',
     'eye',
     'matmul',
-    'vstack',
     'arange',
+
+    'vstack',
+    'where',
+    'unsqueeze',
+    'squeeze',
 ]
 
 
@@ -28,6 +32,9 @@ zeros = np.zeros
 ones = np.ones
 eye = np.eye
 matmul = np.matmul
-vstack = np.vstack
 arange = np.arange
 
+vstack = np.vstack
+where = np.where
+unsqueeze = np.expand_dims
+squeeze = np.squeeze

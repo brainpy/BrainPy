@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from types import ModuleType
-
+from copy import deepcopy
 from brainpy import errors
 from .operators.bk_numpy import *
 from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
+
 
 _backend = 'numpy'  # default backend is NumPy
 _node_runner = None
@@ -12,13 +13,16 @@ _net_runner = None
 _dt = 0.1
 
 CLASS_KEYWORDS = ['self', 'cls']
-NEEDED_OPS = ['normal', 'exp', 'matmul', 'sum',
-              'as_tensor', 'zeros', 'ones', 'arange',
-              'eye', 'vstack', 'reshape', 'shape', ]
+
+OPS_FOR_SOLVER = ['normal', 'exp', 'matmul', ]
+OPS_FOR_SIMULATION = ['sum', 'as_tensor', 'zeros', 'ones', 'arange',
+                      'eye', 'vstack', 'reshape', 'shape', 'where', ]
+
 SUPPORTED_BACKEND = {
     'numba', 'numba-parallel', 'numba-cuda', 'jax',  # JIT framework
     'numpy', 'pytorch', 'tensorflow',
 }
+
 SYSTEM_KEYWORDS = ['_dt', '_t', '_i']
 
 
@@ -166,19 +170,35 @@ def get_dt():
 
 
 def set_ops_from_module(module):
+    """Set operations from a module.
+
+    Parameters
+    ----------
+    module :
+    """
     global_vars = globals()
-    for ops in NEEDED_OPS:
+    for ops in OPS_FOR_SOLVER:
         if not hasattr(module, ops):
             raise ValueError(f'Operation "{ops}" is needed, but is not '
                              f'defined in module "{module}".')
         global_vars[ops] = getattr(module, ops)
+    for ops in OPS_FOR_SIMULATION:
+        if hasattr(module, ops):
+            global_vars[ops] = getattr(module, ops)
+        else:
+            del global_vars[ops]
 
 
 def set_ops(**kwargs):
+    """Set operations.
+
+    Parameters
+    ----------
+    kwargs :
+        The key=operation setting.
+    """
     global_vars = globals()
     for key, value in kwargs.items():
-        if key not in NEEDED_OPS:
-            print(f'"{key}" is not a necessary operation.')
         global_vars[key] = value
 
 

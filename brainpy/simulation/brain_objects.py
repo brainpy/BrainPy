@@ -24,8 +24,6 @@ class NeuGroup(DynamicSystem):
 
     Parameters
     ----------
-    steps : NeuType
-        The instantiated neuron type model.
     size : int, tuple
         The neuron group geometry.
     monitors : list, tuple
@@ -58,6 +56,7 @@ class NeuGroup(DynamicSystem):
         else:
             raise errors.ModelDefError('size must be int, or a tuple/list of int.')
         self.size = size
+        self.num = utils.size2len(size)
 
         # initialize
         # ----------

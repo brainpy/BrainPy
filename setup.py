@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+
+import io
 import os
 import re
 
@@ -28,10 +30,11 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         'numpy>=1.15',
-        'matplotlib>=3.0',
+        'matplotlib>=3.2',
     ],
     url='https://github.com/PKU-NIP-Lab/BrainPy',
     keywords='computational neuroscience, '
+             'brain-inspired computation, '
              'dynamical systems, '
              'differential equations, '
              'numerical integration, '
