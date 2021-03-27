@@ -2,11 +2,11 @@
 
 __version__ = "1.0.0-alpha"
 
-# "analysis" module
-from . import analysis
-
 # "backend" module
 from . import backend
+
+# "analysis" module
+from . import analysis
 
 # "simulation" module
 from . import simulation

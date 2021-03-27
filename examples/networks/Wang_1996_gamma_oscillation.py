@@ -39,9 +39,8 @@ class GABAa(bp.TwoEndConn):
         return alpha * TT * (1 - s) - beta * s
 
     def update(self, _t):
-        for i in range(self.pre.size[0]):
-            if self.pre.spike[i] > 0:
-                self.t_last_pre_spike[i] = _t
+        spike = bp.backend.unsqueeze(self.pre.spike, 1) * self.conn_mat
+        self.t_last_pre_spike = bp.backend.where(spike, _t, self.t_last_pre_spike)
         TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
         self.s = self.int_s(self.s, _t, TT, self.alpha, self.beta)
         self.g.push(self.g_max * self.s)
@@ -115,7 +114,7 @@ syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
 syn.g_max = 0.1 / num
 
 net = bp.Network(neu, syn)
-net.run(duration=500., inputs=[neu, 'input', 1.], report=False)
+net.run(duration=500., inputs=[neu, 'input', 1.], report=True)
 
 fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
 xlim = (net.t_start - 0.1, net.t_end + 0.1)

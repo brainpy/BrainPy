@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from types import ModuleType
-from copy import deepcopy
+
 from brainpy import errors
 from .operators.bk_numpy import *
 from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
-
 
 _backend = 'numpy'  # default backend is NumPy
 _node_runner = None
@@ -14,9 +13,9 @@ _dt = 0.1
 
 CLASS_KEYWORDS = ['self', 'cls']
 
-OPS_FOR_SOLVER = ['normal', 'exp', 'matmul', ]
-OPS_FOR_SIMULATION = ['sum', 'as_tensor', 'zeros', 'ones', 'arange',
-                      'eye', 'vstack', 'reshape', 'shape', 'where', ]
+OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'matmul', 'shape', ]
+OPS_FOR_SIMULATION = ['as_tensor', 'zeros', 'ones', 'arange',
+                      'eye', 'vstack', 'reshape', 'where', ]
 
 SUPPORTED_BACKEND = {
     'numba', 'numba-parallel', 'numba-cuda', 'jax',  # JIT framework
@@ -93,6 +92,7 @@ def set(backend=None, module_or_operations=None, node_runner=None, net_runner=No
         set_numba_profile(parallel=True)
 
     elif backend == 'numba-cuda':
+        raise NotImplementedError
         from .operators import bk_numba_cuda
         from .runners.numba_cuda_runner import NumbaCudaNodeRunner
 
@@ -100,6 +100,7 @@ def set(backend=None, module_or_operations=None, node_runner=None, net_runner=No
         module_or_operations = bk_numba_cuda if module_or_operations is None else module_or_operations
 
     elif backend == 'jax':
+        raise NotImplementedError
         from .operators import bk_jax
         from .runners.jax_runner import JaxRunner
 

@@ -4,13 +4,17 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
-import sympy
 
 from brainpy import errors
 from brainpy import tools
 from brainpy.analysis import solver
 from brainpy.analysis import utils
 from brainpy.integrators import sympy_analysis
+
+try:
+    import sympy
+except ModuleNotFoundError:
+    sympy = None
 
 __all__ = [
     'BaseNeuronAnalyzer',
@@ -78,6 +82,9 @@ class BaseNeuronAnalyzer(object):
                  pars_update=None,
                  numerical_resolution=0.1,
                  options=None):
+
+        if sympy is None:
+            raise errors.PackageMissingError('"SymPy" must be installed for dynamics analysis.')
 
         # model
         # -----
