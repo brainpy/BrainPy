@@ -3,7 +3,7 @@
 
 import brainpy as bp
 
-bp.backend.set('pytorch', dt=0.02)
+bp.backend.set('numpy', dt=0.02)
 
 
 class HH(bp.NeuGroup):
@@ -33,7 +33,7 @@ class HH(bp.NeuGroup):
         super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
-    @bp.odeint(method='rk4', show_code=True)
+    @bp.odeint(method='exponential_euler', show_code=True)
     def integral(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
         alpha = 0.1 * (V + 40) / (1 - bp.backend.exp(-(V + 40) / 10))
         beta = 4.0 * bp.backend.exp(-(V + 65) / 18)

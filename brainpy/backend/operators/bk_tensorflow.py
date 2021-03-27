@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
-
 """
 The TensorFlow with the version of xx is needed.
 """
 
-import tensorflow as tf
+
+from brainpy import errors
+
+try:
+    import tensorflow as tf
+except ModuleNotFoundError:
+    raise errors.PackageMissingError(errors.PackageMissingError(errors.backend_missing_msg.format(bk='tensorflow')))
+
 
 reshape = tf.reshape
 exp = tf.math.exp
@@ -22,10 +28,19 @@ def vstack(values):
 
 def shape(x):
     if isinstance(x, (int, float)):
-        return (1,)
+        return ()
     else:
         return x.shape()
 
 
 def normal(loc, scale, size):
     return tf.random.normal(size, loc, scale)
+
+
+def where(tensor, x, y):
+    return tf.where(tensor, x, y)
+
+
+unsqueeze = tf.expand_dims
+squeeze = tf.squeeze
+

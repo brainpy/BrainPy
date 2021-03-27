@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import numba
+from brainpy import errors
+
+try:
+    import numba
+except ModuleNotFoundError:
+    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='numba'))
 import numpy
 from numba.extending import overload
 

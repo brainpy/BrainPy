@@ -14,7 +14,7 @@ neurodyanmics modeling:
 
 
 Comprehensive examples of BrainPy please see
-`BrainPy-Models <https://brainpy-models.readthedocs.io/en/latest/>`_.
+`BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
 
 
 .. note::
@@ -26,19 +26,28 @@ Comprehensive examples of BrainPy please see
 
 .. toctree::
    :maxdepth: 1
+   :caption: Quickstart
+
+   quickstart/installation
+   quickstart/numerical_solvers
+   quickstart/neurodynamics_simulation
+   quickstart/neurodynamics_analysis
+
+.. toctree::
+   :maxdepth: 2
    :caption: Tutorials
 
-   tutorials/installation
-   tutorials/numerical_solvers
-   tutorials/neurodynamics_simulation
-   tutorials/neurodynamics_analysis
-
+..   tutorials/tutorial_for_computational_neuroscience
+..   tutorials/tutorial_for_brain_inspired_computation
 
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Tutorials
 
+   tutorials_advanced/ode_numerical_solvers
+   tutorials_advanced/sde_numerical_solvers
    tutorials_advanced/usage_of_inputs_module
+   tutorials_advanced/how_it_works
 
 
 .. toctree::
