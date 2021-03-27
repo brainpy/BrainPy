@@ -4,8 +4,12 @@
 The PyTorch with the version of xx is needed.
 """
 
+from brainpy import errors
 
-import torch
+try:
+    import torch
+except ModuleNotFoundError:
+    raise errors.PackageMissingError(errors.PackageMissingError(errors.backend_missing_msg.format(bk='pytorch')))
 
 as_tensor = torch.tensor
 normal = torch.normal

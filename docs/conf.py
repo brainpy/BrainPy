@@ -20,7 +20,7 @@ import brainpy
 # -- Project information -----------------------------------------------------
 
 project = 'BrainPy'
-copyright = '2020, Chaoming Wang'
+copyright = '2021, Chaoming Wang'
 author = 'Chaoming Wang'
 
 # The full version, including alpha/beta/rc tags

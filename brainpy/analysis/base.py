@@ -9,12 +9,14 @@ from brainpy import errors
 from brainpy import tools
 from brainpy.analysis import solver
 from brainpy.analysis import utils
-from brainpy.integrators import sympy_analysis
 
 try:
     import sympy
+    from brainpy.integrators import sympy_analysis
 except ModuleNotFoundError:
     sympy = None
+    sympy_analysis = None
+
 
 __all__ = [
     'BaseNeuronAnalyzer',
@@ -83,7 +85,7 @@ class BaseNeuronAnalyzer(object):
                  numerical_resolution=0.1,
                  options=None):
 
-        if sympy is None:
+        if (sympy is None) or (sympy_analysis is None):
             raise errors.PackageMissingError('"SymPy" must be installed for dynamics analysis.')
 
         # model

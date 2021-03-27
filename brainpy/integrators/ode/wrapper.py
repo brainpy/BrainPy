@@ -4,6 +4,7 @@ import inspect
 from pprint import pprint
 
 from brainpy import backend
+from brainpy import errors
 from brainpy.integrators import constants
 from brainpy.integrators import utils
 from brainpy.integrators.ast_analysis import separate_variables
@@ -332,8 +333,11 @@ def rk2_wrapper(f, show_code, dt, beta, var_type, im_return):
 
 
 def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
-    import sympy
-    from brainpy.integrators import sympy_analysis
+    try:
+        import sympy
+        from brainpy.integrators import sympy_analysis
+    except ModuleNotFoundError:
+        raise errors.PackageMissingError('SymPy must be installed when using exponential euler methods.')
 
     dt_var = 'dt'
     class_kw, variables, parameters, arguments = utils.get_args(f)

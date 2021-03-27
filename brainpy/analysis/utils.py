@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
-
 import _thread as thread
 import inspect
+import math
 import threading
 
 import numpy as np
 
+from brainpy import backend
 from brainpy import errors
 from brainpy import tools
 from brainpy.integrators import ast_analysis
-from brainpy.integrators import sympy_analysis
 
 try:
     import numba
@@ -18,6 +18,7 @@ try:
 except ModuleNotFoundError:
     numba = None
     Dispatcher = None
+
 
 __all__ = [
     'transform_integrals_to_model',
@@ -29,8 +30,32 @@ __all__ = [
     'contain_unknown_symbol',
 ]
 
+# Get functions in math
+_functions_in_math = []
+for key in dir(math):
+    if not key.startswith('__'):
+        _functions_in_math.append(getattr(math, key))
+
+# Get functions in NumPy
+_functions_in_numpy = []
+for key in dir(np):
+    if not key.startswith('__'):
+        _functions_in_numpy.append(getattr(np, key))
+for key in dir(np.random):
+    if not key.startswith('__'):
+        _functions_in_numpy.append(getattr(np.random, key))
+for key in dir(np.linalg):
+    if not key.startswith('__'):
+        _functions_in_numpy.append(getattr(np.linalg, key))
+
+
+def func_in_numpy_or_math(func):
+    return func in _functions_in_math or func in _functions_in_numpy
+
 
 def transform_integrals_to_model(integrals):
+    from brainpy.integrators import sympy_analysis
+
     if callable(integrals):
         integrals = [integrals]
 
@@ -140,7 +165,7 @@ def timeout(s):
 
 
 def _jit(func):
-    if sympy_analysis.func_in_numpy_or_math(func):
+    if func_in_numpy_or_math(func):
         return func
     if isinstance(func, Dispatcher):
         return func
@@ -153,7 +178,7 @@ def _jit(func):
     for k, v in code_scope.items():
         # function
         if callable(v):
-            if (not sympy_analysis.func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
+            if (not func_in_numpy_or_math(v)) and (not isinstance(v, Dispatcher)):
                 code_scope[k] = _jit(v)
                 modified = True
 
@@ -166,24 +191,34 @@ def _jit(func):
         return numba.njit(func)
 
 
+def _is_numpy_bk():
+    bk_name = backend.get_backend()
+    return bk_name.startswith('numba') or bk_name == 'numpy'
+
+
 def jit_compile(scope, func_code, func_name):
-    if numba is None:
-        return
+    if (numba is None) or (not _is_numpy_bk()):
+        func_scope = scope
+    else:
+        assert Dispatcher is not None
         # get function scope
-    func_scope = dict()
-    for key, val in scope.items():
-        if callable(val):
-            if sympy_analysis.func_in_numpy_or_math(val):
-                pass
-            elif isinstance(val, Dispatcher):
-                pass
-            else:
-                val = _jit(val)
-        func_scope[key] = val
+        func_scope = dict()
+        for key, val in scope.items():
+            if callable(val):
+                if func_in_numpy_or_math(val):
+                    pass
+                elif isinstance(val, Dispatcher):
+                    pass
+                else:
+                    val = _jit(val)
+            func_scope[key] = val
 
     # compile function
     exec(compile(func_code, '', 'exec'), func_scope)
-    return numba.njit(func_scope[func_name])
+    if numba is None:
+        return func_scope[func_name]
+    else:
+        return numba.njit(func_scope[func_name])
 
 
 def contain_unknown_symbol(expr, scope):

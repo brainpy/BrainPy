@@ -28,13 +28,13 @@ Moreover, `BrainPy` can effectively satisfy your basic requirements: 1. *Easy to
 
 ## Installation
 
-Install ``BrainPy`` using ``pip``:
+Install ``BrainPy`` by using ``pip``:
 
 ```bash
 > pip install --pre brainpy-simulator
 ```
 
-Install ``BrainPy`` using ``conda``:
+Install ``BrainPy`` by using ``conda``:
 
 ```bash
 > conda install brainpy-simulator -c brainpy
@@ -131,9 +131,9 @@ Install ``BrainPy`` from source:
 </table>
 
 
-More neuron examples please see [BrainPy-Models/neurons](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/neurons);
+More neuron examples please see [BrainPy-Models/neurons](https://github.com/PKU-NIP-Lab/BrainModels/tree/main/brainmodels/tensor_backend/neurons);
 
-More synapse examples please see [BrainPy-Models/synapses](https://github.com/PKU-NIP-Lab/BrainPy-Models/tree/main/bpmodels/synapses);
+More synapse examples please see [BrainPy-Models/synapses](https://github.com/PKU-NIP-Lab/BrainModels/tree/main/brainmodels/tensor_backend/synapses);
 
 More network examples please see [BrainPy-Models/from_papers](https://brainmodels.readthedocs.io/en/latest/examples/from_papers.html).
 
@@ -141,8 +141,6 @@ More network examples please see [BrainPy-Models/from_papers](https://brainmodel
 
 
 ## Neurodynamics analysis
-
-
 
 <table border="0">
     <tr>

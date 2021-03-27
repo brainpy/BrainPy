@@ -4,7 +4,13 @@
 The TensorFlow with the version of xx is needed.
 """
 
-import tensorflow as tf
+
+from brainpy import errors
+
+try:
+    import tensorflow as tf
+except ModuleNotFoundError:
+    raise errors.PackageMissingError(errors.PackageMissingError(errors.backend_missing_msg.format(bk='tensorflow')))
 
 
 reshape = tf.reshape

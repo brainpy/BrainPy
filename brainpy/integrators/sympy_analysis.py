@@ -107,28 +107,6 @@ CONSTANT_MAPPING = {
     'inf': sympy.S.Infinity,
 }
 
-# Get functions in math
-_functions_in_math = []
-for key in dir(math):
-    if not key.startswith('__'):
-        _functions_in_math.append(getattr(math, key))
-
-# Get functions in NumPy
-_functions_in_numpy = []
-for key in dir(np):
-    if not key.startswith('__'):
-        _functions_in_numpy.append(getattr(np, key))
-for key in dir(np.random):
-    if not key.startswith('__'):
-        _functions_in_numpy.append(getattr(np.random, key))
-for key in dir(np.linalg):
-    if not key.startswith('__'):
-        _functions_in_numpy.append(getattr(np.linalg, key))
-
-
-def func_in_numpy_or_math(func):
-    return func in _functions_in_math or func in _functions_in_numpy
-
 
 def get_mapping_scope():
     return {
