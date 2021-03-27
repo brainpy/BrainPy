@@ -3,6 +3,7 @@
 import inspect
 
 from brainpy import backend
+from brainpy import errors
 from brainpy.integrators import constants
 from brainpy.integrators.ast_analysis import separate_variables
 from . import common
@@ -111,8 +112,11 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code):
 
 
 def _exp_euler_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code):
-    import sympy
-    from brainpy.integrators import sympy_analysis
+    try:
+        import sympy
+        from brainpy.integrators import sympy_analysis
+    except ModuleNotFoundError:
+        raise errors.PackageMissingError('SymPy must be installed when using exponential euler methods.')
 
     assert sde_type == constants.ITO_SDE, 'Exponential Euler method only supports Ito integral.'
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)

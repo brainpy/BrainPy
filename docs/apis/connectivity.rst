@@ -1,8 +1,8 @@
 brainpy.connect
 ===============
 
-.. currentmodule:: brainpy.connectivity
-.. automodule:: brainpy.connectivity
+.. currentmodule:: brainpy.connect
+.. automodule:: brainpy.connect
 
 
 ``formatter`` functions

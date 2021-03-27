@@ -28,7 +28,7 @@ def _cc(states, i, j):
     return k
 
 
-if njit is None:
+if njit is not None:
     _cc = njit(_cc)
 
 

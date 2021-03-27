@@ -5,6 +5,7 @@ import time
 import numpy as np
 import brainpy as bp
 
+np.random.seed(1234)
 dt = 0.05
 bp.backend.set('numba', dt=dt)
 
@@ -40,14 +41,14 @@ class LIF(bp.NeuGroup):
         super(LIF, self).__init__(size=size, **kwargs)
 
     @staticmethod
-    @bp.odeint(method='euler')
+    @bp.odeint
     def int_g(ge, gi, t):
         dge = - ge / taue
         dgi = - gi / taui
         return dge, dgi
 
     @staticmethod
-    @bp.odeint(method='euler')
+    @bp.odeint
     def int_V(V, t, ge, gi):
         dV = (ge * (Erev_exc - V) + gi * (Erev_inh - V) + El - V + I) / taum
         return dV
