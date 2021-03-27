@@ -130,28 +130,61 @@ def separate_variables(func_or_code):
     For example, take the HH neuron model as an example:
 
     >>> eq_code = '''
-    >>> def integral(m, h, t, Iext, V):
-    >>>    alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
-    >>>    beta = 4.0 * np.exp(-(V + 65) / 18)
-    >>>    dmdt = alpha * (1 - m) - beta * m
+    >>> def derivative(V, m, h, n, t, C, gNa, ENa, gK, EK, gL, EL, Iext):
+    >>>     alpha = 0.1 * (V + 40) / (1 - bp.backend.exp(-(V + 40) / 10))
+    >>>     beta = 4.0 * bp.backend.exp(-(V + 65) / 18)
+    >>>     dmdt = alpha * (1 - m) - beta * m
     >>>
-    >>>    alpha = 0.07 * np.exp(-(V + 65) / 20.)
-    >>>    beta = 1 / (1 + np.exp(-(V + 35) / 10))
-    >>>    dhdt = alpha * (1 - h) - beta * h
-    >>>    return dmdt, dhdt
+    >>>     alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.)
+    >>>     beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))
+    >>>     dhdt = alpha * (1 - h) - beta * h
+    >>>
+    >>>     alpha = 0.01 * (V + 55) / (1 - bp.backend.exp(-(V + 55) / 10))
+    >>>     beta = 0.125 * bp.backend.exp(-(V + 65) / 80)
+    >>>     dndt = alpha * (1 - n) - beta * n
+    >>>
+    >>>     I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
+    >>>     I_K = (gK * n ** 4.0) * (V - EK)
+    >>>     I_leak = gL * (V - EL)
+    >>>     dVdt = (- I_Na - I_K - I_leak + Iext) / C
+    >>>
+    >>>     return dVdt, dmdt, dhdt, dndt
     >>> '''
-    >>> analyser = DiffEqReader()
-    >>> analyser.visit(ast.parse(eq_code))
-    >>> separate_variables(returns=analyser.returns,
-    >>>                    variables=analyser.variables,
-    >>>                    right_exprs=analyser.rights,
-    >>>                    code_lines=analyser.code_lines)
-    {'dhdt': ['alpha = 0.07 * np.exp(-(V + 65) / 20.0)\n',
-              'beta = 1 / (1 + np.exp(-(V + 35) / 10))\n',
-              'dhdt = alpha * (1 - h) - beta * h\n'],
-     'dmdt': ['alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))\n',
-              'beta = 4.0 * np.exp(-(V + 65) / 18)\n',
-              'dmdt = alpha * (1 - m) - beta * m\n']}
+    >>> separate_variables(eq_code)
+    {'code_lines_for_returns': {'dVdt': ['I_Na = gNa * m ** 3.0 * h * (V - ENa)\n',
+                                         'I_K = gK * n ** 4.0 * (V - EK)\n',
+                                         'I_leak = gL * (V - EL)\n',
+                                         'dVdt = (-I_Na - I_K - I_leak + Iext) / C\n'],
+                                'dhdt': ['alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.0)\n',
+                                         'beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))\n',
+                                         'dhdt = alpha * (1 - h) - beta * h\n'],
+                                'dmdt': ['alpha = 0.1 * (V + 40) / (1 - '
+                                         'bp.backend.exp(-(V + 40) / 10))\n',
+                                         'beta = 4.0 * bp.backend.exp(-(V + 65) / 18)\n',
+                                         'dmdt = alpha * (1 - m) - beta * m\n'],
+                                'dndt': ['alpha = 0.01 * (V + 55) / (1 - '
+                                         'bp.backend.exp(-(V + 55) / 10))\n',
+                                         'beta = 0.125 * bp.backend.exp(-(V + 65) / 80)\n',
+                                         'dndt = alpha * (1 - n) - beta * n\n']},
+     'expressions_for_returns': {'dVdt': ['gNa * m ** 3.0 * h * (V - ENa)',
+                                          'gK * n ** 4.0 * (V - EK)',
+                                          'gL * (V - EL)',
+                                          '(-I_Na - I_K - I_leak + Iext) / C'],
+                                 'dhdt': ['0.07 * bp.backend.exp(-(V + 65) / 20.0)',
+                                          '1 / (1 + bp.backend.exp(-(V + 35) / 10))',
+                                          'alpha * (1 - h) - beta * h'],
+                                 'dmdt': ['0.1 * (V + 40) / (1 - '
+                                          'bp.backend.exp(-(V + 40) / 10))',
+                                          '4.0 * bp.backend.exp(-(V + 65) / 18)',
+                                          'alpha * (1 - m) - beta * m'],
+                                 'dndt': ['0.01 * (V + 55) / (1 - '
+                                          'bp.backend.exp(-(V + 55) / 10))',
+                                          '0.125 * bp.backend.exp(-(V + 65) / 80)',
+                                          'alpha * (1 - n) - beta * n']},
+     'variables_for_returns': {'dVdt': [['I_Na'], ['I_K'], ['I_leak'], ['dVdt']],
+                               'dhdt': [['alpha'], ['beta'], ['dhdt']],
+                               'dmdt': [['alpha'], ['beta'], ['dmdt']],
+                               'dndt': [['alpha'], ['beta'], ['dndt']]}}
 
     Parameters
     ----------
@@ -208,13 +241,3 @@ def separate_variables(func_or_code):
     return analysis
 
 
-# def dissect_diff_eq(func_or_code):
-#     if callable(func_or_code):
-#         func_or_code = tools.deindent(inspect.getsource(func_or_code))
-#     assert isinstance(func_or_code, str)
-#     analyser = DiffEqReader()
-#     analyser.visit(ast.parse(func_or_code))
-#     return separate_variables(returns=analyser.returns,
-#                               variables=analyser.variables,
-#                               right_exprs=analyser.rights,
-#                               code_lines=analyser.code_lines)

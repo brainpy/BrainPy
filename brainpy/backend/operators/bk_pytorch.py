@@ -22,7 +22,19 @@ arange = torch.arange
 
 def shape(x):
     if isinstance(x, (int, float)):
-        return (1,)
+        return ()
     else:
         return x.size()
+
+
+def where(tensor, x, y):
+    if isinstance(x, (int, float)):
+        x = torch.full_like(tensor, x)
+    if isinstance(y, (int, float)):
+        y = torch.full_like(tensor, y)
+    return torch.where(tensor, x, y)
+
+
+unsqueeze = torch.unsqueeze
+squeeze = torch.squeeze
 

@@ -14,7 +14,7 @@ neurodyanmics modeling:
 
 
 Comprehensive examples of BrainPy please see
-`BrainPy-Models <https://brainpy-models.readthedocs.io/en/latest/>`_.
+`BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
 
 
 .. note::

@@ -15,21 +15,23 @@ __all__ = [
 
 
 def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
-          dt=None, show_code=None, var_type=None):
+          im_return=(), dt=None, show_code=None, var_type=None):
     """
 
     Parameters
     ----------
-    A :
-    B1 :
-    B2 :
-    C :
-    f :
-    tol :
-    adaptive :
-    dt :
-    show_code :
-    var_type :
+    A : list
+    B1 : list
+    B2 : list
+    C : list
+    f : callable
+    tol : float
+    adaptive : bool
+    im_return : list
+        Intermediate value return.
+    dt : float
+    show_code : bool
+    var_type : str
 
     Returns
     -------

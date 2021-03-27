@@ -92,4 +92,4 @@ SUPPORTED_VAR_TYPE = [
     SYSTEM_VAR,
 ]
 
-NAME_PREFIX = '_brainpy_numint_of_'
+NAME_PREFIX = '_brainpy_int_{}_of_'

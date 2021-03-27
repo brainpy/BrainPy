@@ -64,7 +64,7 @@ def transform_integrals_to_model(integrals):
             variables = []
             for v in vars:
                 if len(v) > 1:
-                    raise ValueError('Cannot analyze must assignment code line.')
+                    raise ValueError('Cannot analyze multi-assignment code line.')
                 variables.append(v[0])
             expressions = expressions_for_returns[key]
             var_name = integral.variables[vi]

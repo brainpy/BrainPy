@@ -24,6 +24,25 @@ from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
+
+__all__ = [
+    'CONSTANT_NOISE',
+    'FUNCTIONAL_NOISE',
+    'FUNCTION_MAPPING',
+
+    'func_in_numpy_or_math',
+    'get_mapping_scope',
+
+    'Parser',
+    'Printer',
+    'str2sympy',
+    'sympy2str',
+
+    'Expression',
+    'SingleDiffEq',
+]
+
+
 CONSTANT_NOISE = 'CONSTANT'
 FUNCTIONAL_NOISE = 'FUNCTIONAL'
 
@@ -451,8 +470,7 @@ class SingleDiffEq(object):
         The code scope.
     """
 
-    def __init__(self, var_name, variables, expressions, derivative_expr, scope,
-                 func_name):
+    def __init__(self, var_name, variables, expressions, derivative_expr, scope, func_name):
         self.func_name = func_name
         # function scope
         self.func_scope = scope

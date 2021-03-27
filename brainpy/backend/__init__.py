@@ -12,13 +12,16 @@ _net_runner = None
 _dt = 0.1
 
 CLASS_KEYWORDS = ['self', 'cls']
-NEEDED_OPS = ['normal', 'exp', 'matmul', 'sum',
-              'as_tensor', 'zeros', 'ones', 'arange',
-              'eye', 'vstack', 'reshape', 'shape', ]
+
+OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'matmul', 'shape', ]
+OPS_FOR_SIMULATION = ['as_tensor', 'zeros', 'ones', 'arange',
+                      'eye', 'vstack', 'reshape', 'where', ]
+
 SUPPORTED_BACKEND = {
     'numba', 'numba-parallel', 'numba-cuda', 'jax',  # JIT framework
     'numpy', 'pytorch', 'tensorflow',
 }
+
 SYSTEM_KEYWORDS = ['_dt', '_t', '_i']
 
 
@@ -89,6 +92,7 @@ def set(backend=None, module_or_operations=None, node_runner=None, net_runner=No
         set_numba_profile(parallel=True)
 
     elif backend == 'numba-cuda':
+        raise NotImplementedError
         from .operators import bk_numba_cuda
         from .runners.numba_cuda_runner import NumbaCudaNodeRunner
 
@@ -96,6 +100,7 @@ def set(backend=None, module_or_operations=None, node_runner=None, net_runner=No
         module_or_operations = bk_numba_cuda if module_or_operations is None else module_or_operations
 
     elif backend == 'jax':
+        raise NotImplementedError
         from .operators import bk_jax
         from .runners.jax_runner import JaxRunner
 
@@ -166,19 +171,35 @@ def get_dt():
 
 
 def set_ops_from_module(module):
+    """Set operations from a module.
+
+    Parameters
+    ----------
+    module :
+    """
     global_vars = globals()
-    for ops in NEEDED_OPS:
+    for ops in OPS_FOR_SOLVER:
         if not hasattr(module, ops):
             raise ValueError(f'Operation "{ops}" is needed, but is not '
                              f'defined in module "{module}".')
         global_vars[ops] = getattr(module, ops)
+    for ops in OPS_FOR_SIMULATION:
+        if hasattr(module, ops):
+            global_vars[ops] = getattr(module, ops)
+        else:
+            del global_vars[ops]
 
 
 def set_ops(**kwargs):
+    """Set operations.
+
+    Parameters
+    ----------
+    kwargs :
+        The key=operation setting.
+    """
     global_vars = globals()
     for key, value in kwargs.items():
-        if key not in NEEDED_OPS:
-            print(f'"{key}" is not a necessary operation.')
         global_vars[key] = value
 
 
