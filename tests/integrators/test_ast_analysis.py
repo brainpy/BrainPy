@@ -93,12 +93,34 @@ def integral(V, m, h, n, t, Iext):
     print("variables: ")
     pprint(analyser.variables)
 
-    r = separate_variables(returns=analyser.returns,
-                           variables=analyser.variables,
-                           right_exprs=analyser.rights,
-                           code_lines=analyser.code_lines)
+    r = separate_variables(eq_code)
     pprint(r)
 
 
+def test_separate_variables2():
+    code = '''
+    def derivative(V, m, h, n, t, C, gNa, ENa, gK, EK, gL, EL, Iext):
+        alpha = 0.1 * (V + 40) / (1 - bp.backend.exp(-(V + 40) / 10))
+        beta = 4.0 * bp.backend.exp(-(V + 65) / 18)
+        dmdt = alpha * (1 - m) - beta * m
+
+        alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.)
+        beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))
+        dhdt = alpha * (1 - h) - beta * h
+
+        alpha = 0.01 * (V + 55) / (1 - bp.backend.exp(-(V + 55) / 10))
+        beta = 0.125 * bp.backend.exp(-(V + 65) / 80)
+        dndt = alpha * (1 - n) - beta * n
+
+        I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
+        I_K = (gK * n ** 4.0) * (V - EK)
+        I_leak = gL * (V - EL)
+        dVdt = (- I_Na - I_K - I_leak + Iext) / C
+
+        return dVdt, dmdt, dhdt, dndt
+    '''
+
+    from pprint import pprint
+    pprint(separate_variables(code))
 
 # test_separate_variables1()

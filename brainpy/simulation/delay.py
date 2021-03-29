@@ -21,8 +21,8 @@ class ConstantDelay(object):
     def __init__(self, size, delay_time):
         self.delay_time = delay_time
         self.delay_num_step = int(math.ceil(delay_time / backend.get_dt())) + 1
-        self.delay_in_idx = 0
-        self.delay_out_idx = self.delay_num_step - 1
+        self.delay_in_idx = self.delay_num_step - 1
+        self.delay_out_idx = 0
 
         if isinstance(size, int):
             size = (size,)

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-
 from brainpy import backend
-from .wrapper import rk_wrapper
-from .wrapper import wrapper_of_rk2
+from brainpy.integrators import constants
+from .wrapper import general_rk_wrapper
+from .wrapper import rk2_wrapper
 
 __all__ = [
     'euler',
@@ -21,17 +21,20 @@ __all__ = [
 ]
 
 
-def _base(A, B, C, f, show_code, dt):
+def _base(A, B, C, f, show_code, dt, var_type, im_return):
     dt = backend.get_dt() if dt is None else dt
     show_code = False if show_code is None else show_code
+    var_type = constants.POPU_VAR if var_type is None else var_type
 
     if f is None:
-        return lambda f: rk_wrapper(f, show_code=show_code, dt=dt, A=A, B=B, C=C)
+        return lambda f: general_rk_wrapper(f=f, show_code=show_code, dt=dt, A=A, B=B, C=C,
+                                            var_type=var_type, im_return=im_return)
     else:
-        return rk_wrapper(f, show_code=show_code, dt=dt, A=A, B=B, C=C)
+        return general_rk_wrapper(f=f, show_code=show_code, dt=dt, A=A, B=B, C=C,
+                                  var_type=var_type, im_return=im_return)
 
 
-def euler(f=None, show_code=None, dt=None):
+def euler(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """The Euler method is first order. The lack of stability
         and accuracy limits its popularity mainly to use as a
         simple introductory example of a numeric solution method.
@@ -39,10 +42,11 @@ def euler(f=None, show_code=None, dt=None):
     A = [(), ]
     B = [1]
     C = [0]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def midpoint(f=None, show_code=None, dt=None):
+def midpoint(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """midpoint method for ordinary differential equations.
 
     The (explicit) midpoint method is a second-order method
@@ -66,10 +70,11 @@ def midpoint(f=None, show_code=None, dt=None):
     A = [(), (0.5,)]
     B = [0, 1]
     C = [0, 0.5]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def heun2(f=None, show_code=None, dt=None):
+def heun2(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Heun's method for ordinary differential equations.
 
     Heun's method is a second-order method with two stages.
@@ -94,10 +99,11 @@ def heun2(f=None, show_code=None, dt=None):
     A = [(), (1,)]
     B = [0.5, 0.5]
     C = [0, 1]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def ralston2(f=None, show_code=None, dt=None):
+def ralston2(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Ralston's method for ordinary differential equations.
 
     Ralston's method is a second-order method with two stages and
@@ -120,10 +126,11 @@ def ralston2(f=None, show_code=None, dt=None):
     A = [(), ('2/3',)]
     B = [0.25, 0.75]
     C = [0, '2/3']
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def rk2(f=None, show_code=None, dt=None, beta=None):
+def rk2(f=None, show_code=None, dt=None, beta=None, var_type=None, im_return=()):
     """Runge–Kutta methods for ordinary differential equations.
 
     Generic second-order method.
@@ -145,14 +152,17 @@ def rk2(f=None, show_code=None, dt=None, beta=None):
     beta = 2 / 3 if beta is None else beta
     dt = backend.get_dt() if dt is None else dt
     show_code = False if show_code is None else show_code
+    var_type = constants.POPU_VAR if var_type is None else var_type
 
     if f is None:
-        return lambda f: wrapper_of_rk2(f, show_code=show_code, dt=dt, beta=beta)
+        return lambda f: rk2_wrapper(f, show_code=show_code, dt=dt, beta=beta,
+                                     var_type=var_type, im_return=im_return)
     else:
-        return wrapper_of_rk2(f, show_code=show_code, dt=dt, beta=beta)
+        return rk2_wrapper(f, show_code=show_code, dt=dt, beta=beta,
+                           var_type=var_type, im_return=im_return)
 
 
-def rk3(f=None, show_code=None, dt=None):
+def rk3(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Classical third-order Runge-Kutta method for ordinary differential equations.
 
     It has the characteristics of:
@@ -174,10 +184,11 @@ def rk3(f=None, show_code=None, dt=None):
     A = [(), (0.5,), (-1, 2)]
     B = ['1/6', '2/3', '1/6']
     C = [0, 0.5, 1]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def heun3(f=None, show_code=None, dt=None):
+def heun3(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Heun's third-order method for ordinary differential equations.
 
     It has the characteristics of:
@@ -199,10 +210,11 @@ def heun3(f=None, show_code=None, dt=None):
     A = [(), ('1/3',), (0, '2/3')]
     B = [0.25, 0, 0.75]
     C = [0, '1/3', '2/3']
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def ralston3(f=None, show_code=None, dt=None):
+def ralston3(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Ralston's third-order method for ordinary differential equations.
 
     It has the characteristics of:
@@ -230,10 +242,11 @@ def ralston3(f=None, show_code=None, dt=None):
     A = [(), (0.5,), (0, 0.75)]
     B = ['2/9', '1/3', '4/9']
     C = [0, 0.5, 0.75]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def ssprk3(f=None, show_code=None, dt=None):
+def ssprk3(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Third-order Strong Stability Preserving Runge-Kutta (SSPRK3).
 
     It has the characteristics of:
@@ -255,10 +268,11 @@ def ssprk3(f=None, show_code=None, dt=None):
     A = [(), (1,), (0.25, 0.25)]
     B = ['1/6', '1/6', '2/3']
     C = [0, 1, 0.5]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def rk4(f=None, show_code=None, dt=None):
+def rk4(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Classical fourth-order Runge-Kutta method for ordinary differential equations.
 
     It has the characteristics of:
@@ -282,10 +296,11 @@ def rk4(f=None, show_code=None, dt=None):
     A = [(), (0.5,), (0., 0.5), (0., 0., 1)]
     B = ['1/6', '1/3', '1/3', '1/6']
     C = [0, 0.5, 0.5, 1]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def ralston4(f=None, show_code=None, dt=None):
+def ralston4(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """Ralston's fourth-order method for ordinary differential equations.
 
     It has the characteristics of:
@@ -314,10 +329,11 @@ def ralston4(f=None, show_code=None, dt=None):
     A = [(), (.4,), (.29697761, .15875964), (.21810040, -3.05096516, 3.83286476)]
     B = [.17476028, -.55148066, 1.20553560, .17118478]
     C = [0, .4, .45573725, 1]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)
 
 
-def rk4_38rule(f=None, show_code=None, dt=None):
+def rk4_38rule(f=None, show_code=None, dt=None, var_type=None, im_return=()):
     """3/8-rule fourth-order method for ordinary differential equations.
 
     This method doesn't have as much notoriety as the "classical" method,
@@ -344,4 +360,5 @@ def rk4_38rule(f=None, show_code=None, dt=None):
     A = [(), ('1/3',), ('-1/3', '1'), (1, -1, 1)]
     B = ['1/8', '3/8', '3/8', '1/8']
     C = [0, '1/3', '2/3', 1]
-    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt)
+    return _base(A=A, B=B, C=C, f=f, show_code=show_code, dt=dt,
+                 var_type=var_type, im_return=im_return)

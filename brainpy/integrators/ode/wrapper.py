@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 
+import inspect
 from pprint import pprint
 
+from brainpy import backend
+from brainpy import errors
 from brainpy.integrators import constants
 from brainpy.integrators import utils
+from brainpy.integrators.ast_analysis import separate_variables
 
 __all__ = [
-    'rk_wrapper',
+    'general_rk_wrapper',
     'adaptive_rk_wrapper',
-    'wrapper_of_rk2',
+    'rk2_wrapper',
+    'exp_euler_wrapper',
 ]
 
 _ODE_UNKNOWN_NO = 0
@@ -21,7 +26,7 @@ def _f_names(f):
         global _ODE_UNKNOWN_NO
         f_name = f'ode_unknown_{_ODE_UNKNOWN_NO}'
         _ODE_UNKNOWN_NO += 1
-    f_new_name = constants.NAME_PREFIX + f_name
+    f_new_name = constants.NAME_PREFIX.format('ode') + f_name
     return f_new_name
 
 
@@ -33,8 +38,8 @@ def _step(vars, dt_var, A, C, code_lines, other_args):
         for v in vars:
             k_arg = f'{v}'
             for j, sv in enumerate(sval):
-                if sv not in [0., '0.', '0']:
-                    if sv in ['1.', '1', 1.]:
+                if sv not in [0., '0.0', '0.', '0']:
+                    if sv in ['1.0', '1.', '1', 1.]:
                         k_arg += f' + {dt_var} * d{v}_k{j + 1}'
                     else:
                         k_arg += f' + {dt_var} * d{v}_k{j + 1} * {sv}'
@@ -55,7 +60,7 @@ def _step(vars, dt_var, A, C, code_lines, other_args):
             code_lines.append(f'  {name} = {t_arg}')
             k_args.append(name)
         else:
-            k_args.append(f'{dt_var}')
+            k_args.append(t_arg)
 
         # k-step derivative names
         k_derivatives = [f'd{v}_k{si + 1}' for v in vars]
@@ -78,7 +83,8 @@ def _update(vars, dt_var, B, code_lines):
 
 
 def _compile_and_assign_attrs(code_lines, code_scope, show_code,
-                              func_name, variables, parameters, dt):
+                              func_name, variables, parameters,
+                              dt, var_type):
     # compile
     code = '\n'.join(code_lines)
     if show_code:
@@ -86,7 +92,7 @@ def _compile_and_assign_attrs(code_lines, code_scope, show_code,
         print()
         pprint(code_scope)
         print()
-    utils.numba_func(code_scope, ['f'])
+    utils.numba_func(code_scope, 'f')
     exec(compile(code, '', 'exec'), code_scope)
 
     # attribute assignment
@@ -95,11 +101,12 @@ def _compile_and_assign_attrs(code_lines, code_scope, show_code,
     new_f.parameters = parameters
     new_f.origin_f = code_scope['f']
     new_f.dt = dt
+    new_f.var_type = var_type
     utils.numba_func(code_scope, func_name)
     return code_scope[func_name]
 
 
-def rk_wrapper(f, show_code, dt, A, B, C):
+def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, im_return):
     """Runge–Kutta methods for ordinary differential equation.
 
     For the system,
@@ -171,10 +178,11 @@ def rk_wrapper(f, show_code, dt, A, B, C):
     # compilation
     return _compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters, dt=dt)
+        func_name=func_name, variables=variables, parameters=parameters,
+        dt=dt, var_type=var_type)
 
 
-def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type):
+def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type, im_return):
     """Adaptive Runge-Kutta numerical method for ordinary differential equations.
 
     The embedded methods are designed to produce an estimate of the local
@@ -291,15 +299,16 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
     # compilation
     return _compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters, dt=dt)
+        func_name=func_name, variables=variables, parameters=parameters,
+        dt=dt, var_type=var_type)
 
 
-def wrapper_of_rk2(f, show_code, dt, beta):
+def rk2_wrapper(f, show_code, dt, beta, var_type, im_return):
     class_kw, variables, parameters, arguments = utils.get_args(f)
     func_name = _f_names(f)
 
     code_scope = {'f': f, 'dt': dt, 'beta': beta,
-                  'k1': 1 - 1 / (2 * beta), 'k2': 1 / (2 * beta)}
+                  '_k1': 1 - 1 / (2 * beta), '_k2': 1 / (2 * beta)}
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
     # k1
     k1_args = variables + parameters
@@ -313,10 +322,114 @@ def wrapper_of_rk2(f, show_code, dt, beta):
     code_lines.append(f'  {", ".join(k2_vars_d)} = f({", ".join(k2_args)})')
     # returns
     for v, k1, k2 in zip(variables, k1_vars_d, k2_vars_d):
-        code_lines.append(f'  {v}_new = {v} + ({k1} * k1 + {k2} * k2) * dt')
+        code_lines.append(f'  {v}_new = {v} + ({k1} * _k1 + {k2} * _k2) * dt')
     return_vars = [f'{v}_new' for v in variables]
     code_lines.append(f'  return {", ".join(return_vars)}')
 
     return _compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters, dt=dt)
+        func_name=func_name, variables=variables, parameters=parameters,
+        dt=dt, var_type=var_type)
+
+
+def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
+    try:
+        import sympy
+        from brainpy.integrators import sympy_analysis
+    except ModuleNotFoundError:
+        raise errors.PackageMissingError('SymPy must be installed when using exponential euler methods.')
+
+    dt_var = 'dt'
+    class_kw, variables, parameters, arguments = utils.get_args(f)
+    func_name = _f_names(f)
+
+    code_lines = [f'def {func_name}({", ".join(arguments)}):']
+
+    # code scope
+    closure_vars = inspect.getclosurevars(f)
+    code_scope = dict(closure_vars.nonlocals)
+    code_scope.update(dict(closure_vars.globals))
+    code_scope[dt_var] = dt
+    code_scope['f'] = f
+    code_scope['exp'] = backend.exp
+
+    analysis = separate_variables(f)
+    variables_for_returns = analysis['variables_for_returns']
+    expressions_for_returns = analysis['expressions_for_returns']
+    for vi, (key, vars) in enumerate(variables_for_returns.items()):
+        # separate variables
+        sd_variables = []
+        for v in vars:
+            if len(v) > 1:
+                raise ValueError('Cannot analyze multi-assignment code line.')
+            sd_variables.append(v[0])
+        expressions = expressions_for_returns[key]
+        var_name = variables[vi]
+        diff_eq = sympy_analysis.SingleDiffEq(var_name=var_name,
+                                              variables=sd_variables,
+                                              expressions=expressions,
+                                              derivative_expr=key,
+                                              scope=code_scope,
+                                              func_name=func_name)
+
+        f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
+
+        # code lines
+        code_lines.extend([f"  {str(expr)}" for expr in f_expressions[:-1]])
+
+        # get the linear system using sympy
+        f_res = f_expressions[-1]
+        df_expr = sympy_analysis.str2sympy(f_res.code).expr.expand()
+        s_df = sympy.Symbol(f"{f_res.var_name}")
+        code_lines.append(f'  {s_df.name} = {sympy_analysis.sympy2str(df_expr)}')
+        var = sympy.Symbol(diff_eq.var_name, real=True)
+
+        # get df part
+        s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
+        s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
+        s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
+        if df_expr.has(var):
+            # linear
+            linear = sympy.collect(df_expr, var, evaluate=False)[var]
+            code_lines.append(f'  {s_linear.name} = {sympy_analysis.sympy2str(linear)}')
+            # linear exponential
+            linear_exp = sympy.exp(linear * dt)
+            code_lines.append(f'  {s_linear_exp.name} = {sympy_analysis.sympy2str(linear_exp)}')
+            # df part
+            df_part = (s_linear_exp - 1) / s_linear * s_df
+            code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(df_part)}')
+
+        else:
+            # linear exponential
+            code_lines.append(f'  {s_linear_exp.name} = sqrt({dt})')
+            # df part
+            code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(dt * s_df)}')
+
+        # # get dg part
+        # if diff_eq.is_stochastic:
+        #     # dW
+        #     noise = f'_normal_like_({diff_eq.var_name})'
+        #     code_lines.append(f'_{diff_eq.var_name}_dW = {noise}')
+        #     # expressions of the stochastic part
+        #     g_expressions = diff_eq.get_g_expressions()
+        #     code_lines.extend([str(expr) for expr in g_expressions[:-1]])
+        #     g_expr = g_expressions[-1].code
+        #     # get the dg_part
+        #     s_dg_part = sympy.Symbol(f'_{diff_eq.var_name}_dg_part')
+        #     code_lines.append(f'_{diff_eq.var_name}_dg_part = {g_expr} * _{diff_eq.var_name}_dW')
+        # else:
+        #     s_dg_part = 0
+
+        # update expression
+        update = var + s_df_part
+
+        # The actual update step
+        code_lines.append(f'  {diff_eq.var_name}_new = {sympy_analysis.sympy2str(update)}')
+        code_lines.append('')
+
+    code_lines.append(f'  return {", ".join([f"{v}_new" for v in variables])}')
+    return _compile_and_assign_attrs(
+        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
+        func_name=func_name, variables=variables, parameters=parameters,
+        dt=dt, var_type=var_type)
+

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-bp.backend.set('numba')
 
 
 class HRNeuron(bp.NeuGroup):
@@ -21,6 +20,7 @@ class HRNeuron(bp.NeuGroup):
 
     def update(self, _t):
         pass
+
 
 hr = HRNeuron(1)
 

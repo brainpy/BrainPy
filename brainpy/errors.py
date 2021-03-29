@@ -26,3 +26,6 @@ class AnalyzerError(Exception):
 class PackageMissingError(Exception):
     pass
 
+
+backend_missing_msg = '"{bk}" must be installed when users want to set {bk} backend. \n' \
+                      'Please install {bk} through "pip install {bk}" or "conda install {bk}".'

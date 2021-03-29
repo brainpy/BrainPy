@@ -4,14 +4,21 @@ import ast
 import inspect
 import re
 
-import numba
-
 from brainpy import backend
 from brainpy import errors
 from brainpy import tools
 from brainpy.simulation import delay
 from . import utils
 from .general_runner import GeneralNodeRunner
+
+try:
+    import numba
+except ModuleNotFoundError:
+    raise errors.PackageMissingError('"Numba" must be installed when users '
+                                     'want to set numba backend. \n'
+                                     'Please install numba through "pip install '
+                                     'numba" or "conda install numba"')
+
 
 __all__ = [
     'set_numba_profile',

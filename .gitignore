@@ -13,8 +13,8 @@ docs/images/neuron_structure.xlsx
 docs/images/neuron_structure.pdf
 docs/images/connection_methods.pptx
 
-docs/tutorials/_autosummary
-docs/tutorials/.ipynb_checkpoints
+docs/quickstart/_autosummary
+docs/quickstart/.ipynb_checkpoints
 
 docs/tutorials_advanced/_autosummary
 docs/tutorials_advanced/.ipynb_checkpoints
