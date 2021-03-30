@@ -3,37 +3,34 @@
 import numpy as np
 
 __all__ = [
-    'as_tensor',
     'normal',
-    'reshape',
     'shape',
     'exp',
     'sum',
+    'matmul',
+
+    'as_tensor',
     'zeros',
     'ones',
-    'eye',
-    'matmul',
     'arange',
-
     'vstack',
     'where',
     'unsqueeze',
     'squeeze',
 ]
 
-
-as_tensor = np.asarray
+# necessary ops for integrators
 normal = np.random.normal
-reshape = np.reshape
+sum = np.sum
 shape = np.shape
 exp = np.exp
-sum = np.sum
+matmul = np.matmul
+
+# necessary ops for dynamics simulation
+as_tensor = np.asarray
 zeros = np.zeros
 ones = np.ones
-eye = np.eye
-matmul = np.matmul
 arange = np.arange
-
 vstack = np.vstack
 where = np.where
 unsqueeze = np.expand_dims

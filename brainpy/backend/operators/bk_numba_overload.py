@@ -128,14 +128,15 @@ def fix_func(x):
     return fix
 
 
-@overload(numpy.clip)
-def clip_func(x, x_min, x_max):
-    def clip(x, x_min, x_max):
-        x = numpy.maximum(x, x_min)
-        x = numpy.minimum(x, x_max)
-        return x
-
-    return clip
+#
+# @overload(numpy.clip)
+# def clip_func(x, x_min, x_max):
+#     def clip(x, x_min, x_max):
+#         x = numpy.maximum(x, x_min)
+#         x = numpy.minimum(x, x_max)
+#         return x
+#
+#     return clip
 
 
 @overload(numpy.allclose)

@@ -4,26 +4,23 @@
 The TensorFlow with the version of xx is needed.
 """
 
-
 from brainpy import errors
 
 try:
     import tensorflow as tf
 except ModuleNotFoundError:
-    raise errors.PackageMissingError(errors.PackageMissingError(errors.backend_missing_msg.format(bk='tensorflow')))
+    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='tensorflow'))
 
 
-reshape = tf.reshape
-exp = tf.math.exp
+# necessary ops for integrators
+
+def normal(loc, scale, size):
+    return tf.random.normal(size, loc, scale)
+
+
 sum = tf.math.reduce_sum
-zeros = tf.zeros
-eye = tf.eye
+exp = tf.math.exp
 matmul = tf.matmul
-arange = tf.range
-
-
-def vstack(values):
-    return tf.concat(values, axis=1)
 
 
 def shape(x):
@@ -33,8 +30,16 @@ def shape(x):
         return x.shape()
 
 
-def normal(loc, scale, size):
-    return tf.random.normal(size, loc, scale)
+# necessary ops for dynamics simulation
+
+as_tensor = tf.convert_to_tensor
+zeros = tf.zeros
+ones = tf.ones
+arange = tf.range
+
+
+def vstack(values):
+    return tf.concat(values, axis=1)
 
 
 def where(tensor, x, y):
@@ -43,4 +48,3 @@ def where(tensor, x, y):
 
 unsqueeze = tf.expand_dims
 squeeze = tf.squeeze
-

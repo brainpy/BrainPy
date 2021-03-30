@@ -9,19 +9,14 @@ from brainpy import errors
 try:
     import torch
 except ModuleNotFoundError:
-    raise errors.PackageMissingError(errors.PackageMissingError(errors.backend_missing_msg.format(bk='pytorch')))
+    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='pytorch'))
 
-as_tensor = torch.tensor
+# necessary ops for integrators
+
 normal = torch.normal
-reshape = torch.reshape
 exp = torch.exp
 sum = torch.sum
-zeros = torch.zeros
-ones = torch.ones
-eye = torch.eye
 matmul = torch.matmul
-vstack = torch.vstack
-arange = torch.arange
 
 
 def shape(x):
@@ -29,6 +24,15 @@ def shape(x):
         return ()
     else:
         return x.size()
+
+
+# necessary ops for dynamics simulation
+
+as_tensor = torch.tensor
+zeros = torch.zeros
+ones = torch.ones
+arange = torch.arange
+vstack = torch.vstack
 
 
 def where(tensor, x, y):
@@ -41,4 +45,3 @@ def where(tensor, x, y):
 
 unsqueeze = torch.unsqueeze
 squeeze = torch.squeeze
-
