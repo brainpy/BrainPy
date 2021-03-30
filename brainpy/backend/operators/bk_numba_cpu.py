@@ -4,19 +4,23 @@ import numpy as np
 
 from . import bk_numba_overload
 
-as_tensor = np.asarray
+
+# necessary ops for integrators
 normal = np.random.normal
-reshape = np.reshape
-exp = np.exp
 sum = np.sum
+shape = np.shape
+exp = np.exp
+matmul = np.matmul
+
+# necessary ops for dynamics simulation
+as_tensor = np.asarray
 zeros = np.zeros
 ones = np.ones
-eye = np.eye
-matmul = np.matmul
-vstack = np.vstack
 arange = np.arange
-shape = np.shape
+vstack = np.vstack
 where = np.where
+unsqueeze = np.expand_dims
+squeeze = np.squeeze
 
 
 if __name__ == '__main__':

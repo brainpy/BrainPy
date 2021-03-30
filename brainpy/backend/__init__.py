@@ -15,7 +15,7 @@ CLASS_KEYWORDS = ['self', 'cls']
 
 OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'matmul', 'shape', ]
 OPS_FOR_SIMULATION = ['as_tensor', 'zeros', 'ones', 'arange',
-                      'eye', 'vstack', 'reshape', 'where', ]
+                      'vstack', 'where', 'unsqueeze', 'squeeze']
 
 SUPPORTED_BACKEND = {
     'numba', 'numba-parallel', 'numba-cuda', 'jax',  # JIT framework

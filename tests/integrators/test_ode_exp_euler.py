@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+import brainpy as bp
 from brainpy.integrators.ode.wrapper import exp_euler_wrapper
 
 
@@ -27,8 +29,33 @@ def test1():
 
         return dVdt, dmdt, dhdt, dndt
 
-
     exp_euler_wrapper(f=drivative, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
 
+
+def test2():
+
+    def derivative(s, t, tau):
+        return -s / tau
+
+    exp_euler_wrapper(f=derivative, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
+
+
+def test3():
+
+    def derivative(s, v, t, tau):
+        dv = -v + 1
+        return -s / tau, dv
+
+    exp_euler_wrapper(f=derivative, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
+
+
+def test4():
+    f = lambda s, t, tau: -s / tau
+    with pytest.raises(bp.errors.AnalyzerError) as excinfo:
+        exp_euler_wrapper(f=f, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
+
+
 if __name__ == '__main__':
-    test1()
+    # test1()
+    # test2()
+    test3()

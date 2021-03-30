@@ -3,6 +3,9 @@
 import numpy as np
 
 from brainpy import backend
+from brainpy import errors
+from brainpy.simulation import NeuGroup
+from brainpy.simulation import size2len
 
 __all__ = [
     'constant_current',
@@ -134,3 +137,58 @@ def ramp_current(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     p2 = int(np.ceil(t_end / dt))
     current[p1: p2] = np.linspace(c_start, c_end, p2 - p1)
     return current
+
+
+class SpikeTimeInput(NeuGroup):
+    """The input neuron group characterized by spikes emitting at given times.
+
+    >>> # Get 2 neurons, firing spikes at 10 ms and 20 ms.
+    >>> SpikeTimeInput(2, times=[10, 20])
+    >>> # or
+    >>> # Get 2 neurons, the neuron 0 fires spikes at 10 ms and 20 ms.
+    >>> SpikeTimeInput(2, times=[10, 20], indices=[0, 0])
+    >>> # or
+    >>> # Get 2 neurons, neuron 0 fires at 10 ms and 30 ms, neuron 1 fires at 20 ms.
+    >>> SpikeTimeInput(2, times=[10, 20, 30], indices=[0, 1, 0])
+    >>> # or
+    >>> # Get 2 neurons; at 10 ms, neuron 0 fires; at 20 ms, neuron 0 and 1 fire;
+    >>> # at 30 ms, neuron 1 fires.
+    >>> SpikeTimeInput(2, times=[10, 20, 20, 30], indices=[0, 0, 1, 1])
+
+    Parameters
+    ----------
+    size : int, tuple, list
+        The neuron group geometry.
+    indices : int, list, tuple
+        The neuron indices at each time point to emit spikes.
+    times : list, np.ndarray
+        The time points which generate the spikes.
+    monitors : list, tuple
+        The targets for monitoring.
+    name : str
+        The group name.
+    """
+    target_backend = ['numpy', 'numba']
+
+    def __init__(self, size, times, indices, need_sort=True, **kwargs):
+        if len(indices) != len(times):
+            raise errors.ModelUseError(f'The length of "indices" and "times" must be the same. '
+                                       f'However, we got {len(indices)} != {len(times)}.')
+
+        # data about times and indices
+        self.idx = 0
+        self.times = np.ascontiguousarray(times, dtype=np.float_)
+        self.indices = np.ascontiguousarray(indices, dtype=np.int_)
+        self.num_times = len(times)
+        if need_sort:
+            sort_idx = np.argsort(times)
+            self.indices = self.indices[sort_idx]
+        self.spike = backend.zeros(size2len(size), dtype=bool)
+
+        super(SpikeTimeInput, self).__init__(size=size, **kwargs)
+
+    def update(self, _t):
+        self.spike[:] = 0.
+        while self.idx < self.num_times and _t >= self.times[self.idx]:
+            self.spike[self.indices[self.idx]] = 1.
+            self.idx += 1

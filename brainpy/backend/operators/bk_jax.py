@@ -18,23 +18,24 @@ def set_seed(seed):
     key = random.PRNGKey(seed)
 
 
+# necessary ops for integrators
+
 def normal(loc, scale, size):
     return loc + scale * random.normal(key, shape=size)
 
 
-reshape = numpy.reshape
 exp = numpy.exp
 sum = numpy.sum
-zeros = numpy.zeros
-eye = numpy.eye
 matmul = numpy.matmul
-vstack = numpy.vstack
+shape = numpy.shape
+
+
+# necessary ops for dynamics simulation
+as_tensor = numpy.asarray
+zeros = numpy.zeros
+ones = numpy.ones
 arange = numpy.arange
-
-
-def shape(x):
-    size = numpy.shape(x)
-    if len(size) == 0:
-        return (1,)
-    else:
-        return size
+vstack = numpy.vstack
+where = numpy.where
+unsqueeze = numpy.expand_dims
+squeeze = numpy.squeeze

@@ -47,6 +47,7 @@ Comprehensive examples of BrainPy please see
    tutorials_advanced/ode_numerical_solvers
    tutorials_advanced/sde_numerical_solvers
    tutorials_advanced/usage_of_inputs_module
+   tutorials_advanced/tips_on_jit
    tutorials_advanced/how_it_works
 
 

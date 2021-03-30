@@ -46,11 +46,11 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
     if f is None:
         return lambda f: adaptive_rk_wrapper(f, dt=dt, A=A, B1=B1, B2=B2, C=C, tol=tol,
                                              adaptive=adaptive, show_code=show_code,
-                                             var_type=var_type)
+                                             var_type=var_type, im_return=im_return)
     else:
         return adaptive_rk_wrapper(f, dt=dt, A=A, B1=B1, B2=B2, C=C, tol=tol,
                                    adaptive=adaptive, show_code=show_code,
-                                   var_type=var_type)
+                                   var_type=var_type, im_return=im_return)
 
 
 def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):

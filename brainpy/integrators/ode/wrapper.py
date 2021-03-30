@@ -38,8 +38,8 @@ def _step(vars, dt_var, A, C, code_lines, other_args):
         for v in vars:
             k_arg = f'{v}'
             for j, sv in enumerate(sval):
-                if sv not in [0., '0.', '0']:
-                    if sv in ['1.', '1', 1.]:
+                if sv not in [0., '0.0', '0.', '0']:
+                    if sv in ['1.0', '1.', '1', 1.]:
                         k_arg += f' + {dt_var} * d{v}_k{j + 1}'
                     else:
                         k_arg += f' + {dt_var} * d{v}_k{j + 1} * {sv}'
@@ -60,7 +60,7 @@ def _step(vars, dt_var, A, C, code_lines, other_args):
             code_lines.append(f'  {name} = {t_arg}')
             k_args.append(name)
         else:
-            k_args.append(f'{dt_var}')
+            k_args.append(t_arg)
 
         # k-step derivative names
         k_derivatives = [f'd{v}_k{si + 1}' for v in vars]
