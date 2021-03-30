@@ -1,4 +1,4 @@
-Tutorial For Brain-inspired Computation
-=======================================
+Models on Brain-inspired Computation
+====================================
 
 
