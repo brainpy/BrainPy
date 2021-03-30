@@ -26,6 +26,7 @@ from .integrators.constants import *
 from . import visualization as visualize
 
 # other modules
+from . import errors
 from . import tools
 from . import inputs
 from . import measure

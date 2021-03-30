@@ -199,8 +199,6 @@ class Network(object):
                            f'please change another name.')
         # 3. add object to the network
         self.all_nodes[name] = obj
-        if obj.name != name:
-            self.all_nodes[obj.name] = obj
 
     def add(self, *args, **kwargs):
         """Add object (neurons or synapses) to the network.
