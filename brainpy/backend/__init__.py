@@ -3,6 +3,7 @@
 from types import ModuleType
 
 from brainpy import errors
+from brainpy.backend.buffer import get_buffer, set_buffer
 from .operators.bk_numpy import *
 from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
 
@@ -117,13 +118,19 @@ def set(backend=None, module_or_operations=None, node_runner=None, net_runner=No
     global_vars['_backend'] = backend
     global_vars['_node_runner'] = node_runner
     global_vars['_net_runner'] = net_runner
+
+    # set operations from module
     if isinstance(module_or_operations, ModuleType):
         set_ops_from_module(module_or_operations)
     elif isinstance(module_or_operations, dict):
         set_ops(**module_or_operations)
     else:
         raise errors.ModelUseError('"module_or_operations" must be a module '
-                                   'or a dict of operations.')
+                                   'or a dict with the format of (key, func).')
+
+    # set operations from BUFFER
+    ops_for_buffer = get_buffer(backend)
+    set_ops(**ops_for_buffer)
 
 
 def set_class_keywords(*args):
