@@ -4,7 +4,7 @@ import ast
 
 from brainpy import backend
 from brainpy import tools
-from brainpy.simulation.brain_objects import SynConn, NeuGroup
+from brainpy.simulation.brainobjects import SynConn, NeuGroup
 from .numba_cpu_runner import NumbaCPUNodeRunner
 from .numba_cpu_runner import StepFuncReader
 

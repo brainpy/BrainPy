@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-def constant_current(Iext, dt=None):
+def constant_current(I_and_duration, dt=None):
     """Format constant input in durations.
 
     For example:
@@ -26,9 +26,9 @@ def constant_current(Iext, dt=None):
 
     Parameters
     ----------
-    Iext : list
+    I_and_duration : list
         This parameter receives the current size and the current
-        duration pairs, like `[(size1, duration1), (size2, duration2)]`.
+        duration pairs, like `[(Isize1, duration1), (Isize2, duration2)]`.
     dt : float
         Default is None.
 
@@ -43,7 +43,7 @@ def constant_current(Iext, dt=None):
     I_duration = 0.
     I_dim = 0
     I_shape = ()
-    for I in Iext:
+    for I in I_and_duration:
         I_duration += I[1]
         dim = np.ndim(I[0])
         if dim > I_dim:
@@ -53,7 +53,7 @@ def constant_current(Iext, dt=None):
     # get the current
     I_current = np.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
     start = 0
-    for c_size, duration in Iext:
+    for c_size, duration in I_and_duration:
         length = int(duration / dt)
         I_current[start: start + length] = c_size
         start += length

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .brain_objects import *
+from .brainobjects import *
 from .connectivity import *
 from .constants import *
 from .delay import *

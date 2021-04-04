@@ -27,7 +27,7 @@ class ConstantDelay(object):
         if isinstance(size, int):
             size = (size,)
         size = tuple(size)
-        self.delay_data = backend.zeros((self.delay_num_step + 1,) + size)
+        self.delay_data = backend.zeros((self.delay_num_step,) + size)
 
     def push(self, idx_or_val, value=None):
         if value is None:

@@ -186,14 +186,14 @@ def format_net_level_inputs(inputs, run_length):
     formatted_input : dict
         The formatted input.
     """
-    from brainpy.simulation import brain_objects
+    from brainpy.simulation import brainobjects
 
     # 1. format the inputs to standard
     #    formats and check the inputs
     if not isinstance(inputs, (tuple, list)):
         raise errors.ModelUseError('"inputs" must be a tuple/list.')
     if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
-        if isinstance(inputs[0], brain_objects.DynamicSystem):
+        if isinstance(inputs[0], brainobjects.DynamicSystem):
             inputs = [inputs]
         else:
             raise errors.ModelUseError('Unknown input structure. Only supports '
@@ -212,7 +212,7 @@ def format_net_level_inputs(inputs, run_length):
     formatted_inputs = {}
     for input in inputs:
         # target
-        if isinstance(input[0], brain_objects.DynamicSystem):
+        if isinstance(input[0], brainobjects.DynamicSystem):
             target = input[0]
             target_name = input[0].name
         else:

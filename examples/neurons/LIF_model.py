@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import numba as nb
-
 import brainpy as bp
 
 bp.backend.set('numpy')
@@ -36,7 +34,7 @@ class LIF(bp.NeuGroup):
         return (- (V - V_rest) + R * Iext) / tau
 
     def update(self, _t):
-        for i in nb.prange(self.size[0]):
+        for i in range(self.num):
             if _t - self.t_last_spike[i] <= self.t_refractory:
                 self.refractory[i] = 1.
             else:
