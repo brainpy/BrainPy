@@ -3,10 +3,18 @@
 import numpy as np
 
 __all__ = [
+    'get_1d_stability_types',
+    'get_2d_stability_types',
+    'get_3d_stability_types',
+    'plot_scheme',
+
+    'stability_analysis',
+
     'CENTER_MANIFOLD',
     'SADDLE_NODE',
     'STABLE_POINT_1D',
     'UNSTABLE_POINT_1D',
+
     'CENTER_2D',
     'STABLE_NODE_2D',
     'STABLE_FOCUS_2D',
@@ -17,17 +25,20 @@ __all__ = [
     'UNSTABLE_STAR_2D',
     'UNSTABLE_DEGENERATE_2D',
     'UNSTABLE_LINE_2D',
-
-    'get_1d_stability_types',
-    'get_2d_stability_types',
-
-    'stability_analysis',
 ]
 
-CENTER_MANIFOLD = 'center manifold'
+plot_scheme = {}
+
 SADDLE_NODE = 'saddle node'
+CENTER_MANIFOLD = 'center manifold'
+plot_scheme[CENTER_MANIFOLD] = {'color': 'orangered'}
+plot_scheme[SADDLE_NODE] = {"color": 'tab:blue'}
+
 STABLE_POINT_1D = 'stable point'
 UNSTABLE_POINT_1D = 'unstable point'
+plot_scheme[STABLE_POINT_1D] = {"color": 'tab:red'}
+plot_scheme[UNSTABLE_POINT_1D] = {"color": 'tab:olive'}
+
 CENTER_2D = 'center'
 STABLE_NODE_2D = 'stable node'
 STABLE_FOCUS_2D = 'stable focus'
@@ -38,30 +49,39 @@ UNSTABLE_FOCUS_2D = 'unstable focus'
 UNSTABLE_STAR_2D = 'unstable star'
 UNSTABLE_DEGENERATE_2D = 'unstable degenerate'
 UNSTABLE_LINE_2D = 'unstable line'
-
-plot_scheme = {
-    STABLE_POINT_1D: {"color": 'tab:red'},
-    STABLE_NODE_2D: {"color": 'tab:red'},
-
-    UNSTABLE_POINT_1D: {"color": 'tab:olive'},
-    UNSTABLE_NODE_2D: {"color": 'tab:olive'},
-
-    STABLE_FOCUS_2D: {"color": 'tab:purple'},
-    UNSTABLE_FOCUS_2D: {"color": 'tab:cyan'},
-
-    SADDLE_NODE: {"color": 'tab:blue'},
+plot_scheme.update({
     CENTER_2D: {'color': 'lime'},
-    # _2D_UNIFORM_MOTION: {'color': 'red'},
-
-    CENTER_MANIFOLD: {'color': 'orangered'},
-    UNSTABLE_LINE_2D: {'color': 'dodgerblue'},
-
-    UNSTABLE_STAR_2D: {'color': 'green'},
+    STABLE_NODE_2D: {"color": 'tab:red'},
+    STABLE_FOCUS_2D: {"color": 'tab:purple'},
     STABLE_STAR_2D: {'color': 'orange'},
-
-    UNSTABLE_DEGENERATE_2D: {'color': 'springgreen'},
     STABLE_DEGENERATE_2D: {'color': 'blueviolet'},
-}
+    UNSTABLE_NODE_2D: {"color": 'tab:olive'},
+    UNSTABLE_FOCUS_2D: {"color": 'tab:cyan'},
+    UNSTABLE_STAR_2D: {'color': 'green'},
+    UNSTABLE_DEGENERATE_2D: {'color': 'springgreen'},
+    UNSTABLE_LINE_2D: {'color': 'dodgerblue'},
+})
+
+STABLE_POINT_3D = 'unclassified stable point'
+UNSTABLE_POINT_3D = 'unclassified unstable point'
+STABLE_NODE_3D = 'stable node'
+UNSTABLE_SADDLE_3D = 'unstable saddle'
+UNSTABLE_NODE_3D = 'unstable node'
+STABLE_FOCUS_3D = 'stable focus'
+UNSTABLE_FOCUS_3D = 'unstable focus'
+UNSTABLE_CENTER_3D = 'unstable center'
+UNKNOWN_3D = 'unknown 3d'
+plot_scheme.update({
+    STABLE_POINT_3D: {'color': 'tab:pink'},
+    UNSTABLE_POINT_3D: {'color': 'tab:purple'},
+    STABLE_NODE_3D: {'color': 'tab:green'},
+    UNSTABLE_SADDLE_3D: {'color': 'tab:red'},
+    UNSTABLE_FOCUS_3D: {'color': 'tab:orange'},
+    STABLE_FOCUS_3D: {'color': 'tab:purple'},
+    UNSTABLE_NODE_3D: {'color': 'tab:gray'},
+    UNSTABLE_CENTER_3D: {'color': 'tab:olive'},
+    UNKNOWN_3D: {'color': 'tab:cyan'},
+})
 
 
 def get_1d_stability_types():
@@ -76,7 +96,9 @@ def get_2d_stability_types():
 
 
 def get_3d_stability_types():
-    return []
+    return [STABLE_POINT_3D, UNSTABLE_POINT_3D, STABLE_NODE_3D,
+            UNSTABLE_SADDLE_3D, UNSTABLE_NODE_3D, SADDLE_NODE,
+            STABLE_FOCUS_3D, UNSTABLE_FOCUS_3D, UNSTABLE_CENTER_3D, UNKNOWN_3D]
 
 
 def stability_analysis(derivatives):
@@ -154,8 +176,49 @@ def stability_analysis(derivatives):
                         return STABLE_STAR_2D
 
     elif np.size(derivatives) == 9:
-        pass
-
+        eigenvalues = np.linalg.eigvals(np.array(derivatives))
+        is_real = np.isreal(eigenvalues)
+        if is_real.all():
+            eigenvalues = np.sort(eigenvalues)
+            if eigenvalues[2] < 0:
+                return STABLE_NODE_3D
+            elif eigenvalues[2] == 0:
+                return UNKNOWN_3D
+            else:
+                return SADDLE_NODE
+        else:
+            if is_real.sum() == 1:
+                real_id = np.where(is_real)[0]
+                non_real_id = np.where(np.logical_not(is_real))[0]
+                v0 = eigenvalues[real_id]
+                v1 = eigenvalues[non_real_id[0]]
+                v2 = eigenvalues[non_real_id[1]]
+                v1_real = np.real(v1)
+                if np.conj(v1) == v2:
+                    if v0 < 0:
+                        if v1_real < 0:
+                            return STABLE_FOCUS_3D
+                        elif v1_real == 0:  # 零实部
+                            return UNKNOWN_3D
+                        else:
+                            return UNSTABLE_FOCUS_3D
+                    elif v0 == 0:
+                        if v1_real <= 0:
+                            return UNKNOWN_3D  # 零实部
+                        else:
+                            return UNSTABLE_POINT_3D  # TODO
+                    else:
+                        if v1_real < 0:
+                            return UNSTABLE_FOCUS_3D
+                        elif v1_real == 0:
+                            return UNSTABLE_CENTER_3D
+                        else:
+                            return UNSTABLE_POINT_3D  # TODO
+        eigenvalues = np.real(eigenvalues)
+        if np.all(eigenvalues < 0):
+            return STABLE_POINT_3D  # TODO
+        else:
+            return UNSTABLE_POINT_3D  # TODO
     else:
         raise ValueError('Unknown derivatives, only supports the jacobian '
                          'matrix with the shape of(1), (2, 2), or (3, 3).')

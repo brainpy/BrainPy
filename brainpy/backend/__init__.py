@@ -3,10 +3,11 @@
 from types import ModuleType
 
 from brainpy import errors
-from brainpy.backend.buffer import get_buffer, set_buffer
 from .operators.bk_numpy import *
 from .runners.general_runner import GeneralNodeRunner, GeneralNetRunner
 
+
+BUFFER = {}
 _backend = 'numpy'  # default backend is NumPy
 _node_runner = None
 _net_runner = None
@@ -249,3 +250,29 @@ def get_net_runner():
         from .runners.general_runner import GeneralNetRunner
         _net_runner = GeneralNetRunner
     return _net_runner
+
+
+def set_buffer(backend, *args, **kwargs):
+    global BUFFER
+    if backend not in BUFFER:
+        BUFFER[backend] = dict()
+
+    # store operations in buffer
+    for arg in args:
+        assert isinstance(arg, dict), f'Must be a dict with the format of (key, func) when ' \
+                                      f'provide *args, but we got {type(arg)}'
+        for key, func in arg.items():
+            assert callable(func), f'Must be dictionary with the format of (key, func) when ' \
+                                   f'provide *args, but we got {key} = {func}.'
+            BUFFER[backend][key] = func
+    for key, func in kwargs.items():
+        assert callable(func), f'Must be dictionary with the format of key=func when provide ' \
+                               f'**kwargs, but we got {key} = {func}.'
+        BUFFER[backend][key] = func
+
+    # set the operations
+    set_ops(**BUFFER[backend])
+
+
+def get_buffer(backend):
+    return BUFFER.get(backend, dict())

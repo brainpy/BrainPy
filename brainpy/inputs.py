@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import math
+
 import numpy as np
 
 from brainpy import backend
@@ -8,10 +10,69 @@ from brainpy.simulation import NeuGroup
 from brainpy.simulation import size2len
 
 __all__ = [
+    'periods',
     'constant_current',
     'spike_current',
     'ramp_current',
+
+    'SpikeTimeInput',
+    'PoissonInput',
 ]
+
+
+def periods(values, durations, dt=None, return_length=False):
+    """Format constant input in durations.
+
+    For example:
+
+    If you want to get an input where the size is 0 bwteen 0-100 ms,
+    and the size is 1. between 100-200 ms.
+    >>> import numpy as np
+    >>> constant_current([(0, 100), (1, 100)])
+    >>> constant_current([(np.zeros(100), 100), (np.random.rand(100), 100)])
+
+    Parameters
+    ----------
+    values : list
+        The current values for each period duration.
+    durations : list
+        The duration for each period.
+    dt : float
+        Default is None.
+    return_length : bool
+        Return the final duration length.
+
+    Returns
+    -------
+    current_and_duration : tuple
+        (The formatted current, total duration)
+    """
+    assert len(durations) == len(values), f'"values" and "durations" must be the same length, while ' \
+                                          f'we got {len(values)} != {len(durations)}.'
+
+    dt = backend.get_dt() if dt is None else dt
+
+    # get input current shape, and duration
+    I_duration = sum(durations)
+    I_shape = ()
+    for val in values:
+        shape = backend.shape(val)
+        if len(shape) > len(I_shape):
+            I_shape = shape
+
+    # get the current
+    start = 0
+    I_current = backend.zeros((int(math.ceil(I_duration / dt)),) + I_shape)
+    for c_size, duration in zip(values, durations):
+        length = int(duration / dt)
+        I_current[start: start + length] = c_size
+        start += length
+
+    if return_length:
+        return I_current, I_duration
+    else:
+        return I_current
+
 
 
 def constant_current(I_and_duration, dt=None):
@@ -21,6 +82,7 @@ def constant_current(I_and_duration, dt=None):
 
     If you want to get an input where the size is 0 bwteen 0-100 ms,
     and the size is 1. between 100-200 ms.
+    >>> import numpy as np
     >>> constant_current([(0, 100), (1, 100)])
     >>> constant_current([(np.zeros(100), 100), (np.random.rand(100), 100)])
 
@@ -45,13 +107,12 @@ def constant_current(I_and_duration, dt=None):
     I_shape = ()
     for I in I_and_duration:
         I_duration += I[1]
-        dim = np.ndim(I[0])
-        if dim > I_dim:
-            I_dim = dim
-            I_shape = np.shape(I[0])
+        shape = backend.shape(I[0])
+        if len(shape) > len(I_shape):
+            I_shape = shape
 
     # get the current
-    I_current = np.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
+    I_current = backend.zeros((int(math.ceil(I_duration / dt)),) + I_shape)
     start = 0
     for c_size, duration in I_and_duration:
         length = int(duration / dt)
@@ -99,7 +160,7 @@ def spike_current(points, lengths, sizes, duration, dt=None):
     if isinstance(sizes, (float, int)):
         sizes = [sizes] * len(points)
 
-    current = np.zeros(int(np.ceil(duration / dt)))
+    current = backend.zeros(int(math.ceil(duration / dt)))
     for time, dur, size in zip(points, lengths, sizes):
         pp = int(time / dt)
         p_len = int(dur / dt)
@@ -132,10 +193,10 @@ def ramp_current(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     dt = backend.get_dt() if dt is None else dt
     t_end = duration if t_end is None else t_end
 
-    current = np.zeros(int(np.ceil(duration / dt)))
-    p1 = int(np.ceil(t_start / dt))
-    p2 = int(np.ceil(t_end / dt))
-    current[p1: p2] = np.linspace(c_start, c_end, p2 - p1)
+    current = backend.zeros(int(math.ceil(duration / dt)))
+    p1 = int(math.ceil(t_start / dt))
+    p2 = int(math.ceil(t_end / dt))
+    current[p1: p2] = backend.as_tensor(np.linspace(c_start, c_end, p2 - p1))
     return current
 
 
@@ -177,8 +238,8 @@ class SpikeTimeInput(NeuGroup):
 
         # data about times and indices
         self.idx = 0
-        self.times = np.ascontiguousarray(times, dtype=np.float_)
-        self.indices = np.ascontiguousarray(indices, dtype=np.int_)
+        self.times = np.ascontiguousarray(times, dtype=float)
+        self.indices = np.ascontiguousarray(indices, dtype=int)
         self.num_times = len(times)
         if need_sort:
             sort_idx = np.argsort(times)
@@ -192,3 +253,20 @@ class SpikeTimeInput(NeuGroup):
         while self.idx < self.num_times and _t >= self.times[self.idx]:
             self.spike[self.indices[self.idx]] = 1.
             self.idx += 1
+
+
+class PoissonInput(NeuGroup):
+    target_backend = ['numpy', 'numba', 'numba-parallel']
+
+    def __init__(self, size, freqs, **kwargs):
+        self.dt = backend.get_dt() / 1000.
+        self.freqs = freqs
+        num = size2len(size)
+        self.spike = backend.zeros(num, dtype=bool)
+        self.t_last_spike = -1e7 * backend.ones(num)
+        super(PoissonInput, self).__init__(size, **kwargs)
+
+    def update(self, _t):
+        self.spike = np.random.random(self.num) <= self.freqs * self.dt
+        self.t_last_spike = np.where(self.spike, _t, self.t_last_spike)
+
