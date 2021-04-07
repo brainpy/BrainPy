@@ -7,9 +7,75 @@ from brainpy import backend
 from brainpy import errors
 
 __all__ = [
-    'get_args'
+    'attr_replace',
+    'get_num_indent',
+    'get_func_body_code',
+    'get_args',
 ]
 
+
+def attr_replace(attr):
+    return attr.replace('.', '_')
+
+
+def get_num_indent(code_string, spaces_per_tab=4):
+    """Get the indent of a patch of source code.
+
+    Parameters
+    ----------
+    code_string : str
+        The code string.
+    spaces_per_tab : int
+        The spaces per tab.
+
+    Returns
+    -------
+    num_indent : int
+        The number of the indent.
+    """
+    lines = code_string.split('\n')
+    min_indent = 1000
+    for line in lines:
+        if line.strip() == '':
+            continue
+        line = line.replace('\t', ' ' * spaces_per_tab)
+        num_indent = len(line) - len(line.lstrip())
+        if num_indent < min_indent:
+            min_indent = num_indent
+    return min_indent
+
+def get_func_body_code(code_string, lambda_func=False):
+    """Get the main body code of a function.
+
+    Parameters
+    ----------
+    code_string : str
+        The code string of the function.
+    lambda_func : bool
+        Whether the code comes from a lambda function.
+
+    Returns
+    -------
+    code_body : str
+        The code body.
+    """
+    if lambda_func:
+        splits = code_string.split(':')
+        if len(splits) != 2:
+            raise ValueError(f'Can not parse function: \n{code_string}')
+        main_code = f'return {":".join(splits[1:])}'
+    else:
+        func_codes = code_string.split('\n')
+        idx = 0
+        for i, line in enumerate(func_codes):
+            idx += 1
+            line = line.replace(' ', '')
+            if '):' in line:
+                break
+        else:
+            raise ValueError(f'Can not parse function: \n{code_string}')
+        main_code = '\n'.join(func_codes[idx:])
+    return main_code
 
 def get_args(f):
     """Get the function arguments.

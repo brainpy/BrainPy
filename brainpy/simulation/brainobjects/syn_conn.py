@@ -3,7 +3,7 @@
 from collections import OrderedDict
 
 from brainpy import errors
-from brainpy.simulation import delay
+from brainpy.simulation import delays
 from brainpy.simulation.dynamic_system import DynamicSystem
 from .neu_group import NeuGroup
 
@@ -48,7 +48,7 @@ class SynConn(DynamicSystem):
             self.constant_delays = {}
         if key in self.constant_delays:
             raise errors.ModelDefError(f'"{key}" has been registered as an constant delay.')
-        self.constant_delays[key] = delay.ConstantDelay(size, delay_time)
+        self.constant_delays[key] = delays.ConstantDelay(size, delay_time)
         return self.constant_delays[key]
 
     def update(self, *args):

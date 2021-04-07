@@ -49,5 +49,5 @@ def return_compile_and_assign_attrs(code_lines, code_scope, show_code,
     new_f.var_type = var_type
     new_f.wiener_type = wiener_type
     new_f.dt = dt
-    utils.numba_func(code_scope, func_name)
+    utils.numba_func(code_scope, func_name, end=True)
     return code_scope[func_name]

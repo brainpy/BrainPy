@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-def numba_func(code_scope, funcs_to_jit):
+def numba_func(code_scope, funcs_to_jit, end=False):
     if backend.get_backend_name() in ['numba', 'numba-parallel']:
         from brainpy.backend.drivers.numba_cpu import NUMBA_PROFILE
         import numba as nb
@@ -28,7 +28,10 @@ def numba_func(code_scope, funcs_to_jit):
         from numba import cuda
 
         for f in funcs_to_jit:
-            code_scope[f] = cuda.jit(code_scope[f], device=True)
+            if end:
+                code_scope[f] = cuda.jit(code_scope[f])
+            else:
+                code_scope[f] = cuda.jit(code_scope[f], device=True)
 
 
 def get_args(f):

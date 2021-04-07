@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.driver import NodeDriver, NetDriver
+from brainpy.simulation.drivers import NodeDriver, NetDriver
 from .general import GeneralNodeDriver, GeneralNetDriver
 
 __all__ = [

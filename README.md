@@ -23,7 +23,7 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 
 ![Speed Comparison](docs/images/speed.png)
 
-`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Currently, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/), [PyTorch](https://pytorch.org/), and [TensorFlow](https://www.tensorflow.org/), it also supports the JIT compilers such like [Numba](https://numba.pydata.org/). Extending BrainPy to support other backend framework you prefer is very easy. The details please see documents coming soon. 
+`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Currently, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/), [PyTorch](https://pytorch.org/), and [TensorFlow](https://www.tensorflow.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) on CPU or CUDA devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
 
 
 
@@ -58,7 +58,7 @@ Install ``BrainPy`` from source:
 
 
 
-# Get Started
+# Let's start
 
 - **Website (including documentation):** https://brainpy.readthedocs.io/
 - **Source code:** https://github.com/PKU-NIP-Lab/BrainPy  or  https://git.openi.org.cn/OpenI/BrainPy

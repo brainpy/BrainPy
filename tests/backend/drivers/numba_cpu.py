@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 import ast
 import inspect
 from pprint import pprint
@@ -7,8 +8,10 @@ from pprint import pprint
 import numpy as np
 
 import brainpy as bp
+from brainpy.simulation.delays import ConstantDelay
 from brainpy.backend.drivers.numba_cpu import StepFuncReader
 from brainpy.backend.drivers.numba_cpu import analyze_step_func
+from brainpy.backend.drivers.numba_cpu import class2func
 
 
 class HH(bp.NeuGroup):
@@ -248,7 +251,7 @@ def test_analyze_step2():
     print(r['self_data_with_index_in_left'])
 
 
-def test_StepFuncReader1():
+def test_StepFuncReader_for_AMPA1_vec():
     hh = HH(2)
     ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All())
 
@@ -274,7 +277,88 @@ def test_StepFuncReader1():
     print()
 
 
-def test_StepFuncReader2():
+def test_StepFuncReader_for_delay1():
+    update_code = '''
+def non_uniform_push_for_tensor_bk(self):
+    didx = self.delay_in_idx[idx_or_val]
+    self.delay_data[didx, idx_or_val] = value
+    '''
+
+    arg = 'self'
+    class_p1 = '\\b' + arg + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b'
+    self_data_without_index_in_left = set(re.findall(class_p1, update_code))
+    class_p2 = '(\\b' + arg + '\\.[A-Za-z_][A-Za-z0-9_.]*)\\[.*\\]'
+    self_data_with_index_in_left = set(re.findall(class_p2, update_code))
+
+    print('self_data_without_index_in_left:')
+    print(self_data_without_index_in_left)
+    print()
+
+    print('self_data_with_index_in_left:')
+    print(self_data_with_index_in_left)
+    print()
+
+    delay = ConstantDelay(size=10, delay_time=np.random.randint(10, size=10))
+    formatter = StepFuncReader(host=delay)
+    formatter.visit(ast.parse(update_code))
+
+    print('lefts:')
+    pprint(formatter.lefts)
+    print()
+    print('rights:')
+    pprint(formatter.rights)
+    print()
+    print('lines:')
+    pprint(formatter.lines)
+    print()
+    print('delay_call:')
+    pprint(formatter.delay_call.keys())
+    for v in formatter.delay_call.values():
+        pprint(v)
+    print()
+
+
+def test_StepFuncReader_for_delay2():
+    update_code = '''
+def non_uniform_push_for_tensor_bk(self):
+    self.delay_data[self.delay_in_idx[idx_or_val], idx_or_val] = value
+    '''
+
+    arg = 'self'
+    class_p1 = '\\b' + arg + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b'
+    self_data_without_index_in_left = set(re.findall(class_p1, update_code))
+    class_p2 = '(\\b' + arg + '\\.[A-Za-z_][A-Za-z0-9_.]*)\\['
+    self_data_with_index_in_left = set(re.findall(class_p2, update_code))
+
+    print('self_data_without_index_in_left:')
+    print(self_data_without_index_in_left)
+    print()
+
+    print('self_data_with_index_in_left:')
+    print(self_data_with_index_in_left)
+    print()
+
+    delay = ConstantDelay(size=10, delay_time=np.random.randint(10, size=10))
+    formatter = StepFuncReader(host=delay)
+    formatter.visit(ast.parse(update_code))
+
+    print('lefts:')
+    pprint(formatter.lefts)
+    print()
+    print('rights:')
+    pprint(formatter.rights)
+    print()
+    print('lines:')
+    pprint(formatter.lines)
+    print()
+    print('delay_call:')
+    pprint(formatter.delay_call.keys())
+    for v in formatter.delay_call.values():
+        pprint(v)
+    print()
+
+
+def test_StepFuncReader_for_lif():
     lif = LIF(10)
     code = bp.tools.deindent(inspect.getsource(lif.update))
 
@@ -297,7 +381,41 @@ def test_StepFuncReader2():
     print()
 
 
+def test_class2func_for_lif():
+    lif = LIF(10)
+
+    func, calls, assigns = class2func(cls_func=lif.update, host=lif, show_code=True)
+    print(func)
+    pprint(calls)
+    pprint(assigns)
+
+
+def test_class2func_for_AMPA1_vec():
+    hh = HH(2)
+    ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All())
+    func, calls, assigns = class2func(cls_func=ampa.update, host=ampa, show_code=True)
+    print(func)
+    pprint(calls)
+    pprint(assigns)
+
+
+def test_class2func_for_AMPA1_vec2():
+    hh = HH(2)
+    ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All(), delay=np.random.random(4) * 2)
+    func, calls, assigns = class2func(cls_func=ampa.update, host=ampa, show_code=True)
+    print(func)
+    pprint(calls)
+    pprint(assigns)
+
+
+
 # test_analyze_step1()
 # test_analyze_step2()
-# test_StepFuncReader1()
-test_StepFuncReader2()
+# test_StepFuncReader_for_lif()
+# test_class2func_for_lif()
+# test_StepFuncReader_for_AMPA1_vec()
+# test_class2func_for_AMPA1_vec()
+# test_class2func_for_AMPA1_vec2()
+# test_StepFuncReader_for_delay1()
+test_StepFuncReader_for_delay2()
+

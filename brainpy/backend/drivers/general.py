@@ -3,11 +3,11 @@
 from brainpy import backend
 from brainpy import errors
 from brainpy.backend import ops
-from brainpy.simulation import driver
+from brainpy.simulation import drivers
 from . import utils
 
 
-class GeneralNodeDriver(driver.NodeDriver):
+class GeneralNodeDriver(drivers.NodeDriver):
     """General BrainPy Node Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
@@ -197,7 +197,7 @@ class GeneralNodeDriver(driver.NodeDriver):
         return f'_input_data_of_{key.replace(".", "_")}'
 
 
-class GeneralNetDriver(driver.NetDriver):
+class GeneralNetDriver(drivers.NetDriver):
     """General BrainPy Network Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
     def __init__(self, all_nodes):

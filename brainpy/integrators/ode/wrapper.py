@@ -102,7 +102,7 @@ def _compile_and_assign_attrs(code_lines, code_scope, show_code,
     new_f.origin_f = code_scope['f']
     new_f.dt = dt
     new_f.var_type = var_type
-    utils.numba_func(code_scope, func_name)
+    utils.numba_func(code_scope, func_name, end=True)
     return code_scope[func_name]
 
 
