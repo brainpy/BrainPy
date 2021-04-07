@@ -19,7 +19,6 @@ except ModuleNotFoundError:
     numba = None
     Dispatcher = None
 
-
 __all__ = [
     'transform_integrals_to_model',
     'DynamicModel',
@@ -272,6 +271,7 @@ def add_arrow(line, position=None, direction='right', size=15, color=None):
                        size=size)
 
 
+@tools.numba_jit
 def f1(arr, grad, tol):
     condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] >= 0)
     indexes = np.where(condition)[0]
@@ -285,10 +285,7 @@ def f1(arr, grad, tol):
     return np.array([-1, -1])
 
 
-if numba is not None:
-    f1 = numba.njit(f1)
-
-
+@tools.numba_jit
 def f2(arr, grad, tol):
     condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] <= 0)
     indexes = np.where(condition)[0]
@@ -302,10 +299,6 @@ def f2(arr, grad, tol):
     return np.array([-1, -1])
 
 
-if numba is not None:
-    f2 = numba.njit(f2)
-
-
 def find_indexes_of_limit_cycle_max(arr, tol=0.001):
     grad = np.gradient(arr)
     return f1(arr, grad, tol)
@@ -316,15 +309,12 @@ def find_indexes_of_limit_cycle_min(arr, tol=0.001):
     return f2(arr, grad, tol)
 
 
+@tools.numba_jit
 def _identity(a, b, tol=0.01):
     if np.abs(a - b) < tol:
         return True
     else:
         return False
-
-
-if numba is not None:
-    _identity = numba.njit(_identity)
 
 
 def find_indexes_of_limit_cycle_max2(arr, tol=0.001):

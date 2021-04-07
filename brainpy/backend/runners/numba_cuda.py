@@ -5,8 +5,8 @@ import ast
 from brainpy import backend
 from brainpy import tools
 from brainpy.simulation.brainobjects import SynConn, NeuGroup
-from .numba_cpu_runner import NumbaCPUNodeRunner
-from .numba_cpu_runner import StepFuncReader
+from .numba_cpu import NumbaCPUNodeRunner
+from .numba_cpu import StepFuncReader
 
 
 from brainpy import errors
@@ -14,10 +14,7 @@ from brainpy import errors
 try:
     import numba
 except ModuleNotFoundError:
-    raise errors.PackageMissingError('"Numba" must be installed when users '
-                                     'want to set numba backend. \n'
-                                     'Please install numba through "pip install '
-                                     'numba" or "conda install numba"')
+    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='numba'))
 
 __all__ = [
     'NumbaCudaNodeRunner',

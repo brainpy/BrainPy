@@ -7,8 +7,8 @@ from pprint import pprint
 import numpy as np
 
 import brainpy as bp
-from brainpy.backend.runners.numba_cpu_runner import StepFuncReader
-from brainpy.backend.runners.numba_cpu_runner import analyze_step_func
+from brainpy.backend.runners.numba_cpu import StepFuncReader
+from brainpy.backend.runners.numba_cpu import analyze_step_func
 
 
 def test_analyze_step1():

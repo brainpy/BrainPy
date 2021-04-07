@@ -4,13 +4,9 @@
 import numpy as np
 
 from brainpy import backend
+from brainpy import tools
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import Connector
-
-try:
-    import numba as nb
-except ModuleNotFoundError:
-    nb = None
 
 __all__ = [
     'FixedPostNum',
@@ -26,6 +22,7 @@ __all__ = [
 ]
 
 
+@tools.numba_jit
 def _gaussian_weight(pre_i, pre_width, pre_height,
                      num_post, post_width, post_height,
                      w_max, w_min, sigma, normalize, include_self):
@@ -61,6 +58,7 @@ def _gaussian_weight(pre_i, pre_width, pre_height,
     return conn_i, conn_j, conn_w
 
 
+@tools.numba_jit
 def _gaussian_prob(pre_i, pre_width, pre_height,
                    num_post, post_width, post_height,
                    p_min, sigma, normalize, include_self):
@@ -96,6 +94,7 @@ def _gaussian_prob(pre_i, pre_width, pre_height,
     return conn_i, conn_j, conn_p
 
 
+@tools.numba_jit
 def _dog(pre_i, pre_width, pre_height,
          num_post, post_width, post_height,
          w_max_p, w_max_n, w_min, sigma_p, sigma_n,
@@ -133,6 +132,7 @@ def _dog(pre_i, pre_width, pre_height,
     return conn_i, conn_j, conn_w
 
 
+@tools.numba_jit
 def _smallworld_rewire(prob, i, all_j, include_self):
     if np.random.random() < prob:
         non_connected = np.where(all_j == False)[0]
@@ -167,13 +167,6 @@ def _get_rng(seed):
     else:
         rng = np.random.RandomState(seed)
     return rng
-
-
-if nb is not None:
-    _gaussian_weight = nb.njit(_gaussian_weight)
-    _gaussian_prob = nb.njit(_gaussian_prob)
-    _dog = nb.njit(_dog)
-    _sw_rewire = nb.njit(_smallworld_rewire)
 
 
 class FixedProb(Connector):

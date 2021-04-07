@@ -9,15 +9,12 @@ from brainpy import errors
 from brainpy import tools
 from brainpy.simulation import delay
 from . import utils
-from .general_runner import GeneralNodeRunner
+from .general import GeneralNodeRunner
 
 try:
     import numba
 except ModuleNotFoundError:
-    raise errors.PackageMissingError('"Numba" must be installed when users '
-                                     'want to set numba backend. \n'
-                                     'Please install numba through "pip install '
-                                     'numba" or "conda install numba"')
+    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='numba'))
 
 
 __all__ = [

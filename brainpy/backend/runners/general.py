@@ -7,7 +7,7 @@ from . import utils
 
 
 class GeneralNodeRunner(runner.NodeRunner):
-    """General BrainPy Runner for NumPy, PyTorch, TensorFlow, etc.
+    """General BrainPy Node Runner for NumPy, PyTorch, TensorFlow, etc.
     """
 
     def __init__(self, pop, steps=None):
@@ -197,6 +197,8 @@ class GeneralNodeRunner(runner.NodeRunner):
 
 
 class GeneralNetRunner(runner.NetRunner):
+    """General BrainPy Network Runner for NumPy, PyTorch, TensorFlow, etc.
+    """
     def __init__(self, all_nodes):
         super(GeneralNetRunner, self).__init__(all_nodes=all_nodes)
         self.run_func = None

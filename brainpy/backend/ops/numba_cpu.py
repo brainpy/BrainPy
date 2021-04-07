@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from . import bk_numba_overload
+from . import numba_overload
 
 
 # necessary ops for integrators
@@ -24,4 +24,4 @@ squeeze = np.squeeze
 
 
 if __name__ == '__main__':
-    bk_numba_overload
+    numba_overload

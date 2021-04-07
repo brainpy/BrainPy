@@ -5,13 +5,9 @@ import numpy as np
 
 from brainpy import backend
 from brainpy import errors
+from brainpy import tools
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import Connector
-
-try:
-    import numba as nb
-except ModuleNotFoundError:
-    nb = None
 
 __all__ = [
     'One2One', 'one2one',
@@ -22,6 +18,7 @@ __all__ = [
 ]
 
 
+@tools.numba_jit
 def _grid_four(height, width, row, include_self):
     conn_i = []
     conn_j = []
@@ -50,6 +47,7 @@ def _grid_four(height, width, row, include_self):
     return conn_i, conn_j
 
 
+@tools.numba_jit
 def _grid_n(height, width, row, n, include_self):
     conn_i = []
     conn_j = []
@@ -64,11 +62,6 @@ def _grid_n(height, width, row, n, include_self):
                     conn_i.append(i_index)
                     conn_j.append(j_index)
     return conn_i, conn_j
-
-
-if nb is not None:
-    _grid_four = nb.njit(_grid_four)
-    _grid_n = nb.njit(_grid_n)
 
 
 class One2One(Connector):

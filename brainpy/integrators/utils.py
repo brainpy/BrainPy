@@ -14,7 +14,7 @@ __all__ = [
 
 def numba_func(code_scope, funcs_to_jit):
     if backend.get_backend() in ['numba', 'numba-parallel']:
-        from brainpy.backend.runners.numba_cpu_runner import NUMBA_PROFILE
+        from brainpy.backend.runners.numba_cpu import NUMBA_PROFILE
         import numba as nb
 
         profiles = deepcopy(NUMBA_PROFILE)
