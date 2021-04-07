@@ -4,6 +4,8 @@ __version__ = "1.0.0-beta"
 
 # "backend" module
 from . import backend
+from .backend import ops
+from .backend import drivers
 
 # "analysis" module
 from . import analysis

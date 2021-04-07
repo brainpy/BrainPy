@@ -9,7 +9,7 @@ from brainpy import errors
 try:
     import torch
 except ModuleNotFoundError:
-    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='pytorch'))
+    raise errors.BackendNotInstalled('pytorch')
 
 # necessary ops for integrators
 

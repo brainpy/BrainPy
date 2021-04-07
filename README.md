@@ -58,8 +58,6 @@ Install ``BrainPy`` from source:
 
 
 
-
-
 # Start using BrainPy
 
 - **Website (including documentation):** https://brainpy.readthedocs.io/
@@ -67,7 +65,7 @@ Install ``BrainPy`` from source:
 - **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues  or  Email to adaduo@outlook.com
 - **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/from_papers.html
 
-#### **Simple examples**
+Here list several simple examples for neurodynamics simulation and analysis. Comprehensive examples and tutorials please see [BrainModels](https://brainmodels.readthedocs.io).
 
 <table border="0">
     <tr>

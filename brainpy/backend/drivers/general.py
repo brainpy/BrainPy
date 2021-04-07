@@ -2,17 +2,17 @@
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.simulation import runner
+from brainpy.simulation import driver
 from . import utils
 
 
-class GeneralNodeRunner(runner.NodeRunner):
-    """General BrainPy Node Runner for NumPy, PyTorch, TensorFlow, etc.
+class GeneralNodeDriver(driver.NodeDriver):
+    """General BrainPy Node Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
     def __init__(self, pop, steps=None):
         steps = pop.steps if steps is None else pop.steps
-        super(GeneralNodeRunner, self).__init__(host=pop, steps=steps)
+        super(GeneralNodeDriver, self).__init__(host=pop, steps=steps)
         self.last_inputs = {}
         self.formatted_funcs = {}
         self.run_func = None
@@ -196,11 +196,11 @@ class GeneralNodeRunner(runner.NodeRunner):
         return f'_input_data_of_{key.replace(".", "_")}'
 
 
-class GeneralNetRunner(runner.NetRunner):
-    """General BrainPy Network Runner for NumPy, PyTorch, TensorFlow, etc.
+class GeneralNetDriver(driver.NetDriver):
+    """General BrainPy Network Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
     def __init__(self, all_nodes):
-        super(GeneralNetRunner, self).__init__(all_nodes=all_nodes)
+        super(GeneralNetDriver, self).__init__(all_nodes=all_nodes)
         self.run_func = None
 
     def build(self, run_length, formatted_inputs, return_code=False, show_code=False):

@@ -5,7 +5,7 @@ from brainpy import errors
 try:
     import jax
 except ModuleNotFoundError:
-    raise errors.PackageMissingError(errors.PackageMissingError(errors.backend_missing_msg.format(bk='jax')))
+    raise errors.BackendNotInstalled('jax')
 
 from jax import numpy
 from jax import random

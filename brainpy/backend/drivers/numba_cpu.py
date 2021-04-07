@@ -9,12 +9,12 @@ from brainpy import errors
 from brainpy import tools
 from brainpy.simulation import delay
 from . import utils
-from .general import GeneralNodeRunner
+from .general import GeneralNodeDriver
 
 try:
     import numba
 except ModuleNotFoundError:
-    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='numba'))
+    raise errors.BackendNotInstalled('numba')
 
 
 __all__ = [
@@ -26,13 +26,13 @@ __all__ = [
     'get_func_body_code',
     'get_num_indent',
 
-    'NumbaCPUNodeRunner',
+    'NumbaCPUNodeDriver',
 ]
 
 NUMBA_PROFILE = {
     'nopython': True,
     'fastmath': True,
-    'nogil': True,
+    'nogil': False,
     'parallel': False
 }
 
@@ -323,11 +323,11 @@ def analyze_step_func(host, f):
     tree = ast.parse(code_string)
 
     # arguments
-    # ---
+    # ---------
     args = tools.ast2code(ast.fix_missing_locations(tree.body[0].args)).split(',')
 
     # code AST analysis
-    # ---
+    # -----------------
     formatter = StepFuncReader(host=host)
     formatter.visit(tree)
 
@@ -348,19 +348,19 @@ def analyze_step_func(host, f):
         class_p1 = '\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b'
         self_data_without_index_in_left = set(re.findall(class_p1, code))
         class_p2 = '(\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*)\\[.*\\]'
-        self_data_with_index_in_left = set(re.findall(class_p2, code)) #- self_data_without_index_in_left
+        self_data_with_index_in_left = set(re.findall(class_p2, code))  #- self_data_without_index_in_left
         # self_data_with_index_in_left = set(re.findall(class_p2, code)) - self_data_without_index_in_left
         self_data_with_index_in_left = list(self_data_with_index_in_left)
         self_data_without_index_in_left = list(self_data_without_index_in_left)
 
     # code scope
-    # ---
+    # ----------
     closure_vars = inspect.getclosurevars(f)
     code_scope = dict(closure_vars.nonlocals)
     code_scope.update(closure_vars.globals)
 
     # final
-    # ---
+    # -----
     self_data_in_right = sorted(self_data_in_right)
     self_data_without_index_in_left = sorted(self_data_without_index_in_left)
     self_data_with_index_in_left = sorted(self_data_with_index_in_left)
@@ -396,7 +396,7 @@ def get_func_body_code(code_string, lambda_func=False):
         splits = code_string.split(':')
         if len(splits) != 2:
             raise ValueError(f'Can not parse function: \n{code_string}')
-        main_code = f'return {splits[1]}'
+        main_code = f'return {":".join(splits[1:])}'
     else:
         func_codes = code_string.split('\n')
         idx = 0
@@ -460,7 +460,8 @@ def class2func(cls_func, host, func_name=None, show_code=False):
     func_name = cls_func.__name__ if func_name is None else func_name
     host_name = host.name
 
-    # arguments 1
+    # arguments 1: the function intrinsic needed arguments
+    # -----------
     calls = []
     for arg in arguments:
         if hasattr(host, arg):
@@ -473,21 +474,21 @@ def class2func(cls_func, host, func_name=None, show_code=False):
                                        f'an attribute of {host} nor the system keywords '
                                        f'{backend.SYSTEM_KEYWORDS}.')
 
-    # analysis
+    # code analysis
+    # --------
     analyzed_results = analyze_step_func(host=host, f=cls_func)
     delay_call = analyzed_results['delay_call']
-    # code_string = analyzed_results['code_string']
     main_code = analyzed_results['code_string']
     code_scope = analyzed_results['code_scope']
     self_data_in_right = analyzed_results['self_data_in_right']
     self_data_without_index_in_left = analyzed_results['self_data_without_index_in_left']
     self_data_with_index_in_left = analyzed_results['self_data_with_index_in_left']
-    # main_code = get_func_body_code(code_string)
     num_indent = get_num_indent(main_code)
     data_need_pass = sorted(list(set(self_data_in_right + self_data_with_index_in_left)))
     data_need_return = self_data_without_index_in_left
 
     # check delay
+    # -----------
     replaces_early = {}
     replaces_later = {}
     if len(delay_call) > 0:
@@ -522,9 +523,9 @@ def class2func(cls_func, host, func_name=None, show_code=False):
             code_scope[delay_call_name.replace('.', '_')] = func
     for target, dest in replaces_early.items():
         main_code = main_code.replace(target, dest)
-    # main_code = tools.word_replace(main_code, replaces_early)
 
     # arguments 2: data need pass
+    # -----------
     new_args = arguments + []
     for data in sorted(set(data_need_pass)):
         splits = data.split('.')
@@ -539,6 +540,7 @@ def class2func(cls_func, host, func_name=None, show_code=False):
         calls.append('.'.join([host_name] + splits[1:]))
 
     # data need return
+    # -----------
     assigns = []
     returns = []
     for data in data_need_return:
@@ -568,12 +570,16 @@ def class2func(cls_func, host, func_name=None, show_code=False):
     return func, calls, assigns
 
 
-class NumbaCPUNodeRunner(GeneralNodeRunner):
+class NumbaCPUNodeDriver(GeneralNodeDriver):
     def get_steps_func(self, show_code=False):
         for func_name, step in self.steps.items():
-            host = step.__self__
+            if hasattr(step, '__self__'):
+                host = step.__self__
+            else:
+                host = self.host
+            assert hasattr(host, 'name')
+
             func, calls, assigns = class2func(cls_func=step, host=host, func_name=func_name, show_code=show_code)
-            # self.set_data(f'new_{func_name}', func)
             setattr(host, f'new_{func_name}', func)
 
             # finale

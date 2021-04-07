@@ -9,7 +9,7 @@ from brainpy import errors
 try:
     import tensorflow as tf
 except ModuleNotFoundError:
-    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='tensorflow'))
+    raise errors.BackendNotInstalled('tensorflow')
 
 
 # necessary ops for integrators

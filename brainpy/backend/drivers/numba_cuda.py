@@ -5,19 +5,18 @@ import ast
 from brainpy import backend
 from brainpy import tools
 from brainpy.simulation.brainobjects import SynConn, NeuGroup
-from .numba_cpu import NumbaCPUNodeRunner
+from .numba_cpu import NumbaCPUNodeDriver
 from .numba_cpu import StepFuncReader
-
 
 from brainpy import errors
 
 try:
     import numba
 except ModuleNotFoundError:
-    raise errors.PackageMissingError(errors.backend_missing_msg.format(bk='numba'))
+    raise errors.BackendNotInstalled('numba')
 
 __all__ = [
-    'NumbaCudaNodeRunner',
+    'NumbaCudaNodeDriver',
 ]
 
 
@@ -162,5 +161,112 @@ def analyze_step_func(f, host):
     return analyzed_results
 
 
-class NumbaCudaNodeRunner(NumbaCPUNodeRunner):
+class NumbaCudaNodeDriver(NumbaCPUNodeDriver):
+    def get_input_func(self, formatted_inputs, show_code=False):
+        need_rebuild = False
+        # check whether the input is changed
+        # --
+        new_inputs = {}
+        input_keep_same = True
+        old_input_keys = list(self.last_inputs.keys())
+        for key, val, ops, data_type in formatted_inputs:
+            # set data
+            self.set_data(self.input_data_name(key), val)
+            # compare
+            if key in old_input_keys:
+                old_input_keys.remove(key)
+                if backend.shape(self.last_inputs[key][0]) != backend.shape(val):
+                    input_keep_same = False
+                    if show_code:
+                        print(f'The current "{key}" input shape {backend.shape(val)} is different '
+                              f'from the last input shape {backend.shape(self.last_inputs[key][0])}.')
+                if self.last_inputs[key][1] != ops:
+                    input_keep_same = False
+                    if show_code:
+                        print(f'The current "{key}" input operation "{ops}" is different '
+                              f'from the last operation "{self.last_inputs[key][1]}". ')
+            else:
+                input_keep_same = False
+                if show_code:
+                    print(f'The input to a new key "{key}" in {self.host}.')
+            new_inputs[key] = (val, ops, data_type)
+        self.last_inputs = new_inputs
+        if len(old_input_keys):
+            input_keep_same = False
+            if show_code:
+                print(f'The inputs of {old_input_keys} in {self.host} are not provided.')
+
+        # get the function of the input
+        # ---
+        if not input_keep_same:
+            # codes
+            input_func_name = 'input_step'
+            host_name = self.host.name
+            code_scope = {host_name: self.host}
+            code_lines = [f'def {input_func_name}(_i):']
+            for key, val, ops, data_type in formatted_inputs:
+                if ops == '=':
+                    line = f'  {host_name}.{key} = {host_name}.{self.input_data_name(key)}'
+                else:
+                    line = f'  {host_name}.{key} {ops}= {host_name}.{self.input_data_name(key)}'
+                if data_type == 'iter':
+                    line = line + '[_i]'
+                code_lines.append(line)
+            if len(formatted_inputs) == 0:
+                code_lines.append('  pass')
+
+            # function
+            code = '\n'.join(code_lines)
+            if show_code:
+                print(code)
+                print(code_scope)
+                print()
+            exec(compile(code, '', 'exec'), code_scope)
+            self.set_data(input_func_name, code_scope[input_func_name])
+            # results
+            self.formatted_funcs['input'] = {
+                'func': code_scope[input_func_name],
+                'scope': {host_name: self.host},
+                'call': [f'{host_name}.{input_func_name}(_i)'],
+            }
+            need_rebuild = True
+        return need_rebuild
+
+    def get_monitor_func(self, mon_length, show_code=False):
+        mon = self.host.mon
+        if len(mon['vars']) > 0:
+            monitor_func_name = 'monitor_step'
+            host = self.host.name
+            code_scope = {host: self.host}
+            code_lines = [f'def {monitor_func_name}(_i):']
+            for key in mon['vars']:
+                if not hasattr(self.host, key):
+                    raise errors.ModelUseError(f'{self.host} do not have {key}, '
+                                               f'thus it cannot be monitored.')
+
+                # initialize monitor array #
+                shape = backend.shape(getattr(self.host, key))
+                mon[key] = backend.zeros((mon_length,) + shape)
+
+                # add line #
+                line = f'  {host}.mon["{key}"][_i] = {host}.{key}'
+                code_lines.append(line)
+
+            # function
+            code = '\n'.join(code_lines)
+            if show_code:
+                print(code)
+                print(code_scope)
+                print()
+            exec(compile(code, '', 'exec'), code_scope)
+            self.set_data(monitor_func_name, code_scope[monitor_func_name])
+            # results
+            self.formatted_funcs['monitor'] = {
+                'func': code_scope[monitor_func_name],
+                'scope': {host: self.host},
+                'call': [f'{host}.{monitor_func_name}(_i)'],
+            }
+
+
+class NumbaCudaNetDriver():
     pass

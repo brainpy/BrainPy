@@ -5,24 +5,24 @@ import abc
 from brainpy import errors
 
 __all__ = [
-    'AbstractRunner',
-    'NodeRunner',
-    'NetRunner',
+    'AbstractDriver',
+    'NodeDriver',
+    'NetDriver',
 ]
 
 
-class AbstractRunner(abc.ABC):
+class AbstractDriver(abc.ABC):
     """
-    Abstract base class for backend runner.
+    Abstract base class for backend driver.
     """
     @abc.abstractmethod
     def build(self, *args, **kwargs):
         pass
 
 
-class NodeRunner(AbstractRunner):
+class NodeDriver(AbstractDriver):
     """
-    Abstract Node Runner.
+    Abstract Node Driver.
     """
     def __init__(self, host, steps):
         self.host = host
@@ -58,9 +58,9 @@ class NodeRunner(AbstractRunner):
         pass
 
 
-class NetRunner(AbstractRunner):
+class NetDriver(AbstractDriver):
     """
-    Abstract Network Runner.
+    Abstract Network Driver.
     """
     def __init__(self, all_nodes):
         self.all_nodes = all_nodes

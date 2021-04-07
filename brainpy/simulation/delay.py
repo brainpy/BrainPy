@@ -15,7 +15,6 @@ __all__ = [
 
 class ConstantDelay(object):
     """Constant delay variable for synapse computation.
-
     """
 
     def __init__(self, size, delay_time):
