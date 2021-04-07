@@ -5,28 +5,29 @@
 
 
 
-**Note**: *BrainPy is a project under development. More features are coming soon. Contributions are welcome.*
+# Why to use BrainPy
 
+``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation. Three core functions are provided in BrainPy:
 
+- *General numerical solvers* for ODEs and SDEs (support for DDEs and FDEs will come soon).
+- *Neurodynamics simulation tools* for brain objects, such like neurons, synapses and networks (support for soma and dendrites will come soon).
+- *Neurodynamics analysis tools* for differential equations, including phase plane analysis and bifurcation analysis (support for continuation analysis and sensitive analysis will come soon).
 
-## Why to use BrainPy
+Moreover, `BrainPy` is designed to effectively satisfy your basic requirements: 
 
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation. Three core functions are provided in `BrainPy`:
-
-- *General numerical solvers* for ODEs and SDEs (future will support DDEs and FDEs).
-- *Neurodynamics simulation tools* for brain objects, such like neurons, synapses and networks (future will support soma and dendrites).
-- *Neurodynamics analysis tools* for differential equations, including phase plane analysis and bifurcation analysis (future will support continuation analysis and sensitive analysis).
-
-Moreover, `BrainPy` can effectively satisfy your basic requirements: 1. *Easy to learn and use*, because it is only based on Python language and has little dependency requirements; 2. *Highly flexible and transparent*, because it endows the users with the fully data/logic flow control; 3. *Simulation can be guided with the analysis*, because the same code in BrainPy can not only be used for simulation, but also for dynamics analysis; 4. *Efficient running speed*, because BrainPy is compatitable with the latest JIT compilers (or any other computing backend you prefer).
-
-
+- *Easy to learn and use*, because BrainPy is only based on Python language and has little dependency requirements; 
+- *Highly flexible and transparent*, because BrainPy endows the users with the fully data/logic flow control; 
+- *Simulation can be guided with the analysis*, because the same code in BrainPy can not only be used for simulation, but also for dynamics analysis; 
+- *Efficient running speed*, because BrainPy is compatible with the latest JIT compilers or any other accelerating computing framework you prefer (the speed comparison based on Numba JIT is provided in the following figure).
 
 
 ![Speed Comparison](docs/images/speed.png)
 
+`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Currently, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/), [PyTorch](https://pytorch.org/), and [TensorFlow](https://www.tensorflow.org/), it also supports the JIT compilers such like [Numba](https://numba.pydata.org/). Extending BrainPy to support other backend framework you prefer is very easy. The details please see documents coming soon. 
 
 
-## Installation
+
+# Installation
 
 Install ``BrainPy`` by using ``pip``:
 
@@ -53,12 +54,20 @@ Install ``BrainPy`` from source:
 ``BrainPy`` is based on Python (>=3.7), and the following packages are required to be installed to use ``BrainPy``:
 
 - NumPy >= 1.13
-- Matplotlib >= 3.2
+- Matplotlib >= 3.3
 
 
 
 
-## Neurodynamics simulation
+
+# Start using BrainPy
+
+- **Website (including documentation):** https://brainpy.readthedocs.io/
+- **Source code:** https://github.com/PKU-NIP-Lab/BrainPy  or  https://git.openi.org.cn/OpenI/BrainPy
+- **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues  or  Email to adaduo@outlook.com
+- **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/from_papers.html
+
+#### **Simple examples**
 
 <table border="0">
     <tr>
@@ -69,11 +78,7 @@ Install ``BrainPy`` from source:
         </td>
         <td border="0" valign="top">
             <h3><a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/neurons/HodgkinHuxley_model.py">HH Neuron Model</a></h3>
-            <p>The Hodgkin–Huxley model, or conductance-based model,
-            is a mathematical model that describes how action potentials
-            in neurons are initiated and propagated. It is a set of nonlinear
-            differential equations that approximates the electrical characteristics
-            of excitable cells such as neurons and cardiac myocytes.</p>
+            <p>The Hodgkin–Huxley neuron model.</p>
         </td>
     </tr>
     <tr>
@@ -84,7 +89,7 @@ Install ``BrainPy`` from source:
         </td>
         <td border="0" valign="top">
             <h3><a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/synapses/AMPA_synapse.py">AMPA Synapse Model</a></h3>
-            <p>AMPA synapse model.</p>
+            <p>The AMPA synapse model.</p>
         </td>
     </tr>
     <tr>
@@ -112,7 +117,7 @@ Install ``BrainPy`` from source:
         <p>Implementation of the paper: <i>Van Vreeswijk, Carl, and Haim Sompolinsky. 
         “Chaos in neuronal networks with balanced excitatory and inhibitory activity.” 
         Science 274.5293 (1996): 1724-1726.</i></p>        
-</td>
+	</td>
     </tr>
     <tr>
         <td border="0" width="30%">
@@ -128,21 +133,6 @@ Install ``BrainPy`` from source:
             </p>
         </td>
     </tr>
-</table>
-
-
-More neuron examples please see [BrainPy-Models/neurons](https://github.com/PKU-NIP-Lab/BrainModels/tree/main/brainmodels/tensor_backend/neurons);
-
-More synapse examples please see [BrainPy-Models/synapses](https://github.com/PKU-NIP-Lab/BrainModels/tree/main/brainmodels/tensor_backend/synapses);
-
-More network examples please see [BrainPy-Models/from_papers](https://brainmodels.readthedocs.io/en/latest/from_papers.html).
-
-
-
-
-## Neurodynamics analysis
-
-<table border="0">
     <tr>
         <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">
@@ -157,40 +147,13 @@ More network examples please see [BrainPy-Models/from_papers](https://brainmodel
     </tr>
     <tr>
         <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
-            <img src="docs/images/NaK_model_codimension1.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-1-bifurcation-analysis">
-                Codimension 1 Bifurcation Analysis (1)</a></h3>
-            <p>Codimension 1 bifurcation analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model,
-                in which "input" is varied in [0., 50.].</p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
-            <img src="docs/images/NaK_model_codimension2.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html#Codimension-2-bifurcation-analysis">
-                Codimension 2 Bifurcation Analysis (1)</a></h3>
-            <p>Codimension 2 bifurcation analysis of a two-variable neuron model:
-                the I<sub>Na,p+</sub>-I<sub>K</sub> model, in which "input" is varied
-                in [0., 50.], and "Vn_half" is varied in [-50, -40].</p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
             <img src="docs/images/FitzHugh_Nagumo_codimension1.png">
             </a>
         </td>
         <td border="0" valign="top">
             <h3><a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
-                Codimension 1 Bifurcation Analysis (2)</a></h3>
+                Codimension 1 Bifurcation Analysis</a></h3>
             <p>Codimension 1 bifurcation analysis of FitzHugh Nagumo model, in which
                 "a" is equal to 0.7, and "Iext" is varied in [0., 1.].</p>
         </td>
@@ -203,19 +166,11 @@ More network examples please see [BrainPy-Models/from_papers](https://brainmodel
         </td>
         <td border="0" valign="top">
             <h3><a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
-                Codimension 2 Bifurcation Analysis (2)</a></h3>
+                Codimension 2 Bifurcation Analysis</a></h3>
             <p>Codimension 2 bifurcation analysis of FitzHugh Nagumo model, in which "a"
                is varied in [0.5, 1.0], and "Iext" is varied in [0., 1.].</p>
         </td>
     </tr>
 </table>
-
-
-
-More examples please see [BrainPy-Models/dynamics_analysis](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis.html).
-
-
-
-
 
 
