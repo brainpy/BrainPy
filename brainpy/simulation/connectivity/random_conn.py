@@ -3,9 +3,8 @@
 
 import numpy as np
 
-from brainpy import backend
-from brainpy import ops
 from brainpy import tools
+from brainpy.backend import ops
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import Connector
 
@@ -199,9 +198,9 @@ class FixedProb(Connector):
             prob_mat[diag_index, diag_index] = 1.
         conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
         pre_ids, post_ids = np.where(conn_mat)
-        self.conn_mat = backend.as_tensor(conn_mat)
-        self.pre_ids = backend.as_tensor(np.ascontiguousarray(pre_ids))
-        self.post_ids = backend.as_tensor(np.ascontiguousarray(post_ids))
+        self.conn_mat = ops.as_tensor(conn_mat)
+        self.pre_ids = ops.as_tensor(np.ascontiguousarray(pre_ids))
+        self.post_ids = ops.as_tensor(np.ascontiguousarray(post_ids))
         return self
 
 
@@ -244,8 +243,8 @@ class FixedPreNum(Connector):
         arg_sort = np.argsort(prob_mat, axis=0)[:num]
         pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int_)
         post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int_)
-        self.pre_ids = backend.as_tensor(pre_ids)
-        self.post_ids = backend.as_tensor(post_ids)
+        self.pre_ids = ops.as_tensor(pre_ids)
+        self.post_ids = ops.as_tensor(post_ids)
         return self
 
 
@@ -290,8 +289,8 @@ class FixedPostNum(Connector):
         arg_sort = np.argsort(prob_mat, axis=1)[:, num]
         post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
         pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
-        self.pre_ids = backend.as_tensor(pre_ids)
-        self.post_ids = backend.as_tensor(post_ids)
+        self.pre_ids = ops.as_tensor(pre_ids)
+        self.post_ids = ops.as_tensor(post_ids)
         return self
 
 
@@ -365,9 +364,9 @@ class GaussianWeight(Connector):
         pre_ids = np.asarray(i, dtype=np.int_)
         post_ids = np.asarray(j, dtype=np.int_)
         w = np.asarray(w, dtype=np.float_)
-        self.pre_ids = backend.as_tensor(pre_ids)
-        self.post_ids = backend.as_tensor(post_ids)
-        self.weights = backend.as_tensor(w)
+        self.pre_ids = ops.as_tensor(pre_ids)
+        self.post_ids = ops.as_tensor(post_ids)
+        self.weights = ops.as_tensor(w)
         return self
 
 
@@ -431,8 +430,8 @@ class GaussianProb(Connector):
         selected_idxs = np.where(np.random.random(len(p)) < p)[0]
         i = np.asarray(i, dtype=np.int_)[selected_idxs]
         j = np.asarray(j, dtype=np.int_)[selected_idxs]
-        self.pre_ids = backend.as_tensor(i)
-        self.post_ids = backend.as_tensor(j)
+        self.pre_ids = ops.as_tensor(i)
+        self.post_ids = ops.as_tensor(j)
         return self
 
 

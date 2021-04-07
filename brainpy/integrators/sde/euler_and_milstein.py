@@ -4,7 +4,7 @@ import inspect
 
 from brainpy import backend
 from brainpy import errors
-from brainpy import ops
+from brainpy.backend import ops
 from brainpy.integrators import constants
 from brainpy.integrators.ast_analysis import separate_variables
 from . import common

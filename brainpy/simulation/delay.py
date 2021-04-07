@@ -3,7 +3,7 @@
 import math
 
 from brainpy import backend
-from brainpy import ops
+from brainpy.backend import ops
 
 __all__ = [
     'ConstantDelay',

@@ -3,7 +3,7 @@
 from collections import OrderedDict
 
 from brainpy import backend
-from brainpy import ops
+from brainpy.backend import ops
 from brainpy.simulation import utils
 from brainpy.simulation.dynamic_system import DynamicSystem
 from .neu_group import NeuGroup

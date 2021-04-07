@@ -3,8 +3,8 @@
 import inspect
 from pprint import pprint
 
-from brainpy import ops
 from brainpy import errors
+from brainpy.backend import ops
 from brainpy.integrators import constants
 from brainpy.integrators import utils
 from brainpy.integrators.ast_analysis import separate_variables

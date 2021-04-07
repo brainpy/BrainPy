@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from brainpy import backend
 from brainpy import errors
-from brainpy import ops
+from brainpy.backend import ops
 from brainpy.simulation import utils
 from brainpy.simulation.monitors import Monitor
 
@@ -76,7 +76,7 @@ class DynamicSystem(object):
 
         # runner
         # -------
-        self.runner = backend.get_node_runner()(pop=self)
+        self.runner = backend.get_node_driver()(pop=self)
 
         # run function
         # ------------

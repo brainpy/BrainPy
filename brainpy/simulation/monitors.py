@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import errors
-from brainpy import ops
+from brainpy.backend import ops
 from brainpy import tools
 
 __all__ = [

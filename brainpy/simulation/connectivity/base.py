@@ -7,7 +7,7 @@ import numpy as np
 
 from brainpy import backend
 from brainpy import errors
-from brainpy import ops
+from brainpy.backend import ops
 
 try:
     import numba as nb

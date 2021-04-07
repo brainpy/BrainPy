@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import backend
-from brainpy import ops
+from brainpy.backend import ops
 from brainpy.simulation.utils import run_model
 from brainpy.tools import DictPlus
 
