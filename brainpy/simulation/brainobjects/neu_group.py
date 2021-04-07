@@ -24,7 +24,7 @@ class NeuGroup(DynamicSystem):
         The name of the neuron group.
     """
 
-    def __init__(self, size, monitors=None, name=None, show_code=False):
+    def __init__(self, size, monitors=None, name=None, show_code=False, steps=None):
         # name
         # -----
         if name is None:
@@ -52,7 +52,9 @@ class NeuGroup(DynamicSystem):
 
         # initialize
         # ----------
-        super(NeuGroup, self).__init__(steps={'update': self.update},
+        if steps is None:
+            steps = {'update': self.update}
+        super(NeuGroup, self).__init__(steps=steps,
                                        monitors=monitors,
                                        name=name,
                                        show_code=show_code)

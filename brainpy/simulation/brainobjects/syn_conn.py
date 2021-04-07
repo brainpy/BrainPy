@@ -72,7 +72,7 @@ class TwoEndConn(SynConn):
         The name of the neuron group.
     """
 
-    def __init__(self, pre, post, monitors=None, name=None, show_code=False):
+    def __init__(self, pre, post, monitors=None, name=None, show_code=False, steps=None):
         # name
         # ----
         if name is None:
@@ -94,7 +94,9 @@ class TwoEndConn(SynConn):
 
         # initialize
         # ----------
-        super(TwoEndConn, self).__init__(steps={'update': self.update},
+        if steps is None:
+            steps = {'update': self.update}
+        super(TwoEndConn, self).__init__(steps=steps,
                                          name=name,
                                          monitors=monitors,
                                          show_code=show_code)
