@@ -75,7 +75,6 @@ def periods(values, durations, dt=None, return_length=False):
         return I_current
 
 
-
 def constant_current(I_and_duration, dt=None):
     """Format constant input in durations.
 
@@ -257,17 +256,25 @@ class SpikeTimeInput(NeuGroup):
 
 
 class PoissonInput(NeuGroup):
-    target_backend = ['numpy', 'numba', 'numba-parallel']
+    target_backend = 'general'
 
     def __init__(self, size, freqs, **kwargs):
         self.dt = backend.get_dt() / 1000.
         self.freqs = freqs
-        num = size2len(size)
-        self.spike = ops.zeros(num, dtype=bool)
-        self.t_last_spike = -1e7 * ops.ones(num)
-        super(PoissonInput, self).__init__(size, **kwargs)
+        self.size = (size,) if isinstance(size, int) else tuple(size)
+        self.num = size2len(size)
+        self.spike = ops.zeros(self.num, dtype=bool)
+        self.t_last_spike = -1e7 * ops.ones(self.num)
 
-    def update(self, _t):
+        if backend.get_backend_name() == 'numba-cuda':
+            super(PoissonInput, self).__init__(steps={'update': self.numba_cuda_update}, **kwargs)
+        else:
+            super(PoissonInput, self).__init__(steps={'update': self.non_numba_cuda_update}, **kwargs)
+
+    def non_numba_cuda_update(self, _t):
         self.spike = np.random.random(self.num) <= self.freqs * self.dt
         self.t_last_spike = np.where(self.spike, _t, self.t_last_spike)
 
+    def numba_cuda_update(self, _t):
+        self.spike = np.random.random(self.num) <= self.freqs * self.dt
+        self.t_last_spike = np.where(self.spike, _t, self.t_last_spike)

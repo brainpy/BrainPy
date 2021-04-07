@@ -5,7 +5,6 @@ import time
 from brainpy import backend
 from brainpy import errors
 from brainpy.backend import ops
-from brainpy.simulation import constants
 
 __all__ = [
     'size2len',
@@ -14,6 +13,8 @@ __all__ = [
     'format_pop_level_inputs',
     'format_net_level_inputs',
 ]
+
+SUPPORTED_INPUT_OPS = ['-', '+', 'x', '*', '/', '=']
 
 
 def size2len(size):
@@ -128,9 +129,9 @@ def format_pop_level_inputs(inputs, host, mon_length):
     for input in inputs:
         if not 2 <= len(input) <= 3:
             raise errors.ModelUseError('For each target, you must specify "(key, value, [operation])".')
-        if len(input) == 3 and input[2] not in constants.SUPPORTED_INPUT_OPS:
+        if len(input) == 3 and input[2] not in SUPPORTED_INPUT_OPS:
             raise errors.ModelUseError(f'Input operation only supports '
-                                       f'"{list(constants.SUPPORTED_INPUT_OPS.keys())}", '
+                                       f'"{SUPPORTED_INPUT_OPS}", '
                                        f'not "{input[2]}".')
 
     # format inputs
@@ -161,9 +162,9 @@ def format_pop_level_inputs(inputs, host, mon_length):
             operation = input[2]
         else:
             operation = '+'
-        if operation not in constants.SUPPORTED_INPUT_OPS:
+        if operation not in SUPPORTED_INPUT_OPS:
             raise errors.ModelUseError(f'Currently, BrainPy only support operations '
-                                       f'{list(constants.SUPPORTED_INPUT_OPS.keys())}, '
+                                       f'{SUPPORTED_INPUT_OPS}, '
                                        f'not {operation}')
         # input
         format_inp = (key, val, operation, data_type)
@@ -204,9 +205,9 @@ def format_net_level_inputs(inputs, run_length):
             raise errors.ModelUseError('For each target, you must specify '
                                        '"(target, key, value, [operation])".')
         if len(input) == 4:
-            if input[3] not in constants.SUPPORTED_INPUT_OPS:
+            if input[3] not in SUPPORTED_INPUT_OPS:
                 raise errors.ModelUseError(f'Input operation only supports '
-                                           f'"{list(constants.SUPPORTED_INPUT_OPS.keys())}", '
+                                           f'"{SUPPORTED_INPUT_OPS}", '
                                            f'not "{input[3]}".')
 
     # 2. format inputs
@@ -251,4 +252,3 @@ def format_net_level_inputs(inputs, run_length):
         format_inp = (key, val, operation, data_type)
         formatted_inputs[target_name].append(format_inp)
     return formatted_inputs
-

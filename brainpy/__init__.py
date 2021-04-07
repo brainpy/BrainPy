@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0.0-beta"
+__version__ = "1.0.0rc1"
 
 # "backend" module
 from . import backend
@@ -29,7 +29,7 @@ from . import visualization as visualize
 
 # other modules
 from . import errors
-from . import tools
 from . import inputs
 from . import measure
 from . import running
+from . import tools
