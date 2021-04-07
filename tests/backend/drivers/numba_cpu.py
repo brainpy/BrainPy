@@ -57,7 +57,6 @@ def test_analyze_step1():
             self.input = np.zeros(size)
 
             super(HH, self).__init__(size=size,
-                                     steps=[self.update],
                                      monitors=monitors,
                                      name='HH')
 
@@ -71,7 +70,7 @@ def test_analyze_step1():
             self.input = 0.
 
     group = HH(100, ['V'])
-    r = analyze_step_func(group.update)
+    r = analyze_step_func(group, group.update)
 
     print('Code of the function:')
     print(r[0])
@@ -129,7 +128,6 @@ def test_analyze_step2():
             self.input = np.zeros(size)
 
             super(HH, self).__init__(size=size,
-                                     steps=[self.update],
                                      monitors=monitors,
                                      name='HH')
 
@@ -143,7 +141,7 @@ def test_analyze_step2():
             self.input[:] = 0.
 
     group = HH(100, ['V'])
-    r = analyze_step_func(group.update)
+    r = analyze_step_func(group, group.update)
 
     print('Code of the function:')
     print(r[0])
@@ -231,7 +229,7 @@ def test_StepFuncReader1():
             self.size = len(self.pre_ids)
 
             # data
-            self.s = bp.backend.zeros(self.size)
+            self.s = bp.ops.zeros(self.size)
             self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
 
             super(AMPA1_vec, self).__init__(pre=pre, post=post, **kwargs)
@@ -288,11 +286,11 @@ def test_StepFuncReader2():
             self.t_refractory = t_refractory
 
             # variables
-            self.t_last_spike = bp.backend.ones(size) * -1e7
-            self.refractory = bp.backend.zeros(size)
-            self.input = bp.backend.zeros(size)
-            self.spike = bp.backend.zeros(size)
-            self.V = bp.backend.ones(size) * V_reset
+            self.t_last_spike = bp.ops.ones(size) * -1e7
+            self.refractory = bp.ops.zeros(size)
+            self.input = bp.ops.zeros(size)
+            self.spike = bp.ops.zeros(size)
+            self.V = bp.ops.ones(size) * V_reset
 
             super(LIF, self).__init__(size=size, **kwargs)
 
@@ -337,4 +335,5 @@ def test_StepFuncReader2():
     print()
 
 
-test_StepFuncReader1()
+test_analyze_step1()
+# test_StepFuncReader1()

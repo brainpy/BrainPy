@@ -7,6 +7,7 @@ import numpy as np
 
 from brainpy import backend
 from brainpy import errors
+from brainpy import ops
 
 try:
     import numba as nb
@@ -29,7 +30,7 @@ __all__ = [
 
 
 def _numba_backend():
-    r = backend.get_backend().startswith('numba')
+    r = backend.get_backend_name().startswith('numba')
     if r and nb is None:
         raise errors.PackageMissingError('Please install numba for numba backend.')
     return r
@@ -62,7 +63,7 @@ def ij2mat(i, j, num_pre=None, num_post=None):
     if num_post is None:
         print('WARNING: "num_post" is not provided, the result may not be accurate.')
         num_post = j.max()
-    conn_mat = backend.zeros((num_pre, num_post))
+    conn_mat = ops.zeros((num_pre, num_post))
     conn_mat[i, j] = 1.
     return conn_mat
 
@@ -81,11 +82,11 @@ def mat2ij(conn_mat):
         (Pre-synaptic neuron indexes,
          post-synaptic neuron indexes).
     """
-    if len(backend.shape(conn_mat)) != 2:
+    if len(ops.shape(conn_mat)) != 2:
         raise errors.ModelUseError('Connectivity matrix must be in the '
                                    'shape of (num_pre, num_post).')
-    pre_ids, post_ids = backend.where(conn_mat > 0)
-    return backend.as_tensor(pre_ids), backend.as_tensor(post_ids)
+    pre_ids, post_ids = ops.where(conn_mat > 0)
+    return ops.as_tensor(pre_ids), ops.as_tensor(post_ids)
 
 
 def pre2post(i, j, num_pre=None):
@@ -114,7 +115,7 @@ def pre2post(i, j, num_pre=None):
     pre2post_list = [[] for _ in range(num_pre)]
     for pre_id, post_id in zip(i, j):
         pre2post_list[pre_id].append(post_id)
-    pre2post_list = [backend.as_tensor(l) for l in pre2post_list]
+    pre2post_list = [ops.as_tensor(l) for l in pre2post_list]
 
     if _numba_backend:
         pre2post_list_nb = nb.typed.List()
@@ -151,7 +152,7 @@ def post2pre(i, j, num_post=None):
     post2pre_list = [[] for _ in range(num_post)]
     for pre_id, post_id in zip(i, j):
         post2pre_list[post_id].append(pre_id)
-    post2pre_list = [backend.as_tensor(l) for l in post2pre_list]
+    post2pre_list = [ops.as_tensor(l) for l in post2pre_list]
 
     if _numba_backend():
         post2pre_list_nb = nb.typed.List()
@@ -183,7 +184,7 @@ def pre2syn(i, num_pre=None):
     pre2syn_list = [[] for _ in range(num_pre)]
     for syn_id, pre_id in enumerate(i):
         pre2syn_list[pre_id].append(syn_id)
-    pre2syn_list = [backend.as_tensor(l) for l in pre2syn_list]
+    pre2syn_list = [ops.as_tensor(l) for l in pre2syn_list]
 
     if _numba_backend():
         pre2syn_list_nb = nb.typed.List()
@@ -216,7 +217,7 @@ def post2syn(j, num_post=None):
     post2syn_list = [[] for _ in range(num_post)]
     for syn_id, post_id in enumerate(j):
         post2syn_list[post_id].append(syn_id)
-    post2syn_list = [backend.as_tensor(l) for l in post2syn_list]
+    post2syn_list = [ops.as_tensor(l) for l in post2syn_list]
 
     if _numba_backend():
         post2syn_list_nb = nb.typed.List()
@@ -259,8 +260,8 @@ def pre_slice_syn(i, j, num_pre=None):
     for pre_i, posts in enumerate(pre2post_list):
         post_ids.extend(posts)
         pre_ids.extend([pre_i] * len(posts))
-    post_ids = backend.as_tensor(post_ids)
-    pre_ids = backend.as_tensor(pre_ids)
+    post_ids = ops.as_tensor(post_ids)
+    pre_ids = ops.as_tensor(pre_ids)
 
     # pre2post slicing
     slicing = []
@@ -269,7 +270,7 @@ def pre_slice_syn(i, j, num_pre=None):
         end = start + len(posts)
         slicing.append([start, end])
         start = end
-    slicing = backend.as_tensor(slicing)
+    slicing = ops.as_tensor(slicing)
 
     return pre_ids, post_ids, slicing
 
@@ -305,8 +306,8 @@ def post_slice_syn(i, j, num_post=None):
     for _post_id, _pre_ids in enumerate(post2pre_list):
         pre_ids.extend(_pre_ids)
         post_ids.extend([_post_id] * len(_pre_ids))
-    post_ids = backend.as_tensor(post_ids)
-    pre_ids = backend.as_tensor(pre_ids)
+    post_ids = ops.as_tensor(post_ids)
+    pre_ids = ops.as_tensor(pre_ids)
 
     # post2pre slicing
     slicing = []
@@ -315,7 +316,7 @@ def post_slice_syn(i, j, num_post=None):
         end = start + len(pres)
         slicing.append([start, end])
         start = end
-    slicing = backend.as_tensor(slicing)
+    slicing = ops.as_tensor(slicing)
 
     return pre_ids, post_ids, slicing
 

@@ -58,7 +58,7 @@ Install ``BrainPy`` from source:
 
 
 
-# Start using BrainPy
+# Get Started
 
 - **Website (including documentation):** https://brainpy.readthedocs.io/
 - **Source code:** https://github.com/PKU-NIP-Lab/BrainPy  or  https://git.openi.org.cn/OpenI/BrainPy

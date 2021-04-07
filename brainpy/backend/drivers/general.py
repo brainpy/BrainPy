@@ -2,6 +2,7 @@
 
 from brainpy import backend
 from brainpy import errors
+from brainpy import ops
 from brainpy.simulation import driver
 from . import utils
 
@@ -30,11 +31,11 @@ class GeneralNodeDriver(driver.NodeDriver):
             # compare
             if key in old_input_keys:
                 old_input_keys.remove(key)
-                if backend.shape(self.last_inputs[key][0]) != backend.shape(val):
+                if ops.shape(self.last_inputs[key][0]) != ops.shape(val):
                     input_keep_same = False
                     if show_code:
-                        print(f'The current "{key}" input shape {backend.shape(val)} is different '
-                              f'from the last input shape {backend.shape(self.last_inputs[key][0])}.')
+                        print(f'The current "{key}" input shape {ops.shape(val)} is different '
+                              f'from the last input shape {ops.shape(self.last_inputs[key][0])}.')
                 if self.last_inputs[key][1] != ops:
                     input_keep_same = False
                     if show_code:
@@ -100,8 +101,8 @@ class GeneralNodeDriver(driver.NodeDriver):
                                                f'thus it cannot be monitored.')
 
                 # initialize monitor array #
-                shape = backend.shape(getattr(self.host, key))
-                mon[key] = backend.zeros((mon_length,) + shape)
+                shape = ops.shape(getattr(self.host, key))
+                mon[key] = ops.zeros((mon_length,) + shape)
 
                 # add line #
                 line = f'  {host}.mon["{key}"][_i] = {host}.{key}'

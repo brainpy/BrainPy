@@ -2,7 +2,18 @@
 
 from .numpy_ import *
 
-BACKEND_NAME = 'numpy'
+__all__ = [
+    'switch_to',
+    'set_ops_from_module',
+    'set_ops',
+    'set_buffer',
+    'get_buffer',
+
+    'BUFFER',
+    'OPS_FOR_SOLVER',
+    'OPS_FOR_SIMULATION',
+]
+
 BUFFER = {}
 OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'matmul', 'shape', ]
 OPS_FOR_SIMULATION = ['as_tensor', 'zeros', 'ones', 'arange',
@@ -48,9 +59,6 @@ def switch_to(backend):
     # set operations from BUFFER
     ops_in_buffer = get_buffer(backend)
     set_ops(**ops_in_buffer)
-
-    global BACKEND_NAME
-    BACKEND_NAME = backend
 
 
 def set_ops_from_module(module):
@@ -111,13 +119,3 @@ def set_buffer(backend, *args, **kwargs):
 def get_buffer(backend):
     return BUFFER.get(backend, dict())
 
-
-def get_backend_name():
-    """Get the current backend name.
-
-    Returns
-    -------
-    backend : str
-        The name of the current backend name.
-    """
-    return BACKEND_NAME

@@ -3,6 +3,7 @@
 from collections import OrderedDict
 
 from brainpy import backend
+from brainpy import ops
 from brainpy.simulation import utils
 from brainpy.simulation.dynamic_system import DynamicSystem
 from .neu_group import NeuGroup
@@ -94,12 +95,12 @@ class Network(object):
         # preparation
         start, end = utils.check_duration(duration)
         dt = backend.get_dt()
-        ts = backend.arange(start, end, dt)
+        ts = ops.arange(start, end, dt)
 
         # build the network
         run_length = ts.shape[0]
         format_inputs = utils.format_net_level_inputs(inputs, run_length)
-        net_runner = backend.get_net_runner()(all_nodes=self.all_nodes)
+        net_runner = backend.get_net_driver()(all_nodes=self.all_nodes)
         self.run_func = net_runner.build(run_length=run_length,
                                          formatted_inputs=format_inputs,
                                          return_code=False,
@@ -118,4 +119,4 @@ class Network(object):
     def ts(self):
         """Get the time points of the network.
         """
-        return backend.arange(self.t_start, self.t_end, backend.get_dt())
+        return ops.arange(self.t_start, self.t_end, backend.get_dt())

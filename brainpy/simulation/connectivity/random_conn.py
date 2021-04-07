@@ -4,6 +4,7 @@
 import numpy as np
 
 from brainpy import backend
+from brainpy import ops
 from brainpy import tools
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import Connector
@@ -503,9 +504,9 @@ class DOG(Connector):
         i = np.asarray(i, dtype=np.int_)
         j = np.asarray(j, dtype=np.int_)
         w = np.asarray(w, dtype=np.float_)
-        self.pre_ids = backend.as_tensor(i)
-        self.post_ids = backend.as_tensor(j)
-        self.weights = backend.as_tensor(w)
+        self.pre_ids = ops.as_tensor(i)
+        self.post_ids = ops.as_tensor(j)
+        self.weights = ops.as_tensor(w)
         return self
 
 
@@ -598,12 +599,12 @@ class SmallWorld(Connector):
         else:
             raise NotImplementedError('Currently only support 1D ring connection.')
 
-        self.conn_mat = backend.as_tensor(conn)
+        self.conn_mat = ops.as_tensor(conn)
         pre_ids, post_ids = np.where(conn)
         pre_ids = np.ascontiguousarray(pre_ids)
         post_ids = np.ascontiguousarray(post_ids)
-        self.pre_ids = backend.as_tensor(pre_ids)
-        self.post_ids = backend.as_tensor(post_ids)
+        self.pre_ids = ops.as_tensor(pre_ids)
+        self.post_ids = ops.as_tensor(post_ids)
 
         return self
 
@@ -674,12 +675,12 @@ class ScaleFreeBA(Connector):
             targets = _random_subset(repeated_nodes, self.m, self.rng)
             source += 1
 
-        self.conn_mat = backend.as_tensor(conn)
+        self.conn_mat = ops.as_tensor(conn)
         pre_ids, post_ids = np.where(conn)
         pre_ids = np.ascontiguousarray(pre_ids)
         post_ids = np.ascontiguousarray(post_ids)
-        self.pre_ids = backend.as_tensor(pre_ids)
-        self.post_ids = backend.as_tensor(post_ids)
+        self.pre_ids = ops.as_tensor(pre_ids)
+        self.post_ids = ops.as_tensor(post_ids)
 
         return self
 
@@ -768,12 +769,12 @@ class ScaleFreeBADual(Connector):
             targets = _random_subset(repeated_nodes, m, self.rng)
             source += 1
 
-        self.conn_mat = backend.as_tensor(conn)
+        self.conn_mat = ops.as_tensor(conn)
         pre_ids, post_ids = np.where(conn)
         pre_ids = np.ascontiguousarray(pre_ids)
         post_ids = np.ascontiguousarray(post_ids)
-        self.pre_ids = backend.as_tensor(pre_ids)
-        self.post_ids = backend.as_tensor(post_ids)
+        self.pre_ids = ops.as_tensor(pre_ids)
+        self.post_ids = ops.as_tensor(post_ids)
 
         return self
 
@@ -883,11 +884,11 @@ class PowerLaw(Connector):
             repeated_nodes.extend([source] * self.m)  # add source node to list m times
             source += 1
 
-        self.conn_mat = backend.as_tensor(conn)
+        self.conn_mat = ops.as_tensor(conn)
         pre_ids, post_ids = np.where(conn)
         pre_ids = np.ascontiguousarray(pre_ids)
         post_ids = np.ascontiguousarray(post_ids)
-        self.pre_ids = backend.as_tensor(pre_ids)
-        self.post_ids = backend.as_tensor(post_ids)
+        self.pre_ids = ops.as_tensor(pre_ids)
+        self.post_ids = ops.as_tensor(post_ids)
 
         return self

@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from brainpy import backend
 from brainpy import errors
+from brainpy import ops
 from brainpy.simulation import utils
 from brainpy.simulation.monitors import Monitor
 
@@ -115,10 +116,10 @@ class DynamicSystem(object):
             The code lines to call step functions.
         """
         if (self._target_backend[0] != 'general') and \
-                (backend.get_backend() not in self._target_backend):
+                (backend.get_backend_name() not in self._target_backend):
             raise errors.ModelDefError(f'The model {self.name} is target to run on {self._target_backend},'
                                        f'but currently the default backend of BrainPy is '
-                                       f'{backend.get_backend()}')
+                                       f'{backend.get_backend_name()}')
         if not inputs_is_formatted:
             inputs = utils.format_pop_level_inputs(inputs, self, mon_length)
         return self.runner.build(formatted_inputs=inputs,
@@ -144,8 +145,8 @@ class DynamicSystem(object):
         # times
         # ------
         start, end = utils.check_duration(duration)
-        times = backend.arange(start, end, backend.get_dt())
-        run_length = backend.shape(times)[0]
+        times = ops.arange(start, end, backend.get_dt())
+        run_length = ops.shape(times)[0]
 
         # build run function
         # ------------------

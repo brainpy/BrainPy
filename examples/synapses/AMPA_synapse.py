@@ -85,7 +85,7 @@ class AMPA1_vec(bp.TwoEndConn):
         self.size = len(self.pre_ids)
 
         # data
-        self.s = bp.backend.zeros(self.size)
+        self.s = bp.ops.zeros(self.size)
         self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
 
         super(AMPA1_vec, self).__init__(pre=pre, post=post, **kwargs)
@@ -118,10 +118,10 @@ class AMPA1_mat(bp.TwoEndConn):
         # connections
         self.conn = conn(pre.size, post.size)
         self.conn_mat = conn.requires('conn_mat')
-        self.size = bp.backend.shape(self.conn_mat)
+        self.size = bp.ops.shape(self.conn_mat)
 
         # variables
-        self.s = bp.backend.zeros(self.size)
+        self.s = bp.ops.zeros(self.size)
         self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
 
         super(AMPA1_mat, self).__init__(pre=pre, post=post, **kwargs)
@@ -138,7 +138,7 @@ class AMPA1_mat(bp.TwoEndConn):
                 self.s[i] += self.conn_mat[i]
         self.g.push(self.g_max * self.s)
         g = self.g.pull()
-        self.post.input -= bp.backend.sum(g, axis=0) * (self.post.V - self.E)
+        self.post.input -= bp.ops.sum(g, axis=0) * (self.post.V - self.E)
 
 
 if __name__ == '__main__':

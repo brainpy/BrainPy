@@ -20,11 +20,11 @@ class LIF(bp.NeuGroup):
         self.t_refractory = t_refractory
 
         # variables
-        self.t_last_spike = bp.backend.ones(size) * -1e7
-        self.refractory = bp.backend.zeros(size)
-        self.input = bp.backend.zeros(size)
-        self.spike = bp.backend.zeros(size)
-        self.V = bp.backend.ones(size) * V_reset
+        self.t_last_spike = bp.ops.ones(size) * -1e7
+        self.refractory = bp.ops.zeros(size)
+        self.input = bp.ops.zeros(size)
+        self.spike = bp.ops.zeros(size)
+        self.V = bp.ops.ones(size) * V_reset
 
         super(LIF, self).__init__(size=size, **kwargs)
 

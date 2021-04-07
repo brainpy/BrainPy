@@ -4,6 +4,7 @@ import time
 
 from brainpy import backend
 from brainpy import errors
+from brainpy import ops
 from brainpy.simulation import constants
 
 __all__ = [
@@ -149,7 +150,7 @@ def format_pop_level_inputs(inputs, host, mon_length):
         if isinstance(input[1], (int, float)):
             data_type = 'fix'
         else:
-            shape = backend.shape(input[1])
+            shape = ops.shape(input[1])
             if shape[0] == mon_length:
                 data_type = 'iter'
             else:
@@ -157,15 +158,15 @@ def format_pop_level_inputs(inputs, host, mon_length):
 
         # operation
         if len(input) == 3:
-            ops = input[2]
+            operation = input[2]
         else:
-            ops = '+'
-        if ops not in constants.SUPPORTED_INPUT_OPS:
+            operation = '+'
+        if operation not in constants.SUPPORTED_INPUT_OPS:
             raise errors.ModelUseError(f'Currently, BrainPy only support operations '
                                        f'{list(constants.SUPPORTED_INPUT_OPS.keys())}, '
-                                       f'not {ops}')
+                                       f'not {operation}')
         # input
-        format_inp = (key, val, ops, data_type)
+        format_inp = (key, val, operation, data_type)
         formatted_inputs.append(format_inp)
 
     return formatted_inputs
@@ -232,7 +233,7 @@ def format_net_level_inputs(inputs, run_length):
         if isinstance(input[2], (int, float)):
             data_type = 'fix'
         else:
-            shape = backend.shape(val)
+            shape = ops.shape(val)
             if shape[0] == run_length:
                 data_type = 'iter'
             else:
@@ -240,14 +241,14 @@ def format_net_level_inputs(inputs, run_length):
 
         # operation
         if len(input) == 4:
-            ops = input[3]
+            operation = input[3]
         else:
-            ops = '+'
+            operation = '+'
 
         # final result
         if target_name not in formatted_inputs:
             formatted_inputs[target_name] = []
-        format_inp = (key, val, ops, data_type)
+        format_inp = (key, val, operation, data_type)
         formatted_inputs[target_name].append(format_inp)
     return formatted_inputs
 

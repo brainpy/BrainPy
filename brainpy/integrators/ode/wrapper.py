@@ -3,7 +3,7 @@
 import inspect
 from pprint import pprint
 
-from brainpy import backend
+from brainpy import ops
 from brainpy import errors
 from brainpy.integrators import constants
 from brainpy.integrators import utils
@@ -351,7 +351,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
     code_scope.update(dict(closure_vars.globals))
     code_scope[dt_var] = dt
     code_scope['f'] = f
-    code_scope['exp'] = backend.exp
+    code_scope['exp'] = ops.exp
 
     analysis = separate_variables(f)
     variables_for_returns = analysis['variables_for_returns']
@@ -404,21 +404,6 @@ def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
             code_lines.append(f'  {s_linear_exp.name} = sqrt({dt})')
             # df part
             code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(dt * s_df)}')
-
-        # # get dg part
-        # if diff_eq.is_stochastic:
-        #     # dW
-        #     noise = f'_normal_like_({diff_eq.var_name})'
-        #     code_lines.append(f'_{diff_eq.var_name}_dW = {noise}')
-        #     # expressions of the stochastic part
-        #     g_expressions = diff_eq.get_g_expressions()
-        #     code_lines.extend([str(expr) for expr in g_expressions[:-1]])
-        #     g_expr = g_expressions[-1].code
-        #     # get the dg_part
-        #     s_dg_part = sympy.Symbol(f'_{diff_eq.var_name}_dg_part')
-        #     code_lines.append(f'_{diff_eq.var_name}_dg_part = {g_expr} * _{diff_eq.var_name}_dW')
-        # else:
-        #     s_dg_part = 0
 
         # update expression
         update = var + s_df_part

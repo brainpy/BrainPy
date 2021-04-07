@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import backend
+from brainpy import ops
 from brainpy.integrators import constants
 from . import common
 
@@ -11,7 +12,7 @@ __all__ = [
 
 def _vector_wiener_terms(code_lines, sde_type, vdt, shape_D, shape_m):
     if sde_type == constants.ITO_SDE:
-        I2 = f'0.5*(_term3 - {vdt} * backend.eye({shape_m})) + _a*0.5*{vdt}/math.pi'
+        I2 = f'0.5*(_term3 - {vdt} * ops.eye({shape_m})) + _a*0.5*{vdt}/math.pi'
     elif sde_type == constants.STRA_SDE:
         I2 = f'0.5*_term3 + _a*0.5*dt/math.pi'
     else:
@@ -25,19 +26,19 @@ def _vector_wiener_terms(code_lines, sde_type, vdt, shape_D, shape_m):
   # ----------- #
     
   # single Ito integrals
-  _I1 = backend.normal(0., {vdt}_sqrt, {shape_D}({shape_m},))
+  _I1 = ops.normal(0., {vdt}_sqrt, {shape_D}({shape_m},))
   # double Ito integrals
   _h = (2.0 / {vdt}) ** 0.5)
-  _a = backend.zeros(shape={shape_D}({shape_m}, {shape_m}))
+  _a = ops.zeros(shape={shape_D}({shape_m}, {shape_m}))
   for _k in range(1, num_iter + 1):
-    _x = backend.normal(loc=0., scale=1., size={shape_D}({shape_m}, 1))
-    _y = backend.normal(loc=0., scale=1., size={shape_D}(1, {shape_m})) + _h * _I1
-    _term1 = backend.matmul(_x, _y)
-    _term2 = backend.matmul(backend.reshape(_y, {shape_D}({shape_m}, 1)), 
-                            backend.reshape(_x, {shape_D}(1, {shape_m})))
+    _x = ops.normal(loc=0., scale=1., size={shape_D}({shape_m}, 1))
+    _y = ops.normal(loc=0., scale=1., size={shape_D}(1, {shape_m})) + _h * _I1
+    _term1 = ops.matmul(_x, _y)
+    _term2 = ops.matmul(ops.reshape(_y, {shape_D}({shape_m}, 1)), 
+                        ops.reshape(_x, {shape_D}(1, {shape_m})))
     _a += (_term1 - _term2) / _k
-  _I1_rs = backend.reshape(_I1, {shape_D}({shape_m}, 1))
-  _term3 = backend.matmul(_I1_rs, backend.reshape(_I1, {shape_D}(1, {shape_m})))
+  _I1_rs = ops.reshape(_I1, {shape_D}({shape_m}, 1))
+  _term3 = ops.matmul(_I1_rs, ops.reshape(_I1, {shape_D}(1, {shape_m})))
   _I2 = {I2}
   '''
     noise_lines = noise_string.split('\n')
@@ -57,7 +58,7 @@ def _srk2_pop_var_vector_wiener(sde_type, code_lines, variables, parameters, vdt
     noise_string = f'''
   {", ".join(all_f)} = f({", ".join(variables + parameters)})  # shape = (..)
   {", ".join(all_g)} = g({", ".join(variables + parameters)})  # shape = (.., m)
-  noise_shape = backend.shape(g_x1)
+  noise_shape = ops.shape(g_x1)
   _D = noise_shape[:-1]
   _m = noise_shape[-1]
   '''
@@ -69,22 +70,22 @@ def _srk2_pop_var_vector_wiener(sde_type, code_lines, variables, parameters, vdt
     # numerical integration
     # step 1
     # ---
-    # g_x1_rs = backend.reshape(g_x1, _D + (1, _m))
-    # g_x2_rs = backend.reshape(g_x2, _D + (1, _m))
+    # g_x1_rs = ops.reshape(g_x1, _D + (1, _m))
+    # g_x2_rs = ops.reshape(g_x2, _D + (1, _m))
     for var in variables:
-        code_lines.append(f"  g_{var}_rs = backend.reshape(g_{var}, _D+(1, _m))")
+        code_lines.append(f"  g_{var}_rs = ops.reshape(g_{var}, _D+(1, _m))")
     # step 2
     # ---
-    # g_H1_x1 = backend.reshape(backend.matmul(g_x1_rs, _I2) / dt_sqrt, _D + (_m,))
-    # g_H1_x2 = backend.reshape(backend.matmul(g_x2_rs, _I2) / dt_sqrt, _D + (_m,))
+    # g_H1_x1 = ops.reshape(ops.matmul(g_x1_rs, _I2) / dt_sqrt, _D + (_m,))
+    # g_H1_x2 = ops.reshape(ops.matmul(g_x2_rs, _I2) / dt_sqrt, _D + (_m,))
     for var in variables:
-        code_lines.append(f'  g_H1_{var} = backend.reshape(backend.matmul(g_{var}_rs, _I2) / {vdt}_sqrt, _D + (_m,))')
+        code_lines.append(f'  g_H1_{var} = ops.reshape(ops.matmul(g_{var}_rs, _I2) / {vdt}_sqrt, _D + (_m,))')
     # step 3
     # ---
-    # x1_rs = backend.reshape(x1, _D + (1,))
-    # x2_rs = backend.reshape(x2, _D + (1,))
+    # x1_rs = ops.reshape(x1, _D + (1,))
+    # x2_rs = ops.reshape(x2, _D + (1,))
     for var in variables:
-        code_lines.append(f'  {var}_rs = backend.reshape({var}, _D + (1,))')
+        code_lines.append(f'  {var}_rs = ops.reshape({var}, _D + (1,))')
     # step 4
     # ---
     # H2_x1 = x1_rs + g_H1_x1
@@ -95,9 +96,9 @@ def _srk2_pop_var_vector_wiener(sde_type, code_lines, variables, parameters, vdt
     code_lines.append('  ')
     # step 5
     # ---
-    # _g_x1 = backend.matmul(g_x1_rs, _I1_rs)
+    # _g_x1 = ops.matmul(g_x1_rs, _I1_rs)
     for var in variables:
-        code_lines.append(f'  _g_{var} = backend.matmul(g_{var}_rs, _I1_rs)')
+        code_lines.append(f'  _g_{var} = ops.matmul(g_{var}_rs, _I1_rs)')
     # step 6
     # ----
     # x1_new = x1 + f_x1 + _g_x1[..., 0, 0]
@@ -137,7 +138,7 @@ def _srk2_pop_or_scalar_var_scalar_wiener(sde_type, code_lines, variables, param
   {", ".join(all_g)} = g({", ".join(variables + parameters)})  # shape = (..)
 
   # single Ito integrals
-  _I1 = backend.normal(0., {vdt}_sqrt, backend.shape({variables[0]}))  # shape = (..)
+  _I1 = ops.normal(0., {vdt}_sqrt, ops.shape({variables[0]}))  # shape = (..)
   # double Ito integrals
   _I2 = {I2}  # shape = (..)
   '''
@@ -179,7 +180,7 @@ def _srk1_scalar_var_with_vector_wiener(sde_type, code_lines, variables, paramet
 
   {", ".join(all_f)} = f({", ".join(variables + parameters)})  # shape = ()
   {", ".join(all_g)} = g({", ".join(variables + parameters)})  # shape = (m)
-  noise_shape = backend.shape(g_x1)
+  noise_shape = ops.shape(g_x1)
   _m = noise_shape[0]
   '''
     code_lines.extend(code1.split('\n'))
@@ -191,17 +192,17 @@ def _srk1_scalar_var_with_vector_wiener(sde_type, code_lines, variables, paramet
 
     # p1
     # ---
-    # g_x1_rs = backend.reshape(g_x1, (1, _m))
-    # g_x2_rs = backend.reshape(g_x2, (1, _m))
+    # g_x1_rs = ops.reshape(g_x1, (1, _m))
+    # g_x2_rs = ops.reshape(g_x2, (1, _m))
     for var in variables:
-        code_lines.append(f'  g_{var}_rs = backend.reshape(g_{var}, (1, _m))')
+        code_lines.append(f'  g_{var}_rs = ops.reshape(g_{var}, (1, _m))')
 
     # p2
     # ---
-    # g_H1_x1 = backend.matmul(g_x1_rs, _I2) / dt_sqrt  # shape (1, m)
-    # g_H1_x2 = backend.matmul(g_x2_rs, _I2) / dt_sqrt  # shape (1, m)
+    # g_H1_x1 = ops.matmul(g_x1_rs, _I2) / dt_sqrt  # shape (1, m)
+    # g_H1_x2 = ops.matmul(g_x2_rs, _I2) / dt_sqrt  # shape (1, m)
     for var in variables:
-        code_lines.append(f'  g_H1_{var} = backend.matmul(g_{var}_rs, _I2) / {vdt}_sqrt  # shape (1, m)')
+        code_lines.append(f'  g_H1_{var} = ops.matmul(g_{var}_rs, _I2) / {vdt}_sqrt  # shape (1, m)')
 
     # p3
     # ---
@@ -213,10 +214,10 @@ def _srk1_scalar_var_with_vector_wiener(sde_type, code_lines, variables, paramet
 
     # p4
     # ---
-    # g1_x1 = backend.matmul(g_x1_rs, _I1_rs)  # shape (1, 1)
+    # g1_x1 = ops.matmul(g_x1_rs, _I1_rs)  # shape (1, 1)
     # x1_new = x1 + f_x1 + g1_x1[0, 0]  # shape ()
     for var in variables:
-        code_lines.append(f'  g1_{var} = backend.matmul(g_{var}_rs, _I1_rs)  # shape (1, 1)')
+        code_lines.append(f'  g1_{var} = ops.matmul(g_{var}_rs, _I1_rs)  # shape (1, 1)')
         code_lines.append(f'  {var}_new = {var} + f_{var} + g1_{var}[0, 0]  # shape ()')
 
     # p5
@@ -245,7 +246,7 @@ def _srk1_system_var_with_vector_wiener(sde_type, code_lines, variables, paramet
     
   f_x = f({", ".join(variables + parameters)})  # shape = (d, ..)
   g_x = g({", ".join(variables + parameters)})  # shape = (d, .., m)
-  _shape = backend.shape(g_x)
+  _shape = ops.shape(g_x)
   _d = _shape[0]
   _m = _shape[-1]
   _D = _shape[1:-1]
@@ -260,15 +261,15 @@ def _srk1_system_var_with_vector_wiener(sde_type, code_lines, variables, paramet
   # numerical integration #
   # --------------------- #
   
-  g_x2 = backend.moveaxis(g_x, 0, -2)  # shape = (.., d, m)
-  g_H1_k = backend.matmul(g_x2, _I2) / dt_sqrt  # shape (.., d, m)
-  g_H1_k = backend.moveaxis(g_H1_k, -2, 0)  # shape (d, .., m)
-  x_rs = backend.reshape(x, (_d,) + _D + (1,))
+  g_x2 = ops.moveaxis(g_x, 0, -2)  # shape = (.., d, m)
+  g_H1_k = ops.matmul(g_x2, _I2) / dt_sqrt  # shape (.., d, m)
+  g_H1_k = ops.moveaxis(g_H1_k, -2, 0)  # shape (d, .., m)
+  x_rs = ops.reshape(x, (_d,) + _D + (1,))
   H2 = x_rs + g_H1_k  # shape (d, .., m)
   H3 = x_rs - g_H1_k  # shape (d, .., m)
   
-  g1 = backend.matmul(g_x2, _I1_rs)  # shape (.., d, 1)
-  g1 = backend.moveaxis(g1, -2, 0)  # shape (d, .., 1)
+  g1 = ops.matmul(g_x2, _I1_rs)  # shape (.., d, 1)
+  g1 = ops.moveaxis(g1, -2, 0)  # shape (d, .., 1)
   y = x + f_x + g1[..., 0]  # shape (d, ..)
   for _k in range(_m):
     y += 0.5 * dt_sqrt * g(H2[..., _k], t, *args)[..., _k]
@@ -288,12 +289,12 @@ def _srk1_system_var_with_scalar_wiener(sde_type, code_lines, variables, paramet
     code_string = f'''
   f_x = f({", ".join(variables + parameters)})  # shape = (d, ..)
   g_x = g({", ".join(variables + parameters)})  # shape = (d, ..)
-  _shape = backend.shape(g_x)
+  _shape = ops.shape(g_x)
   _d = _shape[0]
   _D = _shape[1:]
 
   # single Ito integrals
-  _I1 = backend.normal(0., {vdt}_sqrt, _D)  # shape = (..)
+  _I1 = ops.normal(0., {vdt}_sqrt, _D)  # shape = (..)
   # double Ito integrals
   _I2 = {I2}  # shape = (..)
 
@@ -317,7 +318,7 @@ def _srk1_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter
 
     # 1. code scope
     code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5,
-                  'backend': backend, 'num_iter': num_iter}
+                  'ops': ops, 'num_iter': num_iter}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']

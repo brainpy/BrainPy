@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import backend
+from brainpy import ops
 from brainpy.simulation.utils import run_model
 from brainpy.tools import DictPlus
 
@@ -54,10 +55,10 @@ class Trajectory(object):
         self.mon = DictPlus()
         self.vars_and_pars = DictPlus()
         for key, val in target_vars.items():
-            self.vars_and_pars[key] = backend.ones(size) * val
-            self.mon[key] = backend.zeros((1,) + size)
+            self.vars_and_pars[key] = ops.ones(size) * val
+            self.mon[key] = ops.zeros((1,) + size)
         for key, val in fixed_vars.items():
-            self.vars_and_pars[key] = backend.ones(size) * val
+            self.vars_and_pars[key] = ops.ones(size) * val
         for key, val in pars_update.items():
             self.vars_and_pars[key] = val
         self.scope['VP'] = self.vars_and_pars
@@ -101,9 +102,9 @@ class Trajectory(object):
             raise ValueError
 
         # get the times
-        times = backend.arange(duration[0], duration[1], backend.get_dt())
+        times = ops.arange(duration[0], duration[1], backend.get_dt())
         # reshape the monitor
         for key in self.mon.keys():
-            self.mon[key] = backend.zeros((len(times),) + backend.shape(self.mon[key])[1:])
+            self.mon[key] = ops.zeros((len(times),) + ops.shape(self.mon[key])[1:])
         # run the model
         run_model(run_func=self.run_func, times=times, report=report, report_percent=report_percent)

@@ -13,7 +13,7 @@ __all__ = [
 
 
 def numba_func(code_scope, funcs_to_jit):
-    if backend.get_backend() in ['numba', 'numba-parallel']:
+    if backend.get_backend_name() in ['numba', 'numba-parallel']:
         from brainpy.backend.drivers.numba_cpu import NUMBA_PROFILE
         import numba as nb
 
@@ -24,7 +24,7 @@ def numba_func(code_scope, funcs_to_jit):
         for f in funcs_to_jit:
             code_scope[f] = nb.jit(**profiles)(code_scope[f])
 
-    elif backend.get_backend() == 'numba-cuda':
+    elif backend.get_backend_name() == 'numba-cuda':
         from numba import cuda
 
         for f in funcs_to_jit:

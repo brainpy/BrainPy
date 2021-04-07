@@ -9,10 +9,10 @@ __all__ = [
     'get_buffer',
     'get_node_driver',
     'get_net_driver',
-    'get_backend_name',
+
+    'BUFFER',
 ]
 
-BACKEND_NAME = 'numpy'
 NODE_DRIVER = GeneralNodeDriver
 NET_DRIVER = GeneralNetDriver
 BUFFER = {}
@@ -21,7 +21,7 @@ BUFFER = {}
 def switch_to(backend):
     buffer = get_buffer(backend)
 
-    global NODE_DRIVER, NET_DRIVER, BACKEND_NAME
+    global NODE_DRIVER, NET_DRIVER
     if backend in ['numpy', 'pytorch', 'tensorflow']:
         from . import general
         NODE_DRIVER = buffer.get('node', None) or GeneralNodeDriver
@@ -47,7 +47,6 @@ def switch_to(backend):
         NODE_DRIVER = buffer.get('node')
         NET_DRIVER = buffer.get('net')
 
-    BACKEND_NAME = backend
 
 
 def set_buffer(backend, node=None, net=None):
@@ -87,14 +86,3 @@ def get_net_driver():
         The network runner.
     """
     return NET_DRIVER
-
-
-def get_backend_name():
-    """Get the current backend name.
-
-    Returns
-    -------
-    backend : str
-        The name of the current backend name.
-    """
-    return BACKEND_NAME

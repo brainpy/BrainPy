@@ -70,6 +70,12 @@ def get_numba_profile():
 
 
 class StepFuncReader(ast.NodeVisitor):
+    """The following tasks should be carried out:
+
+    - Find all expressions, including Assign, AugAssign, For loop, If-else condition.
+    - Find all delay push and pull.
+
+    """
     def __init__(self, host):
         self.lefts = []
         self.rights = []
@@ -516,7 +522,8 @@ def class2func(cls_func, host, func_name=None, show_code=False):
                 else:
                     raise ValueError(f'Unknown delay pull. {delay_}')
             delay_call_name = delay_['func']
-            data_need_pass.remove(delay_call_name)
+            if delay_call_name in data_need_pass:
+                data_need_pass.remove(delay_call_name)
             data_need_pass.extend(delay_['data_need_pass'])
             replaces_early[delay_['org_call']] = delay_['rep_call']
             replaces_later[delay_call_name] = delay_call_name.replace('.', '_')

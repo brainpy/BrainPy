@@ -191,7 +191,7 @@ def _jit(func):
 
 
 def _is_numpy_bk():
-    bk_name = backend.get_backend()
+    bk_name = backend.get_backend_name()
     return bk_name.startswith('numba') or bk_name == 'numpy'
 
 

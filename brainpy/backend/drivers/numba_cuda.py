@@ -21,6 +21,13 @@ __all__ = [
 
 
 class CudaStepFuncReader(StepFuncReader):
+    """The tasks done in "CudaStepFuncReader" are:
+
+    - Find all expressions, including Assign, AugAssign, For loop, If-else condition.
+    - Find all delay push and pull.
+    - Find all atomic operations.
+
+    """
     def __init__(self, host):
         super(CudaStepFuncReader, self).__init__(host=host)
 
