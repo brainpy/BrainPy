@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import inspect
-from pprint import pprint
 
+from brainpy import backend
 from brainpy import errors
 from brainpy.backend import ops
 from brainpy.integrators import constants
@@ -85,25 +85,15 @@ def _update(vars, dt_var, B, code_lines):
 def _compile_and_assign_attrs(code_lines, code_scope, show_code,
                               func_name, variables, parameters,
                               dt, var_type):
-    # compile
-    code = '\n'.join(code_lines)
-    if show_code:
-        print(code)
-        print()
-        pprint(code_scope)
-        print()
-    utils.numba_func(code_scope, 'f')
-    exec(compile(code, '', 'exec'), code_scope)
-
-    # attribute assignment
-    new_f = code_scope[func_name]
-    new_f.variables = variables
-    new_f.parameters = parameters
-    new_f.origin_f = code_scope['f']
-    new_f.dt = dt
-    new_f.var_type = var_type
-    utils.numba_func(code_scope, func_name, end=True)
-    return code_scope[func_name]
+    driver_cls = backend.get_diffint_driver()
+    driver = driver_cls(code_scope=code_scope, code_lines=code_lines,
+                        func_name=func_name, show_code=show_code,
+                        uploads=dict(variables=variables,
+                                     parameters=parameters,
+                                     origin_f=code_scope['f'],
+                                     var_type=var_type,
+                                     dt=dt))
+    return driver.build()
 
 
 def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, im_return):

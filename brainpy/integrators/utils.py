@@ -7,31 +7,8 @@ from brainpy import backend
 from brainpy import errors
 
 __all__ = [
-    'numba_func',
     'get_args',
 ]
-
-
-def numba_func(code_scope, funcs_to_jit, end=False):
-    if backend.get_backend_name() in ['numba', 'numba-parallel']:
-        from brainpy.backend.drivers.numba_cpu import NUMBA_PROFILE
-        import numba as nb
-
-        profiles = deepcopy(NUMBA_PROFILE)
-        profiles.pop('parallel')
-        if isinstance(funcs_to_jit, str):
-            funcs_to_jit = [funcs_to_jit]
-        for f in funcs_to_jit:
-            code_scope[f] = nb.jit(**profiles)(code_scope[f])
-
-    elif backend.get_backend_name() == 'numba-cuda':
-        from numba import cuda
-
-        for f in funcs_to_jit:
-            if end:
-                code_scope[f] = cuda.jit(code_scope[f])
-            else:
-                code_scope[f] = cuda.jit(code_scope[f], device=True)
 
 
 def get_args(f):

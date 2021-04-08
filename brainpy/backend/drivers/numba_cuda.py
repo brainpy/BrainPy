@@ -1,44 +1,128 @@
 # -*- coding: utf-8 -*-
 
 import ast
+import inspect
+import re
+from pprint import pprint
 
 from brainpy import backend
 from brainpy import errors
 from brainpy import tools
+from brainpy.integrators import constants as diffint_cons
+from brainpy.simulation import drivers
 from brainpy.simulation.brainobjects import SynConn, NeuGroup
-from .numba_cpu import NumbaCPUNodeDriver
-from .numba_cpu import StepFuncReader
-from .numba_cpu import analyze_step_func
 from . import utils
+from .numba_cpu import NumbaCpuNodeDriver
+from .numba_cpu import _StepFuncReader
 
 try:
     import numba
     from numba import cuda
+    from numba import cuda
+    from numba.cuda.compiler import DeviceFunctionTemplate
+    from numba.cuda.compiler import Dispatcher
 
-    if not cuda.is_available():
-        raise errors.PackageMissingError('cuda should be installed when using numba-cuda backend.')
+    # if not cuda.is_available():
+    #     raise errors.PackageMissingError('User choose the numba-cuda backend, '
+    #                                      'while cuda is not available.')
 
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('numba')
 
-
-
 __all__ = [
     'NumbaCudaNodeDriver',
+    'NumbaCudaDiffIntDriver',
 ]
 
 
-class CudaStepFuncReader(StepFuncReader):
+class NumbaCudaDiffIntDriver(drivers.BaseDiffIntDriver):
+    def build(self, *args, **kwargs):
+        # code
+        code = '\n'.join(self.code_lines)
+        if self.show_code:
+            print(code)
+            print()
+            pprint(self.code_scope)
+            print()
+
+        # jit original functions
+        has_jitted = False
+        if isinstance(self.code_scope['f'], DeviceFunctionTemplate):
+            has_jitted = True
+        elif isinstance(self.code_scope['f'], Dispatcher):
+            raise ValueError('Cannot call cuda.jit function in a cuda.jit function, '
+                             'only support cuda.jit(device=True) function.')
+        if not has_jitted:
+            if self.func_name.startswith(diffint_cons.ODE_PREFIX):
+                self.code_scope['f'] = cuda.jit(self.code_scope['f'], device=True)
+            elif self.func_name.startswith(diffint_cons.SDE_PREFIX):
+                self.code_scope['f'] = cuda.jit(self.code_scope['f'], device=True)
+                self.code_scope['g'] = cuda.jit(self.code_scope['g'], device=True)
+            else:
+                raise NotImplementedError
+
+        # compile
+        exec(compile(code, '', 'exec'), self.code_scope)
+
+        # attribute assignment
+        new_f = self.code_scope[self.func_name]
+        for key, value in self.uploads.items():
+            self.upload(host=new_f, key=key, value=value)
+        if not has_jitted:
+            new_f = cuda.jit(new_f)
+        return new_f
+
+
+class _CudaStepFuncReader(_StepFuncReader):
     """The tasks done in "CudaStepFuncReader" are:
 
     - Find all expressions, including Assign, AugAssign, For loop, If-else condition.
     - Find all delay push and pull.
     - Find all atomic operations.
 
+
+    `CudaStepFuncReader` can analyze two kinds of coding schema.
+    When users define the model with the explicit for-loop, such like:
+
+    .. code-block:: python
+
+       for i in prange(self.size):
+            pre_id = self.pre_ids[i]
+
+            self.s[i], self.x[i] = self.integral(self.s[i], self.x[i], _t, self.tau)
+            self.x[i] += self.pre.spike[pre_id]
+
+            self.I_syn.push(i, self.w[i] * self.s[i])
+
+            # output
+            post_id = self.post_ids[i]
+            self.post.input[post_id] += self.I_syn.pull(i)
+
+    It will recognize the loop body as the cuda kernel.
+
+    However, when the function is not started with the for-loop, such like:
+
+    .. code-block:: python
+
+       i = cuda.grid(1)
+       pre_id = self.pre_ids[i]
+
+       self.s[i], self.x[i] = self.integral(self.s[i], self.x[i], _t, self.tau)
+       self.x[i] += self.pre.spike[pre_id]
+
+       self.I_syn.push(i, self.w[i] * self.s[i])
+
+       # output
+       post_id = self.post_ids[i]
+       self.post.input[post_id] += self.I_syn.pull(i)
+
+    It will recognize it as a customized function all controlled by users. In such case,
+    the user should provide the "num" attribute.
+
     """
 
     def __init__(self, host):
-        super(CudaStepFuncReader, self).__init__(host=host)
+        super(_CudaStepFuncReader, self).__init__(host=host)
         self.need_add_cuda = False
 
     def check_atomic_ops(self, target):
@@ -140,81 +224,120 @@ class CudaStepFuncReader(StepFuncReader):
         self.generic_visit(node)
 
 
-def class2func(cls_func, host, func_name=None, show_code=False):
-    """Transform the function in a class into the ordinary function which is
-    compatible with the Numba JIT compilation.
+def _analyze_step_func(host, f, func_name=None, show_code=False):
+    """Analyze the step functions in a population.
 
     Parameters
     ----------
-    cls_func : function
-        The function of the instantiated class.
-    func_name : str
-        The function name. If not given, it will get the function by `cls_func.__name__`.
-    show_code : bool
-        Whether show the code.
+    host : DynamicSystem
+        The data and the function host.
+    f : callable
+        The step function.
 
     Returns
     -------
-    new_func : function
-        The transformed function.
+    results : dict
+        The code string of the function, the code scope,
+        the data need pass into the arguments,
+        the data need return.
     """
-    class_arg, arguments = utils.get_args(cls_func)
-    func_name = cls_func.__name__ if func_name is None else func_name
-    host_name = host.name
+    code_string = tools.deindent(inspect.getsource(f)).strip()
+    tree = ast.parse(code_string)
 
-    # get code analysis
-    # --------
-    analyzed_results = analyze_step_func(host=host, f=cls_func)
-    delay_call = analyzed_results['delay_call']
-    main_code = analyzed_results['code_string']
-    code_scope = analyzed_results['code_scope']
-    self_data_in_right = analyzed_results['self_data_in_right']
-    self_data_with_index_in_left = analyzed_results['self_data_with_index_in_left']
+    # arguments
+    # ---------
+    host_name = host.name
+    func_name = f.__name__ if func_name is None else func_name
+    args = tools.ast2code(ast.fix_missing_locations(tree.body[0].args)).split(',')
+
+    # judge step function type
+    # ---------
+    func_body = tree.body[0].body
+    if len(func_body) == 1 and isinstance(func_body[0], ast.For):
+        type_ = 'for_loop'
+        iter_target = func_body[0].target.id
+        iter_args = func_body[0].iter.args
+        if len(iter_args) == 1:
+            iter_seq = tools.ast2code(ast.fix_missing_locations(iter_args[0]))
+        else:
+            raise ValueError
+        tree_to_analyze = func_body[0].body
+    else:
+        type_ = 'customize_type'
+        tree_to_analyze = tree
+
+    # AST analysis
+    # -------
+    formatter = _CudaStepFuncReader(host=host)
+    formatter.visit(tree_to_analyze)
+
+    # data assigned by self.xx in line right
+    self_data_in_right = []
+    if args[0] in backend.CLASS_KEYWORDS:
+        code = ', \n'.join(formatter.rights)
+        self_data_in_right = re.findall('\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
+        self_data_in_right = list(set(self_data_in_right))
+
+    # data assigned by self.xxx in line left
+    code = ', \n'.join(formatter.lefts)
+    self_data_without_index_in_left = []
+    self_data_with_index_in_left = []
+    if args[0] in backend.CLASS_KEYWORDS:
+        class_p1 = '\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b'
+        self_data_without_index_in_left = set(re.findall(class_p1, code))
+        # class_p2 = '(\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*)\\[.*\\]'
+        class_p2 = '(\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*)\\['
+        self_data_with_index_in_left = set(re.findall(class_p2, code))
+        self_data_with_index_in_left = list(self_data_with_index_in_left)
+        self_data_without_index_in_left = list(self_data_without_index_in_left)
+
+    self_data_in_right = sorted(self_data_in_right)
+    self_data_without_index_in_left = sorted(self_data_without_index_in_left)
+    self_data_with_index_in_left = sorted(self_data_with_index_in_left)
     data_need_pass = sorted(list(set(self_data_in_right + self_data_with_index_in_left)))
 
-    # reprocess the normal function
+    # main code
+    main_code = '\n'.join(formatter.lines)
 
-
-    # transform the cpu data to cuda data
-
-
-    # arguments 1: the function intrinsic needed arguments
-    # -----------
-    calls = []
-    for arg in arguments:
-        if hasattr(host, arg):
-            calls.append(f'{host_name}.{arg}')
-        elif arg in backend.SYSTEM_KEYWORDS:
-            calls.append(arg)
-        else:
-            raise errors.ModelDefError(f'Step function "{func_name}" of {host} '
-                                       f'define an unknown argument "{arg}" which is not '
-                                       f'an attribute of {host} nor the system keywords '
-                                       f'{backend.SYSTEM_KEYWORDS}.')
-
-    # reprocess delay function
+    # MAIN Task 1: reprocess delay function
     # -----------
     replaces_early = {}
-    replaces_later = {}
-    if len(delay_call) > 0:
-        for delay_ in delay_call.values():
-            # method 2: : delay push / delay pull
-            # ------
-            # delay_ = dict(type=calls[-1],
-            #               args=args,
-            #               kws_append=kws_append,
-            #               func=func,
-            #               org_call=org_call,
-            #               rep_call=rep_expression,
-            #               data_need_pass=data_need_pass)
+    if len(formatter.delay_call) > 0:
+        for delay_ in formatter.delay_call.values():
             data_need_pass.extend(delay_['data_need_pass'])
             replaces_early[delay_['org_call']] = delay_['rep_call']
     for target, dest in replaces_early.items():
         main_code = main_code.replace(target, dest)
 
-    # arguments 2: data need pass
+    # MAIN Task 2: recompile the integrators
     # -----------
-    new_args = arguments + []
+
+    integrators_to_recompile = {}
+
+    # code scope
+    closure_vars = inspect.getclosurevars(f)
+    code_scope = dict(closure_vars.nonlocals)
+    code_scope.update(closure_vars.globals)
+    code_scope[host_name] = host
+    if formatter.need_add_cuda:
+        code_scope['cuda'] = cuda
+
+    # arguments 1: the function intrinsic needed arguments
+    calls = []
+    for arg in args[1:]:
+        if hasattr(host, arg):
+            calls.append(f'{host_name}.{arg}')
+        elif arg in backend.SYSTEM_KEYWORDS:
+            calls.append(arg)
+        else:
+            raise errors.ModelDefError(f'Step function "{func_name}" of {host} define an '
+                                       f'unknown argument "{arg}" which is not an attribute '
+                                       f'of {host} nor the system keywords '
+                                       f'{backend.SYSTEM_KEYWORDS}.')
+
+    # arguments 2: data need pass
+    replaces_later = {}
+    new_args = args[1:]
     for data in sorted(set(data_need_pass)):
         splits = data.split('.')
         replaces_later[data] = utils.attr_replace(data)
@@ -222,13 +345,22 @@ def class2func(cls_func, host, func_name=None, show_code=False):
         for attr in splits[1:]:
             obj = getattr(obj, attr)
         if callable(obj):
-            code_scope[utils.attr_replace(data)] = obj
+            if isinstance(obj, Dispatcher):
+                if obj.py_func.__name__.startswith(DE_PREFIX):
+                    integrators_to_recompile[utils.attr_replace(data)] = obj.py_func
+                else:
+                    raise ValueError('Cannot call a cuda.jit function, please change it '
+                                     'to a device jit function.')
+            elif isinstance(obj, DeviceFunctionTemplate):
+                code_scope[utils.attr_replace(data)] = obj
+            else:
+                raise ValueError(f'Only support the device numba.cuda.jit function, not {type(obj)}.')
             continue
-        new_args.append(utils.attr_replace(data))
-        calls.append('.'.join([host_name] + splits[1:]))
+        else:
+            new_args.append(utils.attr_replace(data))
+            calls.append('.'.join([host_name] + splits[1:]))
 
-    # code scope
-    code_scope[host_name] = host
+    # MAIN Task 3: transform the cpu data to cuda data
 
     # codes
     header = f'def new_{func_name}({", ".join(new_args)}):\n'
@@ -243,10 +375,24 @@ def class2func(cls_func, host, func_name=None, show_code=False):
     exec(compile(main_code, '', 'exec'), code_scope)
     func = code_scope[f'new_{func_name}']
     func = cuda.jit(func)
-    return func, calls
+
+    # final
+    # -----
+
+    analyzed_results = {
+        'delay_call': formatter.delay_call,
+        'code_string': '\n'.join(formatter.lines),
+        'code_scope': code_scope,
+        'self_data_in_right': self_data_in_right,
+        'self_data_without_index_in_left': self_data_without_index_in_left,
+        'self_data_with_index_in_left': self_data_with_index_in_left,
+    }
+
+    return analyzed_results
 
 
-class NumbaCudaNodeDriver(NumbaCPUNodeDriver):
+
+class NumbaCudaNodeDriver(NumbaCpuNodeDriver):
     def get_input_func(self, formatted_inputs, show_code=False):
         need_rebuild = False
         # check whether the input is changed
@@ -256,7 +402,7 @@ class NumbaCudaNodeDriver(NumbaCPUNodeDriver):
         old_input_keys = list(self.last_inputs.keys())
         for key, val, ops, data_type in formatted_inputs:
             # set data
-            self.set_data(self.input_data_name(key), val)
+            self.upload(self.input_data_name(key), val)
             # compare
             if key in old_input_keys:
                 old_input_keys.remove(key)
@@ -307,7 +453,7 @@ class NumbaCudaNodeDriver(NumbaCPUNodeDriver):
                 print(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
-            self.set_data(input_func_name, code_scope[input_func_name])
+            self.upload(input_func_name, code_scope[input_func_name])
             # results
             self.formatted_funcs['input'] = {
                 'func': code_scope[input_func_name],
@@ -344,7 +490,7 @@ class NumbaCudaNodeDriver(NumbaCPUNodeDriver):
                 print(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
-            self.set_data(monitor_func_name, code_scope[monitor_func_name])
+            self.upload(monitor_func_name, code_scope[monitor_func_name])
             # results
             self.formatted_funcs['monitor'] = {
                 'func': code_scope[monitor_func_name],

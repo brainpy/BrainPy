@@ -44,6 +44,7 @@ def get_num_indent(code_string, spaces_per_tab=4):
             min_indent = num_indent
     return min_indent
 
+
 def get_func_body_code(code_string, lambda_func=False):
     """Get the main body code of a function.
 
@@ -76,6 +77,7 @@ def get_func_body_code(code_string, lambda_func=False):
             raise ValueError(f'Can not parse function: \n{code_string}')
         main_code = '\n'.join(func_codes[idx:])
     return main_code
+
 
 def get_args(f):
     """Get the function arguments.

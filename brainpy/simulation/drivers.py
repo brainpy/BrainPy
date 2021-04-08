@@ -6,8 +6,9 @@ from brainpy import errors
 
 __all__ = [
     'AbstractDriver',
-    'AbstractNodeDriver',
-    'AbstractNetDriver',
+    'BaseNodeDriver',
+    'BaseNetDriver',
+    'BaseDiffIntDriver',
 ]
 
 
@@ -15,6 +16,7 @@ class AbstractDriver(abc.ABC):
     """
     Abstract base class for backend driver.
     """
+
     @abc.abstractmethod
     def build(self, *args, **kwargs):
         """Build the node or the network running function.
@@ -25,15 +27,18 @@ class AbstractDriver(abc.ABC):
     def upload(self, *args, **kwargs):
         """Upload the data or function to the node or the network.
 
-        Establish the connection between the host and the driver.
+        Establish the connection between the host and the driver. The
+        driver can upload its specific data of functions to the host.
+        Then, at the frontend of the host, users can call such functions
+        or data by "host.func_name" or "host.some_data".
         """
         pass
 
 
-class AbstractNodeDriver(AbstractDriver):
+class BaseNodeDriver(AbstractDriver):
+    """Base Node Driver.
     """
-    Abstract Node Driver.
-    """
+
     def __init__(self, host, steps):
         self.host = host
         self.steps = steps
@@ -64,10 +69,6 @@ class AbstractNodeDriver(AbstractDriver):
         self.schedule = schedule
 
     @abc.abstractmethod
-    def set_data(self, *args, **kwargs):
-        pass
-
-    @abc.abstractmethod
     def get_input_func(self, *args, **kwargs):
         pass
 
@@ -80,12 +81,27 @@ class AbstractNodeDriver(AbstractDriver):
         pass
 
 
-class AbstractNetDriver(AbstractDriver):
+class BaseNetDriver(AbstractDriver):
+    """Base Network Driver.
     """
-    Abstract Network Driver.
-    """
+
     def __init__(self, host):
         self.host = host
 
     def upload(self, name, data_or_func):
         setattr(self.host, name, data_or_func)
+
+
+class BaseDiffIntDriver(AbstractDriver):
+    """Base Integration Driver for Differential Equations.
+    """
+
+    def __init__(self, code_scope, code_lines, func_name, uploads, show_code):
+        self.code_scope = code_scope
+        self.code_lines = code_lines
+        self.func_name = func_name
+        self.uploads = uploads
+        self.show_code = show_code
+
+    def upload(self, host, key, value):
+        setattr(host, key, value)

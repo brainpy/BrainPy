@@ -1,13 +1,38 @@
 # -*- coding: utf-8 -*-
 
+from pprint import pprint
 from brainpy import backend
 from brainpy import errors
 from brainpy.backend import ops
 from brainpy.simulation import drivers
 from . import utils
 
+__all__ = [
+    'GeneralDiffIntDriver',
+    'GeneralNodeDriver',
+    'GeneralNetDriver',
+]
 
-class GeneralNodeDriver(drivers.AbstractNodeDriver):
+
+class GeneralDiffIntDriver(drivers.BaseDiffIntDriver):
+    def build(self, *args, **kwargs):
+        # compile
+        code = '\n'.join(self.code_lines)
+        if self.show_code:
+            print(code)
+            print()
+            pprint(self.code_scope)
+            print()
+        exec(compile(code, '', 'exec'), self.code_scope)
+
+        # attribute assignment
+        new_f = self.code_scope[self.func_name]
+        for key, value in self.uploads.items():
+            setattr(new_f, key, value)
+        return new_f
+
+
+class GeneralNodeDriver(drivers.BaseNodeDriver):
     """General BrainPy Node Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
@@ -27,7 +52,7 @@ class GeneralNodeDriver(drivers.AbstractNodeDriver):
         old_input_keys = list(self.last_inputs.keys())
         for key, val, ops, data_type in formatted_inputs:
             # set data
-            self.set_data(self.input_data_name(key), val)
+            self.upload(self.input_data_name(key), val)
             # compare
             if key in old_input_keys:
                 old_input_keys.remove(key)
@@ -78,7 +103,7 @@ class GeneralNodeDriver(drivers.AbstractNodeDriver):
                 print(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
-            self.set_data(input_func_name, code_scope[input_func_name])
+            self.upload(input_func_name, code_scope[input_func_name])
             # results
             self.formatted_funcs['input'] = {
                 'func': code_scope[input_func_name],
@@ -115,7 +140,7 @@ class GeneralNodeDriver(drivers.AbstractNodeDriver):
                 print(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
-            self.set_data(monitor_func_name, code_scope[monitor_func_name])
+            self.upload(monitor_func_name, code_scope[monitor_func_name])
             # results
             self.formatted_funcs['monitor'] = {
                 'func': code_scope[monitor_func_name],
@@ -144,9 +169,6 @@ class GeneralNodeDriver(drivers.AbstractNodeDriver):
                 'scope': {host_name: self.host},
                 'call': [f'{host_name}.{func_name}({", ".join(calls)})']
             }
-
-    def set_data(self, key, data):
-        setattr(self.host, key, data)
 
     def build(self, formatted_inputs, mon_length, return_code=True, show_code=False):
         # inputs check
@@ -197,9 +219,10 @@ class GeneralNodeDriver(drivers.AbstractNodeDriver):
         return f'_input_data_of_{key.replace(".", "_")}'
 
 
-class GeneralNetDriver(drivers.AbstractNetDriver):
+class GeneralNetDriver(drivers.BaseNetDriver):
     """General BrainPy Network Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
+
     def __init__(self, host):
         super(GeneralNetDriver, self).__init__(host=host)
         self.run_func = None

@@ -3,16 +3,20 @@
 import ast
 import inspect
 import re
+from pprint import pprint
 
 from brainpy import backend
 from brainpy import errors
 from brainpy import tools
+from brainpy.integrators import constants as diffint_cons
 from brainpy.simulation import delays
+from brainpy.simulation import drivers
 from . import utils
 from .general import GeneralNodeDriver
 
 try:
     import numba
+    from numba.core.dispatcher import Dispatcher
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('numba')
 
@@ -20,10 +24,8 @@ __all__ = [
     'set_numba_profile',
     'get_numba_profile',
 
-    'StepFuncReader',
-    'analyze_step_func',
-
-    'NumbaCPUNodeDriver',
+    'NumbaCpuDiffIntDriver',
+    'NumbaCpuNodeDriver',
 ]
 
 NUMBA_PROFILE = {
@@ -66,7 +68,40 @@ def get_numba_profile():
     return NUMBA_PROFILE
 
 
-class StepFuncReader(ast.NodeVisitor):
+class NumbaCpuDiffIntDriver(drivers.BaseDiffIntDriver):
+    def build(self, *args, **kwargs):
+        # code
+        code = '\n'.join(self.code_lines)
+        if self.show_code:
+            print(code)
+            print()
+            pprint(self.code_scope)
+            print()
+
+        # jit original functions
+        has_jitted = isinstance(self.code_scope['f'], Dispatcher)
+        if not has_jitted:
+            if self.func_name.startswith(diffint_cons.ODE_PREFIX):
+                self.code_scope['f'] = numba.jit(**get_numba_profile())(self.code_scope['f'])
+            elif self.func_name.startswith(diffint_cons.SDE_PREFIX):
+                self.code_scope['f'] = numba.jit(**get_numba_profile())(self.code_scope['f'])
+                self.code_scope['g'] = numba.jit(**get_numba_profile())(self.code_scope['g'])
+            else:
+                raise NotImplementedError
+
+        # compile
+        exec(compile(code, '', 'exec'), self.code_scope)
+
+        # attribute assignment
+        new_f = self.code_scope[self.func_name]
+        for key, value in self.uploads.items():
+            setattr(new_f, key, value)
+        if not has_jitted:
+            new_f = numba.jit(**get_numba_profile())(new_f)
+        return new_f
+
+
+class _StepFuncReader(ast.NodeVisitor):
     """The following tasks should be carried out:
 
     - Find all expressions, including Assign, AugAssign, For loop, If-else condition.
@@ -372,7 +407,7 @@ class StepFuncReader(ast.NodeVisitor):
         raise errors.CodeError('Do not support "del" operation in Numba backend.')
 
 
-def analyze_step_func(host, f):
+def _analyze_step_func(host, f):
     """Analyze the step functions in a population.
 
     Parameters
@@ -398,7 +433,7 @@ def analyze_step_func(host, f):
 
     # AST analysis
     # ------------
-    formatter = StepFuncReader(host=host)
+    formatter = _StepFuncReader(host=host)
     formatter.visit(tree)
 
     # data assigned by self.xx in line right
@@ -448,7 +483,7 @@ def analyze_step_func(host, f):
     return analyzed_results
 
 
-def class2func(cls_func, host, func_name=None, show_code=False):
+def _class2func(cls_func, host, func_name=None, show_code=False):
     """Transform the function in a class into the ordinary function which is
     compatible with the Numba JIT compilation.
 
@@ -472,7 +507,7 @@ def class2func(cls_func, host, func_name=None, show_code=False):
 
     # get code analysis
     # --------
-    analyzed_results = analyze_step_func(host=host, f=cls_func)
+    analyzed_results = _analyze_step_func(host=host, f=cls_func)
     delay_call = analyzed_results['delay_call']
     main_code = analyzed_results['code_string']
     code_scope = analyzed_results['code_scope']
@@ -500,7 +535,6 @@ def class2func(cls_func, host, func_name=None, show_code=False):
     # reprocess delay function
     # -----------
     replaces_early = {}
-    replaces_later = {}
     if len(delay_call) > 0:
         for delay_ in delay_call.values():
             # # method 1: : delay push / delay pull
@@ -551,6 +585,7 @@ def class2func(cls_func, host, func_name=None, show_code=False):
 
     # arguments 2: data need pass
     # -----------
+    replaces_later = {}
     new_args = arguments + []
     for data in sorted(set(data_need_pass)):
         splits = data.split('.')
@@ -595,7 +630,7 @@ def class2func(cls_func, host, func_name=None, show_code=False):
     return func, calls, assigns
 
 
-class NumbaCPUNodeDriver(GeneralNodeDriver):
+class NumbaCpuNodeDriver(GeneralNodeDriver):
     def get_steps_func(self, show_code=False):
         for func_name, step in self.steps.items():
             if hasattr(step, '__self__'):
@@ -604,7 +639,7 @@ class NumbaCPUNodeDriver(GeneralNodeDriver):
                 host = self.host
             assert hasattr(host, 'name')
 
-            func, calls, assigns = class2func(cls_func=step, host=host, func_name=func_name, show_code=show_code)
+            func, calls, assigns = _class2func(cls_func=step, host=host, func_name=func_name, show_code=show_code)
             setattr(host, f'new_{func_name}', func)
 
             # finale

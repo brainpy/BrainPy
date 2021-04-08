@@ -9,9 +9,9 @@ import numpy as np
 
 import brainpy as bp
 from brainpy.simulation.delays import ConstantDelay
-from brainpy.backend.drivers.numba_cpu import StepFuncReader
-from brainpy.backend.drivers.numba_cpu import analyze_step_func
-from brainpy.backend.drivers.numba_cpu import class2func
+from brainpy.backend.drivers.numba_cpu import _StepFuncReader
+from brainpy.backend.drivers.numba_cpu import _analyze_step_func
+from brainpy.backend.drivers.numba_cpu import _class2func
 
 
 class HH(bp.NeuGroup):
@@ -213,7 +213,7 @@ class AMPA1_vec(bp.TwoEndConn):
 
 def test_analyze_step1():
     group = HH(100, ['V'])
-    r = analyze_step_func(group, group.update)
+    r = _analyze_step_func(group, group.update)
 
     print('Code of the function:')
     print(r['code_string'])
@@ -233,7 +233,7 @@ def test_analyze_step1():
 
 def test_analyze_step2():
     group = HH2(100, ['V'])
-    r = analyze_step_func(group, group.update)
+    r = _analyze_step_func(group, group.update)
 
     print('Code of the function:')
     print(r['code_string'])
@@ -258,7 +258,7 @@ def test_StepFuncReader_for_AMPA1_vec():
     update_code = bp.tools.deindent(inspect.getsource(ampa.update))
     # output_code = bp.tools.deindent(inspect.getsource(ampa.output))
 
-    formatter = StepFuncReader(host=ampa)
+    formatter = _StepFuncReader(host=ampa)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')
@@ -299,7 +299,7 @@ def non_uniform_push_for_tensor_bk(self):
     print()
 
     delay = ConstantDelay(size=10, delay_time=np.random.randint(10, size=10))
-    formatter = StepFuncReader(host=delay)
+    formatter = _StepFuncReader(host=delay)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')
@@ -339,7 +339,7 @@ def non_uniform_push_for_tensor_bk(self):
     print()
 
     delay = ConstantDelay(size=10, delay_time=np.random.randint(10, size=10))
-    formatter = StepFuncReader(host=delay)
+    formatter = _StepFuncReader(host=delay)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')
@@ -362,7 +362,7 @@ def test_StepFuncReader_for_lif():
     lif = LIF(10)
     code = bp.tools.deindent(inspect.getsource(lif.update))
 
-    formatter = StepFuncReader(host=lif)
+    formatter = _StepFuncReader(host=lif)
     formatter.visit(ast.parse(code))
 
     print('lefts:')
@@ -384,7 +384,7 @@ def test_StepFuncReader_for_lif():
 def test_class2func_for_lif():
     lif = LIF(10)
 
-    func, calls, assigns = class2func(cls_func=lif.update, host=lif, show_code=True)
+    func, calls, assigns = _class2func(cls_func=lif.update, host=lif, show_code=True)
     print(func)
     pprint(calls)
     pprint(assigns)
@@ -393,7 +393,7 @@ def test_class2func_for_lif():
 def test_class2func_for_AMPA1_vec():
     hh = HH(2)
     ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All())
-    func, calls, assigns = class2func(cls_func=ampa.update, host=ampa, show_code=True)
+    func, calls, assigns = _class2func(cls_func=ampa.update, host=ampa, show_code=True)
     print(func)
     pprint(calls)
     pprint(assigns)
@@ -402,7 +402,7 @@ def test_class2func_for_AMPA1_vec():
 def test_class2func_for_AMPA1_vec2():
     hh = HH(2)
     ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All(), delay=np.random.random(4) * 2)
-    func, calls, assigns = class2func(cls_func=ampa.update, host=ampa, show_code=True)
+    func, calls, assigns = _class2func(cls_func=ampa.update, host=ampa, show_code=True)
     print(func)
     pprint(calls)
     pprint(assigns)

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import errors
-from brainpy.backend import ops
 from brainpy import tools
+from brainpy.backend import ops
 
 __all__ = [
     'Monitor'

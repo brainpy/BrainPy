@@ -36,8 +36,7 @@ class PackageMissingError(Exception):
 
 class BackendNotInstalled(Exception):
     def __init__(self, backend):
-        super(BackendNotInstalled, self).__init__('"{bk}" must be installed when users want '
-                                                  'to set {bk} backend. \n' 
-                                                  'Please install {bk} through "pip install {bk}" '
-                                                  'or "conda install {bk}".'.format(bk=backend))
-
+        super(BackendNotInstalled, self).__init__(
+            '"{bk}" must be installed when the user wants to use {bk} backend. \n'
+            'Please install {bk} through "pip install {bk}" '
+            'or "conda install {bk}".'.format(bk=backend))

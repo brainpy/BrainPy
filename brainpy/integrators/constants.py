@@ -92,4 +92,12 @@ SUPPORTED_VAR_TYPE = [
     SYSTEM_VAR,
 ]
 
-NAME_PREFIX = '_brainpy_int_{}_of_'
+# Differential equation type
+# ----------
+#
+
+NAME_PREFIX = '{}_brainpy_int_of_'
+ODE_PREFIX = 'ode_brainpy_int_of_'
+SDE_PREFIX = 'sde_brainpy_int_of_'
+
+

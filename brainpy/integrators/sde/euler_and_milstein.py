@@ -219,8 +219,12 @@ def _exp_euler_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code):
         code_lines.append(f'  {diff_eq.var_name}_new = {sympy_analysis.sympy2str(update)} + {var_name}_dgdW')
         code_lines.append('')
 
+    # returns
+    new_vars = [f'{var}_new' for var in variables]
+    code_lines.append(f'  return {", ".join(new_vars)}')
+
     # return and compile
-    return common.return_compile_and_assign_attrs(
+    return common.compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
         variables=variables, parameters=parameters, func_name=func_name,
         sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
@@ -298,8 +302,12 @@ def _euler_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code):
         raise ValueError(f'Unknown SDE type: {sde_type}. We only '
                          f'supports {constants.SUPPORTED_SDE_TYPE}.')
 
+    # returns
+    new_vars = [f'{var}_new' for var in variables]
+    code_lines.append(f'  return {", ".join(new_vars)}')
+
     # return and compile
-    return common.return_compile_and_assign_attrs(
+    return common.compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
         variables=variables, parameters=parameters, func_name=func_name,
         sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
@@ -374,8 +382,12 @@ def _milstein_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code):
         raise ValueError(f'Unknown Wiener Process : {wiener_type}')
     code_lines.append('  ')
 
+    # returns
+    new_vars = [f'{var}_new' for var in variables]
+    code_lines.append(f'  return {", ".join(new_vars)}')
+
     # return and compile
-    return common.return_compile_and_assign_attrs(
+    return common.compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
         variables=variables, parameters=parameters, func_name=func_name,
         sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)

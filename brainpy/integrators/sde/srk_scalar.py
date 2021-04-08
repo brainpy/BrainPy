@@ -125,8 +125,12 @@ def _srk1w1_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
                           f'{var}_g2 * {var}_g_H1s2 + {var}_g3 * {var}_g_H1s3 + {var}_g4 * {var}_g_H1s4')
         code_lines.append('  ')
 
+    # returns
+    new_vars = [f'{var}_new' for var in variables]
+    code_lines.append(f'  return {", ".join(new_vars)}')
+
     # return and compile
-    return common.return_compile_and_assign_attrs(
+    return common.compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
         variables=variables, parameters=parameters, func_name=func_name,
         sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
@@ -223,8 +227,12 @@ def _srk2w1_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
                           f'{var}_g2 * {var}_g_H1s2 + {var}_g3 * {var}_g_H1s3 + {var}_g4 * {var}_g_H1s4')
         code_lines.append('  ')
 
+    # returns
+    new_vars = [f'{var}_new' for var in variables]
+    code_lines.append(f'  return {", ".join(new_vars)}')
+
     # return and compile
-    return common.return_compile_and_assign_attrs(
+    return common.compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
         variables=variables, parameters=parameters, func_name=func_name,
         sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
@@ -269,8 +277,12 @@ def _KlPl_wrapper(f, g, dt, show_code, sde_type, var_type, wiener_type):
                           f'{var}_g1 * {var}_g_H1s1 + {var}_g2 * {var}_g_H1s2')
         code_lines.append('  ')
 
+    # returns
+    new_vars = [f'{var}_new' for var in variables]
+    code_lines.append(f'  return {", ".join(new_vars)}')
+
     # return and compile
-    return common.return_compile_and_assign_attrs(
+    return common.compile_and_assign_attrs(
         code_lines=code_lines, code_scope=code_scope, show_code=show_code,
         variables=variables, parameters=parameters, func_name=func_name,
         sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)

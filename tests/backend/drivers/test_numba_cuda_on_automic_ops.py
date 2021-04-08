@@ -5,7 +5,7 @@ import inspect
 from pprint import pprint
 
 import brainpy as bp
-from brainpy.backend.drivers.numba_cuda import CudaStepFuncReader
+from brainpy.backend.drivers.numba_cuda import _CudaStepFuncReader
 
 
 class LIF(bp.NeuGroup):
@@ -56,7 +56,7 @@ def test_automic_op(model):
     synapse = model(pre=LIF(1), post=LIF(2))
 
     update_code = bp.tools.deindent(inspect.getsource(synapse.update))
-    formatter = CudaStepFuncReader(host=synapse)
+    formatter = _CudaStepFuncReader(host=synapse)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')

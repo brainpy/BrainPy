@@ -14,6 +14,7 @@ __all__ = [
     'OPS_FOR_SIMULATION',
 ]
 
+_backend = 'numpy'
 BUFFER = {}
 OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'matmul', 'shape', ]
 OPS_FOR_SIMULATION = ['as_tensor', 'zeros', 'ones', 'arange',
@@ -59,6 +60,8 @@ def switch_to(backend):
     # set operations from BUFFER
     ops_in_buffer = get_buffer(backend)
     set_ops(**ops_in_buffer)
+    global _backend
+    _backend = backend
 
 
 def set_ops_from_module(module):
@@ -112,10 +115,11 @@ def set_buffer(backend, *args, **kwargs):
                                f'**kwargs, but we got {key} = {func}.'
         BUFFER[backend][key] = func
 
-    # set the operations
-    set_ops(**BUFFER[backend])
+    # set the operations if the buffer backend
+    # is consistent with the global backend.
+    if backend == _backend:
+        set_ops(**BUFFER[backend])
 
 
 def get_buffer(backend):
     return BUFFER.get(backend, dict())
-

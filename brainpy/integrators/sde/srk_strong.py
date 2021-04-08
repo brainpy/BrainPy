@@ -357,9 +357,12 @@ def _srk1_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter
     else:
         raise ValueError(f'Unknown var type: {var_type}, we only '
                          f'supports {constants.SUPPORTED_VAR_TYPE}')
+    # returns
+    new_vars = [f'{var}_new' for var in variables]
+    code_lines.append(f'  return {", ".join(new_vars)}')
 
     # return and compile
-    common.return_compile_and_assign_attrs(code_lines, code_scope, show_code, variables)
+    common.compile_and_assign_attrs(code_lines, code_scope, show_code, variables)
     return code_scope[func_name]
 
 
