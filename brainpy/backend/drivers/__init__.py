@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.drivers import NodeDriver, NetDriver
+from brainpy.simulation.drivers import AbstractNodeDriver, AbstractNetDriver
 from .general import GeneralNodeDriver, GeneralNetDriver
 
 __all__ = [
@@ -55,10 +55,10 @@ def set_buffer(backend, node=None, net=None):
         BUFFER[backend] = dict()
 
     if node is not None:
-        assert isinstance(node, NodeDriver)
+        assert isinstance(node, AbstractNodeDriver)
         BUFFER[backend]['node'] = node
     if net is not None:
-        assert isinstance(node, NetDriver)
+        assert isinstance(node, AbstractNetDriver)
         BUFFER[backend]['net'] = net
 
 

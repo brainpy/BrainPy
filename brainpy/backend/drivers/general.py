@@ -7,7 +7,7 @@ from brainpy.simulation import drivers
 from . import utils
 
 
-class GeneralNodeDriver(drivers.NodeDriver):
+class GeneralNodeDriver(drivers.AbstractNodeDriver):
     """General BrainPy Node Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
@@ -197,11 +197,11 @@ class GeneralNodeDriver(drivers.NodeDriver):
         return f'_input_data_of_{key.replace(".", "_")}'
 
 
-class GeneralNetDriver(drivers.NetDriver):
+class GeneralNetDriver(drivers.AbstractNetDriver):
     """General BrainPy Network Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
-    def __init__(self, all_nodes):
-        super(GeneralNetDriver, self).__init__(all_nodes=all_nodes)
+    def __init__(self, host):
+        super(GeneralNetDriver, self).__init__(host=host)
         self.run_func = None
 
     def build(self, run_length, formatted_inputs, return_code=False, show_code=False):
@@ -231,7 +231,7 @@ class GeneralNetDriver(drivers.NetDriver):
         need_rebuild = False
         code_scope = {}
         code_lines = ['def run_func(_t, _i, _dt):']
-        for obj in self.all_nodes.values():
+        for obj in self.host.all_nodes.values():
             f, codes = obj.build(inputs=formatted_inputs.get(obj.name, []),
                                  inputs_is_formatted=True,
                                  mon_length=run_length,

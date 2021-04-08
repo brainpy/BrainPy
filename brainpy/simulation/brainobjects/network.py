@@ -39,6 +39,9 @@ class Network(object):
         # add nodes
         self.add(*args, **kwargs)
 
+        # driver
+        self.driver = backend.get_net_driver()(host=self)
+
     def __getattr__(self, item):
         if item in self.all_nodes:
             return self.all_nodes[item]
@@ -100,11 +103,10 @@ class Network(object):
         # build the network
         run_length = ts.shape[0]
         format_inputs = utils.format_net_level_inputs(inputs, run_length)
-        net_runner = backend.get_net_driver()(all_nodes=self.all_nodes)
-        self.run_func = net_runner.build(run_length=run_length,
-                                         formatted_inputs=format_inputs,
-                                         return_code=False,
-                                         show_code=self.show_code)
+        self.run_func = self.driver.build(run_length=run_length,
+                                          formatted_inputs=format_inputs,
+                                          return_code=False,
+                                          show_code=self.show_code)
 
         # run the network
         utils.run_model(self.run_func, times=ts, report=report, report_percent=report_percent)

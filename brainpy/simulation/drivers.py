@@ -6,8 +6,8 @@ from brainpy import errors
 
 __all__ = [
     'AbstractDriver',
-    'NodeDriver',
-    'NetDriver',
+    'AbstractNodeDriver',
+    'AbstractNetDriver',
 ]
 
 
@@ -17,10 +17,20 @@ class AbstractDriver(abc.ABC):
     """
     @abc.abstractmethod
     def build(self, *args, **kwargs):
+        """Build the node or the network running function.
+        """
+        pass
+
+    @abc.abstractmethod
+    def upload(self, *args, **kwargs):
+        """Upload the data or function to the node or the network.
+
+        Establish the connection between the host and the driver.
+        """
         pass
 
 
-class NodeDriver(AbstractDriver):
+class AbstractNodeDriver(AbstractDriver):
     """
     Abstract Node Driver.
     """
@@ -29,10 +39,22 @@ class NodeDriver(AbstractDriver):
         self.steps = steps
         self.schedule = ['input'] + list(self.steps.keys()) + ['monitor']
 
+    def upload(self, name, data_or_func):
+        setattr(self.host, name, data_or_func)
+
     def get_schedule(self):
+        """Get the running schedule.
+        """
         return self.schedule
 
     def set_schedule(self, schedule):
+        """Set the running schedule of the node.
+
+        Parameters
+        ----------
+        schedule : list
+            A list of the string, in which each item is the function name.
+        """
         if not isinstance(schedule, (list, tuple)):
             raise errors.ModelUseError('"schedule" must be a list/tuple.')
         all_func_names = ['input', 'monitor'] + list(self.steps.keys())
@@ -58,9 +80,12 @@ class NodeDriver(AbstractDriver):
         pass
 
 
-class NetDriver(AbstractDriver):
+class AbstractNetDriver(AbstractDriver):
     """
     Abstract Network Driver.
     """
-    def __init__(self, all_nodes):
-        self.all_nodes = all_nodes
+    def __init__(self, host):
+        self.host = host
+
+    def upload(self, name, data_or_func):
+        setattr(self.host, name, data_or_func)

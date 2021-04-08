@@ -76,7 +76,7 @@ class DynamicSystem(object):
 
         # runner
         # -------
-        self.runner = backend.get_node_driver()(pop=self)
+        self.driver = backend.get_node_driver()(pop=self)
 
         # run function
         # ------------
@@ -122,7 +122,7 @@ class DynamicSystem(object):
                                        f'{backend.get_backend_name()}')
         if not inputs_is_formatted:
             inputs = utils.format_pop_level_inputs(inputs, self, mon_length)
-        return self.runner.build(formatted_inputs=inputs,
+        return self.driver.build(formatted_inputs=inputs,
                                  mon_length=mon_length,
                                  return_code=return_code,
                                  show_code=(self.show_code or show_code))
@@ -165,7 +165,7 @@ class DynamicSystem(object):
         schedule : list, tuple
             The running order of update functions.
         """
-        return self.runner.get_schedule()
+        return self.driver.get_schedule()
 
     def set_schedule(self, schedule):
         """Set the schedule (running order) of the update functions.
@@ -176,7 +176,7 @@ class DynamicSystem(object):
         >>> pop = DynamicSystem(...)
         >>> pop.set_schedule(['input', 'step1', 'step2', 'monitor'])
         """
-        self.runner.set_schedule(schedule)
+        self.driver.set_schedule(schedule)
 
     def __str__(self):
         return self.name
