@@ -18,12 +18,12 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 - *Easy to learn and use*, because BrainPy is only based on Python language and has little dependency requirements; 
 - *Highly flexible and transparent*, because BrainPy endows the users with the fully data/logic flow control; 
 - *Simulation can be guided with the analysis*, because the same code in BrainPy can not only be used for simulation, but also for dynamics analysis; 
-- *Efficient running speed*, because BrainPy is compatible with the latest JIT compilers or any other accelerating computing framework you prefer (the speed comparison based on Numba JIT is provided in the following figure).
+- *Efficient running speed*, because BrainPy is compatible with the latest JIT compilers or any other accelerating framework you prefer (below we list the speed comparison based on Numba JIT).
 
 
 ![Speed Comparison](docs/images/speed.png)
 
-`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Currently, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/), [PyTorch](https://pytorch.org/), and [TensorFlow](https://www.tensorflow.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) on CPU or CUDA devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
+`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Intrinsically, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/), [PyTorch](https://pytorch.org/), and [TensorFlow](https://www.tensorflow.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) on CPU or CUDA devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
 
 
 
@@ -60,7 +60,7 @@ Install ``BrainPy`` from source:
 
 # Let's start
 
-- **Website (including documentation):** https://brainpy.readthedocs.io/
+- **Website (including documentations):** https://brainpy.readthedocs.io/
 - **Source code:** https://github.com/PKU-NIP-Lab/BrainPy  or  https://git.openi.org.cn/OpenI/BrainPy
 - **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues  or  Email to adaduo@outlook.com
 - **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/from_papers.html

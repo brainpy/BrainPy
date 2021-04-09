@@ -4,7 +4,7 @@ import inspect
 from pprint import pprint
 
 import brainpy as bp
-from brainpy.backend.drivers.numba_cuda import _CudaStepFuncReader
+from brainpy.backend.drivers.numba_cuda import _CUDAReader
 
 
 class LIF(bp.NeuGroup):
@@ -55,7 +55,7 @@ def print_results(model):
     synapse = model(pre=LIF(1), post=LIF(2))
 
     update_code = bp.tools.deindent(inspect.getsource(synapse.update))
-    formatter = _CudaStepFuncReader(host=synapse)
+    formatter = _CUDAReader(host=synapse)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')
@@ -68,8 +68,8 @@ def print_results(model):
     pprint(formatter.lines)
     print()
     print('delay_call:')
-    pprint(formatter.delay_call.keys())
-    for v in formatter.delay_call.values():
+    pprint(formatter.visited_calls.keys())
+    for v in formatter.visited_calls.values():
         pprint(v)
     print()
 

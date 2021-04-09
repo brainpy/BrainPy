@@ -33,13 +33,13 @@ def switch_to(backend):
     elif backend in ['numba', 'numba-parallel']:
         from . import numba_cpu
         NET_DRIVER = buffer.get('net', None) or GeneralNetDriver
-        NODE_DRIVER = buffer.get('node', None) or numba_cpu.NumbaCpuNodeDriver
+        NODE_DRIVER = buffer.get('node', None) or numba_cpu.NumbaCPUNodeDriver
         DIFFINT_DRIVER = buffer.get('intg', None) or numba_cpu.NumbaCpuDiffIntDriver
 
     elif backend == 'numba-cuda':
         from . import numba_cuda
-        NODE_DRIVER = buffer.get('node', None) or numba_cuda.NumbaCudaNodeDriver
-        NET_DRIVER = buffer.get('net', None) or numba_cuda.NumbaCudaNetDriver
+        NODE_DRIVER = buffer.get('node', None) or numba_cuda.NumbaCUDANodeDriver
+        NET_DRIVER = buffer.get('net', None) or numba_cuda.NumbaCUDANetDriver
         DIFFINT_DRIVER = buffer.get('intg', None) or numba_cuda.NumbaCudaDiffIntDriver
 
     else:

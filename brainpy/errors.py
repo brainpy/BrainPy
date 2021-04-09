@@ -11,6 +11,10 @@ class ModelUseError(Exception):
     pass
 
 
+class IntegratorError(Exception):
+    pass
+
+
 class DiffEqError(Exception):
     """The differential equation definition error.
     """

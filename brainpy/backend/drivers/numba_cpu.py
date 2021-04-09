@@ -3,6 +3,7 @@
 import ast
 import inspect
 import re
+from collections import OrderedDict
 from pprint import pprint
 
 from brainpy import backend
@@ -25,7 +26,7 @@ __all__ = [
     'get_numba_profile',
 
     'NumbaCpuDiffIntDriver',
-    'NumbaCpuNodeDriver',
+    'NumbaCPUNodeDriver',
 ]
 
 NUMBA_PROFILE = {
@@ -101,7 +102,7 @@ class NumbaCpuDiffIntDriver(drivers.BaseDiffIntDriver):
         return new_f
 
 
-class _StepFuncReader(ast.NodeVisitor):
+class _CPUReader(ast.NodeVisitor):
     """The following tasks should be carried out:
 
     - Find all expressions, including Assign, AugAssign, For loop, If-else condition.
@@ -116,8 +117,7 @@ class _StepFuncReader(ast.NodeVisitor):
         self.visited_nodes = set()
 
         self.host = host
-        # get delay information
-        self.delay_call = {}
+        self.visited_calls = {}  # will focused on delay calls
 
     def visit_Assign(self, node, level=0):
         if node not in self.visited_nodes:
@@ -209,112 +209,75 @@ class _StepFuncReader(ast.NodeVisitor):
             raise ValueError
 
     def visit_Call(self, node, level=0):
-        if node in self.delay_call:
-            return
+        if getattr(node, 'starargs', None) is not None:
+            raise ValueError("Variable number of arguments not supported")
+        if getattr(node, 'kwargs', None) is not None:
+            raise ValueError("Keyword arguments not supported")
+
+        if node in self.visited_calls:
+            return node
+
         calls = self.visit_attr(node.func)
         calls = calls[::-1]
 
-        # # method 1: delay push / delay pull
-        # # ------
-        # # keep the functional call, but numba jit its delay function
-        # # ------
-        # if calls[-1] in ['push', 'pull']:
-        #     obj = self.host
-        #     for data in calls[1:-1]:
-        #         obj = getattr(obj, data)
-        #     obj_func = getattr(obj, calls[-1])
-        #     if isinstance(obj, delay.ConstantDelay) and callable(obj_func):
-        #         func = ".".join(calls)
-        #         args = []
-        #         for arg in node.args:
-        #             args.append(tools.ast2code(ast.fix_missing_locations(arg)))
-        #         keywords = []
-        #         kw_args = []
-        #         for arg in node.keywords:
-        #             kw_args.append(tools.ast2code(ast.fix_missing_locations(arg.value)))
-        #             keywords.append(tools.ast2code(ast.fix_missing_locations(arg)))
-        #         delay_var = '.'.join([self.host.name] + calls[1:-1])
-        #         if calls[-1] == 'push':
-        #             kws_append = [f'delay_data={delay_var}_delay_data',
-        #                           f'delay_in_idx={delay_var}_delay_in_idx', ]
-        #             data_need_pass = [f'{self.host.name}.{".".join(calls[1:-1])}.delay_data',
-        #                               f'{self.host.name}.{".".join(calls[1:-1])}.delay_in_idx']
-        #
-        #             if len(args + keywords) == 1:
-        #                 rep_expression = f'{delay_var}_delay_data'
-        #
-        #         else:
-        #             kws_append = [f'delay_data={delay_var}_delay_data',
-        #                           f'delay_out_idx={delay_var}_delay_out_idx', ]
-        #             data_need_pass = [f'{self.host.name}.{".".join(calls[1:-1])}.delay_data',
-        #                               f'{self.host.name}.{".".join(calls[1:-1])}.delay_out_idx']
-        #         org_call = tools.ast2code(ast.fix_missing_locations(node))
-        #         rep_call = f'{func}({", ".join(args + keywords + kws_append)})'
-        #         self.delay_call[node] = dict(type=calls[-1],
-        #                                      args=args,
-        #                                      keywords=keywords,
-        #                                      kws_append=kws_append,
-        #                                      func=func,
-        #                                      org_call=org_call,
-        #                                      rep_call=rep_call,
-        #                                      data_need_pass=data_need_pass)
+        # get the object and the function
+        if calls[0] not in backend.CLASS_KEYWORDS:
+            return node
+        obj = self.host
+        for data in calls[1:-1]:
+            obj = getattr(obj, data)
+        obj_func = getattr(obj, calls[-1])
 
-        # method 2: : delay push / delay pull
+        # get function arguments
+        args = []
+        for arg in node.args:
+            args.append(tools.ast2code(ast.fix_missing_locations(arg)))
+        kw_args = OrderedDict()
+        for keyword in node.keywords:
+            kw_args[keyword.arg] = tools.ast2code(ast.fix_missing_locations(keyword.value))
+
+        # TASK 1 : extract delay push and delay pull
         # ------
-        # replace the delay function call to the
-        # delay_data index. In such a way, delay
-        # function will be removed.
+        # Replace the delay function call to the delay_data
+        # index. In such a way, delay function will be removed.
         # ------
-        if calls[-1] in ['push', 'pull']:
-            obj = self.host
-            for data in calls[1:-1]:
-                obj = getattr(obj, data)
-            obj_func = getattr(obj, calls[-1])
-            if isinstance(obj, delays.ConstantDelay) and callable(obj_func):
-                func = ".".join(calls)
-                args = []
-                for arg in node.args:
-                    args.append(tools.ast2code(ast.fix_missing_locations(arg)))
-                for arg in node.keywords:
-                    args.append(tools.ast2code(ast.fix_missing_locations(arg.value)))
-                dvar4call = '.'.join(calls[0:-1])
-                uniform_delay = getattr(obj, 'uniform_delay')
-                if calls[-1] == 'push':
-                    kws_append = [f'delay_data={dvar4call}_delay_data',
-                                  f'delay_in_idx={dvar4call}_delay_in_idx', ]
-                    data_need_pass = [f'{dvar4call}.delay_data', f'{dvar4call}.delay_in_idx']
-                    if len(args) == 1:
-                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx] = {args[0]}'
-                    elif len(args) == 2:
-                        if uniform_delay:
-                            rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx][{args[0]}] = {args[1]}'
-                        else:
-                            rep_expression = f'{dvar4call}.delay_data[{dvar4call}.' \
-                                             f'delay_in_idx[{args[0]}]][{args[0]}] = {args[1]}'
+
+        if calls[-1] in ['push', 'pull'] and isinstance(obj, delays.ConstantDelay) and callable(obj_func):
+            dvar4call = '.'.join(calls[0:-1])
+            uniform_delay = getattr(obj, 'uniform_delay')
+            if calls[-1] == 'push':
+                data_need_pass = [f'{dvar4call}.delay_data', f'{dvar4call}.delay_in_idx']
+                idx_or_val = kw_args['idx_or_val'] if len(args) == 0 else args[0]
+                if len(args) + len(kw_args) == 1:
+                    rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx] = {idx_or_val}'
+                elif len(args) + len(kw_args) == 2:
+                    value = kw_args['value'] if len(args) <= 1 else args[1]
+                    if uniform_delay:
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx][{idx_or_val}] = {value}'
                     else:
-                        raise ValueError
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx[{idx_or_val}]][{idx_or_val}] = {value}'
                 else:
-                    kws_append = [f'delay_data={dvar4call}_delay_data',
-                                  f'delay_out_idx={dvar4call}_delay_out_idx', ]
-                    data_need_pass = [f'{dvar4call}.delay_data', f'{dvar4call}.delay_out_idx']
-                    if len(args) == 0:
-                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx]'
-                    elif len(args) == 1:
-                        if uniform_delay:
-                            rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx][{args[0]}]'
-                        else:
-                            rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx[{args[0]}]][{args[0]}]'
+                    raise errors.CodeError(f'Cannot analyze the code: \n\n'
+                                           f'{tools.ast2code(ast.fix_missing_locations(node))}')
+            else:
+                data_need_pass = [f'{dvar4call}.delay_data', f'{dvar4call}.delay_out_idx']
+                if len(args) + len(kw_args) == 0:
+                    rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx]'
+                elif len(args) + len(kw_args) == 1:
+                    idx = kw_args['idx'] if len(args) == 0 else args[0]
+                    if uniform_delay:
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx][{idx}]'
                     else:
-                        raise ValueError
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx[{idx}]][{idx}]'
+                else:
+                    raise errors.CodeError(f'Cannot analyze the code: \n\n'
+                                           f'{tools.ast2code(ast.fix_missing_locations(node))}')
 
-                org_call = tools.ast2code(ast.fix_missing_locations(node))
-                self.delay_call[node] = dict(type=calls[-1],
-                                             args=args,
-                                             kws_append=kws_append,
-                                             func=func,
-                                             org_call=org_call,
-                                             rep_call=rep_expression,
-                                             data_need_pass=data_need_pass)
+            org_call = tools.ast2code(ast.fix_missing_locations(node))
+            self.visited_calls[node] = dict(type=calls[-1],
+                                            org_call=org_call,
+                                            rep_call=rep_expression,
+                                            data_need_pass=data_need_pass)
 
         self.generic_visit(node)
 
@@ -433,7 +396,7 @@ def _analyze_step_func(host, f):
 
     # AST analysis
     # ------------
-    formatter = _StepFuncReader(host=host)
+    formatter = _CPUReader(host=host)
     formatter.visit(tree)
 
     # data assigned by self.xx in line right
@@ -472,7 +435,7 @@ def _analyze_step_func(host, f):
     self_data_with_index_in_left = sorted(self_data_with_index_in_left)
 
     analyzed_results = {
-        'delay_call': formatter.delay_call,
+        'delay_call': formatter.visited_calls,
         'code_string': '\n'.join(formatter.lines),
         'code_scope': code_scope,
         'self_data_in_right': self_data_in_right,
@@ -630,7 +593,7 @@ def _class2func(cls_func, host, func_name=None, show_code=False):
     return func, calls, assigns
 
 
-class NumbaCpuNodeDriver(GeneralNodeDriver):
+class NumbaCPUNodeDriver(GeneralNodeDriver):
     def get_steps_func(self, show_code=False):
         for func_name, step in self.steps.items():
             if hasattr(step, '__self__'):

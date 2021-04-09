@@ -9,7 +9,7 @@ import numpy as np
 
 import brainpy as bp
 from brainpy.simulation.delays import ConstantDelay
-from brainpy.backend.drivers.numba_cpu import _StepFuncReader
+from brainpy.backend.drivers.numba_cpu import _CPUReader
 from brainpy.backend.drivers.numba_cpu import _analyze_step_func
 from brainpy.backend.drivers.numba_cpu import _class2func
 
@@ -258,7 +258,7 @@ def test_StepFuncReader_for_AMPA1_vec():
     update_code = bp.tools.deindent(inspect.getsource(ampa.update))
     # output_code = bp.tools.deindent(inspect.getsource(ampa.output))
 
-    formatter = _StepFuncReader(host=ampa)
+    formatter = _CPUReader(host=ampa)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')
@@ -271,8 +271,8 @@ def test_StepFuncReader_for_AMPA1_vec():
     pprint(formatter.lines)
     print()
     print('delay_call:')
-    pprint(formatter.delay_call.keys())
-    for v in formatter.delay_call.values():
+    pprint(formatter.visited_calls.keys())
+    for v in formatter.visited_calls.values():
         pprint(v)
     print()
 
@@ -299,7 +299,7 @@ def non_uniform_push_for_tensor_bk(self):
     print()
 
     delay = ConstantDelay(size=10, delay_time=np.random.randint(10, size=10))
-    formatter = _StepFuncReader(host=delay)
+    formatter = _CPUReader(host=delay)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')
@@ -312,8 +312,8 @@ def non_uniform_push_for_tensor_bk(self):
     pprint(formatter.lines)
     print()
     print('delay_call:')
-    pprint(formatter.delay_call.keys())
-    for v in formatter.delay_call.values():
+    pprint(formatter.visited_calls.keys())
+    for v in formatter.visited_calls.values():
         pprint(v)
     print()
 
@@ -339,7 +339,7 @@ def non_uniform_push_for_tensor_bk(self):
     print()
 
     delay = ConstantDelay(size=10, delay_time=np.random.randint(10, size=10))
-    formatter = _StepFuncReader(host=delay)
+    formatter = _CPUReader(host=delay)
     formatter.visit(ast.parse(update_code))
 
     print('lefts:')
@@ -352,8 +352,8 @@ def non_uniform_push_for_tensor_bk(self):
     pprint(formatter.lines)
     print()
     print('delay_call:')
-    pprint(formatter.delay_call.keys())
-    for v in formatter.delay_call.values():
+    pprint(formatter.visited_calls.keys())
+    for v in formatter.visited_calls.values():
         pprint(v)
     print()
 
@@ -362,7 +362,7 @@ def test_StepFuncReader_for_lif():
     lif = LIF(10)
     code = bp.tools.deindent(inspect.getsource(lif.update))
 
-    formatter = _StepFuncReader(host=lif)
+    formatter = _CPUReader(host=lif)
     formatter.visit(ast.parse(code))
 
     print('lefts:')
@@ -375,8 +375,8 @@ def test_StepFuncReader_for_lif():
     pprint(formatter.lines)
     print()
     print('delay_call:')
-    pprint(formatter.delay_call.keys())
-    for v in formatter.delay_call.values():
+    pprint(formatter.visited_calls.keys())
+    for v in formatter.visited_calls.values():
         pprint(v)
     print()
 

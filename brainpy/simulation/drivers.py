@@ -45,7 +45,8 @@ class BaseNodeDriver(AbstractDriver):
         self.schedule = ['input'] + list(self.steps.keys()) + ['monitor']
 
     def upload(self, name, data_or_func):
-        setattr(self.host, name, data_or_func)
+        if not hasattr(self.host, name):
+            setattr(self.host, name, data_or_func)
 
     def get_schedule(self):
         """Get the running schedule.
