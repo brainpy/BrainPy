@@ -20,12 +20,13 @@ __all__ = [
 
 # Ito SDE
 # ---
-#
+# The SDE integral proposed by Ito in 1940s.
 ITO_SDE = 'Ito'
+
 
 # Stratonovich SDE
 # ---
-#
+# The SDE integral proposed by Stratonovich in 1960s.
 STRA_SDE = 'Stratonovich'
 
 SUPPORTED_SDE_TYPE = [
@@ -33,20 +34,24 @@ SUPPORTED_SDE_TYPE = [
     STRA_SDE
 ]
 
+# ------------------------------------------------------
+
 # Scalar Wiener process
 # ----
 #
-SCALAR_WIENER = 'scalar_wiener'
+SCALAR_WIENER = 'scalar'
 
 # Vector Wiener process
 # ----
 #
-VECTOR_WIENER = 'vector_wiener'
+VECTOR_WIENER = 'vector'
 
 SUPPORTED_WIENER_TYPE = [
     SCALAR_WIENER,
     VECTOR_WIENER
 ]
+
+# ------------------------------------------------------
 
 # Denotes each variable is a scalar variable
 # -------
@@ -92,11 +97,13 @@ SUPPORTED_VAR_TYPE = [
     SYSTEM_VAR,
 ]
 
+# ------------------------------------------------------
+
 # Differential equation type
 # ----------
 #
 
-NAME_PREFIX = '{}_brainpy_int_of_'
+NAME_PREFIX = '_brainpy_int_of_'
 ODE_PREFIX = 'ode_brainpy_int_of_'
 SDE_PREFIX = 'sde_brainpy_int_of_'
 

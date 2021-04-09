@@ -24,7 +24,7 @@ __all__ = [
 def _base(A, B, C, f, show_code, dt, var_type, im_return):
     dt = backend.get_dt() if dt is None else dt
     show_code = False if show_code is None else show_code
-    var_type = constants.POPU_VAR if var_type is None else var_type
+    var_type = constants.SCALAR_VAR if var_type is None else var_type
 
     if f is None:
         return lambda f: general_rk_wrapper(f=f, show_code=show_code, dt=dt, A=A, B=B, C=C,
