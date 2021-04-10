@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import math
 
 from brainpy import backend
@@ -19,16 +18,28 @@ class ConstantDelay(object):
     def __init__(self, size, delay_time):
         if isinstance(size, int):
             size = (size,)
-        size = tuple(size)
-        self.num = size2len(size)
+        self.size = tuple(size)
         self.delay_time = delay_time
 
         if isinstance(delay_time, (int, float)):
             self.uniform_delay = True
             self.delay_num_step = int(math.ceil(delay_time / backend.get_dt())) + 1
-            self.delay_data = ops.zeros((self.delay_num_step,) + size)
+            self.delay_data = ops.zeros((self.delay_num_step,) + self.size)
         else:
-            assert self.num == len(delay_time)
+            if not len(self.size) == 1:
+                raise NotImplementedError(f'Currently, BrainPy only supports 1D heterogeneous delays, while does '
+                                          f'not implement the heterogeneous delay with {len(self.size)}-dimensions.')
+            self.num = size2len(size)
+            if isinstance(delay_time, type(ops.as_tensor([1]))):
+                assert ops.shape(delay_time) == self.size
+            elif callable(delay_time):
+                delay_time2 = ops.zeros(size)
+                for i in range(size[0]):
+                    delay_time2[i] = delay_time()
+                delay_time = delay_time2
+            else:
+                raise NotImplementedError(f'Currently, BrainPy does not support delay type '
+                                          f'of {type(delay_time)}: {delay_time}')
             self.uniform_delay = False
             delay = delay_time / backend.get_dt()
             dint = ops.as_tensor(delay_time / backend.get_dt(), dtype=int)
