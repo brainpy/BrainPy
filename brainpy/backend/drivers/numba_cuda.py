@@ -46,6 +46,10 @@ __all__ = [
 _num_thread_gpu = 1024
 
 
+def cuda_name_of(data_name):
+    return f'{data_name}_bpcuda'
+
+
 def set_num_thread_gpu(num_thread):
     global _num_thread_gpu
     _num_thread_gpu = num_thread
@@ -338,7 +342,7 @@ class _CUDAReader(_CPUReader):
                 elif op == '-':
                     expr = '-' + expr
                 else:
-                    raise ValueError(f'Cannot assign an automic operation for this '
+                    raise ValueError(f'Cannot parse automic operation for this '
                                      f'expression: {target}[{slice_}] {op}= {expr}')
                 self.lefts.append(target)
                 self.lines.append(f'{prefix}cuda.atomic.add({target}, {slice_}, {expr})')
@@ -371,13 +375,14 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
         # ---------
         host_name = self.host.name
         func_name = f.__name__ if func_name is None else func_name
-        args = tools.ast2code(ast.fix_missing_locations(tree.body[0].args)).split(',')
+        _arg_ast = ast.fix_missing_locations(tree.body[0].args)
+        args = [arg.strip() for arg in tools.ast2code(_arg_ast).split(',')]
 
         # judge step function type
         # ---------
         func_body = tree.body[0].body
         if len(func_body) == 1 and isinstance(func_body[0], ast.For):
-            type_ = self.FOR_LOOP_TYPE
+            code_type = self.FOR_LOOP_TYPE
             iter_target = func_body[0].target.id
             iter_args = func_body[0].iter.args
             if len(iter_args) == 1:
@@ -394,12 +399,13 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
                     raise errors.ModelDefError(
                         f'Must define "num" in {self.host} when user uses the Numba CUDA backend.')
                 num_block, num_thread = get_cuda_size(self.host.num)
-                rng_state = create_xoroshiro128p_states(num_block * num_thread, seed=np.random.randint(100000))
+                # rng_state = create_xoroshiro128p_states(num_block * num_thread, seed=np.random.randint(100000))
+                rng_state = None
                 self.upload('rng_states', rng_state)
 
-            tree_to_analyze = tree.body[0].body[0].body
+            tree_to_analyze = ast.Module(body=tree.body[0].body[0].body)
         else:
-            type_ = self.CUSTOMIZE_TYPE
+            code_type = self.CUSTOMIZE_TYPE
             tree_to_analyze = tree
 
         # AST reader
@@ -478,7 +484,7 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
             obj = getattr(host, splits[-1])
 
             if isinstance(obj, np.ndarray):  # 1. transform the cpu data to cuda data
-                splits[-1] = f'{splits[-1]}_cuda'
+                splits[-1] = cuda_name_of(splits[-1])
                 self.transfer_data_cpu2gpu(host, splits[-1], cuda.to_device(obj))
 
             elif isinstance(obj, DeviceNDArray):
@@ -486,16 +492,13 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
 
             elif callable(obj):  # 2. check jitted integrators
                 if isinstance(obj, Dispatcher):
-                    if diffint_cons.NAME_PREFIX in obj.py_func.__name__:
+                    if diffint_cons.DE_PREFIX in obj.py_func.__name__:
                         code_scope[utils.attr_replace(data)] = cuda.jit(obj.py_func, device=True)
                     else:
-                        raise ValueError('Cannot call a cuda.jit function, please change it '
-                                         'to a numba.cuda.jit device function.')
-                elif isinstance(obj, DeviceFunctionTemplate):
-                    code_scope[utils.attr_replace(data)] = obj
+                        raise ValueError(f'Cannot call a cuda.jit function, please change it '
+                                         f'to a numba.cuda.jit device function: {obj}')
                 else:
-                    raise ValueError(f'Only support the numba.cuda.jit(device=True) function in '
-                                     f'the step function, not {type(obj)}.')
+                    code_scope[utils.attr_replace(data)] = obj
                 continue
 
             # 3. data need pass
@@ -503,21 +506,21 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
             calls.append('.'.join([host_name] + splits[1:]))
 
         # format final codes
-        if type_ == self.FOR_LOOP_TYPE:
+        if code_type == self.FOR_LOOP_TYPE:
             replaces_later['_thread_id_'] = iter_target
             for_loop = f'{iter_target} = cuda.grid(1)\n' \
                        f'if {iter_target} < {iter_seq}:\n'
             main_code = for_loop + tools.indent(main_code, spaces_per_tab=2)
-        elif type_ == self.CUSTOMIZE_TYPE:
+        elif code_type == self.CUSTOMIZE_TYPE:
             pass
         else:
-            raise NotImplementedError(f'Unknown coding type: {type_}')
+            raise NotImplementedError(f'Unknown coding type: {code_type}')
         header = f'def new_{func_name}({", ".join(new_args)}):\n'
         main_code = header + tools.indent(main_code, spaces_per_tab=2)
         main_code = tools.word_replace(main_code, replaces_later)
         if show_code:
             print(main_code)
-            print(code_scope)
+            pprint(code_scope)
             print()
 
         # recompile
@@ -560,19 +563,23 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
         delay_out_idx[thread_id] = (delay_out_idx[thread_id] + 1) % step
         '''
             code = code.strip()
-            self.transfer_data_cpu2gpu(host, key='delay_num_step_cuda', data=cuda.to_device(host.delay_num_step))
-            self.transfer_data_cpu2gpu(host, key='delay_in_idx_cuda', data=cuda.to_device(host.delay_in_idx))
-            self.transfer_data_cpu2gpu(host, key='delay_out_idx_cuda', data=cuda.to_device(host.delay_out_idx))
+            # self.transfer_data_cpu2gpu(host, key='delay_num_step_cuda', data=cuda.to_device(host.delay_num_step))
+            # self.transfer_data_cpu2gpu(host, key='delay_in_idx_cuda', data=cuda.to_device(host.delay_in_idx))
+            # self.transfer_data_cpu2gpu(host, key='delay_out_idx_cuda', data=cuda.to_device(host.delay_out_idx))
+
+            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_num_step"), data=cuda.to_device(host.delay_num_step))
+            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_in_idx"), data=cuda.to_device(host.delay_in_idx))
+            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_out_idx"), data=cuda.to_device(host.delay_out_idx))
 
             code_scope = {host.name: host, 'cuda': cuda}
-            calls = [f'{host.name}.delay_num_step_cuda',
-                     f'{host.name}.delay_in_idx_cuda',
-                     f'{host.name}.delay_out_idx_cuda']
+            calls = [f'{host.name}.{cuda_name_of("delay_num_step")}',
+                     f'{host.name}.{cuda_name_of("delay_in_idx")}',
+                     f'{host.name}.{cuda_name_of("delay_out_idx")}']
             assigns = []
 
             if show_code:
                 print(code)
-                print(code_scope)
+                pprint(code_scope)
                 print()
 
             # compile

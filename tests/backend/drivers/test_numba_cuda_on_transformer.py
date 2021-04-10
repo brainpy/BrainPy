@@ -8,7 +8,6 @@ from brainpy.backend.drivers.numba_cuda import _CUDATransformer
 bp.backend.set('numba-cuda', dt=0.02)
 
 
-
 def test1():
     class LIF(bp.NeuGroup):
         target_backend = 'general'
@@ -125,7 +124,7 @@ def test2():
     print(new_code)
 
 
-# test1()
+test1()
 test2()
 
 

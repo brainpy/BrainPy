@@ -15,7 +15,7 @@ __all__ = [
     'ITO_SDE',
     'STRA_SDE',
 
-    'NAME_PREFIX',
+    'DE_PREFIX',
 ]
 
 # Ito SDE
@@ -103,7 +103,7 @@ SUPPORTED_VAR_TYPE = [
 # ----------
 #
 
-NAME_PREFIX = '_brainpy_int_of_'
+DE_PREFIX = '_brainpy_int_of_'
 ODE_PREFIX = 'ode_brainpy_int_of_'
 SDE_PREFIX = 'sde_brainpy_int_of_'
 
