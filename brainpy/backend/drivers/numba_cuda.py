@@ -60,12 +60,19 @@ def get_num_thread_gpu():
 
 
 def get_cuda_size(num):
-    if num < get_num_thread_gpu():
+    if num <= get_num_thread_gpu():
         num_block, num_thread = 1, num
     else:
         num_thread = get_num_thread_gpu()
         num_block = math.ceil(num / num_thread)
     return num_block, num_thread
+
+
+def data_shape(data):
+    if isinstance(data, DeviceNDArray):
+        return data.shape
+    else:
+        return ops.shape(data)
 
 
 class NumbaCudaDiffIntDriver(drivers.BaseDiffIntDriver):
@@ -359,15 +366,23 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
 
     @staticmethod
     def transfer_data_cpu2gpu(host, key, data):
-        if not hasattr(host, 'numba_gpu_data'):
-            setattr(host, 'numba_gpu_data', {})
-        if key not in host.numba_gpu_data:
-            setattr(host, key, data)
-            host.numba_gpu_data[key] = data
+        if isinstance(host, dict):
+            if 'numba_gpu_data' not in host:
+                host['numba_gpu_data'] = {}
+            if key not in host['numba_gpu_data']:
+                host[key] = data
+                host['numba_gpu_data'][key] = data
+        else:
+            if not hasattr(host, 'numba_gpu_data'):
+                setattr(host, 'numba_gpu_data', {})
+            if key not in host.numba_gpu_data:
+                setattr(host, key, data)
+                host.numba_gpu_data[key] = data
 
     def _reprocess_steps(self, f, func_name=None, show_code=False):
         """Analyze the step functions in a DynamicSystem.
         """
+        num_block, num_thread = get_cuda_size(self.host.num)
         code_string = tools.deindent(inspect.getsource(f)).strip()
         tree = ast.parse(code_string)
 
@@ -398,9 +413,7 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
                 if not hasattr(self.host, 'num'):
                     raise errors.ModelDefError(
                         f'Must define "num" in {self.host} when user uses the Numba CUDA backend.')
-                num_block, num_thread = get_cuda_size(self.host.num)
-                # rng_state = create_xoroshiro128p_states(num_block * num_thread, seed=np.random.randint(100000))
-                rng_state = None
+                rng_state = create_xoroshiro128p_states(num_block * num_thread, seed=np.random.randint(100000))
                 self.upload('rng_states', rng_state)
 
             tree_to_analyze = ast.Module(body=tree.body[0].body[0].body)
@@ -528,9 +541,15 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
         func = code_scope[f'new_{func_name}']
         func = cuda.jit(func)
 
-        return func, calls, []
+        call_lines = [f'{host_name}.new_{func_name}[{num_block}, {num_thread}]({", ".join(calls)})',
+                      'cuda.synchronize()']
+
+        return func, call_lines
 
     def _reprocess_delays(self, host, f, func_name, show_code=False):
+        if f.__name__ != 'update':
+            raise NotImplementedError
+
         if host.uniform_delay:
             code = f'''
 def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
@@ -552,8 +571,10 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             exec(compile(code, '', 'exec'), code_scope)
             func = code_scope[f'new_{func_name}']
             func = numba.njit(func)
+            call_lines = [f'{", ".join(assigns)} = {host.name}.new_{func_name}({", ".join(calls)})']
 
         else:
+
             code = f'''
 def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
     thread_id = cuda.grid(1)
@@ -563,11 +584,9 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
         delay_out_idx[thread_id] = (delay_out_idx[thread_id] + 1) % step
         '''
             code = code.strip()
-            # self.transfer_data_cpu2gpu(host, key='delay_num_step_cuda', data=cuda.to_device(host.delay_num_step))
-            # self.transfer_data_cpu2gpu(host, key='delay_in_idx_cuda', data=cuda.to_device(host.delay_in_idx))
-            # self.transfer_data_cpu2gpu(host, key='delay_out_idx_cuda', data=cuda.to_device(host.delay_out_idx))
 
-            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_num_step"), data=cuda.to_device(host.delay_num_step))
+            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_num_step"),
+                                       data=cuda.to_device(host.delay_num_step))
             self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_in_idx"), data=cuda.to_device(host.delay_in_idx))
             self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_out_idx"), data=cuda.to_device(host.delay_out_idx))
 
@@ -575,7 +594,6 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             calls = [f'{host.name}.{cuda_name_of("delay_num_step")}',
                      f'{host.name}.{cuda_name_of("delay_in_idx")}',
                      f'{host.name}.{cuda_name_of("delay_out_idx")}']
-            assigns = []
 
             if show_code:
                 print(code)
@@ -586,7 +604,11 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             exec(compile(code, '', 'exec'), code_scope)
             func = code_scope[f'new_{func_name}']
             func = cuda.jit(func)
-        return func, calls, assigns
+            num_block, num_thread = get_cuda_size(self.host.num)
+            call_lines = [f'{host.name}.new_{func_name}[{num_block}, {num_thread}]({", ".join(calls)})',
+                          'cuda.synchronize()']
+
+        return func, call_lines
 
     def get_steps_func(self, show_code=False):
         for func_name, step in self.steps.items():
@@ -601,14 +623,9 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
 
             # the function reprocessed
             if host == self.host:
-                func, calls, assigns = self._reprocess_steps(step, func_name=func_name, show_code=show_code)
-                synchronize = True
+                func, call_lines = self._reprocess_steps(step, func_name=func_name, show_code=show_code)
             elif isinstance(host, ConstantDelay):
-                func, calls, assigns = self._reprocess_delays(host, f=step, func_name=func_name, show_code=show_code)
-                if host.uniform_delay:
-                    synchronize = False
-                else:
-                    synchronize = True
+                func, call_lines = self._reprocess_delays(host, f=step, func_name=func_name, show_code=show_code)
             else:
                 raise NotImplementedError
 
@@ -616,109 +633,222 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             setattr(host, f'new_{func_name}', func)
 
             # code scope
-            code_scope = {host.name: host, }
-
-            # functional call
-            assign_line = ''
-            if len(assigns):
-                assign_line = f'{", ".join(assigns)} = '
-            final_calls = [f'{assign_line}{host.name}.new_{func_name}({", ".join(calls)})']
-            if synchronize:
-                final_calls.append('cuda.synchronize()')
-                code_scope['cuda'] = cuda
+            code_scope = {host.name: host, 'cuda': cuda}
 
             # finally
-            self.formatted_funcs[func_name] = {'func': func, 'scope': code_scope, 'call': final_calls}
+            self.formatted_funcs[func_name] = {'func': func, 'scope': code_scope, 'call': call_lines}
 
-    def get_input_func(self, formatted_inputs, show_code=False):
-        need_rebuild = False
+    def _check_inputs_change(self, formatted_inputs, show_code):
         # check whether the input is changed
-        # --
+        # ---
         new_inputs = {}
         input_keep_same = True
         old_input_keys = list(self.last_inputs.keys())
-        for key, val, ops_, data_type in formatted_inputs:
-            # set data
-            self.upload(self.input_data_name(key), val)
+        for key, val, op, data_type in formatted_inputs:
+            # set data, and transfer cpu data to gpu
+            if isinstance(val, DeviceNDArray) or isinstance(val, (int, float)):
+                pass
+            elif hasattr(val, '__cuda_array_interface__'):
+                val = cuda.as_cuda_array(val)
+            else:
+                val = cuda.to_device(val)
+            self.upload(self.input_data_name_of(key), val)
+
             # compare
             if key in old_input_keys:
+                # shape
+                val_shape = data_shape(val)
+                last_shape = data_shape(self.last_inputs[key][0])
+                # check
                 old_input_keys.remove(key)
-                if ops.shape(self.last_inputs[key][0]) != ops.shape(val):
+                if last_shape != val_shape:
                     input_keep_same = False
                     if show_code:
-                        print(f'The current "{key}" input shape {ops.shape(val)} is different '
-                              f'from the last input shape {ops.shape(self.last_inputs[key][0])}.')
-                if self.last_inputs[key][1] != ops_:
+                        print(f'The current "{key}" input shape {val_shape} is different '
+                              f'from the last input shape {last_shape}.')
+                if self.last_inputs[key][1] != op:
                     input_keep_same = False
                     if show_code:
-                        print(f'The current "{key}" input operation "{ops_}" is different '
+                        print(f'The current "{key}" input operation "{op}" is different '
                               f'from the last operation "{self.last_inputs[key][1]}". ')
             else:
                 input_keep_same = False
                 if show_code:
                     print(f'The input to a new key "{key}" in {self.host}.')
-            new_inputs[key] = (val, ops_, data_type)
+            new_inputs[key] = (val, op, data_type)
         self.last_inputs = new_inputs
         if len(old_input_keys):
             input_keep_same = False
             if show_code:
                 print(f'The inputs of {old_input_keys} in {self.host} are not provided.')
 
-        # get the function of the input
-        # ---
-        if not input_keep_same:
-            # codes
+        return input_keep_same
+
+    def _format_inputs_func(self, formatted_inputs, show_code):
+        """For the function for inputs
+
+        The ability of this automatic inputs function:
+
+        1. Only supports inputs to the 1D vector data.
+        2. Do not support inputs to the int/float etc. scalar data.
+        """
+        if len(formatted_inputs) > 0:
+            # function and host name
             input_func_name = 'input_step'
             host_name = self.host.name
-            code_scope = {host_name: self.host}
-            code_lines = [f'def {input_func_name}(_i):']
-            for key, val, ops_, data_type in formatted_inputs:
-                if ops_ == '=':
-                    line = f'  {host_name}.{key} = {host_name}.{self.input_data_name(key)}'
-                else:
-                    line = f'  {host_name}.{key} {ops_}= {host_name}.{self.input_data_name(key)}'
-                if data_type == 'iter':
-                    line = line + '[_i]'
-                code_lines.append(line)
-            if len(formatted_inputs) == 0:
-                code_lines.append('  pass')
 
-            # function
+            # code scope
+            code_scope = {host_name: self.host, 'cuda': cuda}
+
+            args2calls = {}
+
+            # task 1: group data according to the data shape
+            # task 2: transfer data from cpu to gpu
+            new_formatted_inputs = {}
+            for key, val, op, data_type in formatted_inputs:
+                key_val = getattr(self.host, key)
+                if isinstance(key_val, (int, float)):
+                    raise errors.ModelUseError(f'BrainPy Numba CUDA backend does not support inputs '
+                                               f'for scalar value: {host_name}.{key} = {key_val}')
+                if isinstance(key_val, np.ndarray):
+                    if key_val.ndim != 1:
+                        raise NotImplementedError(f'BrainPy Numba CUDA backend only supports inputs for 1D vector data'
+                                                  f', not {key_val.ndim}-dimensional data of {host_name}.{key}')
+                    self.transfer_data_cpu2gpu(self.host, cuda_name_of(key), cuda.to_device(key_val))
+                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{cuda_name_of(key)}'
+                    size = key_val.size
+                elif isinstance(key_val, DeviceNDArray):
+                    if key_val.ndim != 1:
+                        raise NotImplementedError(f'BrainPy Numba CUDA backend only supports inputs for 1D vector data'
+                                                  f', not {key_val.ndim}-dimensional data of {host_name}.{key}')
+                    size = key_val.size
+                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{key}'
+                else:
+                    raise NotImplementedError
+                if size not in new_formatted_inputs:
+                    new_formatted_inputs[size] = []
+                new_formatted_inputs[size].append((key, val, op, data_type))
+
+            # function arguments and code lines
+            code_lines = []
+            for size, inputs in new_formatted_inputs.items():
+                code_lines = [f'  if thread_i < {size}:']
+                for key, val, op, data_type in inputs:
+                    key_name_in_host = self.input_data_name_of(key)
+                    if not isinstance(val, (int, float)):
+                        if data_type == 'iter':
+                            if val.ndim == 1:
+                                postfix = '[_i]'
+                            elif val.ndim == 2:
+                                postfix = '[_i, thread_i]'
+                            else:
+                                raise NotImplementedError
+                        else:
+                            postfix = '[thread_i]'
+                    else:
+                        postfix = ''
+                    args2calls[f'{host_name}_{key_name_in_host}'] = f'{host_name}.{key_name_in_host}'
+                    if data_type == 'iter':
+                        args2calls['_i'] = '_i'
+                    if op == '=':
+                        line = f'    {host_name}_{key}[thread_i] = {host_name}_{key_name_in_host}{postfix}'
+                    else:
+                        line = f'    {host_name}_{key}[thread_i] {op}= {host_name}_{key_name_in_host}{postfix}'
+                    code_lines.append(line)
+
+            # arguments
+            args2calls = sorted(args2calls.items())
+            args = [arg for arg, _ in args2calls]
+            calls = [call for _, call in args2calls]
+            code_lines.insert(0, f'def {input_func_name}({", ".join(args)}):')
+            code_lines.insert(1, f'  thread_i = cuda.grid(1)')
+
+            # function code
             code = '\n'.join(code_lines)
             if show_code:
                 print(code)
-                print(code_scope)
+                pprint(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
-            self.upload(input_func_name, code_scope[input_func_name])
+            func = cuda.jit(code_scope[input_func_name])
+            self.upload(input_func_name, func)
+
             # results
+            num_block, num_thread = get_cuda_size(max(list(new_formatted_inputs.keys())))
             self.formatted_funcs['input'] = {
-                'func': code_scope[input_func_name],
-                'scope': {host_name: self.host},
-                'call': [f'{host_name}.{input_func_name}(_i)'],
+                'func': func,
+                'scope': {host_name: self.host, 'cuda': cuda},
+                'call': [f'{host_name}.{input_func_name}[{num_block}, {num_thread}]({", ".join(calls)})',
+                         'cuda.synchronize()'],
             }
-            need_rebuild = True
-        return need_rebuild
 
     def get_monitor_func(self, mon_length, show_code=False):
+        """Get monitor function.
+
+        There are two kinds of ways to form monitor function.
+
+        1. First, we can transfer GPU data to CPU, then utilize previous 'get_monitor_func()'.
+        2. Second, we can form a GPU version function, at the time, we monitor the data in the GPU backend.
+
+        """
         mon = self.host.mon
         if len(mon['vars']) > 0:
+            args2calls = {'_i': '_i'}
+            host_name = self.host.name
             monitor_func_name = 'monitor_step'
-            host = self.host.name
-            code_scope = {host: self.host}
-            code_lines = [f'def {monitor_func_name}(_i):']
+
+            # code scope
+            code_scope = {host_name: self.host}
+
+            # task 1: group data according to the data shape
+            # task 2: transfer data from cpu to gpu
+            new_formatted_monitors = {}
             for key in mon['vars']:
                 if not hasattr(self.host, key):
-                    raise errors.ModelUseError(f'{self.host} do not have {key}, '
-                                               f'thus it cannot be monitored.')
+                    raise errors.ModelUseError(f'{self.host} do not have {key}, thus it cannot be monitored.')
+                key_val = getattr(self.host, key)
+                if isinstance(key_val, (int, float)):
+                    raise errors.ModelUseError(f'BrainPy Numba CUDA backend does not support monitor '
+                                               f'scalar value: {host_name}.{key} = {key_val}')
+                if isinstance(key_val, np.ndarray):
+                    if key_val.ndim != 1:
+                        raise NotImplementedError(f'BrainPy Numba CUDA backend only supports monitors for 1D vector '
+                                                  f'data, not {key_val.ndim}-dimensional data of {host_name}.{key}')
+                    self.transfer_data_cpu2gpu(self.host, cuda_name_of(key), cuda.to_device(key_val))
+                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{cuda_name_of(key)}'
+                    size = key_val.size
+                elif isinstance(key_val, DeviceNDArray):
+                    if key_val.ndim != 1:
+                        raise NotImplementedError(f'BrainPy Numba CUDA backend only supports inputs for 1D vector '
+                                                  f'data, not {key_val.ndim}-dimensional data of {host_name}.{key}')
+                    size = key_val.size
+                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{key}'
+                else:
+                    raise NotImplementedError
+                if size not in new_formatted_monitors:
+                    new_formatted_monitors[size] = []
+                new_formatted_monitors[size].append(key)
 
-                # initialize monitor array #
-                shape = ops.shape(getattr(self.host, key))
-                mon[key] = ops.zeros((mon_length,) + shape)
+            # format code lines
+            code_lines = []
+            for size, keys in new_formatted_monitors.items():
+                code_lines = [f'  if thread_i < {size}:']
+                for key in keys:
+                    args2calls[f'{host_name}_mon_{key}'] = f'{host_name}.mon.{cuda_name_of(key)}'
+                    # initialize monitor array #
+                    mon[key] = np.zeros((mon_length, size))
+                    # transfer data from GPU to CPU
+                    self.transfer_data_cpu2gpu(self.host.mon, cuda_name_of(f'{key}'), cuda.to_device(mon[key]))
+                    # add line #
+                    line = f'    {host_name}_mon_{key}[_i, thread_i] = {host_name}_{key}[thread_i]'
+                    code_lines.append(line)
 
-                # add line #
-                line = f'  {host}.mon["{key}"][_i] = {host}.{key}'
-                code_lines.append(line)
+            # arguments
+            args2calls = sorted(args2calls.items())
+            args = [arg for arg, _ in args2calls]
+            calls = [call for _, call in args2calls]
+            code_lines.insert(0, f'def {monitor_func_name}({", ".join(args)}):')
+            code_lines.insert(1, f'  thread_i = cuda.grid(1)')
 
             # function
             code = '\n'.join(code_lines)
@@ -727,14 +857,29 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
                 print(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
-            self.upload(monitor_func_name, code_scope[monitor_func_name])
+
+            func = cuda.jit(code_scope[monitor_func_name])
+            self.upload(monitor_func_name, func)
+
             # results
+            num_block, num_thread = get_cuda_size(max(list(new_formatted_monitors.keys())))
             self.formatted_funcs['monitor'] = {
-                'func': code_scope[monitor_func_name],
-                'scope': {host: self.host},
-                'call': [f'{host}.{monitor_func_name}(_i)'],
+                'func': func,
+                'scope': {host_name: self.host, 'cuda': cuda},
+                'call': [f'{host_name}.{monitor_func_name}[{num_block}, {num_thread}]({", ".join(calls)})',
+                         f'cuda.synchronize()'],
             }
+
+    def to_host(self):
+        pass
+
+    def to_device(self):
+        pass
 
 
 class NumbaCUDANetDriver(drivers.BaseNetDriver):
-    pass
+    def to_host(self):
+        pass
+
+    def to_device(self):
+        pass

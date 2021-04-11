@@ -50,6 +50,7 @@ class ConstantDelay(object):
 
         self.delay_in_idx = self.delay_num_step - 1
         self.delay_out_idx = 0
+        self.name = None
 
     def pull(self, idx=None):
         if self.uniform_delay:

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from pprint import pprint
+
 from brainpy import backend
 from brainpy import errors
 from brainpy.backend import ops
@@ -43,8 +44,7 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         self.formatted_funcs = {}
         self.run_func = None
 
-    def get_input_func(self, formatted_inputs, show_code=False):
-        need_rebuild = False
+    def _check_inputs_change(self, formatted_inputs, show_code):
         # check whether the input is changed
         # --
         new_inputs = {}
@@ -52,7 +52,7 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         old_input_keys = list(self.last_inputs.keys())
         for key, val, ops, data_type in formatted_inputs:
             # set data
-            self.upload(self.input_data_name(key), val)
+            self.upload(self.input_data_name_of(key), val)
             # compare
             if key in old_input_keys:
                 old_input_keys.remove(key)
@@ -77,40 +77,45 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             if show_code:
                 print(f'The inputs of {old_input_keys} in {self.host} are not provided.')
 
-        # get the function of the input
-        # ---
-        if not input_keep_same:
-            # codes
-            input_func_name = 'input_step'
-            host_name = self.host.name
-            code_scope = {host_name: self.host}
-            code_lines = [f'def {input_func_name}(_i):']
-            for key, val, ops, data_type in formatted_inputs:
-                if ops == '=':
-                    line = f'  {host_name}.{key} = {host_name}.{self.input_data_name(key)}'
-                else:
-                    line = f'  {host_name}.{key} {ops}= {host_name}.{self.input_data_name(key)}'
-                if data_type == 'iter':
-                    line = line + '[_i]'
-                code_lines.append(line)
-            if len(formatted_inputs) == 0:
-                code_lines.append('  pass')
+        return input_keep_same
 
-            # function
-            code = '\n'.join(code_lines)
-            if show_code:
-                print(code)
-                print(code_scope)
-                print()
-            exec(compile(code, '', 'exec'), code_scope)
-            self.upload(input_func_name, code_scope[input_func_name])
-            # results
-            self.formatted_funcs['input'] = {
-                'func': code_scope[input_func_name],
-                'scope': {host_name: self.host},
-                'call': [f'{host_name}.{input_func_name}(_i)'],
-            }
+    def _format_inputs_func(self, formatted_inputs, show_code):
+        # codes
+        input_func_name = 'input_step'
+        host_name = self.host.name
+        code_scope = {host_name: self.host}
+        code_lines = [f'def {input_func_name}(_i):']
+        for key, val, ops, data_type in formatted_inputs:
+            if ops == '=':
+                line = f'  {host_name}.{key} = {host_name}.{self.input_data_name_of(key)}'
+            else:
+                line = f'  {host_name}.{key} {ops}= {host_name}.{self.input_data_name_of(key)}'
+            if data_type == 'iter':
+                line = line + '[_i]'
+            code_lines.append(line)
+
+        # function
+        code = '\n'.join(code_lines)
+        if show_code:
+            print(code)
+            print(code_scope)
+            print()
+        exec(compile(code, '', 'exec'), code_scope)
+        self.upload(input_func_name, code_scope[input_func_name])
+        # results
+        self.formatted_funcs['input'] = {
+            'func': code_scope[input_func_name],
+            'scope': {host_name: self.host},
+            'call': [f'{host_name}.{input_func_name}(_i)'],
+        }
+
+    def get_input_func(self, formatted_inputs, show_code=False):
+        input_keep_same = self._check_inputs_change(formatted_inputs=formatted_inputs, show_code=show_code)
+        if not input_keep_same and len(formatted_inputs) > 0:
+            self._format_inputs_func(formatted_inputs=formatted_inputs, show_code=show_code)
             need_rebuild = True
+        else:
+            need_rebuild = False
         return need_rebuild
 
     def get_monitor_func(self, mon_length, show_code=False):
@@ -215,7 +220,7 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             return self.run_func
 
     @staticmethod
-    def input_data_name(key):
+    def input_data_name_of(key):
         return f'_input_data_of_{key.replace(".", "_")}'
 
 
@@ -255,16 +260,16 @@ class GeneralNetDriver(drivers.BaseNetDriver):
         code_scope = {}
         code_lines = ['def run_func(_t, _i, _dt):']
         for obj in self.host.all_nodes.values():
-            f, codes = obj.build(inputs=formatted_inputs.get(obj.name, []),
-                                 inputs_is_formatted=True,
-                                 mon_length=run_length,
-                                 return_code=True,
-                                 show_code=show_code)
-            need_rebuild *= codes['need_rebuild']
+            f, format_funcs = obj.build(inputs=formatted_inputs.get(obj.name, []),
+                                        inputs_is_formatted=True,
+                                        mon_length=run_length,
+                                        return_code=True,
+                                        show_code=show_code)
+            need_rebuild *= format_funcs['need_rebuild']
             for p in obj.get_schedule():
-                if (p not in codes) and (p in ['input', 'monitor']):
+                if (p not in format_funcs) and (p in ['input', 'monitor']):
                     continue
-                p_codes = codes[p]
+                p_codes = format_funcs[p]
                 code_scope.update(p_codes['scope'])
                 code_lines.extend(p_codes['call'])
 
