@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 
-def ast2code(ast_node, indent=4, line_length=100):
+def ast2code(ast_node, indent=4, line_length=300):
     """Decompiles an AST into Python code.
 
     Parameters

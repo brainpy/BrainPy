@@ -35,6 +35,18 @@ class DiffEqReader(ast.NodeVisitor):
     Exponential Euler numerical methods.
     """
 
+    return_error_msg = '''Cannot analyze differential equation with expression return. Like:
+
+def df(v, t):
+    return -v + 1.
+
+We only support return variables. Therefore, the above should be coded as:
+
+def df(v, t):
+    dv = -v + 1.
+    return dv
+'''
+
     def __init__(self):
         self.code_lines = []  # list of str
         self.variables = []  # list of list
@@ -80,16 +92,16 @@ class DiffEqReader(ast.NodeVisitor):
             self.returns.append(node.value.id)
         elif isinstance(node.value, (ast.Tuple, ast.List)):
             for var in node.value.elts:
-                if not (var, ast.Name):
-                    raise errors.DiffEqError(f'Unknown return type: {node}')
+                if not isinstance(var, ast.Name):
+                    raise errors.DiffEqError(self.return_error_msg)
                 self.returns.append(var.id)
         else:
-            raise errors.DiffEqError(f'Unknown return type: {node}')
+            raise errors.DiffEqError(self.return_error_msg)
         return node
 
     def visit_AnnAssign(self, node):
-        raise errors.DiffEqError(f'Currently, {self.__class__.__name__} do not support an '
-                                 f'assignment with a type annotation.')
+        raise errors.DiffEqError(f'Currently, {self.__class__.__name__} do not support to '
+                                 f'analyze an assignment with a type annotation.')
 
     def visit_If(self, node):
         raise errors.DiffEqError(f'Currently, {self.__class__.__name__} do not support to '
@@ -197,6 +209,8 @@ def separate_variables(func_or_code):
         The expressions for each return variable.
     """
     if callable(func_or_code):
+        if tools.is_lambda_function(func_or_code):
+            raise errors.AnalyzerError('Cannot analyze lambda function.')
         func_or_code = tools.deindent(inspect.getsource(func_or_code))
     assert isinstance(func_or_code, str)
     analyser = DiffEqReader()
@@ -239,5 +253,3 @@ def separate_variables(func_or_code):
         expressions_for_returns=expressions_for_returns,
     )
     return analysis
-
-

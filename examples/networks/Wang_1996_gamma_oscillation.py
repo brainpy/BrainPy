@@ -24,12 +24,12 @@ class GABAa(bp.TwoEndConn):
         # connections
         self.conn = conn(pre.size, post.size)
         self.conn_mat = self.conn.requires('conn_mat')
-        self.size = bp.backend.shape(self.conn_mat)
+        self.size = bp.ops.shape(self.conn_mat)
 
         # variables
-        self.s = bp.backend.zeros(self.size)
+        self.s = bp.ops.zeros(self.size)
         self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
-        self.t_last_pre_spike = bp.backend.ones(self.size) * -1e7
+        self.t_last_pre_spike = bp.ops.ones(self.size) * -1e7
 
         super(GABAa, self).__init__(pre=pre, post=post, **kwargs)
 
@@ -39,13 +39,13 @@ class GABAa(bp.TwoEndConn):
         return alpha * TT * (1 - s) - beta * s
 
     def update(self, _t):
-        spike = bp.backend.unsqueeze(self.pre.spike, 1) * self.conn_mat
-        self.t_last_pre_spike = bp.backend.where(spike, _t, self.t_last_pre_spike)
+        spike = bp.ops.unsqueeze(self.pre.spike, 1) * self.conn_mat
+        self.t_last_pre_spike = bp.ops.where(spike, _t, self.t_last_pre_spike)
         TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
         self.s = self.int_s(self.s, _t, TT, self.alpha, self.beta)
         self.g.push(self.g_max * self.s)
         g = self.g.pull()
-        self.post.input -= bp.backend.sum(g, axis=0) * (self.post.V - self.E)
+        self.post.input -= bp.ops.sum(g, axis=0) * (self.post.V - self.E)
 
 
 class HH(bp.NeuGroup):
@@ -66,27 +66,27 @@ class HH(bp.NeuGroup):
         self.phi = phi
 
         # variables
-        self.V = bp.backend.ones(size) * -65.
-        self.h = bp.backend.ones(size) * 0.6
-        self.n = bp.backend.ones(size) * 0.32
-        self.spike = bp.backend.zeros(size)
-        self.input = bp.backend.zeros(size)
+        self.V = bp.ops.ones(size) * -65.
+        self.h = bp.ops.ones(size) * 0.6
+        self.n = bp.ops.ones(size) * 0.32
+        self.spike = bp.ops.zeros(size)
+        self.input = bp.ops.zeros(size)
 
         super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
     @bp.odeint
     def integral(V, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C, phi):
-        alpha = 0.07 * bp.backend.exp(-(V + 58) / 20)
-        beta = 1 / (bp.backend.exp(-0.1 * (V + 28)) + 1)
+        alpha = 0.07 * bp.ops.exp(-(V + 58) / 20)
+        beta = 1 / (bp.ops.exp(-0.1 * (V + 28)) + 1)
         dhdt = alpha * (1 - h) - beta * h
 
-        alpha = -0.01 * (V + 34) / (bp.backend.exp(-0.1 * (V + 34)) - 1)
-        beta = 0.125 * bp.backend.exp(-(V + 44) / 80)
+        alpha = -0.01 * (V + 34) / (bp.ops.exp(-0.1 * (V + 34)) - 1)
+        beta = 0.125 * bp.ops.exp(-(V + 44) / 80)
         dndt = alpha * (1 - n) - beta * n
 
-        m_alpha = -0.1 * (V + 35) / (bp.backend.exp(-0.1 * (V + 35)) - 1)
-        m_beta = 4 * bp.backend.exp(-(V + 60) / 18)
+        m_alpha = -0.1 * (V + 35) / (bp.ops.exp(-0.1 * (V + 35)) - 1)
+        m_beta = 4 * bp.ops.exp(-(V + 60) / 18)
         m = m_alpha / (m_alpha + m_beta)
         INa = gNa * m ** 3 * h * (V - ENa)
         IK = gK * n ** 4 * (V - EK)
@@ -108,7 +108,7 @@ class HH(bp.NeuGroup):
 
 num = 100
 neu = HH(num, monitors=['spike', 'V'])
-neu.V = -70. + bp.backend.normal(size=num) * 20
+neu.V = -70. + bp.ops.normal(size=num) * 20
 
 syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
 syn.g_max = 0.1 / num

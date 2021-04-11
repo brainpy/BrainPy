@@ -23,7 +23,7 @@ def line_plot(ts,
               xlim=None,
               ylim=None,
               xlabel='Time (ms)',
-              ylabel='value',
+              ylabel=None,
               legend=None,
               title=None,
               show=False):

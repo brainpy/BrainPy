@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from brainpy import backend
 from brainpy import errors
+from brainpy.backend import ops
 from brainpy.simulation import utils
 from brainpy.simulation.monitors import Monitor
 
@@ -67,15 +68,11 @@ class DynamicSystem(object):
         # ---------
         if monitors is None:
             monitors = []
-        self.mon = Monitor(monitors)
-        for var in self.mon['vars']:
-            if not hasattr(self, var):
-                raise errors.ModelDefError(f"Item {var} isn't defined in model {self}, "
-                                           f"so it can not be monitored.")
+        self.mon = Monitor(target=self, variables=monitors)
 
         # runner
         # -------
-        self.runner = backend.get_node_runner()(pop=self)
+        self.driver = backend.get_node_driver()(pop=self)
 
         # run function
         # ------------
@@ -87,7 +84,7 @@ class DynamicSystem(object):
         if self.target_backend is None:
             raise errors.ModelDefError('Must define "target_backend".')
         if isinstance(self.target_backend, str):
-            self._target_backend = (self.target_backend,)
+            self._target_backend = (self.target_backend, )
         elif isinstance(self.target_backend, (tuple, list)):
             if not isinstance(self.target_backend[0], str):
                 raise errors.ModelDefError('"target_backend" must be a list/tuple of string.')
@@ -114,14 +111,12 @@ class DynamicSystem(object):
         calls : list, tuple
             The code lines to call step functions.
         """
-        if (self._target_backend[0] != 'general') and \
-                (backend.get_backend() not in self._target_backend):
-            raise errors.ModelDefError(f'The model {self.name} is target to run on {self._target_backend},'
-                                       f'but currently the default backend of BrainPy is '
-                                       f'{backend.get_backend()}')
+        if (self._target_backend[0] != 'general') and (backend.get_backend_name() not in self._target_backend):
+            raise errors.ModelDefError(f'The model {self.name} is target to run on {self._target_backend}, '
+                                       f'but currently the selected backend is {backend.get_backend_name()}')
         if not inputs_is_formatted:
             inputs = utils.format_pop_level_inputs(inputs, self, mon_length)
-        return self.runner.build(formatted_inputs=inputs,
+        return self.driver.build(formatted_inputs=inputs,
                                  mon_length=mon_length,
                                  return_code=return_code,
                                  show_code=(self.show_code or show_code))
@@ -144,8 +139,8 @@ class DynamicSystem(object):
         # times
         # ------
         start, end = utils.check_duration(duration)
-        times = backend.arange(start, end, backend.get_dt())
-        run_length = backend.shape(times)[0]
+        times = ops.arange(start, end, backend.get_dt())
+        run_length = ops.shape(times)[0]
 
         # build run function
         # ------------------
@@ -154,7 +149,7 @@ class DynamicSystem(object):
         # run the model
         # -------------
         utils.run_model(self.run_func, times, report, report_percent)
-        self.mon['ts'] = times
+        self.mon.ts = times
 
     def get_schedule(self):
         """Get the schedule (running order) of the update functions.
@@ -164,7 +159,7 @@ class DynamicSystem(object):
         schedule : list, tuple
             The running order of update functions.
         """
-        return self.runner.get_schedule()
+        return self.driver.get_schedule()
 
     def set_schedule(self, schedule):
         """Set the schedule (running order) of the update functions.
@@ -175,7 +170,5 @@ class DynamicSystem(object):
         >>> pop = DynamicSystem(...)
         >>> pop.set_schedule(['input', 'step1', 'step2', 'monitor'])
         """
-        self.runner.set_schedule(schedule)
+        self.driver.set_schedule(schedule)
 
-    def __str__(self):
-        return self.name

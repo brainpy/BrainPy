@@ -3,11 +3,8 @@
 import numpy as np
 
 from brainpy import backend
+from brainpy import tools
 
-try:
-    from numba import njit
-except ModuleNotFoundError:
-    njit = None
 
 __all__ = [
     'cross_correlation',
@@ -22,14 +19,11 @@ __all__ = [
 ###############################
 
 
+@tools.numba_jit
 def _cc(states, i, j):
     sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
     k = 0. if sqrt_ij == 0. else np.sum(states[i] * states[j]) / sqrt_ij
     return k
-
-
-if njit is not None:
-    _cc = njit(_cc)
 
 
 def cross_correlation(spikes, bin_size):

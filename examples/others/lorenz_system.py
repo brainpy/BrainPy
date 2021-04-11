@@ -17,9 +17,9 @@ class LorenzSystem(bp.DynamicSystem):
         self.rho = rho
         self.p = p
 
-        self.x = bp.backend.ones(size)
-        self.y = bp.backend.ones(size)
-        self.z = bp.backend.ones(size)
+        self.x = bp.ops.ones(size)
+        self.y = bp.ops.ones(size)
+        self.z = bp.ops.ones(size)
 
         def lorenz_g(x, y, z, t, sigma, rho, beta, p):
             return p * x, p * y, p * z

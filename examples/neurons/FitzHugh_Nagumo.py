@@ -14,10 +14,10 @@ class FitzHughNagumo(bp.NeuGroup):
         self.tau = tau
         self.Vth = Vth
 
-        self.V = bp.backend.zeros(size)
-        self.w = bp.backend.zeros(size)
-        self.spike = bp.backend.zeros(size)
-        self.input = bp.backend.zeros(size)
+        self.V = bp.ops.zeros(size)
+        self.w = bp.ops.zeros(size)
+        self.spike = bp.ops.zeros(size)
+        self.input = bp.ops.zeros(size)
 
         super(FitzHughNagumo, self).__init__(size=size, **kwargs)
 

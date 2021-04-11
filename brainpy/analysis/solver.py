@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from collections import namedtuple
-from importlib import import_module
 
 import numpy as np
 
-try:
-    numba = import_module('numba')
-except ModuleNotFoundError:
-    numba = None
+from brainpy import tools
 
 __all__ = [
     'brentq',
@@ -22,6 +18,7 @@ _ECONVERR = -1
 results = namedtuple('results', ['root', 'function_calls', 'iterations', 'converged'])
 
 
+@tools.numba_jit
 def brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(float).eps):
     """
     Find a root of a function in a bracketing interval using Brent's method
@@ -153,10 +150,7 @@ def brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(float).e
     return root, funcalls, itr
 
 
-if numba is not None:
-    brentq = numba.njit(brentq)
-
-
+@tools.numba_jit
 def find_root_of_1d(f, f_points, args=(), tol=1e-8):
     """Find the roots of the given function by numerical methods.
 
@@ -201,10 +195,6 @@ def find_root_of_1d(f, f_points, args=(), tol=1e-8):
             f_i += 1
 
     return roots
-
-
-if numba is not None:
-    find_root_of_1d = numba.njit(find_root_of_1d)
 
 
 def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,

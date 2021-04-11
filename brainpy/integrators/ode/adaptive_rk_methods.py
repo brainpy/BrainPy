@@ -41,16 +41,16 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
     dt = backend.get_dt() if (dt is None) else dt
     tol = 0.1 if tol is None else tol
     show_code = False if tol is None else show_code
-    var_type = constants.POPU_VAR if var_type is None else var_type
+    var_type = constants.SCALAR_VAR if var_type is None else var_type
 
     if f is None:
         return lambda f: adaptive_rk_wrapper(f, dt=dt, A=A, B1=B1, B2=B2, C=C, tol=tol,
                                              adaptive=adaptive, show_code=show_code,
-                                             var_type=var_type)
+                                             var_type=var_type, im_return=im_return)
     else:
         return adaptive_rk_wrapper(f, dt=dt, A=A, B1=B1, B2=B2, C=C, tol=tol,
                                    adaptive=adaptive, show_code=show_code,
-                                   var_type=var_type)
+                                   var_type=var_type, im_return=im_return)
 
 
 def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):

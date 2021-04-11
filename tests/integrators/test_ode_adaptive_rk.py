@@ -4,7 +4,8 @@ import numpy as np
 import numba
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from integrators import ode
+from brainpy.integrators import ode
+import brainpy as bp
 
 
 sigma = 10
@@ -21,6 +22,8 @@ def lorenz_f(x, y, z, t):
 
 
 def lorenz_system(method, dt=0.01, tol=0.1):
+    bp.backend.set('numba')
+
     integral = numba.njit(method(lorenz_f, show_code=True, tol=tol, adaptive=True))
 
     times = np.arange(0, 100, 0.01)
@@ -54,6 +57,7 @@ def lorenz_system(method, dt=0.01, tol=0.1):
 
 
 lorenz_system(ode.rkf45, dt=0.1, tol=0.001)
+
 
 if __name__ == '__main__':
     Axes3D

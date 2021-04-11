@@ -44,7 +44,7 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None, im_return=
 
     dt = backend.get_dt() if dt is None else dt
     show_code = False if show_code is None else show_code
-    var_type = constants.POPU_VAR if var_type is None else var_type
+    var_type = constants.SCALAR_VAR if var_type is None else var_type
 
     if f is None:
         return lambda f: exp_euler_wrapper(f, show_code=show_code, dt=dt,
