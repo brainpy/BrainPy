@@ -19,6 +19,7 @@ from brainpy.simulation import drivers
 from brainpy.simulation.brainobjects import SynConn, NeuGroup
 from brainpy.simulation.delays import ConstantDelay
 from . import utils
+from .general import GeneralNetDriver
 from .numba_cpu import NumbaCPUNodeDriver
 from .numba_cpu import _CPUReader
 
@@ -29,9 +30,9 @@ try:
     from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float64
     from numba.cuda.cudadrv.devicearray import DeviceNDArray
 
-    # if not cuda.is_available():
-    #     raise errors.PackageMissingError('User choose the numba-cuda backend, '
-    #                                      'while cuda is not available.')
+    if not cuda.is_available():
+        raise errors.PackageMissingError('User choose the numba-cuda backend, '
+                                         'while cuda is not available.')
 
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('numba')
@@ -364,20 +365,20 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
     FOR_LOOP_TYPE = 'for_loop'
     CUSTOMIZE_TYPE = 'customize'
 
-    @staticmethod
-    def transfer_data_cpu2gpu(host, key, data):
-        if isinstance(host, dict):
-            if 'numba_gpu_data' not in host:
-                host['numba_gpu_data'] = {}
-            if key not in host['numba_gpu_data']:
-                host[key] = data
-                host['numba_gpu_data'][key] = data
-        else:
-            if not hasattr(host, 'numba_gpu_data'):
-                setattr(host, 'numba_gpu_data', {})
-            if key not in host.numba_gpu_data:
-                setattr(host, key, data)
-                host.numba_gpu_data[key] = data
+    def __init__(self, pop, steps=None):
+        super(NumbaCUDANodeDriver, self).__init__(pop=pop, steps=steps)
+        self.host_cpukey_gpukey = {}  # with the format of "{host: {cpu_key: gpu_key}}"
+
+    def transfer_cpu_data_to_gpu(self, host, cpu_key, cpu_data):
+        gpu_key = cuda_name_of(cpu_key)
+        cpu_data = cuda.to_device(cpu_data)
+        setattr(host, gpu_key, cpu_data)
+
+        # register the cpu and gpu key
+        if host not in self.host_cpukey_gpukey:
+            self.host_cpukey_gpukey[host] = {}
+        self.host_cpukey_gpukey[host][cpu_key] = gpu_key
+        return gpu_key
 
     def _reprocess_steps(self, f, func_name=None, show_code=False):
         """Analyze the step functions in a DynamicSystem.
@@ -497,11 +498,10 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
             obj = getattr(host, splits[-1])
 
             if isinstance(obj, np.ndarray):  # 1. transform the cpu data to cuda data
-                splits[-1] = cuda_name_of(splits[-1])
-                self.transfer_data_cpu2gpu(host, splits[-1], cuda.to_device(obj))
+                splits[-1] = self.transfer_cpu_data_to_gpu(host, cpu_key=splits[-1], cpu_data=obj)
 
             elif isinstance(obj, DeviceNDArray):
-                self.transfer_data_cpu2gpu(host, splits[-1], obj)
+                pass
 
             elif callable(obj):  # 2. check jitted integrators
                 if isinstance(obj, Dispatcher):
@@ -585,15 +585,13 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
         '''
             code = code.strip()
 
-            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_num_step"),
-                                       data=cuda.to_device(host.delay_num_step))
-            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_in_idx"), data=cuda.to_device(host.delay_in_idx))
-            self.transfer_data_cpu2gpu(host, key=cuda_name_of("delay_out_idx"), data=cuda.to_device(host.delay_out_idx))
-
+            num_step_name = self.transfer_cpu_data_to_gpu(host, cpu_key="delay_num_step", cpu_data=host.delay_num_step)
+            in_idx_name = self.transfer_cpu_data_to_gpu(host, cpu_key="delay_in_idx", cpu_data=host.delay_in_idx)
+            out_idx_name = self.transfer_cpu_data_to_gpu(host, cpu_key="delay_out_idx", cpu_data=host.delay_out_idx)
             code_scope = {host.name: host, 'cuda': cuda}
-            calls = [f'{host.name}.{cuda_name_of("delay_num_step")}',
-                     f'{host.name}.{cuda_name_of("delay_in_idx")}',
-                     f'{host.name}.{cuda_name_of("delay_out_idx")}']
+            calls = [f'{host.name}.{num_step_name}',
+                     f'{host.name}.{in_idx_name}',
+                     f'{host.name}.{out_idx_name}']
 
             if show_code:
                 print(code)
@@ -714,8 +712,8 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
                     if key_val.ndim != 1:
                         raise NotImplementedError(f'BrainPy Numba CUDA backend only supports inputs for 1D vector data'
                                                   f', not {key_val.ndim}-dimensional data of {host_name}.{key}')
-                    self.transfer_data_cpu2gpu(self.host, cuda_name_of(key), cuda.to_device(key_val))
-                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{cuda_name_of(key)}'
+                    gpu_key = self.transfer_cpu_data_to_gpu(self.host, cpu_key=key, cpu_data=key_val)
+                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{gpu_key}'
                     size = key_val.size
                 elif isinstance(key_val, DeviceNDArray):
                     if key_val.ndim != 1:
@@ -814,8 +812,8 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
                     if key_val.ndim != 1:
                         raise NotImplementedError(f'BrainPy Numba CUDA backend only supports monitors for 1D vector '
                                                   f'data, not {key_val.ndim}-dimensional data of {host_name}.{key}')
-                    self.transfer_data_cpu2gpu(self.host, cuda_name_of(key), cuda.to_device(key_val))
-                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{cuda_name_of(key)}'
+                    key_gpu_name = self.transfer_cpu_data_to_gpu(self.host, cpu_key=key, cpu_data=key_val)
+                    args2calls[f'{host_name}_{key}'] = f'{host_name}.{key_gpu_name}'
                     size = key_val.size
                 elif isinstance(key_val, DeviceNDArray):
                     if key_val.ndim != 1:
@@ -834,11 +832,11 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             for size, keys in new_formatted_monitors.items():
                 code_lines = [f'  if thread_i < {size}:']
                 for key in keys:
-                    args2calls[f'{host_name}_mon_{key}'] = f'{host_name}.mon.{cuda_name_of(key)}'
                     # initialize monitor array #
-                    mon[key] = np.zeros((mon_length, size))
+                    mon[key] = np.zeros((mon_length, size), dtype=getattr(self.host, key).dtype)
                     # transfer data from GPU to CPU
-                    self.transfer_data_cpu2gpu(self.host.mon, cuda_name_of(f'{key}'), cuda.to_device(mon[key]))
+                    mon_gpu_name = self.transfer_cpu_data_to_gpu(self.host.mon, cpu_key=key, cpu_data=mon[key])
+                    args2calls[f'{host_name}_mon_{key}'] = f'{host_name}.mon.{mon_gpu_name}'
                     # add line #
                     line = f'    {host_name}_mon_{key}[_i, thread_i] = {host_name}_{key}[thread_i]'
                     code_lines.append(line)
@@ -871,15 +869,37 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             }
 
     def to_host(self):
-        pass
+        for host, keys in self.host_cpukey_gpukey.items():
+            for cpukey, gpukey in keys.items():
+                setattr(host, cpukey, getattr(host, gpukey).copy_to_host())
 
     def to_device(self):
-        pass
+        for host, keys in self.host_cpukey_gpukey.items():
+            for cpukey, gpukey in keys.items():
+                setattr(host, gpukey, cuda.to_device(getattr(host, cpukey)))
 
 
-class NumbaCUDANetDriver(drivers.BaseNetDriver):
+class NumbaCUDANetDriver(GeneralNetDriver):
     def to_host(self):
-        pass
+        host_cpukey_gpukey = {}
+        for node in self.host.all_nodes.values():
+            for host, keys in node.driver.host_cpukey_gpukey.items():
+                if host not in host_cpukey_gpukey:
+                    host_cpukey_gpukey[host] = {}
+                for cpukey, gpukey in keys.items():
+                    if cpukey in host_cpukey_gpukey[host]:
+                        continue
+                    host_cpukey_gpukey[host][cpukey] = gpukey
+                    setattr(host, cpukey, getattr(host, gpukey).copy_to_host())
 
     def to_device(self):
-        pass
+        host_cpukey_gpukey = {}
+        for node in self.host.all_nodes.values():
+            for host, keys in node.driver.host_cpukey_gpukey.items():
+                if host not in host_cpukey_gpukey:
+                    host_cpukey_gpukey[host] = {}
+                for cpukey, gpukey in keys.items():
+                    if cpukey in host_cpukey_gpukey[host]:
+                        continue
+                    host_cpukey_gpukey[host][cpukey] = gpukey
+                    setattr(host, gpukey, cuda.to_device(getattr(host, cpukey)))

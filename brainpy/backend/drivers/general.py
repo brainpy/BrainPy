@@ -230,6 +230,7 @@ class GeneralNetDriver(drivers.BaseNetDriver):
 
     def __init__(self, host):
         super(GeneralNetDriver, self).__init__(host=host)
+        assert hasattr(self.host, 'all_nodes') and isinstance(self.host.all_nodes, dict)
         self.run_func = None
 
     def build(self, run_length, formatted_inputs, return_code=False, show_code=False):
