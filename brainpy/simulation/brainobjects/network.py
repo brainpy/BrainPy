@@ -114,8 +114,8 @@ class Network(object):
         # end
         self.t_start, self.t_end = start, end
         for obj in self.all_nodes.values():
-            if len(obj.mon['vars']) > 0:
-                obj.mon['ts'] = ts
+            if obj.mon.num_item > 0:
+                obj.mon.ts = ts
 
     @property
     def ts(self):

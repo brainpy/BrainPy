@@ -120,22 +120,22 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
 
     def get_monitor_func(self, mon_length, show_code=False):
         mon = self.host.mon
-        if len(mon['vars']) > 0:
+        if mon.num_item > 0:
             monitor_func_name = 'monitor_step'
             host = self.host.name
             code_scope = {host: self.host}
             code_lines = [f'def {monitor_func_name}(_i):']
-            for key in mon['vars']:
+            for key in mon.item_names:
                 if not hasattr(self.host, key):
                     raise errors.ModelUseError(f'{self.host} do not have {key}, '
                                                f'thus it cannot be monitored.')
 
                 # initialize monitor array #
                 shape = ops.shape(getattr(self.host, key))
-                mon[key] = ops.zeros((mon_length,) + shape)
+                setattr(mon, key, ops.zeros((mon_length,) + shape))
 
                 # add line #
-                line = f'  {host}.mon["{key}"][_i] = {host}.{key}'
+                line = f'  {host}.mon.{key}[_i] = {host}.{key}'
                 code_lines.append(line)
 
             # function

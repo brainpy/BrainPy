@@ -801,7 +801,7 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             # task 1: group data according to the data shape
             # task 2: transfer data from cpu to gpu
             new_formatted_monitors = {}
-            for key in mon['vars']:
+            for key in mon.item_names:
                 if not hasattr(self.host, key):
                     raise errors.ModelUseError(f'{self.host} do not have {key}, thus it cannot be monitored.')
                 key_val = getattr(self.host, key)

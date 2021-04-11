@@ -69,7 +69,7 @@ class DynamicSystem(object):
         if monitors is None:
             monitors = []
         self.mon = Monitor(monitors)
-        for var in self.mon['vars']:
+        for var in self.mon.item_names:
             if not hasattr(self, var):
                 raise errors.ModelDefError(f"Item {var} isn't defined in model {self}, "
                                            f"so it can not be monitored.")
@@ -155,7 +155,7 @@ class DynamicSystem(object):
         # run the model
         # -------------
         utils.run_model(self.run_func, times, report, report_percent)
-        self.mon['ts'] = times
+        self.mon.ts = times
 
     def get_schedule(self):
         """Get the schedule (running order) of the update functions.
