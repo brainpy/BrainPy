@@ -49,7 +49,10 @@ class ConstantDelay(object):
             self.diag = ops.arange(self.num)
 
         self.delay_in_idx = self.delay_num_step - 1
-        self.delay_out_idx = 0
+        if self.uniform_delay:
+            self.delay_out_idx = 0
+        else:
+            self.delay_out_idx = ops.zeros(self.num, dtype=int)
         self.name = None
 
     def pull(self, idx=None):

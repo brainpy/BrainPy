@@ -12,9 +12,8 @@ bp.backend.set(backend='numba', dt=0.01)
 class HH(bp.NeuGroup):
     target_backend = ['numpy', 'numba', 'numba-parallel']
 
-    def __init__(self, size, ENa=50., EK=-77., EL=-54.387,
-                 C=1.0, gNa=120., gK=36., gL=0.03, V_th=20.,
-                 **kwargs):
+    def __init__(self, size, ENa=50., EK=-77., EL=-54.387, C=1.0,
+                 gNa=120., gK=36., gL=0.03, V_th=20., **kwargs):
         # parameters
         self.ENa = ENa
         self.EK = EK
@@ -143,8 +142,7 @@ class AMPA1_mat(bp.TwoEndConn):
 
 if __name__ == '__main__':
     hh = HH(100, monitors=['V'])
-    ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All(),
-                     delay=10., monitors=['s'])
+    ampa = AMPA1_vec(pre=hh, post=hh, conn=bp.connect.All2All(), delay=10., monitors=['s'])
     net = bp.Network(hh, ampa)
     net.run(100., inputs=(hh, 'input', 10.), report=True)
 

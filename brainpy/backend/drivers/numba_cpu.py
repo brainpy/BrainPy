@@ -255,7 +255,7 @@ class _CPUReader(ast.NodeVisitor):
                     if uniform_delay:
                         rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx][{idx_or_val}] = {value}'
                     else:
-                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx[{idx_or_val}]][{idx_or_val}] = {value}'
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx[{idx_or_val}], {idx_or_val}] = {value}'
                 else:
                     raise errors.CodeError(f'Cannot analyze the code: \n\n'
                                            f'{tools.ast2code(ast.fix_missing_locations(node))}')
@@ -268,7 +268,7 @@ class _CPUReader(ast.NodeVisitor):
                     if uniform_delay:
                         rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx][{idx}]'
                     else:
-                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx[{idx}]][{idx}]'
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx[{idx}], {idx}]'
                 else:
                     raise errors.CodeError(f'Cannot analyze the code: \n\n'
                                            f'{tools.ast2code(ast.fix_missing_locations(node))}')

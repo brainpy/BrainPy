@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+
+import math
 import numpy as np
 
 from . import numba_overload
@@ -9,7 +11,7 @@ from . import numba_overload
 normal = np.random.normal
 sum = np.sum
 shape = np.shape
-exp = np.exp
+exp = math.exp
 matmul = np.matmul
 
 # necessary ops for dynamics simulation

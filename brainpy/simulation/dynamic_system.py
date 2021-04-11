@@ -68,11 +68,7 @@ class DynamicSystem(object):
         # ---------
         if monitors is None:
             monitors = []
-        self.mon = Monitor(monitors)
-        for var in self.mon.item_names:
-            if not hasattr(self, var):
-                raise errors.ModelDefError(f"Item {var} isn't defined in model {self}, "
-                                           f"so it can not be monitored.")
+        self.mon = Monitor(target=self, variables=monitors)
 
         # runner
         # -------
@@ -88,7 +84,7 @@ class DynamicSystem(object):
         if self.target_backend is None:
             raise errors.ModelDefError('Must define "target_backend".')
         if isinstance(self.target_backend, str):
-            self._target_backend = (self.target_backend,)
+            self._target_backend = (self.target_backend, )
         elif isinstance(self.target_backend, (tuple, list)):
             if not isinstance(self.target_backend[0], str):
                 raise errors.ModelDefError('"target_backend" must be a list/tuple of string.')
@@ -115,11 +111,9 @@ class DynamicSystem(object):
         calls : list, tuple
             The code lines to call step functions.
         """
-        if (self._target_backend[0] != 'general') and \
-                (backend.get_backend_name() not in self._target_backend):
-            raise errors.ModelDefError(f'The model {self.name} is target to run on {self._target_backend},'
-                                       f'but currently the default backend of BrainPy is '
-                                       f'{backend.get_backend_name()}')
+        if (self._target_backend[0] != 'general') and (backend.get_backend_name() not in self._target_backend):
+            raise errors.ModelDefError(f'The model {self.name} is target to run on {self._target_backend}, '
+                                       f'but currently the selected backend is {backend.get_backend_name()}')
         if not inputs_is_formatted:
             inputs = utils.format_pop_level_inputs(inputs, self, mon_length)
         return self.driver.build(formatted_inputs=inputs,
@@ -178,5 +172,3 @@ class DynamicSystem(object):
         """
         self.driver.set_schedule(schedule)
 
-    def __str__(self):
-        return self.name

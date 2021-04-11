@@ -80,38 +80,44 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         return input_keep_same
 
     def _format_inputs_func(self, formatted_inputs, show_code):
-        # codes
         input_func_name = 'input_step'
         host_name = self.host.name
-        code_scope = {host_name: self.host}
-        code_lines = [f'def {input_func_name}(_i):']
-        for key, val, ops, data_type in formatted_inputs:
-            if ops == '=':
-                line = f'  {host_name}.{key} = {host_name}.{self.input_data_name_of(key)}'
-            else:
-                line = f'  {host_name}.{key} {ops}= {host_name}.{self.input_data_name_of(key)}'
-            if data_type == 'iter':
-                line = line + '[_i]'
-            code_lines.append(line)
 
-        # function
-        code = '\n'.join(code_lines)
-        if show_code:
-            print(code)
-            print(code_scope)
-            print()
-        exec(compile(code, '', 'exec'), code_scope)
-        self.upload(input_func_name, code_scope[input_func_name])
+        # codes
+        if len(formatted_inputs) > 0:
+            code_scope = {host_name: self.host}
+            code_lines = [f'def {input_func_name}(_i):']
+            for key, val, ops, data_type in formatted_inputs:
+                if ops == '=':
+                    line = f'  {host_name}.{key} = {host_name}.{self.input_data_name_of(key)}'
+                else:
+                    line = f'  {host_name}.{key} {ops}= {host_name}.{self.input_data_name_of(key)}'
+                if data_type == 'iter':
+                    line = line + '[_i]'
+                code_lines.append(line)
+
+            # function
+            code = '\n'.join(code_lines)
+            if show_code:
+                print(code)
+                print(code_scope)
+                print()
+            exec(compile(code, '', 'exec'), code_scope)
+            func = code_scope[input_func_name]
+        else:
+            func = lambda _i: _i
+
         # results
+        self.upload(input_func_name, func)
         self.formatted_funcs['input'] = {
-            'func': code_scope[input_func_name],
+            'func': func,
             'scope': {host_name: self.host},
             'call': [f'{host_name}.{input_func_name}(_i)'],
         }
 
     def get_input_func(self, formatted_inputs, show_code=False):
         input_keep_same = self._check_inputs_change(formatted_inputs=formatted_inputs, show_code=show_code)
-        if not input_keep_same and len(formatted_inputs) > 0:
+        if not input_keep_same:
             self._format_inputs_func(formatted_inputs=formatted_inputs, show_code=show_code)
             need_rebuild = True
         else:
@@ -130,9 +136,9 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
                     raise errors.ModelUseError(f'{self.host} do not have {key}, '
                                                f'thus it cannot be monitored.')
 
-                # initialize monitor array #
-                shape = ops.shape(getattr(self.host, key))
-                setattr(mon, key, ops.zeros((mon_length,) + shape))
+                # # initialize monitor array #
+                # shape = ops.shape(getattr(self.host, key))
+                # setattr(mon, key, ops.zeros((mon_length,) + shape))
 
                 # add line #
                 line = f'  {host}.mon.{key}[_i] = {host}.{key}'
@@ -146,12 +152,22 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
                 print()
             exec(compile(code, '', 'exec'), code_scope)
             self.upload(monitor_func_name, code_scope[monitor_func_name])
+
             # results
             self.formatted_funcs['monitor'] = {
                 'func': code_scope[monitor_func_name],
                 'scope': {host: self.host},
                 'call': [f'{host}.{monitor_func_name}(_i)'],
             }
+
+    def reshape_mon_items(self, run_length):
+        for var, data in self.host.mon.item_contents.items():
+            shape = ops.shape(data)
+            if run_length < shape[0]:
+                setattr(self.host.mon, var, data[:run_length])
+            elif run_length > shape[0]:
+                append = ops.zeros((run_length - shape[0],) + shape[1:])
+                setattr(self.host.mon, var, ops.vstack([data, append]))
 
     def get_steps_func(self, show_code=False):
         for func_name, step in self.steps.items():
@@ -192,7 +208,7 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             self.get_steps_func(show_code=show_code)
 
         # reshape the monitor
-        self.host.mon.reshape(run_length=mon_length)
+        self.reshape_mon_items(run_length=mon_length)
 
         # build the model
         if need_rebuild or self.run_func is None:
@@ -209,7 +225,7 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             code = '\n  '.join(code_lines)
             if show_code:
                 print(code)
-                print(code_scope)
+                pprint(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
             self.run_func = code_scope['run_func']
@@ -279,7 +295,7 @@ class GeneralNetDriver(drivers.BaseNetDriver):
             code = '\n  '.join(code_lines)
             if show_code:
                 print(code)
-                print(code_scope)
+                pprint(code_scope)
                 print()
             exec(compile(code, '', 'exec'), code_scope)
             self.run_func = code_scope['run_func']

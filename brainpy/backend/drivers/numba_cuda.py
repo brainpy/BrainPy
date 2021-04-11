@@ -37,6 +37,9 @@ try:
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('numba')
 
+# TODO : monitor is done in CPU end
+
+
 __all__ = [
     'NumbaCUDANodeDriver',
     'NumbaCudaDiffIntDriver',
@@ -101,14 +104,6 @@ class NumbaCudaDiffIntDriver(drivers.BaseDiffIntDriver):
                     self.code_lines[line_id] = f'def {self.func_name}({", ".join(arguments)}):'
                     break
 
-        # code
-        code = '\n'.join(self.code_lines)
-        if self.show_code:
-            print(code)
-            print()
-            pprint(self.code_scope)
-            print()
-
         # jit original functions
         has_jitted = False
         if isinstance(self.code_scope['f'], DeviceFunctionTemplate):
@@ -125,6 +120,14 @@ class NumbaCudaDiffIntDriver(drivers.BaseDiffIntDriver):
             else:
                 raise NotImplementedError
 
+        # code
+        code = '\n'.join(self.code_lines)
+        if self.show_code:
+            print(code)
+            print()
+            pprint(self.code_scope)
+            print()
+
         # compile
         exec(compile(code, '', 'exec'), self.code_scope)
 
@@ -133,11 +136,19 @@ class NumbaCudaDiffIntDriver(drivers.BaseDiffIntDriver):
         for key, value in self.uploads.items():
             self.upload(host=new_f, key=key, value=value)
         if not has_jitted:
-            new_f = cuda.jit(new_f)
+            new_f = cuda.jit(new_f, device=True)
         return new_f
 
 
 class _CUDATransformer(ast.NodeTransformer):
+    """Code Transformer in the Numba CUDA backend.
+
+    The tasks of this transformer are:
+
+    - correct the SDE integrators, for example:
+      add "rng_states" and "thread_id" arguments.
+
+    """
     def __init__(self, host):
         self.host = host
         self.need_add_rng_states = False
@@ -201,7 +212,9 @@ class _CUDATransformer(ast.NodeTransformer):
 
 
 class _CUDAReader(_CPUReader):
-    """The tasks done in "CudaStepFuncReader" are:
+    """Code reader in the Numba CUDA backend.
+
+    The tasks done in "CudaStepFuncReader" are:
 
     - Find all expressions, including Assign, AugAssign, For loop, If-else condition.
     - Find all delay push and pull.
@@ -272,7 +285,7 @@ class _CUDAReader(_CPUReader):
         if node not in self.visited_nodes:
             prefix = '  ' * level
 
-            success = False
+            success = False  # whether found an place for automatic operation
             check = None
             if len(node.targets) == 1:
                 check = self.check_atomic_ops(node.targets[0])
@@ -313,6 +326,7 @@ class _CUDAReader(_CPUReader):
                         self.need_add_cuda_to_scope = True
             expr = tools.ast2code(ast.fix_missing_locations(node.value))
             self.rights.append(expr)
+
             if not success:
                 targets = []
                 for target in node.targets:
@@ -353,6 +367,7 @@ class _CUDAReader(_CPUReader):
                     raise ValueError(f'Cannot parse automic operation for this '
                                      f'expression: {target}[{slice_}] {op}= {expr}')
                 self.lefts.append(target)
+                self.rights.append(expr)
                 self.lines.append(f'{prefix}cuda.atomic.add({target}, {slice_}, {expr})')
                 self.need_add_cuda_to_scope = True
 
@@ -419,6 +434,7 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
 
             tree_to_analyze = ast.Module(body=tree.body[0].body[0].body)
         else:
+            iter_seq = ''
             code_type = self.CUSTOMIZE_TYPE
             tree_to_analyze = tree
 
@@ -430,7 +446,7 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
         # data assigned by self.xx in line right
         self_data_in_right = []
         if args[0] in backend.CLASS_KEYWORDS:
-            code = ', \n'.join(reader.rights)
+            code = ', \n'.join(reader.rights) + ', ' + iter_seq
             self_data_in_right = re.findall('\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
             self_data_in_right = list(set(self_data_in_right))
 
@@ -497,26 +513,20 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
                 host = getattr(host, attr)
             obj = getattr(host, splits[-1])
 
-            if isinstance(obj, np.ndarray):  # 1. transform the cpu data to cuda data
-                splits[-1] = self.transfer_cpu_data_to_gpu(host, cpu_key=splits[-1], cpu_data=obj)
-
-            elif isinstance(obj, DeviceNDArray):
-                pass
-
-            elif callable(obj):  # 2. check jitted integrators
-                if isinstance(obj, Dispatcher):
-                    if diffint_cons.DE_PREFIX in obj.py_func.__name__:
-                        code_scope[utils.attr_replace(data)] = cuda.jit(obj.py_func, device=True)
-                    else:
-                        raise ValueError(f'Cannot call a cuda.jit function, please change it '
-                                         f'to a numba.cuda.jit device function: {obj}')
-                else:
-                    code_scope[utils.attr_replace(data)] = obj
-                continue
-
-            # 3. data need pass
-            new_args.append(utils.attr_replace(data))
-            calls.append('.'.join([host_name] + splits[1:]))
+            # 1. check jitted integrators
+            if isinstance(obj, Dispatcher):
+                raise ValueError(f'Cannot call a cuda.jit function, please change it '
+                                 f'to a numba.cuda.jit device function: {obj}')
+            elif isinstance(obj, DeviceFunctionTemplate):
+                code_scope[utils.attr_replace(data)] = obj
+            else:
+                if callable(obj):
+                    continue
+                if isinstance(obj, np.ndarray):  # 2. transform the cpu data to cuda data
+                    splits[-1] = self.transfer_cpu_data_to_gpu(host, cpu_key=splits[-1], cpu_data=obj)
+                # 3. data need pass
+                new_args.append(utils.attr_replace(data))
+                calls.append('.'.join([host_name] + splits[1:]))
 
         # format final codes
         if code_type == self.FOR_LOOP_TYPE:
@@ -616,11 +626,14 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             else:
                 host = self.host
             if not hasattr(host, 'name'):
-                raise errors.ModelDefError(f'Each host should have a unique name. But we '
-                                           f'"name" attribute is not found in {host}.')
+                raise errors.ModelDefError(f'Each host should have a unique name when using Numba CUDA backend. '
+                                           f'But "name" attribute is not found in {host}.')
 
             # the function reprocessed
             if host == self.host:
+                if not hasattr(host, 'num'):
+                    raise errors.ModelDefError(f'Each host should have "num" attribute when using Numba CUDA backend. '
+                                               f'But "num" is not found in {host}.')
                 func, call_lines = self._reprocess_steps(step, func_name=func_name, show_code=show_code)
             elif isinstance(host, ConstantDelay):
                 func, call_lines = self._reprocess_delays(host, f=step, func_name=func_name, show_code=show_code)
@@ -690,15 +703,15 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
         1. Only supports inputs to the 1D vector data.
         2. Do not support inputs to the int/float etc. scalar data.
         """
+
+        # function and host name
+        input_func_name = 'input_step'
+        host_name = self.host.name
+
         if len(formatted_inputs) > 0:
-            # function and host name
-            input_func_name = 'input_step'
-            host_name = self.host.name
-
             # code scope
-            code_scope = {host_name: self.host, 'cuda': cuda}
-
             args2calls = {}
+            code_scope = {host_name: self.host, 'cuda': cuda}
 
             # task 1: group data according to the data shape
             # task 2: transfer data from cpu to gpu
@@ -769,9 +782,9 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
                 print()
             exec(compile(code, '', 'exec'), code_scope)
             func = cuda.jit(code_scope[input_func_name])
-            self.upload(input_func_name, func)
 
             # results
+            self.upload(input_func_name, func)
             num_block, num_thread = get_cuda_size(max(list(new_formatted_inputs.keys())))
             self.formatted_funcs['input'] = {
                 'func': func,
@@ -779,6 +792,23 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
                 'call': [f'{host_name}.{input_func_name}[{num_block}, {num_thread}]({", ".join(calls)})',
                          'cuda.synchronize()'],
             }
+        else:
+            func = lambda: None
+            self.upload(input_func_name, func)
+            self.formatted_funcs['input'] = {'func': func,
+                                             'scope': {host_name: self.host},
+                                             'call': [f'{host_name}.{input_func_name}()']}
+
+    def reshape_mon_items(self, run_length):
+        for var, data in self.host.mon.item_contents.items():
+            shape = ops.shape(data)
+            if run_length < shape[0]:
+                data = data[:run_length]
+            elif run_length > shape[0]:
+                append = ops.zeros((run_length - shape[0],) + shape[1:])
+                data = ops.vstack([data, append])
+            setattr(self.host.mon, var, data)
+            setattr(self.host.mon, cuda_name_of(var), cuda.to_device(data))
 
     def get_monitor_func(self, mon_length, show_code=False):
         """Get monitor function.
@@ -790,13 +820,13 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
 
         """
         mon = self.host.mon
-        if len(mon['vars']) > 0:
+        if mon.num_item > 0:
             args2calls = {'_i': '_i'}
             host_name = self.host.name
             monitor_func_name = 'monitor_step'
 
             # code scope
-            code_scope = {host_name: self.host}
+            code_scope = {host_name: self.host, 'cuda': cuda}
 
             # task 1: group data according to the data shape
             # task 2: transfer data from cpu to gpu
@@ -832,10 +862,10 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             for size, keys in new_formatted_monitors.items():
                 code_lines = [f'  if thread_i < {size}:']
                 for key in keys:
-                    # initialize monitor array #
-                    mon[key] = np.zeros((mon_length, size), dtype=getattr(self.host, key).dtype)
+                    # # initialize monitor array #
+                    # mon[key] = np.zeros((mon_length, size), dtype=getattr(self.host, key).dtype)
                     # transfer data from GPU to CPU
-                    mon_gpu_name = self.transfer_cpu_data_to_gpu(self.host.mon, cpu_key=key, cpu_data=mon[key])
+                    mon_gpu_name = self.transfer_cpu_data_to_gpu(self.host.mon, cpu_key=key, cpu_data=getattr(mon, key))
                     args2calls[f'{host_name}_mon_{key}'] = f'{host_name}.mon.{mon_gpu_name}'
                     # add line #
                     line = f'    {host_name}_mon_{key}[_i, thread_i] = {host_name}_{key}[thread_i]'
