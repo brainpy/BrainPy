@@ -30,7 +30,6 @@ __all__ = [
     'FUNCTIONAL_NOISE',
     'FUNCTION_MAPPING',
 
-    'func_in_numpy_or_math',
     'get_mapping_scope',
 
     'Parser',

@@ -23,28 +23,28 @@ class HH(bp.NeuGroup):
         self.V_th = V_th
 
         # variables
-        self.V = bp.backend.ones(size) * -65.
-        self.m = bp.backend.ones(size) * 0.5
-        self.h = bp.backend.ones(size) * 0.6
-        self.n = bp.backend.ones(size) * 0.32
-        self.spike = bp.backend.zeros(size)
-        self.input = bp.backend.zeros(size)
+        self.V = bp.ops.ones(size) * -65.
+        self.m = bp.ops.ones(size) * 0.5
+        self.h = bp.ops.ones(size) * 0.6
+        self.n = bp.ops.ones(size) * 0.32
+        self.spike = bp.ops.zeros(size)
+        self.input = bp.ops.zeros(size)
 
         super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
     @bp.odeint(method='exponential_euler', show_code=True)
     def integral(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
-        alpha = 0.1 * (V + 40) / (1 - bp.backend.exp(-(V + 40) / 10))
-        beta = 4.0 * bp.backend.exp(-(V + 65) / 18)
+        alpha = 0.1 * (V + 40) / (1 - bp.ops.exp(-(V + 40) / 10))
+        beta = 4.0 * bp.ops.exp(-(V + 65) / 18)
         dmdt = alpha * (1 - m) - beta * m
 
-        alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.)
-        beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))
+        alpha = 0.07 * bp.ops.exp(-(V + 65) / 20.)
+        beta = 1 / (1 + bp.ops.exp(-(V + 35) / 10))
         dhdt = alpha * (1 - h) - beta * h
 
-        alpha = 0.01 * (V + 55) / (1 - bp.backend.exp(-(V + 55) / 10))
-        beta = 0.125 * bp.backend.exp(-(V + 65) / 80)
+        alpha = 0.01 * (V + 55) / (1 - bp.ops.exp(-(V + 55) / 10))
+        beta = 0.125 * bp.ops.exp(-(V + 65) / 80)
         dndt = alpha * (1 - n) - beta * n
 
         I_Na = (gNa * m ** 3.0 * h) * (V - ENa)

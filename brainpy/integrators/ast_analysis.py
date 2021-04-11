@@ -40,7 +40,7 @@ class DiffEqReader(ast.NodeVisitor):
 def df(v, t):
     return -v + 1.
 
-We only support return variables. Therefore, the above can should be coded as:
+We only support return variables. Therefore, the above should be coded as:
 
 def df(v, t):
     dv = -v + 1.

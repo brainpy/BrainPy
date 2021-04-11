@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .brain_objects import *
+from .brainobjects import *
 from .connectivity import *
-from .constants import *
-from .delay import *
+from .delays import *
 from .dynamic_system import *
 from .monitors import *
-from .runner import *
+from .drivers import *
 from .utils import *

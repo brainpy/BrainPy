@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0.0-beta"
+__version__ = "1.0.0rc1"
 
 # "backend" module
 from . import backend
+from .backend import ops
+from .backend import drivers
 
 # "analysis" module
 from . import analysis
@@ -12,7 +14,7 @@ from . import analysis
 from . import simulation
 from .simulation import connectivity as connect
 from .simulation.dynamic_system import *
-from .simulation.brain_objects import *
+from .simulation.brainobjects import *
 from .simulation.utils import size2len
 
 # "integrators" module
@@ -27,7 +29,7 @@ from . import visualization as visualize
 
 # other modules
 from . import errors
-from . import tools
 from . import inputs
 from . import measure
 from . import running
+from . import tools

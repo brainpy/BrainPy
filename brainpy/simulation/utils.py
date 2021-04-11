@@ -4,7 +4,7 @@ import time
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.simulation import constants
+from brainpy.backend import ops
 
 __all__ = [
     'size2len',
@@ -13,6 +13,8 @@ __all__ = [
     'format_pop_level_inputs',
     'format_net_level_inputs',
 ]
+
+SUPPORTED_INPUT_OPS = ['-', '+', 'x', '*', '/', '=']
 
 
 def size2len(size):
@@ -127,9 +129,9 @@ def format_pop_level_inputs(inputs, host, mon_length):
     for input in inputs:
         if not 2 <= len(input) <= 3:
             raise errors.ModelUseError('For each target, you must specify "(key, value, [operation])".')
-        if len(input) == 3 and input[2] not in constants.SUPPORTED_INPUT_OPS:
+        if len(input) == 3 and input[2] not in SUPPORTED_INPUT_OPS:
             raise errors.ModelUseError(f'Input operation only supports '
-                                       f'"{list(constants.SUPPORTED_INPUT_OPS.keys())}", '
+                                       f'"{SUPPORTED_INPUT_OPS}", '
                                        f'not "{input[2]}".')
 
     # format inputs
@@ -149,7 +151,7 @@ def format_pop_level_inputs(inputs, host, mon_length):
         if isinstance(input[1], (int, float)):
             data_type = 'fix'
         else:
-            shape = backend.shape(input[1])
+            shape = ops.shape(input[1])
             if shape[0] == mon_length:
                 data_type = 'iter'
             else:
@@ -157,15 +159,15 @@ def format_pop_level_inputs(inputs, host, mon_length):
 
         # operation
         if len(input) == 3:
-            ops = input[2]
+            operation = input[2]
         else:
-            ops = '+'
-        if ops not in constants.SUPPORTED_INPUT_OPS:
+            operation = '+'
+        if operation not in SUPPORTED_INPUT_OPS:
             raise errors.ModelUseError(f'Currently, BrainPy only support operations '
-                                       f'{list(constants.SUPPORTED_INPUT_OPS.keys())}, '
-                                       f'not {ops}')
+                                       f'{SUPPORTED_INPUT_OPS}, '
+                                       f'not {operation}')
         # input
-        format_inp = (key, val, ops, data_type)
+        format_inp = (key, val, operation, data_type)
         formatted_inputs.append(format_inp)
 
     return formatted_inputs
@@ -186,14 +188,14 @@ def format_net_level_inputs(inputs, run_length):
     formatted_input : dict
         The formatted input.
     """
-    from brainpy.simulation import brain_objects
+    from brainpy.simulation.dynamic_system import DynamicSystem
 
     # 1. format the inputs to standard
     #    formats and check the inputs
     if not isinstance(inputs, (tuple, list)):
         raise errors.ModelUseError('"inputs" must be a tuple/list.')
     if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
-        if isinstance(inputs[0], brain_objects.DynamicSystem):
+        if isinstance(inputs[0], DynamicSystem):
             inputs = [inputs]
         else:
             raise errors.ModelUseError('Unknown input structure. Only supports '
@@ -203,16 +205,16 @@ def format_net_level_inputs(inputs, run_length):
             raise errors.ModelUseError('For each target, you must specify '
                                        '"(target, key, value, [operation])".')
         if len(input) == 4:
-            if input[3] not in constants.SUPPORTED_INPUT_OPS:
+            if input[3] not in SUPPORTED_INPUT_OPS:
                 raise errors.ModelUseError(f'Input operation only supports '
-                                           f'"{list(constants.SUPPORTED_INPUT_OPS.keys())}", '
+                                           f'"{SUPPORTED_INPUT_OPS}", '
                                            f'not "{input[3]}".')
 
     # 2. format inputs
     formatted_inputs = {}
     for input in inputs:
         # target
-        if isinstance(input[0], brain_objects.DynamicSystem):
+        if isinstance(input[0], DynamicSystem):
             target = input[0]
             target_name = input[0].name
         else:
@@ -232,7 +234,7 @@ def format_net_level_inputs(inputs, run_length):
         if isinstance(input[2], (int, float)):
             data_type = 'fix'
         else:
-            shape = backend.shape(val)
+            shape = ops.shape(val)
             if shape[0] == run_length:
                 data_type = 'iter'
             else:
@@ -240,14 +242,13 @@ def format_net_level_inputs(inputs, run_length):
 
         # operation
         if len(input) == 4:
-            ops = input[3]
+            operation = input[3]
         else:
-            ops = '+'
+            operation = '+'
 
         # final result
         if target_name not in formatted_inputs:
             formatted_inputs[target_name] = []
-        format_inp = (key, val, ops, data_type)
+        format_inp = (key, val, operation, data_type)
         formatted_inputs[target_name].append(format_inp)
     return formatted_inputs
-
