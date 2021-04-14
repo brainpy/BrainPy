@@ -6,6 +6,7 @@ from pprint import pprint
 import numpy as np
 
 import brainpy as bp
+from brainpy.backend.drivers.numba_cuda import set_monitor_done_in
 from brainpy.backend.drivers.numba_cuda import NumbaCUDANodeDriver
 
 bp.backend.set('numba-cuda', dt=0.02)
@@ -102,12 +103,16 @@ class AMPA1_vec(bp.TwoEndConn):
 
 
 def test_stochastic_lif_monitors1():
-    lif = StochasticLIF(1, monitors=['V', 'input', 'spike'])
-    driver = NumbaCUDANodeDriver(pop=lif)
-    driver.get_monitor_func(mon_length=100, show_code=True)
-    pprint(driver.formatted_funcs)
-    print()
-    print()
+
+    for place in ['cpu', 'cuda']:
+        set_monitor_done_in(place)
+        lif = StochasticLIF(1, monitors=['V', 'input', 'spike'])
+        driver = NumbaCUDANodeDriver(pop=lif)
+        driver.get_monitor_func(mon_length=100, show_code=True)
+        pprint(driver.formatted_funcs)
+        print()
+        print()
+
 
 
 test_stochastic_lif_monitors1()
