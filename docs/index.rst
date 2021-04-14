@@ -1,9 +1,20 @@
 BrainPy documentation
 =====================
 
-`BrainPy <https://github.com/PKU-NIP-Lab/BrainPy>`_ is an integrative framework
-for computational neuroscience and brain-inspired computation. It provides three
-core functions for neurodyanmics modeling:
+.. highlights::
+
+   "Do you know **calculus**?"
+
+   "You had better learn it, It's **the language God talks**."
+
+   --- Richard Feynman
+
+
+Brain modeling heavily relies on calculus.
+Focused on differential equations, `BrainPy <https://github.com/PKU-NIP-Lab/BrainPy>`_
+provides an integrative simulation and analysis framework for neurodynamics in
+computational neuroscience and brain-inspired computation. It provides three
+core functions:
 
 - *General numerical solvers* for ODEs and SDEs (future will support DDEs and FDEs).
 - *Neurodynamics simulation tools* for various brain objects, such like neurons, synapses
