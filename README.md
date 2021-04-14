@@ -32,7 +32,7 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 Install ``BrainPy`` by using ``pip``:
 
 ```bash
-> pip install brainpy-simulator>=1.0.0rc1
+> pip install brainpy-simulator>=1.0.0rc2
 ```
 
 Install ``BrainPy`` by using ``conda``:
