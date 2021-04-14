@@ -2,6 +2,7 @@
 
 import numpy as np
 import brainpy as bp
+from numba import cuda
 
 bp.backend.set(backend='numba-cuda', dt=0.05)
 bp.integrators.set_default_odeint('exponential_euler')
@@ -97,6 +98,7 @@ class AMPA1(bp.TwoEndConn):
 
         # data
         self.s = bp.ops.zeros(self.num)
+        self.s0 = bp.ops.zeros(1)
         self.g = self.register_constant_delay('g', size=self.num, delay_time=delay)
 
         super(AMPA1, self).__init__(pre=pre, post=post, **kwargs)
@@ -115,39 +117,42 @@ class AMPA1(bp.TwoEndConn):
             self.g.push(i, self.g_max * self.s[i])
             post_id = self.post_ids[i]
             self.post.input[post_id] -= self.g.pull(i) * (self.post.V[post_id] - self.E)
+            if i == 0:
+                self.s0[0] = self.s[i]
+            cuda.syncthreads()
 
 
 def uniform_delay():
-    hh = HH(100, monitors=['V'])
-    ampa = AMPA1(pre=hh, post=hh, conn=bp.connect.All2All(), delay=10., monitors=['s'])
+    hh = HH(4000, monitors=['V'])
+    ampa = AMPA1(pre=hh, post=hh, conn=bp.connect.All2All(), delay=1., monitors=['s0'])
+    ampa.g_max /= hh.num
     net = bp.Network(hh, ampa)
 
     net.run(100., inputs=(hh, 'input', 10.), report=True)
-    net.driver.to_host()
 
     fig, gs = bp.visualize.get_figure(row_num=2, col_num=1, )
     fig.add_subplot(gs[0, 0])
     bp.visualize.line_plot(hh.mon.ts, hh.mon.V)
     fig.add_subplot(gs[1, 0])
-    bp.visualize.line_plot(ampa.mon.ts, ampa.mon.s, show=True)
+    bp.visualize.line_plot(ampa.mon.ts, ampa.mon.s0, show=True)
 
 
 def non_uniform_delay():
-    hh = HH(100, monitors=['V'])
+    hh = HH(4000, monitors=['V'])
     ampa = AMPA1(pre=hh, post=hh, conn=bp.connect.All2All(),
-                 delay=lambda: np.random.random() * 10., monitors=['s'])
+                 delay=lambda: np.random.random() * 1., monitors=['s0'])
+    ampa.g_max /= hh.num
     net = bp.Network(hh, ampa)
 
     net.run(100., inputs=(hh, 'input', 10.), report=True)
-    net.driver.to_host()
 
     fig, gs = bp.visualize.get_figure(row_num=2, col_num=1, )
     fig.add_subplot(gs[0, 0])
     bp.visualize.line_plot(hh.mon.ts, hh.mon.V)
     fig.add_subplot(gs[1, 0])
-    bp.visualize.line_plot(ampa.mon.ts, ampa.mon.s, show=True)
+    bp.visualize.line_plot(ampa.mon.ts, ampa.mon.s0, show=True)
 
 
 if __name__ == '__main__':
-    uniform_delay()
+    # uniform_delay()
     non_uniform_delay()

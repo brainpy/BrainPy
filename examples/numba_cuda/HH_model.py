@@ -84,9 +84,7 @@ if __name__ == '__main__':
     group = HH(10000, monitors=['V'])
 
     group.run(200., inputs=('input', 10.), report=True)
-    group.driver.to_host()
     bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)
 
     group.run(200., report=True)
-    group.driver.to_host()
     bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)

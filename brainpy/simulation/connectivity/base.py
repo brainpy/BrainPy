@@ -357,14 +357,13 @@ class Connector(AbstractConnector):
 
     def requires(self, *syn_requires):
         # get synaptic requires
-        requires = set()
+        requires = []
         for n in syn_requires:
             if n in SUPPORTED_SYN_STRUCTURE:
-                requires.add(n)
+                requires.append(n)
             else:
                 raise ValueError(f'Unknown synapse structure {n}. We only support '
                                  f'{SUPPORTED_SYN_STRUCTURE}.')
-        requires = list(requires)
 
         # synaptic structure to handle
         needs = []
