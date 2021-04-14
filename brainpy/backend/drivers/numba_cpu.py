@@ -175,6 +175,9 @@ class _CPUReader(ast.NodeVisitor):
     def visit_Expression(self, node, level=0):
         self.visit_node_not_assign(node, level)
 
+    def visit_Return(self, node, level=0):
+        self.visit_node_not_assign(node, level)
+
     def visit_content_in_condition_control(self, node, level):
         if isinstance(node, ast.Expr):
             self.visit_Expr(node, level)
@@ -194,6 +197,8 @@ class _CPUReader(ast.NodeVisitor):
             self.visit_Call(node, level)
         elif isinstance(node, ast.Raise):
             self.visit_Raise(node, level)
+        elif isinstance(node, ast.Return):
+            self.visit_Return(node, level)
         else:
             code = tools.ast2code(ast.fix_missing_locations(node))
             raise errors.CodeError(f'BrainPy does not support {type(node)} '
@@ -253,7 +258,7 @@ class _CPUReader(ast.NodeVisitor):
                 elif len(args) + len(kw_args) == 2:
                     value = kw_args['value'] if len(args) <= 1 else args[1]
                     if uniform_delay:
-                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx][{idx_or_val}] = {value}'
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx, {idx_or_val}] = {value}'
                     else:
                         rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_in_idx[{idx_or_val}], {idx_or_val}] = {value}'
                 else:
@@ -266,7 +271,7 @@ class _CPUReader(ast.NodeVisitor):
                 elif len(args) + len(kw_args) == 1:
                     idx = kw_args['idx'] if len(args) == 0 else args[0]
                     if uniform_delay:
-                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx][{idx}]'
+                        rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx, {idx}]'
                     else:
                         rep_expression = f'{dvar4call}.delay_data[{dvar4call}.delay_out_idx[{idx}], {idx}]'
                 else:

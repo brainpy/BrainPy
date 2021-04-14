@@ -417,7 +417,6 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
     def _reprocess_steps(self, f, func_name=None, show_code=False):
         """Analyze the step functions in a DynamicSystem.
         """
-        num_block, num_thread = get_cuda_size(self.host.num)
         code_string = tools.deindent(inspect.getsource(f)).strip()
         tree = ast.parse(code_string)
 
@@ -439,6 +438,12 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
                 iter_seq = tools.ast2code(ast.fix_missing_locations(iter_args[0]))
             else:
                 raise NotImplementedError
+            splits = iter_seq.split('.')
+            assert splits[0] in backend.CLASS_KEYWORDS
+            obj = self.host
+            for attr in splits[1:]:
+                obj = getattr(obj, attr)
+            num_block, num_thread = get_cuda_size(obj)
 
             # MAIN Task 1: add "rng_states" to sde integrals
             # ------
@@ -453,6 +458,10 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
 
             tree_to_analyze = ast.Module(body=tree.body[0].body[0].body)
         else:
+            if not hasattr(self.host, 'num'):
+                raise errors.ModelDefError(f'Each host should have "num" attribute when using Numba CUDA backend. '
+                                           f'But "num" is not found in {self.host}.')
+            num_block, num_thread = get_cuda_size(self.host.num)
             iter_seq = ''
             code_type = self.CUSTOMIZE_TYPE
             tree_to_analyze = tree
@@ -631,7 +640,7 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             exec(compile(code, '', 'exec'), code_scope)
             func = code_scope[f'new_{func_name}']
             func = cuda.jit(func)
-            num_block, num_thread = get_cuda_size(self.host.num)
+            num_block, num_thread = get_cuda_size(host.num)
             call_lines = [f'{host.name}.new_{func_name}[{num_block}, {num_thread}, {host.name}.stream]({", ".join(calls)})',
                           f'{host.name}.stream.synchronize()']
 
@@ -650,9 +659,9 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
 
             # the function reprocessed
             if host == self.host:
-                if not hasattr(host, 'num'):
-                    raise errors.ModelDefError(f'Each host should have "num" attribute when using Numba CUDA backend. '
-                                               f'But "num" is not found in {host}.')
+                # if not hasattr(host, 'num'):
+                #     raise errors.ModelDefError(f'Each host should have "num" attribute when using Numba CUDA backend. '
+                #                                f'But "num" is not found in {host}.')
                 func, call_lines = self._reprocess_steps(step, func_name=func_name, show_code=show_code)
             elif isinstance(host, ConstantDelay):
                 func, call_lines = self._reprocess_delays(host, f=step, func_name=func_name, show_code=show_code)
