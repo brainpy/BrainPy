@@ -1,17 +1,9 @@
 BrainPy documentation
 =====================
 
-.. highlights::
 
-   "Do you know **calculus**?"
-
-   "You had better learn it, It's **the language God talks**."
-
-   --- Richard Feynman
-
-
-Brain modeling heavily relies on calculus.
-Focused on differential equations, `BrainPy <https://github.com/PKU-NIP-Lab/BrainPy>`_
+Brain modeling heavily relies on calculus. Focused on differential equations,
+`BrainPy <https://github.com/PKU-NIP-Lab/BrainPy>`_
 provides an integrative simulation and analysis framework for neurodynamics in
 computational neuroscience and brain-inspired computation. It provides three
 core functions:
@@ -27,8 +19,17 @@ Comprehensive examples of BrainPy please see
 `BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
 
 
+.. Hint::
+
+    “Do you know calculus?”
+
+    “You had better learn it. It’s the language God talks.”
+
+    -- Richard Feynman
+
+
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Quickstart
 
    quickstart/installation
@@ -40,17 +41,17 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 2
    :caption: Tutorials
 
-..   tutorials/tutorial_for_computational_neuroscience
-..   tutorials/tutorial_for_brain_inspired_computation
+   tutorials/synaptic_connectivity
+   tutorials/efficient_synaptic_computation
+
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Advanced Tutorials
 
    tutorials_advanced/ode_numerical_solvers
    tutorials_advanced/sde_numerical_solvers
-   tutorials_advanced/usage_of_inputs_module
-   tutorials_advanced/tips_on_jit
+   tutorials_advanced/tips_on_numba_backend
    tutorials_advanced/how_it_works
 
 
@@ -58,17 +59,7 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: API documentation
 
-   apis/analysis
-   apis/backend
-   apis/connectivity
-   apis/integrators
-   apis/simulation
-   apis/tools
-   apis/visualization
-   apis/errors
-   apis/inputs
-   apis/measure
-   apis/running
+   apis/inputs_module
    apis/changelog
 
 

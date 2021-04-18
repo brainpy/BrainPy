@@ -2,14 +2,13 @@
 
 import numpy as np
 import brainpy as bp
-from numba import cuda
+from brainpy.backend.drivers import numba_cuda
 
-bp.backend.set(backend='numba-cuda', dt=0.05)
 bp.integrators.set_default_odeint('exponential_euler')
 
 
 class HH(bp.NeuGroup):
-    target_backend = 'numba-cuda'
+    target_backend = ['numba', 'numba-cuda']
 
     def __init__(self, size, ENa=50., EK=-77., EL=-54.387, C=1.0, gNa=120.,
                  gK=36., gL=0.03, V_th=20., **kwargs):
@@ -31,11 +30,15 @@ class HH(bp.NeuGroup):
         self.spike = bp.ops.zeros(size)
         self.input = bp.ops.zeros(size)
 
+        self.int_V = bp.odeint(f=self.dev_V)
+        self.int_m = bp.odeint(f=self.dev_m)
+        self.int_h = bp.odeint(f=self.dev_h)
+        self.int_n = bp.odeint(f=self.dev_n)
+
         super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
-    @bp.odeint
-    def int_V(V, t, m, h, n, Iext, gNa, ENa, gK, EK, gL, EL, C):
+    def dev_V(V, t, m, h, n, Iext, gNa, ENa, gK, EK, gL, EL, C):
         I_Na = (gNa * m * m * m * h) * (V - ENa)
         I_K = (gK * n * n * n * n) * (V - EK)
         I_leak = gL * (V - EL)
@@ -43,24 +46,21 @@ class HH(bp.NeuGroup):
         return dVdt
 
     @staticmethod
-    @bp.odeint
-    def int_m(m, t, V):
+    def dev_m(m, t, V):
         alpha = 0.1 * (V + 40) / (1 - bp.ops.exp(-(V + 40) / 10))
         beta = 4.0 * bp.ops.exp(-(V + 65) / 18)
         dmdt = alpha * (1 - m) - beta * m
         return dmdt
 
     @staticmethod
-    @bp.odeint
-    def int_h(h, t, V):
+    def dev_h(h, t, V):
         alpha = 0.07 * bp.ops.exp(-(V + 65) / 20.)
         beta = 1 / (1 + bp.ops.exp(-(V + 35) / 10))
         dhdt = alpha * (1 - h) - beta * h
         return dhdt
 
     @staticmethod
-    @bp.odeint
-    def int_n(n, t, V):
+    def dev_n(n, t, V):
         alpha = 0.01 * (V + 55) / (1 - bp.ops.exp(-(V + 55) / 10))
         beta = 0.125 * bp.ops.exp(-(V + 65) / 80)
         dndt = alpha * (1 - n) - beta * n
@@ -82,7 +82,7 @@ class HH(bp.NeuGroup):
 
 
 class AMPA1(bp.TwoEndConn):
-    target_backend = 'numba-cuda'
+    target_backend = ['numba', 'numba-cuda']
 
     def __init__(self, pre, post, conn, delay=0., g_max=0.10, E=0., tau=2.0, **kwargs):
         # parameters
@@ -101,11 +101,12 @@ class AMPA1(bp.TwoEndConn):
         self.s0 = bp.ops.zeros(1)
         self.g = self.register_constant_delay('g', size=self.num, delay_time=delay)
 
+        self.int_s = bp.odeint(f=self.dev_s)
+
         super(AMPA1, self).__init__(pre=pre, post=post, **kwargs)
 
     @staticmethod
-    @bp.odeint
-    def int_s(s, t, tau):
+    def dev_s(s, t, tau):
         ds = - s / tau
         return ds
 
@@ -119,22 +120,30 @@ class AMPA1(bp.TwoEndConn):
             self.post.input[post_id] -= self.g.pull(i) * (self.post.V[post_id] - self.E)
             if i == 0:
                 self.s0[0] = self.s[i]
-            cuda.syncthreads()
 
 
 def uniform_delay():
-    hh = HH(4000, monitors=['V'])
-    ampa = AMPA1(pre=hh, post=hh, conn=bp.connect.All2All(), delay=1., monitors=['s0'])
-    ampa.g_max /= hh.num
-    net = bp.Network(hh, ampa)
+    # numba_cuda.set_monitor_done_in('cpu')
+    size = 4000
 
-    net.run(100., inputs=(hh, 'input', 10.), report=True)
+    for bk in ['numba-cuda', 'numba', ]:
+        print(f'Backend = {bk}')
+        bp.backend.set(backend=bk, dt=0.05)
 
-    fig, gs = bp.visualize.get_figure(row_num=2, col_num=1, )
-    fig.add_subplot(gs[0, 0])
-    bp.visualize.line_plot(hh.mon.ts, hh.mon.V)
-    fig.add_subplot(gs[1, 0])
-    bp.visualize.line_plot(ampa.mon.ts, ampa.mon.s0, show=True)
+        hh = HH(size)
+        ampa = AMPA1(pre=hh, post=hh, conn=bp.connect.All2All(), delay=1.)
+        ampa.g_max /= hh.num
+        net = bp.Network(hh, ampa)
+
+        net.run(100., inputs=(hh, 'input', 10.), report=True)
+
+    # net.driver.to_host()
+    #
+    # fig, gs = bp.visualize.get_figure(row_num=2, col_num=1, )
+    # fig.add_subplot(gs[0, 0])
+    # bp.visualize.line_plot(hh.mon.ts, hh.mon.V)
+    # fig.add_subplot(gs[1, 0])
+    # bp.visualize.line_plot(ampa.mon.ts, ampa.mon.s0, show=True)
 
 
 def non_uniform_delay():
@@ -154,5 +163,5 @@ def non_uniform_delay():
 
 
 if __name__ == '__main__':
-    # uniform_delay()
-    non_uniform_delay()
+    uniform_delay()
+    # non_uniform_delay()

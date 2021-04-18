@@ -57,7 +57,7 @@ Ci.connect(p=0.02)
 
 # Initialization
 P.v = 'El + (randn() * 5 - 5)'
-P.ge = '(randn() * 1.5 + 4) * 10.'
+P.g = '(randn() * 1.5 + 4) * 10.'
 P.gi = '(randn() * 12 + 20) * 10.'
 
 # monitor

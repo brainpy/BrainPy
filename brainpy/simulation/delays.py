@@ -6,6 +6,7 @@ from brainpy import backend
 from brainpy.backend import ops
 from brainpy.simulation.utils import size2len
 
+
 __all__ = [
     'ConstantDelay',
 ]
