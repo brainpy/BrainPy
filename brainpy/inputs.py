@@ -11,7 +11,11 @@ from brainpy.simulation import NeuGroup
 from brainpy.simulation import size2len
 
 __all__ = [
-    'periods',
+    'period_input',
+    'constant_input',
+    'spike_input',
+    'ramp_input',
+
     'constant_current',
     'spike_current',
     'ramp_current',
@@ -21,22 +25,22 @@ __all__ = [
 ]
 
 
-def periods(values, durations, dt=None, return_length=False):
-    """Format constant input in durations.
+def period_input(values, durations, dt=None, return_length=False):
+    """Format an input current with different periods.
 
     For example:
 
     If you want to get an input where the size is 0 bwteen 0-100 ms,
     and the size is 1. between 100-200 ms.
     >>> import numpy as np
-    >>> constant_current([(0, 100), (1, 100)])
-    >>> constant_current([(np.zeros(100), 100), (np.random.rand(100), 100)])
+    >>> period_input(values=[0, 1],
+    >>>              durations=[100, 100])
 
     Parameters
     ----------
-    values : list
+    values : list, np.ndarray
         The current values for each period duration.
-    durations : list
+    durations : list, np.ndarray
         The duration for each period.
     dt : float
         Default is None.
@@ -75,7 +79,7 @@ def periods(values, durations, dt=None, return_length=False):
         return I_current
 
 
-def constant_current(I_and_duration, dt=None):
+def constant_input(I_and_duration, dt=None):
     """Format constant input in durations.
 
     For example:
@@ -83,8 +87,8 @@ def constant_current(I_and_duration, dt=None):
     If you want to get an input where the size is 0 bwteen 0-100 ms,
     and the size is 1. between 100-200 ms.
     >>> import numpy as np
-    >>> constant_current([(0, 100), (1, 100)])
-    >>> constant_current([(np.zeros(100), 100), (np.random.rand(100), 100)])
+    >>> constant_input([(0, 100), (1, 100)])
+    >>> constant_input([(np.zeros(100), 100), (np.random.rand(100), 100)])
 
     Parameters
     ----------
@@ -121,7 +125,10 @@ def constant_current(I_and_duration, dt=None):
     return I_current, I_duration
 
 
-def spike_current(points, lengths, sizes, duration, dt=None):
+constant_current = constant_input
+
+
+def spike_input(points, lengths, sizes, duration, dt=None):
     """Format current input like a series of short-time spikes.
 
     For example:
@@ -130,10 +137,10 @@ def spike_current(points, lengths, sizes, duration, dt=None):
     and each spike lasts 1 ms and the spike current is 0.5, then you can use the
     following funtions:
 
-    >>> spike_current(points=[10, 20, 30, 200, 300],
-    >>>               lengths=1.,  # can be a list to specify the spike length at each point
-    >>>               sizes=0.5,  # can be a list to specify the current size at each point
-    >>>               duration=400.)
+    >>> spike_input(points=[10, 20, 30, 200, 300],
+    >>>             lengths=1.,  # can be a list to specify the spike length at each point
+    >>>             sizes=0.5,  # can be a list to specify the current size at each point
+    >>>             duration=400.)
 
     Parameters
     ----------
@@ -168,7 +175,10 @@ def spike_current(points, lengths, sizes, duration, dt=None):
     return current
 
 
-def ramp_current(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
+spike_current = spike_input
+
+
+def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     """Get the gradually changed input current.
 
     Parameters
@@ -183,7 +193,8 @@ def ramp_current(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
         The ramped current start time-point.
     t_end : float
         The ramped current end time-point. Default is the None.
-    dt
+    dt : float, int, optional
+        The numerical precision.
 
     Returns
     -------
@@ -198,6 +209,9 @@ def ramp_current(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     p2 = int(math.ceil(t_end / dt))
     current[p1: p2] = ops.as_tensor(np.linspace(c_start, c_end, p2 - p1))
     return current
+
+
+ramp_current = ramp_input
 
 
 class SpikeTimeInput(NeuGroup):
