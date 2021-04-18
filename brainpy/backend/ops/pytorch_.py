@@ -16,7 +16,6 @@ except ModuleNotFoundError:
 normal = torch.normal
 exp = torch.exp
 sum = torch.sum
-matmul = torch.matmul
 
 
 def shape(x):
@@ -45,3 +44,15 @@ def where(tensor, x, y):
 
 unsqueeze = torch.unsqueeze
 squeeze = torch.squeeze
+
+
+# necessary ops for dtypes
+
+bool = torch.bool
+int = torch.int
+int32 = torch.int32
+int64 = torch.int64
+float = torch.float
+float32 = torch.float32
+float64 = torch.float64
+

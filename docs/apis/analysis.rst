@@ -1,5 +1,5 @@
-brainpy.analysis
-================
+``brainpy.analysis`` module
+===========================
 
 .. currentmodule:: brainpy.analysis
 .. automodule:: brainpy.analysis

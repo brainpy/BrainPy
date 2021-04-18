@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import types
 
 from .numpy_ import *
 
@@ -16,9 +17,12 @@ __all__ = [
 
 _backend = 'numpy'
 BUFFER = {}
-OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'matmul', 'shape', ]
+OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'shape', ]
 OPS_FOR_SIMULATION = ['as_tensor', 'zeros', 'ones', 'arange',
                       'vstack', 'where', 'unsqueeze', 'squeeze']
+OPS_OF_DTYPE = ['bool',
+                'int', 'int32', 'int64',
+                'float', 'float32', 'float64']
 
 
 def switch_to(backend):
@@ -54,7 +58,7 @@ def switch_to(backend):
         ops_in_buffer = get_buffer(backend)
         for ops in OPS_FOR_SOLVER:
             if ops not in ops_in_buffer:
-                raise ValueError(f'Operation "{ops}" is needed, but is not '
+                raise ValueError(f'Necessary operation "{ops}" is not '
                                  f'defined in "{backend}" backend\'s buffers.')
 
     # set operations from BUFFER
@@ -71,17 +75,30 @@ def set_ops_from_module(module):
     ----------
     module :
     """
+
+    ops_in_module = {p: getattr(module, p) for p in dir(module)
+                     if (not p.startswith('__')) and
+                     (not isinstance(getattr(module, p), types.ModuleType))}
     global_vars = globals()
+
     for ops in OPS_FOR_SOLVER:
-        if not hasattr(module, ops):
+        if ops not in ops_in_module:
             raise ValueError(f'Operation "{ops}" is needed, but is not '
                              f'defined in module "{module}".')
-        global_vars[ops] = getattr(module, ops)
+        global_vars[ops] = ops_in_module.pop(ops)
     for ops in OPS_FOR_SIMULATION:
-        if hasattr(module, ops):
-            global_vars[ops] = getattr(module, ops)
+        if ops in ops_in_module:
+            global_vars[ops] = ops_in_module.pop(ops)
         else:
             del global_vars[ops]
+    for ops in OPS_OF_DTYPE:
+        if ops in ops_in_module:
+            global_vars[ops] = ops_in_module.pop(ops)
+        else:
+            del global_vars[ops]
+
+    for ops, val in ops_in_module.items():
+        global_vars[ops] = val
 
 
 def set_ops(**kwargs):

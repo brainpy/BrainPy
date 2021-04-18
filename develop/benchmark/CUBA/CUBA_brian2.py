@@ -19,7 +19,7 @@ dgi/dt = -gi/taui : volt
 P = NeuronGroup(4000, eqs, threshold='v>Vt', reset='v = Vr',
                 refractory=5 * ms, method='euler')
 P.v = 'Vr + rand() * (Vt - Vr)'
-P.ge = 0 * mV
+P.g = 0 * mV
 P.gi = 0 * mV
 
 we = (60 * 0.27 / 10) * mV  # excitatory synaptic weight (voltage)

@@ -1,8 +1,8 @@
 brainpy.connect
 ===============
 
-.. currentmodule:: brainpy.connect
-.. automodule:: brainpy.connect
+.. currentmodule:: brainpy.simulation.connectivity
+.. automodule:: brainpy.simulation.connectivity
 
 
 ``formatter`` functions
@@ -24,7 +24,6 @@ brainpy.connect
 ``connector`` methods
 ---------------------
 
-
 .. autosummary::
     :toctree: _autosummary
 
@@ -40,6 +39,10 @@ brainpy.connect
     GaussianProb
     GaussianWeight
     DOG
+    SmallWorld
+    ScaleFreeBA
+    ScaleFreeBADual
+    PowerLaw
 
 
 
@@ -79,3 +82,14 @@ brainpy.connect
 .. autoclass:: DOG
    :members:
 
+.. autoclass:: SmallWorld
+   :members:
+
+.. autoclass:: ScaleFreeBA
+   :members:
+
+.. autoclass:: ScaleFreeBADual
+   :members:
+
+.. autoclass:: PowerLaw
+   :members:

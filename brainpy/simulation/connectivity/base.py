@@ -21,8 +21,8 @@ __all__ = [
     'post2pre',
     'pre2syn',
     'post2syn',
-    'pre_slice_syn',
-    'post_slice_syn',
+    'pre_slice',
+    'post_slice',
 
     'AbstractConnector',
     'Connector',
@@ -32,7 +32,7 @@ __all__ = [
 def _numba_backend():
     r = backend.get_backend_name().startswith('numba')
     if r and nb is None:
-        raise errors.PackageMissingError('Please install numba for numba backend.')
+        raise errors.BackendNotInstalled('numba')
     return r
 
 
@@ -86,7 +86,8 @@ def mat2ij(conn_mat):
         raise errors.ModelUseError('Connectivity matrix must be in the '
                                    'shape of (num_pre, num_post).')
     pre_ids, post_ids = ops.where(conn_mat > 0)
-    return ops.as_tensor(pre_ids), ops.as_tensor(post_ids)
+    return ops.as_tensor(pre_ids, dtype=ops.int), \
+           ops.as_tensor(post_ids, dtype=ops.int)
 
 
 def pre2post(i, j, num_pre=None):
@@ -115,9 +116,9 @@ def pre2post(i, j, num_pre=None):
     pre2post_list = [[] for _ in range(num_pre)]
     for pre_id, post_id in zip(i, j):
         pre2post_list[pre_id].append(post_id)
-    pre2post_list = [ops.as_tensor(l) for l in pre2post_list]
+    pre2post_list = [ops.as_tensor(l, dtype=ops.int) for l in pre2post_list]
 
-    if _numba_backend:
+    if _numba_backend():
         pre2post_list_nb = nb.typed.List()
         for pre_id in range(num_pre):
             pre2post_list_nb.append(pre2post_list[pre_id])
@@ -152,7 +153,7 @@ def post2pre(i, j, num_post=None):
     post2pre_list = [[] for _ in range(num_post)]
     for pre_id, post_id in zip(i, j):
         post2pre_list[post_id].append(pre_id)
-    post2pre_list = [ops.as_tensor(l) for l in post2pre_list]
+    post2pre_list = [ops.as_tensor(l, dtype=ops.int) for l in post2pre_list]
 
     if _numba_backend():
         post2pre_list_nb = nb.typed.List()
@@ -184,7 +185,7 @@ def pre2syn(i, num_pre=None):
     pre2syn_list = [[] for _ in range(num_pre)]
     for syn_id, pre_id in enumerate(i):
         pre2syn_list[pre_id].append(syn_id)
-    pre2syn_list = [ops.as_tensor(l) for l in pre2syn_list]
+    pre2syn_list = [ops.as_tensor(l, dtype=ops.int) for l in pre2syn_list]
 
     if _numba_backend():
         pre2syn_list_nb = nb.typed.List()
@@ -217,7 +218,7 @@ def post2syn(j, num_post=None):
     post2syn_list = [[] for _ in range(num_post)]
     for syn_id, post_id in enumerate(j):
         post2syn_list[post_id].append(syn_id)
-    post2syn_list = [ops.as_tensor(l) for l in post2syn_list]
+    post2syn_list = [ops.as_tensor(l, dtype=ops.int) for l in post2syn_list]
 
     if _numba_backend():
         post2syn_list_nb = nb.typed.List()
@@ -228,7 +229,7 @@ def post2syn(j, num_post=None):
     return post2syn_list
 
 
-def pre_slice_syn(i, j, num_pre=None):
+def pre_slice(i, j, num_pre=None):
     """Get post slicing connections by pre-synaptic ids.
 
     Parameters
@@ -260,8 +261,8 @@ def pre_slice_syn(i, j, num_pre=None):
     for pre_i, posts in enumerate(pre2post_list):
         post_ids.extend(posts)
         pre_ids.extend([pre_i] * len(posts))
-    post_ids = ops.as_tensor(post_ids)
-    pre_ids = ops.as_tensor(pre_ids)
+    post_ids = ops.as_tensor(post_ids, dtype=ops.int)
+    pre_ids = ops.as_tensor(pre_ids, dtype=ops.int)
 
     # pre2post slicing
     slicing = []
@@ -270,12 +271,12 @@ def pre_slice_syn(i, j, num_pre=None):
         end = start + len(posts)
         slicing.append([start, end])
         start = end
-    slicing = ops.as_tensor(slicing)
+    slicing = ops.as_tensor(slicing, dtype=ops.int)
 
     return pre_ids, post_ids, slicing
 
 
-def post_slice_syn(i, j, num_post=None):
+def post_slice(i, j, num_post=None):
     """Get pre slicing connections by post-synaptic ids.
 
     Parameters
@@ -306,8 +307,8 @@ def post_slice_syn(i, j, num_post=None):
     for _post_id, _pre_ids in enumerate(post2pre_list):
         pre_ids.extend(_pre_ids)
         post_ids.extend([_post_id] * len(_pre_ids))
-    post_ids = ops.as_tensor(post_ids)
-    pre_ids = ops.as_tensor(pre_ids)
+    post_ids = ops.as_tensor(post_ids, dtype=ops.int)
+    pre_ids = ops.as_tensor(pre_ids, dtype=ops.int)
 
     # post2pre slicing
     slicing = []
@@ -316,7 +317,7 @@ def post_slice_syn(i, j, num_post=None):
         end = start + len(pres)
         slicing.append([start, end])
         start = end
-    slicing = ops.as_tensor(slicing)
+    slicing = ops.as_tensor(slicing, dtype=ops.int)
 
     return pre_ids, post_ids, slicing
 
@@ -324,7 +325,7 @@ def post_slice_syn(i, j, num_post=None):
 SUPPORTED_SYN_STRUCTURE = ['pre_ids', 'post_ids', 'conn_mat',
                            'pre2post', 'post2pre',
                            'pre2syn', 'post2syn',
-                           'pre_slice_syn', 'post_slice_syn']
+                           'pre_slice', 'post_slice']
 
 
 class AbstractConnector(abc.ABC):
@@ -349,8 +350,8 @@ class Connector(AbstractConnector):
         self.post2pre = None
         self.pre2syn = None
         self.post2syn = None
-        self.pre_slice_syn = None
-        self.post_slice_syn = None
+        self.pre_slice = None
+        self.post_slice = None
 
         # synaptic weights
         self.weights = None
@@ -362,22 +363,20 @@ class Connector(AbstractConnector):
             if n in SUPPORTED_SYN_STRUCTURE:
                 requires.append(n)
             else:
-                raise ValueError(f'Unknown synapse structure {n}. We only support '
-                                 f'{SUPPORTED_SYN_STRUCTURE}.')
+                raise ValueError(f'Unknown synapse structure {n}. We only support {SUPPORTED_SYN_STRUCTURE}.')
 
         # synaptic structure to handle
         needs = []
-        if 'pre_slice_syn' in requires and 'post_slice_syn' in requires:
-            raise errors.ModelUseError('Cannot use "pre_slice_syn" and "post_slice_syn" '
-                                       'simultaneously. \n'
-                                       'We recommend you use "pre_slice_syn + '
-                                       'post2syn" or "post_slice_syn + pre2syn".')
-        elif 'pre_slice_syn' in requires:
-            needs.append('pre_slice_syn')
-        elif 'post_slice_syn' in requires:
-            needs.append('post_slice_syn')
+        if 'pre_slice' in requires and 'post_slice' in requires:
+            raise errors.ModelUseError('Cannot use "pre_slice" and "post_slice" simultaneously. \n'
+                                       'We recommend you use "pre_slice + '
+                                       'post2syn" or "post_slice + pre2syn".')
+        elif 'pre_slice' in requires:
+            needs.append('pre_slice')
+        elif 'post_slice' in requires:
+            needs.append('post_slice')
         for n in requires:
-            if n in ['pre_slice_syn', 'post_slice_syn', 'pre_ids', 'post_ids']:
+            if n in ['pre_slice', 'post_slice', 'pre_ids', 'post_ids']:
                 continue
             needs.append(n)
 
@@ -411,10 +410,10 @@ class Connector(AbstractConnector):
     def make_post2syn(self):
         self.post2syn = post2syn(self.post_ids, self.num_post)
 
-    def make_pre_slice_syn(self):
-        self.pre_ids, self.post_ids, self.pre_slice_syn = \
-            pre_slice_syn(self.pre_ids, self.post_ids, self.num_pre)
+    def make_pre_slice(self):
+        self.pre_ids, self.post_ids, self.pre_slice = \
+            pre_slice(self.pre_ids, self.post_ids, self.num_pre)
 
-    def make_post_slice_syn(self):
-        self.pre_ids, self.post_ids, self.post_slice_syn = \
-            post_slice_syn(self.pre_ids, self.post_ids, self.num_post)
+    def make_post_slice(self):
+        self.pre_ids, self.post_ids, self.post_slice = \
+            post_slice(self.pre_ids, self.post_ids, self.num_post)

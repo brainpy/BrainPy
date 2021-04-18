@@ -109,13 +109,14 @@ class Network(object):
                                           show_code=self.show_code)
 
         # run the network
-        utils.run_model(self.run_func, times=ts, report=report, report_percent=report_percent)
+        res = utils.run_model(self.run_func, times=ts, report=report, report_percent=report_percent)
 
         # end
         self.t_start, self.t_end = start, end
         for obj in self.all_nodes.values():
             if obj.mon.num_item > 0:
                 obj.mon.ts = ts
+        return res
 
     @property
     def ts(self):
