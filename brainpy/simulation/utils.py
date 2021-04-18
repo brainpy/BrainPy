@@ -82,7 +82,8 @@ def run_model(run_func, times, report, report_percent):
         t0 = time.time()
         for i, t in enumerate(times[:1]):
             run_func(_t=t, _i=i, _dt=dt)
-        print('Compilation used {:.4f} s.'.format(time.time() - t0))
+        compile_time = time.time() - t0
+        print('Compilation used {:.4f} s.'.format(compile_time))
 
         print("Start running ...")
         report_gap = int(run_length * report_percent)
@@ -92,11 +93,14 @@ def run_model(run_func, times, report, report_percent):
             if (run_idx + 1) % report_gap == 0:
                 percent = (run_idx + 1) / run_length * 100
                 print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
-        print('Simulation is done in {:.3f} s.'.format(time.time() - t0))
+        running_time = time.time() - t0
+        print('Simulation is done in {:.3f} s.'.format(running_time))
         print()
+        return running_time
     else:
         for run_idx in range(run_length):
             run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
+        return None
 
 
 def format_pop_level_inputs(inputs, host, mon_length):
