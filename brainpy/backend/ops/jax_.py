@@ -26,7 +26,6 @@ def normal(loc, scale, size):
 
 exp = numpy.exp
 sum = numpy.sum
-matmul = numpy.matmul
 shape = numpy.shape
 
 
@@ -39,3 +38,13 @@ vstack = numpy.vstack
 where = numpy.where
 unsqueeze = numpy.expand_dims
 squeeze = numpy.squeeze
+
+# necessary ops for dtypes
+
+bool = numpy.bool_
+int = numpy.int_
+int32 = numpy.int32
+int64 = numpy.int64
+float = numpy.float_
+float32 = numpy.float32
+float64 = numpy.float64

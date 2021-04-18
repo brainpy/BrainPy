@@ -6,6 +6,7 @@ The TensorFlow with the version of xx is needed.
 
 from brainpy import errors
 
+
 try:
     import tensorflow as tf
 except ModuleNotFoundError:
@@ -20,7 +21,6 @@ def normal(loc, scale, size):
 
 sum = tf.math.reduce_sum
 exp = tf.math.exp
-matmul = tf.matmul
 
 
 def shape(x):
@@ -48,3 +48,14 @@ def where(tensor, x, y):
 
 unsqueeze = tf.expand_dims
 squeeze = tf.squeeze
+
+
+# necessary ops for dtypes
+
+bool = tf.bool
+int = tf.int32
+int32 = tf.int32
+int64 = tf.int64
+float = tf.float32
+float32 = tf.float32
+float64 = tf.float64

@@ -18,6 +18,7 @@ from brainpy.integrators import utils as diffint_utils
 from brainpy.simulation import drivers
 from brainpy.simulation.brainobjects import SynConn, NeuGroup
 from brainpy.simulation.delays import ConstantDelay
+from brainpy.simulation.monitors import Monitor
 from . import utils
 from .general import GeneralNetDriver
 from .numba_cpu import NumbaCPUNodeDriver
@@ -47,10 +48,11 @@ __all__ = [
 ]
 
 _num_thread_gpu = 1024
+
 # Monitor can be done in :
 # 1. 'cpu'
 # 2. 'cuda'
-_monitor_done_in = 'cpu'
+_monitor_done_in = 'cuda'
 
 
 def set_monitor_done_in(place):
@@ -81,6 +83,20 @@ def get_cuda_size(num):
         num_block = math.ceil(num / num_thread)
     return num_block, num_thread
 
+
+def get_categories(category):
+    if category is None:
+        category = [NeuGroup, SynConn, Monitor, ConstantDelay]
+    else:
+        str2target = {'mon': Monitor, 'neu': NeuGroup,
+                      'syn': SynConn, 'delay': ConstantDelay}
+        if isinstance(category, str):
+            category = [str2target[category]]
+        elif isinstance(category, (tuple, list)):
+            category = [str2target[c] for c in category]
+        else:
+            raise ValueError
+    return category
 
 def data_shape(data):
     if isinstance(data, DeviceNDArray):
@@ -549,6 +565,7 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
                 code_scope[utils.attr_replace(data)] = obj
             else:
                 if callable(obj):
+                    code_scope[utils.attr_replace(data)] = obj
                     continue
                 if isinstance(obj, np.ndarray):  # 2. transform the cpu data to cuda data
                     splits[-1] = self.transfer_cpu_data_to_gpu(host, cpu_key=splits[-1], cpu_data=obj)
@@ -832,12 +849,16 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
             shape = ops.shape(data)
             if run_length < shape[0]:
                 data = data[:run_length]
+                setattr(self.host.mon, var, data)
+                if _monitor_done_in == 'cuda':
+                    setattr(self.host.mon, cuda_name_of(var), self.cpu2gpu(self.host, cpu_data=data))
+
             elif run_length > shape[0]:
                 append = ops.zeros((run_length - shape[0],) + shape[1:])
                 data = ops.vstack([data, append])
-            setattr(self.host.mon, var, data)
-            if _monitor_done_in == 'cuda':
-                setattr(self.host.mon, cuda_name_of(var), self.cpu2gpu(self.host, cpu_data=data))
+                setattr(self.host.mon, var, data)
+                if _monitor_done_in == 'cuda':
+                    setattr(self.host.mon, cuda_name_of(var), self.cpu2gpu(self.host, cpu_data=data))
 
     def get_monitor_func(self, mon_length, show_code=False):
         """Get monitor function.
@@ -979,38 +1000,49 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
                 raise ValueError(f'Monitor is set to an unknown place by "_monitor_done_in = '
                                  f'{_monitor_done_in}".')
 
-    def to_host(self):
+    def to_host(self, category=None):
+        categories = get_categories(category)
         for host, keys in self.host_cpukey_gpukey.items():
-            for cpukey, gpukey in keys.items():
-                setattr(host, cpukey, getattr(host, gpukey).copy_to_host(stream=host.stream))
+            if type(host) in categories:
+                for cpukey, gpukey in keys.items():
+                    setattr(host, cpukey, getattr(host, gpukey).copy_to_host(stream=host.stream))
 
-    def to_device(self):
+    def to_device(self, category=None):
+        categories = get_categories(category)
         for host, keys in self.host_cpukey_gpukey.items():
-            for cpukey, gpukey in keys.items():
-                setattr(host, gpukey, cuda.to_device(getattr(host, cpukey), stream=host.stream))
+            if type(host) in categories:
+                for cpukey, gpukey in keys.items():
+                    setattr(host, gpukey, cuda.to_device(getattr(host, cpukey),
+                                                         stream=host.stream))
 
 
 class NumbaCUDANetDriver(GeneralNetDriver):
-    def to_host(self):
-        host_cpukey_gpukey = {}
-        for node in self.host.all_nodes.values():
-            for host, keys in node.driver.host_cpukey_gpukey.items():
-                if host not in host_cpukey_gpukey:
-                    host_cpukey_gpukey[host] = {}
-                for cpukey, gpukey in keys.items():
-                    if cpukey in host_cpukey_gpukey[host]:
-                        continue
-                    host_cpukey_gpukey[host][cpukey] = gpukey
-                    setattr(host, cpukey, getattr(host, gpukey).copy_to_host(stream=host.stream))
+    def to_host(self, category=None):
+        categories = get_categories(category)
 
-    def to_device(self):
         host_cpukey_gpukey = {}
         for node in self.host.all_nodes.values():
             for host, keys in node.driver.host_cpukey_gpukey.items():
-                if host not in host_cpukey_gpukey:
-                    host_cpukey_gpukey[host] = {}
-                for cpukey, gpukey in keys.items():
-                    if cpukey in host_cpukey_gpukey[host]:
-                        continue
-                    host_cpukey_gpukey[host][cpukey] = gpukey
-                    setattr(host, gpukey, cuda.to_device(getattr(host, cpukey), stream=host.stream))
+                if type(host) in categories:
+                    if host not in host_cpukey_gpukey:
+                        host_cpukey_gpukey[host] = {}
+                    for cpukey, gpukey in keys.items():
+                        if cpukey in host_cpukey_gpukey[host]:
+                            continue
+                        host_cpukey_gpukey[host][cpukey] = gpukey
+                        setattr(host, cpukey, getattr(host, gpukey).copy_to_host(stream=host.stream))
+
+    def to_device(self, category=None):
+        categories = get_categories(category)
+
+        host_cpukey_gpukey = {}
+        for node in self.host.all_nodes.values():
+            for host, keys in node.driver.host_cpukey_gpukey.items():
+                if type(host) in categories:
+                    if host not in host_cpukey_gpukey:
+                        host_cpukey_gpukey[host] = {}
+                    for cpukey, gpukey in keys.items():
+                        if cpukey in host_cpukey_gpukey[host]:
+                            continue
+                        host_cpukey_gpukey[host][cpukey] = gpukey
+                        setattr(host, gpukey, cuda.to_device(getattr(host, cpukey), stream=host.stream))
