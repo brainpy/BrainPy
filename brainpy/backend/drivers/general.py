@@ -50,7 +50,7 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         new_inputs = {}
         input_keep_same = True
         old_input_keys = list(self.last_inputs.keys())
-        for key, val, ops, data_type in formatted_inputs:
+        for key, val, op, data_type in formatted_inputs:
             # set data
             self.upload(self.input_data_name_of(key), val)
             # compare
@@ -61,16 +61,16 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
                     if show_code:
                         print(f'The current "{key}" input shape {ops.shape(val)} is different '
                               f'from the last input shape {ops.shape(self.last_inputs[key][0])}.')
-                if self.last_inputs[key][1] != ops:
+                if self.last_inputs[key][1] != op:
                     input_keep_same = False
                     if show_code:
-                        print(f'The current "{key}" input operation "{ops}" is different '
+                        print(f'The current "{key}" input operation "{op}" is different '
                               f'from the last operation "{self.last_inputs[key][1]}". ')
             else:
                 input_keep_same = False
                 if show_code:
                     print(f'The input to a new key "{key}" in {self.host}.')
-            new_inputs[key] = (val, ops, data_type)
+            new_inputs[key] = (val, op, data_type)
         self.last_inputs = new_inputs
         if len(old_input_keys):
             input_keep_same = False

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
 
 from brainpy import tools
@@ -186,16 +185,15 @@ class FixedProb(Connector):
         super(FixedProb, self).__init__()
         self.prob = prob
         self.include_self = include_self
-        self.seed = seed
+        self.rng = _get_rng(seed=seed)
 
     def __call__(self, pre_size, post_size):
         num_pre, num_post = utils.size2len(pre_size), utils.size2len(post_size)
         self.num_pre, self.num_post = num_pre, num_post
 
-        prob_mat = np.random.random(size=(num_pre, num_post))
+        prob_mat = self.rng.random(size=(num_pre, num_post))
         if not self.include_self:
-            diag_index = np.arange(min([num_pre, num_post]))
-            prob_mat[diag_index, diag_index] = 1.
+            np.fill_diagonal(prob_mat, 1.)
         conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
         pre_ids, post_ids = np.where(conn_mat)
         self.conn_mat = ops.as_tensor(conn_mat)
@@ -229,17 +227,17 @@ class FixedPreNum(Connector):
             raise ValueError(f'Unknown type: {type(num)}')
         self.num = num
         self.include_self = include_self
-        self.seed = seed
+        self.rng = _get_rng(seed=seed)
 
     def __call__(self, pre_size, post_size):
         num_pre, num_post = utils.size2len(pre_size), utils.size2len(post_size)
         self.num_pre, self.num_post = num_pre, num_post
         num = self.num if isinstance(self.num, int) else int(self.num * num_pre)
         assert num <= num_pre, f'"num" must be less than "num_pre", but got {num} > {num_pre}'
-        prob_mat = np.random.random(size=(num_pre, num_post))
+
+        prob_mat = self.rng.random(size=(num_pre, num_post))
         if not self.include_self:
-            diag_index = np.arange(min([num_pre, num_post]))
-            prob_mat[diag_index, diag_index] = 1.1
+            np.fill_diagonal(prob_mat, 1.)
         arg_sort = np.argsort(prob_mat, axis=0)[:num]
         pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int_)
         post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int_)
@@ -264,6 +262,7 @@ class FixedPostNum(Connector):
     """
 
     def __init__(self, num, include_self=True, seed=None):
+        super(FixedPostNum, self).__init__()
         if isinstance(num, int):
             assert num >= 0, '"num" must be bigger than 0.'
         elif isinstance(num, float):
@@ -272,8 +271,7 @@ class FixedPostNum(Connector):
             raise ValueError(f'Unknown type: {type(num)}')
         self.num = num
         self.include_self = include_self
-        self.seed = seed
-        super(FixedPostNum, self).__init__()
+        self.rng = _get_rng(seed=seed)
 
     def __call__(self, pre_size, post_size):
         num_pre = utils.size2len(pre_size)
@@ -282,10 +280,10 @@ class FixedPostNum(Connector):
         self.num_post = num_post
         num = self.num if isinstance(self.num, int) else int(self.num * num_post)
         assert num <= num_post, f'"num" must be less than "num_post", but got {num} > {num_post}'
-        prob_mat = np.random.random(size=(num_pre, num_post))
+
+        prob_mat = self.rng.random(size=(num_pre, num_post))
         if not self.include_self:
-            diag_index = np.arange(min([num_pre, num_post]))
-            prob_mat[diag_index, diag_index] = 1.1
+            np.fill_diagonal(prob_mat, 1.)
         arg_sort = np.argsort(prob_mat, axis=1)[:, num]
         post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
         pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
@@ -325,7 +323,7 @@ class GaussianWeight(Connector):
         Whether create the conn at the same position.
     """
 
-    def __init__(self, sigma, w_max, w_min=None, normalize=True, include_self=True):
+    def __init__(self, sigma, w_max, w_min=None, normalize=True, include_self=True, seed=None):
         super(GaussianWeight, self).__init__()
         self.sigma = sigma
         self.w_max = w_max
@@ -618,8 +616,6 @@ class ScaleFreeBA(Connector):
 
     Parameters
     ----------
-    num_node : int
-        Number of nodes
     m : int
         Number of edges to attach from a new node to existing nodes
     seed : integer, random_state, or None (default)
@@ -686,32 +682,32 @@ class ScaleFreeBA(Connector):
 
 class ScaleFreeBADual(Connector):
     """Build a random graph according to the dual Barabási–Albert preferential
-        attachment model.
+    attachment model.
 
-        A graph of $num\\_node$ nodes is grown by attaching new nodes each with either $m_1$
-        edges (with probability $p$) or $m_2$ edges (with probability $1-p$) that
-        are preferentially attached to existing nodes with high degree.
+    A graph of $num\\_node$ nodes is grown by attaching new nodes each with either $m_1$
+    edges (with probability $p$) or $m_2$ edges (with probability $1-p$) that
+    are preferentially attached to existing nodes with high degree.
 
-        Parameters
-        ----------
-        m1 : int
-            Number of edges to attach from a new node to existing nodes with probability $p$
-        m2 : int
-            Number of edges to attach from a new node to existing nodes with probability $1-p$
-        p : float
-            The probability of attaching $m_1$ edges (as opposed to $m_2$ edges)
-        seed : integer, random_state, or None (default)
-            Indicator of random number generation state.
+    Parameters
+    ----------
+    m1 : int
+        Number of edges to attach from a new node to existing nodes with probability $p$
+    m2 : int
+        Number of edges to attach from a new node to existing nodes with probability $1-p$
+    p : float
+        The probability of attaching $m_1$ edges (as opposed to $m_2$ edges)
+    seed : integer, random_state, or None (default)
+        Indicator of random number generation state.
 
-        Raises
-        ------
-        ValueError
-            If `m1` and `m2` do not satisfy ``1 <= m1,m2 < n`` or `p` does not satisfy ``0 <= p <= 1``.
+    Raises
+    ------
+    ValueError
+        If `m1` and `m2` do not satisfy ``1 <= m1,m2 < n`` or `p` does not satisfy ``0 <= p <= 1``.
 
-        References
-        ----------
-        .. [1] N. Moshiri "The dual-Barabasi-Albert model", arXiv:1810.10538.
-        """
+    References
+    ----------
+    .. [1] N. Moshiri "The dual-Barabasi-Albert model", arXiv:1810.10538.
+    """
 
     def __init__(self, m1, m2, p, directed=False, seed=None):
         self.m1 = m1
@@ -828,13 +824,13 @@ class PowerLaw(Connector):
     """
 
     def __init__(self, m, p, directed=False, seed=None):
+        super(PowerLaw, self).__init__()
         self.m = m
         self.p = p
         if self.p > 1 or self.p < 0:
             raise ValueError(f"p must be in [0,1], while p={self.p}")
         self.directed = directed
         self.rng = _get_rng(seed)
-        super(PowerLaw, self).__init__()
 
     def __call__(self, pre_size, post_size=None):
         num_node = utils.size2len(pre_size)

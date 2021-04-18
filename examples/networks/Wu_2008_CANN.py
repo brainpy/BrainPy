@@ -70,7 +70,7 @@ def task1_population_coding():
     cann = CANN1D(num=512, k=0.1, monitors=['u'])
 
     I1 = cann.get_stimulus_by_pos(0.)
-    Iext, duration = bp.inputs.constant_current([(0., 1.), (I1, 8.), (0., 8.)])
+    Iext, duration = bp.inputs.constant_input([(0., 1.), (I1, 8.), (0., 8.)])
     cann.run(duration=duration, inputs=('input', Iext))
 
     bp.visualize.animate_1D(

@@ -181,9 +181,9 @@ class GridN(Connector):
         Whether create (i, i) conn ?
     """
 
-    def __init__(self, n=1, include_self=False):
+    def __init__(self, N=1, include_self=False):
         super(GridN, self).__init__()
-        self.n = n
+        self.N = N
         self.include_self = include_self
 
     def __call__(self, pre_size, post_size=None):
@@ -210,7 +210,7 @@ class GridN(Connector):
         conn_j = []
         for row in range(height):
             res = _grid_n(height=height, width=width, row=row,
-                          n=self.n, include_self=self.include_self)
+                          n=self.N, include_self=self.include_self)
             conn_i.extend(res[0])
             conn_j.extend(res[1])
         self.pre_ids = ops.as_tensor(conn_i)
@@ -222,7 +222,7 @@ class GridEight(GridN):
     """The nearest eight neighbors conn method."""
 
     def __init__(self, include_self=False):
-        super(GridEight, self).__init__(n=1, include_self=include_self)
+        super(GridEight, self).__init__(N=1, include_self=include_self)
 
 
 grid_eight = GridEight()

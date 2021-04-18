@@ -28,7 +28,7 @@ except ModuleNotFoundError:
 # Numba
 try:
     import numba as nb
-
+    from numba import cuda
 
     @nb.njit
     def nb_clip(x, x_min, x_max):
@@ -40,5 +40,14 @@ try:
     bp.ops.set_buffer('numba', clip=nb_clip)
     bp.ops.set_buffer('numba-parallel', clip=nb_clip)
 
+
+    @cuda.jit(devicde=True)
+    def cuda_clip(x, x_min, x_max):
+        if x < x_min: return x_min
+        elif x > x_max: return x_max
+        else: return x
+
+
+    bp.ops.set_buffer('numba-numba', clip=nb_clip)
 except ModuleNotFoundError:
     pass

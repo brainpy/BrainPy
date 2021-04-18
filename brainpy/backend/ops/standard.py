@@ -8,13 +8,11 @@ functions for computation backends.
 import numpy as np
 
 __all__ = [
-    # random function
-    'normal',
-
     # arithmetic operation
+    'normal',
     'sum',
     'exp',
-    'matmul',
+    'shape',
 
     # tensor creation
     'eye',
@@ -22,12 +20,7 @@ __all__ = [
     'ones',
     'arange',
     'as_tensor',
-
-    # tensor manipulation
     'vstack',
-
-    # others
-    'shape',
     'reshape',
 ]
 
@@ -142,22 +135,6 @@ def eye(N, *args, **kwargs):
     """
     pass
 
-
-def matmul(x1, x2, *args, **kwargs):
-    """The matmul operation. We expect "matmul" function will behave like "numpy.matmul".
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays, scalars not allowed.
-
-    Returns
-    -------
-    y : tensor
-        The matrix product of the inputs.
-        This is a scalar only when both x1, x2 are 1-d vectors.
-    """
-    pass
 
 
 def vstack(tup):

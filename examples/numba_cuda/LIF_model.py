@@ -54,9 +54,7 @@ if __name__ == '__main__':
     group = LIF(100000, monitors=['V'])
 
     group.run(duration=200., inputs=('input', 26.), report=True)
-    group.driver.to_host()
     bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)
 
     group.run(duration=(200, 400.), report=True)
-    group.driver.to_host()
     bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)

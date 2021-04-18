@@ -148,8 +148,9 @@ class DynamicSystem(object):
 
         # run the model
         # -------------
-        utils.run_model(self.run_func, times, report, report_percent)
+        res = utils.run_model(self.run_func, times, report, report_percent)
         self.mon.ts = times
+        return res
 
     def get_schedule(self):
         """Get the schedule (running order) of the update functions.

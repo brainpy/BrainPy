@@ -1,5 +1,5 @@
 
-![Logo](docs/images/logo.png)
+![Logo](docs/_static/logo.png)
 
 [![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)     [![Conda](https://anaconda.org/brainpy/brainpy-simulator/badges/version.svg)](https://anaconda.org/brainpy/brainpy-simulator)  [![PyPI version](https://badge.fury.io/py/brainpy-simulator.svg)](https://badge.fury.io/py/brainpy-simulator)
 
@@ -21,7 +21,7 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 - *Efficient running speed*, because BrainPy is compatible with the latest JIT compilers or any other accelerating framework you prefer (below we list the speed comparison based on Numba JIT).
 
 
-![Speed Comparison](docs/images/speed.png)
+![Speed Comparison](docs/_static/speed.png)
 
 `BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Intrinsically, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/), [PyTorch](https://pytorch.org/), and [TensorFlow](https://www.tensorflow.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) on CPU or CUDA devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
 
@@ -32,7 +32,7 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 Install ``BrainPy`` by using ``pip``:
 
 ```bash
-> pip install brainpy-simulator>=1.0.0rc1
+> pip install brainpy-simulator>=1.0.0rc2
 ```
 
 Install ``BrainPy`` by using ``conda``:
@@ -71,7 +71,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/neurons/HodgkinHuxley_model.py">
-            <img src="docs/images/HH_neuron.png">
+            <img src="docs/_static/HH_neuron.png">
             </a>
         </td>
         <td border="0" valign="top">
@@ -82,7 +82,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/synapses/AMPA_synapse.py">
-            <img src="docs/images/AMPA_model.png">
+            <img src="docs/_static/AMPA_model.png">
             </a>
         </td>
         <td border="0" valign="top">
@@ -93,7 +93,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Wang_1996_gamma_oscillation.html">
-            <img src="docs/images/gamma_oscillation.png">
+            <img src="docs/_static/gamma_oscillation.png">
             </a>
         </td>
         <td border="0" valign="top">
@@ -107,7 +107,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Vreeswijk_1996_EI_net.html">
-            <img src="docs/images/EI_balance_net.png">
+            <img src="docs/_static/EI_balance_net.png">
             </a>
         </td>
         <td border="0" valign="top">
@@ -120,7 +120,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Wu_2008_CANN.html">
-            <img src="docs/images/CANN1d.png">
+            <img src="docs/_static/CANN1d.png">
             </a>
         </td>
         <td border="0" valign="top">
@@ -134,7 +134,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">
-            <img src="docs/images/phase_plane_analysis1.png">
+            <img src="docs/_static/phase_plane_analysis1.png">
             </a>
         </td>
         <td border="0" valign="top">
@@ -146,7 +146,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
-            <img src="docs/images/FitzHugh_Nagumo_codimension1.png">
+            <img src="docs/_static/FitzHugh_Nagumo_codimension1.png">
             </a>
         </td>
         <td border="0" valign="top">
@@ -159,7 +159,7 @@ Here list several simple examples for neurodynamics simulation and analysis. Com
     <tr>
         <td border="0" width="30%">
             <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
-            <img src="docs/images/FitzHugh_Nagumo_codimension2.png">
+            <img src="docs/_static/FitzHugh_Nagumo_codimension2.png">
             </a>
         </td>
         <td border="0" valign="top">

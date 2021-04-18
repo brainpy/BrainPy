@@ -3,6 +3,7 @@
 import numpy as np
 
 from brainpy import backend
+from brainpy.backend import ops
 from brainpy import tools
 
 
@@ -14,11 +15,6 @@ __all__ = [
 ]
 
 
-###############################
-# NeuGroup synchronization
-###############################
-
-
 @tools.numba_jit
 def _cc(states, i, j):
     sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
@@ -26,7 +22,7 @@ def _cc(states, i, j):
     return k
 
 
-def cross_correlation(spikes, bin_size):
+def cross_correlation(spikes, bin, dt=None):
     """Calculate cross correlation index between neurons.
 
     The coherence [1]_ between two neurons i and j is measured by their
@@ -48,11 +44,13 @@ def cross_correlation(spikes, bin_size):
 
     Parameters
     ----------
-    spikes : bnp.ndarray
+    spikes :
         The history of spike states of the neuron group.
         It can be easily get via `StateMonitor(neu, ['spike'])`.
-    bin_size : int
-        The bin size to normalize spike states.
+    bin : float, int
+        The time bin to normalize spike states.
+    dt : float, optional
+        The time precision.
 
     Returns
     -------
@@ -66,6 +64,8 @@ def cross_correlation(spikes, bin_size):
            neuroscience 16.20 (1996): 6402-6413.
     """
 
+    dt = backend.get_dt() if dt is None else dt
+    bin_size = int(bin / dt)
     num_hist, num_neu = spikes.shape
     num_bin = int(np.ceil(num_hist / bin_size))
     if num_bin * bin_size != num_hist:
@@ -77,6 +77,11 @@ def cross_correlation(spikes, bin_size):
         for j in range(i + 1, num_neu):
             all_k.append(_cc(states, i, j))
     return np.mean(all_k)
+
+
+@tools.numba_jit
+def _var(neu_signal):
+    return np.mean(neu_signal * neu_signal) - np.mean(neu_signal) ** 2
 
 
 def voltage_fluctuation(potentials):
@@ -117,9 +122,8 @@ def voltage_fluctuation(potentials):
 
     Parameters
     ----------
-    potentials : numpy.ndarray
-        The membrane potentials of the neuron group, which can be easily accessed by
-        `StateMonitor(neu, ['V'])`.
+    potentials :
+        The membrane potential matrix of the neuron group.
 
     Returns
     -------
@@ -140,8 +144,7 @@ def voltage_fluctuation(potentials):
     avg_var = np.mean(avg * avg) - np.mean(avg) ** 2
     neu_vars = []
     for i in range(num_neu):
-        neu = potentials[:, i]
-        neu_vars.append(np.mean(neu * neu) - np.mean(neu) ** 2)
+        neu_vars.append(_var(potentials[:, i]))
     var_mean = np.mean(neu_vars)
     return avg_var / var_mean if var_mean != 0. else 1.
 
@@ -205,19 +208,18 @@ def firing_rate(sp_matrix, width, window='gaussian'):
         The population rate in Hz, smoothed with the given window.
     """
     # rate
-    rate = np.sum(sp_matrix, axis=1)
+    rate = ops.sum(sp_matrix, axis=1)
 
     # window
     dt = backend.get_dt()
     if window == 'gaussian':
         width1 = 2 * width / dt
-        width2 = int(np.around(width1))
-        window = np.exp(-np.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 / 2))
+        width2 = int(round(width1))
+        window = ops.exp(-ops.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 * 2))
     elif window == 'flat':
         width1 = int(width / 2 / dt) * 2 + 1
-        window = np.ones(width1)
+        window = ops.ones(width1)
     else:
         raise ValueError('Unknown window type "{}".'.format(window))
-    window = np.float_(window)
 
     return np.convolve(rate, window / sum(window), mode='same')

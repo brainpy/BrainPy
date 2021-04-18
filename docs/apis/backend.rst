@@ -14,5 +14,3 @@ brainpy.backend
     get_backend
     set_class_keywords
     set_ops_from_module
-
-
