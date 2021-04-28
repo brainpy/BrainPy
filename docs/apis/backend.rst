@@ -11,6 +11,6 @@ brainpy.backend
     set_dt
     get_dt
     set_ops
-    get_backend
+    get_backend_name
     set_class_keywords
     set_ops_from_module
