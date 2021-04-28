@@ -19,15 +19,6 @@ Comprehensive examples of BrainPy please see
 `BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
 
 
-.. Hint::
-
-    “Do you know calculus?”
-
-    “You had better learn it. It’s the language God talks.”
-
-    -- Richard Feynman
-
-
 .. toctree::
    :maxdepth: 2
    :caption: Quickstart
