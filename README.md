@@ -29,10 +29,15 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 
 # Installation
 
+``BrainPy`` is based on Python (>=3.7), and the following packages are required to be installed to use ``BrainPy``:
+
+- NumPy >= 1.13
+- Matplotlib >= 3.3
+
 Install ``BrainPy`` by using ``pip``:
 
 ```bash
-> pip install brainpy-simulator>=1.0.0rc2
+> pip install -U brainpy-simulator
 ```
 
 Install ``BrainPy`` by using ``conda``:
@@ -48,14 +53,8 @@ Install ``BrainPy`` from source:
 > # or
 > pip install git+https://git.openi.org.cn/OpenI/BrainPy
 > # or
-> pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V0.2.5
+> pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V1.0.0
 ```
-
-``BrainPy`` is based on Python (>=3.7), and the following packages are required to be installed to use ``BrainPy``:
-
-- NumPy >= 1.13
-- Matplotlib >= 3.3
-
 
 
 # Let's start

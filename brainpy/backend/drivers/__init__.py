@@ -32,6 +32,12 @@ def switch_to(backend):
 
     elif backend in ['numba', 'numba-parallel']:
         from . import numba_cpu
+
+        if backend == 'numba':
+            numba_cpu.set_numba_profile(nogil=False, parallel=False)
+        else:
+            numba_cpu.set_numba_profile(nogil=True, parallel=True)
+
         NET_DRIVER = buffer.get('net', None) or GeneralNetDriver
         NODE_DRIVER = buffer.get('node', None) or numba_cpu.NumbaCPUNodeDriver
         DIFFINT_DRIVER = buffer.get('intg', None) or numba_cpu.NumbaCpuDiffIntDriver

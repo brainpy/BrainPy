@@ -1,5 +1,5 @@
-brainpy.connect
-===============
+``brainpy.connect`` module
+==========================
 
 .. currentmodule:: brainpy.simulation.connectivity
 .. automodule:: brainpy.simulation.connectivity
@@ -17,8 +17,8 @@ brainpy.connect
     post2pre
     pre2syn
     post2syn
-    pre_slice_syn
-    post_slice_syn
+    pre_slice
+    post_slice
 
 
 ``connector`` methods

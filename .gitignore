@@ -18,12 +18,11 @@ docs/quickstart/.ipynb_checkpoints
 
 docs/tutorials_advanced/_autosummary
 docs/tutorials_advanced/.ipynb_checkpoints
-develop/fast_synapse_computation.py
-develop/fast_synapse_computation2.py
-
-docs/apis/_autosummary
 docs/tutorials_advanced/usage_of_inputfactory.py
 docs/tutorials_advanced/usage_of_utils_connect.py
+
+docs/apis/_autosummary
+docs/apis/integrators/_autosummary
 
 develop/benchmark/COBA/brian2*
 develop/benchmark/COBA/annarchy*

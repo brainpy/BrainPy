@@ -59,6 +59,8 @@ Comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: API documentation
 
+   apis/integrators
+   apis/connectivity
    apis/inputs_module
    apis/changelog
 
