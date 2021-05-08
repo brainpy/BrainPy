@@ -5,6 +5,10 @@ import inspect
 from pprint import pprint
 
 import pytest
+from numba import cuda
+
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
 
 import brainpy as bp
 from brainpy.backend.drivers.numba_cuda import _CUDAReader
@@ -77,6 +81,7 @@ def _test_automic_op(model):
     print()
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign1():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -90,6 +95,7 @@ def test_automic_op_in_assign1():
     _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign2():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -103,6 +109,7 @@ def test_automic_op_in_assign2():
     _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign3():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -116,6 +123,7 @@ def test_automic_op_in_assign3():
     _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign4():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -129,6 +137,7 @@ def test_automic_op_in_assign4():
     _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign5():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -142,6 +151,7 @@ def test_automic_op_in_assign5():
     _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign6():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -156,6 +166,7 @@ def test_automic_op_in_assign6():
         _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_augassign1():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -169,6 +180,7 @@ def test_automic_op_in_augassign1():
     _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_augassign2():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -182,6 +194,7 @@ def test_automic_op_in_augassign2():
     _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_augassign3():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -194,7 +207,6 @@ def test_automic_op_in_augassign3():
 
     with pytest.raises(ValueError):
         _test_automic_op(Syn)
-
 
 # test_automic_op_in_assign1()
 # test_automic_op_in_assign2()

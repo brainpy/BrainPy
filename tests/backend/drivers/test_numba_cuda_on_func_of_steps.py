@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
 
+import pytest
+from numba import cuda
+
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
+
 from pprint import pprint
-
 import numpy as np
-
 import brainpy as bp
 from brainpy.backend.drivers.numba_cuda import NumbaCUDANodeDriver
 
