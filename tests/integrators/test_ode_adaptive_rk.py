@@ -43,21 +43,24 @@ def lorenz_system(method, dt=0.01, tol=0.1):
     mon3 = np.array(mon3)
     mon4 = np.array(mon4)
 
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    plt.plot(mon1, mon2, mon3)
-    ax.set_xlabel('x')
-    ax.set_xlabel('y')
-    ax.set_xlabel('z')
-
-    fig = plt.figure()
-    plt.plot(mon4)
-
-    plt.show()
-
-
-lorenz_system(ode.rkf45, dt=0.1, tol=0.001)
+    # fig = plt.figure()
+    # ax = fig.gca(projection='3d')
+    # plt.plot(mon1, mon2, mon3)
+    # ax.set_xlabel('x')
+    # ax.set_xlabel('y')
+    # ax.set_xlabel('z')
+    #
+    # fig = plt.figure()
+    # plt.plot(mon4)
+    #
+    # plt.show()
 
 
-if __name__ == '__main__':
-    Axes3D
+def test():
+    lorenz_system(ode.rkf45, dt=0.01, tol=0.001)
+    lorenz_system(ode.rkf12, dt=0.01, tol=0.001)
+    lorenz_system(ode.rkdp, dt=0.01, tol=0.001)
+    lorenz_system(ode.ck, dt=0.01, tol=0.001)
+    # lorenz_system(ode.bs, dt=0.01, tol=0.001)
+    lorenz_system(ode.heun_euler, dt=0.01, tol=0.001)
+

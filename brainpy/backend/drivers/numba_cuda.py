@@ -429,7 +429,6 @@ class NumbaCUDANodeDriver(NumbaCPUNodeDriver):
             host.stream = cuda.stream()
         return cuda.to_device(cpu_data, stream=host.stream)
 
-
     def _reprocess_steps(self, f, func_name=None, show_code=False):
         """Analyze the step functions in a DynamicSystem.
         """

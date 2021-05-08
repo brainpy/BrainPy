@@ -37,17 +37,23 @@ def lorenz_system(method):
     mon2 = np.array(mon2)
     mon3 = np.array(mon3)
 
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    plt.plot(mon1, mon2, mon3)
-    ax.set_xlabel('x')
-    ax.set_xlabel('y')
-    ax.set_xlabel('z')
-    plt.show()
+    # fig = plt.figure()
+    # ax = fig.gca(projection='3d')
+    # plt.plot(mon1, mon2, mon3)
+    # ax.set_xlabel('x')
+    # ax.set_xlabel('y')
+    # ax.set_xlabel('z')
+    # plt.show()
 
 
-lorenz_system(ode.rk4)
+def test():
+    lorenz_system(ode.rk4)
+    lorenz_system(ode.ralston4)
+    lorenz_system(ode.rk4_38rule)
+    lorenz_system(ode.rk3)
+    lorenz_system(ode.heun3)
+    lorenz_system(ode.ralston3)
+    lorenz_system(ode.rk2)
+    lorenz_system(ode.ralston2)
+    lorenz_system(ode.heun2)
 
-
-if __name__ == '__main__':
-    Axes3D

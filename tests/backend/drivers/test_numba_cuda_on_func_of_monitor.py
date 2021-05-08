@@ -3,7 +3,11 @@
 
 from pprint import pprint
 
-import numpy as np
+import pytest
+from numba import cuda
+
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
 
 import brainpy as bp
 from brainpy.backend.drivers.numba_cuda import set_monitor_done_in
@@ -115,5 +119,5 @@ def test_stochastic_lif_monitors1():
 
 
 
-test_stochastic_lif_monitors1()
+# test_stochastic_lif_monitors1()
 

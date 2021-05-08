@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.drivers import BaseNodeDriver, BaseNetDriver
+from brainpy.simulation.drivers import BaseNodeDriver, BaseNetDriver, BaseDiffIntDriver
 from .general import GeneralNodeDriver, GeneralNetDriver, GeneralDiffIntDriver
 
 __all__ = [
@@ -69,13 +69,13 @@ def set_buffer(backend, node_driver=None, net_driver=None, diffint_driver=None):
         BUFFER[backend] = dict()
 
     if node_driver is not None:
-        assert isinstance(node_driver, BaseNodeDriver)
+        assert BaseNodeDriver in node_driver.__bases__
         BUFFER[backend]['node'] = node_driver
     if net_driver is not None:
-        assert isinstance(node_driver, BaseNetDriver)
+        assert BaseNetDriver in net_driver.__bases__
         BUFFER[backend]['net'] = net_driver
     if diffint_driver is not None:
-        assert callable(diffint_driver)
+        assert BaseDiffIntDriver in diffint_driver.__bases__
         BUFFER[backend]['diffint'] = diffint_driver
 
 

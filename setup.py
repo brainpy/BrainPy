@@ -14,15 +14,15 @@ with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
 version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 
 # obtain long description from README and CHANGES
-README = '''
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation. Three core functions are provided in `BrainPy`:
+try:
+    # obtain long description from README and CHANGES
+    with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
+        README = f.read()
+        idx = README.index('<table border="0">')
+        README = README[:idx]
 
-- *General numerical solvers* for ODEs and SDEs (future will support DDEs and FDEs).
-- *Neurodynamics simulation tools* for brain objects, such like neurons, synapses and networks (future will support soma and dendrites).
-- *Neurodynamics analysis tools* for differential equations, including phase plane analysis and bifurcation analysis (future will support continuation analysis and sensitive analysis).
-
-More detailed documentation please see: https://brainpy.readthedocs.io/en/latest/
-'''
+except IOError:
+    README = CHANGES = ''
 
 # setup
 setup(

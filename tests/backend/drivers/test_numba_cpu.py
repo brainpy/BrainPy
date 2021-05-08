@@ -417,5 +417,5 @@ def test_class2func_for_AMPA1_vec2():
 # test_class2func_for_AMPA1_vec()
 # test_class2func_for_AMPA1_vec2()
 # test_StepFuncReader_for_delay1()
-test_StepFuncReader_for_delay2()
+# test_StepFuncReader_for_delay2()
 

@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
-
 from pprint import pprint
 
-import numpy as np
+import pytest
+from numba import cuda
 
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
+
+import numpy as np
 import brainpy as bp
 from brainpy.backend.drivers.numba_cuda import NumbaCUDANodeDriver
 
@@ -100,7 +104,6 @@ class AMPA1_vec(bp.TwoEndConn):
             post_id = self.post_ids[i]
             self.post.input[post_id] -= self.g.pull(i) * (self.post.V[post_id] - self.E)
 
-
 def test_stochastic_lif_inputs_of_fix1():
     lif = StochasticLIF(1)
     driver = NumbaCUDANodeDriver(pop=lif)
@@ -113,7 +116,7 @@ def test_stochastic_lif_inputs_of_fix1():
         print()
         print()
 
-
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_stochastic_lif_inputs_of_fix2():
     lif = StochasticLIF(1)
     driver = NumbaCUDANodeDriver(pop=lif)
@@ -126,7 +129,7 @@ def test_stochastic_lif_inputs_of_fix2():
         print()
         print()
 
-
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_stochastic_lif_inputs_of_iter1():
     lif = StochasticLIF(1)
     driver = NumbaCUDANodeDriver(pop=lif)
@@ -140,7 +143,7 @@ def test_stochastic_lif_inputs_of_iter1():
         print()
         print()
 
-
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_stochastic_lif_inputs_of_iter2():
     lif = StochasticLIF(1)
     driver = NumbaCUDANodeDriver(pop=lif)
@@ -155,7 +158,7 @@ def test_stochastic_lif_inputs_of_iter2():
         print()
 
 
-test_stochastic_lif_inputs_of_fix1()
-test_stochastic_lif_inputs_of_fix2()
-test_stochastic_lif_inputs_of_iter1()
-test_stochastic_lif_inputs_of_iter2()
+# test_stochastic_lif_inputs_of_fix1()
+# test_stochastic_lif_inputs_of_fix2()
+# test_stochastic_lif_inputs_of_iter1()
+# test_stochastic_lif_inputs_of_iter2()

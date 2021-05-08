@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
 
+import pytest
+from numba import cuda
+
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
+
 from pprint import pprint
-
 import numpy as np
-
 import brainpy as bp
 from brainpy.backend.drivers.numba_cuda import NumbaCUDANodeDriver
 
@@ -118,7 +122,7 @@ def test_neuron_by_lif():
 
 
 def test_synapse_by_ampa1_vec_with_uniform_delay():
-    lif = StochasticLIF(1)
+    lif = StochasticLIF(2)
     ampa = AMPA1_vec(pre=lif, post=lif, conn=bp.connect.All2All(), delay=10.)
 
     driver = NumbaCUDANodeDriver(pop=ampa)
@@ -142,4 +146,4 @@ def test_synapse_by_ampa1_vec_with_non_uniform_delay():
 # test_neuron_by_lif()
 
 # test_synapse_by_ampa1_vec_with_uniform_delay()
-test_synapse_by_ampa1_vec_with_non_uniform_delay()
+# test_synapse_by_ampa1_vec_with_non_uniform_delay()

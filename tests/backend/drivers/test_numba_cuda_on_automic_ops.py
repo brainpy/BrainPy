@@ -4,6 +4,12 @@ import ast
 import inspect
 from pprint import pprint
 
+import pytest
+from numba import cuda
+
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
+
 import brainpy as bp
 from brainpy.backend.drivers.numba_cuda import _CUDAReader
 
@@ -52,7 +58,7 @@ class LIF(bp.NeuGroup):
             self.input[i] = 0.
 
 
-def test_automic_op(model):
+def _test_automic_op(model):
     synapse = model(pre=LIF(1), post=LIF(2))
 
     update_code = bp.tools.deindent(inspect.getsource(synapse.update))
@@ -75,6 +81,7 @@ def test_automic_op(model):
     print()
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign1():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -85,9 +92,10 @@ def test_automic_op_in_assign1():
             for i in range(self.post.num):
                 self.post.V[i] = self.post.V[i] + 10.
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign2():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -98,9 +106,10 @@ def test_automic_op_in_assign2():
             for i in range(self.post.num):
                 self.post.V[i] = -self.post.V[i] + 10.
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign3():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -111,9 +120,10 @@ def test_automic_op_in_assign3():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. - self.post.V[i]
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign4():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -124,9 +134,10 @@ def test_automic_op_in_assign4():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. + self.post.V[i]
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign5():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -137,9 +148,10 @@ def test_automic_op_in_assign5():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. + (-self.post.V[i])
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_assign6():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -150,9 +162,11 @@ def test_automic_op_in_assign6():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. + (-2 * self.post.V[i])
 
-    test_automic_op(Syn)
+    with pytest.raises(ValueError):
+        _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_augassign1():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -163,9 +177,10 @@ def test_automic_op_in_augassign1():
             for i in range(self.post.num):
                 self.post.V[i] += 10
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_augassign2():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -176,9 +191,10 @@ def test_automic_op_in_augassign2():
             for i in range(self.post.num):
                 self.post.V[i] += 10
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
+@pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_automic_op_in_augassign3():
     class Syn(bp.TwoEndConn):
         target_backend = 'numpy'
@@ -189,8 +205,8 @@ def test_automic_op_in_augassign3():
             for i in range(self.post.num):
                 self.post.V[i] /= 10
 
-    test_automic_op(Syn)
-
+    with pytest.raises(ValueError):
+        _test_automic_op(Syn)
 
 # test_automic_op_in_assign1()
 # test_automic_op_in_assign2()
@@ -198,7 +214,7 @@ def test_automic_op_in_augassign3():
 # test_automic_op_in_assign4()
 # test_automic_op_in_assign5()
 # test_automic_op_in_assign6()
-
+#
 # test_automic_op_in_augassign1()
 # test_automic_op_in_augassign2()
-test_automic_op_in_augassign3()
+# test_automic_op_in_augassign3()

@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+
+import pytest
+from numba import cuda
+
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
+
 import inspect
 import ast
 import brainpy as bp
@@ -123,8 +130,5 @@ def test2():
     new_code = bp.tools.ast2code(tree)
     print(new_code)
 
-
-test1()
-test2()
 
 

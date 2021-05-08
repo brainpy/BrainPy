@@ -22,8 +22,25 @@ __all__ = [
 
 
 @tools.numba_jit
-def _gaussian_weight(pre_i, pre_width, pre_height,
-                     num_post, post_width, post_height,
+def _prob_conn(pre_i, num_post, prob, include_self):
+    conn_i = []
+    conn_j = []
+    if include_self:
+        for j in range(num_post):
+            if np.random.random() < prob:
+                conn_i.append(pre_i)
+                conn_j.append(j)
+    else:
+        for j in range(num_post):
+            if np.random.random() < prob:
+                if pre_i != j:
+                    conn_i.append(pre_i)
+                    conn_j.append(j)
+    return conn_i, conn_j
+
+
+@tools.numba_jit
+def _gaussian_weight(pre_i, pre_width, pre_height, num_post, post_width, post_height,
                      w_max, w_min, sigma, normalize, include_self):
     conn_i = []
     conn_j = []
@@ -58,8 +75,7 @@ def _gaussian_weight(pre_i, pre_width, pre_height,
 
 
 @tools.numba_jit
-def _gaussian_prob(pre_i, pre_width, pre_height,
-                   num_post, post_width, post_height,
+def _gaussian_prob(pre_i, pre_width, pre_height, num_post, post_width, post_height,
                    p_min, sigma, normalize, include_self):
     conn_i = []
     conn_j = []
@@ -94,10 +110,8 @@ def _gaussian_prob(pre_i, pre_width, pre_height,
 
 
 @tools.numba_jit
-def _dog(pre_i, pre_width, pre_height,
-         num_post, post_width, post_height,
-         w_max_p, w_max_n, w_min, sigma_p, sigma_n,
-         normalize, include_self):
+def _dog(pre_i, pre_width, pre_height, num_post, post_width, post_height,
+         w_max_p, w_max_n, w_min, sigma_p, sigma_n, normalize, include_self):
     conn_i = []
     conn_j = []
     conn_w = []
@@ -181,22 +195,31 @@ class FixedProb(Connector):
         Seed the random generator.
     """
 
-    def __init__(self, prob, include_self=True, seed=None):
+    def __init__(self, prob, include_self=True, seed=None, method='matrix'):
         super(FixedProb, self).__init__()
         self.prob = prob
         self.include_self = include_self
         self.rng = _get_rng(seed=seed)
+        assert method in ['matrix', 'vector']
+        self.method = method
 
     def __call__(self, pre_size, post_size):
         num_pre, num_post = utils.size2len(pre_size), utils.size2len(post_size)
         self.num_pre, self.num_post = num_pre, num_post
 
-        prob_mat = self.rng.random(size=(num_pre, num_post))
-        if not self.include_self:
-            np.fill_diagonal(prob_mat, 1.)
-        conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
-        pre_ids, post_ids = np.where(conn_mat)
-        self.conn_mat = ops.as_tensor(conn_mat)
+        if self.method == 'matrix':
+            prob_mat = self.rng.random(size=(num_pre, num_post))
+            if not self.include_self:
+                np.fill_diagonal(prob_mat, 1.)
+            conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
+            pre_ids, post_ids = np.where(conn_mat)
+            self.conn_mat = ops.as_tensor(conn_mat)
+        else:
+            pre_ids, post_ids = [], []
+            for i in range(num_pre):
+                pres, posts = _prob_conn(i, num_post, self.prob, self.include_self)
+                pre_ids.extend(pres)
+                post_ids.extend(posts)
         self.pre_ids = ops.as_tensor(np.ascontiguousarray(pre_ids))
         self.post_ids = ops.as_tensor(np.ascontiguousarray(post_ids))
         return self
