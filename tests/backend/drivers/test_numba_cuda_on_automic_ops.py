@@ -4,6 +4,8 @@ import ast
 import inspect
 from pprint import pprint
 
+import pytest
+
 import brainpy as bp
 from brainpy.backend.drivers.numba_cuda import _CUDAReader
 
@@ -52,7 +54,7 @@ class LIF(bp.NeuGroup):
             self.input[i] = 0.
 
 
-def test_automic_op(model):
+def _test_automic_op(model):
     synapse = model(pre=LIF(1), post=LIF(2))
 
     update_code = bp.tools.deindent(inspect.getsource(synapse.update))
@@ -85,7 +87,7 @@ def test_automic_op_in_assign1():
             for i in range(self.post.num):
                 self.post.V[i] = self.post.V[i] + 10.
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
 def test_automic_op_in_assign2():
@@ -98,7 +100,7 @@ def test_automic_op_in_assign2():
             for i in range(self.post.num):
                 self.post.V[i] = -self.post.V[i] + 10.
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
 def test_automic_op_in_assign3():
@@ -111,7 +113,7 @@ def test_automic_op_in_assign3():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. - self.post.V[i]
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
 def test_automic_op_in_assign4():
@@ -124,7 +126,7 @@ def test_automic_op_in_assign4():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. + self.post.V[i]
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
 def test_automic_op_in_assign5():
@@ -137,7 +139,7 @@ def test_automic_op_in_assign5():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. + (-self.post.V[i])
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
 def test_automic_op_in_assign6():
@@ -150,7 +152,8 @@ def test_automic_op_in_assign6():
             for i in range(self.post.num):
                 self.post.V[i] = + 10. + (-2 * self.post.V[i])
 
-    test_automic_op(Syn)
+    with pytest.raises(ValueError):
+        _test_automic_op(Syn)
 
 
 def test_automic_op_in_augassign1():
@@ -163,7 +166,7 @@ def test_automic_op_in_augassign1():
             for i in range(self.post.num):
                 self.post.V[i] += 10
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
 def test_automic_op_in_augassign2():
@@ -176,7 +179,7 @@ def test_automic_op_in_augassign2():
             for i in range(self.post.num):
                 self.post.V[i] += 10
 
-    test_automic_op(Syn)
+    _test_automic_op(Syn)
 
 
 def test_automic_op_in_augassign3():
@@ -189,16 +192,17 @@ def test_automic_op_in_augassign3():
             for i in range(self.post.num):
                 self.post.V[i] /= 10
 
-    test_automic_op(Syn)
+    with pytest.raises(ValueError):
+        _test_automic_op(Syn)
 
 
-test_automic_op_in_assign1()
-test_automic_op_in_assign2()
-test_automic_op_in_assign3()
-test_automic_op_in_assign4()
-test_automic_op_in_assign5()
-test_automic_op_in_assign6()
-
-test_automic_op_in_augassign1()
-test_automic_op_in_augassign2()
-test_automic_op_in_augassign3()
+# test_automic_op_in_assign1()
+# test_automic_op_in_assign2()
+# test_automic_op_in_assign3()
+# test_automic_op_in_assign4()
+# test_automic_op_in_assign5()
+# test_automic_op_in_assign6()
+#
+# test_automic_op_in_augassign1()
+# test_automic_op_in_augassign2()
+# test_automic_op_in_augassign3()

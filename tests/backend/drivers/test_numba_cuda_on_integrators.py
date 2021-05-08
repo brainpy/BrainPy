@@ -23,19 +23,16 @@ def test_ode():
         bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SCALAR_VAR)
         print()
 
-        with pytest.raises(bp.errors.IntegratorError):
-            bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.POPU_VAR)
+        bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.POPU_VAR)
 
-        with pytest.raises(bp.errors.IntegratorError):
-            bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SYSTEM_VAR)
+        bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SYSTEM_VAR)
 
     for method in exp_euler_method.__all__:
         print(f'{method} method:')
         bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SCALAR_VAR)
         print()
 
-        with pytest.raises(bp.errors.IntegratorError):
-            bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.POPU_VAR)
+        bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.POPU_VAR)
 
         with pytest.raises(bp.errors.IntegratorError):
             bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SYSTEM_VAR)
@@ -45,11 +42,8 @@ def test_ode():
         bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SCALAR_VAR, adaptive=True)
         print()
 
-        with pytest.raises(bp.errors.IntegratorError):
-            bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.POPU_VAR, adaptive=True)
-
-        with pytest.raises(bp.errors.IntegratorError):
-            bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SYSTEM_VAR, adaptive=True)
+        bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.POPU_VAR, adaptive=True)
+        bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=bp.SYSTEM_VAR, adaptive=True)
 
 
 def test_sde():
@@ -62,12 +56,30 @@ def test_sde():
         dz = x * y - beta * z
         return dx, dy, dz
 
-    for method in euler_and_milstein.__all__:
+    # for method in euler_and_milstein.__all__:
+    for method in ['milstein', ]:
         for sde_type in [bp.ITO_SDE, bp.STRA_SDE]:
             print(f'{sde_type} type, {method} method:')
+
             bp.sdeint(f=lorenz_f, g=lorenz_g, show_code=True, method=method,
                       var_type=bp.SCALAR_VAR, sde_type=sde_type)
             print()
 
+    for method in ['euler', 'exponential_euler']:
+        sde_type = bp.ITO_SDE
+        print(f'{sde_type} type, {method} method:')
 
-test_sde()
+        bp.sdeint(f=lorenz_f, g=lorenz_g, show_code=True, method=method,
+                  var_type=bp.SCALAR_VAR, sde_type=sde_type)
+        print()
+
+    for method in ['heun']:
+        sde_type = bp.STRA_SDE
+        print(f'{sde_type} type, {method} method:')
+
+        bp.sdeint(f=lorenz_f, g=lorenz_g, show_code=True, method=method,
+                  var_type=bp.SCALAR_VAR, sde_type=sde_type)
+        print()
+
+
+# test_sde()

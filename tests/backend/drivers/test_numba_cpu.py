@@ -409,13 +409,13 @@ def test_class2func_for_AMPA1_vec2():
 
 
 
-test_analyze_step1()
-test_analyze_step2()
-test_StepFuncReader_for_lif()
-test_class2func_for_lif()
-test_StepFuncReader_for_AMPA1_vec()
-test_class2func_for_AMPA1_vec()
-test_class2func_for_AMPA1_vec2()
-test_StepFuncReader_for_delay1()
-test_StepFuncReader_for_delay2()
+# test_analyze_step1()
+# test_analyze_step2()
+# test_StepFuncReader_for_lif()
+# test_class2func_for_lif()
+# test_StepFuncReader_for_AMPA1_vec()
+# test_class2func_for_AMPA1_vec()
+# test_class2func_for_AMPA1_vec2()
+# test_StepFuncReader_for_delay1()
+# test_StepFuncReader_for_delay2()
 

@@ -18,8 +18,8 @@ class IndexConn(bp.connect.Connector):
         return self
 
 
-conn = IndexConn(i=[0, 1, 2], j=[0, 0, 0])
-conn = conn(pre_size=5, post_size=3)
+def test():
+    conn = IndexConn(i=[0, 1, 2], j=[0, 0, 0])
+    conn = conn(pre_size=5, post_size=3)
 
-
-print(conn.requires('pre2post'))
+    print(conn.requires('pre2post'))

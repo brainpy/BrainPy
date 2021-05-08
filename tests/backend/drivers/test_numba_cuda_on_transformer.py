@@ -124,7 +124,4 @@ def test2():
     print(new_code)
 
 
-test1()
-test2()
-
 

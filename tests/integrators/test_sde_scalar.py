@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import pytest
 import matplotlib.pyplot as plt
 import numba
 import numpy as np
@@ -48,26 +49,22 @@ def lorenz_system(method, **kwargs):
     mon2 = np.array(mon2)
     mon3 = np.array(mon3)
 
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    plt.plot(mon1, mon2, mon3)
-    ax.set_xlabel('x')
-    ax.set_xlabel('y')
-    ax.set_xlabel('z')
-    plt.show()
+    # fig = plt.figure()
+    # ax = fig.gca(projection='3d')
+    # plt.plot(mon1, mon2, mon3)
+    # ax.set_xlabel('x')
+    # ax.set_xlabel('y')
+    # ax.set_xlabel('z')
+    # plt.show()
+
+def test():
+    lorenz_system(sde.srk1w1_scalar, )
+    with pytest.raises(bp.errors.IntegratorError):
+        lorenz_system(sde.srk1w1_scalar, wiener_type=bp.VECTOR_WIENER)
+    lorenz_system(sde.srk2w1_scalar)
+    lorenz_system(sde.euler, sde_type=bp.integrators.ITO_SDE)
+    lorenz_system(sde.euler, sde_type=bp.integrators.STRA_SDE)
+    lorenz_system(sde.milstein, sde_type=bp.integrators.ITO_SDE)
+    lorenz_system(sde.milstein, sde_type=bp.integrators.STRA_SDE)
 
 
-# lorenz_system(sde.srk1w1_scalar)
-# lorenz_system(sde.srk2w1_scalar)
-# lorenz_system(sde.euler, sde_type=bp.integrators.ITO_SDE)
-# lorenz_system(sde.euler, sde_type=bp.integrators.STRA_SDE)
-# lorenz_system(sde.milstein, sde_type=bp.integrators.ITO_SDE)
-# lorenz_system(sde.milstein, sde_type=bp.integrators.STRA_SDE)
-lorenz_system(sde.srk1_strong,
-              sde_type=bp.integrators.STRA_SDE,
-              wiener_type=bp.integrators.SCALAR_WIENER,
-              var_type=bp.integrators.POPU_VAR)
-
-
-if __name__ == '__main__':
-    Axes3D

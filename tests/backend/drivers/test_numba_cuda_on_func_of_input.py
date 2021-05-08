@@ -155,7 +155,7 @@ def test_stochastic_lif_inputs_of_iter2():
         print()
 
 
-test_stochastic_lif_inputs_of_fix1()
-test_stochastic_lif_inputs_of_fix2()
-test_stochastic_lif_inputs_of_iter1()
-test_stochastic_lif_inputs_of_iter2()
+# test_stochastic_lif_inputs_of_fix1()
+# test_stochastic_lif_inputs_of_fix2()
+# test_stochastic_lif_inputs_of_iter1()
+# test_stochastic_lif_inputs_of_iter2()

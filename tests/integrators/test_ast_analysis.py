@@ -98,29 +98,32 @@ def integral(V, m, h, n, t, Iext):
 
 
 def test_separate_variables2():
-    code = '''
-    def derivative(V, m, h, n, t, C, gNa, ENa, gK, EK, gL, EL, Iext):
-        alpha = 0.1 * (V + 40) / (1 - bp.backend.exp(-(V + 40) / 10))
-        beta = 4.0 * bp.backend.exp(-(V + 65) / 18)
-        dmdt = alpha * (1 - m) - beta * m
+    code = '''def derivative(V, m, h, n, t, C, gNa, ENa, gK, EK, gL, EL, Iext):
+    alpha = 0.1 * (V + 40) / (1 - bp.backend.exp(-(V + 40) / 10))
+    beta = 4.0 * bp.backend.exp(-(V + 65) / 18)
+    dmdt = alpha * (1 - m) - beta * m
 
-        alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.)
-        beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))
-        dhdt = alpha * (1 - h) - beta * h
+    alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.)
+    beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))
+    dhdt = alpha * (1 - h) - beta * h
 
-        alpha = 0.01 * (V + 55) / (1 - bp.backend.exp(-(V + 55) / 10))
-        beta = 0.125 * bp.backend.exp(-(V + 65) / 80)
-        dndt = alpha * (1 - n) - beta * n
+    alpha = 0.01 * (V + 55) / (1 - bp.backend.exp(-(V + 55) / 10))
+    beta = 0.125 * bp.backend.exp(-(V + 65) / 80)
+    dndt = alpha * (1 - n) - beta * n
 
-        I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
-        I_K = (gK * n ** 4.0) * (V - EK)
-        I_leak = gL * (V - EL)
-        dVdt = (- I_Na - I_K - I_leak + Iext) / C
+    I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
+    I_K = (gK * n ** 4.0) * (V - EK)
+    I_leak = gL * (V - EL)
+    dVdt = (- I_Na - I_K - I_leak + Iext) / C
 
-        return dVdt, dmdt, dhdt, dndt
+    return dVdt, dmdt, dhdt, dndt
     '''
 
     from pprint import pprint
     pprint(separate_variables(code))
 
+# test_reader1()
+# test_reader2()
+# test_reader3()
 # test_separate_variables1()
+# test_separate_variables2()

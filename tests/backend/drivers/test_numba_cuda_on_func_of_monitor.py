@@ -115,5 +115,5 @@ def test_stochastic_lif_monitors1():
 
 
 
-test_stochastic_lif_monitors1()
+# test_stochastic_lif_monitors1()
 
