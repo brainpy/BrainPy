@@ -3,16 +3,13 @@
 
 import numpy as np
 import brainpy as bp
-
+import matplotlib.pyplot as plt
 
 np.random.seed(1234)
 dt = 0.05
 bp.backend.set(dt=dt)
 
 # Parameters
-num = 4000 * 5
-num_exc = int(num * 0.75)
-num_inh = int(num * 0.25)
 taum = 20
 taue = 5
 taui = 10
@@ -60,7 +57,6 @@ class LIF(bp.NeuGroup):
 
         super(LIF, self).__init__(size=size, **kwargs)
 
-
     def update(self, _t):
         for i in range(self.num):
             self.ge[i] = self.int_ge(self.ge[i], _t)
@@ -82,15 +78,15 @@ class ExcSyn(bp.TwoEndConn):
 
     def __init__(self, pre, post, conn, **kwargs):
         self.conn = conn(pre.size, post.size)
-        self.post_ids, self.pre_slice_syn = self.conn.requires('post_ids', 'pre_slice_syn')
+        self.post_ids, self.pre_slice = self.conn.requires('post_ids', 'pre_slice')
         super(ExcSyn, self).__init__(pre=pre, post=post, **kwargs)
 
     def update(self, _t):
         for pre_id in range(self.pre.num):
             if self.pre.spike[pre_id]:
-                start, end = self.pre_slice_syn[pre_id]
+                start, end = self.pre_slice[pre_id]
                 for post_i in self.post_ids[start: end]:
-                    self.post.g[post_i] += we
+                    self.post.ge[post_i] += we
 
 
 class InhSyn(bp.TwoEndConn):
@@ -98,18 +94,22 @@ class InhSyn(bp.TwoEndConn):
 
     def __init__(self, pre, post, conn, **kwargs):
         self.conn = conn(pre.size, post.size)
-        self.post_ids, self.pre_slice_syn = self.conn.requires('post_ids', 'pre_slice_syn')
+        self.post_ids, self.pre_slice = self.conn.requires('post_ids', 'pre_slice')
         super(InhSyn, self).__init__(pre=pre, post=post, **kwargs)
 
     def update(self, _t):
         for pre_id in range(self.pre.num):
             if self.pre.spike[pre_id]:
-                start, end = self.pre_slice_syn[pre_id]
+                start, end = self.pre_slice[pre_id]
                 for post_i in self.post_ids[start: end]:
                     self.post.gi[post_i] += wi
 
 
 def compare():
+    num = 4000 * 10
+    num_exc = int(num * 0.75)
+    num_inh = int(num * 0.25)
+
     for bk in ['numba-cuda', 'numba', ]:
         print(f'Backend = {bk}')
         bp.backend.set(bk)
@@ -127,4 +127,35 @@ def compare():
         net.run(100., report=True)
 
 
-compare()
+def try_cuda(num=4000 * 10):
+    print(f'Number of neurons: {num}')
+
+    num_exc = int(num * 0.75)
+    num_inh = int(num * 0.25)
+    # bp.backend.set('numba-cuda')
+    bp.backend.set('numba')
+
+    E_group = LIF(num_exc, )
+    E_group.V = np.random.randn(num_exc) * 5. - 55.
+    I_group = LIF(num_inh, )
+    I_group.V = np.random.randn(num_inh) * 5. - 55.
+    E2E = ExcSyn(pre=E_group, post=E_group, conn=bp.connect.FixedProb(0.02, method='vector'))
+    E2I = ExcSyn(pre=E_group, post=I_group, conn=bp.connect.FixedProb(0.02, method='vector'))
+    I2E = InhSyn(pre=I_group, post=E_group, conn=bp.connect.FixedProb(0.02, method='vector'))
+    I2I = InhSyn(pre=I_group, post=I_group, conn=bp.connect.FixedProb(0.02, method='vector'))
+
+    net = bp.Network(E_group, I_group, E2E, E2I, I2E, I2I)
+    return net.run(100., report=True, report_percent=0.5)
+
+
+all_num = np.array(list(range(1, 10))) * 4000
+times = []
+for num in all_num:
+    times.append(try_cuda(num))
+# try_cuda(4000 * 15)
+
+plt.plot(all_num, times)
+plt.xlabel('Number of neurons')
+plt.ylabel('Times [s]')
+plt.show()
+

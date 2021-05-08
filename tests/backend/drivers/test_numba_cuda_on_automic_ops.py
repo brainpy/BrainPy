@@ -192,13 +192,13 @@ def test_automic_op_in_augassign3():
     test_automic_op(Syn)
 
 
-# test_automic_op_in_assign1()
-# test_automic_op_in_assign2()
-# test_automic_op_in_assign3()
-# test_automic_op_in_assign4()
-# test_automic_op_in_assign5()
-# test_automic_op_in_assign6()
+test_automic_op_in_assign1()
+test_automic_op_in_assign2()
+test_automic_op_in_assign3()
+test_automic_op_in_assign4()
+test_automic_op_in_assign5()
+test_automic_op_in_assign6()
 
-# test_automic_op_in_augassign1()
-# test_automic_op_in_augassign2()
+test_automic_op_in_augassign1()
+test_automic_op_in_augassign2()
 test_automic_op_in_augassign3()
