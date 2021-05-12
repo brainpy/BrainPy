@@ -38,10 +38,62 @@ class Bifurcation(object):
     Parameters
     ----------
 
-    integrals : callable
+    integrals : function, functions
         The integral functions defined with `brainpy.odeint` or
         `brainpy.sdeint` or `brainpy.ddeint`, or `brainpy.fdeint`.
+    target_vars : dict
+        The target dynamical variables. It must a dictionary which
+        specifies the boundary of the variables: `{'var1': [min, max]}`.
+    fixed_vars : dict
+        The fixed variables. It must a fixed value with the format of `{'var1': value}`.
+    target_pars : dict, optional
+        The parameters which can be dynamical varied. It must be a dictionary which
+        specifies the boundary of the variables: `{'par1': [min, max]}`
+    pars_update : dict, optional
+        The parameters to update. Or, they can be treated as staitic parameters.
+        Same with the `fixed_vars`, they are must fixed values with the format of
+        `{'par1': value}`.
+    numerical_resolution : float, dict
+        The resolution for numerical iterative solvers. Default is 0.1.
+        It can set the numerical resolution of dynamical variables or dynamical parameters.
+        For example, set ``numerical_resolution=0.1`` will generalize it to all
+        variables and parameters;
+        set ``numerical_resolution={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will
+        specify the particular resolutions to variables and parameters.
+        Moreover, you can also set
+        ``numerical_resolution={var1: np.array([...]), var2: 0.1}`` to specify the
+        search points need to explore for variable `var1`. This will be useful to
+        set sense search points at some inflection points.
+    options : dict, optional
+        The other setting parameters, which includes:
 
+            perturbation
+                float. The small perturbation used to solve the function derivatives.
+            sympy_solver_timeout
+                float, with the unit of second. The maximum time allowed to use sympy solver
+                to get the variable relationship.
+            escape_sympy_solver
+                bool. Whether escape to use sympy solver, and directly use numerical optimization
+                method to solve the nullcline and fixed points.
+            lim_scale
+                float. The axis limit scale factor. Default is 1.05. The setting means
+                the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
+
+        The parameters which are usefull for two-dimensional bifurcation analysis:
+
+            shgo_args
+                dict. Arguments of `shgo` optimization method, which can be used to set the
+                fields of: constraints, n, iters, callback, minimizer_kwargs, options,
+                sampling_method.
+            show_shgo
+                bool. whether print the shgo's value.
+            fl_tol
+                float. The tolerance of the function value to recognize it as a candidate of
+                function root point.
+            xl_tol
+                float. The tolerance of the l2 norm distances between this point and previous
+                points. If the norm distances are all bigger than `xl_tol` means this
+                point belong to a new function root point.
     """
 
     def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
@@ -107,10 +159,49 @@ class Bifurcation(object):
             raise errors.ModelUseError(f'Cannot analyze three dimensional system: {self.target_vars}')
 
     def plot_bifurcation(self, *args, **kwargs):
-        self.analyzer.plot_bifurcation(*args, **kwargs)
+        """Plot bifurcation, which support bifurcation analysis of
+        co-dimension 1 and co-dimension 2.
+
+        Parameters
+        ----------
+        show : bool
+            Whether show the bifurcation figure.
+
+        Returns
+        -------
+        points : dict
+            The bifurcation points which specifies their fixed points
+            and corresponding stability.
+        """
+        return self.analyzer.plot_bifurcation(*args, **kwargs)
+
+    def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(), plot_style=None, tol=0.001, show=False):
+        """Plot limit cycles by the simulation results.
+
+        This function help users plot the limit cycles through the simulation results,
+        in which the periodic signals will be automatically found and then treated them
+        as the candidate of limit cycles.
+
+        Parameters
+        ----------
+        var : str
+            The target variable to found its limit cycles.
+        duration : int, float, tuple, list
+            The simulation duration.
+        inputs : tuple, list
+            The simulation inputs.
+        plot_style : dict
+            The limit cycle plotting style settings.
+        tol : float
+            The tolerance to found periodic signals.
+        show : bool
+            Whether show the figure.
+        """
+        self.analyzer.plot_limit_cycle_by_sim(var=var, duration=duration, inputs=inputs,
+                                              plot_style=plot_style, tol=tol, show=show)
 
 
-class _Bifurcation1D(base.Base1DNeuronAnalyzer):
+class _Bifurcation1D(base.Base1DAnalyzer):
     """Bifurcation analysis of 1D system.
 
     Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -210,7 +301,7 @@ class _Bifurcation1D(base.Base1DNeuronAnalyzer):
         raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _Bifurcation2D(base.Base2DNeuronAnalyzer):
+class _Bifurcation2D(base.Base2DAnalyzer):
     """Bifurcation analysis of 2D system.
 
     Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -434,6 +525,50 @@ class FastSlowBifurcation(object):
     and then study how the different value of slow variables affect the
     bifurcation of the fast sub-system.
 
+    Parameters
+    ----------
+
+    integrals : function, functions
+        The integral functions defined with `brainpy.odeint` or
+        `brainpy.sdeint` or `brainpy.ddeint`, or `brainpy.fdeint`.
+    fast_vars : dict
+        The fast dynamical variables. It must a dictionary which
+        specifies the boundary of the variables: `{'var1': [min, max]}`.
+    slow_vars : dict
+        The slow dynamical variables. It must a dictionary which
+        specifies the boundary of the variables: `{'var1': [min, max]}`.
+    fixed_vars : dict
+        The fixed variables. It must a fixed value with the format of `{'var1': value}`.
+    pars_update : dict, optional
+        The parameters to update. Or, they can be treated as staitic parameters.
+        Same with the `fixed_vars`, they are must fixed values with the format of
+        `{'par1': value}`.
+    numerical_resolution : float, dict
+        The resolution for numerical iterative solvers. Default is 0.1.
+        It can set the numerical resolution of dynamical variables or dynamical parameters.
+        For example, set ``numerical_resolution=0.1`` will generalize it to all
+        variables and parameters;
+        set ``numerical_resolution={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will
+        specify the particular resolutions to variables and parameters.
+        Moreover, you can also set
+        ``numerical_resolution={var1: np.array([...]), var2: 0.1}`` to specify the
+        search points need to explore for variable `var1`. This will be useful to
+        set sense search points at some inflection points.
+    options : dict, optional
+        The other setting parameters, which includes:
+
+            perturbation
+                float. The small perturbation used to solve the function derivatives.
+            sympy_solver_timeout
+                float, with the unit of second. The maximum time allowed to use sympy solver
+                to get the variable relationship.
+            escape_sympy_solver
+                bool. Whether escape to use sympy solver, and directly use numerical optimization
+                method to solve the nullcline and fixed points.
+            lim_scale
+                float. The axis limit scale factor. Default is 1.05. The setting means
+                the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
+
     References
     ----------
 
@@ -520,12 +655,71 @@ class FastSlowBifurcation(object):
             raise errors.ModelUseError(f'Cannot analyze {len(fast_vars)} dimensional fast system.')
 
     def plot_bifurcation(self, *args, **kwargs):
-        self.analyzer.plot_bifurcation(*args, **kwargs)
+        """Plot bifurcation.
+
+        Parameters
+        ----------
+        show : bool
+            Whether show the bifurcation figure.
+
+        Returns
+        -------
+        points : dict
+            The bifurcation points which specifies their fixed points
+            and corresponding stability.
+        """
+        return self.analyzer.plot_bifurcation(*args, **kwargs)
 
     def plot_trajectory(self, *args, **kwargs):
+        """Plot trajectory.
+
+        This function helps users to plot specific trajectories.
+
+        Parameters
+        ----------
+        initials : list, tuple
+            The initial value setting of the targets. It can be a tuple/list of floats to specify
+            each value of dynamical variables (for example, ``(a, b)``). It can also be a
+            tuple/list of tuple to specify multiple initial values (for example,
+            ``[(a1, b1), (a2, b2)]``).
+        duration : int, float, tuple, list
+            The running duration. Same with the ``duration`` in ``NeuGroup.run()``.
+            It can be a int/float (``t_end``) to specify the same running end time,
+            or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
+            the start and end simulation time. Or, it can be a list of tuple
+            (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
+            start and end simulation time for each initial value.
+        plot_duration : tuple/list of tuple, optional
+            The duration to plot. It can be a tuple with ``(start, end)``. It can
+            also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
+            the plot duration for each initial value running.
+        show : bool
+            Whether show or not.
+        """
         self.analyzer.plot_trajectory(*args, **kwargs)
 
     def plot_limit_cycle_by_sim(self, *args, **kwargs):
+        """Plot limit cycles by the simulation results.
+
+        This function help users plot the limit cycles through the simulation results,
+        in which the periodic signals will be automatically found and then treated them
+        as the candidate of limit cycles.
+
+        Parameters
+        ----------
+        var : str
+            The target variable to found its limit cycles.
+        duration : int, float, tuple, list
+            The simulation duration.
+        inputs : tuple, list
+            The simulation inputs.
+        plot_style : dict
+            The limit cycle plotting style settings.
+        tol : float
+            The tolerance to found periodic signals.
+        show : bool
+            Whether show the figure.
+        """
         self.analyzer.plot_limit_cycle_by_sim(*args, **kwargs)
 
 
@@ -710,7 +904,7 @@ class _FastSlow1D(_Bifurcation1D):
         self.traj.plot_trajectory(*args, **kwargs)
 
     def plot_bifurcation(self, *args, **kwargs):
-        super(_FastSlow1D, self).plot_bifurcation(*args, **kwargs)
+        return super(_FastSlow1D, self).plot_bifurcation(*args, **kwargs)
 
     def plot_limit_cycle_by_sim(self, *args, **kwargs):
         super(_FastSlow1D, self).plot_limit_cycle_by_sim(*args, **kwargs)
@@ -738,7 +932,7 @@ class _FastSlow2D(_Bifurcation2D):
         self.traj.plot_trajectory(*args, **kwargs)
 
     def plot_bifurcation(self, *args, **kwargs):
-        super(_FastSlow2D, self).plot_bifurcation(*args, **kwargs)
+        return super(_FastSlow2D, self).plot_bifurcation(*args, **kwargs)
 
     def plot_limit_cycle_by_sim(self, *args, **kwargs):
         super(_FastSlow2D, self).plot_limit_cycle_by_sim(*args, **kwargs)

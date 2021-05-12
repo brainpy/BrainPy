@@ -133,15 +133,36 @@ class PhasePlane(object):
                                        'then make 1D/2D phase plane analysis.')
 
     def plot_vector_field(self, *args, **kwargs):
-        """Plot vector filed of a 2D/1D system."""
+        """Plot vector filed of a 2D/1D system.
+
+        Parameters
+        ----------
+
+        show : bool
+            Whether show the figure.
+        """
         self.analyzer.plot_vector_field(*args, **kwargs)
 
     def plot_fixed_point(self, *args, **kwargs):
-        """Plot fixed points."""
+        """Plot fixed points.
+
+        Parameters
+        ----------
+
+        show : bool
+            Whether show the figure.
+        """
         return self.analyzer.plot_fixed_point(*args, **kwargs)
 
     def plot_nullcline(self, *args, **kwargs):
-        """Plot nullcline (only supported in 2D system)."""
+        """Plot nullcline (only supported in 2D system).
+
+        Parameters
+        ----------
+
+        show : bool
+            Whether show the figure.
+        """
         self.analyzer.plot_nullcline(*args, **kwargs)
 
     def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
@@ -207,7 +228,7 @@ class PhasePlane(object):
                                               show=show)
 
 
-class _PhasePlane1D(base.Base1DNeuronAnalyzer):
+class _PhasePlane1D(base.Base1DAnalyzer):
     """Phase plane analyzer for 1D system.
     """
 
@@ -299,7 +320,7 @@ class _PhasePlane1D(base.Base1DNeuronAnalyzer):
         raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _PhasePlane2D(base.Base2DNeuronAnalyzer):
+class _PhasePlane2D(base.Base2DAnalyzer):
     """Phase plane analyzer for 2D system.
     """
 
