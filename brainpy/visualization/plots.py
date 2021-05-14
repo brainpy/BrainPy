@@ -60,11 +60,10 @@ def line_plot(ts,
         plot_ids = [0]
     elif isinstance(plot_ids, int):
         plot_ids = [plot_ids]
-    try:
-        assert isinstance(plot_ids, (list, tuple))
-    except AssertionError:
-        raise ModelUseError('"plot_ids" specifies the value index to plot, '
-                            'it must be a list/tuple.')
+    if not isinstance(plot_ids, (list, tuple)) and \
+            not (isinstance(plot_ids, np.ndarray) and np.ndim(plot_ids) == 1):
+        raise ModelUseError(f'"plot_ids" specifies the value index to plot, it must '
+                            f'be a list/tuple/1D numpy.ndarray, not {type(plot_ids)}.')
 
     # get ax
     if ax is None:
@@ -184,7 +183,7 @@ def animate_2D(values,
                val_min=None,
                val_max=None,
                cmap=None,
-               frame_delay=1.,
+               frame_delay=10,
                frame_step=1,
                title_size=10,
                figsize=None,
@@ -231,8 +230,8 @@ def animate_2D(values,
 
     Returns
     -------
-    figure : plt.figure
-        The created figure instance.
+    anim : animation.FuncAnimation
+        The created animation function.
     """
     dt = backend.get_dt() if dt is None else dt
     num_step, num_neuron = values.shape
@@ -252,25 +251,29 @@ def animate_2D(values,
         plt.pcolor(img, cmap=cmap, vmin=val_min, vmax=val_max)
         plt.colorbar()
         plt.axis('off')
-        fig.suptitle("Time: {:.2f} ms".format((t + 1) * dt),
-                     fontsize=title_size, fontweight='bold')
+        fig.suptitle(t="Time: {:.2f} ms".format((t + 1) * dt),
+                     fontsize=title_size,
+                     fontweight='bold')
         return [fig.gca()]
 
     values = values.reshape((num_step, height, width))
-    anim_result = animation.FuncAnimation(
-        fig, frame, frames=list(range(1, num_step, frame_step)),
-        init_func=None, interval=frame_delay, repeat_delay=3000)
+    anim = animation.FuncAnimation(fig=fig,
+                                   func=frame,
+                                   frames=list(range(1, num_step, frame_step)),
+                                   init_func=None,
+                                   interval=frame_delay,
+                                   repeat_delay=3000)
     if save_path is None:
         if show:
             plt.show()
     else:
         if save_path[-3:] == 'gif':
-            anim_result.save(save_path, dpi=gif_dpi, writer='imagemagick')
+            anim.save(save_path, dpi=gif_dpi, writer='imagemagick')
         elif save_path[-3:] == 'mp4':
-            anim_result.save(save_path, writer='ffmpeg', fps=video_fps, bitrate=3000)
+            anim.save(save_path, writer='ffmpeg', fps=video_fps, bitrate=3000)
         else:
-            anim_result.save(save_path + '.mp4', writer='ffmpeg', fps=video_fps, bitrate=3000)
-    return fig
+            anim.save(save_path + '.mp4', writer='ffmpeg', fps=video_fps, bitrate=3000)
+    return anim
 
 
 def animate_1D(dynamical_vars,
