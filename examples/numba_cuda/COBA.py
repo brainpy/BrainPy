@@ -145,10 +145,11 @@ def try_cuda(num=4000 * 10):
     I2I = InhSyn(pre=I_group, post=I_group, conn=bp.connect.FixedProb(0.02, method='vector'))
 
     net = bp.Network(E_group, I_group, E2E, E2I, I2E, I2I)
-    return net.run(100., report=True, report_percent=0.5)
+    return net.run(100., report=True, report_percent=0.05)
 
 
 all_num = np.array(list(range(1, 10))) * 4000
+all_num = [25 * 4000]
 times = []
 for num in all_num:
     times.append(try_cuda(num))

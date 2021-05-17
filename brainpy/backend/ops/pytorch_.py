@@ -27,7 +27,7 @@ def shape(x):
 
 # necessary ops for dynamics simulation
 
-as_tensor = torch.tensor
+as_tensor = torch.as_tensor
 zeros = torch.zeros
 ones = torch.ones
 arange = torch.arange

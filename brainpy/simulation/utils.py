@@ -192,7 +192,7 @@ def format_net_level_inputs(inputs, run_length):
     formatted_input : dict
         The formatted input.
     """
-    from brainpy.simulation.dynamic_system import DynamicSystem
+    from brainpy.simulation.brainobjects.dynamic_system import DynamicSystem
 
     # 1. format the inputs to standard
     #    formats and check the inputs

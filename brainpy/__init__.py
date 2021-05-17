@@ -13,7 +13,7 @@ from . import analysis
 # "simulation" module
 from . import simulation
 from .simulation import connectivity as connect
-from .simulation.dynamic_system import *
+from brainpy.simulation.brainobjects.dynamic_system import *
 from .simulation.brainobjects import *
 from .simulation.utils import size2len
 

@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from brainpy import errors
 from brainpy.simulation import delays
-from brainpy.simulation.dynamic_system import DynamicSystem
+from .dynamic_system import DynamicSystem
 from .neu_group import NeuGroup
 
 __all__ = [
