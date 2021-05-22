@@ -17,38 +17,85 @@ class Monitor(object):
 
     1. list of strings.
 
-    >>> Monitor(target=..., variables=['a', 'b', 'c'])
+    >>> Monitor(target=..., vars=['a', 'b', 'c'])
+
+    1.1. list of strings and list of intervals
+
+    >>> Monitor(target=..., vars=['a', 'b', 'c'],
+    >>>         every=[None, 1, 2] # ms
+    >>>        )
 
     2. list of strings and string + indices
 
-    >>> Monitor(target=..., variables=['a', ('b', ops.as_tensor([1,2,3])), 'c'])
+    >>> Monitor(target=..., vars=['a', ('b', ops.as_tensor([1,2,3])), 'c'])
+
+    2.1. list of string (+ indices) and list of intervals
+
+    >>> Monitor(target=..., vars=['a', ('b', ops.as_tensor([1,2,3])), 'c'],
+    >>>         every=[None, 2, 3])
 
     3. a dictionary with the format of {key: indices}
 
-    >>> Monitor(target=..., variables={'a': None, 'b': ops.as_tensor([1,2,3])})
+    >>> Monitor(target=..., vars={'a': None, 'b': ops.as_tensor([1,2,3])})
 
-    :py:class:`brainpy.simulation.Monitor` records any target variable with an
-    array/tensore with the shape of `(num_time_step, variable_size)`. This means
-    any variable, no matter what's the shape of the data (vector, matrix,
-    3D tensores), will be reshaped into a one-dimensional vector.
+    3.1. a dictionaly of variable and indexes, and a dictionary of time intervals
+
+    >>> Monitor(target=..., vars={'a': None, 'b': ops.as_tensor([1,2,3])},
+    >>>         every={'b': 2.})
+
+    3.2. a dictionaly of variable and indexes, and a dictionary of time intervals
+
+    >>> import random
+    >>> Monitor(target=..., vars={'a': None, 'b': ops.as_tensor([1,2,3])},
+    >>>         every={'a': lambda : random.random() < 0.5, 'b': 2.})
+
+    .. note::
+        :py:class:`brainpy.simulation.Monitor` records any target variable with an
+        two-dimensional array/tensor with the shape of `(num_time_step, variable_size)`.
+        This means for any variable, no matter what's the shape of the data
+        (int, float, vector, matrix, 3D array/tensor), will be reshaped into a
+        one-dimensional vector.
 
     """
 
-    _KEYWORDS = ['target', '_variables', 'ts', 'num_item', '_KEYWORDS',
-                 'item_names', 'item_indices', 'item_contents', ]
+    _KEYWORDS = ['_KEYWORDS', 'target', 'vars', 'every', 'ts', 'num_item',
+                 'item_names', 'item_indices', 'item_intervals', 'item_contents', ]
 
-    def __init__(self, target, variables):
-        self.target = target
-        self._variables = variables
+    def __init__(self, vars, every=None, target=None):
+        if isinstance(vars, (list, tuple)):
+            if every is not None:
+                if not isinstance(every, (list, tuple)):
+                    raise errors.ModelUseError(f'"vars" and "every" must be the same type. '
+                                               f'While we got type(vars)={type(vars)}, '
+                                               f'type(every)={type(every)}.')
+                if len(vars) != len(every):
+                    raise errors.ModelUseError(f'The length of "vars" and "every" are not equal.')
+
+        elif isinstance(vars, dict):
+            if every is not None:
+                if not isinstance(every, dict):
+                    raise errors.ModelUseError(f'"vars" and "every" must be the same type. '
+                                               f'While we got type(vars)={type(vars)}, '
+                                               f'type(every)={type(every)}.')
+                for key in every.keys():
+                    if key not in vars:
+                        raise errors.ModelUseError(f'"{key}" is not in "vars": {list(vars.keys())}')
+
+        else:
+            raise errors.ModelUseError(f'We only supports a format of list/tuple/dict of '
+                                       f'"vars", while we got {type(vars)}.')
 
         self.ts = None
+        self.vars = vars
+        self.every = every
+        self.target = target
         self.item_names = None
         self.item_indices = None
+        self.item_intervals = None
         self.item_contents = None
-        self.num_item = len(variables)
+        self.num_item = len(vars)
 
     def check(self, mon_key):
-        # check
         if mon_key in self._KEYWORDS:
             raise ValueError(f'"{mon_key}" is a keyword in Monitor class. '
                              f'Please change to another name.')
@@ -58,53 +105,64 @@ class Monitor(object):
 
     def build(self):
         item_names = []
-        mon_indices = []
+        item_indices = []
+        item_intervals = []
         item_content = {}
-        if self._variables is not None:
-            if isinstance(self._variables, (list, tuple)):
-                for mon_var in self._variables:
-                    # users monitor a variable by a string
-                    if isinstance(mon_var, str):
-                        var_data = getattr(self.target, mon_var)
-                        mon_key = mon_var
-                        mon_idx = None
-                        mon_shape = (utils.size2len(ops.shape(var_data)), )
-                    # users monitor a variable by a tuple: `('b', ops.as_tensor([1,2,3]))`
-                    elif isinstance(mon_var, (tuple, list)):
-                        mon_key = mon_var[0]
-                        var_data = getattr(self.target, mon_key)
-                        mon_idx = mon_var[1]
-                        if not isinstance(mon_idx, int) or len(ops.shape(mon_idx)) != 1:
-                            raise errors.ModelUseError(f'Monitor item index only supports an int or '
-                                                       f'a one-dimensional vector, not {str(mon_var)}')
-                        mon_shape = ops.shape(mon_idx)
-                    else:
-                        raise errors.ModelUseError(f'Unknown monitor item: {str(mon_var)}')
 
-                    self.check(mon_key)
-                    item_names.append(mon_key)
-                    mon_indices.append(mon_idx)
-                    dtype = var_data.dtype if hasattr(var_data, 'dtype') else None
-                    item_content[mon_var] = ops.zeros((1,) + mon_shape, dtype=dtype)
-            elif isinstance(self._variables, dict):
-                # users monitor a variable by a dict: `{'a': None, 'b': ops.as_tensor([1,2,3])}`
-                for mon_key, mon_idx in self._variables.items():
-                    item_names.append(mon_key)
-                    mon_indices.append(mon_idx)
-                    if mon_idx is None:
-                        shape = ops.shape(getattr(self.target, mon_key))
-                    else:
-                        shape = ops.shape(mon_idx)
-                    shape = (utils.size2len(shape), )
-                    val_data = getattr(self.target, mon_key)
-                    dtype = val_data.dtype if hasattr(val_data, 'dtype') else None
-                    item_content[mon_key] = ops.zeros((1,) + shape, dtype=dtype)
+        if isinstance(self.vars, (list, tuple)):
+            if self.every is None:
+                item_intervals = [None] * len(self.vars)
             else:
-                raise errors.ModelUseError(f'Unknown monitors type: {type(self._variables)}')
+                item_intervals = list(self.every)
+            for mon_var in self.vars:
+                # users monitor a variable by a string
+                if isinstance(mon_var, str):
+                    var_data = getattr(self.target, mon_var)
+                    mon_key = mon_var
+                    mon_idx = None
+                    mon_shape = (utils.size2len(ops.shape(var_data)), )
+                # users monitor a variable by a tuple: `('b', ops.as_tensor([1,2,3]))`
+                elif isinstance(mon_var, (tuple, list)):
+                    mon_key = mon_var[0]
+                    var_data = getattr(self.target, mon_key)
+                    mon_idx = mon_var[1]
+                    if not isinstance(mon_idx, int) or len(ops.shape(mon_idx)) != 1:
+                        raise errors.ModelUseError(f'Monitor item index only supports an int or '
+                                                   f'a one-dimensional vector, not {str(mon_var)}')
+                    mon_shape = ops.shape(mon_idx)
+                else:
+                    raise errors.ModelUseError(f'Unknown monitor item: {str(mon_var)}')
+
+                self.check(mon_key)
+                item_names.append(mon_key)
+                item_indices.append(mon_idx)
+                dtype = var_data.dtype if hasattr(var_data, 'dtype') else None
+                item_content[mon_var] = ops.zeros((1,) + mon_shape, dtype=dtype)
+        elif isinstance(self.vars, dict):
+            # users monitor a variable by a dict: `{'a': None, 'b': ops.as_tensor([1,2,3])}`
+            for mon_key, mon_idx in self.vars.items():
+                item_names.append(mon_key)
+                item_indices.append(mon_idx)
+                if mon_idx is None:
+                    shape = ops.shape(getattr(self.target, mon_key))
+                else:
+                    shape = ops.shape(mon_idx)
+                shape = (utils.size2len(shape), )
+                val_data = getattr(self.target, mon_key)
+                dtype = val_data.dtype if hasattr(val_data, 'dtype') else None
+                item_content[mon_key] = ops.zeros((1,) + shape, dtype=dtype)
+                if self.every is None:
+                    item_intervals.append(None)
+                else:
+                    if mon_key in self.every:
+                        item_intervals.append(self.every[mon_key])
+        else:
+            raise errors.ModelUseError(f'Unknown monitors type: {type(self.vars)}')
 
         self.item_names = item_names
-        self.item_indices = mon_indices
+        self.item_indices = item_indices
         self.item_contents = item_content
+        self.item_intervals = item_intervals
         self.num_item = len(item_content)
 
     def __getattr__(self, item):
@@ -115,8 +173,9 @@ class Monitor(object):
             super(Monitor, self).__getattribute__(item)
 
     def __setattr__(self, key, value):
-        item_contents = super(Monitor, self).__getattribute__('item_contents')
-        if key in item_contents:
-            item_contents[key] = value
+        if key in self._KEYWORDS:
+            object.__setattr__(self, key, value)
+        elif key in self.item_contents:
+            self.item_contents[key] = value
         else:
             object.__setattr__(self, key, value)

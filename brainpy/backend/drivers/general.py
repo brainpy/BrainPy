@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import math
 from pprint import pprint
 
 from brainpy import backend
@@ -37,9 +38,8 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
     """General BrainPy Node Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
-    def __init__(self, pop, steps=None):
-        steps = pop.steps if steps is None else pop.steps
-        super(GeneralNodeDriver, self).__init__(host=pop, steps=steps)
+    def __init__(self, target):
+        super(GeneralNodeDriver, self).__init__(target=target)
         self.last_inputs = {}
         self.formatted_funcs = {}
         self.run_func = None
@@ -69,23 +69,23 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             else:
                 input_keep_same = False
                 if show_code:
-                    print(f'The input to a new key "{key}" in {self.host}.')
+                    print(f'The input to a new key "{key}" in {self.target}.')
             new_inputs[key] = (val, op, data_type)
         self.last_inputs = new_inputs
         if len(old_input_keys):
             input_keep_same = False
             if show_code:
-                print(f'The inputs of {old_input_keys} in {self.host} are not provided.')
+                print(f'The inputs of {old_input_keys} in {self.target} are not provided.')
 
         return input_keep_same
 
     def _format_inputs_func(self, formatted_inputs, show_code):
         input_func_name = 'input_step'
-        host_name = self.host.name
+        host_name = self.target.name
 
         # codes
         if len(formatted_inputs) > 0:
-            code_scope = {host_name: self.host}
+            code_scope = {host_name: self.target}
             code_lines = [f'def {input_func_name}(_i):']
             for key, val, ops, data_type in formatted_inputs:
                 if ops == '=':
@@ -111,7 +111,7 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         self.upload(input_func_name, func)
         self.formatted_funcs['input'] = {
             'func': func,
-            'scope': {host_name: self.host},
+            'scope': {host_name: self.target},
             'call': [f'{host_name}.{input_func_name}(_i)'],
         }
 
@@ -125,25 +125,55 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         return need_rebuild
 
     def get_monitor_func(self, mon_length, show_code=False):
-        mon = self.host.mon
+        mon = self.target.mon
         if mon.num_item > 0:
             # build the monitor
-            self.host.mon.build()
+            self.target.mon.build()
 
             # code lines, code scope
-            host_name = self.host.name
-            code_scope = {host_name: self.host, 'ops': ops}
+            host_name = self.target.name
+            code_scope = {host_name: self.target, 'ops': ops}
             monitor_func_name = 'monitor_step'
-            code_lines = [f'def {monitor_func_name}(_i):']
-            for key in mon.item_names:
-                data = getattr(self.host, key)
+            code_lines = [f'def {monitor_func_name}(_i, _t):']
+            for key, idx, interval in zip(mon.item_names,
+                                          mon.item_indices,
+                                          mon.item_intervals):
+                data = getattr(self.target, key)
+                # get the data key in the host
                 if isinstance(data, (int, float)):
-                    line = f'  {host_name}.mon.{key}[_i] = {host_name}.{key}'
+                    if idx is not None:
+                        raise errors.ModelUseError(f'"{self.target.name}.{key}" is a scalar, '
+                                                   f'cannot define the slice index "{idx}"')
+                    key_in_host = f'{host_name}.{key}'
                 elif len(ops.shape(data)) == 1:
-                    line = f'  {host_name}.mon.{key}[_i] = {host_name}.{key}'
+                    key_in_host = f'{host_name}.{key}'
                 else:
-                    line = f'  {host_name}.mon.{key}[_i] = ops.reshape({host_name}.{key}, (-1,))'
-                code_lines.append(line)
+                    key_in_host = f'ops.reshape({host_name}.{key}, (-1,))'
+                # format the monitor index
+                if idx is None:
+                    line = f'{host_name}.mon.{key}[_i] = {key_in_host}'
+                else:
+                    code_scope[f'{key}_idx_to_monitor'] = idx
+                    line = f'{host_name}.mon.{key}[_i] = {key_in_host}[{key}_idx_to_monitor]'
+                # format the monitor interval
+                if interval is None:
+                    lines = [f'  {line}']
+                else:
+                    if callable(interval):
+                        code_scope[f'{key}_interval_to_monitor'] = interval
+                        lines = [f'  if {key}_interval_to_monitor():',
+                                 f'    {line}']
+                    else:
+                        num_interval = round(interval / backend.get_dt())
+                        if math.fmod(interval, backend.get_dt()) != 0.:
+                            print(f'"{interval}" is not an integer multiple of the step '
+                                  f'resolution "{backend.get_dt()}", which is adjusted to '
+                                  f'{num_interval * backend.get_dt()}')
+                        code_scope[f'{key}_interval_to_monitor'] = num_interval
+                        lines = [f'  if _i % {key}_interval_to_monitor == 0:',
+                                 f'    {line}']
+                # code line
+                code_lines.extend(lines)
 
             # function
             code = '\n'.join(code_lines)
@@ -157,51 +187,51 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             # results
             self.formatted_funcs['monitor'] = {
                 'func': code_scope[monitor_func_name],
-                'scope': {host_name: self.host},
+                'scope': {host_name: self.target},
                 'call': [f'{host_name}.{monitor_func_name}(_i)'],
             }
 
     def reshape_mon_items(self, run_length):
-        for var, data in self.host.mon.item_contents.items():
+        for var, data in self.target.mon.item_contents.items():
             shape = ops.shape(data)
             if run_length < shape[0]:
-                setattr(self.host.mon, var, data[:run_length])
+                setattr(self.target.mon, var, data[:run_length])
             elif run_length > shape[0]:
                 dtype = data.dtype if hasattr(data, 'dtype') else None
                 append = ops.zeros((run_length - shape[0],) + shape[1:], dtype=dtype)
-                setattr(self.host.mon, var, ops.vstack([data, append]))
+                setattr(self.target.mon, var, ops.vstack([data, append]))
 
     def get_steps_func(self, show_code=False):
         for func_name, step in self.steps.items():
             class_args, arguments = utils.get_args(step)
-            host_name = self.host.name
+            host_name = self.target.name
 
             calls = []
             for arg in arguments:
-                if hasattr(self.host, arg):
+                if hasattr(self.target, arg):
                     calls.append(f'{host_name}.{arg}')
                 elif arg in backend.SYSTEM_KEYWORDS:
                     calls.append(arg)
                 else:
-                    raise errors.ModelDefError(f'Step function "{func_name}" of {self.host} '
+                    raise errors.ModelDefError(f'Step function "{func_name}" of {self.target} '
                                                f'define an unknown argument "{arg}" which is not '
-                                               f'an attribute of {self.host} nor the system keywords '
+                                               f'an attribute of {self.target} nor the system keywords '
                                                f'{backend.SYSTEM_KEYWORDS}.')
             self.formatted_funcs[func_name] = {
                 'func': step,
-                'scope': {host_name: self.host},
+                'scope': {host_name: self.target},
                 'call': [f'{host_name}.{func_name}({", ".join(calls)})']
             }
 
     def build(self, formatted_inputs, mon_length, return_code=True, show_code=False):
         # inputs check
-        # --
+        # ------------
         assert isinstance(formatted_inputs, (tuple, list))
         need_rebuild = self.get_input_func(formatted_inputs, show_code=show_code)
         self.formatted_funcs['need_rebuild'] = need_rebuild
 
         # the run function does not build before
-        # ---
+        # -------
         if self.run_func is None:
             # monitors
             self.get_monitor_func(mon_length, show_code=show_code)
