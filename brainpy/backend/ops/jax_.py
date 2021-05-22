@@ -36,8 +36,7 @@ ones = numpy.ones
 arange = numpy.arange
 vstack = numpy.vstack
 where = numpy.where
-unsqueeze = numpy.expand_dims
-squeeze = numpy.squeeze
+reshape = numpy.reshape
 
 # necessary ops for dtypes
 

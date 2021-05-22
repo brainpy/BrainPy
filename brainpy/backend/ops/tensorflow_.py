@@ -36,6 +36,7 @@ as_tensor = tf.convert_to_tensor
 zeros = tf.zeros
 ones = tf.ones
 arange = tf.range
+reshape = tf.reshape
 
 
 def vstack(values):
@@ -44,10 +45,6 @@ def vstack(values):
 
 def where(tensor, x, y):
     return tf.where(tensor, x, y)
-
-
-unsqueeze = tf.expand_dims
-squeeze = tf.squeeze
 
 
 # necessary ops for dtypes

@@ -32,6 +32,7 @@ zeros = torch.zeros
 ones = torch.ones
 arange = torch.arange
 vstack = torch.vstack
+reshape = torch.reshape
 
 
 def where(tensor, x, y):
@@ -40,10 +41,6 @@ def where(tensor, x, y):
     if isinstance(y, (int, float)):
         y = torch.full_like(tensor, y)
     return torch.where(tensor, x, y)
-
-
-unsqueeze = torch.unsqueeze
-squeeze = torch.squeeze
 
 
 # necessary ops for dtypes

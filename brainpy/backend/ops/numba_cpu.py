@@ -18,8 +18,7 @@ ones = np.ones
 arange = np.arange
 vstack = np.vstack
 where = np.where
-unsqueeze = np.expand_dims
-squeeze = np.squeeze
+reshape = np.reshape
 
 
 # necessary ops for dtypes

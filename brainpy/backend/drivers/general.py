@@ -127,21 +127,22 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
     def get_monitor_func(self, mon_length, show_code=False):
         mon = self.host.mon
         if mon.num_item > 0:
+            # build the monitor
+            self.host.mon.build()
+
+            # code lines, code scope
+            host_name = self.host.name
+            code_scope = {host_name: self.host, 'ops': ops}
             monitor_func_name = 'monitor_step'
-            host = self.host.name
-            code_scope = {host: self.host}
             code_lines = [f'def {monitor_func_name}(_i):']
             for key in mon.item_names:
-                if not hasattr(self.host, key):
-                    raise errors.ModelUseError(f'{self.host} do not have {key}, '
-                                               f'thus it cannot be monitored.')
-
-                # # initialize monitor array #
-                # shape = ops.shape(getattr(self.host, key))
-                # setattr(mon, key, ops.zeros((mon_length,) + shape))
-
-                # add line #
-                line = f'  {host}.mon.{key}[_i] = {host}.{key}'
+                data = getattr(self.host, key)
+                if isinstance(data, (int, float)):
+                    line = f'  {host_name}.mon.{key}[_i] = {host_name}.{key}'
+                elif len(ops.shape(data)) == 1:
+                    line = f'  {host_name}.mon.{key}[_i] = {host_name}.{key}'
+                else:
+                    line = f'  {host_name}.mon.{key}[_i] = ops.reshape({host_name}.{key}, (-1,))'
                 code_lines.append(line)
 
             # function
@@ -156,8 +157,8 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             # results
             self.formatted_funcs['monitor'] = {
                 'func': code_scope[monitor_func_name],
-                'scope': {host: self.host},
-                'call': [f'{host}.{monitor_func_name}(_i)'],
+                'scope': {host_name: self.host},
+                'call': [f'{host_name}.{monitor_func_name}(_i)'],
             }
 
     def reshape_mon_items(self, run_length):
@@ -166,7 +167,8 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
             if run_length < shape[0]:
                 setattr(self.host.mon, var, data[:run_length])
             elif run_length > shape[0]:
-                append = ops.zeros((run_length - shape[0],) + shape[1:])
+                dtype = data.dtype if hasattr(data, 'dtype') else None
+                append = ops.zeros((run_length - shape[0],) + shape[1:], dtype=dtype)
                 setattr(self.host.mon, var, ops.vstack([data, append]))
 
     def get_steps_func(self, show_code=False):
