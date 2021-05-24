@@ -33,7 +33,7 @@ class Tools(object):
         return f_new_name
 
     @staticmethod
-    def step(vars, dt_var, A, C, code_lines, other_args):
+    def step(class_kw, vars, dt_var, A, C, code_lines, other_args):
         # steps
         for si, sval in enumerate(A):
             # k-step arguments
@@ -70,7 +70,7 @@ class Tools(object):
 
             # k-step code line
             code_lines.append(f'  {", ".join(k_derivatives)} = f('
-                              f'{", ".join(k_args + other_args[1:])})')
+                              f'{", ".join(class_kw + k_args + other_args[1:])})')
 
     @staticmethod
     def update(vars, dt_var, B, code_lines):
@@ -162,7 +162,7 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, im_return):
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
 
     # step stage
-    Tools.step(variables, dt_var, A, C, code_lines, parameters)
+    Tools.step(class_kw, variables, dt_var, A, C, code_lines, parameters)
 
     # variable update
     return_args = Tools.update(variables, dt_var, B, code_lines)
@@ -256,7 +256,7 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
     # code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
     # stage steps
-    Tools.step(variables, dt_var, A, C, code_lines, parameters)
+    Tools.step(class_kw, variables, dt_var, A, C, code_lines, parameters)
     # variable update
     return_args = Tools.update(variables, dt_var, B1, code_lines)
 
@@ -307,13 +307,13 @@ def rk2_wrapper(f, show_code, dt, beta, var_type, im_return):
     # k1
     k1_args = variables + parameters
     k1_vars_d = [f'd{v}_k1' for v in variables]
-    code_lines.append(f'  {", ".join(k1_vars_d)} = f({", ".join(k1_args)})')
+    code_lines.append(f'  {", ".join(k1_vars_d)} = f({", ".join(class_kw + k1_args)})')
     # k2
     k2_args = [f'{v} + d{v}_k1 * dt * beta' for v in variables]
     k2_args.append('t + dt * beta')
     k2_args.extend(parameters[1:])
     k2_vars_d = [f'd{v}_k2' for v in variables]
-    code_lines.append(f'  {", ".join(k2_vars_d)} = f({", ".join(k2_args)})')
+    code_lines.append(f'  {", ".join(k2_vars_d)} = f({", ".join(class_kw + k2_args)})')
     # returns
     for v, k1, k2 in zip(variables, k1_vars_d, k2_vars_d):
         code_lines.append(f'  {v}_new = {v} + ({k1} * _k1 + {k2} * _k2) * dt')
