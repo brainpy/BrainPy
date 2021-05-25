@@ -3,7 +3,7 @@
 import numpy as np
 
 from . import numba_overload
-
+from .more_unified_ops.numba_cpu import *
 
 # necessary ops for integrators
 normal = np.random.normal

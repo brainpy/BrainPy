@@ -6,11 +6,12 @@ The TensorFlow with the version of xx is needed.
 
 from brainpy import errors
 
-
 try:
     import tensorflow as tf
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('tensorflow')
+
+from .more_unified_ops.tensorflow_ import *
 
 
 # necessary ops for integrators

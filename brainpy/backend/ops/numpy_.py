@@ -2,6 +2,8 @@
 
 import numpy as np
 
+from .more_unified_ops.numpy_ import *
+
 __all__ = [
     'normal',
     'shape',

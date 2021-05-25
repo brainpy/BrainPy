@@ -5,7 +5,7 @@ import math
 import numpy as np
 
 from . import numba_overload
-
+from .more_unified_ops.numba_cuda import *
 
 # necessary ops for integrators
 normal = np.random.normal

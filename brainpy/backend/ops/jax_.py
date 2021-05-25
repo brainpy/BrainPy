@@ -9,6 +9,7 @@ except ModuleNotFoundError:
 
 from jax import numpy
 from jax import random
+from .more_unified_ops.jax_ import *
 
 key = random.PRNGKey(0)
 

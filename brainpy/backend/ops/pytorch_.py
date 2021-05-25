@@ -11,6 +11,8 @@ try:
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('pytorch')
 
+from .more_unified_ops.pytorch_ import *
+
 # necessary ops for integrators
 
 normal = torch.normal
