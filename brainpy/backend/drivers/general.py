@@ -302,30 +302,30 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         # reshape the monitor
         self.reshape_mon_items(mon_length=mon_length)
 
+        # build the model
+        if need_rebuild or self.run_func is None:
+            code_scope = dict()
+            code_lines = ['def run_func(_t, _i, _dt):']
+            for process in self.target.schedule():
+                if (process not in self.formatted_funcs) and \
+                        (process in ['input', 'monitor']):
+                    continue
+                process_result = self.formatted_funcs[process]
+                code_scope.update(process_result['scope'])
+                code_lines.extend(process_result['call'])
+
+            # function
+            code = '\n  '.join(code_lines)
+            if show_code:
+                print(code)
+                pprint(code_scope)
+                print()
+            exec(compile(code, '', 'exec'), code_scope)
+            self.run_func = code_scope['run_func']
+            self.run_func.code = code
+
         if not return_format_code:
-            # build the model
-            if need_rebuild or self.run_func is None:
-                code_scope = dict()
-                code_lines = ['def run_func(_t, _i, _dt):']
-                for process in self.target.schedule():
-                    if (process not in self.formatted_funcs) and \
-                            (process in ['input', 'monitor']):
-                        continue
-                    process_result = self.formatted_funcs[process]
-                    code_scope.update(process_result['scope'])
-                    code_lines.extend(process_result['call'])
-
-                # function
-                code = '\n  '.join(code_lines)
-                if show_code:
-                    print(code)
-                    pprint(code_scope)
-                    print()
-                exec(compile(code, '', 'exec'), code_scope)
-                self.run_func = code_scope['run_func']
-                self.run_func.code = code
             return self.run_func
-
         else:
             return self.formatted_funcs
 
