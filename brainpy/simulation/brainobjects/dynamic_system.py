@@ -26,21 +26,13 @@ class DynamicSystem(object):
         Variables to monitor.
     name : str
         The name of the dynamic system.
-    host : any
-        The host to store data, including variables, functions, etc.
     show_code : bool
         Whether show the formatted codes.
     """
 
     target_backend = None
 
-    def __init__(self, steps, monitors=None, name=None, host=None, show_code=False):
-        # host of the data
-        # ----------------
-        if host is None:
-            host = self
-        self.host = host
-
+    def __init__(self, steps, monitors=None, name=None, show_code=False):
         # model
         # -----
         if callable(steps):
@@ -48,10 +40,11 @@ class DynamicSystem(object):
         elif isinstance(steps, (list, tuple)) and callable(steps[0]):
             self.steps = OrderedDict([(step.__name__, step) for step in steps])
         elif isinstance(steps, dict):
-            self.steps = steps
+            self.steps = OrderedDict(steps)
         else:
-            raise errors.ModelDefError(f'Unknown model type: {type(steps)}. Currently, BrainPy '
-                                       f'only supports: function, list/tuple/dict of functions.')
+            raise errors.ModelDefError(f'Unknown model type: {type(steps)}. Currently, '
+                                       f'BrainPy only supports: function, list/tuple/dict '
+                                       f'of functions.')
 
         # name
         # ----
@@ -60,26 +53,34 @@ class DynamicSystem(object):
             name = f'DS{_DynamicSystem_NO}'
             _DynamicSystem_NO += 1
         if not name.isidentifier():
-            raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier according to Python '
-                                       f'language definition. Please choose another name.')
+            raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier according to '
+                                       f'Python language definition. Please choose another '
+                                       f'name.')
         self.name = name
 
         # monitors
         # ---------
         if monitors is None:
-            monitors = []
-        self.mon = Monitor(target=self, variables=monitors)
+            self.mon = Monitor(target=self, variables=[])
+        elif isinstance(monitors, (list, tuple, dict)):
+            self.mon = Monitor(target=self, variables=monitors)
+        elif isinstance(monitors, Monitor):
+            self.mon = monitors
+            self.mon.target = self
+        else:
+            raise errors.ModelUseError(f'"monitors" only supports list/tuple/dict/'
+                                       f'instance of Monitor, not {type(monitors)}.')
 
         # runner
         # -------
-        self.driver = backend.get_node_driver()(pop=self)
+        self.driver = backend.get_node_driver()(target=self)
 
         # run function
         # ------------
         self.run_func = None
 
         # others
-        # ---
+        # ------
         self.show_code = show_code
         if self.target_backend is None:
             raise errors.ModelDefError('Must define "target_backend".')
@@ -92,7 +93,7 @@ class DynamicSystem(object):
         else:
             raise errors.ModelDefError(f'Unknown setting of "target_backend": {self.target_backend}')
 
-    def build(self, inputs, inputs_is_formatted=False, return_code=True, mon_length=0, show_code=False):
+    def build(self, duration, inputs=(), inputs_is_formatted=False, return_format_code=False, show_code=False):
         """Build the object for running.
 
         Parameters
@@ -101,24 +102,29 @@ class DynamicSystem(object):
             The object inputs.
         inputs_is_formatted : bool
             Whether the "inputs" is formatted.
-        return_code : bool
+        return_format_code : bool
             Whether return the formatted codes.
-        mon_length : int
-            The monitor length.
+        duration : int, float, list, tuple
+            The running duration.
+        show_code : bool
+            Whether show the code.
 
         Returns
         -------
         calls : list, tuple
             The code lines to call step functions.
         """
+        mon_length = utils.get_run_length_by_duration(duration)
         if (self._target_backend[0] != 'general') and (backend.get_backend_name() not in self._target_backend):
             raise errors.ModelDefError(f'The model {self.name} is target to run on {self._target_backend}, '
                                        f'but currently the selected backend is {backend.get_backend_name()}')
         if not inputs_is_formatted:
-            inputs = utils.format_pop_level_inputs(inputs, self, mon_length)
+            inputs = utils.format_pop_level_inputs(inputs=inputs,
+                                                   host=self,
+                                                   duration=duration)
         return self.driver.build(formatted_inputs=inputs,
                                  mon_length=mon_length,
-                                 return_code=return_code,
+                                 return_format_code=return_format_code,
                                  show_code=(self.show_code or show_code))
 
     def run(self, duration, inputs=(), report=False, report_percent=0.1):
@@ -140,11 +146,13 @@ class DynamicSystem(object):
         # ------
         start, end = utils.check_duration(duration)
         times = ops.arange(start, end, backend.get_dt())
-        run_length = ops.shape(times)[0]
 
         # build run function
         # ------------------
-        self.run_func = self.build(inputs, inputs_is_formatted=False, mon_length=run_length, return_code=False)
+        self.run_func = self.build(inputs=inputs,
+                                   inputs_is_formatted=False,
+                                   duration=duration,
+                                   return_format_code=False)
 
         # run the model
         # -------------
@@ -152,24 +160,12 @@ class DynamicSystem(object):
         self.mon.ts = times
         return res
 
-    def get_schedule(self):
-        """Get the schedule (running order) of the update functions.
+    def schedule(self):
+        """Schedule the running order of the update functions.
 
         Returns
         -------
-        schedule : list, tuple
+        schedules : tuple
             The running order of update functions.
         """
-        return self.driver.get_schedule()
-
-    def set_schedule(self, schedule):
-        """Set the schedule (running order) of the update functions.
-
-        For example, if the ``self.model`` has two step functions: `step1`, `step2`.
-        Then, you can set the shedule by using:
-
-        >>> pop = DynamicSystem(...)
-        >>> pop.set_schedule(['input', 'step1', 'step2', 'monitor'])
-        """
-        self.driver.set_schedule(schedule)
-
+        return ('input', ) + tuple(self.steps.keys()) + ('monitor',)

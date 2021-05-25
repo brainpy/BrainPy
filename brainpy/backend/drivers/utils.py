@@ -1,17 +1,28 @@
 # -*- coding: utf-8 -*-
 
 
+import math
 import inspect
 
 from brainpy import backend
 from brainpy import errors
 
 __all__ = [
+    'every_to_step_num',
     'attr_replace',
     'get_num_indent',
     'get_func_body_code',
     'get_args',
 ]
+
+
+def every_to_step_num(interval):
+    num_interval = round(interval / backend.get_dt())
+    if math.fmod(interval * 1000, backend.get_dt() * 1000) != 0.:
+        print(f'"{interval}" is not an integer multiple of the step '
+              f'resolution ("{backend.get_dt()}"). BrainPy adjust it '
+              f'to "{num_interval * backend.get_dt()}".')
+    return num_interval
 
 
 def attr_replace(attr):

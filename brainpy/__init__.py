@@ -13,8 +13,8 @@ from . import analysis
 # "simulation" module
 from . import simulation
 from .simulation import connectivity as connect
-from brainpy.simulation.brainobjects.dynamic_system import *
 from .simulation.brainobjects import *
+from .simulation.every import every
 from .simulation.utils import size2len
 
 # "integrators" module

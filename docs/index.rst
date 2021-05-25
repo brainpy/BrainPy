@@ -15,7 +15,9 @@ core functions:
   analysis and bifurcation analysis (future will support continuation analysis and
   sensitive analysis).
 
-Comprehensive examples of BrainPy please see
+Intuitive tutorials of BrainPy please see our
+`handbook <https://pku-nip-lab.github.io/BrainPyHandbook/>`_,
+and comprehensive examples of BrainPy please see
 `BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
 
 
@@ -34,6 +36,12 @@ Comprehensive examples of BrainPy please see
 
    tutorials/synaptic_connectivity
    tutorials/efficient_synaptic_computation
+   tutorials/running_order_scheduling
+   tutorials/monitor
+   tutorials/numba_cpu_backend
+   tutorials/numba_cuda_backend
+   tutorials/unified_operations
+   tutorials/repeat_mode
 
 
 .. toctree::
@@ -42,7 +50,6 @@ Comprehensive examples of BrainPy please see
 
    tutorials_advanced/ode_numerical_solvers
    tutorials_advanced/sde_numerical_solvers
-   tutorials_advanced/tips_on_numba_backend
    tutorials_advanced/how_it_works
 
 

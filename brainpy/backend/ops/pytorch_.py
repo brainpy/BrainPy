@@ -31,7 +31,7 @@ as_tensor = torch.as_tensor
 zeros = torch.zeros
 ones = torch.ones
 arange = torch.arange
-vstack = torch.vstack
+concatenate = torch.cat
 reshape = torch.reshape
 
 

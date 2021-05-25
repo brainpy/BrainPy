@@ -20,7 +20,6 @@ class SynConn(DynamicSystem):
     """
 
     def __init__(self, steps, monitors=None, name=None, show_code=False):
-        # check delay update
         if callable(steps):
             steps = OrderedDict([(steps.__name__, steps)])
         elif isinstance(steps, (tuple, list)) and callable(steps[0]):
@@ -28,6 +27,7 @@ class SynConn(DynamicSystem):
         else:
             assert isinstance(steps, dict)
 
+        # check delay update
         if hasattr(self, 'constant_delays'):
             for key, delay_var in self.constant_delays.items():
                 if delay_var.update not in steps:
@@ -51,7 +51,7 @@ class SynConn(DynamicSystem):
         self.constant_delays[key] = delays.ConstantDelay(size, delay_time)
         return self.constant_delays[key]
 
-    def update(self, *args):
+    def update(self, _t, _i, _dt):
         raise NotImplementedError
 
 

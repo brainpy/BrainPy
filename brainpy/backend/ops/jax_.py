@@ -34,7 +34,7 @@ as_tensor = numpy.asarray
 zeros = numpy.zeros
 ones = numpy.ones
 arange = numpy.arange
-vstack = numpy.vstack
+concatenate = numpy.concatenate
 where = numpy.where
 reshape = numpy.reshape
 

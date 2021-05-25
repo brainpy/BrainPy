@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import types
 
 from .numpy_ import *
@@ -18,8 +19,15 @@ __all__ = [
 _backend = 'numpy'
 BUFFER = {}
 OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'shape', ]
-OPS_FOR_SIMULATION = ['as_tensor', 'zeros', 'ones', 'arange',
-                      'vstack', 'where', 'unsqueeze', 'squeeze']
+OPS_FOR_SIMULATION = [
+    'as_tensor',  # for array creation
+    'zeros',  # for array creation
+    'ones',  # for array creation
+    'arange',  # for array creation, for example, times
+    'concatenate',  # for monitor data concatenation
+    'where',
+    'reshape'
+]
 OPS_OF_DTYPE = ['bool',
                 'int', 'int32', 'int64',
                 'float', 'float32', 'float64']

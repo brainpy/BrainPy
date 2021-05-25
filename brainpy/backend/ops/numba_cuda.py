@@ -18,7 +18,7 @@ as_tensor = np.asarray
 zeros = np.zeros
 ones = np.ones
 arange = np.arange
-vstack = np.vstack
+concatenate = np.concatenate
 where = np.where
 reshape = np.reshape
 

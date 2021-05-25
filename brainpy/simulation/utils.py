@@ -60,6 +60,12 @@ def check_duration(duration):
     return start, end
 
 
+def get_run_length_by_duration(duration):
+    start, end = check_duration(duration)
+    mon_length = int((end - start) / backend.get_dt())
+    return mon_length
+
+
 def run_model(run_func, times, report, report_percent):
     """Run the model.
 
@@ -76,12 +82,25 @@ def run_model(run_func, times, report, report_percent):
     report_percent : float
         The percent of the total running length for each report.
     """
+    def raise_running_error(e):
+        code_lines = run_func.code.split('\n')
+        code_lines = [f'[{i+1:2d}]   {line}' for i, line in enumerate(code_lines)]
+        code = "\n".join(code_lines)
+        raise errors.RunningError(f'''
+The running error occurs in the formatted source code:
+
+{code}
+
+''')
+
     run_length = len(times)
     dt = backend.get_dt()
     if report:
         t0 = time.time()
-        for i, t in enumerate(times[:1]):
-            run_func(_t=t, _i=i, _dt=dt)
+        try:
+            run_func(_t=times[0], _i=0, _dt=dt)
+        except Exception as e:
+            raise_running_error(e)
         compile_time = time.time() - t0
         print('Compilation used {:.4f} s.'.format(compile_time))
 
@@ -89,7 +108,10 @@ def run_model(run_func, times, report, report_percent):
         report_gap = int(run_length * report_percent)
         t0 = time.time()
         for run_idx in range(1, run_length):
-            run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
+            try:
+                run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
+            except Exception as e:
+                raise_running_error(e)
             if (run_idx + 1) % report_gap == 0:
                 percent = (run_idx + 1) / run_length * 100
                 print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
@@ -99,11 +121,14 @@ def run_model(run_func, times, report, report_percent):
         return running_time
     else:
         for run_idx in range(run_length):
-            run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
+            try:
+                run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
+            except Exception as e:
+                raise_running_error(e)
         return None
 
 
-def format_pop_level_inputs(inputs, host, mon_length):
+def format_pop_level_inputs(inputs, host, duration):
     """Format the inputs of a population.
 
     Parameters
@@ -112,7 +137,7 @@ def format_pop_level_inputs(inputs, host, mon_length):
         The inputs of the population.
     host : Population
         The host which contains all data.
-    mon_length : int
+    duration : int
         The monitor length.
 
     Returns
@@ -120,6 +145,7 @@ def format_pop_level_inputs(inputs, host, mon_length):
     formatted_inputs : tuple, list
         The formatted inputs of the population.
     """
+    mon_length = get_run_length_by_duration(duration)
     if inputs is None:
         inputs = []
     if not isinstance(inputs, (tuple, list)):

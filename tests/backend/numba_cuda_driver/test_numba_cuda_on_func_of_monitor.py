@@ -10,6 +10,7 @@ if not cuda.is_available():
 from pprint import pprint
 import numpy as np
 import brainpy as bp
+from brainpy.backend.drivers.numba_cuda import set_monitor_done_in
 from brainpy.backend.drivers.numba_cuda import NumbaCUDANodeDriver
 
 bp.backend.set('numba-cuda', dt=0.02)
@@ -105,45 +106,31 @@ class AMPA1_vec(bp.TwoEndConn):
             self.post.input[post_id] -= self.g.pull(i) * (self.post.V[post_id] - self.E)
 
 
-def test_neuron_by_stochastic_lif():
-    lif = StochasticLIF(1)
-
-    driver = NumbaCUDANodeDriver(pop=lif)
-    driver.get_steps_func(show_code=True)
-    pprint(driver.formatted_funcs)
-
-
-def test_neuron_by_lif():
-    lif = StochasticLIF(1, has_noise=False)
-
-    driver = NumbaCUDANodeDriver(pop=lif)
-    driver.get_steps_func(show_code=True)
-    pprint(driver.formatted_funcs)
+def test_stochastic_lif_monitors1():
+    for place in ['cpu', 'cuda']:
+        set_monitor_done_in(place)
+        lif = StochasticLIF(1, monitors=['V', 'input', 'spike'])
+        lif.mon.build()
+        driver = NumbaCUDANodeDriver(target=lif)
+        driver.get_monitor_func(show_code=True)
+        pprint(driver.formatted_funcs)
+        print()
+        print()
 
 
-def test_synapse_by_ampa1_vec_with_uniform_delay():
-    lif = StochasticLIF(2)
-    ampa = AMPA1_vec(pre=lif, post=lif, conn=bp.connect.All2All(), delay=10.)
-
-    driver = NumbaCUDANodeDriver(pop=ampa)
-    driver.get_steps_func(show_code=True)
-    pprint(driver.formatted_funcs)
-
-
-def test_synapse_by_ampa1_vec_with_non_uniform_delay():
-    lif = StochasticLIF(2)
-    ampa = AMPA1_vec(pre=lif, post=lif,
-                     conn=bp.connect.All2All(),
-                     delay=lambda: np.random.random() * 10.)
-
-    driver = NumbaCUDANodeDriver(pop=ampa)
-    driver.get_steps_func(show_code=True)
-    pprint(driver.formatted_funcs)
+def test_stochastic_lif_monitors2():
+    for place in ['cpu', 'cuda']:
+        set_monitor_done_in(place)
+        lif = StochasticLIF(1, monitors={'V': np.array([1, 2, 3]),
+                                         'input':None,
+                                         'spike': None})
+        lif.mon.build()
+        driver = NumbaCUDANodeDriver(target=lif)
+        driver.get_monitor_func(show_code=True)
+        pprint(driver.formatted_funcs)
+        print()
+        print()
 
 
-
-# test_neuron_by_stochastic_lif()
-# test_neuron_by_lif()
-
-# test_synapse_by_ampa1_vec_with_uniform_delay()
-# test_synapse_by_ampa1_vec_with_non_uniform_delay()
+# test_stochastic_lif_monitors1()
+test_stochastic_lif_monitors2()

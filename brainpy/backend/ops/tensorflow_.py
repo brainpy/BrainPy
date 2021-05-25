@@ -37,6 +37,7 @@ zeros = tf.zeros
 ones = tf.ones
 arange = tf.range
 reshape = tf.reshape
+concatenate = tf.concat
 
 
 def vstack(values):

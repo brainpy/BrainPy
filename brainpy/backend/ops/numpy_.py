@@ -13,6 +13,7 @@ __all__ = [
     'ones',
     'arange',
     'vstack',
+    'concatenate',
     'where',
     'reshape',
 
@@ -37,6 +38,7 @@ zeros = np.zeros
 ones = np.ones
 arange = np.arange
 vstack = np.vstack
+concatenate = np.concatenate
 where = np.where
 # unsqueeze = np.expand_dims
 # squeeze = np.squeeze

@@ -69,7 +69,7 @@ which may help your dynamical system analysis.
 
 .. code-block:: python
 
-    >>>> get_1d_stability_types()
+    >>> get_1d_stability_types()
     ['saddle node', 'stable point', 'unstable point']
 
 .. code-block:: python

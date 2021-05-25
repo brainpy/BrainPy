@@ -59,5 +59,8 @@ class NeuGroup(DynamicSystem):
                                        name=name,
                                        show_code=show_code)
 
-    def update(self, *args):
+    def update(self, _t, _i, _dt):
         raise NotImplementedError
+
+
+

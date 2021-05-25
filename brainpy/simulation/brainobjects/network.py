@@ -40,7 +40,7 @@ class Network(object):
         self.add(*args, **kwargs)
 
         # driver
-        self.driver = backend.get_net_driver()(host=self)
+        self.driver = backend.get_net_driver()(target=self)
 
     def __getattr__(self, item):
         if item in self.all_nodes:
@@ -103,9 +103,8 @@ class Network(object):
         # build the network
         run_length = ts.shape[0]
         format_inputs = utils.format_net_level_inputs(inputs, run_length)
-        self.run_func = self.driver.build(run_length=run_length,
+        self.run_func = self.driver.build(duration=duration,
                                           formatted_inputs=format_inputs,
-                                          return_code=False,
                                           show_code=self.show_code)
 
         # run the network
@@ -123,3 +122,9 @@ class Network(object):
         """Get the time points of the network.
         """
         return ops.arange(self.t_start, self.t_end, backend.get_dt())
+
+    def schedule(self):
+        for node in self.all_nodes.values():
+            for key in node.schedule():
+                yield f'{node.name}.{key}'
+

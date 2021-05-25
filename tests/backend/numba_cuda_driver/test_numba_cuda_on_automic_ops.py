@@ -208,6 +208,7 @@ def test_automic_op_in_augassign3():
     with pytest.raises(ValueError):
         _test_automic_op(Syn)
 
+
 # test_automic_op_in_assign1()
 # test_automic_op_in_assign2()
 # test_automic_op_in_assign3()

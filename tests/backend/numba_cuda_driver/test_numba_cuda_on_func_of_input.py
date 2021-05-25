@@ -106,7 +106,7 @@ class AMPA1_vec(bp.TwoEndConn):
 
 def test_stochastic_lif_inputs_of_fix1():
     lif = StochasticLIF(1)
-    driver = NumbaCUDANodeDriver(pop=lif)
+    driver = NumbaCUDANodeDriver(target=lif)
 
     # data format of int / float
     for op in ['=', '+', '-', '*', '/']:
@@ -119,7 +119,7 @@ def test_stochastic_lif_inputs_of_fix1():
 @pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_stochastic_lif_inputs_of_fix2():
     lif = StochasticLIF(1)
-    driver = NumbaCUDANodeDriver(pop=lif)
+    driver = NumbaCUDANodeDriver(target=lif)
 
     # data format of int / float
     for op in ['=', '+', '-', '*', '/']:
@@ -132,7 +132,7 @@ def test_stochastic_lif_inputs_of_fix2():
 @pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_stochastic_lif_inputs_of_iter1():
     lif = StochasticLIF(1)
-    driver = NumbaCUDANodeDriver(pop=lif)
+    driver = NumbaCUDANodeDriver(target=lif)
 
     # data format of int / float
     for op in ['=', '+', '-', '*', '/']:
@@ -146,7 +146,7 @@ def test_stochastic_lif_inputs_of_iter1():
 @pytest.mark.skipif(not cuda.is_available(), reason="cuda is not available")
 def test_stochastic_lif_inputs_of_iter2():
     lif = StochasticLIF(1)
-    driver = NumbaCUDANodeDriver(pop=lif)
+    driver = NumbaCUDANodeDriver(target=lif)
 
     # data format of int / float
     for op in ['=', '+', '-', '*', '/']:

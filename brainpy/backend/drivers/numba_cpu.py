@@ -600,22 +600,34 @@ def _class2func(cls_func, host, func_name=None, show_code=False):
 
 class NumbaCPUNodeDriver(GeneralNodeDriver):
     def get_steps_func(self, show_code=False):
-        for func_name, step in self.steps.items():
+        for func_name, step in self.target.steps.items():
             if hasattr(step, '__self__'):
                 host = step.__self__
             else:
-                host = self.host
-            assert hasattr(host, 'name')
+                host = self.target
+            host_name = getattr(host, 'name')
 
-            func, calls, assigns = _class2func(cls_func=step, host=host, func_name=func_name, show_code=show_code)
+            # transform the class bounded function to the static normal function
+            func, calls, assigns = _class2func(cls_func=step,
+                                               host=host,
+                                               func_name=func_name,
+                                               show_code=show_code)
             setattr(host, f'new_{func_name}', func)
 
-            # finale
+            # assignments
             assignment_line = ''
             if len(assigns):
                 assignment_line = f'{", ".join(assigns)} = '
-            self.formatted_funcs[func_name] = {
-                'func': func,
-                'scope': {host.name: host},
-                'call': [f'{assignment_line}{host.name}.new_{func_name}({", ".join(calls)})']
-            }
+            line = f'{assignment_line}{host.name}.new_{func_name}({", ".join(calls)})'
+
+            # format codes according to interval time
+            line_calls, code_scope = self.step_lines_by_interval(
+                step=step,
+                lines=[line, ],
+                interval_name=f'{host_name}_{func_name}_interval',
+                code_scope= {host.name: host})
+
+            # final
+            self.formatted_funcs[func_name] = {'func': func,
+                                               'scope': code_scope,
+                                               'call': line_calls}
