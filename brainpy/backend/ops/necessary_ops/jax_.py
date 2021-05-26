@@ -9,7 +9,29 @@ except ModuleNotFoundError:
 
 from jax import numpy
 from jax import random
-from .more_unified_ops.jax_ import *
+from brainpy.backend.ops.more_unified_ops import jax_
+
+__all__ = [
+    'set_seed',
+    'normal',
+    'exp',
+    'sum',
+    'shape',
+    'as_tensor',
+    'zeros',
+    'ones',
+    'arange',
+    'concatenate',
+    'where',
+    'reshape',
+    'bool',
+    'int',
+    'int32',
+    'int64',
+    'float',
+    'float32',
+    'float64'
+]
 
 key = random.PRNGKey(0)
 
@@ -29,7 +51,6 @@ exp = numpy.exp
 sum = numpy.sum
 shape = numpy.shape
 
-
 # necessary ops for dynamics simulation
 as_tensor = numpy.asarray
 zeros = numpy.zeros
@@ -48,3 +69,6 @@ int64 = numpy.int64
 float = numpy.float_
 float32 = numpy.float32
 float64 = numpy.float64
+
+if __name__ == '__main__':
+    jax_

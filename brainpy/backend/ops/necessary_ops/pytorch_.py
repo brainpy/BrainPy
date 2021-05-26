@@ -11,7 +11,28 @@ try:
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('pytorch')
 
-from .more_unified_ops.pytorch_ import *
+from brainpy.backend.ops.more_unified_ops import pytorch_
+
+__all__ = [
+    'normal',
+    'exp',
+    'sum',
+    'shape',
+    'as_tensor',
+    'zeros',
+    'ones',
+    'arange',
+    'concatenate',
+    'where',
+    'reshape',
+    'bool',
+    'int',
+    'int32',
+    'int64',
+    'float',
+    'float32',
+    'float64'
+]
 
 # necessary ops for integrators
 
@@ -55,3 +76,5 @@ float = torch.float
 float32 = torch.float32
 float64 = torch.float64
 
+if __name__ == '__main__':
+    pytorch_

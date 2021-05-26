@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
 from brainpy.backend import ops
 
-__all__ = []
+import numpy as np
 
 ops.set_buffer('numpy',
                clip=np.clip,

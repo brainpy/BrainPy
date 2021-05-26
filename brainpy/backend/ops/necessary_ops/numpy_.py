@@ -2,7 +2,6 @@
 
 import numpy as np
 
-from .more_unified_ops.numpy_ import *
 
 __all__ = [
     'normal',
@@ -28,6 +27,7 @@ __all__ = [
     'float64'
 ]
 
+
 # necessary ops for integrators
 normal = np.random.normal
 sum = np.sum
@@ -42,8 +42,6 @@ arange = np.arange
 vstack = np.vstack
 concatenate = np.concatenate
 where = np.where
-# unsqueeze = np.expand_dims
-# squeeze = np.squeeze
 reshape = np.reshape
 
 

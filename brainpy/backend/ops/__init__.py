@@ -2,7 +2,7 @@
 
 import types
 
-from .numpy_ import *
+from brainpy.backend.ops.necessary_ops.numpy_ import *
 
 __all__ = [
     'switch_to',
@@ -25,54 +25,81 @@ OPS_FOR_SIMULATION = [
     'ones',  # for array creation
     'arange',  # for array creation, for example, times
     'concatenate',  # for monitor data concatenation
-    'where',
+    'where',  # for connectivity
     'reshape'
 ]
 OPS_OF_DTYPE = ['bool',
                 'int', 'int32', 'int64',
                 'float', 'float32', 'float64']
 
+_fixed_vars = [
+    # packages
+    'types',
+    # variables
+    '_backend', '_fixed_vars',
+    'BUFFER', 'OPS_FOR_SOLVER', 'OPS_FOR_SIMULATION', 'OPS_OF_DTYPE',
+    # functions
+    'switch_to',
+    'set_ops_from_module', 'set_ops', 'set_buffer', 'get_buffer',
+]
+
 
 def switch_to(backend):
+    global _backend
+    if _backend == backend:
+        return
+
+    # 1. pop out all operations
+    global_vars = globals()
+    for key in list(global_vars.keys()):
+        if (not key.startswith('__')) and (key not in _fixed_vars):
+            global_vars.pop(key)
+
+    # 2. append new operations in the new backend
     if backend == 'numpy':
-        from . import numpy_
+        from brainpy.backend.ops.necessary_ops import numpy_
         set_ops_from_module(numpy_)
 
     elif backend == 'pytorch':
-        from . import pytorch_
+        from brainpy.backend.ops.necessary_ops import pytorch_
         set_ops_from_module(pytorch_)
 
     elif backend == 'tensorflow':
-        from . import tensorflow_
+        from brainpy.backend.ops.necessary_ops import tensorflow_
         set_ops_from_module(tensorflow_)
 
     elif backend == 'numba':
-        from . import numba_cpu
+        from brainpy.backend.ops.necessary_ops import numba_cpu
         set_ops_from_module(numba_cpu)
 
     elif backend == 'numba-parallel':
-        from . import numba_cpu
+        from brainpy.backend.ops.necessary_ops import numba_cpu
         set_ops_from_module(numba_cpu)
 
     elif backend == 'numba-cuda':
-        from . import numba_cuda
+        from brainpy.backend.ops.necessary_ops import numba_cuda
         set_ops_from_module(numba_cuda)
 
     elif backend == 'jax':
-        from . import jax_
+        from brainpy.backend.ops.necessary_ops import jax_
         set_ops_from_module(jax_)
 
     else:
+        if backend not in BUFFER:
+            raise ValueError(f'Cannot switch to "{backend}" backend, because '
+                             f'"{backend}" is neither a pre-defined backend '
+                             f'(support "numpy", "numba", "jax", "pytorch", '
+                             f'"tensorflow"), nor a backend in the BUFFER.')
         ops_in_buffer = get_buffer(backend)
         for ops in OPS_FOR_SOLVER:
             if ops not in ops_in_buffer:
                 raise ValueError(f'Necessary operation "{ops}" is not '
                                  f'defined in "{backend}" backend\'s buffers.')
 
-    # set operations from BUFFER
+    # 3. set operations from BUFFER
     ops_in_buffer = get_buffer(backend)
     set_ops(**ops_in_buffer)
-    global _backend
+
     _backend = backend
 
 
@@ -84,9 +111,12 @@ def set_ops_from_module(module):
     module :
     """
 
-    ops_in_module = {p: getattr(module, p) for p in dir(module)
-                     if (not p.startswith('__')) and
-                     (not isinstance(getattr(module, p), types.ModuleType))}
+    ops_in_module = {}
+    for p in dir(module):
+        val = getattr(module, p)
+        if (not p.startswith('__')) and (not isinstance(val, types.ModuleType)):
+            ops_in_module[p] = val
+
     global_vars = globals()
 
     for ops in OPS_FOR_SOLVER:
@@ -97,13 +127,9 @@ def set_ops_from_module(module):
     for ops in OPS_FOR_SIMULATION:
         if ops in ops_in_module:
             global_vars[ops] = ops_in_module.pop(ops)
-        else:
-            del global_vars[ops]
     for ops in OPS_OF_DTYPE:
         if ops in ops_in_module:
             global_vars[ops] = ops_in_module.pop(ops)
-        else:
-            del global_vars[ops]
 
     for ops, val in ops_in_module.items():
         global_vars[ops] = val

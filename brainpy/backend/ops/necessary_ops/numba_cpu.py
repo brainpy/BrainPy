@@ -1,17 +1,37 @@
 # -*- coding: utf-8 -*-
 
-
-import math
 import numpy as np
 
-from . import numba_overload
-from .more_unified_ops.numba_cuda import *
+from brainpy.backend.ops.necessary_ops import numba_overload
+from brainpy.backend.ops.more_unified_ops import numba_cpu
+
+
+__all__ = [
+    'normal',
+    'exp',
+    'sum',
+    'shape',
+    'as_tensor',
+    'zeros',
+    'ones',
+    'arange',
+    'concatenate',
+    'where',
+    'reshape',
+    'bool',
+    'int',
+    'int32',
+    'int64',
+    'float',
+    'float32',
+    'float64'
+]
 
 # necessary ops for integrators
 normal = np.random.normal
 sum = np.sum
 shape = np.shape
-exp = math.exp
+exp = np.exp
 
 # necessary ops for dynamics simulation
 as_tensor = np.asarray
@@ -36,3 +56,4 @@ float64 = np.float64
 
 if __name__ == '__main__':
     numba_overload
+    numba_cpu

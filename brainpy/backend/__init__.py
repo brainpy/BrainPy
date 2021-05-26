@@ -107,3 +107,6 @@ def get_backend_name():
         The name of the current backend name.
     """
     return BACKEND_NAME
+
+
+from brainpy.backend.ops.more_unified_ops import numpy_

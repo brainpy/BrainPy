@@ -11,7 +11,28 @@ try:
 except ModuleNotFoundError:
     raise errors.BackendNotInstalled('tensorflow')
 
-from .more_unified_ops.tensorflow_ import *
+from brainpy.backend.ops.more_unified_ops import tensorflow_
+
+__all__ = [
+    'normal',
+    'exp',
+    'sum',
+    'shape',
+    'as_tensor',
+    'zeros',
+    'ones',
+    'arange',
+    'concatenate',
+    'where',
+    'reshape',
+    'bool',
+    'int',
+    'int32',
+    'int64',
+    'float',
+    'float32',
+    'float64'
+]
 
 
 # necessary ops for integrators
@@ -58,3 +79,6 @@ int64 = tf.int64
 float = tf.float32
 float32 = tf.float32
 float64 = tf.float64
+
+if __name__ == '__main__':
+    tensorflow_

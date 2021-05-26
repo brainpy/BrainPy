@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.drivers import BaseNodeDriver, BaseNetDriver, BaseDiffIntDriver
-from .general import GeneralNodeDriver, GeneralNetDriver, GeneralDiffIntDriver
+from brainpy.backend.drivers.general import GeneralDiffIntDriver
+from brainpy.backend.drivers.general import GeneralNetDriver
+from brainpy.backend.drivers.general import GeneralNodeDriver
+from brainpy.simulation.drivers import BaseDiffIntDriver
+from brainpy.simulation.drivers import BaseNetDriver
+from brainpy.simulation.drivers import BaseNodeDriver
 
 __all__ = [
     'switch_to',
