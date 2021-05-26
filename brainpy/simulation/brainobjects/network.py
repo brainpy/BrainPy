@@ -124,6 +124,8 @@ class Network(object):
         return ops.arange(self.t_start, self.t_end, backend.get_dt())
 
     def schedule(self):
+        """Network scheduling in a network.
+        """
         for node in self.all_nodes.values():
             for key in node.schedule():
                 yield f'{node.name}.{key}'

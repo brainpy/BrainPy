@@ -3,6 +3,7 @@ publishment.md
 .vscode
 
 develop/benchmark/COBA/results
+develop/test
 develop/outputdir
 
 docs/images/numpybrain_arch.pptx

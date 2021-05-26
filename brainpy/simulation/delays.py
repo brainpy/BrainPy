@@ -54,7 +54,7 @@ class ConstantDelay(object):
             self.delay_out_idx = 0
         else:
             self.delay_out_idx = ops.zeros(self.num, dtype=int)
-        self.name = None
+        self.name = None  # will be set by the parent
 
     def pull(self, idx=None):
         if self.uniform_delay:
@@ -85,3 +85,6 @@ class ConstantDelay(object):
     def update(self):
         self.delay_in_idx = (self.delay_in_idx + 1) % self.delay_num_step
         self.delay_out_idx = (self.delay_out_idx + 1) % self.delay_num_step
+
+    def reset(self):
+        self.delay_data[:] = 0

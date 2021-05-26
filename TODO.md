@@ -38,10 +38,12 @@
 
 # Documentation
 
-- [ ] running order scheduling  (done @ 2021.05.25)
-- [ ] more about monitor
+- [ ] detailed documentation for numerical solvers of ODEs
+- [ ] detailed documentation for numerical solvers of SDEs
 - [ ] numba cpu backend
 - [ ] numba cuda backend
-- [ ] unified operation
-- [ ] repeat running mode
+- [ ] unified operation (done @ 2021.05.26)
+- [x] more about monitor (done @ 2021.05.25)
+- [x] repeat running mode  (done @ 2021.05.25)
+- [ ] running order scheduling  (done @ 2021.05.25)
 

@@ -38,10 +38,8 @@ and comprehensive examples of BrainPy please see
    tutorials/efficient_synaptic_computation
    tutorials/running_order_scheduling
    tutorials/monitor
-   tutorials/numba_cpu_backend
-   tutorials/numba_cuda_backend
-   tutorials/unified_operations
    tutorials/repeat_mode
+   tutorials/unified_operations
 
 
 .. toctree::

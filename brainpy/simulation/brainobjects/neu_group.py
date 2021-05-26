@@ -27,13 +27,13 @@ class NeuGroup(DynamicSystem):
     def __init__(self, size, monitors=None, name=None, show_code=False, steps=None):
         # name
         # -----
+
         if name is None:
-            name = ''
+            global _NeuGroup_NO
+            _NeuGroup_NO += 1
+            name = f'NG{_NeuGroup_NO}'
         else:
-            name = '_' + name
-        global _NeuGroup_NO
-        _NeuGroup_NO += 1
-        name = f'NG{_NeuGroup_NO}{name}'
+            assert name.isidentifier()
 
         # size
         # ----

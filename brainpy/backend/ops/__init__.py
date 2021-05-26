@@ -174,3 +174,6 @@ def set_buffer(backend, *args, **kwargs):
 
 def get_buffer(backend):
     return BUFFER.get(backend, dict())
+
+
+from brainpy.backend.ops.more_unified_ops import numpy_

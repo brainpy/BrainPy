@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+from numba import cuda
+
+if not cuda.is_available():
+    pytest.skip("cuda is not available", allow_module_level=True)
 
 import numpy as np
 

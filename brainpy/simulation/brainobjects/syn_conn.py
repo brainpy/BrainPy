@@ -76,12 +76,11 @@ class TwoEndConn(SynConn):
         # name
         # ----
         if name is None:
-            name = ''
+            global _TwoEndSyn_NO
+            _TwoEndSyn_NO += 1
+            name = f'TEC{_TwoEndSyn_NO}{name}'
         else:
-            name = '_' + name
-        global _TwoEndSyn_NO
-        _TwoEndSyn_NO += 1
-        name = f'TEC{_TwoEndSyn_NO}{name}'
+            assert name.isidentifier()
 
         # pre or post neuron group
         # ------------------------

@@ -33,7 +33,7 @@ class HH(bp.NeuGroup):
         super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
-    @bp.odeint(method='exponential_euler', show_code=True)
+    @bp.odeint(method='exponential_euler')
     def integral(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
         alpha = 0.1 * (V + 40) / (1 - bp.ops.exp(-(V + 40) / 10))
         beta = 4.0 * bp.ops.exp(-(V + 65) / 18)
@@ -117,7 +117,7 @@ class HH_with_Every(bp.NeuGroup):
         super(HH_with_Every, self).__init__(size=size, **kwargs)
 
     @staticmethod
-    @bp.odeint(method='exponential_euler', show_code=True)
+    @bp.odeint(method='exponential_euler')
     def integral(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
         alpha = 0.1 * (V + 40) / (1 - bp.ops.exp(-(V + 40) / 10))
         beta = 4.0 * bp.ops.exp(-(V + 65) / 18)
@@ -163,5 +163,5 @@ def run_hh2_with_interval_monitor():
     bp.visualize.line_plot(group.mon.V_t, group.mon.V, show=True)
 
 
-if __name__ == '__main__1':
+if __name__ == '__main__':
     run_hh2_with_interval_monitor()
