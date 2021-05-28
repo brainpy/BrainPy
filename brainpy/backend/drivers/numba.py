@@ -10,7 +10,7 @@ from brainpy import backend
 from brainpy import errors
 from brainpy import tools
 from brainpy.integrators import constants as diffint_cons
-from brainpy.simulation import delays
+from ...simulation.brainobjects import delays
 from brainpy.simulation import drivers
 from . import utils
 from .general import GeneralNodeDriver

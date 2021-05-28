@@ -69,16 +69,12 @@ def switch_to(backend):
         set_ops_from_module(tensorflow_)
 
     elif backend == 'numba':
-        from brainpy.backend.ops.necessary_ops import numba_cpu
-        set_ops_from_module(numba_cpu)
+        from brainpy.backend.ops.necessary_ops import numba
+        set_ops_from_module(numba)
 
     elif backend == 'numba-parallel':
-        from brainpy.backend.ops.necessary_ops import numba_cpu
-        set_ops_from_module(numba_cpu)
-
-    elif backend == 'numba-cuda':
-        from brainpy.backend.ops.necessary_ops import numba_cuda
-        set_ops_from_module(numba_cuda)
+        from brainpy.backend.ops.necessary_ops import numba
+        set_ops_from_module(numba)
 
     elif backend == 'jax':
         from brainpy.backend.ops.necessary_ops import jax_

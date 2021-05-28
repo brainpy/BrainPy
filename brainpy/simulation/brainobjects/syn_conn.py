@@ -3,8 +3,8 @@
 from collections import OrderedDict
 
 from brainpy import errors
-from brainpy.simulation import delays
-from .dynamic_system import DynamicSystem
+from . import delays
+from brainpy.simulation.base import DynamicSystem
 from .neu_group import NeuGroup
 
 __all__ = [

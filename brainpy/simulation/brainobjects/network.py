@@ -5,7 +5,7 @@ from collections import OrderedDict
 from brainpy import backend
 from brainpy.backend import ops
 from brainpy.simulation import utils
-from .dynamic_system import DynamicSystem
+from brainpy.simulation.base import DynamicSystem
 from .neu_group import NeuGroup
 from .syn_conn import SynConn
 
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-class Network(object):
+class Network(DynamicSystem):
     """The main simulation controller in ``BrainPy``.
 
     ``Network`` handles the running of a simulation. It contains a set

@@ -10,6 +10,7 @@
 
 # Neuronal Dynamics Simulation
 
+- [ ] redesign the architecture to support nested DynamicalSystem definition
 - [ ] Allow defining the `Soma` object
 - [ ] Allow defining the `Dendrite` object
 - [x] Allow running monitor functions by customized `@every` xx ms (done @ 2021.05.23)
@@ -42,8 +43,8 @@
 - [ ] detailed documentation for numerical solvers of SDEs
 - [ ] numba cpu backend
 - [ ] numba cuda backend
-- [ ] unified operation (done @ 2021.05.26)
+- [x] unified operation (done @ 2021.05.26)
 - [x] more about monitor (done @ 2021.05.25)
 - [x] repeat running mode  (done @ 2021.05.25)
-- [ ] running order scheduling  (done @ 2021.05.25)
+- [x] running order scheduling  (done @ 2021.05.25)
 

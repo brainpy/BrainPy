@@ -3,7 +3,7 @@
 import numpy as np
 
 from brainpy.backend.ops.necessary_ops import numba_overload
-from brainpy.backend.ops.more_unified_ops import numba_cpu
+from brainpy.backend.ops.more_unified_ops import numba
 
 
 __all__ = [
@@ -56,4 +56,4 @@ float64 = np.float64
 
 if __name__ == '__main__':
     numba_overload
-    numba_cpu
+    numba

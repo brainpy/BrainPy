@@ -35,22 +35,16 @@ def switch_to(backend):
         DIFFINT_DRIVER = buffer.get('intg', None) or GeneralDiffIntDriver
 
     elif backend in ['numba', 'numba-parallel']:
-        from . import numba_cpu
+        from . import numba
 
         if backend == 'numba':
-            numba_cpu.set_numba_profile(nogil=False, parallel=False)
+            numba.set_numba_profile(nogil=False, parallel=False)
         else:
-            numba_cpu.set_numba_profile(nogil=True, parallel=True)
+            numba.set_numba_profile(nogil=True, parallel=True)
 
         NET_DRIVER = buffer.get('net', None) or GeneralNetDriver
-        NODE_DRIVER = buffer.get('node', None) or numba_cpu.NumbaCPUNodeDriver
-        DIFFINT_DRIVER = buffer.get('intg', None) or numba_cpu.NumbaCpuDiffIntDriver
-
-    elif backend == 'numba-cuda':
-        from . import numba_cuda
-        NODE_DRIVER = buffer.get('node', None) or numba_cuda.NumbaCUDANodeDriver
-        NET_DRIVER = buffer.get('net', None) or numba_cuda.NumbaCUDANetDriver
-        DIFFINT_DRIVER = buffer.get('intg', None) or numba_cuda.NumbaCudaDiffIntDriver
+        NODE_DRIVER = buffer.get('node', None) or numba.NumbaCPUNodeDriver
+        DIFFINT_DRIVER = buffer.get('intg', None) or numba.NumbaCpuDiffIntDriver
 
     else:
         if 'node' not in buffer:

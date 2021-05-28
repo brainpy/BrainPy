@@ -1,6 +1,17 @@
 Release notes
 =============
 
+BrainPy 1.1.0
+-------------
+
+This release continues to improve the user-friendliness.
+
+Highlights of core changes:
+
+* Do not support Numba-CUDA backend
+* New design for neurodynamics simulation architecture:
+  support multi-scaling modeling, all objects are dynamical systems
+
 
 BrainPy 1.0.2
 -------------

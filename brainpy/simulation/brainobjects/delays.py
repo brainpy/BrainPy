@@ -5,14 +5,14 @@ import math
 from brainpy import backend
 from brainpy.backend import ops
 from brainpy.simulation.utils import size2len
-
+from brainpy.simulation.base import DynamicSystem
 
 __all__ = [
     'ConstantDelay',
 ]
 
 
-class ConstantDelay(object):
+class ConstantDelay(DynamicSystem):
     """Constant delay variable for synapse computation.
     """
 

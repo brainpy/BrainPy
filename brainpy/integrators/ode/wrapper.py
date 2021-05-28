@@ -171,10 +171,14 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, im_return):
     code_lines.append(f'  return {", ".join(return_args)}')
 
     # compilation
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)
 
 
 def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type, im_return):
@@ -291,10 +295,14 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
     code_lines.append(f'  return {", ".join(return_args)}')
 
     # compilation
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)
 
 
 def rk2_wrapper(f, show_code, dt, beta, var_type, im_return):
@@ -320,10 +328,14 @@ def rk2_wrapper(f, show_code, dt, beta, var_type, im_return):
     return_vars = [f'{v}_new' for v in variables]
     code_lines.append(f'  return {", ".join(return_vars)}')
 
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)
 
 
 def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
@@ -410,7 +422,11 @@ def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
         code_lines.append('')
 
     code_lines.append(f'  return {", ".join([f"{v}_new" for v in variables])}')
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)
