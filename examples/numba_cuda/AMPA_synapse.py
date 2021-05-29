@@ -147,6 +147,8 @@ def uniform_delay():
 
 
 def non_uniform_delay():
+    bp.backend.set(backend='numba-cuda', dt=0.05)
+
     hh = HH(4000, monitors=['V'])
     ampa = AMPA1(pre=hh, post=hh, conn=bp.connect.All2All(),
                  delay=lambda: np.random.random() * 1., monitors=['s0'])
@@ -163,5 +165,5 @@ def non_uniform_delay():
 
 
 if __name__ == '__main__':
-    uniform_delay()
-    # non_uniform_delay()
+    # uniform_delay()
+    non_uniform_delay()

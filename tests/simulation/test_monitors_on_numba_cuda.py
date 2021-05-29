@@ -25,7 +25,7 @@ class TryGroup(NeuGroup):
 
 
 def test_non_array():
-    set('numba_cuda', dt=0.1)
+    set('numba-cuda', dt=0.1)
     try1 = TryGroup(monitors=['a'])
     try1.a = 1.
     try1.run(100.)
@@ -35,7 +35,7 @@ def test_non_array():
 
 
 def test_1d_array():
-    set('numba_cuda', dt=0.1)
+    set('numba-cuda', dt=0.1)
     try1 = TryGroup(monitors=['a'])
     try1.a = np.ones(1)
     try1.run(100.)
@@ -45,7 +45,7 @@ def test_1d_array():
 
 
 def test_2d_array():
-    set('numba_cuda', dt=0.1)
+    set('numba-cuda', dt=0.1)
     try1 = TryGroup(monitors=['a'])
     try1.a = np.ones((2, 2))
     try1.run(100.)
@@ -57,7 +57,7 @@ def test_2d_array():
 
 
 def test_monitor_with_every():
-    set('numba_cuda', dt=0.1)
+    set('numba-cuda', dt=0.1)
 
     # try1: 2d array
     try1 = TryGroup(monitors=Monitor(variables=['a'], every=[1.]))
@@ -85,7 +85,7 @@ def test_monitor_with_every():
     assert np.allclose(series, try3.mon.a)
 
 
-test_non_array()
-test_1d_array()
-test_2d_array()
-test_monitor_with_every()
+# test_non_array()
+# test_1d_array()
+# test_2d_array()
+# test_monitor_with_every()

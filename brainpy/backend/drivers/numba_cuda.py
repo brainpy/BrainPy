@@ -1028,7 +1028,7 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
                             key_idx_gpu_name = self.transfer_cpu_data_to_gpu(self.target,
                                                                              cpu_key=f'{key}_mon_idx',
                                                                              cpu_data=key_val)
-                            args2calls[f'{host_name}_{key}_{idx}'] = f'{host_name}.{key_idx_gpu_name}'
+                            args2calls[f'{host_name}_{key}'] = f'{host_name}.{key_idx_gpu_name}'
                             size = idx.size
                     elif isinstance(key_val, DeviceNDArray):
                         if key_val.ndim != 1:
@@ -1047,15 +1047,17 @@ def new_{func_name}(delay_num_step, delay_in_idx, delay_out_idx):
 
                 # format code lines
 
-                line_calls.append(f'{host_name}.mon.{key}_t[_i] = _t')
+                # line_calls.append(f'{host_name}.mon.{key}_t[_i] = _t')
                 code_lines = []
                 for size, keys in new_formatted_monitors.items():
                     code_lines = [f'  if thread_i < {size}:']
                     for key in keys:
+                        key, idx = key
                         # # initialize monitor array #
                         # mon[key] = np.zeros((mon_length, size), dtype=getattr(self.host, key).dtype)
                         # transfer data from GPU to CPU
-                        mon_gpu_name = self.transfer_cpu_data_to_gpu(self.target.mon, cpu_key=key,
+                        mon_gpu_name = self.transfer_cpu_data_to_gpu(self.target.mon,
+                                                                     cpu_key=key,
                                                                      cpu_data=getattr(mon, key))
                         args2calls[f'{host_name}_mon_{key}'] = f'{host_name}.mon.{mon_gpu_name}'
                         # add line #
