@@ -2,7 +2,7 @@ Release notes
 =============
 
 
-BrainPy 1.0.2
+BrainPy 1.0.3
 -------------
 
 This release continues to improve the user-friendliness.
@@ -11,10 +11,9 @@ Highlights of core changes:
 
 * Super initialization `super(XXX, self).__init__()` can be done at anywhere
   (not required to add at the bottom of the `__init__()` function).
-  * Add build phase in Monitor;
-  *
 * Add the output message of the step function running error.
-
+* More powerful support for Monitoring
+* More powerful support for running order scheduling
 * Remove `unsqueeze()` and `squeeze()` operations in ``brainpy.ops``
 * Add `reshape()` operation in ``brainpy.ops``
 

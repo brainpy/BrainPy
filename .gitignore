@@ -22,6 +22,7 @@ docs/tutorials_advanced/usage_of_inputfactory.py
 docs/tutorials_advanced/usage_of_utils_connect.py
 
 docs/apis/_autosummary
+docs/apis/changelog.rst
 docs/apis/integrators/_autosummary
 
 develop/benchmark/COBA/brian2*
