@@ -15,7 +15,7 @@ __all__ = [
 
 
 def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
-          im_return=(), dt=None, show_code=None, var_type=None):
+          dt=None, show_code=None, var_type=None):
     """
 
     Parameters
@@ -44,13 +44,27 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
     var_type = constants.SCALAR_VAR if var_type is None else var_type
 
     if f is None:
-        return lambda f: adaptive_rk_wrapper(f, dt=dt, A=A, B1=B1, B2=B2, C=C, tol=tol,
-                                             adaptive=adaptive, show_code=show_code,
-                                             var_type=var_type, im_return=im_return)
+        return lambda f: adaptive_rk_wrapper(f,
+                                             dt=dt,
+                                             A=A,
+                                             B1=B1,
+                                             B2=B2,
+                                             C=C,
+                                             tol=tol,
+                                             adaptive=adaptive,
+                                             show_code=show_code,
+                                             var_type=var_type)
     else:
-        return adaptive_rk_wrapper(f, dt=dt, A=A, B1=B1, B2=B2, C=C, tol=tol,
-                                   adaptive=adaptive, show_code=show_code,
-                                   var_type=var_type, im_return=im_return)
+        return adaptive_rk_wrapper(f,
+                                   dt=dt,
+                                   A=A,
+                                   B1=B1,
+                                   B2=B2,
+                                   C=C,
+                                   tol=tol,
+                                   adaptive=adaptive,
+                                   show_code=show_code,
+                                   var_type=var_type)
 
 
 def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -101,8 +115,16 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
     B2 = ['25/216', 0, '1408/2565', '2197/4104', -0.2, 0]
     C = [0, 0.25, 0.375, '12/13', 1, '1/3']
 
-    return _base(A=A, B1=B1, B2=B2, C=C, f=f, dt=dt, tol=tol,
-                 adaptive=adaptive, show_code=show_code, var_type=var_type)
+    return _base(A=A,
+                 B1=B1,
+                 B2=B2,
+                 C=C,
+                 f=f,
+                 dt=dt,
+                 tol=tol,
+                 adaptive=adaptive,
+                 show_code=show_code,
+                 var_type=var_type)
 
 
 def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -140,8 +162,16 @@ def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
     B2 = ['1/256', '255/256', 0]
     C = [0, 0.5, 1]
 
-    return _base(A=A, B1=B1, B2=B2, C=C, f=f, dt=dt, tol=tol,
-                 adaptive=adaptive, show_code=show_code, var_type=var_type)
+    return _base(A=A,
+                 B1=B1,
+                 B2=B2,
+                 C=C,
+                 f=f,
+                 dt=dt,
+                 tol=tol,
+                 adaptive=adaptive,
+                 show_code=show_code,
+                 var_type=var_type)
 
 
 def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -196,8 +226,16 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
     B2 = ['5179/57600', 0, '7571/16695', '393/640', '-92097/339200', '187/2100', 0.025]
     C = [0, 0.2, 0.3, 0.8, '8/9', 1, 1]
 
-    return _base(A=A, B1=B1, B2=B2, C=C, f=f, dt=dt, tol=tol,
-                 adaptive=adaptive, show_code=show_code, var_type=var_type)
+    return _base(A=A,
+                 B1=B1,
+                 B2=B2,
+                 C=C,
+                 f=f,
+                 dt=dt,
+                 tol=tol,
+                 adaptive=adaptive,
+                 show_code=show_code,
+                 var_type=var_type)
 
 
 def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -244,8 +282,16 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
     B2 = ['2825/27648', 0, '18575/48384', '13525/55296', '277/14336', 0.25]
     C = [0, 0.2, 0.3, 0.6, 1, 0.875]
 
-    return _base(A=A, B1=B1, B2=B2, C=C, f=f, dt=dt, tol=tol,
-                 adaptive=adaptive, show_code=show_code, var_type=var_type)
+    return _base(A=A,
+                 B1=B1,
+                 B2=B2,
+                 C=C,
+                 f=f,
+                 dt=dt,
+                 tol=tol,
+                 adaptive=adaptive,
+                 show_code=show_code,
+                 var_type=var_type)
 
 
 def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -287,8 +333,16 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
     B2 = ['7/24', 0.25, '1/3', 0.125]
     C = [0, 0.5, 0.75, 1]
 
-    return _base(A=A, B1=B1, B2=B2, C=C, f=f, dt=dt, tol=tol,
-                 adaptive=adaptive, show_code=show_code, var_type=var_type)
+    return _base(A=A,
+                 B1=B1,
+                 B2=B2,
+                 C=C,
+                 f=f,
+                 dt=dt,
+                 tol=tol,
+                 adaptive=adaptive,
+                 show_code=show_code,
+                 var_type=var_type)
 
 
 def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -320,8 +374,16 @@ def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_typ
     B2 = [1, 0]
     C = [0, 1]
 
-    return _base(A=A, B1=B1, B2=B2, C=C, f=f, dt=dt, tol=tol,
-                 adaptive=adaptive, show_code=show_code, var_type=var_type)
+    return _base(A=A,
+                 B1=B1,
+                 B2=B2,
+                 C=C,
+                 f=f,
+                 dt=dt,
+                 tol=tol,
+                 adaptive=adaptive,
+                 show_code=show_code,
+                 var_type=var_type)
 
 
 def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is_scalar=None):

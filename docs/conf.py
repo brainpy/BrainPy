@@ -26,6 +26,14 @@ author = 'Chaoming Wang'
 # The full version, including alpha/beta/rc tags
 release = brainpy.__version__
 
+det_changelog = 'apis/changelog.rst'
+src_changelog = '../changelog.rst'
+
+if os.path.exists(det_changelog):
+    os.remove(det_changelog)
+
+from shutil import copyfile
+copyfile(src_changelog, det_changelog)
 
 # -- General configuration ---------------------------------------------------
 

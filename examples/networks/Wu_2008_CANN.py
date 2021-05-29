@@ -130,4 +130,6 @@ def task3_smooth_tracking():
     )
 
 
-task3_smooth_tracking()
+task1_population_coding()
+# task2_template_matching()
+# task3_smooth_tracking()

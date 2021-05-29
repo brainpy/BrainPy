@@ -3,9 +3,8 @@
 import numpy as np
 
 from brainpy import backend
-from brainpy.backend import ops
 from brainpy import tools
-
+from brainpy.backend import ops
 
 __all__ = [
     'cross_correlation',

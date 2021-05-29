@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-def exponential_euler(f=None, show_code=None, dt=None, var_type=None, im_return=()):
+def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
     """First order, explicit exponential Euler method.
 
     For an ODE equation of the form
@@ -47,8 +47,12 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None, im_return=
     var_type = constants.SCALAR_VAR if var_type is None else var_type
 
     if f is None:
-        return lambda f: exp_euler_wrapper(f, show_code=show_code, dt=dt,
-                                           var_type=var_type, im_return=im_return)
+        return lambda f: exp_euler_wrapper(f,
+                                           show_code=show_code,
+                                           dt=dt,
+                                           var_type=var_type)
     else:
-        return exp_euler_wrapper(f, show_code=show_code, dt=dt,
-                                 var_type=var_type, im_return=im_return)
+        return exp_euler_wrapper(f,
+                                 show_code=show_code,
+                                 dt=dt,
+                                 var_type=var_type)

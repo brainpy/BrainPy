@@ -80,7 +80,7 @@ class ExcSyn(bp.TwoEndConn):
         for pre_id, spike in enumerate(self.pre.spike):
             if spike > 0:
                 for post_i in self.pre2post[pre_id]:
-                    self.post.g[post_i] += we
+                    self.post.ge[post_i] += we
 
 
 class InhSyn(bp.TwoEndConn):

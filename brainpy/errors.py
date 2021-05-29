@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
+class RunningError(Exception):
+    """The error occurred in the running function."""
+    pass
+
+
 class ModelDefError(Exception):
     """Model definition error."""
     pass

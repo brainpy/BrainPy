@@ -3,7 +3,6 @@
 
 import brainpy as bp
 
-
 bp.integrators.set_default_odeint('rk4')
 
 
@@ -38,8 +37,8 @@ class GABAa(bp.TwoEndConn):
     def int_s(s, t, TT, alpha, beta):
         return alpha * TT * (1 - s) - beta * s
 
-    def update(self, _t):
-        spike = bp.ops.unsqueeze(self.pre.spike, 1) * self.conn_mat
+    def update(self, _t, _i, _dt):
+        spike = bp.ops.reshape(self.pre.spike, (self.pre.num, 1)) * self.conn_mat
         self.t_last_pre_spike = bp.ops.where(spike, _t, self.t_last_pre_spike)
         TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
         self.s = self.int_s(self.s, _t, TT, self.alpha, self.beta)
@@ -95,7 +94,7 @@ class HH(bp.NeuGroup):
 
         return dVdt, phi * dhdt, phi * dndt
 
-    def update(self, _t):
+    def update(self, _t, _i, _dt):
         V, h, n = self.integral(self.V, self.h, self.n, _t,
                                 self.input, self.gNa, self.ENa, self.gK,
                                 self.EK, self.gL, self.EL, self.C, self.phi)
@@ -124,3 +123,4 @@ bp.visualize.line_plot(net.ts, neu.mon.V, xlim=xlim, ylabel='Membrane potential 
 
 fig.add_subplot(gs[1, 0])
 bp.visualize.raster_plot(net.ts, neu.mon.spike, xlim=xlim, show=True)
+

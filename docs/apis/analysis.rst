@@ -4,66 +4,100 @@
 .. currentmodule:: brainpy.analysis
 .. automodule:: brainpy.analysis
 
+.. contents::
+    :depth: 2
+
+Summary
+-------
+
 .. autosummary::
     :toctree: _autosummary
 
-    BaseNeuronAnalyzer
-    Base1DNeuronAnalyzer
-    Base2DNeuronAnalyzer
-
     PhasePlane
-    _PhasePlane1D
-    _PhasePlane2D
-
     Bifurcation
-    _Bifurcation1D
-    _Bifurcation2D
-
     FastSlowBifurcation
-    _FastSlow1D
-    _FastSlow2D
+
+    get_1d_stability_types
+    get_2d_stability_types
+    get_3d_stability_types
+    stability_analysis
 
 
+Phase Plane Analysis
+--------------------
 
-.. autoclass:: BaseNeuronAnalyzer
-    :members:
+We provide a fundamental class `PhasePlane` to help users make
+phase plane analysis for 1D/2D dynamical systems. Five methods
+are provided, which can help you to plot:
 
-.. autoclass:: Base1DNeuronAnalyzer
-    :members: get_f_dx, get_f_dfdx
-
-.. autoclass:: Base2DNeuronAnalyzer
-    :members: get_f_dy, get_f_dfdy, get_f_dgdx, get_f_dgdy, get_f_jacobian, get_y_by_x_in_y_eq, get_x_by_y_in_y_eq, get_y_by_x_in_x_eq, get_x_by_y_in_x_eq, get_f_fixed_point
-
+- Fixed points
+- Nullcline (zero-growth isoclines)
+- Vector filed
+- Limit cycles
+- Trajectory
 
 
 .. autoclass:: PhasePlane
-    :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
+    :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field, plot_limit_cycle_by_sim
 
-.. autoclass:: _PhasePlane1D
-    :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
 
-.. autoclass:: _PhasePlane2D
-    :members: plot_fixed_point, plot_nullcline, plot_trajectory, plot_vector_field
+Bifurcation Analysis
+--------------------
 
+We also provide basic bifurcation analysis for 1D/2D dynamical systems.
 
 
 .. autoclass:: Bifurcation
-    :members: plot_bifurcation
-
-.. autoclass:: _Bifurcation1D
-    :members: plot_bifurcation
-
-.. autoclass:: _Bifurcation2D
-    :members: plot_bifurcation
+    :members: plot_bifurcation, plot_limit_cycle_by_sim
 
 
+Fast-slow System Analysis
+-------------------------
+
+For some 3D dynamical system, which can be treated as a fast-slow system,
+they can be easily analyzed through our provided `FastSlowBifurcation`.
 
 .. autoclass:: FastSlowBifurcation
     :members: plot_bifurcation
 
-.. autoclass:: _FastSlow1D
-    :members: plot_bifurcation
 
-.. autoclass:: _FastSlow2D
-    :members: plot_bifurcation
+Useful Functions
+----------------
+
+In `brainpy.analysis` module, we also provide several useful functions
+which may help your dynamical system analysis.
+
+.. code-block:: python
+
+    >>> get_1d_stability_types()
+    ['saddle node', 'stable point', 'unstable point']
+
+.. code-block:: python
+
+    >>> get_2d_stability_types()
+    ['saddle node',
+     'center',
+     'stable node',
+     'stable focus',
+     'stable star',
+     'center manifold',
+     'unstable node',
+     'unstable focus',
+     'unstable star',
+     'unstable line',
+     'stable degenerate',
+     'unstable degenerate']
+
+.. code-block:: python
+    >>> get_3d_stability_types
+    ['unclassified stable point',
+     'unclassified unstable point',
+     'stable node',
+     'unstable saddle',
+     'unstable node',
+     'saddle node',
+     'stable focus',
+     'unstable focus',
+     'unstable center',
+     'unknown 3d']
 

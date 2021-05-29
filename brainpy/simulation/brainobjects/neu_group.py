@@ -2,7 +2,7 @@
 
 from brainpy import errors
 from brainpy.simulation import utils
-from brainpy.simulation.dynamic_system import DynamicSystem
+from .dynamic_system import DynamicSystem
 
 __all__ = [
     'NeuGroup',
@@ -27,13 +27,13 @@ class NeuGroup(DynamicSystem):
     def __init__(self, size, monitors=None, name=None, show_code=False, steps=None):
         # name
         # -----
+
         if name is None:
-            name = ''
+            global _NeuGroup_NO
+            _NeuGroup_NO += 1
+            name = f'NG{_NeuGroup_NO}'
         else:
-            name = '_' + name
-        global _NeuGroup_NO
-        _NeuGroup_NO += 1
-        name = f'NG{_NeuGroup_NO}{name}'
+            assert name.isidentifier()
 
         # size
         # ----
@@ -59,5 +59,8 @@ class NeuGroup(DynamicSystem):
                                        name=name,
                                        show_code=show_code)
 
-    def update(self, *args):
+    def update(self, _t, _i, _dt):
         raise NotImplementedError
+
+
+
