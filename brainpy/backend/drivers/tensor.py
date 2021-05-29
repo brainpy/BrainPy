@@ -10,13 +10,13 @@ from brainpy.simulation import drivers
 from . import utils
 
 __all__ = [
-    'GeneralDiffIntDriver',
-    'GeneralNodeDriver',
-    'GeneralNetDriver',
+    'TensorDiffIntDriver',
+    'TensorNodeDriver',
+    'TensorNetDriver',
 ]
 
 
-class GeneralDiffIntDriver(drivers.BaseDiffIntDriver):
+class TensorDiffIntDriver(drivers.BaseDiffIntDriver):
     def build(self, *args, **kwargs):
         # compile
         code = '\n'.join(self.code_lines)
@@ -34,12 +34,12 @@ class GeneralDiffIntDriver(drivers.BaseDiffIntDriver):
         return new_f
 
 
-class GeneralNodeDriver(drivers.BaseNodeDriver):
+class TensorNodeDriver(drivers.BaseNodeDriver):
     """General BrainPy Node Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
     def __init__(self, target):
-        super(GeneralNodeDriver, self).__init__(target=target)
+        super(TensorNodeDriver, self).__init__(target=target)
         self.last_inputs = {}
         self.formatted_funcs = {}
         self.run_func = None
@@ -334,12 +334,12 @@ class GeneralNodeDriver(drivers.BaseNodeDriver):
         return f'_input_data_of_{key.replace(".", "_")}'
 
 
-class GeneralNetDriver(drivers.BaseNetDriver):
+class TensorNetDriver(drivers.BaseNetDriver):
     """General BrainPy Network Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
     def __init__(self, target):
-        super(GeneralNetDriver, self).__init__(target=target)
+        super(TensorNetDriver, self).__init__(target=target)
         assert hasattr(self.target, 'all_nodes') and isinstance(self.target.all_nodes, dict)
         self.run_func = None
 

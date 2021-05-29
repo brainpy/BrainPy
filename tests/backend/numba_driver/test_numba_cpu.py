@@ -8,7 +8,7 @@ from pprint import pprint
 import numpy as np
 
 import brainpy as bp
-from brainpy.simulation.brainobjects.delays import ConstantDelay
+from brainpy.simulation.delays import ConstantDelay
 from brainpy.backend.drivers.numba import _CPUReader
 from brainpy.backend.drivers.numba import _analyze_step_func
 from brainpy.backend.drivers.numba import _class2func

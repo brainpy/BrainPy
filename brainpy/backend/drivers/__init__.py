@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.backend.drivers.general import GeneralDiffIntDriver
-from brainpy.backend.drivers.general import GeneralNetDriver
-from brainpy.backend.drivers.general import GeneralNodeDriver
+from brainpy.backend.drivers.tensor import TensorDiffIntDriver
+from brainpy.backend.drivers.tensor import TensorNetDriver
+from brainpy.backend.drivers.tensor import TensorNodeDriver
 from brainpy.simulation.drivers import BaseDiffIntDriver
 from brainpy.simulation.drivers import BaseNetDriver
 from brainpy.simulation.drivers import BaseNodeDriver
@@ -18,9 +18,9 @@ __all__ = [
     'BUFFER',
 ]
 
-DIFFINT_DRIVER = GeneralDiffIntDriver
-NODE_DRIVER = GeneralNodeDriver
-NET_DRIVER = GeneralNetDriver
+DIFFINT_DRIVER = TensorDiffIntDriver
+NODE_DRIVER = TensorNodeDriver
+NET_DRIVER = TensorNetDriver
 BUFFER = {}
 
 
@@ -29,10 +29,10 @@ def switch_to(backend):
 
     global NODE_DRIVER, NET_DRIVER, DIFFINT_DRIVER
     if backend in ['numpy', 'pytorch', 'tensorflow']:
-        from . import general
-        NODE_DRIVER = buffer.get('node', None) or GeneralNodeDriver
-        NET_DRIVER = buffer.get('net', None) or GeneralNetDriver
-        DIFFINT_DRIVER = buffer.get('intg', None) or GeneralDiffIntDriver
+        from . import tensor
+        NODE_DRIVER = buffer.get('node', None) or TensorNodeDriver
+        NET_DRIVER = buffer.get('net', None) or TensorNetDriver
+        DIFFINT_DRIVER = buffer.get('intg', None) or TensorDiffIntDriver
 
     elif backend in ['numba', 'numba-parallel']:
         from . import numba
@@ -42,9 +42,9 @@ def switch_to(backend):
         else:
             numba.set_numba_profile(nogil=True, parallel=True)
 
-        NET_DRIVER = buffer.get('net', None) or GeneralNetDriver
-        NODE_DRIVER = buffer.get('node', None) or numba.NumbaCPUNodeDriver
-        DIFFINT_DRIVER = buffer.get('intg', None) or numba.NumbaCpuDiffIntDriver
+        NET_DRIVER = buffer.get('net', None) or TensorNetDriver
+        NODE_DRIVER = buffer.get('node', None) or numba.NumbaNodeDriver
+        DIFFINT_DRIVER = buffer.get('intg', None) or numba.NumbaDiffIntDriver
 
     else:
         if 'node' not in buffer:

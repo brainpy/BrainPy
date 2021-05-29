@@ -29,7 +29,7 @@ def test1():
 
         return dVdt, dmdt, dhdt, dndt
 
-    exp_euler_wrapper(f=drivative, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
+    exp_euler_wrapper(f=drivative, show_code=True, dt=0.01, var_type='SCALAR',)
 
 
 def test2():
@@ -38,7 +38,7 @@ def test2():
         return -s / tau
 
     with pytest.raises(bp.errors.DiffEqError):
-        exp_euler_wrapper(f=derivative, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
+        exp_euler_wrapper(f=derivative, show_code=True, dt=0.01, var_type='SCALAR',)
 
 
 def test3():
@@ -48,10 +48,10 @@ def test3():
         return -s / tau, dv
 
     with pytest.raises(bp.errors.DiffEqError):
-        exp_euler_wrapper(f=derivative, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
+        exp_euler_wrapper(f=derivative, show_code=True, dt=0.01, var_type='SCALAR',)
 
 
 def test4():
     f = lambda s, t, tau: -s / tau
     with pytest.raises(bp.errors.AnalyzerError) as excinfo:
-        exp_euler_wrapper(f=f, show_code=True, dt=0.01, var_type='SCALAR', im_return=())
+        exp_euler_wrapper(f=f, show_code=True, dt=0.01, var_type='SCALAR',)
