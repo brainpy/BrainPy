@@ -9,9 +9,9 @@ import numpy as np
 
 import brainpy as bp
 from brainpy.simulation.delays import ConstantDelay
-from brainpy.backend.drivers.numba_cpu import _CPUReader
-from brainpy.backend.drivers.numba_cpu import _analyze_step_func
-from brainpy.backend.drivers.numba_cpu import _class2func
+from brainpy.backend.drivers.numba import _CPUReader
+from brainpy.backend.drivers.numba import _analyze_step_func
+from brainpy.backend.drivers.numba import _class2func
 
 
 class HH(bp.NeuGroup):

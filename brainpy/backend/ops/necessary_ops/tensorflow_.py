@@ -46,7 +46,7 @@ exp = tf.math.exp
 
 
 def shape(x):
-    if isinstance(x, (int, float)):
+    if not isinstance(x, tf.Tensor):
         return ()
     else:
         return x.shape()

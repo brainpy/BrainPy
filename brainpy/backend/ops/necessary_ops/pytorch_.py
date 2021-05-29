@@ -42,10 +42,10 @@ sum = torch.sum
 
 
 def shape(x):
-    if isinstance(x, (int, float)):
-        return ()
-    else:
+    if isinstance(x, torch.Tensor):
         return x.size()
+    else:
+        return ()
 
 
 # necessary ops for dynamics simulation
@@ -59,9 +59,9 @@ reshape = torch.reshape
 
 
 def where(tensor, x, y):
-    if isinstance(x, (int, float)):
+    if not isinstance(x, torch.Tensor):
         x = torch.full_like(tensor, x)
-    if isinstance(y, (int, float)):
+    if not isinstance(y, torch.Tensor):
         y = torch.full_like(tensor, y)
     return torch.where(tensor, x, y)
 

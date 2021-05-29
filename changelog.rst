@@ -2,13 +2,14 @@ Release notes
 =============
 
 
-BrainPy 1.0.3
+BrainPy 1.0.2
 -------------
 
 This release continues to improve the user-friendliness.
 
 Highlights of core changes:
 
+* Remove support for Numba-CUDA backend
 * Super initialization `super(XXX, self).__init__()` can be done at anywhere
   (not required to add at the bottom of the `__init__()` function).
 * Add the output message of the step function running error.
@@ -16,6 +17,13 @@ Highlights of core changes:
 * More powerful support for running order scheduling
 * Remove `unsqueeze()` and `squeeze()` operations in ``brainpy.ops``
 * Add `reshape()` operation in ``brainpy.ops``
+* Improve docs for numerical solvers
+* Improve tests for numerical solvers
+* Add keywords checking in ODE numerical solvers
+* Add more unified operations in brainpy.ops
+* Support "@every" in steps and monitor functions
+* Fix ODE solver bugs for class bounded function
+* Add build phase in Monitor
 
 
 BrainPy 1.0.1
