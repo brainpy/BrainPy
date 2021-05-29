@@ -48,7 +48,7 @@ and comprehensive examples of BrainPy please see
 
    tutorials_advanced/ode_numerical_solvers
    tutorials_advanced/sde_numerical_solvers
-   tutorials_advanced/how_it_works
+   tutorials_advanced/how_brainpy_works
 
 
 .. toctree::
