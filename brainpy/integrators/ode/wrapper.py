@@ -16,11 +16,12 @@ __all__ = [
     'exp_euler_wrapper',
 ]
 
+_f_kw = 'f'
+_dt_kw = 'dt'
 _ODE_UNKNOWN_NO = 0
 
 
 class Tools(object):
-
     @staticmethod
     def f_names(f):
         if f.__name__.isidentifier():
@@ -101,7 +102,7 @@ class Tools(object):
         return driver.build()
 
 
-def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, im_return):
+def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
     """Runge–Kutta methods for ordinary differential equation.
 
     For the system,
@@ -152,32 +153,48 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, im_return):
         The one-step numerical integration function.
     """
     class_kw, variables, parameters, arguments = utils.get_args(f)
-    dt_var = 'dt'
     func_name = Tools.f_names(f)
 
+    keywords = {
+        _f_kw: 'the derivative function',
+        _dt_kw: 'the precision of numerical integration'
+    }
+    for v in variables:
+        keywords[f'{v}_new'] = 'the intermediate value'
+        for i in range(1, len(A) + 1):
+            keywords[f'd{v}_k{i}'] = 'the intermediate value'
+        for i in range(2, len(A) + 1):
+            keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
+            keywords[f'k{i}_t_arg'] = 'the intermediate value'
+    utils.check_kws(arguments, keywords)
+
     # code scope
-    code_scope = {'f': f, 'dt': dt}
+    code_scope = {'f': f, _dt_kw: dt}
 
     # code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
 
     # step stage
-    Tools.step(class_kw, variables, dt_var, A, C, code_lines, parameters)
+    Tools.step(class_kw, variables, _dt_kw, A, C, code_lines, parameters)
 
     # variable update
-    return_args = Tools.update(variables, dt_var, B, code_lines)
+    return_args = Tools.update(variables, _dt_kw, B, code_lines)
 
     # returns
     code_lines.append(f'  return {", ".join(return_args)}')
 
     # compilation
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)
 
 
-def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type, im_return):
+def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type):
     """Adaptive Runge-Kutta numerical method for ordinary differential equations.
 
     The embedded methods are designed to produce an estimate of the local
@@ -242,23 +259,40 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
         raise errors.IntegratorError(f'"var_type" only supports {constants.SUPPORTED_VAR_TYPE}, not {var_type}.')
 
     class_kw, variables, parameters, arguments = utils.get_args(f)
-    dt_var = 'dt'
     func_name = Tools.f_names(f)
 
+    keywords = {
+        _f_kw: 'the derivative function',
+        _dt_kw: 'the precision of numerical integration',
+    }
+    for v in variables:
+        keywords[f'{v}_new'] = 'the intermediate value'
+        for i in range(1, len(A) + 1):
+            keywords[f'd{v}_k{i}'] = 'the intermediate value'
+        for i in range(2, len(A) + 1):
+            keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
+            keywords[f'k{i}_t_arg'] = 'the intermediate value'
+
     if adaptive:
+        keywords['dt_new'] = 'the new numerical precision "dt"'
+        keywords['tol'] = 'the tolerance for the local truncation error'
+        keywords['error'] = 'the local truncation error'
+        for v in variables:
+            keywords[f'{v}_te'] = 'the local truncation error'
         # code scope
-        code_scope = {'f': f, 'tol': tol}
-        arguments = list(arguments) + [f'dt={dt}']
+        code_scope = {_f_kw: f, 'tol': tol}
+        arguments = list(arguments) + [f'{_dt_kw}={dt}']
     else:
         # code scope
-        code_scope = {'f': f, 'dt': dt}
+        code_scope = {_f_kw: f, _dt_kw: dt}
+    utils.check_kws(arguments, keywords)
 
     # code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
     # stage steps
-    Tools.step(class_kw, variables, dt_var, A, C, code_lines, parameters)
+    Tools.step(class_kw, variables, _dt_kw, A, C, code_lines, parameters)
     # variable update
-    return_args = Tools.update(variables, dt_var, B1, code_lines)
+    return_args = Tools.update(variables, _dt_kw, B1, code_lines)
 
     # error adaptive item
     if adaptive:
@@ -272,7 +306,7 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
                     b2 = eval(b2)
                 diff = b1 - b2
                 if diff != 0.:
-                    result.append(f'd{v}_k{i + 1} * {dt_var} * {diff}')
+                    result.append(f'd{v}_k{i + 1} * {_dt_kw} * {diff}')
             if len(result) > 0:
                 if var_type == constants.SCALAR_VAR:
                     code_lines.append(f'  {v}_te = abs({" + ".join(result)})')
@@ -282,27 +316,50 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
         if len(errors_) > 0:
             code_lines.append(f'  error = {" + ".join(errors_)}')
             code_lines.append(f'  if error > tol:')
-            code_lines.append(f'    {dt_var}_new = 0.9 * {dt_var} * (tol / error) ** 0.2')
+            code_lines.append(f'    {_dt_kw}_new = 0.9 * {_dt_kw} * (tol / error) ** 0.2')
             code_lines.append(f'  else:')
-            code_lines.append(f'    {dt_var}_new = {dt_var}')
-            return_args.append(f'{dt_var}_new')
+            code_lines.append(f'    {_dt_kw}_new = {_dt_kw}')
+            return_args.append(f'{_dt_kw}_new')
 
     # returns
     code_lines.append(f'  return {", ".join(return_args)}')
 
     # compilation
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)
 
 
-def rk2_wrapper(f, show_code, dt, beta, var_type, im_return):
+def rk2_wrapper(f, show_code, dt, beta, var_type):
     class_kw, variables, parameters, arguments = utils.get_args(f)
     func_name = Tools.f_names(f)
 
-    code_scope = {'f': f, 'dt': dt, 'beta': beta,
-                  '_k1': 1 - 1 / (2 * beta), '_k2': 1 / (2 * beta)}
+    keywords = {
+        _f_kw: 'the derivative function',
+        _dt_kw: 'the precision of numerical integration',
+        'beta': 'the parameters in RK2 method',
+        '_k1': 'the parameters in RK2 method',
+        '_k2': 'the parameters in RK2 method',
+    }
+    for v in variables:
+        keywords[f'{v}_new'] = 'the intermediate value'
+        for i in range(1, 3):
+            keywords[f'd{v}_k{i}'] = 'the intermediate value'
+        for i in range(2, 3):
+            keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
+            keywords[f'k{i}_t_arg'] = 'the intermediate value'
+    utils.check_kws(arguments, keywords)
+
+    code_scope = {_f_kw: f,
+                  _dt_kw: dt,
+                  'beta': beta,
+                  '_k1': 1 - 1 / (2 * beta),
+                  '_k2': 1 / (2 * beta)}
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
     # k1
     k1_args = variables + parameters
@@ -320,25 +377,38 @@ def rk2_wrapper(f, show_code, dt, beta, var_type, im_return):
     return_vars = [f'{v}_new' for v in variables]
     code_lines.append(f'  return {", ".join(return_vars)}')
 
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)
 
 
-def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
+def exp_euler_wrapper(f, show_code, dt, var_type):
     try:
         import sympy
         from brainpy.integrators import sympy_analysis
     except ModuleNotFoundError:
-        raise errors.PackageMissingError('SymPy must be installed when using exponential euler methods.')
+        raise errors.PackageMissingError('SymPy must be installed when '
+                                         'using exponential euler methods.')
 
     if var_type == constants.SYSTEM_VAR:
-        raise errors.IntegratorError(f'Exponential Euler method do not support {var_type} variable type.')
+        raise errors.IntegratorError(f'Exponential Euler method do not '
+                                     f'support {var_type} variable type.')
 
-    dt_var = 'dt'
     class_kw, variables, parameters, arguments = utils.get_args(f)
     func_name = Tools.f_names(f)
+    keywords = {
+        _f_kw: 'the derivative function',
+        _dt_kw: 'the precision of numerical integration',
+        'exp': 'the exponential function',
+    }
+    for v in variables:
+        keywords[f'{v}_new'] = 'the intermediate value'
+    utils.check_kws(arguments, keywords)
 
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
 
@@ -346,8 +416,8 @@ def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
     closure_vars = inspect.getclosurevars(f)
     code_scope = dict(closure_vars.nonlocals)
     code_scope.update(dict(closure_vars.globals))
-    code_scope[dt_var] = dt
-    code_scope['f'] = f
+    code_scope[_dt_kw] = dt
+    code_scope[_f_kw] = f
     code_scope['exp'] = ops.exp
 
     analysis = separate_variables(f)
@@ -398,7 +468,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
 
         else:
             # linear exponential
-            code_lines.append(f'  {s_linear_exp.name} = sqrt({dt})')
+            code_lines.append(f'  {s_linear_exp.name} = {dt} ** 0.5')
             # df part
             code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(dt * s_df)}')
 
@@ -410,7 +480,11 @@ def exp_euler_wrapper(f, show_code, dt, var_type, im_return):
         code_lines.append('')
 
     code_lines.append(f'  return {", ".join([f"{v}_new" for v in variables])}')
-    return Tools.compile_and_assign_attrs(
-        code_lines=code_lines, code_scope=code_scope, show_code=show_code,
-        func_name=func_name, variables=variables, parameters=parameters,
-        dt=dt, var_type=var_type)
+    return Tools.compile_and_assign_attrs(code_lines=code_lines,
+                                          code_scope=code_scope,
+                                          show_code=show_code,
+                                          func_name=func_name,
+                                          variables=variables,
+                                          parameters=parameters,
+                                          dt=dt,
+                                          var_type=var_type)

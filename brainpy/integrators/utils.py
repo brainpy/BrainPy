@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import inspect
-from copy import deepcopy
 
 from brainpy import backend
 from brainpy import errors
@@ -9,6 +8,14 @@ from brainpy import errors
 __all__ = [
     'get_args',
 ]
+
+
+def check_kws(parameters, keywords):
+    for key, meaning in keywords.items():
+        if key in parameters:
+            raise errors.CodeError(f'"{key}" is a keyword for '
+                                   f'numerical solvers in BrainPy, denoting '
+                                   f'{meaning}. Please change another name.')
 
 
 def get_args(f):
