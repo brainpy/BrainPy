@@ -3,7 +3,7 @@
 # Numerical Solvers
 
 - [ ] More convenient way to define constant Wiener term in SDEs
-- [ ] Check whether the user-defined code has the keywords, such like `f`, `g`, etc.
+- [x] Check whether the user-defined code has the keywords, such like `f`, `g`, etc.  (done @ 2021.05.29)
 - [ ] Support numerical integration for fractional differential equations (FDEs)
 - [ ] Support numerical integration for delayed differential equations (DDEs)
 
@@ -38,12 +38,12 @@
 
 # Documentation
 
-- [ ] detailed documentation for numerical solvers of ODEs
 - [ ] detailed documentation for numerical solvers of SDEs
 - [ ] numba cpu backend
 - [ ] numba cuda backend
-- [ ] unified operation (done @ 2021.05.26)
+- [x] detailed documentation for numerical solvers of ODEs (done @ 2021.05.29)
+- [x] unified operation (done @ 2021.05.26)
 - [x] more about monitor (done @ 2021.05.25)
 - [x] repeat running mode  (done @ 2021.05.25)
-- [ ] running order scheduling  (done @ 2021.05.25)
+- [x] running order scheduling  (done @ 2021.05.25)
 
