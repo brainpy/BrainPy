@@ -5,8 +5,8 @@
 .. automodule:: brainpy.simulation.connectivity
 
 
-``formatter`` functions
-------------------------
+Formatter functions
+-------------------
 
 .. autosummary::
     :toctree: _autosummary
@@ -21,33 +21,18 @@
     post_slice
 
 
-``connector`` methods
----------------------
+Regular Connections
+-------------------
 
 .. autosummary::
     :toctree: _autosummary
 
-    Connector
     One2One
     All2All
     GridFour
     GridEight
     GridN
-    FixedPostNum
-    FixedPreNum
-    FixedProb
-    GaussianProb
-    GaussianWeight
-    DOG
-    SmallWorld
-    ScaleFreeBA
-    ScaleFreeBADual
-    PowerLaw
 
-
-
-.. autoclass:: Connector
-   :members:
 
 .. autoclass:: One2One
    :members:
@@ -63,6 +48,26 @@
 
 .. autoclass:: GridN
    :members:
+
+
+Random Connections
+------------------
+
+.. autosummary::
+    :toctree: _autosummary
+
+    FixedPostNum
+    FixedPreNum
+    FixedProb
+    GaussianProb
+    GaussianWeight
+    DOG
+    SmallWorld
+    ScaleFreeBA
+    ScaleFreeBADual
+    PowerLaw
+
+
 
 .. autoclass:: FixedPostNum
    :members:

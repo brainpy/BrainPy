@@ -85,10 +85,12 @@ plot_scheme.update({
 
 
 def get_1d_stability_types():
+    """Get the stability types of 1D system."""
     return [SADDLE_NODE, STABLE_POINT_1D, UNSTABLE_POINT_1D]
 
 
 def get_2d_stability_types():
+    """Get the stability types of 2D system."""
     return [SADDLE_NODE, CENTER_2D, STABLE_NODE_2D, STABLE_FOCUS_2D,
             STABLE_STAR_2D, CENTER_MANIFOLD, UNSTABLE_NODE_2D,
             UNSTABLE_FOCUS_2D, UNSTABLE_STAR_2D, UNSTABLE_LINE_2D,
@@ -96,13 +98,16 @@ def get_2d_stability_types():
 
 
 def get_3d_stability_types():
+    """Get the stability types of 3D system."""
     return [STABLE_POINT_3D, UNSTABLE_POINT_3D, STABLE_NODE_3D,
             UNSTABLE_SADDLE_3D, UNSTABLE_NODE_3D, SADDLE_NODE,
             STABLE_FOCUS_3D, UNSTABLE_FOCUS_3D, UNSTABLE_CENTER_3D, UNKNOWN_3D]
 
 
 def stability_analysis(derivatives):
-    """Stability analysis for fixed point [1]_.
+    """Stability analysis for fixed points.
+
+    The analysis is referred to [1]_.
 
     Parameters
     ----------

@@ -19,13 +19,13 @@ except ModuleNotFoundError:
 
 
 __all__ = [
-    'BaseNeuronAnalyzer',
-    'Base1DNeuronAnalyzer',
-    'Base2DNeuronAnalyzer',
+    'BaseAnalyzer',
+    'Base1DAnalyzer',
+    'Base2DAnalyzer',
 ]
 
 
-class BaseNeuronAnalyzer(object):
+class BaseAnalyzer(object):
     """Dynamics Analyzer for Neuron Models.
 
     This class is a base class which aims for analyze the analysis in
@@ -233,7 +233,7 @@ class BaseNeuronAnalyzer(object):
         self.options['lim_scale'] = options.get('lim_scale', 1.05)
 
 
-class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
+class Base1DAnalyzer(BaseAnalyzer):
     """Neuron analysis analyzer for 1D system.
 
     It supports the analysis of 1D dynamical system.
@@ -244,7 +244,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Base1DNeuronAnalyzer, self).__init__(*args, **kwargs)
+        super(Base1DAnalyzer, self).__init__(*args, **kwargs)
 
         self.x_var = self.dvar_names[0]
         self.x_eq_group = self.target_eqs[self.x_var]
@@ -404,7 +404,7 @@ class Base1DNeuronAnalyzer(BaseNeuronAnalyzer):
         return self.analyzed_results['fixed_point']
 
 
-class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
+class Base2DAnalyzer(Base1DAnalyzer):
     """Neuron analysis analyzer for 2D system.
 
     It supports the analysis of 2D dynamical system.
@@ -438,7 +438,7 @@ class Base2DNeuronAnalyzer(Base1DNeuronAnalyzer):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Base2DNeuronAnalyzer, self).__init__(*args, **kwargs)
+        super(Base2DAnalyzer, self).__init__(*args, **kwargs)
 
         self.y_var = self.dvar_names[1]
         self.y_eq_group = self.target_eqs[self.y_var]

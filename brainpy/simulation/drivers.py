@@ -2,8 +2,6 @@
 
 import abc
 
-from brainpy import errors
-
 __all__ = [
     'AbstractDriver',
     'BaseNodeDriver',
@@ -39,34 +37,11 @@ class BaseNodeDriver(AbstractDriver):
     """Base Node Driver.
     """
 
-    def __init__(self, host, steps):
-        self.host = host
-        self.steps = steps
-        self.schedule = ['input'] + list(self.steps.keys()) + ['monitor']
+    def __init__(self, target):
+        self.target = target
 
     def upload(self, name, data_or_func):
-        setattr(self.host, name, data_or_func)
-
-    def get_schedule(self):
-        """Get the running schedule.
-        """
-        return self.schedule
-
-    def set_schedule(self, schedule):
-        """Set the running schedule of the node.
-
-        Parameters
-        ----------
-        schedule : list
-            A list of the string, in which each item is the function name.
-        """
-        if not isinstance(schedule, (list, tuple)):
-            raise errors.ModelUseError('"schedule" must be a list/tuple.')
-        all_func_names = ['input', 'monitor'] + list(self.steps.keys())
-        for s in schedule:
-            if s not in all_func_names:
-                raise errors.ModelUseError(f'Unknown step function "{s}" for model "{self.host}".')
-        self.schedule = schedule
+        setattr(self.target, name, data_or_func)
 
     @abc.abstractmethod
     def get_input_func(self, *args, **kwargs):
@@ -85,11 +60,11 @@ class BaseNetDriver(AbstractDriver):
     """Base Network Driver.
     """
 
-    def __init__(self, host):
-        self.host = host
+    def __init__(self, target):
+        self.target = target
 
     def upload(self, name, data_or_func):
-        setattr(self.host, name, data_or_func)
+        setattr(self.target, name, data_or_func)
 
 
 class BaseDiffIntDriver(AbstractDriver):

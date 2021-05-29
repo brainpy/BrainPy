@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.drivers import BaseNodeDriver, BaseNetDriver
-from .general import GeneralNodeDriver, GeneralNetDriver, GeneralDiffIntDriver
+from brainpy.backend.drivers.tensor import TensorDiffIntDriver
+from brainpy.backend.drivers.tensor import TensorNetDriver
+from brainpy.backend.drivers.tensor import TensorNodeDriver
+from brainpy.simulation.drivers import BaseDiffIntDriver
+from brainpy.simulation.drivers import BaseNetDriver
+from brainpy.simulation.drivers import BaseNodeDriver
 
 __all__ = [
     'switch_to',
@@ -14,9 +18,9 @@ __all__ = [
     'BUFFER',
 ]
 
-DIFFINT_DRIVER = GeneralDiffIntDriver
-NODE_DRIVER = GeneralNodeDriver
-NET_DRIVER = GeneralNetDriver
+DIFFINT_DRIVER = TensorDiffIntDriver
+NODE_DRIVER = TensorNodeDriver
+NET_DRIVER = TensorNetDriver
 BUFFER = {}
 
 
@@ -25,28 +29,22 @@ def switch_to(backend):
 
     global NODE_DRIVER, NET_DRIVER, DIFFINT_DRIVER
     if backend in ['numpy', 'pytorch', 'tensorflow']:
-        from . import general
-        NODE_DRIVER = buffer.get('node', None) or GeneralNodeDriver
-        NET_DRIVER = buffer.get('net', None) or GeneralNetDriver
-        DIFFINT_DRIVER = buffer.get('intg', None) or GeneralDiffIntDriver
+        from . import tensor
+        NODE_DRIVER = buffer.get('node', None) or TensorNodeDriver
+        NET_DRIVER = buffer.get('net', None) or TensorNetDriver
+        DIFFINT_DRIVER = buffer.get('intg', None) or TensorDiffIntDriver
 
     elif backend in ['numba', 'numba-parallel']:
-        from . import numba_cpu
+        from . import numba
 
         if backend == 'numba':
-            numba_cpu.set_numba_profile(nogil=False, parallel=False)
+            numba.set_numba_profile(nogil=False, parallel=False)
         else:
-            numba_cpu.set_numba_profile(nogil=True, parallel=True)
+            numba.set_numba_profile(nogil=True, parallel=True)
 
-        NET_DRIVER = buffer.get('net', None) or GeneralNetDriver
-        NODE_DRIVER = buffer.get('node', None) or numba_cpu.NumbaCPUNodeDriver
-        DIFFINT_DRIVER = buffer.get('intg', None) or numba_cpu.NumbaCpuDiffIntDriver
-
-    elif backend == 'numba-cuda':
-        from . import numba_cuda
-        NODE_DRIVER = buffer.get('node', None) or numba_cuda.NumbaCUDANodeDriver
-        NET_DRIVER = buffer.get('net', None) or numba_cuda.NumbaCUDANetDriver
-        DIFFINT_DRIVER = buffer.get('intg', None) or numba_cuda.NumbaCudaDiffIntDriver
+        NET_DRIVER = buffer.get('net', None) or TensorNetDriver
+        NODE_DRIVER = buffer.get('node', None) or numba.NumbaNodeDriver
+        DIFFINT_DRIVER = buffer.get('intg', None) or numba.NumbaDiffIntDriver
 
     else:
         if 'node' not in buffer:
@@ -69,13 +67,13 @@ def set_buffer(backend, node_driver=None, net_driver=None, diffint_driver=None):
         BUFFER[backend] = dict()
 
     if node_driver is not None:
-        assert isinstance(node_driver, BaseNodeDriver)
+        assert BaseNodeDriver in node_driver.__bases__
         BUFFER[backend]['node'] = node_driver
     if net_driver is not None:
-        assert isinstance(node_driver, BaseNetDriver)
+        assert BaseNetDriver in net_driver.__bases__
         BUFFER[backend]['net'] = net_driver
     if diffint_driver is not None:
-        assert callable(diffint_driver)
+        assert BaseDiffIntDriver in diffint_driver.__bases__
         BUFFER[backend]['diffint'] = diffint_driver
 
 

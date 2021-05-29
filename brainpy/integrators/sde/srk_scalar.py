@@ -324,6 +324,7 @@ class Wrappers(object):
 
         var_type = constants.POPU_VAR if var_type is None else var_type
         sde_type = constants.ITO_SDE if sde_type is None else sde_type
+        wiener_type = constants.SCALAR_WIENER if wiener_type is None else wiener_type
         if var_type not in constants.SUPPORTED_VAR_TYPE:
             raise errors.IntegratorError(f'Currently, BrainPy only supports variable types: '
                                          f'{constants.SUPPORTED_VAR_TYPE}. But we got {var_type}.')
@@ -332,7 +333,7 @@ class Wrappers(object):
                                          f'but we got {sde_type} integral.')
         if wiener_type != constants.SCALAR_WIENER:
             raise errors.IntegratorError(f'SRK method for SDEs with scalar noise only supports scalar '
-                                         f'Wiener Process, but we got {wiener_type} noise..')
+                                         f'Wiener Process, but we got "{wiener_type}" noise.')
 
         show_code = False if show_code is None else show_code
         dt = backend.get_dt() if dt is None else dt

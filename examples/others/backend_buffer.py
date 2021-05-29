@@ -48,6 +48,6 @@ try:
         else: return x
 
 
-    bp.ops.set_buffer('numba-numba', clip=nb_clip)
+    bp.ops.set_buffer('numba-cuda', clip=nb_clip)
 except ModuleNotFoundError:
     pass

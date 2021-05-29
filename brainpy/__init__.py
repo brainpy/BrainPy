@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 # "backend" module
 from . import backend
@@ -13,8 +13,8 @@ from . import analysis
 # "simulation" module
 from . import simulation
 from .simulation import connectivity as connect
-from .simulation.dynamic_system import *
 from .simulation.brainobjects import *
+from .simulation.every import every
 from .simulation.utils import size2len
 
 # "integrators" module
