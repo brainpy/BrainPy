@@ -40,7 +40,6 @@ class Container(DynamicSystem):
 
         # store the step function
         self.run_func = None
-        self.show_code = show_code
 
         # add nodes
         self.add(**kwargs)
