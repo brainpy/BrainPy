@@ -8,5 +8,8 @@ __all__ = [
 
 
 class Molecular(DynamicSystem):
+    """Molecular object for neuron modeling.
+
+    """
     pass
 

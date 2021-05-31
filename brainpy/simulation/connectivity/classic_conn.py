@@ -5,7 +5,7 @@ import numpy as np
 
 from brainpy import backend
 from brainpy.simulation import utils
-from brainpy.simulation.connectivity.base import Connector
+from brainpy.simulation.connectivity.base import TwoEndConnector
 
 try:
     import numba as nb
@@ -15,6 +15,7 @@ except ModuleNotFoundError:
 __all__ = [
 ]
 
-class CompleteGraph(Connector):
+
+class CompleteGraph(TwoEndConnector):
     pass
 

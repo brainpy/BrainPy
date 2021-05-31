@@ -3,7 +3,7 @@
 import brainpy as bp
 
 
-class IndexConn(bp.connect.Connector):
+class IndexConn(bp.connect.TwoEndConnector):
     def __init__(self, i, j):
         super(IndexConn, self).__init__()
 

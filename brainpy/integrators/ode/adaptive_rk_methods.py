@@ -392,7 +392,6 @@ def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is
     DOP853 is an explicit Runge-Kutta method of order 8(5,3) due to Dormand & Prince
     (with stepsize control and dense output).
 
-
     References
     ----------
 

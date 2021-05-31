@@ -8,5 +8,8 @@ __all__ = [
 
 
 class Soma(DynamicSystem):
+    """Soma object for neuron modeling.
+
+    """
     pass
 

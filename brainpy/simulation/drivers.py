@@ -4,8 +4,7 @@ import abc
 
 __all__ = [
     'AbstractDriver',
-    'BaseNodeDriver',
-    'BaseNetDriver',
+    'BaseDSDriver',
     'BaseDiffIntDriver',
 ]
 
@@ -33,8 +32,8 @@ class AbstractDriver(abc.ABC):
         pass
 
 
-class BaseNodeDriver(AbstractDriver):
-    """Base Node Driver.
+class BaseDSDriver(AbstractDriver):
+    """Base Dynamical System Driver.
     """
 
     def __init__(self, target):
@@ -54,17 +53,6 @@ class BaseNodeDriver(AbstractDriver):
     @abc.abstractmethod
     def get_steps_func(self, *args, **kwargs):
         pass
-
-
-class BaseNetDriver(AbstractDriver):
-    """Base Network Driver.
-    """
-
-    def __init__(self, target):
-        self.target = target
-
-    def upload(self, name, data_or_func):
-        setattr(self.target, name, data_or_func)
 
 
 class BaseDiffIntDriver(AbstractDriver):

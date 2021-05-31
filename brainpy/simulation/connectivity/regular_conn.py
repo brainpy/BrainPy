@@ -7,7 +7,7 @@ from brainpy import errors
 from brainpy import tools
 from brainpy.backend import ops
 from brainpy.simulation import utils
-from brainpy.simulation.connectivity.base import Connector
+from brainpy.simulation.connectivity.base import TwoEndConnector
 
 __all__ = [
     'One2One', 'one2one',
@@ -64,7 +64,7 @@ def _grid_n(height, width, row, n, include_self):
     return conn_i, conn_j
 
 
-class One2One(Connector):
+class One2One(TwoEndConnector):
     """
     Connect two neuron groups one by one. This means
     The two neuron groups should have the same size.
@@ -92,7 +92,7 @@ class One2One(Connector):
 one2one = One2One()
 
 
-class All2All(Connector):
+class All2All(TwoEndConnector):
     """Connect each neuron in first group to all neurons in the
     post-synaptic neuron groups. It means this kind of conn
     will create (num_pre x num_post) synapses.
@@ -121,7 +121,7 @@ class All2All(Connector):
 all2all = All2All(include_self=True)
 
 
-class GridFour(Connector):
+class GridFour(TwoEndConnector):
     """The nearest four neighbors conn method."""
 
     def __init__(self, include_self=False):
@@ -160,7 +160,7 @@ class GridFour(Connector):
 grid_four = GridFour()
 
 
-class GridN(Connector):
+class GridN(TwoEndConnector):
     """The nearest (2*N+1) * (2*N+1) neighbors conn method.
 
     Parameters

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import math
 from pprint import pprint
 
 from brainpy import backend
@@ -11,7 +10,7 @@ from . import utils
 
 __all__ = [
     'TensorDiffIntDriver',
-    'TensorNodeDriver',
+    'TensorDSDriver',
     'TensorNetDriver',
 ]
 
@@ -34,12 +33,12 @@ class TensorDiffIntDriver(drivers.BaseDiffIntDriver):
         return new_f
 
 
-class TensorNodeDriver(drivers.BaseNodeDriver):
+class TensorDSDriver(drivers.BaseDSDriver):
     """General BrainPy Node Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
     def __init__(self, target):
-        super(TensorNodeDriver, self).__init__(target=target)
+        super(TensorDSDriver, self).__init__(target=target)
         self.last_inputs = {}
         self.formatted_funcs = {}
         self.run_func = None
@@ -334,13 +333,13 @@ class TensorNodeDriver(drivers.BaseNodeDriver):
         return f'_input_data_of_{key.replace(".", "_")}'
 
 
-class TensorNetDriver(drivers.BaseNetDriver):
+class TensorNetDriver():
     """General BrainPy Network Running Driver for NumPy, PyTorch, TensorFlow, etc.
     """
 
     def __init__(self, target):
         super(TensorNetDriver, self).__init__(target=target)
-        assert hasattr(self.target, 'all_nodes') and isinstance(self.target.all_nodes, dict)
+        assert hasattr(self.target, 'all_nodes') and isinstance(self.target.children, dict)
         self.run_func = None
 
     def build(self, duration, formatted_inputs, show_code=False):
@@ -362,7 +361,7 @@ class TensorNetDriver(drivers.BaseNetDriver):
         """
         # formatted step functions
         format_funcs_at_net = {'need_rebuild': False}
-        for obj in self.target.all_nodes.values():
+        for obj in self.target.children.values():
             format_funcs = obj.build(inputs=formatted_inputs.get(obj.name, []),
                                      inputs_is_formatted=True,
                                      duration=duration,

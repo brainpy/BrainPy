@@ -12,14 +12,14 @@ __all__ = [
 
     'set_ops',
     'set_ops_from_module',
-    'get_node_driver',
+    'get_ds_driver',
     'get_net_driver',
     'get_diffint_driver',
 ]
 
 from .ops import set_ops_from_module
 from .ops import set_ops
-from .drivers import get_node_driver
+from .drivers import get_ds_driver
 from .drivers import get_net_driver
 from .drivers import get_diffint_driver
 

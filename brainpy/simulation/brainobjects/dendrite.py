@@ -8,5 +8,8 @@ __all__ = [
 
 
 class Dendrite(DynamicSystem):
+    """Dendrite object.
+
+    """
     pass
 

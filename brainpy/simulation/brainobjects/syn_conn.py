@@ -1,67 +1,26 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
-
 from brainpy import errors
-from . import delays
 from brainpy.simulation.base import DynamicSystem
-from .neu_group import NeuGroup
+from brainpy.simulation.brainobjects.delays import ConstantDelay
+from brainpy.simulation.brainobjects.neu_group import NeuGroup
+from brainpy.simulation.connectivity.base import TwoEndConnector
+
 
 __all__ = [
-    'SynConn',
     'TwoEndConn',
 ]
 
 _TwoEndSyn_NO = 0
 
 
-class SynConn(DynamicSystem):
-    """Synaptic Connections.
-    """
-
-    def __init__(self, steps, monitors=None, name=None, show_code=False):
-        if callable(steps):
-            steps = OrderedDict([(steps.__name__, steps)])
-        elif isinstance(steps, (tuple, list)) and callable(steps[0]):
-            steps = OrderedDict([(step.__name__, step) for step in steps])
-        else:
-            assert isinstance(steps, dict)
-
-        # check delay update
-        if hasattr(self, 'constant_delays'):
-            for key, delay_var in self.constant_delays.items():
-                if delay_var.update not in steps:
-                    delay_name = f'{key}_delay_update'
-                    setattr(self, delay_name, delay_var.update)
-                    steps[delay_name] = delay_var.update
-
-        # initialize super class
-        super(SynConn, self).__init__(steps=steps, monitors=monitors, name=name, show_code=show_code)
-
-        # delay assignment
-        if hasattr(self, 'constant_delays'):
-            for key, delay_var in self.constant_delays.items():
-                delay_var.name = f'{self.name}_delay_{key}'
-
-    def register_constant_delay(self, key, size, delay_time):
-        if not hasattr(self, 'constant_delays'):
-            self.constant_delays = {}
-        if key in self.constant_delays:
-            raise errors.ModelDefError(f'"{key}" has been registered as an constant delay.')
-        self.constant_delays[key] = delays.ConstantDelay(size, delay_time)
-        return self.constant_delays[key]
-
-    def update(self, _t, _i, _dt):
-        raise NotImplementedError
-
-
-class TwoEndConn(SynConn):
+class TwoEndConn(DynamicSystem):
     """Two End Synaptic Connections.
 
     Parameters
     ----------
-    steps : SynType
-        The instantiated neuron type model.
+    steps : function, list/tuple/dict of functions
+        The step functions.
     pre : neurons.NeuGroup, neurons.NeuSubGroup
         Pre-synaptic neuron group.
     post : neurons.NeuGroup, neurons.NeuSubGroup
@@ -72,7 +31,7 @@ class TwoEndConn(SynConn):
         The name of the neuron group.
     """
 
-    def __init__(self, pre, post, monitors=None, name=None, show_code=False, steps=None):
+    def __init__(self, pre, post, conn, name=None, steps=None, **kwargs):
         # name
         # ----
         if name is None:
@@ -80,7 +39,10 @@ class TwoEndConn(SynConn):
             _TwoEndSyn_NO += 1
             name = f'TEC{_TwoEndSyn_NO}{name}'
         else:
-            assert name.isidentifier()
+            if not name.isidentifier():
+                raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
+                                           f'according to Python language definition. '
+                                           f'Please choose another name.')
 
         # pre or post neuron group
         # ------------------------
@@ -91,11 +53,48 @@ class TwoEndConn(SynConn):
             raise errors.ModelUseError('"post" must be an instance of NeuGroup.')
         self.post = post
 
+        # connections
+        # -----------
+        if not isinstance(conn, TwoEndConnector):
+            raise errors.ModelUseError(f'"conn" must be an instance of {TwoEndConnector}, '
+                                       f'but we got {type(conn)}.')
+        self.conn = conn
+        self.conn(pre.size, post.size)
+
         # initialize
         # ----------
         if steps is None:
             steps = {'update': self.update}
-        super(TwoEndConn, self).__init__(steps=steps,
-                                         name=name,
-                                         monitors=monitors,
-                                         show_code=show_code)
+        super(TwoEndConn, self).__init__(steps=steps, name=name, **kwargs)
+
+    def update(self, _t, _i, _dt):
+        raise NotImplementedError
+
+    def register_constant_delay(self, key, size, delay_time):
+        """Register a constant delay.
+
+        Parameters
+        ----------
+        key : str
+            The delay name.
+        size : int, list/tuple of int
+            The delay data size.
+        delay_time : int, float
+            The delay time length.
+
+        Returns
+        -------
+        delay : ConstantDelay
+            An instance of ConstantDelay.
+        """
+
+        if not hasattr(self, 'steps'):
+            raise errors.ModelUseError('Please initialize the super class first. '
+                                       'For example: \n\n'
+                                       'super(YourClassName, self).__init__(**kwargs)')
+
+        cdelay = ConstantDelay(size, delay_time)
+        cdelay.name = f'{self.name}_delay_{key}'
+        self.steps[f'{self.name}_{key}_update'] = cdelay.update
+
+        return cdelay

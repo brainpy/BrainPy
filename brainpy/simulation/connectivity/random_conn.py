@@ -5,7 +5,7 @@ import numpy as np
 from brainpy import tools
 from brainpy.backend import ops
 from brainpy.simulation import utils
-from brainpy.simulation.connectivity.base import Connector
+from brainpy.simulation.connectivity.base import TwoEndConnector
 
 __all__ = [
     'FixedPostNum',
@@ -182,7 +182,7 @@ def _get_rng(seed):
     return rng
 
 
-class FixedProb(Connector):
+class FixedProb(TwoEndConnector):
     """Connect the post-synaptic neurons with fixed probability.
 
     Parameters
@@ -225,7 +225,7 @@ class FixedProb(Connector):
         return self
 
 
-class FixedPreNum(Connector):
+class FixedPreNum(TwoEndConnector):
     """Connect the pre-synaptic neurons with fixed number for each
     post-synaptic neuron.
 
@@ -269,7 +269,7 @@ class FixedPreNum(Connector):
         return self
 
 
-class FixedPostNum(Connector):
+class FixedPostNum(TwoEndConnector):
     """Connect the post-synaptic neurons with fixed number for each
     pre-synaptic neuron.
 
@@ -315,7 +315,7 @@ class FixedPostNum(Connector):
         return self
 
 
-class GaussianWeight(Connector):
+class GaussianWeight(TwoEndConnector):
     """Builds a Gaussian conn pattern between the two populations, where
     the weights decay with gaussian function.
 
@@ -391,7 +391,7 @@ class GaussianWeight(Connector):
         return self
 
 
-class GaussianProb(Connector):
+class GaussianProb(TwoEndConnector):
     """Builds a Gaussian conn pattern between the two populations, where
     the conn probability decay according to the gaussian function.
 
@@ -456,7 +456,7 @@ class GaussianProb(Connector):
         return self
 
 
-class DOG(Connector):
+class DOG(TwoEndConnector):
     """Builds a Difference-Of-Gaussian (dog) conn pattern between the two populations.
 
     Mathematically,
@@ -530,7 +530,7 @@ class DOG(Connector):
         return self
 
 
-class SmallWorld(Connector):
+class SmallWorld(TwoEndConnector):
     """Build a Watts–Strogatz small-world graph.
 
     Parameters
@@ -629,7 +629,7 @@ class SmallWorld(Connector):
         return self
 
 
-class ScaleFreeBA(Connector):
+class ScaleFreeBA(TwoEndConnector):
     """Build a random graph according to the Barabási–Albert preferential
     attachment model.
 
@@ -703,7 +703,7 @@ class ScaleFreeBA(Connector):
         return self
 
 
-class ScaleFreeBADual(Connector):
+class ScaleFreeBADual(TwoEndConnector):
     """Build a random graph according to the dual Barabási–Albert preferential
     attachment model.
 
@@ -797,12 +797,12 @@ class ScaleFreeBADual(Connector):
         return self
 
 
-class ScaleFreeBAExtended(Connector):
+class ScaleFreeBAExtended(TwoEndConnector):
     def __init__(self, ):
         raise NotImplementedError
 
 
-class PowerLaw(Connector):
+class PowerLaw(TwoEndConnector):
     """Holme and Kim algorithm for growing graphs with powerlaw
     degree distribution and approximate average clustering.
 

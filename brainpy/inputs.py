@@ -273,22 +273,16 @@ class PoissonInput(NeuGroup):
     target_backend = 'general'
 
     def __init__(self, size, freqs, **kwargs):
+        super(PoissonInput, self).__init__(size=size,
+                                           steps={'update': self.update},
+                                           **kwargs)
+
         self.dt = backend.get_dt() / 1000.
         self.freqs = freqs
         self.size = (size,) if isinstance(size, int) else tuple(size)
-        self.num = size2len(size)
         self.spike = ops.zeros(self.num, dtype=bool)
         self.t_last_spike = -1e7 * ops.ones(self.num)
 
-        if backend.get_backend_name() == 'numba-cuda':
-            super(PoissonInput, self).__init__(steps={'update': self.numba_cuda_update}, **kwargs)
-        else:
-            super(PoissonInput, self).__init__(steps={'update': self.non_numba_cuda_update}, **kwargs)
-
-    def non_numba_cuda_update(self, _t):
+    def update(self, _t, _i, _dt):
         self.spike = np.random.random(self.num) <= self.freqs * self.dt
-        self.t_last_spike = np.where(self.spike, _t, self.t_last_spike)
-
-    def numba_cuda_update(self, _t):
-        self.spike = np.random.random(self.num) <= self.freqs * self.dt
-        self.t_last_spike = np.where(self.spike, _t, self.t_last_spike)
+        self.t_last_spike = ops.where(self.spike, _t, self.t_last_spike)

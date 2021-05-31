@@ -13,7 +13,7 @@ __all__ = [
 
 
 class ConstantDelay(DynamicSystem):
-    """Constant delay variable for synapse computation.
+    """Constant delay object.
     """
 
     def __init__(self, size, delay_time):

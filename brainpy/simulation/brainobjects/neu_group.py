@@ -18,13 +18,13 @@ class NeuGroup(DynamicSystem):
     ----------
     size : int, tuple
         The neuron group geometry.
-    monitors : list, tuple
-        Variables to monitor.
-    name : str
-        The name of the neuron group.
+    steps : function, list/tuple/dict of functions, optional
+        The step functions.
+    name : str, optional
+        The group name.
     """
 
-    def __init__(self, size, monitors=None, name=None, show_code=False, steps=None):
+    def __init__(self, size, name=None, steps=None, **kwargs):
         # name
         # -----
 
@@ -33,7 +33,10 @@ class NeuGroup(DynamicSystem):
             _NeuGroup_NO += 1
             name = f'NG{_NeuGroup_NO}'
         else:
-            assert name.isidentifier()
+            if not name.isidentifier():
+                raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
+                                           f'according to Python language definition. '
+                                           f'Please choose another name.')
 
         # size
         # ----
@@ -54,13 +57,9 @@ class NeuGroup(DynamicSystem):
         # ----------
         if steps is None:
             steps = {'update': self.update}
-        super(NeuGroup, self).__init__(steps=steps,
-                                       monitors=monitors,
-                                       name=name,
-                                       show_code=show_code)
+        super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
 
     def update(self, _t, _i, _dt):
-        raise NotImplementedError
-
+        pass
 
 

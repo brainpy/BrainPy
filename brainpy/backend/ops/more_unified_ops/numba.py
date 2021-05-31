@@ -15,14 +15,12 @@ def nb_clip(x, x_min, x_max):
     return x
 
 
-ops.set_buffer('numba',
-               clip=nb_clip,
-               unsqueeze=np.expand_dims,
-               squeeze=np.squeeze,
-               )
+operations = dict(
+    clip=nb_clip,
+    unsqueeze=np.expand_dims,
+    squeeze=np.squeeze,
+)
 
-ops.set_buffer('numba-parallel',
-               clip=nb_clip,
-               unsqueeze=np.expand_dims,
-               squeeze=np.squeeze,
-               )
+ops.set_buffer('numba', **operations)
+
+ops.set_buffer('numba-parallel', **operations)

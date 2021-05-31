@@ -25,7 +25,7 @@ __all__ = [
     'post_slice',
 
     'AbstractConnector',
-    'Connector',
+    'TwoEndConnector',
 ]
 
 
@@ -333,8 +333,8 @@ class AbstractConnector(abc.ABC):
         pass
 
 
-class Connector(AbstractConnector):
-    """Abstract connector class."""
+class TwoEndConnector(AbstractConnector):
+    """Abstract connector class for two end connections."""
 
     def __init__(self):
         # total size of the pre/post-synaptic neurons
@@ -417,3 +417,20 @@ class Connector(AbstractConnector):
     def make_post_slice(self):
         self.pre_ids, self.post_ids, self.post_slice = \
             post_slice(self.pre_ids, self.post_ids, self.num_post)
+
+    def __call__(self, pre_size, post_size):
+        """Create the concrete connections between two end objects.
+
+        Parameters
+        ----------
+        pre_size : int, tuple/list of int
+            The size of the pre-synaptic group.
+        post_size : int, tuple/list of int
+            The size of the post-synaptic group.
+
+        Returns
+        -------
+        conn : TwoEndConnector
+            Return the self.
+        """
+        pass

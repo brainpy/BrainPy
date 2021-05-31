@@ -8,5 +8,8 @@ __all__ = [
 
 
 class Channel(DynamicSystem):
+    """Ion Channel object.
+
+    """
     pass
 

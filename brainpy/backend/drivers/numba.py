@@ -13,7 +13,7 @@ from brainpy.integrators import constants as diffint_cons
 from ...simulation.brainobjects import delays
 from brainpy.simulation import drivers
 from . import utils
-from .tensor import TensorNodeDriver
+from .tensor import TensorDSDriver
 
 try:
     import numba
@@ -26,7 +26,7 @@ __all__ = [
     'get_numba_profile',
 
     'NumbaDiffIntDriver',
-    'NumbaNodeDriver',
+    'NumbaDSDriver',
 ]
 
 
@@ -599,7 +599,7 @@ def _class2func(cls_func, host, func_name=None, show_code=False):
     return func, calls, assigns
 
 
-class NumbaNodeDriver(TensorNodeDriver):
+class NumbaDSDriver(TensorDSDriver):
     def get_steps_func(self, show_code=False):
         for func_name, step in self.target.steps.items():
             if hasattr(step, '__self__'):
