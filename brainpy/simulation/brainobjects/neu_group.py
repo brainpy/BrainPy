@@ -16,9 +16,9 @@ class NeuGroup(DynamicSystem):
 
     Parameters
     ----------
-    size : int, tuple
+    size : int, tuple of int, list of int
         The neuron group geometry.
-    steps : function, list/tuple/dict of functions, optional
+    steps : function, list of function, tuple of function, dict of (str, function), optional
         The step functions.
     name : str, optional
         The group name.
@@ -31,7 +31,7 @@ class NeuGroup(DynamicSystem):
         if name is None:
             global _NeuGroup_NO
             _NeuGroup_NO += 1
-            name = f'NG{_NeuGroup_NO}'
+            name = f'Neu{_NeuGroup_NO}'
         else:
             if not name.isidentifier():
                 raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
@@ -61,5 +61,3 @@ class NeuGroup(DynamicSystem):
 
     def update(self, _t, _i, _dt):
         pass
-
-

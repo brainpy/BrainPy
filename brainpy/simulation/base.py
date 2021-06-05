@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import gc
 from collections import OrderedDict
 
 from brainpy import backend
@@ -24,11 +25,11 @@ class DynamicSystem(object):
 
     Parameters
     ----------
-    steps : function, list/tuple/dict of functions, optional
+    steps : function, list of function, tuple of function, dict of (str, function), optional
         The callable function, or a list of callable functions.
-    monitors : list, tuple, None
+    monitors : list, tuple, optional
         Variables to monitor.
-    name : str
+    name : str, optional
         The name of the dynamic system.
     show_code : bool
         Whether show the formatted codes.
@@ -97,7 +98,7 @@ class DynamicSystem(object):
         if self.target_backend is None:
             raise errors.ModelDefError('Must define "target_backend".')
         if isinstance(self.target_backend, str):
-            self._target_backend = (self.target_backend, )
+            self._target_backend = (self.target_backend,)
         elif isinstance(self.target_backend, (tuple, list)):
             if not isinstance(self.target_backend[0], str):
                 raise errors.ModelDefError('"target_backend" must be a '
@@ -191,7 +192,7 @@ class DynamicSystem(object):
         schedules : tuple
             The running order of update functions.
         """
-        return ('input', ) + tuple(self.steps.keys()) + ('monitor',)
+        return ('input',) + tuple(self.steps.keys()) + ('monitor',)
 
     def run2(self, duration, inputs=(), report=False, report_percent=0.1):
         """Run the simulation for the given duration.
@@ -239,3 +240,16 @@ class DynamicSystem(object):
             for key in node.schedule():
                 yield f'{node.name}.{key}'
 
+    def __del__(self):
+        # delete monitors
+        if self.mon is not None:
+            del self.mon
+        # delete children
+        for val in self.children.values():
+            val.__del__()
+        # delete driver
+        del self.driver
+        # delete self
+        del self
+        # garbage collection
+        gc.collect()

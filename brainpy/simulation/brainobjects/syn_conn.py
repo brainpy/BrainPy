@@ -6,7 +6,6 @@ from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.brainobjects.neu_group import NeuGroup
 from brainpy.simulation.connectivity.base import TwoEndConnector
 
-
 __all__ = [
     'TwoEndConn',
 ]
@@ -19,16 +18,18 @@ class TwoEndConn(DynamicSystem):
 
     Parameters
     ----------
-    steps : function, list/tuple/dict of functions
+    steps : function, list of function, tuple of function, dict of (str, function), optional
         The step functions.
-    pre : neurons.NeuGroup, neurons.NeuSubGroup
+    pre : NeuGroup
         Pre-synaptic neuron group.
-    post : neurons.NeuGroup, neurons.NeuSubGroup
+    post : NeuGroup
         Post-synaptic neuron group.
-    monitors : list, tuple
+    monitors : list of str, tuple of str
         Variables to monitor.
     name : str
         The name of the neuron group.
+    show_code : bool
+        Whether show the formatted code.
     """
 
     def __init__(self, pre, post, conn, name=None, steps=None, **kwargs):
@@ -37,7 +38,7 @@ class TwoEndConn(DynamicSystem):
         if name is None:
             global _TwoEndSyn_NO
             _TwoEndSyn_NO += 1
-            name = f'TEC{_TwoEndSyn_NO}{name}'
+            name = f'TwoEC{_TwoEndSyn_NO}{name}'
         else:
             if not name.isidentifier():
                 raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '

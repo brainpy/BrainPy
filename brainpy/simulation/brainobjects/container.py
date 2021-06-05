@@ -8,6 +8,9 @@ __all__ = [
     'Network',
 ]
 
+_Container_NO = 0
+_Network_NO = 0
+
 
 class Container(DynamicSystem):
     """Container object which is designed to add other DynamicalSystem instances.
@@ -18,7 +21,7 @@ class Container(DynamicSystem):
 
     Parameters
     ----------
-    steps : function, list/tuple/dict of functions, optional
+    steps : function, list of function, tuple of function, dict of (str, function), optional
         The step functions.
     monitors : tuple, list, Monitor, optional
         The monitor object.
@@ -26,13 +29,20 @@ class Container(DynamicSystem):
         The object name.
     show_code : bool
         Whether show the formatted code.
-    kwargs : dict of DynamicSystem
+    kwargs :
         The instance of DynamicSystem with the format of "key=value".
     """
+
     def __init__(self, steps=None, monitors=None, name=None, show_code=False, **kwargs):
+        if name is None:
+            global _Container_NO
+            name = f'Container{_Container_NO}'
+            _Container_NO += 1
+
         if monitors is not None:
             raise errors.ModelUseError(f'"monitors" cannot be used in '
-                                       f'"brainpy.{Container.__name__}".')
+                                       f'"brainpy.{self.__class__.__name__}".')
+
         super(Container, self).__init__(steps=steps,
                                         monitors=monitors,
                                         name=name,
@@ -63,19 +73,19 @@ class Container(DynamicSystem):
 
         Parameters
         ----------
-        kwargs : dict of DynamicSystem
+        kwargs :
             The named objects, which can be accessed by `net.xxx`
             (xxx is the name of the object).
         """
         for name, obj in kwargs.items():
             if not isinstance(obj, DynamicSystem):
                 raise ValueError(f'Unknown object type "{type(obj)}". Currently, '
-                                 f'{Container.__name__} only supports '
+                                 f'{self.__class__.__name__} only supports '
                                  f'"brainpy.{DynamicSystem.__name__}".')
             if hasattr(self, name):
                 if not isinstance(getattr(self, name), DynamicSystem):
                     raise KeyError(f'Key "{name}" has been used in this '
-                                   f'{Container.__name__} object "{self.name}" '
+                                   f'{self.__class__.__name__} object "{self.name}" '
                                    f'to specify a "{type(getattr(self, name))}", '
                                    f'please change another name.')
                 else:
@@ -93,4 +103,10 @@ class Network(Container):
     neurons, synapses, and other brain objects.
 
     """
-    pass
+
+    def __init__(self, name=None, **kwargs):
+        if name is None:
+            global _Network_NO
+            name = f'Net{_Network_NO}'
+            _Network_NO += 1
+        super(Network, self).__init__(name=name, **kwargs)
