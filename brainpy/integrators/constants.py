@@ -2,20 +2,20 @@
 
 
 __all__ = [
-    'SUPPORTED_VAR_TYPE',
-    'SCALAR_VAR',
-    'POPU_VAR',
-    'SYSTEM_VAR',
+  'SUPPORTED_VAR_TYPE',
+  'SCALAR_VAR',
+  'POPU_VAR',
+  'SYSTEM_VAR',
 
-    'SUPPORTED_WIENER_TYPE',
-    'SCALAR_WIENER',
-    'VECTOR_WIENER',
+  'SUPPORTED_WIENER_TYPE',
+  'SCALAR_WIENER',
+  'VECTOR_WIENER',
 
-    'SUPPORTED_SDE_TYPE',
-    'ITO_SDE',
-    'STRA_SDE',
+  'SUPPORTED_SDE_TYPE',
+  'ITO_SDE',
+  'STRA_SDE',
 
-    'DE_PREFIX',
+  'DE_PREFIX',
 ]
 
 # Ito SDE
@@ -23,15 +23,14 @@ __all__ = [
 # The SDE integral proposed by Ito in 1940s.
 ITO_SDE = 'Ito'
 
-
 # Stratonovich SDE
 # ---
 # The SDE integral proposed by Stratonovich in 1960s.
 STRA_SDE = 'Stratonovich'
 
 SUPPORTED_SDE_TYPE = [
-    ITO_SDE,
-    STRA_SDE
+  ITO_SDE,
+  STRA_SDE
 ]
 
 # ------------------------------------------------------
@@ -47,8 +46,8 @@ SCALAR_WIENER = 'scalar'
 VECTOR_WIENER = 'vector'
 
 SUPPORTED_WIENER_TYPE = [
-    SCALAR_WIENER,
-    VECTOR_WIENER
+  SCALAR_WIENER,
+  VECTOR_WIENER
 ]
 
 # ------------------------------------------------------
@@ -92,9 +91,9 @@ POPU_VAR = 'population'
 SYSTEM_VAR = 'system'
 
 SUPPORTED_VAR_TYPE = [
-    SCALAR_VAR,
-    POPU_VAR,
-    SYSTEM_VAR,
+  SCALAR_VAR,
+  POPU_VAR,
+  SYSTEM_VAR,
 ]
 
 # ------------------------------------------------------
@@ -106,5 +105,3 @@ SUPPORTED_VAR_TYPE = [
 DE_PREFIX = '_brainpy_intg_of_'
 ODE_PREFIX = 'ode_brainpy_intg_of_'
 SDE_PREFIX = 'sde_brainpy_intg_of_'
-
-

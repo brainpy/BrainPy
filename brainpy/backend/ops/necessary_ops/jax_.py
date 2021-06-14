@@ -3,48 +3,48 @@
 from brainpy import errors
 
 try:
-    import jax
+  import jax
 except ModuleNotFoundError:
-    raise errors.BackendNotInstalled('jax')
+  raise errors.BackendNotInstalled('jax')
 
 from jax import numpy
 from jax import random
 from brainpy.backend.ops.more_unified_ops import jax_
 
 __all__ = [
-    'set_seed',
-    'normal',
-    'exp',
-    'sum',
-    'shape',
-    'as_tensor',
-    'zeros',
-    'ones',
-    'arange',
-    'concatenate',
-    'where',
-    'reshape',
-    'bool',
-    'int',
-    'int32',
-    'int64',
-    'float',
-    'float32',
-    'float64'
+  'set_seed',
+  'normal',
+  'exp',
+  'sum',
+  'shape',
+  'as_tensor',
+  'zeros',
+  'ones',
+  'arange',
+  'concatenate',
+  'where',
+  'reshape',
+  'bool',
+  'int',
+  'int32',
+  'int64',
+  'float',
+  'float32',
+  'float64'
 ]
 
 key = random.PRNGKey(0)
 
 
 def set_seed(seed):
-    global key
-    key = random.PRNGKey(seed)
+  global key
+  key = random.PRNGKey(seed)
 
 
 # necessary ops for integrators
 
 def normal(loc, scale, size):
-    return loc + scale * random.normal(key, shape=size)
+  return loc + scale * random.normal(key, shape=size)
 
 
 exp = numpy.exp
@@ -71,4 +71,4 @@ float32 = numpy.float32
 float64 = numpy.float64
 
 if __name__ == '__main__':
-    jax_
+  jax_

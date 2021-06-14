@@ -10,8 +10,8 @@ dt = 0.05
 bp.backend.set('numba', dt=dt)
 
 # Parameters
-num_exc = 3200
-num_inh = 800
+num_exc = 3200 * 10
+num_inh = 800 * 1
 taum = 20
 taue = 5
 taui = 10

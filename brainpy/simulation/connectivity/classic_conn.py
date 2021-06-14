@@ -8,14 +8,13 @@ from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 
 try:
-    import numba as nb
+  import numba as nb
 except ModuleNotFoundError:
-    nb = None
+  nb = None
 
 __all__ = [
 ]
 
 
 class CompleteGraph(TwoEndConnector):
-    pass
-
+  pass

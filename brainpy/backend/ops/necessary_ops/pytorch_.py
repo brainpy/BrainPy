@@ -7,31 +7,31 @@ The PyTorch with the version of xx is needed.
 from brainpy import errors
 
 try:
-    import torch
+  import torch
 except ModuleNotFoundError:
-    raise errors.BackendNotInstalled('pytorch')
+  raise errors.BackendNotInstalled('pytorch')
 
 from brainpy.backend.ops.more_unified_ops import pytorch_
 
 __all__ = [
-    'normal',
-    'exp',
-    'sum',
-    'shape',
-    'as_tensor',
-    'zeros',
-    'ones',
-    'arange',
-    'concatenate',
-    'where',
-    'reshape',
-    'bool',
-    'int',
-    'int32',
-    'int64',
-    'float',
-    'float32',
-    'float64'
+  'normal',
+  'exp',
+  'sum',
+  'shape',
+  'as_tensor',
+  'zeros',
+  'ones',
+  'arange',
+  'concatenate',
+  'where',
+  'reshape',
+  'bool',
+  'int',
+  'int32',
+  'int64',
+  'float',
+  'float32',
+  'float64'
 ]
 
 # necessary ops for integrators
@@ -42,10 +42,10 @@ sum = torch.sum
 
 
 def shape(x):
-    if isinstance(x, torch.Tensor):
-        return x.size()
-    else:
-        return ()
+  if isinstance(x, torch.Tensor):
+    return x.size()
+  else:
+    return ()
 
 
 # necessary ops for dynamics simulation
@@ -59,11 +59,11 @@ reshape = torch.reshape
 
 
 def where(tensor, x, y):
-    if not isinstance(x, torch.Tensor):
-        x = torch.full_like(tensor, x)
-    if not isinstance(y, torch.Tensor):
-        y = torch.full_like(tensor, y)
-    return torch.where(tensor, x, y)
+  if not isinstance(x, torch.Tensor):
+    x = torch.full_like(tensor, x)
+  if not isinstance(y, torch.Tensor):
+    y = torch.full_like(tensor, y)
+  return torch.where(tensor, x, y)
 
 
 # necessary ops for dtypes
@@ -77,4 +77,4 @@ float32 = torch.float32
 float64 = torch.float64
 
 if __name__ == '__main__':
-    pytorch_
+  pytorch_

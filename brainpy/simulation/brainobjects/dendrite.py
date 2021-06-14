@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.base import DynamicSystem
+from .base import DynamicSystem
 
 __all__ = [
-    'Dendrite'
+  'Dendrite'
 ]
 
 _Dendrite_NO = 0
 
 
 class Dendrite(DynamicSystem):
-    """Dendrite object.
+  """Dendrite object.
 
-    """
+  """
 
-    def __init__(self, name, **kwargs):
-        if name is None:
-            global _Dendrite_NO
-            name = f'Dendrite{_Dendrite_NO}'
-            _Dendrite_NO += 1
-        super(Dendrite, self).__init__(name=name, **kwargs)
+  def __init__(self, name, **kwargs):
+    if name is None:
+      global _Dendrite_NO
+      name = f'Dendrite{_Dendrite_NO}'
+      _Dendrite_NO += 1
+    super(Dendrite, self).__init__(name=name, **kwargs)

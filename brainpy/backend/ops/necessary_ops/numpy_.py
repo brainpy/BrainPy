@@ -2,31 +2,29 @@
 
 import numpy as np
 
-
 __all__ = [
-    'normal',
-    'shape',
-    'exp',
-    'sum',
+  'normal',
+  'shape',
+  'exp',
+  'sum',
 
-    'as_tensor',
-    'zeros',
-    'ones',
-    'arange',
-    'vstack',
-    'concatenate',
-    'where',
-    'reshape',
+  'as_tensor',
+  'zeros',
+  'ones',
+  'arange',
+  'vstack',
+  'concatenate',
+  'where',
+  'reshape',
 
-    'bool',
-    'int',
-    'int32',
-    'int64',
-    'float',
-    'float32',
-    'float64'
+  'bool',
+  'int',
+  'int32',
+  'int64',
+  'float',
+  'float32',
+  'float64'
 ]
-
 
 # necessary ops for integrators
 normal = np.random.normal
@@ -43,7 +41,6 @@ vstack = np.vstack
 concatenate = np.concatenate
 where = np.where
 reshape = np.reshape
-
 
 # necessary ops for dtypes
 

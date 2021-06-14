@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.base import DynamicSystem
+from .base import DynamicSystem
 
 __all__ = [
-    'Channel'
+  'Channel'
 ]
 
 _Channel_NO = 0
 
 
 class Channel(DynamicSystem):
-    """Ion Channel object.
+  """Ion Channel object.
 
-    Parameters
-    ----------
-    name : str
-        The name of the channel.
+  Parameters
+  ----------
+  name : str
+      The name of the channel.
 
-    """
+  """
 
-    def __init__(self, name=None, **kwargs):
-        if name is None:
-            global _Channel_NO
-            name = f'Channel{_Channel_NO}'
-            _Channel_NO += 1
+  def __init__(self, name=None, **kwargs):
+    if name is None:
+      global _Channel_NO
+      name = f'Channel{_Channel_NO}'
+      _Channel_NO += 1
 
-        super(Channel, self).__init__(name=name, **kwargs)
+    super(Channel, self).__init__(name=name, **kwargs)

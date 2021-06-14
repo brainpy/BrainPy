@@ -7,38 +7,38 @@ The TensorFlow with the version of xx is needed.
 from brainpy import errors
 
 try:
-    import tensorflow as tf
+  import tensorflow as tf
 except ModuleNotFoundError:
-    raise errors.BackendNotInstalled('tensorflow')
+  raise errors.BackendNotInstalled('tensorflow')
 
 from brainpy.backend.ops.more_unified_ops import tensorflow_
 
 __all__ = [
-    'normal',
-    'exp',
-    'sum',
-    'shape',
-    'as_tensor',
-    'zeros',
-    'ones',
-    'arange',
-    'concatenate',
-    'where',
-    'reshape',
-    'bool',
-    'int',
-    'int32',
-    'int64',
-    'float',
-    'float32',
-    'float64'
+  'normal',
+  'exp',
+  'sum',
+  'shape',
+  'as_tensor',
+  'zeros',
+  'ones',
+  'arange',
+  'concatenate',
+  'where',
+  'reshape',
+  'bool',
+  'int',
+  'int32',
+  'int64',
+  'float',
+  'float32',
+  'float64'
 ]
 
 
 # necessary ops for integrators
 
 def normal(loc, scale, size):
-    return tf.random.normal(size, loc, scale)
+  return tf.random.normal(size, loc, scale)
 
 
 sum = tf.math.reduce_sum
@@ -46,10 +46,10 @@ exp = tf.math.exp
 
 
 def shape(x):
-    if not isinstance(x, tf.Tensor):
-        return ()
-    else:
-        return x.shape()
+  if not isinstance(x, tf.Tensor):
+    return ()
+  else:
+    return x.shape()
 
 
 # necessary ops for dynamics simulation
@@ -63,11 +63,11 @@ concatenate = tf.concat
 
 
 def vstack(values):
-    return tf.concat(values, axis=1)
+  return tf.concat(values, axis=1)
 
 
 def where(tensor, x, y):
-    return tf.where(tensor, x, y)
+  return tf.where(tensor, x, y)
 
 
 # necessary ops for dtypes
@@ -81,4 +81,4 @@ float32 = tf.float32
 float64 = tf.float64
 
 if __name__ == '__main__':
-    tensorflow_
+  tensorflow_

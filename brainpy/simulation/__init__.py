@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .base import *
 from .brainobjects import *
 from .connectivity import *
 from .drivers import *
