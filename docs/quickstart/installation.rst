@@ -1,5 +1,5 @@
-Installation
-============
+§0. Installation
+================
 
 .. contents::
     :local:
