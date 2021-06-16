@@ -9,7 +9,7 @@ except ModuleNotFoundError:
 
 from jax import numpy
 from jax import random
-from brainpy.backend.ops.more_unified_ops import jax_
+from brainpy.backend.bpjax import more_ops
 
 __all__ = [
   'set_seed',
@@ -71,4 +71,4 @@ float32 = numpy.float32
 float64 = numpy.float64
 
 if __name__ == '__main__':
-  jax_
+  more_ops

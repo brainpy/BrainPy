@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.backend.drivers.tensor import TensorDiffIntDriver
-from brainpy.backend.drivers.tensor import TensorDSDriver
-from brainpy.simulation.drivers import BaseDiffIntDriver
+from brainpy.backend.bpnumpy.driver import TensorDSDriver
+from brainpy.backend.bpnumpy.driver import TensorDiffIntDriver
 from brainpy.simulation.drivers import BaseDSDriver
+from brainpy.simulation.drivers import BaseDiffIntDriver
 
 __all__ = [
   'switch_to',
@@ -24,21 +24,23 @@ def switch_to(backend):
   buffer = get_buffer(backend)
 
   global DS_DRIVER, DIFFINT_DRIVER
-  if backend in ['numpy', 'pytorch', 'tensorflow']:
-    from . import tensor
+  if backend in ['numpy', 'pytorch']:
     DS_DRIVER = buffer.get('ds', None) or TensorDSDriver
     DIFFINT_DRIVER = buffer.get('diffint', None) or TensorDiffIntDriver
 
   elif backend in ['numba', 'numba-parallel']:
-    from . import numba
+    from brainpy.backend.bpnumba import driver
 
     if backend == 'numba':
-      numba.set_numba_profile(nogil=False, parallel=False)
+      driver.set_numba_profile(nogil=False, parallel=False)
     else:
-      numba.set_numba_profile(nogil=True, parallel=True)
+      driver.set_numba_profile(nogil=True, parallel=True)
 
-    DS_DRIVER = buffer.get('ds', None) or numba.NumbaDSDriver
-    DIFFINT_DRIVER = buffer.get('diffint', None) or numba.NumbaDiffIntDriver
+    DS_DRIVER = buffer.get('ds', None) or driver.NumbaDSDriver
+    DIFFINT_DRIVER = buffer.get('diffint', None) or driver.NumbaDiffIntDriver
+
+
+
 
   else:
     if 'ds' not in buffer:
@@ -90,3 +92,4 @@ def get_diffint_driver():
       The integration driver.
   """
   return DIFFINT_DRIVER
+

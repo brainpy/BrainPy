@@ -9,11 +9,11 @@ from pprint import pprint
 from brainpy import backend
 from brainpy import errors
 from brainpy import tools
+from brainpy.backend import utils
+from brainpy.backend.bpnumpy.driver import TensorDSDriver
 from brainpy.integrators import constants as diffint_cons
-from ...simulation.brainobjects import delays
 from brainpy.simulation import drivers
-from . import utils
-from .tensor import TensorDSDriver
+from brainpy.simulation.brainobjects import delays
 
 try:
   import numba

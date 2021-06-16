@@ -6,7 +6,7 @@ from brainpy import backend
 from brainpy import errors
 from brainpy.backend import ops
 from brainpy.simulation import drivers
-from . import utils
+from brainpy.backend import utils
 
 __all__ = [
   'TensorDiffIntDriver',

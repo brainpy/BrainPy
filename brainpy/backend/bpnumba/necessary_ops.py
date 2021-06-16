@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from brainpy.backend.ops.necessary_ops import numba_overload
-from brainpy.backend.ops.more_unified_ops import numba
+from brainpy.backend.bpnumba import overload
+from brainpy.backend.bpnumba import more_ops
 
 __all__ = [
   'normal',
@@ -52,5 +52,5 @@ float32 = np.float32
 float64 = np.float64
 
 if __name__ == '__main__':
-  numba_overload
-  numba
+  overload
+  more_ops

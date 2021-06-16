@@ -2,7 +2,7 @@
 
 import types
 
-from brainpy.backend.ops.necessary_ops.numpy_ import *
+from brainpy.backend.bpnumpy.necessary_ops import *
 
 __all__ = [
   'switch_to',
@@ -18,7 +18,14 @@ __all__ = [
 
 _backend = 'numpy'
 BUFFER = {}
-OPS_FOR_SOLVER = ['normal', 'sum', 'exp', 'shape', ]
+
+OPS_FOR_SOLVER = [
+  'normal',  # random normal function
+  'sum',  # sum
+  'exp',  # exponential function for Exponential Euler method
+  'shape',  # get array shape
+]
+
 OPS_FOR_SIMULATION = [
   'as_tensor',  # for array creation
   'zeros',  # for array creation
@@ -26,11 +33,14 @@ OPS_FOR_SIMULATION = [
   'arange',  # for array creation, for example, times
   'concatenate',  # for monitor data concatenation
   'where',  # for connectivity
-  'reshape'
+  'reshape',
 ]
-OPS_OF_DTYPE = ['bool',
-                'int', 'int32', 'int64',
-                'float', 'float32', 'float64']
+
+OPS_OF_DTYPE = [
+  'bool',
+  'int', 'int32', 'int64',
+  'float', 'float32', 'float64',
+]
 
 _fixed_vars = [
   # packages
@@ -57,28 +67,20 @@ def switch_to(backend):
 
   # 2. append new operations in the new backend
   if backend == 'numpy':
-    from brainpy.backend.ops.necessary_ops import numpy_
-    set_ops_from_module(numpy_)
+    from brainpy.backend.bpnumpy import necessary_ops
+    set_ops_from_module(necessary_ops)
 
   elif backend == 'pytorch':
-    from brainpy.backend.ops.necessary_ops import pytorch_
-    set_ops_from_module(pytorch_)
+    from brainpy.backend.bpnumpy import pytorch_necessary_ops
+    set_ops_from_module(pytorch_necessary_ops)
 
-  elif backend == 'tensorflow':
-    from brainpy.backend.ops.necessary_ops import tensorflow_
-    set_ops_from_module(tensorflow_)
-
-  elif backend == 'numba':
-    from brainpy.backend.ops.necessary_ops import numba
-    set_ops_from_module(numba)
-
-  elif backend == 'numba-parallel':
-    from brainpy.backend.ops.necessary_ops import numba
-    set_ops_from_module(numba)
+  elif backend in ['numba', 'numba-parallel']:
+    from brainpy.backend.bpnumba import necessary_ops
+    set_ops_from_module(necessary_ops)
 
   elif backend == 'jax':
-    from brainpy.backend.ops.necessary_ops import jax_
-    set_ops_from_module(jax_)
+    from brainpy.backend.bpjax import necessary_ops
+    set_ops_from_module(necessary_ops)
 
   else:
     if backend not in BUFFER:
@@ -172,4 +174,7 @@ def get_buffer(backend):
   return BUFFER.get(backend, dict())
 
 
-from brainpy.backend.ops.more_unified_ops import numpy_
+from brainpy.backend.bpnumpy import more_ops
+
+if __name__ == '__main__':
+    more_ops

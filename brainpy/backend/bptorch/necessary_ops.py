@@ -11,7 +11,7 @@ try:
 except ModuleNotFoundError:
   raise errors.BackendNotInstalled('pytorch')
 
-from brainpy.backend.ops.more_unified_ops import pytorch_
+from brainpy.backend.bptorch import more_ops
 
 __all__ = [
   'normal',
@@ -77,4 +77,4 @@ float32 = torch.float32
 float64 = torch.float64
 
 if __name__ == '__main__':
-  pytorch_
+  more_ops

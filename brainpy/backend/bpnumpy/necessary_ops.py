@@ -10,7 +10,9 @@ __all__ = [
 
   'as_tensor',
   'zeros',
+  'zeros_like',
   'ones',
+  'ones_like',
   'arange',
   'vstack',
   'concatenate',
@@ -35,7 +37,9 @@ exp = np.exp
 # necessary ops for dynamics simulation
 as_tensor = np.asarray
 zeros = np.zeros
+zeros_like = np.zeros_like
 ones = np.ones
+ones_like = np.ones_like
 arange = np.arange
 vstack = np.vstack
 concatenate = np.concatenate
