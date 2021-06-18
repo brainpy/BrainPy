@@ -48,27 +48,43 @@ class Container(DynamicSystem, list):
     collection : Collector
         A DataCollector of all the variables.
     """
-    collection = Collector()
-    prefix += f'({self.__class__.__name__})'
+    collector = Collector()
+    prefix1 = prefix + f'({self.name})'
     for i, v in enumerate(self):
       if isinstance(v, math.ndarray):
-        collection[f'{prefix}[{i}]'] = v
+        collector[f'{prefix1}[{i}]'] = v
       elif isinstance(v, DynamicSystem):
-        collection.update(v.vars(prefix=f'{prefix}[{i}]'))
-    return collection
+        collector.update(v.vars(prefix=f'{prefix1}[{i}]'))
+    prefix2 = prefix + f'({self.name}).'
+    for k, v in self.__dict__.items():
+      if isinstance(v, math.ndarray):
+        collector[prefix2 + k] = v
+      elif isinstance(v, DynamicSystem):
+        collector.update(v.vars(prefix=prefix2[:-1] if k == 'raw' else prefix2 + k))
+    return collector
 
   def ints(self, prefix=''):
     collector = Collector()
-    prefix += f'({self.__class__.__name__}).'
+    prefix1 = prefix + f'({self.name})'
+    for i, v in enumerate(self):
+      if isinstance(v, Integrator):
+        collector[f'{prefix1}[{i}]'] = v
+      elif isinstance(v, DynamicSystem):
+        collector.update(v.ints(prefix=f'{prefix1}[{i}]'))
+    prefix2 = prefix + f'({self.name}).'
     for k, v in self.__dict__.items():
       if isinstance(v, Integrator):
-        collector[prefix + k] = v
+        collector[prefix2 + k] = v
       elif isinstance(v, DynamicSystem):
-        collector.update(v.ints(prefix=prefix[:-1] if k == 'raw' else prefix + k))
+        collector.update(v.ints(prefix=prefix2[:-1] if k == 'raw' else prefix2 + k))
     return collector
 
   def nodes(self, prefix=''):
     collector = Collector()
+    prefix += f'{self.name}.'
+    for v in self:
+      collector[v.name] = v
+      collector.update(v.nodes(prefix[:-1]))
     for k, v in self.__dict__.items():
       if isinstance(v, DynamicSystem):
         collector[v.name] = v

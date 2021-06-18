@@ -2,7 +2,7 @@
 
 from brainpy import errors
 from brainpy.simulation import utils
-from .base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'NeuGroup',

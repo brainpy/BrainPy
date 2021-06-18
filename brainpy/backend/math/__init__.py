@@ -77,7 +77,7 @@ _array_manipulation = [
   'tile', 'repeat',
 
   # Adding and removing elements
-  'unique', 'delete', 'append',
+  'unique', 'append',
 
   # Rearranging elements
   'flip', 'fliplr', 'flipud', 'roll',

@@ -6,7 +6,7 @@ from brainpy import errors
 from brainpy import backend
 from brainpy.backend import math
 from brainpy.simulation.utils import size2len
-from .base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'ConstantDelay',

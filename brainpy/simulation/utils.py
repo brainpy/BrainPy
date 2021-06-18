@@ -125,6 +125,8 @@ def format_inputs(host, inputs, duration):
   formatted_inputs : tuple, list
       The formatted inputs of the population.
   """
+  from brainpy.simulation.brainobjects.base import DynamicSystem
+
   mon_length = get_run_length_by_duration(duration)
 
   # 1. check inputs
@@ -156,11 +158,20 @@ def format_inputs(host, inputs, duration):
   nodes = host.nodes()
   formatted_inputs = []
   for one_input in inputs:
+    key = one_input[0]
+    no_raw_host = host
+    while hasattr(no_raw_host, 'raw'):
+      if not isinstance(no_raw_host.raw, DynamicSystem):
+        raise ValueError
+      no_raw_host = no_raw_host.raw
+      key = 'raw.' + key
+    key = host.name + '.' +  key
+
     # key
-    if not isinstance(one_input[0], str):
+    if not isinstance(key, str):
       raise errors.ModelUseError('For each input, input[0] must be a string '
                                  'to specify variable of the target.')
-    splits = one_input[0].split('.')
+    splits = key.split('.')
     target = '.'.join(splits[:-1])
     key = splits[-1]
     if target == '':

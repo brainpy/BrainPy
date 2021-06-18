@@ -1,37 +1,65 @@
 # -*- coding: utf-8 -*-
 
 import jax
+
+import functools
 from brainpy import errors
+from brainpy.backend.math import numpy
 from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.tools.collector import Collector
-
+from brainpy.tools.codes import func_name
 
 __all__ = [
   'Function',
   'JIT',
-  'Parallel',
   'Vectorize',
+  'Parallel',
 ]
 
 _JAX_FUNC_NO = 0
+_JAX_JIT_NO = 0
 
 
-class Function(DynamicSystem):
-  """Turn a function into a Module by keeping the vars it uses."""
+class Function(numpy.Function):
+  """Turn a function into a DynamicSystem."""
 
-  def __init__(self, f, all_vars, name=None, monitors=None):
+  target_backend = 'jax'
+
+  def __init__(self, f, VIN, name=None, monitors=None):
     """Function constructor.
 
-    Args:
-        f: the function or the module to represent.
-        all_vars: the Collection of variables used by the function.
+    Parameters
+    ----------
+    f : function
+      The function or the module to represent.
+    VIN : list of Collector, tuple of Collector
+      The collection of variables, integrators, and nodes.
     """
-    if hasattr(f, '__name__'):
-      self.all_vars = Collector((f'{{{f.__name__}}}{k}', v)
-                                for k, v in all_vars.items())
-    else:
-      self.all_vars = Collector(all_vars)
-    self.__wrapped__ = f
+    if name is None:
+      global _JAX_FUNC_NO
+      name = f'JaxFunc{_JAX_FUNC_NO}'
+      _JAX_FUNC_NO += 1
+
+    super(Function, self).__init__(f=f, VIN=VIN, name=name, monitors=monitors)
+
+
+class JIT(DynamicSystem):
+  """JIT (Just-In-Time) module takes a function
+  or a module and compiles it for faster execution."""
+  target_backend = 'jax'
+
+  def __init__(self, ds, VIN=None, static_argnums=None, name=None, monitors=None):
+    self.static_argnums = static_argnums
+
+    if not isinstance(ds, DynamicSystem):
+      if VIN is None:
+        raise ValueError('You must supply the VIN used by the function f.')
+      ds = Function(ds, VIN, name=name)
+
+    self.raw = ds
+    self.all_vars = ds.vars() if VIN is None else VIN[0]
+    self.all_ints = ds.ints() if VIN is None else VIN[1]
+    self.all_nodes = ds.nodes() if VIN is None else VIN[2]
 
     # monitors
     if monitors is not None:
@@ -40,139 +68,72 @@ class Function(DynamicSystem):
 
     # name
     if name is None:
-      global _JAX_FUNC_NO
-      name = f'JaxFunc{_JAX_FUNC_NO}'
-      _JAX_FUNC_NO += 1
+      global _JAX_JIT_NO
+      name = f'JaxJIT{_JAX_JIT_NO}'
+      _JAX_JIT_NO += 1
 
-    super(Function, self).__init__(steps={'update': self.update},
-                                   name=name,
-                                   monitors=None)
+    steps = {}
+    for key, func in ds.steps.items():
+      @functools.partial(jax.jit, static_argnums=tuple(x + 2 for x in sorted(static_argnums or ())))
+      def jit(all_data, _t, _i):
+        self.all_vars.assign(all_data)
+        return func(_t, _i), self.all_vars.all_data()
 
-  def update(self, *args, **kwargs):
-    """Call the the function."""
-    return self.__wrapped__(*args, **kwargs)
+      @func_name(name=key)
+      def call(_t, _i):
+        output, changes = jit(self.all_vars.all_data(), _t, _i)
+        self.all_vars.assign(changes)
+        return output
+
+      steps[key] = call
+
+    super(JIT, self).__init__(steps=steps, name=name, monitors=monitors)
 
   def vars(self, prefix=''):
     """Return the Collection of the variables used by the function."""
     if prefix:
       return Collector((prefix + k, v) for k, v in self.all_vars.items())
-    return Collector(self.all_vars)
+    else:
+      return Collector(self.all_vars)
 
-  @staticmethod
-  def with_vars(all_vars):
-    """Decorator which turns a function into a module using provided variable collection.
+  # def ints(self, prefix=''):
+  #   if prefix:
+  #     return Collector((prefix + k, v) for k, v in self.all_ints.items())
+  #   else:
+  #     return Collector(self.all_ints)
 
-    Parameters
-    ----------
-    all_vars : dict
-      The Collection of variables used by the function.
-    """
-
-    def from_function(f):
-      return Function(f, all_vars)
-
-    return from_function
+  # def nodes(self, prefix=''):
+  #   if prefix:
+  #     return Collector((prefix + k, v) for k, v in self.all_nodes.items())
+  #   else:
+  #     return Collector(self.all_nodes)
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(f={str(self.__wrapped__)})'
+    return f'{self.__class__.__name__}(f={self.raw}, static_argnums={self.static_argnums or None})'
 
 
-class JIT(DynamicSystem):
-  """JIT (Just-In-Time) module takes a function
-  or a module and compiles it for faster execution."""
-
-  def __init__(self, f, all_vars=None, static_argnums=None):
-    """Jit constructor.
-
-    Parameters
-    ----------
-    f : function, DynamicSystem
-      The function or the module to compile.
-    all_vars : dict, Collection
-      The Collection of variables used by the function or module. This argument is required for functions.
-    static_argnums : optional, list, int
-      Tuple of indexes of f's input arguments to treat as static (constants)).
-      A new graph is compiled for each different combination of values for such inputs.
-    """
-    self.static_argnums = static_argnums
-    if not isinstance(f, DynamicSystem):
-      if all_vars is None:
-        raise ValueError('You must supply the variables used by the function f.')
-      f = Function(f, all_vars)
-
-    def jit(all_data, kwargs, *args):
-      try:
-        self.all_vars.assign(all_data)
-        return f(*args, **kwargs), self.all_vars.tensors()
-      finally:
-        pass
-
-    self.all_vars = f.vars() if all_vars is None else all_vars
-    self._call = jax.jit(jit, static_argnums=tuple(x + 2 for x in sorted(static_argnums or ())))
-    self.__wrapped__ = f
-
-  def update(self, *args, **kwargs):
-    """Call the compiled version of the function or module."""
-    output, changes = self._call(self.all_vars.tensors(), kwargs, *args)
-    self.all_vars.assign(changes)
-    return output
-
-  def __repr__(self):
-    return f'{self.__class__.__name__}(f={self.__wrapped__}, static_argnums={self.static_argnums})'
 
 class Parallel(object):
+  target_backend = 'jax'
+
   pass
 
 
 class Vectorize(DynamicSystem):
-    """Vectorize module takes a function or a module and
-    compiles it for running in parallel on a single device.
+  """Vectorize module takes a function or a module and
+  compiles it for running in parallel on a single device.
 
-    Parameters
-    ----------
+  Parameters
+  ----------
 
-    f : DynamicSystem, function
-      The function or the module to compile for vectorization.
-    all_vars : Collector
-      The Collection of variables used by the function or module.
-      This argument is required for functions.
-    batch_axis : tuple of int, int, tuple of None
-      Tuple of int or None for each of f's input arguments:
-      the axis to use as batch during vectorization. Use
-      None to automatically broadcast.
-    """
-
-    def __init__(self, f, all_vars=None, batch_axis=(0,)):
-        if not isinstance(f, DynamicSystem):
-            if all_vars is None:
-                raise ValueError('You must supply the VarCollection used by the function f.')
-            f = Function(f, all_vars)
-
-        def vmap(all_data, random_list, *args):
-          self.all_vars.assign(all_data)
-          self.all_vars.subset(RandomState).assign(random_list)
-          return f(*args), self.all_vars.all_data()
-
-        fargs = positional_args_names(f)
-        assert len(batch_axis) >= len(fargs), f'The batched argument must be specified for all of {f} arguments {fargs}'
-        self.batch_axis = batch_axis
-        self.batch_axis_argnums = [(x, v) for x, v in enumerate(batch_axis) if v is not None]
-        assert self.batch_axis_argnums, f'No arguments to function {f} are vectorizable'
-        self.all_vars = all_vars or f.vars()
-        self._call = jax.vmap(vmap, (None, 0) + batch_axis)
-        self.__wrapped__ = f
-
-    def update(self, *args):
-        """Call the vectorized version of the function or module."""
-        assert len(args) == len(self.batch_axis), f'Number of arguments passed {len(args)} must match ' \
-                                                  f'batched {len(self.batch_axis)}'
-        nsplits = args[self.batch_axis_argnums[0][0]].shape[self.batch_axis_argnums[0][1]]
-        output, changes = self._call(self.all_vars.all_data(),
-                                     [v.split(nsplits) for v in self.all_vars.subset(RandomState)],
-                                     *args)
-        for v, u in zip(self.all_vars, changes):
-            v.reduce(u)
-        return output
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}(f={self.__wrapped__}, batch_axis={self.batch_axis})'
+  f : DynamicSystem, function
+    The function or the module to compile for vectorization.
+  all_vars : Collector
+    The Collection of variables used by the function or module.
+    This argument is required for functions.
+  batch_axis : tuple of int, int, tuple of None
+    Tuple of int or None for each of f's input arguments:
+    the axis to use as batch during vectorization. Use
+    None to automatically broadcast.
+  """
+  target_backend = 'jax'

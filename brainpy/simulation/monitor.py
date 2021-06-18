@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Any
 from brainpy import errors
 from brainpy.backend import math
 
@@ -182,14 +183,34 @@ class Monitor(object):
                                    f'not {str(mon_idx)}')
     return mon_idx
 
-  def __getitem__(self, item):
+  def __getitem__(self, item: str):
+    """Get item in the monitor values.
+
+    Parameters
+    ----------
+    item : str
+
+    Returns
+    -------
+    value : ndarray
+      The monitored values.
+    """
     item_contents = super(Monitor, self).__getattribute__('item_contents')
     if item not in item_contents:
       raise ValueError(f'Do not have "{item}". Available items are:\n'
                        f'{list(item_contents.keys())}')
     return item_contents[item]
 
-  def __setitem__(self, key, value):
+  def __setitem__(self, key: str, value: Any):
+    """Get item value in the monitor.
+
+    Parameters
+    ----------
+    key : str
+      The item key.
+    value : ndarray
+      The item value.
+    """
     item_contents = super(Monitor, self).__getattribute__('item_contents')
     if key not in item_contents:
       raise ValueError(f'Do not have "{key}". Available items are:\n'

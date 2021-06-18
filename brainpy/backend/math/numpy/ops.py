@@ -31,7 +31,7 @@ __all__ = [
   # array manipulation
   'shape', 'size', 'reshape', 'ravel', 'moveaxis', 'transpose', 'swapaxes',
   'concatenate', 'stack', 'vstack', 'hstack', 'dstack', 'column_stack',
-  'split', 'dsplit', 'hsplit', 'vsplit', 'tile', 'repeat', 'unique', 'delete',
+  'split', 'dsplit', 'hsplit', 'vsplit', 'tile', 'repeat', 'unique',
   'append', 'flip', 'fliplr', 'flipud', 'roll', 'atleast_1d', 'atleast_2d',
   'atleast_3d', 'expand_dims', 'squeeze', 'sort', 'argsort', 'argmax', 'argmin',
   'argwhere', 'nonzero', 'flatnonzero', 'where', 'searchsorted', 'extract',
@@ -231,7 +231,6 @@ vsplit = numpy.vsplit
 tile = numpy.tile
 repeat = numpy.repeat
 unique = numpy.unique
-delete = numpy.delete
 append = numpy.append
 flip = numpy.flip
 fliplr = numpy.fliplr

@@ -53,7 +53,7 @@ class DynamicSystem(object):
       The collection contained the variable name and the variable data.
     """
     collector = Collector()
-    prefix += f'({self.__class__.__name__}).'
+    prefix += f'({self.name}).'
     for k, v in self.__dict__.items():
       if isinstance(v, math.ndarray):
         collector[prefix + k] = v
@@ -76,7 +76,7 @@ class DynamicSystem(object):
       The collection contained the integrator name and the integrator function.
     """
     collector = Collector()
-    prefix += f'({self.__class__.__name__}).'
+    prefix += f'({self.name}).'
     for k, v in self.__dict__.items():
       if isinstance(v, Integrator):
         collector[prefix + k] = v
@@ -99,6 +99,7 @@ class DynamicSystem(object):
       The collection contained the integrator name and the integrator function.
     """
     collector = Collector()
+    prefix += f'{self.name}.'
     for k, v in self.__dict__.items():
       if isinstance(v, DynamicSystem):
         collector[v.name] = v

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import jax.numpy as jnp
-from brainpy.backend.math.jax.ndarray import _wrap
+from brainpy.backend.math.jax.ndarray import _wrap, ndarray
 
 __all__ = [
   # math funcs
@@ -32,7 +32,7 @@ __all__ = [
   # array manipulation
   'shape', 'size', 'reshape', 'ravel', 'moveaxis', 'transpose', 'swapaxes',
   'concatenate', 'stack', 'vstack', 'hstack', 'dstack', 'column_stack',
-  'split', 'dsplit', 'hsplit', 'vsplit', 'tile', 'repeat', 'unique', 'delete',
+  'split', 'dsplit', 'hsplit', 'vsplit', 'tile', 'repeat', 'unique',
   'append', 'flip', 'fliplr', 'flipud', 'roll', 'atleast_1d', 'atleast_2d',
   'atleast_3d', 'expand_dims', 'squeeze', 'sort', 'argsort', 'argmax', 'argmin',
   'argwhere', 'nonzero', 'flatnonzero', 'where', 'searchsorted', 'extract',
@@ -232,12 +232,38 @@ ravel = _wrap(jnp.ravel)
 moveaxis = _wrap(jnp.moveaxis)
 transpose = _wrap(jnp.transpose)
 swapaxes = _wrap(jnp.swapaxes)
-concatenate = _wrap(jnp.concatenate)
-stack = _wrap(jnp.stack)
-vstack = _wrap(jnp.vstack)
-hstack = _wrap(jnp.hstack)
-dstack = _wrap(jnp.dstack)
-column_stack = _wrap(jnp.column_stack)
+
+
+def concatenate(arrays, axis: int = 0):
+  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
+  return ndarray(jnp.concatenate(arrays, axis))
+
+
+def stack(arrays, axis: int = 0):
+  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
+  return ndarray(jnp.stack(arrays, axis))
+
+
+def vstack(arrays):
+  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
+  return ndarray(jnp.vstack(arrays))
+
+
+def hstack(arrays):
+  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
+  return ndarray(jnp.hstack(arrays))
+
+
+def dstack(arrays):
+  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
+  return ndarray(jnp.dstack(arrays))
+
+
+def column_stack(arrays):
+  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
+  return ndarray(jnp.column_stack(arrays))
+
+
 split = _wrap(jnp.split)
 dsplit = _wrap(jnp.dsplit)
 hsplit = _wrap(jnp.hsplit)
@@ -245,7 +271,6 @@ vsplit = _wrap(jnp.vsplit)
 tile = _wrap(jnp.tile)
 repeat = _wrap(jnp.repeat)
 unique = _wrap(jnp.unique)
-delete = _wrap(jnp.delete)
 append = _wrap(jnp.append)
 flip = _wrap(jnp.flip)
 fliplr = _wrap(jnp.fliplr)
