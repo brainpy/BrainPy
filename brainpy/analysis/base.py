@@ -31,11 +31,11 @@ class BaseAnalyzer(object):
   neuron models. A neuron model is characterized by a series of dynamical
   variables and parameters:
 
-  .. math::
+  .. backend::
 
       {dF \over dt} = F(v_1, v_2, ..., p_1, p_2, ...)
 
-  where :math:`v_1, v_2` are variables, :math:`p_1, p_2` are parameters.
+  where :backend:`v_1, v_2` are variables, :backend:`p_1, p_2` are parameters.
 
   Parameters
   ----------
@@ -237,7 +237,7 @@ class Base1DAnalyzer(BaseAnalyzer):
 
   It supports the analysis of 1D dynamical system.
 
-  .. math::
+  .. backend::
 
       {dx \over dt} = f(x, t)
   """
@@ -408,7 +408,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
   It supports the analysis of 2D dynamical system.
 
-  .. math::
+  .. backend::
 
       {dx \over dt} = f(x, t, y)
 

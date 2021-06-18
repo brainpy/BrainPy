@@ -29,11 +29,11 @@ __all__ = [
   'contain_unknown_symbol',
 ]
 
-# Get functions in math
+# Get functions in backend
 _functions_in_math = []
-for key in dir(math):
+for key in dir(backend):
   if not key.startswith('__'):
-    _functions_in_math.append(getattr(math, key))
+    _functions_in_math.append(getattr(backend, key))
 
 # Get functions in NumPy
 _functions_in_numpy = []
@@ -191,7 +191,7 @@ def _jit(func):
 
 
 def _is_numpy_bk():
-  bk_name = backend.get_backend_name()
+  bk_name = math.get_backend_name()
   return bk_name.startswith('numba') or bk_name == 'numpy'
 
 

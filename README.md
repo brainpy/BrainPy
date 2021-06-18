@@ -23,7 +23,7 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 
 ![Speed Comparison](docs/_static/speed.png)
 
-`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Intrinsically, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/), [PyTorch](https://pytorch.org/), and [TensorFlow](https://www.tensorflow.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) on CPU or CUDA devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
+`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Intrinsically, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/) and [PyTorch](https://pytorch.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
 
 
 

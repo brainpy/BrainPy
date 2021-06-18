@@ -5,7 +5,7 @@ import numpy as np
 
 from brainpy import errors
 from brainpy import tools
-from brainpy.backend import ops
+from brainpy.backend import math
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 
@@ -84,8 +84,8 @@ class One2One(TwoEndConnector):
     self.num_pre = length
     self.num_post = length
 
-    self.pre_ids = ops.arange(length)
-    self.post_ids = ops.arange(length)
+    self.pre_ids = math.arange(length)
+    self.post_ids = math.arange(length)
     return self
 
 
@@ -112,9 +112,9 @@ class All2All(TwoEndConnector):
     if not self.include_self:
       np.fill_diagonal(mat, 0)
     pre_ids, post_ids = np.where(mat > 0)
-    self.pre_ids = ops.as_tensor(np.ascontiguousarray(pre_ids))
-    self.post_ids = ops.as_tensor(np.ascontiguousarray(post_ids))
-    self.conn_mat = ops.as_tensor(mat)
+    self.pre_ids = math.array(np.ascontiguousarray(pre_ids))
+    self.post_ids = math.array(np.ascontiguousarray(post_ids))
+    self.conn_mat = math.array(mat)
     return self
 
 
@@ -152,8 +152,8 @@ class GridFour(TwoEndConnector):
       a = _grid_four(height, width, row, include_self=self.include_self)
       conn_i.extend(a[0])
       conn_j.extend(a[1])
-    self.pre_ids = ops.as_tensor(conn_i)
-    self.post_ids = ops.as_tensor(conn_j)
+    self.pre_ids = math.array(conn_i)
+    self.post_ids = math.array(conn_j)
     return self
 
 
@@ -213,8 +213,8 @@ class GridN(TwoEndConnector):
                     n=self.N, include_self=self.include_self)
       conn_i.extend(res[0])
       conn_j.extend(res[1])
-    self.pre_ids = ops.as_tensor(conn_i)
-    self.post_ids = ops.as_tensor(conn_j)
+    self.pre_ids = math.array(conn_i)
+    self.post_ids = math.array(conn_j)
     return self
 
 

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0.3"
+__version__ = "1.1.0-alpha"
 
 # "backend" module
 from . import backend
-from .backend import ops
-from .backend import drivers
+from .backend import math
+
+
 
 # "analysis" module
 from . import analysis

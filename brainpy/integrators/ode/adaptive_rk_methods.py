@@ -71,8 +71,8 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
   """The Runge–Kutta–Fehlberg method for ordinary differential equations.
 
   The method presented in Fehlberg's 1969 paper has been dubbed the
-  RKF45 method, and is a method of order :math:`O(h^4)` with an error
-  estimator of order :math:`O(h^5)`. The novelty of Fehlberg's method is
+  RKF45 method, and is a method of order :backend:`O(h^4)` with an error
+  estimator of order :backend:`O(h^5)`. The novelty of Fehlberg's method is
   that it is an embedded method from the Runge–Kutta family, meaning that
   identical function evaluations are used in conjunction with each other
   to create methods of varying order and similar error constants.
@@ -83,7 +83,7 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
       - method order = 5
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{l|lllll}
           0 & & & & & & \\\\
@@ -138,7 +138,7 @@ def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
       - method order = 1
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{l|ll}
           0 & & \\\\
@@ -194,7 +194,7 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
       - method order = 5
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{l|llllll}
           0 &  \\\\
@@ -253,7 +253,7 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
       - method order = 4
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{l|lllll}
           0 & & & & & & \\\\
@@ -309,7 +309,7 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{l|lll}
           0 & & & \\\\
@@ -357,7 +357,7 @@ def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_typ
       - method order = 1
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cc}
           0&\\\\

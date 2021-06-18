@@ -2,7 +2,7 @@
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.backend import ops
+from brainpy.backend import math
 from brainpy.integrators import constants
 from . import common
 
@@ -18,8 +18,8 @@ class Tools(object):
   def _noise_terms(code_lines, variables, vdt, triple_integral=True):
     # num_vars = len(variables)
     # if num_vars > 1:
-    #     code_lines.append(f'  all_I1 = ops.normal(0.0, dt_sqrt, ({num_vars},)+ops.shape({variables[0]}))')
-    #     code_lines.append(f'  all_I0 = ops.normal(0.0, dt_sqrt, ({num_vars},)+ops.shape({variables[0]}))')
+    #     code_lines.append(f'  all_I1 = math.normal(0.0, dt_sqrt, ({num_vars},)+math.shape({variables[0]}))')
+    #     code_lines.append(f'  all_I0 = math.normal(0.0, dt_sqrt, ({num_vars},)+math.shape({variables[0]}))')
     #     code_lines.append(f'  all_I10 = 0.5 * {vdt} * (all_I1 + all_I0 / 3.0 ** 0.5)')
     #     code_lines.append(f'  all_I11 = 0.5 * (all_I1 ** 2 - {vdt})')
     #     if triple_integral:
@@ -35,8 +35,8 @@ class Tools(object):
     #         code_lines.append(f'  ')
     # else:
     #     var = variables[0]
-    #     code_lines.append(f'  {var}_I1 = ops.normal(0.0, dt_sqrt, ops.shape({var}))')
-    #     code_lines.append(f'  {var}_I0 = ops.normal(0.0, dt_sqrt, ops.shape({var}))')
+    #     code_lines.append(f'  {var}_I1 = math.normal(0.0, dt_sqrt, math.shape({var}))')
+    #     code_lines.append(f'  {var}_I0 = math.normal(0.0, dt_sqrt, math.shape({var}))')
     #     code_lines.append(f'  {var}_I10 = 0.5 * {vdt} * ({var}_I1 + {var}_I0 / 3.0 ** 0.5)')
     #     code_lines.append(f'  {var}_I11 = 0.5 * ({var}_I1 ** 2 - {vdt})')
     #     if triple_integral:
@@ -44,8 +44,8 @@ class Tools(object):
     #     code_lines.append('  ')
 
     for var in variables:
-      code_lines.append(f'  {var}_I1 = ops.normal(0.000, dt_sqrt, ops.shape({var}))')
-      code_lines.append(f'  {var}_I0 = ops.normal(0.000, dt_sqrt, ops.shape({var}))')
+      code_lines.append(f'  {var}_I1 = math.normal(0.000, dt_sqrt, math.shape({var}))')
+      code_lines.append(f'  {var}_I0 = math.normal(0.000, dt_sqrt, math.shape({var}))')
       code_lines.append(f'  {var}_I10 = 0.5 * {vdt} * ({var}_I1 + {var}_I0 / 3.0 ** 0.5)')
       code_lines.append(f'  {var}_I11 = 0.5 * ({var}_I1 ** 2 - {vdt})')
       if triple_integral:
@@ -67,7 +67,7 @@ class Wrappers(object):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'ops': ops}
+    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -145,7 +145,7 @@ class Wrappers(object):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'ops': ops}
+    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -248,7 +248,7 @@ class Wrappers(object):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'ops': ops}
+    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -357,11 +357,11 @@ class Wrappers(object):
 def srk1w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
   """Order 2.0 weak SRK methods for SDEs with scalar Wiener process.
 
-  This method has have strong orders :math:`(p_d, p_s) = (2.0,1.5)`.
+  This method has have strong orders :backend:`(p_d, p_s) = (2.0,1.5)`.
 
   The Butcher table is:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{l|llll|llll|llll}
           0   &&&&&  &&&&  &&&& \\\\
@@ -397,11 +397,11 @@ def srk1w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_
 def srk2w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
   """Order 1.5 Strong SRK Methods for SDEs witdt Scalar Noise.
 
-  This method has have strong orders :math:`(p_d, p_s) = (3.0,1.5)`.
+  This method has have strong orders :backend:`(p_d, p_s) = (3.0,1.5)`.
 
   The Butcher table is:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cccc|cccc|ccc|}
           0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & & & & \\\\
@@ -434,11 +434,11 @@ def srk2w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_
 def KlPl_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
   """Order 1.0 Strong SRK Methods for SDEs with Scalar Noise.
 
-  This method has have orders :math:`p_s = 1.0`.
+  This method has have orders :backend:`p_s = 1.0`.
 
   The Butcher table is:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cc|cc|cc|c}
           0 & 0 & 0 & 0 & 0 & & \\\\

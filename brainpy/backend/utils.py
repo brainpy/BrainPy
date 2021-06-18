@@ -13,15 +13,16 @@ __all__ = [
   'get_num_indent',
   'get_func_body_code',
   'get_args',
+  'code_lines_to_func',
 ]
 
 
 def every_to_step_num(interval):
-  num_interval = round(interval / backend.get_dt())
-  if math.fmod(interval * 1000, backend.get_dt() * 1000) != 0.:
+  num_interval = round(interval / math.get_dt())
+  if math.fmod(interval * 1000, math.get_dt() * 1000) != 0.:
     print(f'"{interval}" is not an integer multiple of the step '
-          f'resolution ("{backend.get_dt()}"). BrainPy adjust it '
-          f'to "{num_interval * backend.get_dt()}".')
+          f'resolution ("{math.get_dt()}"). BrainPy adjust it '
+          f'to "{num_interval * math.get_dt()}".')
   return num_interval
 
 
@@ -126,11 +127,33 @@ def get_args(f):
 
   # 2. check the function arguments
   class_kw = None
-  if len(arguments) > 0 and arguments[0] in backend.CLASS_KEYWORDS:
+  if len(arguments) > 0 and arguments[0] in math.CLASS_KEYWORDS:
     class_kw = arguments[0]
     arguments = arguments[1:]
   for a in arguments:
-    if a in backend.CLASS_KEYWORDS:
+    if a in math.CLASS_KEYWORDS:
       raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
                                f'as the first argument.')
   return class_kw, arguments
+
+
+def code_lines_to_func(lines, func_name, func_args, scope):
+  lines_for_compile = [f'    {line}' for line in lines]
+  code_for_compile = '\n'.join(lines_for_compile)
+  code = f'def {func_name}({", ".join(func_args)}):\n' + \
+         f'  try:\n' + \
+         f'{code_for_compile}\n' + \
+         f'  except Exception as e:\n'
+  lines_for_debug = [f'[{i+1:3d}] {line}' for i, line in enumerate(code.split('\n'))]
+  code_for_debug = '\n'.join(lines_for_debug)
+  code += f'    exc_type, exc_obj, exc_tb = sys.exc_info()\n' \
+         f'    line_no = exc_tb.tb_lineno\n' \
+         f'    raise ValueError("""Error occurred in line %d: \n\n{code_for_debug}\n' \
+          f'    ....\n\n""" % line_no) from e'
+  try:
+    exec(compile(code, '', 'exec'), scope)
+  except Exception as e:
+    raise ValueError(f'Compilation function error: \n\n{code}') from e
+  func = scope[func_name]
+  return code, func
+

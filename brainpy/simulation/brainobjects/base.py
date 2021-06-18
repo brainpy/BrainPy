@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import gc
 from collections import OrderedDict
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.backend import ops
+from brainpy.backend import math
+from brainpy.integrators.integrators import Integrator
 from brainpy.simulation import utils
-from brainpy.simulation.monitors import Monitor
+from brainpy.simulation.monitor import Monitor
+from brainpy.simulation.drivers import BaseDSDriver
+from brainpy.tools.collector import Collector
 
 __all__ = [
   'DynamicSystem',
@@ -27,25 +29,91 @@ class DynamicSystem(object):
   ----------
   steps : function, list of function, tuple of function, dict of (str, function), optional
       The callable function, or a list of callable functions.
-  monitors : list, tuple, optional
+  monitors : None, list, tuple, datastructures.Monitor
       Variables to monitor.
   name : str, optional
       The name of the dynamic system.
-  show_code : bool
-      Whether show the formatted codes.
   """
+  _KEYWORDS = ['vars', 'pars', 'ints', 'nodes']
+
   target_backend = None
 
-  def __init__(self, steps=None, monitors=None, name=None, show_code=False):
-    # for Container Objects
-    self.contained_members = OrderedDict()
+  def vars(self, prefix=''):
+    """Collect all the variables in the instance of
+    DynamicSystem and the node instances.
 
-    # all the children nodes: instances of DynamicSystem
-    # which can be added by the attribute setting
-    self.children_nodes = dict()
+    Parameters
+    ----------
+    prefix : str
+      The prefix string for the variable names.
+
+    Returns
+    -------
+    collector : datastructures.Collector
+      The collection contained the variable name and the variable data.
+    """
+    collector = Collector()
+    prefix += f'({self.__class__.__name__}).'
+    for k, v in self.__dict__.items():
+      if isinstance(v, math.ndarray):
+        collector[prefix + k] = v
+      elif isinstance(v, DynamicSystem):
+        collector.update(v.vars(prefix=prefix[:-1] if k == 'raw' else prefix + k))
+    return collector
+
+  def ints(self, prefix=''):
+    """Collect all the integrators in the instance
+    of DynamicSystem and the node instances.
+
+    Parameters
+    ----------
+    prefix : str
+      The prefix string for the integrator names.
+
+    Returns
+    -------
+    collector : datastructures.Collector
+      The collection contained the integrator name and the integrator function.
+    """
+    collector = Collector()
+    prefix += f'({self.__class__.__name__}).'
+    for k, v in self.__dict__.items():
+      if isinstance(v, Integrator):
+        collector[prefix + k] = v
+      elif isinstance(v, DynamicSystem):
+        collector.update(v.ints(prefix=prefix[:-1] if k == 'raw' else prefix + k))
+    return collector
+
+  def nodes(self, prefix=''):
+    """Collect all the nodes in the instance
+    of DynamicSystem.
+
+    Parameters
+    ----------
+    prefix : str
+      The prefix string for the integrator names.
+
+    Returns
+    -------
+    collector : datastructures.Collector
+      The collection contained the integrator name and the integrator function.
+    """
+    collector = Collector()
+    for k, v in self.__dict__.items():
+      if isinstance(v, DynamicSystem):
+        collector[v.name] = v
+        collector[prefix + f'{k}'] = v
+        collector.update(v.nodes(prefix + f'{k}.'))
+    return collector
+
+  def __init__(self, steps=None, monitors=None, name=None):
+    # runner and run function
+    self.driver = None
+    self.run_func = None
+    self.input_step = lambda _t, _i: None
+    self.monitor_step = lambda _t, _i: None
 
     # step functions
-    # --------------
     self.steps = OrderedDict()
     if steps is not None:
       if callable(steps):
@@ -59,9 +127,10 @@ class DynamicSystem(object):
         raise errors.ModelDefError(f'Unknown model type: {type(steps)}. '
                                    f'Currently, BrainPy only supports: '
                                    f'function, list/tuple/dict of functions.')
+    else:
+      self.steps['call'] = self.update
 
-    # name
-    # ----
+    # name : useful in Numba Backend
     if name is None:
       global _DynamicSystem_NO
       name = f'DS{_DynamicSystem_NO}'
@@ -73,7 +142,6 @@ class DynamicSystem(object):
     self.name = name
 
     # monitors
-    # ---------
     if monitors is None:
       self.mon = Monitor(target=self, variables=[])
     elif isinstance(monitors, (list, tuple, dict)):
@@ -86,20 +154,7 @@ class DynamicSystem(object):
                                  f'list/tuple/dict/ instance '
                                  f'of Monitor, not {type(monitors)}.')
 
-    # runner
-    # -------
-    self.driver = backend.get_ds_driver()(target=self)
-
-    # run function
-    # ------------
-    self.run_func = None
-
-    # show code
-    # ---------
-    self.show_code = show_code
-
     # target backend
-    # --------------
     if self.target_backend is None:
       raise errors.ModelDefError('Must define "target_backend".')
     if isinstance(self.target_backend, str):
@@ -114,163 +169,56 @@ class DynamicSystem(object):
                                  f'"target_backend": '
                                  f'{self.target_backend}')
 
-  def build(self,
-            duration,
-            inputs=(),
-            inputs_is_formatted=False,
-            return_format_code=False,
-            show_code=False):
-    """Build the object for running.
+  def update(self, _t, _i):
+    raise NotImplementedError
 
-    Parameters
-    ----------
-    inputs : list, tuple, optional
-        The object inputs.
-    inputs_is_formatted : bool
-        Whether the "inputs" is formatted.
-    return_format_code : bool
-        Whether return the formatted codes.
-    duration : int, float, list of int, list of float, tuple of int, tuple of float
-        The running duration.
-    show_code : bool
-        Whether show the code.
-
-    Returns
-    -------
-    calls : list, tuple
-        The code lines to call step functions.
-    """
-
-    # build input functions
-
-    # build monitor functions
-
-    mon_length = utils.get_run_length_by_duration(duration)
-    if (self._target_backend[0] != 'general') and \
-        (backend.get_backend_name() not in self._target_backend):
+  def _build(self, inputs, duration, rebuild=False):
+    # backend checking
+    check1 = self._target_backend[0] != 'general'
+    check2 = backend.get_backend_name() not in self._target_backend
+    if check1 and check2:
       raise errors.ModelDefError(f'The model {self.name} is target '
                                  f'to run on {self._target_backend}, '
                                  f'but currently the selected backend '
                                  f'is {backend.get_backend_name()}')
-    if not inputs_is_formatted:
-      inputs = utils.format_pop_level_inputs(inputs=inputs,
-                                             host=self,
-                                             duration=duration)
-    return self.driver.build(formatted_inputs=inputs,
-                             mon_length=mon_length,
-                             return_format_code=return_format_code,
-                             show_code=(self.show_code or show_code))
 
-  def run(self, duration, inputs=(), report=False, report_percent=0.1):
+    # build main function the monitor function
+    if self.driver is None:
+      self.driver = backend.get_ds_driver()
+      self.driver = self.driver(self)
+    assert isinstance(self.driver, BaseDSDriver)
+    run_length = utils.get_run_length_by_duration(duration)
+    formatted_inputs = utils.format_inputs(host=self, duration=duration, inputs=inputs)
+    run_func = self.driver.build(rebuild=rebuild,
+                                 run_length=run_length,
+                                 inputs=formatted_inputs)
+    return run_func
+
+  def run(self, duration, report=0., inputs=(), rebuild=False):
     """The running function.
 
     Parameters
     ----------
+    inputs : list, tuple
+      The inputs for this instance of DynamicSystem. It should the format of
+      `[(target, value, [type, operation])]`, where `target` is the input target,
+      `value` is the input value, `type` is the input type (such as "fixed" or "iter"),
+      `operation` is the operation for inputs (such as "+", "-", "*", "/").
     duration : float, int, tuple, list
         The running duration.
-    inputs : list, tuple
-        The model inputs with the format of ``[(key, value [operation])]``.
-    report : bool
-        Whether report the running progress.
-    report_percent : float
-        The percent of progress to report.
+    report : float
+        The percent of progress to report. [0, 1]. If zero, the model
+        will not output report progress.
+    rebuild : bool
+      Rebuild the running function.
     """
 
     # times
-    # ------
     start, end = utils.check_duration(duration)
-    times = ops.arange(start, end, backend.get_dt())
+    times = math.arange(start, end, backend.get_dt())
 
     # build run function
-    # ------------------
-    self.run_func = self.build(inputs=inputs,
-                               inputs_is_formatted=False,
-                               duration=duration,
-                               return_format_code=False)
+    self.run_func = self._build(duration=duration, inputs=inputs, rebuild=rebuild)
 
     # run the model
-    # -------------
-    res = utils.run_model(self.run_func, times, report, report_percent)
-    self.mon.ts = times
-    return res
-
-  def schedule(self):
-    """Schedule the running order of the update functions.
-
-    Returns
-    -------
-    schedules : tuple
-        The running order of update functions.
-    """
-    steps = tuple()
-    for member in self.contained_members.values():
-      steps += tuple(member.steps.keys())
-    steps += self.steps.keys()
-    return ('input',) + steps + ('monitor',)
-
-  def run2(self, duration, inputs=(), report=False, report_percent=0.1):
-    """Run the simulation for the given duration.
-
-    This function provides the most convenient way to run the network.
-    For example:
-
-    Parameters
-    ----------
-    duration : int, float, tuple, list
-        The amount of simulation time to run for.
-    inputs : list, tuple
-        The receivers, external inputs and durations.
-    report : bool
-        Report the progress of the simulation.
-    report_percent : float
-        The speed to report simulation progress.
-    """
-    # preparation
-    start, end = utils.check_duration(duration)
-    dt = backend.get_dt()
-    ts = ops.arange(start, end, dt)
-
-    # build the network
-    run_length = ts.shape[0]
-    format_inputs = utils.format_net_level_inputs(inputs, run_length)
-    self.run_func = self.driver.build(duration=duration,
-                                      formatted_inputs=format_inputs,
-                                      show_code=self.show_code)
-
-    # run the network
-    res = utils.run_model(self.run_func, times=ts, report=report,
-                          report_percent=report_percent)
-
-    # end
-    for obj in self.contained_members.values():
-      if obj.mon.num_item > 0:
-        obj.mon.ts = ts
-    return res
-
-  def schedule2(self):
-    """Network scheduling in a network.
-    """
-    for node in self.contained_members.values():
-      for key in node.schedule():
-        yield f'{node.name}.{key}'
-
-  def __setattr__(self, key, value):
-    if isinstance(value, DynamicSystem):
-      self.children_nodes[key] = value
-    else:
-      object.__setattr__(self, key, value)
-
-  # def __del__(self):
-  #     pass
-  #     # delete monitors
-  #     if self.mon is not None:
-  #         del self.mon
-  #     # delete children
-  #     for val in self.members.values():
-  #         val.__del__()
-  #     # delete driver
-  #     del self.driver
-  #     # delete self
-  #     del self
-  #     # garbage collection
-  #     gc.collect()
+    return utils.run_model(run_func=self.run_func, times=times, report=report)

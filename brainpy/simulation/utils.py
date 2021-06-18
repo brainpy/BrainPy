@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import time
+from collections import Iterable
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.backend import ops
 
 __all__ = [
   'size2len',
   'check_duration',
   'run_model',
-  'format_pop_level_inputs',
-  'format_net_level_inputs',
+  'format_inputs',
 ]
 
 SUPPORTED_INPUT_OPS = ['-', '+', 'x', '*', '/', '=']
+SUPPORTED_INPUT_TYPE = ['fix', 'iter']
 
 
 def size2len(size):
@@ -66,10 +67,10 @@ def get_run_length_by_duration(duration):
   return mon_length
 
 
-def run_model(run_func, times, report, report_percent):
+def run_model(run_func, times, report):
   """Run the model.
 
-  The "run_func" can be the step run function of a population, or a network.
+  The "run_func" can be the step run function of a dynamical system.
 
   Parameters
   ----------
@@ -77,42 +78,22 @@ def run_model(run_func, times, report, report_percent):
       The step run function.
   times : iterable
       The model running times.
-  report : bool
-      Whether report the progress of the running.
-  report_percent : float
+  report : float
       The percent of the total running length for each report.
   """
 
-  def raise_running_error(e):
-    code_lines = run_func.code.split('\n')
-    code_lines = [f'[{i + 1:2d}]   {line}' for i, line in enumerate(code_lines)]
-    code = "\n".join(code_lines)
-    raise errors.RunningError(f'''
-The running error occurs in the formatted source code:
-
-{code}
-
-''')
-
   run_length = len(times)
-  dt = backend.get_dt()
   if report:
     t0 = time.time()
-    try:
-      run_func(_t=times[0], _i=0, _dt=dt)
-    except Exception as e:
-      raise_running_error(e)
+    run_func(_t=times[0], _i=0)
     compile_time = time.time() - t0
     print('Compilation used {:.4f} s.'.format(compile_time))
 
     print("Start running ...")
-    report_gap = int(run_length * report_percent)
+    report_gap = int(run_length * report)
     t0 = time.time()
     for run_idx in range(1, run_length):
-      try:
-        run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
-      except Exception as e:
-        raise_running_error(e)
+      run_func(_t=times[run_idx], _i=run_idx)
       if (run_idx + 1) % report_gap == 0:
         percent = (run_idx + 1) / run_length * 100
         print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
@@ -121,22 +102,20 @@ The running error occurs in the formatted source code:
     print()
     return running_time
   else:
+    t0 = time.time()
     for run_idx in range(run_length):
-      try:
-        run_func(_t=times[run_idx], _i=run_idx, _dt=dt)
-      except Exception as e:
-        raise_running_error(e)
-    return None
+      run_func(_t=times[run_idx], _i=run_idx)
+    return time.time() - t0
 
 
-def format_pop_level_inputs(inputs, host, duration):
+def format_inputs(host, inputs, duration):
   """Format the inputs of a population.
 
   Parameters
   ----------
   inputs : tuple, list
       The inputs of the population.
-  host : Population
+  host : DynamicSystem
       The host which contains all data.
   duration : int
       The monitor length.
@@ -147,6 +126,8 @@ def format_pop_level_inputs(inputs, host, duration):
       The formatted inputs of the population.
   """
   mon_length = get_run_length_by_duration(duration)
+
+  # 1. check inputs
   if inputs is None:
     inputs = []
   if not isinstance(inputs, (tuple, list)):
@@ -156,130 +137,73 @@ def format_pop_level_inputs(inputs, host, duration):
       inputs = [inputs]
     else:
       raise errors.ModelUseError('Unknown input structure, only support inputs '
-                                 'with format of "(key, value, [operation])".')
-  for input in inputs:
-    if not 2 <= len(input) <= 3:
-      raise errors.ModelUseError('For each target, you must specify "(key, value, [operation])".')
-    if len(input) == 3 and input[2] not in SUPPORTED_INPUT_OPS:
+                                 'with format of "(target, value, [type, operation])".')
+  for one_input in inputs:
+    if not 2 <= len(one_input) <= 4:
+      raise errors.ModelUseError('For each target, you must specify '
+                                 '"(target, value, [type, operation])".')
+    if len(one_input) == 3 and one_input[2] not in SUPPORTED_INPUT_TYPE:
+      raise errors.ModelUseError(f'Input type only supports '
+                                 f'"{SUPPORTED_INPUT_TYPE}", '
+                                 f'not "{one_input[2]}".')
+    if len(one_input) == 4 and one_input[3] not in SUPPORTED_INPUT_OPS:
       raise errors.ModelUseError(f'Input operation only supports '
                                  f'"{SUPPORTED_INPUT_OPS}", '
-                                 f'not "{input[2]}".')
-
-  # format inputs
-  # -------------
-  formatted_inputs = []
-  for input in inputs:
-    # key
-    if not isinstance(input[0], str):
-      raise errors.ModelUseError('For each input, input[0] must be a string '
-                                 'to specify variable of the target.')
-    key = input[0]
-    if not hasattr(host, key):
-      raise errors.ModelUseError(f'Input target key "{key}" is not defined in {host}.')
-
-    # value and data type
-    val = input[1]
-    if isinstance(input[1], (int, float)):
-      data_type = 'fix'
-    else:
-      shape = ops.shape(input[1])
-      if shape[0] == mon_length:
-        data_type = 'iter'
-      else:
-        data_type = 'fix'
-
-    # operation
-    if len(input) == 3:
-      operation = input[2]
-    else:
-      operation = '+'
-    if operation not in SUPPORTED_INPUT_OPS:
-      raise errors.ModelUseError(f'Currently, BrainPy only support operations '
-                                 f'{SUPPORTED_INPUT_OPS}, '
-                                 f'not {operation}')
-    # input
-    format_inp = (key, val, operation, data_type)
-    formatted_inputs.append(format_inp)
-
-  return formatted_inputs
-
-
-def format_net_level_inputs(inputs, run_length):
-  """Format the inputs of a network.
-
-  Parameters
-  ----------
-  inputs : tuple
-      The inputs.
-  run_length : int
-      The running length.
-
-  Returns
-  -------
-  formatted_input : dict
-      The formatted input.
-  """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
-
-  # 1. format the inputs to standard
-  #    formats and check the inputs
-  if not isinstance(inputs, (tuple, list)):
-    raise errors.ModelUseError('"inputs" must be a tuple/list.')
-  if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
-    if isinstance(inputs[0], DynamicSystem):
-      inputs = [inputs]
-    else:
-      raise errors.ModelUseError('Unknown input structure. Only supports '
-                                 '"(target, key, value, [operation])".')
-  for input in inputs:
-    if not 3 <= len(input) <= 4:
-      raise errors.ModelUseError('For each target, you must specify '
-                                 '"(target, key, value, [operation])".')
-    if len(input) == 4:
-      if input[3] not in SUPPORTED_INPUT_OPS:
-        raise errors.ModelUseError(f'Input operation only supports '
-                                   f'"{SUPPORTED_INPUT_OPS}", '
-                                   f'not "{input[3]}".')
+                                 f'not "{one_input[3]}".')
 
   # 2. format inputs
-  formatted_inputs = {}
-  for input in inputs:
-    # target
-    if isinstance(input[0], DynamicSystem):
-      target = input[0]
-      target_name = input[0].name
-    else:
-      raise KeyError(f'Unknown input target: {str(input[0])}')
-
+  # -------------
+  nodes = host.nodes()
+  formatted_inputs = []
+  for one_input in inputs:
     # key
-    key = input[1]
-    if not isinstance(key, str):
-      raise errors.ModelUseError('For each input, input[1] must be a string '
+    if not isinstance(one_input[0], str):
+      raise errors.ModelUseError('For each input, input[0] must be a string '
                                  'to specify variable of the target.')
-    if not hasattr(target, key):
-      raise errors.ModelUseError(f'Target {target} does not have key {key}. '
-                                 f'So, it can not assign input to it.')
-
-    # value and data type
-    val = input[2]
-    if isinstance(input[2], (int, float)):
-      data_type = 'fix'
+    splits = one_input[0].split('.')
+    target = '.'.join(splits[:-1])
+    key = splits[-1]
+    if target == '':
+      real_target = host
     else:
-      shape = ops.shape(val)
-      if shape[0] == run_length:
-        data_type = 'iter'
-      else:
-        data_type = 'fix'
+      if target not in nodes:
+        raise errors.ModelUseError(f'Input target "{target}" is not defined in {host}.')
+      real_target = nodes[target]
+    if not hasattr(real_target, key):
+      raise errors.ModelUseError(f'Input target key "{key}" is not '
+                                 f'defined in {real_target}.')
+
+    # value
+    value = one_input[1]
+
+    # input type
+    if len(one_input) >= 3:
+      if one_input[2] == 'iter':
+        if not isinstance(value, Iterable):
+          raise ValueError(f'Input "{value}" for "{one_input[0]}" is set to '
+                           f'be "iter" type, however we got the value with '
+                           f'the type of {type(value)}')
+        if len(value) < mon_length:
+          raise ValueError(f'Input {value} is set to be "iter" type, '
+                           f'however it\'s length is less than the duration. '
+                           f'This will result in errors in future running.')
+      if one_input[2] == 'fix':
+        if not isinstance(value, (int, float)):
+          raise ValueError(f'Input {value} is set to be "fix" type, '
+                           f'however it is a {type(value)}. ')
+
+      data_type = one_input[2]
+    else:
+      data_type = 'fix'
 
     # operation
-    if len(input) == 4:
-      operation = input[3]
+    if len(one_input) == 4:
+      operation = one_input[3]
     else:
       operation = '+'
 
-    # final result
-    if target_name not in formatted_inputs:
-      formatted_inputs[target_name] = []
-    format_inp = (key, val, operation, data_type)
-    formatted_inputs[target_name].append(format_inp)
+    # final
+    format_inp = (one_input[0], value, data_type, operation)
+    formatted_inputs.append(format_inp)
+
   return formatted_inputs

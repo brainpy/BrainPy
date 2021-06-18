@@ -66,7 +66,7 @@ FUNCTION_MAPPING = {
   'expm1': cfunctions.expm1,
   'exp2': cfunctions.exp2,
 
-  # functions in math
+  # functions in backend
   # ------------------
   'asin': sympy.functions.elementary.trigonometric.asin,
   'acos': sympy.functions.elementary.trigonometric.acos,
@@ -76,7 +76,7 @@ FUNCTION_MAPPING = {
   'acosh': sympy.functions.elementary.hyperbolic.acosh,
   'atanh': sympy.functions.elementary.hyperbolic.atanh,
 
-  # functions in both numpy and math
+  # functions in both numpy and backend
   # --------------------------------
 
   'cos': sympy.functions.elementary.trigonometric.cos,
@@ -97,7 +97,7 @@ FUNCTION_MAPPING = {
 }
 
 CONSTANT_MAPPING = {
-  # constants in both numpy and math
+  # constants in both numpy and backend
   # --------------------------------
   'pi': sympy.pi,
   'e': sympy.E,

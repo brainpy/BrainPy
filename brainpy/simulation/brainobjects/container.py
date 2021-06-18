@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import errors
-from .base import DynamicSystem
+from brainpy.backend import math
+from brainpy.integrators.integrators import Integrator
+from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.tools.collector import Collector
 
 __all__ = [
   'Container',
-  'Network',
 ]
 
 _Container_NO = 0
-_Network_NO = 0
 
 
-class Container(DynamicSystem):
+class Container(DynamicSystem, list):
   """Container object which is designed to add other DynamicalSystem instances.
 
   What's different from the other DynamicSystem objects is that Container has
@@ -33,7 +34,66 @@ class Container(DynamicSystem):
       The instance of DynamicSystem with the format of "key=value".
   """
 
-  def __init__(self, steps=None, monitors=None, name=None, show_code=False, **kwargs):
+  def vars(self, prefix=''):
+    """Collect all the variables (and their names) contained
+    in the list and its children instance of DynamicSystem.
+
+    Parameters
+    ----------
+    prefix : str
+      string to prefix to the variable names.
+
+    Returns
+    -------
+    collection : Collector
+        A DataCollector of all the variables.
+    """
+    collection = Collector()
+    prefix += f'({self.__class__.__name__})'
+    for i, v in enumerate(self):
+      if isinstance(v, math.ndarray):
+        collection[f'{prefix}[{i}]'] = v
+      elif isinstance(v, DynamicSystem):
+        collection.update(v.vars(prefix=f'{prefix}[{i}]'))
+    return collection
+
+  def ints(self, prefix=''):
+    collector = Collector()
+    prefix += f'({self.__class__.__name__}).'
+    for k, v in self.__dict__.items():
+      if isinstance(v, Integrator):
+        collector[prefix + k] = v
+      elif isinstance(v, DynamicSystem):
+        collector.update(v.ints(prefix=prefix[:-1] if k == 'raw' else prefix + k))
+    return collector
+
+  def nodes(self, prefix=''):
+    collector = Collector()
+    for k, v in self.__dict__.items():
+      if isinstance(v, DynamicSystem):
+        collector[v.name] = v
+        collector[prefix + f'{k}'] = v
+        collector.update(v.nodes(prefix + f'{k}.'))
+    return collector
+
+  def __getitem__(self, key):
+    """Get the item by slice.
+
+    Parameters
+    ----------
+    key : int, slice
+
+    Returns
+    -------
+    dynamic_system : DynamicSystem
+      The selected children items.
+    """
+    value = list.__getitem__(self, key)
+    if isinstance(key, slice):
+      return type(self.__class__)(value)
+    return value
+
+  def __init__(self, *args, steps=None, monitors=None, name=None, **kwargs):
     if name is None:
       global _Container_NO
       name = f'Container{_Container_NO}'
@@ -43,70 +103,10 @@ class Container(DynamicSystem):
       raise errors.ModelUseError(f'"monitors" cannot be used in '
                                  f'"brainpy.{self.__class__.__name__}".')
 
-    super(Container, self).__init__(steps=steps,
-                                    monitors=monitors,
-                                    name=name,
-                                    show_code=show_code)
-
-    # store the step function
-    self.run_func = None
-
-    # add nodes
-    self.add(**kwargs)
-
-  def _add_obj(self, obj, name=None):
-    # 1. check object type
-    if not isinstance(obj, DynamicSystem):
-      raise ValueError(f'Unknown object type "{type(obj)}". '
-                       f'Currently, Network only supports '
-                       f'"brainpy.{DynamicSystem.__name__}".')
-    # 2. check object name
-    name = obj.name if name is None else name
-    if name in self.contained_members:
-      raise KeyError(f'Name "{name}" has been used in the network, '
-                     f'please change another name.')
-    # 3. add object to the network
-    self.contained_members[name] = obj
-
-  def add(self, **kwargs):
-    """Add object (neurons or synapses) to the network.
-
-    Parameters
-    ----------
-    kwargs :
-        The named objects, which can be accessed by `net.xxx`
-        (xxx is the name of the object).
-    """
-    for name, obj in kwargs.items():
-      if not isinstance(obj, DynamicSystem):
-        raise ValueError(f'Unknown object type "{type(obj)}". Currently, '
-                         f'{self.__class__.__name__} only supports '
-                         f'"brainpy.{DynamicSystem.__name__}".')
-      if hasattr(self, name):
-        if not isinstance(getattr(self, name), DynamicSystem):
-          raise KeyError(f'Key "{name}" has been used in this '
-                         f'{self.__class__.__name__} object "{self.name}" '
-                         f'to specify a "{type(getattr(self, name))}", '
-                         f'please change another name.')
-        else:
-          print(f'WARNING: "{name}" has been used in "{self.name}", '
-                f'now it is replaced by another "{DynamicSystem.__name__}" '
-                f'object "{obj.name}".')
-      self.contained_members[name] = obj
-      setattr(self, name, obj)
-
-
-class Network(Container):
-  """Network object, an alias of Container.
-
-  Network instantiates a network, which is aimed to load
-  neurons, synapses, and other brain objects.
-
-  """
-
-  def __init__(self, name=None, **kwargs):
-    if name is None:
-      global _Network_NO
-      name = f'Net{_Network_NO}'
-      _Network_NO += 1
-    super(Network, self).__init__(name=name, **kwargs)
+    DynamicSystem.__init__(self, steps=steps, monitors=monitors, name=name)
+    for arg in args:
+      if not isinstance(arg, DynamicSystem):
+        raise errors.ModelUseError(f'{self.__class__.__name__} receives '
+                                   f'instances of DynamicSystem, however, '
+                                   f'we got {type(arg)}.')
+    list.__init__(self, args)

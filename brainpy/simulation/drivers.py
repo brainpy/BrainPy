@@ -37,7 +37,13 @@ class BaseDSDriver(AbstractDriver):
   """
 
   def __init__(self, target):
+    from brainpy.simulation.brainobjects.base import DynamicSystem
+    assert isinstance(target, DynamicSystem)
     self.target = target
+
+  @abc.abstractmethod
+  def build(self, run_length, rebuild=False, inputs=()):
+    pass
 
   def upload(self, name, data_or_func):
     setattr(self.target, name, data_or_func)
@@ -48,10 +54,6 @@ class BaseDSDriver(AbstractDriver):
 
   @abc.abstractmethod
   def get_monitor_func(self, *args, **kwargs):
-    pass
-
-  @abc.abstractmethod
-  def get_steps_func(self, *args, **kwargs):
     pass
 
 

@@ -3,7 +3,7 @@
 import numpy as np
 
 from brainpy import tools
-from brainpy.backend import ops
+from brainpy.backend import math
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 
@@ -213,15 +213,15 @@ class FixedProb(TwoEndConnector):
         np.fill_diagonal(prob_mat, 1.)
       conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
       pre_ids, post_ids = np.where(conn_mat)
-      self.conn_mat = ops.as_tensor(conn_mat)
+      self.conn_mat = math.array(conn_mat)
     else:
       pre_ids, post_ids = [], []
       for i in range(num_pre):
         pres, posts = _prob_conn(i, num_post, self.prob, self.include_self)
         pre_ids.extend(pres)
         post_ids.extend(posts)
-    self.pre_ids = ops.as_tensor(np.ascontiguousarray(pre_ids))
-    self.post_ids = ops.as_tensor(np.ascontiguousarray(post_ids))
+    self.pre_ids = math.array(np.ascontiguousarray(pre_ids))
+    self.post_ids = math.array(np.ascontiguousarray(post_ids))
     return self
 
 
@@ -264,8 +264,8 @@ class FixedPreNum(TwoEndConnector):
     arg_sort = np.argsort(prob_mat, axis=0)[:num]
     pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int_)
     post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int_)
-    self.pre_ids = ops.as_tensor(pre_ids)
-    self.post_ids = ops.as_tensor(post_ids)
+    self.pre_ids = math.array(pre_ids)
+    self.post_ids = math.array(post_ids)
     return self
 
 
@@ -310,8 +310,8 @@ class FixedPostNum(TwoEndConnector):
     arg_sort = np.argsort(prob_mat, axis=1)[:, num]
     post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
     pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
-    self.pre_ids = ops.as_tensor(pre_ids)
-    self.post_ids = ops.as_tensor(post_ids)
+    self.pre_ids = math.array(pre_ids)
+    self.post_ids = math.array(post_ids)
     return self
 
 
@@ -321,16 +321,16 @@ class GaussianWeight(TwoEndConnector):
 
   Specifically,
 
-  .. math::
+  .. backend::
 
       w(x, y) = w_{max} \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma^2})
 
-  where :math:`(x, y)` is the position of the pre-synaptic neuron (normalized
-  to [0,1]) and :math:`(x_c,y_c)` is the position of the post-synaptic neuron
-  (normalized to [0,1]), :math:`w_{max}` is the maximum weight. In order to void
-  creating useless synapses, :math:`w_{min}` can be set to restrict the creation
+  where :backend:`(x, y)` is the position of the pre-synaptic neuron (normalized
+  to [0,1]) and :backend:`(x_c,y_c)` is the position of the post-synaptic neuron
+  (normalized to [0,1]), :backend:`w_{max}` is the maximum weight. In order to void
+  creating useless synapses, :backend:`w_{min}` can be set to restrict the creation
   of synapses to the cases where the value of the weight would be superior
-  to :math:`w_{min}`. Default is :math:`0.01 w_{max}`.
+  to :backend:`w_{min}`. Default is :backend:`0.01 w_{max}`.
 
   Parameters
   ----------
@@ -385,9 +385,9 @@ class GaussianWeight(TwoEndConnector):
     pre_ids = np.asarray(i, dtype=np.int_)
     post_ids = np.asarray(j, dtype=np.int_)
     w = np.asarray(w, dtype=np.float_)
-    self.pre_ids = ops.as_tensor(pre_ids)
-    self.post_ids = ops.as_tensor(post_ids)
-    self.weights = ops.as_tensor(w)
+    self.pre_ids = math.array(pre_ids)
+    self.post_ids = math.array(post_ids)
+    self.weights = math.array(w)
     return self
 
 
@@ -397,12 +397,12 @@ class GaussianProb(TwoEndConnector):
 
   Specifically,
 
-  .. math::
+  .. backend::
 
       p=\\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma^2})
 
-  where :math:`(x, y)` is the position of the pre-synaptic neuron
-  and :math:`(x_c,y_c)` is the position of the post-synaptic neuron.
+  where :backend:`(x, y)` is the position of the pre-synaptic neuron
+  and :backend:`(x_c,y_c)` is the position of the post-synaptic neuron.
 
   Parameters
   ----------
@@ -451,8 +451,8 @@ class GaussianProb(TwoEndConnector):
     selected_idxs = np.where(np.random.random(len(p)) < p)[0]
     i = np.asarray(i, dtype=np.int_)[selected_idxs]
     j = np.asarray(j, dtype=np.int_)[selected_idxs]
-    self.pre_ids = ops.as_tensor(i)
-    self.post_ids = ops.as_tensor(j)
+    self.pre_ids = math.array(i)
+    self.post_ids = math.array(j)
     return self
 
 
@@ -461,12 +461,12 @@ class DOG(TwoEndConnector):
 
   Mathematically,
 
-  .. math::
+  .. backend::
 
       w(x, y) = w_{max}^+ \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma_+^2})
       -  w_{max}^- \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma_-^2})
 
-  where weights smaller than :math:`0.01 * abs(w_{max} - w_{min})` are not created and
+  where weights smaller than :backend:`0.01 * abs(w_{max} - w_{min})` are not created and
   self-connections are avoided by default (parameter allow_self_connections).
 
   Parameters
@@ -477,7 +477,7 @@ class DOG(TwoEndConnector):
       The weight amplitudes of the positive and negative Gaussian functions.
   w_min : float, None
       The minimum weight value below which synapses are not created
-      (default: :math:`0.01 * w_{max}^+ - w_{min}^-`).
+      (default: :backend:`0.01 * w_{max}^+ - w_{min}^-`).
   normalize : bool
       Whether normalize the coordination.
   include_self : bool
@@ -524,9 +524,9 @@ class DOG(TwoEndConnector):
     i = np.asarray(i, dtype=np.int_)
     j = np.asarray(j, dtype=np.int_)
     w = np.asarray(w, dtype=np.float_)
-    self.pre_ids = ops.as_tensor(i)
-    self.post_ids = ops.as_tensor(j)
-    self.weights = ops.as_tensor(w)
+    self.pre_ids = math.array(i)
+    self.post_ids = math.array(j)
+    self.weights = math.array(w)
     return self
 
 
@@ -619,12 +619,12 @@ class SmallWorld(TwoEndConnector):
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
-    self.conn_mat = ops.as_tensor(conn)
+    self.conn_mat = math.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = ops.as_tensor(pre_ids)
-    self.post_ids = ops.as_tensor(post_ids)
+    self.pre_ids = math.array(pre_ids)
+    self.post_ids = math.array(post_ids)
 
     return self
 
@@ -693,12 +693,12 @@ class ScaleFreeBA(TwoEndConnector):
       targets = _random_subset(repeated_nodes, self.m, self.rng)
       source += 1
 
-    self.conn_mat = ops.as_tensor(conn)
+    self.conn_mat = math.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = ops.as_tensor(pre_ids)
-    self.post_ids = ops.as_tensor(post_ids)
+    self.pre_ids = math.array(pre_ids)
+    self.post_ids = math.array(post_ids)
 
     return self
 
@@ -787,12 +787,12 @@ class ScaleFreeBADual(TwoEndConnector):
       targets = _random_subset(repeated_nodes, m, self.rng)
       source += 1
 
-    self.conn_mat = ops.as_tensor(conn)
+    self.conn_mat = math.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = ops.as_tensor(pre_ids)
-    self.post_ids = ops.as_tensor(post_ids)
+    self.pre_ids = math.array(pre_ids)
+    self.post_ids = math.array(post_ids)
 
     return self
 
@@ -902,11 +902,11 @@ class PowerLaw(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
 
-    self.conn_mat = ops.as_tensor(conn)
+    self.conn_mat = math.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = ops.as_tensor(pre_ids)
-    self.post_ids = ops.as_tensor(post_ids)
+    self.pre_ids = math.array(pre_ids)
+    self.post_ids = math.array(post_ids)
 
     return self

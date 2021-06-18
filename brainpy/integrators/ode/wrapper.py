@@ -4,7 +4,7 @@ import inspect
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.backend import ops
+from brainpy.backend import math
 from brainpy.integrators import constants
 from brainpy.integrators import utils
 from brainpy.integrators.ast_analysis import separate_variables
@@ -107,14 +107,14 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
 
   For the system,
 
-  .. math::
+  .. backend::
 
       \frac{d y}{d t}=f(t, y)
 
 
   Explicit Runge-Kutta methods take the form
 
-  .. math::
+  .. backend::
 
       k_{i}=f\\left(t_{n}+c_{i}h,y_{n}+h\\sum _{j=1}^{s}a_{ij}k_{j}\\right) \\\\
       y_{n+1}=y_{n}+h \\sum_{i=1}^{s} b_{i} k_{i}
@@ -122,7 +122,7 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
   Each method listed on this page is defined by its Butcher tableau,
   which puts the coefficients of the method in a table as follows:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cccc}
           c_{1} & a_{11} & a_{12} & \\ldots & a_{1 s} \\\\
@@ -200,25 +200,25 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
   The embedded methods are designed to produce an estimate of the local
   truncation error of a single Runge-Kutta step, and as result, allow to
   control the error with adaptive stepsize. This is done by having two
-  methods in the tableau, one with order p and one with order :math:`p-1`.
+  methods in the tableau, one with order p and one with order :backend:`p-1`.
 
   The lower-order step is given by
 
-  .. math::
+  .. backend::
 
       y^*_{n+1} = y_n + h\\sum_{i=1}^s b^*_i k_i,
 
-  where the :math:`k_{i}` are the same as for the higher order method. Then the error is
+  where the :backend:`k_{i}` are the same as for the higher order method. Then the error is
 
-  .. math::
+  .. backend::
 
       e_{n+1} = y_{n+1} - y^*_{n+1} = h\\sum_{i=1}^s (b_i - b^*_i) k_i,
 
 
-  which is :math:`O(h^{p})`. The Butcher Tableau for this kind of method is extended to
-  give the values of :math:`b_{i}^{*}`
+  which is :backend:`O(h^{p})`. The Butcher Tableau for this kind of method is extended to
+  give the values of :backend:`b_{i}^{*}`
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cccc}
           c_1    & a_{11} & a_{12}& \\dots & a_{1s}\\\\
@@ -418,7 +418,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
   code_scope.update(dict(closure_vars.globals))
   code_scope[_dt_kw] = dt
   code_scope[_f_kw] = f
-  code_scope['exp'] = ops.exp
+  code_scope['exp'] = math.exp
 
   analysis = separate_variables(f)
   variables_for_returns = analysis['variables_for_returns']

@@ -201,7 +201,7 @@ def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
                     fl_tol=1e-6, xl_tol=1e-4, verbose=False):
   """Find the root of a two dimensional function.
 
-  This function is aimed to find the root of :math:`f(x) = 0`, where :math:`x`
+  This function is aimed to find the root of :backend:`f(x) = 0`, where :backend:`x`
   is a vector with the shape of `(2,)`.
 
   Parameters

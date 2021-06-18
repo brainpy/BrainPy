@@ -14,22 +14,22 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
 
   For an ODE equation of the form
 
-  .. math::
+  .. backend::
 
       y^{\\prime}=f(y), \quad y(0)=y_{0}
 
   its schema is given by
 
-  .. math::
+  .. backend::
 
       y_{n+1}= y_{n}+h \\varphi(hA) f (y_{n})
 
-  where :math:`A=f^{\prime}(y_{n})` and :math:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
+  where :backend:`A=f^{\prime}(y_{n})` and :backend:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
 
-  For linear ODE system: :math:`y^{\\prime} = Ay + B`,
+  For linear ODE system: :backend:`y^{\\prime} = Ay + B`,
   the above equation is equal to
 
-  .. math::
+  .. backend::
 
       y_{n+1}= y_{n}e^{hA}-B/A(1-e^{hA})
 

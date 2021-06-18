@@ -31,12 +31,12 @@ class LIF(bp.NeuGroup):
 
     def __init__(self, size, **kwargs):
         # variables
-        self.V = bp.ops.zeros(size)
-        self.spike = bp.ops.zeros(size)
-        self.ge = bp.ops.zeros(size)
-        self.gi = bp.ops.zeros(size)
-        self.input = bp.ops.zeros(size)
-        self.t_last_spike = bp.ops.ones(size) * -1e7
+        self.V = bp.math.zeros(size)
+        self.spike = bp.math.zeros(size)
+        self.ge = bp.math.zeros(size)
+        self.gi = bp.math.zeros(size)
+        self.input = bp.math.zeros(size)
+        self.t_last_spike = bp.math.ones(size) * -1e7
 
         super(LIF, self).__init__(size=size, **kwargs)
 
@@ -53,7 +53,7 @@ class LIF(bp.NeuGroup):
         dV = (ge * (Erev_exc - V) + gi * (Erev_inh - V) + El - V + I) / taum
         return dV
 
-    def update(self, _t):
+    def update(self, _t, _i):
         self.ge, self.gi = self.int_g(self.ge, self.gi, _t)
         for i in range(self.size[0]):
             self.spike[i] = 0.
@@ -76,7 +76,7 @@ class ExcSyn(bp.TwoEndConn):
         self.pre2post = self.conn.requires('pre2post')
         super(ExcSyn, self).__init__(pre=pre, post=post, **kwargs)
 
-    def update(self, _t):
+    def update(self, _t, _i):
         for pre_id, spike in enumerate(self.pre.spike):
             if spike > 0:
                 for post_i in self.pre2post[pre_id]:
@@ -91,7 +91,7 @@ class InhSyn(bp.TwoEndConn):
         self.pre2post = self.conn.requires('pre2post')
         super(InhSyn, self).__init__(pre=pre, post=post, **kwargs)
 
-    def update(self, _t):
+    def update(self, _t, _i):
         for pre_id, spike in enumerate(self.pre.spike):
             if spike > 0:
                 for post_i in self.pre2post[pre_id]:

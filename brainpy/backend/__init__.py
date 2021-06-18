@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from . import driver
-from . import ops
+from brainpy.backend import driver
+from brainpy.backend import math
+from brainpy.backend.driver import get_ds_driver
+from brainpy.backend.driver import get_diffint_driver
 
 __all__ = [
   'set',
@@ -10,16 +12,9 @@ __all__ = [
   'get_dt',
   'get_backend_name',
 
-  'set_ops',
-  'set_ops_from_module',
   'get_ds_driver',
   'get_diffint_driver',
 ]
-
-from .ops import set_ops_from_module
-from .ops import set_ops
-from .driver import get_ds_driver
-from .driver import get_diffint_driver
 
 _dt = 0.1
 BACKEND_NAME = 'numpy'
@@ -46,7 +41,7 @@ def set(backend=None, dt=None):
   if dt is not None:
     set_dt(dt)
   if backend is not None:
-    ops.switch_to(backend)
+    math.use_backend(backend)
     driver.switch_to(backend)
     global BACKEND_NAME
     BACKEND_NAME = backend

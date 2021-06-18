@@ -63,7 +63,7 @@ def midpoint(f=None, show_code=None, dt=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cc}
           0 & 0 & 0 \\\\
@@ -97,7 +97,7 @@ def heun2(f=None, show_code=None, dt=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cc}
           0.0 & 0.0 & 0.0 \\\\
@@ -130,7 +130,7 @@ def ralston2(f=None, show_code=None, dt=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cc}
           0 & 0 & 0 \\\\
@@ -161,7 +161,7 @@ def rk2(f=None, show_code=None, dt=None, beta=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cc}
           0 & 0 & 0 \\\\
@@ -191,7 +191,7 @@ def rk3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -222,7 +222,7 @@ def heun3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -253,7 +253,7 @@ def ralston3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -290,7 +290,7 @@ def ssprk3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -321,7 +321,7 @@ def rk4(f=None, show_code=None, dt=None, var_type=None):
       - method order = 4
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cccc}
           0 & 0 & 0 & 0 & 0 \\\\
@@ -354,7 +354,7 @@ def ralston4(f=None, show_code=None, dt=None, var_type=None):
       - method order = 4
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cccc}
           0 & 0 & 0 & 0 & 0 \\\\
@@ -396,7 +396,7 @@ def rk4_38rule(f=None, show_code=None, dt=None, var_type=None):
       - method order = 4
       - Butcher Tables:
 
-  .. math::
+  .. backend::
 
       \\begin{array}{c|cccc}
           0 & 0 & 0 & 0 & 0 \\\\

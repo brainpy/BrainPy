@@ -4,7 +4,7 @@ import numpy as np
 
 from brainpy import backend
 from brainpy import tools
-from brainpy.backend import ops
+from brainpy.backend import math
 
 __all__ = [
   'cross_correlation',
@@ -26,19 +26,19 @@ def cross_correlation(spikes, bin, dt=None):
 
   The coherence [1]_ between two neurons i and j is measured by their
   cross-correlation of spike trains at zero time lag within a time bin
-  of :math:`\\Delta t = \\tau`. More specifically, suppose that a long
-  time interval T is divided into small bins of :math:`\\Delta t` and
-  that two spike trains are given by :math:`X(l)=` 0 or 1, :math:`Y(l)=` 0
-  or 1, :math:`l=1,2, \\ldots, K(T / K=\\tau)`. Thus, we define a coherence
+  of :backend:`\\Delta t = \\tau`. More specifically, suppose that a long
+  time interval T is divided into small bins of :backend:`\\Delta t` and
+  that two spike trains are given by :backend:`X(l)=` 0 or 1, :backend:`Y(l)=` 0
+  or 1, :backend:`l=1,2, \\ldots, K(T / K=\\tau)`. Thus, we define a coherence
   measure for the pair as:
 
-  .. math::
+  .. backend::
 
       \\kappa_{i j}(\\tau)=\\frac{\\sum_{l=1}^{K} X(l) Y(l)}
       {\\sqrt{\\sum_{l=1}^{K} X(l) \\sum_{l=1}^{K} Y(l)}}
 
-  The population coherence measure :math:`\\kappa(\\tau)` is defined by the
-  average of :math:`\\kappa_{i j}(\\tau)` over many pairs of neurons in the
+  The population coherence measure :backend:`\\kappa(\\tau)` is defined by the
+  average of :backend:`\\kappa_{i j}(\\tau)` over many pairs of neurons in the
   network.
 
   Parameters
@@ -88,33 +88,33 @@ def voltage_fluctuation(potentials):
 
   The method comes from [1]_ [2]_ [3]_.
 
-  First, average over the membrane potential :math:`V`
+  First, average over the membrane potential :backend:`V`
 
-  .. math::
+  .. backend::
 
       V(t) = \\frac{1}{N} \\sum_{i=1}^{N} V_i(t)
 
-  The variance of the time fluctuations of :math:`V(t)` is
+  The variance of the time fluctuations of :backend:`V(t)` is
 
-  .. math::
+  .. backend::
 
       \\sigma_V^2 = \\left\\langle \\left[ V(t) \\right]^2 \\right\\rangle_t -
       \\left[ \\left\\langle V(t) \\right\\rangle_t \\right]^2
 
-  where :math:`\\left\\langle \\ldots \\right\\rangle_t = (1 / T_m) \\int_0^{T_m} dt \\, \\ldots`
-  denotes time-averaging over a large time, :math:`\\tau_m`. After normalization
-  of :math:`\\sigma_V` to the average over the population of the single cell
+  where :backend:`\\left\\langle \\ldots \\right\\rangle_t = (1 / T_m) \\int_0^{T_m} dt \\, \\ldots`
+  denotes time-averaging over a large time, :backend:`\\tau_m`. After normalization
+  of :backend:`\\sigma_V` to the average over the population of the single cell
   membrane potentials
 
-  .. math::
+  .. backend::
 
       \\sigma_{V_i}^2 = \\left\\langle\\left[ V_i(t) \\right]^2 \\right\\rangle_t -
       \\left[ \\left\\langle V_i(t) \\right\\rangle_t \\right]^2
 
-  one defines a synchrony measure, :math:`\\chi (N)`, for the activity of a system
-  of :math:`N` neurons by:
+  one defines a synchrony measure, :backend:`\\chi (N)`, for the activity of a system
+  of :backend:`N` neurons by:
 
-  .. math::
+  .. backend::
 
       \\chi^2 \\left( N \\right) = \\frac{\\sigma_V^2}{ \\frac{1}{N} \\sum_{i=1}^N
       \\sigma_{V_i}^2}
@@ -175,10 +175,10 @@ def firing_rate(sp_matrix, width, window='gaussian'):
 
   This method is adopted from Brian2.
 
-  The firing rate in trial :math:`k` is the spike count :math:`n_{k}^{sp}`
-  in an interval of duration :math:`T` divided by :math:`T`:
+  The firing rate in trial :backend:`k` is the spike count :backend:`n_{k}^{sp}`
+  in an interval of duration :backend:`T` divided by :backend:`T`:
 
-  .. math::
+  .. backend::
 
       v_k = {n_k^{sp} \\over T}
 
@@ -207,17 +207,17 @@ def firing_rate(sp_matrix, width, window='gaussian'):
       The population rate in Hz, smoothed with the given window.
   """
   # rate
-  rate = ops.sum(sp_matrix, axis=1)
+  rate = math.sum(sp_matrix, axis=1)
 
   # window
   dt = backend.get_dt()
   if window == 'gaussian':
     width1 = 2 * width / dt
     width2 = int(round(width1))
-    window = ops.exp(-ops.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 * 2))
+    window = math.exp(-math.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 * 2))
   elif window == 'flat':
     width1 = int(width / 2 / dt) * 2 + 1
-    window = ops.ones(width1)
+    window = math.ones(width1)
   else:
     raise ValueError('Unknown window type "{}".'.format(window))
 
