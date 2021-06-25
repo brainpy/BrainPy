@@ -4,7 +4,7 @@ import inspect
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.backend import math
+from brainpy.backend import ops
 from brainpy.integrators import constants
 from brainpy.integrators import utils
 from brainpy.integrators.ast_analysis import separate_variables
@@ -418,7 +418,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
   code_scope.update(dict(closure_vars.globals))
   code_scope[_dt_kw] = dt
   code_scope[_f_kw] = f
-  code_scope['exp'] = math.exp
+  code_scope['exp'] = ops.exp
 
   analysis = separate_variables(f)
   variables_for_returns = analysis['variables_for_returns']

@@ -4,7 +4,7 @@ import sys
 from pprint import pprint
 
 from brainpy import errors
-from brainpy.backend import math
+from brainpy.backend import ops
 from brainpy.backend import utils
 from brainpy.simulation import drivers
 from brainpy.simulation.brainobjects.container import Container
@@ -77,11 +77,11 @@ class NumpyDSDriver(drivers.BaseDSDriver):
       # compare
       if key in old_input_keys:
         old_input_keys.remove(key)
-        if math.shape(self.last_inputs[key][0]) != math.shape(val):
+        if ops.shape(self.last_inputs[key][0]) != ops.shape(val):
           input_keep_same = False
           if show_code:
-            print(f'The current "{key}" input shape {math.shape(val)} is different '
-                  f'from the last input shape {math.shape(self.last_inputs[key][0])}.')
+            print(f'The current "{key}" input shape {ops.shape(val)} is different '
+                  f'from the last input shape {ops.shape(self.last_inputs[key][0])}.')
         if self.last_inputs[key][1] != data_type:
           input_keep_same = False
           if show_code:
@@ -182,7 +182,7 @@ class NumpyDSDriver(drivers.BaseDSDriver):
     monitor_func_name = 'monitor_step'
 
     code_lines = []
-    code_scope = {'math': math, 'sys': sys}
+    code_scope = {'ops': ops, 'sys': sys}
     code_scope_for_call = {}
     for node in [self.target] + list(nodes.unique_data()):
       mon = node.mon
@@ -214,10 +214,10 @@ class NumpyDSDriver(drivers.BaseDSDriver):
               raise errors.ModelUseError(f'"{self.target.name}.{key}" is a scalar, '
                                          f'cannot define the slice index "{idx}"')
             key_in_host = f'{node.name}.{key}'
-          elif len(math.shape(data)) == 1:
+          elif len(ops.shape(data)) == 1:
             key_in_host = f'{node.name}.{key}'
           else:
-            key_in_host = f'math.reshape({node.name}.{key}, (-1,))'
+            key_in_host = f'ops.reshape({node.name}.{key}, (-1,))'
 
           # format the monitor index
           if idx is None:
@@ -261,17 +261,17 @@ class NumpyDSDriver(drivers.BaseDSDriver):
 
       data = self.target.mon.item_contents[key]
       ts = self.target.mon.item_contents[f'{key}.t']
-      shape = math.shape(data)
+      shape = ops.shape(data)
       if mon_length < shape[0]:
         self.target.mon[key] = data[:mon_length]
         self.target.mon[f'{key}.t'] = ts[:mon_length]
       elif mon_length > shape[0]:
-        append1 = math.zeros((mon_length - shape[0],) + shape[1:],
-                             dtype=data.dtype if hasattr(data, 'dtype') else None)
-        self.target.mon[key] = math.concatenate([data, append1], axis=0)
-        append2 = math.zeros((mon_length - shape[0],),
-                             dtype=ts.dtype if hasattr(ts, 'dtype') else None)
-        self.target.mon[f'{key}.t'] = math.concatenate([ts, append2])
+        append1 = ops.zeros((mon_length - shape[0],) + shape[1:],
+                            dtype=data.dtype if hasattr(data, 'dtype') else None)
+        self.target.mon[key] = ops.concatenate([data, append1], axis=0)
+        append2 = ops.zeros((mon_length - shape[0],),
+                            dtype=ts.dtype if hasattr(ts, 'dtype') else None)
+        self.target.mon[f'{key}.t'] = ops.concatenate([ts, append2])
 
   @staticmethod
   def step_lines_by_interval(step, lines, interval_name, code_scope):

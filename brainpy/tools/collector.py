@@ -3,7 +3,7 @@
 from brainpy.simulation import utils
 from contextlib import contextmanager
 
-from brainpy.backend import math
+from brainpy.backend import ops
 
 __all__ = [
   'Collector',
@@ -102,7 +102,7 @@ class Collector(dict):
                                 'JAX backend, while JAX is not installed.') from e
 
     replicated, saved_states = [], []
-    x = jnp.zeros((jax.local_device_count(), 1), dtype=math.float_)
+    x = jnp.zeros((jax.local_device_count(), 1), dtype=ops.float_)
     sharded_x = jax.pmap(lambda x: x, axis_name='device')(x)
     devices = [b.device() for b in sharded_x.device_buffers]
     ndevices = len(devices)

@@ -3,7 +3,7 @@
 import numpy as np
 
 from brainpy import tools
-from brainpy.backend import math
+from brainpy.backend import ops
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 
@@ -213,15 +213,15 @@ class FixedProb(TwoEndConnector):
         np.fill_diagonal(prob_mat, 1.)
       conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
       pre_ids, post_ids = np.where(conn_mat)
-      self.conn_mat = math.array(conn_mat)
+      self.conn_mat = ops.array(conn_mat)
     else:
       pre_ids, post_ids = [], []
       for i in range(num_pre):
         pres, posts = _prob_conn(i, num_post, self.prob, self.include_self)
         pre_ids.extend(pres)
         post_ids.extend(posts)
-    self.pre_ids = math.array(np.ascontiguousarray(pre_ids))
-    self.post_ids = math.array(np.ascontiguousarray(post_ids))
+    self.pre_ids = ops.array(np.ascontiguousarray(pre_ids))
+    self.post_ids = ops.array(np.ascontiguousarray(post_ids))
     return self
 
 
@@ -264,8 +264,8 @@ class FixedPreNum(TwoEndConnector):
     arg_sort = np.argsort(prob_mat, axis=0)[:num]
     pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int_)
     post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int_)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    self.pre_ids = ops.array(pre_ids)
+    self.post_ids = ops.array(post_ids)
     return self
 
 
@@ -310,8 +310,8 @@ class FixedPostNum(TwoEndConnector):
     arg_sort = np.argsort(prob_mat, axis=1)[:, num]
     post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
     pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    self.pre_ids = ops.array(pre_ids)
+    self.post_ids = ops.array(post_ids)
     return self
 
 
@@ -385,9 +385,9 @@ class GaussianWeight(TwoEndConnector):
     pre_ids = np.asarray(i, dtype=np.int_)
     post_ids = np.asarray(j, dtype=np.int_)
     w = np.asarray(w, dtype=np.float_)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
-    self.weights = math.array(w)
+    self.pre_ids = ops.array(pre_ids)
+    self.post_ids = ops.array(post_ids)
+    self.weights = ops.array(w)
     return self
 
 
@@ -451,8 +451,8 @@ class GaussianProb(TwoEndConnector):
     selected_idxs = np.where(np.random.random(len(p)) < p)[0]
     i = np.asarray(i, dtype=np.int_)[selected_idxs]
     j = np.asarray(j, dtype=np.int_)[selected_idxs]
-    self.pre_ids = math.array(i)
-    self.post_ids = math.array(j)
+    self.pre_ids = ops.array(i)
+    self.post_ids = ops.array(j)
     return self
 
 
@@ -524,9 +524,9 @@ class DOG(TwoEndConnector):
     i = np.asarray(i, dtype=np.int_)
     j = np.asarray(j, dtype=np.int_)
     w = np.asarray(w, dtype=np.float_)
-    self.pre_ids = math.array(i)
-    self.post_ids = math.array(j)
-    self.weights = math.array(w)
+    self.pre_ids = ops.array(i)
+    self.post_ids = ops.array(j)
+    self.weights = ops.array(w)
     return self
 
 
@@ -619,12 +619,12 @@ class SmallWorld(TwoEndConnector):
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
-    self.conn_mat = math.array(conn)
+    self.conn_mat = ops.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    self.pre_ids = ops.array(pre_ids)
+    self.post_ids = ops.array(post_ids)
 
     return self
 
@@ -693,12 +693,12 @@ class ScaleFreeBA(TwoEndConnector):
       targets = _random_subset(repeated_nodes, self.m, self.rng)
       source += 1
 
-    self.conn_mat = math.array(conn)
+    self.conn_mat = ops.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    self.pre_ids = ops.array(pre_ids)
+    self.post_ids = ops.array(post_ids)
 
     return self
 
@@ -787,12 +787,12 @@ class ScaleFreeBADual(TwoEndConnector):
       targets = _random_subset(repeated_nodes, m, self.rng)
       source += 1
 
-    self.conn_mat = math.array(conn)
+    self.conn_mat = ops.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    self.pre_ids = ops.array(pre_ids)
+    self.post_ids = ops.array(post_ids)
 
     return self
 
@@ -902,11 +902,11 @@ class PowerLaw(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
 
-    self.conn_mat = math.array(conn)
+    self.conn_mat = ops.array(conn)
     pre_ids, post_ids = np.where(conn)
     pre_ids = np.ascontiguousarray(pre_ids)
     post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    self.pre_ids = ops.array(pre_ids)
+    self.post_ids = ops.array(post_ids)
 
     return self

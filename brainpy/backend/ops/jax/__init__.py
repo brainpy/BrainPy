@@ -14,5 +14,5 @@ from . import linalg
 from . import random
 from .core import *
 from .ndarray import *
-from .ops import *
+from .math import *
 

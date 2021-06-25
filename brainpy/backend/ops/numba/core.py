@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.backend.math import numpy
+from brainpy.backend.ops import numpy
 from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [

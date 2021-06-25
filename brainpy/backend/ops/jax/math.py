@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import jax.numpy as jnp
-from brainpy.backend.math.jax.ndarray import _wrap, ndarray
+from brainpy.backend.ops.jax.ndarray import _wrap, ndarray
 
 __all__ = [
-  # math funcs
+  # ops funcs
   'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
   'add', 'reciprocal', 'negative', 'positive', 'multiply', 'divide',
   'power', 'subtract', 'true_divide', 'floor_divide', 'float_power',
@@ -69,7 +69,7 @@ __all__ = [
   'complex_', 'complex64', 'complex128',
 ]
 
-# math funcs
+# ops funcs
 # ----------
 
 # 1. Basics

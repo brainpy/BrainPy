@@ -4,7 +4,7 @@ import numpy as np
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.backend import math
+from brainpy.backend import ops
 from brainpy.simulation import NeuGroup
 from brainpy.simulation import size2len
 
@@ -59,13 +59,13 @@ def period_input(values, durations, dt=None, return_length=False):
   I_duration = sum(durations)
   I_shape = ()
   for val in values:
-    shape = math.shape(val)
+    shape = ops.shape(val)
     if len(shape) > len(I_shape):
       I_shape = shape
 
   # get the current
   start = 0
-  I_current = math.zeros((int(math.ceil(I_duration / dt)),) + I_shape)
+  I_current = ops.zeros((int(ops.ceil(I_duration / dt)),) + I_shape)
   for c_size, duration in zip(values, durations):
     length = int(duration / dt)
     I_current[start: start + length] = c_size
@@ -109,12 +109,12 @@ def constant_input(I_and_duration, dt=None):
   I_shape = ()
   for I in I_and_duration:
     I_duration += I[1]
-    shape = math.shape(I[0])
+    shape = ops.shape(I[0])
     if len(shape) > len(I_shape):
       I_shape = shape
 
   # get the current
-  I_current = math.zeros((int(math.ceil(I_duration / dt)),) + I_shape)
+  I_current = ops.zeros((int(ops.ceil(I_duration / dt)),) + I_shape)
   start = 0
   for c_size, duration in I_and_duration:
     length = int(duration / dt)
@@ -165,7 +165,7 @@ def spike_input(points, lengths, sizes, duration, dt=None):
   if isinstance(sizes, (float, int)):
     sizes = [sizes] * len(points)
 
-  current = math.zeros(int(math.ceil(duration / dt)))
+  current = ops.zeros(int(ops.ceil(duration / dt)))
   for time, dur, size in zip(points, lengths, sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
@@ -202,10 +202,10 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   dt = backend.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
-  current = math.zeros(int(math.ceil(duration / dt)))
-  p1 = int(math.ceil(t_start / dt))
-  p2 = int(math.ceil(t_end / dt))
-  current[p1: p2] = math.array(np.linspace(c_start, c_end, p2 - p1))
+  current = ops.zeros(int(ops.ceil(duration / dt)))
+  p1 = int(ops.ceil(t_start / dt))
+  p2 = int(ops.ceil(t_end / dt))
+  current[p1: p2] = ops.array(ops.linspace(c_start, c_end, p2 - p1))
   return current
 
 
@@ -256,7 +256,7 @@ class SpikeTimeInput(NeuGroup):
     if need_sort:
       sort_idx = np.argsort(times)
       self.indices = self.indices[sort_idx]
-    self.spike = math.zeros(size2len(size), dtype=bool)
+    self.spike = ops.zeros(size2len(size), dtype=bool)
 
     super(SpikeTimeInput, self).__init__(size=size, **kwargs)
 
@@ -278,9 +278,9 @@ class PoissonInput(NeuGroup):
     self.dt = backend.get_dt() / 1000.
     self.freqs = freqs
     self.size = (size,) if isinstance(size, int) else tuple(size)
-    self.spike = math.zeros(self.num, dtype=bool)
-    self.t_last_spike = -1e7 * math.ones(self.num)
+    self.spike = ops.zeros(self.num, dtype=bool)
+    self.t_last_spike = -1e7 * ops.ones(self.num)
 
   def update(self, _t, _i):
-    self.spike = np.random.random(self.num) <= self.freqs * self.dt
-    self.t_last_spike = math.where(self.spike, _t, self.t_last_spike)
+    self.spike = ops.random.random(self.num) <= self.freqs * self.dt
+    self.t_last_spike = ops.where(self.spike, _t, self.t_last_spike)

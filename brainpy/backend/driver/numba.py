@@ -10,7 +10,7 @@ from brainpy import backend
 from brainpy import errors
 from brainpy import tools
 from brainpy.backend import utils
-from brainpy.backend.numpy.driver import TensorDSDriver
+from brainpy.backend.driver.numpy import NumpyDSDriver
 from brainpy.integrators import constants as diffint_cons
 from brainpy.simulation import drivers
 from brainpy.simulation.brainobjects import delays
@@ -598,7 +598,7 @@ def _class2func(cls_func, host, func_name=None, show_code=False):
   return func, calls, assigns
 
 
-class NumbaDSDriver(TensorDSDriver):
+class NumbaDSDriver(NumpyDSDriver):
   def get_steps_func(self, show_code=False):
     for func_name, step in self.target.steps.items():
       if hasattr(step, '__self__'):

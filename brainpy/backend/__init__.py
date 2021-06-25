@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.backend import driver
-from brainpy.backend import math
+from brainpy.backend import ops
 from brainpy.backend.driver import get_ds_driver
 from brainpy.backend.driver import get_diffint_driver
 
@@ -41,7 +41,7 @@ def set(backend=None, dt=None):
   if dt is not None:
     set_dt(dt)
   if backend is not None:
-    math.use_backend(backend)
+    ops.use_backend(backend)
     driver.switch_to(backend)
     global BACKEND_NAME
     BACKEND_NAME = backend

@@ -4,7 +4,7 @@ import jax
 
 import functools
 from brainpy import errors
-from brainpy.backend.math import numpy
+from brainpy.backend.ops import numpy
 from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.tools.collector import Collector
 from brainpy.tools.codes import func_name

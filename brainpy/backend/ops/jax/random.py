@@ -2,7 +2,7 @@
 
 import numpy.random
 
-from brainpy.backend.math.jax.ndarray import _wrap
+from brainpy.backend.ops.jax.ndarray import _wrap
 
 
 __all__ = [

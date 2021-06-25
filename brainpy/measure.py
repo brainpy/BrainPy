@@ -4,7 +4,7 @@ import numpy as np
 
 from brainpy import backend
 from brainpy import tools
-from brainpy.backend import math
+from brainpy.backend import ops
 
 __all__ = [
   'cross_correlation',
@@ -207,17 +207,17 @@ def firing_rate(sp_matrix, width, window='gaussian'):
       The population rate in Hz, smoothed with the given window.
   """
   # rate
-  rate = math.sum(sp_matrix, axis=1)
+  rate = ops.sum(sp_matrix, axis=1)
 
   # window
   dt = backend.get_dt()
   if window == 'gaussian':
     width1 = 2 * width / dt
     width2 = int(round(width1))
-    window = math.exp(-math.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 * 2))
+    window = ops.exp(-ops.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 * 2))
   elif window == 'flat':
     width1 = int(width / 2 / dt) * 2 + 1
-    window = math.ones(width1)
+    window = ops.ones(width1)
   else:
     raise ValueError('Unknown window type "{}".'.format(window))
 

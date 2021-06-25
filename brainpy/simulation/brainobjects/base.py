@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from brainpy import backend
 from brainpy import errors
-from brainpy.backend import math
+from brainpy.backend import ops
 from brainpy.integrators.integrators import Integrator
 from brainpy.simulation import utils
 from brainpy.simulation.monitor import Monitor
@@ -55,7 +55,7 @@ class DynamicSystem(object):
     collector = Collector()
     prefix += f'({self.name}).'
     for k, v in self.__dict__.items():
-      if isinstance(v, math.ndarray):
+      if isinstance(v, ops.ndarray):
         collector[prefix + k] = v
       elif isinstance(v, DynamicSystem):
         collector.update(v.vars(prefix=prefix[:-1] if k == 'raw' else prefix + k))
@@ -216,7 +216,7 @@ class DynamicSystem(object):
 
     # times
     start, end = utils.check_duration(duration)
-    times = math.arange(start, end, backend.get_dt())
+    times = ops.arange(start, end, backend.get_dt())
 
     # build run function
     self.run_func = self._build(duration=duration, inputs=inputs, rebuild=rebuild)

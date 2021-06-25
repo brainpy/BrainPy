@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.backend.math.numpy import *
+from brainpy.backend.ops.numpy import *
 
 _math_funcs = [
   # Basics
@@ -186,13 +186,13 @@ def use_backend(name):
   global_vars = globals()
 
   if name == 'numpy':
-    from brainpy.backend.math import numpy as module
+    from brainpy.backend.ops import numpy as module
 
   elif name == 'numba':
-    from brainpy.backend.math import numba as module
+    from brainpy.backend.ops import numba as module
 
   elif name == 'jax':
-    from brainpy.backend.math import jax as module
+    from brainpy.backend.ops import jax as module
 
   else:
     raise ValueError(f'Unknown backend "{name}", now we only '
