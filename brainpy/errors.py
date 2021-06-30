@@ -49,3 +49,11 @@ class BackendNotInstalled(Exception):
       '"{bk}" must be installed when the user wants to use {bk} backend. \n'
       'Please install {bk} through "pip install {bk}" '
       'or "conda install {bk}".'.format(bk=backend))
+
+
+class UniqueNameError(Exception):
+  def __init__(self, name, ob1, ob2):
+    super(UniqueNameError, self).__init__(
+      f'In BrainPy, each object should have a unique name. However, '
+      f'we detect that {ob1} and {ob2} have the same name: {name}'
+    )

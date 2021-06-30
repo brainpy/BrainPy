@@ -10,7 +10,7 @@ from brainpy import backend
 from brainpy import errors
 from brainpy import tools
 from brainpy.backend import utils
-from brainpy.backend.driver.numpy import NumpyDSDriver
+from brainpy.backend.numpy import NumpyDSDriver
 from brainpy.integrators import constants as diffint_cons
 from brainpy.simulation import drivers
 from brainpy.simulation.brainobjects import delays
@@ -19,7 +19,9 @@ try:
   import numba
   from numba.core.dispatcher import Dispatcher
 except ModuleNotFoundError:
-  raise errors.BackendNotInstalled('numba')
+  numba = None
+  Dispatcher = None
+  # raise errors.BackendNotInstalled('numba')
 
 __all__ = [
   'set_numba_profile',

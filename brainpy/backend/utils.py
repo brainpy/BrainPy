@@ -18,11 +18,11 @@ __all__ = [
 
 
 def every_to_step_num(interval):
-  num_interval = round(interval / math.get_dt())
-  if math.fmod(interval * 1000, math.get_dt() * 1000) != 0.:
+  num_interval = round(interval / backend.get_dt())
+  if math.fmod(interval * 1000, backend.get_dt() * 1000) != 0.:
     print(f'"{interval}" is not an integer multiple of the step '
-          f'resolution ("{math.get_dt()}"). BrainPy adjust it '
-          f'to "{num_interval * math.get_dt()}".')
+          f'resolution ("{backend.get_dt()}"). BrainPy adjust it '
+          f'to "{num_interval * backend.get_dt()}".')
   return num_interval
 
 
@@ -127,11 +127,11 @@ def get_args(f):
 
   # 2. check the function arguments
   class_kw = None
-  if len(arguments) > 0 and arguments[0] in math.CLASS_KEYWORDS:
+  if len(arguments) > 0 and arguments[0] in backend.CLASS_KEYWORDS:
     class_kw = arguments[0]
     arguments = arguments[1:]
   for a in arguments:
-    if a in math.CLASS_KEYWORDS:
+    if a in backend.CLASS_KEYWORDS:
       raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
                                f'as the first argument.')
   return class_kw, arguments

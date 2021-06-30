@@ -12,6 +12,7 @@ except ModuleNotFoundError:
 from numba.extending import overload
 
 
+
 @overload(numpy.shape)
 def shape_func(x):
   if isinstance(x, (numba.types.Integer, numba.types.Float)):

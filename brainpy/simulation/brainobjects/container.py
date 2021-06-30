@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors
-from brainpy.backend import ops
+from brainpy import errors, math
 from brainpy.integrators.integrators import Integrator
 from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.tools.collector import Collector
@@ -51,13 +50,13 @@ class Container(DynamicSystem, list):
     collector = Collector()
     prefix1 = prefix + f'({self.name})'
     for i, v in enumerate(self):
-      if isinstance(v, ops.ndarray):
+      if isinstance(v, math.ndarray):
         collector[f'{prefix1}[{i}]'] = v
       elif isinstance(v, DynamicSystem):
         collector.update(v.vars(prefix=f'{prefix1}[{i}]'))
     prefix2 = prefix + f'({self.name}).'
     for k, v in self.__dict__.items():
-      if isinstance(v, ops.ndarray):
+      if isinstance(v, math.ndarray):
         collector[prefix2 + k] = v
       elif isinstance(v, DynamicSystem):
         collector.update(v.vars(prefix=prefix2[:-1] if k == 'raw' else prefix2 + k))

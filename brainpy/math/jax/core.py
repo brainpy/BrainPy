@@ -4,7 +4,7 @@ import jax
 
 import functools
 from brainpy import errors
-from brainpy.backend.ops import numpy
+from brainpy.math import numpy
 from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.tools.collector import Collector
 from brainpy.tools.codes import func_name
@@ -74,7 +74,7 @@ class JIT(DynamicSystem):
 
     steps = {}
     for key, func in ds.steps.items():
-      @functools.partial(jax.jit, static_argnums=tuple(x + 2 for x in sorted(static_argnums or ())))
+      @functools.partial(jax.jit, static_argnums=tuple(x + 3 for x in sorted(static_argnums or ())))
       def jit(all_data, _t, _i):
         self.all_vars.assign(all_data)
         return func(_t, _i), self.all_vars.all_data()

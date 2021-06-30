@@ -2,13 +2,12 @@
 
 from collections import OrderedDict
 
-from brainpy import backend
-from brainpy import errors
-from brainpy.backend import ops
+from brainpy import backend, math, errors
 from brainpy.integrators.integrators import Integrator
 from brainpy.simulation import utils
-from brainpy.simulation.monitor import Monitor
+from brainpy.simulation import checking
 from brainpy.simulation.drivers import BaseDSDriver
+from brainpy.simulation.monitor import Monitor
 from brainpy.tools.collector import Collector
 
 __all__ = [
@@ -55,7 +54,7 @@ class DynamicSystem(object):
     collector = Collector()
     prefix += f'({self.name}).'
     for k, v in self.__dict__.items():
-      if isinstance(v, ops.ndarray):
+      if isinstance(v, math.ndarray):
         collector[prefix + k] = v
       elif isinstance(v, DynamicSystem):
         collector.update(v.vars(prefix=prefix[:-1] if k == 'raw' else prefix + k))
@@ -129,7 +128,7 @@ class DynamicSystem(object):
                                    f'Currently, BrainPy only supports: '
                                    f'function, list/tuple/dict of functions.')
     else:
-      self.steps['call'] = self.update
+      self.steps['update'] = self.update
 
     # name : useful in Numba Backend
     if name is None:
@@ -141,6 +140,8 @@ class DynamicSystem(object):
                                  f'according to Python language definition. '
                                  f'Please choose another name.')
     self.name = name
+    # check whether the object has a unique name.
+    checking.add(name=name, obj=self)
 
     # monitors
     if monitors is None:
@@ -216,7 +217,7 @@ class DynamicSystem(object):
 
     # times
     start, end = utils.check_duration(duration)
-    times = ops.arange(start, end, backend.get_dt())
+    times = math.arange(start, end, backend.get_dt())
 
     # build run function
     self.run_func = self._build(duration=duration, inputs=inputs, rebuild=rebuild)

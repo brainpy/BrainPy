@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors
+from brainpy import errors, math
 from brainpy import backend
-from brainpy.backend import ops
 from brainpy.simulation.utils import size2len
 from brainpy.simulation.brainobjects.base import DynamicSystem
 
@@ -32,12 +31,9 @@ class ConstantDelay(DynamicSystem):
       The delay time length. With the unit of [ms].
   name : str, optional
       The name.
-  show_code : bool
-      Whether show the formatted code.
-
   """
 
-  def __init__(self, size, delay_time, name=None, show_code=False):
+  def __init__(self, size, delay_time, name=None):
     if name is None:
       global _Delay_NO
       name = f'Delay{_Delay_NO}'
@@ -55,8 +51,8 @@ class ConstantDelay(DynamicSystem):
     self.delay_time = delay_time
     if isinstance(delay_time, (int, float)):
       self.uniform_delay = True
-      self.delay_num_step = int(ops.ceil(delay_time / backend.get_dt())) + 1
-      self.delay_data = ops.zeros((self.delay_num_step,) + self.size)
+      self.delay_num_step = int(math.ceil(delay_time / backend.get_dt())) + 1
+      self.delay_data = math.zeros((self.delay_num_step,) + self.size)
       self.delay_in_idx = self.delay_num_step - 1
       self.delay_out_idx = 0
 
@@ -70,24 +66,24 @@ class ConstantDelay(DynamicSystem):
                                   f'-dimensions.')
       self.num = size2len(size)
       if callable(delay_time):
-        temp = ops.zeros(size)
+        temp = math.zeros(size)
         for i in range(size[0]):
           temp[i] = delay_time()
         delay_time = temp
       else:
-        if ops.shape(delay_time) != self.size:
+        if math.shape(delay_time) != self.size:
           raise errors.ModelUseError(f"The shape of the delay time size must be "
                                      f"the same with the delay data size. But we "
-                                     f"got {ops.shape(delay_time)} != {self.size}")
+                                     f"got {math.shape(delay_time)} != {self.size}")
       self.uniform_delay = False
       delay = delay_time / backend.get_dt()
-      dint = ops.array(delay_time / backend.get_dt(), dtype=ops.int_)  # floor
+      dint = math.array(delay_time / backend.get_dt(), dtype=math.int_)  # floor
       ddiff = (delay - dint) >= 0.5
-      self.delay_num_step = ops.array(dint + ddiff, dtype=ops.int_) + 1
-      self.delay_data = ops.zeros((max(self.delay_num_step),) + size)
-      self.diag = ops.array(ops.arange(self.num), dtype=ops.int_)
+      self.delay_num_step = math.array(dint + ddiff, dtype=math.int_) + 1
+      self.delay_data = math.zeros((max(self.delay_num_step),) + size)
+      self.diag = math.array(math.arange(self.num), dtype=math.int_)
       self.delay_in_idx = self.delay_num_step - 1
-      self.delay_out_idx = ops.zeros(self.num, dtype=ops.int_)
+      self.delay_out_idx = math.zeros(self.num, dtype=math.int_)
 
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay
@@ -130,4 +126,4 @@ class ConstantDelay(DynamicSystem):
   def reset(self):
     self.delay_data[:] = 0
     self.delay_in_idx = self.delay_num_step - 1
-    self.delay_out_idx = 0 if self.uniform_delay else ops.zeros(self.num, dtype=ops.int_)
+    self.delay_out_idx = 0 if self.uniform_delay else math.zeros(self.num, dtype=math.int_)

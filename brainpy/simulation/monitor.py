@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Any
-from brainpy import errors
-from brainpy.backend import ops
+from brainpy import errors, math
 
 from brainpy.simulation import utils
 
@@ -35,20 +34,20 @@ class Monitor(object):
 
   2. list of strings and string + indices
 
-  >>> Monitor(target=..., variables=['a', ('b', ops.array([1,2,3])), 'c'])
+  >>> Monitor(target=..., variables=['a', ('b', math.array([1,2,3])), 'c'])
 
   2.1. list of string (+ indices) and list of intervals
 
-  >>> Monitor(target=..., variables=['a', ('b', ops.array([1,2,3])), 'c'],
+  >>> Monitor(target=..., variables=['a', ('b', math.array([1,2,3])), 'c'],
   >>>         every=[None, 2, 3])
 
   3. a dictionary with the format of {key: indices}
 
-  >>> Monitor(target=..., variables={'a': None, 'b': ops.array([1,2,3])})
+  >>> Monitor(target=..., variables={'a': None, 'b': math.array([1,2,3])})
 
   3.1. a dictionaly of variable and indexes, and a dictionary of time intervals
 
-  >>> Monitor(target=..., variables={'a': None, 'b': ops.array([1,2,3])},
+  >>> Monitor(target=..., variables={'a': None, 'b': math.array([1,2,3])},
   >>>         every={'b': 2.})
 
   .. note::
@@ -122,17 +121,17 @@ class Monitor(object):
           var_data = getattr(self.target, mon_var)
           mon_key = mon_var
           mon_idx = None
-          mon_shape = (utils.size2len(ops.shape(var_data)),)
-        # users monitor a variable by a tuple: `('b', ops.array([1,2,3]))`
+          mon_shape = (utils.size2len(math.shape(var_data)),)
+        # users monitor a variable by a tuple: `('b', math.array([1,2,3]))`
         elif isinstance(mon_var, (tuple, list)):
           mon_key = mon_var[0]
           var_data = getattr(self.target, mon_key)
           mon_idx = mon_var[1]
           if mon_idx is None:
-            mon_shape = (utils.size2len(ops.shape(var_data)),)
+            mon_shape = (utils.size2len(math.shape(var_data)),)
           else:
             mon_idx = self.check_mon_idx(mon_idx)
-            mon_shape = ops.shape(mon_idx)
+            mon_shape = math.shape(mon_idx)
         else:
           raise errors.ModelUseError(f'Unknown monitor item: {str(mon_var)}')
 
@@ -140,23 +139,23 @@ class Monitor(object):
         item_names.append(mon_key)
         item_indices.append(mon_idx)
         dtype = var_data.dtype if hasattr(var_data, 'dtype') else None
-        item_content[mon_key] = ops.zeros((1,) + mon_shape, dtype=dtype)
-        item_content[f'{mon_key}.t'] = ops.zeros((1,))
+        item_content[mon_key] = math.zeros((1,) + mon_shape, dtype=dtype)
+        item_content[f'{mon_key}.t'] = math.zeros((1,))
     elif isinstance(self.vars, dict):
-      # users monitor a variable by a dict: `{'a': None, 'b': ops.array([1,2,3])}`
+      # users monitor a variable by a dict: `{'a': None, 'b': math.array([1,2,3])}`
       for mon_key, mon_idx in self.vars.items():
         item_names.append(mon_key)
         if mon_idx is None:
-          shape = ops.shape(getattr(self.target, mon_key))
+          shape = math.shape(getattr(self.target, mon_key))
         else:
           mon_idx = self.check_mon_idx(mon_idx)
-          shape = ops.shape(mon_idx)
+          shape = math.shape(mon_idx)
         item_indices.append(mon_idx)
         shape = (utils.size2len(shape),)
         val_data = getattr(self.target, mon_key)
         dtype = val_data.dtype if hasattr(val_data, 'dtype') else None
-        item_content[mon_key] = ops.zeros((1,) + shape, dtype=dtype)
-        item_content[f'{mon_key}.t'] = ops.zeros((1,))
+        item_content[mon_key] = math.zeros((1,) + shape, dtype=dtype)
+        item_content[f'{mon_key}.t'] = math.zeros((1,))
         if self.every is None:
           item_intervals.append(None)
         else:
@@ -174,10 +173,10 @@ class Monitor(object):
   @staticmethod
   def check_mon_idx(mon_idx):
     if isinstance(mon_idx, int):
-      mon_idx = ops.array([mon_idx])
+      mon_idx = math.array([mon_idx])
     else:
-      mon_idx = ops.array(mon_idx)
-      if len(ops.shape(mon_idx)) != 1:
+      mon_idx = math.array(mon_idx)
+      if len(math.shape(mon_idx)) != 1:
         raise errors.ModelUseError(f'Monitor item index only supports '
                                    f'an int or a one-dimensional vector, '
                                    f'not {str(mon_idx)}')

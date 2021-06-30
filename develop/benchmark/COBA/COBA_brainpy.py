@@ -31,12 +31,12 @@ class LIF(bp.NeuGroup):
 
     def __init__(self, size, **kwargs):
         # variables
-        self.V = bp.math.zeros(size)
-        self.spike = bp.math.zeros(size)
-        self.ge = bp.math.zeros(size)
-        self.gi = bp.math.zeros(size)
-        self.input = bp.math.zeros(size)
-        self.t_last_spike = bp.math.ones(size) * -1e7
+        self.V = bp.ops.zeros(size)
+        self.spike = bp.ops.zeros(size)
+        self.ge = bp.ops.zeros(size)
+        self.gi = bp.ops.zeros(size)
+        self.input = bp.ops.zeros(size)
+        self.t_last_spike = bp.ops.ones(size) * -1e7
 
         super(LIF, self).__init__(size=size, **kwargs)
 

@@ -4,7 +4,7 @@
 import numpy
 
 __all__ = [
-  # ops funcs
+  # math funcs
   'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
   'add', 'reciprocal', 'negative', 'positive', 'multiply', 'divide',
   'power', 'subtract', 'true_divide', 'floor_divide', 'float_power',
@@ -69,7 +69,7 @@ __all__ = [
   'complex_', 'complex64', 'complex128',
 ]
 
-# ops funcs
+# math funcs
 # ----------
 
 isreal = numpy.isreal

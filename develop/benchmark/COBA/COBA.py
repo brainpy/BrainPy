@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from ANNarchy import *
 from brian2 import *
 from nest import *
@@ -14,12 +16,11 @@ setup(dt=dt)
 
 
 def run_brianpy(num_neu, duration, device='cpu'):
-    num_inh = int(num_neu / 5)
-    num_exc = num_neu - num_inh
-
-    bp.profile.set(jit=True, device=device, dt=dt)
+    bp.backend.set('numba', dt=dt)
 
     # Parameters
+    num_inh = int(num_neu / 5)
+    num_exc = num_neu - num_inh
     taum = 20
     taue = 5
     taui = 10
@@ -33,82 +34,84 @@ def run_brianpy(num_neu, duration, device='cpu'):
     wi = 6.7  # inhibitory synaptic weight
     ref = 5.0
 
-    neu_ST = bp.types.NeuState(
-        {'sp_t': -1e7,
-         'V': Vr,
-         'spike': 0.,
-         'ge': 0.,
-         'gi': 0.}
-    )
+    class LIF(bp.NeuGroup):
+        target_backend = ['numpy', 'numba']
 
-    @bp.integrate
-    def int_ge(ge, t):
-        return - ge / taue
+        def __init__(self, size, **kwargs):
+            super(LIF, self).__init__(size=size, **kwargs)
+            # variables
+            self.V = bp.ops.zeros(size)
+            self.spike = bp.ops.zeros(size)
+            self.ge = bp.ops.zeros(size)
+            self.gi = bp.ops.zeros(size)
+            self.input = bp.ops.zeros(size)
+            self.t_last_spike = bp.ops.ones(size) * -1e7
 
-    @bp.integrate
-    def int_gi(gi, t):
-        return - gi / taui
+        @staticmethod
+        @bp.odeint
+        def int_g(ge, gi, t):
+            dge = - ge / taue
+            dgi = - gi / taui
+            return dge, dgi
 
-    @bp.integrate
-    def int_V(V, t, ge, gi):
-        return (ge * (Erev_exc - V) + gi * (Erev_inh - V) + (El - V) + I) / taum
+        @staticmethod
+        @bp.odeint
+        def int_V(V, t, ge, gi):
+            dV = (ge * (Erev_exc - V) + gi * (Erev_inh - V) + El - V + I) / taum
+            return dV
 
-    def neu_update(ST, _t):
-        ST['ge'] = int_ge(ST['ge'], _t)
-        ST['gi'] = int_gi(ST['gi'], _t)
+        def update(self, _t, _i):
+            self.ge, self.gi = self.int_g(self.ge, self.gi, _t)
+            for i in range(self.size[0]):
+                self.spike[i] = 0.
+                if (_t - self.t_last_spike[i]) > ref:
+                    V = self.int_V(self.V[i], _t, self.ge[i], self.gi[i])
+                    if V >= Vt:
+                        self.V[i] = Vr
+                        self.spike[i] = 1.
+                        self.t_last_spike[i] = _t
+                    else:
+                        self.V[i] = V
+                self.input[i] = I
 
-        ST['spike'] = 0.
-        if (_t - ST['sp_t']) > ref:
-            V = int_V(ST['V'], _t, ST['ge'], ST['gi'])
-            ST['spike'] = 0.
-            if V >= Vt:
-                ST['V'] = Vr
-                ST['spike'] = 1.
-                ST['sp_t'] = _t
-            else:
-                ST['V'] = V
+    class ExcSyn(bp.TwoEndConn):
+        target_backend = ['numpy', 'numba']
 
-    neuron = bp.NeuType(name='COBA',
-                        ST=neu_ST,
-                        steps=neu_update,
-                        mode='scalar')
+        def __init__(self, pre, post, conn, **kwargs):
+            self.conn = conn(pre.size, post.size)
+            self.pre2post = self.conn.requires('pre2post')
+            super(ExcSyn, self).__init__(pre=pre, post=post, **kwargs)
 
-    def syn_update1(pre, post, pre2post):
-        for pre_id in range(len(pre2post)):
-            if pre['spike'][pre_id] > 0.:
-                post_ids = pre2post[pre_id]
-                for i in post_ids:
-                    post['ge'][i] += we
+        def update(self, _t, _i):
+            for pre_id, spike in enumerate(self.pre.spike):
+                if spike > 0:
+                    for post_i in self.pre2post[pre_id]:
+                        self.post.ge[post_i] += we
 
-    exc_syn = bp.SynType('exc_syn',
-                         steps=syn_update1,
-                         ST=bp.types.SynState([]),
-                         mode='vector')
+    class InhSyn(bp.TwoEndConn):
+        target_backend = ['numpy', 'numba']
 
-    def syn_update2(pre, post, pre2post):
-        for pre_id in range(len(pre2post)):
-            if pre['spike'][pre_id] > 0.:
-                post_ids = pre2post[pre_id]
-                for i in post_ids:
-                    post['gi'][i] += wi
+        def __init__(self, pre, post, conn, **kwargs):
+            self.conn = conn(pre.size, post.size)
+            self.pre2post = self.conn.requires('pre2post')
+            super(InhSyn, self).__init__(pre=pre, post=post, **kwargs)
 
-    inh_syn = bp.SynType('inh_syn',
-                         steps=syn_update2,
-                         ST=bp.types.SynState([]),
-                         mode='vector')
+        def update(self, _t, _i):
+            for pre_id, spike in enumerate(self.pre.spike):
+                if spike > 0:
+                    for post_i in self.pre2post[pre_id]:
+                        self.post.gi[post_i] += wi
 
-    group = bp.NeuGroup(neuron, size=num_exc + num_inh)
-    group.ST['V'] = np.random.randn(num_exc + num_inh) * 5. - 55.
+    E_group = LIF(num_exc, monitors=['spike'])
+    E_group.V = np.random.randn(num_exc) * 5. - 55.
+    I_group = LIF(num_inh, monitors=['spike'])
+    I_group.V = np.random.randn(num_inh) * 5. - 55.
+    E2E = ExcSyn(pre=E_group, post=E_group, conn=bp.connect.FixedProb(0.02))
+    E2I = ExcSyn(pre=E_group, post=I_group, conn=bp.connect.FixedProb(0.02))
+    I2E = InhSyn(pre=I_group, post=E_group, conn=bp.connect.FixedProb(0.02))
+    I2I = InhSyn(pre=I_group, post=I_group, conn=bp.connect.FixedProb(0.02))
 
-    exc_conn = bp.TwoEndConn(exc_syn, pre=group[:num_exc],
-                             post=group,
-                             conn=bp.connect.FixedProb(prob=0.02))
-
-    inh_conn = bp.TwoEndConn(inh_syn, pre=group[num_exc:],
-                             post=group,
-                             conn=bp.connect.FixedProb(prob=0.02))
-
-    net = bp.Network(group, exc_conn, inh_conn)
+    net = bp.Network(E_group, I_group, E2E, E2I, I2E, I2I)
 
     t0 = time.time()
     net.run(duration)

@@ -3,8 +3,7 @@
 __version__ = "1.1.0-alpha"
 
 # "backend" module
-from . import backend
-from .backend import ops
+from . import backend, math
 
 # "analysis" module
 from . import analysis

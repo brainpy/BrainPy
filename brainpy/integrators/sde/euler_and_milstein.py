@@ -2,9 +2,8 @@
 
 import inspect
 
-from brainpy import backend
+from brainpy import backend, math
 from brainpy import errors
-from brainpy.backend import ops
 from brainpy.integrators import constants
 from brainpy.integrators.ast_analysis import separate_variables
 from . import common
@@ -42,16 +41,16 @@ class Tools(object):
   def noise_terms(code_lines, variables):
     # num_vars = len(variables)
     # if num_vars > 1:
-    #     code_lines.append(f'  all_dW = ops.normal(0.0, dt_sqrt, ({num_vars},)+ops.shape({variables[0]}_dg))')
+    #     code_lines.append(f'  all_dW = math.normal(0.0, dt_sqrt, ({num_vars},)+math.shape({variables[0]}_dg))')
     #     for i, var in enumerate(variables):
     #         code_lines.append(f'  {var}_dW = all_dW[{i}]')
     # else:
     #     var = variables[0]
-    #     code_lines.append(f'  {var}_dW = ops.normal(0.0, dt_sqrt, ops.shape({var}))')
+    #     code_lines.append(f'  {var}_dW = math.normal(0.0, dt_sqrt, math.shape({var}))')
     # code_lines.append('  ')
 
     for var in variables:
-      code_lines.append(f'  {var}_dW = ops.normal(0.000, dt_sqrt, ops.shape({var}))')
+      code_lines.append(f'  {var}_dW = math.normal(0.000, dt_sqrt, math.shape({var}))')
     code_lines.append('  ')
 
 
@@ -141,8 +140,8 @@ class Wrapper(object):
     code_scope['g'] = g
     code_scope[vdt] = dt
     code_scope[f'{vdt}_sqrt'] = dt ** 0.5
-    code_scope['ops'] = ops
-    code_scope['exp'] = ops.exp
+    code_scope['math'] = math
+    code_scope['exp'] = math.exp
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -159,14 +158,14 @@ class Wrapper(object):
     # 2.3 dgdW
     # ----
     # SCALAR_WIENER : dg * dW
-    # VECTOR_WIENER : ops.sum(dg * dW, axis=-1)
+    # VECTOR_WIENER : math.sum(dg * dW, axis=-1)
 
     if wiener_type == constants.SCALAR_WIENER:
       for var in variables:
         code_lines.append(f'  {var}_dgdW = {var}_dg * {var}_dW')
     else:
       for var in variables:
-        code_lines.append(f'  {var}_dgdW = ops.sum({var}_dg * {var}_dW, axis=-1)')
+        code_lines.append(f'  {var}_dgdW = math.sum({var}_dg * {var}_dW, axis=-1)')
     code_lines.append('  ')
 
     # 2.4 new var
@@ -245,7 +244,7 @@ class Wrapper(object):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'ops': ops}
+    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -262,14 +261,14 @@ class Wrapper(object):
     # 2.3 dgdW
     # ----
     # SCALAR_WIENER : dg * dW
-    # VECTOR_WIENER : ops.sum(dg * dW, axis=-1)
+    # VECTOR_WIENER : math.sum(dg * dW, axis=-1)
 
     if wiener_type == constants.SCALAR_WIENER:
       for var in variables:
         code_lines.append(f'  {var}_dgdW = {var}_dg * {var}_dW')
     else:
       for var in variables:
-        code_lines.append(f'  {var}_dgdW = ops.sum({var}_dg * {var}_dW, axis=-1)')
+        code_lines.append(f'  {var}_dgdW = math.sum({var}_dg * {var}_dW, axis=-1)')
     code_lines.append('  ')
 
     if sde_type == constants.ITO_SDE:
@@ -281,7 +280,7 @@ class Wrapper(object):
       code_lines.append('  ')
 
     elif sde_type == constants.STRA_SDE:
-      # 2.4  y_bar = x + ops.sum(dgdW, axis=-1)
+      # 2.4  y_bar = x + math.sum(dgdW, axis=-1)
       all_bar = [f'{var}_bar' for var in variables]
       for var in variables:
         code_lines.append(f'  {var}_bar = {var} + {var}_dgdW')
@@ -294,13 +293,13 @@ class Wrapper(object):
       # 2.6 dgdW2
       # ----
       # SCALAR_WIENER : dgdW2 = dg_bar * dW
-      # VECTOR_WIENER : dgdW2 = ops.sum(dg_bar * dW, axis=-1)
+      # VECTOR_WIENER : dgdW2 = math.sum(dg_bar * dW, axis=-1)
       if wiener_type == constants.SCALAR_WIENER:
         for var in variables:
           code_lines.append(f'  {var}_dgdW2 = {var}_dg_bar * {var}_dW')
       else:
         for var in variables:
-          code_lines.append(f'  {var}_dgdW2 = ops.sum({var}_dg_bar * {var}_dW, axis=-1)')
+          code_lines.append(f'  {var}_dgdW2 = math.sum({var}_dg_bar * {var}_dW, axis=-1)')
       code_lines.append('  ')
 
       # 2.7 new var
@@ -328,7 +327,7 @@ class Wrapper(object):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'ops': ops}
+    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -349,14 +348,14 @@ class Wrapper(object):
       code_lines.append(f'  {var}_dgdW = {var}_dg * {var}_dW')
     code_lines.append('  ')
 
-    # 2.4  df_bar = x + dfdt + ops.sum(dg * dt_sqrt, axis=-1)
+    # 2.4  df_bar = x + dfdt + math.sum(dg * dt_sqrt, axis=-1)
     all_df_bar = [f'{var}_df_bar' for var in variables]
     if wiener_type == constants.SCALAR_WIENER:
       for var in variables:
         code_lines.append(f'  {var}_df_bar = {var} + {var}_dfdt + {var}_dg * {vdt}_sqrt')
     else:
       for var in variables:
-        code_lines.append(f'  {var}_df_bar = {var} + {var}_dfdt + ops.sum('
+        code_lines.append(f'  {var}_df_bar = {var} + {var}_dfdt + math.sum('
                           f'{var}_dg * {vdt}_sqrt, axis=-1)')
 
     # 2.5  dg_bar = g(y_bar, t, *args)
@@ -382,13 +381,13 @@ class Wrapper(object):
     # 2.7 new var
     # ----
     # SCALAR_WIENER : y = x + dfdt + dgdW + dgdW2
-    # VECTOR_WIENER : y = x + dfdt + ops.sum(dgdW + dgdW2, axis=-1)
+    # VECTOR_WIENER : y = x + dfdt + math.sum(dgdW + dgdW2, axis=-1)
     if wiener_type == constants.SCALAR_WIENER:
       for var in variables:
         code_lines.append(f'  {var}_new = {var} + {var}_dfdt + {var}_dgdW + {var}_dgdW2')
     elif wiener_type == constants.VECTOR_WIENER:
       for var in variables:
-        code_lines.append(f'  {var}_new = {var} + {var}_dfdt + ops.sum({var}_dgdW + {var}_dgdW2, axis=-1)')
+        code_lines.append(f'  {var}_new = {var} + {var}_dfdt + math.sum({var}_dgdW + {var}_dgdW2, axis=-1)')
     else:
       raise ValueError(f'Unknown Wiener Process : {wiener_type}')
     code_lines.append('  ')

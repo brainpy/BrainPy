@@ -9,10 +9,13 @@
 - [x] Check whether the user-defined code has the keywords (like `f`, etc.) in ODEs  (done @ 2021.05.29)
 
 
+
+
 # Neuronal Dynamics Simulation
 
 - [ ] Allow defining the `Soma` object
 - [ ] Allow defining the `Dendrite` object
+- [x] check unique `name` for each DynamicSystem instance (done @ 2021.06.30)
 - [x] Allow running monitor functions by customized `@every` xx ms (done @ 2021.05.23)
 - [x] Monitor support for the multi-dimensional variables in numpy (done @ 2021.05.23)
 - [x] Monitor support for the multi-dimensional variables in numba (done @ 2021.05.23)
@@ -33,9 +36,27 @@
 - [ ] Support numerical continuation for ODEs
 
 
-# Drivers
 
-- [ ] Support JAX
+# Backend & Drivers
+
+
+
+- [ ] Wrapper for JAX `ndarray`
+  - [x] register pytree  (done @ 2021.06.15)
+  - [x] support `ndarray` intrinsic methods: like 
+    - [x] any(), all() .... view() (done @ 2021.06.30)
+- [ ] Support JIT in JAX
+  - [ ] multi-scaling modeling
+- [ ] Support Numba
+  - [ ] recompile the numba JIT compilation
+- [ ] support "buffer" in `brainpy.math` module
+- [ ] relax `targe_backend` setting. Default is `general`, if not setting.
+- [x] move backend setting into the `brainpy.math` module (done @ 2021.06.30)
+- [x] move global `dt` setting into the `brainpy.math` module (done @ 2021.06.30)
+- [ ] support to set `dt`  in the single object level (i.e., single instance of DynamicSystem)
+- [x] support global `dt` setting
+
+
 
 
 # Documentation

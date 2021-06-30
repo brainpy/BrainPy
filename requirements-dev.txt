@@ -2,8 +2,6 @@
 
 sympy>=1.5
 numba>=0.52
-torch>=1.8.1
-tensorflow>=2.4
 
 # test requirements
 pytest

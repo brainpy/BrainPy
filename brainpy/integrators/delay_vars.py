@@ -3,8 +3,7 @@
 
 import abc
 
-from brainpy import backend
-from brainpy.backend import ops
+from brainpy import backend, math
 
 __all__ = [
   'AbstractDelay',
@@ -25,12 +24,12 @@ class AbstractDelay(abc.ABC):
 class ConstantDelay(AbstractDelay):
   def __init__(self, v0, delay_len, before_t0=0., t0=0., dt=None):
     # size
-    self.size = ops.shape(v0)
+    self.size = math.shape(v0)
 
     # delay_len
     self.delay_len = delay_len
     self.dt = backend.get_dt() if dt is None else dt
-    self.num_delay = int(ops.ceil(delay_len / self.dt))
+    self.num_delay = int(math.ceil(delay_len / self.dt))
 
     # other variables
     self._delay_in = self.num_delay - 1
@@ -41,7 +40,7 @@ class ConstantDelay(AbstractDelay):
     self.before_t0 = before_t0
 
     # delay data
-    self.data = ops.zeros((self.num_delay + 1,) + self.size)
+    self.data = math.zeros((self.num_delay + 1,) + self.size)
     if callable(before_t0):
       for i in range(self.num_delay):
         self.data[i] = before_t0(t0 + (i - self.num_delay) * self.dt)
@@ -55,7 +54,7 @@ class ConstantDelay(AbstractDelay):
 
   def __getitem__(self, time):  # pull
     diff = self.current_time - time
-    m = ops.ceil(diff / self.dt)
+    m = math.ceil(diff / self.dt)
     return self.data[self._delay_out]
 
   def update(self):

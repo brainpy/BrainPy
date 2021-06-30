@@ -1,50 +1,115 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.backend import driver
-from brainpy.backend import ops
-from brainpy.backend.driver import get_ds_driver
-from brainpy.backend.driver import get_diffint_driver
+from brainpy import math
+from brainpy.backend import jax, numba, numpy
+
 
 __all__ = [
-  'set',
   'set_class_keywords',
-  'set_dt',
-  'get_dt',
-  'get_backend_name',
-
   'get_ds_driver',
   'get_diffint_driver',
 ]
 
-_dt = 0.1
-BACKEND_NAME = 'numpy'
+
+_backend_to_drivers = {
+  'numpy': {
+    'diffint': numpy.NumpyDiffIntDriver,
+    'ds': numpy.NumpyDSDriver
+  },
+  'numba': {
+    'diffint': numba.NumbaDiffIntDriver,
+    'ds': numba.NumbaDSDriver
+  },
+  'jax': {
+    'diffint': jax.JaxDiffIntDriver,
+    'ds': jax.JaxDSDriver
+  },
+}
+
 CLASS_KEYWORDS = ['self', 'cls']
 SYSTEM_KEYWORDS = ['_dt', '_t', '_i']
 
 
-def set(backend=None, dt=None):
-  """Basic backend setting function.
+def switch_to(backend):
+  buffer = get_buffer(backend)
 
-  Using this function, users can set the backend they prefer. For backend
-  which is unknown, users can provide `module_or_operations` to specify
-  the operations needed. Also, users can customize the node runner, or the
-  network runner, by providing the `node_runner` or `net_runner` keywords.
-  The default numerical precision `dt` can also be set by this function.
+  global DS_DRIVER, DIFFINT_DRIVER
+  if backend in ['numpy']:
+    DS_DRIVER = buffer.get('ds', None) or numpy.NumpyDSDriver
+    DIFFINT_DRIVER = buffer.get('diffint', None) or numpy.NumpyDiffIntDriver
 
-  Parameters
-  ----------
-  backend : str
-      The backend name.
-  dt : float
-      The numerical precision.
+  elif backend in ['numba', 'numba-parallel']:
+
+    if backend == 'numba':
+      numba.set_numba_profile(nogil=False, parallel=False)
+    else:
+      numba.set_numba_profile(nogil=True, parallel=True)
+
+    DS_DRIVER = buffer.get('ds', None) or numba.NumbaDSDriver
+    DIFFINT_DRIVER = buffer.get('diffint', None) or numba.NumbaDiffIntDriver
+
+  elif backend in ['jax']:
+    DS_DRIVER = buffer.get('ds', None) or jax.JaxDSDriver
+    DIFFINT_DRIVER = buffer.get('diffint', None) or jax.JaxDiffIntDriver
+
+  else:
+    if 'ds' not in buffer:
+      raise ValueError(f'"{backend}" is an unknown backend, should '
+                       f'set DS buffer by "brainpy.drivers.set_buffer'
+                       f'(backend, ds_driver=SomeDSDriver)"')
+    if 'diffint' not in buffer:
+      raise ValueError(f'"{backend}" is an unknown backend, should '
+                       f'set integrator wrapper by "brainpy.drivers.'
+                       f'set_buffer(backend, diffint_driver=SomeDriver)"')
+    DS_DRIVER = buffer.get('ds')
+    DIFFINT_DRIVER = buffer.get('diffint')
+
+
+def set_buffer(backend, ds_driver=None, diffint_driver=None):
+  from brainpy.simulation.drivers import BaseDSDriver, BaseDiffIntDriver
+
+  global BUFFER
+  if backend not in BUFFER:
+    BUFFER[backend] = dict()
+
+  if ds_driver is not None:
+    assert BaseDSDriver in ds_driver.__bases__
+    BUFFER[backend]['ds'] = ds_driver
+  if diffint_driver is not None:
+    assert BaseDiffIntDriver in diffint_driver.__bases__
+    BUFFER[backend]['diffint'] = diffint_driver
+
+
+def get_buffer(backend):
+  return BUFFER.get(backend, dict())
+
+
+def get_ds_driver(backend=None):
+  """Get the driver for dynamical systems.
+
+  Returns
+  -------
+  node_driver
+      The node driver.
   """
-  if dt is not None:
-    set_dt(dt)
   if backend is not None:
-    ops.use_backend(backend)
-    driver.switch_to(backend)
-    global BACKEND_NAME
-    BACKEND_NAME = backend
+    return _backend_to_drivers[backend]['ds']
+  else:
+    return _backend_to_drivers[math.get_backend_name()]['ds']
+
+
+def get_diffint_driver(backend=None):
+  """Get the current integration driver for differential equations.
+
+  Returns
+  -------
+  diffint_driver
+      The integration driver.
+  """
+  if backend is not None:
+    return _backend_to_drivers[backend]['diffint']
+  else:
+    return _backend_to_drivers[math.get_backend_name()]['diffint']
 
 
 def set_class_keywords(*args):
@@ -65,38 +130,3 @@ def set_class_keywords(*args):
   """
   global CLASS_KEYWORDS
   CLASS_KEYWORDS = list(args)
-
-
-def set_dt(dt):
-  """Set the numerical integrator precision.
-
-  Parameters
-  ----------
-  dt : float
-      Numerical integration precision.
-  """
-  assert isinstance(dt, float)
-  global _dt
-  _dt = dt
-
-
-def get_dt():
-  """Get the numerical integrator precision.
-
-  Returns
-  -------
-  dt : float
-      Numerical integration precision.
-  """
-  return _dt
-
-
-def get_backend_name():
-  """Get the current backend name.
-
-  Returns
-  -------
-  backend : str
-      The name of the current backend name.
-  """
-  return BACKEND_NAME

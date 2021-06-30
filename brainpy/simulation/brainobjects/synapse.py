@@ -89,8 +89,7 @@ class TwoEndConn(DynamicSystem):
                                  'For example: \n\n'
                                  'super(YourClassName, self).__init__(**kwargs)')
 
-    cdelay = ConstantDelay(size, delay_time)
-    cdelay.name = f'{self.name}_delay_{key}'
-    self.steps[f'{self.name}_{key}_update'] = cdelay.update
+    cdelay = ConstantDelay(size, delay_time, name=f'{self.name}_delay_{key}')
+    self.steps[f'{self.name}_delay_{key}_update'] = cdelay.update
 
     return cdelay

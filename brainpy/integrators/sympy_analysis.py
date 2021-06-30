@@ -133,7 +133,7 @@ class Parser(object):
     'GtE': sympy.GreaterThan,
     'Eq': sympy.Eq,
     'NotEq': sympy.Ne,
-    # Bool ops
+    # Bool math
     'And': sympy.And,
     'Or': sympy.Or,
     # BinOp

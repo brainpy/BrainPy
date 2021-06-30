@@ -2,7 +2,7 @@
 
 from jax.numpy import linalg
 
-from brainpy.backend.ops.jax.ndarray import _wrap
+from brainpy.math.jax.ndarray import _wrap
 
 __all__ = [
   'cholesky', 'cond', 'det', 'eig', 'eigh', 'eigvals', 'eigvalsh', 'inv', 'svd',
