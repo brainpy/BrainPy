@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 from brainpy import errors, math
 from brainpy.integrators.integrators import Integrator
 from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.tools.collector import Collector
+from brainpy.simulation import collector
 
 __all__ = [
   'Container',
@@ -12,7 +13,7 @@ __all__ = [
 _Container_NO = 0
 
 
-class Container(DynamicSystem, list):
+class Container(DynamicSystem, dict):
   """Container object which is designed to add other DynamicalSystem instances.
 
   What's different from the other DynamicSystem objects is that Container has
@@ -44,71 +45,51 @@ class Container(DynamicSystem, list):
 
     Returns
     -------
-    collection : Collector
-        A DataCollector of all the variables.
+    collection : collector.VarCollector
+        A VarCollector of all the variables.
     """
-    collector = Collector()
-    prefix1 = prefix + f'({self.name})'
-    for i, v in enumerate(self):
-      if isinstance(v, math.ndarray):
-        collector[f'{prefix1}[{i}]'] = v
-      elif isinstance(v, DynamicSystem):
-        collector.update(v.vars(prefix=f'{prefix1}[{i}]'))
-    prefix2 = prefix + f'({self.name}).'
+    gather = collector.VarCollector()
+    for k, v in self.items():
+      gather.update(v.vars(f'{prefix}{k}.'))
     for k, v in self.__dict__.items():
       if isinstance(v, math.ndarray):
-        collector[prefix2 + k] = v
+        gather[prefix + k] = v
+        gather[f'{self.name}.{k}'] = v
       elif isinstance(v, DynamicSystem):
-        collector.update(v.vars(prefix=prefix2[:-1] if k == 'raw' else prefix2 + k))
-    return collector
+        gather.update(v.vars(prefix=f'{prefix}{k}' if k == 'raw' else f'{prefix}{k}.'))
+    return gather
 
   def ints(self, prefix=''):
-    collector = Collector()
-    prefix1 = prefix + f'({self.name})'
-    for i, v in enumerate(self):
-      if isinstance(v, Integrator):
-        collector[f'{prefix1}[{i}]'] = v
-      elif isinstance(v, DynamicSystem):
-        collector.update(v.ints(prefix=f'{prefix1}[{i}]'))
-    prefix2 = prefix + f'({self.name}).'
+    gather = collector.Collector()
+    for k, v in self.items():
+      gather.update(v.ints(prefix=f'{prefix}{k}.'))
     for k, v in self.__dict__.items():
       if isinstance(v, Integrator):
-        collector[prefix2 + k] = v
+        gather[prefix + k] = v
       elif isinstance(v, DynamicSystem):
-        collector.update(v.ints(prefix=prefix2[:-1] if k == 'raw' else prefix2 + k))
-    return collector
+        gather.update(v.ints(prefix=prefix + k if k == 'raw' else f'{prefix}{k}.'))
+    return gather
 
   def nodes(self, prefix=''):
-    collector = Collector()
-    prefix += f'{self.name}.'
-    for v in self:
-      collector[v.name] = v
-      collector.update(v.nodes(prefix[:-1]))
+    gather = collector.Collector()
+    for k, v in self.items():
+      gather[prefix + k] = v
+      gather[v.name] = v
+      gather.update(v.nodes(f'{prefix}{k}.'))
     for k, v in self.__dict__.items():
       if isinstance(v, DynamicSystem):
-        collector[v.name] = v
-        collector[prefix + f'{k}'] = v
-        collector.update(v.nodes(prefix + f'{k}.'))
-    return collector
+        gather[v.name] = v
+        gather[prefix + k] = v
+        gather.update(v.nodes(f'{prefix}{k}.'))
+    return gather
 
-  def __getitem__(self, key):
-    """Get the item by slice.
+  def __getattr__(self, item):
+    if item in self:
+      return self[item]
+    else:
+      return super(Container, self).__getattribute__(item)
 
-    Parameters
-    ----------
-    key : int, slice
-
-    Returns
-    -------
-    dynamic_system : DynamicSystem
-      The selected children items.
-    """
-    value = list.__getitem__(self, key)
-    if isinstance(key, slice):
-      return type(self.__class__)(value)
-    return value
-
-  def __init__(self, *args, steps=None, monitors=None, name=None, **kwargs):
+  def __init__(self, steps=None, monitors=None, name=None, **kwargs):
     if name is None:
       global _Container_NO
       name = f'Container{_Container_NO}'
@@ -118,10 +99,19 @@ class Container(DynamicSystem, list):
       raise errors.ModelUseError(f'"monitors" cannot be used in '
                                  f'"brainpy.{self.__class__.__name__}".')
 
-    DynamicSystem.__init__(self, steps=steps, monitors=monitors, name=name)
-    for arg in args:
-      if not isinstance(arg, DynamicSystem):
+    # initialize "dict"
+    for val in kwargs.values():
+      if not isinstance(val, DynamicSystem):
         raise errors.ModelUseError(f'{self.__class__.__name__} receives '
                                    f'instances of DynamicSystem, however, '
-                                   f'we got {type(arg)}.')
-    list.__init__(self, args)
+                                   f'we got {type(val)}.')
+    dict.__init__(self, **kwargs)
+
+    # initialize "DynamicSystem"
+    if steps is None:
+      steps = OrderedDict()
+      for obj_key, obj in kwargs.items():
+        for step_key, step in obj.steps.items():
+          steps[f'{obj_key}_{step_key}'] = step
+    DynamicSystem.__init__(self, steps=steps, monitors=monitors, name=name)
+

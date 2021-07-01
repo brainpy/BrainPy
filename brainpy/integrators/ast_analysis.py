@@ -4,8 +4,7 @@ import ast
 import inspect
 from collections import OrderedDict
 
-from brainpy import errors
-from brainpy import tools
+from brainpy import errors, tools
 
 __all__ = [
   'DiffEqReader',

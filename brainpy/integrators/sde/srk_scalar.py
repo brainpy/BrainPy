@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import backend, math
+from brainpy import math
 from brainpy import errors
 from brainpy.integrators import constants
 from . import common
@@ -335,7 +335,7 @@ class Wrappers(object):
                                    f'Wiener Process, but we got "{wiener_type}" noise.')
 
     show_code = False if show_code is None else show_code
-    dt = backend.get_dt() if dt is None else dt
+    dt = math.get_dt() if dt is None else dt
 
     if f is not None and g is not None:
       return wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,

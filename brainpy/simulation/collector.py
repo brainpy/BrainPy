@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation import utils
 from contextlib import contextmanager
 
 from brainpy import math
+from brainpy.simulation import utils
 
 __all__ = [
   'Collector',
+  'VarCollector',
 ]
 
 
 class Collector(dict):
-  """A DataCollector is a dictionary (name, var)
+  """A VarCollector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
   is ordered by insertion order. It is the object
@@ -19,18 +20,12 @@ class Collector(dict):
   in many DynamicSystem instance: optimizers, Jit, etc..."""
 
   def __add__(self, other):
-    """Overloaded add operator to merge two VarCollections together."""
+    """Overloaded add operator to merge two VarCollectors together."""
     vc = Collector(self)
     vc.update(other)
     return vc
 
-  def __setitem__(self, key, value):
-    """Overload bracket assignment to catch potential conflicts during assignment."""
-    if key in self:
-      raise ValueError(f'Name "{key}" conflicts when appending to Collection')
-    dict.__setitem__(self, key, value)
-
-  def unique_data(self):
+  def unique_values(self):
     seen = set()
     values = []
     for v in self.values():
@@ -38,37 +33,6 @@ class Collector(dict):
         seen.add(id(v))
         values.append(v)
     return values
-
-  def update(self, other):
-    """Overload dict.update method to catch potential conflicts during assignment."""
-    if not isinstance(other, Collector):
-      other = list(other)
-    else:
-      other = other.items()
-    conflicts = set()
-    for k, v in other:
-      if k in self:
-        if self[k] is not v:
-          conflicts.add(k)
-      else:
-        self[k] = v
-    if conflicts:
-      raise ValueError(f'Name conflicts when combining Collection {sorted(conflicts)}')
-
-  def assign(self, all_data):
-    """Assign tensors to the variables in the VarCollection.
-    Each variable is assigned only once and in the order
-    following the iter(self) iterator.
-
-    Args:
-        all_data: the list of tensors used to update variables values.
-    """
-    vl = self.unique_data()
-    if len(vl) != len(all_data):
-      raise ValueError(f'The target has {len(vl)} data, while we got a '
-                       f'"all_data" with the length of {len(all_data)}.')
-    for var, data in zip(vl, all_data):
-      var.value = data
 
   def pretty_print(self, max_width=100):
     """Pretty print the contents of the VarCollection."""
@@ -83,6 +47,58 @@ class Collector(dict):
       text.append(f'{name:{longest_string}} {size:8d} {v.value.shape}')
     text.append(f'{f"+Total({count})":{longest_string}} {total:8d}')
     return '\n'.join(text)
+
+
+class VarCollector(Collector):
+  """A VarCollector is a dictionary (name, var)
+  with some additional methods to make manipulation
+  of collections of variables easy. A Collection
+  is ordered by insertion order. It is the object
+  returned by DynamicSystem.vars() and used as input
+  in many DynamicSystem instance: optimizers, Jit, etc..."""
+
+  def __add__(self, other):
+    """Overloaded add operator to merge two VarCollectors together."""
+    vc = VarCollector(self)
+    vc.update(other)
+    return vc
+
+  def __setitem__(self, key, value):
+    """Overload bracket assignment to catch potential conflicts during assignment."""
+    if key in self:
+      raise ValueError(f'Name "{key}" conflicts when appending to Collection')
+    dict.__setitem__(self, key, value)
+
+  def assign(self, all_data):
+    """Assign tensors to the variables in the VarCollection.
+    Each variable is assigned only once and in the order
+    following the iter(self) iterator.
+
+    Args:
+        all_data: the list of tensors used to update variables values.
+    """
+    vl = self.unique_values()
+    if len(vl) != len(all_data):
+      raise ValueError(f'The target has {len(vl)} data, while we got a '
+                       f'"all_data" with the length of {len(all_data)}.')
+    for var, data in zip(vl, all_data):
+      var.value = data
+
+  def update(self, other):
+    """Overload dict.update method to catch potential conflicts during assignment."""
+    if not isinstance(other, Collector):
+      other = list(other)
+    else:
+      other = other.items()
+    conflicts = set()
+    for k, v in other:
+      if k in self:  # if "key" and "value" are same, skip
+        if self[k] is not v:
+          conflicts.add(k)
+      else:  # if do not have "key", update
+        self[k] = v
+    if conflicts:
+      raise ValueError(f'Name conflicts when combining Collection {sorted(conflicts)}')
 
   @contextmanager
   def replicate(self):
@@ -106,7 +122,7 @@ class Collector(dict):
     sharded_x = jax.pmap(lambda x: x, axis_name='device')(x)
     devices = [b.device() for b in sharded_x.device_buffers]
     ndevices = len(devices)
-    for d in self.unique_data():
+    for d in self.unique_values():
       if isinstance(d, RandomState):
         replicated.append(jax.api.device_put_sharded([shard for shard in d.split(ndevices)], devices))
         saved_states.append(d.value)
@@ -133,7 +149,7 @@ class Collector(dict):
     Args:
         is_a: either a variable type or a list of variables types to include.
     Returns:
-        A new VarCollection containing the subset of variables.
+        A new VarCollector containing the subset of variables.
     """
     if is_a:
       return [x.value for x in self.values() if isinstance(x, is_a)]

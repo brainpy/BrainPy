@@ -2,8 +2,7 @@
 
 import inspect
 
-from brainpy import backend
-from brainpy import errors
+from brainpy import backend, errors
 
 __all__ = [
   'get_args',

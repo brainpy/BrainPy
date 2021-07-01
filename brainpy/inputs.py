@@ -2,8 +2,7 @@
 
 import numpy as np
 
-from brainpy import backend, math
-from brainpy import errors
+from brainpy import errors, math
 from brainpy.simulation import NeuGroup
 from brainpy.simulation import size2len
 
@@ -52,7 +51,7 @@ def period_input(values, durations, dt=None, return_length=False):
   assert len(durations) == len(values), f'"values" and "durations" must be the same length, while ' \
                                         f'we got {len(values)} != {len(durations)}.'
 
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
 
   # get input current shape, and duration
   I_duration = sum(durations)
@@ -100,7 +99,7 @@ def constant_input(I_and_duration, dt=None):
   current_and_duration : tuple
       (The formatted current, total duration)
   """
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
 
   # get input current dimension, shape, and duration
   I_duration = 0.
@@ -157,7 +156,7 @@ def spike_input(points, lengths, sizes, duration, dt=None):
   current_and_duration : tuple
       (The formatted current, total duration)
   """
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
   assert isinstance(points, (list, tuple))
   if isinstance(lengths, (float, int)):
     lengths = [lengths] * len(points)
@@ -198,7 +197,7 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   current_and_duration : tuple
       (The formatted current, total duration)
   """
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
   current = math.zeros(int(math.ceil(duration / dt)))
@@ -274,12 +273,12 @@ class PoissonInput(NeuGroup):
                                        steps={'update': self.update},
                                        **kwargs)
 
-    self.dt = backend.get_dt() / 1000.
+    self.dt = math.get_dt() / 1000.
     self.freqs = freqs
     self.size = (size,) if isinstance(size, int) else tuple(size)
     self.spike = math.zeros(self.num, dtype=bool)
     self.t_last_spike = -1e7 * math.ones(self.num)
 
   def update(self, _t, _i):
-    self.spike = brainpy.ops.random.random(self.num) <= self.freqs * self.dt
+    self.spike = math.random.random(self.num) <= self.freqs * self.dt
     self.t_last_spike = math.where(self.spike, _t, self.t_last_spike)

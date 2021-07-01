@@ -2,8 +2,7 @@
 
 import numpy as np
 
-from brainpy import backend, math
-from brainpy import tools
+from brainpy import tools, math
 
 __all__ = [
   'cross_correlation',
@@ -62,7 +61,7 @@ def cross_correlation(spikes, bin, dt=None):
          neuroscience 16.20 (1996): 6402-6413.
   """
 
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
   bin_size = int(bin / dt)
   num_hist, num_neu = spikes.shape
   num_bin = int(np.ceil(num_hist / bin_size))
@@ -209,7 +208,7 @@ def firing_rate(sp_matrix, width, window='gaussian'):
   rate = math.sum(sp_matrix, axis=1)
 
   # window
-  dt = backend.get_dt()
+  dt = math.get_dt()
   if window == 'gaussian':
     width1 = 2 * width / dt
     width2 = int(round(width1))

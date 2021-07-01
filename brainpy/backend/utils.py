@@ -137,7 +137,7 @@ def get_args(f):
   return class_kw, arguments
 
 
-def code_lines_to_func(lines, func_name, func_args, scope):
+def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
   lines_for_compile = [f'    {line}' for line in lines]
   code_for_compile = '\n'.join(lines_for_compile)
   code = f'def {func_name}({", ".join(func_args)}):\n' + \
@@ -148,8 +148,8 @@ def code_lines_to_func(lines, func_name, func_args, scope):
   code_for_debug = '\n'.join(lines_for_debug)
   code += f'    exc_type, exc_obj, exc_tb = sys.exc_info()\n' \
          f'    line_no = exc_tb.tb_lineno\n' \
-         f'    raise ValueError("""Error occurred in line %d: \n\n{code_for_debug}\n' \
-          f'    ....\n\n""" % line_no) from e'
+         f'    raise ValueError("""Error occurred in line %d: \n\n{code_for_debug}\n\n' \
+          f'    %s\n{remind}\n""" % (line_no, str(e)))'
   try:
     exec(compile(code, '', 'exec'), scope)
   except Exception as e:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import backend, math
+from brainpy import math
 from brainpy.simulation.utils import run_model
 from brainpy.tools import DictPlus
 
@@ -101,7 +101,7 @@ class Trajectory(object):
       raise ValueError
 
     # get the times
-    times = math.arange(duration[0], duration[1], backend.get_dt())
+    times = math.arange(duration[0], duration[1], math.get_dt())
     # reshape the monitor
     for key in self.mon.keys():
       self.mon[key] = math.zeros((len(times),) + math.shape(self.mon[key])[1:])

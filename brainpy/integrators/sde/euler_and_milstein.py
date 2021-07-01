@@ -2,7 +2,7 @@
 
 import inspect
 
-from brainpy import backend, math
+from brainpy import math
 from brainpy import errors
 from brainpy.integrators import constants
 from brainpy.integrators.ast_analysis import separate_variables
@@ -100,7 +100,7 @@ class Wrapper(object):
                                    f'But we got {wiener_type}.')
 
     show_code = False if show_code is None else show_code
-    dt = backend.get_dt() if dt is None else dt
+    dt = math.get_dt() if dt is None else dt
 
     if f is not None and g is not None:
       return wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,

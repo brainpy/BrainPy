@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any
-from brainpy import errors, math
+from brainpy import errors, math, tools
 
 from brainpy.simulation import utils
 
@@ -60,7 +59,8 @@ class Monitor(object):
   """
 
   _KEYWORDS = ['_KEYWORDS', 'target', 'vars', 'every', 'ts', 'num_item',
-               'item_names', 'item_indices', 'item_intervals', 'item_contents', ]
+               'item_names', 'item_indices', 'item_intervals', 'item_contents',
+               'has_build']
 
   def __init__(self, variables, every=None, target=None):
     if isinstance(variables, (list, tuple)):
@@ -86,6 +86,7 @@ class Monitor(object):
       raise errors.ModelUseError(f'We only supports a format of list/tuple/dict of '
                                  f'"vars", while we got {type(variables)}.')
 
+    self.has_build = False
     self.ts = None
     self.vars = variables
     self.every = every
@@ -95,6 +96,7 @@ class Monitor(object):
     self.item_intervals = []
     self.item_contents = dict()
     self.num_item = len(variables)
+    super(Monitor, self).__init__()
 
   def check(self, mon_key):
     if mon_key in self._KEYWORDS:
@@ -105,70 +107,72 @@ class Monitor(object):
                                  f"{self.target}, so it can not be monitored.")
 
   def build(self):
-    item_names = []
-    item_indices = []
-    item_intervals = []
-    item_content = {}
+    if not self.has_build:
+      item_names = []
+      item_indices = []
+      item_intervals = []
+      item_contents = dict()
 
-    if isinstance(self.vars, (list, tuple)):
-      if self.every is None:
-        item_intervals = [None] * len(self.vars)
-      else:
-        item_intervals = list(self.every)
-      for mon_var in self.vars:
-        # users monitor a variable by a string
-        if isinstance(mon_var, str):
-          var_data = getattr(self.target, mon_var)
-          mon_key = mon_var
-          mon_idx = None
-          mon_shape = (utils.size2len(math.shape(var_data)),)
-        # users monitor a variable by a tuple: `('b', math.array([1,2,3]))`
-        elif isinstance(mon_var, (tuple, list)):
-          mon_key = mon_var[0]
-          var_data = getattr(self.target, mon_key)
-          mon_idx = mon_var[1]
-          if mon_idx is None:
+      if isinstance(self.vars, (list, tuple)):
+        if self.every is None:
+          item_intervals = [None] * len(self.vars)
+        else:
+          item_intervals = list(self.every)
+        for mon_var in self.vars:
+          # users monitor a variable by a string
+          if isinstance(mon_var, str):
+            var_data = getattr(self.target, mon_var)
+            mon_key = mon_var
+            mon_idx = None
             mon_shape = (utils.size2len(math.shape(var_data)),)
+          # users monitor a variable by a tuple: `('b', math.array([1,2,3]))`
+          elif isinstance(mon_var, (tuple, list)):
+            mon_key = mon_var[0]
+            var_data = getattr(self.target, mon_key)
+            mon_idx = mon_var[1]
+            if mon_idx is None:
+              mon_shape = (utils.size2len(math.shape(var_data)),)
+            else:
+              mon_idx = self.check_mon_idx(mon_idx)
+              mon_shape = math.shape(mon_idx)
+          else:
+            raise errors.ModelUseError(f'Unknown monitor item: {str(mon_var)}')
+
+          self.check(mon_key)
+          item_names.append(mon_key)
+          item_indices.append(mon_idx)
+          dtype = var_data.dtype if hasattr(var_data, 'dtype') else None
+          item_contents[mon_key] = math.zeros((1,) + mon_shape, dtype=dtype)
+          item_contents[f'{mon_key}.t'] = math.zeros((1,))
+      elif isinstance(self.vars, dict):
+        # users monitor a variable by a dict: `{'a': None, 'b': math.array([1,2,3])}`
+        for mon_key, mon_idx in self.vars.items():
+          item_names.append(mon_key)
+          if mon_idx is None:
+            shape = math.shape(getattr(self.target, mon_key))
           else:
             mon_idx = self.check_mon_idx(mon_idx)
-            mon_shape = math.shape(mon_idx)
-        else:
-          raise errors.ModelUseError(f'Unknown monitor item: {str(mon_var)}')
+            shape = math.shape(mon_idx)
+          item_indices.append(mon_idx)
+          shape = (utils.size2len(shape),)
+          val_data = getattr(self.target, mon_key)
+          dtype = val_data.dtype if hasattr(val_data, 'dtype') else None
+          item_contents[mon_key] = math.zeros((1,) + shape, dtype=dtype)
+          item_contents[f'{mon_key}.t'] = math.zeros((1,))
+          if self.every is None:
+            item_intervals.append(None)
+          else:
+            if mon_key in self.every:
+              item_intervals.append(self.every[mon_key])
+      else:
+        raise errors.ModelUseError(f'Unknown monitors type: {type(self.vars)}')
 
-        self.check(mon_key)
-        item_names.append(mon_key)
-        item_indices.append(mon_idx)
-        dtype = var_data.dtype if hasattr(var_data, 'dtype') else None
-        item_content[mon_key] = math.zeros((1,) + mon_shape, dtype=dtype)
-        item_content[f'{mon_key}.t'] = math.zeros((1,))
-    elif isinstance(self.vars, dict):
-      # users monitor a variable by a dict: `{'a': None, 'b': math.array([1,2,3])}`
-      for mon_key, mon_idx in self.vars.items():
-        item_names.append(mon_key)
-        if mon_idx is None:
-          shape = math.shape(getattr(self.target, mon_key))
-        else:
-          mon_idx = self.check_mon_idx(mon_idx)
-          shape = math.shape(mon_idx)
-        item_indices.append(mon_idx)
-        shape = (utils.size2len(shape),)
-        val_data = getattr(self.target, mon_key)
-        dtype = val_data.dtype if hasattr(val_data, 'dtype') else None
-        item_content[mon_key] = math.zeros((1,) + shape, dtype=dtype)
-        item_content[f'{mon_key}.t'] = math.zeros((1,))
-        if self.every is None:
-          item_intervals.append(None)
-        else:
-          if mon_key in self.every:
-            item_intervals.append(self.every[mon_key])
-    else:
-      raise errors.ModelUseError(f'Unknown monitors type: {type(self.vars)}')
-
-    self.item_names = item_names
-    self.item_indices = item_indices
-    self.item_contents = item_content
-    self.item_intervals = item_intervals
-    self.num_item = len(item_content)
+      self.item_names = item_names
+      self.item_indices = item_indices
+      self.item_intervals = item_intervals
+      self.item_contents = item_contents
+      self.num_item = len(item_contents)
+      self.has_build = True
 
   @staticmethod
   def check_mon_idx(mon_idx):
@@ -200,7 +204,7 @@ class Monitor(object):
                        f'{list(item_contents.keys())}')
     return item_contents[item]
 
-  def __setitem__(self, key: str, value: Any):
+  def __setitem__(self, key, value):
     """Get item value in the monitor.
 
     Parameters
@@ -217,11 +221,14 @@ class Monitor(object):
     self.item_contents[key] = value
 
   def __getattr__(self, item):
-    item_contents = super(Monitor, self).__getattribute__('item_contents')
-    if item in item_contents:
-      return item_contents[item]
+    if item in self._KEYWORDS:
+      return super(Monitor, self).__getattribute__(item)
     else:
-      super(Monitor, self).__getattribute__(item)
+      item_contents = super(Monitor, self).__getattribute__('item_contents')
+      if item in item_contents:
+        return item_contents[item]
+      else:
+        super(Monitor, self).__getattribute__(item)
 
   def __setattr__(self, key, value):
     if key in self._KEYWORDS:

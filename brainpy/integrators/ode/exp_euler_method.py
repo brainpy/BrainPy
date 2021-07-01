@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import backend
+from brainpy import math
 from brainpy.integrators import constants
 from .wrapper import exp_euler_wrapper
 
@@ -42,7 +42,7 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
       The one-step numerical integrator function.
   """
 
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
   show_code = False if show_code is None else show_code
   var_type = constants.SCALAR_VAR if var_type is None else var_type
 

@@ -6,7 +6,7 @@ import functools
 from brainpy import errors
 from brainpy.math import numpy
 from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.tools.collector import Collector
+from brainpy.simulation.collector import VarCollector
 from brainpy.tools.codes import func_name
 
 __all__ = [
@@ -32,7 +32,7 @@ class Function(numpy.Function):
     ----------
     f : function
       The function or the module to represent.
-    VIN : list of Collector, tuple of Collector
+    VIN : list of VarCollector, tuple of VarCollector
       The collection of variables, integrators, and nodes.
     """
     if name is None:
@@ -46,6 +46,7 @@ class Function(numpy.Function):
 class JIT(DynamicSystem):
   """JIT (Just-In-Time) module takes a function
   or a module and compiles it for faster execution."""
+
   target_backend = 'jax'
 
   def __init__(self, ds, VIN=None, static_argnums=None, name=None, monitors=None):
@@ -92,21 +93,21 @@ class JIT(DynamicSystem):
   def vars(self, prefix=''):
     """Return the Collection of the variables used by the function."""
     if prefix:
-      return Collector((prefix + k, v) for k, v in self.all_vars.items())
+      return VarCollector((prefix + k, v) for k, v in self.all_vars.items())
     else:
-      return Collector(self.all_vars)
+      return VarCollector(self.all_vars)
 
   # def ints(self, prefix=''):
   #   if prefix:
-  #     return Collector((prefix + k, v) for k, v in self.all_ints.items())
+  #     return VarCollector((prefix + k, v) for k, v in self.all_ints.items())
   #   else:
-  #     return Collector(self.all_ints)
+  #     return VarCollector(self.all_ints)
 
   # def nodes(self, prefix=''):
   #   if prefix:
-  #     return Collector((prefix + k, v) for k, v in self.all_nodes.items())
+  #     return VarCollector((prefix + k, v) for k, v in self.all_nodes.items())
   #   else:
-  #     return Collector(self.all_nodes)
+  #     return VarCollector(self.all_nodes)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(f={self.raw}, static_argnums={self.static_argnums or None})'
@@ -128,7 +129,7 @@ class Vectorize(DynamicSystem):
 
   f : DynamicSystem, function
     The function or the module to compile for vectorization.
-  all_vars : Collector
+  all_vars : VarCollector
     The Collection of variables used by the function or module.
     This argument is required for functions.
   batch_axis : tuple of int, int, tuple of None

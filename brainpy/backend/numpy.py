@@ -120,13 +120,12 @@ class NumpyDSDriver(drivers.BaseDSDriver):
           real_target = self.target
         else:
           real_target = nodes[target]
-        real_variable = getattr(real_target, variable)
 
         # code scope
         code_scope[real_target.name] = real_target
 
         # code line left
-        left = f'{real_target.name}.{key}'
+        left = f'{real_target.name}.{variable}'
 
         # code line right
         right = f'{host_name}.{self.input_data_name_of(key)}'
@@ -142,10 +141,15 @@ class NumpyDSDriver(drivers.BaseDSDriver):
         code_lines.append(line)
 
       # function
-      code, func = utils.code_lines_to_func(lines=code_lines,
-                                            func_name=input_func_name,
-                                            func_args=['_t', '_i'],
-                                            scope=code_scope)
+      code, func = utils.code_lines_to_func(
+        lines=code_lines,
+        func_name=input_func_name,
+        func_args=['_t', '_i'],
+        scope=code_scope,
+        remind='\n'
+               'Please check: '
+               '1. whether the "iter" input is set to "fix". '
+               '2. whether the dimensions are not match.\n')
       if show_code:
         print(code)
         print(code_scope)
@@ -183,21 +187,18 @@ class NumpyDSDriver(drivers.BaseDSDriver):
     code_lines = []
     code_scope = {'math': math, 'sys': sys}
     code_scope_for_call = {}
-    for node in [self.target] + list(nodes.unique_data()):
+    for node in [self.target] + list(nodes.unique_values()):
       mon = node.mon
       if mon.num_item > 0:
-        # build the monitor
-        mon.build()
-
         # code lines, code scope
         code_scope[node.name] = node
         code_scope_for_call[node.name] = node
         for key, idx, interval in zip(mon.item_names,
                                       mon.item_indices,
                                       mon.item_intervals):
-          # "key": 1. a variable in a DynamicSystem, like "V"
-          #           (brainpy.Var, numpy.ndarray, float)
-          #      : 2. a variable in a node, like "exc.V"
+          # "key" : 1. a variable in a DynamicSystem, like "V"
+          #           (brainpy.math.ndarray, )
+          #       : 2. a variable in a node, like "exc.V"
           #           ("exc" is a DynamicSystem Node, "V" is the variable)
 
           # get data
@@ -228,7 +229,7 @@ class NumpyDSDriver(drivers.BaseDSDriver):
           # format the monitor lines according to the time interval
           if interval is None:
             code_lines.append(f'{node.name}.mon["{key}"][_i] = {right}')
-            code_lines.append(f'{node.name}.mon["{key}.t"][_i] = _t')
+            # code_lines.append(f'{node.name}.mon["{key}.t"][_i] = _t')
           else:
             num_interval = utils.every_to_step_num(interval)
             code_scope[f'{key_id}_interval_to_monitor'] = num_interval
@@ -249,28 +250,32 @@ class NumpyDSDriver(drivers.BaseDSDriver):
         print()
       self.target.monitor_step = func
 
-  def reshape_mon_items(self, mon_length):
-    for key, interval in zip(self.target.mon.item_names,
-                             self.target.mon.item_intervals):
-      if interval is None:
-        num_interval = 1
-      else:
-        num_interval = utils.every_to_step_num(interval)
-      mon_length = round(mon_length / num_interval)
+  def build_mon(self, mon_length):
+    for node in [self.target] + list(self.target.nodes().unique_values()):
+      # build the monitor
+      node.mon.build()
 
-      data = self.target.mon.item_contents[key]
-      ts = self.target.mon.item_contents[f'{key}.t']
-      shape = math.shape(data)
-      if mon_length < shape[0]:
-        self.target.mon[key] = data[:mon_length]
-        self.target.mon[f'{key}.t'] = ts[:mon_length]
-      elif mon_length > shape[0]:
-        append1 = math.zeros((mon_length - shape[0],) + shape[1:],
-                             dtype=data.dtype if hasattr(data, 'dtype') else None)
-        self.target.mon[key] = math.concatenate([data, append1], axis=0)
-        append2 = math.zeros((mon_length - shape[0],),
-                             dtype=ts.dtype if hasattr(ts, 'dtype') else None)
-        self.target.mon[f'{key}.t'] = math.concatenate([ts, append2])
+      # reshape the monitor items
+      for key, interval in zip(node.mon.item_names, node.mon.item_intervals):
+        if interval is None:
+          num_interval = 1
+        else:
+          num_interval = utils.every_to_step_num(interval)
+        mon_length = round(mon_length / num_interval)
+
+        data = node.mon[key]
+        ts = node.mon[f'{key}.t']
+        shape = math.shape(data)
+        if mon_length < shape[0]:
+          node.mon[key] = data[:mon_length]
+          node.mon[f'{key}.t'] = ts[:mon_length]
+        elif mon_length > shape[0]:
+          append1 = math.zeros((mon_length - shape[0],) + shape[1:],
+                               dtype=data.dtype if hasattr(data, 'dtype') else None)
+          node.mon[key] = math.concatenate([data, append1], axis=0)
+          append2 = math.zeros((mon_length - shape[0],),
+                               dtype=ts.dtype if hasattr(ts, 'dtype') else None)
+          node.mon[f'{key}.t'] = math.concatenate([ts, append2])
 
   @staticmethod
   def step_lines_by_interval(step, lines, interval_name, code_scope):
@@ -292,26 +297,28 @@ class NumpyDSDriver(drivers.BaseDSDriver):
     # get input function or check inputs
     self.get_input_func(inputs)
 
+    # reshape the monitor
+    self.build_mon(mon_length=run_length)
+
     if not self.has_built or rebuild:
       # get monitor function
       self.get_monitor_func()
       self.has_built = True
-
-    # reshape the monitor
-    self.reshape_mon_items(mon_length=run_length)
 
     return self.run
 
   def run(self, _t, _i):
     self.target.monitor_step(_t, _i)
     self.target.input_step(_t, _i)
-    if isinstance(self.target, Container):
-      for node in self.target:
-        for step in node.steps.values():
-          step(_t, _i)
-    else:
-      for step in self.target.steps.values():
-        step(_t, _i)
+    for step in self.target.steps.values():
+      step(_t, _i)
+    # if isinstance(self.target, Container):
+    #   for node in self.target.values():
+    #     for step in node.steps.values():
+    #       step(_t, _i)
+    # else:
+    #   for step in self.target.steps.values():
+    #     step(_t, _i)
 
   @staticmethod
   def input_data_name_of(key):

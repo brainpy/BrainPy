@@ -73,7 +73,7 @@ class TwoEndConn(DynamicSystem):
     ----------
     key : str
         The delay name.
-    size : int, list/tuple of int
+    size : int, list of int, tuple of int
         The delay data size.
     delay_time : int, float
         The delay time length.

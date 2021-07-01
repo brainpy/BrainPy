@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import backend
+from brainpy import math
 from brainpy.integrators import constants
 from .wrapper import adaptive_rk_wrapper
 
@@ -27,8 +27,6 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
   f : callable
   tol : float
   adaptive : bool
-  im_return : list
-      Intermediate value return.
   dt : float
   show_code : bool
   var_type : str
@@ -38,7 +36,7 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
 
   """
   adaptive = False if (adaptive is None) else adaptive
-  dt = backend.get_dt() if (dt is None) else dt
+  dt = math.get_dt() if (dt is None) else dt
   tol = 0.1 if tol is None else tol
   show_code = False if tol is None else show_code
   var_type = constants.SCALAR_VAR if var_type is None else var_type

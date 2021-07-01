@@ -5,8 +5,7 @@ import numpy as np
 from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
-from brainpy import backend
-from brainpy.errors import ModelUseError
+from brainpy import math, errors
 
 __all__ = [
   'line_plot',
@@ -62,8 +61,8 @@ def line_plot(ts,
     plot_ids = [plot_ids]
   if not isinstance(plot_ids, (list, tuple)) and \
       not (isinstance(plot_ids, np.ndarray) and np.ndim(plot_ids) == 1):
-    raise ModelUseError(f'"plot_ids" specifies the value index to plot, it must '
-                        f'be a list/tuple/1D numpy.ndarray, not {type(plot_ids)}.')
+    raise errors.ModelUseError(f'"plot_ids" specifies the value index to plot, it must '
+                               f'be a list/tuple/1D numpy.ndarray, not {type(plot_ids)}.')
 
   # get ax
   if ax is None:
@@ -233,7 +232,7 @@ def animate_2D(values,
   anim : animation.FuncAnimation
       The created animation function.
   """
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
   num_step, num_neuron = values.shape
   height, width = net_size
   val_min = values.min() if val_min is None else val_min
@@ -339,7 +338,7 @@ def animate_1D(dynamical_vars,
   """
 
   # check dt
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
 
   # check figure
   fig = plt.figure(figsize=(figsize or (6, 6)), constrained_layout=True)

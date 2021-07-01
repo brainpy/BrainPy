@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import backend, math
+from brainpy import math
 from brainpy.integrators import constants
 from . import common
 
@@ -411,7 +411,7 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_ite
                                                          f'But we got {wiener_type}.'
 
   show_code = False if show_code is None else show_code
-  dt = backend.get_dt() if dt is None else dt
+  dt = math.get_dt() if dt is None else dt
   num_iter = 10 if num_iter is None else num_iter
 
   if f is not None and g is not None:

@@ -97,24 +97,34 @@ class HH(bp.NeuGroup):
     self.inputs[:] = 0
 
 
-num = 100
-neu = HH(num, monitors=['spikes', 'V'])
-neu.V = -70. + bp.math.random.normal(size=num) * 20
+def try1():
+    num = 10
+    neu = HH(num, monitors=['spikes', 'V'])
+    neu.V = -70. + bp.math.random.normal(size=num) * 20
 
-syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
-syn.g_max = 0.1 / num
+    syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
+    syn.g_max = 0.1 / num
 
-net = bp.Network(neu=neu, syn=syn)
+    net = bp.Network(neu=neu, syn=syn)
 
-net.run(duration=500., inputs=['neu.inputs', 1.], report=True)
+    print('vars:')
+    print('-----')
+    print('neu.vars()', list(neu.vars().keys()))
+    print('syn.vars()', list(syn.vars().keys()))
+    print('net.vars()', list(net.vars().keys()))
+
+    print('ints:')
+    print('-----')
+    print('neu.ints()', list(neu.ints().keys()))
+    print('syn.ints()', list(syn.ints().keys()))
+    print('net.ints()', list(net.ints().keys()))
+
+    print('nodes:')
+    print('------')
+    print('neu.nodes()', list(neu.nodes().keys()))
+    print('syn.nodes()', list(syn.nodes().keys()))
+    print('net.nodes()', list(net.nodes().keys()))
 
 
-fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-xlim = (- 0.1, 500.1)
-
-fig.add_subplot(gs[0, 0])
-bp.visualize.line_plot(neu.mon.ts, neu.mon.V, xlim=xlim,
-                       ylabel='Membrane potential (N0)')
-
-fig.add_subplot(gs[1, 0])
-bp.visualize.raster_plot(neu.mon.ts, neu.mon.spikes, xlim=xlim, show=True)
+if __name__ == '__main__':
+    try1()

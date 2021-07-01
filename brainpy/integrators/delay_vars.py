@@ -3,7 +3,7 @@
 
 import abc
 
-from brainpy import backend, math
+from brainpy import math
 
 __all__ = [
   'AbstractDelay',
@@ -28,7 +28,7 @@ class ConstantDelay(AbstractDelay):
 
     # delay_len
     self.delay_len = delay_len
-    self.dt = backend.get_dt() if dt is None else dt
+    self.dt = math.get_dt() if dt is None else dt
     self.num_delay = int(math.ceil(delay_len / self.dt))
 
     # other variables

@@ -2,13 +2,13 @@
 
 from collections import OrderedDict
 
-from brainpy import backend, math, errors
+from brainpy import math, errors, backend
 from brainpy.integrators.integrators import Integrator
 from brainpy.simulation import utils
 from brainpy.simulation import checking
 from brainpy.simulation.drivers import BaseDSDriver
 from brainpy.simulation.monitor import Monitor
-from brainpy.tools.collector import Collector
+from brainpy.simulation import collector
 
 __all__ = [
   'DynamicSystem',
@@ -33,7 +33,7 @@ class DynamicSystem(object):
   name : str, optional
       The name of the dynamic system.
   """
-  _KEYWORDS = ['vars', 'pars', 'ints', 'nodes']
+  _KEYWORDS = ['vars', 'ints', 'nodes']
 
   target_backend = None
 
@@ -48,17 +48,17 @@ class DynamicSystem(object):
 
     Returns
     -------
-    collector : datastructures.Collector
+    gather : datastructures.VarCollector
       The collection contained the variable name and the variable data.
     """
-    collector = Collector()
-    prefix += f'({self.name}).'
+    gather = collector.VarCollector()
     for k, v in self.__dict__.items():
       if isinstance(v, math.ndarray):
-        collector[prefix + k] = v
+        gather[prefix + k] = v
+        gather[f'{self.name}.{k}'] = v
       elif isinstance(v, DynamicSystem):
-        collector.update(v.vars(prefix=prefix[:-1] if k == 'raw' else prefix + k))
-    return collector
+        gather.update(v.vars(prefix=prefix[:-1] if k == 'raw' else f'{prefix}{k}.'))
+    return gather
 
   def ints(self, prefix=''):
     """Collect all the integrators in the instance
@@ -71,17 +71,17 @@ class DynamicSystem(object):
 
     Returns
     -------
-    collector : datastructures.Collector
+    collector : collector.Collector
       The collection contained the integrator name and the integrator function.
     """
-    collector = Collector()
-    prefix += f'({self.name}).'
+    gather = collector.Collector()
     for k, v in self.__dict__.items():
       if isinstance(v, Integrator):
-        collector[prefix + k] = v
+        gather[prefix + k] = v
+        gather[f'{self.name}.k'] = v
       elif isinstance(v, DynamicSystem):
-        collector.update(v.ints(prefix=prefix[:-1] if k == 'raw' else prefix + k))
-    return collector
+        gather.update(v.ints(prefix=prefix[:-1] if k == 'raw' else prefix + k))
+    return gather
 
   def nodes(self, prefix=''):
     """Collect all the nodes in the instance
@@ -90,21 +90,21 @@ class DynamicSystem(object):
     Parameters
     ----------
     prefix : str
-      The prefix string for the integrator names.
+      The prefix string for the node names.
 
     Returns
     -------
-    collector : datastructures.Collector
+    collector : collector.Collector
       The collection contained the integrator name and the integrator function.
     """
-    collector = Collector()
-    prefix += f'{self.name}.'
+    gather = collector.Collector()
     for k, v in self.__dict__.items():
       if isinstance(v, DynamicSystem):
-        collector[v.name] = v
-        collector[prefix + f'{k}'] = v
-        collector.update(v.nodes(prefix + f'{k}.'))
-    return collector
+        gather[prefix + k] = v
+        gather[f'{self.name}.{k}'] = v
+        gather[v.name] = v
+        gather.update(v.nodes(f'{prefix}{k}.'))
+    return gather
 
   def __init__(self, steps=None, monitors=None, name=None):
     # runner and run function
@@ -158,8 +158,8 @@ class DynamicSystem(object):
 
     # target backend
     if self.target_backend is None:
-      raise errors.ModelDefError('Must define "target_backend".')
-    if isinstance(self.target_backend, str):
+      self._target_backend = ('general', )
+    elif isinstance(self.target_backend, str):
       self._target_backend = (self.target_backend,)
     elif isinstance(self.target_backend, (tuple, list)):
       if not isinstance(self.target_backend[0], str):
@@ -177,12 +177,12 @@ class DynamicSystem(object):
   def _build(self, inputs, duration, rebuild=False):
     # backend checking
     check1 = self._target_backend[0] != 'general'
-    check2 = backend.get_backend_name() not in self._target_backend
+    check2 = math.get_backend_name() not in self._target_backend
     if check1 and check2:
       raise errors.ModelDefError(f'The model {self.name} is target '
                                  f'to run on {self._target_backend}, '
                                  f'but currently the selected backend '
-                                 f'is {backend.get_backend_name()}')
+                                 f'is {math.get_backend_name()}')
 
     # build main function the monitor function
     if self.driver is None:
@@ -217,10 +217,16 @@ class DynamicSystem(object):
 
     # times
     start, end = utils.check_duration(duration)
-    times = math.arange(start, end, backend.get_dt())
+    times = math.arange(start, end, math.get_dt())
 
     # build run function
     self.run_func = self._build(duration=duration, inputs=inputs, rebuild=rebuild)
 
     # run the model
-    return utils.run_model(run_func=self.run_func, times=times, report=report)
+    running_time =  utils.run_model(run_func=self.run_func, times=times, report=report)
+
+    # monitor for times
+    for node in [self] + list(self.nodes().unique_values()):
+      node.mon.ts = times
+
+    return running_time

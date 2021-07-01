@@ -10,7 +10,7 @@
 ``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation. Three core functions are provided in BrainPy:
 
 - *General numerical solvers* for ODEs and SDEs (support for DDEs and FDEs will come soon).
-- *Neurodynamics simulation tools* for brain objects, such like neurons, synapses and networks (support for soma and dendrites will come soon).
+- *Neurodynamics simulation tools* for brain objects, such like neurons, synapses, networks, soma, dendrites, channels, and even molecular.
 - *Neurodynamics analysis tools* for differential equations, including phase plane analysis and bifurcation analysis (support for continuation analysis and sensitive analysis will come soon).
 
 Moreover, `BrainPy` is designed to effectively satisfy your basic requirements: 
@@ -23,30 +23,32 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 
 ![Speed Comparison](docs/_static/speed.png)
 
-`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Intrinsically, BrainPy supports the array/tensor-oriented backends such like [NumPy](https://numpy.org/) and [PyTorch](https://pytorch.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
+`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Intrinsically, BrainPy supports the array-oriented backends such like [NumPy](https://numpy.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
 
 
 
-# Installation
+# How to use BrainPy
+
+## Installation
 
 ``BrainPy`` is based on Python (>=3.7), and the following packages are required to be installed to use ``BrainPy``:
 
-- NumPy >= 1.13
+- NumPy >= 1.15
 - Matplotlib >= 3.3
 
-Install ``BrainPy`` by using ``pip``:
+**Method 1**: install ``BrainPy`` by using ``pip``:
 
 ```bash
 > pip install -U brainpy-simulator
 ```
 
-Install ``BrainPy`` by using ``conda``:
+**Method 2**: install ``BrainPy`` by using ``conda``:
 
 ```bash
 > conda install brainpy-simulator -c brainpy
 ```
 
-Install ``BrainPy`` from source:
+**Method 3**: install ``BrainPy`` from source:
 
 ```bash
 > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
@@ -57,9 +59,19 @@ Install ``BrainPy`` from source:
 ```
 
 
-# Let's start
 
-- **Website (including documentations):** https://brainpy.readthedocs.io/
+If you want to get the full supports by BrainPy, please install the following packages:
+
+- SymPy >= 1.4, needed in the Exponential Euler method for ODEs and SDEs
+- Numba >= 0.52,  needed for "numba" backend
+
+- JAX >= 0.2.10,  needed for "jax" backend
+
+
+
+## Let's started
+
+- **Documentation:** https://brainpy.readthedocs.io/
 - **Source code:** https://github.com/PKU-NIP-Lab/BrainPy  or  https://git.openi.org.cn/OpenI/BrainPy
 - **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues  or  Email to adaduo@outlook.com
 - **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/from_papers.html

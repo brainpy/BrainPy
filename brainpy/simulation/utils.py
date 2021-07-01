@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import time
 from collections import Iterable
 
-from brainpy import backend
-from brainpy import errors
+from brainpy import errors, math
 
 __all__ = [
   'size2len',
@@ -63,7 +61,7 @@ def check_duration(duration):
 
 def get_run_length_by_duration(duration):
   start, end = check_duration(duration)
-  mon_length = int((end - start) / backend.get_dt())
+  mon_length = int((end - start) / math.get_dt())
   return mon_length
 
 
@@ -159,13 +157,13 @@ def format_inputs(host, inputs, duration):
   formatted_inputs = []
   for one_input in inputs:
     key = one_input[0]
-    no_raw_host = host
-    while hasattr(no_raw_host, 'raw'):
-      if not isinstance(no_raw_host.raw, DynamicSystem):
-        raise ValueError
-      no_raw_host = no_raw_host.raw
-      key = 'raw.' + key
-    key = host.name + '.' +  key
+    # no_raw_host = host
+    # while hasattr(no_raw_host, 'raw'):
+    #   if not isinstance(no_raw_host.raw, DynamicSystem):
+    #     raise ValueError
+    #   no_raw_host = no_raw_host.raw
+    #   key = 'raw.' + key
+    # key = host.name + '.' +  key
 
     # key
     if not isinstance(key, str):

@@ -6,8 +6,7 @@ from collections import Counter
 
 import numpy as np
 
-from brainpy import errors
-from brainpy import tools
+from brainpy import errors, tools
 
 try:
   import sympy

@@ -25,7 +25,7 @@ class Function(numpy.Function):
     ----------
     f : function
       The function or the module to represent.
-    VIN : list of Collector, tuple of Collector
+    VIN : list of VarCollector, tuple of VarCollector
       The collection of variables, integrators, and nodes.
     """
     if name is None:

@@ -3,7 +3,7 @@
 
 from brainpy import errors
 from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.tools.collector import Collector
+from brainpy.simulation.collector import VarCollector
 
 __all__ = [
   'Function',
@@ -26,7 +26,7 @@ class Function(DynamicSystem):
 
     Parameters
     ----------
-    VIN : tuple of Collector, list of Collector
+    VIN : tuple of VarCollector, list of VarCollector
       The collector of variables, integrators and nodes used by the function.
     name : str
       The function name.
@@ -40,18 +40,18 @@ class Function(DynamicSystem):
     ----------
     f : function
       The function or the module to represent.
-    VIN : list of Collector, tuple of Collector
+    VIN : list of VarCollector, tuple of VarCollector
       The collection of variables, integrators, and nodes.
     """
     V, I, N = VIN
     if hasattr(f, '__name__'):
-      self.all_vars = Collector((f'{{{f.__name__}}}{k}', v) for k, v in V.items())
-      self.all_ints = Collector((f'{{{f.__name__}}}{k}', v) for k, v in I.items())
-      self.all_nodes = Collector((f'{{{f.__name__}}}{k}', v) for k, v in N.items())
+      self.all_vars = VarCollector((f'{{{f.__name__}}}{k}', v) for k, v in V.items())
+      self.all_ints = VarCollector((f'{{{f.__name__}}}{k}', v) for k, v in I.items())
+      self.all_nodes = VarCollector((f'{{{f.__name__}}}{k}', v) for k, v in N.items())
     else:
-      self.all_vars = Collector(V)
-      self.all_ints = Collector(I)
-      self.all_nodes = Collector(N)
+      self.all_vars = VarCollector(V)
+      self.all_ints = VarCollector(I)
+      self.all_nodes = VarCollector(N)
     self.raw = f
 
     # monitors
@@ -76,21 +76,21 @@ class Function(DynamicSystem):
   def vars(self, prefix=''):
     """Return the Collection of the variables used by the function."""
     if prefix:
-      return Collector((prefix + k, v) for k, v in self.all_vars.items())
+      return VarCollector((prefix + k, v) for k, v in self.all_vars.items())
     else:
-      return Collector(self.all_vars)
+      return VarCollector(self.all_vars)
 
   def ints(self, prefix=''):
     if prefix:
-      return Collector((prefix + k, v) for k, v in self.all_ints.items())
+      return VarCollector((prefix + k, v) for k, v in self.all_ints.items())
     else:
-      return Collector(self.all_ints)
+      return VarCollector(self.all_ints)
 
   def nodes(self, prefix=''):
     if prefix:
-      return Collector((prefix + k, v) for k, v in self.all_nodes.items())
+      return VarCollector((prefix + k, v) for k, v in self.all_nodes.items())
     else:
-      return Collector(self.all_nodes)
+      return VarCollector(self.all_nodes)
 
   def __repr__(self):
     return f'{self.name}(f={str(self.raw)})'
@@ -103,7 +103,7 @@ class JIT(DynamicSystem):
   ----------
   ds : function, DynamicSystem
     The function or the DynamicSystem to compile.
-  VIN : None, list of Collector, tuple of Collector
+  VIN : None, list of VarCollector, tuple of VarCollector
     The collections of variables, integrators and nodes.
     This argument is required for functions.
   static_argnums: None, int,
@@ -147,21 +147,21 @@ class JIT(DynamicSystem):
   def vars(self, prefix=''):
     """Return the Collection of the variables used by the function."""
     if prefix:
-      return Collector((prefix + k, v) for k, v in self.all_vars.items())
+      return VarCollector((prefix + k, v) for k, v in self.all_vars.items())
     else:
-      return Collector(self.all_vars)
+      return VarCollector(self.all_vars)
 
   def ints(self, prefix=''):
     if prefix:
-      return Collector((prefix + k, v) for k, v in self.all_ints.items())
+      return VarCollector((prefix + k, v) for k, v in self.all_ints.items())
     else:
-      return Collector(self.all_ints)
+      return VarCollector(self.all_ints)
 
   def nodes(self, prefix=''):
     if prefix:
-      return Collector((prefix + k, v) for k, v in self.all_nodes.items())
+      return VarCollector((prefix + k, v) for k, v in self.all_nodes.items())
     else:
-      return Collector(self.all_nodes)
+      return VarCollector(self.all_nodes)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(f={self.raw}, static_argnums={self.static_argnums or None})'

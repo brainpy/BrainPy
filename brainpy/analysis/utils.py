@@ -2,12 +2,11 @@
 
 import _thread as thread
 import inspect
-import math
 import threading
 
 import numpy as np
 
-from brainpy import backend
+from brainpy import math
 from brainpy import errors
 from brainpy import tools
 from brainpy.integrators import ast_analysis
@@ -31,9 +30,9 @@ __all__ = [
 
 # Get functions in backend
 _functions_in_math = []
-for key in dir(backend):
+for key in dir(math):
   if not key.startswith('__'):
-    _functions_in_math.append(getattr(backend, key))
+    _functions_in_math.append(getattr(math, key))
 
 # Get functions in NumPy
 _functions_in_numpy = []

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-from brainpy import backend
+from brainpy import math
 from brainpy import errors
 from brainpy.analysis import base
 from brainpy.analysis import stability
@@ -833,8 +833,8 @@ class _FastSlowTrajectory(object):
       legend = legend[:-2]
 
       #   5.4 trajectory
-      start = int(plot_duration[init_i][0] / backend.get_dt())
-      end = int(plot_duration[init_i][1] / backend.get_dt())
+      start = int(plot_duration[init_i][0] / math.get_dt())
+      end = int(plot_duration[init_i][1] / math.get_dt())
 
       #   5.5 visualization
       for var_name in self.fast_var_names:

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.backend import numpy as np_backend
+from brainpy.backend.numpy import NumpyDiffIntDriver
+from brainpy.backend.numpy import NumpyDSDriver
 
 __all__ = [
   'JaxDSDriver',
@@ -8,9 +9,9 @@ __all__ = [
 ]
 
 
-class JaxDiffIntDriver(np_backend.NumpyDiffIntDriver):
+class JaxDiffIntDriver(NumpyDiffIntDriver):
   pass
 
 
-class JaxDSDriver(np_backend.NumpyDSDriver):
+class JaxDSDriver(NumpyDSDriver):
   pass

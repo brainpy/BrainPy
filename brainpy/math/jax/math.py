@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import jax.numpy as jnp
-from brainpy.math.jax.ndarray import _wrap, ndarray
 
+from brainpy.math.jax.ndarray import _wrap, ndarray
 
 __all__ = [
   # math funcs
