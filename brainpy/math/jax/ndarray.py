@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import jax.ops
+import numpy as np
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node
 
@@ -379,7 +380,7 @@ class ndarray(object):
     return ndarray(self.value.repeat(repeats=repeats, axis=axis))
 
   def reshape(self, shape, order='C'):
-    return ndarray(self.value.reshape(shape=shape, order=order))
+    return ndarray(self.value.reshape(*shape, order=order))
 
   def round(self, decimals=0):
     return ndarray(self.value.round(decimals=decimals))
@@ -438,6 +439,9 @@ class ndarray(object):
   def view(self, dtype=None, *args, **kwargs):
     res = self.value.view(dtype=dtype, *args, **kwargs)
     return ndarray(res) if isinstance(res, jnp.ndarray) else res
+
+  def numpy(self):
+    return np.asarray(self.value)
 
 
 def _wrap(f):

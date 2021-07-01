@@ -3,6 +3,7 @@
 
 import brainpy as bp
 
+bp.math.use_backend('numpy')
 bp.integrators.set_default_odeint('rk4')
 
 
@@ -68,7 +69,7 @@ class HH(bp.NeuGroup):
     self.spikes = bp.math.zeros(self.num)
     self.inputs = bp.math.zeros(self.num)
 
-  @bp.odeint
+  @bp.odeint(method='euler')
   def integral(self, V, h, n, t, Iext):
     alpha = 0.07 * bp.math.exp(-(V + 58) / 20)
     beta = 1 / (bp.math.exp(-0.1 * (V + 28)) + 1)
@@ -88,6 +89,27 @@ class HH(bp.NeuGroup):
 
     return dVdt, self.phi * dhdt, self.phi * dndt
 
+  def integral2(self, V, h, n, t, Iext):
+    alpha = 0.07 * bp.math.exp(-(V + 58) / 20)
+    beta = 1 / (bp.math.exp(-0.1 * (V + 28)) + 1)
+    dhdt = alpha * (1 - h) - beta * h
+
+    alpha = -0.01 * (V + 34) / (bp.math.exp(-0.1 * (V + 34)) - 1)
+    beta = 0.125 * bp.math.exp(-(V + 44) / 80)
+    dndt = alpha * (1 - n) - beta * n
+
+    m_alpha = -0.1 * (V + 35) / (bp.math.exp(-0.1 * (V + 35)) - 1)
+    m_beta = 4 * bp.math.exp(-(V + 60) / 18)
+    m = m_alpha / (m_alpha + m_beta)
+    INa = self.gNa * m ** 3 * h * (V - self.ENa)
+    IK = self.gK * n ** 4 * (V - self.EK)
+    IL = self.gL * (V - self.EL)
+    dVdt = (- INa - IK - IL + Iext) / self.C
+
+    dt = bp.math.get_dt()
+    return V + dVdt * dt, h + self.phi * dhdt * dt, n + self.phi * dndt * dt
+
+
   def update(self, _t, _i):
     V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
     self.spikes = (self.V < self.V_th) * (V >= self.V_th)
@@ -106,7 +128,7 @@ syn.g_max = 0.1 / num
 
 net = bp.Network(neu=neu, syn=syn)
 
-net.run(duration=500., inputs=['neu.inputs', 1.], report=True)
+net.run(duration=50., inputs=['neu.inputs', 1.], report=True)
 
 
 fig, gs = bp.visualize.get_figure(2, 1, 3, 8)

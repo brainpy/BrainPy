@@ -2,34 +2,31 @@
 
 import brainpy as bp
 
-bp.backend.set('numpy', dt=0.02)
+bp.math.set_dt(0.02)
 
 
 class FitzHughNagumo(bp.NeuGroup):
-    target_backend = 'general'
-
     def __init__(self, size, a=0.7, b=0.8, tau=12.5, Vth=1.9, **kwargs):
+        super(FitzHughNagumo, self).__init__(size=size, **kwargs)
+
         self.a = a
         self.b = b
         self.tau = tau
         self.Vth = Vth
 
-        self.V = bp.ops.zeros(size)
-        self.w = bp.ops.zeros(size)
-        self.spike = bp.ops.zeros(size)
-        self.input = bp.ops.zeros(size)
+        self.V = bp.math.zeros(size)
+        self.w = bp.math.zeros(size)
+        self.spike = bp.math.zeros(size)
+        self.input = bp.math.zeros(size)
 
-        super(FitzHughNagumo, self).__init__(size=size, **kwargs)
-
-    @staticmethod
     @bp.odeint(method='rk4')
-    def integral(V, w, t, Iext, a, b, tau):
-        dw = (V + a - b * w) / tau
+    def integral(self, V, w, t, Iext):
+        dw = (V + self.a - self.b * w) / self.tau
         dV = V - V * V * V / 3 - w + Iext
         return dV, dw
 
-    def update(self, _t):
-        V, self.w = self.integral(self.V, self.w, _t, self.input, self.a, self.b, self.tau)
+    def update(self, _t, _i):
+        V, self.w = self.integral(self.V, self.w, _t, self.input)
         self.spike = (V >= self.Vth) * (self.V < self.Vth)
         self.V = V
         self.input[:] = 0.

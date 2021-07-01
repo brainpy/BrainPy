@@ -68,8 +68,14 @@ def line_plot(ts,
   if ax is None:
     ax = plt
 
-  # plot
   val_matrix = val_matrix.reshape((val_matrix.shape[0], -1))
+  # change data
+  if not isinstance(val_matrix, np.ndarray):
+    val_matrix = val_matrix.numpy()
+  if not isinstance(ts, np.ndarray):
+    ts = ts.numpy()
+
+  # plot
   if legend:
     for idx in plot_ids:
       ax.plot(ts, val_matrix[:, idx], label=f'{legend}-{idx}')
@@ -145,6 +151,11 @@ def raster_plot(ts,
   show : bool
       Show the figure.
   """
+  if not isinstance(sp_matrix, np.ndarray):
+    sp_matrix = sp_matrix.numpy()
+  if not isinstance(ts, np.ndarray):
+    ts = ts.numpy()
+
   # get index and time
   elements = np.where(sp_matrix > 0.)
   index = elements[1]
@@ -235,6 +246,9 @@ def animate_2D(values,
   dt = math.get_dt() if dt is None else dt
   num_step, num_neuron = values.shape
   height, width = net_size
+
+  if not isinstance(values, np.ndarray):
+    values = values.numpy()
   val_min = values.min() if val_min is None else val_min
   val_max = values.max() if val_max is None else val_max
 

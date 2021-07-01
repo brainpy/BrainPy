@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors, math
+import math
+
+from brainpy import errors
+from brainpy import math as bpmath
 from brainpy.simulation.utils import size2len
 from brainpy.simulation.brainobjects.base import DynamicSystem
 
@@ -50,8 +53,8 @@ class ConstantDelay(DynamicSystem):
     self.delay_time = delay_time
     if isinstance(delay_time, (int, float)):
       self.uniform_delay = True
-      self.delay_num_step = int(math.ceil(delay_time / math.get_dt())) + 1
-      self.delay_data = math.zeros((self.delay_num_step,) + self.size)
+      self.delay_num_step = int(math.ceil(delay_time / bpmath.get_dt())) + 1
+      self.delay_data = bpmath.zeros((self.delay_num_step,) + self.size)
       self.delay_in_idx = self.delay_num_step - 1
       self.delay_out_idx = 0
 
@@ -65,24 +68,24 @@ class ConstantDelay(DynamicSystem):
                                   f'-dimensions.')
       self.num = size2len(size)
       if callable(delay_time):
-        temp = math.zeros(size)
+        temp = bpmath.zeros(size)
         for i in range(size[0]):
           temp[i] = delay_time()
         delay_time = temp
       else:
-        if math.shape(delay_time) != self.size:
+        if bpmath.shape(delay_time) != self.size:
           raise errors.ModelUseError(f"The shape of the delay time size must be "
                                      f"the same with the delay data size. But we "
-                                     f"got {math.shape(delay_time)} != {self.size}")
+                                     f"got {bpmath.shape(delay_time)} != {self.size}")
       self.uniform_delay = False
-      delay = delay_time / math.get_dt()
-      dint = math.array(delay_time / math.get_dt(), dtype=math.int_)  # floor
+      delay = delay_time / bpmath.get_dt()
+      dint = bpmath.array(delay_time / bpmath.get_dt(), dtype=bpmath.int_)  # floor
       ddiff = (delay - dint) >= 0.5
-      self.delay_num_step = math.array(dint + ddiff, dtype=math.int_) + 1
-      self.delay_data = math.zeros((max(self.delay_num_step),) + size)
-      self.diag = math.array(math.arange(self.num), dtype=math.int_)
+      self.delay_num_step = bpmath.array(dint + ddiff, dtype=bpmath.int_) + 1
+      self.delay_data = bpmath.zeros((max(self.delay_num_step),) + size)
+      self.diag = bpmath.array(bpmath.arange(self.num), dtype=bpmath.int_)
       self.delay_in_idx = self.delay_num_step - 1
-      self.delay_out_idx = math.zeros(self.num, dtype=math.int_)
+      self.delay_out_idx = bpmath.zeros(self.num, dtype=bpmath.int_)
 
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay
@@ -125,4 +128,4 @@ class ConstantDelay(DynamicSystem):
   def reset(self):
     self.delay_data[:] = 0
     self.delay_in_idx = self.delay_num_step - 1
-    self.delay_out_idx = 0 if self.uniform_delay else math.zeros(self.num, dtype=math.int_)
+    self.delay_out_idx = 0 if self.uniform_delay else bpmath.zeros(self.num, dtype=bpmath.int_)

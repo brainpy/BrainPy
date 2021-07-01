@@ -3,12 +3,10 @@
 
 import brainpy as bp
 
-bp.backend.set('numpy')
+bp.math.use_backend('numpy')
 
 
 class LIF(bp.NeuGroup):
-    target_backend = ['numpy', 'numba']
-
     def __init__(self, size, t_refractory=1., V_rest=0.,
                  V_reset=-5., V_th=20., R=1., tau=10., **kwargs):
         # parameters
@@ -20,25 +18,24 @@ class LIF(bp.NeuGroup):
         self.t_refractory = t_refractory
 
         # variables
-        self.V = bp.ops.ones(size) * V_reset
-        self.input = bp.ops.zeros(size)
-        self.t_last_spike = bp.ops.ones(size) * -1e7
-        self.spike = bp.ops.zeros(size, dtype=bool)
-        self.refractory = bp.ops.zeros(size, dtype=bool)
+        self.V = bp.math.ones(size) * V_reset
+        self.input = bp.math.zeros(size)
+        self.t_last_spike = bp.math.ones(size) * -1e7
+        self.spike = bp.math.zeros(size, dtype=bool)
+        self.refractory = bp.math.zeros(size, dtype=bool)
 
         super(LIF, self).__init__(size=size, **kwargs)
 
-    @staticmethod
     @bp.odeint
-    def int_V(V, t, Iext, V_rest, R, tau):
-        return (- (V - V_rest) + R * Iext) / tau
+    def int_V(self, V, t, Iext):
+        return (- (V - self.V_rest) + self.R * Iext) / self.tau
 
-    def update(self, _t):
+    def update(self, _t, _i):
         for i in range(self.num):
             if _t - self.t_last_spike[i] <= self.t_refractory:
                 self.refractory[i] = True
             else:
-                V = self.int_V(self.V[i], _t, self.input[i], self.V_rest, self.R, self.tau)
+                V = self.int_V(self.V[i], _t, self.input[i])
                 if V >= self.V_th:
                     self.V[i] = self.V_reset
                     self.spike[i] = 1.

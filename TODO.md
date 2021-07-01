@@ -2,11 +2,15 @@
 
 # Numerical Solvers
 
-- [ ] Support numerical integration for fractional differential equations (FDEs)
-- [ ] Support numerical integration for delayed differential equations (DDEs)
-- [ ] More convenient way to define constant Wiener term in SDEs
-- [ ] Check whether the user-defined code has the keywords (like `f`, `g`, etc.) in SDEs 
-- [x] Check whether the user-defined code has the keywords (like `f`, etc.) in ODEs  (done @ 2021.05.29)
+- [ ] FDEs
+  - [ ] Support numerical integration for fractional differential equations (FDEs)
+- [ ] DDEs
+  - [ ] Support numerical integration for delayed differential equations (DDEs)
+- [ ] SDEs
+  - [ ] More convenient way to define constant Wiener term in SDEs
+  - [ ] Check whether the user-defined code has the keywords (like `f`, `g`, etc.) in SDEs 
+- [ ] ODEs
+  - [x] Check whether the user-defined code has the keywords (like `f`, etc.) in ODEs  (done @ 2021.05.29)
 
 
 

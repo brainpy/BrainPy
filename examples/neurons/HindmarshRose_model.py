@@ -4,9 +4,8 @@ import brainpy as bp
 
 
 class HRNeuron(bp.NeuGroup):
-    target_backend = ['numpy', 'numba']
-
-    def __init__(self, num, a=1., b=3., c=1., d=5., s=4., x_r=-1.6, r=0.001, Vth=1.9, **kwargs):
+    def __init__(self, num, a=1., b=3., c=1., d=5., s=4., x_r=-1.6, r=0.001,
+                 **kwargs):
 
         def dev_hr(x, y, z, t, Isyn):
             dx = y - a * x ** 3 + b * x * x - z + Isyn

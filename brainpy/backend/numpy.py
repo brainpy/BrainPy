@@ -6,7 +6,6 @@ from pprint import pprint
 from brainpy import errors, math
 from brainpy.backend import utils
 from brainpy.simulation import drivers
-from brainpy.simulation.brainobjects.container import Container
 
 __all__ = [
   'NumpyDiffIntDriver',

@@ -140,7 +140,7 @@ radians = _wrap(jnp.radians)
 
 # 6. Rounding
 around = _wrap(jnp.around)
-round_ = _wrap(jnp.round_)
+round_ = _wrap(jnp.around)
 rint = _wrap(jnp.rint)
 floor = _wrap(jnp.floor)
 ceil = _wrap(jnp.ceil)

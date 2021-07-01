@@ -3,7 +3,8 @@
 
 import brainpy as bp
 
-bp.backend.set('numba', dt=0.02)
+bp.math.use_backend('numba')
+bp.math.set_dt(dt=0.02)
 
 
 class HH(bp.NeuGroup):
@@ -23,28 +24,28 @@ class HH(bp.NeuGroup):
         self.V_th = V_th
 
         # variables
-        self.V = bp.ops.ones(size) * -65.
-        self.m = bp.ops.ones(size) * 0.5
-        self.h = bp.ops.ones(size) * 0.6
-        self.n = bp.ops.ones(size) * 0.32
-        self.spike = bp.ops.zeros(size)
-        self.input = bp.ops.zeros(size)
+        self.V = bp.math.ones(size) * -65.
+        self.m = bp.math.ones(size) * 0.5
+        self.h = bp.math.ones(size) * 0.6
+        self.n = bp.math.ones(size) * 0.32
+        self.spike = bp.math.zeros(size, dtype=bool)
+        self.input = bp.math.zeros(size)
 
         super(HH, self).__init__(size=size, **kwargs)
 
     @staticmethod
     @bp.odeint(method='exponential_euler')
     def integral(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
-        alpha = 0.1 * (V + 40) / (1 - bp.ops.exp(-(V + 40) / 10))
-        beta = 4.0 * bp.ops.exp(-(V + 65) / 18)
+        alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+        beta = 4.0 * bp.math.exp(-(V + 65) / 18)
         dmdt = alpha * (1 - m) - beta * m
 
-        alpha = 0.07 * bp.ops.exp(-(V + 65) / 20.)
-        beta = 1 / (1 + bp.ops.exp(-(V + 35) / 10))
+        alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
+        beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
         dhdt = alpha * (1 - h) - beta * h
 
-        alpha = 0.01 * (V + 55) / (1 - bp.ops.exp(-(V + 55) / 10))
-        beta = 0.125 * bp.ops.exp(-(V + 65) / 80)
+        alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+        beta = 0.125 * bp.math.exp(-(V + 65) / 80)
         dndt = alpha * (1 - n) - beta * n
 
         I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
@@ -54,7 +55,7 @@ class HH(bp.NeuGroup):
 
         return dVdt, dmdt, dhdt, dndt
 
-    def update(self, _t, _i, _dt):
+    def update(self, _t, _i):
         V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t,
                                    self.input, self.gNa, self.ENa, self.gK,
                                    self.EK, self.gL, self.EL, self.C)
@@ -64,65 +65,6 @@ class HH(bp.NeuGroup):
         self.h = h
         self.n = n
         self.input[:] = 0
-
-class HH2(bp.NeuGroup):
-    target_backend = 'general'
-
-    def __init__(self, size, ENa=50., EK=-77., EL=-54.387,
-                 C=1.0, gNa=120., gK=36., gL=0.03, V_th=20.,
-                 **kwargs):
-        # parameters
-        self.ENa = bp.Par(ENa)
-        self.EK = bp.Par(EK)
-        self.EL = bp.Par(EL)
-        self.C = bp.Par(C)
-        self.gNa = bp.Par(gNa)
-        self.gK = bp.Par(gK)
-        self.gL = bp.Par(gL)
-        self.V_th = bp.Par(V_th)
-
-        # variables
-        self.V = bp.OnesVar(size) * -65.
-        self.m = bp.OnesVar(size) * 0.5
-        self.h = bp.OnesVar(size) * 0.6
-        self.n = bp.OnesVar(size) * 0.32
-        self.spikes = bp.ZerosVar(size, dtype=bool)
-        self.inputs = bp.ZerosVar(size)
-
-        super(HH2, self).__init__(size=size, **kwargs)
-
-    @staticmethod
-    @bp.odeint(method='rk4')
-    def integral(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
-        alpha = 0.1 * (V + 40) / (1 - bp.ops.exp(-(V + 40) / 10))
-        beta = 4.0 * bp.ops.exp(-(V + 65) / 18)
-        dmdt = alpha * (1 - m) - beta * m
-
-        alpha = 0.07 * bp.ops.exp(-(V + 65) / 20.)
-        beta = 1 / (1 + bp.ops.exp(-(V + 35) / 10))
-        dhdt = alpha * (1 - h) - beta * h
-
-        alpha = 0.01 * (V + 55) / (1 - bp.ops.exp(-(V + 55) / 10))
-        beta = 0.125 * bp.ops.exp(-(V + 65) / 80)
-        dndt = alpha * (1 - n) - beta * n
-
-        I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
-        I_K = (gK * n ** 4.0) * (V - EK)
-        I_leak = gL * (V - EL)
-        dVdt = (- I_Na - I_K - I_leak + Iext) / C
-
-        return dVdt, dmdt, dhdt, dndt
-
-    def update(self, _t, _i, x):
-        V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t,
-                                   self.inputs, self.gNa, self.ENa, self.gK,
-                                   self.EK, self.gL, self.EL, self.C)
-        self.spikes = (self.V < self.V_th) * (V >= self.V_th)
-        self.V = V
-        self.m = m
-        self.h = h
-        self.n = n
-        self.inputs[:] = x
 
 
 def run_hh1():
@@ -174,11 +116,11 @@ class HH_with_Every(bp.NeuGroup):
         self.V_th = V_th
 
         # variables
-        self.V = bp.ops.ones(size) * -65.
-        self.m = bp.ops.ones(size) * 0.5
-        self.h = bp.ops.ones(size) * 0.6
-        self.n = bp.ops.ones(size) * 0.32
-        self.spike = bp.ops.zeros(size)
+        self.V = bp.math.ones(size) * -65.
+        self.m = bp.math.ones(size) * 0.5
+        self.h = bp.math.ones(size) * 0.6
+        self.n = bp.math.ones(size) * 0.32
+        self.spike = bp.math.zeros(size)
         self.input = 0.
 
         super(HH_with_Every, self).__init__(size=size, **kwargs)
@@ -186,16 +128,16 @@ class HH_with_Every(bp.NeuGroup):
     @staticmethod
     @bp.odeint(method='exponential_euler')
     def integral(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
-        alpha = 0.1 * (V + 40) / (1 - bp.ops.exp(-(V + 40) / 10))
-        beta = 4.0 * bp.ops.exp(-(V + 65) / 18)
+        alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+        beta = 4.0 * bp.math.exp(-(V + 65) / 18)
         dmdt = alpha * (1 - m) - beta * m
 
-        alpha = 0.07 * bp.ops.exp(-(V + 65) / 20.)
-        beta = 1 / (1 + bp.ops.exp(-(V + 35) / 10))
+        alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
+        beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
         dhdt = alpha * (1 - h) - beta * h
 
-        alpha = 0.01 * (V + 55) / (1 - bp.ops.exp(-(V + 55) / 10))
-        beta = 0.125 * bp.ops.exp(-(V + 65) / 80)
+        alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+        beta = 0.125 * bp.math.exp(-(V + 65) / 80)
         dndt = alpha * (1 - n) - beta * n
 
         I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
@@ -222,12 +164,12 @@ def run_hh2_with_interval_monitor():
     group = HH_with_Every(100, monitors=bp.simulation.Monitor(variables=['V'], every=[1.]))
     group.input = 10.
 
-    group.run(200. * (1 / bp.backend.get_dt()), report=True)
-    bp.visualize.line_plot(group.mon.V_t, group.mon.V, show=True)
+    group.run(200. * (1 / bp.math.get_dt()), report=True)
+    bp.visualize.line_plot(group.mon['V.t'], group.mon.V, show=True)
 
     group.input = 0.
-    group.run(200. * (1 / bp.backend.get_dt()), report=True)
-    bp.visualize.line_plot(group.mon.V_t, group.mon.V, show=True)
+    group.run(200. * (1 / bp.math.get_dt()), report=True)
+    bp.visualize.line_plot(group.mon['V.t'], group.mon.V, show=True)
 
 
 if __name__ == '__main__1':
