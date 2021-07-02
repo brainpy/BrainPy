@@ -1,117 +1,75 @@
 # -*- coding: utf-8 -*-
 
+import functools
+
 import jax
 
-import functools
 from brainpy import errors
-from brainpy.math import numpy
 from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.simulation.collector import VarCollector
+from brainpy.simulation.collector import ArrayCollector
 from brainpy.tools.codes import func_name
 
 __all__ = [
-  'Function',
-  'JIT',
+  'jit',
   'Vectorize',
   'Parallel',
 ]
 
-_JAX_FUNC_NO = 0
-_JAX_JIT_NO = 0
 
+def jit(ds_or_func, static_argnums=None, **kwargs):
+  """JIT (Just-In-Time) Compilation.
 
-class Function(numpy.Function):
-  """Turn a function into a DynamicSystem."""
+  Takes a function or an instance of DynamicSystem
+  and compiles it for faster execution.
 
-  target_backend = 'jax'
+  Parameters
+  ----------
+  ds_or_func : DynamicSystem, function
+    The instance of DynamicSystem or a function.
+  static_argnums: An optional int or collection of ints that specify which
+    positional arguments to treat as static (compile-time constant).
 
-  def __init__(self, f, VIN, name=None, monitors=None):
-    """Function constructor.
+  Returns
+  -------
+  ds_of_func : DynamicSystem, function
+    A wrapped version of DynamicSystem or function,
+    set up for just-in-time compilation.
+  """
 
-    Parameters
-    ----------
-    f : function
-      The function or the module to represent.
-    VIN : list of VarCollector, tuple of VarCollector
-      The collection of variables, integrators, and nodes.
-    """
-    if name is None:
-      global _JAX_FUNC_NO
-      name = f'JaxFunc{_JAX_FUNC_NO}'
-      _JAX_FUNC_NO += 1
+  if isinstance(ds_or_func, DynamicSystem):
+    # all variables
+    all_vars = ds_or_func.vars()
 
-    super(Function, self).__init__(f=f, VIN=VIN, name=name, monitors=monitors)
-
-
-class JIT(DynamicSystem):
-  """JIT (Just-In-Time) module takes a function
-  or a module and compiles it for faster execution."""
-
-  target_backend = 'jax'
-
-  def __init__(self, ds, VIN=None, static_argnums=None, name=None, monitors=None):
-    self.static_argnums = static_argnums
-
-    if not isinstance(ds, DynamicSystem):
-      if VIN is None:
-        raise ValueError('You must supply the VIN used by the function f.')
-      ds = Function(ds, VIN, name=name)
-
-    self.raw = ds
-    self.all_vars = ds.vars() if VIN is None else VIN[0]
-    self.all_ints = ds.ints() if VIN is None else VIN[1]
-    self.all_nodes = ds.nodes() if VIN is None else VIN[2]
-
-    # monitors
-    if monitors is not None:
-      raise errors.ModelUseError(f'"monitors" cannot be used in '
-                                 f'"brainpy.{self.__class__.__name__}".')
-
-    # name
-    if name is None:
-      global _JAX_JIT_NO
-      name = f'JaxJIT{_JAX_JIT_NO}'
-      _JAX_JIT_NO += 1
-
+    # jit step functions
     steps = {}
-    for key, func in ds.steps.items():
-      @functools.partial(jax.jit, static_argnums=tuple(x + 3 for x in sorted(static_argnums or ())))
-      def jit(all_data, _t, _i):
-        self.all_vars.assign(all_data)
-        return func(_t, _i), self.all_vars.all_data()
+    static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+    for key, func in ds_or_func.steps.items():
+      @functools.partial(jax.jit, static_argnums=static_argnums)
+      def jitted_func(all_data, *args, **kwargs):
+        all_vars.assign(all_data)
+        return func(*args, **kwargs), all_vars.unique_data()
 
       @func_name(name=key)
-      def call(_t, _i):
-        output, changes = jit(self.all_vars.all_data(), _t, _i)
-        self.all_vars.assign(changes)
+      def call(*args, **kwargs):
+        output, changed_data = jitted_func(all_vars.unique_data(), *args, **kwargs)
+        all_vars.assign(changed_data)
         return output
 
       steps[key] = call
 
-    super(JIT, self).__init__(steps=steps, name=name, monitors=monitors)
+    # update step functions
+    ds_or_func.steps.update(steps)
 
-  def vars(self, prefix=''):
-    """Return the Collection of the variables used by the function."""
-    if prefix:
-      return VarCollector((prefix + k, v) for k, v in self.all_vars.items())
-    else:
-      return VarCollector(self.all_vars)
+    return ds_or_func
 
-  # def ints(self, prefix=''):
-  #   if prefix:
-  #     return VarCollector((prefix + k, v) for k, v in self.all_ints.items())
-  #   else:
-  #     return VarCollector(self.all_ints)
+  elif callable(ds_or_func):
+    return jax.jit(ds_or_func, static_argnums=static_argnums, **kwargs)
 
-  # def nodes(self, prefix=''):
-  #   if prefix:
-  #     return VarCollector((prefix + k, v) for k, v in self.all_nodes.items())
-  #   else:
-  #     return VarCollector(self.all_nodes)
-
-  def __repr__(self):
-    return f'{self.__class__.__name__}(f={self.raw}, static_argnums={self.static_argnums or None})'
-
+  else:
+    raise errors.ModelUseError(f'Only support instance of '
+                               f'{DynamicSystem.__name__}, '
+                               f'or a callable function, '
+                               f'but we got {type(ds_or_func)}.')
 
 
 class Parallel(object):
@@ -129,7 +87,7 @@ class Vectorize(DynamicSystem):
 
   f : DynamicSystem, function
     The function or the module to compile for vectorization.
-  all_vars : VarCollector
+  all_vars : ArrayCollector
     The Collection of variables used by the function or module.
     This argument is required for functions.
   batch_axis : tuple of int, int, tuple of None
