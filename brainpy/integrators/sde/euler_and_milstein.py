@@ -5,7 +5,7 @@ import inspect
 from brainpy import math
 from brainpy import errors
 from brainpy.integrators import constants
-from brainpy.integrators.ast_analysis import separate_variables
+from brainpy.integrators.analysis_by_ast import separate_variables
 from . import common
 
 __all__ = [
@@ -57,7 +57,7 @@ class Tools(object):
 class Wrapper(object):
 
   @staticmethod
-  def wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code):
+  def wrap(wrapper, f, g, dt, intg_type, var_type, wiener_type, show_code):
     """The base function to format a SRK method.
 
     Parameters
@@ -68,7 +68,7 @@ class Wrapper(object):
         The diffusion function of the SDE.
     dt : float
         The numerical precision.
-    sde_type : str
+    intg_type : str
         "utils.ITO_SDE" : Ito's Stochastic Calculus.
         "utils.STRA_SDE" : Stratonovich's Stochastic Calculus.
     wiener_type : str
@@ -85,12 +85,12 @@ class Wrapper(object):
         The numerical function.
     """
 
-    sde_type = constants.ITO_SDE if sde_type is None else sde_type
+    intg_type = constants.ITO_SDE if intg_type is None else intg_type
     var_type = constants.SCALAR_VAR if var_type is None else var_type
     wiener_type = constants.SCALAR_WIENER if wiener_type is None else wiener_type
-    if sde_type not in constants.SUPPORTED_SDE_TYPE:
+    if intg_type not in constants.SUPPORTED_INTG_TYPE:
       raise errors.IntegratorError(f'Currently, BrainPy only support SDE types: '
-                                   f'{constants.SUPPORTED_SDE_TYPE}. But we got {sde_type}.')
+                                   f'{constants.SUPPORTED_INTG_TYPE}. But we got {intg_type}.')
     if var_type not in constants.SUPPORTED_VAR_TYPE:
       raise errors.IntegratorError(f'Currently, BrainPy only supports variable types: '
                                    f'{constants.SUPPORTED_VAR_TYPE}. But we got {var_type}.')
@@ -103,32 +103,32 @@ class Wrapper(object):
     dt = math.get_dt() if dt is None else dt
 
     if f is not None and g is not None:
-      return wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,
+      return wrapper(f=f, g=g, dt=dt, show_code=show_code, intg_type=intg_type,
                      var_type=var_type, wiener_type=wiener_type)
 
     elif f is not None:
-      return lambda g: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,
+      return lambda g: wrapper(f=f, g=g, dt=dt, show_code=show_code, intg_type=intg_type,
                                var_type=var_type, wiener_type=wiener_type)
 
     elif g is not None:
-      return lambda f: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,
+      return lambda f: wrapper(f=f, g=g, dt=dt, show_code=show_code, intg_type=intg_type,
                                var_type=var_type, wiener_type=wiener_type)
 
     else:
       raise ValueError('Must provide "f" or "g".')
 
   @staticmethod
-  def exp_euler(f, g, dt, sde_type, var_type, wiener_type, show_code):
+  def exp_euler(f, g, dt, intg_type, var_type, wiener_type, show_code):
     try:
       import sympy
-      from brainpy.integrators import sympy_analysis
+      from brainpy.integrators import analysis_by_sympy
     except ModuleNotFoundError:
       raise errors.PackageMissingError('SymPy must be installed when using exponential euler methods.')
 
     if var_type == constants.SYSTEM_VAR:
       raise errors.IntegratorError(f'Exponential Euler method do not support {var_type} variable type.')
-    if sde_type != constants.ITO_SDE:
-      raise errors.IntegratorError(f'Exponential Euler method only supports Ito integral, but we got {sde_type}.')
+    if intg_type != constants.ITO_SDE:
+      raise errors.IntegratorError(f'Exponential Euler method only supports Ito integral, but we got {intg_type}.')
 
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
@@ -182,12 +182,12 @@ class Wrapper(object):
         sd_variables.append(v[0])
       expressions = expressions_for_returns[key]
       var_name = variables[vi]
-      diff_eq = sympy_analysis.SingleDiffEq(var_name=var_name,
-                                            variables=sd_variables,
-                                            expressions=expressions,
-                                            derivative_expr=key,
-                                            scope=code_scope,
-                                            func_name=func_name)
+      diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
+                                               variables=sd_variables,
+                                               expressions=expressions,
+                                               derivative_expr=key,
+                                               scope=code_scope,
+                                               func_name=func_name)
 
       f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
@@ -196,9 +196,9 @@ class Wrapper(object):
 
       # get the linear system using sympy
       f_res = f_expressions[-1]
-      df_expr = sympy_analysis.str2sympy(f_res.code).expr.expand()
+      df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
       s_df = sympy.Symbol(f"{f_res.var_name}")
-      code_lines.append(f'  {s_df.name} = {sympy_analysis.sympy2str(df_expr)}')
+      code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
       var = sympy.Symbol(diff_eq.var_name, real=True)
 
       # get df part
@@ -208,25 +208,25 @@ class Wrapper(object):
       if df_expr.has(var):
         # linear
         linear = sympy.collect(df_expr, var, evaluate=False)[var]
-        code_lines.append(f'  {s_linear.name} = {sympy_analysis.sympy2str(linear)}')
+        code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
         # linear exponential
         linear_exp = sympy.exp(linear * dt)
-        code_lines.append(f'  {s_linear_exp.name} = {sympy_analysis.sympy2str(linear_exp)}')
+        code_lines.append(f'  {s_linear_exp.name} = {analysis_by_sympy.sympy2str(linear_exp)}')
         # df part
         df_part = (s_linear_exp - 1) / s_linear * s_df
-        code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(df_part)}')
+        code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
 
       else:
         # linear exponential
         code_lines.append(f'  {s_linear_exp.name} = sqrt({dt})')
         # df part
-        code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(dt * s_df)}')
+        code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(dt * s_df)}')
 
       # update expression
       update = var + s_df_part
 
       # The actual update step
-      code_lines.append(f'  {diff_eq.var_name}_new = {sympy_analysis.sympy2str(update)} + {var_name}_dgdW')
+      code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)} + {var_name}_dgdW')
       code_lines.append('')
 
     # returns
@@ -237,10 +237,10 @@ class Wrapper(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
   @staticmethod
-  def euler_and_heun(f, g, dt, sde_type, var_type, wiener_type, show_code):
+  def euler_and_heun(f, g, dt, intg_type, var_type, wiener_type, show_code):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
@@ -271,7 +271,7 @@ class Wrapper(object):
         code_lines.append(f'  {var}_dgdW = math.sum({var}_dg * {var}_dW, axis=-1)')
     code_lines.append('  ')
 
-    if sde_type == constants.ITO_SDE:
+    if intg_type == constants.ITO_SDE:
       # 2.4 new var
       # ----
       # y = x + dfdt + dgdW
@@ -279,7 +279,7 @@ class Wrapper(object):
         code_lines.append(f'  {var}_new = {var} + {var}_dfdt + {var}_dgdW')
       code_lines.append('  ')
 
-    elif sde_type == constants.STRA_SDE:
+    elif intg_type == constants.STRA_SDE:
       # 2.4  y_bar = x + math.sum(dgdW, axis=-1)
       all_bar = [f'{var}_bar' for var in variables]
       for var in variables:
@@ -309,8 +309,8 @@ class Wrapper(object):
         code_lines.append(f'  {var}_new = {var} + {var}_dfdt + 0.5 * ({var}_dgdW + {var}_dgdW2)')
       code_lines.append('  ')
     else:
-      raise ValueError(f'Unknown SDE type: {sde_type}. We only '
-                       f'supports {constants.SUPPORTED_SDE_TYPE}.')
+      raise ValueError(f'Unknown SDE type: {intg_type}. We only '
+                       f'supports {constants.SUPPORTED_INTG_TYPE}.')
 
     # returns
     new_vars = [f'{var}_new' for var in variables]
@@ -320,10 +320,10 @@ class Wrapper(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
   @staticmethod
-  def milstein(f, g, dt, sde_type, var_type, wiener_type, show_code):
+  def milstein(f, g, dt, intg_type, var_type, wiener_type, show_code):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
@@ -366,16 +366,16 @@ class Wrapper(object):
     # 2.6 dgdW2
     # ----
     # dgdW2 = 0.5 * (dg_bar - dg) * (dW * dW / dt_sqrt - dt_sqrt)
-    if sde_type == constants.ITO_SDE:
+    if intg_type == constants.ITO_SDE:
       for var in variables:
         code_lines.append(f'  {var}_dgdW2 = 0.5 * ({var}_dg_bar - {var}_dg) * '
                           f'({var}_dW * {var}_dW / {vdt}_sqrt - {vdt}_sqrt)')
-    elif sde_type == constants.STRA_SDE:
+    elif intg_type == constants.STRA_SDE:
       for var in variables:
         code_lines.append(f'  {var}_dgdW2 = 0.5 * ({var}_dg_bar - {var}_dg) * '
                           f'{var}_dW * {var}_dW / {vdt}_sqrt')
     else:
-      raise ValueError(f'Unknown SDE type: {sde_type}')
+      raise ValueError(f'Unknown SDE type: {intg_type}')
     code_lines.append('  ')
 
     # 2.7 new var
@@ -400,23 +400,23 @@ class Wrapper(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
 
-def euler(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
-  return Wrapper.wrap(Wrapper.euler_and_heun, f=f, g=g, dt=dt, sde_type=sde_type,
+def euler(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_type=None, show_code=None):
+  return Wrapper.wrap(Wrapper.euler_and_heun, f=f, g=g, dt=dt, intg_type=intg_type,
                       var_type=var_type, wiener_type=wiener_type, show_code=show_code)
 
 
-def heun(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
-  if sde_type != constants.STRA_SDE:
+def heun(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_type=None, show_code=None):
+  if intg_type != constants.STRA_SDE:
     raise errors.IntegratorError(f'Heun method only supports Stranovich integral of SDEs, '
-                                 f'but we got {sde_type} integral.')
-  return Wrapper.wrap(Wrapper.euler_and_heun, f=f, g=g, dt=dt, sde_type=sde_type,
+                                 f'but we got {intg_type} integral.')
+  return Wrapper.wrap(Wrapper.euler_and_heun, f=f, g=g, dt=dt, intg_type=intg_type,
                       var_type=var_type, wiener_type=wiener_type, show_code=show_code)
 
 
-def exponential_euler(f=None, g=None, dt=None, sde_type=None, var_type=None,
+def exponential_euler(f=None, g=None, dt=None, intg_type=None, var_type=None,
                       wiener_type=None, show_code=None):
   """First order, explicit exponential Euler method.
 
@@ -451,10 +451,10 @@ def exponential_euler(f=None, g=None, dt=None, sde_type=None, var_type=None,
          differential equations with multiplicative noise." arXiv preprint arXiv:1608.07096 (2016).
   """
 
-  return Wrapper.wrap(Wrapper.exp_euler, f=f, g=g, dt=dt, sde_type=sde_type,
+  return Wrapper.wrap(Wrapper.exp_euler, f=f, g=g, dt=dt, intg_type=intg_type,
                       var_type=var_type, wiener_type=wiener_type, show_code=show_code)
 
 
-def milstein(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
-  return Wrapper.wrap(Wrapper.milstein, f=f, g=g, dt=dt, sde_type=sde_type,
+def milstein(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_type=None, show_code=None):
+  return Wrapper.wrap(Wrapper.milstein, f=f, g=g, dt=dt, intg_type=intg_type,
                       var_type=var_type, wiener_type=wiener_type, show_code=show_code)

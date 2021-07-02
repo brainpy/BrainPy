@@ -2,11 +2,12 @@
 
 import inspect
 
-from brainpy import backend, math
 from brainpy import errors
+from brainpy import math
 from brainpy.integrators import constants
 from brainpy.integrators import utils
-from brainpy.integrators.ast_analysis import separate_variables
+from brainpy.integrators.analysis_by_ast import separate_variables
+from brainpy.integrators.ode import common
 
 __all__ = [
   'general_rk_wrapper',
@@ -17,88 +18,6 @@ __all__ = [
 
 _f_kw = 'f'
 _dt_kw = 'dt'
-_ODE_UNKNOWN_NO = 0
-
-
-class Tools(object):
-  @staticmethod
-  def f_names(f):
-    if f.__name__.isidentifier():
-      f_name = f.__name__
-    else:
-      global _ODE_UNKNOWN_NO
-      f_name = f'ode_unknown_{_ODE_UNKNOWN_NO}'
-      _ODE_UNKNOWN_NO += 1
-    f_new_name = constants.ODE_PREFIX + f_name
-    return f_new_name
-
-  @staticmethod
-  def step(class_kw, vars, dt_var, A, C, code_lines, other_args):
-    # steps
-    for si, sval in enumerate(A):
-      # k-step arguments
-      k_args = []
-      for v in vars:
-        k_arg = f'{v}'
-        for j, sv in enumerate(sval):
-          if sv not in [0., '0.0', '0.', '0']:
-            if sv in ['1.0', '1.', '1', 1.]:
-              k_arg += f' + {dt_var} * d{v}_k{j + 1}'
-            else:
-              k_arg += f' + {dt_var} * d{v}_k{j + 1} * {sv}'
-        if k_arg != v:
-          name = f'k{si + 1}_{v}_arg'
-          code_lines.append(f'  {name} = {k_arg}')
-          k_args.append(name)
-        else:
-          k_args.append(v)
-
-      t_arg = 't'
-      if C[si] not in [0., '0.', '0']:
-        if C[si] in ['1.', '1', 1.]:
-          t_arg += f' + {dt_var}'
-        else:
-          t_arg += f' + {dt_var} * {C[si]}'
-        name = f'k{si + 1}_t_arg'
-        code_lines.append(f'  {name} = {t_arg}')
-        k_args.append(name)
-      else:
-        k_args.append(t_arg)
-
-      # k-step derivative names
-      k_derivatives = [f'd{v}_k{si + 1}' for v in vars]
-
-      # k-step code line
-      code_lines.append(f'  {", ".join(k_derivatives)} = f('
-                        f'{", ".join(class_kw + k_args + other_args[1:])})')
-
-  @staticmethod
-  def update(vars, dt_var, B, code_lines):
-    return_args = []
-    for v in vars:
-      result = v
-      for i, b1 in enumerate(B):
-        if b1 not in [0., '0.', '0']:
-          result += f' + d{v}_k{i + 1} * {dt_var} * {b1}'
-      code_lines.append(f'  {v}_new = {result}')
-      return_args.append(f'{v}_new')
-    return return_args
-
-  @staticmethod
-  def compile_and_assign_attrs(code_lines, code_scope, show_code,
-                               func_name, variables, parameters,
-                               dt, var_type):
-    driver_cls = backend.get_diffint_driver()
-    driver = driver_cls(code_scope=code_scope,
-                        code_lines=code_lines,
-                        func_name=func_name,
-                        show_code=show_code,
-                        uploads=dict(variables=variables,
-                                     parameters=parameters,
-                                     origin_f=code_scope['f'],
-                                     var_type=var_type,
-                                     dt=dt))
-    return driver.build()
 
 
 def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
@@ -152,7 +71,7 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
       The one-step numerical integration function.
   """
   class_kw, variables, parameters, arguments = utils.get_args(f)
-  func_name = Tools.f_names(f)
+  func_name = common.f_names(f)
 
   keywords = {
     _f_kw: 'the derivative function',
@@ -174,23 +93,23 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
   code_lines = [f'def {func_name}({", ".join(arguments)}):']
 
   # step stage
-  Tools.step(class_kw, variables, _dt_kw, A, C, code_lines, parameters)
+  common.step(class_kw, variables, _dt_kw, A, C, code_lines, parameters)
 
   # variable update
-  return_args = Tools.update(variables, _dt_kw, B, code_lines)
+  return_args = common.update(variables, _dt_kw, B, code_lines)
 
   # returns
   code_lines.append(f'  return {", ".join(return_args)}')
 
   # compilation
-  return Tools.compile_and_assign_attrs(code_lines=code_lines,
-                                        code_scope=code_scope,
-                                        show_code=show_code,
-                                        func_name=func_name,
-                                        variables=variables,
-                                        parameters=parameters,
-                                        dt=dt,
-                                        var_type=var_type)
+  return common.compile_and_assign_attrs(code_lines=code_lines,
+                                         code_scope=code_scope,
+                                         show_code=show_code,
+                                         func_name=func_name,
+                                         variables=variables,
+                                         parameters=parameters,
+                                         dt=dt,
+                                         var_type=var_type)
 
 
 def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type):
@@ -258,7 +177,7 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
     raise errors.IntegratorError(f'"var_type" only supports {constants.SUPPORTED_VAR_TYPE}, not {var_type}.')
 
   class_kw, variables, parameters, arguments = utils.get_args(f)
-  func_name = Tools.f_names(f)
+  func_name = common.f_names(f)
 
   keywords = {
     _f_kw: 'the derivative function',
@@ -289,9 +208,9 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
   # code lines
   code_lines = [f'def {func_name}({", ".join(arguments)}):']
   # stage steps
-  Tools.step(class_kw, variables, _dt_kw, A, C, code_lines, parameters)
+  common.step(class_kw, variables, _dt_kw, A, C, code_lines, parameters)
   # variable update
-  return_args = Tools.update(variables, _dt_kw, B1, code_lines)
+  return_args = common.update(variables, _dt_kw, B1, code_lines)
 
   # error adaptive item
   if adaptive:
@@ -324,19 +243,19 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
   code_lines.append(f'  return {", ".join(return_args)}')
 
   # compilation
-  return Tools.compile_and_assign_attrs(code_lines=code_lines,
-                                        code_scope=code_scope,
-                                        show_code=show_code,
-                                        func_name=func_name,
-                                        variables=variables,
-                                        parameters=parameters,
-                                        dt=dt,
-                                        var_type=var_type)
+  return common.compile_and_assign_attrs(code_lines=code_lines,
+                                         code_scope=code_scope,
+                                         show_code=show_code,
+                                         func_name=func_name,
+                                         variables=variables,
+                                         parameters=parameters,
+                                         dt=dt,
+                                         var_type=var_type)
 
 
 def rk2_wrapper(f, show_code, dt, beta, var_type):
   class_kw, variables, parameters, arguments = utils.get_args(f)
-  func_name = Tools.f_names(f)
+  func_name = common.f_names(f)
 
   keywords = {
     _f_kw: 'the derivative function',
@@ -376,20 +295,20 @@ def rk2_wrapper(f, show_code, dt, beta, var_type):
   return_vars = [f'{v}_new' for v in variables]
   code_lines.append(f'  return {", ".join(return_vars)}')
 
-  return Tools.compile_and_assign_attrs(code_lines=code_lines,
-                                        code_scope=code_scope,
-                                        show_code=show_code,
-                                        func_name=func_name,
-                                        variables=variables,
-                                        parameters=parameters,
-                                        dt=dt,
-                                        var_type=var_type)
+  return common.compile_and_assign_attrs(code_lines=code_lines,
+                                         code_scope=code_scope,
+                                         show_code=show_code,
+                                         func_name=func_name,
+                                         variables=variables,
+                                         parameters=parameters,
+                                         dt=dt,
+                                         var_type=var_type)
 
 
 def exp_euler_wrapper(f, show_code, dt, var_type):
   try:
     import sympy
-    from brainpy.integrators import sympy_analysis
+    from brainpy.integrators import analysis_by_sympy
   except ModuleNotFoundError:
     raise errors.PackageMissingError('SymPy must be installed when '
                                      'using exponential euler methods.')
@@ -399,7 +318,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
                                  f'support {var_type} variable type.')
 
   class_kw, variables, parameters, arguments = utils.get_args(f)
-  func_name = Tools.f_names(f)
+  func_name = common.f_names(f)
   keywords = {
     _f_kw: 'the derivative function',
     _dt_kw: 'the precision of numerical integration',
@@ -431,12 +350,12 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
       sd_variables.append(v[0])
     expressions = expressions_for_returns[key]
     var_name = variables[vi]
-    diff_eq = sympy_analysis.SingleDiffEq(var_name=var_name,
-                                          variables=sd_variables,
-                                          expressions=expressions,
-                                          derivative_expr=key,
-                                          scope=code_scope,
-                                          func_name=func_name)
+    diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
+                                             variables=sd_variables,
+                                             expressions=expressions,
+                                             derivative_expr=key,
+                                             scope=code_scope,
+                                             func_name=func_name)
 
     f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
@@ -445,9 +364,9 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
 
     # get the linear system using sympy
     f_res = f_expressions[-1]
-    df_expr = sympy_analysis.str2sympy(f_res.code).expr.expand()
+    df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
     s_df = sympy.Symbol(f"{f_res.var_name}")
-    code_lines.append(f'  {s_df.name} = {sympy_analysis.sympy2str(df_expr)}')
+    code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
     var = sympy.Symbol(diff_eq.var_name, real=True)
 
     # get df part
@@ -457,33 +376,33 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
     if df_expr.has(var):
       # linear
       linear = sympy.collect(df_expr, var, evaluate=False)[var]
-      code_lines.append(f'  {s_linear.name} = {sympy_analysis.sympy2str(linear)}')
+      code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
       # linear exponential
       linear_exp = sympy.exp(linear * dt)
-      code_lines.append(f'  {s_linear_exp.name} = {sympy_analysis.sympy2str(linear_exp)}')
+      code_lines.append(f'  {s_linear_exp.name} = {analysis_by_sympy.sympy2str(linear_exp)}')
       # df part
       df_part = (s_linear_exp - 1) / s_linear * s_df
-      code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(df_part)}')
+      code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
 
     else:
       # linear exponential
       code_lines.append(f'  {s_linear_exp.name} = {dt} ** 0.5')
       # df part
-      code_lines.append(f'  {s_df_part.name} = {sympy_analysis.sympy2str(dt * s_df)}')
+      code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(dt * s_df)}')
 
     # update expression
     update = var + s_df_part
 
     # The actual update step
-    code_lines.append(f'  {diff_eq.var_name}_new = {sympy_analysis.sympy2str(update)}')
+    code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)}')
     code_lines.append('')
 
   code_lines.append(f'  return {", ".join([f"{v}_new" for v in variables])}')
-  return Tools.compile_and_assign_attrs(code_lines=code_lines,
-                                        code_scope=code_scope,
-                                        show_code=show_code,
-                                        func_name=func_name,
-                                        variables=variables,
-                                        parameters=parameters,
-                                        dt=dt,
-                                        var_type=var_type)
+  return common.compile_and_assign_attrs(code_lines=code_lines,
+                                         code_scope=code_scope,
+                                         show_code=show_code,
+                                         func_name=func_name,
+                                         variables=variables,
+                                         parameters=parameters,
+                                         dt=dt,
+                                         var_type=var_type)

@@ -3,6 +3,7 @@
 from brainpy import backend
 from brainpy.integrators import constants
 from brainpy.integrators import utils
+from brainpy.integrators.integrators import SDEIntegrator
 
 _SDE_UNKNOWN_NO = 0
 
@@ -23,18 +24,21 @@ def basic_info(f, g):
 
 def compile_and_assign_attrs(code_lines, code_scope, show_code,
                              variables, parameters, func_name,
-                             sde_type, var_type, wiener_type, dt):
-  driver_cls = backend.get_diffint_driver()
-  driver = driver_cls(code_scope=code_scope,
-                      code_lines=code_lines,
-                      func_name=func_name,
-                      show_code=show_code,
-                      uploads=dict(variables=variables,
-                                   parameters=parameters,
-                                   origin_f=code_scope['f'],
-                                   origin_g=code_scope['g'],
-                                   sde_type=sde_type,
-                                   var_type=var_type,
-                                   wiener_type=wiener_type,
-                                   dt=dt))
-  return driver.build()
+                             intg_type, var_type, wiener_type, dt):
+  driver = backend.get_diffint_driver()(code_scope=code_scope,
+                                        code_lines=code_lines,
+                                        func_name=func_name,
+                                        show_code=show_code)
+  call = driver.build()
+
+  integrator = SDEIntegrator(f=code_scope['f'],
+                             g=code_scope['g'],
+                             intg_type=intg_type,
+                             wiener_type=wiener_type,
+                             call=call,
+                             variables=variables,
+                             parameters=parameters,
+                             var_type=var_type,
+                             dt=dt,
+                             code=driver.code)
+  return integrator

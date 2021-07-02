@@ -62,7 +62,7 @@ class Tools(object):
 
 class Wrappers(object):
   @staticmethod
-  def srk1w1(f, g, dt, show_code, sde_type, var_type, wiener_type):
+  def srk1w1(f, g, dt, show_code, intg_type, var_type, wiener_type):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
@@ -137,10 +137,10 @@ class Wrappers(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
   @staticmethod
-  def srk2w1(f, g, dt, show_code, sde_type, var_type, wiener_type):
+  def srk2w1(f, g, dt, show_code, intg_type, var_type, wiener_type):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
@@ -240,10 +240,10 @@ class Wrappers(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
   @staticmethod
-  def KlPl(f, g, dt, show_code, sde_type, var_type, wiener_type):
+  def KlPl(f, g, dt, show_code, intg_type, var_type, wiener_type):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
 
     # 1. code scope
@@ -290,10 +290,10 @@ class Wrappers(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      sde_type=sde_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
 
   @staticmethod
-  def wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code):
+  def wrap(wrapper, f, g, dt, intg_type, var_type, wiener_type, show_code):
     """The base function to format a SRK method.
 
     Parameters
@@ -304,7 +304,7 @@ class Wrappers(object):
         The diffusion function of the SDE.
     dt : float
         The numerical precision.
-    sde_type : str
+    intg_type : str
         "utils.ITO_SDE" : Ito's Stochastic Calculus.
         "utils.STRA_SDE" : Stratonovich's Stochastic Calculus.
     wiener_type : str
@@ -322,14 +322,14 @@ class Wrappers(object):
     """
 
     var_type = constants.POPU_VAR if var_type is None else var_type
-    sde_type = constants.ITO_SDE if sde_type is None else sde_type
+    intg_type = constants.ITO_SDE if intg_type is None else intg_type
     wiener_type = constants.SCALAR_WIENER if wiener_type is None else wiener_type
     if var_type not in constants.SUPPORTED_VAR_TYPE:
       raise errors.IntegratorError(f'Currently, BrainPy only supports variable types: '
                                    f'{constants.SUPPORTED_VAR_TYPE}. But we got {var_type}.')
-    if sde_type != constants.ITO_SDE:
+    if intg_type != constants.ITO_SDE:
       raise errors.IntegratorError(f'SRK method for SDEs with scalar noise only supports Ito SDE type, '
-                                   f'but we got {sde_type} integral.')
+                                   f'but we got {intg_type} integral.')
     if wiener_type != constants.SCALAR_WIENER:
       raise errors.IntegratorError(f'SRK method for SDEs with scalar noise only supports scalar '
                                    f'Wiener Process, but we got "{wiener_type}" noise.')
@@ -338,22 +338,22 @@ class Wrappers(object):
     dt = math.get_dt() if dt is None else dt
 
     if f is not None and g is not None:
-      return wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,
+      return wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=intg_type,
                      var_type=var_type, wiener_type=wiener_type)
 
     elif f is not None:
-      return lambda g: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,
+      return lambda g: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=intg_type,
                                var_type=var_type, wiener_type=wiener_type)
 
     elif g is not None:
-      return lambda f: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=sde_type,
+      return lambda f: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=intg_type,
                                var_type=var_type, wiener_type=wiener_type)
 
     else:
       raise ValueError('Must provide "f" or "g".')
 
 
-def srk1w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
+def srk1w1_scalar(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_type=None, show_code=None):
   """Order 2.0 weak SRK methods for SDEs with scalar Wiener process.
 
   This method has have strong orders :backend:`(p_d, p_s) = (2.0,1.5)`.
@@ -389,11 +389,11 @@ def srk1w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_
           (2010): 922-952.
 
   """
-  return Wrappers.wrap(Wrappers.srk1w1, f=f, g=g, dt=dt, sde_type=sde_type, var_type=var_type,
+  return Wrappers.wrap(Wrappers.srk1w1, f=f, g=g, dt=dt, intg_type=intg_type, var_type=var_type,
                        wiener_type=wiener_type, show_code=show_code)
 
 
-def srk2w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
+def srk2w1_scalar(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_type=None, show_code=None):
   """Order 1.5 Strong SRK Methods for SDEs witdt Scalar Noise.
 
   This method has have strong orders :backend:`(p_d, p_s) = (3.0,1.5)`.
@@ -426,11 +426,11 @@ def srk2w1_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_
       stochastic differential equations." SIAM Journal on Numerical Analysis 48.3
       (2010): 922-952.
   """
-  return Wrappers.wrap(Wrappers.srk2w1, f=f, g=g, dt=dt, sde_type=sde_type, var_type=var_type,
+  return Wrappers.wrap(Wrappers.srk2w1, f=f, g=g, dt=dt, intg_type=intg_type, var_type=var_type,
                        wiener_type=wiener_type, show_code=show_code)
 
 
-def KlPl_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_type=None, show_code=None):
+def KlPl_scalar(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_type=None, show_code=None):
   """Order 1.0 Strong SRK Methods for SDEs with Scalar Noise.
 
   This method has have orders :backend:`p_s = 1.0`.
@@ -454,5 +454,5 @@ def KlPl_scalar(f=None, g=None, dt=None, sde_type=None, var_type=None, wiener_ty
   [1] P. E. Kloeden, E. Platen, Numerical Solution of Stochastic Differential
       Equations, 2nd Edition, Springer, Berlin Heidelberg New York, 1995.
   """
-  return Wrappers.wrap(Wrappers.KlPl, f=f, g=g, dt=dt, sde_type=sde_type, var_type=var_type,
-                       wiener_type=wiener_type, show_code=show_code)
+  return Wrappers.wrap(Wrappers.KlPl, f=f, g=g, dt=dt, intg_type=intg_type,
+                       var_type=var_type, wiener_type=wiener_type, show_code=show_code)

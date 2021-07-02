@@ -15,7 +15,7 @@ def _vector_wiener_terms(code_lines, sde_type, vdt, shape_D, shape_m):
   elif sde_type == constants.STRA_SDE:
     I2 = f'0.5*_term3 + _a*0.5*dt/math.pi'
   else:
-    raise ValueError(f'Unknown SDE type: {sde_type}. We only supports {constants.SUPPORTED_SDE_TYPE}.')
+    raise ValueError(f'Unknown SDE type: {sde_type}. We only supports {constants.SUPPORTED_INTG_TYPE}.')
 
   if shape_D:
     shape_D = shape_D + '+'
@@ -125,7 +125,7 @@ def _srk2_pop_or_scalar_var_scalar_wiener(sde_type, code_lines, variables, param
   elif sde_type == constants.STRA_SDE:
     I2 = f'0.5 * _I1 * _I1'
   else:
-    raise ValueError(f'Unknown SDE type: {sde_type}. We only supports {constants.SUPPORTED_SDE_TYPE}.')
+    raise ValueError(f'Unknown SDE type: {sde_type}. We only supports {constants.SUPPORTED_INTG_TYPE}.')
 
   # shape info
   # -----
@@ -283,7 +283,7 @@ def _srk1_system_var_with_scalar_wiener(sde_type, code_lines, variables, paramet
   elif sde_type == constants.STRA_SDE:
     I2 = f'0.5 * _I1 * _I1'
   else:
-    raise ValueError(f'Unknown SDE type: {sde_type}. We only supports {constants.SUPPORTED_SDE_TYPE}.')
+    raise ValueError(f'Unknown SDE type: {sde_type}. We only supports {constants.SUPPORTED_INTG_TYPE}.')
 
   code_string = f'''
   f_x = f({", ".join(variables + parameters)})  # shape = (d, ..)
@@ -398,8 +398,8 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_ite
   """
 
   sde_type = constants.ITO_SDE if sde_type is None else sde_type
-  assert sde_type in constants.SUPPORTED_SDE_TYPE, f'Currently, BrainPy only support SDE types: ' \
-                                                   f'{constants.SUPPORTED_SDE_TYPE}. But we got {sde_type}.'
+  assert sde_type in constants.SUPPORTED_INTG_TYPE, f'Currently, BrainPy only support SDE types: ' \
+                                                   f'{constants.SUPPORTED_INTG_TYPE}. But we got {sde_type}.'
 
   var_type = constants.POPU_VAR if var_type is None else var_type
   assert var_type in constants.SUPPORTED_VAR_TYPE, f'Currently, BrainPy only supports variable types: ' \

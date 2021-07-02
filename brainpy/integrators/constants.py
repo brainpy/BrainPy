@@ -11,7 +11,7 @@ __all__ = [
   'SCALAR_WIENER',
   'VECTOR_WIENER',
 
-  'SUPPORTED_SDE_TYPE',
+  'SUPPORTED_INTG_TYPE',
   'ITO_SDE',
   'STRA_SDE',
 
@@ -28,7 +28,7 @@ ITO_SDE = 'Ito'
 # The SDE integral proposed by Stratonovich in 1960s.
 STRA_SDE = 'Stratonovich'
 
-SUPPORTED_SDE_TYPE = [
+SUPPORTED_INTG_TYPE = [
   ITO_SDE,
   STRA_SDE
 ]
