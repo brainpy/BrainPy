@@ -9,10 +9,9 @@ from pprint import pprint
 from brainpy import backend
 from brainpy import errors
 from brainpy import tools
-from brainpy.backend import utils
+from brainpy.backend import utils, base
 from brainpy.backend.numpy import NumpyDSDriver
 from brainpy.integrators import constants as diffint_cons
-from brainpy.simulation import drivers
 from brainpy.simulation.brainobjects import delays
 
 try:
@@ -21,7 +20,6 @@ try:
 except ModuleNotFoundError:
   numba = None
   Dispatcher = None
-  # raise errors.BackendNotInstalled('numba')
 
 __all__ = [
   'set_numba_profile',
@@ -71,10 +69,11 @@ def get_numba_profile():
   return NUMBA_PROFILE
 
 
-class NumbaDiffIntDriver(drivers.BaseDiffIntDriver):
+class NumbaDiffIntDriver(base.BaseDiffIntDriver):
   def build(self, *args, **kwargs):
     # code
     code = '\n'.join(self.code_lines)
+    self.code = code
     if self.show_code:
       print(code)
       print()
@@ -97,8 +96,6 @@ class NumbaDiffIntDriver(drivers.BaseDiffIntDriver):
 
     # attribute assignment
     new_f = self.code_scope[self.func_name]
-    for key, value in self.uploads.items():
-      setattr(new_f, key, value)
     if not has_jitted:
       new_f = numba.jit(**get_numba_profile())(new_f)
     return new_f

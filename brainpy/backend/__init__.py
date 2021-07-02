@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math
-from brainpy.backend import jax, numba, numpy
+from brainpy.backend.numpy import NumpyDSDriver, NumpyDiffIntDriver
+from brainpy.backend.jax import JaxDSDriver, JaxDiffIntDriver
+from brainpy.backend.numba import NumbaDSDriver, NumbaDiffIntDriver
 
 __all__ = [
   'set_class_keywords',
@@ -11,16 +13,16 @@ __all__ = [
 
 _backend_to_drivers = {
   'numpy': {
-    'diffint': numpy.NumpyDiffIntDriver,
-    'ds': numpy.NumpyDSDriver
+    'diffint': NumpyDiffIntDriver,
+    'ds': NumpyDSDriver
   },
   'numba': {
-    'diffint': numba.NumbaDiffIntDriver,
-    'ds': numba.NumbaDSDriver
+    'diffint': NumbaDiffIntDriver,
+    'ds': NumbaDSDriver
   },
   'jax': {
-    'diffint': jax.JaxDiffIntDriver,
-    'ds': jax.JaxDSDriver
+    'diffint': JaxDiffIntDriver,
+    'ds': JaxDSDriver
   },
 }
 
@@ -33,8 +35,8 @@ def switch_to(backend):
 
   global DS_DRIVER, DIFFINT_DRIVER
   if backend in ['numpy']:
-    DS_DRIVER = buffer.get('ds', None) or numpy.NumpyDSDriver
-    DIFFINT_DRIVER = buffer.get('diffint', None) or numpy.NumpyDiffIntDriver
+    DS_DRIVER = buffer.get('ds', None) or NumpyDSDriver
+    DIFFINT_DRIVER = buffer.get('diffint', None) or NumpyDiffIntDriver
 
   elif backend in ['numba', 'numba-parallel']:
 
@@ -43,12 +45,12 @@ def switch_to(backend):
     else:
       numba.set_numba_profile(nogil=True, parallel=True)
 
-    DS_DRIVER = buffer.get('ds', None) or numba.NumbaDSDriver
-    DIFFINT_DRIVER = buffer.get('diffint', None) or numba.NumbaDiffIntDriver
+    DS_DRIVER = buffer.get('ds', None) or NumbaDSDriver
+    DIFFINT_DRIVER = buffer.get('diffint', None) or NumbaDiffIntDriver
 
   elif backend in ['jax']:
-    DS_DRIVER = buffer.get('ds', None) or jax.JaxDSDriver
-    DIFFINT_DRIVER = buffer.get('diffint', None) or jax.JaxDiffIntDriver
+    DS_DRIVER = buffer.get('ds', None) or JaxDSDriver
+    DIFFINT_DRIVER = buffer.get('diffint', None) or JaxDiffIntDriver
 
   else:
     if 'ds' not in buffer:
@@ -64,7 +66,7 @@ def switch_to(backend):
 
 
 def set_buffer(backend, ds_driver=None, diffint_driver=None):
-  from brainpy.simulation.drivers import BaseDSDriver, BaseDiffIntDriver
+  from brainpy.backend.base import BaseDSDriver, BaseDiffIntDriver
 
   global BUFFER
   if backend not in BUFFER:
