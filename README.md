@@ -29,7 +29,7 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 
 # How to use BrainPy
 
-## Installation
+## Step 1: installation
 
 ``BrainPy`` is based on Python (>=3.7), and the following packages are required to be installed to use ``BrainPy``:
 
@@ -62,19 +62,22 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 
 If you want to get the full supports by BrainPy, please install the following packages:
 
-- SymPy >= 1.4, needed in the Exponential Euler method for ODEs and SDEs
-- Numba >= 0.52,  needed for "numba" backend
-
-- JAX >= 0.2.10,  needed for "jax" backend
-
+- `Numba >= 0.52`,  needed for numba backend
+- `JAX >= 0.2.10`,  needed for jax backend
+- `SymPy >= 1.4`, needed for dynamics analysis module and Exponential Euler method
 
 
-## Let's started
+
+## Step 2: useful links
 
 - **Documentation:** https://brainpy.readthedocs.io/
-- **Source code:** https://github.com/PKU-NIP-Lab/BrainPy  or  https://git.openi.org.cn/OpenI/BrainPy
-- **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues  or  Email to adaduo@outlook.com
+- **Source code:** https://github.com/PKU-NIP-Lab/BrainPy   or   https://git.openi.org.cn/OpenI/BrainPy
+- **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues   or   Email to adaduo@outlook.com
 - **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/from_papers.html
+
+
+
+## Step 3: let's start
 
 Here list several simple examples for neurodynamics simulation and analysis. Comprehensive examples and tutorials please see [BrainModels](https://brainmodels.readthedocs.io).
 
