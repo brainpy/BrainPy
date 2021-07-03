@@ -9,7 +9,7 @@ import numpy as np
 from brainpy import math
 from brainpy import errors
 from brainpy import tools
-from brainpy.integrators import ast_analysis
+from brainpy.integrators import analysis_by_ast
 
 try:
   import numba
@@ -52,7 +52,7 @@ def func_in_numpy_or_math(func):
 
 
 def transform_integrals_to_model(integrals):
-  from brainpy.integrators import sympy_analysis
+  from brainpy.integrators import analysis_by_sympy
 
   if callable(integrals):
     integrals = [integrals]
@@ -80,7 +80,7 @@ def transform_integrals_to_model(integrals):
     code_scope.update(dict(closure_vars.globals))
 
     # separate variables
-    analysis = ast_analysis.separate_variables(f)
+    analysis = analysis_by_ast.separate_variables(f)
     variables_for_returns = analysis['variables_for_returns']
     expressions_for_returns = analysis['expressions_for_returns']
     for vi, (key, vars) in enumerate(variables_for_returns.items()):
@@ -91,12 +91,12 @@ def transform_integrals_to_model(integrals):
         variables.append(v[0])
       expressions = expressions_for_returns[key]
       var_name = integral.variables[vi]
-      DE = sympy_analysis.SingleDiffEq(var_name=var_name,
-                                       variables=variables,
-                                       expressions=expressions,
-                                       derivative_expr=key,
-                                       scope=code_scope,
-                                       func_name=func_name)
+      DE = analysis_by_sympy.SingleDiffEq(var_name=var_name,
+                                          variables=variables,
+                                          expressions=expressions,
+                                          derivative_expr=key,
+                                          scope=code_scope,
+                                          func_name=func_name)
       analyzers.append(DE)
 
     # others

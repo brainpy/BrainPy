@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from jax import numpy as jn
-
-import scipy.stats
 import numpy as np
-from brainpy.math.jax import random
+import scipy.stats
+
+from brainpy.simulation.dnn.imports import random, jnp
 
 
 def gain_leaky_relu(relu_slope=0.1):
@@ -34,7 +33,7 @@ def identity(shape, gain=1):
       Tensor initialized to the identity matrix.
   """
   assert len(shape) == 2
-  return gain * jn.eye(*shape)
+  return gain * jnp.eye(*shape)
 
 
 def kaiming_normal(shape, gain=1):
@@ -119,7 +118,7 @@ def orthogonal(shape, gain=1, axis: int = -1):
     q_mat = q_mat.T
   q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, axis)))
   q_mat = np.moveaxis(q_mat, 0, axis)
-  return gain * jn.array(q_mat)
+  return gain * jnp.array(q_mat)
 
 
 def xavier_normal(shape, gain=1):

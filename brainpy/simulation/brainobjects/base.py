@@ -3,12 +3,12 @@
 from collections import OrderedDict
 
 from brainpy import math, errors, backend
+from brainpy.backend.base import BaseDSDriver
 from brainpy.integrators.integrators import Integrator
-from brainpy.simulation import utils
 from brainpy.simulation import checking
-from brainpy.simulation.drivers import BaseDSDriver
-from brainpy.simulation.monitor import Monitor
 from brainpy.simulation import collector
+from brainpy.simulation import utils
+from brainpy.simulation.monitor import Monitor
 
 __all__ = [
   'DynamicSystem',
@@ -48,10 +48,10 @@ class DynamicSystem(object):
 
     Returns
     -------
-    gather : datastructures.VarCollector
+    gather : datastructures.ArrayCollector
       The collection contained the variable name and the variable data.
     """
-    gather = collector.VarCollector()
+    gather = collector.ArrayCollector()
     for k, v in self.__dict__.items():
       if isinstance(v, math.ndarray):
         gather[prefix + k] = v

@@ -45,10 +45,10 @@ class Container(DynamicSystem, dict):
 
     Returns
     -------
-    collection : collector.VarCollector
+    collection : collector.ArrayCollector
         A VarCollector of all the variables.
     """
-    gather = collector.VarCollector()
+    gather = collector.ArrayCollector()
     for k, v in self.items():
       gather.update(v.vars(f'{prefix}{k}.'))
     for k, v in self.__dict__.items():

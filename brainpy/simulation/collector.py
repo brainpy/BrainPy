@@ -2,17 +2,18 @@
 
 from contextlib import contextmanager
 
+from collections import OrderedDict
 from brainpy import math
 from brainpy.simulation import utils
 
 __all__ = [
   'Collector',
-  'VarCollector',
+  'ArrayCollector',
 ]
 
 
-class Collector(dict):
-  """A VarCollector is a dictionary (name, var)
+class Collector(OrderedDict):
+  """A ArrayCollector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
   is ordered by insertion order. It is the object
@@ -49,8 +50,8 @@ class Collector(dict):
     return '\n'.join(text)
 
 
-class VarCollector(Collector):
-  """A VarCollector is a dictionary (name, var)
+class ArrayCollector(Collector):
+  """A ArrayCollector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
   is ordered by insertion order. It is the object
@@ -59,7 +60,7 @@ class VarCollector(Collector):
 
   def __add__(self, other):
     """Overloaded add operator to merge two VarCollectors together."""
-    vc = VarCollector(self)
+    vc = ArrayCollector(self)
     vc.update(other)
     return vc
 
@@ -69,20 +70,20 @@ class VarCollector(Collector):
       raise ValueError(f'Name "{key}" conflicts when appending to Collection')
     dict.__setitem__(self, key, value)
 
-  def assign(self, all_data):
+  def assign(self, extra_data):
     """Assign tensors to the variables in the VarCollection.
     Each variable is assigned only once and in the order
     following the iter(self) iterator.
 
     Args:
-        all_data: the list of tensors used to update variables values.
+        extra_data: the list of tensors used to update variables values.
     """
-    vl = self.unique_values()
-    if len(vl) != len(all_data):
-      raise ValueError(f'The target has {len(vl)} data, while we got a '
-                       f'"all_data" with the length of {len(all_data)}.')
-    for var, data in zip(vl, all_data):
-      var.value = data
+    self_values = self.unique_values()
+    if len(self_values) != len(extra_data):
+      raise ValueError(f'The target has {len(self_values)} data, while we got a '
+                       f'"extra_data" with the length of {len(extra_data)}.')
+    for v1, data in zip(self_values, extra_data):
+      v1.value = data
 
   def update(self, other):
     """Overload dict.update method to catch potential conflicts during assignment."""
@@ -140,7 +141,7 @@ class VarCollector(Collector):
           d.reduce(d.value)
         visited.add(id(d))
 
-  def all_data(self, is_a=None):
+  def unique_data(self, is_a=None):
     """Return the list of values for this collection.
     Similarly to the assign method, each variable value is
     reported only once and in the order following the
@@ -149,8 +150,8 @@ class VarCollector(Collector):
     Args:
         is_a: either a variable type or a list of variables types to include.
     Returns:
-        A new VarCollector containing the subset of variables.
+        A new ArrayCollector containing the subset of variables.
     """
     if is_a:
       return [x.value for x in self.values() if isinstance(x, is_a)]
-    return [x.value for x in self.values()]
+    return [x.value for x in self.unique_values()]

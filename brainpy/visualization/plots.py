@@ -371,9 +371,13 @@ def animate_1D(dynamical_vars,
           var['legend'] = None
         else:
           has_legend = True
+        if not isinstance(var['ys'], np.ndarray):
+          var['ys'] = var['ys'].numpy()
         if 'xs' not in var:
           var['xs'] = np.arange(var['ys'].shape[1])
       elif isinstance(var, np.ndarray):
+        if not isinstance(var, np.ndarray):
+          var = var.numpy()
         var = {'ys': var,
                'xs': np.arange(var.shape[1]),
                'legend': None}
@@ -382,24 +386,26 @@ def animate_1D(dynamical_vars,
       assert np.ndim(var['ys']) == 2, "Dynamic variable must be 2D data."
       lengths.append(var['ys'].shape[0])
       final_dynamic_vars.append(var)
-  elif isinstance(dynamical_vars, np.ndarray):
-    assert np.ndim(dynamical_vars) == 2, "Dynamic variable must be 2D data."
-    lengths.append(dynamical_vars.shape[0])
-    final_dynamic_vars.append({'ys': dynamical_vars,
-                               'xs': np.arange(dynamical_vars.shape[1]),
-                               'legend': None})
   elif isinstance(dynamical_vars, dict):
     assert 'ys' in dynamical_vars, 'Must provide "ys" item.'
     if 'legend' not in dynamical_vars:
       dynamical_vars['legend'] = None
     else:
       has_legend = True
+    if not isinstance(dynamical_vars['ys'], np.ndarray):
+      dynamical_vars['ys'] = dynamical_vars['ys'].numpy()
     if 'xs' not in dynamical_vars:
       dynamical_vars['xs'] = np.arange(dynamical_vars['ys'].shape[1])
     lengths.append(dynamical_vars['ys'].shape[0])
     final_dynamic_vars.append(dynamical_vars)
   else:
-    raise ValueError(f'Unknown dynamical data type: {type(dynamical_vars)}')
+    assert np.ndim(dynamical_vars) == 2, "Dynamic variable must be 2D data."
+    if not isinstance(dynamical_vars, np.ndarray):
+      dynamical_vars = dynamical_vars.numpy()
+    lengths.append(dynamical_vars.shape[0])
+    final_dynamic_vars.append({'ys': dynamical_vars,
+                               'xs': np.arange(dynamical_vars.shape[1]),
+                               'legend': None})
   lengths = np.array(lengths)
   assert np.all(lengths == lengths[0]), 'Dynamic variables must have equal length.'
 

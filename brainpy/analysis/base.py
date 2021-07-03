@@ -12,7 +12,7 @@ from brainpy.analysis import utils
 
 try:
   import sympy
-  from brainpy.integrators import sympy_analysis
+  from brainpy.integrators import analysis_by_sympy
 except ModuleNotFoundError:
   sympy = None
   sympy_analysis = None

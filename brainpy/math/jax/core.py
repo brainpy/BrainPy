@@ -15,6 +15,9 @@ __all__ = [
   'Parallel',
 ]
 
+def convert(f):
+  pass
+
 
 def jit(ds_or_func, static_argnums=None, **kwargs):
   """JIT (Just-In-Time) Compilation.
