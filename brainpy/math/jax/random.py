@@ -13,7 +13,7 @@ __all__ = [
   'laplace', 'logistic', 'normal', 'pareto',
   'poisson', 'standard_cauchy', 'standard_exponential',
   'standard_gamma', 'standard_normal', 'standard_t',
-  'uniform',
+  'uniform', 'truncated_normal',
 ]
 
 
@@ -228,3 +228,34 @@ def standard_t(df, size=None):
 @_copy_doc(np.random.uniform)
 def uniform(low=0.0, high=1.0, size=None):
   return ndarray(jr.uniform(_ST.split(), shape=_size2shape(size), minval=low, maxval=high))
+
+
+def truncated_normal(lower, upper, size, scale=1.):
+  """Sample truncated standard normal random values with given shape and dtype.
+
+  Parameters
+  ----------
+  lower : float, ndarray
+    A float or array of floats representing the lower bound for
+    truncation. Must be broadcast-compatible with ``upper``.
+  upper : float, ndarray
+    A float or array of floats representing the  upper bound for
+    truncation. Must be broadcast-compatible with ``lower``.
+  size : optional, list of int, tuple of int
+    A tuple of nonnegative integers specifying the result
+    shape. Must be broadcast-compatible with ``lower`` and ``upper``. The
+    default (None) produces a result shape by broadcasting ``lower`` and
+    ``upper``.
+  scale : float, ndarray
+    Standard deviation (spread or "width") of the distribution. Must be
+    non-negative.
+
+  Returns
+  -------
+  out : ndarray
+    A random array with the specified dtype and shape given by ``shape`` if
+    ``shape`` is not None, or else by broadcasting ``lower`` and ``upper``.
+    Returns values in the open interval ``(lower, upper)``.
+  """
+  return ndarray(jr.truncated_normal(_ST.split(), lower=lower, upper=upper, shape=size) * scale)
+
