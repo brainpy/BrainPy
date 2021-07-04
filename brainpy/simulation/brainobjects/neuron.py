@@ -8,8 +8,6 @@ __all__ = [
   'NeuGroup',
 ]
 
-_NeuGroup_NO = 0
-
 
 class NeuGroup(DynamicSystem):
   """Neuron Group.
@@ -24,20 +22,7 @@ class NeuGroup(DynamicSystem):
       The group name.
   """
 
-  def __init__(self, size, name=None, steps=None, **kwargs):
-    # name
-    # -----
-
-    if name is None:
-      global _NeuGroup_NO
-      _NeuGroup_NO += 1
-      name = f'Neu{_NeuGroup_NO}'
-    else:
-      if not name.isidentifier():
-        raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
-                                   f'according to Python language definition. '
-                                   f'Please choose another name.')
-
+  def __init__(self, size, name=None, steps=('update',), **kwargs):
     # size
     # ----
     if isinstance(size, (list, tuple)):
@@ -55,5 +40,7 @@ class NeuGroup(DynamicSystem):
 
     # initialize
     # ----------
-    super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
+    super(NeuGroup, self).__init__(steps=steps,
+                                   name=self.unique_name(name, 'NeuGroup'),
+                                   **kwargs)
 

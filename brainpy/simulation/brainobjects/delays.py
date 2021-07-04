@@ -11,8 +11,6 @@ __all__ = [
   'ConstantDelay',
 ]
 
-_Delay_NO = 0
-
 
 class ConstantDelay(DynamicSystem):
   """Constant delay object.
@@ -36,11 +34,6 @@ class ConstantDelay(DynamicSystem):
   """
 
   def __init__(self, size, delay_time, name=None):
-    if name is None:
-      global _Delay_NO
-      name = f'Delay{_Delay_NO}'
-      _Delay_NO += 1
-
     # delay data size
     if isinstance(size, int):
       size = (size,)
@@ -92,7 +85,7 @@ class ConstantDelay(DynamicSystem):
 
     super(ConstantDelay, self).__init__(steps={'update': self.update},
                                         monitors=None,
-                                        name=name,  # will be set by the host
+                                        name=self.unique_name(name, 'Delay'),  # will be set by the host
                                         )
 
   def _pull_for_uniform_delay(self, idx=None):

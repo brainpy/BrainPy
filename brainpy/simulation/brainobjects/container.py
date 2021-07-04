@@ -10,8 +10,6 @@ __all__ = [
   'Container',
 ]
 
-_Container_NO = 0
-
 
 class Container(DynamicSystem, dict):
   """Container object which is designed to add other DynamicalSystem instances.
@@ -45,8 +43,8 @@ class Container(DynamicSystem, dict):
 
     Returns
     -------
-    collection : collector.ArrayCollector
-        A VarCollector of all the variables.
+    gather collector.ArrayCollector
+        A collection of all the variables.
     """
     gather = collector.ArrayCollector()
     for k, v in self.items():
@@ -90,11 +88,7 @@ class Container(DynamicSystem, dict):
       return super(Container, self).__getattribute__(item)
 
   def __init__(self, steps=None, monitors=None, name=None, **kwargs):
-    if name is None:
-      global _Container_NO
-      name = f'Container{_Container_NO}'
-      _Container_NO += 1
-
+    # check 'monitors'
     if monitors is not None:
       raise errors.ModelUseError(f'"monitors" cannot be used in '
                                  f'"brainpy.{self.__class__.__name__}".')
@@ -113,5 +107,7 @@ class Container(DynamicSystem, dict):
       for obj_key, obj in kwargs.items():
         for step_key, step in obj.steps.items():
           steps[f'{obj_key}_{step_key}'] = step
-    DynamicSystem.__init__(self, steps=steps, monitors=monitors, name=name)
+    DynamicSystem.__init__(self, steps=steps,
+                           monitors=monitors,
+                           name=self.unique_name(name, 'Container'))
 

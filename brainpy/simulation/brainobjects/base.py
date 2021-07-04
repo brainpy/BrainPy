@@ -14,7 +14,10 @@ __all__ = [
   'DynamicSystem',
 ]
 
-_DynamicSystem_NO = 0
+_error_msg = 'Unknown model type: {type}. ' \
+             'Currently, BrainPy only supports: ' \
+             'function, tuple/dict of functions, ' \
+             'tuple of function names.'
 
 
 class DynamicSystem(object):
@@ -26,7 +29,7 @@ class DynamicSystem(object):
 
   Parameters
   ----------
-  steps : function, list of function, tuple of function, dict of (str, function), optional
+  steps : tuple of str, tuple of function, dict of (str, function), optional
       The callable function, or a list of callable functions.
   monitors : None, list, tuple, datastructures.Monitor
       Variables to monitor.
@@ -106,7 +109,7 @@ class DynamicSystem(object):
         gather.update(v.nodes(f'{prefix}{k}.'))
     return gather
 
-  def __init__(self, steps=None, monitors=None, name=None):
+  def __init__(self, steps=('update',), monitors=None, name=None):
     # runner and run function
     self.driver = None
     self.run_func = None
@@ -115,33 +118,26 @@ class DynamicSystem(object):
 
     # step functions
     self.steps = OrderedDict()
-    if steps is not None:
-      if callable(steps):
-        self.steps[steps.__name__] = steps
-      elif isinstance(steps, (list, tuple)) and callable(steps[0]):
-        for step in steps:
+    if isinstance(steps, tuple):
+      for step in steps:
+        if isinstance(step, str):
+          self.steps[step] = getattr(self, step)
+        elif callable(step):
           self.steps[step.__name__] = step
-      elif isinstance(steps, dict):
-        self.steps.update(steps)
-      else:
-        raise errors.ModelDefError(f'Unknown model type: {type(steps)}. '
-                                   f'Currently, BrainPy only supports: '
-                                   f'function, list/tuple/dict of functions.')
+        else:
+          raise errors.ModelDefError(_error_msg.format(type(steps[0])))
+    elif isinstance(steps, dict):
+      for key, step in steps.items():
+        if callable(step):
+          self.steps[key] = step
+        else:
+          raise errors.ModelDefError(_error_msg.format(type(step)))
     else:
-      self.steps['update'] = self.update
+      raise errors.ModelDefError(_error_msg.format(type(steps)))
 
-    # name : useful in Numba Backend
-    if name is None:
-      global _DynamicSystem_NO
-      name = f'DS{_DynamicSystem_NO}'
-      _DynamicSystem_NO += 1
-    if not name.isidentifier():
-      raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
-                                 f'according to Python language definition. '
-                                 f'Please choose another name.')
-    self.name = name
     # check whether the object has a unique name.
-    checking.add(name=name, obj=self)
+    self.name = self.unique_name(name=name, type='DynamicSystem')
+    checking.check_name(name=name, obj=self)
 
     # monitors
     if monitors is None:
@@ -158,7 +154,7 @@ class DynamicSystem(object):
 
     # target backend
     if self.target_backend is None:
-      self._target_backend = ('general', )
+      self._target_backend = ('general',)
     elif isinstance(self.target_backend, str):
       self._target_backend = (self.target_backend,)
     elif isinstance(self.target_backend, (tuple, list)):
@@ -223,10 +219,19 @@ class DynamicSystem(object):
     self.run_func = self._build(duration=duration, inputs=inputs, rebuild=rebuild)
 
     # run the model
-    running_time =  utils.run_model(run_func=self.run_func, times=times, report=report)
+    running_time = utils.run_model(run_func=self.run_func, times=times, report=report)
 
     # monitor for times
     for node in [self] + list(self.nodes().unique_values()):
       node.mon.ts = times
 
     return running_time
+
+  def unique_name(self, name=None, type=None):
+    if name is None:
+      assert type is not None
+      return checking.get_name(type=type)
+    else:
+      checking.check_name(name=name, obj=self)
+      return name
+

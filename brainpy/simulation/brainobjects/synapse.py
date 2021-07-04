@@ -10,8 +10,6 @@ __all__ = [
   'TwoEndConn',
 ]
 
-_TwoEndSyn_NO = 0
-
 
 class TwoEndConn(DynamicSystem):
   """Two End Synaptic Connections.
@@ -32,19 +30,7 @@ class TwoEndConn(DynamicSystem):
       Whether show the formatted code.
   """
 
-  def __init__(self, pre, post, conn, name=None, steps=None, **kwargs):
-    # name
-    # ----
-    if name is None:
-      global _TwoEndSyn_NO
-      _TwoEndSyn_NO += 1
-      name = f'TwoEC{_TwoEndSyn_NO}'
-    else:
-      if not name.isidentifier():
-        raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
-                                   f'according to Python language definition. '
-                                   f'Please choose another name.')
-
+  def __init__(self, pre, post, conn, name=None, steps=('update',), **kwargs):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
@@ -64,7 +50,9 @@ class TwoEndConn(DynamicSystem):
 
     # initialize
     # ----------
-    super(TwoEndConn, self).__init__(steps=steps, name=name, **kwargs)
+    super(TwoEndConn, self).__init__(steps=steps,
+                                     name=self.unique_name(name, 'TwoEC'),
+                                     **kwargs)
 
   def register_constant_delay(self, key, size, delay_time):
     """Register a constant delay.

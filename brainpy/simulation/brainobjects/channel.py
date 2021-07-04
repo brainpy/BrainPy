@@ -6,8 +6,6 @@ __all__ = [
   'Channel'
 ]
 
-_Channel_NO = 0
-
 
 class Channel(DynamicSystem):
   """Ion Channel object.
@@ -20,9 +18,4 @@ class Channel(DynamicSystem):
   """
 
   def __init__(self, name=None, **kwargs):
-    if name is None:
-      global _Channel_NO
-      name = f'Channel{_Channel_NO}'
-      _Channel_NO += 1
-
-    super(Channel, self).__init__(name=name, **kwargs)
+    super(Channel, self).__init__(name=self.unique_name(name, 'Channel'), **kwargs)
