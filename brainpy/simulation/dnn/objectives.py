@@ -3,6 +3,16 @@
 
 from brainpy.simulation.dnn.imports import scipy, jnp
 
+__all__ = [
+  'cross_entropy_logits',
+  'cross_entropy_logits_sparse',
+  'l2',
+  'mean_absolute_error',
+  'mean_squared_error',
+  'mean_squared_log_error',
+  'sigmoid_cross_entropy_logits',
+]
+
 
 def cross_entropy_logits(logits, labels):
   """Computes the softmax cross-entropy loss on n-dimensional data.

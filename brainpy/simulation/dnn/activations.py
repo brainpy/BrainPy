@@ -160,8 +160,153 @@ def sigmoid(x):
   return ndarray(scipy.special.expit(x))
 
 
-log_softmax = nn.log_softmax
-logsumexp = scipy.special.logsumexp
-softmax = nn.softmax
-tanh = lax.tanh
-relu = nn.relu
+def tanh(x):
+  x = x.value if isinstance(x, ndarray) else x
+  return ndarray(lax.tanh(x))
+
+
+def relu(x):
+  x = x.value if isinstance(x, ndarray) else x
+  return ndarray(nn.relu(x))
+
+
+def log_softmax(x, axis=-1):
+  """Log-Softmax function.
+
+  Computes the logarithm of the :code:`softmax` function, which rescales
+  elements to the range :math:`[-\infty, 0)`.
+
+  .. math ::
+    \mathrm{log\_softmax}(x) = \log \left( \frac{\exp(x_i)}{\sum_j \exp(x_j)}
+    \right)
+
+  Args:
+    x : input array
+    axis: the axis or axes along which the :code:`log_softmax` should be
+      computed. Either an integer or a tuple of integers.
+  """
+  x = x.value if isinstance(x, ndarray) else x
+  shifted = x - lax.stop_gradient(x.max(axis, keepdims=True))
+  return ndarray(shifted - jnp.log(jnp.sum(jnp.exp(shifted), axis, keepdims=True)))
+
+
+def softmax(x, axis=-1):
+  """Softmax function.
+
+  Computes the function which rescales elements to the range :math:`[0, 1]`
+  such that the elements along :code:`axis` sum to :math:`1`.
+
+  .. math ::
+    \mathrm{softmax}(x) = \frac{\exp(x_i)}{\sum_j \exp(x_j)}
+
+  Args:
+    x : input array
+    axis: the axis or axes along which the softmax should be computed. The
+      softmax output summed across these dimensions should sum to :math:`1`.
+      Either an integer or a tuple of integers.
+  """
+  x = x.value if isinstance(x, ndarray) else x
+  unnormalized = jnp.exp(x - lax.stop_gradient(x.max(axis, keepdims=True)))
+  return ndarray(unnormalized / unnormalized.sum(axis, keepdims=True))
+
+
+def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
+  """Compute the log of the sum of exponentials of input elements.
+
+  Parameters
+  ----------
+  a : array_like
+      Input array.
+  axis : None or int or tuple of ints, optional
+      Axis or axes over which the sum is taken. By default `axis` is None,
+      and all elements are summed.
+
+      .. versionadded:: 0.11.0
+  keepdims : bool, optional
+      If this is set to True, the axes which are reduced are left in the
+      result as dimensions with size one. With this option, the result
+      will broadcast correctly against the original array.
+
+      .. versionadded:: 0.15.0
+  b : array-like, optional
+      Scaling factor for exp(`a`) must be of the same shape as `a` or
+      broadcastable to `a`. These values may be negative in order to
+      implement subtraction.
+
+      .. versionadded:: 0.12.0
+  return_sign : bool, optional
+      If this is set to True, the result will be a pair containing sign
+      information; if False, results that are negative will be returned
+      as NaN. Default is False (no sign information).
+
+      .. versionadded:: 0.16.0
+
+  Returns
+  -------
+  res : ndarray
+      The result, ``np.log(np.sum(np.exp(a)))`` calculated in a numerically
+      more stable way. If `b` is given then ``np.log(np.sum(b*np.exp(a)))``
+      is returned.
+  sgn : ndarray
+      If return_sign is True, this will be an array of floating-point
+      numbers matching res and +1, 0, or -1 depending on the sign
+      of the result. If False, only one result is returned.
+
+  See Also
+  --------
+  numpy.logaddexp, numpy.logaddexp2
+
+  Notes
+  -----
+  NumPy has a logaddexp function which is very similar to `logsumexp`, but
+  only handles two arguments. `logaddexp.reduce` is similar to this
+  function, but may be less stable.
+
+  Examples
+  --------
+  >>> from scipy.special import logsumexp
+  >>> a = np.arange(10)
+  >>> np.log(np.sum(np.exp(a)))
+  9.4586297444267107
+  >>> logsumexp(a)
+  9.4586297444267107
+
+  With weights
+
+  >>> a = np.arange(10)
+  >>> b = np.arange(10, 0, -1)
+  >>> logsumexp(a, b=b)
+  9.9170178533034665
+  >>> np.log(np.sum(b*np.exp(a)))
+  9.9170178533034647
+
+  Returning a sign flag
+
+  >>> logsumexp([1,2],b=[1,-1],return_sign=True)
+  (1.5413248546129181, -1.0)
+
+  Notice that `logsumexp` does not directly support masked arrays. To use it
+  on a masked array, convert the mask into zero weights:
+
+  >>> a = np.ma.array([np.log(2), 2, np.log(3)],
+  ...                  mask=[False, True, False])
+  >>> b = (~a.mask).astype(int)
+  >>> logsumexp(a.data, b=b), np.log(5)
+  1.6094379124341005, 1.6094379124341005
+
+  """
+  a = a.value if isinstance(a, ndarray) else a
+  b = b.value if isinstance(b, ndarray) else b
+  res = scipy.special.logsumexp(a=a, axis=axis, b=b,
+                                keepdims=keepdims,
+                                return_sign=return_sign)
+  if return_sign:
+    if isinstance(res[0], jnp.ndarray):
+      return ndarray(res[0]), ndarray(res[1])
+    else:
+      return res
+  else:
+    if isinstance(res, jnp.ndarray):
+      return ndarray(res)
+    else:
+      return res

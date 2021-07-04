@@ -3,10 +3,20 @@
 import numpy as np
 import scipy.stats
 
-from brainpy.simulation.dnn.imports import random, jnp
+from brainpy.simulation.dnn.imports import random, jnp, ndarray
+
+__all__ = [
+  'identity',
+  'orthogonal',
+  'kaiming_normal',
+  'kaiming_truncated_normal',
+  'xavier_normal',
+  'xavier_truncated_normal',
+  'truncated_normal',
+]
 
 
-def gain_leaky_relu(relu_slope=0.1):
+def _gain_leaky_relu(relu_slope=0.1):
   """The recommended gain value for leaky_relu.
 
   Args:
@@ -16,6 +26,36 @@ def gain_leaky_relu(relu_slope=0.1):
       The recommended gain value for leaky_relu.
   """
   return np.sqrt(2 / (1 + relu_slope ** 2))
+
+
+def _kaiming_normal_gain(shape):
+  """Returns Kaiming He gain from
+  `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
+  <https://arxiv.org/abs/1502.01852>`_.
+
+  Args:
+      shape: shape of the output tensor.
+
+  Returns:
+      Scalar, the standard deviation gain.
+  """
+  fan_in = np.prod(shape[:-1])
+  return np.sqrt(1 / fan_in)
+
+
+def _xavier_normal_gain(shape):
+  """Returns Xavier Glorot gain from
+  `Understanding the difficulty of training deep feedforward neural networks
+  <http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf>`_.
+
+  Args:
+      shape: shape of the output tensor.
+
+  Returns:
+      Scalar, the standard deviation gain.
+  """
+  fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
+  return np.sqrt(2 / (fan_in + fan_out))
 
 
 def identity(shape, gain=1):
@@ -33,60 +73,10 @@ def identity(shape, gain=1):
       Tensor initialized to the identity matrix.
   """
   assert len(shape) == 2
-  return gain * jnp.eye(*shape)
+  return ndarray(gain * jnp.eye(*shape))
 
 
-def kaiming_normal(shape, gain=1):
-  """Returns a tensor with values assigned using Kaiming He normal initializer from
-  `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
-  <https://arxiv.org/abs/1502.01852>`_.
-
-  Args:
-      shape: shape of the output tensor.
-      gain: optional scaling factor.
-
-  Returns:
-      Tensor initialized with normal random variables with standard deviation (gain * kaiming_normal_gain).
-  """
-  return random.normal(shape, stddev=gain * kaiming_normal_gain(shape))
-
-
-def kaiming_normal_gain(shape) -> float:
-  """Returns Kaiming He gain from
-  `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
-  <https://arxiv.org/abs/1502.01852>`_.
-
-  Args:
-      shape: shape of the output tensor.
-
-  Returns:
-      Scalar, the standard deviation gain.
-  """
-  fan_in = np.prod(shape[:-1])
-  return np.sqrt(1 / fan_in)
-
-
-def kaiming_truncated_normal(shape, lower=-2, upper=2, gain=1):
-  """Returns a tensor with values assigned using Kaiming He truncated normal initializer from
-  `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
-  <https://arxiv.org/abs/1502.01852>`_.
-
-  Args:
-      shape: shape of the output tensor.
-      lower: lower truncation of the normal.
-      upper: upper truncation of the normal.
-      gain: optional scaling factor.
-
-  Returns:
-      Tensor initialized with truncated normal random variables with standard
-      deviation (gain * kaiming_normal_gain) and support [lower, upper].
-  """
-  truncated_std = scipy.stats.truncnorm.std(a=lower, b=upper, loc=0., scale=1)
-  stddev = gain * kaiming_normal_gain(shape) / truncated_std
-  return random.truncated_normal(shape, stddev=stddev, lower=lower, upper=upper)
-
-
-def orthogonal(shape, gain=1, axis: int = -1):
+def orthogonal(shape, gain=1, axis=-1):
   """Returns a uniformly distributed orthogonal tensor from
   `Exact solutions to the nonlinear dynamics of learning in deep linear neural networks
   <https://openreview.net/forum?id=_wzZwKpTDF_9C>`_.
@@ -118,10 +108,45 @@ def orthogonal(shape, gain=1, axis: int = -1):
     q_mat = q_mat.T
   q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, axis)))
   q_mat = np.moveaxis(q_mat, 0, axis)
-  return gain * jnp.array(q_mat)
+  return ndarray(gain * jnp.array(q_mat))
 
 
-def xavier_normal(shape, gain=1):
+def kaiming_normal(shape, gain=1):
+  """Returns a tensor with values assigned using Kaiming He normal initializer from
+  `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
+  <https://arxiv.org/abs/1502.01852>`_.
+
+  Args:
+      shape: shape of the output tensor.
+      gain: optional scaling factor.
+
+  Returns:
+      Tensor initialized with normal random variables with standard deviation (gain * kaiming_normal_gain).
+  """
+  return random.normal(shape, scale=gain * _kaiming_normal_gain(shape))
+
+
+def kaiming_truncated_normal(shape, lower=-2, upper=2, gain=1):
+  """Returns a tensor with values assigned using Kaiming He truncated normal initializer from
+  `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
+  <https://arxiv.org/abs/1502.01852>`_.
+
+  Args:
+      shape: shape of the output tensor.
+      lower: lower truncation of the normal.
+      upper: upper truncation of the normal.
+      gain: optional scaling factor.
+
+  Returns:
+      Tensor initialized with truncated normal random variables with standard
+      deviation (gain * kaiming_normal_gain) and support [lower, upper].
+  """
+  truncated_std = scipy.stats.truncnorm.std(a=lower, b=upper, loc=0., scale=1)
+  stddev = gain * _kaiming_normal_gain(shape) / truncated_std
+  return random.truncated_normal(size=shape, scale=stddev, lower=lower, upper=upper)
+
+
+def xavier_normal(shape, gain=1.):
   """Returns a tensor with values assigned using Xavier Glorot normal initializer from
   `Understanding the difficulty of training deep feedforward neural networks
   <http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf>`_.
@@ -133,40 +158,7 @@ def xavier_normal(shape, gain=1):
   Returns:
       Tensor initialized with normal random variables with standard deviation (gain * xavier_normal_gain).
   """
-  return random.normal(shape, stddev=gain * xavier_normal_gain(shape))
-
-
-def truncated_normal(shape, lower=-2, upper=2, stddev=1):
-  """Returns a tensor with values assigned using truncated normal initialization.
-
-  Args:
-      shape: shape of the output tensor.
-      lower: lower truncation of the normal.
-      upper: upper truncation of the normal.
-      stddev: expected standard deviation.
-
-  Returns:
-      Tensor initialized with truncated normal random variables with standard
-      deviation stddev and support [lower, upper].
-  """
-  truncated_std = scipy.stats.truncnorm.std(a=lower, b=upper, loc=0., scale=1)
-  stddev /= truncated_std
-  return random.truncated_normal(shape, stddev=stddev, lower=lower, upper=upper)
-
-
-def xavier_normal_gain(shape) -> float:
-  """Returns Xavier Glorot gain from
-  `Understanding the difficulty of training deep feedforward neural networks
-  <http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf>`_.
-
-  Args:
-      shape: shape of the output tensor.
-
-  Returns:
-      Scalar, the standard deviation gain.
-  """
-  fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
-  return np.sqrt(2 / (fan_in + fan_out))
+  return random.normal(shape, scale=gain * _xavier_normal_gain(shape))
 
 
 def xavier_truncated_normal(shape, lower=-2, upper=2, gain=1):
@@ -185,5 +177,23 @@ def xavier_truncated_normal(shape, lower=-2, upper=2, gain=1):
       deviation (gain * xavier_normal_gain) and support [lower, upper].
   """
   truncated_std = scipy.stats.truncnorm.std(a=lower, b=upper, loc=0., scale=1)
-  stddev = gain * xavier_normal_gain(shape) / truncated_std
-  return random.truncated_normal(shape, stddev=stddev, lower=lower, upper=upper)
+  stddev = gain * _xavier_normal_gain(shape) / truncated_std
+  return random.truncated_normal(size=shape, scale=stddev, lower=lower, upper=upper)
+
+
+def truncated_normal(shape, lower=-2, upper=2, stddev=1):
+  """Returns a tensor with values assigned using truncated normal initialization.
+
+  Args:
+      shape: shape of the output tensor.
+      lower: lower truncation of the normal.
+      upper: upper truncation of the normal.
+      stddev: expected standard deviation.
+
+  Returns:
+      Tensor initialized with truncated normal random variables with standard
+      deviation stddev and support [lower, upper].
+  """
+  truncated_std = scipy.stats.truncnorm.std(a=lower, b=upper, loc=0., scale=1)
+  stddev /= truncated_std
+  return random.truncated_normal(size=shape, scale=stddev, lower=lower, upper=upper)
