@@ -6,11 +6,9 @@ __all__ = [
   'seed', 'RandomState',
   'rand', 'randint', 'randn', 'random', 'random_sample',
   'ranf', 'sample', 'choice', 'permutation', 'shuffle',
-  'beta', 'exponential', 'gamma', 'gumbel',
-  'laplace', 'logistic', 'normal', 'pareto',
-  'poisson', 'standard_cauchy',
-  'standard_exponential', 'standard_gamma',
-  'standard_normal', 'standard_t', 'uniform',
+  'beta', 'exponential', 'gamma', 'gumbel', 'laplace', 'logistic', 'normal', 'pareto',
+  'poisson', 'standard_cauchy', 'standard_exponential', 'standard_gamma',
+  'standard_normal', 'standard_t', 'uniform',  'bernoulli', 'truncated_normal',
   # 'binomial', 'chisquare', 'f', 'geometric', 'hypergeometric', 'lognormal',
   # 'logseries', 'multinomial', 'negative_binomial', 'power', 'rayleigh',
   # 'triangular', 'vonmises', 'wald', 'weibull',
@@ -43,3 +41,10 @@ standard_gamma = numpy.random.standard_gamma
 standard_normal = numpy.random.standard_normal
 standard_t = numpy.random.standard_t
 uniform = numpy.random.uniform
+
+def bernoulli(p, size=None):
+  return numpy.random.binomial(1, p=p, size=size)
+
+
+def truncated_normal():
+  pass

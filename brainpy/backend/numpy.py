@@ -306,13 +306,6 @@ class NumpyDSDriver(base.BaseDSDriver):
     self.target.input_step(_t, _i)
     for step in self.target.steps.values():
       step(_t, _i)
-    # if isinstance(self.target, Container):
-    #   for node in self.target.values():
-    #     for step in node.steps.values():
-    #       step(_t, _i)
-    # else:
-    #   for step in self.target.steps.values():
-    #     step(_t, _i)
 
   @staticmethod
   def input_data_name_of(key):

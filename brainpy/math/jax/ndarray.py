@@ -52,7 +52,7 @@ class ndarray(object):
 
   @value.setter
   def value(self, value):
-    self._value = value
+    self._value = value.value if isinstance(value, ndarray) else value
 
   @property
   def dtype(self):

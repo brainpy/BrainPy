@@ -15,6 +15,7 @@ __all__ = [
   'Parallel',
 ]
 
+
 def convert(f):
   pass
 
@@ -43,27 +44,50 @@ def jit(ds_or_func, static_argnums=None, **kwargs):
     # all variables
     all_vars = ds_or_func.vars()
 
-    # jit step functions
-    steps = {}
-    static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-    for key, func in ds_or_func.steps.items():
+    if len(ds_or_func.steps):
+      # jit step functions
+      steps = {}
+      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+      for key, func in ds_or_func.steps.items():
+        @functools.partial(jax.jit, static_argnums=static_argnums)
+        def jitted_func(all_data, *args, **kwargs):
+          all_vars.assign(all_data)
+          return func(*args, **kwargs), all_vars.unique_data()
+
+        @func_name(name=key)
+        def call(*args, **kwargs):
+          output, changed_data = jitted_func(all_vars.unique_data(), *args, **kwargs)
+          all_vars.assign(changed_data)
+          return output
+
+        steps[key] = call
+
+      # update step functions
+      ds_or_func.steps.update(steps)
+      return ds_or_func
+
+    elif callable(ds_or_func):
+      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+
+      func = ds_or_func.__call__
+
       @functools.partial(jax.jit, static_argnums=static_argnums)
       def jitted_func(all_data, *args, **kwargs):
         all_vars.assign(all_data)
         return func(*args, **kwargs), all_vars.unique_data()
 
-      @func_name(name=key)
       def call(*args, **kwargs):
         output, changed_data = jitted_func(all_vars.unique_data(), *args, **kwargs)
         all_vars.assign(changed_data)
         return output
 
-      steps[key] = call
+      ds_or_func.__call__ = call
 
-    # update step functions
-    ds_or_func.steps.update(steps)
-
-    return ds_or_func
+      return ds_or_func
+    else:
+      raise errors.ModelUseError(f'Cannot JIT {ds_or_func}, because it does not have '
+                                 f'step functions (len(steps) = 0) and not implement '
+                                 f'"__call__" function. ')
 
   elif callable(ds_or_func):
     return jax.jit(ds_or_func, static_argnums=static_argnums, **kwargs)

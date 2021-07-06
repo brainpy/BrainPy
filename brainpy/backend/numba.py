@@ -12,7 +12,7 @@ from brainpy import tools
 from brainpy.backend import utils, base
 from brainpy.backend.numpy import NumpyDSDriver
 from brainpy.integrators import constants as diffint_cons
-from brainpy.simulation.brainobjects import delays
+# from brainpy.simulation.brainobjects import delays
 
 try:
   import numba

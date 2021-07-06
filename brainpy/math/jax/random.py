@@ -13,7 +13,7 @@ __all__ = [
   'laplace', 'logistic', 'normal', 'pareto',
   'poisson', 'standard_cauchy', 'standard_exponential',
   'standard_gamma', 'standard_normal', 'standard_t',
-  'uniform', 'truncated_normal',
+  'uniform', 'truncated_normal', 'bernoulli',
 ]
 
 
@@ -72,9 +72,8 @@ class RandomState(object):
     Args:
         n: the number of seeds to generate.
     """
-    keys = jr.split(self.key, 2)
-    self._key = keys[0]
-    return keys[1]
+    self._key, subkey = jr.split(self.key)
+    return subkey
 
   def splits(self, n):
     """Create multiple seeds from the current seed. This is used internally by Parallel and Vectorize to ensure
@@ -257,5 +256,24 @@ def truncated_normal(lower, upper, size, scale=1.):
     ``shape`` is not None, or else by broadcasting ``lower`` and ``upper``.
     Returns values in the open interval ``(lower, upper)``.
   """
-  return ndarray(jr.truncated_normal(_ST.split(), lower=lower, upper=upper, shape=size) * scale)
+  return ndarray(jr.truncated_normal(_ST.split(),
+                                     lower=lower,
+                                     upper=upper,
+                                     shape=_size2shape(size)) * scale)
 
+
+def bernoulli(p, size=None):
+  """Sample Bernoulli random values with given shape and mean.
+
+  Args:
+    p: optional, a float or array of floats for the mean of the random
+      variables. Must be broadcast-compatible with ``shape``. Default 0.5.
+    size: optional, a tuple of nonnegative integers representing the result
+      shape. Must be broadcast-compatible with ``p.shape``. The default (None)
+      produces a result shape equal to ``p.shape``.
+
+  Returns:
+    A random array with boolean dtype and shape given by ``shape`` if ``shape``
+    is not None, or else ``p.shape``.
+  """
+  return ndarray(jr.bernoulli(_ST.split(), p=p, shape=_size2shape(size)))
