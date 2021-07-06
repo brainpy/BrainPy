@@ -3,8 +3,7 @@
 
 import numpy as np
 
-from brainpy import errors, math
-from brainpy import tools
+from brainpy import errors, math, tools
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 

@@ -140,6 +140,10 @@ def get_args(f):
 def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
   lines_for_compile = [f'    {line}' for line in lines]
   code_for_compile = '\n'.join(lines_for_compile)
+  # code = f'def {func_name}({", ".join(func_args)}):\n' + \
+  #        f'  try:\n' + \
+  #        f'{code_for_compile}\n' + \
+  #        f'  except Exception as e:\n'
   code = f'def {func_name}({", ".join(func_args)}):\n' + \
          f'  try:\n' + \
          f'{code_for_compile}\n' + \

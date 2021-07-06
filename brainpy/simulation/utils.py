@@ -98,12 +98,14 @@ def run_model(run_func, times, report):
     running_time = time.time() - t0
     print('Simulation is done in {:.3f} s.'.format(running_time))
     print()
-    return running_time
+
   else:
     t0 = time.time()
     for run_idx in range(run_length):
       run_func(_t=times[run_idx], _i=run_idx)
-    return time.time() - t0
+    running_time = time.time() - t0
+
+  return running_time
 
 
 def format_inputs(host, inputs, duration):
@@ -123,9 +125,8 @@ def format_inputs(host, inputs, duration):
   formatted_inputs : tuple, list
       The formatted inputs of the population.
   """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
 
-  mon_length = get_run_length_by_duration(duration)
+  run_length = get_run_length_by_duration(duration)
 
   # 1. check inputs
   if inputs is None:
@@ -192,7 +193,7 @@ def format_inputs(host, inputs, duration):
           raise ValueError(f'Input "{value}" for "{one_input[0]}" is set to '
                            f'be "iter" type, however we got the value with '
                            f'the type of {type(value)}')
-        if len(value) < mon_length:
+        if len(value) < run_length:  # TODO, if value is a yield function
           raise ValueError(f'Input {value} is set to be "iter" type, '
                            f'however it\'s length is less than the duration. '
                            f'This will result in errors in future running.')

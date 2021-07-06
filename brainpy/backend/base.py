@@ -31,7 +31,7 @@ class BaseDSDriver(AbstractDriver):
     self.target = target
 
   @abc.abstractmethod
-  def build(self, run_length, rebuild=False, inputs=()):
+  def build(self, rebuild=False, inputs=()):
     pass
 
   def upload(self, name, data_or_func):

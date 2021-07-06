@@ -161,6 +161,47 @@ class NumpyDSDriver(base.BaseDSDriver):
       self._format_inputs_func(formatted_inputs=inputs,
                                show_code=show_code)
 
+  def _format_code_to_mon_key(self, node, key, idx, interval):
+    code_scope = {}
+    code_lines = []
+
+    # get data
+    key_splits = key.split('.')
+    key_id = "_".join(key_splits)
+    data = node
+    for s in key_splits:
+      data = getattr(data, s)
+
+    # get the data key in the host
+    if isinstance(data, (int, float)):
+      if idx is not None:
+        raise errors.ModelUseError(f'"{self.target.name}.{key}" is a scalar, '
+                                   f'cannot define the slice index "{idx}"')
+      key_in_host = f'{node.name}.{key}'
+    elif math.ndim(data) == 1:
+      key_in_host = f'{node.name}.{key}'
+    else:
+      key_in_host = f'{node.name}.{key}.flatten()'
+
+    # format the monitor index
+    if idx is None:
+      right = key_in_host
+    else:
+      right = f'{key_in_host}[{key_id}_idx_to_monitor]'
+      code_scope[f'{key_id}_idx_to_monitor'] = idx
+
+    # format the monitor lines according to the time interval
+    if interval is None:
+      code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
+    else:
+      num_interval = utils.every_to_step_num(interval)
+      code_scope[f'{key_id}_interval_to_monitor'] = num_interval
+      code_lines.extend([f'if _i % {key_id}_interval_to_monitor == 0:',
+                         f'  {node.name}.mon.item_contents["{key}"].append({right})',
+                         f'  {node.name}.mon.item_contents["{key}.t"].append(_t)'])
+
+    return code_scope, code_lines
+
   def get_monitor_func(self, show_code=False):
     """Get the monitor function according to the user's setting.
 
@@ -179,7 +220,7 @@ class NumpyDSDriver(base.BaseDSDriver):
     monitor_func_name = 'monitor_step'
 
     code_lines = []
-    code_scope = {'math': math, 'sys': sys}
+    code_scope = {'sys': sys}
     code_scope_for_call = {}
     for node in [self.target] + list(nodes.unique_values()):
       mon = node.mon
@@ -190,47 +231,11 @@ class NumpyDSDriver(base.BaseDSDriver):
         for key, idx, interval in zip(mon.item_names,
                                       mon.item_indices,
                                       mon.item_intervals):
-          # "key" : 1. a variable in a DynamicSystem, like "V"
-          #           (brainpy.math.ndarray, )
-          #       : 2. a variable in a node, like "exc.V"
-          #           ("exc" is a DynamicSystem Node, "V" is the variable)
-
-          # get data
-          key_splits = key.split('.')
-          key_id = "_".join(key_splits)
-          data = node
-          for s in key_splits:
-            data = getattr(data, s)
-
-          # get the data key in the host
-          if isinstance(data, (int, float)):
-            if idx is not None:
-              raise errors.ModelUseError(f'"{self.target.name}.{key}" is a scalar, '
-                                         f'cannot define the slice index "{idx}"')
-            key_in_host = f'{node.name}.{key}'
-          elif len(math.shape(data)) == 1:
-            key_in_host = f'{node.name}.{key}'
-          else:
-            key_in_host = f'math.reshape({node.name}.{key}, (-1,))'
-
-          # format the monitor index
-          if idx is None:
-            right = key_in_host
-          else:
-            right = f'{key_in_host}[{key_id}_idx_to_monitor]'
-            code_scope[f'{key_id}_idx_to_monitor'] = idx
-
-          # format the monitor lines according to the time interval
-          if interval is None:
-            code_lines.append(f'{node.name}.mon["{key}"][_i] = {right}')
-            # code_lines.append(f'{node.name}.mon["{key}.t"][_i] = _t')
-          else:
-            num_interval = utils.every_to_step_num(interval)
-            code_scope[f'{key_id}_interval_to_monitor'] = num_interval
-            code_lines.extend([f'if _i % {key_id}_interval_to_monitor == 0:',
-                               f'  idx = int(_i / {key_id}_interval_to_monitor)',
-                               f'  {node.name}.mon["{key}"][idx] = {right}',
-                               f'  {node.name}.mon["{key}.t"][idx] = _t'])
+          # "key" : 1. variable, like "V" (brainpy.math.ndarray, )
+          #       : 2. variable in the node, like "exc.V" ("exc" is a DynamicSystem Node, "V" is the variable)
+          _scope, _lines = self._format_code_to_mon_key(node, key, idx, interval)
+          code_scope.update(_scope)
+          code_lines.extend(_lines)
 
     if len(code_lines):
       # function
@@ -244,32 +249,11 @@ class NumpyDSDriver(base.BaseDSDriver):
         print()
       self.target.monitor_step = func
 
-  def build_mon(self, mon_length):
+  def build_mon(self):
     for node in [self.target] + list(self.target.nodes().unique_values()):
-      # build the monitor
-      node.mon.build()
-
-      # reshape the monitor items
-      for key, interval in zip(node.mon.item_names, node.mon.item_intervals):
-        if interval is None:
-          num_interval = 1
-        else:
-          num_interval = utils.every_to_step_num(interval)
-        mon_length = round(mon_length / num_interval)
-
-        data = node.mon[key]
-        ts = node.mon[f'{key}.t']
-        shape = math.shape(data)
-        if mon_length < shape[0]:
-          node.mon[key] = data[:mon_length]
-          node.mon[f'{key}.t'] = ts[:mon_length]
-        elif mon_length > shape[0]:
-          append1 = math.zeros((mon_length - shape[0],) + shape[1:],
-                               dtype=data.dtype if hasattr(data, 'dtype') else None)
-          node.mon[key] = math.concatenate([data, append1], axis=0)
-          append2 = math.zeros((mon_length - shape[0],),
-                               dtype=ts.dtype if hasattr(ts, 'dtype') else None)
-          node.mon[f'{key}.t'] = math.concatenate([ts, append2])
+      node.mon.build()  # build the monitor
+      for key in node.mon.item_contents.keys():
+        node.mon.item_contents[key] = []  # reshape the monitor items
 
   @staticmethod
   def step_lines_by_interval(step, lines, interval_name, code_scope):
@@ -287,12 +271,12 @@ class NumpyDSDriver(base.BaseDSDriver):
       line_calls = lines
     return line_calls, code_scope
 
-  def build(self, run_length, rebuild=False, inputs=()):
+  def build(self, rebuild=False, inputs=()):
     # get input function or check inputs
     self.get_input_func(inputs)
 
     # reshape the monitor
-    self.build_mon(mon_length=run_length)
+    self.build_mon()
 
     if not self.has_built or rebuild:
       # get monitor function

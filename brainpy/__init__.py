@@ -2,12 +2,17 @@
 
 __version__ = "1.1.0-alpha"
 
+# "math" module
+from . import math
+
 
 # "analysis" module
 from . import analysis
 
+
 # "backend" module
 from . import backend
+
 
 # "integrators" module
 from . import integrators
@@ -16,8 +21,6 @@ from .integrators import sde
 from .integrators.wrapper import *
 from .integrators.constants import *
 
-# "math" module
-from . import math
 
 # "simulation" module
 from . import simulation
@@ -26,8 +29,10 @@ from .simulation.brainobjects import *
 from .simulation.every import every
 from .simulation.utils import size2len
 
+
 # "visualization" module
 from . import visualization as visualize
+
 
 # other modules
 from . import errors

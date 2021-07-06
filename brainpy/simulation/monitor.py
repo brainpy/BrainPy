@@ -118,52 +118,38 @@ class Monitor(object):
           item_intervals = [None] * len(self.vars)
         else:
           item_intervals = list(self.every)
+
         for mon_var in self.vars:
           # users monitor a variable by a string
           if isinstance(mon_var, str):
-            var_data = getattr(self.target, mon_var)
             mon_key = mon_var
             mon_idx = None
-            mon_shape = (utils.size2len(math.shape(var_data)),)
           # users monitor a variable by a tuple: `('b', math.array([1,2,3]))`
           elif isinstance(mon_var, (tuple, list)):
             mon_key = mon_var[0]
-            var_data = getattr(self.target, mon_key)
             mon_idx = mon_var[1]
-            if mon_idx is None:
-              mon_shape = (utils.size2len(math.shape(var_data)),)
-            else:
-              mon_idx = self.check_mon_idx(mon_idx)
-              mon_shape = math.shape(mon_idx)
           else:
             raise errors.ModelUseError(f'Unknown monitor item: {str(mon_var)}')
 
           self.check(mon_key)
           item_names.append(mon_key)
           item_indices.append(mon_idx)
-          dtype = var_data.dtype if hasattr(var_data, 'dtype') else None
-          item_contents[mon_key] = math.zeros((1,) + mon_shape, dtype=dtype)
-          item_contents[f'{mon_key}.t'] = math.zeros((1,))
+          item_contents[mon_key] = []
+          item_contents[f'{mon_key}.t'] = []
+
       elif isinstance(self.vars, dict):
         # users monitor a variable by a dict: `{'a': None, 'b': math.array([1,2,3])}`
         for mon_key, mon_idx in self.vars.items():
           item_names.append(mon_key)
-          if mon_idx is None:
-            shape = math.shape(getattr(self.target, mon_key))
-          else:
-            mon_idx = self.check_mon_idx(mon_idx)
-            shape = math.shape(mon_idx)
           item_indices.append(mon_idx)
-          shape = (utils.size2len(shape),)
-          val_data = getattr(self.target, mon_key)
-          dtype = val_data.dtype if hasattr(val_data, 'dtype') else None
-          item_contents[mon_key] = math.zeros((1,) + shape, dtype=dtype)
-          item_contents[f'{mon_key}.t'] = math.zeros((1,))
+          item_contents[mon_key] = []
+          item_contents[f'{mon_key}.t'] = []
           if self.every is None:
             item_intervals.append(None)
           else:
             if mon_key in self.every:
               item_intervals.append(self.every[mon_key])
+
       else:
         raise errors.ModelUseError(f'Unknown monitors type: {type(self.vars)}')
 

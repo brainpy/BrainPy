@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-class Collector(OrderedDict):
+class Collector(dict):
   """A ArrayCollector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
@@ -79,6 +79,7 @@ class ArrayCollector(Collector):
         extra_data: the list of tensors used to update variables values.
     """
     self_values = self.unique_values()
+    # self_values = list(self.values())
     if len(self_values) != len(extra_data):
       raise ValueError(f'The target has {len(self_values)} data, while we got a '
                        f'"extra_data" with the length of {len(extra_data)}.')
@@ -156,3 +157,4 @@ class ArrayCollector(Collector):
       return [x.value for x in self.values() if x.train]
     else:
       return [x.value for x in self.unique_values()]
+      # return [x.value for x in self.values()]

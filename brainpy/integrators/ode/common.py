@@ -83,12 +83,13 @@ def compile_and_assign_attrs(code_lines,
                                         func_name=func_name,
                                         show_code=show_code)
   call = driver.build()
+  return call
 
-  integrator = ODEIntegrator(f=code_scope['f'],
-                             call=call,
-                             variables=variables,
-                             parameters=parameters,
-                             var_type=var_type,
-                             dt=dt,
-                             code=driver.code)
-  return integrator
+  # integrator = ODEIntegrator(f=code_scope['f'],
+  #                            call=call,
+  #                            variables=variables,
+  #                            parameters=parameters,
+  #                            var_type=var_type,
+  #                            dt=dt,
+  #                            code=driver.code)
+  # return integrator

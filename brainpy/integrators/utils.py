@@ -7,7 +7,6 @@ from brainpy import backend, errors
 __all__ = [
   'get_args',
   'check_kws',
-  'compile_integrator',
 ]
 
 
@@ -97,8 +96,4 @@ def get_args(f):
     raise ValueError('Do not find time variable "t".')
   other_args = reduced_args[len(var_names):]
   return class_kw, var_names, other_args, original_args
-
-
-
-
 

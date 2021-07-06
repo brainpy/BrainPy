@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 from collections import OrderedDict
 
 from brainpy import math, errors, backend
@@ -185,11 +186,8 @@ class DynamicSystem(object):
       self.driver = backend.get_ds_driver()
       self.driver = self.driver(self)
     assert isinstance(self.driver, BaseDSDriver)
-    run_length = utils.get_run_length_by_duration(duration)
     formatted_inputs = utils.format_inputs(host=self, duration=duration, inputs=inputs)
-    run_func = self.driver.build(rebuild=rebuild,
-                                 run_length=run_length,
-                                 inputs=formatted_inputs)
+    run_func = self.driver.build(rebuild=rebuild, inputs=formatted_inputs)
     return run_func
 
   def run(self, duration, report=0., inputs=(), rebuild=False):
@@ -221,9 +219,16 @@ class DynamicSystem(object):
     # run the model
     running_time = utils.run_model(run_func=self.run_func, times=times, report=report)
 
-    # monitor for times
+    # monitor
+    times = times.numpy() if not isinstance(times, np.ndarray) else times
     for node in [self] + list(self.nodes().unique_values()):
-      node.mon.ts = times
+      if node.mon.num_item > 0:
+        node.mon.ts = times
+      for key, val in list(node.mon.item_contents.items()):
+        val = math.array(node.mon.item_contents[key])
+        if not isinstance(val, np.ndarray):
+          val = val.numpy()
+        node.mon.item_contents[key] = val
 
     return running_time
 

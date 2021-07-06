@@ -30,19 +30,6 @@ class ndarray(object):
   """
   __slots__ = "_value"
 
-  _registered = False
-
-  def __new__(cls, *args, **kwargs):
-    if not cls._registered:
-      def flatten(t): return ((t.value,), None)
-
-      def unflatten(aux_data, children): return cls(*children)
-
-      register_pytree_node(cls, flatten, unflatten)
-      cls._registered = True
-
-    return super().__new__(cls)
-
   def __init__(self, value):
     self._value = value
 
@@ -93,9 +80,9 @@ class ndarray(object):
       index = index.value
     if isinstance(value, ndarray):
       value = value.value
-    self.value = jax.ops.index_update(self.value,
-                                      jax.ops.index[index],
-                                      value)
+    self._value = jax.ops.index_update(self._value,
+                                       jax.ops.index[index],
+                                       value)
 
   # operations
 
@@ -141,17 +128,32 @@ class ndarray(object):
   def __radd__(self, oc):
     return ndarray(self._value.__radd__(oc._value if isinstance(oc, ndarray) else oc))
 
+  def __iadd__(self, oc):
+    # a += b
+    self._value += (oc._value if isinstance(oc, ndarray) else oc)
+    return self
+
   def __sub__(self, oc):
     return ndarray(self._value.__sub__(oc._value if isinstance(oc, ndarray) else oc))
 
   def __rsub__(self, oc):
     return ndarray(self._value.__rsub__(oc._value if isinstance(oc, ndarray) else oc))
 
+  def __isub__(self, oc):
+    # a -= b
+    self._value = self._value.__sub__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
+
   def __mul__(self, oc):
     return ndarray(self._value.__mul__(oc._value if isinstance(oc, ndarray) else oc))
 
   def __rmul__(self, oc):
     return ndarray(self._value.__rmul__(oc._value if isinstance(oc, ndarray) else oc))
+
+  def __imul__(self, oc):
+    # a *= b
+    self._value = self._value.__mul__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
 
   def __div__(self, oc):
     return ndarray(self._value.__div__(oc._value if isinstance(oc, ndarray) else oc))
@@ -165,11 +167,21 @@ class ndarray(object):
   def __rtruediv__(self, oc):
     return ndarray(self._value.__rtruediv__(oc._value if isinstance(oc, ndarray) else oc))
 
+  def __itruediv__(self, oc):
+    # a /= b
+    self._value = self._value.__truediv__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
+
   def __floordiv__(self, oc):
     return ndarray(self._value.__floordiv__(oc._value if isinstance(oc, ndarray) else oc))
 
   def __rfloordiv__(self, oc):
     return ndarray(self._value.__rfloordiv__(oc._value if isinstance(oc, ndarray) else oc))
+
+  def __ifloordiv__(self, oc):
+    # a //= b
+    self._value = self._value.__floordiv__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
 
   def __divmod__(self, oc):
     return ndarray(self._value.__divmod__(oc._value if isinstance(oc, ndarray) else oc))
@@ -183,11 +195,21 @@ class ndarray(object):
   def __rmod__(self, oc):
     return ndarray(self._value.__rmod__(oc._value if isinstance(oc, ndarray) else oc))
 
+  def __imod__(self, oc):
+    # a %= b
+    self._value = self._value.__mod__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
+
   def __pow__(self, oc):
     return ndarray(self._value.__pow__(oc._value if isinstance(oc, ndarray) else oc))
 
   def __rpow__(self, oc):
     return ndarray(self._value.__rpow__(oc._value if isinstance(oc, ndarray) else oc))
+
+  def __ipow__(self, oc):
+    # a **= b
+    self._value = self._value.__pow__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
 
   def __matmul__(self, oc):
     return ndarray(self._value.__matmul__(oc._value if isinstance(oc, ndarray) else oc))
@@ -195,11 +217,21 @@ class ndarray(object):
   def __rmatmul__(self, oc):
     return ndarray(self._value.__rmatmul__(oc._value if isinstance(oc, ndarray) else oc))
 
+  def __imatmul__(self, oc):
+    # a @= b
+    self._value = self._value.__matmul__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
+
   def __and__(self, oc):
     return ndarray(self._value.__and__(oc._value if isinstance(oc, ndarray) else oc))
 
   def __rand__(self, oc):
     return ndarray(self._value.__rand__(oc._value if isinstance(oc, ndarray) else oc))
+
+  def __iand__(self, oc):
+    # a &= b
+    self._value = self._value.__and__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
 
   def __or__(self, oc):
     return ndarray(self._value.__or__(oc._value if isinstance(oc, ndarray) else oc))
@@ -207,11 +239,21 @@ class ndarray(object):
   def __ror__(self, oc):
     return ndarray(self._value.__ror__(oc._value if isinstance(oc, ndarray) else oc))
 
+  def __ior__(self, oc):
+    # a |= b
+    self._value = self._value.__or__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
+
   def __xor__(self, oc):
     return ndarray(self._value.__xor__(oc._value if isinstance(oc, ndarray) else oc))
 
   def __rxor__(self, oc):
     return ndarray(self._value.__rxor__(oc._value if isinstance(oc, ndarray) else oc))
+
+  def __ixor__(self, oc):
+    # a ^= b
+    self._value = self._value.__xor__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
 
   def __lshift__(self, oc):
     return ndarray(self._value.__lshift__(oc._value if isinstance(oc, ndarray) else oc))
@@ -219,11 +261,21 @@ class ndarray(object):
   def __rlshift__(self, oc):
     return ndarray(self._value.__rlshift__(oc._value if isinstance(oc, ndarray) else oc))
 
+  def __ilshift__(self, oc):
+    # a <<= b
+    self._value = self._value.__lshift__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
+
   def __rshift__(self, oc):
     return ndarray(self._value.__rshift__(oc._value if isinstance(oc, ndarray) else oc))
 
   def __rrshift__(self, oc):
     return ndarray(self._value.__rrshift__(oc._value if isinstance(oc, ndarray) else oc))
+
+  def __irshift__(self, oc):
+    # a >>= b
+    self._value = self._value.__rshift__(oc._value if isinstance(oc, ndarray) else oc)
+    return self
 
   def __round__(self, ndigits=None):
     return ndarray(self._value.__round__(ndigits))
@@ -442,6 +494,19 @@ class ndarray(object):
 
   def numpy(self):
     return np.asarray(self.value)
+
+
+def flatten(t):
+  chidren = (t.value,)
+  aux_data = None
+  return (chidren, aux_data)
+
+
+def unflatten(aux_data, children):
+  return ndarray(*children)
+
+
+register_pytree_node(ndarray, flatten, unflatten)
 
 
 def _wrap(f):
