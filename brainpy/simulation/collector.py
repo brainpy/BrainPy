@@ -141,17 +141,18 @@ class ArrayCollector(Collector):
           d.reduce(d.value)
         visited.add(id(d))
 
-  def unique_data(self, is_a=None):
+  def unique_data(self, trainable=False):
     """Return the list of values for this collection.
     Similarly to the assign method, each variable value is
     reported only once and in the order following the
     iter(self) iterator.
 
     Args:
-        is_a: either a variable type or a list of variables types to include.
+        trainable: either a variable type or a list of variables types to include.
     Returns:
         A new ArrayCollector containing the subset of variables.
     """
-    if is_a:
-      return [x.value for x in self.values() if isinstance(x, is_a)]
-    return [x.value for x in self.unique_values()]
+    if trainable:
+      return [x.value for x in self.values() if x.train]
+    else:
+      return [x.value for x in self.unique_values()]

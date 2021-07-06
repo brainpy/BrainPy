@@ -79,7 +79,7 @@ class Container(DynamicSystem, dict):
         gather[prefix + k] = v
         gather[f'{self.name}.{k}'] = v
       elif isinstance(v, DynamicSystem):
-        gather.update(v.vars(prefix=f'{prefix}{k}' if k == 'raw' else f'{prefix}{k}.'))
+        gather.update(v.vars(prefix=f'{prefix}{k}.'))
     return gather
 
   def ints(self, prefix=''):
@@ -90,7 +90,7 @@ class Container(DynamicSystem, dict):
       if isinstance(v, Integrator):
         gather[prefix + k] = v
       elif isinstance(v, DynamicSystem):
-        gather.update(v.ints(prefix=prefix + k if k == 'raw' else f'{prefix}{k}.'))
+        gather.update(v.ints(prefix=f'{prefix}{k}.'))
     return gather
 
   def nodes(self, prefix=''):

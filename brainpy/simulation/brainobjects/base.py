@@ -118,7 +118,7 @@ class DynamicSystem(object):
         gather[prefix + k] = v
         gather[f'{self.name}.{k}'] = v
       elif isinstance(v, DynamicSystem):
-        gather.update(v.vars(prefix=prefix[:-1] if k == 'raw' else f'{prefix}{k}.'))
+        gather.update(v.vars(prefix=f'{prefix}{k}.'))
     return gather
 
   def ints(self, prefix=''):
@@ -141,7 +141,7 @@ class DynamicSystem(object):
         gather[prefix + k] = v
         gather[f'{self.name}.k'] = v
       elif isinstance(v, DynamicSystem):
-        gather.update(v.ints(prefix=prefix[:-1] if k == 'raw' else prefix + k))
+        gather.update(v.ints(prefix=prefix + k))
     return gather
 
   def nodes(self, prefix=''):
