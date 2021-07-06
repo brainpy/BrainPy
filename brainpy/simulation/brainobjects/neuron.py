@@ -40,7 +40,5 @@ class NeuGroup(DynamicSystem):
 
     # initialize
     # ----------
-    super(NeuGroup, self).__init__(steps=steps,
-                                   name=self.unique_name(name, 'NeuGroup'),
-                                   **kwargs)
+    super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
 

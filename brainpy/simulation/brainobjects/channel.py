@@ -18,4 +18,5 @@ class Channel(DynamicSystem):
   """
 
   def __init__(self, name=None, **kwargs):
-    super(Channel, self).__init__(name=self.unique_name(name, 'Channel'), **kwargs)
+    super(Channel, self).__init__(name=name, **kwargs)
+

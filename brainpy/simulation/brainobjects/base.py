@@ -40,6 +40,64 @@ class DynamicSystem(object):
 
   target_backend = None
 
+  def __init__(self, steps=('update',), monitors=None, name=None):
+    # runner and run function
+    self.driver = None
+    self.run_func = None
+    self.input_step = lambda _t, _i: None
+    self.monitor_step = lambda _t, _i: None
+
+    # step functions
+    self.steps = OrderedDict()
+    if isinstance(steps, tuple):
+      for step in steps:
+        if isinstance(step, str):
+          self.steps[step] = getattr(self, step)
+        elif callable(step):
+          self.steps[step.__name__] = step
+        else:
+          raise errors.ModelDefError(_error_msg.format(type(steps[0])))
+    elif isinstance(steps, dict):
+      for key, step in steps.items():
+        if callable(step):
+          self.steps[key] = step
+        else:
+          raise errors.ModelDefError(_error_msg.format(type(step)))
+    else:
+      raise errors.ModelDefError(_error_msg.format(type(steps)))
+
+    # check whether the object has a unique name.
+    self.name = self.unique_name(name=name)
+    checking.check_name(name=self.name, obj=self)
+
+    # monitors
+    if monitors is None:
+      self.mon = Monitor(target=self, variables=[])
+    elif isinstance(monitors, (list, tuple, dict)):
+      self.mon = Monitor(target=self, variables=monitors)
+    elif isinstance(monitors, Monitor):
+      self.mon = monitors
+      self.mon.target = self
+    else:
+      raise errors.ModelUseError(f'"monitors" only supports '
+                                 f'list/tuple/dict/ instance '
+                                 f'of Monitor, not {type(monitors)}.')
+
+    # target backend
+    if self.target_backend is None:
+      self._target_backend = ('general',)
+    elif isinstance(self.target_backend, str):
+      self._target_backend = (self.target_backend,)
+    elif isinstance(self.target_backend, (tuple, list)):
+      if not isinstance(self.target_backend[0], str):
+        raise errors.ModelDefError('"target_backend" must be a '
+                                   'list/tuple of string.')
+      self._target_backend = tuple(self.target_backend)
+    else:
+      raise errors.ModelDefError(f'Unknown setting of '
+                                 f'"target_backend": '
+                                 f'{self.target_backend}')
+
   def vars(self, prefix=''):
     """Collect all the variables in the instance of
     DynamicSystem and the node instances.
@@ -109,64 +167,6 @@ class DynamicSystem(object):
         gather.update(v.nodes(f'{prefix}{k}.'))
     return gather
 
-  def __init__(self, steps=('update',), monitors=None, name=None):
-    # runner and run function
-    self.driver = None
-    self.run_func = None
-    self.input_step = lambda _t, _i: None
-    self.monitor_step = lambda _t, _i: None
-
-    # step functions
-    self.steps = OrderedDict()
-    if isinstance(steps, tuple):
-      for step in steps:
-        if isinstance(step, str):
-          self.steps[step] = getattr(self, step)
-        elif callable(step):
-          self.steps[step.__name__] = step
-        else:
-          raise errors.ModelDefError(_error_msg.format(type(steps[0])))
-    elif isinstance(steps, dict):
-      for key, step in steps.items():
-        if callable(step):
-          self.steps[key] = step
-        else:
-          raise errors.ModelDefError(_error_msg.format(type(step)))
-    else:
-      raise errors.ModelDefError(_error_msg.format(type(steps)))
-
-    # check whether the object has a unique name.
-    self.name = self.unique_name(name=name, type='DynamicSystem')
-    checking.check_name(name=name, obj=self)
-
-    # monitors
-    if monitors is None:
-      self.mon = Monitor(target=self, variables=[])
-    elif isinstance(monitors, (list, tuple, dict)):
-      self.mon = Monitor(target=self, variables=monitors)
-    elif isinstance(monitors, Monitor):
-      self.mon = monitors
-      self.mon.target = self
-    else:
-      raise errors.ModelUseError(f'"monitors" only supports '
-                                 f'list/tuple/dict/ instance '
-                                 f'of Monitor, not {type(monitors)}.')
-
-    # target backend
-    if self.target_backend is None:
-      self._target_backend = ('general',)
-    elif isinstance(self.target_backend, str):
-      self._target_backend = (self.target_backend,)
-    elif isinstance(self.target_backend, (tuple, list)):
-      if not isinstance(self.target_backend[0], str):
-        raise errors.ModelDefError('"target_backend" must be a '
-                                   'list/tuple of string.')
-      self._target_backend = tuple(self.target_backend)
-    else:
-      raise errors.ModelDefError(f'Unknown setting of '
-                                 f'"target_backend": '
-                                 f'{self.target_backend}')
-
   def update(self, _t, _i):
     raise NotImplementedError
 
@@ -229,9 +229,10 @@ class DynamicSystem(object):
 
   def unique_name(self, name=None, type=None):
     if name is None:
-      assert type is not None
-      return checking.get_name(type=type)
+      if type is None:
+        return checking.get_name(type=self.__class__.__name__)
+      else:
+        return checking.get_name(type=type)
     else:
       checking.check_name(name=name, obj=self)
       return name
-

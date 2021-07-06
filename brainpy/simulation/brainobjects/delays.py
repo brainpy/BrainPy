@@ -85,7 +85,7 @@ class ConstantDelay(DynamicSystem):
 
     super(ConstantDelay, self).__init__(steps={'update': self.update},
                                         monitors=None,
-                                        name=self.unique_name(name, 'Delay'),  # will be set by the host
+                                        name=name,  # will be set by the host
                                         )
 
   def _pull_for_uniform_delay(self, idx=None):

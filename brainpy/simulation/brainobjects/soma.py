@@ -13,5 +13,4 @@ class Soma(DynamicSystem):
   """
 
   def __init__(self, name, **kwargs):
-    super(Soma, self).__init__(name=self.unique_name(name, 'Soma'),
-                               **kwargs)
+    super(Soma, self).__init__(name=name, **kwargs)

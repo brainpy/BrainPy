@@ -28,9 +28,34 @@ class Container(DynamicSystem, dict):
       The object name.
   show_code : bool
       Whether show the formatted code.
-  kwargs :
+  dynamic_systems : dict of (str, DynamicSystem)
       The instance of DynamicSystem with the format of "key=value".
   """
+
+  def __init__(self, steps=None, monitors=None, name=None, **dynamic_systems):
+    # initialize "dict"
+    for val in dynamic_systems.values():
+      if not isinstance(val, DynamicSystem):
+        raise errors.ModelUseError(f'{self.__class__.__name__} receives '
+                                   f'instances of DynamicSystem, however, '
+                                   f'we got {type(val)}.')
+    dict.__init__(self, **dynamic_systems)
+
+    # check 'monitors'
+    if monitors is not None:
+      raise errors.ModelUseError(f'"monitors" cannot be used in '
+                                 f'"brainpy.{self.__class__.__name__}".')
+
+    # initialize "DynamicSystem"
+    if steps is None:
+      steps = OrderedDict()
+      for obj_key, obj in dynamic_systems.items():
+        for step_key, step in obj.steps.items():
+          steps[f'{obj_key}_{step_key}'] = step
+    DynamicSystem.__init__(self,
+                           steps=steps,
+                           monitors=monitors,
+                           name=name)
 
   def vars(self, prefix=''):
     """Collect all the variables (and their names) contained
@@ -86,28 +111,3 @@ class Container(DynamicSystem, dict):
       return self[item]
     else:
       return super(Container, self).__getattribute__(item)
-
-  def __init__(self, steps=None, monitors=None, name=None, **kwargs):
-    # check 'monitors'
-    if monitors is not None:
-      raise errors.ModelUseError(f'"monitors" cannot be used in '
-                                 f'"brainpy.{self.__class__.__name__}".')
-
-    # initialize "dict"
-    for val in kwargs.values():
-      if not isinstance(val, DynamicSystem):
-        raise errors.ModelUseError(f'{self.__class__.__name__} receives '
-                                   f'instances of DynamicSystem, however, '
-                                   f'we got {type(val)}.')
-    dict.__init__(self, **kwargs)
-
-    # initialize "DynamicSystem"
-    if steps is None:
-      steps = OrderedDict()
-      for obj_key, obj in kwargs.items():
-        for step_key, step in obj.steps.items():
-          steps[f'{obj_key}_{step_key}'] = step
-    DynamicSystem.__init__(self, steps=steps,
-                           monitors=monitors,
-                           name=self.unique_name(name, 'Container'))
-

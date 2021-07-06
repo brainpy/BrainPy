@@ -50,9 +50,7 @@ class TwoEndConn(DynamicSystem):
 
     # initialize
     # ----------
-    super(TwoEndConn, self).__init__(steps=steps,
-                                     name=self.unique_name(name, 'TwoEC'),
-                                     **kwargs)
+    super(TwoEndConn, self).__init__(steps=steps, name=name, **kwargs)
 
   def register_constant_delay(self, key, size, delay_time):
     """Register a constant delay.

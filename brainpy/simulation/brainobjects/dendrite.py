@@ -13,4 +13,4 @@ class Dendrite(DynamicSystem):
   """
 
   def __init__(self, name, **kwargs):
-    super(Dendrite, self).__init__(name=self.unique_name(name, 'Dendrite'), **kwargs)
+    super(Dendrite, self).__init__(name=name, **kwargs)

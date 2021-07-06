@@ -13,5 +13,4 @@ class Molecular(DynamicSystem):
   """
 
   def __init__(self, name, **kwargs):
-    super(Molecular, self).__init__(name=self.unique_name(name, 'Molecular'),
-                                    **kwargs)
+    super(Molecular, self).__init__(name=name, **kwargs)
