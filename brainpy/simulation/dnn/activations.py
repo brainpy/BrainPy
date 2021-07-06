@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.dnn.imports import lax, nn, jnp, scipy, ndarray
+from brainpy.simulation.dnn.imports import jax, jax_math
 
 __all__ = [
   'celu',
@@ -40,9 +40,9 @@ def celu(x, alpha=1.0):
   alpha : ndarray, float
     The default is 1.0.
   """
-  x = x.value if isinstance(x, ndarray) else x
-  alpha = alpha.value if isinstance(alpha, ndarray) else alpha
-  return ndarray(jnp.where(x > 0, x, alpha * jnp.expm1(x / alpha)))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  alpha = alpha.value if isinstance(alpha, jax_math.ndarray) else alpha
+  return jax_math.ndarray(jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(x / alpha)))
 
 
 def elu(x, alpha=1.0):
@@ -60,10 +60,10 @@ def elu(x, alpha=1.0):
     x : input array
     alpha : scalar or array of alpha values (default: 1.0)
   """
-  x = x.value if isinstance(x, ndarray) else x
-  alpha = alpha.value if isinstance(alpha, ndarray) else alpha
-  safe_x = jnp.where(x > 0, 0., x)
-  return ndarray(jnp.where(x > 0, x, alpha * jnp.expm1(safe_x)))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  alpha = alpha.value if isinstance(alpha, jax_math.ndarray) else alpha
+  safe_x = jax.numpy.where(x > 0, 0., x)
+  return jax_math.ndarray(jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(safe_x)))
 
 
 def leaky_relu(x, negative_slope=1e-2):
@@ -83,8 +83,8 @@ def leaky_relu(x, negative_slope=1e-2):
     x : input array
     negative_slope  or scalar specifying the negative slope (default: 0.01)
   """
-  x = x.value if isinstance(x, ndarray) else x
-  return ndarray(jnp.where(x >= 0, x, negative_slope * x))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  return jax_math.ndarray(jax.numpy.where(x >= 0, x, negative_slope * x))
 
 
 def softplus(x):
@@ -98,8 +98,8 @@ def softplus(x):
   Args:
     x : input array
   """
-  x = x.value if isinstance(x, ndarray) else x
-  return ndarray(jnp.logaddexp(x, 0))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  return jax_math.ndarray(jax.numpy.logaddexp(x, 0))
 
 
 def log_sigmoid(x):
@@ -113,8 +113,8 @@ def log_sigmoid(x):
   Args:
     x : input array
   """
-  x = x.value if isinstance(x, ndarray) else x
-  return ndarray(-jnp.logaddexp(-x, 0))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  return jax_math.ndarray(-jax.numpy.logaddexp(-x, 0))
 
 
 def selu(x):
@@ -140,9 +140,9 @@ def selu(x):
   """
   alpha = 1.6732632423543772848170429916717
   scale = 1.0507009873554804934193349852946
-  x = x.value if isinstance(x, ndarray) else x
-  safe_x = jnp.where(x > 0, 0., x)
-  return ndarray(scale * jnp.where(x > 0, x, alpha * jnp.expm1(safe_x)))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  safe_x = jax.numpy.where(x > 0, 0., x)
+  return jax_math.ndarray(scale * jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(safe_x)))
 
 
 def sigmoid(x):
@@ -156,18 +156,18 @@ def sigmoid(x):
   Args:
     x : input array
   """
-  x = x.value if isinstance(x, ndarray) else x
-  return ndarray(scipy.special.expit(x))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  return jax_math.ndarray(jax.scipy.special.expit(x))
 
 
 def tanh(x):
-  x = x.value if isinstance(x, ndarray) else x
-  return ndarray(lax.tanh(x))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  return jax_math.ndarray(jax.lax.tanh(x))
 
 
 def relu(x):
-  x = x.value if isinstance(x, ndarray) else x
-  return ndarray(nn.relu(x))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  return jax_math.ndarray(jax.nn.relu(x))
 
 
 def log_softmax(x, axis=-1):
@@ -185,9 +185,9 @@ def log_softmax(x, axis=-1):
     axis: the axis or axes along which the :code:`log_softmax` should be
       computed. Either an integer or a tuple of integers.
   """
-  x = x.value if isinstance(x, ndarray) else x
-  shifted = x - lax.stop_gradient(x.max(axis, keepdims=True))
-  return ndarray(shifted - jnp.log(jnp.sum(jnp.exp(shifted), axis, keepdims=True)))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
+  return jax_math.ndarray(shifted - jax.numpy.log(jax.numpy.sum(jax.numpy.exp(shifted), axis, keepdims=True)))
 
 
 def softmax(x, axis=-1):
@@ -205,9 +205,9 @@ def softmax(x, axis=-1):
       softmax output summed across these dimensions should sum to :math:`1`.
       Either an integer or a tuple of integers.
   """
-  x = x.value if isinstance(x, ndarray) else x
-  unnormalized = jnp.exp(x - lax.stop_gradient(x.max(axis, keepdims=True)))
-  return ndarray(unnormalized / unnormalized.sum(axis, keepdims=True))
+  x = x.value if isinstance(x, jax_math.ndarray) else x
+  unnormalized = jax.numpy.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
+  return jax_math.ndarray(unnormalized / unnormalized.sum(axis, keepdims=True))
 
 
 def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
@@ -295,18 +295,18 @@ def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
   1.6094379124341005, 1.6094379124341005
 
   """
-  a = a.value if isinstance(a, ndarray) else a
-  b = b.value if isinstance(b, ndarray) else b
-  res = scipy.special.logsumexp(a=a, axis=axis, b=b,
-                                keepdims=keepdims,
-                                return_sign=return_sign)
+  a = a.value if isinstance(a, jax_math.ndarray) else a
+  b = b.value if isinstance(b, jax_math.ndarray) else b
+  res = jax.scipy.special.logsumexp(a=a, axis=axis, b=b,
+                                    keepdims=keepdims,
+                                    return_sign=return_sign)
   if return_sign:
-    if isinstance(res[0], jnp.ndarray):
-      return ndarray(res[0]), ndarray(res[1])
+    if isinstance(res[0], jax.numpy.ndarray):
+      return jax_math.ndarray(res[0]), jax_math.ndarray(res[1])
     else:
       return res
   else:
-    if isinstance(res, jnp.ndarray):
-      return ndarray(res)
+    if isinstance(res, jax.numpy.ndarray):
+      return jax_math.ndarray(res)
     else:
       return res

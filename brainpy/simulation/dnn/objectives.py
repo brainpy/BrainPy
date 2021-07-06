@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.simulation.dnn.imports import scipy, jnp
+from brainpy.simulation.dnn.imports import jax
 
 __all__ = [
   'cross_entropy_logits',
@@ -24,7 +24,7 @@ def cross_entropy_logits(logits, labels):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
-  return scipy.special.logsumexp(logits, axis=-1) - (logits * labels).sum(-1)
+  return jax.scipy.special.logsumexp(logits, axis=-1) - (logits * labels).sum(-1)
 
 
 def cross_entropy_logits_sparse(logits, labels):
@@ -40,9 +40,9 @@ def cross_entropy_logits_sparse(logits, labels):
   if isinstance(labels, int):
     labeled_logits = logits[..., labels]
   else:
-    labeled_logits = jnp.take_along_axis(logits, labels[..., None], -1).squeeze(-1)
+    labeled_logits = jax.numpy.take_along_axis(logits, labels[..., None], -1).squeeze(-1)
 
-  return scipy.special.logsumexp(logits, axis=-1) - labeled_logits
+  return jax.scipy.special.logsumexp(logits, axis=-1) - labeled_logits
 
 
 def l2(x):
@@ -68,7 +68,7 @@ def mean_absolute_error(x, y, keep_axis=(0,)):
   Returns:
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
   """
-  loss = jnp.abs(x - y)
+  loss = jax.numpy.abs(x - y)
   axis = [i for i in range(loss.ndim) if i not in (keep_axis or ())]
   return loss.mean(axis)
 
@@ -100,7 +100,7 @@ def mean_squared_log_error(y_true, y_pred, keep_axis=(0,)):
   Returns:
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
   """
-  loss = (jnp.log1p(y_true) - jnp.log1p(y_pred)) ** 2
+  loss = (jax.numpy.log1p(y_true) - jax.numpy.log1p(y_pred)) ** 2
   axis = [i for i in range(loss.ndim) if i not in (keep_axis or ())]
   return loss.mean(axis)
 
@@ -115,4 +115,5 @@ def sigmoid_cross_entropy_logits(logits, labels):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
-  return jnp.maximum(logits, 0) - logits * labels + jnp.log(1 + jnp.exp(-jnp.abs(logits)))
+  return jax.numpy.maximum(logits, 0) - logits * labels + \
+         jax.numpy.log(1 + jax.numpy.exp(-jax.numpy.abs(logits)))
