@@ -63,7 +63,7 @@ def period_input(values, durations, dt=None, return_length=False):
 
   # get the current
   start = 0
-  I_current = math.zeros((int(math.ceil(I_duration / dt)),) + I_shape)
+  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
   for c_size, duration in zip(values, durations):
     length = int(duration / dt)
     I_current[start: start + length] = c_size
@@ -103,7 +103,6 @@ def constant_input(I_and_duration, dt=None):
 
   # get input current dimension, shape, and duration
   I_duration = 0.
-  I_dim = 0
   I_shape = ()
   for I in I_and_duration:
     I_duration += I[1]
@@ -112,7 +111,7 @@ def constant_input(I_and_duration, dt=None):
       I_shape = shape
 
   # get the current
-  I_current = math.zeros((int(math.ceil(I_duration / dt)),) + I_shape)
+  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
   start = 0
   for c_size, duration in I_and_duration:
     length = int(duration / dt)
@@ -163,7 +162,7 @@ def spike_input(points, lengths, sizes, duration, dt=None):
   if isinstance(sizes, (float, int)):
     sizes = [sizes] * len(points)
 
-  current = math.zeros(int(math.ceil(duration / dt)))
+  current = math.zeros(int(np.ceil(duration / dt)))
   for time, dur, size in zip(points, lengths, sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
@@ -200,9 +199,9 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   dt = math.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
-  current = math.zeros(int(math.ceil(duration / dt)))
-  p1 = int(math.ceil(t_start / dt))
-  p2 = int(math.ceil(t_end / dt))
+  current = math.zeros(int(np.ceil(duration / dt)))
+  p1 = int(np.ceil(t_start / dt))
+  p2 = int(np.ceil(t_end / dt))
   current[p1: p2] = math.array(math.linspace(c_start, c_end, p2 - p1))
   return current
 
