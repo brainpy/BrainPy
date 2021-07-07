@@ -22,7 +22,7 @@ __all__ = [
   'pre_slice',
   'post_slice',
 
-  'AbstractConnector',
+  'Connector',
   'TwoEndConnector',
 ]
 
@@ -326,12 +326,12 @@ SUPPORTED_SYN_STRUCTURE = ['pre_ids', 'post_ids', 'conn_mat',
                            'pre_slice', 'post_slice']
 
 
-class AbstractConnector(abc.ABC):
+class Connector(abc.ABC):
   def __call__(self, *args, **kwargs):
     pass
 
 
-class TwoEndConnector(AbstractConnector):
+class TwoEndConnector(Connector):
   """Abstract connector class for two end connections."""
 
   def __init__(self):
@@ -421,9 +421,9 @@ class TwoEndConnector(AbstractConnector):
 
     Parameters
     ----------
-    pre_size : int, tuple/list of int
+    pre_size : int, tuple of int, list of int
         The size of the pre-synaptic group.
-    post_size : int, tuple/list of int
+    post_size : int, tuple of int, list of int
         The size of the post-synaptic group.
 
     Returns

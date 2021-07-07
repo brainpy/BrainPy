@@ -173,15 +173,15 @@ class NumpyDSDriver(base.BaseDSDriver):
       data = getattr(data, s)
 
     # get the data key in the host
-    if isinstance(data, (int, float)):
-      if idx is not None:
-        raise errors.ModelUseError(f'"{self.target.name}.{key}" is a scalar, '
-                                   f'cannot define the slice index "{idx}"')
-      key_in_host = f'{node.name}.{key}'
-    elif math.ndim(data) == 1:
-      key_in_host = f'{node.name}.{key}'
+    if not isinstance(data, math.ndarray):
+      raise errors.ModelUseError(f'BrainPy cannot monitor '
+                                 f'"{self.target.name}.{key}", '
+                                 f'because it is a scalar.')
     else:
-      key_in_host = f'{node.name}.{key}.flatten()'
+      if math.ndim(data) == 1:
+        key_in_host = f'{node.name}.{key}.copy()'
+      else:
+        key_in_host = f'{node.name}.{key}.flatten().copy()'
 
     # format the monitor index
     if idx is None:

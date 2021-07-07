@@ -63,6 +63,10 @@ class ndarray(object):
     lines[-1] = lines[-1] + ")"
     return "\n".join(lines)
 
+  def __iter__(self):
+    for v in self._value:
+      yield v
+
   def __format__(self, format_spec: str) -> str:
     return format(self.value, format_spec)
 

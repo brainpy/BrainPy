@@ -62,6 +62,7 @@ class Monitor(object):
                'item_names', 'item_indices', 'item_intervals', 'item_contents',
                'has_build']
 
+  # TODO: support functional "every" specification
   def __init__(self, variables, every=None, target=None):
     if isinstance(variables, (list, tuple)):
       if every is not None:

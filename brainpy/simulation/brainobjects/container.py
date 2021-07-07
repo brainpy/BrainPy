@@ -28,8 +28,8 @@ class Container(DynamicSystem, dict):
       The object name.
   show_code : bool
       Whether show the formatted code.
-  dynamic_systems : dict of (str, DynamicSystem)
-      The instance of DynamicSystem with the format of "key=value".
+  dynamic_systems : dict of (str, )
+      The instance of DynamicSystem with the format of "key=dynamic_system".
   """
 
   def __init__(self, steps=None, monitors=None, name=None, **dynamic_systems):

@@ -20,6 +20,23 @@ def convert(f):
   pass
 
 
+def _make_jit(all_vars, func, static_argnums, f_name=None):
+  @functools.partial(jax.jit, static_argnums=static_argnums)
+  def jitted_func(all_data, *args, **kwargs):
+    all_vars.assign(all_data)
+    out = func(*args, **kwargs)
+    changed_data = all_vars.unique_data()
+    return out, changed_data
+
+  def call(*args, **kwargs):
+    data = all_vars.unique_data()
+    out, changed_data = jitted_func(data, *args, **kwargs)
+    all_vars.assign(changed_data)
+    return out
+
+  return func_name(name=f_name, f=call) if f_name else call
+
+
 def jit(ds_or_func, static_argnums=None, **kwargs):
   """JIT (Just-In-Time) Compilation.
 
@@ -41,49 +58,22 @@ def jit(ds_or_func, static_argnums=None, **kwargs):
   """
 
   if isinstance(ds_or_func, DynamicSystem):
-    # all variables
-    all_vars = ds_or_func.vars()
-
     if len(ds_or_func.steps):
-      # jit step functions
-      steps = {}
-      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-      for key, func in ds_or_func.steps.items():
-        @functools.partial(jax.jit, static_argnums=static_argnums)
-        def jitted_func(all_data, *args, **kwargs):
-          all_vars.assign(all_data)
-          return func(*args, **kwargs), all_vars.unique_data()
-
-        @func_name(name=key)
-        def call(*args, **kwargs):
-          output, changed_data = jitted_func(all_vars.unique_data(), *args, **kwargs)
-          all_vars.assign(changed_data)
-          return output
-
-        steps[key] = call
-
-      # update step functions
-      ds_or_func.steps.update(steps)
+      for key in ds_or_func.steps.keys():
+        static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+        step = ds_or_func.steps[key]
+        all_vars = step.__self__.vars()
+        ds_or_func.steps[key] = _make_jit(all_vars, step, static_argnums, f_name=key)
       return ds_or_func
 
     elif callable(ds_or_func):
       static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-
-      func = ds_or_func.__call__
-
-      @functools.partial(jax.jit, static_argnums=static_argnums)
-      def jitted_func(all_data, *args, **kwargs):
-        all_vars.assign(all_data)
-        return func(*args, **kwargs), all_vars.unique_data()
-
-      def call(*args, **kwargs):
-        output, changed_data = jitted_func(all_vars.unique_data(), *args, **kwargs)
-        all_vars.assign(changed_data)
-        return output
-
-      ds_or_func.__call__ = call
-
+      all_vars = ds_or_func.vars()
+      ds_or_func.__call__ = _make_jit(all_vars,
+                                      func=ds_or_func.__call__,
+                                      static_argnums=static_argnums)
       return ds_or_func
+
     else:
       raise errors.ModelUseError(f'Cannot JIT {ds_or_func}, because it does not have '
                                  f'step functions (len(steps) = 0) and not implement '

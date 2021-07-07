@@ -123,11 +123,9 @@ def word_replace(expr, substitutions):
 ######################################
 
 
-def func_name(name):
-  def wrap(f):
-    f.__name__ = name
-    return f
-  return wrap
+def func_name(f, name):
+  f.__name__ = name
+  return f
 
 
 def is_lambda_function(func):
