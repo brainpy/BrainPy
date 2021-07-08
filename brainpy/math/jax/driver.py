@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from pprint import pprint
 
 from brainpy import math, errors
-from brainpy.backend import utils
-from brainpy.backend.numpy import NumpyDSDriver
-from brainpy.backend.numpy import NumpyDiffIntDriver
+from brainpy.math import utils
+from brainpy.math.numpy.driver import NumpyDSDriver
+from brainpy.math.numpy.driver import NumpyDiffIntDriver
 
 __all__ = [
   'JaxDSDriver',

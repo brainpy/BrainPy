@@ -10,10 +10,6 @@ from . import math
 from . import analysis
 
 
-# "backend" module
-from . import backend
-
-
 # "integrators" module
 from . import integrators
 from .integrators import ode

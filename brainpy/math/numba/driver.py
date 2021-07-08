@@ -6,11 +6,9 @@ import re
 from collections import OrderedDict
 from pprint import pprint
 
-from brainpy import backend
-from brainpy import errors
-from brainpy import tools
-from brainpy.backend import utils, base
-from brainpy.backend.numpy import NumpyDSDriver
+from brainpy import errors, tools
+from brainpy.math import utils, driver, profile
+from brainpy.math.numpy.driver import NumpyDSDriver
 from brainpy.integrators import constants as diffint_cons
 # from brainpy.simulation.brainobjects import delays
 
@@ -69,7 +67,7 @@ def get_numba_profile():
   return NUMBA_PROFILE
 
 
-class NumbaDiffIntDriver(base.BaseDiffIntDriver):
+class NumbaDiffIntDriver(driver.BaseDiffIntDriver):
   def build(self, *args, **kwargs):
     # code
     code = '\n'.join(self.code_lines)
@@ -225,7 +223,7 @@ class _CPUReader(ast.NodeVisitor):
     calls = calls[::-1]
 
     # get the object and the function
-    if calls[0] not in backend.CLASS_KEYWORDS:
+    if calls[0] not in profile.CLASS_KEYWORDS:
       return node
     obj = self.host
     for data in calls[1:-1]:
@@ -406,7 +404,7 @@ def _analyze_step_func(host, f):
   # data assigned by self.xx in line right
   # ---
   self_data_in_right = []
-  if args[0] in backend.CLASS_KEYWORDS:
+  if args[0] in profile.CLASS_KEYWORDS:
     code = ', \n'.join(formatter.rights)
     self_data_in_right = re.findall('\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
     self_data_in_right = list(set(self_data_in_right))
@@ -416,7 +414,7 @@ def _analyze_step_func(host, f):
   code = ', \n'.join(formatter.lefts)
   self_data_without_index_in_left = []
   self_data_with_index_in_left = []
-  if args[0] in backend.CLASS_KEYWORDS:
+  if args[0] in profile.CLASS_KEYWORDS:
     class_p1 = '\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b'
     self_data_without_index_in_left = set(re.findall(class_p1, code))
     # class_p2 = '(\\b' + args[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*)\\[.*\\]'
@@ -491,13 +489,13 @@ def _class2func(cls_func, host, func_name=None, show_code=False):
   for arg in arguments:
     if hasattr(host, arg):
       calls.append(f'{host_name}.{arg}')
-    elif arg in backend.SYSTEM_KEYWORDS:
+    elif arg in profile.SYSTEM_KEYWORDS:
       calls.append(arg)
     else:
       raise errors.ModelDefError(f'Step function "{func_name}" of {host} '
                                  f'define an unknown argument "{arg}" which is not '
                                  f'an attribute of {host} nor the system keywords '
-                                 f'{backend.SYSTEM_KEYWORDS}.')
+                                 f'{profile.SYSTEM_KEYWORDS}.')
 
   # reprocess delay function
   # -----------

@@ -1,7 +1,7 @@
 Release notes
 =============
 
-BrainPy 1.0.3
+BrainPy 1.1.0
 -------------
 
 This package releases a new version of BrainPy.

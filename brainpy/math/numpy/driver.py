@@ -4,7 +4,7 @@ import sys
 from pprint import pprint
 
 from brainpy import errors, math
-from brainpy.backend import utils, base
+from brainpy.math import utils, driver
 
 __all__ = [
   'NumpyDiffIntDriver',
@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-class NumpyDiffIntDriver(base.BaseDiffIntDriver):
+class NumpyDiffIntDriver(driver.BaseDiffIntDriver):
   def build(self, *args, **kwargs):
     code = '\n'.join(self.code_lines)
     self.code = code
@@ -26,7 +26,7 @@ class NumpyDiffIntDriver(base.BaseDiffIntDriver):
     return new_f
 
 
-class NumpyDSDriver(base.BaseDSDriver):
+class NumpyDSDriver(driver.BaseDSDriver):
   """BrainPy Running Driver for Tensor-oriented backends,
   such like NumPy, PyTorch, TensorFlow, etc.
   """
@@ -283,7 +283,7 @@ class NumpyDSDriver(base.BaseDSDriver):
       self.get_monitor_func()
       self.has_built = True
 
-    return self.run
+    # return self.run
 
   def run(self, _t, _i):
     self.target.monitor_step(_t, _i)

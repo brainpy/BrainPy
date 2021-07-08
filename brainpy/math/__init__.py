@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
+
+from brainpy.math.jax.driver import JaxDSDriver, JaxDiffIntDriver
+from brainpy.math.numba.driver import NumbaDSDriver, NumbaDiffIntDriver
 from brainpy.math.numpy import *
+from brainpy.math.numpy.driver import NumpyDSDriver, NumpyDiffIntDriver
+
 
 # 1. numerical precision
 # --------------------------
 
-DT = 0.1
+__dt = 0.1
 
 
 def set_dt(dt):
@@ -17,8 +22,8 @@ def set_dt(dt):
       Numerical integration precision.
   """
   assert isinstance(dt, float)
-  global DT
-  DT = dt
+  global __dt
+  __dt = dt
 
 
 def get_dt():
@@ -29,13 +34,56 @@ def get_dt():
   dt : float
       Numerical integration precision.
   """
-  return DT
+  return __dt
 
 
 # 2. backend name
 # --------------------------
 
 BACKEND_NAME = 'numpy'
+
+_backend_to_drivers = {
+  'numpy': {
+    'diffint': NumpyDiffIntDriver,
+    'ds': NumpyDSDriver
+  },
+  'numba': {
+    'diffint': NumbaDiffIntDriver,
+    'ds': NumbaDSDriver
+  },
+  'jax': {
+    'diffint': JaxDiffIntDriver,
+    'ds': JaxDSDriver
+  },
+}
+
+
+def get_ds_driver(backend=None):
+  """Get the driver for dynamical systems.
+
+  Returns
+  -------
+  node_driver
+      The node driver.
+  """
+  if backend is not None:
+    return _backend_to_drivers[backend]['ds']
+  else:
+    return _backend_to_drivers[get_backend_name()]['ds']
+
+
+def get_diffint_driver(backend=None):
+  """Get the current integration driver for differential equations.
+
+  Returns
+  -------
+  diffint_driver
+      The integration driver.
+  """
+  if backend is not None:
+    return _backend_to_drivers[backend]['diffint']
+  else:
+    return _backend_to_drivers[get_backend_name()]['diffint']
 
 
 def get_backend_name():

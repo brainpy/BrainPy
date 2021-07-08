@@ -6,12 +6,9 @@ from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'jit',
-  # 'Vectorize',
-  # 'Parallel',
+  'vectorize',
+  'parallel',
 ]
-
-_NUMPY_FUNC_NO = 0
-
 
 
 def jit(ds_or_func, *args, **kwargs):
@@ -28,10 +25,9 @@ def jit(ds_or_func, *args, **kwargs):
                                f'but we got {type(ds_or_func)}.')
 
 
-#
-# class Vectorize(DynamicSystem):
-#   target_backend = 'numpy'
-#
-#
-# class Parallel(DynamicSystem):
-#   target_backend = 'numpy'
+
+def vectorize(f):
+  return f
+
+def parallel(f):
+  return f

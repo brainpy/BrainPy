@@ -15,7 +15,7 @@ __all__ = [
   'is_lambda_function',
   'get_main_code',
   'get_func_source',
-  'func_name',
+  'change_func_name',
 ]
 
 
@@ -123,7 +123,7 @@ def word_replace(expr, substitutions):
 ######################################
 
 
-def func_name(f, name):
+def change_func_name(f, name):
   f.__name__ = name
   return f
 

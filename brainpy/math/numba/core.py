@@ -6,11 +6,9 @@ from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'jit',
-  'Vectorize',
-  'Parallel',
+  'vectorize',
+  'parallel',
 ]
-
-_NUMBA_FUNC_NO = 0
 
 
 def jit(ds_or_func, *args, **kwargs):
@@ -28,9 +26,9 @@ def jit(ds_or_func, *args, **kwargs):
 
 
 
-class Parallel(DynamicSystem):
-  target_backend = 'numba'
+def vectorize(f):
+  return f
 
+def parallel(f):
+  return f
 
-class Vectorize(DynamicSystem):
-  target_backend = 'numba'

@@ -7,17 +7,15 @@ import jax
 from brainpy import errors
 from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.simulation.collector import ArrayCollector
-from brainpy.tools.codes import func_name
+from brainpy.tools.codes import change_func_name
 
 __all__ = [
   'jit',
-  'Vectorize',
-  'Parallel',
+  'vectorize',
+  'parallel',
 ]
 
 
-def convert(f):
-  pass
 
 
 def _make_jit(all_vars, func, static_argnums, f_name=None):
@@ -34,7 +32,7 @@ def _make_jit(all_vars, func, static_argnums, f_name=None):
     all_vars.assign(changed_data)
     return out
 
-  return func_name(name=f_name, f=call) if f_name else call
+  return change_func_name(name=f_name, f=call) if f_name else call
 
 
 def jit(ds_or_func, static_argnums=None, **kwargs):
@@ -89,27 +87,8 @@ def jit(ds_or_func, static_argnums=None, **kwargs):
                                f'but we got {type(ds_or_func)}.')
 
 
-class Parallel(object):
-  target_backend = 'jax'
+def vectorize(f):
+  return f
 
-  pass
-
-
-class Vectorize(DynamicSystem):
-  """Vectorize module takes a function or a module and
-  compiles it for running in parallel on a single device.
-
-  Parameters
-  ----------
-
-  f : DynamicSystem, function
-    The function or the module to compile for vectorization.
-  all_vars : ArrayCollector
-    The Collection of variables used by the function or module.
-    This argument is required for functions.
-  batch_axis : tuple of int, int, tuple of None
-    Tuple of int or None for each of f's input arguments:
-    the axis to use as batch during vectorization. Use
-    None to automatically broadcast.
-  """
-  target_backend = 'jax'
+def parallel(f):
+  return f

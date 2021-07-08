@@ -63,3 +63,7 @@ class BaseDiffIntDriver(AbstractDriver):
     self.func_name = func_name
     self.show_code = show_code
     self.code = None
+
+  @abc.abstractmethod
+  def build(self, *args, **kwargs):
+    pass

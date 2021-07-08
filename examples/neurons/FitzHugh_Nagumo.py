@@ -26,9 +26,9 @@ class FitzHughNagumo(bp.NeuGroup):
         return dV, dw
 
     def update(self, _t, _i):
-        V, self.w = self.integral(self.V, self.w, _t, self.input)
-        self.spike = (V >= self.Vth) * (self.V < self.Vth)
-        self.V = V
+        V, self.w[:] = self.integral(self.V, self.w, _t, self.input)
+        self.spike[:] = (V >= self.Vth) * (self.V < self.Vth)
+        self.V[:] = V
         self.input[:] = 0.
 
 
