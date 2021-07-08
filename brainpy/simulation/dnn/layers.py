@@ -4,8 +4,7 @@ import collections
 import inspect
 
 from brainpy import errors
-from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.simulation.brainobjects.container import Container
+from brainpy.simulation.brainobjects.base import DynamicSystem, Container
 from brainpy.simulation.dnn.imports import jax_math, jax
 from brainpy.simulation.dnn.initializations import XavierNormal, Initializer, ZerosInit
 
