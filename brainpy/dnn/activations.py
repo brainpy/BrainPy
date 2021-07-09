@@ -1,21 +1,31 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.dnn.imports import jax, jax_math
+from brainpy.dnn.imports import jax, jax_math
+
 
 __all__ = [
-  'celu',
   'elu',
-  'leaky_relu',
-  'log_sigmoid',
-  'log_softmax',
-  'logsumexp',
+  'celu',
   'selu',
+  'relu',
+  'leaky_relu',
   'sigmoid',
   'softmax',
   'softplus',
   'tanh',
-  'relu',
+  'log_sigmoid',
+  'log_softmax',
+  'log_sumexp',
 ]
+
+
+def _get(activation):
+  global_vars = globals()
+
+  if activation not in global_vars:
+    raise ValueError(f'Unknown activation function: {activation}, \nwe only support: '
+                     f'{[k for k, v in global_vars.items() if not k.startswith("_") and callable(v)]}')
+  return global_vars[activation]
 
 
 def celu(x, alpha=1.0):
@@ -210,7 +220,7 @@ def softmax(x, axis=-1):
   return jax_math.ndarray(unnormalized / unnormalized.sum(axis, keepdims=True))
 
 
-def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
+def log_sumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
   """Compute the log of the sum of exponentials of input elements.
 
   Parameters

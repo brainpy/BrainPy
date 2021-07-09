@@ -5,15 +5,16 @@ import inspect
 
 from brainpy import errors
 from brainpy.simulation.brainobjects.base import DynamicSystem, Container
-from brainpy.simulation.dnn.imports import jax_math, jax
-from brainpy.simulation.dnn.initializations import XavierNormal, Initializer, ZerosInit
+from brainpy.dnn.imports import jax_math, jax
+from brainpy.dnn.initializers import XavierNormal, Initializer, ZerosInit
+from brainpy.dnn import activations
 
 __all__ = [
   # abstract class
   'Module', 'Sequential',
 
   # commonly used layers
-  'Linear', 'Dropout', 'Conv2D',
+  'Activation', 'Linear', 'Dropout', 'Conv2D',
 ]
 
 
@@ -40,9 +41,7 @@ def _check_tuple(v):
 
 class Module(DynamicSystem):
   def __init__(self, name=None):
-    super(Module, self).__init__(name=name,
-                                 steps=None,
-                                 monitors=None)
+    super(Module, self).__init__(name=name, steps=None, monitors=None)
 
   def update(self, _t, _i):  # deprecated
     raise ValueError(f'Abstract method "update" is deprecated in {Module}. '
@@ -61,6 +60,15 @@ class Sequential(Container):
         raise errors.ModelUseError(f'Only support {Module.__name__}, '
                                    f'but we got {type(module)}.')
       all_systems[module.name] = module
+      # if not callable(module):
+      #   raise errors.ModelUseError(f'Only support callable, but we got {module}.')
+      # if hasattr(module, 'name'):
+      #   _name = module.name
+      # elif hasattr(module, '__name__'):
+      #   _name = module.__name__
+      # else:
+      #   _name = self.unique_name(name=None, type='unknown')
+      # all_systems[_name] = module
     # check "kwargs"
     for key, module in kwarg_modules.items():
       if not isinstance(module, Module):
@@ -108,6 +116,16 @@ class Sequential(Container):
     return args
 
 
+class Activation(Module):
+  def __init__(self, activation, name=None, **setting):
+    super(Activation, self).__init__(name=name)
+    self.activation = activations._get(activation)
+    self.setting = setting
+
+  def __call__(self, x):
+    return self.activation(x, **self.setting)
+
+
 class Linear(Module):
   """A fully connected layer implemented as the dot product of inputs and
   weights.
@@ -122,6 +140,7 @@ class Linear(Module):
       Initializer for the weights.
   b_init : Initializer
       Initializer for the bias.
+  name : str, optional
   """
 
   def __init__(self, n_in, n_out, w_init=XavierNormal(), b_init=ZerosInit(), name=None):

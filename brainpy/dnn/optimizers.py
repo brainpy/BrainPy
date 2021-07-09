@@ -4,8 +4,8 @@ import numpy as np
 
 from brainpy.simulation import collector
 from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.simulation.dnn.imports import jax_math, jax
-from brainpy.simulation.dnn.layers import Module
+from brainpy.dnn.imports import jax_math, jax
+from brainpy.dnn.layers import Module
 
 __all__ = [
   'Optimizer',

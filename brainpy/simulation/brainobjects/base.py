@@ -254,7 +254,7 @@ class DynamicSystem(object):
 
     Parameters
     ----------
-    name : str
+    name : str, optional
       The expected name. If None, the unique name will be returned.
       Otherwise, the provided name will be checked to guarantee its
       uniqueness.

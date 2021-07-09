@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.simulation.dnn.imports import jax
+from brainpy.dnn.imports import jax
 
 __all__ = [
-  'cross_entropy_logits',
-  'cross_entropy_logits_sparse',
+  'cross_entropy',
+  'cross_entropy_sparse',
+  'cross_entropy_sigmoid',
   'l2',
   'mean_absolute_error',
   'mean_squared_error',
   'mean_squared_log_error',
-  'sigmoid_cross_entropy_logits',
+
 ]
 
 
-def cross_entropy_logits(logits, labels):
+def cross_entropy(logits, labels):
   """Computes the softmax cross-entropy loss on n-dimensional data.
 
   Args:
@@ -27,7 +28,7 @@ def cross_entropy_logits(logits, labels):
   return jax.scipy.special.logsumexp(logits, axis=-1) - (logits * labels).sum(-1)
 
 
-def cross_entropy_logits_sparse(logits, labels):
+def cross_entropy_sparse(logits, labels):
   """Computes the softmax cross-entropy loss.
 
   Args:
@@ -105,7 +106,7 @@ def mean_squared_log_error(y_true, y_pred, keep_axis=(0,)):
   return loss.mean(axis)
 
 
-def sigmoid_cross_entropy_logits(logits, labels):
+def cross_entropy_sigmoid(logits, labels):
   """Computes the sigmoid cross-entropy loss.
 
   Args:
@@ -115,5 +116,6 @@ def sigmoid_cross_entropy_logits(logits, labels):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
-  return jax.numpy.maximum(logits, 0) - logits * labels + \
+  return jax.numpy.maximum(logits, 0) - \
+         logits * labels + \
          jax.numpy.log(1 + jax.numpy.exp(-jax.numpy.abs(logits)))

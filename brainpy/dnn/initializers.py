@@ -5,7 +5,7 @@ import abc
 import numpy as np
 import scipy.stats
 
-from brainpy.simulation.dnn.imports import jax, jax_math
+from brainpy.dnn.imports import jax, jax_math
 
 __all__ = [
   'Initializer',
@@ -18,7 +18,6 @@ __all__ = [
   'XavierNormal',
   'XavierTruncatedNormal',
   'TruncatedNormal',
-
 ]
 
 
