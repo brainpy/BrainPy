@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from brainpy import math, errors, backend
+from brainpy import math, errors
 from brainpy.integrators.integrators import Integrator
 from brainpy.simulation import collector, checking, utils
 from brainpy.simulation.monitor import Monitor
@@ -182,8 +182,7 @@ class DynamicSystem(object):
 
     # build main function the monitor function
     if self.driver is None:
-      self.driver = backend.get_ds_driver()
-      self.driver = self.driver(self)
+      self.driver = math.DriverForDS(self)
     formatted_inputs = utils.format_inputs(host=self,
                                            duration=duration,
                                            inputs=inputs)

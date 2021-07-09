@@ -12,6 +12,8 @@
 
 from . import linalg
 from . import random
+from .driver import JaxDSDriver as DriverForDS
+from .driver import JaxDiffIntDriver as DriverForDiffInt
 from .code import *
 from .core import *
 from .ndarray import *

@@ -5,7 +5,7 @@ import abc
 
 import numpy as np
 
-from brainpy import backend, math, errors
+from brainpy import math, errors
 
 try:
   import numba as nb
@@ -28,7 +28,7 @@ __all__ = [
 
 
 def _numba_backend():
-  r = backend.get_backend_name().startswith('numba')
+  r = math.get_backend_name().startswith('numba')
   if r and nb is None:
     raise errors.BackendNotInstalled('numba')
   return r

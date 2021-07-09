@@ -2,7 +2,6 @@
 
 from contextlib import contextmanager
 
-from collections import OrderedDict
 from brainpy import math
 from brainpy.simulation import utils
 

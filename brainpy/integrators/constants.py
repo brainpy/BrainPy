@@ -102,6 +102,6 @@ SUPPORTED_VAR_TYPE = [
 # ----------
 #
 
-DE_PREFIX = '_brainpy_intg_of_'
-ODE_PREFIX = 'ode_brainpy_intg_of_'
-SDE_PREFIX = 'sde_brainpy_intg_of_'
+DE_PREFIX = 'brainpy_intg_of_'
+ODE_PREFIX = 'brainpy_intg_of_ode_'
+SDE_PREFIX = 'brainpy_intg_of_sde_'

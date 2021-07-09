@@ -3,7 +3,6 @@
 
 import numpy as np
 
-from brainpy import backend
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 

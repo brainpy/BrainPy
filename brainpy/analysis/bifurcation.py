@@ -7,11 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-from brainpy import math
-from brainpy import errors
-from brainpy.analysis import base
-from brainpy.analysis import stability
-from brainpy.analysis import utils
+from brainpy import errors, math
+from brainpy.analysis import base, stability, utils
 from brainpy.analysis.trajectory import Trajectory
 
 __all__ = [

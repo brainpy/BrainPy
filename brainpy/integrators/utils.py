@@ -2,7 +2,8 @@
 
 import inspect
 
-from brainpy import backend, errors
+from brainpy import errors
+from brainpy.math import profile
 
 __all__ = [
   'get_args',
@@ -79,11 +80,11 @@ def get_args(f):
   # 2. analyze the function arguments
   #   2.1 class keywords
   class_kw = []
-  if reduced_args[0] in backend.CLASS_KEYWORDS:
+  if reduced_args[0] in profile.CLASS_KEYWORDS:
     class_kw.append(reduced_args[0])
     reduced_args = reduced_args[1:]
   for a in reduced_args:
-    if a in backend.CLASS_KEYWORDS:
+    if a in profile.CLASS_KEYWORDS:
       raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
                                f'as the first argument.')
   #  2.2 variable names

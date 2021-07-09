@@ -2,8 +2,7 @@
 
 import inspect
 
-from brainpy import math
-from brainpy import errors
+from brainpy import errors, math
 from brainpy.integrators import constants
 from brainpy.integrators.analysis_by_ast import separate_variables
 from . import common
@@ -50,7 +49,7 @@ class Tools(object):
     # code_lines.append('  ')
 
     for var in variables:
-      code_lines.append(f'  {var}_dW = math.normal(0.000, dt_sqrt, math.shape({var}))')
+      code_lines.append(f'  {var}_dW = math.random.normal(0.000, dt_sqrt, math.shape({var}))')
     code_lines.append('  ')
 
 

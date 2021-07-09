@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import math
-from brainpy import errors
+from brainpy import errors, math
 from brainpy.integrators import constants
 from . import common
 
@@ -43,8 +42,8 @@ class Tools(object):
     #     code_lines.append('  ')
 
     for var in variables:
-      code_lines.append(f'  {var}_I1 = math.normal(0.000, dt_sqrt, math.shape({var}))')
-      code_lines.append(f'  {var}_I0 = math.normal(0.000, dt_sqrt, math.shape({var}))')
+      code_lines.append(f'  {var}_I1 = math.random.normal(0.000, dt_sqrt, math.shape({var}))')
+      code_lines.append(f'  {var}_I0 = math.random.normal(0.000, dt_sqrt, math.shape({var}))')
       code_lines.append(f'  {var}_I10 = 0.5 * {vdt} * ({var}_I1 + {var}_I0 / 3.0 ** 0.5)')
       code_lines.append(f'  {var}_I11 = 0.5 * ({var}_I1 ** 2 - {vdt})')
       if triple_integral:

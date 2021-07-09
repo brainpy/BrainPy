@@ -2,10 +2,8 @@
 
 import inspect
 
-from brainpy import errors
-from brainpy import math
-from brainpy.integrators import constants
-from brainpy.integrators import utils
+from brainpy import errors, math
+from brainpy.integrators import constants, utils
 from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.ode import common
 

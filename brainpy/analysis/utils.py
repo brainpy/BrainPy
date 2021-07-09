@@ -6,9 +6,7 @@ import threading
 
 import numpy as np
 
-from brainpy import math
-from brainpy import errors
-from brainpy import tools
+from brainpy import errors, math, tools
 from brainpy.integrators import analysis_by_ast
 
 try:

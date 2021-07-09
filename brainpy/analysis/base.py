@@ -5,10 +5,8 @@ from copy import deepcopy
 
 import numpy as np
 
-from brainpy import errors
-from brainpy import tools
-from brainpy.analysis import solver
-from brainpy.analysis import utils
+from brainpy import errors, tools
+from brainpy.analysis import solver, utils
 
 try:
   import sympy

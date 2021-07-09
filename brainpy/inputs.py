@@ -3,11 +3,11 @@
 import numpy as np
 
 from brainpy import errors, math
-from brainpy.simulation import NeuGroup
-from brainpy.simulation import size2len
+from brainpy.simulation import NeuGroup, size2len
+
 
 __all__ = [
-  'period_input',
+  'section_input',
   'constant_input',
   'spike_input',
   'ramp_input',
@@ -21,16 +21,16 @@ __all__ = [
 ]
 
 
-def period_input(values, durations, dt=None, return_length=False):
-  """Format an input current with different periods.
+def section_input(values, durations, dt=None, return_length=False):
+  """Format an input current with different sections.
 
   For example:
 
   If you want to get an input where the size is 0 bwteen 0-100 ms,
   and the size is 1. between 100-200 ms.
   >>> import numpy as np
-  >>> period_input(values=[0, 1],
-  >>>              durations=[100, 100])
+  >>> section_input(values=[0, 1],
+  >>>               durations=[100, 100])
 
   Parameters
   ----------
@@ -238,8 +238,6 @@ class SpikeTimeInput(NeuGroup):
   name : str
       The group name.
   """
-  target_backend = ['numpy', 'numba']
-
   def __init__(self, size, times, indices, need_sort=True, **kwargs):
     if len(indices) != len(times):
       raise errors.ModelUseError(f'The length of "indices" and "times" must be the same. '
@@ -247,8 +245,8 @@ class SpikeTimeInput(NeuGroup):
 
     # data about times and indices
     self.idx = 0
-    self.times = np.ascontiguousarray(times, dtype=float)
-    self.indices = np.ascontiguousarray(indices, dtype=int)
+    self.times = math.asarray(times, dtype=float)
+    self.indices = np.asarray(indices, dtype=int)
     self.num_times = len(times)
     if need_sort:
       sort_idx = np.argsort(times)
@@ -265,12 +263,8 @@ class SpikeTimeInput(NeuGroup):
 
 
 class PoissonInput(NeuGroup):
-  target_backend = 'general'
-
   def __init__(self, size, freqs, **kwargs):
-    super(PoissonInput, self).__init__(size=size,
-                                       steps={'update': self.update},
-                                       **kwargs)
+    super(PoissonInput, self).__init__(size=size, **kwargs)
 
     self.dt = math.get_dt() / 1000.
     self.freqs = freqs

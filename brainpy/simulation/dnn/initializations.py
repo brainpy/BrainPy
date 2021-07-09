@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import abc
+
 import numpy as np
 import scipy.stats
 
@@ -8,6 +9,8 @@ from brainpy.simulation.dnn.imports import jax, jax_math
 
 __all__ = [
   'Initializer',
+  'ZerosInit',
+  'OnesInit',
   'Identity',
   'Orthogonal',
   'KaimingNormal',
@@ -15,8 +18,7 @@ __all__ = [
   'XavierNormal',
   'XavierTruncatedNormal',
   'TruncatedNormal',
-  'ZerosInit',
-  'OnesInit',
+
 ]
 
 
@@ -70,6 +72,22 @@ def _xavier_normal_gain(shape):
   """
   fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
   return np.sqrt(2 / (fan_in + fan_out))
+
+
+class ZerosInit(Initializer):
+  def __init__(self):
+    pass
+
+  def __call__(self, shape, dtype=None):
+    return jax_math.zeros(shape, dtype=dtype)
+
+
+class OnesInit(Initializer):
+  def __init__(self, value=1.):
+    self.value = value
+
+  def __call__(self, shape, dtype=None):
+    return jax_math.ones(shape, dtype=dtype)
 
 
 class Identity(Initializer):
@@ -264,19 +282,3 @@ class TruncatedNormal(Initializer):
                                             scale=self.scale / truncated_std,
                                             lower=self.lower,
                                             upper=self.upper)
-
-
-class ZerosInit(Initializer):
-  def __init__(self):
-    pass
-
-  def __call__(self, shape, dtype=None):
-    return jax_math.zeros(shape, dtype=dtype)
-
-
-class OnesInit(Initializer):
-  def __init__(self, value=1.):
-    self.value = value
-
-  def __call__(self, shape, dtype=None):
-    return jax_math.ones(shape, dtype=dtype)

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import backend
+from brainpy import math
 from brainpy.integrators import constants
-from brainpy.integrators.integrators import ODEIntegrator
 
 _ODE_UNKNOWN_NO = 0
 
@@ -78,10 +77,10 @@ def compile_and_assign_attrs(code_lines,
                              parameters,
                              dt,
                              var_type):
-  driver = backend.get_diffint_driver()(code_scope=code_scope,
-                                        code_lines=code_lines,
-                                        func_name=func_name,
-                                        show_code=show_code)
+  driver = math.DriverForDiffInt(code_scope=code_scope,
+                                 code_lines=code_lines,
+                                 func_name=func_name,
+                                 show_code=show_code)
   call = driver.build()
   return call
 
