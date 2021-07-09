@@ -17,7 +17,7 @@ class HRNeuron(bp.NeuGroup):
 
         super(HRNeuron, self).__init__(size=num, **kwargs)
 
-    def update(self, _t):
+    def update(self, _t, _i):
         pass
 
 

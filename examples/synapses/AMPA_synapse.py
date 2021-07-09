@@ -5,8 +5,9 @@ from numba import prange
 
 import brainpy as bp
 
+bp.math.use_backend('numba')
+bp.math.set_dt(0.01)
 bp.integrators.set_default_odeint('rk4')
-bp.backend.set(backend='numba', dt=0.01)
 
 
 class HH(bp.NeuGroup):

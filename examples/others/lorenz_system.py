@@ -5,39 +5,38 @@ from mpl_toolkits.mplot3d import Axes3D
 
 import brainpy as bp
 
-bp.backend.set('numpy', dt=0.005)
+bp.math.use_backend('numpy')
+bp.math.set_dt(0.005)
 
 
 class LorenzSystem(bp.DynamicSystem):
-    target_backend = 'general'
+  target_backend = 'general'
 
-    def __init__(self, size=0, sigma=10, beta=8 / 3, rho=28, p=0.1, **kwargs):
-        self.sigma = sigma
-        self.beta = beta
-        self.rho = rho
-        self.p = p
+  def __init__(self, size=0, sigma=10, beta=8 / 3, rho=28, p=0.1, **kwargs):
+    self.sigma = sigma
+    self.beta = beta
+    self.rho = rho
+    self.p = p
 
-        self.x = bp.ops.ones(size)
-        self.y = bp.ops.ones(size)
-        self.z = bp.ops.ones(size)
+    self.x = bp.math.ones(size)
+    self.y = bp.math.ones(size)
+    self.z = bp.math.ones(size)
 
-        def lorenz_g(x, y, z, t, sigma, rho, beta, p):
-            return p * x, p * y, p * z
+    self.lorenz = bp.sdeint(f=self.lorenz_f, g=self.loren_g)
 
-        @bp.sdeint(g=lorenz_g)
-        def lorenz_f(x, y, z, t, sigma, rho, beta, p):
-            dx = sigma * (y - x)
-            dy = x * (rho - z) - y
-            dz = x * y - beta * z
-            return dx, dy, dz
+    super(LorenzSystem, self).__init__(**kwargs)
 
-        self.lorenz = lorenz_f
+  def loren_g(self, x, y, z, t):
+    return self.p * x, self.p * y, self.p * z
 
-        super(LorenzSystem, self).__init__(steps=[self.update], **kwargs)
+  def lorenz_f(self, x, y, z, t):
+    dx = self.sigma * (y - x)
+    dy = x * (self.rho - z) - y
+    dz = x * y - self.beta * z
+    return dx, dy, dz
 
-    def update(self, _t):
-        self.x, self.y, self.z = self.lorenz(self.x, self.y, self.z, _t,
-                                             self.sigma, self.rho, self.beta, self.p)
+  def update(self, _t, _i):
+    self.x[:], self.y[:], self.z[:] = self.lorenz(self.x, self.y, self.z, _t)
 
 
 sys = LorenzSystem(1, monitors=['x', 'y', 'z'])
@@ -52,4 +51,4 @@ ax.set_xlabel('z')
 plt.show()
 
 if __name__ == '__main__':
-    Axes3D
+  Axes3D
