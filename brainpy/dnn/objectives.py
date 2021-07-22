@@ -116,6 +116,5 @@ def cross_entropy_sigmoid(logits, labels):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
-  return jax.numpy.maximum(logits, 0) - \
-         logits * labels + \
+  return jax.numpy.maximum(logits, 0) - logits * labels + \
          jax.numpy.log(1 + jax.numpy.exp(-jax.numpy.abs(logits)))
