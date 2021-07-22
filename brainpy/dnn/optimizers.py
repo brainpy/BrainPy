@@ -29,16 +29,11 @@ class Optimizer(Module):
   def register_dynamic_vars(self, variables):
     self._dynamic_vars.extend(variables)
 
-  def vars(self, prefix=''):
+  def vars(self, method='absolute'):
     gather = collector.ArrayCollector()
     for i, v in enumerate(self._dynamic_vars):
       gather[f'_v{i}'] = v
-    for k, v in self.__dict__.items():
-      if isinstance(v, jax_math.ndarray):
-        gather[prefix + k] = v
-        gather[f'{self.name}.{k}'] = v
-      elif isinstance(v, DynamicSystem):
-        gather.update(v.vars(prefix=f'{prefix}{k}.'))
+    gather.update(super(Optimizer, self).vars(method=method))
     return gather
 
 

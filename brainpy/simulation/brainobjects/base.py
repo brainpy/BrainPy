@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from brainpy import math, errors
-from brainpy.integrators.integrators import Integrator
+from brainpy.integrators.constants import DE_PREFIX
 from brainpy.simulation import collector, checking, utils
 from brainpy.simulation.monitor import Monitor
 
@@ -18,6 +18,13 @@ _error_msg = 'Unknown model type: {type}. ' \
              'Currently, BrainPy only supports: ' \
              'function, tuple/dict of functions, ' \
              'tuple of function names.'
+
+
+def _find_integrator(obj):
+  for key in dir(obj):
+    value = getattr(obj, key)
+    if callable(value) and hasattr(value, '__name__') and value.__name__.startswith(DE_PREFIX):
+      yield value
 
 
 class DynamicSystem(object):
@@ -98,13 +105,13 @@ class DynamicSystem(object):
                                  f'"target_backend": '
                                  f'{self.target_backend}')
 
-  def vars(self, prefix=''):
-    """Collect all the variables in the instance of
-    DynamicSystem and the node instances.
+  def vars(self, method='absolute'):
+    """Collect all the variables in the instance of DynamicSystem
+    and the node instances.
 
     Parameters
     ----------
-    prefix : str
+    method : str
       The prefix string for the variable names.
 
     Returns
@@ -113,21 +120,30 @@ class DynamicSystem(object):
       The collection contained the variable name and the variable data.
     """
     gather = collector.ArrayCollector()
-    for k, v in self.__dict__.items():
-      if isinstance(v, math.ndarray):
-        gather[prefix + k] = v
-        gather[f'{self.name}.{k}'] = v
-      elif isinstance(v, DynamicSystem):
-        gather.update(v.vars(prefix=f'{prefix}{k}.'))
+    if method == 'relative':
+      for k, v in self.__dict__.items():
+        if isinstance(v, math.ndarray):
+          gather[k] = v
+        elif isinstance(v, DynamicSystem):
+          for k2, v2 in v.vars(method=method).items():
+            gather[f'{k}.{k2}'] = v2
+    elif method == 'absolute':
+      for k, v in self.__dict__.items():
+        if isinstance(v, math.ndarray):
+          gather[f'{self.name}.{k}'] = v
+        elif isinstance(v, DynamicSystem):
+          gather.update(v.vars(method=method))
+    else:
+      raise ValueError(f'No support for the method of "{method}".')
     return gather
 
-  def ints(self, prefix=''):
+  def ints(self, method='absolute'):
     """Collect all the integrators in the instance
     of DynamicSystem and the node instances.
 
     Parameters
     ----------
-    prefix : str
+    method : str
       The prefix string for the integrator names.
 
     Returns
@@ -136,21 +152,32 @@ class DynamicSystem(object):
       The collection contained the integrator name and the integrator function.
     """
     gather = collector.Collector()
-    for k, v in self.__dict__.items():
-      if isinstance(v, Integrator):
-        gather[prefix + k] = v
-        gather[f'{self.name}.k'] = v
-      elif isinstance(v, DynamicSystem):
-        gather.update(v.ints(prefix=prefix + k))
+    if method == 'relative':
+      for k in dir(self):
+        v = getattr(self, k)
+        if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(DE_PREFIX):
+          gather[k] = v
+        elif isinstance(v, DynamicSystem):
+          for k2, v2 in v.ints(method=method).items():
+            gather[f'{k}.{k2}'] = v2
+    elif method == 'absolute':
+      for k in dir(self):
+        v = getattr(self, k)
+        if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(DE_PREFIX):
+          gather[f'{self.name}.{k}'] = v
+        elif isinstance(v, DynamicSystem):
+          gather.update(v.ints(method=method))
+    else:
+      raise ValueError(f'No support for the method of "{method}".')
     return gather
 
-  def nodes(self, prefix=''):
+  def nodes(self, method='absolute'):
     """Collect all the nodes in the instance
     of DynamicSystem.
 
     Parameters
     ----------
-    prefix : str
+    method : str
       The prefix string for the node names.
 
     Returns
@@ -159,12 +186,19 @@ class DynamicSystem(object):
       The collection contained the integrator name and the integrator function.
     """
     gather = collector.Collector()
-    for k, v in self.__dict__.items():
-      if isinstance(v, DynamicSystem):
-        gather[prefix + k] = v
-        gather[f'{self.name}.{k}'] = v
-        gather[v.name] = v
-        gather.update(v.nodes(f'{prefix}{k}.'))
+    if method == 'relative':
+      for k, v in self.__dict__.items():
+        if isinstance(v, DynamicSystem):
+          gather[k] = v
+          for k2, v2 in v.nodes(method=method).items():
+            gather[f'{k}.{k2}'] = v2
+    elif method == 'absolute':
+      for k, v in self.__dict__.items():
+        if isinstance(v, DynamicSystem):
+          gather[v.name] = v
+          gather.update(v.nodes(method=method))
+    else:
+      raise ValueError(f'No support for the method of "{method}".')
     return gather
 
   def update(self, _t, _i):
@@ -319,13 +353,13 @@ class Container(DynamicSystem, dict):
           steps[f'{obj_key}_{step_key}'] = step
     DynamicSystem.__init__(self, steps=steps, monitors=monitors, name=name)
 
-  def vars(self, prefix=''):
+  def vars(self, method='absolute'):
     """Collect all the variables (and their names) contained
     in the list and its children instance of DynamicSystem.
 
     Parameters
     ----------
-    prefix : str
+    method : str
       string to prefix to the variable names.
 
     Returns
@@ -334,38 +368,46 @@ class Container(DynamicSystem, dict):
         A collection of all the variables.
     """
     gather = collector.ArrayCollector()
-    for k, v in self.items():
-      gather.update(v.vars(f'{prefix}{k}.'))
-    for k, v in self.__dict__.items():
-      if isinstance(v, math.ndarray):
-        gather[prefix + k] = v
-        gather[f'{self.name}.{k}'] = v
-      elif isinstance(v, DynamicSystem):
-        gather.update(v.vars(prefix=f'{prefix}{k}.'))
+    if method == 'relative':
+      for k, v in self.items():
+        for k2, v2 in v.vars(method=method).items():
+          gather[f'{k}.{k2}'] = v2
+    elif method == 'absolute':
+      for k, v in self.items():
+        gather.update(v.vars(method=method))
+    else:
+      raise ValueError(f'No support for the method of "{method}".')
+    gather.update(super(Container, self).vars(method=method))
     return gather
 
-  def ints(self, prefix=''):
+  def ints(self, method='absolute'):
     gather = collector.Collector()
-    for k, v in self.items():
-      gather.update(v.ints(prefix=f'{prefix}{k}.'))
-    for k, v in self.__dict__.items():
-      if isinstance(v, Integrator):
-        gather[prefix + k] = v
-      elif isinstance(v, DynamicSystem):
-        gather.update(v.ints(prefix=f'{prefix}{k}.'))
+    if method == 'relative':
+      for k, v in self.items():
+        for k2, v2 in v.ints(method=method).items():
+          gather[f'{k}.{k2}'] = v2
+    elif method == 'absolute':
+      for k, v in self.items():
+        gather.update(v.ints(method=method))
+    else:
+      raise ValueError(f'No support for the method of "{method}".')
+    gather.update(super(Container, self).ints(method=method))
     return gather
 
-  def nodes(self, prefix=''):
+  def nodes(self, method='absolute'):
     gather = collector.Collector()
-    for k, v in self.items():
-      gather[prefix + k] = v
-      gather[v.name] = v
-      gather.update(v.nodes(f'{prefix}{k}.'))
-    for k, v in self.__dict__.items():
-      if isinstance(v, DynamicSystem):
+    if method == 'relative':
+      for k, v in self.items():
+        gather[k] = v
+        for k2, v2 in v.nodes(method=method).items():
+          gather[f'{k}.{k2}'] = v2
+    elif method == 'absolute':
+      for k, v in self.items():
         gather[v.name] = v
-        gather[prefix + k] = v
-        gather.update(v.nodes(f'{prefix}{k}.'))
+        gather.update(v.nodes(method=method))
+    else:
+      raise ValueError(f'No support for the method of "{method}".')
+    gather.update(super(Container, self).nodes(method=method))
     return gather
 
   def __getattr__(self, item):
