@@ -4,10 +4,10 @@ import collections
 import inspect
 
 from brainpy import errors
-from brainpy.simulation.brainobjects.base import DynamicSystem, Container
+from brainpy.dnn import activations
 from brainpy.dnn.imports import jax_math, jax
 from brainpy.dnn.initializers import XavierNormal, Initializer, ZerosInit
-from brainpy.dnn import activations
+from brainpy.simulation.brainobjects.base import DynamicSystem, Container
 
 __all__ = [
   # abstract class
@@ -18,10 +18,10 @@ __all__ = [
 ]
 
 
-def _check_kwargs(f, config):
+def _check_config(f, config):
   pars_in_f = inspect.signature(f).parameters
-  if next(reversed(pars_in_f.values())).kind == inspect.Parameter.VAR_KEYWORD:
-    return config
+  if 'config' in pars_in_f.keys():
+    return {'config': config}
   else:
     return {}
 
@@ -40,6 +40,14 @@ def _check_tuple(v):
 
 
 class Module(DynamicSystem):
+  """Basic DNN module.
+
+  Parameters
+  ----------
+  name : str, optional
+    The name of the module.
+  """
+
   def __init__(self, name=None):
     super(Module, self).__init__(name=name, steps=None, monitors=None)
 
@@ -52,6 +60,18 @@ class Module(DynamicSystem):
 
 
 class Sequential(Container):
+  """Basic DNN sequential object.
+
+  Parameters
+  ----------
+  arg_modules
+    The modules without name specifications.
+  name : str, optional
+    The name of the sequential module.
+  kwarg_modules
+    The modules with name specifications.
+  """
+
   def __init__(self, *arg_modules, name=None, **kwarg_modules):
     all_systems = collections.OrderedDict()
     # check "args"
@@ -60,15 +80,7 @@ class Sequential(Container):
         raise errors.ModelUseError(f'Only support {Module.__name__}, '
                                    f'but we got {type(module)}.')
       all_systems[module.name] = module
-      # if not callable(module):
-      #   raise errors.ModelUseError(f'Only support callable, but we got {module}.')
-      # if hasattr(module, 'name'):
-      #   _name = module.name
-      # elif hasattr(module, '__name__'):
-      #   _name = module.__name__
-      # else:
-      #   _name = self.unique_name(name=None, type='unknown')
-      # all_systems[_name] = module
+
     # check "kwargs"
     for key, module in kwarg_modules.items():
       if not isinstance(module, Module):
@@ -77,42 +89,40 @@ class Sequential(Container):
       all_systems[key] = module
 
     # initialize base class
-    super(Sequential, self).__init__(name=name,
-                                     steps=None,
-                                     monitors=None,
+    super(Sequential, self).__init__(name=name, steps=None, monitors=None,
                                      **all_systems)
 
   def update(self, _t, _i):  # deprecated
     raise ValueError(f'Abstract method "update" is deprecated in {Sequential}. '
                      f'You can customize this function by your self.')
 
-  def __call__(self, *args, **config):
+  def __call__(self, *args, config=dict()):
     """Functional call.
 
     Parameters
     ----------
     args : list, tuple
       The *args arguments.
-    config : dict of (str, Any)
-      The **kwargs arguments. The configuration used across modules.
-      If the "__call__" function in submodule receives **kwargs arguments,
+    config : dict
+      The config arguments. The configuration used across modules.
+      If the "__call__" function in submodule receives "config" arguments,
       This "config" parameter will be passed into this function.
     """
     keys = list(self.steps.keys())
-    funcs = list(self.steps.values())
+    calls = list(self.steps.values())
 
     # module 0
     try:
-      args = funcs[0](*args, **_check_kwargs(funcs[0], config))
+      args = calls[0](*args, **_check_config(calls[0], config))
     except Exception as e:
-      raise type(e)(f'Sequential [{keys[0]}] {funcs[0]} {e}')
+      raise type(e)(f'Sequential [{keys[0]}] {calls[0]} {e}')
 
     # other modules
     for i in range(1, len(self.steps)):
       try:
-        args = funcs[i](*_check_args(args), **_check_kwargs(funcs[i], config))
+        args = calls[i](*_check_args(args=args), **_check_config(calls[i], config))
       except Exception as e:
-        raise type(e)(f'Sequential [{keys[i]}] {funcs[i]} {e}')
+        raise type(e)(f'Sequential [{keys[i]}] {calls[i]} {e}')
     return args
 
 
@@ -184,7 +194,7 @@ class Dropout(Module):
     self.prob = prob
     super(Dropout, self).__init__(name=name)
 
-  def __call__(self, x, **config):
+  def __call__(self, x, config=dict()):
     if config.get('train', True):
       keep_mask = jax_math.random.bernoulli(self.prob, x.shape)
       return jax_math.where(keep_mask, x / self.prob, 0.)
