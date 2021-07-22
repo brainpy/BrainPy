@@ -6,8 +6,8 @@ from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'jit',
-  'vectorize',
-  'parallel',
+  'vmap',
+  'pmap',
 ]
 
 
@@ -26,8 +26,8 @@ def jit(ds_or_func, *args, **kwargs):
 
 
 
-def vectorize(f):
+def vmap(f):
   return f
 
-def parallel(f):
+def pmap(f):
   return f

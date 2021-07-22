@@ -2,6 +2,7 @@
 
 from brainpy.math.driver import *
 from brainpy.math.numpy import *
+from brainpy.math.function import *
 
 
 # 1. numerical precision

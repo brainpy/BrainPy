@@ -1,21 +1,29 @@
 # -*- coding: utf-8 -*-
 
+
+"""
+The compilation tools for JAX backend.
+
+1. JIT compilation is implemented by the 'jit()' function
+2. Vectorize compilation is implemented by the 'vmap()' function
+3. Parallel compilation is implemented by the 'pmap()' function
+
+"""
+
+
 import functools
 
 import jax
 
 from brainpy import errors
 from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.simulation.collector import ArrayCollector
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
   'jit',
-  'vectorize',
-  'parallel',
+  'vmap',
+  'pmap',
 ]
-
-
 
 
 def _make_jit(all_vars, func, static_argnums, f_name=None):
@@ -38,7 +46,7 @@ def _make_jit(all_vars, func, static_argnums, f_name=None):
 def jit(ds_or_func, static_argnums=None, **kwargs):
   """JIT (Just-In-Time) Compilation.
 
-  Takes a function or an instance of DynamicSystem
+  Takes a function or an instance of DynamicSystem,
   and compiles it for faster execution.
 
   Parameters
@@ -87,8 +95,10 @@ def jit(ds_or_func, static_argnums=None, **kwargs):
                                f'but we got {type(ds_or_func)}.')
 
 
-def vectorize(f):
+def vmap(f):
   return f
 
-def parallel(f):
+
+def pmap(f):
   return f
+
