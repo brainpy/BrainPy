@@ -11,9 +11,18 @@ __all__ = [
 
 class Function(DynamicSystem):
   def __init__(self, f, nodes, name=None):
-    super(Function, self).__init__(steps={'call': self.__call__}, monitors=None, name=name)
+    # name
     self._f = f
+    if name is None:
+      name = self.unique_name(type=f.__name__ if hasattr(f, '__name__') else 'Function')
+
+    # initialize
+    super(Function, self).__init__(steps={'call': self.__call__}, monitors=None, name=name)
+
+    # nodes
     self._nodes = dict()
+    if isinstance(nodes, DynamicSystem):
+      nodes = (nodes,)
     if isinstance(nodes, (tuple, list)):
       for i, node in enumerate(nodes):
         if not isinstance(node, DynamicSystem):

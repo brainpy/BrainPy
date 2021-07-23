@@ -7,6 +7,7 @@ __all__ = [
   'MLP'
 ]
 
+
 class MLP(Sequential):
   def __init__(self, layer_sizes, activation='relu', w_init=XavierNormal(), b_init=ZerosInit(), name=None):
     assert len(layer_sizes) >= 2

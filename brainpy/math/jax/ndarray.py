@@ -6,7 +6,6 @@ import numpy as np
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node
 
-
 __all__ = [
   'ndarray',
 ]
@@ -90,7 +89,9 @@ class ndarray(object):
                                        jax.ops.index[index],
                                        value)
 
-  # operations
+  # ---------- #
+  # operations #
+  # ---------- #
 
   def __bool__(self) -> bool:
     return bool(self.value)
@@ -319,8 +320,8 @@ class ndarray(object):
   def device_buffer(self, *args):
     raise NotImplementedError
 
-  def imag(self, *args):
-    raise NotImplementedError
+  def imag(self):
+    return self._value.image
 
   def all(self, axis=None, keepdims=False, *args, **kwargs):
     return self.value.all(axis=axis, keepdims=keepdims, *args, **kwargs)

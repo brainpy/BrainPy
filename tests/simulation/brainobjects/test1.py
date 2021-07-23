@@ -90,10 +90,10 @@ class HH(bp.NeuGroup):
 
   def update(self, _t, _i):
     V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
-    self.spikes = (self.V < self.V_th) * (V >= self.V_th)
-    self.V = V
-    self.h = h
-    self.n = n
+    self.spikes[:] = (self.V < self.V_th) * (V >= self.V_th)
+    self.V[:] = V
+    self.h[:] = h
+    self.n[:] = n
     self.inputs[:] = 0
 
 
@@ -107,23 +107,28 @@ def try1():
 
     net = bp.Network(neu=neu, syn=syn)
 
-    print('vars:')
-    print('-----')
-    print('neu.vars()', list(neu.vars().keys()))
-    print('syn.vars()', list(syn.vars().keys()))
-    print('net.vars()', list(net.vars().keys()))
+    for method in ['relative', 'absolute']:
+      print(f'Method: {method}\n')
+      print('vars:')
+      print('-----')
+      print('neu.vars()', list(neu.vars(method).keys()))
+      print('syn.vars()', list(syn.vars(method).keys()))
+      print('net.vars()', list(net.vars(method).keys()))
+      print()
 
-    print('ints:')
-    print('-----')
-    print('neu.ints()', list(neu.ints().keys()))
-    print('syn.ints()', list(syn.ints().keys()))
-    print('net.ints()', list(net.ints().keys()))
+      print('ints:')
+      print('-----')
+      print('neu.ints()', list(neu.ints(method).keys()))
+      print('syn.ints()', list(syn.ints(method).keys()))
+      print('net.ints()', list(net.ints(method).keys()))
+      print()
 
-    print('nodes:')
-    print('------')
-    print('neu.nodes()', list(neu.nodes().keys()))
-    print('syn.nodes()', list(syn.nodes().keys()))
-    print('net.nodes()', list(net.nodes().keys()))
+      print('nodes:')
+      print('------')
+      print('neu.nodes()', list(neu.nodes(method).keys()))
+      print('syn.nodes()', list(syn.nodes(method).keys()))
+      print('net.nodes()', list(net.nodes(method).keys()))
+      print()
 
 
 if __name__ == '__main__':

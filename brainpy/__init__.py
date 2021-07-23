@@ -2,18 +2,17 @@
 
 __version__ = "1.1.0-alpha"
 
+
 # "math" module
 from . import math
-
-
-# "analysis" module
-from . import analysis
 
 
 # "integrators" module
 from . import integrators
 from .integrators import ode
 from .integrators import sde
+from .integrators import dde
+from .integrators import fde
 from .integrators.wrapper import *
 from .integrators.constants import *
 
@@ -23,7 +22,14 @@ from . import simulation
 from .simulation import connectivity as connect
 from .simulation.brainobjects import *
 from .simulation.every import every
-from .simulation.utils import size2len
+
+
+# "dnn" module
+from . import dnn
+
+
+# "analysis" module
+from . import analysis
 
 
 # "visualization" module

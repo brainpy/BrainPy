@@ -29,7 +29,7 @@ __all__ = [
 def _make_jit(all_vars, func, static_argnums, f_name=None):
   @functools.partial(jax.jit, static_argnums=static_argnums)
   def jitted_func(all_data, *args, **kwargs):
-    all_vars.assign(all_data)
+    all_vars.unique_assign(all_data)
     out = func(*args, **kwargs)
     changed_data = all_vars.unique_data()
     return out, changed_data
@@ -37,7 +37,7 @@ def _make_jit(all_vars, func, static_argnums, f_name=None):
   def call(*args, **kwargs):
     data = all_vars.unique_data()
     out, changed_data = jitted_func(data, *args, **kwargs)
-    all_vars.assign(changed_data)
+    all_vars.unique_assign(changed_data)
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
