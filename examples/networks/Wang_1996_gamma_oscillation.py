@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import sys
-
-sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
+# import sys
+# sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
 
 import brainpy as bp
 
