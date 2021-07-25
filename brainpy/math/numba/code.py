@@ -3,9 +3,9 @@
 
 
 __all__ = [
-  'transform',
+  'control_transform',
 ]
 
-def transform(f):
+def control_transform(f):
   return f
 

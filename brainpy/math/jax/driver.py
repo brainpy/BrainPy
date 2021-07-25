@@ -24,7 +24,7 @@ class JaxDSDriver(NumpyDSDriver):
 
     # codes
     if len(formatted_inputs) > 0:
-      nodes = self.target.nodes()
+      nodes = self.target.nodes(method='absolute') + self.target.nodes(method='relative')
       code_scope = {host_name: self.target, 'sys': sys}
       code_lines = []
       for key, val, data_type, op in formatted_inputs:

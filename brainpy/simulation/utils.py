@@ -153,18 +153,11 @@ def format_inputs(host, inputs, duration):
                                  f'not "{one_input[3]}".')
 
   # 2. format inputs
-  # -------------
-  nodes = host.nodes()
+  # ----------------
+  nodes = host.nodes(method='absolute') + host.nodes(method='relative')
   formatted_inputs = []
   for one_input in inputs:
     key = one_input[0]
-    # no_raw_host = host
-    # while hasattr(no_raw_host, 'raw'):
-    #   if not isinstance(no_raw_host.raw, DynamicSystem):
-    #     raise ValueError
-    #   no_raw_host = no_raw_host.raw
-    #   key = 'raw.' + key
-    # key = host.name + '.' +  key
 
     # key
     if not isinstance(key, str):

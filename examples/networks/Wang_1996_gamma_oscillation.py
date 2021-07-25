@@ -5,7 +5,7 @@
 
 import brainpy as bp
 
-bp.math.use_backend('jax')
+bp.math.use_backend('numpy')
 bp.integrators.set_default_odeint('rk4')
 
 
@@ -100,17 +100,16 @@ class HH(bp.NeuGroup):
 
 def try1():
   num = 100
-  neu = HH(num, monitors=['spikes', 'V'])
+  neu = HH(num, monitors=['spikes', 'V'], name='X')
   neu.V = -70. + bp.math.random.normal(size=num) * 20
-  neu2 = HH(num, monitors=['spikes', 'V'])
+  neu2 = HH(num, monitors=['spikes', 'V'], name='Y')
   neu2.V = -70. + bp.math.random.normal(size=num) * 20
 
   syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   syn.g_max = 0.1 / num
 
   net = bp.math.jit(bp.Network(neu=neu, neu2=neu2))
-  net.run(duration=500., inputs=[('neu.inputs', 1.),
-                                 ('neu2.inputs', 1.)], report=0.2)
+  net.run(duration=500., inputs=[('X.inputs', 1.), ('Y.inputs', 1.)], report=0.2)
 
   fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
   xlim = (-0.1, 500.1)
@@ -145,5 +144,5 @@ def try2():
 
 
 if __name__ == '__main__':
-  # try1()
-  try2()
+  try1()
+  # try2()

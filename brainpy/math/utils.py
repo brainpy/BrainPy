@@ -145,11 +145,11 @@ def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
          f'  try:\n' + \
          f'{code_for_compile}\n' + \
          f'  except Exception as e:\n'
-  lines_for_debug = [f'[{i+1:3d}] {line}' for i, line in enumerate(code.split('\n'))]
+  lines_for_debug = [f'[{i + 1:3d}] {line}' for i, line in enumerate(code.split('\n'))]
   code_for_debug = '\n'.join(lines_for_debug)
   code += f'    exc_type, exc_obj, exc_tb = sys.exc_info()\n' \
-         f'    line_no = exc_tb.tb_lineno\n' \
-         f'    raise ValueError("""Error occurred in line %d: \n\n{code_for_debug}\n\n' \
+          f'    line_no = exc_tb.tb_lineno\n' \
+          f'    raise ValueError("""Error occurred in line %d: \n\n{code_for_debug}\n\n' \
           f'    %s\n{remind}\n""" % (line_no, str(e)))'
   try:
     exec(compile(code, '', 'exec'), scope)
@@ -157,4 +157,3 @@ def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
     raise ValueError(f'Compilation function error: \n\n{code}') from e
   func = scope[func_name]
   return code, func
-

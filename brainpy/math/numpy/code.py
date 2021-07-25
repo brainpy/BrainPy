@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
 
-
 __all__ = [
-  'transform',
+  'control_transform',
 ]
 
-def transform(f):
-  return f
+
+def control_transform(f=None, show_code=False):
+  if f is None:
+    return lambda func: func
+  else:
+    return f
+
+
 
