@@ -12,3 +12,4 @@ from .layers import *
 from .nets import *
 from .objectives import *
 from .optimizers import *
+from .variables import *
