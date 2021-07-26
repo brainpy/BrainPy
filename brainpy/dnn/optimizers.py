@@ -3,9 +3,9 @@
 import numpy as np
 
 from brainpy.simulation import collector
-from brainpy.simulation.brainobjects.base import DynamicSystem
-from brainpy.dnn.imports import jax_math, jax
+from brainpy.dnn.imports import jmath, jax
 from brainpy.dnn.layers import Module
+from brainpy.dnn.variables import TrainVar
 
 __all__ = [
   'Optimizer',
@@ -21,9 +21,9 @@ class Optimizer(Module):
     super(Optimizer, self).__init__(name=name)
     if not isinstance(target, Module):
       raise ValueError
-    self.target = target
     self.lr = lr
-    self.train_vars = list(target.vars().unique_values())
+    self.target = target
+    self.train_vars = list(target.vars().unique_values(is_a=TrainVar))
     self._dynamic_vars = []  # dynamic variables
 
   def register_dynamic_vars(self, variables):
@@ -52,7 +52,7 @@ class Momentum(Optimizer):
   def __init__(self, target, lr, momentum, name=None):
     super(Momentum, self).__init__(lr, target=target, name=name)
     self.momentum = momentum
-    self.ms = [jax_math.zeros_like(x) for x in self.train_vars]
+    self.ms = [TrainVar(jmath.zeros_like(x)) for x in self.train_vars]
     self.register_dynamic_vars(self.ms)
 
   def __call__(self, grads):
@@ -65,7 +65,7 @@ class NesterovMomentum(Optimizer):
   def __init__(self, target, lr, momentum, name=None):
     super(NesterovMomentum, self).__init__(lr, target=target, name=name)
     self.momentum = momentum
-    self.ms = [jax_math.zeros_like(x) for x in self.train_vars]
+    self.ms = [TrainVar(jmath.zeros_like(x)) for x in self.train_vars]
     self.register_dynamic_vars(self.ms)
 
   def __call__(self, grads):
@@ -80,9 +80,9 @@ class Adam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps
-    self.step = jax_math.array([0])
-    self.ms = [jax_math.zeros_like(x) for x in self.train_vars]
-    self.vs = [jax_math.zeros_like(x) for x in self.train_vars]
+    self.step = jmath.array([0])
+    self.ms = [TrainVar(jmath.zeros_like(x)) for x in self.train_vars]
+    self.vs = [TrainVar(jmath.zeros_like(x)) for x in self.train_vars]
     self.register_dynamic_vars(self.ms)
     self.register_dynamic_vars(self.vs)
 

@@ -5,7 +5,7 @@ import inspect
 
 from brainpy import errors
 from brainpy.dnn import activations
-from brainpy.dnn.imports import jax_math, jax
+from brainpy.dnn.imports import jmath, jax
 from brainpy.dnn.initializers import XavierNormal, Initializer, ZerosInit
 from brainpy.simulation.brainobjects.base import DynamicSystem, Container
 
@@ -163,7 +163,7 @@ class Linear(Module):
 
   def __call__(self, x):
     """Returns the results of applying the linear transformation to input x."""
-    y = jax_math.dot(x, self.w) + self.b
+    y = jmath.dot(x, self.w) + self.b
     return y
 
 
@@ -196,8 +196,8 @@ class Dropout(Module):
 
   def __call__(self, x, config=dict()):
     if config.get('train', True):
-      keep_mask = jax_math.random.bernoulli(self.prob, x.shape)
-      return jax_math.where(keep_mask, x / self.prob, 0.)
+      keep_mask = jmath.random.bernoulli(self.prob, x.shape)
+      return jmath.where(keep_mask, x / self.prob, 0.)
     else:
       return x
 
@@ -264,7 +264,7 @@ class Conv2D(Module):
                                f'when the convolution expects {nin} channels. For reference, '
                                f'self.w.value.shape={self.w.value.shape} and x.shape={x.shape}.')
 
-    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, jax_math.ndarray) else x,
+    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, jmath.ndarray) else x,
                                      rhs=self.w.value,
                                      window_strides=self.strides,
                                      padding=self.padding,

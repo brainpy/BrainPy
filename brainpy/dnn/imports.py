@@ -2,13 +2,13 @@
 
 try:
   import jax
-  from brainpy.math import jax as jax_math
+  from brainpy.math import jax as jmath
 
 except ModuleNotFoundError:
   jax = None
-  jax_math = None
+  jmath = None
 
 __all__ = [
   'jax',
-  'jax_math',
+  'jmath',
 ]

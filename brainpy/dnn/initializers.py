@@ -4,7 +4,7 @@ import abc
 import numpy as np
 import scipy.stats
 
-from brainpy.dnn.imports import jax, jax_math
+from brainpy.dnn.imports import jax, jmath
 from brainpy.dnn.variables import TrainVar
 
 __all__ = [
@@ -71,7 +71,7 @@ def _xavier_normal_gain(shape):
 
 class ZerosInit(Initializer):
   def __call__(self, shape, dtype=None):
-    return TrainVar(jax_math.zeros(shape, dtype=dtype))
+    return TrainVar(jmath.zeros(shape, dtype=dtype))
 
 
 class OnesInit(Initializer):
@@ -79,7 +79,7 @@ class OnesInit(Initializer):
     self.value = value
 
   def __call__(self, shape, dtype=None):
-    return TrainVar(jax_math.ones(shape, dtype=dtype))
+    return TrainVar(jmath.ones(shape, dtype=dtype))
 
 
 class Identity(Initializer):
@@ -134,7 +134,7 @@ class Orthogonal(Initializer):
     n_rows = shape[self.axis]
     n_cols = np.prod(shape) // n_rows
     matrix_shape = (n_rows, n_cols) if n_rows > n_cols else (n_cols, n_rows)
-    norm_dst = jax_math.random.normal(size=matrix_shape)
+    norm_dst = jmath.random.normal(size=matrix_shape)
     q_mat, r_mat = np.linalg.qr(norm_dst)
     # Enforce Q is uniformly distributed
     q_mat *= np.sign(np.diag(r_mat))
@@ -163,8 +163,8 @@ class KaimingNormal(Initializer):
     self.gain = gain
 
   def __call__(self, shape, dtype=None):
-    return TrainVar(jax_math.random.normal(size=shape,
-                                           scale=self.gain * _kaiming_normal_gain(shape)))
+    return TrainVar(jmath.random.normal(size=shape,
+                                        scale=self.gain * _kaiming_normal_gain(shape)))
 
 
 class KaimingTruncatedNormal(Initializer):
@@ -194,10 +194,10 @@ class KaimingTruncatedNormal(Initializer):
                                               loc=0.,
                                               scale=1.)
     stddev = self.gain * _kaiming_normal_gain(shape) / truncated_std
-    return TrainVar(jax_math.random.truncated_normal(size=shape,
-                                                     scale=stddev,
-                                                     lower=self.lower,
-                                                     upper=self.upper))
+    return TrainVar(jmath.random.truncated_normal(size=shape,
+                                                  scale=stddev,
+                                                  lower=self.lower,
+                                                  upper=self.upper))
 
 
 class XavierNormal(Initializer):
@@ -217,8 +217,8 @@ class XavierNormal(Initializer):
     self.gain = gain
 
   def __call__(self, shape, dtype=None):
-    return TrainVar(jax_math.random.normal(size=shape,
-                                           scale=self.gain * _xavier_normal_gain(shape)))
+    return TrainVar(jmath.random.normal(size=shape,
+                                        scale=self.gain * _xavier_normal_gain(shape)))
 
 
 class XavierTruncatedNormal(Initializer):
@@ -245,10 +245,10 @@ class XavierTruncatedNormal(Initializer):
   def __call__(self, shape, dtype=None):
     truncated_std = scipy.stats.truncnorm.std(a=self.lower, b=self.upper, loc=0., scale=1)
     stddev = self.gain * _xavier_normal_gain(shape) / truncated_std
-    return TrainVar(jax_math.random.truncated_normal(size=shape,
-                                                     scale=stddev,
-                                                     lower=self.lower,
-                                                     upper=self.upper))
+    return TrainVar(jmath.random.truncated_normal(size=shape,
+                                                  scale=stddev,
+                                                  lower=self.lower,
+                                                  upper=self.upper))
 
 
 class TruncatedNormal(Initializer):
@@ -272,7 +272,7 @@ class TruncatedNormal(Initializer):
 
   def __call__(self, shape, dtype=None):
     truncated_std = scipy.stats.truncnorm.std(a=self.lower, b=self.upper, loc=0., scale=1)
-    return TrainVar(jax_math.random.truncated_normal(size=shape,
-                                                     scale=self.scale / truncated_std,
-                                                     lower=self.lower,
-                                                     upper=self.upper))
+    return TrainVar(jmath.random.truncated_normal(size=shape,
+                                                  scale=self.scale / truncated_std,
+                                                  lower=self.lower,
+                                                  upper=self.upper))

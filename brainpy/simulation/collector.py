@@ -141,21 +141,21 @@ class ArrayCollector(Collector):
     for v1, data in zip(self_values, extra_data):
       v1.value = data
 
-  def unique_data(self, trainable=False):
+  def unique_data(self, is_a=None):
     """Return the list of values for this collection.
     Similarly to the assign method, each variable value is
     reported only once and in the order following the
     iter(self) iterator.
 
     Args:
-        trainable: either a variable type or a list of variables types to include.
+        is_a: either a variable type or a list of variables types to include.
     Returns:
         A new ArrayCollector containing the subset of variables.
     """
-    if trainable:
-      return [x.value for x in self.values() if x.train]
-    else:
+    if is_a is None:
       return [x.value for x in self.unique_values()]
+    else:
+      return [x.value for x in self.values() if isinstance(x, is_a)]
 
   def subset(self, ):
     pass
