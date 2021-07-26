@@ -253,13 +253,11 @@ def use_backend(name, module=None):
   if module is None:
     if name == 'numpy':
       from brainpy.math import numpy as module
-    elif name == 'numba':
-      from brainpy.math import numba as module
     elif name == 'jax':
       from brainpy.math import jax as module
     else:
       raise ValueError(f'Unknown backend "{name}", now we only '
-                       f'support: numpy, numba, jax.')
+                       f'support: numpy, jax.')
   else:
     from types import ModuleType
     if not isinstance(module, ModuleType):

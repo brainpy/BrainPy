@@ -9,3 +9,4 @@ from .driver import NumpyDiffIntDriver as DriverForDiffInt
 from .gradient import *
 from .ops import *
 from .ndarray import *
+from . import overload

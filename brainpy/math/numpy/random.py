@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import numba
 import numpy
+import numpy.random
 
 __all__ = [
   'seed', 'RandomState',
@@ -15,7 +17,6 @@ __all__ = [
 ]
 
 RandomState = numpy.random.RandomState
-seed = numpy.random.seed
 rand = numpy.random.rand
 randint = numpy.random.randint
 randn = numpy.random.randn
@@ -49,3 +50,16 @@ def bernoulli(p, size=None):
 
 def truncated_normal():
   raise NotImplementedError
+
+
+
+@numba.njit
+def numba_seed(seed=None):
+  numpy.random.seed(seed)
+
+
+def seed(seed=None):
+  numba_seed(seed)
+  numpy.random.seed(seed)
+
+

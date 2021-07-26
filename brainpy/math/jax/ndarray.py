@@ -30,6 +30,15 @@ class ndarray(object):
   1. Do not support "out" argument in all methods.
   """
   __slots__ = "_value"
+  _registered = False
+
+  def __new__(cls, *args, **kwargs):
+    if not cls._registered:
+      flatten = lambda t: ((t.value,), None)
+      unflatten = lambda aux_data, children: ndarray(*children)
+      register_pytree_node(ndarray, flatten, unflatten)
+      cls._registered = True
+    return super().__new__(cls)
 
   def __init__(self, value):
     self._value = value
@@ -499,19 +508,6 @@ class ndarray(object):
 
   def numpy(self):
     return np.asarray(self.value)
-
-
-def flatten(t):
-  chidren = (t.value,)
-  aux_data = None
-  return (chidren, aux_data)
-
-
-def unflatten(aux_data, children):
-  return ndarray(*children)
-
-
-register_pytree_node(ndarray, flatten, unflatten)
 
 
 def _wrap(f):
