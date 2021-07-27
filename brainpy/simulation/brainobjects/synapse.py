@@ -79,3 +79,6 @@ class TwoEndConn(DynamicSystem):
     self.steps[f'{self.name}_delay_{key}_update'] = cdelay.update
 
     return cdelay
+
+  def update(self, _t, _i):
+    raise NotImplementedError

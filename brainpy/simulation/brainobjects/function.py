@@ -75,9 +75,5 @@ class Function(DynamicSystem):
       raise ValueError(f'No support for the method of "{method}".')
     return gather
 
-  def update(self, _t, _i):  # deprecated
-    raise ValueError(f'Abstract method "update" is deprecated in {type(self)}. '
-                     f'You can customize this function by yourself.')
-
   def __call__(self, *args, **kwargs):
     return self._f(*args, **kwargs)

@@ -4,15 +4,25 @@ import math
 
 from brainpy import errors
 from brainpy import math as bpmath
-from brainpy.simulation.utils import size2len
 from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.utils import size2len
 
 __all__ = [
+  'Delay',
   'ConstantDelay',
 ]
 
 
-class ConstantDelay(DynamicSystem):
+class Delay(DynamicSystem):
+  def __init__(self, steps=('update',), name=None):
+    # 'name' will be set by the host
+    super(Delay, self).__init__(steps=steps, monitors=None, name=name)
+
+  def update(self, _t, _i):
+    raise NotImplementedError
+
+
+class ConstantDelay(Delay):
   """Constant delay object.
 
   For examples:
@@ -83,10 +93,7 @@ class ConstantDelay(DynamicSystem):
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay
 
-    super(ConstantDelay, self).__init__(steps={'update': self.update},
-                                        monitors=None,
-                                        name=name,  # will be set by the host
-                                        )
+    super(ConstantDelay, self).__init__(name=name)
 
   def _pull_for_uniform_delay(self, idx=None):
     if idx is None:

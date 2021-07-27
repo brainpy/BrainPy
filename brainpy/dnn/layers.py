@@ -51,9 +51,9 @@ class Module(DynamicSystem):
   def __init__(self, name=None):
     super(Module, self).__init__(name=name, steps=None, monitors=None)
 
-  def update(self, _t, _i):  # deprecated
-    raise ValueError(f'Abstract method "update" is deprecated in {Module}. '
-                     f'You can customize this function by your self.')
+  # def update(self, _t, _i):  # deprecated
+  #   raise ValueError(f'Abstract method "update" is deprecated in {Module}. '
+  #                    f'You can customize this function by your self.')
 
   def __call__(self, *args, **kwargs):
     raise NotImplementedError
@@ -91,10 +91,6 @@ class Sequential(Container):
     # initialize base class
     super(Sequential, self).__init__(name=name, steps=None, monitors=None,
                                      **all_systems)
-
-  def update(self, _t, _i):  # deprecated
-    raise ValueError(f'Abstract method "update" is deprecated in {Sequential}. '
-                     f'You can customize this function by your self.')
 
   def __call__(self, *args, config=dict()):
     """Functional call.

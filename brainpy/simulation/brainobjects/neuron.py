@@ -42,3 +42,5 @@ class NeuGroup(DynamicSystem):
     # ----------
     super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
 
+  def update(self, _t, _i):
+    raise NotImplementedError

@@ -47,7 +47,7 @@ class DynamicSystem(object):
 
   target_backend = None
 
-  def __init__(self, steps=('update',), monitors=None, name=None):
+  def __init__(self, steps=(), monitors=None, name=None):
     # runner and run function
     self.driver = None
     self.run_func = None
@@ -56,6 +56,7 @@ class DynamicSystem(object):
 
     # step functions
     self.steps = OrderedDict()
+    steps = tuple() if steps is None else steps
     if isinstance(steps, tuple):
       for step in steps:
         if isinstance(step, str):
@@ -200,9 +201,6 @@ class DynamicSystem(object):
     else:
       raise ValueError(f'No support for the method of "{method}".')
     return gather
-
-  def update(self, _t, _i):
-    raise NotImplementedError
 
   def _build(self, inputs, duration, rebuild=False):
     # backend checking
