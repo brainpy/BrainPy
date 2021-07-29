@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.brainobjects.base import Container
+from brainpy.simulation.base import Container
 
 
 __all__ = [

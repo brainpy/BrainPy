@@ -15,21 +15,25 @@ X_test = X_test.transpose(0, 3, 1, 2) / 255.0
 
 # Model
 model = bp.dnn.MLP(layer_sizes=(100, 200, 300, 200))
-opt = bp.dnn.Adam(target=model, lr=0.1, )
+opt = bp.dnn.Adam(target=model, lr=0.1)
 
+
+# loss
 
 def loss(x, label):
   logit = model(x, config={'train': True})
   return bp.dnn.cross_entropy_sparse(logit, label).mean()
 
 
-gv = bp.math.value_and_grad(loss, model.vars())
+vg = bp.math.value_and_grad(loss, model.vars())
 
+
+# functions
 
 @bp.math.jit
 @bp.math.function(nodes=(model, opt))
 def train_op(x, y):
-  g, v = gv(x, y)
+  v, g = vg(x, y)
   opt(grads=g)
   return v
 

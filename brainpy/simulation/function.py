@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.base import DynamicSystem
 from brainpy.simulation.collector import Collector, ArrayCollector
 
 __all__ = [

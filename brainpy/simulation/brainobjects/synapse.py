@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import errors
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.base import DynamicSystem
 from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.brainobjects.neuron import NeuGroup
 from brainpy.simulation.connectivity.base import TwoEndConnector

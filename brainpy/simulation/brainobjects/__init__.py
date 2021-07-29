@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from .base import *
+from brainpy.simulation.base import *
 from .channel import *
 from .delays import *
 from .dendrite import *
-from .function import *
+from brainpy.simulation.function import *
 from .molecular import *
 from .network import *
 from .neuron import *

@@ -48,6 +48,15 @@ class Collector(dict):
     text.append(f'{f"+Total({count})":{longest_string}} {total:8d}')
     return '\n'.join(text)
 
+  def subset(self, type):
+    seen = set()
+    gather = type(self)()
+    for key, value in self.items():
+      if id(value) not in seen and isinstance(value, type):
+        seen.add(id(value))
+        gather[key] = value
+    return gather
+
 
 class ArrayCollector(Collector):
   """A ArrayCollector is a dictionary (name, var)
@@ -141,7 +150,7 @@ class ArrayCollector(Collector):
     for v1, data in zip(self_values, extra_data):
       v1.value = data
 
-  def unique_data(self, is_a=None):
+  def unique_data(self):
     """Return the list of values for this collection.
     Similarly to the assign method, each variable value is
     reported only once and in the order following the
@@ -152,10 +161,4 @@ class ArrayCollector(Collector):
     Returns:
         A new ArrayCollector containing the subset of variables.
     """
-    if is_a is None:
-      return [x.value for x in self.unique_values()]
-    else:
-      return [x.value for x in self.values() if isinstance(x, is_a)]
-
-  def subset(self, ):
-    pass
+    return [x.value for x in self.unique_values()]

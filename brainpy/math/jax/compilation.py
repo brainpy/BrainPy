@@ -16,7 +16,7 @@ import functools
 import jax
 
 from brainpy import errors
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.base import DynamicSystem
 from brainpy.tools.codes import change_func_name
 
 __all__ = [

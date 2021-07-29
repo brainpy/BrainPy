@@ -64,24 +64,28 @@ __math_fs = [
   'fmod', 'mod', 'modf', 'divmod', 'remainder', 'abs',
 
   # Exponents and logarithms
-  'exp', 'exp2', 'expm1', 'log', 'log10', 'log1p', 'log2', 'logaddexp', 'logaddexp2',
+  'exp', 'exp2', 'expm1', 'log', 'log10', 'log1p', 'log2',
+  'logaddexp', 'logaddexp2',
 
   # Rational routines
   'lcm', 'gcd',
 
   # trigonometric functions
-  'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan', 'arctan2', 'arctanh', 'cos', 'cosh', 'sin',
-  'sinc', 'sinh', 'tan', 'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians',
+  'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan', 'arctan2',
+  'arctanh', 'cos', 'cosh', 'sin', 'sinc', 'sinh', 'tan', 'tanh',
+  'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians',
 
   # Rounding
   'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix',
 
   # Sums, products, differences, Reductions
-  'prod', 'sum', 'diff', 'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum',
-  'cumprod', 'cumsum', 'ediff1d', 'cross', 'trapz',
+  'prod', 'sum', 'diff', 'median', 'nancumprod', 'nancumsum',
+  'nanprod', 'nansum', 'cumprod', 'cumsum', 'ediff1d', 'cross',
+  'trapz',
 
   # floating_functions
-  'isfinite', 'isinf', 'isnan', 'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp',
+  'isfinite', 'isinf', 'isnan', 'signbit', 'copysign', 'nextafter',
+  'ldexp', 'frexp',
 
   # Miscellaneous
   'convolve', 'sqrt', 'cbrt', 'square', 'absolute', 'fabs', 'sign',
@@ -92,7 +96,8 @@ __binary_fs = [
   # https://numpy.org/doc/stable/reference/routines.bitwise.html
 
   # Elementwise bit operations
-  'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor', 'invert', 'left_shift', 'right_shift',
+  'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor', 'invert',
+  'left_shift', 'right_shift',
 ]
 
 __logic_fs = [
@@ -141,7 +146,8 @@ __array_manipulation_fs = [
   'sort', 'argsort',
 
   # searching
-  'argmax', 'argmin', 'argwhere', 'nonzero', 'flatnonzero', 'where', 'searchsorted', 'extract',
+  'argmax', 'argmin', 'argwhere', 'nonzero', 'flatnonzero', 'where',
+  'searchsorted', 'extract',
 
   # counting
   'count_nonzero',
@@ -174,21 +180,23 @@ __indexing_fs = [
   # https://numpy.org/doc/stable/reference/routines.indexing.html
 
   # Generating index arrays
-  'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices', 'triu_indices_from',
+  'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices',
+  'triu_indices_from',
 
   # Indexing-like operations
   'take', 'diag', 'select',
-
 ]
 
 __statistic_fs = [
   # https://numpy.org/doc/stable/reference/routines.statistics.html
 
   # Order statistics
-  'nanmin', 'nanmax', 'ptp', 'percentile', 'nanpercentile', 'quantile', 'nanquantile',
+  'nanmin', 'nanmax', 'ptp', 'percentile', 'nanpercentile',
+  'quantile', 'nanquantile',
 
   # Averages and variances
-  'median', 'average', 'mean', 'std', 'var', 'nanmedian', 'nanmean', 'nanstd', 'nanvar',
+  'median', 'average', 'mean', 'std', 'var', 'nanmedian',
+  'nanmean', 'nanstd', 'nanvar',
 
   # Correlating
   'corrcoef', 'correlate', 'cov',
@@ -237,7 +245,6 @@ __drivers = [
 __all = __math_fs + __binary_fs + __logic_fs + __array_manipulation_fs + \
         __array_creation_fs + __indexing_fs + __statistic_fs + __window_fs + \
         __constants + __linear_algebra_fs + __data_types + __drivers
-
 
 
 # 4. backend setting
