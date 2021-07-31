@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.function import Function
+from brainpy.simulation.base import Function
 
 __all__ = [
   'function',
