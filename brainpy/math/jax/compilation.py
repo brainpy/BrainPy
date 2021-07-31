@@ -10,7 +10,6 @@ The compilation tools for JAX backend.
 
 """
 
-
 import functools
 
 import jax
@@ -26,8 +25,13 @@ __all__ = [
 ]
 
 
-def _make_jit(all_vars, func, static_argnums, f_name=None):
-  @functools.partial(jax.jit, static_argnums=static_argnums)
+def _make_jit(all_vars, func, static_argnums, static_argnames=None, device=None,
+              backend=None, donate_argnums=(), inline=False, f_name=None):
+  @functools.partial(jax.jit, static_argnums=static_argnums,
+                     static_argnames=static_argnames,
+                     device=device, backend=backend,
+                     donate_argnums=donate_argnums,
+                     inline=inline)
   def jitted_func(all_data, *args, **kwargs):
     all_vars.unique_assign(all_data)
     out = func(*args, **kwargs)
@@ -43,7 +47,8 @@ def _make_jit(all_vars, func, static_argnums, f_name=None):
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def jit(ds_or_func, static_argnums=None, **kwargs):
+def jit(ds_or_func, static_argnums=None, static_argnames=None, device=None,
+        backend=None, donate_argnums=(), inline=False):
   """JIT (Just-In-Time) Compilation.
 
   Takes a function or an instance of DynamicSystem,
@@ -53,8 +58,37 @@ def jit(ds_or_func, static_argnums=None, **kwargs):
   ----------
   ds_or_func : DynamicSystem, function
     The instance of DynamicSystem or a function.
-  static_argnums: An optional int or collection of ints that specify which
+  static_argnums : Optional, str
+    An optional int or collection of ints that specify which
     positional arguments to treat as static (compile-time constant).
+  static_argnames : optional, str
+    An optional string or collection of strings specifying
+    which named arguments to treat as static (compile-time constant). See the
+    comment on ``static_argnums`` for details. If not
+    provided but ``static_argnums`` is set, the default is based on calling
+    ``inspect.signature(fun)`` to find corresponding named arguments.
+  device: optional, Any
+    This is an experimental feature and the API is likely to change.
+    Optional, the Device the jitted function will run on. (Available devices
+    can be retrieved via :py:func:`jax.devices`.) The default is inherited
+    from XLA's DeviceAssignment logic and is usually to use
+    ``jax.devices()[0]``.
+  backend: optional, str
+    This is an experimental feature and the API is likely to change.
+    Optional, a string representing the XLA backend: ``'cpu'``, ``'gpu'``, or
+    ``'tpu'``.
+  donate_argnums:
+    Specify which arguments are "donated" to the computation.
+    It is safe to donate arguments if you no longer need them once the
+    computation has finished. In some cases XLA can make use of donated
+    buffers to reduce the amount of memory needed to perform a computation,
+    for example recycling one of your input buffers to store a result. You
+    should not reuse buffers that you donate to a computation, JAX will raise
+    an error if you try to. By default, no arguments are donated.
+  inline: bool
+    Specify whether this function should be inlined into enclosing
+    jaxprs (rather than being represented as an application of the xla_call
+    primitive with its own subjaxpr). Default False.
 
   Returns
   -------
@@ -64,20 +98,35 @@ def jit(ds_or_func, static_argnums=None, **kwargs):
   """
 
   if isinstance(ds_or_func, DynamicSystem):
+    # DynamicSystem has step functions
     if len(ds_or_func.steps):
       for key in ds_or_func.steps.keys():
         static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
         step = ds_or_func.steps[key]
         all_vars = step.__self__.vars()
-        ds_or_func.steps[key] = _make_jit(all_vars, step, static_argnums, f_name=key)
+        ds_or_func.steps[key] = _make_jit(all_vars=all_vars,
+                                          func=step,
+                                          static_argnums=static_argnums,
+                                          static_argnames=static_argnames,
+                                          device=device,
+                                          backend=backend,
+                                          donate_argnums=donate_argnums,
+                                          inline=inline,
+                                          f_name=key)
       return ds_or_func
 
+    # DynamicSystem has '__call__()' function implementation
     elif callable(ds_or_func):
       static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
       all_vars = ds_or_func.vars()
-      ds_or_func.__call__ = _make_jit(all_vars,
+      ds_or_func.__call__ = _make_jit(all_vars=all_vars,
                                       func=ds_or_func.__call__,
-                                      static_argnums=static_argnums)
+                                      static_argnums=static_argnums,
+                                      static_argnames=static_argnames,
+                                      device=device,
+                                      backend=backend,
+                                      donate_argnums=donate_argnums,
+                                      inline=inline)
       return ds_or_func
 
     else:
@@ -86,7 +135,29 @@ def jit(ds_or_func, static_argnums=None, **kwargs):
                                  f'"__call__" function. ')
 
   elif callable(ds_or_func):
-    return jax.jit(ds_or_func, static_argnums=static_argnums, **kwargs)
+    # function of an instance of DynamicSystem
+    if hasattr(ds_or_func, '__self__'):
+      parent = ds_or_func.__self__
+      all_vars = parent.vars()
+      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+      return _make_jit(all_vars=all_vars,
+                       func=ds_or_func,
+                       static_argnums=static_argnums,
+                       static_argnames=static_argnames,
+                       device=device,
+                       backend=backend,
+                       donate_argnums=donate_argnums,
+                       inline=inline)
+
+    # pure function
+    else:
+      return jax.jit(ds_or_func,
+                     static_argnums=static_argnums,
+                     static_argnames=static_argnames,
+                     device=device,
+                     backend=backend,
+                     donate_argnums=donate_argnums,
+                     inline=inline)
 
   else:
     raise errors.ModelUseError(f'Only support instance of '
@@ -101,4 +172,3 @@ def vmap(f):
 
 def pmap(f):
   return f
-
