@@ -1,33 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import collections
-import inspect
-
-from brainpy import errors
 from brainpy.dnn import activations
+from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath, jax
 from brainpy.dnn.initializers import XavierNormal, Initializer, ZerosInit
-from brainpy.simulation.base import DynamicSystem, Container
 
 __all__ = [
-  # abstract class
-  'Module', 'Sequential',
-
-  # commonly used layers
   'Activation', 'Linear', 'Dropout', 'Conv2D',
 ]
-
-
-def _check_config(f, config):
-  pars_in_f = inspect.signature(f).parameters
-  if 'config' in pars_in_f.keys():
-    return {'config': config}
-  else:
-    return {}
-
-
-def _check_args(args):
-  return (args,) if not isinstance(args, tuple) else args
 
 
 def _check_tuple(v):
@@ -37,85 +17,6 @@ def _check_tuple(v):
     return (v, v)
   else:
     raise ValueError
-
-
-class Module(DynamicSystem):
-  """Basic DNN module.
-
-  Parameters
-  ----------
-  name : str, optional
-    The name of the module.
-  """
-
-  def __init__(self, name=None):
-    super(Module, self).__init__(name=name, steps=None, monitors=None)
-
-  def __call__(self, *args, **kwargs):
-    raise NotImplementedError
-
-
-class Sequential(Container):
-  """Basic DNN sequential object.
-
-  Parameters
-  ----------
-  arg_modules
-    The modules without name specifications.
-  name : str, optional
-    The name of the sequential module.
-  kwarg_modules
-    The modules with name specifications.
-  """
-
-  def __init__(self, *arg_modules, name=None, **kwarg_modules):
-    all_systems = collections.OrderedDict()
-    # check "args"
-    for module in arg_modules:
-      if not isinstance(module, Module):
-        raise errors.ModelUseError(f'Only support {Module.__name__}, '
-                                   f'but we got {type(module)}.')
-      all_systems[module.name] = module
-
-    # check "kwargs"
-    for key, module in kwarg_modules.items():
-      if not isinstance(module, Module):
-        raise errors.ModelUseError(f'Only support {Module.__name__}, '
-                                   f'but we got {type(module)}.')
-      all_systems[key] = module
-
-    # initialize base class
-    super(Sequential, self).__init__(name=name, steps=None, monitors=None,
-                                     **all_systems)
-
-  def __call__(self, *args, config=dict()):
-    """Functional call.
-
-    Parameters
-    ----------
-    args : list, tuple
-      The *args arguments.
-    config : dict
-      The config arguments. The configuration used across modules.
-      If the "__call__" function in submodule receives "config" arguments,
-      This "config" parameter will be passed into this function.
-    """
-    keys = list(self.steps.keys())
-    calls = list(self.steps.values())
-
-    # module 0
-    try:
-      args = calls[0](*args, **_check_config(calls[0], config))
-    except Exception as e:
-      raise type(e)(f'Sequential [{keys[0]}] {calls[0]} {e}')
-
-    # other modules
-    for i in range(1, len(self.steps)):
-      try:
-        args = calls[i](*_check_args(args=args), **_check_config(calls[i], config))
-      except Exception as e:
-        raise type(e)(f'Sequential [{keys[i]}] {calls[i]} {e}')
-    return args
 
 
 class Activation(Module):

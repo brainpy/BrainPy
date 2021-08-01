@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'Channel'
@@ -19,4 +19,11 @@ class Channel(DynamicSystem):
 
   def __init__(self, name=None, **kwargs):
     super(Channel, self).__init__(name=name, **kwargs)
+
+  def update(self, *args, **kwargs):
+    pass
+
+  def current(self, *args, **kwargs):
+    pass
+
 

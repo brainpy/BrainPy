@@ -3,12 +3,23 @@
 from contextlib import contextmanager
 
 from brainpy import math
-from brainpy.simulation import utils
 
 __all__ = [
   'Collector',
   'ArrayCollector',
 ]
+
+
+def _size2len(size):
+  if isinstance(size, int):
+    return size
+  elif isinstance(size, (tuple, list)):
+    a = 1
+    for b in size:
+      a *= b
+    return a
+  else:
+    raise ValueError
 
 
 class Collector(dict):
@@ -41,7 +52,7 @@ class Collector(dict):
     longest_string = max((len(x) for x in self.keys()), default=20)
     longest_string = min(max_width, max(longest_string, 20))
     for name, v in self.items():
-      size = utils.size2len(v.value.shape)
+      size = _size2len(v.value.shape)
       total += size
       count += 1
       text.append(f'{name:{longest_string}} {size:8d} {v.value.shape}')

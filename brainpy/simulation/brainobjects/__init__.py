@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from .base import *
 from .channel import *
 from .delays import *
 from .dendrite import *

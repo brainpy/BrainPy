@@ -26,7 +26,7 @@ class BaseDSDriver(AbstractDriver):
   """
 
   def __init__(self, target):
-    from brainpy.simulation.base import DynamicSystem
+    from brainpy.simulation.brainobjects.base import DynamicSystem
     assert isinstance(target, DynamicSystem)
     self.target = target
 

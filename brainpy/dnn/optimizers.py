@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brainpy.simulation import collector
+from brainpy.primary import collector
 from brainpy.dnn.imports import jmath, jax
 from brainpy.dnn.layers import Module
 from brainpy.dnn.variables import TrainVar

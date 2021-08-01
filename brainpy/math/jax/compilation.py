@@ -15,7 +15,7 @@ import functools
 import jax
 
 from brainpy import errors
-from brainpy.simulation.base import DynamicSystem
+
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -47,7 +47,7 @@ def _make_jit(all_vars, func, static_argnums, static_argnames=None, device=None,
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def jit(ds_or_func, static_argnums=None, static_argnames=None, device=None,
+def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
         backend=None, donate_argnums=(), inline=False):
   """JIT (Just-In-Time) Compilation.
 
@@ -56,7 +56,7 @@ def jit(ds_or_func, static_argnums=None, static_argnames=None, device=None,
 
   Parameters
   ----------
-  ds_or_func : DynamicSystem, function
+  obj_or_func : DynamicSystem, function
     The instance of DynamicSystem or a function.
   static_argnums : Optional, str
     An optional int or collection of ints that specify which
@@ -96,74 +96,64 @@ def jit(ds_or_func, static_argnums=None, static_argnames=None, device=None,
     A wrapped version of DynamicSystem or function,
     set up for just-in-time compilation.
   """
+  from brainpy.primary.base import Primary
+  from brainpy.simulation.brainobjects.base import DynamicSystem
 
-  if isinstance(ds_or_func, DynamicSystem):
+  if isinstance(obj_or_func, DynamicSystem):
     # DynamicSystem has step functions
-    if len(ds_or_func.steps):
-      for key in ds_or_func.steps.keys():
+    if len(obj_or_func.steps):
+      for key in obj_or_func.steps.keys():
         static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-        step = ds_or_func.steps[key]
+        step = obj_or_func.steps[key]
         all_vars = step.__self__.vars()
-        ds_or_func.steps[key] = _make_jit(all_vars=all_vars,
-                                          func=step,
-                                          static_argnums=static_argnums,
-                                          static_argnames=static_argnames,
-                                          device=device,
-                                          backend=backend,
-                                          donate_argnums=donate_argnums,
-                                          inline=inline,
-                                          f_name=key)
-      return ds_or_func
+        obj_or_func.steps[key] = _make_jit(all_vars=all_vars,
+                                           func=step,
+                                           static_argnums=static_argnums,
+                                           static_argnames=static_argnames,
+                                           device=device,
+                                           backend=backend,
+                                           donate_argnums=donate_argnums,
+                                           inline=inline,
+                                           f_name=key)
+      return obj_or_func
+    else:
+      raise NotImplementedError
 
-    # DynamicSystem has '__call__()' function implementation
-    elif callable(ds_or_func):
+  elif isinstance(obj_or_func, Primary):
+    # Primary has '__call__()' function implementation
+    if callable(obj_or_func):
       static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-      all_vars = ds_or_func.vars()
-      ds_or_func.__call__ = _make_jit(all_vars=all_vars,
-                                      func=ds_or_func.__call__,
-                                      static_argnums=static_argnums,
-                                      static_argnames=static_argnames,
-                                      device=device,
-                                      backend=backend,
-                                      donate_argnums=donate_argnums,
-                                      inline=inline)
-      return ds_or_func
+      all_vars = obj_or_func.vars()
+      obj_or_func.__call__ = _make_jit(all_vars=all_vars,
+                                       func=obj_or_func.__call__,
+                                       static_argnums=static_argnums,
+                                       static_argnames=static_argnames,
+                                       device=device,
+                                       backend=backend,
+                                       donate_argnums=donate_argnums,
+                                       inline=inline)
+      return obj_or_func
 
     else:
-      raise errors.ModelUseError(f'Cannot JIT {ds_or_func}, because it does not have '
+      raise errors.ModelUseError(f'Cannot JIT {obj_or_func}, because it does not have '
                                  f'step functions (len(steps) = 0) and not implement '
                                  f'"__call__" function. ')
 
-  elif callable(ds_or_func):
-    # function of an instance of DynamicSystem
-    if hasattr(ds_or_func, '__self__'):
-      parent = ds_or_func.__self__
-      all_vars = parent.vars()
-      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-      return _make_jit(all_vars=all_vars,
-                       func=ds_or_func,
-                       static_argnums=static_argnums,
-                       static_argnames=static_argnames,
-                       device=device,
-                       backend=backend,
-                       donate_argnums=donate_argnums,
-                       inline=inline)
-
-    # pure function
-    else:
-      return jax.jit(ds_or_func,
-                     static_argnums=static_argnums,
-                     static_argnames=static_argnames,
-                     device=device,
-                     backend=backend,
-                     donate_argnums=donate_argnums,
-                     inline=inline)
+  elif callable(obj_or_func):
+    # function
+    return jax.jit(obj_or_func,
+                   static_argnums=static_argnums,
+                   static_argnames=static_argnames,
+                   device=device,
+                   backend=backend,
+                   donate_argnums=donate_argnums,
+                   inline=inline)
 
   else:
     raise errors.ModelUseError(f'Only support instance of '
                                f'{DynamicSystem.__name__}, '
                                f'or a callable function, '
-                               f'but we got {type(ds_or_func)}.')
+                               f'but we got {type(obj_or_func)}.')
 
 
 def vmap(f):

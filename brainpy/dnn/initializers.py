@@ -143,7 +143,6 @@ class Orthogonal(Initializer):
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
     return TrainVar(self.gain * jax.numpy.array(q_mat))
-    # return ndarray(self.gain * jax.numpy.array(q_mat), dtype=dtype)
 
 
 class KaimingNormal(Initializer):

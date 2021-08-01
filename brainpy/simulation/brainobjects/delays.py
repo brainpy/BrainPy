@@ -4,7 +4,7 @@ import math
 
 from brainpy import errors
 from brainpy import math as bpmath
-from brainpy.simulation.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.simulation.utils import size2len
 
 __all__ = [

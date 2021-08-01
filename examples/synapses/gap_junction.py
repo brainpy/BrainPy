@@ -32,9 +32,12 @@ class GapJunction(bp.TwoEndConn):
       return val
 
     val = jax.lax.fori_loop(0, self.num, loop_body,
-                            dict(pre_ids=self.pre_ids, post_ids=self.post_ids,
-                                 post_input=self.post.input, pre_V=self.pre.V,
-                                 post_V=self.post.V, g_max=self.g_max))
+                            dict(pre_ids=self.pre_ids,
+                                 post_ids=self.post_ids,
+                                 post_input=self.post.input,
+                                 pre_V=self.pre.V,
+                                 post_V=self.post.V,
+                                 g_max=self.g_max))
     self.post.input.value = val['post_input']
 
 
@@ -69,12 +72,15 @@ class LifGapJunction(bp.TwoEndConn):
       return val
 
     val = jax.lax.fori_loop(0, self.num, loop_body,
-                            dict(pre_ids=self.pre_ids, pre_spike=self.pre.spike,
-                                 post_input=self.post.input, pre_V=self.pre.V,
-                                 post_ids=self.post_ids, post_V=self.post.V,
+                            dict(pre_ids=self.pre_ids,
+                                 pre_spike=self.pre.spike,
+                                 post_input=self.post.input,
+                                 pre_V=self.pre.V,
+                                 post_ids=self.post_ids,
+                                 post_V=self.post.V,
                                  post_ref=self.post.refractory,
-                                 g_max=self.g_max, k_spikelet=self.k_spikelet,
-                                 ))
+                                 g_max=self.g_max,
+                                 k_spikelet=self.k_spikelet))
     self.post.input.value = val['post_input']
     self.post.V.value = val['post_V']
 
@@ -122,14 +128,13 @@ class LIF(bp.NeuGroup):
 
 
 def example():
-  lif = LIF(100, monitors=['V'])
+  lif = LIF(100, monitors=['V'], name='X')
   gj = LifGapJunction(lif, lif, bp.connect.FixedProb(0.2))
   net = bp.Network(lif=lif, gj=gj)
   net = bp.math.jit(net)
 
-  net.run(100., report=0.2)
+  net.run(100., inputs=('X.input', 20.), report=0.2)
 
 
 if __name__ == '__main__':
   example()
-

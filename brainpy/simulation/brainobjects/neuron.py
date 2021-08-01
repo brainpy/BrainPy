@@ -2,10 +2,11 @@
 
 from brainpy import errors
 from brainpy.simulation import utils
-from brainpy.simulation.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'NeuGroup',
+  'CondNeuGroup',
 ]
 
 
@@ -44,3 +45,7 @@ class NeuGroup(DynamicSystem):
 
   def update(self, _t, _i):
     raise NotImplementedError
+
+
+class CondNeuGroup(DynamicSystem):
+  pass

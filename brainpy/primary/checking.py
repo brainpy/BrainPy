@@ -2,15 +2,14 @@
 
 from brainpy import errors
 
-
 __all__ = [
   'check_name',
   'get_name',
 ]
 
-
 object2name = dict()
 _typed_names = {}
+
 
 def check_name(name, obj):
   if not name.isidentifier():
