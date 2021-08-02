@@ -2,19 +2,24 @@
 
 import sys
 
-from brainpy import math, errors
-from brainpy.math import utils
-from brainpy.math.numpy.driver import NumpyDSDriver
-from brainpy.math.numpy.driver import NumpyDiffIntDriver
+import math as math2
+from brainpy import math, errors, tools
+from brainpy.simulation.driver.numpy_driver import NumpyDSDriver
 
 __all__ = [
   'JaxDSDriver',
-  'JaxDiffIntDriver',
 ]
 
 
-class JaxDiffIntDriver(NumpyDiffIntDriver):
-  pass
+
+def every_to_step_num(interval):
+  num_interval = round(interval / math.get_dt())
+  if math2.fmod(interval * 1000, math.get_dt() * 1000) != 0.:
+    print(f'"{interval}" is not an integer multiple of the step '
+          f'resolution ("{math.get_dt()}"). BrainPy adjust it '
+          f'to "{num_interval * math.get_dt()}".')
+  return num_interval
+
 
 
 class JaxDSDriver(NumpyDSDriver):
@@ -54,7 +59,7 @@ class JaxDSDriver(NumpyDSDriver):
         code_lines.append(line)
 
       # function
-      code, func = utils.code_lines_to_func(
+      code, func = tools.code_lines_to_func(
         lines=code_lines,
         func_name=input_func_name,
         func_args=['_t', '_i'],
@@ -112,7 +117,7 @@ class JaxDSDriver(NumpyDSDriver):
     if interval is None:
       code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
     else:
-      num_interval = utils.every_to_step_num(interval)
+      num_interval = every_to_step_num(interval)
       code_scope[f'{key_id}_interval_to_monitor'] = num_interval
       code_lines.extend([f'if _i % {key_id}_interval_to_monitor == 0:',
                          f'  {node.name}.mon.item_contents["{key}"].append({right})',

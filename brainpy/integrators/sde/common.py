@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import math
 from brainpy.integrators import constants, utils
+from brainpy.integrators.driver import get_driver
 
 _SDE_UNKNOWN_NO = 0
 
@@ -23,21 +23,9 @@ def basic_info(f, g):
 def compile_and_assign_attrs(code_lines, code_scope, show_code,
                              variables, parameters, func_name,
                              intg_type, var_type, wiener_type, dt):
-  driver = math.DriverForDiffInt(code_scope=code_scope,
-                                 code_lines=code_lines,
-                                 func_name=func_name,
-                                 show_code=show_code)
+  driver = get_driver()(code_scope=code_scope,
+                        code_lines=code_lines,
+                        func_name=func_name,
+                        show_code=show_code)
   call = driver.build()
   return call
-
-  # integrator = SDEIntegrator(f=code_scope['f'],
-  #                            g=code_scope['g'],
-  #                            intg_type=intg_type,
-  #                            wiener_type=wiener_type,
-  #                            call=call,
-  #                            variables=variables,
-  #                            parameters=parameters,
-  #                            var_type=var_type,
-  #                            dt=dt,
-  #                            code=driver.code)
-  # return integrator

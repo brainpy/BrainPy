@@ -1,32 +1,27 @@
 # -*- coding: utf-8 -*-
 
+import math as math2
 import sys
 from pprint import pprint
 
-from brainpy import errors, math
-from brainpy.math import utils, driver
+from brainpy import errors, math, tools
+from brainpy.simulation.driver import base
 
 __all__ = [
-  'NumpyDiffIntDriver',
   'NumpyDSDriver',
 ]
 
 
-class NumpyDiffIntDriver(driver.BaseDiffIntDriver):
-  def build(self, *args, **kwargs):
-    code = '\n'.join(self.code_lines)
-    self.code = code
-    if self.show_code:
-      print(code)
-      print()
-      pprint(self.code_scope)
-      print()
-    exec(compile(code, '', 'exec'), self.code_scope)
-    new_f = self.code_scope[self.func_name]
-    return new_f
+def every_to_step_num(interval):
+  num_interval = round(interval / math.get_dt())
+  if math2.fmod(interval * 1000, math.get_dt() * 1000) != 0.:
+    print(f'"{interval}" is not an integer multiple of the step '
+          f'resolution ("{math.get_dt()}"). BrainPy adjust it '
+          f'to "{num_interval * math.get_dt()}".')
+  return num_interval
 
 
-class NumpyDSDriver(driver.BaseDSDriver):
+class NumpyDSDriver(base.DSDriver):
   """BrainPy Running Driver for Tensor-oriented backends,
   such like NumPy, PyTorch, TensorFlow, etc.
   """
@@ -135,7 +130,7 @@ class NumpyDSDriver(driver.BaseDSDriver):
         code_lines.append(line)
 
       # function
-      code, func = utils.code_lines_to_func(
+      code, func = tools.code_lines_to_func(
         lines=code_lines,
         func_name=input_func_name,
         func_args=['_t', '_i'],
@@ -194,7 +189,7 @@ class NumpyDSDriver(driver.BaseDSDriver):
     if interval is None:
       code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
     else:
-      num_interval = utils.every_to_step_num(interval)
+      num_interval = every_to_step_num(interval)
       code_scope[f'{key_id}_interval_to_monitor'] = num_interval
       code_lines.extend([f'if _i % {key_id}_interval_to_monitor == 0:',
                          f'  {node.name}.mon.item_contents["{key}"].append({right})',
@@ -239,7 +234,7 @@ class NumpyDSDriver(driver.BaseDSDriver):
 
     if len(code_lines):
       # function
-      code, func = utils.code_lines_to_func(lines=code_lines,
+      code, func = tools.code_lines_to_func(lines=code_lines,
                                             func_name=monitor_func_name,
                                             func_args=['_t', '_i'],
                                             scope=code_scope)
@@ -263,7 +258,7 @@ class NumpyDSDriver(driver.BaseDSDriver):
         code_scope[interval_name] = interval
         line_calls = [f'if {interval_name}():']
       else:
-        num_interval = utils.every_to_step_num(interval)
+        num_interval = every_to_step_num(interval)
         code_scope[interval_name] = num_interval
         line_calls = [f'if _i % {interval_name} == 0:']
       line_calls += [f'  {line}' for line in lines]

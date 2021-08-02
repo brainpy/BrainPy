@@ -5,7 +5,7 @@
 
 import brainpy as bp
 
-bp.math.use_backend('numpy')
+bp.math.use_backend('jax')
 bp.integrators.set_default_odeint('rk4')
 
 

@@ -9,6 +9,8 @@ from brainpy.integrators.constants import DE_PREFIX
 from brainpy.primary import Primary, collector
 from brainpy.simulation import utils
 from brainpy.simulation.monitor import Monitor
+from brainpy.simulation.driver import get_driver
+
 
 __all__ = [
   'DynamicSystem',
@@ -149,7 +151,7 @@ class DynamicSystem(Primary):
 
     # build main function the monitor function
     if self.driver is None:
-      self.driver = math.DriverForDS(self)
+      self.driver = get_driver()(self)
     formatted_inputs = utils.format_inputs(host=self,
                                            duration=duration,
                                            inputs=inputs)

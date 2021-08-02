@@ -7,8 +7,9 @@ from collections import OrderedDict
 from pprint import pprint
 
 from brainpy import errors, tools
-from brainpy.math import utils, driver, profile
-from brainpy.math.numpy.driver import NumpyDSDriver
+from brainpy.math import utils, profile
+from brainpy.simulation.driver import base
+from brainpy.simulation.driver.numpy_driver import NumpyDSDriver
 from brainpy.integrators import constants as diffint_cons
 # from brainpy.simulation.brainobjects import delays
 
@@ -67,7 +68,7 @@ def get_numba_profile():
   return NUMBA_PROFILE
 
 
-class NumbaDiffIntDriver(driver.BaseDiffIntDriver):
+class NumbaDiffIntDriver(base.BaseDiffIntDriver):
   def build(self, *args, **kwargs):
     # code
     code = '\n'.join(self.code_lines)

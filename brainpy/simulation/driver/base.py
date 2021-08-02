@@ -3,26 +3,12 @@
 import abc
 
 __all__ = [
-  'AbstractDriver',
-  'BaseDSDriver',
-  'BaseDiffIntDriver',
+  'DSDriver',
 ]
 
 
-class AbstractDriver(abc.ABC):
-  """
-  Abstract base class for backend driver.
-  """
-
-  @abc.abstractmethod
-  def build(self, *args, **kwargs):
-    """Build the node or the network running function.
-    """
-    pass
-
-
-class BaseDSDriver(AbstractDriver):
-  """Base Dynamical System Driver.
+class DSDriver(abc.ABC):
+  """Dynamical System Driver.
   """
 
   def __init__(self, target):
@@ -50,20 +36,4 @@ class BaseDSDriver(AbstractDriver):
 
   @abc.abstractmethod
   def get_monitor_func(self, *args, **kwargs):
-    pass
-
-
-class BaseDiffIntDriver(AbstractDriver):
-  """Base Integration Driver for Differential Equations.
-  """
-
-  def __init__(self, code_scope, code_lines, func_name, show_code):
-    self.code_scope = code_scope
-    self.code_lines = code_lines
-    self.func_name = func_name
-    self.show_code = show_code
-    self.code = None
-
-  @abc.abstractmethod
-  def build(self, *args, **kwargs):
     pass

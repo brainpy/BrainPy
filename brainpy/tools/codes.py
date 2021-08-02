@@ -5,7 +5,10 @@ import re
 from types import LambdaType
 
 __all__ = [
-  # tools for code string
+
+  'code_lines_to_func',
+
+# tools for code string
   'get_identifiers',
   'indent',
   'deindent',
@@ -17,6 +20,28 @@ __all__ = [
   'get_func_source',
   'change_func_name',
 ]
+
+
+
+def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
+  lines_for_compile = [f'    {line}' for line in lines]
+  code_for_compile = '\n'.join(lines_for_compile)
+  code = f'def {func_name}({", ".join(func_args)}):\n' + \
+         f'  try:\n' + \
+         f'{code_for_compile}\n' + \
+         f'  except Exception as e:\n'
+  lines_for_debug = [f'[{i + 1:3d}] {line}' for i, line in enumerate(code.split('\n'))]
+  code_for_debug = '\n'.join(lines_for_debug)
+  code += f'    exc_type, exc_obj, exc_tb = sys.exc_info()\n' \
+          f'    line_no = exc_tb.tb_lineno\n' \
+          f'    raise ValueError("""Error occurred in line %d: \n\n{code_for_debug}\n\n' \
+          f'    %s\n{remind}\n""" % (line_no, str(e)))'
+  try:
+    exec(compile(code, '', 'exec'), scope)
+  except Exception as e:
+    raise ValueError(f'Compilation function error: \n\n{code}') from e
+  func = scope[func_name]
+  return code, func
 
 
 ######################################

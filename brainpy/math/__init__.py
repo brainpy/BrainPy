@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.math.driver import *
-from brainpy.math.numpy import *
 from brainpy.math.function import *
-
+from brainpy.math.numpy import *
 
 # 1. numerical precision
 # --------------------------
@@ -237,14 +235,9 @@ __data_types = [
   'complex_', 'complex64', 'complex128',
 ]
 
-__drivers = [
-  'DriverForDS',
-  'DriverForDiffInt',
-]
-
 __all = __math_fs + __binary_fs + __logic_fs + __array_manipulation_fs + \
         __array_creation_fs + __indexing_fs + __statistic_fs + __window_fs + \
-        __constants + __linear_algebra_fs + __data_types + __drivers
+        __constants + __linear_algebra_fs + __data_types
 
 
 # 4. backend setting
@@ -271,7 +264,6 @@ def use_backend(name, module=None):
       raise ValueError(f'"module" must be a module, but we got a '
                        f'type of {type(module)}: {module}')
 
-
   global_vars = globals()
 
   # replace operations
@@ -289,4 +281,3 @@ def use_backend(name, module=None):
                      f'{essential_ops}\n\n'
                      f'But they are not provided in the {name} backend.\n'
                      f'Please provide their implementations in the corresponding module.')
-

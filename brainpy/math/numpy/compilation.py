@@ -12,6 +12,9 @@ __all__ = [
 
 
 def jit(ds_or_func, *args, **kwargs):
+  raise NotImplementedError('JIT compilation in numpy backend '
+                            'can not be available right now.')
+
   if isinstance(ds_or_func, DynamicSystem):
     return ds_or_func
 
@@ -25,9 +28,11 @@ def jit(ds_or_func, *args, **kwargs):
                                f'but we got {type(ds_or_func)}.')
 
 
-
 def vmap(f):
-  return f
+  raise NotImplementedError('Vectorize compilation in numpy backend '
+                            'can not be available right now.')
+
 
 def pmap(f):
-  return f
+  raise NotImplementedError('Parallel compilation in numpy backend '
+                            'can not be available right now.')
