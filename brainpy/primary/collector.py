@@ -32,9 +32,18 @@ class Collector(dict):
 
   def __add__(self, other):
     """Overloaded add operator to merge two VarCollectors together."""
-    vc = Collector(self)
+    vc = type(self)(self)
     vc.update(other)
     return vc
+
+  def subset(self, type_):
+    seen = set()
+    gather = type(self)()
+    for key, value in self.items():
+      if id(value) not in seen and isinstance(value, type_):
+        seen.add(id(value))
+        gather[key] = value
+    return gather
 
   def unique_values(self):
     seen = set()
@@ -59,15 +68,6 @@ class Collector(dict):
     text.append(f'{f"+Total({count})":{longest_string}} {total:8d}')
     return '\n'.join(text)
 
-  def subset(self, type):
-    seen = set()
-    gather = type(self)()
-    for key, value in self.items():
-      if id(value) not in seen and isinstance(value, type):
-        seen.add(id(value))
-        gather[key] = value
-    return gather
-
 
 class ArrayCollector(Collector):
   """A ArrayCollector is a dictionary (name, var)
@@ -76,12 +76,6 @@ class ArrayCollector(Collector):
   is ordered by insertion order. It is the object
   returned by DynamicSystem.vars() and used as input
   in many DynamicSystem instance: optimizers, Jit, etc..."""
-
-  def __add__(self, other):
-    """Overloaded add operator to merge two VarCollectors together."""
-    vc = ArrayCollector(self)
-    vc.update(other)
-    return vc
 
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
@@ -103,7 +97,46 @@ class ArrayCollector(Collector):
       else:  # if do not have "key", update
         self[k] = v
     if conflicts:
-      raise ValueError(f'Name conflicts when combining Collection {sorted(conflicts)}')
+      raise ValueError(f'Name conflicts when combining collection {sorted(conflicts)}')
+
+  def unique_data(self):
+    """Return the list of values for this collection.
+    Similarly to the assign method, each variable value is
+    reported only once and in the order following the
+    iter(self) iterator.
+
+    Returns:
+        A new ArrayCollector containing the subset of variables.
+    """
+    return [x.value for x in self.unique_values()]
+
+  def unique_assign(self, extra_data):
+    """Assign tensors to the variables in the VarCollection.
+    Each variable is assigned only once and in the order
+    following the iter(self) iterator.
+
+    Args:
+        extra_data: the list of tensors used to update variables values.
+    """
+    self_values = self.unique_values()
+    # self_values = list(self.values())
+    if len(self_values) != len(extra_data):
+      raise ValueError(f'The target has {len(self_values)} data, while we got '
+                       f'a "extra_data" with the length of {len(extra_data)}.')
+    for v1, data in zip(self_values, extra_data):
+      v1.value = data
+
+  def assign(self, extra_data):
+    values = self.values()
+    # self_values = list(self.values())
+    if len(values) != len(extra_data):
+      raise ValueError(f'The target has {len(values)} data, while we got '
+                       f'a "extra_data" with the length of {len(extra_data)}.')
+    for v1, data in zip(values, extra_data):
+      v1.value = data
+
+  def data(self):
+    return [x.value for x in self.values()]
 
   @contextmanager
   def replicate(self):
@@ -144,32 +177,3 @@ class ArrayCollector(Collector):
         else:
           d.reduce(d.value)
         visited.add(id(d))
-
-  def unique_assign(self, extra_data):
-    """Assign tensors to the variables in the VarCollection.
-    Each variable is assigned only once and in the order
-    following the iter(self) iterator.
-
-    Args:
-        extra_data: the list of tensors used to update variables values.
-    """
-    self_values = self.unique_values()
-    # self_values = list(self.values())
-    if len(self_values) != len(extra_data):
-      raise ValueError(f'The target has {len(self_values)} data, while we got a '
-                       f'"extra_data" with the length of {len(extra_data)}.')
-    for v1, data in zip(self_values, extra_data):
-      v1.value = data
-
-  def unique_data(self):
-    """Return the list of values for this collection.
-    Similarly to the assign method, each variable value is
-    reported only once and in the order following the
-    iter(self) iterator.
-
-    Args:
-        is_a: either a variable type or a list of variables types to include.
-    Returns:
-        A new ArrayCollector containing the subset of variables.
-    """
-    return [x.value for x in self.unique_values()]

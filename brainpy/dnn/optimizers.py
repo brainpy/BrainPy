@@ -2,10 +2,10 @@
 
 import numpy as np
 
-from brainpy.primary import collector
-from brainpy.dnn.imports import jmath, jax
 from brainpy.dnn.base import Module
-from brainpy.dnn.variables import TrainVar
+from brainpy.dnn.imports import jmath, jax
+from brainpy.math.jax.ndarray import TrainVar
+from brainpy.primary import collector
 
 __all__ = [
   'Optimizer',
@@ -17,14 +17,17 @@ __all__ = [
 
 
 class Optimizer(Module):
-  def __init__(self, lr, target, name):
+  def __init__(self, train_vars, lr, name):
     super(Optimizer, self).__init__(name=name)
-    if not isinstance(target, Module):
-      raise ValueError(f'target only supports {Module.__name__} object, '
-                       f'not {type(target)}: {target}')
+    if isinstance(train_vars, collector.ArrayCollector):
+      train_vars = list(train_vars.subset(TrainVar).values())
+      # train_vars = list(train_vars.values())
+    elif isinstance(train_vars, (list, tuple)):
+      train_vars = list(train_vars)
+    else:
+      raise ValueError
     self.lr = lr
-    self.target = target
-    self._train_vars = list(target.vars().subset(TrainVar).unique_values())
+    self._train_vars = train_vars
     self._dynamic_vars = []  # dynamic variables
 
   def register_dynamic_vars(self, variables):
@@ -39,8 +42,8 @@ class Optimizer(Module):
 
 
 class SGD(Optimizer):
-  def __init__(self, target, lr, name=None):
-    super(SGD, self).__init__(lr=lr, target=target, name=name)
+  def __init__(self, lr, train_vars, name=None):
+    super(SGD, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
   def __call__(self, grads):
     if len(grads) != len(self._train_vars):
@@ -50,8 +53,8 @@ class SGD(Optimizer):
 
 
 class Momentum(Optimizer):
-  def __init__(self, target, lr, momentum, name=None):
-    super(Momentum, self).__init__(lr, target=target, name=name)
+  def __init__(self, lr, train_vars, momentum, name=None):
+    super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
     self.momentum = momentum
     self.ms = [TrainVar(jmath.zeros_like(x)) for x in self._train_vars]
     self.register_dynamic_vars(self.ms)
@@ -63,8 +66,8 @@ class Momentum(Optimizer):
 
 
 class NesterovMomentum(Optimizer):
-  def __init__(self, target, lr, momentum, name=None):
-    super(NesterovMomentum, self).__init__(lr, target=target, name=name)
+  def __init__(self, lr, train_vars, momentum, name=None):
+    super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
     self.momentum = momentum
     self.ms = [TrainVar(jmath.zeros_like(x)) for x in self._train_vars]
     self.register_dynamic_vars(self.ms)
@@ -76,8 +79,8 @@ class NesterovMomentum(Optimizer):
 
 
 class Adam(Optimizer):
-  def __init__(self, target, lr, beta1=0.9, beta2=0.999, eps=1e-8, name=None):
-    super(Adam, self).__init__(lr, target=target, name=name)
+  def __init__(self, lr, train_vars, beta1=0.9, beta2=0.999, eps=1e-8, name=None):
+    super(Adam, self).__init__(lr=lr, train_vars=train_vars, name=name)
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps

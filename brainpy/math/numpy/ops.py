@@ -66,6 +66,8 @@ __all__ = [
   'int_', 'int8', 'int16', 'int32', 'int64',
   'float_', 'float16', 'float32', 'float64',
   'complex_', 'complex64', 'complex128',
+
+  'take_along_axis',
 ]
 
 # math funcs
@@ -369,3 +371,9 @@ float64 = numpy.float64
 complex_ = numpy.complex_
 complex64 = numpy.complex64
 complex128 = numpy.complex128
+
+
+# others
+# -------
+
+take_along_axis = numpy.take_along_axis

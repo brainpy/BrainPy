@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.dnn.imports import jax
+from brainpy.dnn.imports import jax, jmath
 
 __all__ = [
   'cross_entropy',
@@ -25,6 +25,13 @@ def cross_entropy(logits, labels):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
+  logits = logits.value if isinstance(logits, jmath.ndarray) else logits
+  if jmath.ndim(labels) == 1:
+    labels2 = jmath.zeros_like(logits)
+    rows = jmath.arange(len(logits))
+    labels2[rows, labels] = 1.
+    labels = labels2
+  labels = labels.value if isinstance(labels, jmath.ndarray) else labels
   return jax.scipy.special.logsumexp(logits, axis=-1) - (logits * labels).sum(-1)
 
 
@@ -41,7 +48,7 @@ def cross_entropy_sparse(logits, labels):
   if isinstance(labels, int):
     labeled_logits = logits[..., labels]
   else:
-    labeled_logits = jax.numpy.take_along_axis(logits, labels[..., None], -1).squeeze(-1)
+    labeled_logits = jmath.take_along_axis(logits, labels[..., None], -1).squeeze(-1)
 
   return jax.scipy.special.logsumexp(logits, axis=-1) - labeled_logits
 

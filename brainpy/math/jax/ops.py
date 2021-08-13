@@ -68,6 +68,9 @@ __all__ = [
   'int_', 'int8', 'int16', 'int32', 'int64',
   'float_', 'float16', 'float32', 'float64',
   'complex_', 'complex64', 'complex128',
+
+  # others
+  'take_along_axis',
 ]
 
 # math funcs
@@ -409,3 +412,10 @@ float64 = jnp.float64
 complex_ = jnp.complex_
 complex64 = jnp.complex64
 complex128 = jnp.complex128
+
+
+# others
+# ------
+
+take_along_axis = _wrap(jnp.take_along_axis)
+

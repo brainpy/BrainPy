@@ -48,6 +48,9 @@ class Primary(object):
       raise ValueError(f'No support for the method of "{method}".')
     return gather
 
+  def train_vars(self, method='absolute'):
+    return self.vars(method=method)
+
   def nodes(self, method='absolute'):
     """Collect all the nodes in the instance
     of DynamicSystem.

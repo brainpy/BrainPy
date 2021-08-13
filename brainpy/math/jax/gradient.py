@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+import inspect
+from typing import List, Tuple
+
 import jax
 
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.math.jax.ndarray import TrainVar, ndarray
+from brainpy.primary.base import Primary
 
 __all__ = [
   'grad', 'Grad',
@@ -11,13 +15,13 @@ __all__ = [
 ]
 
 
-def grad(f_or_ds, vars=None, argnums=None, has_aux=False,
+def grad(fun_or_obj, vars=None, argnums=None, has_aux=None,
          holomorphic=False, allow_int=False, reduce_axes=()):
   """Creates a function which evaluates the gradient of ``fun``.
 
   Parameters
   ----------
-  f_or_ds : function, DynamicSystem
+  fun_or_obj : function, Primary
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers.
     Argument arrays in the positions specified by ``argnums`` must be of
@@ -59,67 +63,44 @@ def grad(f_or_ds, vars=None, argnums=None, has_aux=False,
   Examples
   --------
 
-  >>> grad_tanh = grad(jax.numpy.tanh)
+  >>> import brainpy as bp
+  >>> grad_tanh = grad(bp.math.tanh)
   >>> print(grad_tanh(0.2))
   0.961043
+
+  >>>
   """
   # vars
   if vars is None:
-    if isinstance(f_or_ds, DynamicSystem):
-      vars = f_or_ds.vars()
-  # argnums
-  if argnums is None:
-    if vars is None:
-      argnums = (0,)
-    else:
-      argnums = ()
+    if isinstance(fun_or_obj, Primary):
+      vars = fun_or_obj.vars().subset(TrainVar)
+
   # function
-  if not callable(f_or_ds):
-    raise ValueError
-  # jit compilation
+  if not callable(fun_or_obj):
+    raise ValueError('Must be a callable object.')
+  # gradient
   if vars is None:
-    return jax.grad(fun=f_or_ds, argnums=argnums, has_aux=has_aux,
+    has_aux = False if has_aux is None else has_aux
+    argnums = 0 if argnums is None else argnums
+    return jax.grad(fun=fun_or_obj, argnums=argnums, has_aux=has_aux,
                     holomorphic=holomorphic, allow_int=allow_int,
                     reduce_axes=reduce_axes)
   else:
-    return Grad(fun=f_or_ds, vars=vars)
+    has_aux = True if has_aux is None else has_aux
+    if not has_aux:
+      raise ValueError('"has_aux" must be True if provide "vars" and "obj"')
+    return Grad(fun=fun_or_obj, vars=vars, argnums=argnums, has_aux=True,
+                holomorphic=holomorphic, allow_int=allow_int,
+                reduce_axes=reduce_axes)
 
 
-class Grad(DynamicSystem):
-  def __init__(self, fun, vars):
-    self._raw = fun
-    self._vars = vars
-    super(Grad, self).__init__()
-
-    def func(inputs_and_train_tensors, state_tensors, list_args, kwargs):
-      inputs = inputs_and_train_tensors[:len(self.input_argnums)]
-      train_tensors = inputs_and_train_tensors[len(self.input_argnums):]
-      self.vc.subset(TrainVar).assign(train_tensors)
-      self.vc.subset(BaseState).assign(state_tensors)
-      for i, arg in zip(self.input_argnums, inputs):
-        list_args[i] = arg
-      outputs = f(*list_args, **kwargs)
-      if not isinstance(outputs, (list, tuple)):
-        outputs = [outputs]
-      return outputs[0], (outputs, variables.tensors())
-
-  def vars(self, method='absolute'):
-    if isinstance(self._raw, DynamicSystem):
-      return super(Grad, self).vars(method=method)
-    else:
-      return self._vars
-
-  def __call__(self, *args, **kwargs):
-    return
-
-
-def value_and_grad(f_or_ds, vars=None, argnums=0, has_aux=False,
+def value_and_grad(f_or_ds, vars=None, argnums=None, has_aux=None,
                    holomorphic=False, allow_int=False, reduce_axes=()):
   """Create a function which evaluates both ``fun`` and the gradient of ``fun``.
 
   Parameters
   ----------
-  f_or_ds : function, DynamicSystem
+  f_or_ds : function, Primary
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers. It
     should return a scalar (which includes arrays with shape ``()`` but not
@@ -159,19 +140,14 @@ def value_and_grad(f_or_ds, vars=None, argnums=0, has_aux=False,
   """
   # vars
   if vars is None:
-    if isinstance(f_or_ds, DynamicSystem):
+    if isinstance(f_or_ds, Primary):
       vars = f_or_ds.vars()
-  # argnums
-  if argnums is None:
-    if vars is None:
-      argnums = (0,)
-    else:
-      argnums = ()
   # function
   if not callable(f_or_ds):
-    raise ValueError
+    raise ValueError('Must be a callable object.')
   # jit compilation
   if vars is None:
+    argnums = 0 if argnums is None else argnums
     return jax.value_and_grad(fun=f_or_ds, argnums=argnums, has_aux=has_aux,
                               holomorphic=holomorphic, allow_int=allow_int,
                               reduce_axes=reduce_axes)
@@ -179,14 +155,68 @@ def value_and_grad(f_or_ds, vars=None, argnums=0, has_aux=False,
     return ValueAndGrad(fun=f_or_ds, vars=vars)
 
 
-class ValueAndGrad(DynamicSystem):
-  def __init__(self, fun, vars):
-    self._raw = fun
+class Gradient(Primary):
+  def __init__(self, func, raw, vars, argnums=None, has_aux=True, holomorphic=False,
+               allow_int=False, reduce_axes=()):
+    super(Gradient, self).__init__()
+
+    if argnums is None:
+      argnums = (0,)
+    elif isinstance(argnums, int):
+      argnums = (0, argnums + 1)
+    else:
+      argnums = (0,) + tuple(a + 1 for a in argnums)
+    self.argnums = argnums
+
+    self._raw = raw
     self._vars = vars
-    super(ValueAndGrad, self).__init__()
+    self._call = jax.grad(fun=func, argnums=argnums, has_aux=has_aux,
+                          holomorphic=holomorphic, allow_int=allow_int,
+                          reduce_axes=reduce_axes)
+    signature = inspect.signature(raw)
+    self.__signature__ = signature.replace(return_annotation=Tuple[List[ndarray], signature.return_annotation])
 
   def vars(self, method='absolute'):
-    return self._vars
+    if isinstance(self._raw, Primary):
+      return super(Gradient, self).vars(method=method)
+    else:
+      return self._vars
+
+
+class Grad(Gradient):
+  def __init__(self, fun, vars, argnums=None, has_aux=True, holomorphic=False,
+               allow_int=False, reduce_axes=()):
+    def func(train_vars, *args, **kwargs):
+      vars.assign(train_vars)
+      outputs = fun(*args, **kwargs)
+      outputs2 = outputs.value if isinstance(outputs, ndarray) else outputs
+      return outputs2, vars.data()
+
+    super(Grad, self).__init__(func=func, raw=fun, vars=vars, argnums=argnums,
+                               has_aux=has_aux, holomorphic=holomorphic,
+                               allow_int=allow_int, reduce_axes=reduce_axes)
 
   def __call__(self, *args, **kwargs):
-    return
+    g, changes = self._call(self._vars.data(), *args, **kwargs)
+    self._vars.assign(changes)
+    return g[0] if len(self.argnums) == 1 else g[1:] + g[:1]
+
+
+class ValueAndGrad(Gradient):
+  def __init__(self, fun, vars, argnums=None, has_aux=True, holomorphic=False,
+               allow_int=False, reduce_axes=()):
+    def func(train_vars, *args, **kwargs):
+      vars.assign(train_vars)
+      outputs = fun(*args, **kwargs)
+      outputs2 = outputs.value if isinstance(outputs, ndarray) else outputs
+      return outputs2, (outputs, vars.data())
+
+    super(ValueAndGrad, self).__init__(func=func, raw=fun, vars=vars, argnums=argnums,
+                                       has_aux=has_aux, holomorphic=holomorphic,
+                                       allow_int=allow_int, reduce_axes=reduce_axes)
+
+  def __call__(self, *args, **kwargs):
+    g, (outputs, changes) = self._call(self._vars.data(), *args, **kwargs)
+    self._vars.assign(changes)
+    grads = g[0] if len(self.argnums) == 1 else g[1:] + g[:1]
+    return outputs, grads

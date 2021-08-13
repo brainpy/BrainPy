@@ -5,7 +5,7 @@ import numpy as np
 import scipy.stats
 
 from brainpy.dnn.imports import jax, jmath
-from brainpy.dnn.variables import TrainVar
+from brainpy.math.jax.ndarray import TrainVar
 
 __all__ = [
   'Initializer',

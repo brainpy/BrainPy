@@ -8,9 +8,8 @@ from brainpy import math, errors
 from brainpy.integrators.constants import DE_PREFIX
 from brainpy.primary import Primary, collector
 from brainpy.simulation import utils
-from brainpy.simulation.monitor import Monitor
 from brainpy.simulation.driver import get_driver
-
+from brainpy.simulation.monitor import Monitor
 
 __all__ = [
   'DynamicSystem',

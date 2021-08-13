@@ -8,6 +8,7 @@ from jax.tree_util import register_pytree_node
 
 __all__ = [
   'ndarray',
+  'TrainVar',
 ]
 
 
@@ -508,6 +509,24 @@ class ndarray(object):
 
   def numpy(self):
     return np.asarray(self.value)
+
+
+class TrainVar(ndarray):
+  __slots__ = "_value"
+  _registered = False
+
+  def __new__(cls, *args, **kwargs):
+    if not cls._registered:
+      flatten = lambda t: ((t.value,), None)
+      unflatten = lambda aux_data, children: TrainVar(*children)
+      jax.tree_util.register_pytree_node(TrainVar, flatten, unflatten)
+      cls._registered = True
+    return super().__new__(cls)
+
+  def __init__(self, value):
+    if isinstance(value, ndarray):
+      value = value.value
+    super(TrainVar, self).__init__(value)
 
 
 def _wrap(f):
