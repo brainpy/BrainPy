@@ -190,14 +190,14 @@ class Grad(Gradient):
       vars.assign(train_vars)
       outputs = fun(*args, **kwargs)
       outputs2 = outputs.value if isinstance(outputs, ndarray) else outputs
-      return outputs2, vars.data()
+      return outputs2, vars.dict()
 
     super(Grad, self).__init__(func=func, raw=fun, vars=vars, argnums=argnums,
                                has_aux=has_aux, holomorphic=holomorphic,
                                allow_int=allow_int, reduce_axes=reduce_axes)
 
   def __call__(self, *args, **kwargs):
-    g, changes = self._call(self._vars.data(), *args, **kwargs)
+    g, changes = self._call(self._vars.dict(), *args, **kwargs)
     self._vars.assign(changes)
     return g[0] if len(self.argnums) == 1 else g[1:] + g[:1]
 
@@ -209,14 +209,14 @@ class ValueAndGrad(Gradient):
       vars.assign(train_vars)
       outputs = fun(*args, **kwargs)
       outputs2 = outputs.value if isinstance(outputs, ndarray) else outputs
-      return outputs2, (outputs, vars.data())
+      return outputs2, (outputs, vars.dict())
 
     super(ValueAndGrad, self).__init__(func=func, raw=fun, vars=vars, argnums=argnums,
                                        has_aux=has_aux, holomorphic=holomorphic,
                                        allow_int=allow_int, reduce_axes=reduce_axes)
 
   def __call__(self, *args, **kwargs):
-    g, (outputs, changes) = self._call(self._vars.data(), *args, **kwargs)
+    g, (outputs, changes) = self._call(self._vars.dict(), *args, **kwargs)
     self._vars.assign(changes)
     grads = g[0] if len(self.argnums) == 1 else g[1:] + g[:1]
     return outputs, grads

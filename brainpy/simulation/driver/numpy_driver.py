@@ -217,7 +217,7 @@ class NumpyDSDriver(base.DSDriver):
     code_lines = []
     code_scope = {'sys': sys}
     code_scope_for_call = {}
-    for node in [self.target] + list(nodes.unique_values()):
+    for node in [self.target] + list(nodes.unique().values()):
       mon = node.mon
       if mon.num_item > 0:
         # code lines, code scope
@@ -245,7 +245,7 @@ class NumpyDSDriver(base.DSDriver):
       self.target.monitor_step = func
 
   def build_mon(self):
-    for node in [self.target] + list(self.target.nodes().unique_values()):
+    for node in [self.target] + list(self.target.nodes().unique().values()):
       node.mon.build()  # build the monitor
       for key in node.mon.item_contents.keys():
         node.mon.item_contents[key] = []  # reshape the monitor items

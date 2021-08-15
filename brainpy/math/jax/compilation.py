@@ -32,16 +32,16 @@ def _make_jit(all_vars, func, static_argnums, static_argnames=None, device=None,
                      device=device, backend=backend,
                      donate_argnums=donate_argnums,
                      inline=inline)
-  def jitted_func(all_data, *args, **kwargs):
-    all_vars.unique_assign(all_data)
+  def jitted_func(dict_data, *args, **kwargs):
+    all_vars.assign(dict_data)
     out = func(*args, **kwargs)
-    changed_data = all_vars.unique_data()
-    return out, changed_data
+    changes = all_vars.dict()
+    return out, changes
 
   def call(*args, **kwargs):
-    data = all_vars.unique_data()
-    out, changed_data = jitted_func(data, *args, **kwargs)
-    all_vars.unique_assign(changed_data)
+    dict_data = all_vars.dict()
+    out, changes = jitted_func(dict_data, *args, **kwargs)
+    all_vars.assign(changes)
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
@@ -57,7 +57,7 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
   Parameters
   ----------
   obj_or_func : Primary, function
-    The instance of DynamicSystem or a function.
+    The instance of Primary or a function.
   static_argnums : Optional, str
     An optional int or collection of ints that specify which
     positional arguments to treat as static (compile-time constant).
@@ -105,7 +105,7 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
       for key in obj_or_func.steps.keys():
         static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
         step = obj_or_func.steps[key]
-        all_vars = step.__self__.vars()
+        all_vars = step.__self__.vars().unique()
         obj_or_func.steps[key] = _make_jit(all_vars=all_vars,
                                            func=step,
                                            static_argnums=static_argnums,
@@ -123,7 +123,7 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
     # Primary has '__call__()' function implementation
     if callable(obj_or_func):
       static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-      all_vars = obj_or_func.vars()
+      all_vars = obj_or_func.vars().unique()
       obj_or_func.__call__ = _make_jit(all_vars=all_vars,
                                        func=obj_or_func.__call__,
                                        static_argnums=static_argnums,

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import random
-
 import numpy as np
 import tensorflow as tf
 
@@ -21,7 +19,7 @@ Y_test = Y_test.flatten()
 
 # Model
 model = bp.dnn.MLP(layer_sizes=(num_dim, 256, 256, 10))
-opt = bp.dnn.Adam(lr=0.001, train_vars=model.train_vars())
+opt = bp.dnn.Adam(lr=0.001, train_vars=model.train_vars().unique())
 
 
 # loss
@@ -49,16 +47,6 @@ def train_op(x, y):
 def predict(x):
   logit = model(x, config={'train': False})
   return bp.dnn.softmax(logit)
-
-
-def augment(x):
-  if random.random() < .5:
-    x = x[:, :, :, ::-1]  # Flip the batch images about the horizontal axis
-  # Pixel-shift all images in the batch by up to 4 pixels in any direction.
-  x_pad = np.pad(x, [[0, 0], [0, 0], [4, 4], [4, 4]], 'reflect')
-  rx, ry = np.random.randint(0, 8), np.random.randint(0, 8)
-  x = x_pad[:, :, rx:rx + 32, ry:ry + 32]
-  return x
 
 
 num_batch = 128
