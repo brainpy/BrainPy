@@ -3,7 +3,7 @@
 from brainpy.dnn import activations
 from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath, jax
-from brainpy.dnn.initializers import XavierNormal, Initializer, ZerosInit
+from brainpy.dnn.initializers import XavierNormal, Initializer, ZeroInit
 
 __all__ = [
   'Activation', 'Linear', 'Dropout', 'Conv2D',
@@ -46,12 +46,12 @@ class Linear(Module):
   name : str, optional
   """
 
-  def __init__(self, n_in, n_out, w_init=XavierNormal(), b_init=ZerosInit(), name=None):
+  def __init__(self, n_in, n_out, w_init=XavierNormal(), b_init=ZeroInit(), name=None):
     self.n_out = n_out
     self.n_in = n_in
 
-    self.w = w_init((n_in, n_out))
-    self.b = b_init(n_out)
+    self.w = jmath.TrainVar(w_init((n_in, n_out)))
+    self.b = jmath.TrainVar(b_init(n_out))
     super(Linear, self).__init__(name=name)
 
   def __call__(self, x):
@@ -127,13 +127,14 @@ class Conv2D(Module):
   """
 
   def __init__(self, nin, nout, kernel_size, strides=1, dilations=1, groups=1,
-               padding='SAME', w_init=XavierNormal(), b_init=ZerosInit(), name=None):
+               padding='SAME', w_init=XavierNormal(), b_init=ZeroInit(), name=None):
     super(Conv2D, self).__init__(name=name)
 
     assert nin % groups == 0, 'nin should be divisible by groups'
     assert nout % groups == 0, 'nout should be divisible by groups'
-    self.b = b_init((nout, 1, 1))
-    self.w = w_init((*_check_tuple(kernel_size), nin // groups, nout))  # HWIO
+    self.b = jmath.TrainVar(b_init((nout, 1, 1)))
+    self.w = jmath.TrainVar(w_init((*_check_tuple(kernel_size), nin // groups, nout)))  # HWIO
+
     self.strides = _check_tuple(strides)
     self.dilations = _check_tuple(dilations)
     if isinstance(padding, str):

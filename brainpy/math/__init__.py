@@ -1,9 +1,26 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.math.function import *
-from brainpy.math.numpy import *
+from brainpy.math.jax import *
 
-# 1. numerical precision
+# 1. backend name
+# --------------------------
+
+BACKEND_NAME = 'numpy'
+
+
+def get_backend_name():
+  """Get the current backend name.
+
+  Returns
+  -------
+  backend : str
+      The name of the current backend name.
+  """
+  return BACKEND_NAME
+
+
+# 2. numerical precision
 # --------------------------
 
 __dt = 0.1
@@ -33,25 +50,11 @@ def get_dt():
   return __dt
 
 
-# 2. backend name
-# --------------------------
-
-BACKEND_NAME = 'numpy'
-
-
-def get_backend_name():
-  """Get the current backend name.
-
-  Returns
-  -------
-  backend : str
-      The name of the current backend name.
-  """
-  return BACKEND_NAME
-
-
 # 3. mathematical operations
 # --------------------------
+
+# mathematical functions
+# https://numpy.org/doc/stable/reference/routines.math.html
 __math_fs = [
   # Basics
   'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
@@ -90,17 +93,16 @@ __math_fs = [
   'heaviside', 'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip',
 ]
 
+# Elementwise bit operations
+# https://numpy.org/doc/stable/reference/routines.bitwise.html
 __binary_fs = [
-  # https://numpy.org/doc/stable/reference/routines.bitwise.html
-
-  # Elementwise bit operations
   'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor', 'invert',
   'left_shift', 'right_shift',
 ]
 
+# Logic functions
+# https://numpy.org/doc/stable/reference/routines.logic.html
 __logic_fs = [
-  # https://numpy.org/doc/stable/reference/routines.logic.html
-
   # Comparison
   'equal', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal',
   'array_equal', 'isclose', 'allclose',
@@ -112,10 +114,9 @@ __logic_fs = [
   'all', 'any',
 ]
 
+# https://numpy.org/doc/stable/reference/routines.array-manipulation.html
+# https://numpy.org/doc/stable/reference/routines.sort.html
 __array_manipulation_fs = [
-  # https://numpy.org/doc/stable/reference/routines.array-manipulation.html
-  # https://numpy.org/doc/stable/reference/routines.sort.html
-
   # Changing array shape
   'shape', 'size', 'reshape', 'ravel',
 
@@ -152,12 +153,10 @@ __array_manipulation_fs = [
 
   # array intrinsic methods
   'max', 'min',
-
 ]
 
+# https://numpy.org/doc/stable/reference/routines.array-creation.html
 __array_creation_fs = [
-  # https://numpy.org/doc/stable/reference/routines.array-creation.html
-
   'ndarray',
 
   # Ones and zeros
@@ -174,9 +173,8 @@ __array_creation_fs = [
   'diag', 'tri', 'tril', 'triu', 'vander',
 ]
 
+# https://numpy.org/doc/stable/reference/routines.indexing.html
 __indexing_fs = [
-  # https://numpy.org/doc/stable/reference/routines.indexing.html
-
   # Generating index arrays
   'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices',
   'triu_indices_from',
@@ -185,9 +183,8 @@ __indexing_fs = [
   'take', 'diag', 'select',
 ]
 
+# https://numpy.org/doc/stable/reference/routines.statistics.html
 __statistic_fs = [
-  # https://numpy.org/doc/stable/reference/routines.statistics.html
-
   # Order statistics
   'nanmin', 'nanmax', 'ptp', 'percentile', 'nanpercentile',
   'quantile', 'nanquantile',
@@ -203,27 +200,23 @@ __statistic_fs = [
   'histogram', 'bincount', 'digitize',
 ]
 
+# https://numpy.org/doc/stable/reference/routines.window.html
 __window_fs = [
-  # https://numpy.org/doc/stable/reference/routines.window.html
-
   'bartlett', 'blackman', 'hamming', 'hanning', 'kaiser'
 ]
 
+# https://numpy.org/doc/stable/reference/constants.html
 __constants = [
-  # https://numpy.org/doc/stable/reference/constants.html
-
   'e', 'pi', 'inf'
 ]
 
+# https://numpy.org/doc/stable/reference/routines.linalg.html
 __linear_algebra_fs = [
-  # https://numpy.org/doc/stable/reference/routines.linalg.html
   'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
-  # 'tensordot', 'einsum', 'einsum_path',
 ]
 
+# https://numpy.org/doc/stable/reference/routines.dtype.html
 __data_types = [
-  # https://numpy.org/doc/stable/reference/routines.dtype.html
-
   # functions
   'dtype', 'finfo', 'iinfo',
 

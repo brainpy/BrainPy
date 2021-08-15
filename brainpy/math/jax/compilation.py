@@ -56,7 +56,7 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
 
   Parameters
   ----------
-  obj_or_func : DynamicSystem, function
+  obj_or_func : Primary, function
     The instance of DynamicSystem or a function.
   static_argnums : Optional, str
     An optional int or collection of ints that specify which

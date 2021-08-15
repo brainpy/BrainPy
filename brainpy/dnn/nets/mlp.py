@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.dnn.initializers import XavierNormal, ZerosInit
-from brainpy.dnn.layers import Linear, Activation
 from brainpy.dnn.base import Sequential
-
+from brainpy.dnn.initializers import XavierNormal, ZeroInit
+from brainpy.dnn.layers import Linear, Activation
 
 __all__ = [
   'MLP'
@@ -11,7 +10,9 @@ __all__ = [
 
 
 class MLP(Sequential):
-  def __init__(self, layer_sizes, activation='relu', w_init=XavierNormal(), b_init=ZerosInit(), name=None):
+  def __init__(self, layer_sizes, activation='relu',
+               w_init=XavierNormal(), b_init=ZeroInit(),
+               name=None):
     assert len(layer_sizes) >= 2
     name = self.unique_name(name)
     ops = []
