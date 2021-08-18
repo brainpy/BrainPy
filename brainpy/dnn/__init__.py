@@ -7,6 +7,7 @@ from . import nets
 from . import objectives
 from . import optimizers
 from .activations import *
+from .base import *
 from .initializers import *
 from .layers import *
 from .nets import *

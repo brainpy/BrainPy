@@ -470,8 +470,8 @@ class ndarray(object):
     return type(self)(self.value.squeeze(axis=axis))
 
   def std(self, axis=None, dtype=None, ddof=0, keepdims=False, *args, **kwargs):
-    return type(self)(self.value.std(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims,
-                                     *args, **kwargs))
+    return type(self)(self.value.std(axis=axis, dtype=dtype, ddof=ddof,
+                                     keepdims=keepdims, *args, **kwargs))
 
   def sum(self, axis=None, dtype=None, keepdims=False, initial=0, where=True):
     res = self.value.sum(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)

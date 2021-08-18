@@ -63,7 +63,7 @@ def section_input(values, durations, dt=None, return_length=False):
 
   # get the current
   start = 0
-  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
+  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=math.float_)
   for c_size, duration in zip(values, durations):
     length = int(duration / dt)
     I_current[start: start + length] = c_size
@@ -111,8 +111,8 @@ def constant_input(I_and_duration, dt=None):
       I_shape = shape
 
   # get the current
-  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
   start = 0
+  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=math.float_)
   for c_size, duration in I_and_duration:
     length = int(duration / dt)
     I_current[start: start + length] = c_size
@@ -162,7 +162,7 @@ def spike_input(points, lengths, sizes, duration, dt=None):
   if isinstance(sizes, (float, int)):
     sizes = [sizes] * len(points)
 
-  current = math.zeros(int(np.ceil(duration / dt)))
+  current = math.zeros(int(np.ceil(duration / dt)), dtype=math.float_)
   for time, dur, size in zip(points, lengths, sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
@@ -199,10 +199,10 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   dt = math.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
-  current = math.zeros(int(np.ceil(duration / dt)))
+  current = math.zeros(int(np.ceil(duration / dt)), dtype=math.float_)
   p1 = int(np.ceil(t_start / dt))
   p2 = int(np.ceil(t_end / dt))
-  current[p1: p2] = math.array(math.linspace(c_start, c_end, p2 - p1))
+  current[p1: p2] = math.array(math.linspace(c_start, c_end, p2 - p1), dtype=math.float_)
   return current
 
 
@@ -245,8 +245,8 @@ class SpikeTimeInput(NeuGroup):
 
     # data about times and indices
     self.idx = 0
-    self.times = math.asarray(times, dtype=float)
-    self.indices = np.asarray(indices, dtype=int)
+    self.times = math.asarray(times, dtype=math.float_)
+    self.indices = np.asarray(indices, dtype=math.int_)
     self.num_times = len(times)
     if need_sort:
       sort_idx = np.argsort(times)
@@ -266,11 +266,11 @@ class PoissonInput(NeuGroup):
   def __init__(self, size, freqs, **kwargs):
     super(PoissonInput, self).__init__(size=size, **kwargs)
 
-    self.dt = math.get_dt() / 1000.
     self.freqs = freqs
+    self.dt = math.get_dt() / 1000.
     self.size = (size,) if isinstance(size, int) else tuple(size)
     self.spike = math.zeros(self.num, dtype=bool)
-    self.t_last_spike = -1e7 * math.ones(self.num)
+    self.t_last_spike = -1e7 * math.ones(self.num, dtype=math.float_)
 
   def update(self, _t, _i):
     self.spike = math.random.random(self.num) <= self.freqs * self.dt
