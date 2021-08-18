@@ -24,6 +24,8 @@ def line_plot(ts,
               ylim=None,
               xlabel='Time (ms)',
               ylabel=None,
+              xticks=None,
+              yticks=None,
               legend=None,
               title=None,
               show=False):
@@ -97,6 +99,14 @@ def line_plot(ts,
     # ylabel
     if ylabel:
         plt.ylabel(ylabel)
+
+    # xticks
+    if xticks:
+        plt.xticks(xticks)
+
+    # yticks
+    if yticks:
+        plt.yticks(yticks)
 
     # title
     if title:
