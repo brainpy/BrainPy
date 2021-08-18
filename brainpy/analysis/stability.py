@@ -190,7 +190,17 @@ def stability_analysis(derivatives):
       elif eigenvalues[2] == 0:
         return UNKNOWN_3D
       else:
-        return SADDLE_NODE
+        if eigenvalues[0] > 0:
+          return UNSTABLE_NODE_3D
+        elif eigenvalues[0] == 0:
+          return UNKNOWN_3D
+        else:
+          if eigenvalues[1] < 0:
+            return SADDLE_NODE
+          elif eigenvalues[1] == 0:
+            return UNKNOWN_3D
+          else:
+            return UNSTABLE_SADDLE_3D
     else:
       if is_real.sum() == 1:
         real_id = np.where(is_real)[0]
@@ -219,6 +229,9 @@ def stability_analysis(derivatives):
               return UNSTABLE_CENTER_3D
             else:
               return UNSTABLE_POINT_3D  # TODO
+      else:
+        raise ValueError()
+
     eigenvalues = np.real(eigenvalues)
     if np.all(eigenvalues < 0):
       return STABLE_POINT_3D  # TODO
