@@ -7,22 +7,24 @@
 
 # Why to use BrainPy
 
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation. Core functions provided in BrainPy includes
+``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation. Core functions provided in BrainPy includes
 
 1. **General numerical solvers** for ODEs, SDEs, DDEs, FDEs, and others.
 
-2. **Neurodynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even molecular.
+2. **Dynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even molecular.
 
-3. **Neurodynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, continuation analysis and sensitive analysis.
+3. **Dynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, continuation analysis and sensitive analysis.
+
+4. **Seamless integration with deep learning models**, and has the speed benefit on JIT compilation.
 
 Moreover, `BrainPy` is designed to effectively satisfy your basic requirements: 
 
 - *Easy to learn and use*, because BrainPy is only based on Python language and has little dependency requirements; 
 - *Highly flexible and transparent*, because BrainPy endows the users with the fully data/logic flow control; 
 - *Simulation can be guided with the analysis*, because the same code in BrainPy can not only be used for simulation, but also for dynamics analysis; 
-- *Efficient running speed*, because BrainPy is compatible with the latest JIT compilers or any other accelerating framework you prefer (below we list the speed comparison based on Numba JIT).
+- *Efficient running speed*, because BrainPy is designed to compile your codes just-in-time.
 
-`BrainPy` is a backend-independent neural simulator. Users can define models with any backend they prefer. Intrinsically, BrainPy supports the array-oriented backends such like [NumPy](https://numpy.org/), it also supports the JIT compilers such as [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. Extending BrainPy to support other backend frameworks you prefer is very easy. The details please see documents coming soon. 
+Currently, `BrainPy` heavily relies on the JIT compilers [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. Extending BrainPy to support other backend frameworks you prefer is also easy. The details please see documents coming soon. 
 
 
 
@@ -59,10 +61,10 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 
 
 
-If you want to get the full supports by BrainPy, please install the following packages:
+**Other dependencies**: you want to get the full supports by BrainPy, please install the following packages:
 
-- `Numba >= 0.52`,  needed for "numba" backend
 - `JAX >= 0.2.10`,  needed for "jax" backend and "dnn" module
+- `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend
 - `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method
 
 
@@ -76,112 +78,26 @@ If you want to get the full supports by BrainPy, please install the following pa
 
 
 
-## Step 3: let's start
+## Step 3: comprehensive examples
 
-Here list several simple examples for neurodynamics simulation and analysis. Comprehensive examples and tutorials please see [BrainModels](https://brainmodels.readthedocs.io).
+Here list several simple examples for dynamics simulation and analysis. Comprehensive examples and tutorials please see [BrainModels](https://brainmodels.readthedocs.io).
 
-<table border="0">
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/neurons/HodgkinHuxley_model.py">
-            <img src="docs/_static/HH_neuron.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/neurons/HodgkinHuxley_model.py">HH Neuron Model</a></h3>
-            <p>The Hodgkin–Huxley neuron model.</p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/synapses/AMPA_synapse.py">
-            <img src="docs/_static/AMPA_model.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/synapses/AMPA_synapse.py">AMPA Synapse Model</a></h3>
-            <p>The AMPA synapse model.</p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Wang_1996_gamma_oscillation.html">
-            <img src="docs/_static/gamma_oscillation.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Wang_1996_gamma_oscillation.html">Gamma Oscillation Model</a></h3>
-            <p>Implementation of the paper: <i> Wang, Xiao-Jing, and György Buzsáki. “Gamma oscillation by
-                  synaptic inhibition in a hippocampal interneuronal network
-                  model.” Journal of neuroscience 16.20 (1996): 6402-6413. </i>
-            </p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Vreeswijk_1996_EI_net.html">
-            <img src="docs/_static/EI_balance_net.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Vreeswijk_1996_EI_net.html">E/I Balance Network</a></h3>
-        <p>Implementation of the paper: <i>Van Vreeswijk, Carl, and Haim Sompolinsky. 
-        “Chaos in neuronal networks with balanced excitatory and inhibitory activity.” 
-        Science 274.5293 (1996): 1724-1726.</i></p>        
-	</td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Wu_2008_CANN.html">
-            <img src="docs/_static/CANN1d.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/from_papers/Wu_2008_CANN.html">Continuous-attractor Network</a></h3>
-            <p>Implementation of the paper: <i> Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and
-                    computation of continuous attractors." Neural
-                    computation 20.4 (2008): 994-1025. </i>
-            </p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">
-            <img src="docs/_static/phase_plane_analysis1.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html">Phase Plane Analysis</a></h3>
-            <p>Phase plane analysis of the I<sub>Na,p+</sub>-I<sub>K</sub> model, where
-            "input" is 50., and "Vn_half" is -45..</p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
-            <img src="docs/_static/FitzHugh_Nagumo_codimension1.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html">
-                Codimension 1 Bifurcation Analysis</a></h3>
-            <p>Codimension 1 bifurcation analysis of FitzHugh Nagumo model, in which
-                "a" is equal to 0.7, and "Iext" is varied in [0., 1.].</p>
-        </td>
-    </tr>
-    <tr>
-        <td border="0" width="30%">
-            <a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
-            <img src="docs/_static/FitzHugh_Nagumo_codimension2.png">
-            </a>
-        </td>
-        <td border="0" valign="top">
-            <h3><a href="https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis">
-                Codimension 2 Bifurcation Analysis</a></h3>
-            <p>Codimension 2 bifurcation analysis of FitzHugh Nagumo model, in which "a"
-               is varied in [0.5, 1.0], and "Iext" is varied in [0., 1.].</p>
-        </td>
-    </tr>
-</table>
+### Dynamics simulation
+
+- [Hodgkin–Huxley neuron model](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/neurons/HodgkinHuxley_model.py)
+- [AMPA synapse model](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/synapses/AMPA_synapse.py)
+- [Gamma oscillation network model](https://brainmodels.readthedocs.io/en/latest/from_papers/Wang_1996_gamma_oscillation.html)
+- [E/I balanced network model](https://brainmodels.readthedocs.io/en/latest/from_papers/Vreeswijk_1996_EI_net.html)
+- [Continuous attractor network model](https://brainmodels.readthedocs.io/en/latest/from_papers/Wu_2008_CANN.html)
+
+
+### Dynamics analysis
+
+- [Phase plane analysis of the I<sub>Na,p</sub>-I<sub>K</sub> model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html)
+- [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
+- [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
+
+### Deep neural networks
+
 
 
