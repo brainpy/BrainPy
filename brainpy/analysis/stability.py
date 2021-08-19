@@ -209,28 +209,28 @@ def stability_analysis(derivatives):
         v1 = eigenvalues[non_real_id[0]]
         v2 = eigenvalues[non_real_id[1]]
         v1_real = np.real(v1)
-        if np.conj(v1) == v2:
-          if v0 < 0:
-            if v1_real < 0:
-              return STABLE_FOCUS_3D
-            elif v1_real == 0:  # 零实部
-              return UNKNOWN_3D
-            else:
-              return UNSTABLE_FOCUS_3D
-          elif v0 == 0:
-            if v1_real <= 0:
-              return UNKNOWN_3D  # 零实部
-            else:
-              return UNSTABLE_POINT_3D  # TODO
+        assert np.conj(v1) == v2
+        if v0 < 0:
+          if v1_real < 0:
+            return STABLE_FOCUS_3D
+          elif v1_real == 0:  # 零实部
+            return UNKNOWN_3D
           else:
-            if v1_real < 0:
-              return UNSTABLE_FOCUS_3D
-            elif v1_real == 0:
-              return UNSTABLE_CENTER_3D
-            else:
-              return UNSTABLE_POINT_3D  # TODO
-      else:
-        raise ValueError()
+            return UNSTABLE_FOCUS_3D
+        elif v0 == 0:
+          if v1_real <= 0:
+            return UNKNOWN_3D  # 零实部
+          else:
+            return UNSTABLE_POINT_3D  # TODO
+        else:
+          if v1_real < 0:
+            return UNSTABLE_FOCUS_3D
+          elif v1_real == 0:
+            return UNSTABLE_CENTER_3D
+          else:
+            return UNSTABLE_POINT_3D  # TODO
+      # else:
+      #   raise ValueError()
 
     eigenvalues = np.real(eigenvalues)
     if np.all(eigenvalues < 0):
