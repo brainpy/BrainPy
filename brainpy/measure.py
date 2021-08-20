@@ -168,7 +168,7 @@ def raster_plot(sp_matrix, times):
   return index, time
 
 
-def firing_rate(sp_matrix, width, window='gaussian'):
+def firing_rate(sp_matrix, width, window='flat'):
   """Calculate the mean firing rate over in a neuron group.
 
   This method is adopted from Brian2.
@@ -205,18 +205,19 @@ def firing_rate(sp_matrix, width, window='gaussian'):
       The population rate in Hz, smoothed with the given window.
   """
   # rate
-  rate = math.sum(sp_matrix, axis=1)
+  rate = math.sum(sp_matrix, axis=1) / sp_matrix.shape[1]
 
   # window
   dt = math.get_dt()
-  if window == 'gaussian':
+  if window == 'flat':
+    width1 = int(width / 2 / dt) * 2 + 1
+    window = math.ones(width1) * 1000 / width
+  elif window == 'gaussian':
+    raise NotImplementedError
     width1 = 2 * width / dt
     width2 = int(round(width1))
     window = math.exp(-math.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 * 2))
-  elif window == 'flat':
-    width1 = int(width / 2 / dt) * 2 + 1
-    window = math.ones(width1)
+    window = window / window.sum() * len(window)
   else:
     raise ValueError('Unknown window type "{}".'.format(window))
-  window *= 1000 / width
-  return np.convolve(rate, window / sum(window), mode='same')
+  return np.convolve(rate, window, mode='same')
