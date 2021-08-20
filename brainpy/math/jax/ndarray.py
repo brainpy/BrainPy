@@ -373,8 +373,8 @@ class ndarray(object):
   def conjugate(self):
     return type(self)(self.value.conjugate())
 
-  def copy(self, order='C'):
-    return type(self)(self.value.copy(order=order))
+  def copy(self):
+    return type(self)(self.value.copy())
 
   def cumprod(self, axis=None, dtype=None):
     return type(self)(self.value.cumprod(axis=axis, dtype=dtype))

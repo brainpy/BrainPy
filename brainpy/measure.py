@@ -218,5 +218,5 @@ def firing_rate(sp_matrix, width, window='gaussian'):
     window = math.ones(width1)
   else:
     raise ValueError('Unknown window type "{}".'.format(window))
-
+  window *= 1000 / width
   return np.convolve(rate, window / sum(window), mode='same')

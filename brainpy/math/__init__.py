@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.math.function import *
-from brainpy.math.jax import *
+
+try:
+  from brainpy.math.jax import *
+  BACKEND_NAME = 'jax'
+except ModuleNotFoundError:
+  from brainpy.math.numpy import *
+  BACKEND_NAME = 'numpy'
+
 
 # 1. backend name
 # --------------------------
 
-BACKEND_NAME = 'numpy'
 
 
 def get_backend_name():

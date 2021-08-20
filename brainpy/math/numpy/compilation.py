@@ -12,8 +12,9 @@ __all__ = [
 
 
 def jit(ds_or_func, *args, **kwargs):
-  raise NotImplementedError('JIT compilation in numpy backend '
-                            'can not be available right now.')
+  print('JIT compilation in numpy backend '
+        'can not be available right now.')
+  return ds_or_func
 
   if isinstance(ds_or_func, DynamicSystem):
     return ds_or_func

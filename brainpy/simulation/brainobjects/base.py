@@ -239,14 +239,22 @@ class Container(DynamicSystem, dict):
       The instance of DynamicSystem with the format of "key=dynamic_system".
   """
 
-  def __init__(self, steps=None, monitors=None, name=None, **dynamic_systems):
+  def __init__(self, *args, steps=None, monitors=None, name=None, **dynamic_systems):
+    all_ds = dict()
+    for arg in args:
+      if not isinstance(arg, DynamicSystem):
+        raise errors.ModelUseError(f'{self.__class__.__name__} receives '
+                                   f'instances of DynamicSystem, however, '
+                                   f'we got {type(arg)}.')
+      all_ds[arg.name] = arg
     # initialize "dict"
-    for val in dynamic_systems.values():
+    for key, val in dynamic_systems.items():
       if not isinstance(val, DynamicSystem):
         raise errors.ModelUseError(f'{self.__class__.__name__} receives '
                                    f'instances of DynamicSystem, however, '
                                    f'we got {type(val)}.')
-    dict.__init__(self, **dynamic_systems)
+      all_ds[key] = val
+    dict.__init__(self, **all_ds)
 
     # check 'monitors'
     if monitors is not None:
@@ -256,7 +264,7 @@ class Container(DynamicSystem, dict):
     # initialize "DynamicSystem"
     if steps is None:
       steps = OrderedDict()
-      for obj_key, obj in dynamic_systems.items():
+      for obj_key, obj in all_ds.items():
         for step_key, step in obj.steps.items():
           steps[f'{obj_key}_{step_key}'] = step
     DynamicSystem.__init__(self, steps=steps, monitors=monitors, name=name)

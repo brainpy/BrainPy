@@ -169,9 +169,10 @@ class NumpyDSDriver(base.DSDriver):
 
     # get the data key in the host
     if not isinstance(data, math.ndarray):
-      raise errors.ModelUseError(f'BrainPy cannot monitor '
-                                 f'"{self.target.name}.{key}", '
-                                 f'because it is a scalar.')
+      key_in_host = f'{node.name}.{key}'
+      # raise errors.ModelUseError(f'BrainPy cannot monitor '
+      #                            f'"{self.target.name}.{key}", '
+      #                            f'because it is a scalar.')
     else:
       if math.ndim(data) == 1:
         key_in_host = f'{node.name}.{key}.copy()'

@@ -21,5 +21,5 @@ class Network(Container):
 
   """
 
-  def __init__(self, monitors=None, name=None, **dynamic_systems):
-    super(Network, self).__init__(name=name, monitors=monitors, **dynamic_systems)
+  def __init__(self, *args, monitors=None, name=None, **dynamic_systems):
+    super(Network, self).__init__(*args, name=name, monitors=monitors, **dynamic_systems)

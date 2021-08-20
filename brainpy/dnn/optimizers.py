@@ -4,7 +4,6 @@ import numpy as np
 
 from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath, jax
-from brainpy.math.jax.ndarray import TrainVar
 from brainpy.primary.collector import ArrayCollector
 
 __all__ = [
@@ -20,7 +19,7 @@ class Optimizer(Module):
   def __init__(self, train_vars, lr, name):
     super(Optimizer, self).__init__(name=name)
     if isinstance(train_vars, ArrayCollector):
-      train_vars = train_vars.subset(TrainVar).unique()
+      train_vars = train_vars.subset(jmath.TrainVar).unique()
     elif isinstance(train_vars, (list, tuple)):
       train_vars = ArrayCollector((f'_unknown{i}', var) for i, var in enumerate(train_vars))
       train_vars = train_vars.unique()
@@ -60,7 +59,7 @@ class Momentum(Optimizer):
   def __init__(self, lr, train_vars, momentum, name=None):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
     self.momentum = momentum
-    self.ms = dict((key, TrainVar(jmath.zeros_like(x)))
+    self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x)))
                    for key, x in self._train_vars.items())
     self.register_dynamic_vars(self.ms)
 
@@ -78,7 +77,7 @@ class NesterovMomentum(Optimizer):
   def __init__(self, lr, train_vars, momentum, name=None):
     super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
     self.momentum = momentum
-    self.ms = dict((key, TrainVar(jmath.zeros_like(x)))
+    self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x)))
                    for key, x in self._train_vars.items())
     self.register_dynamic_vars(self.ms)
 
@@ -99,8 +98,8 @@ class Adam(Optimizer):
     self.beta2 = beta2
     self.eps = eps
     self.step = jmath.array([0])
-    self.ms = dict((key, TrainVar(jmath.zeros_like(x))) for key, x in self._train_vars.items())
-    self.vs = dict((key, TrainVar(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    self.vs = dict((key, jmath.TrainVar(jmath.zeros_like(x))) for key, x in self._train_vars.items())
     self.register_dynamic_vars(self.ms)
     self.register_dynamic_vars(self.vs)
 

@@ -30,7 +30,7 @@ class TwoEndConn(DynamicSystem):
       Whether show the formatted code.
   """
 
-  def __init__(self, pre, post, conn, name=None, steps=('update',), **kwargs):
+  def __init__(self, pre, post, name=None, steps=('update',), **kwargs):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
@@ -39,14 +39,6 @@ class TwoEndConn(DynamicSystem):
     if not isinstance(post, NeuGroup):
       raise errors.ModelUseError('"post" must be an instance of NeuGroup.')
     self.post = post
-
-    # connections
-    # -----------
-    if not isinstance(conn, TwoEndConnector):
-      raise errors.ModelUseError(f'"conn" must be an instance of {TwoEndConnector}, '
-                                 f'but we got {type(conn)}.')
-    self.conn = conn
-    self.conn(pre.size, post.size)
 
     # initialize
     # ----------
