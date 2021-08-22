@@ -739,16 +739,10 @@ class _FastSlowTrajectory(object):
     self.lim_scale = options.get('lim_scale', 1.05)
 
     # fast variables
-    if isinstance(fast_vars, OrderedDict):
-      self.fast_var_names = list(fast_vars.keys())
-    else:
-      self.fast_var_names = list(sorted(fast_vars.keys()))
+    self.fast_var_names = list(fast_vars.keys())
 
     # slow variables
-    if isinstance(slow_vars, OrderedDict):
-      self.slow_var_names = list(slow_vars.keys())
-    else:
-      self.slow_var_names = list(sorted(slow_vars.keys()))
+    self.slow_var_names = list(slow_vars.keys())
 
   def plot_trajectory(self, initials, duration, plot_duration=None, show=False):
     """Plot trajectories according to the settings.

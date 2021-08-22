@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
@@ -101,10 +100,7 @@ class BaseAnalyzer(object):
       raise errors.ModelUseError('"target_vars" must be a dict, with the format of '
                                  '{"var1": (var1_min, var1_max)}.')
     self.target_vars = target_vars
-    if isinstance(self.target_vars, OrderedDict):
-      self.dvar_names = list(self.target_vars.keys())
-    else:
-      self.dvar_names = list(sorted(self.target_vars.keys()))
+    self.dvar_names = list(self.target_vars.keys())
     for key in self.target_vars.keys():
       if key not in self.model.variables:
         raise ValueError(f'{key} is not a dynamical variable in {self.model}.')
@@ -162,10 +158,7 @@ class BaseAnalyzer(object):
       if (key not in self.model.scopes) and (key not in self.model.parameters):
         raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{self.model}" model.')
     self.target_pars = target_pars
-    if isinstance(self.target_vars, OrderedDict):
-      self.dpar_names = list(self.target_pars.keys())
-    else:
-      self.dpar_names = list(sorted(self.target_pars.keys()))
+    self.dpar_names = list(self.target_pars.keys())
 
     # check duplicate
     for key in self.pars_update.keys():
