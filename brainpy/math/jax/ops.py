@@ -2,7 +2,7 @@
 
 import jax.numpy as jnp
 
-from brainpy.math.jax.ndarray import _wrap, ndarray
+from brainpy.math.jax.jaxarray import _wrap, JaxArray
 
 __all__ = [
   # math funcs
@@ -239,33 +239,33 @@ swapaxes = _wrap(jnp.swapaxes)
 
 
 def concatenate(arrays, axis: int = 0):
-  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
-  return ndarray(jnp.concatenate(arrays, axis))
+  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  return JaxArray(jnp.concatenate(arrays, axis))
 
 
 def stack(arrays, axis: int = 0):
-  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
-  return ndarray(jnp.stack(arrays, axis))
+  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  return JaxArray(jnp.stack(arrays, axis))
 
 
 def vstack(arrays):
-  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
-  return ndarray(jnp.vstack(arrays))
+  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  return JaxArray(jnp.vstack(arrays))
 
 
 def hstack(arrays):
-  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
-  return ndarray(jnp.hstack(arrays))
+  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  return JaxArray(jnp.hstack(arrays))
 
 
 def dstack(arrays):
-  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
-  return ndarray(jnp.dstack(arrays))
+  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  return JaxArray(jnp.dstack(arrays))
 
 
 def column_stack(arrays):
-  arrays = [a.value if isinstance(a, ndarray) else a for a in arrays]
-  return ndarray(jnp.column_stack(arrays))
+  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  return JaxArray(jnp.column_stack(arrays))
 
 
 split = _wrap(jnp.split)

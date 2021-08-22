@@ -27,7 +27,7 @@ class GABAa(bp.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.ones(self.size) * -1e7
     self.s = bp.math.zeros(self.size)
-    self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
+    self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
   @staticmethod
   @bp.odeint

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
-
 import numpy as np
 
 from brainpy import math, errors
@@ -32,9 +30,9 @@ def _find_integrator(obj):
 class DynamicSystem(Primary):
   """Base Dynamic System Class.
 
-  Any object has iterable step functions will be a dynamical system.
+  Any object has step functions will be a dynamical system.
   That is to say, in BrainPy, the essence of the dynamical system
-  is the "steps".
+  is the "step functions".
 
   Parameters
   ----------
@@ -57,7 +55,7 @@ class DynamicSystem(Primary):
     self.monitor_step = lambda _t, _i: None
 
     # step functions
-    self.steps = OrderedDict()
+    self.steps = dict()
     steps = tuple() if steps is None else steps
     if isinstance(steps, tuple):
       for step in steps:
@@ -218,10 +216,10 @@ class DynamicSystem(Primary):
     return running_time
 
 
-class Container(DynamicSystem, dict):
-  """Container object which is designed to add other DynamicalSystem instances.
+class Container(DynamicSystem):
+  """Container object which is designed to add other instances of DynamicalSystem.
 
-  What's different from the other DynamicSystem objects is that Container has
+  What's different from the other objects of DynamicSystem is that Container has
   one more useful function :py:func:`add`. It can be used to add the children
   objects.
 
@@ -235,39 +233,41 @@ class Container(DynamicSystem, dict):
       The object name.
   show_code : bool
       Whether show the formatted code.
-  dynamic_systems : dict of (str, )
+  ds_dict : dict of (str, )
       The instance of DynamicSystem with the format of "key=dynamic_system".
   """
 
-  def __init__(self, *args, steps=None, monitors=None, name=None, **dynamic_systems):
-    all_ds = dict()
-    for arg in args:
-      if not isinstance(arg, DynamicSystem):
-        raise errors.ModelUseError(f'{self.__class__.__name__} receives '
-                                   f'instances of DynamicSystem, however, '
-                                   f'we got {type(arg)}.')
-      all_ds[arg.name] = arg
-    # initialize "dict"
-    for key, val in dynamic_systems.items():
-      if not isinstance(val, DynamicSystem):
-        raise errors.ModelUseError(f'{self.__class__.__name__} receives '
-                                   f'instances of DynamicSystem, however, '
-                                   f'we got {type(val)}.')
-      all_ds[key] = val
-    dict.__init__(self, **all_ds)
+  def __init__(self, *ds_tuple, steps=None, monitors=None, name=None, **ds_dict):
+    # children dynamical systems
+    self.children_ds = dict()
+    for ds in ds_tuple:
+      if not isinstance(ds, DynamicSystem):
+        raise errors.ModelUseError(f'{self.__class__.__name__} receives instances of '
+                                   f'DynamicSystem, however, we got {type(ds)}.')
+      if ds.name in self.children_ds:
+        raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
+      self.children_ds[ds.name] = ds
+    for key, ds in ds_dict.items():
+      if not isinstance(ds, DynamicSystem):
+        raise errors.ModelUseError(f'{self.__class__.__name__} receives instances of '
+                                   f'DynamicSystem, however, we got {type(ds)}.')
+      if key in self.children_ds:
+        raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
+      self.children_ds[key] = ds
+    # step functions in children dynamical systems
+    self.children_steps = dict()
+    for ds_key, ds in self.children_ds.items():
+      for step_key, step in ds.steps.items():
+        self.children_steps[f'{ds_key}_{step_key}'] = step
 
-    # check 'monitors'
-    if monitors is not None:
-      raise errors.ModelUseError(f'"monitors" cannot be used in '
-                                 f'"brainpy.{self.__class__.__name__}".')
-
-    # initialize "DynamicSystem"
+    # integrative step function
     if steps is None:
-      steps = OrderedDict()
-      for obj_key, obj in all_ds.items():
-        for step_key, step in obj.steps.items():
-          steps[f'{obj_key}_{step_key}'] = step
-    DynamicSystem.__init__(self, steps=steps, monitors=monitors, name=name)
+      steps = ('update', )
+    super(Container, self).__init__(steps=steps, monitors=monitors, name=name)
+
+  def update(self, _t, _i):
+    for step in self.children_steps.values():
+      step(_t, _i)
 
   def vars(self, method='absolute'):
     """Collect all the variables (and their names) contained
@@ -284,13 +284,13 @@ class Container(DynamicSystem, dict):
         A collection of all the variables.
     """
     gather = collector.ArrayCollector()
-    if method == 'relative':
-      for k, v in self.items():
+    if method == 'absolute':
+      for k, v in self.children_ds.items():
+        gather.update(v.vars(method=method))
+    elif method == 'relative':
+      for k, v in self.children_ds.items():
         for k2, v2 in v.vars(method=method).items():
           gather[f'{k}.{k2}'] = v2
-    elif method == 'absolute':
-      for k, v in self.items():
-        gather.update(v.vars(method=method))
     else:
       raise ValueError(f'No support for the method of "{method}".')
     gather.update(super(Container, self).vars(method=method))
@@ -298,13 +298,13 @@ class Container(DynamicSystem, dict):
 
   def ints(self, method='absolute'):
     gather = collector.Collector()
-    if method == 'relative':
-      for k, v in self.items():
+    if method == 'absolute':
+      for k, v in self.children_ds.items():
+        gather.update(v.ints(method=method))
+    elif method == 'relative':
+      for k, v in self.children_ds.items():
         for k2, v2 in v.ints(method=method).items():
           gather[f'{k}.{k2}'] = v2
-    elif method == 'absolute':
-      for k, v in self.items():
-        gather.update(v.ints(method=method))
     else:
       raise ValueError(f'No support for the method of "{method}".')
     gather.update(super(Container, self).ints(method=method))
@@ -312,22 +312,23 @@ class Container(DynamicSystem, dict):
 
   def nodes(self, method='absolute'):
     gather = collector.Collector()
-    if method == 'relative':
-      for k, v in self.items():
+    if method == 'absolute':
+      for k, v in self.children_ds.items():
+        gather[v.name] = v
+        gather.update(v.nodes(method=method))
+    elif method == 'relative':
+      for k, v in self.children_ds.items():
         gather[k] = v
         for k2, v2 in v.nodes(method=method).items():
           gather[f'{k}.{k2}'] = v2
-    elif method == 'absolute':
-      for k, v in self.items():
-        gather[v.name] = v
-        gather.update(v.nodes(method=method))
     else:
       raise ValueError(f'No support for the method of "{method}".')
     gather.update(super(Container, self).nodes(method=method))
     return gather
 
   def __getattr__(self, item):
-    if item in self:
-      return self[item]
+    children_ds = super(Container, self).__getattribute__('children_ds')
+    if item in children_ds:
+      return children_ds[item]
     else:
       return super(Container, self).__getattribute__(item)

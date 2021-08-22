@@ -6,7 +6,7 @@ from typing import List, Tuple
 
 import jax
 
-from brainpy.math.jax.ndarray import TrainVar, ndarray
+from brainpy.math.jax.jaxarray import TrainVar, JaxArray
 from brainpy.primary.base import Primary
 
 __all__ = [
@@ -174,7 +174,7 @@ class Gradient(Primary):
                           holomorphic=holomorphic, allow_int=allow_int,
                           reduce_axes=reduce_axes)
     signature = inspect.signature(raw)
-    self.__signature__ = signature.replace(return_annotation=Tuple[List[ndarray], signature.return_annotation])
+    self.__signature__ = signature.replace(return_annotation=Tuple[List[JaxArray], signature.return_annotation])
 
   def vars(self, method='absolute'):
     if isinstance(self._raw, Primary):
@@ -189,7 +189,7 @@ class Grad(Gradient):
     def func(train_vars, *args, **kwargs):
       vars.assign(train_vars)
       outputs = fun(*args, **kwargs)
-      outputs2 = outputs.value if isinstance(outputs, ndarray) else outputs
+      outputs2 = outputs.value if isinstance(outputs, JaxArray) else outputs
       return outputs2, vars.dict()
 
     super(Grad, self).__init__(func=func, raw=fun, vars=vars, argnums=argnums,
@@ -208,7 +208,7 @@ class ValueAndGrad(Gradient):
     def func(train_vars, *args, **kwargs):
       vars.assign(train_vars)
       outputs = fun(*args, **kwargs)
-      outputs2 = outputs.value if isinstance(outputs, ndarray) else outputs
+      outputs2 = outputs.value if isinstance(outputs, JaxArray) else outputs
       return outputs2, (outputs, vars.dict())
 
     super(ValueAndGrad, self).__init__(func=func, raw=fun, vars=vars, argnums=argnums,

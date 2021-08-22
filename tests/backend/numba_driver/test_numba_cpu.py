@@ -191,7 +191,7 @@ class AMPA1_vec(bp.TwoEndConn):
 
         # data
         self.s = bp.ops.zeros(self.size)
-        self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
+        self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
         super(AMPA1_vec, self).__init__(pre=pre, post=post, **kwargs)
 

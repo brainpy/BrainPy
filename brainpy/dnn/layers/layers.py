@@ -158,7 +158,7 @@ class Conv2D(Module):
                                f'when the convolution expects {nin} channels. For reference, '
                                f'self.w.value.shape={self.w.value.shape} and x.shape={x.shape}.')
 
-    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, jmath.ndarray) else x,
+    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, jmath.JaxArray) else x,
                                      rhs=self.w.value,
                                      window_strides=self.strides,
                                      padding=self.padding,

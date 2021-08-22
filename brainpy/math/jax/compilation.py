@@ -27,11 +27,8 @@ __all__ = [
 
 def _make_jit(all_vars, func, static_argnums, static_argnames=None, device=None,
               backend=None, donate_argnums=(), inline=False, f_name=None):
-  @functools.partial(jax.jit, static_argnums=static_argnums,
-                     static_argnames=static_argnames,
-                     device=device, backend=backend,
-                     donate_argnums=donate_argnums,
-                     inline=inline)
+  @functools.partial(jax.jit, static_argnums=static_argnums, static_argnames=static_argnames,
+                     device=device, backend=backend, donate_argnums=donate_argnums, inline=inline)
   def jitted_func(dict_data, *args, **kwargs):
     all_vars.assign(dict_data)
     out = func(*args, **kwargs)
@@ -74,9 +71,8 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
     from XLA's DeviceAssignment logic and is usually to use
     ``jax.devices()[0]``.
   backend: optional, str
-    This is an experimental feature and the API is likely to change.
-    Optional, a string representing the XLA backend: ``'cpu'``, ``'gpu'``, or
-    ``'tpu'``.
+    This is an experimental feature and the API is likely to change. Optional,
+    a string representing the XLA backend: ``'cpu'``, ``'gpu'``, or ``'tpu'``.
   donate_argnums:
     Specify which arguments are "donated" to the computation.
     It is safe to donate arguments if you no longer need them once the
@@ -116,10 +112,8 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
                                            inline=inline,
                                            f_name=key)
       return obj_or_func
-    else:
-      raise NotImplementedError
 
-  elif isinstance(obj_or_func, Primary):
+  if isinstance(obj_or_func, Primary):
     # Primary has '__call__()' function implementation
     if callable(obj_or_func):
       static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
@@ -139,7 +133,7 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
                                  f'step functions (len(steps) = 0) and not implement '
                                  f'"__call__" function. ')
 
-  elif callable(obj_or_func):
+  if callable(obj_or_func):
     # function
     return jax.jit(obj_or_func,
                    static_argnums=static_argnums,

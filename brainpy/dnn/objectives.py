@@ -25,13 +25,13 @@ def cross_entropy(logits, labels):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
-  logits = logits.value if isinstance(logits, jmath.ndarray) else logits
+  logits = logits.value if isinstance(logits, jmath.JaxArray) else logits
   if jmath.ndim(labels) == 1:
     labels2 = jmath.zeros_like(logits)
     rows = jmath.arange(len(logits))
     labels2[rows, labels] = 1.
     labels = labels2
-  labels = labels.value if isinstance(labels, jmath.ndarray) else labels
+  labels = labels.value if isinstance(labels, jmath.JaxArray) else labels
   return jax.scipy.special.logsumexp(logits, axis=-1) - (logits * labels).sum(-1)
 
 
