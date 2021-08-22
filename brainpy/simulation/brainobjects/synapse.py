@@ -44,7 +44,7 @@ class TwoEndConn(DynamicSystem):
     # ----------
     super(TwoEndConn, self).__init__(steps=steps, name=name, **kwargs)
 
-  def register_constant_delay(self, key, size, delay_time):
+  def register_constant_delay(self, key, size, delay):
     """Register a constant delay.
 
     Parameters
@@ -53,8 +53,8 @@ class TwoEndConn(DynamicSystem):
         The delay name.
     size : int, list of int, tuple of int
         The delay data size.
-    delay_time : int, float
-        The delay time length.
+    delay : int, float, ndarray
+        The delay time, with the unit same with `brainpy.math.get_dt()`.
 
     Returns
     -------
@@ -63,12 +63,14 @@ class TwoEndConn(DynamicSystem):
     """
 
     if not hasattr(self, 'steps'):
-      raise errors.ModelUseError('Please initialize the super class first. '
-                                 'For example: \n\n'
+      raise errors.ModelUseError('Please initialize the super class first before '
+                                 'registering constant_delay. \n\n'
                                  'super(YourClassName, self).__init__(**kwargs)')
+    if not key.isidentifier():
+      raise ValueError(f'{key} is not a valid identifier.')
 
-    cdelay = ConstantDelay(size, delay_time, name=f'{self.name}_delay_{key}')
-    self.steps[f'{self.name}_delay_{key}_update'] = cdelay.update
+    cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}')
+    self.steps[f'{key}_delay_update'] = cdelay.update
 
     return cdelay
 
