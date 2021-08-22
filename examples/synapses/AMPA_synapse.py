@@ -85,8 +85,8 @@ class AMPA1_vec(bp.TwoEndConn):
         self.size = len(self.pre_ids)
 
         # data
-        self.s = bp.ops.zeros(self.size)
-        self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
+        self.s = bp.math.zeros(self.size)
+        self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
         super(AMPA1_vec, self).__init__(pre=pre, post=post, **kwargs)
 
@@ -95,7 +95,7 @@ class AMPA1_vec(bp.TwoEndConn):
     def int_s(s, t, tau):
         return - s / tau
 
-    def update(self, _t):
+    def update(self, _t, _i):
         for i in prange(self.size):
             pre_id = self.pre_ids[i]
             self.s[i] = self.int_s(self.s[i], _t, self.tau)
@@ -122,7 +122,7 @@ class AMPA1_mat(bp.TwoEndConn):
 
         # variables
         self.s = bp.ops.zeros(self.size)
-        self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
+        self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
         super(AMPA1_mat, self).__init__(pre=pre, post=post, **kwargs)
 

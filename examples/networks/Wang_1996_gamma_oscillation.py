@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# import sys
-# sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
+import sys
+sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
 
 import brainpy as bp
 
@@ -12,7 +12,7 @@ bp.integrators.set_default_odeint('rk4')
 class GABAa(bp.TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.1, E=-75.,
                alpha=12., beta=0.1, T=1.0, T_duration=1.0, **kwargs):
-    super(GABAa, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
+    super(GABAa, self).__init__(pre=pre, post=post, **kwargs)
 
     # parameters
     self.g_max = g_max
@@ -24,13 +24,14 @@ class GABAa(bp.TwoEndConn):
     self.delay = delay
 
     # connections
+    self.conn = conn(pre.size, post.size)
     self.conn_mat = self.conn.requires('conn_mat')
     self.size = bp.math.shape(self.conn_mat)
 
     # variables
     self.t_last_pre_spike = bp.math.ones(self.size) * -1e7
     self.s = bp.math.zeros(self.size)
-    self.g = self.register_constant_delay('g', size=self.size, delay_time=delay)
+    self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
   @bp.odeint
   def int_s(self, s, t, TT):
@@ -66,18 +67,18 @@ class HH(bp.NeuGroup):
     self.V = bp.math.ones(self.num) * -65.
     self.h = bp.math.ones(self.num) * 0.6
     self.n = bp.math.ones(self.num) * 0.32
-    self.spikes = bp.math.zeros(self.num)
     self.inputs = bp.math.zeros(self.num)
+    self.spikes = bp.math.zeros(self.num, dtype=bp.math.bool_)
 
   @bp.odeint
   def integral(self, V, h, n, t, Iext):
     alpha = 0.07 * bp.math.exp(-(V + 58) / 20)
     beta = 1 / (bp.math.exp(-0.1 * (V + 28)) + 1)
-    dhdt = alpha * (1 - h) - beta * h
+    dhdt = self.phi * (alpha * (1 - h) - beta * h)
 
     alpha = -0.01 * (V + 34) / (bp.math.exp(-0.1 * (V + 34)) - 1)
     beta = 0.125 * bp.math.exp(-(V + 44) / 80)
-    dndt = alpha * (1 - n) - beta * n
+    dndt = self.phi * (alpha * (1 - n) - beta * n)
 
     m_alpha = -0.1 * (V + 35) / (bp.math.exp(-0.1 * (V + 35)) - 1)
     m_beta = 4 * bp.math.exp(-(V + 60) / 18)
@@ -87,11 +88,11 @@ class HH(bp.NeuGroup):
     IL = self.gL * (V - self.EL)
     dVdt = (- INa - IK - IL + Iext) / self.C
 
-    return dVdt, self.phi * dhdt, self.phi * dndt
+    return dVdt, dhdt, dndt
 
   def update(self, _t, _i):
     V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
-    self.spikes[:] = (self.V < self.V_th) * (V >= self.V_th)
+    self.spikes[:] = bp.math.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V[:] = V
     self.h[:] = h
     self.n[:] = n
@@ -104,12 +105,17 @@ def try1():
   neu.V = -70. + bp.math.random.normal(size=num) * 20
   neu2 = HH(num, monitors=['spikes', 'V'], name='Y')
   neu2.V = -70. + bp.math.random.normal(size=num) * 20
+  neu3 = HH(num, monitors=['spikes', 'V'], name='Z')
+  neu3.V = -70. + bp.math.random.normal(size=num) * 20
+  neu4 = HH(num, monitors=['spikes', 'V'],)
+  neu5 = HH(num, monitors=['spikes', 'V'], )
 
   syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   syn.g_max = 0.1 / num
 
-  net = bp.math.jit(bp.Network(neu=neu, neu2=neu2))
-  net.run(duration=500., inputs=[('X.inputs', 1.), ('Y.inputs', 1.)], report=0.2)
+  net = bp.math.jit(bp.Network(neu3, neu4, neu5, neu=neu, syn=syn, neu2=neu2))
+  net.run(duration=500., inputs=[('X.inputs', 1.),
+                                 ('Y.inputs', 1.)], report=0.2)
 
   fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
   xlim = (-0.1, 500.1)
