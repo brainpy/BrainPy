@@ -53,7 +53,10 @@ class Collector(dict):
     return gather
 
   def dict(self):
-    return dict(self.items())
+    gather = dict()
+    for k, v in self.items():
+      gather[k] = v.value
+    return gather
 
 
 class ArrayCollector(Collector):
