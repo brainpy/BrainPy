@@ -29,7 +29,7 @@ It provides three core functions:
 
 # setup
 setup(
-    name='brainpy-simulator',
+    name='brain-py',
     version=version,
     description='BrainPy: A general platform for computational neuroscience and brain-inspired computation',
     long_description=README,
