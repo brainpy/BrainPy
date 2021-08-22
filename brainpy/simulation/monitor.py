@@ -100,12 +100,23 @@ class Monitor(object):
     super(Monitor, self).__init__()
 
   def check(self, mon_key):
+    """Check whether the key has defined in the target.
+
+    Parameters
+    ----------
+    mon_key : str
+      The string to specify the target item.
+    """
     if mon_key in self._KEYWORDS:
       raise ValueError(f'"{mon_key}" is a keyword in Monitor class. '
                        f'Please change to another name.')
-    if not hasattr(self.target, mon_key):
-      raise errors.ModelDefError(f"Item \"{mon_key}\" isn't defined in model "
-                                 f"{self.target}, so it can not be monitored.")
+    data = self.target
+    for s in mon_key.split('.'):
+      try:
+        data = getattr(data, s)
+      except AttributeError:
+        raise errors.ModelDefError(f"Item \"{mon_key}\" isn't defined in model "
+                                   f"{self.target}, so it can not be monitored.")
 
   def build(self):
     if not self.has_build:

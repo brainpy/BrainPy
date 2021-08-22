@@ -97,14 +97,14 @@ class JaxDSDriver(NumpyDSDriver):
       key_in_host = f'{node.name}.{key}'
     elif math.ndim(data) == 1:
       if isinstance(data, math.ndarray):
-        key_in_host = f'{node.name}.{key}.value'
+        key_in_host = f'{node.name}.{key}.value.copy()'
       else:
-        key_in_host = f'{node.name}.{key}'
+        key_in_host = f'{node.name}.{key}.copy()'
     else:
       if isinstance(data, math.ndarray):
-        key_in_host = f'{node.name}.{key}.value.flatten()'
+        key_in_host = f'{node.name}.{key}.value.flatten().copy()'
       else:
-        key_in_host = f'{node.name}.{key}.flatten()'
+        key_in_host = f'{node.name}.{key}.flatten().copy()'
 
     # format the monitor index
     if idx is None:
