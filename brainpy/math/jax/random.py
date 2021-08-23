@@ -43,6 +43,7 @@ class RandomState(Pointer):
   """RandomState are variables that track the
   random generator state. They are meant to be used internally.
   Currently only the random.Generator module uses them."""
+  __slots__ = ()
 
   def __init__(self, seed_or_key=None):
     """RandomState constructor.
@@ -66,6 +67,10 @@ class RandomState(Pointer):
     else:
       raise ValueError
     super(RandomState, self).__init__(key)
+
+  # ------------------- #
+  # seed and random key #
+  # ------------------- #
 
   def seed(self, seed):
     """Sets a new random seed.
@@ -96,6 +101,10 @@ class RandomState(Pointer):
     keys = jr.split(self.value, n + 1)
     self.value = keys[0]
     return keys[1:]
+
+  # ---------------- #
+  # random functions #
+  # ---------------- #
 
   def rand(self, *dn):
     return JaxArray(jr.uniform(self.split(), shape=dn, minval=0., maxval=1.))

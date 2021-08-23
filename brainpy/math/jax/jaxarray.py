@@ -31,6 +31,7 @@ class JaxArray(Pointer):
 
   1. Do not support "out" argument in all methods.
   """
+  __slots__ = ()
 
   @property
   def dtype(self):
@@ -492,6 +493,8 @@ class JaxArray(Pointer):
 
 
 class TrainVar(JaxArray):
+  __slots__ = ()
+
   def __init__(self, value):
     if isinstance(value, JaxArray):
       value = value.value
