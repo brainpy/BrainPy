@@ -3,18 +3,16 @@
 from brainpy.integrators import constants
 from brainpy.integrators.driver import get_driver
 
+
 _ODE_UNKNOWN_NO = 0
 
 
+
 def f_names(f):
+  func_name = constants.unique_name('ode')
   if f.__name__.isidentifier():
-    f_name = f.__name__
-  else:
-    global _ODE_UNKNOWN_NO
-    f_name = f'ode_unknown_{_ODE_UNKNOWN_NO}'
-    _ODE_UNKNOWN_NO += 1
-  f_new_name = constants.ODE_PREFIX + f_name
-  return f_new_name
+    func_name += '_' + f.__name__
+  return func_name
 
 
 def step(class_kw, vars, dt_var, A, C, code_lines, other_args):

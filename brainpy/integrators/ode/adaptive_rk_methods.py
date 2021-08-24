@@ -2,7 +2,7 @@
 
 from brainpy import math
 from brainpy.integrators import constants
-from .wrapper import adaptive_rk_wrapper
+from brainpy.integrators.ode.wrapper import adaptive_rk_wrapper
 
 __all__ = [
   'rkf45',

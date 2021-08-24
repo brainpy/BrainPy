@@ -2,8 +2,7 @@
 
 from brainpy import math
 from brainpy.integrators import constants
-from .wrapper import general_rk_wrapper
-from .wrapper import rk2_wrapper
+from brainpy.integrators.ode.wrapper import general_rk_wrapper, rk2_wrapper
 
 __all__ = [
   'euler',

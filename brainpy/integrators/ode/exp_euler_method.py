@@ -2,7 +2,7 @@
 
 from brainpy import math
 from brainpy.integrators import constants
-from .wrapper import exp_euler_wrapper
+from brainpy.integrators.ode.wrapper import exp_euler_wrapper
 
 __all__ = [
   'exponential_euler',
@@ -12,7 +12,7 @@ __all__ = [
 def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
   """First order, explicit exponential Euler method.
 
-  For an ODE equation of the form
+  For an ODE_INT equation of the form
 
   .. backend::
 
@@ -26,7 +26,7 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
 
   where :backend:`A=f^{\prime}(y_{n})` and :backend:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
 
-  For linear ODE system: :backend:`y^{\\prime} = Ay + B`,
+  For linear ODE_INT system: :backend:`y^{\\prime} = Ay + B`,
   the above equation is equal to
 
   .. backend::
