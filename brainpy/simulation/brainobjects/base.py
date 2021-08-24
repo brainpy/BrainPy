@@ -3,8 +3,8 @@
 import numpy as np
 
 from brainpy import math, errors
-from brainpy.base.base import Base
 from brainpy.base import collector
+from brainpy.base.base import Base
 from brainpy.simulation import utils
 from brainpy.simulation.driver import get_driver
 from brainpy.simulation.monitor import Monitor
@@ -221,7 +221,7 @@ class Container(DynamicSystem):
 
     # integrative step function
     if steps is None:
-      steps = ('update', )
+      steps = ('update',)
     super(Container, self).__init__(steps=steps, monitors=monitors, name=name)
 
   def update(self, _t, _i):
@@ -239,50 +239,18 @@ class Container(DynamicSystem):
 
     Returns
     -------
-    gather collector.ArrayCollector
+    gather : collector.ArrayCollector
         A collection of all the variables.
     """
-    gather = collector.ArrayCollector()
-    if method == 'absolute':
-      for k, v in self.children_ds.items():
-        gather.update(v.vars(method=method))
-    elif method == 'relative':
-      for k, v in self.children_ds.items():
-        for k2, v2 in v.vars(method=method).items():
-          gather[f'{k}.{k2}'] = v2
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
+    gather = self._vars_in_iter(self.children_ds, method=method)
     gather.update(super(Container, self).vars(method=method))
     return gather
 
-  def ints(self, method='absolute'):
-    gather = collector.Collector()
-    if method == 'absolute':
-      for k, v in self.children_ds.items():
-        gather.update(v.ints(method=method))
-    elif method == 'relative':
-      for k, v in self.children_ds.items():
-        for k2, v2 in v.ints(method=method).items():
-          gather[f'{k}.{k2}'] = v2
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
-    gather.update(super(Container, self).ints(method=method))
-    return gather
-
-  def nodes(self, method='absolute'):
-    gather = collector.Collector()
-    if method == 'absolute':
-      for k, v in self.children_ds.items():
-        gather[v.name] = v
-        gather.update(v.nodes(method=method))
-    elif method == 'relative':
-      for k, v in self.children_ds.items():
-        gather[k] = v
-        for k2, v2 in v.nodes(method=method).items():
-          gather[f'{k}.{k2}'] = v2
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
-    gather.update(super(Container, self).nodes(method=method))
+  def nodes(self, method='absolute', _paths=None):
+    if _paths is None:
+      _paths = set()
+    gather = self._nodes_in_iter(self.children_ds, method=method, _paths=_paths)
+    gather.update(super(Container, self).nodes(method=method, _paths=_paths))
     return gather
 
   def __getattr__(self, item):

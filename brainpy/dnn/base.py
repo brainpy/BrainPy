@@ -4,7 +4,6 @@ import inspect
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector, Collector
 
 __all__ = [
   'Module', 'Sequential',
@@ -114,31 +113,13 @@ class Sequential(Module):
     gather collector.ArrayCollector
         A collection of all the variables.
     """
-    gather = ArrayCollector()
-    if method == 'relative':
-      for k, v in self.items():
-        for k2, v2 in v.vars(method=method).items():
-          gather[f'{k}.{k2}'] = v2
-    elif method == 'absolute':
-      for k, v in self.items():
-        gather.update(v.vars(method=method))
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
+    gather = self._vars_in_iter(self.children_modules, method=method)
     gather.update(super(Sequential, self).vars(method=method))
     return gather
 
-  def nodes(self, method='absolute'):
-    gather = Collector()
-    if method == 'relative':
-      for k, v in self.items():
-        gather[k] = v
-        for k2, v2 in v.nodes(method=method).items():
-          gather[f'{k}.{k2}'] = v2
-    elif method == 'absolute':
-      for k, v in self.items():
-        gather[v.name] = v
-        gather.update(v.nodes(method=method))
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
+  def nodes(self, method='absolute', _paths=None):
+    if _paths is None:
+      _paths = set()
+    gather = self._nodes_in_iter(self.children_modules, method=method, _paths=_paths)
     gather.update(super(Sequential, self).nodes(method=method))
     return gather

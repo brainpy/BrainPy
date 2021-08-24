@@ -1,45 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
 import brainpy as bp
-
-
-class GABAa(bp.TwoEndConn):
-  def __init__(self, pre, post, conn, delay=0., g_max=0.1, E=-75.,
-               alpha=12., beta=0.1, T=1.0, T_duration=1.0, **kwargs):
-    super(GABAa, self).__init__(pre=pre, post=post, **kwargs)
-
-    # parameters
-    self.g_max = g_max
-    self.E = E
-    self.alpha = alpha
-    self.beta = beta
-    self.T = T
-    self.T_duration = T_duration
-    self.delay = delay
-
-    # connections
-    self.conn = conn(pre.size, post.size)
-    self.conn_mat = self.conn.requires('conn_mat')
-    self.size = bp.math.shape(self.conn_mat)
-
-    # variables
-    self.t_last_pre_spike = bp.math.ones(self.size) * -1e7
-    self.s = bp.math.zeros(self.size)
-    self.g = self.register_constant_delay('g', size=self.size, delay=delay)
-
-  @bp.odeint
-  def int_s(self, s, t, TT):
-    return self.alpha * TT * (1 - s) - self.beta * s
-
-  def update(self, _t, _i):
-    spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
-    self.t_last_pre_spike[:] = bp.math.where(spike, _t, self.t_last_pre_spike)
-    TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
-    self.s[:] = self.int_s(self.s, _t, TT)
-    self.g.push(self.g_max * self.s)
-    g = self.g.pull()
-    self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
 
 
 class HH(bp.NeuGroup):
@@ -64,6 +25,8 @@ class HH(bp.NeuGroup):
     self.n = bp.math.ones(self.num) * 0.32
     self.inputs = bp.math.zeros(self.num)
     self.spikes = bp.math.zeros(self.num, dtype=bp.math.bool_)
+
+    self.pre = None
 
   @bp.odeint
   def integral(self, V, h, n, t, Iext):
@@ -94,22 +57,33 @@ class HH(bp.NeuGroup):
     self.inputs[:] = 0.
 
 
-def test_subset_integrator():
-  neu = HH(10, monitors=['spikes', 'V'], name='X')
-  syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
-  syn.g_max = 0.1 / neu.num
-  net = bp.Network(neu, syn)
+def test_nodes():
+  A = HH(1, name='X')
+  B = HH(1, name='Y')
+  A.pre = B
+  B.pre = A
 
-  ints = net.ints()
+  net = bp.Network(A, B)
+  abs_nodes = net.nodes(method='absolute')
+  rel_nodes = net.nodes(method='relative')
   print()
-  print(ints)
+  print(abs_nodes)
+  print(rel_nodes)
 
-  ode_ints = ints.subset(bp.integrators.ODE_INT)
-  print(ode_ints)
-  assert len(ode_ints) == 2
-
-
+  assert len(abs_nodes) == 2
+  assert len(rel_nodes) == 4
 
 
+def test_ints():
+  A = HH(1, name='X')
+  B = HH(1, name='Y')
+  A.pre = B
+  B.pre = A
 
+  net = bp.Network(A, B)
+  abs_ints = net.ints(method='absolute')
+  rel_ints = net.ints(method='relative')
+  print()
+  print(abs_ints.keys())
+  print(rel_ints.keys())
 

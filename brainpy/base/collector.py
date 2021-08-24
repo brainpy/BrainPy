@@ -2,9 +2,8 @@
 
 from contextlib import contextmanager
 
-from brainpy import math
 from brainpy import errors
-from brainpy.integrators import constants
+from brainpy import math
 
 __all__ = [
   'Collector',

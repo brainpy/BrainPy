@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.base import collector
+from brainpy import errors
 from brainpy.base.base import Base
 
 __all__ = [
@@ -9,7 +9,17 @@ __all__ = [
 
 
 class Function(Base):
-  """The wrapper for Python functions."""
+  """The wrapper for Python functions.
+
+  Parameters
+  ----------
+  f : function
+    The function to wrap.
+  nodes : list, tuple, dict
+    The nodes in the defined function ``f``.
+  name : optional, str
+    The function name.
+  """
 
   def __init__(self, f, nodes, name=None):
     # name
@@ -27,7 +37,7 @@ class Function(Base):
     if isinstance(nodes, (tuple, list)):
       for i, node in enumerate(nodes):
         if not isinstance(node, Base):
-          raise ValueError
+          raise errors.ModelUseError(f'Must be an instance of {Base.__name__}, but we got {type(node)}.')
         self._nodes[f'_node{i}'] = node
     elif isinstance(nodes, dict):
       self._nodes.update(nodes)
@@ -36,44 +46,15 @@ class Function(Base):
                        f'but we got {type(nodes)}: {nodes}')
 
   def vars(self, method='absolute'):
-    gather = collector.ArrayCollector()
-    if method == 'absolute':
-      for key, node in self._nodes.items():
-        gather.update(node.vars(method=method))
-    elif method == 'relative':
-      for i, (key, node) in enumerate(self._nodes.items()):
-        for k, v in node.vars(method=method):
-          gather[f'{key}.{k}'] = v
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
+    gather = self._vars_in_iter(self._nodes, method=method)
+    gather.update(super(Function, self).vars(method=method))
     return gather
 
-  def ints(self, method='absolute'):
-    gather = collector.Collector()
-    if method == 'absolute':
-      for key, node in self._nodes.items():
-        gather.update(node.ints(method=method))
-    elif method == 'relative':
-      for key, node in self._nodes.items():
-        for k, v in node.ints(method=method):
-          gather[f'{key}.{k}'] = v
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
-    return gather
-
-  def nodes(self, method='absolute'):
-    gather = collector.Collector()
-    if method == 'absolute':
-      for key, node in self._nodes.items():
-        gather[node.name] = node
-        gather.update(node.nodes(method=method))
-    elif method == 'relative':
-      for key, node in self._nodes.items():
-        gather[key] = node
-        for k2, v2 in node.nodes(method=method):
-          gather[f'{key}.{k2}'] = v2
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
+  def nodes(self, method='absolute', _paths=None):
+    if _paths is None:
+      _paths = set()
+    gather = self._nodes_in_iter(self._nodes, method=method, _paths=_paths)
+    gather.update(super(Function, self).nodes(method=method, _paths=_paths))
     return gather
 
   def __call__(self, *args, **kwargs):
