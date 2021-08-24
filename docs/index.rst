@@ -1,24 +1,23 @@
 BrainPy documentation
 =====================
 
+BrainPy is a highly flexible and extensible framework targeting on the
+high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
-Brain modeling heavily relies on calculus. Focused on differential equations,
-`BrainPy <https://github.com/PKU-NIP-Lab/BrainPy>`_
-provides an integrative simulation and analysis framework for neurodynamics in
-computational neuroscience and brain-inspired computation. It provides three
-core functions:
+1. **General numerical solvers** for ODEs, SDEs, DDEs, FDEs and others.
+2. **Dynamics simulation tools** for various brain objects, like
+   neurons, synapses, networks, soma, dendrites, channels, and even molecular.
+3. **Dynamics analysis tools** for differential equations, including
+   phase plane analysis, bifurcation analysis, continuation analysis and
+   sensitive analysis.
+4. **Seamless integration with deep learning models**, but has the high speed
+   acceleration because of JIT compilation.
 
-- **General numerical solvers** for ODEs and SDEs (future will support DDEs and FDEs).
-- **Neurodynamics simulation tools** for various brain objects, such like neurons, synapses
-  and networks (future will support soma and dendrites).
-- **Neurodynamics analysis tools** for differential equations, including phase plane
-  analysis and bifurcation analysis (future will support continuation analysis and
-  sensitive analysis).
 
 Intuitive tutorials of BrainPy please see our
 `handbook <https://pku-nip-lab.github.io/BrainPyHandbook/>`_,
 and comprehensive examples of BrainPy please see
-`BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
+`BrainModels <https://brainmodels.readthedocs.io/>`_.
 
 
 .. toctree::
