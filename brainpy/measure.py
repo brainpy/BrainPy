@@ -168,7 +168,7 @@ def raster_plot(sp_matrix, times):
   return index, time
 
 
-def firing_rate(sp_matrix, width, window='flat'):
+def firing_rate(sp_matrix, width, dt=None):
   """Calculate the mean firing rate over in a neuron group.
 
   This method is adopted from Brian2.
@@ -183,41 +183,19 @@ def firing_rate(sp_matrix, width, window='flat'):
   Parameters
   ----------
   sp_matrix : bnp.ndarray
-      The spike matrix which record spiking activities.
+    The spike matrix which record spiking activities.
   width : int, float
-      The width of the ``window`` in millisecond.
-  window : str
-      The window to use for smoothing. It can be a string to chose a
-      predefined window:
-
-      - `flat`: a rectangular,
-      - `gaussian`: a Gaussian-shaped window.
-
-      For the `Gaussian` window, the `width` parameter specifies the
-      standard deviation of the Gaussian, the width of the actual window
-      is `4 * width + dt`.
-      For the `flat` window, the width of the actual window
-      is `2 * width/2 + dt`.
+    The width of the ``window`` in millisecond.
+  dt : float, optional
+    The sample rate.
 
   Returns
   -------
   rate : numpy.ndarray
       The population rate in Hz, smoothed with the given window.
   """
-  # rate
   rate = math.sum(sp_matrix, axis=1) / sp_matrix.shape[1]
-
-  # window
-  dt = math.get_dt()
-  if window == 'flat':
-    width1 = int(width / 2 / dt) * 2 + 1
-    window = math.ones(width1) * 1000 / width
-  elif window == 'gaussian':
-    raise NotImplementedError
-    width1 = 2 * width / dt
-    width2 = int(round(width1))
-    window = math.exp(-math.arange(-width2, width2 + 1) ** 2 / (width1 ** 2 * 2))
-    window = window / window.sum() * len(window)
-  else:
-    raise ValueError('Unknown window type "{}".'.format(window))
+  dt = math.get_dt() if dt is None else dt
+  width1 = int(width / 2 / dt) * 2 + 1
+  window = math.ones(width1) * 1000 / width
   return np.convolve(rate, window, mode='same')
