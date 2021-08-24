@@ -2,12 +2,12 @@
 
 import brainpy as bp
 from brainpy.math import jax as jnp
-from brainpy.primary import Primary
+from brainpy.base import Root
 
 bp.math.use_backend('jax')
 
 
-class Obj1(Primary):
+class Obj1(Root):
   def __init__(self):
     super(Obj1, self).__init__()
 
@@ -22,7 +22,7 @@ class Obj1(Primary):
 
 
 def test1():
-  class Obj2(Primary):
+  class Obj2(Root):
     def __init__(self):
       super(Obj2, self).__init__()
 
@@ -42,7 +42,7 @@ def test1():
 
 
 def test2():
-  class Obj2(Primary):
+  class Obj2(Root):
     def __init__(self):
       super(Obj2, self).__init__()
 
@@ -63,7 +63,7 @@ def test2():
 
 
 def test3():
-  class Obj2(Primary):
+  class Obj2(Root):
     def __init__(self):
       super(Obj2, self).__init__()
 
