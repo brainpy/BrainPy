@@ -15,7 +15,7 @@ def basic_info(f, g):
   else:
     global _SDE_UNKNOWN_NO
     func_name = f'unknown_sde{_SDE_UNKNOWN_NO}'
-  func_new_name = constants.SDE_PREFIX + func_name
+  func_new_name = constants.SDE_INT + func_name
   class_kw, variables, parameters, arguments = utils.get_args(f)
   return vdt, variables, parameters, arguments, func_new_name
 

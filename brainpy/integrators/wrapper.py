@@ -28,7 +28,7 @@ def _wrapper(f, module, method, **kwargs):
 
 
 def odeint(f=None, method=None, **kwargs):
-  """Numerical integration for ODE.
+  """Numerical integration for ODE_INT.
 
   Parameters
   ----------
@@ -44,7 +44,7 @@ def odeint(f=None, method=None, **kwargs):
   if method is None:
     method = _DEFAULT_ODE_METHOD
   if method not in SUPPORTED_ODE_METHODS:
-    raise ValueError(f'Unknown ODE numerical method "{method}". Currently '
+    raise ValueError(f'Unknown ODE_INT numerical method "{method}". Currently '
                      f'BrainPy only support: {SUPPORTED_ODE_METHODS}')
 
   if f is None:
@@ -57,7 +57,7 @@ def sdeint(f=None, method=None, **kwargs):
   if method is None:
     method = _DEFAULT_SDE_METHOD
   if method not in SUPPORTED_SDE_METHODS:
-    raise ValueError(f'Unknown SDE numerical method "{method}". Currently '
+    raise ValueError(f'Unknown SDE_INT numerical method "{method}". Currently '
                      f'BrainPy only support: {SUPPORTED_SDE_METHODS}')
 
   if f is None:
@@ -75,7 +75,7 @@ def fdeint():
 
 
 def set_default_odeint(method):
-  """Set the default ODE numerical integrator method for differential equations.
+  """Set the default ODE_INT numerical integrator method for differential equations.
 
   Parameters
   ----------
@@ -85,14 +85,14 @@ def set_default_odeint(method):
   if not isinstance(method, str):
     raise ValueError(f'Only support string, not {type(method)}.')
   if method not in SUPPORTED_ODE_METHODS:
-    raise ValueError(f'Unsupported ODE numerical method: {method}.')
+    raise ValueError(f'Unsupported ODE_INT numerical method: {method}.')
 
   global _DEFAULT_ODE_METHOD
   _DEFAULT_ODE_METHOD = method
 
 
 def get_default_odeint():
-  """Get the default ODE numerical integrator method.
+  """Get the default ODE_INT numerical integrator method.
 
   Returns
   -------
@@ -103,7 +103,7 @@ def get_default_odeint():
 
 
 def set_default_sdeint(method):
-  """Set the default SDE numerical integrator method for differential equations.
+  """Set the default SDE_INT numerical integrator method for differential equations.
 
   Parameters
   ----------
@@ -113,14 +113,14 @@ def set_default_sdeint(method):
   if not isinstance(method, str):
     raise ValueError(f'Only support string, not {type(method)}.')
   if method not in SUPPORTED_SDE_METHODS:
-    raise ValueError(f'Unsupported SDE numerical method: {method}.')
+    raise ValueError(f'Unsupported SDE_INT numerical method: {method}.')
 
   global _DEFAULT_SDE_METHOD
   _DEFAULT_SDE_METHOD = method
 
 
 def get_default_sdeint():
-  """Get the default ODE numerical integrator method.
+  """Get the default ODE_INT numerical integrator method.
 
   Returns
   -------

@@ -4,7 +4,7 @@ import numpy as np
 
 from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath, jax
-from brainpy.primary.collector import ArrayCollector
+from brainpy.base.collector import ArrayCollector
 
 __all__ = [
   'Optimizer',

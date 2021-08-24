@@ -35,16 +35,16 @@ class TwoEndConn(DynamicSystem):
     # ------------------------
     if not isinstance(pre, NeuGroup):
       raise errors.ModelUseError('"pre" must be an instance of NeuGroup.')
-    self.pre = pre
     if not isinstance(post, NeuGroup):
       raise errors.ModelUseError('"post" must be an instance of NeuGroup.')
+    self.pre = pre
     self.post = post
 
     # initialize
     # ----------
     super(TwoEndConn, self).__init__(steps=steps, name=name, **kwargs)
 
-  def register_constant_delay(self, key, size, delay):
+  def register_constant_delay(self, key, size, delay, dtype=None):
     """Register a constant delay.
 
     Parameters
@@ -69,7 +69,7 @@ class TwoEndConn(DynamicSystem):
     if not key.isidentifier():
       raise ValueError(f'{key} is not a valid identifier.')
 
-    cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}')
+    cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}', dtype=dtype)
     self.steps[f'{key}_delay_update'] = cdelay.update
 
     return cdelay

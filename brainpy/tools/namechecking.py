@@ -7,7 +7,7 @@ __all__ = [
   'get_name',
 ]
 
-object2name = dict()
+_name2id = dict()
 _typed_names = {}
 
 
@@ -16,9 +16,12 @@ def check_name(name, obj):
     raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
                                f'according to Python language definition. '
                                f'Please choose another name.')
-  if name in object2name:
-    if id(object2name[name]) != id(obj):
-      raise errors.UniqueNameError(name, object2name[name], obj)
+  if name in _name2id:
+    if _name2id[name] != id(obj):
+      raise errors.UniqueNameError(f'In BrainPy, each object should have a unique name. '
+                                   f'However, we detect that {obj} has a used name "{name}".')
+  else:
+    _name2id[name] = id(obj)
 
 
 def get_name(type):

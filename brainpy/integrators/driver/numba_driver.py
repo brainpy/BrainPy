@@ -82,9 +82,9 @@ class NumbaDiffIntDriver(base.BaseDiffIntDriver):
     # jit original functions
     has_jitted = isinstance(self.code_scope['f'], Dispatcher)
     if not has_jitted:
-      if self.func_name.startswith(diffint_cons.ODE_PREFIX):
+      if self.func_name.startswith(diffint_cons.ODE_INT):
         self.code_scope['f'] = numba.jit(**get_numba_profile())(self.code_scope['f'])
-      elif self.func_name.startswith(diffint_cons.SDE_PREFIX):
+      elif self.func_name.startswith(diffint_cons.SDE_INT):
         self.code_scope['f'] = numba.jit(**get_numba_profile())(self.code_scope['f'])
         self.code_scope['g'] = numba.jit(**get_numba_profile())(self.code_scope['g'])
       else:

@@ -3,8 +3,8 @@
 import numpy as np
 
 from brainpy import math, errors
-from brainpy.integrators.constants import DE_PREFIX
-from brainpy.primary import Primary, collector
+from brainpy.base.base import Base
+from brainpy.base import collector
 from brainpy.simulation import utils
 from brainpy.simulation.driver import get_driver
 from brainpy.simulation.monitor import Monitor
@@ -20,15 +20,8 @@ _error_msg = 'Unknown model type: {type}. ' \
              'tuple of function names.'
 
 
-def _find_integrator(obj):
-  for key in dir(obj):
-    value = getattr(obj, key)
-    if callable(value) and hasattr(value, '__name__') and value.__name__.startswith(DE_PREFIX):
-      yield value
-
-
-class DynamicSystem(Primary):
-  """Base Dynamic System Class.
+class DynamicSystem(Base):
+  """Base Dynamic System class.
 
   Any object has step functions will be a dynamical system.
   That is to say, in BrainPy, the essence of the dynamical system
@@ -101,40 +94,6 @@ class DynamicSystem(Primary):
       raise errors.ModelDefError(f'Unknown setting of '
                                  f'"target_backend": '
                                  f'{self.target_backend}')
-
-  def ints(self, method='absolute'):
-    """Collect all the integrators in the instance
-    of DynamicSystem and the node instances.
-
-    Parameters
-    ----------
-    method : str
-      The prefix string for the integrator names.
-
-    Returns
-    -------
-    collector : collector.Collector
-      The collection contained the integrator name and the integrator function.
-    """
-    gather = collector.Collector()
-    if method == 'relative':
-      for k in dir(self):
-        v = getattr(self, k)
-        if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(DE_PREFIX):
-          gather[k] = v
-        elif isinstance(v, DynamicSystem):
-          for k2, v2 in v.ints(method=method).items():
-            gather[f'{k}.{k2}'] = v2
-    elif method == 'absolute':
-      for k in dir(self):
-        v = getattr(self, k)
-        if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(DE_PREFIX):
-          gather[f'{self.name}.{k}'] = v
-        elif isinstance(v, DynamicSystem):
-          gather.update(v.ints(method=method))
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
-    return gather
 
   def _build(self, inputs, duration, rebuild=False):
     # backend checking

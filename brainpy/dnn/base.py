@@ -3,11 +3,10 @@
 import inspect
 
 from brainpy import errors
-from brainpy.primary.base import Primary
-from brainpy.primary.collector import ArrayCollector, Collector
+from brainpy.base.base import Base
+from brainpy.base.collector import ArrayCollector, Collector
 
 __all__ = [
-  # abstract class
   'Module', 'Sequential',
 ]
 
@@ -24,7 +23,7 @@ def _check_config(f, config):
     return {}
 
 
-class Module(Primary):
+class Module(Base):
   """Basic DNN module.
 
   Parameters
@@ -37,10 +36,10 @@ class Module(Primary):
     super(Module, self).__init__(name=name)
 
   def __call__(self, *args, **kwargs):
-    raise NotImplementedError
+    raise NotImplementedError('Must customize your own "__call__" method.')
 
 
-class Sequential(Module, dict):
+class Sequential(Module):
   """Basic DNN sequential object.
 
   Parameters
@@ -54,24 +53,23 @@ class Sequential(Module, dict):
   """
 
   def __init__(self, *arg_modules, name=None, **kwarg_modules):
-    all_systems = dict()
+    self.children_modules = dict()
     # check "args"
     for module in arg_modules:
       if not isinstance(module, Module):
         raise errors.ModelUseError(f'Only support {Module.__name__}, '
                                    f'but we got {type(module)}.')
-      all_systems[module.name] = module
+      self.children_modules[module.name] = module
 
     # check "kwargs"
     for key, module in kwarg_modules.items():
       if not isinstance(module, Module):
         raise errors.ModelUseError(f'Only support {Module.__name__}, '
                                    f'but we got {type(module)}.')
-      all_systems[key] = module
+      self.children_modules[key] = module
 
     # initialize base class
     Module.__init__(self, name=name)
-    dict.__init__(self, all_systems)
 
   def __call__(self, *args, config=dict()):
     """Functional call.
@@ -85,8 +83,8 @@ class Sequential(Module, dict):
       If the "__call__" function in submodule receives "config" arguments,
       This "config" parameter will be passed into this function.
     """
-    keys = list(self.keys())
-    calls = list(self.values())
+    keys = list(self.children_modules.keys())
+    calls = list(self.children_modules.values())
 
     # module 0
     try:
@@ -95,7 +93,7 @@ class Sequential(Module, dict):
       raise type(e)(f'Sequential [{keys[0]}] {calls[0]} {e}')
 
     # other modules
-    for i in range(1, len(self)):
+    for i in range(1, len(self.children_modules)):
       try:
         args = calls[i](*_check_args(args=args), **_check_config(calls[i], config))
       except Exception as e:

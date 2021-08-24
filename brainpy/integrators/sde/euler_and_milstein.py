@@ -62,9 +62,9 @@ class Wrapper(object):
     Parameters
     ----------
     f : callable
-        The drift function of the SDE.
+        The drift function of the SDE_INT.
     g : callable
-        The diffusion function of the SDE.
+        The diffusion function of the SDE_INT.
     dt : float
         The numerical precision.
     intg_type : str
@@ -88,7 +88,7 @@ class Wrapper(object):
     var_type = constants.SCALAR_VAR if var_type is None else var_type
     wiener_type = constants.SCALAR_WIENER if wiener_type is None else wiener_type
     if intg_type not in constants.SUPPORTED_INTG_TYPE:
-      raise errors.IntegratorError(f'Currently, BrainPy only support SDE types: '
+      raise errors.IntegratorError(f'Currently, BrainPy only support SDE_INT types: '
                                    f'{constants.SUPPORTED_INTG_TYPE}. But we got {intg_type}.')
     if var_type not in constants.SUPPORTED_VAR_TYPE:
       raise errors.IntegratorError(f'Currently, BrainPy only supports variable types: '
@@ -308,7 +308,7 @@ class Wrapper(object):
         code_lines.append(f'  {var}_new = {var} + {var}_dfdt + 0.5 * ({var}_dgdW + {var}_dgdW2)')
       code_lines.append('  ')
     else:
-      raise ValueError(f'Unknown SDE type: {intg_type}. We only '
+      raise ValueError(f'Unknown SDE_INT type: {intg_type}. We only '
                        f'supports {constants.SUPPORTED_INTG_TYPE}.')
 
     # returns
@@ -374,7 +374,7 @@ class Wrapper(object):
         code_lines.append(f'  {var}_dgdW2 = 0.5 * ({var}_dg_bar - {var}_dg) * '
                           f'{var}_dW * {var}_dW / {vdt}_sqrt')
     else:
-      raise ValueError(f'Unknown SDE type: {intg_type}')
+      raise ValueError(f'Unknown SDE_INT type: {intg_type}')
     code_lines.append('  ')
 
     # 2.7 new var
@@ -419,7 +419,7 @@ def exponential_euler(f=None, g=None, dt=None, intg_type=None, var_type=None,
                       wiener_type=None, show_code=None):
   """First order, explicit exponential Euler method.
 
-  For a SDE equation of the form
+  For a SDE_INT equation of the form
 
   .. backend::
 

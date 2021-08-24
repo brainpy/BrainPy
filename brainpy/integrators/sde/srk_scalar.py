@@ -298,9 +298,9 @@ class Wrappers(object):
     Parameters
     ----------
     f : callable
-        The drift function of the SDE.
+        The drift function of the SDE_INT.
     g : callable
-        The diffusion function of the SDE.
+        The diffusion function of the SDE_INT.
     dt : float
         The numerical precision.
     intg_type : str
@@ -327,7 +327,7 @@ class Wrappers(object):
       raise errors.IntegratorError(f'Currently, BrainPy only supports variable types: '
                                    f'{constants.SUPPORTED_VAR_TYPE}. But we got {var_type}.')
     if intg_type != constants.ITO_SDE:
-      raise errors.IntegratorError(f'SRK method for SDEs with scalar noise only supports Ito SDE type, '
+      raise errors.IntegratorError(f'SRK method for SDEs with scalar noise only supports Ito SDE_INT type, '
                                    f'but we got {intg_type} integral.')
     if wiener_type != constants.SCALAR_WIENER:
       raise errors.IntegratorError(f'SRK method for SDEs with scalar noise only supports scalar '

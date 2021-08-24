@@ -5,3 +5,4 @@ from .codes import *
 from .dicts import *
 from .decorators import *
 from .others import *
+from . import namechecking

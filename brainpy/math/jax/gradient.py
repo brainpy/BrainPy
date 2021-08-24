@@ -7,7 +7,7 @@ from typing import List, Tuple
 import jax
 
 from brainpy.math.jax.jaxarray import TrainVar, JaxArray
-from brainpy.primary.base import Primary
+from brainpy.base.base import Base
 
 __all__ = [
   'grad', 'Grad',
@@ -21,7 +21,7 @@ def grad(fun_or_obj, vars=None, argnums=None, has_aux=None,
 
   Parameters
   ----------
-  fun_or_obj : function, Primary
+  fun_or_obj : function, Base
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers.
     Argument arrays in the positions specified by ``argnums`` must be of
@@ -72,7 +72,7 @@ def grad(fun_or_obj, vars=None, argnums=None, has_aux=None,
   """
   # vars
   if vars is None:
-    if isinstance(fun_or_obj, Primary):
+    if isinstance(fun_or_obj, Base):
       vars = fun_or_obj.vars().subset(TrainVar)
 
   # function
@@ -100,7 +100,7 @@ def value_and_grad(f_or_ds, vars=None, argnums=None, has_aux=None,
 
   Parameters
   ----------
-  f_or_ds : function, Primary
+  f_or_ds : function, Base
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers. It
     should return a scalar (which includes arrays with shape ``()`` but not
@@ -140,7 +140,7 @@ def value_and_grad(f_or_ds, vars=None, argnums=None, has_aux=None,
   """
   # vars
   if vars is None:
-    if isinstance(f_or_ds, Primary):
+    if isinstance(f_or_ds, Base):
       vars = f_or_ds.vars()
   # function
   if not callable(f_or_ds):
@@ -155,7 +155,7 @@ def value_and_grad(f_or_ds, vars=None, argnums=None, has_aux=None,
     return ValueAndGrad(fun=f_or_ds, vars=vars)
 
 
-class Gradient(Primary):
+class Gradient(Base):
   def __init__(self, func, raw, vars, argnums=None, has_aux=True, holomorphic=False,
                allow_int=False, reduce_axes=()):
     super(Gradient, self).__init__()
@@ -177,7 +177,7 @@ class Gradient(Primary):
     self.__signature__ = signature.replace(return_annotation=Tuple[List[JaxArray], signature.return_annotation])
 
   def vars(self, method='absolute'):
-    if isinstance(self._raw, Primary):
+    if isinstance(self._raw, Base):
       return super(Gradient, self).vars(method=method)
     else:
       return self._vars

@@ -53,8 +53,8 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
 
   Parameters
   ----------
-  obj_or_func : Primary, function
-    The instance of Primary or a function.
+  obj_or_func : Base, function
+    The instance of Base or a function.
   static_argnums : Optional, str
     An optional int or collection of ints that specify which
     positional arguments to treat as static (compile-time constant).
@@ -92,7 +92,7 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
     A wrapped version of DynamicSystem or function,
     set up for just-in-time compilation.
   """
-  from brainpy.primary.base import Primary
+  from brainpy.base.base import Base
   from brainpy.simulation.brainobjects.base import DynamicSystem
 
   if isinstance(obj_or_func, DynamicSystem):
@@ -113,8 +113,8 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
                                            f_name=key)
       return obj_or_func
 
-  if isinstance(obj_or_func, Primary):
-    # Primary has '__call__()' function implementation
+  if isinstance(obj_or_func, Base):
+    # Base has '__call__()' function implementation
     if callable(obj_or_func):
       static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
       all_vars = obj_or_func.vars().unique()

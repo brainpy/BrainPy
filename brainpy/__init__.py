@@ -14,14 +14,14 @@ from .integrators import sde
 from .integrators import dde
 from .integrators import fde
 from .integrators.wrapper import *
-from .integrators.constants import *
 
 
 # "simulation" module
 from . import simulation
 from .simulation import connectivity as connect
 from .simulation.brainobjects import *
-from .simulation.every import every
+from .simulation.every import *
+from .simulation.monitor import *
 
 
 # "dnn" module

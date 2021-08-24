@@ -52,8 +52,9 @@ class BackendNotInstalled(Exception):
 
 
 class UniqueNameError(Exception):
-  def __init__(self, name, ob1, ob2):
-    super(UniqueNameError, self).__init__(
-      f'In BrainPy, each object should have a unique name. However, '
-      f'we detect that {ob1} and {ob2} have the same name: {name}'
-    )
+  def __init__(self, *args):
+    super(UniqueNameError, self).__init__(*args)
+
+
+class UnsupportedError(Exception):
+  pass
