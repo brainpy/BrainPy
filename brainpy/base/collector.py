@@ -3,6 +3,8 @@
 from contextlib import contextmanager
 
 from brainpy import math
+from brainpy import errors
+from brainpy.integrators import constants
 
 __all__ = [
   'Collector',
@@ -11,7 +13,7 @@ __all__ = [
 
 
 class Collector(dict):
-  """A ArrayCollector is a dictionary (name, var)
+  """A Collector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
   is ordered by insertion order. It is the object
@@ -33,9 +35,17 @@ class Collector(dict):
       The type/class to match.
     """
     gather = type(self)()
-    for key, value in self.items():
-      if isinstance(value, type_):
-        gather[key] = value
+    if type(type_) == type:
+      for key, value in self.items():
+        if isinstance(value, type_):
+          gather[key] = value
+    elif type(type_) == str:
+      for key, value in self.items():
+        if value.__name__.startswith(type_):
+          gather[key] = value
+    else:
+      raise errors.UnsupportedError(f'BrainPy do not support subset {type(type_)}. '
+                                    f'You should provide a class name, or a str.')
     return gather
 
   def unique(self):

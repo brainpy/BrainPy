@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from brainpy.tools import namechecking
 
 __all__ = [
   'SUPPORTED_VAR_TYPE',
@@ -15,17 +16,24 @@ __all__ = [
   'ITO_SDE',
   'STRA_SDE',
 
-  'DE_PREFIX',
+  'DE_INT',
+  'ODE_INT',
+  'SDE_INT',
+  'DDE_INT',
+  'FDE_INT',
+  'PDE_INT',
+
+  'unique_name',
 ]
 
-# Ito SDE
+# Ito SDE_INT
 # ---
-# The SDE integral proposed by Ito in 1940s.
+# The SDE_INT integral proposed by Ito in 1940s.
 ITO_SDE = 'Ito'
 
-# Stratonovich SDE
+# Stratonovich SDE_INT
 # ---
-# The SDE integral proposed by Stratonovich in 1960s.
+# The SDE_INT integral proposed by Stratonovich in 1960s.
 STRA_SDE = 'Stratonovich'
 
 SUPPORTED_INTG_TYPE = [
@@ -99,9 +107,27 @@ SUPPORTED_VAR_TYPE = [
 # ------------------------------------------------------
 
 # Differential equation type
-# ----------
-#
+# --------------------------
 
-DE_PREFIX = 'brainpy_intg_of_'
-ODE_PREFIX = 'brainpy_intg_of_ode_'
-SDE_PREFIX = 'brainpy_intg_of_sde_'
+DE_INT = 'brainpy_itg_of'
+ODE_INT = 'brainpy_itg_of_ode'
+SDE_INT = 'brainpy_itg_of_sde'
+DDE_INT = 'brainpy_itg_of_dde'
+FDE_INT = 'brainpy_itg_of_fde'
+PDE_INT = 'brainpy_itg_of_pde'
+
+
+def unique_name(type):
+  if type == 'ode':
+    return namechecking.get_name(ODE_INT)
+  elif type == 'sde':
+    return namechecking.get_name(SDE_INT)
+  elif type == 'dde':
+    return namechecking.get_name(DDE_INT)
+  elif type == 'fde':
+    return namechecking.get_name(FDE_INT)
+  elif type == 'pde':
+    return namechecking.get_name(PDE_INT)
+  else:
+    raise ValueError(f'Unknown differential equation type: {type}')
+
