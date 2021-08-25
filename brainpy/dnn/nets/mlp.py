@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.dnn.base import Sequential
-from brainpy.dnn.initializers import XavierNormal, ZeroInit
+from brainpy.dnn.inits import XavierNormal, ZeroInit
 from brainpy.dnn.layers import Linear, Activation
 
 __all__ = [

@@ -2,7 +2,7 @@
 
 from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath, jax
-from brainpy.dnn.initializers import XavierNormal, Initializer, ZeroInit
+from brainpy.dnn.inits import XavierNormal, Initializer, ZeroInit
 
 __all__ = [
   'Conv2D',
@@ -41,8 +41,8 @@ class Conv2D(Module):
     operation is applied individually for each group. nin and nout must both
     be divisible by groups.
   padding : int, str
-    The padding of the input tensor, either Padding.SAME, Padding.VALID or
-    numerical values.
+    The padding of the input tensor, either "SAME", "VALID" or numerical values
+    (low, high).
   w_init : Initializer
     The initializer for convolution kernel (a function that takes in a HWIO
     shape and returns a 4D matrix).
@@ -56,8 +56,6 @@ class Conv2D(Module):
 
     assert nin % groups == 0, '"nin" should be divisible by groups'
     assert nout % groups == 0, '"nout" should be divisible by groups'
-    self.b = jmath.TrainVar(b_init((nout, 1, 1)))
-    self.w = jmath.TrainVar(w_init((*_check_tuple(kernel_size), nin // groups, nout)))  # HWIO
 
     self.strides = _check_tuple(strides)
     self.dilations = _check_tuple(dilations)
@@ -72,7 +70,9 @@ class Conv2D(Module):
     self.padding = padding
     self.groups = groups
 
-    # others
+    # weight initialization
+    self.b = jmath.TrainVar(b_init((nout, 1, 1)))
+    self.w = jmath.TrainVar(w_init((*_check_tuple(kernel_size), nin // groups, nout)))  # HWIO
     self.w_init = w_init
     self.b_init = b_init
 
@@ -91,11 +91,3 @@ class Conv2D(Module):
                                      dimension_numbers=('NCHW', 'HWIO', 'NCHW'))
     y += self.b.value
     return y
-
-
-class BatchNorm(Module):
-  pass
-
-
-class RNN(Module):
-  pass

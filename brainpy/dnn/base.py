@@ -113,13 +113,13 @@ class Sequential(Module):
     gather collector.ArrayCollector
         A collection of all the variables.
     """
-    gather = self._vars_in_iter(self.children_modules, method=method)
+    gather = self._vars_in_container(self.children_modules, method=method)
     gather.update(super(Sequential, self).vars(method=method))
     return gather
 
   def nodes(self, method='absolute', _paths=None):
     if _paths is None:
       _paths = set()
-    gather = self._nodes_in_iter(self.children_modules, method=method, _paths=_paths)
+    gather = self._nodes_in_container(self.children_modules, method=method, _paths=_paths)
     gather.update(super(Sequential, self).nodes(method=method))
     return gather

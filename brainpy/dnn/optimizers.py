@@ -58,6 +58,7 @@ class SGD(Optimizer):
 class Momentum(Optimizer):
   def __init__(self, lr, train_vars, momentum, name=None):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
+
     self.momentum = momentum
     self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x)))
                    for key, x in self._train_vars.items())
@@ -76,6 +77,7 @@ class Momentum(Optimizer):
 class NesterovMomentum(Optimizer):
   def __init__(self, lr, train_vars, momentum, name=None):
     super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
+
     self.momentum = momentum
     self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x)))
                    for key, x in self._train_vars.items())
@@ -94,6 +96,7 @@ class NesterovMomentum(Optimizer):
 class Adam(Optimizer):
   def __init__(self, lr, train_vars, beta1=0.9, beta2=0.999, eps=1e-8, name=None):
     super(Adam, self).__init__(lr=lr, train_vars=train_vars, name=name)
+
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps

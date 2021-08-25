@@ -1,25 +1,41 @@
 # -*- coding: utf-8 -*-
 
+import operator
+
+import numpy as np
+
 from brainpy.dnn.imports import jax, jmath
 
-
 __all__ = [
-  'elu',
   'celu',
-  'selu',
-  'relu',
+  'elu',
+  'gelu',
+  'glu',
+  'hard_tanh',
+  'hard_sigmoid',
+  'hard_silu',
+  'hard_swish',
   'leaky_relu',
-  'sigmoid',
-  'softmax',
-  'softplus',
-  'tanh',
   'log_sigmoid',
   'log_softmax',
-  'log_sumexp',
+  'one_hot',
+  'normalize',
+  'relu',
+  'relu6',
+  'sigmoid',
+  'soft_sign',
+  'softmax',
+  'softplus',
+  'silu',
+  'swish',
+  'selu',
+
+  'tanh',
+
 ]
 
 
-def _get(activation):
+def get(activation):
   global_vars = globals()
 
   if activation not in global_vars:
@@ -76,6 +92,102 @@ def elu(x, alpha=1.0):
   return jmath.JaxArray(jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(safe_x)))
 
 
+def gelu(x, approximate=True):
+  """Gaussian error linear unit activation function.
+
+  If ``approximate=False``, computes the element-wise function:
+
+  .. math::
+    \mathrm{gelu}(x) = \frac{x}{2} \left(1 + \mathrm{erf} \left(
+      \frac{x}{\sqrt{2}} \right) \right)
+
+  If ``approximate=True``, uses the approximate formulation of GELU:
+
+  .. math::
+    \mathrm{gelu}(x) = \frac{x}{2} \left(1 + \mathrm{tanh} \left(
+      \sqrt{\frac{2}{\pi}} \left(x + 0.044715 x^3 \right) \right) \right)
+
+  For more information, see `Gaussian Error Linear Units (GELUs)
+  <https://arxiv.org/abs/1606.08415>`_, section 2.
+
+  Args:
+    x : input array
+    approximate: whether to use the approximate or exact formulation.
+  """
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  if approximate:
+    sqrt_2_over_pi = np.sqrt(2 / np.pi).astype(x.dtype)
+    cdf = 0.5 * (1.0 + jax.numpy.tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
+    y = x * cdf
+  else:
+    y = jax.numpy.array(x * (jax.lax.erf(x / np.sqrt(2)) + 1) / 2, dtype=x.dtype)
+  return jmath.JaxArray(y)
+
+
+def glu(x, axis=-1):
+  """Gated linear unit activation function.
+
+  Args:
+    x : input array
+    axis: the axis along which the split should be computed (default: -1)
+  """
+  size = x.shape[axis]
+  assert size % 2 == 0, "axis size must be divisible by 2"
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  x1, x2 = jax.numpy.split(x, 2, axis)
+  return jmath.JaxArray(x1 * sigmoid(x2))
+
+
+def hard_tanh(x):
+  """Hard :math:`\mathrm{tanh}` activation function.
+
+  Computes the element-wise function:
+
+  .. math::
+    \mathrm{hard\_tanh}(x) = \begin{cases}
+      -1, & x < -1\\
+      x, & -1 \le x \le 1\\
+      1, & 1 < x
+    \end{cases}
+
+  Args:
+    x : input array
+  """
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  return jmath.JaxArray(jax.numpy.where(x > 1, 1, jax.numpy.where(x < -1, -1, x)))
+
+
+def hard_sigmoid(x):
+  r"""Hard Sigmoid activation function.
+
+  Computes the element-wise function
+
+  .. math::
+    \mathrm{hard\_sigmoid}(x) = \frac{\mathrm{relu6}(x + 3)}{6}
+
+  Args:
+    x : input array
+  """
+  return relu6(x + 3.) / 6.
+
+
+def hard_silu(x):
+  r"""Hard SiLU activation function
+
+  Computes the element-wise function
+
+  .. math::
+    \mathrm{hard\_silu}(x) = x \cdot \mathrm{hard\_sigmoid}(x)
+
+  Args:
+    x : input array
+  """
+  return x * hard_sigmoid(x)
+
+
+hard_swish = hard_silu
+
+
 def leaky_relu(x, negative_slope=1e-2):
   """Leaky rectified linear unit activation function.
 
@@ -123,8 +235,189 @@ def log_sigmoid(x):
   Args:
     x : input array
   """
+  return -softplus(-x)
+
+
+def log_softmax(x, axis=-1):
+  """Log-Softmax function.
+
+  Computes the logarithm of the :code:`softmax` function, which rescales
+  elements to the range :math:`[-\infty, 0)`.
+
+  .. math ::
+    \mathrm{log\_softmax}(x) = \log \left( \frac{\exp(x_i)}{\sum_j \exp(x_j)}
+    \right)
+
+  Args:
+    x : input array
+    axis: the axis or axes along which the :code:`log_softmax` should be
+      computed. Either an integer or a tuple of integers.
+  """
   x = x.value if isinstance(x, jmath.JaxArray) else x
-  return jmath.JaxArray(-jax.numpy.logaddexp(-x, 0))
+  shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
+  return jmath.JaxArray(shifted - jax.numpy.log(jax.numpy.sum(jax.numpy.exp(shifted), axis, keepdims=True)))
+
+
+def _canonicalize_axis(axis, num_dims) -> int:
+  """Canonicalize an axis in [-num_dims, num_dims) to [0, num_dims)."""
+  axis = operator.index(axis)
+  if not -num_dims <= axis < num_dims:
+    raise ValueError(
+      "axis {} is out of bounds for array of dimension {}".format(
+        axis, num_dims))
+  if axis < 0:
+    axis = axis + num_dims
+  return axis
+
+
+def one_hot(x, num_classes, *, dtype=None, axis=-1):
+  """One-hot encodes the given indicies.
+
+  Each index in the input ``x`` is encoded as a vector of zeros of length
+  ``num_classes`` with the element at ``index`` set to one::
+
+    >>> jax.nn.one_hot(jmath.array([0, 1, 2]), 3)
+    DeviceArray([[1., 0., 0.],
+                  [0., 1., 0.],
+                  [0., 0., 1.]], dtype=float32)
+
+  Indicies outside the range [0, num_classes) will be encoded as zeros::
+
+    >>> jax.nn.one_hot(jmath.array([-1, 3]), 3)
+    DeviceArray([[0., 0., 0.],
+                 [0., 0., 0.]], dtype=float32)
+
+  Args:
+    x: A tensor of indices.
+    num_classes: Number of classes in the one-hot dimension.
+    dtype: optional, a float dtype for the returned values (default float64 if
+      jax_enable_x64 is true, otherwise float32).
+    axis: the axis or axes along which the function should be
+      computed.
+  """
+  num_classes = jax.core.concrete_or_error(
+    int, num_classes, "The error arose in jax.nn.one_hot argument `num_classes`.")
+  dtype = jax.dtypes.canonicalize_dtype(jmath.float64 if dtype is None else dtype)
+  x = jax.numpy.asarray(x)
+  try:
+    output_pos_axis = _canonicalize_axis(axis, x.ndim + 1)
+  except TypeError:
+    axis_size = jax.lax.psum(1, axis)
+    if num_classes != axis_size:
+      raise ValueError(f"Expected num_classes to match the size of axis {axis}, "
+                       f"but {num_classes} != {axis_size}") from None
+    axis_idx = jax.lax.axis_index(axis)
+    return jax.numpy.asarray(x == axis_idx, dtype=dtype)
+  axis = operator.index(axis)
+  lhs = jax.lax.expand_dims(x, (axis,))
+  rhs_shape = [1] * x.ndim
+  rhs_shape.insert(output_pos_axis, num_classes)
+  rhs = jax.lax.broadcast_in_dim(jax.numpy.arange(num_classes, dtype=x.dtype),
+                                 rhs_shape, (output_pos_axis,))
+  return jmath.JaxArray(jax.numpy.asarray(lhs == rhs, dtype=dtype))
+
+
+def normalize(x, axis=-1, mean=None, variance=None, epsilon=1e-5):
+  """Normalizes an array by subtracting mean and dividing by sqrt(var)."""
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  if mean is None:
+    mean = jax.numpy.mean(x, axis, keepdims=True)
+  if variance is None:
+    # this definition is traditionally seen as less accurate than jnp.var's
+    # mean((x - mean(x))**2) but may be faster and even, given typical
+    # activation distributions and low-precision arithmetic, more accurate
+    # when used in neural network normalization layers
+    variance = jax.numpy.mean(jax.numpy.square(x), axis, keepdims=True) - jax.numpy.square(mean)
+  y = (x - mean) * jax.lax.rsqrt(variance + epsilon)
+  return jmath.JaxArray(y)
+
+
+def relu(x):
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  return jmath.JaxArray(jax.nn.relu(x))
+
+
+def relu6(x):
+  r"""Rectified Linear Unit 6 activation function.
+
+  Computes the element-wise function
+
+  .. math::
+    \mathrm{relu6}(x) = \min(\max(x, 0), 6)
+
+  Args:
+    x : input array
+  """
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  return jmath.JaxArray(jax.numpy.minimum(jax.numpy.maximum(x, 0), 6.))
+
+
+def sigmoid(x):
+  """Sigmoid activation function.
+
+  Computes the element-wise function:
+
+  .. math::
+    \mathrm{sigmoid}(x) = \frac{1}{1 + e^{-x}}
+
+  Args:
+    x : input array
+  """
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  return jmath.JaxArray(jax.scipy.special.expit(x))
+
+
+def soft_sign(x):
+  """Soft-sign activation function.
+
+  Computes the element-wise function
+
+  .. math::
+    \mathrm{soft\_sign}(x) = \frac{x}{|x| + 1}
+
+  Args:
+    x : input array
+  """
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  return jmath.JaxArray(x / (jax.numpy.abs(x) + 1))
+
+
+def softmax(x, axis=-1):
+  """Softmax function.
+
+  Computes the function which rescales elements to the range :math:`[0, 1]`
+  such that the elements along :code:`axis` sum to :math:`1`.
+
+  .. math ::
+    \mathrm{softmax}(x) = \frac{\exp(x_i)}{\sum_j \exp(x_j)}
+
+  Args:
+    x : input array
+    axis: the axis or axes along which the softmax should be computed. The
+      softmax output summed across these dimensions should sum to :math:`1`.
+      Either an integer or a tuple of integers.
+  """
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  unnormalized = jax.numpy.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
+  return jmath.JaxArray(unnormalized / unnormalized.sum(axis, keepdims=True))
+
+
+def silu(x):
+  r"""SiLU activation function.
+
+  Computes the element-wise function:
+
+  .. math::
+    \mathrm{silu}(x) = x \cdot \mathrm{sigmoid}(x) = \frac{x}{1 + e^{-x}}
+
+  Args:
+    x : input array
+  """
+  x = x.value if isinstance(x, jmath.JaxArray) else x
+  return jmath.JaxArray(x * sigmoid(x))
+
+
+swish = silu
 
 
 def selu(x):
@@ -155,168 +448,6 @@ def selu(x):
   return jmath.JaxArray(scale * jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(safe_x)))
 
 
-def sigmoid(x):
-  r"""Sigmoid activation function.
-
-  Computes the element-wise function:
-
-  .. math::
-    \mathrm{sigmoid}(x) = \frac{1}{1 + e^{-x}}
-
-  Args:
-    x : input array
-  """
-  x = x.value if isinstance(x, jmath.JaxArray) else x
-  return jmath.JaxArray(jax.scipy.special.expit(x))
-
-
 def tanh(x):
   x = x.value if isinstance(x, jmath.JaxArray) else x
   return jmath.JaxArray(jax.lax.tanh(x))
-
-
-def relu(x):
-  x = x.value if isinstance(x, jmath.JaxArray) else x
-  return jmath.JaxArray(jax.nn.relu(x))
-
-
-def log_softmax(x, axis=-1):
-  """Log-Softmax function.
-
-  Computes the logarithm of the :code:`softmax` function, which rescales
-  elements to the range :math:`[-\infty, 0)`.
-
-  .. math ::
-    \mathrm{log\_softmax}(x) = \log \left( \frac{\exp(x_i)}{\sum_j \exp(x_j)}
-    \right)
-
-  Args:
-    x : input array
-    axis: the axis or axes along which the :code:`log_softmax` should be
-      computed. Either an integer or a tuple of integers.
-  """
-  x = x.value if isinstance(x, jmath.JaxArray) else x
-  shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
-  return jmath.JaxArray(shifted - jax.numpy.log(jax.numpy.sum(jax.numpy.exp(shifted), axis, keepdims=True)))
-
-
-def softmax(x, axis=-1):
-  """Softmax function.
-
-  Computes the function which rescales elements to the range :math:`[0, 1]`
-  such that the elements along :code:`axis` sum to :math:`1`.
-
-  .. math ::
-    \mathrm{softmax}(x) = \frac{\exp(x_i)}{\sum_j \exp(x_j)}
-
-  Args:
-    x : input array
-    axis: the axis or axes along which the softmax should be computed. The
-      softmax output summed across these dimensions should sum to :math:`1`.
-      Either an integer or a tuple of integers.
-  """
-  x = x.value if isinstance(x, jmath.JaxArray) else x
-  unnormalized = jax.numpy.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
-  return jmath.JaxArray(unnormalized / unnormalized.sum(axis, keepdims=True))
-
-
-def log_sumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
-  """Compute the log of the sum of exponentials of input elements.
-
-  Parameters
-  ----------
-  a : array_like
-      Input array.
-  axis : None or int or tuple of ints, optional
-      Axis or axes over which the sum is taken. By default `axis` is None,
-      and all elements are summed.
-
-      .. versionadded:: 0.11.0
-  keepdims : bool, optional
-      If this is set to True, the axes which are reduced are left in the
-      result as dimensions with size one. With this option, the result
-      will broadcast correctly against the original array.
-
-      .. versionadded:: 0.15.0
-  b : array-like, optional
-      Scaling factor for exp(`a`) must be of the same shape as `a` or
-      broadcastable to `a`. These values may be negative in order to
-      implement subtraction.
-
-      .. versionadded:: 0.12.0
-  return_sign : bool, optional
-      If this is set to True, the result will be a pair containing sign
-      information; if False, results that are negative will be returned
-      as NaN. Default is False (no sign information).
-
-      .. versionadded:: 0.16.0
-
-  Returns
-  -------
-  res : ndarray
-      The result, ``np.log(np.sum(np.exp(a)))`` calculated in a numerically
-      more stable way. If `b` is given then ``np.log(np.sum(b*np.exp(a)))``
-      is returned.
-  sgn : ndarray
-      If return_sign is True, this will be an array of floating-point
-      numbers matching res and +1, 0, or -1 depending on the sign
-      of the result. If False, only one result is returned.
-
-  See Also
-  --------
-  numpy.logaddexp, numpy.logaddexp2
-
-  Notes
-  -----
-  NumPy has a logaddexp function which is very similar to `logsumexp`, but
-  only handles two arguments. `logaddexp.reduce` is similar to this
-  function, but may be less stable.
-
-  Examples
-  --------
-  >>> from scipy.special import logsumexp
-  >>> a = np.arange(10)
-  >>> np.log(np.sum(np.exp(a)))
-  9.4586297444267107
-  >>> logsumexp(a)
-  9.4586297444267107
-
-  With weights
-
-  >>> a = np.arange(10)
-  >>> b = np.arange(10, 0, -1)
-  >>> logsumexp(a, b=b)
-  9.9170178533034665
-  >>> np.log(np.sum(b*np.exp(a)))
-  9.9170178533034647
-
-  Returning a sign flag
-
-  >>> logsumexp([1,2],b=[1,-1],return_sign=True)
-  (1.5413248546129181, -1.0)
-
-  Notice that `logsumexp` does not directly support masked arrays. To use it
-  on a masked array, convert the mask into zero weights:
-
-  >>> a = np.ma.array([np.log(2), 2, np.log(3)],
-  ...                  mask=[False, True, False])
-  >>> b = (~a.mask).astype(int)
-  >>> logsumexp(a.data, b=b), np.log(5)
-  1.6094379124341005, 1.6094379124341005
-
-  """
-  a = a.value if isinstance(a, jmath.JaxArray) else a
-  b = b.value if isinstance(b, jmath.JaxArray) else b
-  res = jax.scipy.special.logsumexp(a=a, axis=axis, b=b,
-                                    keepdims=keepdims,
-                                    return_sign=return_sign)
-  if return_sign:
-    if isinstance(res[0], jax.numpy.ndarray):
-      return jmath.JaxArray(res[0]), jmath.JaxArray(res[1])
-    else:
-      return res
-  else:
-    if isinstance(res, jax.numpy.ndarray):
-      return jmath.JaxArray(res)
-    else:
-      return res

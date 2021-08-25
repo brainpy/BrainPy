@@ -12,7 +12,7 @@ __all__ = [
 class Activation(Module):
   def __init__(self, activation, name=None, **setting):
     super(Activation, self).__init__(name=name)
-    self.activation = activations._get(activation)
+    self.activation = activations.get(activation)
     self.setting = setting
 
   def __call__(self, x):

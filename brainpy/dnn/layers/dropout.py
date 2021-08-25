@@ -36,7 +36,9 @@ class Dropout(Module):
     self.prob = prob
     super(Dropout, self).__init__(name=name)
 
-  def __call__(self, x, config=dict()):
+  def __call__(self, x, config=None):
+    if config is None:
+      config = dict()
     if config.get('train', True):
       keep_mask = jmath.random.bernoulli(self.prob, x.shape)
       return jmath.where(keep_mask, x / self.prob, 0.)
