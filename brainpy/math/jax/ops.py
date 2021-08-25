@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import jax.numpy as jnp
+from brainpy.tools import copy_doc
+from brainpy.math.numpy import ops
 
 from brainpy.math.jax.jaxarray import _wrap, JaxArray
 
@@ -70,7 +72,7 @@ __all__ = [
   'complex_', 'complex64', 'complex128',
 
   # others
-  'take_along_axis',
+  'take_along_axis', 'clip_by_norm',
 ]
 
 # math funcs
@@ -418,4 +420,11 @@ complex128 = jnp.complex128
 # ------
 
 take_along_axis = _wrap(jnp.take_along_axis)
+
+
+@copy_doc(ops.clip_by_norm)
+def clip_by_norm(t, clip_norm, axis=None):
+  l2norm = sqrt(sum(t * t, axis=axis, keepdims=True))
+  clip_values = t * clip_norm / maximum(l2norm, clip_norm)
+  return clip_values
 
