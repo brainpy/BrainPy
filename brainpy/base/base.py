@@ -57,7 +57,7 @@ class Base(object):
       raise ValueError(f'No support for the method of "{method}".')
     return gather
 
-  def _vars_in_iter(self, dict_container, method='absolute'):
+  def _vars_in_container(self, dict_container, method='absolute'):
     gather = collector.ArrayCollector()
     if method == 'absolute':
       for _, v in dict_container.items():
@@ -71,7 +71,7 @@ class Base(object):
     return gather
 
   def train_vars(self, method='absolute'):
-    return self.vars(method=method)
+    return self.vars(method=method).subset(math.TrainVar)
 
   def nodes(self, method='absolute', _paths=None):
     """Collect all children nodes.
@@ -118,7 +118,7 @@ class Base(object):
       raise ValueError(f'No support for the method of "{method}".')
     return gather
 
-  def _nodes_in_iter(self, dict_container, method='absolute', _paths=None):
+  def _nodes_in_container(self, dict_container, method='absolute', _paths=None):
     if _paths is None:
       _paths = set()
 

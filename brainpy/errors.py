@@ -58,3 +58,4 @@ class UniqueNameError(Exception):
 
 class UnsupportedError(Exception):
   pass
+

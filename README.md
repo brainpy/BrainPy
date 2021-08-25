@@ -24,7 +24,7 @@ Moreover, `BrainPy` is designed to effectively satisfy your basic requirements:
 - *Simulation can be guided with the analysis*, because the same code in BrainPy can not only be used for simulation, but also for dynamics analysis; 
 - *Efficient running speed*, because BrainPy is designed to compile your codes just-in-time.
 
-Currently, `BrainPy` heavily relies on the JIT compilers [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. Extending BrainPy to support other backend frameworks you prefer is also easy. The details please see documents coming soon. 
+Currently, `BrainPy` relies on the JIT compilers [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. However, extending BrainPy to support other backend frameworks you prefer is also easy. The details please see documents coming soon. 
 
 
 
@@ -37,24 +37,30 @@ Currently, `BrainPy` heavily relies on the JIT compilers [Numba](https://numba.p
 - NumPy >= 1.15
 - Matplotlib >= 3.3
 
+*The installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
+
+
+
 **Method 1**: install ``BrainPy`` by using ``pip``:
 
 ```bash
-> pip install -U brainpy-simulator
+> pip install -U brain-py
 ```
 
 **Method 2**: install ``BrainPy`` by using ``conda``:
 
 ```bash
-> conda install brainpy-simulator -c brainpy
+> conda install brain-py -c conda-forge
 ```
 
 **Method 3**: install ``BrainPy`` from source:
 
 ```bash
 > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
+>
 > # or
 > pip install git+https://git.openi.org.cn/OpenI/BrainPy
+>
 > # or
 > pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V1.0.0
 ```

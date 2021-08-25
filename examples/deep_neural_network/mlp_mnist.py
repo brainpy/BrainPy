@@ -26,7 +26,7 @@ opt = bp.dnn.Adam(lr=0.001, train_vars=model.train_vars().unique())
 
 def loss_func(x, label):
   logit = model(x, config={'train': True})
-  return bp.dnn.cross_entropy(logit, label).mean()
+  return bp.dnn.cross_entropy_loss(logit, label).mean()
 
 
 vg = bp.math.value_and_grad(loss_func, model.train_vars())

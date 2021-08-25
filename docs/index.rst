@@ -36,12 +36,6 @@ and comprehensive examples of BrainPy please see
    quickstart/neurodynamics_analysis
    quickstart/how_brainpy_works
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Backend on Tensor/Numba
-
-   tutorials/numba_cpu_backend
-
 
 .. toctree::
    :maxdepth: 1
@@ -59,8 +53,8 @@ and comprehensive examples of BrainPy please see
    :maxdepth: 1
    :caption: API documentation
 
-   apis/analysis
    apis/integrators
+   apis/analysis
    apis/connectivity
    apis/inputs_module
    apis/changelog

@@ -46,14 +46,14 @@ class Function(Base):
                        f'but we got {type(nodes)}: {nodes}')
 
   def vars(self, method='absolute'):
-    gather = self._vars_in_iter(self._nodes, method=method)
+    gather = self._vars_in_container(self._nodes, method=method)
     gather.update(super(Function, self).vars(method=method))
     return gather
 
   def nodes(self, method='absolute', _paths=None):
     if _paths is None:
       _paths = set()
-    gather = self._nodes_in_iter(self._nodes, method=method, _paths=_paths)
+    gather = self._nodes_in_container(self._nodes, method=method, _paths=_paths)
     gather.update(super(Function, self).nodes(method=method, _paths=_paths))
     return gather
 

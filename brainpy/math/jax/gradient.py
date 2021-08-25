@@ -15,13 +15,13 @@ __all__ = [
 ]
 
 
-def grad(fun_or_obj, vars=None, argnums=None, has_aux=None,
+def grad(func, vars=None, argnums=None, has_aux=None,
          holomorphic=False, allow_int=False, reduce_axes=()):
   """Creates a function which evaluates the gradient of ``fun``.
 
   Parameters
   ----------
-  fun_or_obj : function, Base
+  func : function, Base
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers.
     Argument arrays in the positions specified by ``argnums`` must be of
@@ -72,35 +72,35 @@ def grad(fun_or_obj, vars=None, argnums=None, has_aux=None,
   """
   # vars
   if vars is None:
-    if isinstance(fun_or_obj, Base):
-      vars = fun_or_obj.vars().subset(TrainVar)
+    if isinstance(func, Base):
+      vars = func.vars().subset(TrainVar)
 
   # function
-  if not callable(fun_or_obj):
+  if not callable(func):
     raise ValueError('Must be a callable object.')
   # gradient
   if vars is None:
     has_aux = False if has_aux is None else has_aux
     argnums = 0 if argnums is None else argnums
-    return jax.grad(fun=fun_or_obj, argnums=argnums, has_aux=has_aux,
+    return jax.grad(fun=func, argnums=argnums, has_aux=has_aux,
                     holomorphic=holomorphic, allow_int=allow_int,
                     reduce_axes=reduce_axes)
   else:
     has_aux = True if has_aux is None else has_aux
     if not has_aux:
       raise ValueError('"has_aux" must be True if provide "vars" and "obj"')
-    return Grad(fun=fun_or_obj, vars=vars, argnums=argnums, has_aux=True,
+    return Grad(fun=func, vars=vars, argnums=argnums, has_aux=True,
                 holomorphic=holomorphic, allow_int=allow_int,
                 reduce_axes=reduce_axes)
 
 
-def value_and_grad(f_or_ds, vars=None, argnums=None, has_aux=None,
+def value_and_grad(func, vars=None, argnums=None, has_aux=None,
                    holomorphic=False, allow_int=False, reduce_axes=()):
   """Create a function which evaluates both ``fun`` and the gradient of ``fun``.
 
   Parameters
   ----------
-  f_or_ds : function, Base
+  func : function, Base
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers. It
     should return a scalar (which includes arrays with shape ``()`` but not
@@ -140,19 +140,19 @@ def value_and_grad(f_or_ds, vars=None, argnums=None, has_aux=None,
   """
   # vars
   if vars is None:
-    if isinstance(f_or_ds, Base):
-      vars = f_or_ds.vars()
+    if isinstance(func, Base):
+      vars = func.vars()
   # function
-  if not callable(f_or_ds):
+  if not callable(func):
     raise ValueError('Must be a callable object.')
   # jit compilation
   if vars is None:
     argnums = 0 if argnums is None else argnums
-    return jax.value_and_grad(fun=f_or_ds, argnums=argnums, has_aux=has_aux,
+    return jax.value_and_grad(fun=func, argnums=argnums, has_aux=has_aux,
                               holomorphic=holomorphic, allow_int=allow_int,
                               reduce_axes=reduce_axes)
   else:
-    return ValueAndGrad(fun=f_or_ds, vars=vars)
+    return ValueAndGrad(fun=func, vars=vars)
 
 
 class Gradient(Base):
@@ -169,7 +169,7 @@ class Gradient(Base):
     self.argnums = argnums
 
     self._raw = raw
-    self._vars = vars
+    self._vars = vars.unique()
     self._call = jax.grad(fun=func, argnums=argnums, has_aux=has_aux,
                           holomorphic=holomorphic, allow_int=allow_int,
                           reduce_axes=reduce_axes)

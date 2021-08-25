@@ -5,10 +5,10 @@ import re
 from types import LambdaType
 
 __all__ = [
-
+  'copy_doc',
   'code_lines_to_func',
 
-# tools for code string
+  # tools for code string
   'get_identifiers',
   'indent',
   'deindent',
@@ -21,7 +21,12 @@ __all__ = [
   'change_func_name',
 ]
 
+def copy_doc(source_f):
+  def copy(target_f):
+    target_f.__doc__ = source_f.__doc__
+    return target_f
 
+  return copy
 
 def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
   lines_for_compile = [f'    {line}' for line in lines]
