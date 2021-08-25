@@ -359,7 +359,7 @@ def srk1w1_scalar(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener
 
   The Butcher table is:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{l|llll|llll|llll}
           0   &&&&&  &&&&  &&&& \\\\
@@ -399,7 +399,7 @@ def srk2w1_scalar(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener
 
   The Butcher table is:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cccc|cccc|ccc|}
           0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & & & & \\\\
@@ -436,7 +436,7 @@ def KlPl_scalar(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_t
 
   The Butcher table is:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cc|cc|cc|c}
           0 & 0 & 0 & 0 & 0 & & \\\\

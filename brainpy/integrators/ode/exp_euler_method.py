@@ -14,13 +14,13 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
 
   For an ODE_INT equation of the form
 
-  .. backend::
+  .. math::
 
       y^{\\prime}=f(y), \quad y(0)=y_{0}
 
   its schema is given by
 
-  .. backend::
+  .. math::
 
       y_{n+1}= y_{n}+h \\varphi(hA) f (y_{n})
 
@@ -29,7 +29,7 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
   For linear ODE_INT system: :backend:`y^{\\prime} = Ay + B`,
   the above equation is equal to
 
-  .. backend::
+  .. math::
 
       y_{n+1}= y_{n}e^{hA}-B/A(1-e^{hA})
 

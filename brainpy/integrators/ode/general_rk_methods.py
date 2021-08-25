@@ -34,9 +34,15 @@ def _base(A, B, C, f, show_code, dt, var_type):
 
 
 def euler(f=None, show_code=None, dt=None, var_type=None):
-  """The Euler method is first order. The lack of stability
-      and accuracy limits its popularity mainly to use as a
-      simple introductory example of a numeric solution method.
+  """The Euler numerical method.
+
+
+
+
+  Euler method is a first order numerical procedure for solving
+  ODEs with a given initial value. The lack of stability
+  and accuracy limits its popularity mainly to use as a
+  simple introductory example of a numeric solution method.
   """
   A = [(), ]
   B = [1]
@@ -62,7 +68,7 @@ def midpoint(f=None, show_code=None, dt=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cc}
           0 & 0 & 0 \\\\
@@ -96,7 +102,7 @@ def heun2(f=None, show_code=None, dt=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cc}
           0.0 & 0.0 & 0.0 \\\\
@@ -129,7 +135,7 @@ def ralston2(f=None, show_code=None, dt=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cc}
           0 & 0 & 0 \\\\
@@ -160,7 +166,7 @@ def rk2(f=None, show_code=None, dt=None, beta=None, var_type=None):
       - method order = 2
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cc}
           0 & 0 & 0 \\\\
@@ -190,7 +196,7 @@ def rk3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -221,7 +227,7 @@ def heun3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -252,7 +258,7 @@ def ralston3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -289,7 +295,7 @@ def ssprk3(f=None, show_code=None, dt=None, var_type=None):
       - method order = 3
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|ccc}
           0 & 0 & 0 & 0 \\\\
@@ -320,7 +326,7 @@ def rk4(f=None, show_code=None, dt=None, var_type=None):
       - method order = 4
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cccc}
           0 & 0 & 0 & 0 & 0 \\\\
@@ -353,7 +359,7 @@ def ralston4(f=None, show_code=None, dt=None, var_type=None):
       - method order = 4
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cccc}
           0 & 0 & 0 & 0 & 0 \\\\
@@ -395,7 +401,7 @@ def rk4_38rule(f=None, show_code=None, dt=None, var_type=None):
       - method order = 4
       - Butcher Tables:
 
-  .. backend::
+  .. math::
 
       \\begin{array}{c|cccc}
           0 & 0 & 0 & 0 & 0 \\\\

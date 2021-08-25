@@ -421,13 +421,13 @@ def exponential_euler(f=None, g=None, dt=None, intg_type=None, var_type=None,
 
   For a SDE_INT equation of the form
 
-  .. backend::
+  .. math::
 
       d y=(Ay+ F(y))dt + g(y)dW(t) = f(y)dt + g(y)dW(t), \\quad y(0)=y_{0}
 
   its schema is given by [1]_
 
-  .. backend::
+  .. math::
 
       y_{n+1} & =e^{\\Delta t A}(y_{n}+ g(y_n)\\Delta W_{n})+\\varphi(\\Delta t A) F(y_{n}) \\Delta t \\\\
        &= y_n + \\Delta t \\varphi(\\Delta t A) f(y) + e^{\\Delta t A}g(y_n)\\Delta W_{n}
