@@ -12,7 +12,6 @@
 
 from . import linalg
 from . import random
-from .base import *
 from .code import *
 from .compilation import *
 from .gradient import *

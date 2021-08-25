@@ -60,7 +60,7 @@ class Momentum(Optimizer):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x)))
+    self.ms = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
                    for key, x in self._train_vars.items())
     self.register_dynamic_vars(self.ms)
 
@@ -79,7 +79,7 @@ class NesterovMomentum(Optimizer):
     super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x)))
+    self.ms = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
                    for key, x in self._train_vars.items())
     self.register_dynamic_vars(self.ms)
 
@@ -101,8 +101,10 @@ class Adam(Optimizer):
     self.beta2 = beta2
     self.eps = eps
     self.step = jmath.array([0])
-    self.ms = dict((key, jmath.TrainVar(jmath.zeros_like(x))) for key, x in self._train_vars.items())
-    self.vs = dict((key, jmath.TrainVar(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    self.ms = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
+                   for key, x in self._train_vars.items())
+    self.vs = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
+                   for key, x in self._train_vars.items())
     self.register_dynamic_vars(self.ms)
     self.register_dynamic_vars(self.vs)
 

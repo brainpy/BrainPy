@@ -5,6 +5,8 @@ __version__ = "1.1.0-alpha"
 
 # "math" module
 from . import math
+from .math import Variable
+from .math import TrainVar
 
 
 # "integrators" module

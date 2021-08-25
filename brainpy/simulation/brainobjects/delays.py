@@ -57,10 +57,10 @@ class ConstantDelay(Delay):
     # data and operations
     if isinstance(delay, (int, float)):  # uniform delay
       self.uniform_delay = True
-      self.delay_num_step = bmath.array([int(pmath.ceil(delay / bmath.get_dt())) + 1])
-      self.delay_data = bmath.zeros((self.delay_num_step[0],) + self.size, dtype=dtype)
+      self.delay_num_step = bmath.Variable(bmath.array([int(pmath.ceil(delay / bmath.get_dt())) + 1]))
+      self.delay_data = bmath.Variable(bmath.zeros((self.delay_num_step[0],) + self.size, dtype=dtype))
+      self.delay_out_idx = bmath.Variable(bmath.array([0]))
       self.delay_in_idx = self.delay_num_step - 1
-      self.delay_out_idx = bmath.array([0])
 
       self.push = self._push_for_uniform_delay
       self.pull = self._pull_for_uniform_delay
@@ -83,11 +83,11 @@ class ConstantDelay(Delay):
                                      f"the same with the delay data size. But we "
                                      f"got {bmath.shape(delay)} != {self.size}")
       delay = bmath.around(delay / bmath.get_dt())
-      self.delay_num_step = bmath.array(delay, dtype=bmath.int_) + 1
-      self.delay_data = bmath.zeros((self.delay_num_step.max(),) + size, dtype=dtype)
       self.diag = bmath.array(bmath.arange(self.num), dtype=bmath.int_)
+      self.delay_num_step = bmath.Variable(bmath.array(delay, dtype=bmath.int_) + 1)
+      self.delay_data = bmath.Variable(bmath.zeros((self.delay_num_step.max(),) + size, dtype=dtype))
       self.delay_in_idx = self.delay_num_step - 1
-      self.delay_out_idx = bmath.zeros(self.num, dtype=bmath.int_)
+      self.delay_out_idx = bmath.Variable(bmath.zeros(self.num, dtype=bmath.int_))
 
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay

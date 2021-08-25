@@ -42,13 +42,13 @@ class Base(object):
     gather = collector.ArrayCollector()
     if method == 'absolute':
       for k, v in self.__dict__.items():
-        if isinstance(v, math.ndarray):
+        if isinstance(v, math.Variable):
           gather[f'{self.name}.{k}'] = v
         elif isinstance(v, Base):
           gather.update(v.vars(method=method))
     elif method == 'relative':
       for k, v in self.__dict__.items():
-        if isinstance(v, math.ndarray):
+        if isinstance(v, math.Variable):
           gather[k] = v
         elif isinstance(v, Base):
           for k2, v2 in v.vars(method=method).items():

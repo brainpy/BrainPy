@@ -163,7 +163,7 @@ __array_manipulation_fs = [
 
 # https://numpy.org/doc/stable/reference/routines.array-creation.html
 __array_creation_fs = [
-  'ndarray',
+  'ndarray', 'Variable', 'TrainVar',
 
   # Ones and zeros
   'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',

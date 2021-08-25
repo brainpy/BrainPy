@@ -6,11 +6,12 @@ import numpy as np
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node
 
-from brainpy.math.jax.base import Pointer
-
 __all__ = [
   'JaxArray',
+  'Variable',
   'TrainVar',
+
+  'ndarray',  # alias of JaxArray
 ]
 
 
@@ -23,7 +24,7 @@ __all__ = [
 #    >>> x[...] = 2
 #    >>> x[()] = 2
 
-class JaxArray(Pointer):
+class JaxArray(object):
   """Multiple-dimensional array for JAX backend.
 
   Limitations
@@ -31,7 +32,18 @@ class JaxArray(Pointer):
 
   1. Do not support "out" argument in all methods.
   """
-  __slots__ = ()
+  __slots__ = "_value"
+
+  def __init__(self, value):
+    self._value = value
+
+  @property
+  def value(self):
+    return self._value
+
+  @value.setter
+  def value(self, value):
+    self._value = value.value if isinstance(value, JaxArray) else value
 
   @property
   def dtype(self):
@@ -492,7 +504,19 @@ class JaxArray(Pointer):
     return np.asarray(self.value)
 
 
-class TrainVar(JaxArray):
+ndarray = JaxArray
+
+
+class Variable(JaxArray):
+  __slots__ = ()
+
+  def __init__(self, value):
+    if isinstance(value, JaxArray):
+      value = value.value
+    super(Variable, self).__init__(value)
+
+
+class TrainVar(Variable):
   __slots__ = ()
 
   def __init__(self, value):
@@ -504,6 +528,10 @@ class TrainVar(JaxArray):
 register_pytree_node(JaxArray,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: JaxArray(*flat_contents))
+
+register_pytree_node(Variable,
+                     lambda t: ((t.value,), None),
+                     lambda aux_data, flat_contents: Variable(*flat_contents))
 
 register_pytree_node(TrainVar,
                      lambda t: ((t.value,), None),

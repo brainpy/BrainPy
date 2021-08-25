@@ -7,8 +7,7 @@ from jax import random as jr
 from jax.tree_util import register_pytree_node
 
 from brainpy.tools import copy_doc
-from brainpy.math.jax.base import Pointer
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jax.jaxarray import Variable, JaxArray
 
 __all__ = [
   'RandomState',
@@ -33,7 +32,7 @@ def _size2shape(size):
     raise ValueError(f'Must be a list/tuple of int, but got {size}')
 
 
-class RandomState(Pointer):
+class RandomState(Variable):
   """RandomState are variables that track the
   random generator state. They are meant to be used internally.
   Currently only the random.Generator module uses them."""
