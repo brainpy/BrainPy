@@ -71,6 +71,18 @@ class Base(object):
     return gather
 
   def train_vars(self, method='absolute'):
+    """The shortcut for retrieving all trainable variables.
+
+    Parameters
+    ----------
+    method : str
+      The method to access the variables. Support 'absolute' and 'relative'.
+
+    Returns
+    -------
+    gather : collector.ArrayCollector
+      The collection contained (the path, the trainable variable).
+    """
     return self.vars(method=method).subset(math.TrainVar)
 
   def nodes(self, method='absolute', _paths=None):

@@ -7,7 +7,7 @@ from jax import random as jr
 from jax.tree_util import register_pytree_node
 
 from brainpy.tools import copy_doc
-from brainpy.math.jax.jaxarray import Variable, JaxArray
+from brainpy.math.jax.jaxarray import JaxArray, Variable
 
 __all__ = [
   'RandomState',
@@ -75,13 +75,13 @@ class RandomState(Variable):
     """
     self.value = jr.PRNGKey(seed)
 
-  def split(self):
+  def split_key(self):
     """Create a new seed from the current seed.
     """
     self.value, subkey = jr.split(self.value)
     return subkey
 
-  def splits(self, n):
+  def split_keys(self, n):
     """Create multiple seeds from the current seed. This is used
     internally by `pmap` and `vmap` to ensure that random numbers
     are different in parallel threads.
@@ -100,17 +100,17 @@ class RandomState(Variable):
   # ---------------- #
 
   def rand(self, *dn):
-    return JaxArray(jr.uniform(self.split(), shape=dn, minval=0., maxval=1.))
+    return JaxArray(jr.uniform(self.split_key(), shape=dn, minval=0., maxval=1.))
 
   def randint(self, low, high=None, size=None, dtype=int):
-    return JaxArray(jr.randint(self.split(), shape=_size2shape(size),
+    return JaxArray(jr.randint(self.split_key(), shape=_size2shape(size),
                                minval=low, maxval=high, dtype=dtype))
 
   def randn(self, *dn):
-    return JaxArray(jr.normal(self.split(), shape=dn))
+    return JaxArray(jr.normal(self.split_key(), shape=dn))
 
   def random(self, size=None):
-    return JaxArray(jr.uniform(self.split(), shape=_size2shape(size), minval=0., maxval=1.))
+    return JaxArray(jr.uniform(self.split_key(), shape=_size2shape(size), minval=0., maxval=1.))
 
   def random_sample(self, size=None):
     return self.random(size=size)
@@ -123,80 +123,80 @@ class RandomState(Variable):
 
   def choice(self, a, size=None, replace=True, p=None):
     a = a.value if isinstance(a, JaxArray) else a
-    return JaxArray(jr.choice(self.split(), a=a, shape=_size2shape(size), replace=replace, p=p))
+    return JaxArray(jr.choice(self.split_key(), a=a, shape=_size2shape(size), replace=replace, p=p))
 
   def permutation(self, x):
     x = x.value if isinstance(x, JaxArray) else x
-    return JaxArray(jr.permutation(self.split(), x))
+    return JaxArray(jr.permutation(self.split_key(), x))
 
   def shuffle(self, x, axis=0):
     x = x.value if isinstance(x, JaxArray) else x
-    return JaxArray(jr.shuffle(self.split(), x, axis=axis))
+    return JaxArray(jr.shuffle(self.split_key(), x, axis=axis))
 
   def beta(self, a, b, size=None):
     a = a.value if isinstance(a, JaxArray) else a
     b = b.value if isinstance(b, JaxArray) else b
-    return JaxArray(jr.beta(self.split(), a=a, b=b, shape=_size2shape(size)))
+    return JaxArray(jr.beta(self.split_key(), a=a, b=b, shape=_size2shape(size)))
 
   def exponential(self, scale=1.0, size=None):
     assert scale == 1.
-    return JaxArray(jr.exponential(self.split(), shape=_size2shape(size)))
+    return JaxArray(jr.exponential(self.split_key(), shape=_size2shape(size)))
 
   def gamma(self, shape, scale=1.0, size=None):
     assert scale == 1.
-    return JaxArray(jr.gamma(self.split(), a=shape, shape=_size2shape(size)))
+    return JaxArray(jr.gamma(self.split_key(), a=shape, shape=_size2shape(size)))
 
   def gumbel(self, loc=0.0, scale=1.0, size=None):
     assert loc == 0.
     assert scale == 1.
-    return JaxArray(jr.gumbel(self.split(), shape=_size2shape(size)))
+    return JaxArray(jr.gumbel(self.split_key(), shape=_size2shape(size)))
 
   def laplace(self, loc=0.0, scale=1.0, size=None):
     assert loc == 0.
     assert scale == 1.
-    return JaxArray(jr.laplace(self.split(), shape=_size2shape(size)))
+    return JaxArray(jr.laplace(self.split_key(), shape=_size2shape(size)))
 
   def logistic(self, loc=0.0, scale=1.0, size=None):
     assert loc == 0.
     assert scale == 1.
-    return JaxArray(jr.logistic(self.split(), shape=_size2shape(size)))
+    return JaxArray(jr.logistic(self.split_key(), shape=_size2shape(size)))
 
   def normal(self, loc=0.0, scale=1.0, size=None):
-    return JaxArray(jr.normal(self.split(), shape=_size2shape(size)) * scale + loc)
+    return JaxArray(jr.normal(self.split_key(), shape=_size2shape(size)) * scale + loc)
 
   def pareto(self, a, size=None):
-    return JaxArray(jr.pareto(self.split(), b=a, shape=_size2shape(size)))
+    return JaxArray(jr.pareto(self.split_key(), b=a, shape=_size2shape(size)))
 
   def poisson(self, lam=1.0, size=None):
-    return JaxArray(jr.poisson(self.split(), lam=lam, shape=_size2shape(size)))
+    return JaxArray(jr.poisson(self.split_key(), lam=lam, shape=_size2shape(size)))
 
   def standard_cauchy(self, size=None):
-    return JaxArray(jr.cauchy(self.split(), shape=_size2shape(size)))
+    return JaxArray(jr.cauchy(self.split_key(), shape=_size2shape(size)))
 
   def standard_exponential(self, size=None):
-    return JaxArray(jr.exponential(self.split(), shape=_size2shape(size)))
+    return JaxArray(jr.exponential(self.split_key(), shape=_size2shape(size)))
 
   def standard_gamma(self, shape, size=None):
-    return JaxArray(jr.gamma(self.split(), a=shape, shape=_size2shape(size)))
+    return JaxArray(jr.gamma(self.split_key(), a=shape, shape=_size2shape(size)))
 
   def standard_normal(self, size=None):
-    return JaxArray(jr.normal(self.split(), shape=_size2shape(size)))
+    return JaxArray(jr.normal(self.split_key(), shape=_size2shape(size)))
 
   def standard_t(self, df, size=None):
-    return JaxArray(jr.t(self.split(), df=df, shape=_size2shape(size)))
+    return JaxArray(jr.t(self.split_key(), df=df, shape=_size2shape(size)))
 
   def uniform(self, low=0.0, high=1.0, size=None):
-    return JaxArray(jr.uniform(self.split(), shape=_size2shape(size), minval=low, maxval=high))
+    return JaxArray(jr.uniform(self.split_key(), shape=_size2shape(size), minval=low, maxval=high))
 
   def truncated_normal(self, lower, upper, size, scale=1.):
-    rands = jr.truncated_normal(self.split(),
+    rands = jr.truncated_normal(self.split_key(),
                                 lower=lower,
                                 upper=upper,
                                 shape=_size2shape(size))
     return JaxArray(rands * scale)
 
   def bernoulli(self, p, size=None):
-    return JaxArray(jr.bernoulli(self.split(), p=p, shape=_size2shape(size)))
+    return JaxArray(jr.bernoulli(self.split_key(), p=p, shape=_size2shape(size)))
 
 
 register_pytree_node(RandomState,
@@ -214,28 +214,28 @@ def seed(seed=None):
 
 @copy_doc(np.random.rand)
 def rand(*dn):
-  return JaxArray(jr.uniform(RS.split(), shape=dn, minval=0., maxval=1.))
+  return JaxArray(jr.uniform(RS.split_key(), shape=dn, minval=0., maxval=1.))
 
 
 @copy_doc(np.random.randint)
 def randint(low, high=None, size=None, dtype=int):
-  return JaxArray(jr.randint(RS.split(), shape=_size2shape(size),
+  return JaxArray(jr.randint(RS.split_key(), shape=_size2shape(size),
                              minval=low, maxval=high, dtype=dtype))
 
 
 @copy_doc(np.random.randn)
 def randn(*dn):
-  return JaxArray(jr.normal(RS.split(), shape=dn))
+  return JaxArray(jr.normal(RS.split_key(), shape=dn))
 
 
 @copy_doc(np.random.random)
 def random(size=None):
-  return JaxArray(jr.uniform(RS.split(), shape=_size2shape(size), minval=0., maxval=1.))
+  return JaxArray(jr.uniform(RS.split_key(), shape=_size2shape(size), minval=0., maxval=1.))
 
 
 @copy_doc(np.random.random_sample)
 def random_sample(size=None):
-  return JaxArray(jr.uniform(RS.split(), shape=_size2shape(size), minval=0., maxval=1.))
+  return JaxArray(jr.uniform(RS.split_key(), shape=_size2shape(size), minval=0., maxval=1.))
 
 
 ranf = random_sample
@@ -245,104 +245,104 @@ sample = random_sample
 @copy_doc(np.random.choice)
 def choice(a, size=None, replace=True, p=None):
   a = a.value if isinstance(a, JaxArray) else a
-  return JaxArray(jr.choice(RS.split(), a=a, shape=_size2shape(size), replace=replace, p=p))
+  return JaxArray(jr.choice(RS.split_key(), a=a, shape=_size2shape(size), replace=replace, p=p))
 
 
 @copy_doc(np.random.permutation)
 def permutation(x):
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jr.permutation(RS.split(), x))
+  return JaxArray(jr.permutation(RS.split_key(), x))
 
 
 @copy_doc(np.random.shuffle)
 def shuffle(x, axis=0):
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jr.shuffle(RS.split(), x, axis=axis))
+  return JaxArray(jr.shuffle(RS.split_key(), x, axis=axis))
 
 
 @copy_doc(np.random.beta)
 def beta(a, b, size=None):
   a = a.value if isinstance(a, JaxArray) else a
   b = b.value if isinstance(b, JaxArray) else b
-  return JaxArray(jr.beta(RS.split(), a=a, b=b, shape=_size2shape(size)))
+  return JaxArray(jr.beta(RS.split_key(), a=a, b=b, shape=_size2shape(size)))
 
 
 @copy_doc(np.random.exponential)
 def exponential(scale=1.0, size=None):
   assert scale == 1.
-  return JaxArray(jr.exponential(RS.split(), shape=_size2shape(size)))
+  return JaxArray(jr.exponential(RS.split_key(), shape=_size2shape(size)))
 
 
 @copy_doc(np.random.gamma)
 def gamma(shape, scale=1.0, size=None):
   assert scale == 1.
-  return JaxArray(jr.gamma(RS.split(), a=shape, shape=_size2shape(size)))
+  return JaxArray(jr.gamma(RS.split_key(), a=shape, shape=_size2shape(size)))
 
 
 @copy_doc(np.random.gumbel)
 def gumbel(loc=0.0, scale=1.0, size=None):
   assert loc == 0.
   assert scale == 1.
-  return JaxArray(jr.gumbel(RS.split(), shape=_size2shape(size)))
+  return JaxArray(jr.gumbel(RS.split_key(), shape=_size2shape(size)))
 
 
 @copy_doc(np.random.laplace)
 def laplace(loc=0.0, scale=1.0, size=None):
   assert loc == 0.
   assert scale == 1.
-  return JaxArray(jr.laplace(RS.split(), shape=_size2shape(size)))
+  return JaxArray(jr.laplace(RS.split_key(), shape=_size2shape(size)))
 
 
 @copy_doc(np.random.logistic)
 def logistic(loc=0.0, scale=1.0, size=None):
   assert loc == 0.
   assert scale == 1.
-  return JaxArray(jr.logistic(RS.split(), shape=_size2shape(size)))
+  return JaxArray(jr.logistic(RS.split_key(), shape=_size2shape(size)))
 
 
 @copy_doc(np.random.normal)
 def normal(loc=0.0, scale=1.0, size=None):
-  return JaxArray(jr.normal(RS.split(), shape=_size2shape(size)) * scale + loc)
+  return JaxArray(jr.normal(RS.split_key(), shape=_size2shape(size)) * scale + loc)
 
 
 @copy_doc(np.random.pareto)
 def pareto(a, size=None):
-  return JaxArray(jr.pareto(RS.split(), b=a, shape=_size2shape(size)))
+  return JaxArray(jr.pareto(RS.split_key(), b=a, shape=_size2shape(size)))
 
 
 @copy_doc(np.random.poisson)
 def poisson(lam=1.0, size=None):
-  return JaxArray(jr.poisson(RS.split(), lam=lam, shape=_size2shape(size)))
+  return JaxArray(jr.poisson(RS.split_key(), lam=lam, shape=_size2shape(size)))
 
 
 @copy_doc(np.random.standard_cauchy)
 def standard_cauchy(size=None):
-  return JaxArray(jr.cauchy(RS.split(), shape=_size2shape(size)))
+  return JaxArray(jr.cauchy(RS.split_key(), shape=_size2shape(size)))
 
 
 @copy_doc(np.random.standard_exponential)
 def standard_exponential(size=None):
-  return JaxArray(jr.exponential(RS.split(), shape=_size2shape(size)))
+  return JaxArray(jr.exponential(RS.split_key(), shape=_size2shape(size)))
 
 
 @copy_doc(np.random.standard_gamma)
 def standard_gamma(shape, size=None):
-  return JaxArray(jr.gamma(RS.split(), a=shape, shape=_size2shape(size)))
+  return JaxArray(jr.gamma(RS.split_key(), a=shape, shape=_size2shape(size)))
 
 
 @copy_doc(np.random.standard_normal)
 def standard_normal(size=None):
-  return JaxArray(jr.normal(RS.split(), shape=_size2shape(size)))
+  return JaxArray(jr.normal(RS.split_key(), shape=_size2shape(size)))
 
 
 @copy_doc(np.random.standard_t)
 def standard_t(df, size=None):
-  return JaxArray(jr.t(RS.split(), df=df, shape=_size2shape(size)))
+  return JaxArray(jr.t(RS.split_key(), df=df, shape=_size2shape(size)))
 
 
 @copy_doc(np.random.uniform)
 def uniform(low=0.0, high=1.0, size=None):
-  return JaxArray(jr.uniform(RS.split(), shape=_size2shape(size), minval=low, maxval=high))
+  return JaxArray(jr.uniform(RS.split_key(), shape=_size2shape(size), minval=low, maxval=high))
 
 
 def truncated_normal(lower, upper, size, scale=1.):
@@ -372,7 +372,7 @@ def truncated_normal(lower, upper, size, scale=1.):
     ``shape`` is not None, or else by broadcasting ``lower`` and ``upper``.
     Returns values in the open interval ``(lower, upper)``.
   """
-  rands = jr.truncated_normal(RS.split(),
+  rands = jr.truncated_normal(RS.split_key(),
                               lower=lower,
                               upper=upper,
                               shape=_size2shape(size))
@@ -393,4 +393,4 @@ def bernoulli(p, size=None):
     A random array with boolean dtype and shape given by ``shape`` if ``shape``
     is not None, or else ``p.shape``.
   """
-  return JaxArray(jr.bernoulli(RS.split(), p=p, shape=_size2shape(size)))
+  return JaxArray(jr.bernoulli(RS.split_key(), p=p, shape=_size2shape(size)))
