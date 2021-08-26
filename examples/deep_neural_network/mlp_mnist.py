@@ -19,7 +19,7 @@ Y_test = Y_test.flatten()
 
 # Model
 model = bp.dnn.MLP(layer_sizes=(num_dim, 256, 256, 10))
-opt = bp.dnn.Adam(lr=0.001, train_vars=model.train_vars().unique())
+opt = bp.dnn.Adam(lr=0.0001, train_vars=model.train_vars().unique())
 
 
 # loss
@@ -59,6 +59,11 @@ for epoch in range(30):
   np.random.shuffle(sel)
   for it in range(0, X_train.shape[0], num_batch):
     l = train_op(X_train[sel[it:it + num_batch]], Y_train[sel[it:it + num_batch]])
+    print(model.children_modules.keys())
+    layer = model.children_modules['MLP0_l1']
+    w1 = layer.w
+    w2 = train_op.jit_vars['MLP0_l1.w']
+    print(layer.w)
     loss.append(l)
 
   # Eval

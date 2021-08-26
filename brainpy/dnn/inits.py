@@ -103,8 +103,6 @@ class Identity(Initializer):
     return self.gain * jax.numpy.eye(*shape, dtype=dtype)
 
 
-
-
 class Orthogonal(Initializer):
   """Returns a uniformly distributed orthogonal tensor from
     `Exact solutions to the nonlinear dynamics of learning in deep linear neural networks

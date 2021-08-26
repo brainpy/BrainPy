@@ -11,7 +11,10 @@ __all__ = [
 
 class Activation(Module):
   def __init__(self, activation, name=None, **setting):
+    if name is None:
+      name = self.unique_name(type=f'Activation_{activation}')
     super(Activation, self).__init__(name=name)
+
     self.activation = activations.get(activation)
     self.setting = setting
 
