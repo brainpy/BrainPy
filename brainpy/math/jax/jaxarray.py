@@ -69,6 +69,10 @@ class JaxArray(object):
   def size(self):
     return self.value.size
 
+  # ----------------------- #
+  # Python inherent methods #
+  # ----------------------- #
+
   def __repr__(self) -> str:
     lines = repr(self.value).split("\n")
     prefix = self.__class__.__name__ + "("
@@ -79,9 +83,8 @@ class JaxArray(object):
     lines[-1] = lines[-1] + ")"
     return "\n".join(lines)
 
-  # ----------------------- #
-  # Python inherent methods #
-  # ----------------------- #
+  def __format__(self, format_spec: str) -> str:
+    return format(self.value)
 
   def __iter__(self):
     """Solve the issue of DeviceArray.__iter__.
@@ -93,9 +96,6 @@ class JaxArray(object):
     """
     for i in range(self._value.shape[0]):
       yield self._value[i]
-
-  def __format__(self, format_spec: str) -> str:
-    return format(self.value, format_spec)
 
   def __getitem__(self, index):
     if isinstance(index, tuple):

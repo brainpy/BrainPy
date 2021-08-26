@@ -15,7 +15,6 @@ import functools
 import jax
 
 from brainpy import errors
-
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -96,12 +95,14 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
   from brainpy.simulation.brainobjects.base import DynamicSystem
 
   if isinstance(obj_or_func, DynamicSystem):
-    # DynamicSystem has step functions
-    if len(obj_or_func.steps):
+    if len(obj_or_func.steps):  # DynamicSystem has step functions
+      # dynamical variables
+      all_vars = obj_or_func.vars().unique()
+
+      # jit functions
       for key in obj_or_func.steps.keys():
         static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
         step = obj_or_func.steps[key]
-        all_vars = step.__self__.vars().unique()
         obj_or_func.steps[key] = _make_jit(all_vars=all_vars,
                                            func=step,
                                            static_argnums=static_argnums,
@@ -113,11 +114,18 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
                                            f_name=key)
       return obj_or_func
 
+      # return JIT(target=obj_or_func, static_argnums=None, static_argnames=None, device=None,
+      #            backend=None, donate_argnums=(), inline=False, name=name)
+
   if isinstance(obj_or_func, Base):
-    # Base has '__call__()' function implementation
-    if callable(obj_or_func):
-      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+    if callable(obj_or_func):  # Base has '__call__()' implementation
+      # dynamical variables
       all_vars = obj_or_func.vars().unique()
+
+      # static arguements
+      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+
+      # jit function
       obj_or_func.__call__ = _make_jit(all_vars=all_vars,
                                        func=obj_or_func.__call__,
                                        static_argnums=static_argnums,
