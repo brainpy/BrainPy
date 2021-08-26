@@ -78,9 +78,18 @@ class ArrayCollector(Collector):
 
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
+    assert isinstance(value, math.ndarray)
     if key in self:
-      raise ValueError(f'Name "{key}" conflicts when appending to Collection')
+      if id(self[key]) != id(value):
+        raise ValueError(f'Name "{key}" conflicts: same name for {value} and {self[key]}.')
     dict.__setitem__(self, key, value)
+
+  def update(self, other, **kwargs):
+    assert isinstance(other, dict)
+    for key, value in other.items():
+      self[key] = value
+    for key, value in kwargs.items():
+      self[key] = value
 
   def assign(self, inputs):
     """Assign data to all values.

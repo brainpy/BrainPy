@@ -2,9 +2,9 @@
 
 import numpy as np
 
+from brainpy.base.collector import ArrayCollector
 from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath, jax
-from brainpy.base.collector import ArrayCollector
 
 __all__ = [
   'Optimizer',
@@ -18,6 +18,7 @@ __all__ = [
 class Optimizer(Module):
   def __init__(self, train_vars, lr, name):
     super(Optimizer, self).__init__(name=name)
+
     if isinstance(train_vars, ArrayCollector):
       train_vars = train_vars.subset(jmath.TrainVar).unique()
     elif isinstance(train_vars, (list, tuple)):
@@ -27,19 +28,18 @@ class Optimizer(Module):
       raise ValueError
     self.lr = lr
     self._train_vars = train_vars
-    self._dynamic_vars = ArrayCollector()  # dynamic variables
+    self.dynamic_vars = ArrayCollector(train_vars)  # dynamic variables
 
-  def register_dynamic_vars(self, variables):
-    if isinstance(variables, (list, tuple)):
-      num = len(self._dynamic_vars)
-      self._dynamic_vars.update(dict((f'_unknown{i + num}', var) for i, var in enumerate(variables)))
-    elif isinstance(variables, dict):
-      self._dynamic_vars.update(variables)
-    else:
-      raise ValueError
+  def register_dynamical_vars(self, vars: dict):
+    for key, var in vars.items():
+      if key in self.dynamic_vars:
+        if id(self.dynamic_vars[key]) != id(var):
+          raise ValueError(f'Name "{key}" conflicts: same name for '
+                           f'{var} and {self.dynamic_vars[key]}.')
+      self.dynamic_vars[key] = var
 
   def vars(self, method='absolute'):
-    gather = ArrayCollector(self._dynamic_vars)
+    gather = ArrayCollector(self.dynamic_vars)
     gather.update(super(Optimizer, self).vars(method=method))
     return gather
 
@@ -60,15 +60,14 @@ class Momentum(Optimizer):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    self.ms = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
-                   for key, x in self._train_vars.items())
-    self.register_dynamic_vars(self.ms)
+    ms = dict((key + '_m', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    self.register_dynamical_vars(ms)
 
   def __call__(self, grads: dict):
-    if not (len(grads) == len(self._train_vars) == len(self.ms)):
+    if not (len(grads) == len(self._train_vars)):
       raise ValueError('Expecting as many gradients as trainable variables')
     for key, p in self._train_vars.items():
-      m = self.ms[key]
+      m = self.dynamic_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= self.lr * m.value
@@ -79,15 +78,14 @@ class NesterovMomentum(Optimizer):
     super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    self.ms = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
-                   for key, x in self._train_vars.items())
-    self.register_dynamic_vars(self.ms)
+    ms = dict((key + '_m', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    self.register_dynamical_vars(ms)
 
   def __call__(self, grads: dict):
-    if not (len(grads) == len(self._train_vars) == len(self.ms)):
+    if not (len(grads) == len(self._train_vars)):
       raise ValueError('Expecting as many gradients as trainable variables')
     for key, p in self._train_vars.items():
-      m = self.ms[key]
+      m = self.dynamic_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= self.lr * (g + self.momentum * m.value)
@@ -100,13 +98,11 @@ class Adam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps
-    self.step = jmath.array([0])
-    self.ms = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
-                   for key, x in self._train_vars.items())
-    self.vs = dict((key, jmath.Variable(jmath.TrainVar(jmath.zeros_like(x))))
-                   for key, x in self._train_vars.items())
-    self.register_dynamic_vars(self.ms)
-    self.register_dynamic_vars(self.vs)
+    self.step = jmath.Variable(jmath.array([0]))
+    ms = dict((key + '_m', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    vs = dict((key + '_v', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    self.register_dynamical_vars(ms)
+    self.register_dynamical_vars(vs)
 
   def __call__(self, grads: dict):
     """Updates variables and other state based on Adam algorithm.
@@ -116,8 +112,8 @@ class Adam(Optimizer):
     self.step.value += 1
     lr = self.lr * np.sqrt(1 - self.beta2 ** self.step.value) / (1 - self.beta1 ** self.step.value)
     for key, p in self._train_vars.items():
-      m = self.ms[key]
-      v = self.vs[key]
+      m = self.dynamic_vars[key + '_m']
+      v = self.dynamic_vars[key + '_v']
       g = grads[key]
       m.value = self.beta1 * m.value + (1 - self.beta1) * g
       v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2
