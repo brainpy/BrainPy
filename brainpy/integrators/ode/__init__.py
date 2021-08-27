@@ -4,6 +4,10 @@
 Numerical methods for ordinary differential equations.
 """
 
-from .exp_euler_method import *
-from .adaptive_rk_methods import *
-from .general_rk_methods import *
+from . import adaptive_rk
+from . import exp_euler
+from . import general_rk
+from .adaptive_rk import *
+from .exp_euler import *
+from .general_rk import *
+

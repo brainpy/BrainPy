@@ -1,5 +1,60 @@
 # -*- coding: utf-8 -*-
 
+
+r"""This module provides commonly used adaptive Runge-Kutta methods.
+
+Adaptive methods are designed to produce an estimate of the local truncation
+error of a single Runge–Kutta step. This is done by having two methods,
+one with order :math:`p` and one with order :math:`p-1`. These methods are
+interwoven, i.e., they have common intermediate steps. Thanks to this, estimating
+the error has little or negligible computational cost compared to a step with
+the higher-order method.
+
+During the integration, the step size is adapted such that the estimated error
+stays below a user-defined threshold: If the error is too high, a step is repeated
+with a lower step size; if the error is much smaller, the step size is increased
+to save time. This results in an (almost) optimal step size, which saves computation
+time. Moreover, the user does not have to spend time on finding an appropriate step size.
+
+The lower-order step is given by
+
+.. math::
+    y_{n+1}^{*}=y_{n}+h\sum _{i=1}^{s}b_{i}^{*}k_{i},
+
+where :math:`k_{i}` are the same as for the higher-order method. Then the error is
+
+.. math::
+    e_{n+1}=y_{n+1}-y_{n+1}^{*}=h\sum _{i=1}^{s}(b_{i}-b_{i}^{*})k_{i},
+
+which is (:math:`O(h^{p}`).
+
+The Butcher tableau for this kind of method is extended to give the values of
+:math:`b_{i}^{*}`:
+
+.. math::
+    \begin{array}{c|llll}
+    0 & & & & & \\
+    c_{2} & a_{21} & & & & \\
+    c_{3} & a_{31} & a_{32} & & & \\
+    \vdots & \vdots & & \ddots & \\
+    c_{s} & a_{s 1} & a_{s 2} & \cdots & a_{s, s-1} \\
+    \hline & b_{1} & b_{2} & \cdots & b_{s-1} & b_{s} \\
+        & b_{1}^{*} & b_{2}^{*} & \cdots & b_{s-1}^{*} & b_{s}^{*}
+    \end{array}
+
+More details please check [1]_ [2]_ [3]_.
+
+
+.. [1] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+.. [2] Press, W.H., Press, W.H., Flannery, B.P., Teukolsky, S.A., Vetterling, W.T.,
+       Flannery, B.P. and Vetterling, W.T., 1989. Numerical recipes in Pascal: the
+       art of scientific computing (Vol. 1). Cambridge university press.
+.. [3] Press, W. H., & Teukolsky, S. A. (1992). Adaptive Stepsize Runge‐Kutta Integration.
+       Computers in Physics, 6(2), 188-191.
+"""
+
+
+
 from brainpy import math
 from brainpy.integrators import constants
 from brainpy.integrators.ode.wrapper import adaptive_rk_wrapper
@@ -66,7 +121,7 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
 
 
 def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
-  """The Runge–Kutta–Fehlberg method for ordinary differential equations.
+  r"""The Runge–Kutta–Fehlberg method for ODEs.
 
   The method presented in Fehlberg's 1969 paper has been dubbed the
   RKF45 method, and is a method of order :math:`O(h^4)` with an error
@@ -83,16 +138,16 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
 
   .. math::
 
-      \\begin{array}{l|lllll}
-          0 & & & & & & \\\\
-          1 / 4 & 1 / 4 & & & & \\\\
-          3 / 8 & 3 / 32 & 9 / 32 & & \\\\
-          12 / 13 & 1932 / 2197 & -7200 / 2197 & 7296 / 2197 & \\\\
-          1 & 439 / 216 & -8 & 3680 / 513 & -845 / 4104 & & \\\\
-          1 / 2 & -8 / 27 & 2 & -3544 / 2565 & 1859 / 4104 & -11 / 40 & \\\\
-          \\hline & 16 / 135 & 0 & 6656 / 12825 & 28561 / 56430 & -9 / 50 & 2 / 55 \\\\
+      \begin{array}{l|lllll}
+          0 & & & & & & \\
+          1 / 4 & 1 / 4 & & & & \\
+          3 / 8 & 3 / 32 & 9 / 32 & & \\
+          12 / 13 & 1932 / 2197 & -7200 / 2197 & 7296 / 2197 & \\
+          1 & 439 / 216 & -8 & 3680 / 513 & -845 / 4104 & & \\
+          1 / 2 & -8 / 27 & 2 & -3544 / 2565 & 1859 / 4104 & -11 / 40 & \\
+          \hline & 16 / 135 & 0 & 6656 / 12825 & 28561 / 56430 & -9 / 50 & 2 / 55 \\
           & 25 / 216 & 0 & 1408 / 2565 & 2197 / 4104 & -1 / 5 & 0
-      \\end{array}
+      \end{array}
 
   References
   ----------
@@ -105,7 +160,9 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
 
   """
 
-  A = [(), (0.25,), (0.09375, 0.28125),
+  A = [(),
+       (0.25,),
+       (0.09375, 0.28125),
        ('1932/2197', '-7200/2197', '7296/2197'),
        ('439/216', -8, '3680/513', '-845/4104'),
        ('-8/27', 2, '-3544/2565', '1859/4104', -0.275)]
@@ -126,7 +183,7 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
 
 
 def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
-  """The Fehlberg RK1(2) method for ordinary differential equations.
+  r"""The Fehlberg RK1(2) method for ODEs.
 
   The Fehlberg method has two methods of orders 1 and 2.
 
@@ -138,13 +195,13 @@ def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
 
   .. math::
 
-      \\begin{array}{l|ll}
-          0 & & \\\\
-          1 / 2 & 1 / 2 & \\\\
-          1 & 1 / 256 & 255 / 256 & \\\\
-          \\hline & 1 / 512 & 255 / 256 & 1 / 512 \\\\
+      \begin{array}{l|ll}
+          0 & & \\
+          1 / 2 & 1 / 2 & \\
+          1 & 1 / 256 & 255 / 256 & \\
+          \hline & 1 / 512 & 255 / 256 & 1 / 512 \\
           & 1 / 256 & 255 / 256 & 0
-      \\end{array}
+      \end{array}
 
   References
   ----------
@@ -155,7 +212,9 @@ def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
 
   """
 
-  A = [(), (0.5,), ('1/256', '255/256')]
+  A = [(),
+       (0.5,),
+       ('1/256', '255/256')]
   B1 = ['1/512', '255/256', '1/512']
   B2 = ['1/256', '255/256', 0]
   C = [0, 0.5, 1]
@@ -173,7 +232,7 @@ def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
 
 
 def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
-  """The Dormand–Prince method for ordinary differential equations.
+  r"""The Dormand–Prince method for ODEs.
 
   The DOPRI method, is an explicit method for solving ordinary differential equations
   (Dormand & Prince 1980). The Dormand–Prince method has seven stages, but it uses only
@@ -194,17 +253,17 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
 
   .. math::
 
-      \\begin{array}{l|llllll}
-          0 &  \\\\
-          1 / 5 & 1 / 5 & & & \\\\
-          3 / 10 & 3 / 40 & 9 / 40 & & & \\\\
-          4 / 5 & 44 / 45 & -56 / 15 & 32 / 9 & & \\\\
-          8 / 9 & 19372 / 6561 & -25360 / 2187 & 64448 / 6561 & -212 / 729 & \\\\
-          1 & 9017 / 3168 & -355 / 33 & 46732 / 5247 & 49 / 176 & -5103 / 18656 & \\\\
-          1 & 35 / 384 & 0 & 500 / 1113 & 125 / 192 & -2187 / 6784 & 11 / 84 & \\\\
-          \\hline & 35 / 384 & 0 & 500 / 1113 & 125 / 192 & -2187 / 6784 & 11 / 84 & 0 \\\\
+      \begin{array}{l|llllll}
+          0 &  \\
+          1 / 5 & 1 / 5 & & & \\
+          3 / 10 & 3 / 40 & 9 / 40 & & & \\
+          4 / 5 & 44 / 45 & -56 / 15 & 32 / 9 & & \\
+          8 / 9 & 19372 / 6561 & -25360 / 2187 & 64448 / 6561 & -212 / 729 & \\
+          1 & 9017 / 3168 & -355 / 33 & 46732 / 5247 & 49 / 176 & -5103 / 18656 & \\
+          1 & 35 / 384 & 0 & 500 / 1113 & 125 / 192 & -2187 / 6784 & 11 / 84 & \\
+          \hline & 35 / 384 & 0 & 500 / 1113 & 125 / 192 & -2187 / 6784 & 11 / 84 & 0 \\
           & 5179 / 57600 & 0 & 7571 / 16695 & 393 / 640 & -92097 / 339200 & 187 / 2100 & 1 / 40
-      \\end{array}
+      \end{array}
 
   References
   ----------
@@ -215,7 +274,9 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
       doi:10.1016/0771-050X(80)90013-3.
   """
 
-  A = [(), (0.2,), (0.075, 0.225),
+  A = [(),
+       (0.2,),
+       (0.075, 0.225),
        ('44/45', '-56/15', '32/9'),
        ('19372/6561', '-25360/2187', '64448/6561', '-212/729'),
        ('9017/3168', '-355/33', '46732/5247', '49/176', '-5103/18656'),
@@ -237,7 +298,7 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
 
 
 def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
-  """The Cash–Karp method  for ordinary differential equations.
+  r"""The Cash–Karp method  for ODEs.
 
   The Cash–Karp method was proposed by Professor Jeff R. Cash from Imperial College London
   and Alan H. Karp from IBM Scientific Center. it uses six function evaluations to calculate
@@ -253,16 +314,16 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
 
   .. math::
 
-      \\begin{array}{l|lllll}
-          0 & & & & & & \\\\
-          1 / 5 & 1 / 5 & & & & & \\\\
-          3 / 10 & 3 / 40 & 9 / 40 & & & \\\\
-          3 / 5 & 3 / 10 & -9 / 10 & 6 / 5 & & \\\\
-          1 & -11 / 54 & 5 / 2 & -70 / 27 & 35 / 27 & & \\\\
-          7 / 8 & 1631 / 55296 & 175 / 512 & 575 / 13824 & 44275 / 110592 & 253 / 4096 & \\\\
-          \\hline & 37 / 378 & 0 & 250 / 621 & 125 / 594 & 0 & 512 / 1771 \\\\
+      \begin{array}{l|lllll}
+          0 & & & & & & \\
+          1 / 5 & 1 / 5 & & & & & \\
+          3 / 10 & 3 / 40 & 9 / 40 & & & \\
+          3 / 5 & 3 / 10 & -9 / 10 & 6 / 5 & & \\
+          1 & -11 / 54 & 5 / 2 & -70 / 27 & 35 / 27 & & \\
+          7 / 8 & 1631 / 55296 & 175 / 512 & 575 / 13824 & 44275 / 110592 & 253 / 4096 & \\
+          \hline & 37 / 378 & 0 & 250 / 621 & 125 / 594 & 0 & 512 / 1771 \\
           & 2825 / 27648 & 0 & 18575 / 48384 & 13525 / 55296 & 277 / 14336 & 1 / 4
-      \\end{array}
+      \end{array}
 
   References
   ----------
@@ -273,7 +334,10 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
       Software 16: 201-222, 1990. doi:10.1145/79505.79507
   """
 
-  A = [(), (0.2,), (0.075, 0.225), (0.3, -0.9, 1.2),
+  A = [(),
+       (0.2,),
+       (0.075, 0.225),
+       (0.3, -0.9, 1.2),
        ('-11/54', 2.5, '-70/27', '35/27'),
        ('1631/55296', '175/512', '575/13824', '44275/110592', '253/4096')]
   B1 = ['37/378', 0, '250/621', '125/594', 0, '512/1771']
@@ -293,7 +357,7 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
 
 
 def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
-  """The Bogacki–Shampine method for ordinary differential equations.
+  r"""The Bogacki–Shampine method for ODEs.
 
   The Bogacki–Shampine method was proposed by Przemysław Bogacki and Lawrence F.
   Shampine in 1989 (Bogacki & Shampine 1989). The Bogacki–Shampine method is a
@@ -309,14 +373,14 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
 
   .. math::
 
-      \\begin{array}{l|lll}
-          0 & & & \\\\
-          1 / 2 & 1 / 2 & & \\\\
-          3 / 4 & 0 & 3 / 4 & \\\\
-          1 & 2 / 9 & 1 / 3 & 4 / 9 \\\\
-          \\hline & 2 / 9 & 1 / 3 & 4 / 90 \\\\
+      \begin{array}{l|lll}
+          0 & & & \\
+          1 / 2 & 1 / 2 & & \\
+          3 / 4 & 0 & 3 / 4 & \\
+          1 & 2 / 9 & 1 / 3 & 4 / 9 \\
+          \hline & 2 / 9 & 1 / 3 & 4 / 90 \\
           & 7 / 24 & 1 / 4 & 1 / 3 & 1 / 8
-      \\end{array}
+      \end{array}
 
   References
   ----------
@@ -326,7 +390,10 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
       formulas", Applied Mathematics Letters, 2 (4): 321–325, doi:10.1016/0893-9659(89)90079-7
   """
 
-  A = [(), (0.5,), (0., 0.75), ('2/9', '1/3', '4/0'), ]
+  A = [(),
+       (0.5,),
+       (0., 0.75),
+       ('2/9', '1/3', '4/0'), ]
   B1 = ['2/9', '1/3', '4/9', 0]
   B2 = ['7/24', 0.25, '1/3', 0.125]
   C = [0, 0.5, 0.75, 1]
@@ -344,7 +411,7 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
 
 
 def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
-  """The Heun–Euler method for ordinary differential equations.
+  r"""The Heun–Euler method for ODEs.
 
   The simplest adaptive Runge–Kutta method involves combining Heun's method,
   which is order 2, with the Euler method, which is order 1.
@@ -357,13 +424,13 @@ def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_typ
 
   .. math::
 
-      \\begin{array}{c|cc}
-          0&\\\\
-          1& 	1 \\\\
-      \\hline
-      &	1/2& 	1/2\\\\
+      \begin{array}{c|cc}
+          0&\\
+          1& 	1 \\
+      \hline
+      &	1/2& 	1/2\\
           &	1 &	0
-      \\end{array}
+      \end{array}
 
   """
 
@@ -385,7 +452,7 @@ def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_typ
 
 
 def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is_scalar=None):
-  """The DOP853 method for ordinary differential equations.
+  r"""The DOP853 method for ODEs.
 
   DOP853 is an explicit Runge-Kutta method of order 8(5,3) due to Dormand & Prince
   (with stepsize control and dense output).

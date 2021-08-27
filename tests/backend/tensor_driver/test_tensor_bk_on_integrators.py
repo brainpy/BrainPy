@@ -4,9 +4,9 @@
 import pytest
 
 import brainpy as bp
-from brainpy.integrators.ode import adaptive_rk_methods
-from brainpy.integrators.ode import exp_euler_method
-from brainpy.integrators.ode import general_rk_methods
+from brainpy.integrators.ode import adaptive_rk
+from brainpy.integrators.ode import exp_euler
+from brainpy.integrators.ode import general_rk
 
 bp.backend.set('numpy')
 
@@ -18,7 +18,7 @@ def test_ode():
         dz = x * y - beta * z
         return dx, dy, dz
 
-    for method in general_rk_methods.__all__ + exp_euler_method.__all__:
+    for method in general_rk.__all__ + exp_euler.__all__:
         for var_type in bp.SUPPORTED_VAR_TYPE:
             print(f'"{method}" method, "{var_type}" var type:')
             if method == 'exponential_euler' and var_type == bp.SYSTEM_VAR:
@@ -28,7 +28,7 @@ def test_ode():
                 bp.odeint(f=lorenz_f, show_code=True, method=method, var_type=var_type)
             print()
 
-    for method in adaptive_rk_methods.__all__:
+    for method in adaptive_rk.__all__:
         for var_type in bp.SUPPORTED_VAR_TYPE:
             for adaptive in [True, False]:
                 print(f'"{method}" method, "{var_type}" var type, adaptive = {adaptive}:')

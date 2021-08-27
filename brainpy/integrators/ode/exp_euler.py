@@ -10,23 +10,23 @@ __all__ = [
 
 
 def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
-  """First order, explicit exponential Euler method.
+  r"""First order, explicit exponential Euler method.
 
-  For an ODE_INT equation of the form
+  For an ODE equation of the form
 
   .. math::
 
-      y^{\\prime}=f(y), \quad y(0)=y_{0}
+      y^{\prime}=f(y), \quad y(0)=y_{0}
 
   its schema is given by
 
   .. math::
 
-      y_{n+1}= y_{n}+h \\varphi(hA) f (y_{n})
+      y_{n+1}= y_{n}+h \varphi(hA) f (y_{n})
 
-  where :backend:`A=f^{\prime}(y_{n})` and :backend:`\\varphi(z)=\\frac{e^{z}-1}{z}`.
+  where :math:`A=f^{\prime}(y_{n})` and :math:`\varphi(z)=\frac{e^{z}-1}{z}`.
 
-  For linear ODE_INT system: :backend:`y^{\\prime} = Ay + B`,
+  For linear ODE system: :math:`y^{\prime} = Ay + B`,
   the above equation is equal to
 
   .. math::
