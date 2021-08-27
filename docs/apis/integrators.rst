@@ -7,7 +7,7 @@
 .. toctree::
     :maxdepth: 3
 
-    integrators/general
-    integrators/ODE
+    integrators/0_general
+    integrators/1_ODE
     integrators/SDE
 
