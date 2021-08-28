@@ -315,77 +315,50 @@ class JaxArray(object):
   #       JAX methods       #
   # ----------------------- #
 
-  @property
-  def at(self):
-    """ Indexable helper object to call indexed update functions.
-
-    The ``at`` property is syntactic sugar for calling the indexed update functions
-    defined in :mod:`jax.ops`, and acts as a pure equivalent of in-place
-    modificatons. For further information, see `Indexed Update Operators
-    <https://jax.readthedocs.io/en/latest/jax.ops.html#indexed-update-operators>`_.
-
-    In particular:
-
-    - ``x = x.at[idx].set(y)`` is a pure equivalent of ``x[idx] = y``.
-    - ``x = x.at[idx].add(y)`` is a pure equivalent of ``x[idx] += y``.
-    - ``x = x.at[idx].multiply(y)`` (aka ``mul``) is a pure equivalent of
-      ``x[idx] *= y``.
-    - ``x = x.at[idx].divide(y)`` is a pure equivalent of ``x[idx] /= y``.
-    - ``x = x.at[idx].power(y)`` is a pure equivalent of ``x[idx] **= y``.
-    - ``x = x.at[idx].min(y)`` is a pure equivalent of
-      ``x[idx] = minimum(x[idx], y)``.
-    - ``x = x.at[idx].max(y)`` is a pure equivalent of
-      ``x[idx] = maximum(x[idx], y)``.
-    """
-    return self._value.at
-
-  def aval(self, *args):
-    raise NotImplementedError
-
   def block_host_until_ready(self, *args):
     self._value.block_host_until_ready(*args)
 
   def block_until_ready(self, *args):
     self._value.block_until_ready(*args)
 
-  def broadcast(self, operand, sizes):
-    """Broadcasts an array, adding new major dimensions.
-
-    Wraps XLA's `Broadcast
-    <https://www.tensorflow.org/xla/operation_semantics#broadcast>`_
-    operator.
-
-    Parameters
-    ----------
-    operand: an array
-    sizes:
-      A sequence of integers, giving the sizes of new major dimensions
-      to add.
-
-    Returns
-    -------
-    ary : array
-      An array containing the result.
-    """
-    raise NotImplementedError
-
-  def client(self, *args):
-    raise NotImplementedError
-
-  def clone(self, *args):
-    raise NotImplementedError
-
-  def copy_to_device(self, *args):
-    raise NotImplementedError
-
-  def copy_to_host_async(self, *args):
-    raise NotImplementedError
-
-  def device(self, *args):
-    raise NotImplementedError
-
-  def device_buffer(self, *args):
-    raise NotImplementedError
+  # def broadcast(self, operand, sizes):
+  #   """Broadcasts an array, adding new major dimensions.
+  #
+  #   Wraps XLA's `Broadcast
+  #   <https://www.tensorflow.org/xla/operation_semantics#broadcast>`_
+  #   operator.
+  #
+  #   Parameters
+  #   ----------
+  #   operand: an array
+  #   sizes:
+  #     A sequence of integers, giving the sizes of new major dimensions
+  #     to add.
+  #
+  #   Returns
+  #   -------
+  #   ary : array
+  #     An array containing the result.
+  #   """
+  #   raise NotImplementedError
+  #
+  # def client(self, *args):
+  #   raise NotImplementedError
+  #
+  # def clone(self, *args):
+  #   raise NotImplementedError
+  #
+  # def copy_to_device(self, *args):
+  #   raise NotImplementedError
+  #
+  # def copy_to_host_async(self, *args):
+  #   raise NotImplementedError
+  #
+  # def device(self, *args):
+  #   raise NotImplementedError
+  #
+  # def device_buffer(self, *args):
+  #   raise NotImplementedError
 
   # ----------------------- #
   #      NumPy methods      #
@@ -849,6 +822,8 @@ ndarray = JaxArray
 
 
 class Variable(JaxArray):
+  """The pointer to specify the dynamical variable.
+  """
   __slots__ = ()
 
   def __init__(self, value):
@@ -858,6 +833,8 @@ class Variable(JaxArray):
 
 
 class TrainVar(Variable):
+  """The pointer to specify the trainable variable.
+  """
   __slots__ = ()
 
   def __init__(self, value):

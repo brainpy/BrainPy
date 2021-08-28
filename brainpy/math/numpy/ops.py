@@ -11,7 +11,7 @@ __all__ = [
   'expm1', 'log', 'log10', 'log1p', 'log2', 'logaddexp', 'logaddexp2',
   'lcm', 'gcd', 'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan',
   'arctan2', 'arctanh', 'cos', 'cosh', 'sin', 'sinc', 'sinh', 'tan',
-  'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians', 'around',
+  'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians', 'round', 'around',
   'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix', 'prod', 'sum', 'diff',
   'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum', 'cumprod',
   'cumsum', 'ediff1d', 'cross', 'trapz', 'isfinite', 'isinf', 'isnan',

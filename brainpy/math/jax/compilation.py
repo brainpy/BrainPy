@@ -47,7 +47,7 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
         backend=None, donate_argnums=(), inline=False):
   """JIT (Just-In-Time) Compilation.
 
-  Takes a function or an instance of DynamicSystem,
+  Takes a function or an instance of Base,
   and compiles it for faster execution.
 
   Parameters
@@ -113,9 +113,6 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
                                            inline=inline,
                                            f_name=key)
       return obj_or_func
-
-      # return JIT(target=obj_or_func, static_argnums=None, static_argnames=None, device=None,
-      #            backend=None, donate_argnums=(), inline=False, name=name)
 
   if isinstance(obj_or_func, Base):
     if callable(obj_or_func):  # Base has '__call__()' implementation
