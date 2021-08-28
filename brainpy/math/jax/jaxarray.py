@@ -856,7 +856,7 @@ register_pytree_node(TrainVar,
                      lambda aux_data, flat_contents: TrainVar(*flat_contents))
 
 
-def _wrap(f):
+def wrap(f):
   def func(*args, **kwargs):
     args = [a.value if isinstance(a, JaxArray) else a for a in args]
     kwargs = {k: v.value if isinstance(v, JaxArray) else v for k, v in kwargs.items()}

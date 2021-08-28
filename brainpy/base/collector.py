@@ -12,21 +12,32 @@ __all__ = [
 
 
 class Collector(dict):
-  """A Collector is a dictionary (name, var)
-  with some additional methods to make manipulation
-  of collections of variables easy. A Collection
-  is ordered by insertion order. It is the object
-  returned by DynamicSystem.vars() and used as input
-  in many DynamicSystem instance: optimizers, Jit, etc..."""
+  """A Collector is a dictionary (name, var) with some additional methods to make manipulation
+  of collections of variables easy. A Collector is ordered by insertion order. It is the object
+  returned by Base.vars() and used as input in many Collector instance: optimizers, jit, etc..."""
 
   def __add__(self, other):
-    """Overloaded add operator to merge two VarCollectors together."""
     gather = type(self)(self)
     gather.update(other)
     return gather
 
   def subset(self, type_):
     """Get the subset of the (key, value) pair.
+
+    ``subset()`` can be used to get a subset of some class:
+
+    >>> import brainpy as bp
+    >>>
+    >>> # get all trainable variables
+    >>> some_collector.subset(bp.TrainVar)
+    >>>
+    >>> # get all JaxArray
+    >>> some_collector.subset(bp.math.JaxArray)
+
+    or, it can be used to get a subset of integrators:
+
+    >>> # get all ODE integrators
+    >>> some_collector.subset(bp.integrators.ODE_INT)
 
     Parameters
     ----------
@@ -62,6 +73,8 @@ class Collector(dict):
     return gather
 
   def dict(self):
+    """Get a dict with the key and the value data.
+    """
     gather = dict()
     for k, v in self.items():
       gather[k] = v.value
