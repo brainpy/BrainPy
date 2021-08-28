@@ -37,23 +37,13 @@ and comprehensive examples of BrainPy please see
    quickstart/how_brainpy_works
 
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Backend on Numba-CUDA
-
-   tutorials/tips_on_numba_backend
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Backend on JAX
-
-
 
 .. toctree::
    :maxdepth: 1
    :caption: API documentation
 
    apis/integrators
+   apis/dnn
    apis/analysis
    apis/connectivity
    apis/inputs_module

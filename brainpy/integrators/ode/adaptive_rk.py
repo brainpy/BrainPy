@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-r"""This module provides commonly used adaptive Runge-Kutta methods.
+r"""This module provides adaptive Runge-Kutta methods for ODEs.
 
 Adaptive methods are designed to produce an estimate of the local truncation
 error of a single Runge–Kutta step. This is done by having two methods,

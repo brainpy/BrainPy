@@ -7,7 +7,6 @@ from brainpy.integrators.driver import get_driver
 _ODE_UNKNOWN_NO = 0
 
 
-
 def f_names(f):
   func_name = constants.unique_name('ode')
   if f.__name__.isidentifier():

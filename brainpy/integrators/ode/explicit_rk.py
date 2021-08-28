@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-r"""This module provides commonly used explicit Runge-Kutta methods.
+r"""This module provides explicit Runge-Kutta methods for ODEs.
 
 Given an initial value problem specified as:
 

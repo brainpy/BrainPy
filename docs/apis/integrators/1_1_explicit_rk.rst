@@ -1,8 +1,8 @@
 Explicit Runge-Kutta Methods
 ============================
 
-.. currentmodule:: brainpy.integrators.ode.general_rk
-.. automodule:: brainpy.integrators.ode.general_rk
+.. currentmodule:: brainpy.integrators.ode.explicit_rk
+.. automodule:: brainpy.integrators.ode.explicit_rk
 
 
 .. autosummary::
