@@ -29,7 +29,7 @@ def loss_func(x, label):
   return bp.dnn.cross_entropy_loss(logit, label).mean()
 
 
-vg = bp.math.value_and_grad(loss_func, model.train_vars())
+vg = bp.math.value_and_grad(loss_func, model.vars())
 
 
 # functions

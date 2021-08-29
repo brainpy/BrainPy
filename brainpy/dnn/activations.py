@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 
+
+r"""This module provides commonly used activation functions.
+
+Activation functions are a critical part of the design of a neural network.
+The choice of activation function in the hidden layer will control how well
+the network model learns the training dataset. The choice of activation
+function in the output layer will define the type of predictions the model
+can make.
+
+"""
+
 import operator
 
 import numpy as np
@@ -45,7 +56,7 @@ def get(activation):
 
 
 def celu(x, alpha=1.0):
-  """Continuously-differentiable exponential linear unit activation.
+  r"""Continuously-differentiable exponential linear unit activation.
 
   Computes the element-wise function:
 
@@ -72,7 +83,7 @@ def celu(x, alpha=1.0):
 
 
 def elu(x, alpha=1.0):
-  """Exponential linear unit activation function.
+  r"""Exponential linear unit activation function.
 
   Computes the element-wise function:
 
@@ -93,7 +104,7 @@ def elu(x, alpha=1.0):
 
 
 def gelu(x, approximate=True):
-  """Gaussian error linear unit activation function.
+  r"""Gaussian error linear unit activation function.
 
   If ``approximate=False``, computes the element-wise function:
 
@@ -125,7 +136,7 @@ def gelu(x, approximate=True):
 
 
 def glu(x, axis=-1):
-  """Gated linear unit activation function.
+  r"""Gated linear unit activation function.
 
   Args:
     x : input array
@@ -139,7 +150,7 @@ def glu(x, axis=-1):
 
 
 def hard_tanh(x):
-  """Hard :math:`\mathrm{tanh}` activation function.
+  r"""Hard :math:`\mathrm{tanh}` activation function.
 
   Computes the element-wise function:
 
@@ -189,7 +200,7 @@ hard_swish = hard_silu
 
 
 def leaky_relu(x, negative_slope=1e-2):
-  """Leaky rectified linear unit activation function.
+  r"""Leaky rectified linear unit activation function.
 
   Computes the element-wise function:
 
@@ -239,7 +250,7 @@ def log_sigmoid(x):
 
 
 def log_softmax(x, axis=-1):
-  """Log-Softmax function.
+  r"""Log-Softmax function.
 
   Computes the logarithm of the :code:`softmax` function, which rescales
   elements to the range :math:`[-\infty, 0)`.
@@ -271,7 +282,7 @@ def _canonicalize_axis(axis, num_dims) -> int:
 
 
 def one_hot(x, num_classes, *, dtype=None, axis=-1):
-  """One-hot encodes the given indicies.
+  r"""One-hot encodes the given indicies.
 
   Each index in the input ``x`` is encoded as a vector of zeros of length
   ``num_classes`` with the element at ``index`` set to one::
@@ -353,7 +364,7 @@ def relu6(x):
 
 
 def sigmoid(x):
-  """Sigmoid activation function.
+  r"""Sigmoid activation function.
 
   Computes the element-wise function:
 
@@ -368,7 +379,7 @@ def sigmoid(x):
 
 
 def soft_sign(x):
-  """Soft-sign activation function.
+  r"""Soft-sign activation function.
 
   Computes the element-wise function
 
@@ -383,7 +394,7 @@ def soft_sign(x):
 
 
 def softmax(x, axis=-1):
-  """Softmax function.
+  r"""Softmax function.
 
   Computes the function which rescales elements to the range :math:`[0, 1]`
   such that the elements along :code:`axis` sum to :math:`1`.
@@ -421,7 +432,7 @@ swish = silu
 
 
 def selu(x):
-  """Scaled exponential linear unit activation.
+  r"""Scaled exponential linear unit activation.
 
   Computes the element-wise function:
 

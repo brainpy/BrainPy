@@ -21,9 +21,9 @@ class Channel(DynamicSystem):
     super(Channel, self).__init__(name=name, **kwargs)
 
   def update(self, *args, **kwargs):
-    pass
+    raise NotImplementedError
 
   def current(self, *args, **kwargs):
-    pass
+    raise NotImplementedError
 
 

@@ -72,11 +72,11 @@ class LIF(bp.NeuGroup):
     self.gL = gL
     self.t_refractory = t_refractory
 
-    self.V = bp.math.Variable(bp.math.ones(self.num) * V_L)
-    self.input = bp.math.Variable(bp.math.zeros(self.num))
-    self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bp.math.bool_))
-    self.refractory = bp.math.Variable(bp.math.zeros(self.num, dtype=bp.math.bool_))
-    self.t_last_spike = bp.math.Variable(bp.math.ones(self.num) * -1e7)
+    self.V = bp.Variable(bp.math.ones(self.num) * V_L)
+    self.input = bp.Variable(bp.math.zeros(self.num))
+    self.spike = bp.Variable(bp.math.zeros(self.num, dtype=bp.math.bool_))
+    self.refractory = bp.Variable(bp.math.zeros(self.num, dtype=bp.math.bool_))
+    self.t_last_spike = bp.Variable(bp.math.ones(self.num) * -1e7)
 
   @bp.odeint
   def integral(self, V, t, Iext):
@@ -106,7 +106,7 @@ class PoissonNoise(bp.NeuGroup):
 
     self.freqs = freqs
     self.dt = bp.math.get_dt() / 1000.
-    self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
+    self.spike = bp.Variable(bp.math.zeros(self.num, dtype=bool))
     self.rand_state = bp.math.random.RandomState()
 
   def update(self, _t, _i):
@@ -125,9 +125,9 @@ class PoissonStimulus(bp.NeuGroup):
     self.t_interval = t_interval
     self.freq_mean = freq_mean
     self.freq_var = freq_var
-    self.freqs = bp.math.Variable(bp.math.array([0.]))
-    self.t_last_change = bp.math.Variable(bp.math.array([-1e7]))
-    self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
+    self.freqs = bp.Variable(bp.math.array([0.]))
+    self.t_last_change = bp.Variable(bp.math.array([-1e7]))
+    self.spike = bp.Variable(bp.math.zeros(size, dtype=bool))
     self.rand_state = bp.math.random.RandomState()
 
   def update(self, _t, _i):
@@ -225,7 +225,7 @@ class AMPA_One(bp.TwoEndConn):
 
     # variables
     self.pre_spike = self.register_constant_delay('ps', size=self.pre.num, delay=delay)
-    self.s = bp.math.Variable(bp.math.zeros(self.pre.num))
+    self.s = bp.Variable(bp.math.zeros(self.pre.num))
 
   @bp.odeint
   def int_s(self, s, t):
@@ -254,8 +254,8 @@ class AMPA(bp.TwoEndConn):
 
     # variables
     self.pre_spike = self.register_constant_delay('ps', size=self.pre.num, delay=delay)
-    self.pre_one = bp.math.Variable(bp.math.ones(self.pre.num))
-    self.s = bp.math.Variable(bp.math.zeros(self.size))
+    self.pre_one = bp.Variable(bp.math.ones(self.pre.num))
+    self.s = bp.Variable(bp.math.zeros(self.size))
 
   @bp.odeint
   def int_s(self, s, t):
