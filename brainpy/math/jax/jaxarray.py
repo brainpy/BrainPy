@@ -844,15 +844,15 @@ class TrainVar(Variable):
 
 
 register_pytree_node(JaxArray,
-                     lambda t: ((t.value,), None),
+                     lambda t: ((t.value, ), None),
                      lambda aux_data, flat_contents: JaxArray(*flat_contents))
 
 register_pytree_node(Variable,
-                     lambda t: ((t.value,), None),
+                     lambda t: ((t.value, ), None),
                      lambda aux_data, flat_contents: Variable(*flat_contents))
 
 register_pytree_node(TrainVar,
-                     lambda t: ((t.value,), None),
+                     lambda t: ((t.value, ), None),
                      lambda aux_data, flat_contents: TrainVar(*flat_contents))
 
 

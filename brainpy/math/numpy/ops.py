@@ -133,6 +133,7 @@ rad2deg = numpy.rad2deg
 degrees = numpy.degrees
 radians = numpy.radians
 
+round = numpy.round
 around = numpy.around
 round_ = numpy.round_
 rint = numpy.rint

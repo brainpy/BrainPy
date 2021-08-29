@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-
 """
 The compilation tools for JAX backend.
 
-1. JIT compilation is implemented by the 'jit()' function
+1. Just-In-Time compilation is implemented by the 'jit()' function
 2. Vectorize compilation is implemented by the 'vmap()' function
 3. Parallel compilation is implemented by the 'pmap()' function
 
@@ -13,8 +12,16 @@ The compilation tools for JAX backend.
 import functools
 
 import jax
+import jax.numpy as jnp
+import numpy as np
+from jax.interpreters.partial_eval import DynamicJaxprTracer
+from jax.interpreters.partial_eval import JaxprTracer
+from jax.interpreters.pxla import ShardedDeviceArray
 
 from brainpy import errors
+from brainpy.base.base import Base
+from brainpy.base.collector import ArrayCollector
+from brainpy.math.jax.random import RandomState
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -24,20 +31,20 @@ __all__ = [
 ]
 
 
-def _make_jit(all_vars, func, static_argnums, static_argnames=None, device=None,
+def _make_jit(func, dyn_vars, static_argnums, static_argnames=None, device=None,
               backend=None, donate_argnums=(), inline=False, f_name=None):
   @functools.partial(jax.jit, static_argnums=static_argnums, static_argnames=static_argnames,
                      device=device, backend=backend, donate_argnums=donate_argnums, inline=inline)
   def jitted_func(dict_data, *args, **kwargs):
-    all_vars.assign(dict_data)
+    dyn_vars.assign(dict_data)
     out = func(*args, **kwargs)
-    changes = all_vars.dict()
+    changes = dyn_vars.dict()
     return out, changes
 
   def call(*args, **kwargs):
-    dict_data = all_vars.dict()
+    dict_data = dyn_vars.dict()
     out, changes = jitted_func(dict_data, *args, **kwargs)
-    all_vars.assign(changes)
+    dyn_vars.assign(changes)
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
@@ -54,14 +61,13 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
   ----------
   obj_or_func : Base, function
     The instance of Base or a function.
-  static_argnums : Optional, str
-    An optional int or collection of ints that specify which
-    positional arguments to treat as static (compile-time constant).
-  static_argnames : optional, str
-    An optional string or collection of strings specifying
-    which named arguments to treat as static (compile-time constant). See the
-    comment on ``static_argnums`` for details. If not
-    provided but ``static_argnums`` is set, the default is based on calling
+  static_argnums : optional, int, list, tuple, dict
+    An optional int or collection of ints that specify which positional arguments to treat
+    as static (compile-time constant).
+  static_argnames : optional, str, list, tuple, dict
+    An optional string or collection of strings specifying which named arguments to treat
+    as static (compile-time constant). See the comment on ``static_argnums`` for details.
+    If not provided but ``static_argnums`` is set, the default is based on calling
     ``inspect.signature(fun)`` to find corresponding named arguments.
   device: optional, Any
     This is an experimental feature and the API is likely to change.
@@ -69,10 +75,10 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
     can be retrieved via :py:func:`jax.devices`.) The default is inherited
     from XLA's DeviceAssignment logic and is usually to use
     ``jax.devices()[0]``.
-  backend: optional, str
+  backend: optional, str, dict
     This is an experimental feature and the API is likely to change. Optional,
     a string representing the XLA backend: ``'cpu'``, ``'gpu'``, or ``'tpu'``.
-  donate_argnums:
+  donate_argnums: optional, int, dict, tuple, list
     Specify which arguments are "donated" to the computation.
     It is safe to donate arguments if you no longer need them once the
     computation has finished. In some cases XLA can make use of donated
@@ -87,30 +93,60 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
 
   Returns
   -------
-  ds_of_func : DynamicSystem, function
-    A wrapped version of DynamicSystem or function,
+  ds_of_func : Base, function
+    A wrapped version of Base object or function,
     set up for just-in-time compilation.
   """
-  from brainpy.base.base import Base
   from brainpy.simulation.brainobjects.base import DynamicSystem
 
   if isinstance(obj_or_func, DynamicSystem):
     if len(obj_or_func.steps):  # DynamicSystem has step functions
+
       # dynamical variables
       all_vars = obj_or_func.vars().unique()
 
+      # static arguments by num
+      if static_argnums is None:
+        static_argnums = {key: () for key in obj_or_func.steps.keys()}
+      elif isinstance(static_argnums, int):
+        static_argnums = {key: (static_argnums + 1,) for key in obj_or_func.steps.keys()}
+      elif isinstance(static_argnums, (tuple, list)) and isinstance(static_argnums[0], int):
+        static_argnums = {key: tuple(x + 1 for x in static_argnums) for key in obj_or_func.steps.keys()}
+      assert isinstance(static_argnums, dict)
+
+      # static arguments by name
+      if static_argnames is None:
+        static_argnames = {key: None for key in obj_or_func.steps.keys()}
+      elif isinstance(static_argnames, str):
+        static_argnames = {key: (static_argnames,) for key in obj_or_func.steps.keys()}
+      elif isinstance(static_argnames, (tuple, list)) and isinstance(static_argnames[0], str):
+        static_argnames = {key: static_argnames for key in obj_or_func.steps.keys()}
+      assert isinstance(static_argnames, dict)
+
+      # donate arguments by num
+      if donate_argnums is None:
+        donate_argnums = {key: () for key in obj_or_func.steps.keys()}
+      elif isinstance(donate_argnums, int):
+        donate_argnums = {key: (donate_argnums + 1,) for key in obj_or_func.steps.keys()}
+      elif isinstance(donate_argnums, (tuple, list)):
+        donate_argnums = {key: tuple(x + 1 for x in donate_argnums) for key in obj_or_func.steps.keys()}
+      assert isinstance(donate_argnums, dict)
+
+      # inline
+      if not isinstance(inline, dict):
+        inline = {key: inline for key in obj_or_func.steps.keys()}
+      assert isinstance(inline, dict)
+
       # jit functions
       for key in obj_or_func.steps.keys():
-        static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-        step = obj_or_func.steps[key]
-        obj_or_func.steps[key] = _make_jit(all_vars=all_vars,
-                                           func=step,
-                                           static_argnums=static_argnums,
-                                           static_argnames=static_argnames,
+        obj_or_func.steps[key] = _make_jit(dyn_vars=all_vars,
+                                           func=obj_or_func.steps[key],
+                                           static_argnums=static_argnums[key],
+                                           static_argnames=static_argnames[key],
                                            device=device,
                                            backend=backend,
-                                           donate_argnums=donate_argnums,
-                                           inline=inline,
+                                           donate_argnums=donate_argnums[key],
+                                           inline=inline[key],
                                            f_name=key)
       return obj_or_func
 
@@ -119,11 +155,11 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
       # dynamical variables
       all_vars = obj_or_func.vars().unique()
 
-      # static arguements
+      # static arguments
       static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
 
       # jit function
-      obj_or_func.__call__ = _make_jit(all_vars=all_vars,
+      obj_or_func.__call__ = _make_jit(dyn_vars=all_vars,
                                        func=obj_or_func.__call__,
                                        static_argnums=static_argnums,
                                        static_argnames=static_argnames,
@@ -149,15 +185,411 @@ def jit(obj_or_func, static_argnums=None, static_argnames=None, device=None,
                    inline=inline)
 
   else:
+    raise errors.ModelUseError(f'Only support instance of {Base.__name__}, or a callable '
+                               f'function, but we got {type(obj_or_func)}.')
+
+
+def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
+               batch_idx, axis_name, reduce_func, f_name=None):
+  @functools.partial(jax.vmap, in_axes=in_axes, out_axes=out_axes, axis_name=axis_name)
+  def vmapped_func(dyn_data, rand_data, *args, **kwargs):
+    dyn_vars.assign(dyn_data)
+    rand_vars.assign(rand_data)
+    out = func(*args, **kwargs)
+    dyn_changes = dyn_vars.dict()
+    rand_changes = rand_vars.dict()
+    return out, dyn_changes, rand_changes
+
+  def call(*args, **kwargs):
+    dyn_data = dyn_vars.dict()
+    n = args[batch_idx[0]].shape[batch_idx[1]]
+    rand_data = {key: val.split_keys(n) for key, val in rand_vars.items()}
+    out, dyn_changes, rand_changes = vmapped_func(dyn_data, rand_data, *args, **kwargs)
+    for key, v in dyn_changes.items():
+      dyn_vars[key] = reduce_func(v)
+    for key, v in rand_changes.items():
+      rand_vars[key] = reduce_func(v)
+    return out
+
+  return change_func_name(name=f_name, f=call) if f_name else call
+
+
+def vmap(obj_or_func, in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
+  """Vectorized compile a function or a module to run in parallel on a single device.
+
+  Parameters
+  ----------
+  obj_or_func : Base, function
+    The function or the module to compile.
+  in_axes : optional, int, tuple/list/dict
+    Specify which input array axes to map over. If each positional argument to
+    ``obj_or_func`` is an array, then ``in_axes`` can be an integer, a None,
+    or a tuple of integers and Nones with length equal to the number of
+    positional arguments to ``obj_or_func``. An integer or ``None``
+    indicates which array axis to map over for all arguments (with ``None``
+    indicating not to map any axis), and a tuple indicates which axis to map
+    for each corresponding positional argument. Axis integers must be in the
+    range ``[-ndim, ndim)`` for each array, where ``ndim`` is the number of
+    dimensions (axes) of the corresponding input array.
+
+    If the positional arguments to ``obj_or_func`` are container types, the
+    corresponding element of ``in_axes`` can itself be a matching container,
+    so that distinct array axes can be mapped for different container
+    elements. ``in_axes`` must be a container tree prefix of the positional
+    argument tuple passed to ``obj_or_func``.
+
+    At least one positional argument must have ``in_axes`` not None. The sizes
+    of the mapped input axes for all mapped positional arguments must all be
+    equal.
+
+    Arguments passed as keywords are always mapped over their leading axis
+    (i.e. axis index 0).
+  out_axes : optional, int, tuple/list/dict
+    Indicate where the mapped axis should appear in the output. All outputs
+    with a mapped axis must have a non-None ``out_axes`` specification. Axis
+    integers must be in the range ``[-ndim, ndim)`` for each output array,
+    where ``ndim`` is the number of dimensions (axes) of the array returned
+    by the :func:`vmap`-ed function, which is one more than the number of
+    dimensions (axes) of the corresponding array returned by ``obj_or_func``.
+  axis_name : optional
+
+  Returns
+  -------
+  obj_or_func : Base, function
+    Batched/vectorized version of ``obj_or_func`` with arguments that correspond to
+    those of ``obj_or_func``, but with extra array axes at positions indicated by
+    ``in_axes``, and a return value that corresponds to that of ``obj_or_func``, but
+    with extra array axes at positions indicated by ``out_axes``.
+  """
+  from brainpy.simulation.brainobjects.base import DynamicSystem
+
+  if isinstance(obj_or_func, DynamicSystem):
+    if len(obj_or_func.steps):  # DynamicSystem has step functions
+
+      # dynamical variables
+      all_vars = obj_or_func.vars().unique()
+      dyn_vars = ArrayCollector()
+      rand_vars = ArrayCollector()
+      for key, val in all_vars.items():
+        if isinstance(val, RandomState):
+          rand_vars[key] = val
+        else:
+          dyn_vars[key] = val
+
+      # in axes
+      if in_axes is None:
+        in_axes = {key: (None, 0) for key in obj_or_func.steps.keys()}
+      elif isinstance(in_axes, int):
+        in_axes = {key: (None, 0, in_axes) for key in obj_or_func.steps.keys()}
+      elif isinstance(in_axes, (tuple, list)):
+        in_axes = {key: (None, 0) + tuple(in_axes) for key in obj_or_func.steps.keys()}
+      elif isinstance(in_axes, dict):
+        keys = list(obj_or_func.steps.keys())
+        if keys[0] not in in_axes:
+          in_axes = {key: (None, 0, in_axes) for key in keys}
+        else:
+          in_axes = {key: (None, 0) + tuple(in_axes[key]) for key in keys}
+      assert isinstance(in_axes, dict)
+
+      # batch size index
+      batch_idx = {}
+      for key, axes in in_axes.items():
+        for i, axis in enumerate(axes[2:]):
+          if axis is not None:
+            batch_idx[key] = (i, axis)
+            break
+        else:
+          raise ValueError(f'Found no batch axis: {axes}.')
+
+      # out axes
+      if out_axes is None:
+        out_axes = {key: 0 for key in obj_or_func.steps.keys()}
+      elif isinstance(out_axes, int):
+        out_axes = {key: out_axes for key in obj_or_func.steps.keys()}
+      elif isinstance(out_axes, (tuple, list)):
+        out_axes = {key: tuple(out_axes) + (0, 0) for key in obj_or_func.steps.keys()}
+      elif isinstance(out_axes, dict):
+        keys = list(obj_or_func.steps.keys())
+        if keys[0] not in out_axes:
+          out_axes = {key: (out_axes, 0, 0) for key in keys}
+        else:
+          out_axes = {key: tuple(out_axes[key]) + (0, 0) for key in keys}
+      assert isinstance(out_axes, dict)
+
+      # reduce_func
+      if reduce_func is None:
+        reduce_func = lambda x: x.mean(axis=0)
+
+      # vectorized map functions
+      for key in obj_or_func.steps.keys():
+        obj_or_func.steps[key] = _make_vmap(func=obj_or_func.steps[key],
+                                            dyn_vars=dyn_vars,
+                                            rand_vars=rand_vars,
+                                            in_axes=in_axes[key],
+                                            out_axes=out_axes[key],
+                                            axis_name=axis_name,
+                                            batch_idx=batch_idx[key],
+                                            reduce_func=reduce_func,
+                                            f_name=key)
+
+      return obj_or_func
+
+  if isinstance(obj_or_func, Base):
+    if callable(obj_or_func):  # Base has '__call__()' implementation
+
+      # dynamical variables
+      all_vars = obj_or_func.vars().unique()
+      dyn_vars = ArrayCollector()
+      rand_vars = ArrayCollector()
+      for key, val in all_vars.items():
+        if isinstance(val, RandomState):
+          rand_vars[key] = val
+        else:
+          dyn_vars[key] = val
+
+      # in axes
+      if in_axes is None:
+        in_axes = (None, 0)
+      elif isinstance(in_axes, (int, dict)):
+        in_axes = (None, 0, in_axes)
+      elif isinstance(in_axes, (tuple, list)):
+        in_axes = (None, 0) + tuple(in_axes)
+      assert isinstance(in_axes, (tuple, list))
+
+      # batch size index
+      batch_idx = {}
+      for key, axes in batch_idx.items():
+        for i, axis in enumerate(axes[2:]):
+          if axis is not None:
+            batch_idx[key] = (i, axis)
+            break
+        else:
+          raise ValueError(f'Found no batch axis: {axes}.')
+
+      # out axes
+      if out_axes is None:
+        out_axes = 0
+      elif isinstance(out_axes, (int, dict)):
+        out_axes = (out_axes, 0, 0)
+      elif isinstance(out_axes, (tuple, list)):
+        out_axes = tuple(out_axes) + (0, 0)
+      assert isinstance(out_axes, (list, tuple))
+
+      # reduce_func
+      if reduce_func is None:
+        reduce_func = lambda x: x.mean(axis=0)
+
+      # jit function
+      obj_or_func.__call__ = _make_vmap(func=obj_or_func,
+                                        dyn_vars=dyn_vars,
+                                        rand_vars=rand_vars,
+                                        in_axes=in_axes,
+                                        out_axes=out_axes,
+                                        axis_name=axis_name,
+                                        batch_idx=batch_idx,
+                                        reduce_func=reduce_func)
+      return obj_or_func
+
+    else:
+      raise errors.ModelUseError(f'Cannot vamp {obj_or_func}, because it does not have '
+                                 f'step functions (len(steps) = 0) and not implement '
+                                 f'"__call__" function. ')
+
+  if callable(obj_or_func):
+    # function
+    return jax.vmap(obj_or_func,
+                    in_axes=in_axes,
+                    out_axes=out_axes,
+                    axis_name=axis_name)
+
+  else:
+    raise errors.ModelUseError(f'Only support instance of {Base.__name__}, or a callable '
+                               f'function, but we got {type(obj_or_func)}.')
+
+
+def _device_reshape(x):
+  """Reshape an input array in order to broadcast to multiple devices."""
+  num_device = jax.local_device_count()
+
+  if not hasattr(x, 'ndim'):
+    raise errors.ModelUseError(f'Expected JaxArray, got {type(x)}. If you are trying to pass a scalar to '
+                               f'parallel, first convert it to a JaxArray, for example np.float(0.5)')
+  if x.ndim == 0:
+    return np.broadcast_to(x, [num_device])
+  if x.shape[0] % num_device != 0:
+    raise errors.ModelUseError(f'Must be able to equally divide batch {x.shape} among '
+                               f'{num_device} devices, but does not go equally.')
+  return x.reshape((num_device, x.shape[0] // num_device) + x.shape[1:])
+
+
+def _make_pmap(func, dyn_vars, rand_vars, reduce_func, axis_name=None, in_axes=0,
+               out_axes=0, static_broadcasted_argnums=(), devices=None, backend=None,
+               axis_size=None, donate_argnums=(), global_arg_shapes=None, f_name=None):
+  @functools.partial(jax.pmap, in_axes=in_axes, out_axes=out_axes, axis_name=axis_name,
+                     static_broadcasted_argnums=static_broadcasted_argnums, devices=devices,
+                     backend=backend, axis_size=axis_size, donate_argnums=donate_argnums,
+                     global_arg_shapes=global_arg_shapes)
+  def pmapped_func(dyn_data, rand_data, *args, **kwargs):
+    dyn_vars.assign(dyn_data)
+    rand_vars.assign(rand_data)
+    out = func(*args, **kwargs)
+    dyn_changes = dyn_vars.dict()
+    rand_changes = rand_vars.dict()
+    return out, dyn_changes, rand_changes
+
+  def call(*args):
+    un_replicated = [k for k, v in dyn_vars.items()
+                     if not isinstance(v.value, (ShardedDeviceArray, JaxprTracer, DynamicJaxprTracer))]
+    if len(un_replicated):
+      raise errors.ModelUseError(f'Some variables were not replicated: {un_replicated}.'
+                                 f'did you forget to call xx.replicate() on them?')
+    _args = []
+    for i, x in enumerate(args):
+      if i + 2 in static_broadcasted_argnums:
+        _args.append(x)
+      else:
+        _args.append(jax.tree_map(_device_reshape, [x])[0])
+    dyn_data = dyn_vars.dict()
+    rand_data = rand_vars.dict()
+    output, dyn_changes, rand_changes = pmapped_func(dyn_data, rand_data, *_args)
+    dyn_vars.assign(dyn_changes)
+    rand_vars.assign(rand_changes)
+    return jax.tree_map(reduce_func, output)
+
+  return change_func_name(name=f_name, f=call) if f_name else call
+
+
+def pmap(obj_or_func, axis_name=None, in_axes=0, out_axes=0, static_broadcasted_argnums=(),
+         devices=None, backend=None, axis_size=None, donate_argnums=(), global_arg_shapes=None,
+         reduce_func=None):
+  """Parallel compile a function or a module to run on multiple devices in parallel.
+
+  Parameters
+  ----------
+  obj_or_func
+  axis_name
+  in_axes
+  out_axes
+  static_broadcasted_argnums
+  devices
+  backend
+  axis_size
+  donate_argnums
+  global_arg_shapes
+
+  Returns
+  -------
+
+  """
+  from brainpy.simulation.brainobjects.base import DynamicSystem
+
+  if isinstance(obj_or_func, DynamicSystem):
+    if len(obj_or_func.steps):  # DynamicSystem has step functions
+
+      # dynamical variables
+      all_vars = obj_or_func.vars().unique()
+      dyn_vars = ArrayCollector()
+      rand_vars = ArrayCollector()
+      for key, val in all_vars.items():
+        if isinstance(val, RandomState):
+          rand_vars[key] = val
+        else:
+          dyn_vars[key] = val
+
+      # reduce function
+      if reduce_func is None:
+        reduce_func = jnp.concatenate
+
+      # static broadcast-ed arguments
+      if static_broadcasted_argnums is None:
+        static_broadcasted_argnums = ()
+      elif isinstance(static_broadcasted_argnums, int):
+        static_broadcasted_argnums = (static_broadcasted_argnums + 2,)
+      elif isinstance(static_broadcasted_argnums, (tuple, list)):
+        static_broadcasted_argnums = tuple(argnum + 2 for argnum in static_broadcasted_argnums)
+      assert isinstance(static_broadcasted_argnums, (tuple, list))
+
+      # jit functions
+      for key in obj_or_func.steps.keys():
+        step = obj_or_func.steps[key]
+        obj_or_func.steps[key] = _make_pmap(dyn_vars=dyn_vars,
+                                            rand_vars=rand_vars,
+                                            func=step,
+                                            axis_name=axis_name,
+                                            in_axes=in_axes,
+                                            out_axes=out_axes,
+                                            static_broadcasted_argnums=static_broadcasted_argnums,
+                                            devices=devices,
+                                            backend=backend,
+                                            axis_size=axis_size,
+                                            donate_argnums=donate_argnums,
+                                            global_arg_shapes=global_arg_shapes,
+                                            reduce_func=reduce_func,
+                                            f_name=key)
+      return obj_or_func
+
+  if isinstance(obj_or_func, Base):
+    if callable(obj_or_func):  # Base has '__call__()' implementation
+
+      # dynamical variables
+      all_vars = obj_or_func.vars().unique()
+      dyn_vars = ArrayCollector()
+      rand_vars = ArrayCollector()
+      for key, val in all_vars.items():
+        if isinstance(val, RandomState):
+          rand_vars[key] = val
+        else:
+          dyn_vars[key] = val
+
+      # static broadcast-ed arguments
+      if static_broadcasted_argnums is None:
+        static_broadcasted_argnums = ()
+      elif isinstance(static_broadcasted_argnums, int):
+        static_broadcasted_argnums = (static_broadcasted_argnums + 2,)
+      elif isinstance(static_broadcasted_argnums, (tuple, list)):
+        static_broadcasted_argnums = tuple(argnum + 2 for argnum in static_broadcasted_argnums)
+      assert isinstance(static_broadcasted_argnums, (tuple, list))
+
+      # reduce function
+      if reduce_func is None:
+        reduce_func = jnp.concatenate
+
+      # jit function
+      obj_or_func.__call__ = _make_pmap(dyn_vars=dyn_vars,
+                                        rand_vars=rand_vars,
+                                        func=obj_or_func,
+                                        axis_name=axis_name,
+                                        in_axes=in_axes,
+                                        out_axes=out_axes,
+                                        static_broadcasted_argnums=static_broadcasted_argnums,
+                                        devices=devices,
+                                        backend=backend,
+                                        axis_size=axis_size,
+                                        donate_argnums=donate_argnums,
+                                        global_arg_shapes=global_arg_shapes,
+                                        reduce_func=reduce_func)
+      return obj_or_func
+
+    else:
+      raise errors.ModelUseError(f'Cannot JIT {obj_or_func}, because it does not have '
+                                 f'step functions (len(steps) = 0) and not implement '
+                                 f'"__call__" function. ')
+
+  if callable(obj_or_func):
+    # function
+    return jax.pmap(obj_or_func,
+                    axis_name=axis_name,
+                    in_axes=in_axes,
+                    out_axes=out_axes,
+                    static_broadcasted_argnums=static_broadcasted_argnums,
+                    devices=devices,
+                    backend=backend,
+                    axis_size=axis_size,
+                    donate_argnums=donate_argnums,
+                    global_arg_shapes=global_arg_shapes)
+
+  else:
     raise errors.ModelUseError(f'Only support instance of '
                                f'{DynamicSystem.__name__}, '
                                f'or a callable function, '
                                f'but we got {type(obj_or_func)}.')
-
-
-def vmap(f):
-  return f
-
-
-def pmap(f):
-  return f
