@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
 
 from brainpy import errors
-from brainpy.simulation.brainobjects.base import DynamicSystem
 
 __all__ = [
   'jit',
@@ -10,18 +10,23 @@ __all__ = [
   'pmap',
 ]
 
-
-def jit(ds_or_func, *args, **kwargs):
-  print('JIT compilation in numpy backend '
-        'can not be available right now.')
-  return ds_or_func
+logger = logging.getLogger('brainpy.math.numpy.compilation')
 
 
-def vmap(f):
-  raise NotImplementedError('Vectorize compilation in numpy backend '
-                            'can not be available right now.')
+def jit(obj_or_func, *args, **kwargs):
+  logger.warning('JIT compilation in numpy backend can not be available right now.')
+  return obj_or_func
 
 
-def pmap(f):
-  raise NotImplementedError('Parallel compilation in numpy backend '
-                            'can not be available right now.')
+def vmap(obj_or_func, *args, **kwargs):
+  _msg = 'Vectorize compilation is only supported in JAX backend, not available in numpy backend. \n' \
+         'You can switch to JAX backend by `brainpy.math.use_backend("jax")`'
+  logger.error(_msg)
+  raise errors.ModelUseError(_msg)
+
+
+def pmap(obj_or_func, *args, **kwargs):
+  _msg = 'Parallel compilation is only supported in JAX backend, not available in numpy backend. \n' \
+         'You can switch to JAX backend by `brainpy.math.use_backend("jax")`'
+  logger.error(_msg)
+  raise errors.ModelUseError(_msg)

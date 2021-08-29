@@ -10,6 +10,7 @@ The compilation tools for JAX backend.
 """
 
 import functools
+import logging
 
 import jax
 import jax.numpy as jnp
@@ -29,6 +30,8 @@ __all__ = [
   'vmap',
   'pmap',
 ]
+
+logger = logging.getLogger('brainpy.math.jax.compilation')
 
 
 def _make_jit(func, dyn_vars, static_argnums, static_argnames=None, device=None,
