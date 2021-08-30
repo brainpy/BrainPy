@@ -12,7 +12,6 @@ __all__ = [
   'JaxArray',
   'Variable',
   'TrainVar',
-  'AdvancedVar',
 
   'ndarray',  # alias of JaxArray
 ]

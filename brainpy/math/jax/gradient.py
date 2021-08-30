@@ -212,8 +212,8 @@ class Gradient(Base):
     self.reduce_axes = reduce_axes
 
     # signature
-    signature = inspect.signature(raw)
-    self.__signature__ = signature.replace(return_annotation=Tuple[List[JaxArray], signature.return_annotation])
+    # signature = inspect.signature(raw)
+    # self.__signature__ = signature.replace(return_annotation=Tuple[List[JaxArray], signature.return_annotation])
 
     # final functions
     if self.has_aux:

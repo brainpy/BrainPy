@@ -19,24 +19,25 @@ Y_test = Y_test.flatten()
 
 # Model
 model = bp.dnn.MLP(layer_sizes=(num_dim, 256, 256, 10))
-opt = bp.dnn.Adam(lr=0.0001, train_vars=model.train_vars().unique())
+opt = bp.dnn.Adam(lr=0.0001, train_vars=model.train_vars())
 
 
 # loss
 
+@bp.math.function(nodes=model)
 def loss_func(x, label):
   logit = model(x, config={'train': True})
   return bp.dnn.cross_entropy_loss(logit, label).mean()
 
 
-vg = bp.math.value_and_grad(loss_func, model.vars())
+vg = bp.math.value_and_grad(loss_func)
 
 
 # functions
 
 @bp.math.jit
 @bp.math.function(nodes=(model, opt))
-def train_op(x, y):
+def train(x, y):
   v, g = vg(x, y)
   opt(grads=g)
   return v
@@ -58,12 +59,7 @@ for epoch in range(30):
   sel = np.arange(len(X_train))
   np.random.shuffle(sel)
   for it in range(0, X_train.shape[0], num_batch):
-    l = train_op(X_train[sel[it:it + num_batch]], Y_train[sel[it:it + num_batch]])
-    print(model.children_modules.keys())
-    layer = model.children_modules['MLP0_l1']
-    w1 = layer.w
-    w2 = train_op.jit_vars['MLP0_l1.w']
-    print(layer.w)
+    l = train(X_train[sel[it:it + num_batch]], Y_train[sel[it:it + num_batch]])
     loss.append(l)
 
   # Eval

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
 from brainpy.base.collector import ArrayCollector
 from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath, jax
@@ -109,8 +107,9 @@ class Adam(Optimizer):
     """
     if len(grads) != len(self._train_vars):
       raise ValueError('Expecting as many gradients as trainable variables')
-    self.step.value += 1
-    lr = self.lr * np.sqrt(1 - self.beta2 ** self.step.value) / (1 - self.beta1 ** self.step.value)
+    self.step += 1
+    step = self.step.value[0]
+    lr = self.lr * jmath.sqrt(1 - self.beta2 ** step) / (1 - self.beta1 ** step)
     for key, p in self._train_vars.items():
       m = self.dynamic_vars[key + '_m']
       v = self.dynamic_vars[key + '_v']

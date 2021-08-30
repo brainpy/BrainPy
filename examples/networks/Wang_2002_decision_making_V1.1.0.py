@@ -320,7 +320,7 @@ class NMDA(bp.TwoEndConn):
   def update(self, _t, _i):
     self.pre_spike.push(self.pre.spike)
     pre_spike = self.pre_spike.pull()
-    self.s[:], self.x[:] = self.integral(self.s, self.x, _t)
+    self.s.value, self.x.value = self.integral(self.s, self.x, _t)
     self.x += pre_spike.reshape((-1, 1))
 
     g_inf = 1 / (1 + self.cc_Mg * bp.math.exp(-0.062 * self.post.V) / 3.57)

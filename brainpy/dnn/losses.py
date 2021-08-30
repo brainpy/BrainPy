@@ -100,6 +100,7 @@ def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
     rows = jmath.arange(length)
     targets = jmath.zeros((length, logits.shape[-1]))
     targets[rows, targets_old] = 1.
+    targets = targets.reshape(logits.shape)
 
   # loss
   logits = logits.value if isinstance(logits, jmath.JaxArray) else logits

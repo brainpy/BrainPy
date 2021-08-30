@@ -2,7 +2,8 @@
 
 from brainpy import errors
 from brainpy.simulation import utils
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicSystem, Container
+from brainpy.simulation.brainobjects.channel import Channel
 
 __all__ = [
   'NeuGroup',
@@ -47,5 +48,18 @@ class NeuGroup(DynamicSystem):
     raise NotImplementedError
 
 
-class CondNeuGroup(DynamicSystem):
-  pass
+class CondNeuGroup(Container):
+  def __init__(self, *channels, monitors=None, name=None, **dict_channels):
+
+    children_channels = dict()
+
+    for ch in channels:
+      assert isinstance(ch, Channel)
+
+    for key, ch in dict_channels.items():
+      assert isinstance(ch, Channel)
+
+
+    super(CondNeuGroup, self).__init__(monitors=monitors, name=name, **children_channels)
+
+
