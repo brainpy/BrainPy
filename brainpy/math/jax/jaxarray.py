@@ -6,10 +6,13 @@ import numpy as np
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node
 
+from brainpy import errors
+
 __all__ = [
   'JaxArray',
   'Variable',
   'TrainVar',
+  'AdvancedVar',
 
   'ndarray',  # alias of JaxArray
 ]
@@ -364,13 +367,15 @@ class JaxArray(object):
   #      NumPy methods      #
   # ----------------------- #
 
-  def all(self, axis=None, keepdims=False, *args, **kwargs):
+  def all(self, axis=None, keepdims=False):
     """Returns True if all elements evaluate to True."""
-    return self.value.all(axis=axis, keepdims=keepdims, *args, **kwargs)
+    r = self.value.all(axis=axis, keepdims=keepdims)
+    return r if (axis is None or keepdims) else JaxArray(r)
 
-  def any(self, axis=None, keepdims=False, *args, **kwargs):
+  def any(self, axis=None, keepdims=False):
     """Returns True if any of the elements of a evaluate to True."""
-    return self.value.any(axis=axis, keepdims=keepdims, *args, **kwargs)
+    r = self.value.any(axis=axis, keepdims=keepdims)
+    return r if (axis is None or keepdims) else JaxArray(r)
 
   def argmax(self, axis=None):
     """Return indices of the maximum values along the given axis."""
@@ -433,9 +438,9 @@ class JaxArray(object):
     choices = choices.value if isinstance(choices, JaxArray) else choices
     return JaxArray(self.value.choose(choices=choices, mode=mode))
 
-  def clip(self, min=None, max=None, **kwargs):
+  def clip(self, min=None, max=None):
     """Return an array whose values are limited to [min, max]. One of max or min must be given."""
-    return JaxArray(self.value.clip(min=min, max=max, **kwargs))
+    return JaxArray(self.value.clip(min=min, max=max))
 
   def compress(self, condition, axis=None):
     """Return selected slices of this array along given axis."""
@@ -501,17 +506,17 @@ class JaxArray(object):
   def max(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the maximum along a given axis."""
     res = self.value.max(axis=axis, keepdims=keepdims, *args, **kwargs)
-    return JaxArray(res)
+    return res if (axis is None or keepdims) else JaxArray(res)
 
   def mean(self, axis=None, dtype=None, keepdims=False, *args, **kwargs):
     """Returns the average of the array elements along given axis."""
     res = self.value.mean(axis=axis, dtype=dtype, keepdims=keepdims, *args, **kwargs)
-    return JaxArray(res)
+    return res if (axis is None or keepdims) else JaxArray(res)
 
   def min(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the minimum along a given axis."""
     res = self.value.min(axis=axis, keepdims=keepdims, *args, **kwargs)
-    return JaxArray(res)
+    return res if (axis is None or keepdims) else JaxArray(res)
 
   # def newbyteorder(self, new_order='S', *args, **kwargs):
   #   return type(self)(self.value.newbyteorder(new_order=new_order, *args, **kwargs))
@@ -519,7 +524,6 @@ class JaxArray(object):
   def nonzero(self):
     """Return the indices of the elements that are non-zero."""
     return tuple(JaxArray(a) for a in self.value.nonzero())
-    # return self.value.nonzero()
 
   # def partition(self, kth, axis=-1, kind='introselect', order=None):
   #   return type(self)(self.value.partition(kth=kth, axis=axis, kind=kind, order=order))
@@ -527,11 +531,12 @@ class JaxArray(object):
   def prod(self, axis=None, dtype=None, keepdims=False, initial=1, where=True):
     """Return the product of the array elements over the given axis."""
     res = self.value.prod(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-    return JaxArray(res)
+    return res if (axis is None or keepdims) else JaxArray(res)
 
   def ptp(self, axis=None, keepdims=False):
     """Peak to peak (maximum - minimum) value along a given axis."""
-    return JaxArray(self.value.ptp(axis=axis, keepdims=keepdims))
+    r = self.value.ptp(axis=axis, keepdims=keepdims)
+    return r if (axis is None or keepdims) else JaxArray(r)
 
   # def put(indices, values, mode='raise'):
   #   pass
@@ -623,7 +628,7 @@ class JaxArray(object):
     """Remove axes of length one from ``a``."""
     return JaxArray(self.value.squeeze(axis=axis))
 
-  def std(self, axis=None, dtype=None, ddof=0, keepdims=False, *args, **kwargs):
+  def std(self, axis=None, dtype=None, ddof=0, keepdims=False):
     """Compute the standard deviation along the specified axis.
 
     Returns the standard deviation, a measure of the spread of a distribution,
@@ -668,12 +673,13 @@ class JaxArray(object):
         If `out` is None, return a new array containing the standard deviation,
         otherwise return a reference to the output array.
     """
-    return JaxArray(self.value.std(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, *args, **kwargs))
+    r = self.value.std(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
+    return r if (axis is None or keepdims) else JaxArray(r)
 
   def sum(self, axis=None, dtype=None, keepdims=False, initial=0, where=True):
     """Return the sum of the array elements over the given axis."""
     res = self.value.sum(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-    return JaxArray(res)
+    return res if (axis is None or keepdims) else JaxArray(res)
 
   def swapaxes(self, axis1, axis2):
     """Return a view of the array with `axis1` and `axis2` interchanged."""
@@ -771,7 +777,7 @@ class JaxArray(object):
     out : ndarray
         View of `a`, with axes suitably permuted.
     """
-    return type(self)(self.value.transpose(*axes))
+    return JaxArray(self.value.transpose(*axes))
 
   def tile(self, reps):
     """Construct an array by repeating A the number of times given by reps.
@@ -805,9 +811,10 @@ class JaxArray(object):
     reps = reps.value if isinstance(reps, JaxArray) else reps
     return JaxArray(self.value.tile(reps))
 
-  def var(self, axis=None, dtype=None, ddof=0, keepdims=False, *args, **kwargs):
+  def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
     """Returns the variance of the array elements, along given axis."""
-    return JaxArray(self.value.var(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, *args, **kwargs))
+    r = self.value.var(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
+    return r if (axis is None or keepdims) else JaxArray(r)
 
   def view(self, dtype=None, *args, **kwargs):
     """New view of array with the same data."""
@@ -823,13 +830,36 @@ ndarray = JaxArray
 
 class Variable(JaxArray):
   """The pointer to specify the dynamical variable.
-  """
-  __slots__ = ()
 
-  def __init__(self, value):
+  Parameters
+  ----------
+
+  value :
+    Used to specify the data.
+  type : str
+    Used to specify the type of this variable.
+
+  """
+  __slots__ = ('type',)
+
+  def __init__(self, value, type=''):
     if isinstance(value, JaxArray):
       value = value.value
     super(Variable, self).__init__(value)
+
+    if not isinstance(type, str):
+      raise errors.UnsupportedError(f'Only support string to specify "type", '
+                                    f'but we get {type.__class__.__name__}.')
+    self.type = type
+
+  def issametype(self, other):
+    if self.type:
+      return not isinstance(other, Variable)
+    else:
+      if not isinstance(other, Variable):
+        return False
+      else:
+        return other.type == self.type
 
 
 class TrainVar(Variable):
@@ -840,19 +870,25 @@ class TrainVar(Variable):
   def __init__(self, value):
     if isinstance(value, JaxArray):
       value = value.value
-    super(TrainVar, self).__init__(value)
+    super(TrainVar, self).__init__(value, type='train')
+
+  def issametype(self, other):
+    if not isinstance(other, Variable):
+      return False
+    else:
+      return other.type == self.type
 
 
 register_pytree_node(JaxArray,
-                     lambda t: ((t.value, ), None),
+                     lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: JaxArray(*flat_contents))
 
 register_pytree_node(Variable,
-                     lambda t: ((t.value, ), None),
+                     lambda t: ((t.value, t.type), None),
                      lambda aux_data, flat_contents: Variable(*flat_contents))
 
 register_pytree_node(TrainVar,
-                     lambda t: ((t.value, ), None),
+                     lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: TrainVar(*flat_contents))
 
 

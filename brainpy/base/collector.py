@@ -21,7 +21,7 @@ class Collector(dict):
     gather.update(other)
     return gather
 
-  def subset(self, type_):
+  def subset(self, type_, judge_func=None):
     """Get the subset of the (key, value) pair.
 
     ``subset()`` can be used to get a subset of some class:
@@ -46,12 +46,19 @@ class Collector(dict):
     """
     gather = type(self)()
     if type(type_) == type:
+      judge_func = lambda v: isinstance(v, type_) if judge_func is None else judge_func
       for key, value in self.items():
-        if isinstance(value, type_):
+        if judge_func(value):
           gather[key] = value
-    elif type(type_) == str:
+    elif isinstance(type_, str):
+      judge_func = lambda v: v.__name__.startswith(type_) if judge_func is None else judge_func
       for key, value in self.items():
-        if value.__name__.startswith(type_):
+        if judge_func(value):
+          gather[key] = value
+    elif isinstance(type_, math.Variable):
+      judge_func = lambda v: type_.issametype(v) if judge_func is None else judge_func
+      for key, value in self.items():
+        if judge_func(value):
           gather[key] = value
     else:
       raise errors.UnsupportedError(f'BrainPy do not support subset {type(type_)}. '
