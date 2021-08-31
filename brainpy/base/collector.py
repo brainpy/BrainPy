@@ -132,9 +132,7 @@ class ArrayCollector(Collector):
   @contextmanager
   def replicate(self):
     """A context manager to use in a with statement that replicates
-    the variables in this collection to multiple devices. This is
-    used typically prior to call to objax.Parallel, so that all
-    variables have a copy on each device.
+    the variables in this collection to multiple devices.
 
     Important: replicating also updates the random state in order
     to have a new one per device.
@@ -143,28 +141,29 @@ class ArrayCollector(Collector):
       import jax
       import jax.numpy as jnp
     except ModuleNotFoundError as e:
-      raise ModuleNotFoundError('"Collection.replicate()" is only available in '
+      raise ModuleNotFoundError('"ArrayCollector.replicate()" is only available in '
                                 'JAX backend, while JAX is not installed.') from e
 
-    replicated, saved_states = [], []
+    replicated, saved_states = {}, {}
     x = jnp.zeros((jax.local_device_count(), 1), dtype=math.float_)
     sharded_x = jax.pmap(lambda x: x, axis_name='device')(x)
     devices = [b.device() for b in sharded_x.device_buffers]
-    ndevices = len(devices)
-    for d in self.values():
-      if isinstance(d, RandomState):
-        replicated.append(jax.api.device_put_sharded([shard for shard in d.split(ndevices)], devices))
-        saved_states.append(d.value)
+    num_device = len(devices)
+    for k, d in self.items():
+      if isinstance(d, math.random.RandomState):
+        replicated[k] = jax.api.device_put_sharded([shard for shard in d.split(num_device)], devices)
+        saved_states[k] = d.value
       else:
-        replicated.append(jax.api.device_put_replicated(d.value, devices))
+        replicated[k] = jax.api.device_put_replicated(d.value, devices)
     self.assign(replicated)
     yield
     visited = set()
-    saved_states.reverse()
     for k, d in self.items():
-      if id(d) not in visited:  # Careful not to reduce twice in case of a variable and a reference to it.
-        if isinstance(d, RandomState):
-          d.assign(saved_states.pop())
+      # Careful not to reduce twice in case of
+      # a variable and a reference to it.
+      if id(d) not in visited:
+        if isinstance(d, math.random.RandomState):
+          d.value = saved_states[k]
         else:
-          d.reduce(d.value)
+          d.value = reduce_func(d)
         visited.add(id(d))

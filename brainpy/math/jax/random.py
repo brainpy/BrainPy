@@ -59,7 +59,7 @@ class RandomState(Variable):
         raise ValueError()
     else:
       raise ValueError
-    super(RandomState, self).__init__(key)
+    super(RandomState, self).__init__(key, type='random')
 
   # ------------------- #
   # seed and random key #

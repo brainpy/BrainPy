@@ -858,7 +858,9 @@ class Variable(JaxArray):
       if not isinstance(other, Variable):
         return False
       else:
-        return other.type == self.type
+        types_of_self = set([s.strip() for s in self.type.split(';')])
+        types_of_other = set([s.strip() for s in other.type.split(';')])
+        return len(types_of_self - types_of_other) == 0
 
 
 class TrainVar(Variable):
@@ -870,12 +872,6 @@ class TrainVar(Variable):
     if isinstance(value, JaxArray):
       value = value.value
     super(TrainVar, self).__init__(value, type='train')
-
-  def issametype(self, other):
-    if not isinstance(other, Variable):
-      return False
-    else:
-      return other.type == self.type
 
 
 register_pytree_node(JaxArray,
