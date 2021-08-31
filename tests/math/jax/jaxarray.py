@@ -1,39 +1,21 @@
 # -*- coding: utf-8 -*-
 
-import pytest
+
+import jax
 import jax.numpy as jnp
-from brainpy.math.jax import JaxArray
+
+from brainpy.math.jax import Variable
 
 
-def test_at1():
-  # https://jax.readthedocs.io/en/latest/jax.ops.html#indexed-update-operators
-  b = jnp.ones(10)
-  a = JaxArray(jnp.ones(10))
-  b.at[0].set(10)
-  a.at[0].set(10)
-  assert (a == b).all()
+def test_varaible1():
+  @jax.jit
+  def try_variable1(a, b):
+    return a + b
 
-  b.at[1].add(10)
-  a.at[1].add(10)
-  assert (a == b).all()
 
-  b.at[0].multiply(3)
-  a.at[0].multiply(3)
-  assert (a == b).all()
-
-  b.at[2].divide(4)
-  a.at[2].divide(4)
-  assert (a == b).all()
-
-  b.at[2].power(3)
-  a.at[2].power(3)
-  assert (a == b).all()
-
-  b.at[4].min(0)
-  a.at[4].min(0)
-  assert (a == b).all()
-
-  b.at[5].max(10)
-  a.at[5].max(10)
-  assert (a == b).all()
+  va = Variable(jnp.zeros(10), replicate=lambda *args: jnp.zeros(10))
+  vb = Variable(jnp.ones(10), replicate=lambda *args: jnp.ones(10))
+  va.duplicate(10)
+  vb.duplicate(10)
+  print(try_variable1(va, vb))
 
