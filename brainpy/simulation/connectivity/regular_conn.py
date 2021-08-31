@@ -75,8 +75,8 @@ class One2One(TwoEndConnector):
     try:
       assert pre_size == post_size
     except AssertionError:
-      raise errors.ModelUseError(f'One2One connection must be defined in two groups with the same size, '
-                                 f'but we got {pre_size} != {post_size}.')
+      raise errors.BrainPyError(f'One2One connection must be defined in two groups with the same size, '
+                                f'but we got {pre_size} != {post_size}.')
 
     length = utils.size2len(pre_size)
     self.num_pre = length
@@ -132,8 +132,8 @@ class GridFour(TwoEndConnector):
       try:
         assert pre_size == post_size
       except AssertionError:
-        raise errors.ModelUseError(f'The shape of pre-synaptic group should be the same with the '
-                                   f'post group. But we got {pre_size} != {post_size}.')
+        raise errors.BrainPyError(f'The shape of pre-synaptic group should be the same with the '
+                                  f'post group. But we got {pre_size} != {post_size}.')
       self.num_post = utils.size2len(post_size)
     else:
       self.num_post = self.num_pre
@@ -143,7 +143,7 @@ class GridFour(TwoEndConnector):
     elif len(pre_size) == 2:
       height, width = pre_size
     else:
-      raise errors.ModelUseError('Currently only support two-dimensional geometry.')
+      raise errors.BrainPyError('Currently only support two-dimensional geometry.')
     conn_i = []
     conn_j = []
     for row in range(height):
@@ -190,7 +190,7 @@ class GridN(TwoEndConnector):
       try:
         assert pre_size == post_size
       except AssertionError:
-        raise errors.ModelUseError(
+        raise errors.BrainPyError(
           f'The shape of pre-synaptic group should be the same with the post group. '
           f'But we got {pre_size} != {post_size}.')
       self.num_post = utils.size2len(post_size)
@@ -202,7 +202,7 @@ class GridN(TwoEndConnector):
     elif len(pre_size) == 2:
       height, width = pre_size
     else:
-      raise errors.ModelUseError('Currently only support two-dimensional geometry.')
+      raise errors.BrainPyError('Currently only support two-dimensional geometry.')
 
     conn_i = []
     conn_j = []

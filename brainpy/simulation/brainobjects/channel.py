@@ -25,5 +25,3 @@ class Channel(DynamicSystem):
 
   def current(self, *args, **kwargs):
     raise NotImplementedError
-
-

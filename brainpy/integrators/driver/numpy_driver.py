@@ -21,4 +21,3 @@ class NumpyDiffIntDriver(base.DiffIntDriver):
     exec(compile(code, '', 'exec'), self.code_scope)
     new_f = self.code_scope[self.func_name]
     return new_f
-

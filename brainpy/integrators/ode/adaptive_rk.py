@@ -53,8 +53,6 @@ More details please check [1]_ [2]_ [3]_.
        Computers in Physics, 6(2), 188-191.
 """
 
-
-
 from brainpy import math
 from brainpy.integrators import constants
 from brainpy.integrators.ode.wrapper import adaptive_rk_wrapper

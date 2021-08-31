@@ -3,7 +3,6 @@
 from brainpy.dnn import activations
 from brainpy.dnn.base import Module
 
-
 __all__ = [
   'Activation'
 ]

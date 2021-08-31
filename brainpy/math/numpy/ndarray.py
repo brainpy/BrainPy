@@ -1,22 +1,33 @@
 # -*- coding: utf-8 -*-
 
+from typing import cast
+
 import numpy as np
 
 __all__ = [
   'ndarray',
   'Variable',
   'TrainVar',
+  'Parameter',
 ]
 
 ndarray = np.ndarray
 
 
 class Variable(np.ndarray):
-  def __init__(self, value, type):
-    self.value = value
-    self.type = type
+  def __new__(cls, value, type='', replicate=None):
+    value = np.asarray(value)
+    obj = value.view(cls)
+    obj.value = value
+    obj.type = type
+    obj.replicate = replicate
+    return obj
 
-    super(Variable, self).__init__()
+  def __array_finalize__(self, obj):
+    if obj is None: return
+    self.replicate = getattr(obj, 'replicate', None)
+    self.value = getattr(obj, 'value', None)
+    self.type = getattr(obj, 'type', None)
 
   def issametype(self, other):
     if self.type:
@@ -29,11 +40,14 @@ class Variable(np.ndarray):
 
 
 class TrainVar(Variable):
-  def __init__(self, value):
-    super(TrainVar, self).__init__(value, 'train')
+  __slots__ = ()
 
-  def issametype(self, other):
-    if not isinstance(other, Variable):
-      return False
-    else:
-      return other.type == self.type
+  def __new__(cls, value, replicate=None):
+    return cast(TrainVar, super().__new__(cls, value=value, type='train', replicate=replicate))
+
+
+class Parameter(Variable):
+  __slots__ = ()
+
+  def __new__(cls, value, replicate=None):
+    return cast(TrainVar, super().__new__(cls, value=value, type='param', replicate=replicate))

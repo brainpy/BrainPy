@@ -236,8 +236,8 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
                        inline=inline)
 
   else:
-    raise errors.ModelUseError(f'Only support instance of {Base.__name__}, or a callable '
-                               f'function, but we got {type(obj_or_func)}.')
+    raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
+                              f'function, but we got {type(obj_or_func)}.')
 
 
 def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
@@ -458,8 +458,8 @@ def vmap(obj_or_func, vars=None, vars_batched=None,
                         reduce_func=reduce_func)
 
   else:
-    raise errors.ModelUseError(f'Only support instance of {Base.__name__}, or a callable '
-                               f'function, but we got {type(obj_or_func)}.')
+    raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
+                              f'function, but we got {type(obj_or_func)}.')
 
 
 def _device_reshape(x):
@@ -467,13 +467,13 @@ def _device_reshape(x):
   num_device = jax.local_device_count()
 
   if not hasattr(x, 'ndim'):
-    raise errors.ModelUseError(f'Expected JaxArray, got {type(x)}. If you are trying to pass a scalar to '
-                               f'parallel, first convert it to a JaxArray, for example np.float(0.5)')
+    raise errors.BrainPyError(f'Expected JaxArray, got {type(x)}. If you are trying to pass a scalar to '
+                              f'parallel, first convert it to a JaxArray, for example np.float(0.5)')
   if x.ndim == 0:
     return np.broadcast_to(x, [num_device])
   if x.shape[0] % num_device != 0:
-    raise errors.ModelUseError(f'Must be able to equally divide batch {x.shape} among '
-                               f'{num_device} devices, but does not go equally.')
+    raise errors.BrainPyError(f'Must be able to equally divide batch {x.shape} among '
+                              f'{num_device} devices, but does not go equally.')
   return x.reshape((num_device, x.shape[0] // num_device) + x.shape[1:])
 
 
@@ -496,8 +496,8 @@ def _make_pmap(func, dyn_vars, rand_vars, reduce_func, axis_name=None, in_axes=0
     un_replicated = [k for k, v in dyn_vars.items()
                      if not isinstance(v.value, (ShardedDeviceArray, JaxprTracer, DynamicJaxprTracer))]
     if len(un_replicated):
-      raise errors.ModelUseError(f'Some variables were not replicated: {un_replicated}.'
-                                 f'did you forget to call xx.replicate() on them?')
+      raise errors.BrainPyError(f'Some variables were not replicated: {un_replicated}.'
+                                f'did you forget to call xx.replicate() on them?')
     _args = []
     for i, x in enumerate(args):
       if i + 2 in static_broadcasted_argnums:
@@ -591,7 +591,7 @@ def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_b
   if callable(obj_or_func):
     if vars is not None:
       vars = vars
-    elif isinstance(obj_or_func, Base): # Base has '__call__()' implementation
+    elif isinstance(obj_or_func, Base):  # Base has '__call__()' implementation
       vars = obj_or_func.vars().unique()
     elif hasattr(obj_or_func, '__self__'):
       if isinstance(obj_or_func.__self__, Base):
@@ -648,5 +648,5 @@ def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_b
       return obj_or_func
 
   else:
-    raise errors.ModelUseError(f'Only support instance of {Base.__name__}, or a callable function, '
-                               f'but we got {type(obj_or_func)}.')
+    raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable function, '
+                              f'but we got {type(obj_or_func)}.')

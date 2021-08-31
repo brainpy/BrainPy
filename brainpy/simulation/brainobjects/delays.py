@@ -79,9 +79,9 @@ class ConstantDelay(Delay):
         delay = temp
       else:
         if bmath.shape(delay) != self.size:
-          raise errors.ModelUseError(f"The shape of the delay time size must be "
-                                     f"the same with the delay data size. But we "
-                                     f"got {bmath.shape(delay)} != {self.size}")
+          raise errors.BrainPyError(f"The shape of the delay time size must be "
+                                    f"the same with the delay data size. But we "
+                                    f"got {bmath.shape(delay)} != {self.size}")
       delay = bmath.around(delay / bmath.get_dt())
       self.diag = bmath.array(bmath.arange(self.num), dtype=bmath.int_)
       self.delay_num_step = bmath.Variable(bmath.array(delay, dtype=bmath.int_) + 1)

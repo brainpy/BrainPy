@@ -59,7 +59,4 @@ class CondNeuGroup(Container):
     for key, ch in dict_channels.items():
       assert isinstance(ch, Channel)
 
-
     super(CondNeuGroup, self).__init__(monitors=monitors, name=name, **children_channels)
-
-

@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import math as math2
 import sys
 
-import math as math2
 from brainpy import math, errors, tools
 from brainpy.simulation.driver.numpy_driver import NumpyDSDriver
 
 __all__ = [
   'JaxDSDriver',
 ]
-
 
 
 def every_to_step_num(interval):
@@ -19,7 +18,6 @@ def every_to_step_num(interval):
           f'resolution ("{math.get_dt()}"). BrainPy adjust it '
           f'to "{num_interval * math.get_dt()}".')
   return num_interval
-
 
 
 class JaxDSDriver(NumpyDSDriver):
@@ -92,8 +90,8 @@ class JaxDSDriver(NumpyDSDriver):
     # get the data key in the host
     if isinstance(data, (int, float)):
       if idx is not None:
-        raise errors.ModelUseError(f'"{self.target.name}.{key}" is a scalar, '
-                                   f'cannot define the slice index "{idx}"')
+        raise errors.BrainPyError(f'"{self.target.name}.{key}" is a scalar, '
+                                  f'cannot define the slice index "{idx}"')
       key_in_host = f'{node.name}.{key}'
     elif math.ndim(data) == 1:
       if isinstance(data, math.ndarray):

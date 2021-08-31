@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.dnn.base import Module
-from brainpy.dnn.imports import jmath, jax
-from brainpy.dnn.inits import XavierNormal, Initializer, ZeroInit
+from brainpy.dnn.imports import jmath
 
 
 class BatchNorm(Module):
@@ -25,6 +24,7 @@ class BatchNorm(Module):
          Computer Vision and Pattern Recognition (CVPR), 2019, pp. 2682–2690.
 
   """
+
   def __init__(self, dims, axis, momentum=0.99, eps=1e-6, name=None):
     super(BatchNorm, self).__init__(name=name)
 
@@ -43,4 +43,3 @@ class BatchNorm(Module):
       pass
     else:
       pass
-

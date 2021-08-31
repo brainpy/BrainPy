@@ -61,8 +61,8 @@ def line_plot(ts,
     plot_ids = [plot_ids]
   if not isinstance(plot_ids, (list, tuple)) and \
       not (isinstance(plot_ids, np.ndarray) and np.ndim(plot_ids) == 1):
-    raise errors.ModelUseError(f'"plot_ids" specifies the value index to plot, it must '
-                               f'be a list/tuple/1D numpy.ndarray, not {type(plot_ids)}.')
+    raise errors.BrainPyError(f'"plot_ids" specifies the value index to plot, it must '
+                              f'be a list/tuple/1D numpy.ndarray, not {type(plot_ids)}.')
 
   # get ax
   if ax is None:

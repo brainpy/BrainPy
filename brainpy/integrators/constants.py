@@ -130,4 +130,3 @@ def unique_name(type):
     return namechecking.get_name(PDE_INT)
   else:
     raise ValueError(f'Unknown differential equation type: {type}')
-

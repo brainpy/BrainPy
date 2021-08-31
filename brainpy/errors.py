@@ -11,7 +11,7 @@ class ModelDefError(Exception):
   pass
 
 
-class ModelUseError(Exception):
+class BrainPyError(Exception):
   """Model use error."""
   pass
 

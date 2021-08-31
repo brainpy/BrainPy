@@ -6,8 +6,8 @@ from jax import numpy as jn
 from jax import random as jr
 from jax.tree_util import register_pytree_node
 
-from brainpy.tools import copy_doc
 from brainpy.math.jax.jaxarray import JaxArray, Variable
+from brainpy.tools import copy_doc
 
 __all__ = [
   'RandomState',

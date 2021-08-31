@@ -56,15 +56,15 @@ class Sequential(Module):
     # check "args"
     for module in arg_modules:
       if not isinstance(module, Module):
-        raise errors.ModelUseError(f'Only support {Module.__name__}, '
-                                   f'but we got {type(module)}.')
+        raise errors.BrainPyError(f'Only support {Module.__name__}, '
+                                  f'but we got {type(module)}.')
       self.children_modules[module.name] = module
 
     # check "kwargs"
     for key, module in kwarg_modules.items():
       if not isinstance(module, Module):
-        raise errors.ModelUseError(f'Only support {Module.__name__}, '
-                                   f'but we got {type(module)}.')
+        raise errors.BrainPyError(f'Only support {Module.__name__}, '
+                                  f'but we got {type(module)}.')
       self.children_modules[key] = module
 
     # initialize base class

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import numpy as np
-
-from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 
 try:

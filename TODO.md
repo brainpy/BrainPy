@@ -14,6 +14,7 @@
 
 ## Base
 
+- [x] ``Collector``: must check whether the ``(key,value)`` pair are duplicate  (done @2021/08/26 by @chaoming)
 - [x] ``nodes``: slove the problem of circular reference (done @2021/08/24 by @chaoming)
 - [x] ``ints``: get integrators based on all nodes (done @2021/08/24 by @chaoming)
 - [x] Reimplement ``nodes`` and ``ints`` in each children class, like Module, Sequential, DynamicaSystem, Container, Network (done @2021/08/24 by @chaoming)
@@ -28,13 +29,20 @@
 - [ ] Support Numba
   - [ ] recompile the numba JIT compilation
 - [ ] support to set `dt`  in the single object level (i.e., single instance of DynamicSystem)
-- [ ] change API of `vars()`: we should refer Dynamical Variables as `Variable`; We can not retrieve every "'JaxArray" from `vars()`, otherwise the whole system will waste a lot of time on useless assignments. 
-- [ ] change API of `brainpy.math.jit(target)`, please return another class if `target` is not a function
+- [ ] "random" module: 
+- [ ] math operations: 
+- [ ] vmap, pmap: 
+- [ ] control conditions: 
+- [x] **IMPORTANT!!!** Change API of `grad()` and `value_and_grad()`: There are bugs in the gradient functions. Gradient computation also needs to inspect the variable types. Moreover, it is independent from the JIT function. Therefore, we should pass dynamical variables into the gradient functions too. (done @ 2021.08.26 by @chaoming)
+- [x] **IMPORTANT!!!** change API of `vars()`: we should refer Dynamical Variables as `Variable`; We can not retrieve every "JaxArray" from `vars()`, otherwise the whole system will waste a lot of time on useless assignments. (done @ 2021.08.25 by @chaoming)
+- [x] change API of `brainpy.math.jit(target)`, please return another class if `target` is not a function [abolished]
 - [ ] ``JaxArray`` Wrapper for JAX `ndarray`
   - [x] register pytree  (done @ 2021.06.15 by @chaoming)
   - [x] support `ndarray` intrinsic methods: 
     - [x] functions in NumPy ndarray: any(), all() .... view() (done @ 2021.06.30 by @chaoming)
-    - [ ] functions in JAx DeviceArray: 
+    - [ ] functions in JAX DeviceArray: 
+  - [x] numpy methods in JaxArray (done @ 2021.08.25, @2021.08.28 by @chaoming)
+  - [x] documentation for JaxArray methods (done @ 2021.08.25 by @chaoming)
   - [ ] test for ndarray wrapper 
 - [x] Support JIT in JAX (done @ 2021.07.30 by @chaoming)
 - [x] support gradient ``grad()`` in JAX (done @ 2021.07.30 by @chaoming)
@@ -50,6 +58,7 @@
 - [ ] SDEs
   - [ ] More convenient way to define constant Wiener term in SDEs
   - [ ] Check whether the user-defined code has the keywords (like `f`, `g`, etc.) in SDEs 
+- [ ] doc comments for ODE methods
 - [x] The unique name of the ODE, SDE, DDE, FDE integrators (done @2021/08/23 by @chaoming)
 
 
@@ -73,6 +82,7 @@
 ## DNN module
 
 - [ ] "objectives" module: commonly used loss functions 
+- [x] 'dnn' module documentation in 'index.rst'   (done @2021/08/26 by @chaoming)
 
 
 

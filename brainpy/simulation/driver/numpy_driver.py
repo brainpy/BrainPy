@@ -4,7 +4,7 @@ import math as math2
 import sys
 from pprint import pprint
 
-from brainpy import errors, math, tools
+from brainpy import math, tools
 from brainpy.simulation.driver import base
 
 __all__ = [

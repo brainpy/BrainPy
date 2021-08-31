@@ -76,9 +76,9 @@ class DynamicSystem(Base):
       self.mon = monitors
       self.mon.target = self
     else:
-      raise errors.ModelUseError(f'"monitors" only supports '
-                                 f'list/tuple/dict/ instance '
-                                 f'of Monitor, not {type(monitors)}.')
+      raise errors.BrainPyError(f'"monitors" only supports '
+                                f'list/tuple/dict/ instance '
+                                f'of Monitor, not {type(monitors)}.')
 
     # target backend
     if self.target_backend is None:
@@ -201,15 +201,15 @@ class Container(DynamicSystem):
     self.children_ds = dict()
     for ds in ds_tuple:
       if not isinstance(ds, DynamicSystem):
-        raise errors.ModelUseError(f'{self.__class__.__name__} receives instances of '
-                                   f'DynamicSystem, however, we got {type(ds)}.')
+        raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
+                                  f'DynamicSystem, however, we got {type(ds)}.')
       if ds.name in self.children_ds:
         raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
       self.children_ds[ds.name] = ds
     for key, ds in ds_dict.items():
       if not isinstance(ds, DynamicSystem):
-        raise errors.ModelUseError(f'{self.__class__.__name__} receives instances of '
-                                   f'DynamicSystem, however, we got {type(ds)}.')
+        raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
+                                  f'DynamicSystem, however, we got {type(ds)}.')
       if key in self.children_ds:
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
       self.children_ds[key] = ds

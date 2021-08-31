@@ -97,4 +97,3 @@ def get_args(f):
     raise ValueError('Do not find time variable "t".')
   other_args = reduced_args[len(var_names):]
   return class_kw, var_names, other_args, original_args
-

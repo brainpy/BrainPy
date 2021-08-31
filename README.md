@@ -9,22 +9,18 @@
 
 ``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation. Core functions provided in BrainPy includes
 
-1. **General numerical solvers** for ODEs, SDEs, DDEs, FDEs, and others.
+- **General numerical solvers** for ODEs, SDEs, DDEs, FDEs, and others.
+- **Dynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even more.
+- **Dynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, continuation analysis and sensitive analysis.
+- **Seamless integration with deep learning models**, and has the speed benefit on JIT compilation.
+- And more ......
 
-2. **Dynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even molecular.
+`BrainPy` is designed to effectively satisfy your basic requirements: 
 
-3. **Dynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, continuation analysis and sensitive analysis.
-
-4. **Seamless integration with deep learning models**, and has the speed benefit on JIT compilation.
-
-Moreover, `BrainPy` is designed to effectively satisfy your basic requirements: 
-
-- *Easy to learn and use*, because BrainPy is only based on Python language and has little dependency requirements; 
-- *Highly flexible and transparent*, because BrainPy endows the users with the fully data/logic flow control; 
-- *Simulation can be guided with the analysis*, because the same code in BrainPy can not only be used for simulation, but also for dynamics analysis; 
-- *Efficient running speed*, because BrainPy is designed to compile your codes just-in-time.
-
-Currently, `BrainPy` relies on the JIT compilers [Numba](https://numba.pydata.org/) and [JAX](https://jax.readthedocs.io/) on CPU or GPU devices. However, extending BrainPy to support other backend frameworks you prefer is also easy. The details please see documents coming soon. 
+- *Easy to learn and use*: BrainPy is only based on Python language and has little dependency requirements. 
+- *Flexible and transparent*: BrainPy endows the users with the fully data/logic flow control. Users can code any logic they want with BrainPy. 
+- *Extensible*: BrainPy allow users to extend new functionality just based on Python coding. For example, we extend the numerical integration with the ability to do numerical analysis. In such a way, the same code in BrainPy can not only be used for simulation, but also for dynamics analysis. 
+- *Efficient running speed*: All codes in BrainPy can just-in-time compiled (based on [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)) to run on CPU or GPU devices, thus guaranteeing its running efficiency. 
 
 
 
@@ -86,22 +82,43 @@ Currently, `BrainPy` relies on the JIT compilers [Numba](https://numba.pydata.or
 
 ## Step 3: comprehensive examples
 
-Here list several simple examples for dynamics simulation and analysis. Comprehensive examples and tutorials please see [BrainModels](https://brainmodels.readthedocs.io).
+Here list several examples of BrainPy. More detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io).
 
-### Dynamics simulation
+
+
+### Neuron models
 
 - [Hodgkin–Huxley neuron model](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/neurons/HodgkinHuxley_model.py)
+
+
+
+### Synapse models
+
 - [AMPA synapse model](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/synapses/AMPA_synapse.py)
+
+
+
+### Network models
+
 - [Gamma oscillation network model](https://brainmodels.readthedocs.io/en/latest/from_papers/Wang_1996_gamma_oscillation.html)
 - [E/I balanced network model](https://brainmodels.readthedocs.io/en/latest/from_papers/Vreeswijk_1996_EI_net.html)
 - [Continuous attractor network model](https://brainmodels.readthedocs.io/en/latest/from_papers/Wu_2008_CANN.html)
 
 
-### Dynamics analysis
+
+
+### Phase plane analysis
 
 - [Phase plane analysis of the I<sub>Na,p</sub>-I<sub>K</sub> model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html)
+
+
+
+### Bifurcation analysis
+
 - [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
 - [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
+
+
 
 ### Deep neural networks
 

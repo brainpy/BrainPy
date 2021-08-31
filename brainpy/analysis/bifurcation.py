@@ -100,25 +100,25 @@ class Bifurcation(object):
 
     # check "target_pars"
     if not isinstance(target_pars, dict):
-      raise errors.ModelUseError('"target_pars" must a dict with the format of: '
+      raise errors.BrainPyError('"target_pars" must a dict with the format of: '
                                  '{"Parameter A": [A_min, A_max],'
                                  ' "Parameter B": [B_min, B_max]}')
     self.target_pars = target_pars
     if len(target_pars) > 2:
-      raise errors.ModelUseError("The number of parameters in bifurcation"
+      raise errors.BrainPyError("The number of parameters in bifurcation"
                                  "analysis cannot exceed 2.")
 
     # check "fixed_vars"
     if fixed_vars is None:
       fixed_vars = dict()
     if not isinstance(fixed_vars, dict):
-      raise errors.ModelUseError('"fixed_vars" must be a dict the format of: '
+      raise errors.BrainPyError('"fixed_vars" must be a dict the format of: '
                                  '{"Variable A": A_value, "Variable B": B_value}')
     self.fixed_vars = fixed_vars
 
     # check "target_vars"
     if not isinstance(target_vars, dict):
-      raise errors.ModelUseError('"target_vars" must a dict with the format of: '
+      raise errors.BrainPyError('"target_vars" must a dict with the format of: '
                                  '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
     self.target_vars = target_vars
 
@@ -126,11 +126,11 @@ class Bifurcation(object):
     if pars_update is None:
       pars_update = dict()
     if not isinstance(pars_update, dict):
-      raise errors.ModelUseError('"pars_update" must be a dict the format of: '
+      raise errors.BrainPyError('"pars_update" must be a dict the format of: '
                                  '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{integrals}". ')
+        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{integrals}". ')
     self.pars_update = pars_update
 
     # bifurcation analysis
@@ -153,7 +153,7 @@ class Bifurcation(object):
                                      options=options)
 
     else:
-      raise errors.ModelUseError(f'Cannot analyze three dimensional system: {self.target_vars}')
+      raise errors.BrainPyError(f'Cannot analyze three dimensional system: {self.target_vars}')
 
   def plot_bifurcation(self, *args, **kwargs):
     """Plot bifurcation, which support bifurcation analysis of
@@ -290,7 +290,7 @@ class _Bifurcation1D(base.Base1DAnalyzer):
         plt.show()
 
     else:
-      raise errors.ModelUseError(f'Cannot visualize co-dimension {len(self.target_pars)} '
+      raise errors.BrainPyError(f'Cannot visualize co-dimension {len(self.target_pars)} '
                                  f'bifurcation.')
     return container
 
@@ -589,22 +589,22 @@ class FastSlowBifurcation(object):
 
     # check "fast_vars"
     if not isinstance(fast_vars, dict):
-      raise errors.ModelUseError('"fast_vars" must a dict with the format of: '
+      raise errors.BrainPyError('"fast_vars" must a dict with the format of: '
                                  '{"Var A": [A_min, A_max],'
                                  ' "Var B": [B_min, B_max]}')
     self.fast_vars = fast_vars
     if len(fast_vars) > 2:
-      raise errors.ModelUseError("FastSlowBifurcation can only analyze the system with less "
+      raise errors.BrainPyError("FastSlowBifurcation can only analyze the system with less "
                                  "than two-variable fast subsystem.")
 
     # check "slow_vars"
     if not isinstance(slow_vars, dict):
-      raise errors.ModelUseError('"slow_vars" must a dict with the format of: '
+      raise errors.BrainPyError('"slow_vars" must a dict with the format of: '
                                  '{"Variable A": [A_min, A_max], '
                                  '"Variable B": [B_min, B_max]}')
     self.slow_vars = slow_vars
     if len(slow_vars) > 2:
-      raise errors.ModelUseError("FastSlowBifurcation can only analyze the system with less "
+      raise errors.BrainPyError("FastSlowBifurcation can only analyze the system with less "
                                  "than two-variable slow subsystem.")
     for key in self.slow_vars:
       self.model.variables.remove(key)
@@ -614,7 +614,7 @@ class FastSlowBifurcation(object):
     if fixed_vars is None:
       fixed_vars = dict()
     if not isinstance(fixed_vars, dict):
-      raise errors.ModelUseError('"fixed_vars" must be a dict the format of: '
+      raise errors.BrainPyError('"fixed_vars" must be a dict the format of: '
                                  '{"Variable A": A_value, "Variable B": B_value}')
     self.fixed_vars = fixed_vars
 
@@ -622,11 +622,11 @@ class FastSlowBifurcation(object):
     if pars_update is None:
       pars_update = dict()
     if not isinstance(pars_update, dict):
-      raise errors.ModelUseError('"pars_update" must be a dict the format of: '
+      raise errors.BrainPyError('"pars_update" must be a dict the format of: '
                                  '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{integrals}" model. ')
+        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{integrals}" model. ')
     self.pars_update = pars_update
 
     # bifurcation analysis
@@ -649,7 +649,7 @@ class FastSlowBifurcation(object):
                                   options=options)
 
     else:
-      raise errors.ModelUseError(f'Cannot analyze {len(fast_vars)} dimensional fast system.')
+      raise errors.BrainPyError(f'Cannot analyze {len(fast_vars)} dimensional fast system.')
 
   def plot_bifurcation(self, *args, **kwargs):
     """Plot bifurcation.

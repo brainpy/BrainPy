@@ -5,7 +5,6 @@ from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath
 from brainpy.dnn.inits import XavierNormal, Initializer, ZeroInit
 
-
 __all__ = [
   'Linear'
 ]

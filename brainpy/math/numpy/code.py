@@ -11,6 +11,3 @@ def control_transform(f=None, show_code=False):
     return lambda func: func
   else:
     return f
-
-
-

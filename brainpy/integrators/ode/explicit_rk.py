@@ -67,7 +67,6 @@ More details please see references [2]_ [3]_ [4]_.
 
 """
 
-
 from brainpy import math
 from brainpy.integrators import constants
 from brainpy.integrators.ode.wrapper import general_rk_wrapper, rk2_wrapper

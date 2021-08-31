@@ -3,7 +3,6 @@
 from brainpy.integrators import constants
 from brainpy.integrators.driver import get_driver
 
-
 _ODE_UNKNOWN_NO = 0
 
 

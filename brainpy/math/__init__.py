@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 
+from brainpy import errors
 from brainpy.math.function import *
 
 try:
   from brainpy.math.jax import *
+
   BACKEND_NAME = 'jax'
 except ModuleNotFoundError:
   from brainpy.math.numpy import *
+
   BACKEND_NAME = 'numpy'
 
 
 # 1. backend name
 # --------------------------
-
 
 
 def get_backend_name():
@@ -246,22 +248,28 @@ __all = __math_fs + __binary_fs + __logic_fs + __array_manipulation_fs + \
 def use_backend(name, module=None):
   # check name
   if not isinstance(name, str):
-    raise ValueError(f'"name" must be a str, but we got {type(name)}: {name}')
+    raise errors.BrainPyError(f'"name" must be a str, but we got {type(name)}: {name}')
 
   # check module
   if module is None:
     if name == 'numpy':
       from brainpy.math import numpy as module
     elif name == 'jax':
-      from brainpy.math import jax as module
+      try:
+        from brainpy.math import jax as module
+      except ModuleNotFoundError:
+        raise errors.PackageMissingError('"jax" backend need JAX, but is not installed. '
+                                         'Please install jax via:\n\n'
+                                         '>>> pip install jax\n'
+                                         '>>> # or \n'
+                                         '>>> conda install jax -c conda-forge')
     else:
-      raise ValueError(f'Unknown backend "{name}", now we only '
-                       f'support: numpy, jax.')
+      raise errors.BrainPyError(f'Unknown backend "{name}", now we only support: numpy, jax.')
   else:
     from types import ModuleType
     if not isinstance(module, ModuleType):
-      raise ValueError(f'"module" must be a module, but we got a '
-                       f'type of {type(module)}: {module}')
+      raise errors.BrainPyError(f'"module" must be a module, but we got a '
+                                f'type of {type(module)}: {module}')
 
   global_vars = globals()
 
@@ -276,7 +284,7 @@ def use_backend(name, module=None):
     if key in essential_ops:
       essential_ops.remove(key)
   if len(essential_ops):
-    raise ValueError(f'The following operations are essential for BrainPy backends:\n\n'
-                     f'{essential_ops}\n\n'
-                     f'But they are not provided in the {name} backend.\n'
-                     f'Please provide their implementations in the corresponding module.')
+    raise errors.BrainPyError(f'The following operations are essential for BrainPy backends:\n\n'
+                              f'{essential_ops}\n\n'
+                              f'But they are not provided in the {name} backend.\n'
+                              f'Please provide their implementations in the corresponding module.')

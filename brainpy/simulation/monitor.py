@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors, math, tools
-
-from brainpy.simulation import utils
+from brainpy import errors, math
 
 __all__ = [
   'Monitor'
@@ -67,25 +65,25 @@ class Monitor(object):
     if isinstance(variables, (list, tuple)):
       if every is not None:
         if not isinstance(every, (list, tuple)):
-          raise errors.ModelUseError(f'"vars" and "every" must be the same type. '
-                                     f'While we got type(vars)={type(variables)}, '
-                                     f'type(every)={type(every)}.')
+          raise errors.BrainPyError(f'"vars" and "every" must be the same type. '
+                                    f'While we got type(vars)={type(variables)}, '
+                                    f'type(every)={type(every)}.')
         if len(variables) != len(every):
-          raise errors.ModelUseError(f'The length of "vars" and "every" are not equal.')
+          raise errors.BrainPyError(f'The length of "vars" and "every" are not equal.')
 
     elif isinstance(variables, dict):
       if every is not None:
         if not isinstance(every, dict):
-          raise errors.ModelUseError(f'"vars" and "every" must be the same type. '
-                                     f'While we got type(vars)={type(variables)}, '
-                                     f'type(every)={type(every)}.')
+          raise errors.BrainPyError(f'"vars" and "every" must be the same type. '
+                                    f'While we got type(vars)={type(variables)}, '
+                                    f'type(every)={type(every)}.')
         for key in every.keys():
           if key not in variables:
-            raise errors.ModelUseError(f'"{key}" is not in "vars": {list(variables.keys())}')
+            raise errors.BrainPyError(f'"{key}" is not in "vars": {list(variables.keys())}')
 
     else:
-      raise errors.ModelUseError(f'We only supports a format of list/tuple/dict of '
-                                 f'"vars", while we got {type(variables)}.')
+      raise errors.BrainPyError(f'We only supports a format of list/tuple/dict of '
+                                f'"vars", while we got {type(variables)}.')
 
     self.has_build = False
     self.ts = None
@@ -141,7 +139,7 @@ class Monitor(object):
             mon_key = mon_var[0]
             mon_idx = mon_var[1]
           else:
-            raise errors.ModelUseError(f'Unknown monitor item: {str(mon_var)}')
+            raise errors.BrainPyError(f'Unknown monitor item: {str(mon_var)}')
 
           self.check(mon_key)
           item_names.append(mon_key)
@@ -163,7 +161,7 @@ class Monitor(object):
               item_intervals.append(self.every[mon_key])
 
       else:
-        raise errors.ModelUseError(f'Unknown monitors type: {type(self.vars)}')
+        raise errors.BrainPyError(f'Unknown monitors type: {type(self.vars)}')
 
       self.item_names = item_names
       self.item_indices = item_indices
@@ -179,9 +177,9 @@ class Monitor(object):
     else:
       mon_idx = math.array(mon_idx)
       if len(math.shape(mon_idx)) != 1:
-        raise errors.ModelUseError(f'Monitor item index only supports '
-                                   f'an int or a one-dimensional vector, '
-                                   f'not {str(mon_idx)}')
+        raise errors.BrainPyError(f'Monitor item index only supports '
+                                  f'an int or a one-dimensional vector, '
+                                  f'not {str(mon_idx)}')
     return mon_idx
 
   def __getitem__(self, item: str):

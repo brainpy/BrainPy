@@ -37,7 +37,7 @@ class Function(Base):
     if isinstance(nodes, (tuple, list)):
       for i, node in enumerate(nodes):
         if not isinstance(node, Base):
-          raise errors.ModelUseError(f'Must be an instance of {Base.__name__}, but we got {type(node)}.')
+          raise errors.BrainPyError(f'Must be an instance of {Base.__name__}, but we got {type(node)}.')
         self._nodes[f'_node{i}'] = node
     elif isinstance(nodes, dict):
       self._nodes.update(nodes)

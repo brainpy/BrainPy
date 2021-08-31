@@ -2,6 +2,8 @@
 
 import numpy
 
+from brainpy.tools import numba_jit
+
 __all__ = [
   # math funcs
   'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
@@ -374,13 +376,13 @@ complex_ = numpy.complex_
 complex64 = numpy.complex64
 complex128 = numpy.complex128
 
-
 # others
 # -------
 
 take_along_axis = numpy.take_along_axis
 
 
+@numba_jit
 def clip_by_norm(t, clip_norm, axis=None):
   """Clips values to a maximum L2-norm.
 
@@ -407,4 +409,3 @@ def clip_by_norm(t, clip_norm, axis=None):
   l2norm = sqrt(sum(t * t, axis=axis, keepdims=True))
   clip_values = t * clip_norm / maximum(l2norm, clip_norm)
   return clip_values
-

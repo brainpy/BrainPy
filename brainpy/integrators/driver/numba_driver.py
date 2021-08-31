@@ -7,10 +7,11 @@ from collections import OrderedDict
 from pprint import pprint
 
 from brainpy import errors, tools
+from brainpy.integrators import constants as diffint_cons
 from brainpy.math import utils, profile
 from brainpy.simulation.driver import base
 from brainpy.simulation.driver.numpy_driver import NumpyDSDriver
-from brainpy.integrators import constants as diffint_cons
+
 # from brainpy.simulation.brainobjects import delays
 
 try:

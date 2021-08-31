@@ -86,7 +86,7 @@ class PhasePlane(object):
 
     # check "target_vars"
     if not isinstance(target_vars, dict):
-      raise errors.ModelUseError('"target_vars" must a dict with the format of: '
+      raise errors.BrainPyError('"target_vars" must a dict with the format of: '
                                  '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
     self.target_vars = target_vars
 
@@ -94,7 +94,7 @@ class PhasePlane(object):
     if fixed_vars is None:
       fixed_vars = dict()
     if not isinstance(fixed_vars, dict):
-      raise errors.ModelUseError('"fixed_vars" must be a dict with the format of: '
+      raise errors.BrainPyError('"fixed_vars" must be a dict with the format of: '
                                  '{"Variable A": A_value, "Variable B": B_value}')
     self.fixed_vars = fixed_vars
 
@@ -102,11 +102,11 @@ class PhasePlane(object):
     if pars_update is None:
       pars_update = dict()
     if not isinstance(pars_update, dict):
-      raise errors.ModelUseError('"pars_update" must be a dict with the format of: '
+      raise errors.BrainPyError('"pars_update" must be a dict with the format of: '
                                  '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{integrals}" model.')
+        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{integrals}" model.')
     self.pars_update = pars_update
 
     # analyzer
@@ -125,7 +125,7 @@ class PhasePlane(object):
                                     numerical_resolution=numerical_resolution,
                                     options=options)
     else:
-      raise errors.ModelUseError('BrainPy only support 1D/2D phase plane analysis. '
+      raise errors.BrainPyError('BrainPy only support 1D/2D phase plane analysis. '
                                  'Or, you can set "fixed_vars" to fix other variables, '
                                  'then make 1D/2D phase plane analysis.')
 
@@ -248,7 +248,7 @@ class _PhasePlane1D(base.Base1DAnalyzer):
     try:
       y_val = self.get_f_dx()(self.resolutions[self.x_var])
     except TypeError:
-      raise errors.ModelUseError('Missing variables. Please check and set missing '
+      raise errors.BrainPyError('Missing variables. Please check and set missing '
                                  'variables to "fixed_vars".')
 
     # 2. visualization
@@ -357,14 +357,14 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     try:
       dx = self.get_f_dx()(X, Y)
     except TypeError:
-      raise errors.ModelUseError('Missing variables. Please check and set missing '
+      raise errors.BrainPyError('Missing variables. Please check and set missing '
                                  'variables to "fixed_vars".')
 
     # dy
     try:
       dy = self.get_f_dy()(X, Y)
     except TypeError:
-      raise errors.ModelUseError('Missing variables. Please check and set missing '
+      raise errors.BrainPyError('Missing variables. Please check and set missing '
                                  'variables to "fixed_vars".')
 
     # vector field
@@ -490,7 +490,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
       try:
         y_values_in_y_eq = y_by_x['f'](xs)
       except TypeError:
-        raise errors.ModelUseError('Missing variables. Please check and set missing '
+        raise errors.BrainPyError('Missing variables. Please check and set missing '
                                    'variables to "fixed_vars".')
       x_values_in_y_eq = xs
       plt.plot(xs, y_values_in_y_eq, **y_style, label=f"{self.y_var} nullcline")
@@ -501,7 +501,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         try:
           x_values_in_y_eq = x_by_y['f'](ys)
         except TypeError:
-          raise errors.ModelUseError('Missing variables. Please check and set missing '
+          raise errors.BrainPyError('Missing variables. Please check and set missing '
                                      'variables to "fixed_vars".')
         y_values_in_y_eq = ys
         plt.plot(x_values_in_y_eq, ys, **y_style, label=f"{self.y_var} nullcline")
@@ -524,7 +524,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
       try:
         y_values_in_x_eq = y_by_x['f'](xs)
       except TypeError:
-        raise errors.ModelUseError('Missing variables. Please check and set missing '
+        raise errors.BrainPyError('Missing variables. Please check and set missing '
                                    'variables to "fixed_vars".')
       x_values_in_x_eq = xs
       plt.plot(xs, y_values_in_x_eq, **x_style, label=f"{self.x_var} nullcline")
@@ -535,7 +535,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         try:
           x_values_in_x_eq = x_by_y['f'](ys)
         except TypeError:
-          raise errors.ModelUseError('Missing variables. Please check and set missing '
+          raise errors.BrainPyError('Missing variables. Please check and set missing '
                                      'variables to "fixed_vars".')
         y_values_in_x_eq = ys
         plt.plot(x_values_in_x_eq, ys, **x_style, label=f"{self.x_var} nullcline")
@@ -599,7 +599,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     print('plot trajectory ...')
 
     if axes not in ['v-v', 't-v']:
-      raise errors.ModelUseError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
+      raise errors.BrainPyError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
 
     # 1. format the initial values
     if isinstance(initials, dict):

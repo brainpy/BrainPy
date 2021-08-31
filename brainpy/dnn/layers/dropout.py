@@ -3,7 +3,6 @@
 from brainpy.dnn.base import Module
 from brainpy.dnn.imports import jmath
 
-
 __all__ = [
   'Dropout'
 ]
@@ -44,4 +43,3 @@ class Dropout(Module):
       return jmath.where(keep_mask, x / self.prob, 0.)
     else:
       return x
-

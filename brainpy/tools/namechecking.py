@@ -13,9 +13,9 @@ _typed_names = {}
 
 def check_name(name, obj):
   if not name.isidentifier():
-    raise errors.ModelUseError(f'"{name}" isn\'t a valid identifier '
-                               f'according to Python language definition. '
-                               f'Please choose another name.')
+    raise errors.BrainPyError(f'"{name}" isn\'t a valid identifier '
+                              f'according to Python language definition. '
+                              f'Please choose another name.')
   if name in _name2id:
     if _name2id[name] != id(obj):
       raise errors.UniqueNameError(f'In BrainPy, each object should have a unique name. '

@@ -132,25 +132,25 @@ def format_inputs(host, inputs, duration):
   if inputs is None:
     inputs = []
   if not isinstance(inputs, (tuple, list)):
-    raise errors.ModelUseError('"inputs" must be a tuple/list.')
+    raise errors.BrainPyError('"inputs" must be a tuple/list.')
   if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
     if isinstance(inputs[0], str):
       inputs = [inputs]
     else:
-      raise errors.ModelUseError('Unknown input structure, only support inputs '
-                                 'with format of "(target, value, [type, operation])".')
+      raise errors.BrainPyError('Unknown input structure, only support inputs '
+                                'with format of "(target, value, [type, operation])".')
   for one_input in inputs:
     if not 2 <= len(one_input) <= 4:
-      raise errors.ModelUseError('For each target, you must specify '
-                                 '"(target, value, [type, operation])".')
+      raise errors.BrainPyError('For each target, you must specify '
+                                '"(target, value, [type, operation])".')
     if len(one_input) == 3 and one_input[2] not in SUPPORTED_INPUT_TYPE:
-      raise errors.ModelUseError(f'Input type only supports '
-                                 f'"{SUPPORTED_INPUT_TYPE}", '
-                                 f'not "{one_input[2]}".')
+      raise errors.BrainPyError(f'Input type only supports '
+                                f'"{SUPPORTED_INPUT_TYPE}", '
+                                f'not "{one_input[2]}".')
     if len(one_input) == 4 and one_input[3] not in SUPPORTED_INPUT_OPS:
-      raise errors.ModelUseError(f'Input operation only supports '
-                                 f'"{SUPPORTED_INPUT_OPS}", '
-                                 f'not "{one_input[3]}".')
+      raise errors.BrainPyError(f'Input operation only supports '
+                                f'"{SUPPORTED_INPUT_OPS}", '
+                                f'not "{one_input[3]}".')
 
   # 2. format inputs
   # ----------------
@@ -161,8 +161,8 @@ def format_inputs(host, inputs, duration):
 
     # key
     if not isinstance(key, str):
-      raise errors.ModelUseError('For each input, input[0] must be a string '
-                                 'to specify variable of the target.')
+      raise errors.BrainPyError('For each input, input[0] must be a string '
+                                'to specify variable of the target.')
     splits = key.split('.')
     target = '.'.join(splits[:-1])
     key = splits[-1]
@@ -170,11 +170,11 @@ def format_inputs(host, inputs, duration):
       real_target = host
     else:
       if target not in nodes:
-        raise errors.ModelUseError(f'Input target "{target}" is not defined in {host}.')
+        raise errors.BrainPyError(f'Input target "{target}" is not defined in {host}.')
       real_target = nodes[target]
     if not hasattr(real_target, key):
-      raise errors.ModelUseError(f'Input target key "{key}" is not '
-                                 f'defined in {real_target}.')
+      raise errors.BrainPyError(f'Input target key "{key}" is not '
+                                f'defined in {real_target}.')
 
     # value
     value = one_input[1]

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import inspect
-from typing import List, Tuple
-
 import jax
 
 from brainpy import errors
@@ -184,7 +181,7 @@ class Gradient(Base):
     # trainable variables and dynamical variables
     if vars is None:
       if not isinstance(raw, Base):
-        raise errors.ModelUseError(f'When "vars" is not provided, "raw" must be a {Base} object.')
+        raise errors.BrainPyError(f'When "vars" is not provided, "raw" must be a {Base} object.')
       vars = raw.vars().unique()
     _train_vars = ArrayCollector()
     _dyn_vars = ArrayCollector()

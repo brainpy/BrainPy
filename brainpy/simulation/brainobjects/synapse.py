@@ -4,7 +4,6 @@ from brainpy import errors
 from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.brainobjects.neuron import NeuGroup
-from brainpy.simulation.connectivity.base import TwoEndConnector
 
 __all__ = [
   'TwoEndConn',
@@ -34,9 +33,9 @@ class TwoEndConn(DynamicSystem):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
-      raise errors.ModelUseError('"pre" must be an instance of NeuGroup.')
+      raise errors.BrainPyError('"pre" must be an instance of NeuGroup.')
     if not isinstance(post, NeuGroup):
-      raise errors.ModelUseError('"post" must be an instance of NeuGroup.')
+      raise errors.BrainPyError('"post" must be an instance of NeuGroup.')
     self.pre = pre
     self.post = post
 
@@ -63,9 +62,9 @@ class TwoEndConn(DynamicSystem):
     """
 
     if not hasattr(self, 'steps'):
-      raise errors.ModelUseError('Please initialize the super class first before '
-                                 'registering constant_delay. \n\n'
-                                 'super(YourClassName, self).__init__(**kwargs)')
+      raise errors.BrainPyError('Please initialize the super class first before '
+                                'registering constant_delay. \n\n'
+                                'super(YourClassName, self).__init__(**kwargs)')
     if not key.isidentifier():
       raise ValueError(f'{key} is not a valid identifier.')
 

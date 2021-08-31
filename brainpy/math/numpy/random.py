@@ -52,7 +52,6 @@ def truncated_normal():
   raise NotImplementedError
 
 
-
 @numba.njit
 def numba_seed(seed=None):
   numpy.random.seed(seed)
@@ -61,5 +60,3 @@ def numba_seed(seed=None):
 def seed(seed=None):
   numba_seed(seed)
   numpy.random.seed(seed)
-
-

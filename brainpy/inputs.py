@@ -240,7 +240,7 @@ class SpikeTimeInput(NeuGroup):
   """
   def __init__(self, size, times, indices, need_sort=True, **kwargs):
     if len(indices) != len(times):
-      raise errors.ModelUseError(f'The length of "indices" and "times" must be the same. '
+      raise errors.BrainPyError(f'The length of "indices" and "times" must be the same. '
                                  f'However, we got {len(indices)} != {len(times)}.')
 
     # data about times and indices

@@ -2,7 +2,6 @@
 
 import numpy
 
-
 __all__ = [
   'cholesky', 'cond', 'det', 'eig', 'eigh', 'eigvals', 'eigvalsh', 'inv', 'svd',
   'lstsq', 'matrix_power', 'matrix_rank', 'norm', 'pinv', 'qr',
@@ -23,4 +22,3 @@ matrix_rank = numpy.linalg.matrix_rank
 norm = numpy.linalg.norm
 pinv = numpy.linalg.pinv
 qr = numpy.linalg.qr
-

@@ -14,4 +14,3 @@ def get_driver():
     return JaxDSDriver
   else:
     raise NotImplementedError(f'Unknown backend "{backend}"')
-

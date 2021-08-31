@@ -97,7 +97,7 @@ class BaseAnalyzer(object):
     # target variables
     # ----------------
     if not isinstance(target_vars, dict):
-      raise errors.ModelUseError('"target_vars" must be a dict, with the format of '
+      raise errors.BrainPyError('"target_vars" must be a dict, with the format of '
                                  '{"var1": (var1_min, var1_max)}.')
     self.target_vars = target_vars
     self.dvar_names = list(self.target_vars.keys())
@@ -108,7 +108,7 @@ class BaseAnalyzer(object):
     # fixed variables
     # ----------------
     if not isinstance(fixed_vars, dict):
-      raise errors.ModelUseError('"fixed_vars" must be a dict with the format '
+      raise errors.BrainPyError('"fixed_vars" must be a dict with the format '
                                  'of {"var1": val1, "var2": val2}.')
     for key in fixed_vars.keys():
       if key not in self.model.variables:
@@ -118,7 +118,7 @@ class BaseAnalyzer(object):
     # check duplicate
     for key in self.fixed_vars.keys():
       if key in self.target_vars:
-        raise errors.ModelUseError(f'"{key}" is defined as a target variable in "target_vars", '
+        raise errors.BrainPyError(f'"{key}" is defined as a target variable in "target_vars", '
                                    f'but also defined as a fixed variable in "fixed_vars".')
 
     # equations of dynamical variables
@@ -127,7 +127,7 @@ class BaseAnalyzer(object):
     self.target_eqs = tools.DictPlus()
     for key in self.target_vars.keys():
       if key not in var2eq:
-        raise errors.ModelUseError(f'target "{key}" is not a dynamical variable.')
+        raise errors.BrainPyError(f'target "{key}" is not a dynamical variable.')
       diff_eq = var2eq[key]
       sub_exprs = diff_eq.get_f_expressions(substitute_vars=list(self.target_vars.keys()))
       old_exprs = diff_eq.get_f_expressions(substitute_vars=None)
@@ -141,11 +141,11 @@ class BaseAnalyzer(object):
     if pars_update is None:
       pars_update = dict()
     if not isinstance(pars_update, dict):
-      raise errors.ModelUseError('"pars_update" must be a dict with the format '
+      raise errors.BrainPyError('"pars_update" must be a dict with the format '
                                  'of {"par1": val1, "par2": val2}.')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{self.model}" model.')
+        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{self.model}" model.')
     self.pars_update = pars_update
 
     # dynamical parameters
@@ -153,17 +153,17 @@ class BaseAnalyzer(object):
     if target_pars is None:
       target_pars = dict()
     if not isinstance(target_pars, dict):
-      raise errors.ModelUseError('"target_pars" must be a dict with the format of {"par1": (val1, val2)}.')
+      raise errors.BrainPyError('"target_pars" must be a dict with the format of {"par1": (val1, val2)}.')
     for key in target_pars.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.ModelUseError(f'"{key}" is not a valid parameter in "{self.model}" model.')
+        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{self.model}" model.')
     self.target_pars = target_pars
     self.dpar_names = list(self.target_pars.keys())
 
     # check duplicate
     for key in self.pars_update.keys():
       if key in self.target_pars:
-        raise errors.ModelUseError(f'"{key}" is defined as a target parameter in "target_pars", '
+        raise errors.BrainPyError(f'"{key}" is defined as a target parameter in "target_pars", '
                                    f'but also defined as a fixed parameter in "pars_update".')
 
     # resolutions for numerical methods
@@ -177,7 +177,7 @@ class BaseAnalyzer(object):
     elif isinstance(numerical_resolution, dict):
       for key in self.dvar_names + self.dpar_names:
         if key not in numerical_resolution:
-          raise errors.ModelUseError(f'Must provide the resolution setting of dynamical '
+          raise errors.BrainPyError(f'Must provide the resolution setting of dynamical '
                                      f'variable/parameter "{key}", '
                                      f'but only get {numerical_resolution}.')
         resolution = numerical_resolution[key]
@@ -186,13 +186,13 @@ class BaseAnalyzer(object):
           self.resolutions[key] = np.arange(*lim, resolution)
         elif isinstance(resolution, np.ndarray):
           if not np.ndim(resolution) == 1:
-            raise errors.ModelUseError(f'resolution must be a 1D vector, but get its '
+            raise errors.BrainPyError(f'resolution must be a 1D vector, but get its '
                                        f'shape with {resolution.shape}.')
           self.resolutions[key] = np.ascontiguousarray(resolution)
         else:
-          raise errors.ModelUseError(f'Unknown resolution setting: {key}: {resolution}')
+          raise errors.BrainPyError(f'Unknown resolution setting: {key}: {resolution}')
     else:
-      raise errors.ModelUseError(f'Unknown resolution type: {type(numerical_resolution)}')
+      raise errors.BrainPyError(f'Unknown resolution type: {type(numerical_resolution)}')
 
     # a dict to store the analyzed results
     # -------------------------------------
@@ -483,7 +483,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
     """Get the derivative function of the second variable. """
     if 'dydt' not in self.analyzed_results:
       if len(self.dvar_names) < 2:
-        raise errors.ModelUseError(f'Analyzer only receives {len(self.dvar_names)} '
+        raise errors.BrainPyError(f'Analyzer only receives {len(self.dvar_names)} '
                                    f'dynamical variables, cannot get "dy".')
       y_var = self.dvar_names[1]
       scope = deepcopy(self.pars_update)

@@ -399,7 +399,7 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_ite
 
   sde_type = constants.ITO_SDE if sde_type is None else sde_type
   assert sde_type in constants.SUPPORTED_INTG_TYPE, f'Currently, BrainPy only support SDE_INT types: ' \
-                                                   f'{constants.SUPPORTED_INTG_TYPE}. But we got {sde_type}.'
+                                                    f'{constants.SUPPORTED_INTG_TYPE}. But we got {sde_type}.'
 
   var_type = constants.POPU_VAR if var_type is None else var_type
   assert var_type in constants.SUPPORTED_VAR_TYPE, f'Currently, BrainPy only supports variable types: ' \

@@ -54,7 +54,7 @@ def ij2mat(i, j, num_pre=None, num_post=None):
       A 2D ndarray connectivity matrix.
   """
   if len(i) != len(j):
-    raise errors.ModelUseError('"i" and "j" must be the equal length.')
+    raise errors.BrainPyError('"i" and "j" must be the equal length.')
   if num_pre is None:
     print('WARNING: "num_pre" is not provided, the result may not be accurate.')
     num_pre = math.max(i)
@@ -81,8 +81,8 @@ def mat2ij(conn_mat):
        post-synaptic neuron indexes).
   """
   if len(math.shape(conn_mat)) != 2:
-    raise errors.ModelUseError('Connectivity matrix must be in the '
-                               'shape of (num_pre, num_post).')
+    raise errors.BrainPyError('Connectivity matrix must be in the '
+                              'shape of (num_pre, num_post).')
   pre_ids, post_ids = math.where(conn_mat > 0)
   return math.array(pre_ids, dtype=math.int_), \
          math.array(post_ids, dtype=math.int_)
@@ -106,7 +106,7 @@ def pre2post(i, j, num_pre=None):
       The conn list of pre2post.
   """
   if len(i) != len(j):
-    raise errors.ModelUseError('The length of "i" and "j" must be the same.')
+    raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_pre is None:
     print('WARNING: "num_pre" is not provided, the result may not be accurate.')
     num_pre = math.max(i)
@@ -143,7 +143,7 @@ def post2pre(i, j, num_post=None):
   """
 
   if len(i) != len(j):
-    raise errors.ModelUseError('The length of "i" and "j" must be the same.')
+    raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_post is None:
     print('WARNING: "num_post" is not provided, the result may not be accurate.')
     num_post = math.max(j)
@@ -246,7 +246,7 @@ def pre_slice(i, j, num_pre=None):
   """
   # check
   if len(i) != len(j):
-    raise errors.ModelUseError('The length of "i" and "j" must be the same.')
+    raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_pre is None:
     print('WARNING: "num_pre" is not provided, the result may not be accurate.')
     num_pre = math.max(i)
@@ -292,7 +292,7 @@ def post_slice(i, j, num_post=None):
       The conn list of post2syn.
   """
   if len(i) != len(j):
-    raise errors.ModelUseError('The length of "i" and "j" must be the same.')
+    raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_post is None:
     print('WARNING: "num_post" is not provided, the result may not be accurate.')
     num_post = math.max(j)
@@ -366,9 +366,9 @@ class TwoEndConnector(Connector):
     # synaptic structure to handle
     needs = []
     if 'pre_slice' in requires and 'post_slice' in requires:
-      raise errors.ModelUseError('Cannot use "pre_slice" and "post_slice" simultaneously. \n'
-                                 'We recommend you use "pre_slice + '
-                                 'post2syn" or "post_slice + pre2syn".')
+      raise errors.BrainPyError('Cannot use "pre_slice" and "post_slice" simultaneously. \n'
+                                'We recommend you use "pre_slice + '
+                                'post2syn" or "post_slice + pre2syn".')
     elif 'pre_slice' in requires:
       needs.append('pre_slice')
     elif 'post_slice' in requires:

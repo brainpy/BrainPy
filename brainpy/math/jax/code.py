@@ -2,6 +2,7 @@
 
 
 import ast
+
 from brainpy import tools
 
 __all__ = [
@@ -11,6 +12,7 @@ __all__ = [
 
 def control_transform(f):
   return f
+
 
 '''
 if V >= self.V_th:
@@ -48,17 +50,13 @@ class NodeTransformer(ast.NodeTransformer):
   pass
 
 
-
 def _cond_syntax(tree):
   if len(tree.orelse) == 1 and isinstance(tree.orelse[0], ast.If):
     raise ValueError('Cannot analyze multiple conditional syntax with "if .. elif .. ". '
                      'Please code the code with "if .. else .. " syntax.')
   # code for "if" flow
 
-
   # code for "else" flow
-
-
 
 
 def _for_loop_syntax(tree):
@@ -67,7 +65,6 @@ def _for_loop_syntax(tree):
 
 def _while_loop(tree):
   pass
-
 
 
 def _transform(code):

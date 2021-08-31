@@ -2,7 +2,6 @@
 
 from brainpy.simulation.brainobjects.base import Container
 
-
 __all__ = [
   'Network'
 ]

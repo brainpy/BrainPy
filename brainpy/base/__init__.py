@@ -16,8 +16,6 @@ in the function. Unfortunately, ``Function`` class does not have
 the ability to gather nodes automatically.
 """
 
-
 from brainpy.base.base import *
 from brainpy.base.collector import *
 from brainpy.base.function import *
-

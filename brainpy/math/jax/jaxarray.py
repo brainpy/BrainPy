@@ -881,18 +881,18 @@ class TrainVar(Variable):
   def __init__(self, value, replicate=None):
     if isinstance(value, JaxArray):
       value = value.value
-    super(TrainVar, self).__init__(value, replicate=replicate)
+    super(TrainVar, self).__init__(value, type='train', replicate=replicate)
 
 
 class Parameter(Variable):
-  """The pointer to specify the trainable variable.
+  """The pointer to specify the parameter.
   """
   __slots__ = ()
 
   def __init__(self, value, replicate=None):
     if isinstance(value, JaxArray):
       value = value.value
-    super(Parameter, self).__init__(value, replicate=replicate)
+    super(Parameter, self).__init__(value, type='param', replicate=replicate)
 
 
 register_pytree_node(JaxArray,
