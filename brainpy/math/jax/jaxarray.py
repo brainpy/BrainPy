@@ -870,7 +870,7 @@ class Variable(JaxArray):
   def duplicate(self, n):
     if self.replicate is None:
       raise ValueError('"replicate" is None, cannot duplicate.')
-    self._value = jnp.stack([self.replicate() for _ in range(n)])
+    self._value = jnp.stack([self.replicate(self, i) for i in range(n)])
 
 
 class TrainVar(Variable):
