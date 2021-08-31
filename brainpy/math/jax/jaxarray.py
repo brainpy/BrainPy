@@ -12,6 +12,7 @@ __all__ = [
   'JaxArray',
   'Variable',
   'TrainVar',
+  'Parameter',
 
   'ndarray',  # alias of JaxArray
 ]
@@ -839,9 +840,9 @@ class Variable(JaxArray):
     Used to specify the type of this variable.
 
   """
-  __slots__ = ('type',)
+  __slots__ = ('type', 'replicate')
 
-  def __init__(self, value, type=''):
+  def __init__(self, value, type='', replicate=None):
     if isinstance(value, JaxArray):
       value = value.value
     super(Variable, self).__init__(value)
@@ -850,6 +851,10 @@ class Variable(JaxArray):
       raise errors.UnsupportedError(f'Only support string to specify "type", '
                                     f'but we get {type.__class__.__name__}.')
     self.type = type
+    if not (callable(replicate) or replicate is None):
+      raise errors.UnsupportedError(f'Only support callable function to specify '
+                                    f'"replicate", but we get {type.__class__.__name__}.')
+    self.replicate = replicate
 
   def issametype(self, other):
     if self.type:
@@ -862,16 +867,32 @@ class Variable(JaxArray):
         types_of_other = set([s.strip() for s in other.type.split(';')])
         return len(types_of_self - types_of_other) == 0
 
+  def duplicate(self, n):
+    if self.replicate is None:
+      raise ValueError('"replicate" is None, cannot duplicate.')
+    self._value = jnp.stack([self.replicate() for _ in range(n)])
+
 
 class TrainVar(Variable):
   """The pointer to specify the trainable variable.
   """
   __slots__ = ()
 
-  def __init__(self, value):
+  def __init__(self, value, replicate=None):
     if isinstance(value, JaxArray):
       value = value.value
-    super(TrainVar, self).__init__(value, type='train')
+    super(TrainVar, self).__init__(value, replicate=replicate)
+
+
+class Parameter(Variable):
+  """The pointer to specify the trainable variable.
+  """
+  __slots__ = ()
+
+  def __init__(self, value, replicate=None):
+    if isinstance(value, JaxArray):
+      value = value.value
+    super(Parameter, self).__init__(value, replicate=replicate)
 
 
 register_pytree_node(JaxArray,
@@ -879,12 +900,16 @@ register_pytree_node(JaxArray,
                      lambda aux_data, flat_contents: JaxArray(*flat_contents))
 
 register_pytree_node(Variable,
-                     lambda t: ((t.value, t.type), None),
+                     lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: Variable(*flat_contents))
 
 register_pytree_node(TrainVar,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: TrainVar(*flat_contents))
+
+register_pytree_node(Parameter,
+                     lambda t: ((t.value,), None),
+                     lambda aux_data, flat_contents: Parameter(*flat_contents))
 
 
 def wrap(f):
