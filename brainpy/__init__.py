@@ -7,6 +7,7 @@ __version__ = "1.1.0-alpha"
 from . import math
 from .math import Variable
 from .math import TrainVar
+from .math import Parameter
 
 
 # "integrators" module
@@ -27,7 +28,8 @@ from .simulation.monitor import *
 
 
 # "dnn" module
-from . import dnn
+if math.get_backend_name() == 'jax':
+  from . import dnn
 
 
 # "analysis" module
@@ -44,3 +46,8 @@ from . import inputs
 from . import measure
 from . import running
 from . import tools
+
+
+# deprecated
+from . import backend
+from . import ops
