@@ -23,18 +23,12 @@
 # - Author : Chaoming Wang (chao.brain@qq.com), Xinyu Liu (adaliu1998@163.com)
 
 # %%
-
-import sys
-
-sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
-
-# %%
 import matplotlib.pyplot as plt
 import jax
 import brainpy as bp
 
 # %%
-bp.math.use_backend('jax')
+# bp.math.use_backend('jax')
 bp.math.set_dt(0.1)
 
 
@@ -72,11 +66,11 @@ class LIF(bp.NeuGroup):
     self.gL = gL
     self.t_refractory = t_refractory
 
-    self.V = bp.Variable(bp.math.ones(self.num) * V_L)
-    self.input = bp.Variable(bp.math.zeros(self.num))
-    self.spike = bp.Variable(bp.math.zeros(self.num, dtype=bp.math.bool_))
-    self.refractory = bp.Variable(bp.math.zeros(self.num, dtype=bp.math.bool_))
-    self.t_last_spike = bp.Variable(bp.math.ones(self.num) * -1e7)
+    self.V = bp.math.Variable(bp.math.ones(self.num) * V_L)
+    self.input = bp.math.Variable(bp.math.zeros(self.num))
+    self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
+    self.refractory = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
+    self.t_last_spike = bp.math.Variable(bp.math.ones(self.num) * -1e7)
 
   @bp.odeint
   def integral(self, V, t, Iext):
@@ -106,7 +100,7 @@ class PoissonNoise(bp.NeuGroup):
 
     self.freqs = freqs
     self.dt = bp.math.get_dt() / 1000.
-    self.spike = bp.Variable(bp.math.zeros(self.num, dtype=bool))
+    self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
     self.rand_state = bp.math.random.RandomState()
 
   def update(self, _t, _i):
@@ -125,9 +119,9 @@ class PoissonStimulus(bp.NeuGroup):
     self.t_interval = t_interval
     self.freq_mean = freq_mean
     self.freq_var = freq_var
-    self.freqs = bp.Variable(bp.math.array([0.]))
-    self.t_last_change = bp.Variable(bp.math.array([-1e7]))
-    self.spike = bp.Variable(bp.math.zeros(size, dtype=bool))
+    self.freqs = bp.math.Variable(bp.math.array([0.]))
+    self.t_last_change = bp.math.Variable(bp.math.array([-1e7]))
+    self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
     self.rand_state = bp.math.random.RandomState()
 
   def update(self, _t, _i):
@@ -225,7 +219,7 @@ class AMPA_One(bp.TwoEndConn):
 
     # variables
     self.pre_spike = self.register_constant_delay('ps', size=self.pre.num, delay=delay)
-    self.s = bp.Variable(bp.math.zeros(self.pre.num))
+    self.s = bp.math.Variable(bp.math.zeros(self.pre.num))
 
   @bp.odeint
   def int_s(self, s, t):
@@ -254,8 +248,8 @@ class AMPA(bp.TwoEndConn):
 
     # variables
     self.pre_spike = self.register_constant_delay('ps', size=self.pre.num, delay=delay)
-    self.pre_one = bp.Variable(bp.math.ones(self.pre.num))
-    self.s = bp.Variable(bp.math.zeros(self.size))
+    self.pre_one = bp.math.Variable(bp.math.ones(self.pre.num))
+    self.s = bp.math.Variable(bp.math.zeros(self.size))
 
   @bp.odeint
   def int_s(self, s, t):
@@ -307,9 +301,9 @@ class NMDA(bp.TwoEndConn):
 
     # variables
     self.pre_spike = self.register_constant_delay('ps', size=self.pre.num, delay=delay)
-    self.pre_one = bp.Variable(bp.math.ones(self.pre.num))
-    self.s = bp.Variable(bp.math.zeros(self.size))
-    self.x = bp.Variable(bp.math.zeros(self.size))
+    self.pre_one = bp.math.Variable(bp.math.ones(self.pre.num))
+    self.s = bp.math.Variable(bp.math.zeros(self.size))
+    self.x = bp.math.Variable(bp.math.zeros(self.size))
 
   @bp.odeint
   def integral(self, s, x, t):
@@ -320,7 +314,7 @@ class NMDA(bp.TwoEndConn):
   def update(self, _t, _i):
     self.pre_spike.push(self.pre.spike)
     pre_spike = self.pre_spike.pull()
-    self.s.value, self.x.value = self.integral(self.s, self.x, _t)
+    self.s[:], self.x[:] = self.integral(self.s, self.x, _t)
     self.x += pre_spike.reshape((-1, 1))
 
     g_inf = 1 / (1 + self.cc_Mg * bp.math.exp(-0.062 * self.post.V) / 3.57)
@@ -471,7 +465,7 @@ noise2I = AMPA_One(pre=noise_I, post=I, g_max=g_max_ext2I_AMPA)
 
 # %%
 # build & simulate network
-net = bp.math.jit(bp.Network(
+net = bp.Network(
   # Synaptic Connections
   noise2A, noise2B, noise2N, noise2I, IA2A, IB2B,
   A2A_AMPA, A2A_NMDA, A2B_AMPA, A2B_NMDA, A2N_AMPA, A2N_NMDA, B2A_AMPA, B2A_NMDA,
@@ -481,9 +475,12 @@ net = bp.math.jit(bp.Network(
   # Neuron Groups
   noise_A, noise_B, noise_N, noise_I, N, I, A=A, B=B, IA=IA, IB=IB,
   monitors=['A.spike', 'B.spike', 'IA.freqs', 'IB.freqs']
-))
+)
+net = bp.math.jit(net)
+
 
 net.run(duration=total_period, report=0.1)
+
 
 # %% [markdown]
 # ## Visualization

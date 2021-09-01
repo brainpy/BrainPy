@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
 
 import brainpy as bp
 
-bp.math.use_backend('jax')
+# bp.math.use_backend('jax')
 
 
 class LIF(bp.NeuGroup):
-  def __init__(self, size, V_L=-70., V_reset=-55., V_th=-50.,
+  def __init__(self, size, V_L=-70., V_reset=-70., V_th=-50.,
                Cm=0.5, gL=0.025, t_refractory=2., **kwargs):
     super(LIF, self).__init__(size=size, **kwargs)
 
@@ -20,11 +18,11 @@ class LIF(bp.NeuGroup):
     self.gL = gL
     self.t_refractory = t_refractory
 
-    self.V = bp.math.ones(self.num) * V_L
-    self.input = bp.math.zeros(self.num)
-    self.spike = bp.math.zeros(self.num, dtype=bp.math.bool_)
-    self.refractory = bp.math.zeros(self.num, dtype=bp.math.bool_)
-    self.t_last_spike = bp.math.ones(self.num) * -1e7
+    self.V = bp.math.Variable(bp.math.ones(self.num) * V_L)
+    self.input = bp.math.Variable(bp.math.zeros(self.num))
+    self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
+    self.refractory = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
+    self.t_last_spike = bp.math.Variable(bp.math.ones(self.num) * -1e7)
 
   @bp.odeint
   def integral(self, V, t, Iext):
@@ -46,8 +44,8 @@ class LIF(bp.NeuGroup):
 if __name__ == '__main__':
   group = bp.math.jit(LIF(100, monitors=['V']))
 
-  group.run(duration=200., inputs=('input', -10.), report=True)
+  group.run(duration=200., inputs=('input', -1.), report=0.1)
   bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)
 
-  group.run(duration=(200, 400.), report=True)
+  group.run(duration=(200, 400.), report=0.1)
   bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)

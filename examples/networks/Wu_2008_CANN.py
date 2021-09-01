@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# import sys
-# sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
-
 import brainpy as bp
 
-bp.math.use_backend('jax')
+
+# bp.math.use_backend('jax')
 
 
 class CANN1D(bp.NeuGroup):
   def __init__(self, num, tau=1., k=8.1, a=0.5, A=10., J0=4.,
                z_min=-bp.math.pi, z_max=bp.math.pi, **kwargs):
+    super(CANN1D, self).__init__(size=num, **kwargs)
+
     # parameters
     self.tau = tau  # The synaptic time constant
     self.k = k  # Degree of the rescaled inhibition
@@ -23,18 +23,15 @@ class CANN1D(bp.NeuGroup):
     self.z_max = z_max
     self.z_range = z_max - z_min
     self.x = bp.math.linspace(z_min, z_max, num)  # The encoded feature values
+    self.rho = num / self.z_range  # The neural density
+    self.dx = self.z_range / num  # The stimulus density
 
     # variables
-    self.u = bp.math.zeros(num)
-    self.input = bp.math.zeros(num)
+    self.u = bp.math.Variable(bp.math.zeros(num))
+    self.input = bp.math.Variable(bp.math.zeros(num))
 
     # The connection matrix
     self.conn_mat = self.make_conn(self.x)
-
-    super(CANN1D, self).__init__(size=num, **kwargs)
-
-    self.rho = num / self.z_range  # The neural density
-    self.dx = self.z_range / num  # The stimulus density
 
   def dist(self, d):
     d = bp.math.remainder(d, self.z_range)

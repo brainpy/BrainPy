@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
-
 import brainpy as bp
 
-bp.math.use_backend('jax')
+# bp.math.use_backend('jax')
 bp.integrators.set_default_odeint('rk4')
 
 
