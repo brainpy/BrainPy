@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import gc
-from collections import OrderedDict
+import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,6 +10,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from brainpy import errors, math
 from brainpy.analysis import base, stability, utils
 from brainpy.analysis.trajectory import Trajectory
+
+logger = logging.getLogger('brainpy.analysis')
+
 
 __all__ = [
   'Bifurcation',
@@ -215,7 +218,7 @@ class _Bifurcation1D(base.Base1DAnalyzer):
                                          options=options)
 
   def plot_bifurcation(self, show=False):
-    print('plot bifurcation ...')
+    logger.info('plot bifurcation ...')
 
     f_fixed_point = self.get_f_fixed_point()
     f_dfdx = self.get_f_dfdx()
@@ -317,7 +320,7 @@ class _Bifurcation2D(base.Base2DAnalyzer):
     self.fixed_points = None
 
   def plot_bifurcation(self, show=False):
-    print('plot bifurcation ...')
+    logger.info('plot bifurcation ...')
 
     # functions
     f_fixed_point = self.get_f_fixed_point()
@@ -406,7 +409,7 @@ class _Bifurcation2D(base.Base2DAnalyzer):
     return container
 
   def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(), plot_style=None, tol=0.001, show=False):
-    print('plot limit cycle ...')
+    logger.info('plot limit cycle ...')
 
     if self.fixed_points is None:
       raise errors.AnalyzerError('Please call "plot_bifurcation()" before "plot_limit_cycle_by_sim()".')
@@ -768,7 +771,7 @@ class _FastSlowTrajectory(object):
     show : bool
         Whether show or not.
     """
-    print('plot trajectory ...')
+    logger.info('plot trajectory ...')
 
     # 1. format the initial values
     all_vars = self.fast_var_names + self.slow_var_names

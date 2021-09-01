@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from brainpy import errors, math
 from brainpy.analysis import base, stability, utils
 from brainpy.analysis.trajectory import Trajectory
+
+logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
   'PhasePlane',
@@ -87,7 +91,7 @@ class PhasePlane(object):
     # check "target_vars"
     if not isinstance(target_vars, dict):
       raise errors.BrainPyError('"target_vars" must a dict with the format of: '
-                                 '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
+                                '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
     self.target_vars = target_vars
 
     # check "fixed_vars"
@@ -95,7 +99,7 @@ class PhasePlane(object):
       fixed_vars = dict()
     if not isinstance(fixed_vars, dict):
       raise errors.BrainPyError('"fixed_vars" must be a dict with the format of: '
-                                 '{"Variable A": A_value, "Variable B": B_value}')
+                                '{"Variable A": A_value, "Variable B": B_value}')
     self.fixed_vars = fixed_vars
 
     # check "pars_update"
@@ -103,7 +107,7 @@ class PhasePlane(object):
       pars_update = dict()
     if not isinstance(pars_update, dict):
       raise errors.BrainPyError('"pars_update" must be a dict with the format of: '
-                                 '{"Par A": A_value, "Par B": B_value}')
+                                '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
         raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{integrals}" model.')
@@ -126,8 +130,8 @@ class PhasePlane(object):
                                     options=options)
     else:
       raise errors.BrainPyError('BrainPy only support 1D/2D phase plane analysis. '
-                                 'Or, you can set "fixed_vars" to fix other variables, '
-                                 'then make 1D/2D phase plane analysis.')
+                                'Or, you can set "fixed_vars" to fix other variables, '
+                                'then make 1D/2D phase plane analysis.')
 
   def plot_vector_field(self, *args, **kwargs):
     """Plot vector filed of a 2D/1D system.
@@ -242,14 +246,14 @@ class _PhasePlane1D(base.Base1DAnalyzer):
     results : np.ndarray
         The dx values.
     """
-    print('plot vector field ...')
+    logger.info('plot vector field ...')
 
     # 1. Nullcline of the x variable
     try:
       y_val = self.get_f_dx()(self.resolutions[self.x_var])
     except TypeError:
       raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                 'variables to "fixed_vars".')
+                                'variables to "fixed_vars".')
 
     # 2. visualization
     label = f"d{self.x_var}dt"
@@ -279,7 +283,7 @@ class _PhasePlane1D(base.Base1DAnalyzer):
     points : np.ndarray
         The fixed points.
     """
-    print('plot fixed point ...')
+    logger.info('plot fixed point ...')
 
     # 1. functions
     f_fixed_point = self.get_f_fixed_point()
@@ -292,7 +296,7 @@ class _PhasePlane1D(base.Base1DAnalyzer):
       x = x_values[i]
       dfdx = f_dfdx(x)
       fp_type = stability.stability_analysis(dfdx)
-      print(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
+      logger.info(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
       container[fp_type].append(x)
 
     # 3. visualization
@@ -344,7 +348,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     result : tuple
         The ``dx``, ``dy`` values.
     """
-    print('plot vector field ...')
+    logger.info('plot vector field ...')
 
     if plot_style is None:
       plot_style = dict()
@@ -358,14 +362,14 @@ class _PhasePlane2D(base.Base2DAnalyzer):
       dx = self.get_f_dx()(X, Y)
     except TypeError:
       raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                 'variables to "fixed_vars".')
+                                'variables to "fixed_vars".')
 
     # dy
     try:
       dy = self.get_f_dy()(X, Y)
     except TypeError:
       raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                 'variables to "fixed_vars".')
+                                'variables to "fixed_vars".')
 
     # vector field
     if plot_method == 'quiver':
@@ -412,7 +416,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     results : tuple
         The value points.
     """
-    print('plot fixed point ...')
+    logger.info('plot fixed point ...')
 
     # function for fixed point solving
     f_fixed_point = self.get_f_fixed_point()
@@ -428,7 +432,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
       x = x_values[i]
       y = y_values[i]
       fp_type = stability.stability_analysis(f_jacobian(x, y))
-      print(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
+      logger.info(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 
@@ -469,7 +473,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     values : dict
         A dict with the format of ``{func1: (x_val, y_val), func2: (x_val, y_val)}``.
     """
-    print('plot nullcline ...')
+    logger.info('plot nullcline ...')
 
     if numerical_setting is None:
       numerical_setting = dict()
@@ -491,7 +495,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         y_values_in_y_eq = y_by_x['f'](xs)
       except TypeError:
         raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                   'variables to "fixed_vars".')
+                                  'variables to "fixed_vars".')
       x_values_in_y_eq = xs
       plt.plot(xs, y_values_in_y_eq, **y_style, label=f"{self.y_var} nullcline")
 
@@ -502,7 +506,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
           x_values_in_y_eq = x_by_y['f'](ys)
         except TypeError:
           raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                     'variables to "fixed_vars".')
+                                    'variables to "fixed_vars".')
         y_values_in_y_eq = ys
         plt.plot(x_values_in_y_eq, ys, **y_style, label=f"{self.y_var} nullcline")
       else:
@@ -525,7 +529,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         y_values_in_x_eq = y_by_x['f'](xs)
       except TypeError:
         raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                   'variables to "fixed_vars".')
+                                  'variables to "fixed_vars".')
       x_values_in_x_eq = xs
       plt.plot(xs, y_values_in_x_eq, **x_style, label=f"{self.x_var} nullcline")
 
@@ -536,7 +540,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
           x_values_in_x_eq = x_by_y['f'](ys)
         except TypeError:
           raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                     'variables to "fixed_vars".')
+                                    'variables to "fixed_vars".')
         y_values_in_x_eq = ys
         plt.plot(x_values_in_x_eq, ys, **x_style, label=f"{self.x_var} nullcline")
       else:
@@ -596,7 +600,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         Whether show or not.
     """
 
-    print('plot trajectory ...')
+    logger.info('plot trajectory ...')
 
     if axes not in ['v-v', 't-v']:
       raise errors.BrainPyError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
@@ -702,7 +706,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     show : bool
         Whether show or not.
     """
-    print('plot limit cycle ...')
+    logger.info('plot limit cycle ...')
 
     # 1. format the initial values
     if isinstance(initials, dict):
@@ -748,7 +752,7 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         lines = plt.plot(x_cycle, y_cycle, label='limit cycle')
         utils.add_arrow(lines[0])
       else:
-        print(f'No limit cycle found for initial value {initial}')
+        logger.info(f'No limit cycle found for initial value {initial}')
 
     # 6. visualization
     plt.xlabel(self.x_var)
