@@ -95,7 +95,7 @@ def analyze_func(f, nopython=True, fastmath=True, parallel=False, nogil=False, s
   return {}
 
 
-def analyze_cls_func(f, host=None, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
+def analyze_cls_func(f, code=None, host=None, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
   global Container, DynamicSystem
   if Container is None:
     from brainpy.simulation.brainobjects.base import Container
@@ -140,7 +140,7 @@ def analyze_cls_func(f, host=None, nopython=True, fastmath=True, parallel=False,
   # step function of normal DynamicSystem
   else:
     # arguments
-    code = tools.deindent(inspect.getsource(f)).strip()
+    code = (code or tools.deindent(inspect.getsource(f)).strip())
     tree = ast.parse(code)
     arg = tree.body[0].args.args[0].arg
 
@@ -225,6 +225,11 @@ def analyze_cls_func(f, host=None, nopython=True, fastmath=True, parallel=False,
 
 
 def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
+  if f.brainpy_data['method'].startswith('exponential'):
+    return analyze_cls_func(f=f, code="\n".join(f.brainpy_data['code_lines']),
+                            nopython=nopython, fastmath=fastmath, parallel=parallel,
+                            nogil=nogil, show_code=show_code)
+
   global DynamicSystem
   if DynamicSystem is None:
     from brainpy.simulation.brainobjects.base import DynamicSystem
@@ -281,6 +286,7 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
     tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
     tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
     code = tools.ast2code(tree)
+    code_scope_backup = {k: v for k, v in code_scope.items()}
     # compile functions
     if show_code:
       print(code)
@@ -291,6 +297,7 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
     new_f = code_scope[func_name]
     new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
     new_f.brainpy_data['code_lines'] = code.strip().split('\n')
+    new_f.brainpy_data['code_scope'] = code_scope_backup
     jit_f = numba.jit(new_f, nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil)
     return dict(func=jit_f, arguments=arguments, arg2call=arg2call, nodes=nodes)
   else:

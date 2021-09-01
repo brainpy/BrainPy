@@ -30,8 +30,8 @@ class HH(bp.NeuGroup):
     self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
     self.input = bp.math.Variable(bp.math.zeros(self.num))
 
-  # @bp.odeint(method='exponential_euler')
-  @bp.odeint(method='rk4')
+  @bp.odeint(method='exponential_euler')
+  # @bp.odeint(method='rk4')
   def integral(self, V, m, h, n, t, Iext):
     alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
     beta = 4.0 * bp.math.exp(-(V + 65) / 18)

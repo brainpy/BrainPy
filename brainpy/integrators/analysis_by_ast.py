@@ -142,16 +142,16 @@ def separate_variables(func_or_code):
 
   >>> eq_code = '''
   >>> def derivative(V, m, h, n, t, C, gNa, ENa, gK, EK, gL, EL, Iext):
-  >>>     alpha = 0.1 * (V + 40) / (1 - bp.backend.exp(-(V + 40) / 10))
-  >>>     beta = 4.0 * bp.backend.exp(-(V + 65) / 18)
+  >>>     alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+  >>>     beta = 4.0 * bp.math.exp(-(V + 65) / 18)
   >>>     dmdt = alpha * (1 - m) - beta * m
   >>>
-  >>>     alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.)
-  >>>     beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))
+  >>>     alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
+  >>>     beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
   >>>     dhdt = alpha * (1 - h) - beta * h
   >>>
-  >>>     alpha = 0.01 * (V + 55) / (1 - bp.backend.exp(-(V + 55) / 10))
-  >>>     beta = 0.125 * bp.backend.exp(-(V + 65) / 80)
+  >>>     alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+  >>>     beta = 0.125 * bp.math.exp(-(V + 65) / 80)
   >>>     dndt = alpha * (1 - n) - beta * n
   >>>
   >>>     I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
@@ -166,31 +166,31 @@ def separate_variables(func_or_code):
                                        'I_K = gK * n ** 4.0 * (V - EK)\n',
                                        'I_leak = gL * (V - EL)\n',
                                        'dVdt = (-I_Na - I_K - I_leak + Iext) / C\n'],
-                              'dhdt': ['alpha = 0.07 * bp.backend.exp(-(V + 65) / 20.0)\n',
-                                       'beta = 1 / (1 + bp.backend.exp(-(V + 35) / 10))\n',
+                              'dhdt': ['alpha = 0.07 * bp.math.exp(-(V + 65) / 20.0)\n',
+                                       'beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))\n',
                                        'dhdt = alpha * (1 - h) - beta * h\n'],
                               'dmdt': ['alpha = 0.1 * (V + 40) / (1 - '
-                                       'bp.backend.exp(-(V + 40) / 10))\n',
-                                       'beta = 4.0 * bp.backend.exp(-(V + 65) / 18)\n',
+                                       'bp.math.exp(-(V + 40) / 10))\n',
+                                       'beta = 4.0 * bp.math.exp(-(V + 65) / 18)\n',
                                        'dmdt = alpha * (1 - m) - beta * m\n'],
                               'dndt': ['alpha = 0.01 * (V + 55) / (1 - '
-                                       'bp.backend.exp(-(V + 55) / 10))\n',
-                                       'beta = 0.125 * bp.backend.exp(-(V + 65) / 80)\n',
+                                       'bp.math.exp(-(V + 55) / 10))\n',
+                                       'beta = 0.125 * bp.math.exp(-(V + 65) / 80)\n',
                                        'dndt = alpha * (1 - n) - beta * n\n']},
    'expressions_for_returns': {'dVdt': ['gNa * m ** 3.0 * h * (V - ENa)',
                                         'gK * n ** 4.0 * (V - EK)',
                                         'gL * (V - EL)',
                                         '(-I_Na - I_K - I_leak + Iext) / C'],
-                               'dhdt': ['0.07 * bp.backend.exp(-(V + 65) / 20.0)',
-                                        '1 / (1 + bp.backend.exp(-(V + 35) / 10))',
+                               'dhdt': ['0.07 * bp.math.exp(-(V + 65) / 20.0)',
+                                        '1 / (1 + bp.math.exp(-(V + 35) / 10))',
                                         'alpha * (1 - h) - beta * h'],
                                'dmdt': ['0.1 * (V + 40) / (1 - '
-                                        'bp.backend.exp(-(V + 40) / 10))',
-                                        '4.0 * bp.backend.exp(-(V + 65) / 18)',
+                                        'bp.math.exp(-(V + 40) / 10))',
+                                        '4.0 * bp.math.exp(-(V + 65) / 18)',
                                         'alpha * (1 - m) - beta * m'],
                                'dndt': ['0.01 * (V + 55) / (1 - '
-                                        'bp.backend.exp(-(V + 55) / 10))',
-                                        '0.125 * bp.backend.exp(-(V + 65) / 80)',
+                                        'bp.math.exp(-(V + 55) / 10))',
+                                        '0.125 * bp.math.exp(-(V + 65) / 80)',
                                         'alpha * (1 - n) - beta * n']},
    'variables_for_returns': {'dVdt': [['I_Na'], ['I_K'], ['I_leak'], ['dVdt']],
                              'dhdt': [['alpha'], ['beta'], ['dhdt']],

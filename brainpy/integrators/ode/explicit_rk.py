@@ -87,17 +87,17 @@ __all__ = [
 ]
 
 
-def _base(A, B, C, f, show_code, dt, var_type):
+def _base(A, B, C, f, show_code, dt, var_type, method):
   dt = math.get_dt() if dt is None else dt
   show_code = False if show_code is None else show_code
   var_type = constants.SCALAR_VAR if var_type is None else var_type
 
   if f is None:
     return lambda func: general_rk_wrapper(f=func, show_code=show_code, dt=dt, A=A, B=B, C=C,
-                                           var_type=var_type)
+                                           var_type=var_type, method=method)
   else:
     return general_rk_wrapper(f=f, show_code=show_code, dt=dt, A=A, B=B, C=C,
-                              var_type=var_type)
+                              var_type=var_type, method=method)
 
 
 def euler(f=None, show_code=None, dt=None, var_type=None):
@@ -185,7 +185,8 @@ def euler(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='euler')
 
 
 def midpoint(f=None, show_code=None, dt=None, var_type=None):
@@ -286,7 +287,8 @@ def midpoint(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='midpoint')
 
 
 def heun2(f=None, show_code=None, dt=None, var_type=None):
@@ -358,7 +360,8 @@ def heun2(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='heun2')
 
 
 def ralston2(f=None, show_code=None, dt=None, var_type=None):
@@ -396,7 +399,8 @@ def ralston2(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='ralston2')
 
 
 def rk2(f=None, show_code=None, dt=None, beta=None, var_type=None):
@@ -567,7 +571,8 @@ def rk3(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='rk3')
 
 
 def heun3(f=None, show_code=None, dt=None, var_type=None):
@@ -598,7 +603,8 @@ def heun3(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='heun3')
 
 
 def ralston3(f=None, show_code=None, dt=None, var_type=None):
@@ -634,7 +640,8 @@ def ralston3(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='ralston3')
 
 
 def ssprk3(f=None, show_code=None, dt=None, var_type=None):
@@ -664,7 +671,8 @@ def ssprk3(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='ssprk3')
 
 
 def rk4(f=None, show_code=None, dt=None, var_type=None):
@@ -738,7 +746,8 @@ def rk4(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='rk4')
 
 
 def ralston4(f=None, show_code=None, dt=None, var_type=None):
@@ -776,7 +785,8 @@ def ralston4(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='rk4')
 
 
 def rk4_38rule(f=None, show_code=None, dt=None, var_type=None):
@@ -824,4 +834,5 @@ def rk4_38rule(f=None, show_code=None, dt=None, var_type=None):
                f=f,
                show_code=show_code,
                dt=dt,
-               var_type=var_type)
+               var_type=var_type,
+               method='rk4_38rule')

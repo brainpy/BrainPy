@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors
-from brainpy.integrators import constants
 from pprint import pprint
 
+from brainpy import errors
+from brainpy.integrators import constants
 
 _ODE_UNKNOWN_NO = 0
 
@@ -75,6 +75,7 @@ def compile_and_assign_attrs(raw_func,
                              parameters,
                              dt,
                              var_type,
+                             method,
                              show_code=False):
   if not isinstance(raw_func, dict):
     raise errors.IntegratorError('"raw_func" must be a dict of functions.')
@@ -97,6 +98,7 @@ def compile_and_assign_attrs(raw_func,
                             code_scope=code_scope_old,
                             variables=variables,
                             parameters=parameters,
+                            method=method,
                             dt=dt,
                             func_name=func_name,
                             var_type=var_type)

@@ -18,7 +18,7 @@ _f_kw = 'f'
 _dt_kw = 'dt'
 
 
-def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
+def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, method):
   """Runge–Kutta methods for ordinary differential equation.
 
   For the system,
@@ -108,10 +108,11 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
                                          variables=variables,
                                          parameters=parameters,
                                          dt=dt,
+                                         method=method,
                                          var_type=var_type)
 
 
-def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type):
+def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type, method):
   """Adaptive Runge-Kutta numerical method for ordinary differential equations.
 
   The embedded methods are designed to produce an estimate of the local
@@ -250,6 +251,7 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
                                          variables=variables,
                                          parameters=parameters,
                                          dt=dt,
+                                         method=method,
                                          var_type=var_type)
 
 
@@ -303,6 +305,7 @@ def rk2_wrapper(f, show_code, dt, beta, var_type):
                                          variables=variables,
                                          parameters=parameters,
                                          dt=dt,
+                                         method='rk2',
                                          var_type=var_type)
 
 
@@ -406,5 +409,6 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
                                          func_name=func_name,
                                          variables=variables,
                                          parameters=parameters,
+                                         method='exponential_euler',
                                          dt=dt,
                                          var_type=var_type)

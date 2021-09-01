@@ -67,7 +67,7 @@ __all__ = [
 ]
 
 
-def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
+def _base(A, B1, B2, C, method, f=None, tol=None, adaptive=None,
           dt=None, show_code=None, var_type=None):
   """
 
@@ -104,7 +104,8 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
                                          tol=tol,
                                          adaptive=adaptive,
                                          show_code=show_code,
-                                         var_type=var_type)
+                                         var_type=var_type,
+                                         method=method)
   else:
     return adaptive_rk_wrapper(f,
                                dt=dt,
@@ -115,7 +116,8 @@ def _base(A, B1, B2, C, f=None, tol=None, adaptive=None,
                                tol=tol,
                                adaptive=adaptive,
                                show_code=show_code,
-                               var_type=var_type)
+                               var_type=var_type,
+                               method=method)
 
 
 def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -177,7 +179,8 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
                tol=tol,
                adaptive=adaptive,
                show_code=show_code,
-               var_type=var_type)
+               var_type=var_type,
+               method='rkf45')
 
 
 def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -226,7 +229,8 @@ def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
                tol=tol,
                adaptive=adaptive,
                show_code=show_code,
-               var_type=var_type)
+               var_type=var_type,
+               method='rkf12')
 
 
 def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -292,7 +296,8 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
                tol=tol,
                adaptive=adaptive,
                show_code=show_code,
-               var_type=var_type)
+               var_type=var_type,
+               method='rkdp')
 
 
 def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -351,7 +356,8 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
                tol=tol,
                adaptive=adaptive,
                show_code=show_code,
-               var_type=var_type)
+               var_type=var_type,
+               method='ck')
 
 
 def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -405,7 +411,8 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
                tol=tol,
                adaptive=adaptive,
                show_code=show_code,
-               var_type=var_type)
+               var_type=var_type,
+               method='bs')
 
 
 def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
@@ -446,7 +453,8 @@ def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_typ
                tol=tol,
                adaptive=adaptive,
                show_code=show_code,
-               var_type=var_type)
+               var_type=var_type,
+               method='heun_euler')
 
 
 def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is_scalar=None):
