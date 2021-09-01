@@ -3,12 +3,13 @@
 from contextlib import contextmanager
 
 from brainpy import errors
-from brainpy import math
 
 __all__ = [
   'Collector',
   'ArrayCollector',
 ]
+
+math = None
 
 
 class Collector(dict):
@@ -58,6 +59,10 @@ class Collector(dict):
     type_ : Any
       The type/class to match.
     """
+    global math
+    if math is None:
+      from brainpy import math
+
     gather = type(self)()
     if type(type_) == type:
       judge_func = lambda v: isinstance(v, type_) if judge_func is None else judge_func
@@ -112,6 +117,10 @@ class ArrayCollector(Collector):
 
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
+    global math
+    if math is None:
+      from brainpy import math
+
     assert isinstance(value, math.ndarray)
     if key in self:
       if id(self[key]) != id(value):
@@ -144,6 +153,10 @@ class ArrayCollector(Collector):
     Important: replicating also updates the random state in order
     to have a new one per device.
     """
+    global math
+    if math is None:
+      from brainpy import math
+
     try:
       import jax
       import jax.numpy as jnp

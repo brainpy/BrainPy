@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy import math
 from brainpy.base import collector
-from brainpy.integrators import constants
 from brainpy.tools import namechecking
 
 __all__ = [
   'Base',
 ]
+
+math = None
+DE_INT = None
 
 
 class Base(object):
@@ -39,6 +40,10 @@ class Base(object):
     gather : collector.ArrayCollector
       The collection contained (the path, the variable).
     """
+    global math
+    if math is None:
+      from brainpy import math
+
     gather = collector.ArrayCollector()
     if method == 'absolute':
       for k, v in self.__dict__.items():
@@ -83,6 +88,9 @@ class Base(object):
     gather : collector.ArrayCollector
       The collection contained (the path, the trainable variable).
     """
+    global math
+    if math is None:
+      from brainpy import math
     return self.vars(method=method).subset(math.TrainVar)
 
   def nodes(self, method='absolute', _paths=None):
@@ -174,12 +182,16 @@ class Base(object):
     collector : collector.Collector
       The collection contained (the path, the integrator).
     """
+    global DE_INT
+    if DE_INT is None:
+      from brainpy.integrators.constants import DE_INT
+
     nodes = self.nodes(method=method)
     gather = collector.Collector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
-        if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(constants.DE_INT):
+        if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(DE_INT):
           gather[f'{node_path}.{k}'] = v
     return gather
 
