@@ -29,14 +29,14 @@ class NeuGroup(DynamicSystem):
     # ----
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
-        raise errors.ModelDefError('size must be int, or a tuple/list of int.')
+        raise errors.BrainPyError('size must be int, or a tuple/list of int.')
       if not isinstance(size[0], int):
-        raise errors.ModelDefError('size must be int, or a tuple/list of int.')
+        raise errors.BrainPyError('size must be int, or a tuple/list of int.')
       size = tuple(size)
     elif isinstance(size, int):
       size = (size,)
     else:
-      raise errors.ModelDefError('size must be int, or a tuple/list of int.')
+      raise errors.BrainPyError('size must be int, or a tuple/list of int.')
     self.size = size
     self.num = utils.size2len(size)
 

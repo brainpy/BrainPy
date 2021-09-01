@@ -16,6 +16,20 @@ class Collector(dict):
   of collections of variables easy. A Collector is ordered by insertion order. It is the object
   returned by Base.vars() and used as input in many Collector instance: optimizers, jit, etc..."""
 
+  def __setitem__(self, key, value):
+    """Overload bracket assignment to catch potential conflicts during assignment."""
+    if key in self:
+      if id(self[key]) != id(value):
+        raise ValueError(f'Name "{key}" conflicts: same name for {value} and {self[key]}.')
+    dict.__setitem__(self, key, value)
+
+  def update(self, other, **kwargs):
+    assert isinstance(other, dict)
+    for key, value in other.items():
+      self[key] = value
+    for key, value in kwargs.items():
+      self[key] = value
+
   def __add__(self, other):
     gather = type(self)(self)
     gather.update(other)
@@ -103,13 +117,6 @@ class ArrayCollector(Collector):
       if id(self[key]) != id(value):
         raise ValueError(f'Name "{key}" conflicts: same name for {value} and {self[key]}.')
     dict.__setitem__(self, key, value)
-
-  def update(self, other, **kwargs):
-    assert isinstance(other, dict)
-    for key, value in other.items():
-      self[key] = value
-    for key, value in kwargs.items():
-      self[key] = value
 
   def assign(self, inputs):
     """Assign data to all values.

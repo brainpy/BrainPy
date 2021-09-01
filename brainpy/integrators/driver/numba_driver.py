@@ -494,7 +494,7 @@ def _class2func(cls_func, host, func_name=None, show_code=False):
     elif arg in profile.SYSTEM_KEYWORDS:
       calls.append(arg)
     else:
-      raise errors.ModelDefError(f'Step function "{func_name}" of {host} '
+      raise errors.BrainPyError(f'Step function "{func_name}" of {host} '
                                  f'define an unknown argument "{arg}" which is not '
                                  f'an attribute of {host} nor the system keywords '
                                  f'{profile.SYSTEM_KEYWORDS}.')

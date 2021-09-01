@@ -2,19 +2,13 @@
 
 from brainpy import errors
 from brainpy.math.function import *
-
-try:
-  from brainpy.math.jax import *
-
-  BACKEND_NAME = 'jax'
-except ModuleNotFoundError:
-  from brainpy.math.numpy import *
-
-  BACKEND_NAME = 'numpy'
+from brainpy.math.numpy import *
 
 
 # 1. backend name
 # --------------------------
+
+BACKEND_NAME = 'numpy'
 
 
 def get_backend_name():

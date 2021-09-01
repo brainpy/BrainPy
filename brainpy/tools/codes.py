@@ -188,7 +188,7 @@ def get_func_source(func):
   return code
 
 
-def get_main_code(func):
+def get_main_code(func, codes=None):
   """Get the main function _code string.
 
   For lambda function, return the
@@ -205,23 +205,23 @@ def get_main_code(func):
     return ''
   elif callable(func):
     if is_lambda_function(func):
-      func_code = get_func_source(func)
-      splits = func_code.split(':')
+      codes = (codes or get_func_source(func))
+      splits = codes.split(':')
       if len(splits) != 2:
-        raise ValueError(f'Can not parse function: \n{func_code}')
+        raise ValueError(f'Can not parse function: \n{codes}')
       return f'return {splits[1]}'
 
     else:
-      func_codes = inspect.getsourcelines(func)[0]
+      codes = (codes.split('\n') or inspect.getsourcelines(func)[0])
       idx = 0
-      for i, line in enumerate(func_codes):
+      for line in codes:
         idx += 1
         line = line.replace(' ', '')
         if '):' in line:
           break
       else:
-        code = "\n".join(func_codes)
+        code = "\n".join(codes)
         raise ValueError(f'Can not parse function: \n{code}')
-      return ''.join(func_codes[idx:])
+      return ''.join(codes[idx:])
   else:
     raise ValueError(f'Unknown function type: {type(func)}.')

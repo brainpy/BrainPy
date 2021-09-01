@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from brainpy import errors
 from brainpy.integrators import constants
-from brainpy.integrators.driver import get_driver
+from pprint import pprint
+
 
 _ODE_UNKNOWN_NO = 0
 
@@ -65,17 +67,46 @@ def update(vars, dt_var, B, code_lines):
   return return_args
 
 
-def compile_and_assign_attrs(code_lines,
+def compile_and_assign_attrs(raw_func,
+                             code_lines,
                              code_scope,
-                             show_code,
                              func_name,
                              variables,
                              parameters,
                              dt,
-                             var_type):
-  driver = get_driver()(code_scope=code_scope,
-                        code_lines=code_lines,
-                        func_name=func_name,
-                        show_code=show_code)
-  call = driver.build()
-  return call
+                             var_type,
+                             show_code=False):
+  if not isinstance(raw_func, dict):
+    raise errors.IntegratorError('"raw_func" must be a dict of functions.')
+
+  code_scope_old = {key: val for key, val in code_scope.items()}
+
+  # compile functions
+  code = '\n'.join(code_lines)
+  if show_code:
+    print(code)
+    print()
+    pprint(code_scope)
+    print()
+  exec(compile(code, '', 'exec'), code_scope)
+  new_f = code_scope[func_name]
+
+  # assign values
+  new_f.brainpy_data = dict(raw_func=raw_func,
+                            code_lines=code_lines,
+                            code_scope=code_scope_old,
+                            variables=variables,
+                            parameters=parameters,
+                            dt=dt,
+                            func_name=func_name,
+                            var_type=var_type)
+
+  # new_f.raw_func = raw_func
+  # new_f.code_lines = code_lines
+  # new_f.code_scope = code_scope_old
+  # new_f.variables = variables
+  # new_f.parameters = parameters
+  # new_f.dt = dt
+  # new_f.var_type = var_type
+
+  return new_f

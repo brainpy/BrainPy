@@ -6,16 +6,16 @@ sys.path.append(r'/mnt/d/codes/Projects/BrainPy')
 
 import brainpy as bp
 
-bp.math.use_backend('jax')
+bp.math.use_backend('numpy')
 bp.math.set_dt(dt=0.02)
 
 
 class HH(bp.NeuGroup):
-  target_backend = 'general'
-
   def __init__(self, size, ENa=50., EK=-77., EL=-54.387,
                C=1.0, gNa=120., gK=36., gL=0.03, V_th=20.,
                **kwargs):
+    super(HH, self).__init__(size=size, **kwargs)
+
     # parameters
     self.ENa = ENa
     self.EK = EK
@@ -27,14 +27,12 @@ class HH(bp.NeuGroup):
     self.V_th = V_th
 
     # variables
-    self.V = bp.math.ones(size) * -65.
-    self.m = bp.math.ones(size) * 0.5
-    self.h = bp.math.ones(size) * 0.6
-    self.n = bp.math.ones(size) * 0.32
-    self.spike = bp.math.zeros(size, dtype=bool)
-    self.input = bp.math.zeros(size)
-
-    super(HH, self).__init__(size=size, **kwargs)
+    self.V = bp.math.Variable(bp.math.ones(self.num) * -65.)
+    self.m = bp.math.Variable(bp.math.ones(self.num) * 0.5)
+    self.h = bp.math.Variable(bp.math.ones(self.num) * 0.6)
+    self.n = bp.math.Variable(bp.math.ones(self.num) * 0.32)
+    self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
+    self.input = bp.math.Variable(bp.math.zeros(self.num))
 
   # @bp.odeint(method='exponential_euler')
   @bp.odeint(method='rk4')
@@ -71,10 +69,10 @@ class HH(bp.NeuGroup):
 def run_hh1():
   group = bp.math.jit(HH(int(1e4), monitors=['V']))
 
-  group.run(200., inputs=('input', 10.), report=True)
+  group.run(200., inputs=('input', 10.), report=0.1)
   bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)
 
-  group.run(200., report=True)
+  group.run(200., report=0.1)
   bp.visualize.line_plot(group.mon.ts, group.mon.V, show=True)
 
 

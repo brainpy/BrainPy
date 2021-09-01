@@ -105,13 +105,13 @@ def get_args(f):
       arguments.append(par.name)
 
     elif par.kind is inspect.Parameter.VAR_POSITIONAL:
-      raise errors.ModelDefError('Step function do not support positional parameters, e.g., *args')
+      raise errors.BrainPyError('Step function do not support positional parameters, e.g., *args')
     elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
-      raise errors.ModelDefError('Step function do not support positional only parameters, e.g., /')
+      raise errors.BrainPyError('Step function do not support positional only parameters, e.g., /')
     elif par.kind is inspect.Parameter.VAR_KEYWORD:
-      raise errors.ModelDefError(f'Step function do not support dict of keyword arguments: {str(par)}')
+      raise errors.BrainPyError(f'Step function do not support dict of keyword arguments: {str(par)}')
     else:
-      raise errors.ModelDefError(f'Unknown argument type: {par.kind}')
+      raise errors.BrainPyError(f'Unknown argument type: {par.kind}')
 
   # 2. check the function arguments
   class_kw = None

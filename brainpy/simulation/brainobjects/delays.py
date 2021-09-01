@@ -47,7 +47,7 @@ class ConstantDelay(Delay):
     if isinstance(size, int):
       size = (size,)
     if not isinstance(size, (tuple, list)):
-      raise errors.ModelDefError(f'"size" must a tuple/list of int, '
+      raise errors.BrainPyError(f'"size" must a tuple/list of int, '
                                  f'but we got {type(size)}: {size}')
     self.size = tuple(size)
 

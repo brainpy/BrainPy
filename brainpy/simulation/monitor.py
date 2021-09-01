@@ -113,7 +113,7 @@ class Monitor(object):
       try:
         data = getattr(data, s)
       except AttributeError:
-        raise errors.ModelDefError(f"Item \"{mon_key}\" isn't defined in model "
+        raise errors.BrainPyError(f"Item \"{mon_key}\" isn't defined in model "
                                    f"{self.target}, so it can not be monitored.")
 
   def build(self):

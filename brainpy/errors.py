@@ -6,13 +6,8 @@ class RunningError(Exception):
   pass
 
 
-class ModelDefError(Exception):
-  """Model definition error."""
-  pass
-
-
 class BrainPyError(Exception):
-  """Model use error."""
+  """General BrainPy error."""
   pass
 
 
@@ -57,5 +52,9 @@ class UniqueNameError(Exception):
 
 
 class UnsupportedError(Exception):
+  pass
+
+
+class NoLongerSupportError(Exception):
   pass
 

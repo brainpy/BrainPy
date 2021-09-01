@@ -100,7 +100,7 @@ def transform_integrals_to_model(integrals):
     # others
     for var in integral.variables:
       if var in all_variables:
-        raise errors.ModelDefError(f'Variable {var} has been defined before. Cannot group '
+        raise errors.BrainPyError(f'Variable {var} has been defined before. Cannot group '
                                    f'this integral as a dynamic system.')
       all_variables.add(var)
     all_parameters.update(integral.parameters)

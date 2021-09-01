@@ -43,7 +43,6 @@ class DynamicSystem(Base):
 
     # runner and run function
     self.driver = None
-    self.run_func = None
     self.input_step = lambda _t, _i: None
     self.monitor_step = lambda _t, _i: None
 
@@ -57,15 +56,15 @@ class DynamicSystem(Base):
         elif callable(step):
           self.steps[step.__name__] = step
         else:
-          raise errors.ModelDefError(_error_msg.format(type(steps[0])))
+          raise errors.BrainPyError(_error_msg.format(type(steps[0])))
     elif isinstance(steps, dict):
       for key, step in steps.items():
         if callable(step):
           self.steps[key] = step
         else:
-          raise errors.ModelDefError(_error_msg.format(type(step)))
+          raise errors.BrainPyError(_error_msg.format(type(step)))
     else:
-      raise errors.ModelDefError(_error_msg.format(type(steps)))
+      raise errors.BrainPyError(_error_msg.format(type(steps)))
 
     # monitors
     if monitors is None:
@@ -76,9 +75,8 @@ class DynamicSystem(Base):
       self.mon = monitors
       self.mon.target = self
     else:
-      raise errors.BrainPyError(f'"monitors" only supports '
-                                f'list/tuple/dict/ instance '
-                                f'of Monitor, not {type(monitors)}.')
+      raise errors.BrainPyError(f'"monitors" only supports list/tuple/dict/ '
+                                f'instance of Monitor, not {type(monitors)}.')
 
     # target backend
     if self.target_backend is None:
@@ -87,23 +85,18 @@ class DynamicSystem(Base):
       self._target_backend = (self.target_backend,)
     elif isinstance(self.target_backend, (tuple, list)):
       if not isinstance(self.target_backend[0], str):
-        raise errors.ModelDefError('"target_backend" must be a '
-                                   'list/tuple of string.')
+        raise errors.BrainPyError('"target_backend" must be a list/tuple of string.')
       self._target_backend = tuple(self.target_backend)
     else:
-      raise errors.ModelDefError(f'Unknown setting of '
-                                 f'"target_backend": '
-                                 f'{self.target_backend}')
+      raise errors.BrainPyError(f'Unknown setting of "target_backend": {self.target_backend}')
 
   def _build(self, inputs, duration, rebuild=False):
     # backend checking
     check1 = self._target_backend[0] != 'general'
     check2 = math.get_backend_name() not in self._target_backend
     if check1 and check2:
-      raise errors.ModelDefError(f'The model {self.name} is target '
-                                 f'to run on {self._target_backend}, '
-                                 f'but currently the selected backend '
-                                 f'is {math.get_backend_name()}')
+      raise errors.BrainPyError(f'The model {self.name} is target to run on {self._target_backend}, '
+                                f'but currently the selected backend is {math.get_backend_name()}')
 
     # build main function the monitor function
     if self.driver is None:
@@ -119,6 +112,9 @@ class DynamicSystem(Base):
     self.input_step(_t, _i)
     for step in self.steps.values():
       step(_t, _i)
+
+  # def update(self, _t, _i):
+  #   raise NotImplementedError
 
   def run(self, duration, report=0., inputs=(), rebuild=False):
     """The running function.
@@ -225,6 +221,11 @@ class Container(DynamicSystem):
     super(Container, self).__init__(steps=steps, monitors=monitors, name=name)
 
   def update(self, _t, _i):
+    """Step function of a network.
+
+    In this update function, the step functions in children systems are
+    iteratively called.
+    """
     for step in self.children_steps.values():
       step(_t, _i)
 

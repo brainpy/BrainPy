@@ -38,7 +38,7 @@ class JaxArray(object):
   __slots__ = "_value"
 
   def __init__(self, value):
-    self._value = value
+    self._value = jnp.asarray(value)
 
   @property
   def value(self):
@@ -101,6 +101,8 @@ class JaxArray(object):
       yield self._value[i]
 
   def __getitem__(self, index):
+    if isinstance(index, slice) and (slice.start == slice.stop == slice.step == None):
+      return self.value
     if isinstance(index, tuple):
       index = tuple(x.value if isinstance(x, JaxArray) else x for x in index)
     elif isinstance(index, JaxArray):
@@ -108,12 +110,21 @@ class JaxArray(object):
     return self.value[index]
 
   def __setitem__(self, index, value):
+    # value
+    if isinstance(value, JaxArray):
+      value = value.value
+
+    # # slice and update
+    # if isinstance(index, slice):
+    #   if slice.start == slice.stop == slice.step == None:
+    #     self._value = value
+
+    # index
     if isinstance(index, tuple):
       index = tuple(x.value if isinstance(x, JaxArray) else x for x in index)
     elif isinstance(index, JaxArray):
       index = index.value
-    if isinstance(value, JaxArray):
-      value = value.value
+    # update
     self._value = jax.ops.index_update(self._value, jax.ops.index[index], value)
 
   # ---------- #

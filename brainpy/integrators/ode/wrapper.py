@@ -100,7 +100,8 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type):
   code_lines.append(f'  return {", ".join(return_args)}')
 
   # compilation
-  return common.compile_and_assign_attrs(code_lines=code_lines,
+  return common.compile_and_assign_attrs(raw_func=dict(f=f),
+                                         code_lines=code_lines,
                                          code_scope=code_scope,
                                          show_code=show_code,
                                          func_name=func_name,
@@ -241,7 +242,8 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type)
   code_lines.append(f'  return {", ".join(return_args)}')
 
   # compilation
-  return common.compile_and_assign_attrs(code_lines=code_lines,
+  return common.compile_and_assign_attrs(raw_func=dict(f=f),
+                                         code_lines=code_lines,
                                          code_scope=code_scope,
                                          show_code=show_code,
                                          func_name=func_name,
@@ -293,7 +295,8 @@ def rk2_wrapper(f, show_code, dt, beta, var_type):
   return_vars = [f'{v}_new' for v in variables]
   code_lines.append(f'  return {", ".join(return_vars)}')
 
-  return common.compile_and_assign_attrs(code_lines=code_lines,
+  return common.compile_and_assign_attrs(raw_func=dict(f=f),
+                                         code_lines=code_lines,
                                          code_scope=code_scope,
                                          show_code=show_code,
                                          func_name=func_name,
@@ -396,7 +399,8 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
     code_lines.append('')
 
   code_lines.append(f'  return {", ".join([f"{v}_new" for v in variables])}')
-  return common.compile_and_assign_attrs(code_lines=code_lines,
+  return common.compile_and_assign_attrs(raw_func=dict(f=f),
+                                         code_lines=code_lines,
                                          code_scope=code_scope,
                                          show_code=show_code,
                                          func_name=func_name,
