@@ -25,8 +25,7 @@ from .simulation.monitor import *
 
 
 # "dnn" module
-if math.get_backend_name() == 'jax':
-  from . import dnn
+from . import dnn
 
 
 # "analysis" module
@@ -45,6 +44,6 @@ from . import running
 from . import tools
 
 
-# deprecated
+# deprecated modules in V1.0.3
 from . import backend
 from . import ops

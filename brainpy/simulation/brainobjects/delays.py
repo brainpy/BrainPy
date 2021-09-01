@@ -48,7 +48,7 @@ class ConstantDelay(Delay):
       size = (size,)
     if not isinstance(size, (tuple, list)):
       raise errors.BrainPyError(f'"size" must a tuple/list of int, '
-                                 f'but we got {type(size)}: {size}')
+                                f'but we got {type(size)}: {size}')
     self.size = tuple(size)
 
     # delay time length
@@ -57,10 +57,10 @@ class ConstantDelay(Delay):
     # data and operations
     if isinstance(delay, (int, float)):  # uniform delay
       self.uniform_delay = True
-      self.delay_num_step = bmath.Variable(bmath.array([int(pmath.ceil(delay / bmath.get_dt())) + 1]))
-      self.delay_data = bmath.Variable(bmath.zeros((self.delay_num_step[0],) + self.size, dtype=dtype))
-      self.delay_out_idx = bmath.Variable(bmath.array([0]))
-      self.delay_in_idx = bmath.Variable(self.delay_num_step - 1)
+      self.num_step = bmath.array([int(pmath.ceil(delay / bmath.get_dt())) + 1])
+      self.data = bmath.Variable(bmath.zeros((self.num_step[0],) + self.size, dtype=dtype))
+      self.out_idx = bmath.Variable(bmath.array([0]))
+      self.in_idx = bmath.Variable(self.num_step - 1)
 
       self.push = self._push_for_uniform_delay
       self.pull = self._pull_for_uniform_delay
@@ -84,53 +84,33 @@ class ConstantDelay(Delay):
                                     f"got {bmath.shape(delay)} != {self.size}")
       delay = bmath.around(delay / bmath.get_dt())
       self.diag = bmath.array(bmath.arange(self.num), dtype=bmath.int_)
-      self.delay_num_step = bmath.Variable(bmath.array(delay, dtype=bmath.int_) + 1)
-      self.delay_data = bmath.Variable(bmath.zeros((self.delay_num_step.max(),) + size, dtype=dtype))
-      self.delay_in_idx = bmath.Variable(self.delay_num_step - 1)
-      self.delay_out_idx = bmath.Variable(bmath.zeros(self.num, dtype=bmath.int_))
+      self.num_step = bmath.array(delay, dtype=bmath.int_) + 1
+      self.data = bmath.Variable(bmath.zeros((self.num_step.max(),) + size, dtype=dtype))
+      self.in_idx = bmath.Variable(self.num_step - 1)
+      self.out_idx = bmath.Variable(bmath.zeros(self.num, dtype=bmath.int_))
 
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay
 
     super(ConstantDelay, self).__init__(name=name)
 
-  def _pull_for_uniform_delay(self, idx=None):
-    """Pull delay data in the case of uniform delay time."""
-    if idx is None:
-      return self.delay_data[self.delay_out_idx[0]]
-    else:
-      return self.delay_data[self.delay_out_idx[0]][idx]
+  def _pull_for_uniform_delay(self):
+    return self.data[self.out_idx[0]]
 
-  def _pull_for_nonuniform_delay(self, idx=None):
-    """Pull delay data in the case of non-uniform delay time."""
-    if idx is None:
-      return self.delay_data[self.delay_out_idx, self.diag]
-    else:
-      didx = self.delay_out_idx[idx]
-      return self.delay_data[didx, idx]
+  def _pull_for_nonuniform_delay(self):
+    return self.data[self.out_idx, self.diag]
 
-  def _push_for_uniform_delay(self, idx_or_val, value=None):
-    """Push external data onto the bottom of the delay,
-    for the case of uniform delay time."""
-    if value is None:
-      self.delay_data[self.delay_in_idx[0]] = idx_or_val
-    else:
-      self.delay_data[self.delay_in_idx[0]][idx_or_val] = value
+  def _push_for_uniform_delay(self, value):
+    self.data[self.in_idx[0]] = value
 
-  def _push_for_nonuniform_delay(self, idx_or_val, value=None):
-    """Push external data onto the bottom of the delay,
-    for the case of non-uniform delay time."""
-    if value is None:
-      self.delay_data[self.delay_in_idx, self.diag] = idx_or_val
-    else:
-      didx = self.delay_in_idx[idx_or_val]
-      self.delay_data[didx, idx_or_val] = value
+  def _push_for_nonuniform_delay(self, value):
+    self.data[self.in_idx, self.diag] = value
 
   def update(self, _t, _i):
-    self.delay_in_idx[:] = (self.delay_in_idx + 1) % self.delay_num_step
-    self.delay_out_idx[:] = (self.delay_out_idx + 1) % self.delay_num_step
+    self.in_idx[:] = (self.in_idx + 1) % self.num_step
+    self.out_idx[:] = (self.out_idx + 1) % self.num_step
 
   def reset(self):
-    self.delay_data[:] = 0
-    self.delay_in_idx[:] = self.delay_num_step - 1
-    self.delay_out_idx[:] = 0 if self.uniform_delay else bmath.zeros(self.num, dtype=bmath.int_)
+    self.data[:] = 0
+    self.in_idx[:] = self.num_step - 1
+    self.out_idx[:] = 0 if self.uniform_delay else bmath.zeros(self.num, dtype=bmath.int_)

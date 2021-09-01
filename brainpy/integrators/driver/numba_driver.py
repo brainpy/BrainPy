@@ -242,7 +242,7 @@ class _CPUReader(ast.NodeVisitor):
 
     # TASK 1 : extract delay push and delay pull
     # ------
-    # Replace the delay function call to the delay_data
+    # Replace the delay function call to the data
     # index. In such a way, delay function will be removed.
     # ------
 

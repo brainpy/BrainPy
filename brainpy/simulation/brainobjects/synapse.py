@@ -69,7 +69,7 @@ class TwoEndConn(DynamicSystem):
       raise ValueError(f'{key} is not a valid identifier.')
 
     cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}', dtype=dtype)
-    self.steps[f'{key}_delay_update'] = cdelay.update
+    self.steps[f'{key}_update'] = cdelay.update
 
     return cdelay
 

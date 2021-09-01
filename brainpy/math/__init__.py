@@ -266,10 +266,12 @@ def use_backend(name, module=None):
                                 f'type of {type(module)}: {module}')
 
   global_vars = globals()
+  if global_vars['BACKEND_NAME'] == name:
+    return
 
   # replace operations
-  essential_ops = set(__all)
   global_vars['BACKEND_NAME'] = name
+  essential_ops = set(__all)
   for key, value in module.__dict__.items():
     if key.startswith('_'):
       if key not in ['__name__', '__doc__', '__file__', '__path__']:

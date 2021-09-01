@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import numba
 import numpy
 import numpy.random
+
+from brainpy import tools
+
+try:
+  import numba
+except ModuleNotFoundError:
+  numba = None
 
 __all__ = [
   'seed', 'RandomState',
@@ -15,6 +21,13 @@ __all__ = [
   # 'logseries', 'multinomial', 'negative_binomial', 'power', 'rayleigh',
   # 'triangular', 'vonmises', 'wald', 'weibull',
 ]
+
+# def RandomState(seed=None):
+#   if seed:
+#     if numba:
+#       numba_seed(seed)
+#     numpy.random.seed(seed)
+#   return numpy.random
 
 RandomState = numpy.random.RandomState
 rand = numpy.random.rand
@@ -52,11 +65,12 @@ def truncated_normal():
   raise NotImplementedError
 
 
-@numba.njit
+@tools.numba_jit
 def numba_seed(seed=None):
   numpy.random.seed(seed)
 
 
 def seed(seed=None):
-  numba_seed(seed)
+  if numba:
+    numba_seed(seed)
   numpy.random.seed(seed)

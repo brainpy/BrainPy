@@ -26,7 +26,7 @@ class Monitor(object):
   1.1. list of strings and list of intervals
 
   >>> Monitor(target=..., variables=['a', 'b', 'c'],
-  >>>         every=[None, 1, 2] # ms
+  >>>         intervals=[None, 1, 2] # ms
   >>>        )
 
   2. list of strings and string + indices
@@ -36,7 +36,7 @@ class Monitor(object):
   2.1. list of string (+ indices) and list of intervals
 
   >>> Monitor(target=..., variables=['a', ('b', math.array([1,2,3])), 'c'],
-  >>>         every=[None, 2, 3])
+  >>>         intervals=[None, 2, 3])
 
   3. a dictionary with the format of {key: indices}
 
@@ -45,7 +45,7 @@ class Monitor(object):
   3.1. a dictionaly of variable and indexes, and a dictionary of time intervals
 
   >>> Monitor(target=..., variables={'a': None, 'b': math.array([1,2,3])},
-  >>>         every={'b': 2.})
+  >>>         intervals={'b': 2.})
 
   .. note::
       :py:class:`brainpy.simulation.Monitor` records any target variable with an
@@ -56,28 +56,28 @@ class Monitor(object):
 
   """
 
-  _KEYWORDS = ['_KEYWORDS', 'target', 'vars', 'every', 'ts', 'num_item',
+  _KEYWORDS = ['_KEYWORDS', 'target', 'vars', 'intervals', 'ts', 'num_item',
                'item_names', 'item_indices', 'item_intervals', 'item_contents',
                'has_build']
 
   # TODO: support functional "every" specification
-  def __init__(self, variables, every=None, target=None):
+  def __init__(self, variables, intervals=None, target=None):
     if isinstance(variables, (list, tuple)):
-      if every is not None:
-        if not isinstance(every, (list, tuple)):
+      if intervals is not None:
+        if not isinstance(intervals, (list, tuple)):
           raise errors.BrainPyError(f'"vars" and "every" must be the same type. '
                                     f'While we got type(vars)={type(variables)}, '
-                                    f'type(every)={type(every)}.')
-        if len(variables) != len(every):
+                                    f'type(every)={type(intervals)}.')
+        if len(variables) != len(intervals):
           raise errors.BrainPyError(f'The length of "vars" and "every" are not equal.')
 
     elif isinstance(variables, dict):
-      if every is not None:
-        if not isinstance(every, dict):
+      if intervals is not None:
+        if not isinstance(intervals, dict):
           raise errors.BrainPyError(f'"vars" and "every" must be the same type. '
                                     f'While we got type(vars)={type(variables)}, '
-                                    f'type(every)={type(every)}.')
-        for key in every.keys():
+                                    f'type(every)={type(intervals)}.')
+        for key in intervals.keys():
           if key not in variables:
             raise errors.BrainPyError(f'"{key}" is not in "vars": {list(variables.keys())}')
 
@@ -88,7 +88,7 @@ class Monitor(object):
     self.has_build = False
     self.ts = None
     self.vars = variables
-    self.every = every
+    self.intervals = intervals
     self.target = target
     self.item_names = []
     self.item_indices = []
@@ -124,10 +124,10 @@ class Monitor(object):
       item_contents = dict()
 
       if isinstance(self.vars, (list, tuple)):
-        if self.every is None:
+        if self.intervals is None:
           item_intervals = [None] * len(self.vars)
         else:
-          item_intervals = list(self.every)
+          item_intervals = list(self.intervals)
 
         for mon_var in self.vars:
           # users monitor a variable by a string
@@ -154,11 +154,11 @@ class Monitor(object):
           item_indices.append(mon_idx)
           item_contents[mon_key] = []
           item_contents[f'{mon_key}.t'] = []
-          if self.every is None:
+          if self.intervals is None:
             item_intervals.append(None)
           else:
-            if mon_key in self.every:
-              item_intervals.append(self.every[mon_key])
+            if mon_key in self.intervals:
+              item_intervals.append(self.intervals[mon_key])
 
       else:
         raise errors.BrainPyError(f'Unknown monitors type: {type(self.vars)}')

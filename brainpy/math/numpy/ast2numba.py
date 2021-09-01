@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 
+
+"""
+
+TODO: enable cache?
+"""
+
 import ast
 import inspect
 import re
 from pprint import pprint
+import numpy as np
 
 import numba
 from numba.core.dispatcher import Dispatcher
+import numba.misc.help.inspector as inspector
 
 from brainpy import errors, tools
 from brainpy import math
@@ -36,23 +44,24 @@ def jit_dynamic_system(ds, nopython=True, fastmath=True, parallel=False, nogil=F
     r = analyze_func(step, nopython=nopython, fastmath=fastmath,
                      parallel=parallel, nogil=nogil, show_code=show_code)
 
-    arguments = sorted(r['arguments'])
-    code_scope = {key: node for key, node in r['nodes'].items()}
-    code_scope[key] = r['func']
-    called_args = _items2lines([f"{a}={r['arg2call'][a]}" for a in arguments]).strip()
-    code_lines = [f'def new_{key}(_t, _i):',
-                  f'  {key}(_t=_t, _i=_i, {called_args.strip()})']
+    if len(r):
+      arguments = sorted(r['arguments'])
+      code_scope = {key: node for key, node in r['nodes'].items()}
+      code_scope[key] = r['func']
+      called_args = _items2lines([f"{a}={r['arg2call'][a]}" for a in arguments]).strip()
+      code_lines = [f'def new_{key}(_t, _i):',
+                    f'  {key}(_t=_t, _i=_i, {called_args.strip()})']
 
-    # compile new function
-    code = '\n'.join(code_lines)
-    if show_code:
-      print(code)
-      print()
-      pprint(code_scope)
-      print()
-    exec(compile(code, '', 'exec'), code_scope)
-    func = code_scope[f'new_{key}']
-    ds.steps[key] = func
+      # compile new function
+      code = '\n'.join(code_lines)
+      if show_code:
+        print(code)
+        print()
+        pprint(code_scope)
+        print()
+      exec(compile(code, '', 'exec'), code_scope)
+      func = code_scope[f'new_{key}']
+      ds.steps[key] = func
 
   return ds
 
@@ -78,20 +87,20 @@ def analyze_func(f, nopython=True, fastmath=True, parallel=False, nogil=False, s
       return analyze_cls_func(f, nopython=nopython, fastmath=fastmath, parallel=parallel,
                               nogil=nogil, show_code=show_code)
 
-    else:
-      raise errors.UnsupportedError(f'Only support bounded method of {DynamicSystem.__name__} '
-                                    f'instance, but we got {f.__self__.__name__}.')
-
-  else:
-    if not isinstance(f, Dispatcher):
+  if not isinstance(f, Dispatcher):
+    if inspector.inspect_function(f)['numba_type'] is None:
       f = numba.jit(f, nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil)
-    return dict(func=f, arguments=set(), arg2call=Collector(), nodes=Collector())
+      return dict(func=f, arguments=set(), arg2call=Collector(), nodes=Collector())
+
+  return {}
 
 
 def analyze_cls_func(f, host=None, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
-  global Container
+  global Container, DynamicSystem
   if Container is None:
     from brainpy.simulation.brainobjects.base import Container
+  if DynamicSystem is None:
+    from brainpy.simulation.brainobjects.base import DynamicSystem
 
   host = (host or f.__self__)
 
@@ -111,16 +120,19 @@ def analyze_cls_func(f, host=None, nopython=True, fastmath=True, parallel=False,
     for key, step in host.children_steps.items():
       r = analyze_func(f=step, nopython=nopython, fastmath=fastmath,
                        parallel=parallel, nogil=nogil, show_code=show_code)
-      arguments.update(r['arguments'])
-      arg2call.update(r['arg2call'])
-      nodes.update(r['nodes'])
-      code_scope[key.replace('.', '_')] = r['func']
-      call_args = [f'{arg}={arg}' for arg in sorted(r['arguments'])]
-      code_lines.append("{call}(_t, _i, {args})".format(
-        call=key.replace('.', '_'),
-        args=_items2lines(call_args, line_break='\n\t\t\t')))
+      if len(r):
+        arguments.update(r['arguments'])
+        arg2call.update(r['arg2call'])
+        nodes.update(r['nodes'])
+        code_scope[key.replace('.', '_')] = r['func']
+        call_args = [f'{arg}={arg}' for arg in sorted(r['arguments'])]
+        code_lines.append("{call}(_t, _i, {args})".format(
+          call=key.replace('.', '_'),
+          args=", ".join(call_args)))
+        # args=_items2lines(call_args, line_break='\n\t\t\t')))
     code_lines = ['  ' + line for line in code_lines]
-    code_lines.insert(0, f'def {host.name}_update(_t, _i, {_items2lines(sorted(arguments))}):')
+    # code_lines.insert(0, f'def {host.name}_update(_t, _i, {_items2lines(sorted(arguments))}):')
+    code_lines.insert(0, f'def {host.name}_update(_t, _i, {", ".join(sorted(arguments))}):')
     code = '\n'.join(code_lines)
     # code_scope.update(nodes)
     func_name = f'{host.name}_update'
@@ -149,12 +161,21 @@ def analyze_cls_func(f, host=None, nopython=True, fastmath=True, parallel=False,
     data_to_replace = {}
     for key in self_data:
       split_keys = key.split('.')
+      if len(split_keys) < 2:
+        raise errors.BrainPyError
 
       # get target and data
       target = host
-      for item in split_keys[1:-1]:
-        target = getattr(target, item)
-      data = getattr(target, split_keys[-1])
+      for i in range(1, len(split_keys)):
+        next_target = getattr(target, split_keys[i])
+        if not isinstance(next_target, DynamicSystem):
+          break
+        target = next_target
+      else:
+        raise errors.BrainPyError
+      data = getattr(target, split_keys[i])
+
+      key = '.'.join(split_keys[:i+1])
 
       # analyze data
       if isinstance(data, math.Variable):
@@ -162,24 +183,31 @@ def analyze_cls_func(f, host=None, nopython=True, fastmath=True, parallel=False,
         arguments.add(f'{target.name}_{split_keys[-1]}')
         arg2call[f'{target.name}_{split_keys[-1]}'] = f'{target.name}.{split_keys[-1]}.value'
         nodes[target.name] = target
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+      elif isinstance(data, np.random.RandomState):
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+        code_scope[f'{target.name}_{split_keys[i]}'] = np.random  # replace RandomState
       elif callable(data):
+        assert len(split_keys) == i + 1
         r = analyze_func(f=data, nopython=nopython, fastmath=fastmath, parallel=parallel,
                          nogil=nogil, show_code=show_code)
-        tree = _replace_func(tree, func_call=key, arg_to_append=r['arguments'])
-        arguments.update(r['arguments'])
-        arg2call.update(r['arg2call'])
-        nodes.update(r['nodes'])
-        code_scope[f'{target.name}_{split_keys[-1]}'] = r['func']
+        if len(r):
+          tree = _replace_func(tree, func_call=key, arg_to_append=r['arguments'])
+          arguments.update(r['arguments'])
+          arg2call.update(r['arg2call'])
+          nodes.update(r['nodes'])
+          code_scope[f'{target.name}_{split_keys[i]}'] = r['func']
+          data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
       else:
-        code_scope[f'{target.name}_{split_keys[-1]}'] = data
-      data_to_replace[key] = f'{target.name}_{split_keys[-1]}'  # replace the data
+        code_scope[f'{target.name}_{split_keys[i]}'] = data
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
 
     # final code
     tree.body[0].decorator_list.clear()
     tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
     tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
     code = tools.ast2code(tree)
-    code = tools.word_replace(code, data_to_replace)
+    code = tools.word_replace(code, data_to_replace, exclude_dot=False)
     func_name = f.__name__
 
   # compile new function
@@ -293,15 +321,6 @@ class FuncTransformer(ast.NodeTransformer):
     self.arg_to_append = sorted(arg_to_append)
     self.remove_self = remove_self
 
-  def visit_attr(self, node):
-    if isinstance(node, ast.Attribute):
-      r = self.visit_attr(node.value)
-      return [node.attr] + r
-    elif isinstance(node, ast.Name):
-      return [node.id]
-    else:
-      raise ValueError
-
   def visit_Call(self, node, level=0):
     if getattr(node, 'starargs', None) is not None:
       raise ValueError("Variable number of arguments (*args) are not supported")
@@ -309,9 +328,8 @@ class FuncTransformer(ast.NodeTransformer):
       raise ValueError("Keyword arguments (**kwargs) are not supported")
 
     # get function name
-    calls = self.visit_attr(node.func)
-    calls = calls[::-1]
-    if '.'.join(calls) == self.func_name:
+    call = tools.ast2code(node.func)
+    if call == self.func_name:
       # args
       args = [self.generic_visit(arg) for arg in node.args]
       # remove self arg

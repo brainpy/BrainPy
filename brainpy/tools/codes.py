@@ -130,7 +130,7 @@ def deindent(text, num_tabs=None, spaces_per_tab=4, docstring=False):
   return '\n'.join(lines)
 
 
-def word_replace(expr, substitutions):
+def word_replace(expr, substitutions, exclude_dot=True):
   """Applies a dict of word substitutions.
 
   The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
@@ -145,8 +145,10 @@ def word_replace(expr, substitutions):
   banana*_b+c5+8+func(A)
   """
   for var, replace_var in substitutions.items():
-    # expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
-    expr = re.sub(r'\b(?<!\.)' + var + r'\b(?!\.)', str(replace_var), expr)
+    if exclude_dot:
+      expr = re.sub(r'\b(?<!\.)' + var + r'\b(?!\.)', str(replace_var), expr)
+    else:
+      expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
   return expr
 
 
