@@ -101,12 +101,4 @@ def compile_and_assign_attrs(raw_func,
                             func_name=func_name,
                             var_type=var_type)
 
-  # new_f.raw_func = raw_func
-  # new_f.code_lines = code_lines
-  # new_f.code_scope = code_scope_old
-  # new_f.variables = variables
-  # new_f.parameters = parameters
-  # new_f.dt = dt
-  # new_f.var_type = var_type
-
   return new_f

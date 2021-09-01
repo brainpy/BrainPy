@@ -517,7 +517,7 @@ def rk2(f=None, show_code=None, dt=None, beta=None, var_type=None):
   beta = 2 / 3 if beta is None else beta
   dt = math.get_dt() if dt is None else dt
   show_code = False if show_code is None else show_code
-  var_type = constants.POPU_VAR if var_type is None else var_type
+  var_type = constants.POP_VAR if var_type is None else var_type
 
   if f is None:
     return lambda func: rk2_wrapper(func, show_code=show_code, dt=dt, beta=beta, var_type=var_type)

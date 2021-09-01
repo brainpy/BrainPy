@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from pprint import pprint
+
 from brainpy.integrators import constants, utils
-from brainpy.integrators.driver import get_driver
 
 _SDE_UNKNOWN_NO = 0
 
@@ -23,9 +24,25 @@ def basic_info(f, g):
 def compile_and_assign_attrs(code_lines, code_scope, show_code,
                              variables, parameters, func_name,
                              intg_type, var_type, wiener_type, dt):
-  driver = get_driver()(code_scope=code_scope,
-                        code_lines=code_lines,
-                        func_name=func_name,
-                        show_code=show_code)
-  call = driver.build()
-  return call
+  code_scope_old = {key: val for key, val in code_scope.items()}
+
+  # compile functions
+  code = '\n'.join(code_lines)
+  if show_code:
+    print(code)
+    print()
+    pprint(code_scope)
+    print()
+  exec(compile(code, '', 'exec'), code_scope)
+  new_f = code_scope[func_name]
+
+  # assign values
+  new_f.brainpy_data = dict(raw_func=None,
+                            code_lines=code_lines,
+                            code_scope=code_scope_old,
+                            variables=variables,
+                            parameters=parameters,
+                            dt=dt,
+                            func_name=func_name,
+                            var_type=var_type)
+  return new_f

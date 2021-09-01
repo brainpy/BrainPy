@@ -320,7 +320,7 @@ class Wrappers(object):
         The numerical function.
     """
 
-    var_type = constants.POPU_VAR if var_type is None else var_type
+    var_type = constants.POP_VAR if var_type is None else var_type
     intg_type = constants.ITO_SDE if intg_type is None else intg_type
     wiener_type = constants.SCALAR_WIENER if wiener_type is None else wiener_type
     if var_type not in constants.SUPPORTED_VAR_TYPE:

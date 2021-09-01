@@ -344,7 +344,7 @@ def _srk1_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter
       raise ValueError(f'Unknown Wiener type: {wiener_type}, we only '
                        f'supports {constants.SUPPORTED_WIENER_TYPE}')
 
-  elif var_type == constants.POPU_VAR:
+  elif var_type == constants.POP_VAR:
     if wiener_type == constants.SCALAR_WIENER:
       _srk2_pop_or_scalar_var_scalar_wiener(sde_type, code_lines, variables, parameters, vdt)
     elif wiener_type == constants.VECTOR_WIENER:
@@ -401,7 +401,7 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_ite
   assert sde_type in constants.SUPPORTED_INTG_TYPE, f'Currently, BrainPy only support SDE_INT types: ' \
                                                     f'{constants.SUPPORTED_INTG_TYPE}. But we got {sde_type}.'
 
-  var_type = constants.POPU_VAR if var_type is None else var_type
+  var_type = constants.POP_VAR if var_type is None else var_type
   assert var_type in constants.SUPPORTED_VAR_TYPE, f'Currently, BrainPy only supports variable types: ' \
                                                    f'{constants.SUPPORTED_VAR_TYPE}. But we got {var_type}.'
 

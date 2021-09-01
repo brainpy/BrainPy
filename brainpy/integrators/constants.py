@@ -5,7 +5,7 @@ from brainpy.tools import namechecking
 __all__ = [
   'SUPPORTED_VAR_TYPE',
   'SCALAR_VAR',
-  'POPU_VAR',
+  'POP_VAR',
   'SYSTEM_VAR',
 
   'SUPPORTED_WIENER_TYPE',
@@ -85,7 +85,7 @@ SCALAR_VAR = 'scalar'
 # or,
 #    a = np.array([[1,2], [2,1]]),  b=np.array([[3,4], [4,3]])
 #
-POPU_VAR = 'population'
+POP_VAR = 'population'
 
 # Denotes each variable is a system
 # ------
@@ -100,7 +100,7 @@ SYSTEM_VAR = 'system'
 
 SUPPORTED_VAR_TYPE = [
   SCALAR_VAR,
-  POPU_VAR,
+  POP_VAR,
   SYSTEM_VAR,
 ]
 
