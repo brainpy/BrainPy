@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import namedtuple
-
 import numpy as np
 
 from brainpy import tools
@@ -14,8 +12,6 @@ __all__ = [
 
 _ECONVERGED = 0
 _ECONVERR = -1
-
-results = namedtuple('results', ['root', 'function_calls', 'iterations', 'converged'])
 
 
 @tools.numba_jit
@@ -46,11 +42,6 @@ def brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(float).e
       atol=xtol, rtol=rtol)``, where ``x`` is the exact root.
   maxiter : number, optional(default=100)
       Maximum number of iterations.
-
-  Returns
-  -------
-  results : namedtuple
-
   """
   if xtol <= 0:
     raise ValueError("xtol is too small (<= 0)")

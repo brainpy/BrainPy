@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import re
+import ast
 import _thread as thread
 import inspect
 import threading
@@ -7,7 +9,8 @@ import threading
 import numpy as np
 
 from brainpy import errors, math, tools
-from brainpy.integrators import analysis_by_ast
+from brainpy.integrators import analysis_by_ast, odeint, utils
+from brainpy.simulation.brainobjects.base import DynamicSystem
 
 try:
   import numba
@@ -49,11 +52,121 @@ def func_in_numpy_or_math(func):
   return func in _functions_in_math or func in _functions_in_numpy
 
 
-def transform_integrals_to_model(integrals):
+def transform_integrals(integrals, method='euler'):
+  pars_update = {}
+  new_integrals = []
+  for integral in integrals:
+    # integral function
+    if Dispatcher is not None and isinstance(integral, Dispatcher):
+      integral = integral.py_func
+    else:
+      integral = integral
+
+    # derivative function
+    func = integral.brainpy_data['raw_func']['f']
+    if Dispatcher is not None and isinstance(func, Dispatcher):
+      func = func.py_func
+    func_name = func.__name__
+
+    # arguments
+    class_kw, variables, parameters, _ = utils.get_args(func)
+
+    if len(class_kw) == 0:
+      pars_update.update({p: None for p in parameters[1:]})
+      new_integrals.append(integral)
+
+    else:
+      assert len(class_kw) == 1
+      code = tools.deindent(inspect.getsource(func)).strip()
+      tree = ast.parse(code)
+      tree.body[0].args.args.pop(0)  # remove "self" arg
+      self_data = re.findall('\\b' + class_kw[0] + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
+      self_data = list(set(self_data))
+
+      # node of integral
+      f_node = None
+      if hasattr(integral, '__self__') and isinstance(integral.__self__, DynamicSystem):
+        f_node = integral.__self__
+
+      # node of derivative function
+      func_node = None
+      if f_node:
+        func_node = f_node
+      elif hasattr(func, '__self__') and isinstance(func.__self__, DynamicSystem):
+        func_node = func.__self__
+
+      # code scope
+      closure_vars = inspect.getclosurevars(func)
+      code_scope = dict(closure_vars.nonlocals)
+      code_scope.update(closure_vars.globals)
+
+      # analyze variables and functions accessed by the self.xx
+      if func_node:
+        arguments = set()
+        data_to_replace = {}
+        for key in self_data:
+          split_keys = key.split('.')
+          if len(split_keys) < 2:
+            raise errors.BrainPyError
+
+          # get target and data
+          target = func_node
+          for i in range(1, len(split_keys)):
+            next_target = getattr(target, split_keys[i])
+            if not isinstance(next_target, DynamicSystem):
+              break
+            target = next_target
+          else:
+            raise errors.BrainPyError
+          data = getattr(target, split_keys[i])
+
+          key = '.'.join(split_keys[:i + 1])
+          if isinstance(data, np.random.RandomState):
+            data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+            code_scope[f'{target.name}_{split_keys[i]}'] = np.random  # replace RandomState
+
+          elif callable(data):
+            data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+            code_scope[f'{target.name}_{split_keys[i]}'] = data
+
+          elif isinstance(data, (math.ndarray, int, float)):
+            assert len(split_keys) == i + 1
+            arguments.add(split_keys[i])
+            pars_update[split_keys[i]] = data
+            data_to_replace[key] = split_keys[i]  # replace the data
+
+          else:  # parameters
+            data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+            code_scope[f'{target.name}_{split_keys[i]}'] = data
+
+        # final code
+        tree.body[0].decorator_list.clear()
+        tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
+        tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
+        code = tools.ast2code(tree)
+        code = tools.word_replace(code, data_to_replace, exclude_dot=False)
+
+        # compile new function
+        # if show_code:
+        #   print(code)
+        #   print()
+        #   pprint(code_scope)
+        #   print()
+        exec(compile(code, '', 'exec'), code_scope)
+        func = code_scope[func_name]
+        func.code = code
+
+        new_integrals.append(odeint(f=func, method=method))
+  return new_integrals, pars_update
+
+
+def transform_integrals_to_model(integrals, method='euler'):
   from brainpy.integrators import analysis_by_sympy
 
   if callable(integrals):
     integrals = [integrals]
+
+  integrals, pars_update = transform_integrals(integrals, method=method)
 
   all_scope = dict()
   all_variables = set()
@@ -67,7 +180,7 @@ def transform_integrals_to_model(integrals):
       integral = integral
 
     # original function
-    f = integral.origin_f
+    f = integral.brainpy_data['raw_func']['f']
     if Dispatcher is not None and isinstance(f, Dispatcher):
       f = f.py_func
     func_name = f.__name__
@@ -78,7 +191,7 @@ def transform_integrals_to_model(integrals):
     code_scope.update(dict(closure_vars.globals))
 
     # separate variables
-    analysis = analysis_by_ast.separate_variables(f)
+    analysis = analysis_by_ast.separate_variables(f.code if hasattr(f, 'code') else f)
     variables_for_returns = analysis['variables_for_returns']
     expressions_for_returns = analysis['expressions_for_returns']
     for vi, (key, vars) in enumerate(variables_for_returns.items()):
@@ -88,7 +201,7 @@ def transform_integrals_to_model(integrals):
           raise ValueError('Cannot analyze multi-assignment code line.')
         variables.append(v[0])
       expressions = expressions_for_returns[key]
-      var_name = integral.variables[vi]
+      var_name = integral.brainpy_data['variables'][vi]
       DE = analysis_by_sympy.SingleDiffEq(var_name=var_name,
                                           variables=variables,
                                           expressions=expressions,
@@ -98,28 +211,32 @@ def transform_integrals_to_model(integrals):
       analyzers.append(DE)
 
     # others
-    for var in integral.variables:
+    for var in integral.brainpy_data['variables']:
       if var in all_variables:
         raise errors.BrainPyError(f'Variable {var} has been defined before. Cannot group '
                                    f'this integral as a dynamic system.')
       all_variables.add(var)
-    all_parameters.update(integral.parameters)
+    all_parameters.update(integral.brainpy_data['parameters'])
     all_scope.update(code_scope)
 
+  # form a dynamic model
   return DynamicModel(integrals=integrals,
                       analyzers=analyzers,
                       variables=list(all_variables),
                       parameters=list(all_parameters),
+                      pars_update=pars_update,
                       scopes=all_scope)
 
 
 class DynamicModel(object):
-  def __init__(self, integrals, analyzers, variables, parameters, scopes):
+  def __init__(self, integrals, analyzers, variables, parameters, scopes,
+               pars_update=None):
     self.integrals = integrals
     self.analyzers = analyzers
     self.variables = variables
     self.parameters = parameters
     self.scopes = scopes
+    self.pars_update = pars_update
 
 
 def rescale(min_max, scale=0.01):

@@ -64,15 +64,15 @@ class Trajectory(object):
     self.scope['MON'] = self.mon
     self.scope['_fixed_vars'] = fixed_vars
 
-    code_lines = ['def run_func(_t, _i, _dt):']
+    code_lines = ['def run_func(_t, _i):']
     for integral in integrals:
       func_name = integral.__name__
       self.scope[func_name] = integral
       # update the step function
-      assigns = [f'VP["{var}"]' for var in integral.variables]
-      calls = [f'VP["{var}"]' for var in integral.variables]
+      assigns = [f'VP["{var}"]' for var in integral.brainpy_data['variables']]
+      calls = [f'VP["{var}"]' for var in integral.brainpy_data['variables']]
       calls.append('_t')
-      calls.extend([f'VP["{var}"]' for var in integral.parameters[1:]])
+      calls.extend([f'VP["{var}"]' for var in integral.brainpy_data['parameters'][1:]])
       code_lines.append(f'  {", ".join(assigns)} = {func_name}({", ".join(calls)})')
       # reassign the fixed variables
       for key, val in fixed_vars.items():

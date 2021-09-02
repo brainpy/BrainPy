@@ -4,6 +4,7 @@
 """
 
 TODO: enable cache?
+TODO: enable code debug and error report
 """
 
 import ast
@@ -16,8 +17,7 @@ import numba
 from numba.core.dispatcher import Dispatcher
 import numba.misc.help.inspector as inspector
 
-from brainpy import errors, tools
-from brainpy import math
+from brainpy import errors, math, tools
 from brainpy.base.collector import Collector
 from brainpy.math import profile
 
@@ -179,9 +179,8 @@ def analyze_cls_func(f, code=None, host=None, nopython=True, fastmath=True, para
 
       # analyze data
       if isinstance(data, math.Variable):
-        arguments.add(f'{target.name}_{split_keys[-1]}')
-        arguments.add(f'{target.name}_{split_keys[-1]}')
-        arg2call[f'{target.name}_{split_keys[-1]}'] = f'{target.name}.{split_keys[-1]}.value'
+        arguments.add(f'{target.name}_{split_keys[i]}')
+        arg2call[f'{target.name}_{split_keys[i]}'] = f'{target.name}.{split_keys[-1]}.value'
         nodes[target.name] = target
         data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
       elif isinstance(data, np.random.RandomState):
@@ -192,7 +191,7 @@ def analyze_cls_func(f, code=None, host=None, nopython=True, fastmath=True, para
         r = analyze_func(f=data, nopython=nopython, fastmath=fastmath, parallel=parallel,
                          nogil=nogil, show_code=show_code)
         if len(r):
-          tree = _replace_func(tree, func_call=key, arg_to_append=r['arguments'])
+          tree = replace_func(tree, func_call=key, arg_to_append=r['arguments'])
           arguments.update(r['arguments'])
           arg2call.update(r['arg2call'])
           nodes.update(r['nodes'])
@@ -226,9 +225,13 @@ def analyze_cls_func(f, code=None, host=None, nopython=True, fastmath=True, para
 
 def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
   if f.brainpy_data['method'].startswith('exponential'):
-    return analyze_cls_func(f=f, code="\n".join(f.brainpy_data['code_lines']),
-                            nopython=nopython, fastmath=fastmath, parallel=parallel,
-                            nogil=nogil, show_code=show_code)
+    return analyze_cls_func(f=f,
+                            code="\n".join(f.brainpy_data['code_lines']),
+                            nopython=nopython,
+                            fastmath=fastmath,
+                            parallel=parallel,
+                            nogil=nogil,
+                            show_code=show_code)
 
   global DynamicSystem
   if DynamicSystem is None:
@@ -268,10 +271,17 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
       continue
     elif func_node:
       need_recompile = True
-      r = analyze_cls_func(f=func, host=func_node, nopython=nopython, fastmath=fastmath,
-                           parallel=parallel, nogil=nogil, show_code=show_code)
+      r = analyze_cls_func(f=func,
+                           host=func_node,
+                           nopython=nopython,
+                           fastmath=fastmath,
+                           parallel=parallel,
+                           nogil=nogil,
+                           show_code=show_code)
       if len(r['arguments']) or remove_self:
-        tree = _replace_func(tree, func_call=key, arg_to_append=r['arguments'], remove_self=remove_self)
+        tree = replace_func(tree, func_call=key,
+                            arg_to_append=r['arguments'],
+                            remove_self=remove_self)
       code_scope[key] = r['func']
       arguments.update(r['arguments'])  # update arguments
       arg2call.update(r['arg2call'])  # update arg2call
@@ -279,7 +289,11 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
       nodes[func_node.name] = func_node  # update nodes
     else:
       need_recompile = True
-      code_scope[key] = numba.jit(func, nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil)
+      code_scope[key] = numba.jit(func,
+                                  nopython=nopython,
+                                  fastmath=fastmath,
+                                  parallel=parallel,
+                                  nogil=nogil)
 
   if need_recompile:
     tree.body[0].decorator_list.clear()
@@ -304,7 +318,7 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
     return dict(func=f, arguments=arguments, arg2call=arg2call, nodes=nodes)
 
 
-def _replace_func(code_or_tree, func_call, arg_to_append, remove_self=None):
+def replace_func(code_or_tree, func_call, arg_to_append, remove_self=None):
   assert isinstance(func_call, str)
   assert isinstance(arg_to_append, (list, tuple, set))
 

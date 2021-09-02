@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""
+TODO: enable operation recovery in 'str2sympy' and 'sympy2str'
+"""
+
+
 import ast
-import math
 from collections import Counter
 
-import numpy as np
-
-from brainpy import errors, tools
+from brainpy import errors, math, tools
 
 try:
   import sympy
@@ -106,16 +108,16 @@ CONSTANT_MAPPING = {
 
 def get_mapping_scope():
   return {
-    'sign': np.sign, 'cos': np.cos, 'sin': np.sin, 'tan': np.tan,
-    'sinc': np.sinc, 'arcsin': np.arcsin, 'arccos': np.arccos,
-    'arctan': np.arctan, 'arctan2': np.arctan2, 'cosh': np.cosh,
-    'sinh': np.cosh, 'tanh': np.tanh, 'arcsinh': np.arcsinh,
-    'arccosh': np.arccosh, 'arctanh': np.arctanh, 'ceil': np.ceil,
-    'floor': np.floor, 'log': np.log, 'log2': np.log2, 'log1p': np.log1p,
-    'log10': np.log10, 'exp': np.exp, 'expm1': np.expm1, 'exp2': np.exp2,
-    'hypot': np.hypot, 'sqrt': np.sqrt, 'pi': np.pi, 'e': np.e, 'inf': np.inf,
-    'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
-    'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh,
+    'sign': math.sign, 'cos': math.cos, 'sin': math.sin, 'tan': math.tan,
+    'sinc': math.sinc, 'arcsin': math.arcsin, 'arccos': math.arccos,
+    'arctan': math.arctan, 'arctan2': math.arctan2, 'cosh': math.cosh,
+    'sinh': math.cosh, 'tanh': math.tanh, 'arcsinh': math.arcsinh,
+    'arccosh': math.arccosh, 'arctanh': math.arctanh, 'ceil': math.ceil,
+    'floor': math.floor, 'log': math.log, 'log2': math.log2, 'log1p': math.log1p,
+    'log10': math.log10, 'exp': math.exp, 'expm1': math.expm1, 'exp2': math.exp2,
+    'hypot': math.hypot, 'sqrt': math.sqrt, 'pi': math.pi, 'e': math.e, 'inf': math.inf,
+    # 'asin': math.arcsin, 'acos': math.arccos, 'atan': math.arctan, 'atan2': math.tan2,
+    # 'asinh': math.arcsinh, 'acosh': math.arccosh, 'atanh': math.arctanh,
   }
 
 

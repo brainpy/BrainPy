@@ -13,7 +13,7 @@ try:
   from brainpy.integrators import analysis_by_sympy
 except ModuleNotFoundError:
   sympy = None
-  sympy_analysis = None
+  analysis_by_sympy = None
 
 logger = logging.getLogger('brainpy.analysis')
 
@@ -84,7 +84,7 @@ class BaseAnalyzer(object):
                numerical_resolution=0.1,
                options=None):
 
-    if (sympy is None) or (sympy_analysis is None):
+    if (sympy is None) or (analysis_by_sympy is None):
       raise errors.PackageMissingError('"SymPy" must be installed for dynamics analysis.')
 
     # model
@@ -146,6 +146,14 @@ class BaseAnalyzer(object):
     if not isinstance(pars_update, dict):
       raise errors.BrainPyError('"pars_update" must be a dict with the format '
                                 'of {"par1": val1, "par2": val2}.')
+    # keys = set(list(pars_update.keys()))
+    # keys.update(list(self.model.pars_update.keys()))
+    # new_pars_update = {}
+    # for key in keys:
+    #   if key not in pars_update and key not in fixed_vars:
+    #     new_pars_update[key] = self.model.pars_update[key]
+    #   else:
+    #     new_pars_update[key] = pars_update[key]
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
         raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{self.model}" model.')
@@ -247,7 +255,7 @@ class Base1DAnalyzer(BaseAnalyzer):
     if 'dxdt' not in self.analyzed_results:
       scope = deepcopy(self.pars_update)
       scope.update(self.fixed_vars)
-      scope.update(sympy_analysis.get_mapping_scope())
+      scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
@@ -265,11 +273,11 @@ class Base1DAnalyzer(BaseAnalyzer):
       x_var = self.dvar_names[0]
       x_symbol = sympy.Symbol(x_var, real=True)
       x_eq = self.x_eq_group.sub_exprs[-1].code
-      x_eq = sympy_analysis.str2sympy(x_eq)
+      x_eq = analysis_by_sympy.str2sympy(x_eq)
 
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(sympy_analysis.get_mapping_scope())
+      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -287,7 +295,7 @@ class Base1DAnalyzer(BaseAnalyzer):
           # check
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfxdx_expr), all_vars):
+          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfxdx_expr), all_vars):
             logger.info('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -295,7 +303,7 @@ class Base1DAnalyzer(BaseAnalyzer):
             func_codes = [f'def dfdx({argument}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
-            func_codes.append(f'return {sympy_analysis.sympy2str(dfxdx_expr)}')
+            func_codes.append(f'return {analysis_by_sympy.sympy2str(dfxdx_expr)}')
             exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
             dfdx = eq_x_scope['dfdx']
             sympy_failed = False
@@ -325,11 +333,11 @@ class Base1DAnalyzer(BaseAnalyzer):
     """
 
     if 'fixed_point' not in self.analyzed_results:
-      x_eq = sympy_analysis.str2sympy(self.x_eq_group.sub_exprs[-1].code)
+      x_eq = analysis_by_sympy.str2sympy(self.x_eq_group.sub_exprs[-1].code)
 
       scope = deepcopy(self.pars_update)
       scope.update(self.fixed_vars)
-      scope.update(sympy_analysis.get_mapping_scope())
+      scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
       scope['np'] = np
 
@@ -350,7 +358,7 @@ class Base1DAnalyzer(BaseAnalyzer):
           for res in results:
             all_vars = set(scope.keys())
             all_vars.update(self.dvar_names + self.dpar_names)
-            if utils.contain_unknown_symbol(sympy_analysis.sympy2str(res), all_vars):
+            if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(res), all_vars):
               logger.info('\tfailed because contain unknown symbols.')
               sympy_failed = True
               break
@@ -360,7 +368,7 @@ class Base1DAnalyzer(BaseAnalyzer):
             func_codes = [f'def solve_x({argument2}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
-            result_expr = ', '.join([sympy_analysis.sympy2str(expr)
+            result_expr = ', '.join([analysis_by_sympy.sympy2str(expr)
                                      for expr in results])
             func_codes.append(f'_res_ = {result_expr}')
             func_codes.append(f'return np.array(_res_)')
@@ -460,7 +468,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
         # check "f"
         scope = deepcopy(self.pars_update)
         scope.update(self.fixed_vars)
-        scope.update(sympy_analysis.get_mapping_scope())
+        scope.update(analysis_by_sympy.get_mapping_scope())
         if a.endswith('y_eq'):
           scope.update(self.y_eq_group['diff_eq'].func_scope)
         else:
@@ -491,7 +499,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       y_var = self.dvar_names[1]
       scope = deepcopy(self.pars_update)
       scope.update(self.fixed_vars)
-      scope.update(sympy_analysis.get_mapping_scope())
+      scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.y_eq_group.diff_eq.func_scope)
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
@@ -509,11 +517,11 @@ class Base2DAnalyzer(Base1DAnalyzer):
       y_var = self.dvar_names[1]
       y_symbol = sympy.Symbol(y_var, real=True)
       x_eq = self.target_eqs[x_var].sub_exprs[-1].code
-      x_eq = sympy_analysis.str2sympy(x_eq)
+      x_eq = analysis_by_sympy.str2sympy(x_eq)
 
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(sympy_analysis.get_mapping_scope())
+      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -531,7 +539,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           # check
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfxdy_expr), all_vars):
+          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfxdy_expr), all_vars):
             logger.info('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -539,7 +547,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
             func_codes = [f'def dfdy({argument}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
-            func_codes.append(f'return {sympy_analysis.sympy2str(dfxdy_expr)}')
+            func_codes.append(f'return {analysis_by_sympy.sympy2str(dfxdy_expr)}')
             exec(compile('\n  '.join(func_codes), '', 'exec'), eq_x_scope)
             dfdy = eq_x_scope['dfdy']
             sympy_failed = False
@@ -572,11 +580,11 @@ class Base2DAnalyzer(Base1DAnalyzer):
       x_symbol = sympy.Symbol(x_var, real=True)
       y_var = self.dvar_names[1]
       y_eq = self.target_eqs[y_var].sub_exprs[-1].code
-      y_eq = sympy_analysis.str2sympy(y_eq)
+      y_eq = analysis_by_sympy.str2sympy(y_eq)
 
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(sympy_analysis.get_mapping_scope())
+      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -594,7 +602,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           # check
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfydx_expr), all_vars):
+          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
             logger.info('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -602,7 +610,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
             func_codes = [f'def dgdx({argument}):']
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
-            func_codes.append(f'return {sympy_analysis.sympy2str(dfydx_expr)}')
+            func_codes.append(f'return {analysis_by_sympy.sympy2str(dfydx_expr)}')
             exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
             dgdx = eq_y_scope['dgdx']
             sympy_failed = False
@@ -635,11 +643,11 @@ class Base2DAnalyzer(Base1DAnalyzer):
       y_var = self.dvar_names[1]
       y_symbol = sympy.Symbol(y_var, real=True)
       y_eq = self.target_eqs[y_var].sub_exprs[-1].code
-      y_eq = sympy_analysis.str2sympy(y_eq)
+      y_eq = analysis_by_sympy.str2sympy(y_eq)
 
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(sympy_analysis.get_mapping_scope())
+      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -658,7 +666,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           # check
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(sympy_analysis.sympy2str(dfydx_expr), all_vars):
+          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
             logger.info('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -666,7 +674,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
             func_codes = [f'def dgdy({argument}):']
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
-            func_codes.append(f'return {sympy_analysis.sympy2str(dfydx_expr)}')
+            func_codes.append(f'return {analysis_by_sympy.sympy2str(dfydx_expr)}')
             exec(compile('\n  '.join(func_codes), '', 'exec'), eq_y_scope)
             dgdy = eq_y_scope['dgdy']
             sympy_failed = False
@@ -722,7 +730,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
       eq_xy_scope = deepcopy(self.pars_update)
       eq_xy_scope.update(self.fixed_vars)
-      eq_xy_scope.update(sympy_analysis.get_mapping_scope())
+      eq_xy_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_xy_scope.update(self.x_eq_group['diff_eq'].func_scope)
       eq_xy_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
@@ -831,7 +839,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # f
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(sympy_analysis.get_mapping_scope())
+      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
       func_codes = [f'def f_x({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -843,7 +851,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # g
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(sympy_analysis.get_mapping_scope())
+      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
       func_codes = [f'def g_y({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -898,7 +906,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # x equation scope
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(sympy_analysis.get_mapping_scope())
+      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group.diff_eq.func_scope)
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
@@ -972,7 +980,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # y equation scope
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(sympy_analysis.get_mapping_scope())
+      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group.diff_eq.func_scope)
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
@@ -1036,11 +1044,11 @@ class Base2DAnalyzer(Base1DAnalyzer):
       if not self.options.escape_sympy_solver:
         y_symbol = sympy.Symbol(self.y_var, real=True)
         code = self.target_eqs[self.y_var].sub_exprs[-1].code
-        y_eq = sympy_analysis.str2sympy(code).expr
+        y_eq = analysis_by_sympy.str2sympy(code).expr
 
         eq_y_scope = deepcopy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
-        eq_y_scope.update(sympy_analysis.get_mapping_scope())
+        eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1055,7 +1063,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           y_by_x_in_y_eq = f()
           if len(y_by_x_in_y_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
-          y_by_x_in_y_eq = sympy_analysis.sympy2str(y_by_x_in_y_eq[0])
+          y_by_x_in_y_eq = analysis_by_sympy.sympy2str(y_by_x_in_y_eq[0])
 
           # check
           all_vars = set(eq_y_scope.keys())
@@ -1109,11 +1117,11 @@ class Base2DAnalyzer(Base1DAnalyzer):
       if not self.options.escape_sympy_solver:
         y_symbol = sympy.Symbol(self.y_var, real=True)
         code = self.x_eq_group.sub_exprs[-1].code
-        x_eq = sympy_analysis.str2sympy(code).expr
+        x_eq = analysis_by_sympy.str2sympy(code).expr
 
         eq_x_scope = deepcopy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
-        eq_x_scope.update(sympy_analysis.get_mapping_scope())
+        eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1129,7 +1137,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           y_by_x_in_x_eq = f()
           if len(y_by_x_in_x_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
-          y_by_x_in_x_eq = sympy_analysis.sympy2str(y_by_x_in_x_eq[0])
+          y_by_x_in_x_eq = analysis_by_sympy.sympy2str(y_by_x_in_x_eq[0])
 
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
@@ -1182,11 +1190,11 @@ class Base2DAnalyzer(Base1DAnalyzer):
       if not self.options.escape_sympy_solver:
         x_symbol = sympy.Symbol(self.x_var, real=True)
         code = self.target_eqs[self.y_var].sub_exprs[-1].code
-        y_eq = sympy_analysis.str2sympy(code).expr
+        y_eq = analysis_by_sympy.str2sympy(code).expr
 
         eq_y_scope = deepcopy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
-        eq_y_scope.update(sympy_analysis.get_mapping_scope())
+        eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1200,7 +1208,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           x_by_y_in_y_eq = f()
           if len(x_by_y_in_y_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
-          x_by_y_in_y_eq = sympy_analysis.sympy2str(x_by_y_in_y_eq[0])
+          x_by_y_in_y_eq = analysis_by_sympy.sympy2str(x_by_y_in_y_eq[0])
 
           # check
           all_vars = set(eq_y_scope.keys())
@@ -1254,11 +1262,11 @@ class Base2DAnalyzer(Base1DAnalyzer):
       if not self.options.escape_sympy_solver:
         x_symbol = sympy.Symbol(self.x_var, real=True)
         code = self.x_eq_group.sub_exprs[-1].code
-        x_eq = sympy_analysis.str2sympy(code).expr
+        x_eq = analysis_by_sympy.str2sympy(code).expr
 
         eq_x_scope = deepcopy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
-        eq_x_scope.update(sympy_analysis.get_mapping_scope())
+        eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1272,7 +1280,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           x_by_y_in_x_eq = f()
           if len(x_by_y_in_x_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
-          x_by_y_in_x_eq = sympy_analysis.sympy2str(x_by_y_in_x_eq[0])
+          x_by_y_in_x_eq = analysis_by_sympy.sympy2str(x_by_y_in_x_eq[0])
 
           # check
           all_vars = set(eq_x_scope.keys())
