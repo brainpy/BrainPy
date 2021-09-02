@@ -26,17 +26,17 @@
 
 ## Math
 
-- [ ] Support Numba
-  - [ ] recompile the numba JIT compilation
+- [x] **[Numpy]:** support JIT compilation in numpy backend (done @ 2021.09.01 by @chaoming)
 - [ ] support to set `dt`  in the single object level (i.e., single instance of DynamicSystem)
-- [ ] "random" module: 
-- [ ] math operations: 
-- [ ] vmap, pmap: 
-- [ ] control conditions: 
-- [x] **IMPORTANT!!!** Change API of `grad()` and `value_and_grad()`: There are bugs in the gradient functions. Gradient computation also needs to inspect the variable types. Moreover, it is independent from the JIT function. Therefore, we should pass dynamical variables into the gradient functions too. (done @ 2021.08.26 by @chaoming)
-- [x] **IMPORTANT!!!** change API of `vars()`: we should refer Dynamical Variables as `Variable`; We can not retrieve every "JaxArray" from `vars()`, otherwise the whole system will waste a lot of time on useless assignments. (done @ 2021.08.25 by @chaoming)
-- [x] change API of `brainpy.math.jit(target)`, please return another class if `target` is not a function [abolished]
-- [ ] ``JaxArray`` Wrapper for JAX `ndarray`
+- [ ] **[JAX]:** "random" module 
+- [ ] **[JAX]:** math operations
+- [ ] **[JAX]:** vmap
+- [ ] **[JAX]:** pmap
+- [ ] **[JAX]:** control conditions: 
+- [x] **[JAX]:** **IMPORTANT!!!** Change API of `grad()` and `value_and_grad()`: There are bugs in the gradient functions. Gradient computation also needs to inspect the variable types. Moreover, it is independent from the JIT function. Therefore, we should pass dynamical variables into the gradient functions too. (done @ 2021.08.26 by @chaoming)
+- [x] **[JAX]:** **IMPORTANT!!!** change API of `vars()`: we should refer Dynamical Variables as `Variable`; We can not retrieve every "JaxArray" from `vars()`, otherwise the whole system will waste a lot of time on useless assignments. (done @ 2021.08.25 by @chaoming)
+- [x] **[JAX]:** change API of `brainpy.math.jit(target)`, please return another class if `target` is not a function [abolished]
+- [x] **[JAX]:** ``JaxArray`` Wrapper for JAX `ndarray`
   - [x] register pytree  (done @ 2021.06.15 by @chaoming)
   - [x] support `ndarray` intrinsic methods: 
     - [x] functions in NumPy ndarray: any(), all() .... view() (done @ 2021.06.30 by @chaoming)
@@ -44,12 +44,16 @@
   - [x] numpy methods in JaxArray (done @ 2021.08.25, @2021.08.28 by @chaoming)
   - [x] documentation for JaxArray methods (done @ 2021.08.25 by @chaoming)
   - [ ] test for ndarray wrapper 
-- [x] Support JIT in JAX (done @ 2021.07.30 by @chaoming)
-- [x] support gradient ``grad()`` in JAX (done @ 2021.07.30 by @chaoming)
+- [x] **[JAX]:** Support JIT in JAX (done @ 2021.07.30 by @chaoming)
+- [x] **[JAX]:** support gradient ``grad()`` in JAX (done @ 2021.07.30 by @chaoming)
 
 
 
-## Numerical Solvers
+
+
+
+
+## Integrators
 
 - [ ] FDEs
   - [ ] Support numerical integration for fractional differential equations (FDEs)
@@ -58,28 +62,31 @@
 - [ ] SDEs
   - [ ] More convenient way to define constant Wiener term in SDEs
   - [ ] Check whether the user-defined code has the keywords (like `f`, `g`, etc.) in SDEs 
-- [ ] doc comments for ODE methods
+- [x] doc comments for ODE APIs (done @2021/08/28 by @chaoming)
 - [x] The unique name of the ODE, SDE, DDE, FDE integrators (done @2021/08/23 by @chaoming)
 
 
 
 
-## Dynamics Simulation
+## Simulation
 
 - [ ] Allow defining the `Soma` object
 - [ ] Allow defining the `Dendrite` object
 
 
 
-## Dynamics Analysis
+
+
+## Analysis
 
 - [ ] Support numerical continuation for ODEs
+- [x] Analyze the parameter by self (done @2021/09/02 by @chaoming)
 
 
 
 
 
-## DNN module
+## DNN
 
 - [ ] "objectives" module: commonly used loss functions 
 - [x] 'dnn' module documentation in 'index.rst'   (done @2021/08/26 by @chaoming)
