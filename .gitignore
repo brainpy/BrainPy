@@ -2,6 +2,8 @@ publishment.md
 #experimental/
 .vscode
 
+examples/recurrent_neural_network/neurogym
+develop/iconip_paper
 develop/benchmark/COBA/results
 develop/test
 develop/outputdir
@@ -13,6 +15,9 @@ docs/images/neuron_structure.xlsx
 docs/images/neuron_structure.pdf
 docs/images/connection_methods.pptx
 
+*/_autosummary
+
+docs/apis/dnn/_autosummary
 docs/quickstart/_autosummary
 docs/quickstart/.ipynb_checkpoints
 

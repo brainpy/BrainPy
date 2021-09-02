@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import io
 import os
 import re
 
@@ -14,19 +13,23 @@ with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
 version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 
 # obtain long description from README and CHANGES
-try:
-    # obtain long description from README and CHANGES
-    with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
-        README = f.read()
-        idx = README.index('<table border="0">')
-        README = README[:idx]
+README = '''
+Brain modeling heavily relies on calculus. Focused on differential equations, 
+BrainPy provides an integrative simulation and analysis framework for 
+neurodynamics in computational neuroscience and brain-inspired computation. 
+It provides three core functions:
 
-except IOError:
-    README = CHANGES = ''
+- General numerical solvers for ODEs and SDEs (future will support DDEs and FDEs).
+- Neurodynamics simulation tools for various brain objects, such like neurons, 
+  synapses and networks (future will support soma and dendrites).
+- Neurodynamics analysis tools for differential equations, including phase plane 
+  analysis and bifurcation analysis (future will support continuation analysis 
+  and sensitive analysis).
+'''
 
 # setup
 setup(
-    name='brainpy-simulator',
+    name='brain-py',
     version=version,
     description='BrainPy: A general platform for computational neuroscience and brain-inspired computation',
     long_description=README,
@@ -36,7 +39,7 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         'numpy>=1.15',
-        'matplotlib>=3.2',
+        'matplotlib>=3.3',
     ],
     url='https://github.com/PKU-NIP-Lab/BrainPy',
     keywords='computational neuroscience, '

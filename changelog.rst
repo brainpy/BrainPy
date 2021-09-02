@@ -1,6 +1,17 @@
 Release notes
 =============
 
+BrainPy 1.1.0
+-------------
+
+This package releases a new version of BrainPy.
+
+Highlights of core changes:
+
+* New design for neurodynamics simulation architecture:
+  support multi-scale modeling, all objects are dynamic systems
+
+
 
 BrainPy 1.0.2
 -------------

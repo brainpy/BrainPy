@@ -1,62 +1,50 @@
 BrainPy documentation
 =====================
 
+BrainPy is a highly flexible and extensible framework targeting on the
+high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
-Brain modeling heavily relies on calculus. Focused on differential equations,
-`BrainPy <https://github.com/PKU-NIP-Lab/BrainPy>`_
-provides an integrative simulation and analysis framework for neurodynamics in
-computational neuroscience and brain-inspired computation. It provides three
-core functions:
+1. **General numerical solvers** for ODEs, SDEs, DDEs, FDEs and others.
+2. **Dynamics simulation tools** for various brain objects, like
+   neurons, synapses, networks, soma, dendrites, channels, and even molecular.
+3. **Dynamics analysis tools** for differential equations, including
+   phase plane analysis, bifurcation analysis, continuation analysis and
+   sensitive analysis.
+4. **Seamless integration with deep learning models**, but has the high speed
+   acceleration because of JIT compilation.
 
-- *General numerical solvers* for ODEs and SDEs (future will support DDEs and FDEs).
-- *Neurodynamics simulation tools* for various brain objects, such like neurons, synapses
-  and networks (future will support soma and dendrites).
-- *Neurodynamics analysis tools* for differential equations, including phase plane
-  analysis and bifurcation analysis (future will support continuation analysis and
-  sensitive analysis).
 
 Intuitive tutorials of BrainPy please see our
 `handbook <https://pku-nip-lab.github.io/BrainPyHandbook/>`_,
 and comprehensive examples of BrainPy please see
-`BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
+`BrainModels <https://brainmodels.readthedocs.io/>`_.
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Quickstart
 
    quickstart/installation
    quickstart/numerical_solvers
-   quickstart/neurodynamics_simulation
+   quickstart/sim0_neurodynamics_simulation
+   quickstart/sim1_efficient_synaptic_computation
+   quickstart/sim2_synaptic_connectivity
+   quickstart/sim3_running_order_scheduling
+   quickstart/sim4_monitor
+   quickstart/sim5_unified_operations
+   quickstart/sim6_repeat_mode
    quickstart/neurodynamics_analysis
+   quickstart/how_brainpy_works
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
-
-   tutorials/synaptic_connectivity
-   tutorials/efficient_synaptic_computation
-   tutorials/running_order_scheduling
-   tutorials/monitor
-   tutorials/repeat_mode
-   tutorials/unified_operations
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Advanced Tutorials
-
-   tutorials_advanced/ode_numerical_solvers
-   tutorials_advanced/sde_numerical_solvers
-   tutorials_advanced/how_brainpy_works
 
 
 .. toctree::
    :maxdepth: 1
    :caption: API documentation
 
-   apis/analysis
    apis/integrators
+   apis/dnn
+   apis/analysis
    apis/connectivity
    apis/inputs_module
    apis/changelog

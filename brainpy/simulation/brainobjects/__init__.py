@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from .dynamic_system import *
-from .neu_group import *
-from .syn_conn import *
+from .base import *
+from .channel import *
+from .delays import *
+from .dendrite import *
+from .molecular import *
 from .network import *
+from .neuron import *
+from .soma import *
+from .synapse import *

@@ -1,31 +1,46 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0.2"
+__version__ = "1.1.0-alpha"
 
-# "backend" module
-from . import backend
-from .backend import ops
-from .backend import drivers
 
-# "analysis" module
-from . import analysis
+# "base" module
+from . import base
+from .base.base import *
+from .base.collector import *
 
-# "simulation" module
-from . import simulation
-from .simulation import connectivity as connect
-from .simulation.brainobjects import *
-from .simulation.every import every
-from .simulation.utils import size2len
+
+# "math" module
+from . import math
+
 
 # "integrators" module
 from . import integrators
 from .integrators import ode
 from .integrators import sde
-from .integrators.integrate_wrapper import *
-from .integrators.constants import *
+from .integrators import dde
+from .integrators import fde
+from .integrators.wrapper import *
+
+
+# "simulation" module
+from . import simulation
+from .simulation import connectivity as connect
+from .simulation.brainobjects import *
+from .simulation.every import *
+from .simulation.monitor import *
+
+
+# "dnn" module
+from . import dnn
+
+
+# "analysis" module
+from . import analysis
+
 
 # "visualization" module
 from . import visualization as visualize
+
 
 # other modules
 from . import errors
@@ -33,3 +48,8 @@ from . import inputs
 from . import measure
 from . import running
 from . import tools
+
+
+# deprecated modules in V1.0.3
+from . import backend
+from . import ops
