@@ -51,5 +51,5 @@ from . import tools
 
 
 # deprecated modules in V1.0.3
-from . import backend
-from . import ops
+from . import _backend as backend
+from . import _ops as ops

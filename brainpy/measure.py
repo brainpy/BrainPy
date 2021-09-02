@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+"""This module aims to provide commonly used methods for simulated neuronal data.
+
+"""
+
+
 import numpy as np
 
 from brainpy import tools, math
