@@ -43,13 +43,7 @@
 > pip install -U brain-py
 ```
 
-**Method 2**: install ``BrainPy`` by using ``conda``:
-
-```bash
-> conda install brain-py -c conda-forge
-```
-
-**Method 3**: install ``BrainPy`` from source:
+**Method 2**: install ``BrainPy`` from source:
 
 ```bash
 > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
@@ -107,13 +101,9 @@ Here list several examples of BrainPy. More detailed examples and tutorials plea
 
 
 
-### Phase plane analysis
+### Low-dimension dynamics analysis
 
 - [Phase plane analysis of the I<sub>Na,p</sub>-I<sub>K</sub> model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html)
-
-
-
-### Bifurcation analysis
 
 - [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
 - [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)

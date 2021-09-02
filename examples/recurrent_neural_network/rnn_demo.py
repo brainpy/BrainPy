@@ -204,12 +204,12 @@ class Model(bp.dnn.Module):
 
     # Defining the layers
     # RNN Layer
-    self.w_ir = bp.TrainVar(bp.math.random.random((input_size, hidden_dim)))
-    self.w_rr = bp.TrainVar(bp.math.random.random((hidden_dim, hidden_dim)))
-    self.b_rr = bp.TrainVar(bp.math.zeros((hidden_dim,)))
+    self.w_ir = bp.math.TrainVar(bp.math.random.random((input_size, hidden_dim)))
+    self.w_rr = bp.math.TrainVar(bp.math.random.random((hidden_dim, hidden_dim)))
+    self.b_rr = bp.math.TrainVar(bp.math.zeros((hidden_dim,)))
     # Fully connected layer
-    self.w_ro = bp.TrainVar(bp.math.random.random((hidden_dim, output_size)))
-    self.b_ro = bp.TrainVar(bp.math.zeros((output_size,)))
+    self.w_ro = bp.math.TrainVar(bp.math.random.random((hidden_dim, output_size)))
+    self.b_ro = bp.math.TrainVar(bp.math.zeros((output_size,)))
 
   def __call__(self, x):
     def scan_fun(hidden, x):
