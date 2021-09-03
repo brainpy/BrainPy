@@ -38,7 +38,7 @@ class JaxArray(object):
   __slots__ = "_value"
 
   def __init__(self, value):
-    self._value = jnp.asarray(value)
+    self._value = value
 
   @property
   def value(self):

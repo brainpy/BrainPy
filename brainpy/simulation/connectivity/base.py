@@ -5,7 +5,7 @@ import abc
 
 import numpy as np
 
-from brainpy import math, errors
+from brainpy import errors, math
 
 try:
   import numba as nb
@@ -28,10 +28,8 @@ __all__ = [
 
 
 def _numba_backend():
-  r = math.get_backend_name().startswith('numba')
-  if r and nb is None:
-    raise errors.BackendNotInstalled('numba')
-  return r
+  r = math.get_backend_name().startswith('numpy')
+  return r and (nb is not None)
 
 
 def ij2mat(i, j, num_pre=None, num_post=None):

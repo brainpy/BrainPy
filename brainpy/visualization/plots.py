@@ -151,8 +151,11 @@ def raster_plot(ts,
   show : bool
       Show the figure.
   """
+
   if not isinstance(sp_matrix, np.ndarray):
     sp_matrix = sp_matrix.numpy()
+  if ts is None:
+    raise errors.BrainPyError('Must provide "ts".')
   if not isinstance(ts, np.ndarray):
     ts = ts.numpy()
 

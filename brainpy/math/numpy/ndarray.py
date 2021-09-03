@@ -16,9 +16,9 @@ ndarray = np.ndarray
 
 class Variable(np.ndarray):
   def __new__(cls, value, type='', replicate=None):
-    value = np.asarray(value)
-    obj = value.view(cls)
-    obj.value = value
+    value2 = np.asarray(value)
+    obj = value2.view(cls)
+    obj.value = value if value2.dtype == np.dtype('O') else value2
     obj.type = type
     obj.replicate = replicate
     return obj

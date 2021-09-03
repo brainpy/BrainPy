@@ -32,9 +32,11 @@ __all__ = [
 
 
 def jit_dynamic_system(ds, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
-  global DynamicSystem
+  global DynamicSystem, Container
   if DynamicSystem is None:
     from brainpy.simulation.brainobjects.base import DynamicSystem
+  if Container is None:
+    from brainpy.simulation.brainobjects.base import Container
 
   assert isinstance(ds, DynamicSystem)
 

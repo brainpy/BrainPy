@@ -26,7 +26,6 @@ from .integrators.wrapper import *
 from . import simulation
 from .simulation import connectivity as connect
 from .simulation.brainobjects import *
-from .simulation.every import *
 from .simulation.monitor import *
 
 
