@@ -25,23 +25,23 @@ def _cc(states, i, j):
 
 
 def cross_correlation(spikes, bin, dt=None):
-  """Calculate cross correlation index between neurons.
+  r"""Calculate cross correlation index between neurons.
 
   The coherence [1]_ between two neurons i and j is measured by their
   cross-correlation of spike trains at zero time lag within a time bin
-  of :backend:`\\Delta t = \\tau`. More specifically, suppose that a long
-  time interval T is divided into small bins of :backend:`\\Delta t` and
-  that two spike trains are given by :backend:`X(l)=` 0 or 1, :backend:`Y(l)=` 0
-  or 1, :backend:`l=1,2, \\ldots, K(T / K=\\tau)`. Thus, we define a coherence
+  of :math:`\Delta t = \tau`. More specifically, suppose that a long
+  time interval T is divided into small bins of :math:`\Delta t` and
+  that two spike trains are given by :math:`X(l)=` 0 or 1, :math:`Y(l)=` 0
+  or 1, :math:`l=1,2, \ldots, K(T / K=\tau)`. Thus, we define a coherence
   measure for the pair as:
 
-  .. backend::
+  .. math::
 
-      \\kappa_{i j}(\\tau)=\\frac{\\sum_{l=1}^{K} X(l) Y(l)}
-      {\\sqrt{\\sum_{l=1}^{K} X(l) \\sum_{l=1}^{K} Y(l)}}
+      \kappa_{i j}(\tau)=\frac{\sum_{l=1}^{K} X(l) Y(l)}
+      {\sqrt{\sum_{l=1}^{K} X(l) \sum_{l=1}^{K} Y(l)}}
 
-  The population coherence measure :backend:`\\kappa(\\tau)` is defined by the
-  average of :backend:`\\kappa_{i j}(\\tau)` over many pairs of neurons in the
+  The population coherence measure :math:`\kappa(\tau)` is defined by the
+  average of :math:`\kappa_{i j}(\tau)` over many pairs of neurons in the
   network.
 
   Parameters
@@ -87,40 +87,40 @@ def _var(neu_signal):
 
 
 def voltage_fluctuation(potentials):
-  """Calculate neuronal synchronization via voltage variance.
+  r"""Calculate neuronal synchronization via voltage variance.
 
   The method comes from [1]_ [2]_ [3]_.
 
-  First, average over the membrane potential :backend:`V`
+  First, average over the membrane potential :math:`V`
 
-  .. backend::
+  .. math::
 
-      V(t) = \\frac{1}{N} \\sum_{i=1}^{N} V_i(t)
+      V(t) = \frac{1}{N} \sum_{i=1}^{N} V_i(t)
 
-  The variance of the time fluctuations of :backend:`V(t)` is
+  The variance of the time fluctuations of :math:`V(t)` is
 
-  .. backend::
+  .. math::
 
-      \\sigma_V^2 = \\left\\langle \\left[ V(t) \\right]^2 \\right\\rangle_t -
-      \\left[ \\left\\langle V(t) \\right\\rangle_t \\right]^2
+      \sigma_V^2 = \left\langle \left[ V(t) \right]^2 \right\rangle_t -
+      \left[ \left\langle V(t) \right\rangle_t \right]^2
 
-  where :backend:`\\left\\langle \\ldots \\right\\rangle_t = (1 / T_m) \\int_0^{T_m} dt \\, \\ldots`
-  denotes time-averaging over a large time, :backend:`\\tau_m`. After normalization
-  of :backend:`\\sigma_V` to the average over the population of the single cell
+  where :math:`\left\langle \ldots \right\rangle_t = (1 / T_m) \int_0^{T_m} dt \, \ldots`
+  denotes time-averaging over a large time, :math:`\tau_m`. After normalization
+  of :math:`\sigma_V` to the average over the population of the single cell
   membrane potentials
 
-  .. backend::
+  .. math::
 
-      \\sigma_{V_i}^2 = \\left\\langle\\left[ V_i(t) \\right]^2 \\right\\rangle_t -
-      \\left[ \\left\\langle V_i(t) \\right\\rangle_t \\right]^2
+      \sigma_{V_i}^2 = \left\langle\left[ V_i(t) \right]^2 \right\rangle_t -
+      \left[ \left\langle V_i(t) \right\rangle_t \right]^2
 
-  one defines a synchrony measure, :backend:`\\chi (N)`, for the activity of a system
-  of :backend:`N` neurons by:
+  one defines a synchrony measure, :math:`\chi (N)`, for the activity of a system
+  of :math:`N` neurons by:
 
-  .. backend::
+  .. math::
 
-      \\chi^2 \\left( N \\right) = \\frac{\\sigma_V^2}{ \\frac{1}{N} \\sum_{i=1}^N
-      \\sigma_{V_i}^2}
+      \chi^2 \left( N \right) = \frac{\sigma_V^2}{ \frac{1}{N} \sum_{i=1}^N
+      \sigma_{V_i}^2}
 
   Parameters
   ----------
@@ -174,16 +174,16 @@ def raster_plot(sp_matrix, times):
 
 
 def firing_rate(sp_matrix, width, dt=None):
-  """Calculate the mean firing rate over in a neuron group.
+  r"""Calculate the mean firing rate over in a neuron group.
 
   This method is adopted from Brian2.
 
-  The firing rate in trial :backend:`k` is the spike count :backend:`n_{k}^{sp}`
-  in an interval of duration :backend:`T` divided by :backend:`T`:
+  The firing rate in trial :math:`k` is the spike count :math:`n_{k}^{sp}`
+  in an interval of duration :math:`T` divided by :math:`T`:
 
-  .. backend::
+  .. math::
 
-      v_k = {n_k^{sp} \\over T}
+      v_k = {n_k^{sp} \over T}
 
   Parameters
   ----------

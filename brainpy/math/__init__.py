@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""This module provides basic mathematical operations, including:
+
+- numpy-like array operations
+- compilations of ``jit``, ``vmap``, ``pmap`` for class objects
+- and more ...
+
+"""
+
+
 from brainpy import errors
 from brainpy.math.function import *
 from brainpy.math.numpy import *
