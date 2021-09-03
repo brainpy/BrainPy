@@ -72,6 +72,10 @@ class JaxArray(object):
   def size(self):
     return self.value.size
 
+  @property
+  def T(self):
+    return JaxArray(self.value.T)
+
   # ----------------------- #
   # Python inherent methods #
   # ----------------------- #

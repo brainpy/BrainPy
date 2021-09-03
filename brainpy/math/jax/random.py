@@ -38,23 +38,23 @@ class RandomState(Variable):
   Currently only the random.Generator module uses them."""
   __slots__ = ()
 
-  def __init__(self, seed_or_key=None):
+  def __init__(self, seed=None):
     """RandomState constructor.
 
     Parameters
     ----------
-    seed_or_key : int, jax.DeviceArray, Optional
+    seed : int, jax.DeviceArray, Optional
       The initial seed of the random number generator.
     """
-    if seed_or_key is None:
-      seed_or_key = np.random.randint(0, 100000)
-    if isinstance(seed_or_key, int):
-      key = jr.PRNGKey(seed_or_key)
-    elif isinstance(seed_or_key, (jn.ndarray, JaxArray)):
-      if len(seed_or_key) == 1:  # seed
-        key = jr.PRNGKey(seed_or_key[0])
-      elif len(seed_or_key) == 2:  # key
-        key = jax.numpy.asarray(seed_or_key, dtype=jax.numpy.uint32)
+    if seed is None:
+      seed = np.random.randint(0, 100000)
+    if isinstance(seed, int):
+      key = jr.PRNGKey(seed)
+    elif isinstance(seed, (jn.ndarray, JaxArray)):
+      if len(seed) == 1:  # seed
+        key = jr.PRNGKey(seed[0])
+      elif len(seed) == 2:  # key
+        key = jax.numpy.asarray(seed, dtype=jax.numpy.uint32)
       else:
         raise ValueError()
     else:

@@ -42,7 +42,7 @@ __all__ = [
   # array creation
   'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like', 'full',
   'full_like', 'eye', 'identity', 'array', 'asarray', 'arange', 'linspace',
-  'logspace', 'meshgrid', 'diag', 'tri', 'tril', 'triu', 'vander',
+  'logspace', 'meshgrid', 'diag', 'tri', 'tril', 'triu', 'vander', 'fill_diagonal',
 
   # indexing funcs
   'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices',
@@ -63,11 +63,9 @@ __all__ = [
   'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
 
   # data types
-  'dtype', 'finfo', 'iinfo',
-  'bool_', 'uint8', 'uint16', 'uint32', 'uint64',
-  'int_', 'int8', 'int16', 'int32', 'int64',
-  'float_', 'float16', 'float32', 'float64',
-  'complex_', 'complex64', 'complex128',
+  'dtype', 'finfo', 'iinfo', 'bool_', 'uint8', 'uint16', 'uint32', 'uint64',
+  'int_', 'int8', 'int16', 'int32', 'int64', 'float_', 'float16', 'float32', 'float64',
+  'complex_', 'complex64', 'complex128', 'set_int_', 'set_float_', 'set_complex_',
 
   # others
   'take_along_axis', 'clip_by_norm',
@@ -290,6 +288,12 @@ tril = numpy.tril
 triu = numpy.triu
 vander = numpy.vander
 
+
+def fill_diagonal(a, val, wrap=False):
+  numpy.fill_diagonal(a, val, wrap=wrap)
+  return a
+
+
 # indexing funcs
 # --------------
 
@@ -375,6 +379,25 @@ float64 = numpy.float64
 complex_ = numpy.complex_
 complex64 = numpy.complex64
 complex128 = numpy.complex128
+
+
+def set_int_(int_type):
+  global int_
+  assert isinstance(int_type, type)
+  int_ = int_type
+
+
+def set_float_(float_type):
+  global float_
+  assert isinstance(float_type, type)
+  float_ = float_type
+
+
+def set_complex_(complex_type):
+  global complex_
+  assert isinstance(complex_type, type)
+  complex_ = complex_type
+
 
 # others
 # -------
