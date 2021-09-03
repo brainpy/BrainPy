@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors
+from brainpy import errors, math
+from brainpy.simulation.connectivity import TwoEndConnector, MatConn, IJConn
 from brainpy.simulation.brainobjects.base import DynamicSystem
 from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.brainobjects.neuron import NeuGroup
@@ -21,6 +22,7 @@ class TwoEndConn(DynamicSystem):
       Pre-synaptic neuron group.
   post : NeuGroup
       Post-synaptic neuron group.
+  conn : math.ndarray, dict, TwoEndConnector
   monitors : list of str, tuple of str
       Variables to monitor.
   name : str
@@ -29,7 +31,7 @@ class TwoEndConn(DynamicSystem):
       Whether show the formatted code.
   """
 
-  def __init__(self, pre, post, name=None, steps=('update',), **kwargs):
+  def __init__(self, pre, post, conn=None, name=None, steps=('update',), **kwargs):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
@@ -38,6 +40,27 @@ class TwoEndConn(DynamicSystem):
       raise errors.BrainPyError('"post" must be an instance of NeuGroup.')
     self.pre = pre
     self.post = post
+
+    # connectivity
+    # ------------
+    if isinstance(conn, TwoEndConnector):
+      self.conn = conn(pre.size, post.size)
+    elif isinstance(conn, math.ndarray):
+      if (pre.num, post.num) != conn.shape:
+        raise errors.BrainPyError(f'"conn" is provided as a matrix, and it is expected '
+                                  f'to be an array with shape of (pre.num, post.num) = '
+                                  f'{(pre.num, post.num)}, however we got {conn.shape}')
+      self.conn = MatConn(conn_mat=conn)
+    elif isinstance(conn, dict):
+      if not ('i' in conn and 'j' in conn):
+        raise errors.BrainPyError(f'"conn" is provided as a dict, and it is expected to '
+                                  f'be a dictionary with "i" and "j" specification, '
+                                  f'however we got {conn}')
+      self.conn = IJConn(i=conn['i'], j=conn['j'])
+    elif conn is None:
+      self.conn = conn
+    else:
+      raise errors.BrainPyError(f'Unknown "conn" type: {conn}')
 
     # initialize
     # ----------

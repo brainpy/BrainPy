@@ -411,7 +411,7 @@ class GaussianWeight(TwoEndConnector):
 
   Specifically,
 
-  .. backend::
+  .. math::
 
       w(x, y) = w_{max} \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma^2})
 
@@ -497,7 +497,7 @@ class GaussianProb(TwoEndConnector):
 
   Specifically,
 
-  .. backend::
+  .. math::
 
       p=\\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma^2})
 
@@ -576,7 +576,7 @@ class DOG(TwoEndConnector):
 
   Mathematically,
 
-  .. backend::
+  .. math::
 
       w(x, y) = w_{max}^+ \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma_+^2})
       -  w_{max}^- \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma_-^2})
@@ -668,12 +668,12 @@ class SmallWorld(TwoEndConnector):
 
   Notes
   -----
-  First create a ring over $num\\_node$ nodes [1]_.  Then each node in the ring is
-  joined to its $num\\_neighbor$ nearest neighbors (or $num\\_neighbor - 1$ neighbors
-  if $num\\_neighbor$ is odd). Then shortcuts are created by replacing some edges as
-  follows: for each edge $(u, v)$ in the underlying "$num\\_node$-ring with
-  $num\\_neighbor$ nearest neighbors" with probability $prob$ replace it with a new
-  edge $(u, w)$ with uniformly random choice of existing node $w$.
+  First create a ring over :math:`num\_node` nodes [1]_.  Then each node in the ring is
+  joined to its :math:`num\_neighbor` nearest neighbors (or :math:`num\_neighbor - 1` neighbors
+  if :math:`num\_neighbor` is odd). Then shortcuts are created by replacing some edges as
+  follows: for each edge :math:`(u, v)` in the underlying ":math:`num\_node`-ring with
+  :math:`num\_neighbor` nearest neighbors" with probability :math:`prob` replace it with a new
+  edge :math:`(u, w)` with uniformly random choice of existing node :math:`w`.
 
   References
   ----------
@@ -751,8 +751,8 @@ class ScaleFreeBA(TwoEndConnector):
   """Build a random graph according to the Barabási–Albert preferential
   attachment model.
 
-  A graph of $num\\_node$ nodes is grown by attaching new nodes each with
-  $m$ edges that are preferentially attached to existing nodes
+  A graph of :math:`num\_node` nodes is grown by attaching new nodes each with
+  :math:`m` edges that are preferentially attached to existing nodes
   with high degree.
 
   Parameters
@@ -820,11 +820,11 @@ class ScaleFreeBA(TwoEndConnector):
 
 
 class ScaleFreeBADual(TwoEndConnector):
-  """Build a random graph according to the dual Barabási–Albert preferential
+  r"""Build a random graph according to the dual Barabási–Albert preferential
   attachment model.
 
-  A graph of $num\\_node$ nodes is grown by attaching new nodes each with either $m_1$
-  edges (with probability $p$) or $m_2$ edges (with probability $1-p$) that
+  A graph of :math::`num\_node` nodes is grown by attaching new nodes each with either $m_1$
+  edges (with probability :math:`p`) or :math:`m_2` edges (with probability :math:`1-p`) that
   are preferentially attached to existing nodes with high degree.
 
   Parameters
@@ -932,7 +932,7 @@ class PowerLaw(TwoEndConnector):
   Notes
   -----
   The average clustering has a hard time getting above a certain
-  cutoff that depends on `m`.  This cutoff is often quite low.  The
+  cutoff that depends on :math:`m`.  This cutoff is often quite low.  The
   transitivity (fraction of triangles to possible triangles) seems to
   decrease with network size.
 
@@ -944,14 +944,14 @@ class PowerLaw(TwoEndConnector):
   higher average clustering to be attained if desired.
 
   It seems possible to have a disconnected graph with this algorithm
-  since the initial `m` nodes may not be all linked to a new node
+  since the initial :math:`m` nodes may not be all linked to a new node
   on the first iteration like the BA model.
 
   Raises
   ------
   ValueError
-      If `m` does not satisfy ``1 <= m <= n`` or `p` does not
-      satisfy ``0 <= p <= 1``.
+      If :math:`m` does not satisfy :math:`1 <= m <= n` or :math:`p` does not
+      satisfy :math:`0 <= p <= 1`.
 
   References
   ----------
