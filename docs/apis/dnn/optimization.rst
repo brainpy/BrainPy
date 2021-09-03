@@ -5,7 +5,7 @@ Optimizers
 .. automodule:: brainpy.dnn.optimizers
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     Optimizer
     SGD

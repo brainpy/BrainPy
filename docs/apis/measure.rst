@@ -1,11 +1,11 @@
-brainpy.measure
-===============
+``brainpy.measure`` module
+==========================
 
 .. currentmodule:: brainpy.measure
 .. automodule:: brainpy.measure
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     cross_correlation
     voltage_fluctuation

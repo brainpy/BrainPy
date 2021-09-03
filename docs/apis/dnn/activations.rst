@@ -6,7 +6,7 @@ Activation Functions
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     celu
     elu

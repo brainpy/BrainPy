@@ -1,12 +1,12 @@
-brainpy.visualize
-=================
+``brainpy.visualize`` module
+============================
 
 .. currentmodule:: brainpy.visualization
 .. automodule:: brainpy.visualization
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     get_figure
     plot_style1

@@ -6,7 +6,7 @@ General Functions
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     odeint
     sdeint

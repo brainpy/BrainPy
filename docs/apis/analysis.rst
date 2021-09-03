@@ -11,7 +11,7 @@ Summary
 -------
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     PhasePlane
     Bifurcation
