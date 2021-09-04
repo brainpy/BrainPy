@@ -23,12 +23,14 @@
 # - Author : Chaoming Wang (chao.brain@qq.com), Xinyu Liu (adaliu1998@163.com)
 
 # %%
+import sys
+sys.path.append('/mnt/d/codes/Projects/BrainPy')
 import matplotlib.pyplot as plt
 import jax
 import brainpy as bp
 
 # %%
-# bp.math.use_backend('jax')
+bp.math.use_backend('jax')
 bp.math.set_dt(0.1)
 
 
@@ -101,10 +103,10 @@ class PoissonNoise(bp.NeuGroup):
     self.freqs = freqs
     self.dt = bp.math.get_dt() / 1000.
     self.spike = bp.math.Variable(bp.math.zeros(self.num, dtype=bool))
-    self.rand_state = bp.math.random.RandomState()
+    self.rng = bp.math.random.RandomState()
 
   def update(self, _t, _i):
-    self.spike[:] = self.rand_state.random(self.num) < self.freqs * self.dt
+    self.spike[:] = self.rng.random(self.num) < self.freqs * self.dt
 
 
 # %%
@@ -520,8 +522,8 @@ plt.axvline(pre_period + stim_period + delay_period, linestyle='dashed')
 plt.legend()
 
 fig.add_subplot(gs[3, 0])
-rateA = bp.measure.firing_rate(net.mon['A.spike'], width=10.)
-rateB = bp.measure.firing_rate(net.mon['B.spike'], width=10.)
+rateA = brainpy.simulation.measure.firing_rate(net.mon['A.spike'], width=10.)
+rateB = brainpy.simulation.measure.firing_rate(net.mon['B.spike'], width=10.)
 plt.plot(net.mon.ts, rateA, label="Group A")
 plt.plot(net.mon.ts, rateB, label="Group B")
 plt.ylabel('Firing rate [Hz]')

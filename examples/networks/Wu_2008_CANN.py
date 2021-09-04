@@ -69,9 +69,9 @@ def task1_population_coding():
   cann = bp.math.jit(CANN1D(num=512, k=0.1, monitors=['u']))
 
   I1 = cann.get_stimulus_by_pos(0.)
-  Iext, duration = bp.inputs.section_input(values=[0., I1, 0.],
-                                           durations=[1., 8., 8.],
-                                           return_length=True)
+  Iext, duration = brainpy.simulation.inputs.section_input(values=[0., I1, 0.],
+                                                           durations=[1., 8., 8.],
+                                                           return_length=True)
   cann.run(duration=duration, inputs=('input', Iext, 'iter'))
 
   bp.visualize.animate_1D(
