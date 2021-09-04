@@ -5,13 +5,12 @@ Base Layers
 .. automodule:: brainpy.dnn.layers
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     Activation
     Conv2D
     Dropout
     Linear
-    BatchNorm
 
 
 .. autoclass:: Activation
@@ -26,8 +25,6 @@ Base Layers
 .. autoclass:: Linear
    :members:
 
-.. autoclass:: BatchNorm
-   :members:
 
 
 

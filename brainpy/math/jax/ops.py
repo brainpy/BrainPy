@@ -7,6 +7,7 @@ from brainpy.math.jax.jaxarray import JaxArray
 from brainpy.math.numpy import ops
 from brainpy.tools import copy_doc
 
+
 __all__ = [
   # math funcs
   'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
@@ -17,10 +18,10 @@ __all__ = [
   'lcm', 'gcd', 'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan',
   'arctan2', 'arctanh', 'cos', 'cosh', 'sin', 'sinc', 'sinh', 'tan',
   'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians', 'round',
-  'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix', 'prod', 'sum', 'diff',
-  'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum', 'cumprod',
-  'cumsum', 'ediff1d', 'cross', 'trapz', 'isfinite', 'isinf', 'isnan',
-  'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
+  'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix', 'prod',
+  'sum', 'diff', 'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum',
+  'cumprod', 'cumsum', 'ediff1d', 'cross', 'trapz', 'isfinite', 'isinf',
+  'isnan', 'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
   'sqrt', 'cbrt', 'square', 'absolute', 'fabs', 'sign', 'heaviside',
   'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip',
 
@@ -45,7 +46,7 @@ __all__ = [
   # array creation
   'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like', 'full',
   'full_like', 'eye', 'identity', 'array', 'asarray', 'arange', 'linspace',
-  'logspace', 'meshgrid', 'diag', 'tri', 'tril', 'triu', 'vander',
+  'logspace', 'meshgrid', 'diag', 'tri', 'tril', 'triu', 'vander', 'fill_diagonal',
 
   # indexing funcs
   'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices',
@@ -66,11 +67,9 @@ __all__ = [
   'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
 
   # data types
-  'dtype', 'finfo', 'iinfo',
-  'bool_', 'uint8', 'uint16', 'uint32', 'uint64',
-  'int_', 'int8', 'int16', 'int32', 'int64',
-  'float_', 'float16', 'float32', 'float64',
-  'complex_', 'complex64', 'complex128',
+  'dtype', 'finfo', 'iinfo', 'bool_', 'uint8', 'uint16', 'uint32', 'uint64',
+  'int_', 'int8', 'int16', 'int32', 'int64', 'float_', 'float16', 'float32',
+  'float64', 'complex_', 'complex64', 'complex128', 'set_int_', 'set_float_', 'set_complex_',
 
   # others
   'take_along_axis', 'clip_by_norm',
@@ -1089,6 +1088,13 @@ def vander(x, N=None, increasing=False):
   return JaxArray(jnp.vander(x, N=N, increasing=increasing))
 
 
+def fill_diagonal(a, val):
+  if isinstance(a, JaxArray): a = a.value
+  assert a.ndim >= 2
+  i, j = jnp.diag_indices(min(a.shape[-2:]))
+  return JaxArray(a.at[..., i, j].set(val))
+
+
 # indexing funcs
 # --------------
 
@@ -1353,6 +1359,24 @@ complex64 = jnp.complex64
 complex128 = jnp.complex128
 
 
+def set_int_(int_type):
+  global int_
+  assert isinstance(int_type, type)
+  int_ = int_type
+
+
+def set_float_(float_type):
+  global float_
+  assert isinstance(float_type, type)
+  float_ = float_type
+
+
+def set_complex_(complex_type):
+  global complex_
+  assert isinstance(complex_type, type)
+  complex_ = complex_type
+
+
 # others
 # ------
 @copy_doc(np.take_along_axis)
@@ -1367,3 +1391,4 @@ def clip_by_norm(t, clip_norm, axis=None):
   l2norm = sqrt(sum(t * t, axis=axis, keepdims=True))
   clip_values = t * clip_norm / maximum(l2norm, clip_norm)
   return clip_values
+

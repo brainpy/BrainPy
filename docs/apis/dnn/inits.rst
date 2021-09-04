@@ -6,7 +6,7 @@ Initialization Methods
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     Initializer
     ZeroInit

@@ -4,20 +4,21 @@ BrainPy documentation
 BrainPy is a highly flexible and extensible framework targeting on the
 high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
-1. **General numerical solvers** for ODEs, SDEs, DDEs, FDEs and others.
-2. **Dynamics simulation tools** for various brain objects, like
-   neurons, synapses, networks, soma, dendrites, channels, and even molecular.
-3. **Dynamics analysis tools** for differential equations, including
+1. **JIT compilation** for class objects.
+2. **Numerical solvers** for ODEs, SDEs, DDEs, FDEs and others.
+3. **Dynamics simulation tools** for various brain objects, like
+   neurons, synapses, networks, soma, dendrites, channels, and even more.
+4. **Dynamics analysis tools** for differential equations, including
    phase plane analysis, bifurcation analysis, continuation analysis and
    sensitive analysis.
-4. **Seamless integration with deep learning models**, but has the high speed
+5. **Seamless integration with deep learning models**, but has the high speed
    acceleration because of JIT compilation.
+6. And more ......
 
 
-Intuitive tutorials of BrainPy please see our
-`handbook <https://pku-nip-lab.github.io/BrainPyHandbook/>`_,
-and comprehensive examples of BrainPy please see
-`BrainModels <https://brainmodels.readthedocs.io/>`_.
+.. note::
+
+    Comprehensive examples of BrainPy please see BrainModels: https://github.com/PKU-NIP-Lab/BrainModels.
 
 
 .. toctree::
@@ -25,28 +26,58 @@ and comprehensive examples of BrainPy please see
    :caption: Quickstart
 
    quickstart/installation
+   quickstart/jit_compilation
    quickstart/numerical_solvers
-   quickstart/sim0_neurodynamics_simulation
-   quickstart/sim1_efficient_synaptic_computation
-   quickstart/sim2_synaptic_connectivity
-   quickstart/sim3_running_order_scheduling
-   quickstart/sim4_monitor
-   quickstart/sim5_unified_operations
-   quickstart/sim6_repeat_mode
-   quickstart/neurodynamics_analysis
-   quickstart/how_brainpy_works
+   quickstart/dynamics_simulation
+   quickstart/deep_neural_network
 
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials for math module
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Integrator Tutorials
+
+   tutorial_intg/ode_numerical_solvers
+   tutorial_intg/sde_numerical_solvers
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Simulation Tutorials
+
+   tutorial_simulation/efficient_synaptic_computation
+   tutorial_simulation/synaptic_connectivity
+   tutorial_simulation/monitor
+   tutorial_simulation/inputs
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Analysis Tutorials
+
+   tutorial_analysis/dynamics_analysis
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: DNN Tutorials
 
 
 .. toctree::
    :maxdepth: 1
    :caption: API documentation
 
+   apis/base
+   apis/math
    apis/integrators
-   apis/dnn
+   apis/simulation
    apis/analysis
-   apis/connectivity
-   apis/inputs_module
+   apis/dnn
+   apis/visualization
    apis/changelog
 
 

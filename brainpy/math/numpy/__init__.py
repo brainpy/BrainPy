@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from . import fft
 from . import linalg
 from . import random
 from .code import *

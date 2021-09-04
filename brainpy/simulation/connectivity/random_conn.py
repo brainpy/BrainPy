@@ -1,10 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import numpy as np
 
-from brainpy import tools, math
+from brainpy import tools, math, errors
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
+
+try:
+  import numba
+except ModuleNotFoundError:
+  numba = None
+
+
+logger = logging.getLogger('brainpy.simulation.connectivity')
+
 
 __all__ = [
   'FixedPostNum',
@@ -36,6 +47,14 @@ def _prob_conn(pre_i, num_post, prob, include_self):
           conn_i.append(pre_i)
           conn_j.append(j)
   return conn_i, conn_j
+
+@tools.numba_jit
+def _prob_conn2(num_need, num_total, i=0, include_self=False):
+  prob = np.random.random(num_total)
+  if not include_self and i <= num_total:
+    prob[i] = 1.
+  return np.argsort(prob)[:num_need]
+
 
 
 @tools.numba_jit
@@ -173,14 +192,6 @@ def _random_subset(seq, m, rng):
   return targets
 
 
-def _get_rng(seed):
-  if seed is None:
-    rng = np.random
-  else:
-    rng = np.random.RandomState(seed)
-  return rng
-
-
 class FixedProb(TwoEndConnector):
   """Connect the post-synaptic neurons with fixed probability.
 
@@ -189,18 +200,30 @@ class FixedProb(TwoEndConnector):
   prob : float
       The conn probability.
   include_self : bool
-      Whether create (i, i) conn ?
-  seed : None, int
+      Whether create (i, i) conn?
+  seed : optional, int
       Seed the random generator.
+  method : str
+    The method used to create the connection.
+
+    - ``matrix``: This method will create a big matrix, then, the connectivity is constructed
+      from this matrix :math:`(N_{pre}, N_{post})`. In a large network, this method will
+      consume huge memories, including a matrix: :math:`(N_{pre}, N_{post})`, two vectors:
+      :math:`2 * N_{pre} * N_{post} * prob`.
+    - ``iter``: This method will iteratively build the synaptic connections. It has the
+      minimum pressure of memory consuming, only :math:`2 * N_{pre} * N_{post} * prob`
+      (``i`` and ``j`` vectors).
   """
 
   def __init__(self, prob, include_self=True, seed=None, method='matrix'):
     super(FixedProb, self).__init__()
     self.prob = prob
     self.include_self = include_self
-    self.rng = _get_rng(seed=seed)
-    assert method in ['matrix', 'vector']
+    self.seed = seed
+    self.rng = math.random.RandomState(seed=seed)
     self.method = method
+    if method not in ['matrix', 'iter']:
+      raise errors.BrainPyError(f'Only support "matrix" and "iter", while we got "{method}"')
 
   def __call__(self, pre_size, post_size):
     num_pre, num_post = utils.size2len(pre_size), utils.size2len(post_size)
@@ -209,24 +232,30 @@ class FixedProb(TwoEndConnector):
     if self.method == 'matrix':
       prob_mat = self.rng.random(size=(num_pre, num_post))
       if not self.include_self:
-        np.fill_diagonal(prob_mat, 1.)
-      conn_mat = np.array(prob_mat < self.prob, dtype=np.int_)
-      pre_ids, post_ids = np.where(conn_mat)
+        prob_mat = math.fill_diagonal(prob_mat, 1.)
+      conn_mat = math.array(prob_mat < self.prob, dtype=math.bool_)
+      pre_ids, post_ids = math.where(conn_mat)
       self.conn_mat = math.array(conn_mat)
+
     else:
+      if numba is None:
+        logging.warning(f'Creating {self.__class__.__name__} by {self.method} method '
+                        f'without numba installation is very slow. We recommend you '
+                        f'install numba first.')
+      else:
+        math.random.seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(num_pre):
         pres, posts = _prob_conn(i, num_post, self.prob, self.include_self)
         pre_ids.extend(pres)
         post_ids.extend(posts)
-    self.pre_ids = math.array(np.ascontiguousarray(pre_ids))
-    self.post_ids = math.array(np.ascontiguousarray(post_ids))
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
     return self
 
 
 class FixedPreNum(TwoEndConnector):
-  """Connect the pre-synaptic neurons with fixed number for each
-  post-synaptic neuron.
+  """Connect the pre-synaptic neurons with fixed number for each post-synaptic neuron.
 
   Parameters
   ----------
@@ -237,9 +266,19 @@ class FixedPreNum(TwoEndConnector):
       Whether create (i, i) conn ?
   seed : None, int
       Seed the random generator.
+  method : str
+    The method used to create the connection.
+
+    - ``matrix``: This method will create a big matrix, then, the connectivity is constructed
+      from this matrix :math:`(N_{pre}, N_{post})`. In a large network, this method will
+      consume huge memories, including a matrix: :math:`(N_{pre}, N_{post})`, two vectors:
+      :math:`2 * N_{need} * N_{post}`.
+    - ``iter``: This method will iteratively build the synaptic connections. It has the
+      minimum pressure of memory consuming, only :math:`2 * N_{need} * N_{post}`
+      (``i`` and ``j`` vectors).
   """
 
-  def __init__(self, num, include_self=True, seed=None):
+  def __init__(self, num, include_self=True, seed=None, method='matrix'):
     super(FixedPreNum, self).__init__()
     if isinstance(num, int):
       assert num >= 0, '"num" must be bigger than 0.'
@@ -248,8 +287,12 @@ class FixedPreNum(TwoEndConnector):
     else:
       raise ValueError(f'Unknown type: {type(num)}')
     self.num = num
+    self.seed = seed
     self.include_self = include_self
-    self.rng = _get_rng(seed=seed)
+    self.rng = math.random.RandomState(seed=seed)
+    self.method = method
+    if method not in ['matrix', 'iter']:
+      raise errors.BrainPyError(f'Only support "matrix" and "iter", while we got "{method}"')
 
   def __call__(self, pre_size, post_size):
     num_pre, num_post = utils.size2len(pre_size), utils.size2len(post_size)
@@ -257,20 +300,36 @@ class FixedPreNum(TwoEndConnector):
     num = self.num if isinstance(self.num, int) else int(self.num * num_pre)
     assert num <= num_pre, f'"num" must be less than "num_pre", but got {num} > {num_pre}'
 
-    prob_mat = self.rng.random(size=(num_pre, num_post))
-    if not self.include_self:
-      np.fill_diagonal(prob_mat, 1.)
-    arg_sort = np.argsort(prob_mat, axis=0)[:num]
-    pre_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int_)
-    post_ids = np.asarray(np.repeat(np.arange(num_post), num_pre), dtype=np.int_)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    if self.method == 'matrix':
+      prob_mat = self.rng.random(size=(num_post, num_pre))
+      if not self.include_self:
+        prob_mat = math.fill_diagonal(prob_mat, 1.)
+      arg_sort = math.argsort(prob_mat, axis=1)[:, :num]
+      pre_ids = math.asarray(arg_sort.flatten(), dtype=math.int_)
+      post_ids = math.asarray(math.repeat(math.arange(num_post), num), dtype=math.int_)
+
+    else:
+      if numba is None:
+        logging.warning(f'Creating {self.__class__.__name__} by {self.method} method '
+                        f'without numba installation is very slow. We recommend you '
+                        f'install numba first.')
+      else:
+        math.random.seed(self.seed)
+      pre_ids, post_ids = [], []
+      for i in range(self.num_post):
+        pres = _prob_conn2(num_need=num, num_total=num_pre, i=i, include_self=self.include_self)
+        posts = np.ones_like(pres, dtype=math.int_) * i
+        pre_ids.append(pres)
+        post_ids.append(posts)
+      pre_ids = np.concatenate(pre_ids)
+      post_ids = np.concatenate(post_ids)
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
     return self
 
 
 class FixedPostNum(TwoEndConnector):
-  """Connect the post-synaptic neurons with fixed number for each
-  pre-synaptic neuron.
+  """Connect the post-synaptic neurons with fixed number for each pre-synaptic neuron.
 
   Parameters
   ----------
@@ -281,9 +340,19 @@ class FixedPostNum(TwoEndConnector):
       Whether create (i, i) conn ?
   seed : None, int
       Seed the random generator.
+  method : str
+    The method used to create the connection.
+
+    - ``matrix``: This method will create a big matrix, then, the connectivity is constructed
+      from this matrix :math:`(N_{pre}, N_{post})`. In a large network, this method will
+      consume huge memories, including a matrix: :math:`(N_{pre}, N_{post})`, two vectors:
+      :math:`2 * N_{need} * N_{pre}`.
+    - ``iter``: This method will iteratively build the synaptic connections. It has the
+      minimum pressure of memory consuming, only :math:`2 * N_{need} * N_{pre}`
+      (``i`` and ``j`` vectors).
   """
 
-  def __init__(self, num, include_self=True, seed=None):
+  def __init__(self, num, include_self=True, seed=None, method='matrix'):
     super(FixedPostNum, self).__init__()
     if isinstance(num, int):
       assert num >= 0, '"num" must be bigger than 0.'
@@ -292,8 +361,12 @@ class FixedPostNum(TwoEndConnector):
     else:
       raise ValueError(f'Unknown type: {type(num)}')
     self.num = num
+    self.seed = seed
     self.include_self = include_self
-    self.rng = _get_rng(seed=seed)
+    self.rng = math.random.RandomState(seed=seed)
+    self.method = method
+    if method not in ['matrix', 'iter']:
+      raise errors.BrainPyError(f'Only support "matrix" and "iter", while we got "{method}"')
 
   def __call__(self, pre_size, post_size):
     num_pre = utils.size2len(pre_size)
@@ -303,14 +376,32 @@ class FixedPostNum(TwoEndConnector):
     num = self.num if isinstance(self.num, int) else int(self.num * num_post)
     assert num <= num_post, f'"num" must be less than "num_post", but got {num} > {num_post}'
 
-    prob_mat = self.rng.random(size=(num_pre, num_post))
-    if not self.include_self:
-      np.fill_diagonal(prob_mat, 1.)
-    arg_sort = np.argsort(prob_mat, axis=1)[:, num]
-    post_ids = np.asarray(np.concatenate(arg_sort), dtype=np.int64)
-    pre_ids = np.asarray(np.repeat(np.arange(num_pre), num_post), dtype=np.int64)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
+    if self.method == 'matrix':
+      prob_mat = self.rng.random(size=(num_pre, num_post))
+      if not self.include_self:
+        prob_mat = math.fill_diagonal(prob_mat, 1.)
+      arg_sort = math.argsort(prob_mat, axis=1)[:, :num]
+      post_ids = math.asarray(arg_sort.flatten(), dtype=math.int_)
+      pre_ids = math.asarray(math.repeat(math.arange(num_pre), num), dtype=math.int_)
+
+    else:
+      if numba is None:
+        logging.warning(f'Creating {self.__class__.__name__} by {self.method} method '
+                        f'without numba installation is very slow. We recommend you '
+                        f'install numba first.')
+      else:
+        math.random.seed(self.seed)
+      pre_ids, post_ids = [], []
+      for i in range(self.num_pre):
+        posts = _prob_conn2(num_need=num, num_total=num_post, i=i, include_self=self.include_self)
+        pres = np.ones_like(posts, dtype=math.int_) * i
+        pre_ids.append(pres)
+        post_ids.append(posts)
+      pre_ids = np.concatenate(pre_ids)
+      post_ids = np.concatenate(post_ids)
+
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
     return self
 
 
@@ -320,16 +411,16 @@ class GaussianWeight(TwoEndConnector):
 
   Specifically,
 
-  .. backend::
+  .. math::
 
       w(x, y) = w_{max} \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma^2})
 
-  where :backend:`(x, y)` is the position of the pre-synaptic neuron (normalized
-  to [0,1]) and :backend:`(x_c,y_c)` is the position of the post-synaptic neuron
-  (normalized to [0,1]), :backend:`w_{max}` is the maximum weight. In order to void
-  creating useless synapses, :backend:`w_{min}` can be set to restrict the creation
+  where :math:`(x, y)` is the position of the pre-synaptic neuron (normalized
+  to [0,1]) and :math:`(x_c,y_c)` is the position of the post-synaptic neuron
+  (normalized to [0,1]), :math:`w_{max}` is the maximum weight. In order to void
+  creating useless synapses, :math:`w_{min}` can be set to restrict the creation
   of synapses to the cases where the value of the weight would be superior
-  to :backend:`w_{min}`. Default is :backend:`0.01 w_{max}`.
+  to :math:`w_{min}`. Default is :math:`0.01 w_{max}`.
 
   Parameters
   ----------
@@ -345,7 +436,7 @@ class GaussianWeight(TwoEndConnector):
       Whether create the conn at the same position.
   """
 
-  def __init__(self, sigma, w_max, w_min=None, normalize=True, include_self=True, seed=None):
+  def __init__(self, sigma, w_max, w_min=None, normalize=True, include_self=True):
     super(GaussianWeight, self).__init__()
     self.sigma = sigma
     self.w_max = w_max
@@ -358,11 +449,24 @@ class GaussianWeight(TwoEndConnector):
     num_post = utils.size2len(post_size)
     self.num_pre = num_pre
     self.num_post = num_post
-    assert len(pre_size) == 2
-    assert len(post_size) == 2
+    if isinstance(pre_size, int):
+      pre_size = (pre_size, )
+    if isinstance(post_size, int):
+      post_size = (post_size, )
+    if len(pre_size) == 1:
+      pre_size = (1, pre_size)
+    if len(post_size) == 1:
+      post_size = (1, post_size)
+    if not (len(pre_size) == len(post_size) == 2):
+      raise errors.BrainPyError(f'{GaussianWeight.__name__} only supports <=2D sizes, '
+                                f'while we got pre_size={pre_size}, post_size={post_size}')
     pre_height, pre_width = pre_size
     post_height, post_width = post_size
 
+    if numba is None:
+      logging.warning(f'Creating {self.__class__.__name__} without numba installation '
+                      f'is very slow. We recommend you install numba first.')
+    
     # get the connections and weights
     i, j, w = [], [], []
     for pre_i in range(num_pre):
@@ -381,12 +485,9 @@ class GaussianWeight(TwoEndConnector):
       j.extend(a[1])
       w.extend(a[2])
 
-    pre_ids = np.asarray(i, dtype=np.int_)
-    post_ids = np.asarray(j, dtype=np.int_)
-    w = np.asarray(w, dtype=np.float_)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
-    self.weights = math.array(w)
+    self.pre_ids = math.asarray(i, dtype=math.int_)
+    self.post_ids = math.asarray(j, dtype=math.int_)
+    self.weights = math.asarray(w, dtype=math.float_)
     return self
 
 
@@ -396,12 +497,12 @@ class GaussianProb(TwoEndConnector):
 
   Specifically,
 
-  .. backend::
+  .. math::
 
       p=\\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma^2})
 
-  where :backend:`(x, y)` is the position of the pre-synaptic neuron
-  and :backend:`(x_c,y_c)` is the position of the post-synaptic neuron.
+  where :math:`(x, y)` is the position of the pre-synaptic neuron
+  and :math:`(x_c,y_c)` is the position of the post-synaptic neuron.
 
   Parameters
   ----------
@@ -421,14 +522,29 @@ class GaussianProb(TwoEndConnector):
     self.p_min = p_min
     self.normalize = normalize
     self.include_self = include_self
+    self.seed = seed
 
   def __call__(self, pre_size, post_size):
+    if self.seed:
+      math.random.seed(self.seed)
     self.num_pre = num_pre = utils.size2len(pre_size)
     self.num_post = num_post = utils.size2len(post_size)
-    assert len(pre_size) == 2
-    assert len(post_size) == 2
+    if isinstance(pre_size, int):
+      pre_size = (pre_size,)
+    if isinstance(post_size, int):
+      post_size = (post_size,)
+    if len(pre_size) == 1:
+      pre_size = (1, pre_size)
+    if len(post_size) == 1:
+      post_size = (1, post_size)
+    if not (len(pre_size) == len(post_size) == 2):
+      raise errors.BrainPyError(f'{GaussianWeight.__name__} only supports <=2D sizes, '
+                                f'while we got pre_size={pre_size}, post_size={post_size}')
     pre_height, pre_width = pre_size
     post_height, post_width = post_size
+    if numba is None:
+      logging.warning(f'Creating {self.__class__.__name__} without numba installation '
+                      f'is very slow. We recommend you install numba first.')
 
     # get the connections
     i, j, p = [], [], []  # conn_i, conn_j, probabilities
@@ -446,12 +562,12 @@ class GaussianProb(TwoEndConnector):
       i.extend(a[0])
       j.extend(a[1])
       p.extend(a[2])
-    p = np.asarray(p, dtype=np.float_)
-    selected_idxs = np.where(np.random.random(len(p)) < p)[0]
-    i = np.asarray(i, dtype=np.int_)[selected_idxs]
-    j = np.asarray(j, dtype=np.int_)[selected_idxs]
-    self.pre_ids = math.array(i)
-    self.post_ids = math.array(j)
+    p = math.asarray(p, dtype=math.float_)
+    selected_idxs = math.where(math.random.random(len(p)) < p)[0]
+    self.pre_ids = math.asarray(i, dtype=math.int_)[selected_idxs]
+    self.post_ids = math.asarray(j, dtype=math.int_)[selected_idxs]
+
+    # TODO: construct connections by matrix
     return self
 
 
@@ -460,12 +576,12 @@ class DOG(TwoEndConnector):
 
   Mathematically,
 
-  .. backend::
+  .. math::
 
       w(x, y) = w_{max}^+ \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma_+^2})
       -  w_{max}^- \\cdot \\exp(-\\frac{(x-x_c)^2+(y-y_c)^2}{2\\sigma_-^2})
 
-  where weights smaller than :backend:`0.01 * abs(w_{max} - w_{min})` are not created and
+  where weights smaller than :math:`0.01 * abs(w_{max} - w_{min})` are not created and
   self-connections are avoided by default (parameter allow_self_connections).
 
   Parameters
@@ -476,7 +592,7 @@ class DOG(TwoEndConnector):
       The weight amplitudes of the positive and negative Gaussian functions.
   w_min : float, None
       The minimum weight value below which synapses are not created
-      (default: :backend:`0.01 * w_{max}^+ - w_{min}^-`).
+      (default: :math:`0.01 * w_{max}^+ - w_{min}^-`).
   normalize : bool
       Whether normalize the coordination.
   include_self : bool
@@ -487,15 +603,24 @@ class DOG(TwoEndConnector):
     super(DOG, self).__init__()
     self.sigma_p, self.sigma_n = sigmas
     self.w_max_p, self.w_max_n = ws_max
-    self.w_min = np.abs(ws_max[0] - ws_max[1]) * 0.01 if w_min is None else w_min
+    self.w_min = math.abs(ws_max[0] - ws_max[1]) * 0.01 if w_min is None else w_min
     self.normalize = normalize
     self.include_self = include_self
 
   def __call__(self, pre_size, post_size):
     self.num_pre = num_pre = utils.size2len(pre_size)
     self.num_post = num_post = utils.size2len(post_size)
-    assert len(pre_size) == 2
-    assert len(post_size) == 2
+    if isinstance(pre_size, int):
+      pre_size = (pre_size,)
+    if isinstance(post_size, int):
+      post_size = (post_size,)
+    if len(pre_size) == 1:
+      pre_size = (1, pre_size)
+    if len(post_size) == 1:
+      post_size = (1, post_size)
+    if not (len(pre_size) == len(post_size) == 2):
+      raise errors.BrainPyError(f'{GaussianWeight.__name__} only supports <=2D sizes, while '
+                                f'we got pre_size={pre_size}, post_size={post_size}')
     pre_height, pre_width = pre_size
     post_height, post_width = post_size
 
@@ -520,12 +645,9 @@ class DOG(TwoEndConnector):
       w.extend(a[2])
 
     # format connections and weights
-    i = np.asarray(i, dtype=np.int_)
-    j = np.asarray(j, dtype=np.int_)
-    w = np.asarray(w, dtype=np.float_)
-    self.pre_ids = math.array(i)
-    self.post_ids = math.array(j)
-    self.weights = math.array(w)
+    self.pre_ids = math.asarray(i, dtype=math.int_)
+    self.post_ids = math.asarray(j, dtype=math.int_)
+    self.weights = math.asarray(w, dtype=math.float_)
     return self
 
 
@@ -546,12 +668,12 @@ class SmallWorld(TwoEndConnector):
 
   Notes
   -----
-  First create a ring over $num\\_node$ nodes [1]_.  Then each node in the ring is
-  joined to its $num\\_neighbor$ nearest neighbors (or $num\\_neighbor - 1$ neighbors
-  if $num\\_neighbor$ is odd). Then shortcuts are created by replacing some edges as
-  follows: for each edge $(u, v)$ in the underlying "$num\\_node$-ring with
-  $num\\_neighbor$ nearest neighbors" with probability $prob$ replace it with a new
-  edge $(u, w)$ with uniformly random choice of existing node $w$.
+  First create a ring over :math:`num\_node` nodes [1]_.  Then each node in the ring is
+  joined to its :math:`num\_neighbor` nearest neighbors (or :math:`num\_neighbor - 1` neighbors
+  if :math:`num\_neighbor` is odd). Then shortcuts are created by replacing some edges as
+  follows: for each edge :math:`(u, v)` in the underlying ":math:`num\_node`-ring with
+  :math:`num\_neighbor` nearest neighbors" with probability :math:`prob` replace it with a new
+  edge :math:`(u, w)` with uniformly random choice of existing node :math:`w`.
 
   References
   ----------
@@ -577,13 +699,13 @@ class SmallWorld(TwoEndConnector):
         raise ValueError("num_neighbor > num_node, choose smaller num_neighbor or larger num_node")
       # If k == n, the graph is complete not Watts-Strogatz
       if self.num_neighbor == num_node:
-        conn = np.ones((num_node, num_node), dtype=bool)
+        conn = math.ones((num_node, num_node), dtype=bool)
       else:
-        conn = np.zeros((num_node, num_node), dtype=bool)
-        nodes = np.array(list(range(num_node)))  # nodes are labeled 0 to n-1
+        conn = math.zeros((num_node, num_node), dtype=bool)
+        nodes = math.array(list(range(num_node)))  # nodes are labeled 0 to n-1
         # connect each node to k/2 neighbors
         for j in range(1, self.num_neighbor // 2 + 1):
-          targets = np.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
+          targets = math.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
           conn[nodes, targets] = True
           conn[targets, nodes] = True
 
@@ -591,7 +713,7 @@ class SmallWorld(TwoEndConnector):
         # loop over all nodes in order (label) and neighbors in order (distance)
         # no self loops or multiple edges allowed
         for j in range(1, self.num_neighbor // 2 + 1):  # outer loop is neighbors
-          targets = np.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
+          targets = math.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
           if self.directed:
             # inner loop in node order
             for u, v in zip(nodes, targets):
@@ -618,13 +740,10 @@ class SmallWorld(TwoEndConnector):
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
-    self.conn_mat = math.array(conn)
-    pre_ids, post_ids = np.where(conn)
-    pre_ids = np.ascontiguousarray(pre_ids)
-    post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
-
+    self.conn_mat = math.array(conn, dtype=math.bool_)
+    pre_ids, post_ids = math.where(conn)
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
     return self
 
 
@@ -632,8 +751,8 @@ class ScaleFreeBA(TwoEndConnector):
   """Build a random graph according to the Barabási–Albert preferential
   attachment model.
 
-  A graph of $num\\_node$ nodes is grown by attaching new nodes each with
-  $m$ edges that are preferentially attached to existing nodes
+  A graph of :math:`num\_node` nodes is grown by attaching new nodes each with
+  :math:`m` edges that are preferentially attached to existing nodes
   with high degree.
 
   Parameters
@@ -658,7 +777,8 @@ class ScaleFreeBA(TwoEndConnector):
     super(ScaleFreeBA, self).__init__()
     self.m = m
     self.directed = directed
-    self.rng = _get_rng(seed)
+    self.seed = seed
+    self.rng = math.random.RandomState(seed)
 
   def __call__(self, pre_size, post_size=None):
     num_node = utils.size2len(pre_size)
@@ -670,7 +790,7 @@ class ScaleFreeBA(TwoEndConnector):
                        f"m < n, while m = {self.m} and n = {num_node}")
 
     # Add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=bool)
+    conn = math.zeros((num_node, num_node), dtype=bool)
     # Target nodes for new edges
     targets = list(range(self.m))
     # List of existing nodes, with nodes repeated once for each adjacent edge
@@ -692,22 +812,19 @@ class ScaleFreeBA(TwoEndConnector):
       targets = _random_subset(repeated_nodes, self.m, self.rng)
       source += 1
 
-    self.conn_mat = math.array(conn)
-    pre_ids, post_ids = np.where(conn)
-    pre_ids = np.ascontiguousarray(pre_ids)
-    post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
-
+    self.conn_mat = math.array(conn, dtype=math.bool_)
+    pre_ids, post_ids = math.where(conn)
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
     return self
 
 
 class ScaleFreeBADual(TwoEndConnector):
-  """Build a random graph according to the dual Barabási–Albert preferential
+  r"""Build a random graph according to the dual Barabási–Albert preferential
   attachment model.
 
-  A graph of $num\\_node$ nodes is grown by attaching new nodes each with either $m_1$
-  edges (with probability $p$) or $m_2$ edges (with probability $1-p$) that
+  A graph of :math::`num\_node` nodes is grown by attaching new nodes each with either $m_1$
+  edges (with probability :math:`p`) or :math:`m_2` edges (with probability :math:`1-p`) that
   are preferentially attached to existing nodes with high degree.
 
   Parameters
@@ -736,7 +853,8 @@ class ScaleFreeBADual(TwoEndConnector):
     self.m2 = m2
     self.p = p
     self.directed = directed
-    self.rng = _get_rng(seed)
+    self.seed = seed
+    self.rng = math.random.RandomState(seed=seed)
     super(ScaleFreeBADual, self).__init__()
 
   def __call__(self, pre_size, post_size=None):
@@ -754,7 +872,7 @@ class ScaleFreeBADual(TwoEndConnector):
       raise ValueError(f"Dual Barabási–Albert network must have 0 <= p <= 1, while p = {self.p}")
 
     # Add max(m1,m2) initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=bool)
+    conn = math.zeros((num_node, num_node), dtype=bool)
     # Target nodes for new edges
     targets = list(range(max(self.m1, self.m2)))
     # List of existing nodes, with nodes repeated once for each adjacent edge
@@ -786,13 +904,10 @@ class ScaleFreeBADual(TwoEndConnector):
       targets = _random_subset(repeated_nodes, m, self.rng)
       source += 1
 
-    self.conn_mat = math.array(conn)
-    pre_ids, post_ids = np.where(conn)
-    pre_ids = np.ascontiguousarray(pre_ids)
-    post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
-
+    self.conn_mat = math.array(conn, dtype=math.bool_)
+    pre_ids, post_ids = math.where(conn)
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
     return self
 
 
@@ -817,7 +932,7 @@ class PowerLaw(TwoEndConnector):
   Notes
   -----
   The average clustering has a hard time getting above a certain
-  cutoff that depends on `m`.  This cutoff is often quite low.  The
+  cutoff that depends on :math:`m`.  This cutoff is often quite low.  The
   transitivity (fraction of triangles to possible triangles) seems to
   decrease with network size.
 
@@ -829,14 +944,14 @@ class PowerLaw(TwoEndConnector):
   higher average clustering to be attained if desired.
 
   It seems possible to have a disconnected graph with this algorithm
-  since the initial `m` nodes may not be all linked to a new node
+  since the initial :math:`m` nodes may not be all linked to a new node
   on the first iteration like the BA model.
 
   Raises
   ------
   ValueError
-      If `m` does not satisfy ``1 <= m <= n`` or `p` does not
-      satisfy ``0 <= p <= 1``.
+      If :math:`m` does not satisfy :math:`1 <= m <= n` or :math:`p` does not
+      satisfy :math:`0 <= p <= 1`.
 
   References
   ----------
@@ -852,7 +967,8 @@ class PowerLaw(TwoEndConnector):
     if self.p > 1 or self.p < 0:
       raise ValueError(f"p must be in [0,1], while p={self.p}")
     self.directed = directed
-    self.rng = _get_rng(seed)
+    self.seed = seed
+    self.rng = math.random.RandomState(seed)
 
   def __call__(self, pre_size, post_size=None):
     num_node = utils.size2len(pre_size)
@@ -862,7 +978,7 @@ class PowerLaw(TwoEndConnector):
     if self.m < 1 or num_node < self.m:
       raise ValueError(f"Must have m>1 and m<n, while m={self.m} and n={num_node}")
     # add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=bool)
+    conn = math.zeros((num_node, num_node), dtype=bool)
     repeated_nodes = list(range(self.m))  # list of existing nodes to sample from
     # with nodes repeated once for each adjacent edge
     source = self.m  # next node is m
@@ -877,7 +993,7 @@ class PowerLaw(TwoEndConnector):
       count = 1
       while count < self.m:  # add m-1 more new links
         if self.rng.random() < self.p:  # clustering step: add triangle
-          neighbors = np.where(conn[target])[0]
+          neighbors = math.where(conn[target])[0]
           neighborhood = [
             nbr for nbr in neighbors
             if not conn[source, nbr] and not nbr == source
@@ -901,11 +1017,8 @@ class PowerLaw(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
 
-    self.conn_mat = math.array(conn)
-    pre_ids, post_ids = np.where(conn)
-    pre_ids = np.ascontiguousarray(pre_ids)
-    post_ids = np.ascontiguousarray(post_ids)
-    self.pre_ids = math.array(pre_ids)
-    self.post_ids = math.array(post_ids)
-
+    self.conn_mat = math.array(conn, dtype=math.bool_)
+    pre_ids, post_ids = math.where(conn)
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
     return self

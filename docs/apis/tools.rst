@@ -10,7 +10,7 @@ brainpy.tools
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     ast2code
 
@@ -19,7 +19,7 @@ brainpy.tools
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     get_identifiers
     indent
@@ -37,7 +37,7 @@ brainpy.tools
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     DictPlus
 

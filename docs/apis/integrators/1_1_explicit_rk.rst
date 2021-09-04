@@ -6,7 +6,7 @@ Explicit Runge-Kutta Methods
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     euler
     midpoint

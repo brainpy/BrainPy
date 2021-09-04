@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module provides analysis tools for ordinary differential equations.
+
+
+"""
+
 from .base import *
 from .bifurcation import *
 from .phase_plane import *

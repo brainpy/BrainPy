@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 
-
 import abc
+import logging
 
 import numpy as np
 
-from brainpy import math, errors
+from brainpy import errors, math
 
 try:
   import numba as nb
 except ModuleNotFoundError:
   nb = None
+
+logger = logging.getLogger('brainpy.simulation.connectivity')
+
 
 __all__ = [
   'ij2mat',
@@ -28,10 +31,8 @@ __all__ = [
 
 
 def _numba_backend():
-  r = math.get_backend_name().startswith('numba')
-  if r and nb is None:
-    raise errors.BackendNotInstalled('numba')
-  return r
+  r = math.get_backend_name().startswith('numpy')
+  return r and (nb is not None)
 
 
 def ij2mat(i, j, num_pre=None, num_post=None):
@@ -56,10 +57,10 @@ def ij2mat(i, j, num_pre=None, num_post=None):
   if len(i) != len(j):
     raise errors.BrainPyError('"i" and "j" must be the equal length.')
   if num_pre is None:
-    print('WARNING: "num_pre" is not provided, the result may not be accurate.')
+    logger.warning('"num_pre" is not provided, the result may not be accurate.')
     num_pre = math.max(i)
   if num_post is None:
-    print('WARNING: "num_post" is not provided, the result may not be accurate.')
+    logger.warning('"num_post" is not provided, the result may not be accurate.')
     num_post = math.max(j)
   conn_mat = math.zeros((num_pre, num_post))
   conn_mat[i, j] = 1.
@@ -84,8 +85,7 @@ def mat2ij(conn_mat):
     raise errors.BrainPyError('Connectivity matrix must be in the '
                               'shape of (num_pre, num_post).')
   pre_ids, post_ids = math.where(conn_mat > 0)
-  return math.array(pre_ids, dtype=math.int_), \
-         math.array(post_ids, dtype=math.int_)
+  return math.array(pre_ids, dtype=math.int_), math.array(post_ids, dtype=math.int_)
 
 
 def pre2post(i, j, num_pre=None):
@@ -108,7 +108,7 @@ def pre2post(i, j, num_pre=None):
   if len(i) != len(j):
     raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_pre is None:
-    print('WARNING: "num_pre" is not provided, the result may not be accurate.')
+    logger.warning('"num_pre" is not provided, the result may not be accurate.')
     num_pre = math.max(i)
 
   pre2post_list = [[] for _ in range(num_pre)]
@@ -120,7 +120,7 @@ def pre2post(i, j, num_pre=None):
     pre2post_list_nb = nb.typed.List()
     for pre_id in range(num_pre):
       pre2post_list_nb.append(pre2post_list[pre_id])
-    pre2post_list = pre2post_list_nb
+    pre2post_list = math.Variable(pre2post_list_nb, type='connection')
   return pre2post_list
 
 
@@ -157,7 +157,7 @@ def post2pre(i, j, num_post=None):
     post2pre_list_nb = nb.typed.List()
     for post_id in range(num_post):
       post2pre_list_nb.append(post2pre_list[post_id])
-    post2pre_list = post2pre_list_nb
+    post2pre_list = math.Variable(post2pre_list_nb, type='connection')
   return post2pre_list
 
 
@@ -189,7 +189,7 @@ def pre2syn(i, num_pre=None):
     pre2syn_list_nb = nb.typed.List()
     for pre_ids in pre2syn_list:
       pre2syn_list_nb.append(pre_ids)
-    pre2syn_list = pre2syn_list_nb
+    pre2syn_list = math.Variable(pre2syn_list_nb, type='connection')
 
   return pre2syn_list
 
@@ -222,7 +222,7 @@ def post2syn(j, num_post=None):
     post2syn_list_nb = nb.typed.List()
     for pre_ids in post2syn_list:
       post2syn_list_nb.append(pre_ids)
-    post2syn_list = post2syn_list_nb
+    post2syn_list = math.Variable(post2syn_list_nb, type='connection')
 
   return post2syn_list
 

@@ -6,7 +6,7 @@ Loss Functions
 .. automodule:: brainpy.dnn.losses
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     cross_entropy_loss
     l1_loos

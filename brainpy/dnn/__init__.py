@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module provides APIs for deep neural networks.
+
+
+"""
+
 from . import activations
 from . import inits
 from . import layers

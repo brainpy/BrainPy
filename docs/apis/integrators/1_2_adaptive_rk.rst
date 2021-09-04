@@ -6,7 +6,7 @@ Adaptive Runge-Kutta Methods
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     rkf45
     rkf12

@@ -15,6 +15,10 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 import brainpy
+import brainpy.math.numpy
+import brainpy.math.jax
+import brainpy.math.function
+from docs import comparison_generator
 
 
 # -- Project information -----------------------------------------------------
@@ -34,6 +38,12 @@ if os.path.exists(det_changelog):
 
 from shutil import copyfile
 copyfile(src_changelog, det_changelog)
+
+
+# Generate comparison table.
+with open('apis/math/comparison_table.rst.inc', 'w') as f:
+    f.write(comparison_generator.generate())
+
 
 # -- General configuration ---------------------------------------------------
 

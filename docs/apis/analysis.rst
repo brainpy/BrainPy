@@ -7,11 +7,12 @@
 .. contents::
     :depth: 2
 
+
 Summary
 -------
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     PhasePlane
     Bifurcation

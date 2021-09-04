@@ -1,16 +1,17 @@
 
 ![Logo](docs/_static/logo.png)
 
-[![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)     [![Conda](https://anaconda.org/brainpy/brainpy-simulator/badges/version.svg)](https://anaconda.org/brainpy/brainpy-simulator)  [![PyPI version](https://badge.fury.io/py/brainpy-simulator.svg)](https://badge.fury.io/py/brainpy-simulator) [![Build Status](https://travis-ci.com/PKU-NIP-Lab/BrainPy.svg?branch=master)](https://travis-ci.com/PKU-NIP-Lab/BrainPy)
+[![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)   [![PyPI version](https://badge.fury.io/py/brainpy-simulator.svg)](https://badge.fury.io/py/brainpy-simulator)   [![Build Status](https://travis-ci.com/PKU-NIP-Lab/BrainPy.svg?branch=master)](https://travis-ci.com/PKU-NIP-Lab/BrainPy)
 
 
 
 # Why to use BrainPy
 
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation. Core functions provided in BrainPy includes
+``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)). Core functions provided in BrainPy includes
 
-- **General numerical solvers** for ODEs, SDEs, DDEs, FDEs, and others.
-- **Dynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even more.
+- **JIT compilation** for class objects. 
+- **Numerical solvers** for ODEs, SDEs, DDEs, FDEs, and others. 
+- **Dynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even more. 
 - **Dynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, continuation analysis and sensitive analysis.
 - **Seamless integration with deep learning models**, and has the speed benefit on JIT compilation.
 - And more ......
@@ -20,7 +21,7 @@
 - *Easy to learn and use*: BrainPy is only based on Python language and has little dependency requirements. 
 - *Flexible and transparent*: BrainPy endows the users with the fully data/logic flow control. Users can code any logic they want with BrainPy. 
 - *Extensible*: BrainPy allow users to extend new functionality just based on Python coding. For example, we extend the numerical integration with the ability to do numerical analysis. In such a way, the same code in BrainPy can not only be used for simulation, but also for dynamics analysis. 
-- *Efficient running speed*: All codes in BrainPy can just-in-time compiled (based on [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)) to run on CPU or GPU devices, thus guaranteeing its running efficiency. 
+- *Efficient running speed*: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)) to run on CPU or GPU devices, thus guaranteeing its running efficiency. 
 
 
 
@@ -43,13 +44,7 @@
 > pip install -U brain-py
 ```
 
-**Method 2**: install ``BrainPy`` by using ``conda``:
-
-```bash
-> conda install brain-py -c conda-forge
-```
-
-**Method 3**: install ``BrainPy`` from source:
+**Method 2**: install ``BrainPy`` from source:
 
 ```bash
 > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
@@ -107,20 +102,15 @@ Here list several examples of BrainPy. More detailed examples and tutorials plea
 
 
 
-### Phase plane analysis
+### Low-dimension dynamics analysis
 
 - [Phase plane analysis of the I<sub>Na,p</sub>-I<sub>K</sub> model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html)
-
-
-
-### Bifurcation analysis
-
 - [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
 - [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
 
 
 
-### Deep neural networks
+### Learning through back-propagation
 
 
 

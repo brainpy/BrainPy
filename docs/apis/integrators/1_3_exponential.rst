@@ -7,7 +7,7 @@ Exponential Integrators
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     exponential_euler
     exponential_midpoint

@@ -9,5 +9,5 @@
 
     integrators/0_general
     integrators/1_ODE
-    integrators/SDE
+    integrators/2_SDE
 

@@ -6,7 +6,7 @@ Networks
 
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     MLP
 

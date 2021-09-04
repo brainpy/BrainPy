@@ -71,6 +71,7 @@ def numba_seed(seed=None):
 
 
 def seed(seed=None):
-  if numba:
-    numba_seed(seed)
-  numpy.random.seed(seed)
+  if seed is not None:
+    numpy.random.seed(seed)
+    if numba:
+      numba_seed(seed)

@@ -28,18 +28,6 @@ of BrainPy, you can use:
    pip install --pre brain-py
 
 
-Installation with conda
------------------------
-
-You can install ``BrainPy`` from the
-`anaconda cloud <https://anaconda.org/conda-forge/brain-py>`_.
-To do so, use:
-
-.. code-block:: bash
-
-    conda install brain-py -c conda-forge
-
-
 Installation from source
 ------------------------
 

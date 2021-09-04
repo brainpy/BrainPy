@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
-import numpy as np
-
 from brainpy import errors, math, tools
 from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
@@ -82,8 +79,8 @@ class One2One(TwoEndConnector):
     self.num_pre = length
     self.num_post = length
 
-    self.pre_ids = math.arange(length)
-    self.post_ids = math.arange(length)
+    self.pre_ids = math.arange(length, dtype=math.int_)
+    self.post_ids = math.arange(length, dtype=math.int_)
     return self
 
 
@@ -106,13 +103,13 @@ class All2All(TwoEndConnector):
     self.num_pre = pre_len
     self.num_post = post_len
 
-    mat = np.ones((pre_len, post_len))
+    mat = math.ones((pre_len, post_len), dtype=bool)
     if not self.include_self:
-      np.fill_diagonal(mat, 0)
-    pre_ids, post_ids = np.where(mat > 0)
-    self.pre_ids = math.array(np.ascontiguousarray(pre_ids))
-    self.post_ids = math.array(np.ascontiguousarray(post_ids))
-    self.conn_mat = math.array(mat)
+      mat = math.fill_diagonal(mat, False)
+    pre_ids, post_ids = math.where(mat)
+    self.pre_ids = math.asarray(pre_ids, dtype=math.int_)
+    self.post_ids = math.asarray(post_ids, dtype=math.int_)
+    self.conn_mat = math.asarray(mat, dtype=math.bool_)
     return self
 
 
@@ -150,8 +147,8 @@ class GridFour(TwoEndConnector):
       a = _grid_four(height, width, row, include_self=self.include_self)
       conn_i.extend(a[0])
       conn_j.extend(a[1])
-    self.pre_ids = math.array(conn_i)
-    self.post_ids = math.array(conn_j)
+    self.pre_ids = math.asarray(conn_i, dtype=math.int_)
+    self.post_ids = math.asarray(conn_j, dtype=math.int_)
     return self
 
 
@@ -211,8 +208,8 @@ class GridN(TwoEndConnector):
                     n=self.N, include_self=self.include_self)
       conn_i.extend(res[0])
       conn_j.extend(res[1])
-    self.pre_ids = math.array(conn_i)
-    self.post_ids = math.array(conn_j)
+    self.pre_ids = math.asarray(conn_i, dtype=math.int_)
+    self.post_ids = math.asarray(conn_j, dtype=math.int_)
     return self
 
 
