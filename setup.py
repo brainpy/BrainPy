@@ -16,7 +16,7 @@ version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 # obtain long description from README
 try:
   # obtain long description from README
-  with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
+  with io.open(os.path.join(here, 'README.rst'), 'r', encoding='utf-8') as f:
     README = f.read()
 except IOError:
   README = ''
