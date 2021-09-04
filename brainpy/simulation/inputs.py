@@ -256,22 +256,23 @@ class SpikeTimeInput(NeuGroup):
     super(SpikeTimeInput, self).__init__(size=size, **kwargs)
 
   def update(self, _t, _i):
-    self.spike[:] = 0.
+    self.spike[:] = False
     while self.idx < self.num_times and _t >= self.times[self.idx]:
       self.spike[self.indices[self.idx]] = 1.
       self.idx += 1
 
 
 class PoissonInput(NeuGroup):
-  def __init__(self, size, freqs, **kwargs):
+  def __init__(self, size, freqs, seed=None, **kwargs):
     super(PoissonInput, self).__init__(size=size, **kwargs)
 
     self.freqs = freqs
     self.dt = math.get_dt() / 1000.
     self.size = (size,) if isinstance(size, int) else tuple(size)
-    self.spike = math.zeros(self.num, dtype=bool)
-    self.t_last_spike = -1e7 * math.ones(self.num, dtype=math.float_)
+    self.spike = math.Variable(math.zeros(self.num, dtype=bool))
+    self.t_last_spike = math.Variable(math.ones(self.num) * -1e7)
+    self.rng = math.random.RandomState(seed=seed)
 
   def update(self, _t, _i):
-    self.spike = math.random.random(self.num) <= self.freqs * self.dt
-    self.t_last_spike = math.where(self.spike, _t, self.t_last_spike)
+    self.spike[:] = self.rng.random(self.num) <= self.freqs * self.dt
+    self.t_last_spike[:] = math.where(self.spike, _t, self.t_last_spike)

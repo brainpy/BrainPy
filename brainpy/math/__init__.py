@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
-"""This module provides basic mathematical operations, including:
+"""
+The math module for whole BrainPy ecosystem.
+
+This module provides basic mathematical operations, including:
 
 - numpy-like array operations
 - compilations of ``jit``, ``vmap``, ``pmap`` for class objects
+- automatic differentiation of ``grad``, ``value_and_grad`` for class objects
 - and more ...
 
 """

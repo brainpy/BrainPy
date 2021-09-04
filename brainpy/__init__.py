@@ -24,7 +24,7 @@ from .integrators.wrapper import *
 
 # "simulation" module
 from . import simulation
-from .simulation import connectivity as connect, inputs
+from .simulation import connectivity as connect
 from .simulation.brainobjects import *
 from .simulation.monitor import *
 from .simulation import inputs
