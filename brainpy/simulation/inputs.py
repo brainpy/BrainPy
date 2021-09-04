@@ -3,8 +3,8 @@
 import numpy as np
 
 from brainpy import errors, math
-from brainpy.simulation import NeuGroup, size2len
-
+from brainpy.simulation.brainobjects.neuron import NeuGroup
+from brainpy.simulation.utils import size2len
 
 __all__ = [
   'section_input',

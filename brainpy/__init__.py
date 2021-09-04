@@ -24,9 +24,11 @@ from .integrators.wrapper import *
 
 # "simulation" module
 from . import simulation
-from .simulation import connectivity as connect
+from .simulation import connectivity as connect, inputs
 from .simulation.brainobjects import *
 from .simulation.monitor import *
+from .simulation import inputs
+from .simulation import measure
 
 
 # "dnn" module
@@ -43,8 +45,6 @@ from . import visualization as visualize
 
 # other modules
 from . import errors
-from . import inputs
-from . import measure
 from . import running
 from . import tools
 
