@@ -4,15 +4,16 @@ BrainPy documentation
 BrainPy is a highly flexible and extensible framework targeting on the
 high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
-1. **General numerical solvers** for ODEs, SDEs, DDEs, FDEs and others.
-2. **Dynamics simulation tools** for various brain objects, like
+1. **JIT compilation** for class objects.
+2. **Numerical solvers** for ODEs, SDEs, DDEs, FDEs and others.
+3. **Dynamics simulation tools** for various brain objects, like
    neurons, synapses, networks, soma, dendrites, channels, and even more.
-3. **Dynamics analysis tools** for differential equations, including
+4. **Dynamics analysis tools** for differential equations, including
    phase plane analysis, bifurcation analysis, continuation analysis and
    sensitive analysis.
-4. **Seamless integration with deep learning models**, but has the high speed
+5. **Seamless integration with deep learning models**, but has the high speed
    acceleration because of JIT compilation.
-5. And more ......
+6. And more ......
 
 
 .. note::
@@ -25,11 +26,10 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :caption: Quickstart
 
    quickstart/installation
+   quickstart/jit_compilation
    quickstart/numerical_solvers
    quickstart/dynamics_simulation
-   quickstart/dynamics_analysis
    quickstart/deep_neural_network
-   quickstart/how_brainpy_works
 
 
 .. toctree::
@@ -44,6 +44,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    tutorial_intg/ode_numerical_solvers
    tutorial_intg/sde_numerical_solvers
 
+
 .. toctree::
    :maxdepth: 1
    :caption: Simulation Tutorials
@@ -51,12 +52,14 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    tutorial_simulation/efficient_synaptic_computation
    tutorial_simulation/synaptic_connectivity
    tutorial_simulation/monitor
-   tutorial_simulation/repeat_mode
+   tutorial_simulation/inputs
 
 
 .. toctree::
    :maxdepth: 1
    :caption: Analysis Tutorials
+
+   tutorial_analysis/dynamics_analysis
 
 
 .. toctree::
@@ -74,8 +77,6 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    apis/simulation
    apis/analysis
    apis/dnn
-   apis/inputs
-   apis/measure
    apis/visualization
    apis/changelog
 

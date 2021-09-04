@@ -1,8 +1,8 @@
-``brainpy.measure`` module
-==========================
+Measurements
+============
 
-.. currentmodule:: brainpy.measure
-.. automodule:: brainpy.measure
+.. currentmodule:: brainpy.simulation.measure
+.. automodule:: brainpy.simulation.measure
 
 .. autosummary::
     :toctree: generated/

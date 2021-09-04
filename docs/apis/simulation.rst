@@ -11,5 +11,7 @@
     simulation/brainobjects
     simulation/connectivity
     simulation/monitor
+    simulation/inputs
+    simulation/measure
 
 

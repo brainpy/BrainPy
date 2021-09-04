@@ -84,7 +84,7 @@ Random Connections
    :members:
 
 
-Formatter functions
+Formatter Functions
 -------------------
 
 .. autosummary::

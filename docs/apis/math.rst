@@ -8,5 +8,9 @@
 .. toctree::
     :maxdepth: 3
 
+    math/general
+    math/numpy
+    math/jax
+    math/function
     math/comparison
 

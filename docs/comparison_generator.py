@@ -1,9 +1,13 @@
 import importlib
 
 
+block_list = ['test', 'pmap', 'vmap', 'jit', 'grad', 'value_and_grad',
+              'control_transform', 'register_pytree_node']
+
+
 def _get_functions(obj):
   return set([n for n in dir(obj)
-              if (n not in ['test']  # not in blacklist
+              if (n not in block_list  # not in blacklist
                   and callable(getattr(obj, n))  # callable
                   and not isinstance(getattr(obj, n), type)  # not class
                   and n[0].islower()  # starts with lower char
