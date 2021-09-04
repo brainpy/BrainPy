@@ -6,7 +6,6 @@ __all__ = [
   "fft", "fft2", "fftfreq", "fftn", "fftshift", "hfft",
   "ifft", "ifft2", "ifftn", "ifftshift", "ihfft", "irfft",
   "irfft2", "irfftn", "rfft", "rfft2", "rfftfreq", "rfftn"
-
 ]
 
 fft = numpy.fft.fft
