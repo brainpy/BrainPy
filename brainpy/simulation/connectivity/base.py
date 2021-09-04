@@ -12,6 +12,7 @@ try:
 except ModuleNotFoundError:
   nb = None
 
+
 logger = logging.getLogger('brainpy.simulation.connectivity')
 
 
@@ -120,7 +121,9 @@ def pre2post(i, j, num_pre=None):
     pre2post_list_nb = nb.typed.List()
     for pre_id in range(num_pre):
       pre2post_list_nb.append(pre2post_list[pre_id])
-    pre2post_list = math.Variable(pre2post_list_nb, type='connection')
+    pre2post_list = math.Variable(math.asarray(pre2post_list_nb, dtype=object),
+                                  type='connection')
+    pre2post_list.value = pre2post_list_nb
   return pre2post_list
 
 
@@ -157,7 +160,9 @@ def post2pre(i, j, num_post=None):
     post2pre_list_nb = nb.typed.List()
     for post_id in range(num_post):
       post2pre_list_nb.append(post2pre_list[post_id])
-    post2pre_list = math.Variable(post2pre_list_nb, type='connection')
+    post2pre_list = math.Variable(math.asarray(post2pre_list_nb, dtype=object),
+                                  type='connection')
+    post2pre_list.value = post2pre_list_nb
   return post2pre_list
 
 
@@ -189,8 +194,9 @@ def pre2syn(i, num_pre=None):
     pre2syn_list_nb = nb.typed.List()
     for pre_ids in pre2syn_list:
       pre2syn_list_nb.append(pre_ids)
-    pre2syn_list = math.Variable(pre2syn_list_nb, type='connection')
-
+    pre2syn_list = math.Variable(math.asarray(pre2syn_list_nb, dtype=object),
+                                 type='connection')
+    pre2syn_list.value = pre2syn_list_nb
   return pre2syn_list
 
 
@@ -222,7 +228,9 @@ def post2syn(j, num_post=None):
     post2syn_list_nb = nb.typed.List()
     for pre_ids in post2syn_list:
       post2syn_list_nb.append(pre_ids)
-    post2syn_list = math.Variable(post2syn_list_nb, type='connection')
+    post2syn_list = math.Variable(math.asarray(post2syn_list_nb, dtype=object),
+                                  type='connection')
+    post2syn_list.value = post2syn_list_nb
 
   return post2syn_list
 
