@@ -27,12 +27,14 @@
 ## Math
 
 - [x] **[Numpy]:** support JIT compilation in numpy backend (done @ 2021.09.01 by @chaoming)
+- [x] **[Numpy]:** support 'fft' (done @ 2021.09.03 by @chaoming)
 - [ ] support to set `dt`  in the single object level (i.e., single instance of DynamicSystem)
 - [ ] **[JAX]:** "random" module 
 - [ ] **[JAX]:** math operations
 - [ ] **[JAX]:** vmap
 - [ ] **[JAX]:** pmap
 - [ ] **[JAX]:** control conditions: 
+- [x] **[JAX]:** support 'fft' (done @ 2021.09.03 by @chaoming)
 - [x] **[JAX]:** **IMPORTANT!!!** Change API of `grad()` and `value_and_grad()`: There are bugs in the gradient functions. Gradient computation also needs to inspect the variable types. Moreover, it is independent from the JIT function. Therefore, we should pass dynamical variables into the gradient functions too. (done @ 2021.08.26 by @chaoming)
 - [x] **[JAX]:** **IMPORTANT!!!** change API of `vars()`: we should refer Dynamical Variables as `Variable`; We can not retrieve every "JaxArray" from `vars()`, otherwise the whole system will waste a lot of time on useless assignments. (done @ 2021.08.25 by @chaoming)
 - [x] **[JAX]:** change API of `brainpy.math.jit(target)`, please return another class if `target` is not a function [abolished]
