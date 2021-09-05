@@ -70,6 +70,7 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, method):
   """
   class_kw, variables, parameters, arguments = utils.get_args(f)
   func_name = common.f_names(f)
+  arguments = list(arguments) + [f'{_dt_kw}={dt}']
 
   keywords = {
     _f_kw: 'the derivative function',
@@ -85,7 +86,7 @@ def general_rk_wrapper(f, show_code, dt, A, B, C, var_type, method):
   utils.check_kws(arguments, keywords)
 
   # code scope
-  code_scope = {'f': f, _dt_kw: dt}
+  code_scope = {'f': f}
 
   # code lines
   code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -178,6 +179,7 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
 
   class_kw, variables, parameters, arguments = utils.get_args(f)
   func_name = common.f_names(f)
+  arguments = list(arguments) + [f'{_dt_kw}={dt}']
 
   keywords = {
     _f_kw: 'the derivative function',
@@ -199,10 +201,9 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
       keywords[f'{v}_te'] = 'the local truncation error'
     # code scope
     code_scope = {_f_kw: f, 'tol': tol}
-    arguments = list(arguments) + [f'{_dt_kw}={dt}']
   else:
     # code scope
-    code_scope = {_f_kw: f, _dt_kw: dt}
+    code_scope = {_f_kw: f}
   utils.check_kws(arguments, keywords)
 
   # code lines
@@ -258,6 +259,7 @@ def adaptive_rk_wrapper(f, dt, A, B1, B2, C, tol, adaptive, show_code, var_type,
 def rk2_wrapper(f, show_code, dt, beta, var_type):
   class_kw, variables, parameters, arguments = utils.get_args(f)
   func_name = common.f_names(f)
+  arguments = list(arguments) + [f'{_dt_kw}={dt}']
 
   keywords = {
     _f_kw: 'the derivative function',
@@ -276,7 +278,6 @@ def rk2_wrapper(f, show_code, dt, beta, var_type):
   utils.check_kws(arguments, keywords)
 
   code_scope = {_f_kw: f,
-                _dt_kw: dt,
                 'beta': beta,
                 '_k1': 1 - 1 / (2 * beta),
                 '_k2': 1 / (2 * beta)}
@@ -323,6 +324,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
 
   class_kw, variables, parameters, arguments = utils.get_args(f)
   func_name = common.f_names(f)
+  arguments = list(arguments) + [f'{_dt_kw}={dt}']
   keywords = {
     _f_kw: 'the derivative function',
     _dt_kw: 'the precision of numerical integration',
@@ -338,7 +340,6 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
   closure_vars = inspect.getclosurevars(f)
   code_scope = dict(closure_vars.nonlocals)
   code_scope.update(dict(closure_vars.globals))
-  code_scope[_dt_kw] = dt
   code_scope[_f_kw] = f
   code_scope['exp'] = math.exp
 

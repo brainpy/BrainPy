@@ -130,6 +130,7 @@ class Wrapper(object):
       raise errors.IntegratorError(f'Exponential Euler method only supports Ito integral, but we got {intg_type}.')
 
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
     closure_vars = inspect.getclosurevars(f)
@@ -137,13 +138,12 @@ class Wrapper(object):
     code_scope.update(dict(closure_vars.globals))
     code_scope['f'] = f
     code_scope['g'] = g
-    code_scope[vdt] = dt
-    code_scope[f'{vdt}_sqrt'] = dt ** 0.5
     code_scope['math'] = math
     code_scope['exp'] = math.exp
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 dg
     # dg = g(x, t, *args)
@@ -243,12 +243,14 @@ class Wrapper(object):
   @staticmethod
   def euler_and_heun(f, g, dt, intg_type, var_type, wiener_type, show_code):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
+    code_scope = {'f': f, 'g': g, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 df, dg
     Tools.df_and_dg(code_lines, variables, parameters)
@@ -330,12 +332,14 @@ class Wrapper(object):
   @staticmethod
   def milstein(f, g, dt, intg_type, var_type, wiener_type, show_code):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
+    code_scope = {'f': f, 'g': g, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 df, dg
     Tools.df_and_dg(code_lines, variables, parameters)
