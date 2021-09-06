@@ -1,7 +1,7 @@
 BrainPy documentation
 =====================
 
-BrainPy is a highly flexible and extensible framework targeting on the
+`BrainPy`_ is a highly flexible and extensible framework targeting on the
 high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
 1. **JIT compilation** for class objects.
@@ -15,6 +15,8 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    acceleration because of JIT compilation.
 6. And more ......
 
+
+.. _BrainPy:: https://github.com/PKU-NIP-Lab/BrainPy
 
 .. note::
 
