@@ -40,17 +40,25 @@
 
 **Method 1**: install ``BrainPy`` by using ``pip``:
 
+To install the stable release of BrainPy (V1.0.3), please use
+
 ```python
 > pip install -U brain-py
 ```
 
+To install the latest pre-release version of BrainPy (V1.1.0), please use 
+
 ```bash
-# If you have installed the previous version of BrainPy, 
-# please uninstall the old one first
+> pip install -U brain-py --pre
+```
+
+If you have installed the previous version of BrainPy,  please uninstall the older one first
+
+```bash
 > pip uninstall brainpy-simulator
 
 # Then install the latest version of BrainPy
-> pip install -U brain-py
+> pip install -U brain-py --pre
 ```
 
 **Method 2**: install ``BrainPy`` from source:
@@ -84,7 +92,7 @@
 
 
 
-## Step 3: comprehensive examples
+## Step 3: inspirational examples
 
 Here list several examples of BrainPy. More detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io).
 
@@ -148,3 +156,4 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
+ 
