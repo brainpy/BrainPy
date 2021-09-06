@@ -1,64 +1,85 @@
 BrainPy documentation
 =====================
 
+`BrainPy`_ is a highly flexible and extensible framework targeting on the
+high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
-Brain modeling heavily relies on calculus. Focused on differential equations,
-`BrainPy <https://github.com/PKU-NIP-Lab/BrainPy>`_
-provides an integrative simulation and analysis framework for neurodynamics in
-computational neuroscience and brain-inspired computation. It provides three
-core functions:
+1. **JIT compilation** for class objects.
+2. **Numerical solvers** for ODEs, SDEs, DDEs, FDEs and others.
+3. **Dynamics simulation tools** for various brain objects, like
+   neurons, synapses, networks, soma, dendrites, channels, and even more.
+4. **Dynamics analysis tools** for differential equations, including
+   phase plane analysis, bifurcation analysis, continuation analysis and
+   sensitive analysis.
+5. **Seamless integration with deep learning models**, but has the high speed
+   acceleration because of JIT compilation.
+6. And more ......
 
-- *General numerical solvers* for ODEs and SDEs (future will support DDEs and FDEs).
-- *Neurodynamics simulation tools* for various brain objects, such like neurons, synapses
-  and networks (future will support soma and dendrites).
-- *Neurodynamics analysis tools* for differential equations, including phase plane
-  analysis and bifurcation analysis (future will support continuation analysis and
-  sensitive analysis).
 
-Intuitive tutorials of BrainPy please see our
-`handbook <https://pku-nip-lab.github.io/BrainPyHandbook/>`_,
-and comprehensive examples of BrainPy please see
-`BrainModels <https://brainmodels.readthedocs.io/en/latest/>`_.
+.. _BrainPy:: https://github.com/PKU-NIP-Lab/BrainPy
+
+.. note::
+
+    Comprehensive examples of BrainPy please see BrainModels: https://github.com/PKU-NIP-Lab/BrainModels.
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Quickstart
 
    quickstart/installation
+   quickstart/jit_compilation
    quickstart/numerical_solvers
-   quickstart/neurodynamics_simulation
-   quickstart/neurodynamics_analysis
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
-
-   tutorials/synaptic_connectivity
-   tutorials/efficient_synaptic_computation
-   tutorials/running_order_scheduling
-   tutorials/monitor
-   tutorials/repeat_mode
-   tutorials/unified_operations
+   quickstart/dynamics_simulation
+   quickstart/deep_neural_network
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Advanced Tutorials
+   :maxdepth: 1
+   :caption: Tutorials for math module
 
-   tutorials_advanced/ode_numerical_solvers
-   tutorials_advanced/sde_numerical_solvers
-   tutorials_advanced/how_brainpy_works
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Integrator Tutorials
+
+   tutorial_intg/ode_numerical_solvers
+   tutorial_intg/sde_numerical_solvers
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Simulation Tutorials
+
+   tutorial_simulation/efficient_synaptic_computation
+   tutorial_simulation/synaptic_connectivity
+   tutorial_simulation/monitor
+   tutorial_simulation/inputs
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Analysis Tutorials
+
+   tutorial_analysis/dynamics_analysis
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: DNN Tutorials
 
 
 .. toctree::
    :maxdepth: 1
    :caption: API documentation
 
-   apis/analysis
+   apis/base
+   apis/math
    apis/integrators
-   apis/connectivity
-   apis/inputs_module
+   apis/simulation
+   apis/analysis
+   apis/dnn
+   apis/visualization
    apis/changelog
 
 

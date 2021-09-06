@@ -2,6 +2,8 @@ publishment.md
 #experimental/
 .vscode
 
+examples/recurrent_neural_network/neurogym
+develop/iconip_paper
 develop/benchmark/COBA/results
 develop/test
 develop/outputdir
@@ -13,17 +15,28 @@ docs/images/neuron_structure.xlsx
 docs/images/neuron_structure.pdf
 docs/images/connection_methods.pptx
 
+*/_autosummary
+*/generated
+
+docs/apis/math/generated
+docs/apis/dnn/_autosummary
 docs/quickstart/_autosummary
+docs/apis/dnn/generated
+docs/quickstart/generated
 docs/quickstart/.ipynb_checkpoints
 
 docs/tutorials_advanced/_autosummary
+docs/tutorials_advanced/generated
 docs/tutorials_advanced/.ipynb_checkpoints
 docs/tutorials_advanced/usage_of_inputfactory.py
 docs/tutorials_advanced/usage_of_utils_connect.py
 
 docs/apis/_autosummary
+docs/apis/generated
+docs/apis/math/comparison_table.rst.inc
 docs/apis/changelog.rst
 docs/apis/integrators/_autosummary
+docs/apis/integrators/generated
 
 develop/benchmark/COBA/brian2*
 develop/benchmark/COBA/annarchy*
@@ -39,6 +52,7 @@ develop/benchmark/CUBA/brian2*
 *.pyc
 .DS_Store
 docs/_autosummary
+docs/generated
 docs/_build
 dist/
 build/
@@ -189,3 +203,4 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+/docs/apis/simulation/generated/

@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 
+
+"""
+This module provides APIs for brain simulations.
+
+
+"""
+
 from .brainobjects import *
 from .connectivity import *
-from .delays import *
-from .drivers import *
-from .every import *
-from .monitors import *
+from .inputs import *
+from .measure import *
+from .monitor import *
 from .utils import *

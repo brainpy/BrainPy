@@ -1,37 +1,44 @@
 # -*- coding: utf-8 -*-
 
+from brainpy.tools import namechecking
 
 __all__ = [
-    'SUPPORTED_VAR_TYPE',
-    'SCALAR_VAR',
-    'POPU_VAR',
-    'SYSTEM_VAR',
+  'SUPPORTED_VAR_TYPE',
+  'SCALAR_VAR',
+  'POP_VAR',
+  'SYSTEM_VAR',
 
-    'SUPPORTED_WIENER_TYPE',
-    'SCALAR_WIENER',
-    'VECTOR_WIENER',
+  'SUPPORTED_WIENER_TYPE',
+  'SCALAR_WIENER',
+  'VECTOR_WIENER',
 
-    'SUPPORTED_SDE_TYPE',
-    'ITO_SDE',
-    'STRA_SDE',
+  'SUPPORTED_INTG_TYPE',
+  'ITO_SDE',
+  'STRA_SDE',
 
-    'DE_PREFIX',
+  'DE_INT',
+  'ODE_INT',
+  'SDE_INT',
+  'DDE_INT',
+  'FDE_INT',
+  'PDE_INT',
+
+  'unique_name',
 ]
 
-# Ito SDE
+# Ito SDE_INT
 # ---
-# The SDE integral proposed by Ito in 1940s.
+# The SDE_INT integral proposed by Ito in 1940s.
 ITO_SDE = 'Ito'
 
-
-# Stratonovich SDE
+# Stratonovich SDE_INT
 # ---
-# The SDE integral proposed by Stratonovich in 1960s.
+# The SDE_INT integral proposed by Stratonovich in 1960s.
 STRA_SDE = 'Stratonovich'
 
-SUPPORTED_SDE_TYPE = [
-    ITO_SDE,
-    STRA_SDE
+SUPPORTED_INTG_TYPE = [
+  ITO_SDE,
+  STRA_SDE
 ]
 
 # ------------------------------------------------------
@@ -47,8 +54,8 @@ SCALAR_WIENER = 'scalar'
 VECTOR_WIENER = 'vector'
 
 SUPPORTED_WIENER_TYPE = [
-    SCALAR_WIENER,
-    VECTOR_WIENER
+  SCALAR_WIENER,
+  VECTOR_WIENER
 ]
 
 # ------------------------------------------------------
@@ -78,7 +85,7 @@ SCALAR_VAR = 'scalar'
 # or,
 #    a = np.array([[1,2], [2,1]]),  b=np.array([[3,4], [4,3]])
 #
-POPU_VAR = 'population'
+POP_VAR = 'population'
 
 # Denotes each variable is a system
 # ------
@@ -92,19 +99,34 @@ POPU_VAR = 'population'
 SYSTEM_VAR = 'system'
 
 SUPPORTED_VAR_TYPE = [
-    SCALAR_VAR,
-    POPU_VAR,
-    SYSTEM_VAR,
+  SCALAR_VAR,
+  POP_VAR,
+  SYSTEM_VAR,
 ]
 
 # ------------------------------------------------------
 
 # Differential equation type
-# ----------
-#
+# --------------------------
 
-DE_PREFIX = '_brainpy_intg_of_'
-ODE_PREFIX = 'ode_brainpy_intg_of_'
-SDE_PREFIX = 'sde_brainpy_intg_of_'
+DE_INT = 'brainpy_itg_of'
+ODE_INT = 'brainpy_itg_of_ode'
+SDE_INT = 'brainpy_itg_of_sde'
+DDE_INT = 'brainpy_itg_of_dde'
+FDE_INT = 'brainpy_itg_of_fde'
+PDE_INT = 'brainpy_itg_of_pde'
 
 
+def unique_name(type):
+  if type == 'ode':
+    return namechecking.get_name(ODE_INT)
+  elif type == 'sde':
+    return namechecking.get_name(SDE_INT)
+  elif type == 'dde':
+    return namechecking.get_name(DDE_INT)
+  elif type == 'fde':
+    return namechecking.get_name(FDE_INT)
+  elif type == 'pde':
+    return namechecking.get_name(PDE_INT)
+  else:
+    raise ValueError(f'Unknown differential equation type: {type}')

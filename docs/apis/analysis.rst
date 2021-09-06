@@ -7,11 +7,12 @@
 .. contents::
     :depth: 2
 
+
 Summary
 -------
 
 .. autosummary::
-    :toctree: _autosummary
+    :toctree: generated/
 
     PhasePlane
     Bifurcation
@@ -26,7 +27,7 @@ Summary
 Phase Plane Analysis
 --------------------
 
-We provide a fundamental class `PhasePlane` to help users make
+We provide a fundamental class ``PhasePlane`` to help users make
 phase plane analysis for 1D/2D dynamical systems. Five methods
 are provided, which can help you to plot:
 
@@ -55,7 +56,7 @@ Fast-slow System Analysis
 -------------------------
 
 For some 3D dynamical system, which can be treated as a fast-slow system,
-they can be easily analyzed through our provided `FastSlowBifurcation`.
+they can be easily analyzed through our provided ``FastSlowBifurcation``.
 
 .. autoclass:: FastSlowBifurcation
     :members: plot_bifurcation
@@ -64,7 +65,7 @@ they can be easily analyzed through our provided `FastSlowBifurcation`.
 Useful Functions
 ----------------
 
-In `brainpy.analysis` module, we also provide several useful functions
+In ``brainpy.analysis`` module, we also provide several useful functions
 which may help your dynamical system analysis.
 
 .. code-block:: python

@@ -1,8 +1,69 @@
 Release notes
 =============
 
+Version 1.1.0
+-------------
 
-BrainPy 1.0.2
+This package releases a new version of BrainPy.
+
+Highlights of core changes:
+
+``math`` module
+~~~~~~~~~~~~~~~
+
+- support JAX backend
+- support numpy backend
+- support JAX ``jit``, ``vmap``, ``pmap``, ``grad`` and ``value_and_grad`` on class objects
+- support numba ``jit`` on class objects
+- unified numpy-like API 
+
+``base`` module
+~~~~~~~~~~~~~~~
+
+- ``Base`` for whole Version ecosystem
+- ``Function`` to wrap functions
+- ``Collector`` and ``ArrayCollector`` to collect variables, integrators, nodes and others
+
+``integrators`` module
+~~~~~~~~~~~~~~~~~~~~~~
+
+- detailed documentation for ODE numerical methods
+
+``simulation`` module
+~~~~~~~~~~~~~~~~~~~~~
+
+- support modular and composable programming
+- support multi-scale modeling
+- support large-scale modeling
+- support simulation on GPUs
+
+``dnn`` module
+~~~~~~~~~~~~~~
+
+- support define deep neural networks
+- loss functions
+- optimizers
+- activation functions
+- initializations
+- common used layers
+
+``measure`` module
+~~~~~~~~~~~~~~~~~~
+
+- fix bugs on ``firing_rate()``
+
+
+
+Version 1.0.3
+-------------
+
+Fix bugs on
+
+- firing rate measurement
+- stability analysis
+
+
+Version 1.0.2
 -------------
 
 This release continues to improve the user-friendliness.
@@ -26,13 +87,13 @@ Highlights of core changes:
 * Add build phase in Monitor
 
 
-BrainPy 1.0.1
+Version 1.0.1
 -------------
 
 - Fix bugs
 
 
-BrainPy 1.0.0
+Version 1.0.0
 -------------
 
 - **NEW VERSION OF BRAINPY**
@@ -40,7 +101,7 @@ BrainPy 1.0.0
 - Systematically improve the documentation
 
 
-BrainPy 0.3.5
+Version 0.3.5
 -------------
 
 - Add 'timeout' in sympy solver in neuron dynamics analysis
@@ -50,7 +111,7 @@ BrainPy 0.3.5
 - Update detailed documentation
 
 
-BrainPy 0.3.1
+Version 0.3.1
 -------------
 
 - Add a more flexible way for NeuState/SynState initialization
@@ -62,7 +123,7 @@ BrainPy 0.3.1
 
 
 
-BrainPy 0.3.0
+Version 0.3.0
 -------------
 
 Computation API
@@ -95,7 +156,7 @@ Package installation
 
 
 
-BrainPy 0.2.4
+Version 0.2.4
 -------------
 
 API changes
@@ -104,7 +165,7 @@ API changes
 - Fix bugs
 
 
-BrainPy 0.2.3
+Version 0.2.3
 -------------
 
 API changes
@@ -121,7 +182,7 @@ Models and examples
 - Add CANN examples
 
 
-BrainPy 0.2.2
+Version 0.2.2
 -------------
 
 API changes
@@ -132,7 +193,7 @@ API changes
 - Update docs
 
 
-BrainPy 0.2.1
+Version 0.2.1
 -------------
 
 API changes
@@ -142,7 +203,7 @@ API changes
 - Fix bugs in `numpy` mode with `scalar` model
 
 
-BrainPy 0.2.0
+Version 0.2.0
 -------------
 
 API changes

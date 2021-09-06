@@ -2,10 +2,16 @@
 
 sympy>=1.5
 numba>=0.52
+jax
+jaxlib
 
 # document requirements
-docutils==0.16.0
+pandoc
+docutils
 Jinja2
 sphinx
 sphinx_rtd_theme
 nbsphinx
+
+# docutils==0.16
+# sphinx_rtd_theme==1.0.0rc1
