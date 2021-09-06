@@ -40,7 +40,7 @@ def test_find_self_data1():
 
 def test_transformer():
   code = '''
-def update(self, _t, _i):
+def update(self, _t, _dt):
   V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input)
   self.spike[:] = (self.V < self.V_th) * (V >= self.V_th)
   self.V[:] = V
