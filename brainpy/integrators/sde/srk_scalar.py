@@ -63,12 +63,14 @@ class Wrappers(object):
   @staticmethod
   def srk1w1(f, g, dt, show_code, intg_type, var_type, wiener_type):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
+    code_scope = {'f': f, 'g': g, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 noise
     Tools._noise_terms(code_lines, variables, vdt, triple_integral=True)
@@ -136,17 +138,20 @@ class Wrappers(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type,
+      dt=dt, method='srk1w1', raw_func=dict(f=f, g=g))
 
   @staticmethod
   def srk2w1(f, g, dt, show_code, intg_type, var_type, wiener_type):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
+    code_scope = {'f': f, 'g': g, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 noise
     Tools._noise_terms(code_lines, variables, vdt, triple_integral=True)
@@ -239,17 +244,20 @@ class Wrappers(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type,
+      dt=dt, method='srk2w1', raw_func=dict(f=f, g=g))
 
   @staticmethod
   def KlPl(f, g, dt, show_code, intg_type, var_type, wiener_type):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
+    code_scope = {'f': f, 'g': g, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 noise
     Tools._noise_terms(code_lines, variables, vdt, triple_integral=False)
@@ -289,7 +297,8 @@ class Wrappers(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type,
+      dt=dt, method='KlPl', raw_func=dict(f=f, g=g))
 
   @staticmethod
   def wrap(wrapper, f, g, dt, intg_type, var_type, wiener_type, show_code):
@@ -337,15 +346,15 @@ class Wrappers(object):
     dt = math.get_dt() if dt is None else dt
 
     if f is not None and g is not None:
-      return wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=intg_type,
+      return wrapper(f=f, g=g, dt=dt, show_code=show_code, intg_type=intg_type,
                      var_type=var_type, wiener_type=wiener_type)
 
     elif f is not None:
-      return lambda g: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=intg_type,
+      return lambda g: wrapper(f=f, g=g, dt=dt, show_code=show_code, intg_type=intg_type,
                                var_type=var_type, wiener_type=wiener_type)
 
     elif g is not None:
-      return lambda f: wrapper(f=f, g=g, dt=dt, show_code=show_code, sde_type=intg_type,
+      return lambda f: wrapper(f=f, g=g, dt=dt, show_code=show_code, intg_type=intg_type,
                                var_type=var_type, wiener_type=wiener_type)
 
     else:

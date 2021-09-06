@@ -23,7 +23,7 @@ __all__ = [
   'cumprod', 'cumsum', 'ediff1d', 'cross', 'trapz', 'isfinite', 'isinf',
   'isnan', 'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
   'sqrt', 'cbrt', 'square', 'absolute', 'fabs', 'sign', 'heaviside',
-  'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip',
+  'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip', 'angle',
 
   # Elementwise bit operations
   'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor',
@@ -618,6 +618,14 @@ def clip(a, a_min=None, a_max=None):
   if isinstance(a_min, JaxArray): a_min = a_min.value
   if isinstance(a_max, JaxArray): a_max = a_max.value
   return JaxArray(jnp.clip(a, a_min, a_max))
+
+
+def angle(z, deg=False):
+  if isinstance(z, JaxArray): z = z.value
+  a = jnp.angle(z)
+  if deg:
+    a *= 180 / pi
+  return JaxArray(a)
 
 
 # binary funcs

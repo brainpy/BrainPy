@@ -23,7 +23,8 @@ def basic_info(f, g):
 
 def compile_and_assign_attrs(code_lines, code_scope, show_code,
                              variables, parameters, func_name,
-                             intg_type, var_type, wiener_type, dt):
+                             intg_type, var_type, wiener_type, dt,
+                             method, raw_func):
   code_scope_old = {key: val for key, val in code_scope.items()}
 
   # compile functions
@@ -37,12 +38,15 @@ def compile_and_assign_attrs(code_lines, code_scope, show_code,
   new_f = code_scope[func_name]
 
   # assign values
-  new_f.brainpy_data = dict(raw_func=None,
+  new_f.brainpy_data = dict(raw_func=raw_func,
                             code_lines=code_lines,
                             code_scope=code_scope_old,
                             variables=variables,
                             parameters=parameters,
                             dt=dt,
                             func_name=func_name,
-                            var_type=var_type)
+                            var_type=var_type,
+                            intg_type=intg_type,
+                            wiener_type=wiener_type,
+                            method=method)
   return new_f

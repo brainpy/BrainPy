@@ -17,11 +17,8 @@ def test1():
         return dx, dy, dz
 
     exponential_euler(f=lorenz_f, g=lorenz_g, dt=0.01,
-                      sde_type=bp.ITO_SDE,
-                      wiener_type=bp.SCALAR_WIENER,
-                      var_type=bp.POPU_VAR,
+                      intg_type=bp.integrators.ITO_SDE,
+                      wiener_type=bp.integrators.SCALAR_WIENER,
+                      var_type=bp.integrators.POP_VAR,
                       show_code=True)
 
-
-if __name__ == '__main__':
-    test1()

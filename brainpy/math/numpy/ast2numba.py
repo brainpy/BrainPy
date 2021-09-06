@@ -5,33 +5,33 @@
 
 TODO: support Base function
 TODO: enable code debug and error report
+
 """
 
 import ast
 import inspect
 import re
 from pprint import pprint
-import numpy as np
 
 import numba
-from numba.core.dispatcher import Dispatcher
 import numba.misc.help.inspector as inspector
+import numpy as np
+from numba.core.dispatcher import Dispatcher
 
 from brainpy import errors, math, tools
+from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.math import profile
 
-DE_INT = None
-DynamicSystem = None
-Container = None
+DE_INT = DynamicSystem = Container = None
 
 __all__ = [
-  'jit_dynamic_system',
+  'jit_cls',
   'jit_integrator',
 ]
 
 
-def jit_dynamic_system(ds, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
+def jit_cls(ds, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
   global DynamicSystem, Container
   if DynamicSystem is None:
     from brainpy.simulation.brainobjects.base import DynamicSystem
@@ -51,11 +51,13 @@ def jit_dynamic_system(ds, nopython=True, fastmath=True, parallel=False, nogil=F
       code_scope = {key: node for key, node in r['nodes'].items()}
       code_scope[key] = r['func']
       called_args = _items2lines([f"{a}={r['arg2call'][a]}" for a in arguments]).strip()
-      code_lines = [f'def new_{key}(_t, _i):',
-                    f'  {key}(_t=_t, _i=_i, {called_args.strip()})']
+      code_lines = [f'def new_{key}(_t, _dt):',
+                    f'  {key}(_t=_t, _dt=_dt, {called_args.strip()})']
 
       # compile new function
       code = '\n'.join(code_lines)
+      # code, _scope = _add_try_except(code)
+      # code_scope.update(_scope)
       if show_code:
         print(code)
         print()
@@ -63,8 +65,7 @@ def jit_dynamic_system(ds, nopython=True, fastmath=True, parallel=False, nogil=F
         print()
       exec(compile(code, '', 'exec'), code_scope)
       func = code_scope[f'new_{key}']
-      ds.steps[key] = func
-
+      ds.steps.replace(key, func)
   return ds
 
 
@@ -97,7 +98,7 @@ def analyze_func(f, nopython=True, fastmath=True, parallel=False, nogil=False, s
   return {}
 
 
-def analyze_cls_func(f, code=None, host=None, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
+def analyze_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   global Container, DynamicSystem
   if Container is None:
     from brainpy.simulation.brainobjects.base import Container
@@ -119,99 +120,43 @@ def analyze_cls_func(f, code=None, host=None, nopython=True, fastmath=True, para
                                     f'function, while we got {f.__name__}: {f}')
     code_lines = []
     code_scope = {}
-    for key, step in host.children_steps.items():
-      r = analyze_func(f=step, nopython=nopython, fastmath=fastmath,
-                       parallel=parallel, nogil=nogil, show_code=show_code)
+    for key, step in host.child_steps.items():
+      r = analyze_func(f=step, show_code=show_code, **jit_setting)
       if len(r):
         arguments.update(r['arguments'])
         arg2call.update(r['arg2call'])
         nodes.update(r['nodes'])
         code_scope[key.replace('.', '_')] = r['func']
         call_args = [f'{arg}={arg}' for arg in sorted(r['arguments'])]
-        code_lines.append("{call}(_t, _i, {args})".format(
+        code_lines.append("{call}(_t, _dt, {args})".format(
           call=key.replace('.', '_'),
           args=", ".join(call_args)))
         # args=_items2lines(call_args, line_break='\n\t\t\t')))
     code_lines = ['  ' + line for line in code_lines]
-    # code_lines.insert(0, f'def {host.name}_update(_t, _i, {_items2lines(sorted(arguments))}):')
-    code_lines.insert(0, f'def {host.name}_update(_t, _i, {", ".join(sorted(arguments))}):')
+    # code_lines.insert(0, f'def {host.name}_update(_t, _dt, {_items2lines(sorted(arguments))}):')
+    code_lines.insert(0, f'def {host.name}_update(_t, _dt, {", ".join(sorted(arguments))}):')
     code = '\n'.join(code_lines)
     # code_scope.update(nodes)
     func_name = f'{host.name}_update'
 
   # step function of normal DynamicSystem
   else:
-    # arguments
     code = (code or tools.deindent(inspect.getsource(f)).strip())
-    tree = ast.parse(code)
-    arg = tree.body[0].args.args[0].arg
-
-    # data assigned by self.xx in line right
-    if arg not in profile.CLASS_KEYWORDS:
-      raise errors.CodeError(f'BrainPy only support class keyword '
-                             f'{profile.CLASS_KEYWORDS}, but we got {arg}.')
-    tree.body[0].args.args.pop(0)  # remove "self" arg
-    self_data = re.findall('\\b' + arg + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
-    self_data = list(set(self_data))
-
+    # function name
+    func_name = f.__name__
     # code scope
     closure_vars = inspect.getclosurevars(f)
     code_scope = dict(closure_vars.nonlocals)
     code_scope.update(closure_vars.globals)
-
-    # analyze variables and functions accessed by the self.xx
-    data_to_replace = {}
-    for key in self_data:
-      split_keys = key.split('.')
-      if len(split_keys) < 2:
-        raise errors.BrainPyError
-
-      # get target and data
-      target = host
-      for i in range(1, len(split_keys)):
-        next_target = getattr(target, split_keys[i])
-        if not isinstance(next_target, DynamicSystem):
-          break
-        target = next_target
-      else:
-        raise errors.BrainPyError
-      data = getattr(target, split_keys[i])
-
-      key = '.'.join(split_keys[:i+1])
-
-      # analyze data
-      if isinstance(data, math.Variable):
-        arguments.add(f'{target.name}_{split_keys[i]}')
-        arg2call[f'{target.name}_{split_keys[i]}'] = f'{target.name}.{split_keys[-1]}.value'
-        nodes[target.name] = target
-        data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
-      elif isinstance(data, np.random.RandomState):
-        data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
-        code_scope[f'{target.name}_{split_keys[i]}'] = np.random  # replace RandomState
-      elif callable(data):
-        assert len(split_keys) == i + 1
-        r = analyze_func(f=data, nopython=nopython, fastmath=fastmath, parallel=parallel,
-                         nogil=nogil, show_code=show_code)
-        if len(r):
-          tree = replace_func(tree, func_call=key, arg_to_append=r['arguments'])
-          arguments.update(r['arguments'])
-          arg2call.update(r['arg2call'])
-          nodes.update(r['nodes'])
-          code_scope[f'{target.name}_{split_keys[i]}'] = r['func']
-          data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
-      else:
-        code_scope[f'{target.name}_{split_keys[i]}'] = data
-        data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
-
-    # final code
-    tree.body[0].decorator_list.clear()
-    tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
-    tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
-    code = tools.ast2code(tree)
-    code = tools.word_replace(code, data_to_replace, exclude_dot=False)
-    func_name = f.__name__
+    code, _arguments, _arg2call, _nodes, code_scope = _analyze_cls_func(
+      host=host, code=code, show_code=show_code, code_scope=code_scope, **jit_setting)
+    arguments.update(_arguments)
+    arg2call.update(_arg2call)
+    nodes.update(_nodes)
 
   # compile new function
+  # code, _scope = _add_try_except(code)
+  # code_scope.update(_scope)
   if show_code:
     print(code)
     print()
@@ -219,7 +164,7 @@ def analyze_cls_func(f, code=None, host=None, nopython=True, fastmath=True, para
     print()
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[func_name]
-  func = numba.jit(func, nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil)
+  func = numba.jit(func, **jit_setting)
 
   # returns
   return dict(func=func, arguments=arguments, arg2call=arg2call, nodes=nodes)
@@ -281,9 +226,9 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
                            nogil=nogil,
                            show_code=show_code)
       if len(r['arguments']) or remove_self:
-        tree = replace_func(tree, func_call=key,
-                            arg_to_append=r['arguments'],
-                            remove_self=remove_self)
+        tree = _replace_func(tree, func_call=key,
+                             arg_to_append=r['arguments'],
+                             remove_self=remove_self)
       code_scope[key] = r['func']
       arguments.update(r['arguments'])  # update arguments
       arg2call.update(r['arg2call'])  # update arg2call
@@ -302,6 +247,8 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
     tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
     tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
     code = tools.ast2code(tree)
+    # code, _scope = _add_try_except(code)
+    # code_scope.update(_scope)
     code_scope_backup = {k: v for k, v in code_scope.items()}
     # compile functions
     if show_code:
@@ -320,25 +267,31 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
     return dict(func=f, arguments=arguments, arg2call=arg2call, nodes=nodes)
 
 
-def replace_func(code_or_tree, func_call, arg_to_append, remove_self=None):
-  assert isinstance(func_call, str)
-  assert isinstance(arg_to_append, (list, tuple, set))
-
-  if isinstance(code_or_tree, str):
-    tree = ast.parse(code_or_tree)
-  elif isinstance(code_or_tree, ast.Module):
-    tree = code_or_tree
-  else:
-    raise ValueError
-
-  transformer = FuncTransformer(func_name=func_call,
-                                arg_to_append=arg_to_append,
-                                remove_self=remove_self)
-  new_tree = transformer.visit(tree)
-  return new_tree
-
-
 class FuncTransformer(ast.NodeTransformer):
+  """Transform a functional call.
+
+  This class automatically transform a functional call.
+  For example, in your original code:
+
+  ... code-block:: python
+
+      def update(self, _t, _dt):
+        V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input)
+        self.spike[:] = (self.V < self.V_th) * (V >= self.V_th)
+
+  you want to add new arguments ``gNa``, ``gK`` and ``gL`` into the
+  function ``self.integral``. Then this Transformer will help you
+  automatically do this:
+
+  ... code-block:: python
+
+      def update(self, _t, _dt):
+        V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input,
+                                   gNa=gNa, gK=gK, gL=gL)
+        self.spike[:] = (self.V < self.V_th) * (V >= self.V_th)
+
+  """
+
   def __init__(self, func_name, arg_to_append, remove_self=None):
     self.func_name = func_name
     self.arg_to_append = sorted(arg_to_append)
@@ -371,12 +324,135 @@ class FuncTransformer(ast.NodeTransformer):
     return node
 
 
+def _replace_func(code_or_tree, func_call, arg_to_append, remove_self=None):
+  assert isinstance(func_call, str)
+  assert isinstance(arg_to_append, (list, tuple, set))
+
+  if isinstance(code_or_tree, str):
+    tree = ast.parse(code_or_tree)
+  elif isinstance(code_or_tree, ast.Module):
+    tree = code_or_tree
+  else:
+    raise ValueError
+
+  transformer = FuncTransformer(func_name=func_call,
+                                arg_to_append=arg_to_append,
+                                remove_self=remove_self)
+  new_tree = transformer.visit(tree)
+  return new_tree
+
+
+def _analyze_cls_func(host, code, show_code, code_scope, cls_name=None, **jit_setting):
+  """
+
+  Parameters
+  ----------
+  host : Base
+    The data host.
+  code : str
+    The function source code.
+  cls_name : optional, str
+    The class name, like "self", "cls".
+  show_code : bool
+
+
+  Returns
+  -------
+
+  """
+  arguments, arg2call, nodes = set(), dict(), Collector()
+
+  # arguments
+  tree = ast.parse(code)
+  if cls_name is None:
+    cls_name = tree.body[0].args.args[0].arg
+    # data assigned by self.xx in line right
+    if cls_name not in profile.CLASS_KEYWORDS:
+      raise errors.CodeError(f'BrainPy only support class keyword '
+                             f'{profile.CLASS_KEYWORDS}, but we got {cls_name}.')
+  tree.body[0].args.args.pop(0)  # remove "self" etc. class argument
+  self_data = re.findall('\\b' + cls_name + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
+  self_data = list(set(self_data))
+
+  # analyze variables and functions accessed by the self.xx
+  data_to_replace = {}
+  for key in self_data:
+    split_keys = key.split('.')
+    if len(split_keys) < 2:
+      raise errors.BrainPyError
+
+    # get target and data
+    target = host
+    for i in range(1, len(split_keys)):
+      next_target = getattr(target, split_keys[i])
+      if not isinstance(next_target, Base):
+        break
+      target = next_target
+    else:
+      raise errors.BrainPyError
+    data = getattr(target, split_keys[i])
+
+    key = '.'.join(split_keys[:i + 1])
+
+    # analyze data
+    if isinstance(data, math.Variable):
+      arguments.add(f'{target.name}_{split_keys[i]}')
+      arg2call[f'{target.name}_{split_keys[i]}'] = f'{target.name}.{split_keys[-1]}.value'
+      nodes[target.name] = target
+      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+    elif isinstance(data, np.random.RandomState):
+      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+      code_scope[f'{target.name}_{split_keys[i]}'] = np.random  # replace RandomState
+    elif callable(data):
+      assert len(split_keys) == i + 1
+      r = analyze_func(f=data, show_code=show_code, **jit_setting)
+      if len(r):
+        tree = _replace_func(tree, func_call=key, arg_to_append=r['arguments'])
+        arguments.update(r['arguments'])
+        arg2call.update(r['arg2call'])
+        nodes.update(r['nodes'])
+        code_scope[f'{target.name}_{split_keys[i]}'] = r['func']
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+    else:
+      code_scope[f'{target.name}_{split_keys[i]}'] = data
+      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+
+  # final code
+  tree.body[0].decorator_list.clear()
+  tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
+  tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
+  code = tools.ast2code(tree)
+  code = tools.word_replace(code, data_to_replace, exclude_dot=False)
+
+  return code, arguments, arg2call, nodes, code_scope
+
+
+def _add_try_except(code):
+  splits = re.compile(r'\)\s*?:').split(code)
+  if len(splits) == 1:
+    raise ValueError(f"Cannot analyze code:\n{code}")
+
+  def_line = splits[0] + '):'
+  code_lines = '):'.join(splits[1:])
+  code_lines = [line for line in code_lines.split('\n') if line.strip()]
+  main_code = tools.deindent("\n".join(code_lines))
+
+  code = def_line + '\n'
+  code += '  try:\n'
+  code += tools.indent(main_code, num_tabs=2, spaces_per_tab=2)
+  code += '\n'
+  code += '  except NumbaError:\n'
+  code += '    print(_code_)'
+  return code, {'NumbaError': numba.errors.NumbaError,
+                '_code_': code}
+
+
 def _items2lines(items, num_each_line=5, separator=', ', line_break='\n\t\t'):
   res = ''
   for item in items[:num_each_line]:
     res += item + separator
   for i in range(num_each_line, len(items), num_each_line):
     res += line_break
-    for item in items[i: i+num_each_line]:
+    for item in items[i: i + num_each_line]:
       res += item + separator
   return res

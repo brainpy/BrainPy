@@ -8,7 +8,6 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 import brainpy as bp
-bp.backend.set('numba')
 from brainpy.integrators import sde
 
 
@@ -32,7 +31,10 @@ def lorenz_g(x, y, z, t):
 
 
 def lorenz_system(method, **kwargs):
-    integral = numba.njit(method(f=lorenz_f, g=lorenz_g, show_code=True, dt=0.005,
+    integral = numba.njit(method(f=lorenz_f,
+                                 g=lorenz_g,
+                                 show_code=True,
+                                 dt=0.005,
                                  **kwargs))
 
     times = np.arange(0, 100, 0.01)
@@ -60,11 +62,11 @@ def lorenz_system(method, **kwargs):
 def test():
     lorenz_system(sde.srk1w1_scalar, )
     with pytest.raises(bp.errors.IntegratorError):
-        lorenz_system(sde.srk1w1_scalar, wiener_type=bp.VECTOR_WIENER)
+        lorenz_system(sde.srk1w1_scalar, wiener_type=bp.integrators.VECTOR_WIENER)
     lorenz_system(sde.srk2w1_scalar)
-    lorenz_system(sde.euler, sde_type=bp.integrators.ITO_SDE)
-    lorenz_system(sde.euler, sde_type=bp.integrators.STRA_SDE)
-    lorenz_system(sde.milstein, sde_type=bp.integrators.ITO_SDE)
-    lorenz_system(sde.milstein, sde_type=bp.integrators.STRA_SDE)
+    lorenz_system(sde.euler, intg_type=bp.integrators.ITO_SDE)
+    lorenz_system(sde.euler, intg_type=bp.integrators.STRA_SDE)
+    lorenz_system(sde.milstein, intg_type=bp.integrators.ITO_SDE)
+    lorenz_system(sde.milstein, intg_type=bp.integrators.STRA_SDE)
 
 

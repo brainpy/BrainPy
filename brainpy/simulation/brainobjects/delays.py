@@ -17,7 +17,7 @@ class Delay(DynamicSystem):
   def __init__(self, steps=('update',), name=None):
     super(Delay, self).__init__(steps=steps, monitors=None, name=name)
 
-  def update(self, _t, _i):
+  def update(self, _t, _dt):
     raise NotImplementedError
 
 
@@ -106,7 +106,7 @@ class ConstantDelay(Delay):
   def _push_for_nonuniform_delay(self, value):
     self.data[self.in_idx, self.diag] = value
 
-  def update(self, _t, _i):
+  def update(self, _t, _dt):
     self.in_idx[:] = (self.in_idx + 1) % self.num_step
     self.out_idx[:] = (self.out_idx + 1) % self.num_step
 

@@ -60,12 +60,12 @@ def jit(obj_or_func, nopython=True, fastmath=True, parallel=False, nogil=False, 
     if not isinstance(obj_or_func, DynamicSystem):
       raise errors.UnsupportedError(f'JIT compilation in numpy backend only supports '
                                     f'{DynamicSystem.__name__}, but we got {type(obj_or_func)}.')
-    return ast2numba.jit_dynamic_system(obj_or_func,
-                                        nopython=nopython,
-                                        fastmath=fastmath,
-                                        parallel=parallel,
-                                        nogil=nogil,
-                                        show_code=show_code)
+    return ast2numba.jit_cls(obj_or_func,
+                             nopython=nopython,
+                             fastmath=fastmath,
+                             parallel=parallel,
+                             nogil=nogil,
+                             show_code=show_code)
 
 
 def vmap(obj_or_func, *args, **kwargs):

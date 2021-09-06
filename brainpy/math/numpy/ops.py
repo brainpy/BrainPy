@@ -19,7 +19,7 @@ __all__ = [
   'cumsum', 'ediff1d', 'cross', 'trapz', 'isfinite', 'isinf', 'isnan',
   'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
   'sqrt', 'cbrt', 'square', 'absolute', 'fabs', 'sign', 'heaviside',
-  'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip',
+  'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip', 'angle',
 
   # Elementwise bit operations
   'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor',
@@ -179,6 +179,7 @@ fmax = numpy.fmax
 fmin = numpy.fmin
 interp = numpy.interp
 clip = numpy.clip
+angle = numpy.angle
 
 # binary funcs
 # -------------

@@ -130,6 +130,7 @@ class Wrapper(object):
       raise errors.IntegratorError(f'Exponential Euler method only supports Ito integral, but we got {intg_type}.')
 
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
     closure_vars = inspect.getclosurevars(f)
@@ -137,13 +138,12 @@ class Wrapper(object):
     code_scope.update(dict(closure_vars.globals))
     code_scope['f'] = f
     code_scope['g'] = g
-    code_scope[vdt] = dt
-    code_scope[f'{vdt}_sqrt'] = dt ** 0.5
     code_scope['math'] = math
     code_scope['exp'] = math.exp
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 dg
     # dg = g(x, t, *args)
@@ -236,17 +236,21 @@ class Wrapper(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type,
+      dt=dt, method='exponential_euler', raw_func=dict(f=f, g=g)
+    )
 
   @staticmethod
   def euler_and_heun(f, g, dt, intg_type, var_type, wiener_type, show_code):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
+    code_scope = {'f': f, 'g': g, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 df, dg
     Tools.df_and_dg(code_lines, variables, parameters)
@@ -271,6 +275,7 @@ class Wrapper(object):
     code_lines.append('  ')
 
     if intg_type == constants.ITO_SDE:
+      method = 'euler'
       # 2.4 new var
       # ----
       # y = x + dfdt + dgdW
@@ -279,6 +284,8 @@ class Wrapper(object):
       code_lines.append('  ')
 
     elif intg_type == constants.STRA_SDE:
+      method = 'heun'
+
       # 2.4  y_bar = x + math.sum(dgdW, axis=-1)
       all_bar = [f'{var}_bar' for var in variables]
       for var in variables:
@@ -319,17 +326,20 @@ class Wrapper(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type,
+      dt=dt, method=method, raw_func=dict(f=f, g=g))
 
   @staticmethod
   def milstein(f, g, dt, intg_type, var_type, wiener_type, show_code):
     vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+    arguments = list(arguments) + [f'{vdt}={dt}']
 
     # 1. code scope
-    code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5, 'math': math}
+    code_scope = {'f': f, 'g': g, 'math': math}
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
+    code_lines.append(f'  {vdt}_sqrt = {vdt} ** 0.5')
 
     # 2.1 df, dg
     Tools.df_and_dg(code_lines, variables, parameters)
@@ -399,7 +409,8 @@ class Wrapper(object):
     return common.compile_and_assign_attrs(
       code_lines=code_lines, code_scope=code_scope, show_code=show_code,
       variables=variables, parameters=parameters, func_name=func_name,
-      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type, dt=dt)
+      intg_type=intg_type, var_type=var_type, wiener_type=wiener_type,
+      dt=dt, method='milstein', raw_func=dict(f=f, g=g))
 
 
 def euler(f=None, g=None, dt=None, intg_type=None, var_type=None, wiener_type=None, show_code=None):
