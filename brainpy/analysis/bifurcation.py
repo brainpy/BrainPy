@@ -44,7 +44,7 @@ class Bifurcation(object):
   target_vars : dict
       The target dynamical variables. It must a dictionary which
       specifies the boundary of the variables: `{'var1': [min, max]}`.
-  fixed_vars : dict
+  fixed_vars : dict, optional
       The fixed variables. It must a fixed value with the format of `{'var1': value}`.
   target_pars : dict, optional
       The parameters which can be dynamical varied. It must be a dictionary which
@@ -53,7 +53,7 @@ class Bifurcation(object):
       The parameters to update. Or, they can be treated as staitic parameters.
       Same with the `fixed_vars`, they are must fixed values with the format of
       `{'par1': value}`.
-  numerical_resolution : float, dict
+  numerical_resolution : float, dict, optional
       The resolution for numerical iterative solvers. Default is 0.1.
       It can set the numerical resolution of dynamical variables or dynamical parameters.
       For example, set ``numerical_resolution=0.1`` will generalize it to all

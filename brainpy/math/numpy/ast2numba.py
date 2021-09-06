@@ -51,8 +51,8 @@ def jit_cls(ds, nopython=True, fastmath=True, parallel=False, nogil=False, show_
       code_scope = {key: node for key, node in r['nodes'].items()}
       code_scope[key] = r['func']
       called_args = _items2lines([f"{a}={r['arg2call'][a]}" for a in arguments]).strip()
-      code_lines = [f'def new_{key}(_t, _i):',
-                    f'  {key}(_t=_t, _i=_i, {called_args.strip()})']
+      code_lines = [f'def new_{key}(_t, _dt):',
+                    f'  {key}(_t=_t, _dt=_dt, {called_args.strip()})']
 
       # compile new function
       code = '\n'.join(code_lines)
@@ -65,8 +65,7 @@ def jit_cls(ds, nopython=True, fastmath=True, parallel=False, nogil=False, show_
         print()
       exec(compile(code, '', 'exec'), code_scope)
       func = code_scope[f'new_{key}']
-      ds.steps[key] = func
-
+      ds.steps.replace(key, func)
   return ds
 
 
@@ -121,7 +120,7 @@ def analyze_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
                                     f'function, while we got {f.__name__}: {f}')
     code_lines = []
     code_scope = {}
-    for key, step in host.children_steps.items():
+    for key, step in host.child_steps.items():
       r = analyze_func(f=step, show_code=show_code, **jit_setting)
       if len(r):
         arguments.update(r['arguments'])
@@ -129,13 +128,13 @@ def analyze_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
         nodes.update(r['nodes'])
         code_scope[key.replace('.', '_')] = r['func']
         call_args = [f'{arg}={arg}' for arg in sorted(r['arguments'])]
-        code_lines.append("{call}(_t, _i, {args})".format(
+        code_lines.append("{call}(_t, _dt, {args})".format(
           call=key.replace('.', '_'),
           args=", ".join(call_args)))
         # args=_items2lines(call_args, line_break='\n\t\t\t')))
     code_lines = ['  ' + line for line in code_lines]
-    # code_lines.insert(0, f'def {host.name}_update(_t, _i, {_items2lines(sorted(arguments))}):')
-    code_lines.insert(0, f'def {host.name}_update(_t, _i, {", ".join(sorted(arguments))}):')
+    # code_lines.insert(0, f'def {host.name}_update(_t, _dt, {_items2lines(sorted(arguments))}):')
+    code_lines.insert(0, f'def {host.name}_update(_t, _dt, {", ".join(sorted(arguments))}):')
     code = '\n'.join(code_lines)
     # code_scope.update(nodes)
     func_name = f'{host.name}_update'
@@ -276,7 +275,7 @@ class FuncTransformer(ast.NodeTransformer):
 
   ... code-block:: python
 
-      def update(self, _t, _i):
+      def update(self, _t, _dt):
         V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input)
         self.spike[:] = (self.V < self.V_th) * (V >= self.V_th)
 
@@ -286,7 +285,7 @@ class FuncTransformer(ast.NodeTransformer):
 
   ... code-block:: python
 
-      def update(self, _t, _i):
+      def update(self, _t, _dt):
         V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input,
                                    gNa=gNa, gK=gK, gL=gL)
         self.spike[:] = (self.V < self.V_th) * (V >= self.V_th)

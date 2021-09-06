@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from pprint import pprint
+
 from brainpy import math
 from brainpy.simulation.utils import run_model
 from brainpy.tools import DictPlus
@@ -55,7 +57,7 @@ class Trajectory(object):
     self.vars_and_pars = DictPlus()
     for key, val in target_vars.items():
       self.vars_and_pars[key] = math.ones(size) * val
-      self.mon[key] = math.zeros((1,) + size)
+      self.mon[key] = []
     for key, val in fixed_vars.items():
       self.vars_and_pars[key] = math.ones(size) * val
     for key, val in pars_update.items():
@@ -64,7 +66,7 @@ class Trajectory(object):
     self.scope['MON'] = self.mon
     self.scope['_fixed_vars'] = fixed_vars
 
-    code_lines = ['def run_func(_t, _i):']
+    code_lines = ['def run_func(_t, _dt):']
     for integral in integrals:
       func_name = integral.__name__
       self.scope[func_name] = integral
@@ -79,12 +81,13 @@ class Trajectory(object):
         code_lines.append(f'  VP["{key}"][:] = _fixed_vars["{key}"]')
     # monitor the target variables
     for key in target_vars.keys():
-      code_lines.append(f'  MON["{key}"][_i] = VP["{key}"]')
+      code_lines.append(f'  MON["{key}"].append(VP["{key}"])')
     # compile
     code = '\n'.join(code_lines)
     if show_code:
       print(code)
-      print(self.scope)
+      print()
+      pprint(self.scope)
       print()
 
     # recompile
@@ -104,6 +107,10 @@ class Trajectory(object):
     times = math.arange(duration[0], duration[1], math.get_dt())
     # reshape the monitor
     for key in self.mon.keys():
-      self.mon[key] = math.zeros((len(times),) + math.shape(self.mon[key])[1:])
+      self.mon[key] = []
     # run the model
     run_model(run_func=self.run_func, times=times, report=report)
+    # reshape the monitor
+    for key in self.mon.keys():
+      self.mon[key] = math.asarray(self.mon[key])
+

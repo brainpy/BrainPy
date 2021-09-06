@@ -38,7 +38,7 @@ class PhasePlane(object):
       The fixed variables, which means the variables will not be updated.
   pars_update : dict, optional
       The parameters in the differential equations to update.
-  numerical_resolution : float, dict
+  numerical_resolution : float, dict, optional
       The variable resolution for numerical iterative solvers.
       This variable will be useful in the solving of nullcline and fixed points
       by using the iterative optimization method. It can be a float, which will

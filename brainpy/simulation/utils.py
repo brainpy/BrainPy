@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import time
 from collections import Iterable
+from pprint import pprint
 
-from brainpy import errors, math
+from brainpy import errors, math, tools
 
 __all__ = [
   'size2len',
   'check_duration',
   'run_model',
-  'format_inputs',
+  'check_and_format_inputs',
 ]
 
-SUPPORTED_INPUT_OPS = ['-', '+', 'x', '*', '/', '=']
+SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter']
 
 
@@ -83,7 +85,7 @@ def run_model(run_func, times, report):
   run_length = len(times)
   if report:
     t0 = time.time()
-    run_func(_t=times[0], _i=0)
+    run_func(_t=times[0], _dt=math.get_dt())
     compile_time = time.time() - t0
     print('Compilation used {:.4f} s.'.format(compile_time))
 
@@ -91,7 +93,7 @@ def run_model(run_func, times, report):
     report_gap = int(run_length * report)
     t0 = time.time()
     for run_idx in range(1, run_length):
-      run_func(_t=times[run_idx], _i=run_idx)
+      run_func(_t=times[run_idx], _dt=math.get_dt())
       if (run_idx + 1) % report_gap == 0:
         percent = (run_idx + 1) / run_length * 100
         print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
@@ -102,23 +104,21 @@ def run_model(run_func, times, report):
   else:
     t0 = time.time()
     for run_idx in range(run_length):
-      run_func(_t=times[run_idx], _i=run_idx)
+      run_func(_t=times[run_idx], _dt=math.get_dt())
     running_time = time.time() - t0
 
   return running_time
 
 
-def format_inputs(host, inputs, duration):
-  """Format the inputs of a population.
+def check_and_format_inputs(host, inputs):
+  """Check inputs and get the formatted inputs for the given population.
 
   Parameters
   ----------
-  inputs : tuple, list
-      The inputs of the population.
   host : DynamicSystem
       The host which contains all data.
-  duration : int
-      The monitor length.
+  inputs : tuple, list
+      The inputs of the population.
 
   Returns
   -------
@@ -126,9 +126,8 @@ def format_inputs(host, inputs, duration):
       The formatted inputs of the population.
   """
 
-  run_length = get_run_length_by_duration(duration)
-
   # 1. check inputs
+  # ---------
   if inputs is None:
     inputs = []
   if not isinstance(inputs, (tuple, list)):
@@ -152,17 +151,18 @@ def format_inputs(host, inputs, duration):
                                 f'"{SUPPORTED_INPUT_OPS}", '
                                 f'not "{one_input[3]}".')
 
-  # 2. format inputs
-  # ----------------
-  nodes = host.nodes(method='absolute') + host.nodes(method='relative')
-  formatted_inputs = []
+  # 2. get targets and attributes
+  # ---------
+  inputs_which_found_target = []
+  inputs_not_found_target = []
+
+  # absolute access
+  nodes = host.nodes(method='absolute')
   for one_input in inputs:
     key = one_input[0]
-
-    # key
     if not isinstance(key, str):
-      raise errors.BrainPyError('For each input, input[0] must be a string '
-                                'to specify variable of the target.')
+      raise errors.BrainPyError(f'For each input, input[0] must be a string  to '
+                                f'specify variable of the target, but we got {key}.')
     splits = key.split('.')
     target = '.'.join(splits[:-1])
     key = splits[-1]
@@ -170,43 +170,252 @@ def format_inputs(host, inputs, duration):
       real_target = host
     else:
       if target not in nodes:
-        raise errors.BrainPyError(f'Input target "{target}" is not defined in {host}.')
+        inputs_not_found_target.append(one_input)
+        continue
       real_target = nodes[target]
     if not hasattr(real_target, key):
-      raise errors.BrainPyError(f'Input target key "{key}" is not '
-                                f'defined in {real_target}.')
+      raise errors.BrainPyError(f'Input target key "{key}" is not defined in {real_target}.')
+    inputs_which_found_target.append((real_target, key) + tuple(one_input[1:]))
 
-    # value
-    value = one_input[1]
+  # relative access
+  if len(inputs_not_found_target):
+    nodes = host.nodes(method='relative')
+    for one_input in inputs_not_found_target:
+      splits = one_input[0].split('.')
+      target, key = '.'.join(splits[:-1]), splits[-1]
+      if target not in nodes:
+        raise errors.BrainPyError(f'Input target "{target}" is not defined in {host}.')
+      real_target = nodes[target]
+      if not hasattr(real_target, key):
+        raise errors.BrainPyError(f'Input target key "{key}" is not defined in {real_target}.')
+      inputs_which_found_target.append((real_target, key) + tuple(one_input[1:]))
+
+  # 3. format inputs
+  # ---------
+  formatted_inputs = []
+  for one_input in inputs_which_found_target:
+    # input value
+    data_value = one_input[2]
 
     # input type
-    if len(one_input) >= 3:
-      if one_input[2] == 'iter':
-        if not isinstance(value, Iterable):
-          raise ValueError(f'Input "{value}" for "{one_input[0]}" is set to '
-                           f'be "iter" type, however we got the value with '
-                           f'the type of {type(value)}')
-        if len(value) < run_length:  # TODO, if value is a yield function
-          raise ValueError(f'Input {value} is set to be "iter" type, '
-                           f'however it\'s length is less than the duration. '
-                           f'This will result in errors in future running.')
-      if one_input[2] == 'fix':
-        if not isinstance(value, (int, float)):
-          raise ValueError(f'Input {value} is set to be "fix" type, '
-                           f'however it is a {type(value)}. ')
-
-      data_type = one_input[2]
+    if len(one_input) >= 4:
+      if one_input[3] == 'iter':
+        if not isinstance(data_value, Iterable):
+          raise ValueError(f'Input "{data_value}" for "{one_input[0]}.{one_input[1]}" is set to be '
+                           f'"iter" type, however we got the value with the type of {type(data_value)}')
+      elif one_input[3] != 'fix':
+        raise errors.BrainPyError(f'Only support {SUPPORTED_INPUT_TYPE} input type, but we '
+                                  f'got "{one_input[3]}" in {one_input}')
+      data_type = one_input[3]
     else:
       data_type = 'fix'
 
     # operation
-    if len(one_input) == 4:
-      operation = one_input[3]
+    if len(one_input) == 5:
+      data_op = one_input[4]
     else:
-      operation = '+'
+      data_op = '+'
+    if data_op not in SUPPORTED_INPUT_OPS:
+      raise errors.BrainPyError(f'Only support {SUPPORTED_INPUT_OPS}, while we got '
+                                f'{data_op} in {one_input}')
 
     # final
-    format_inp = (one_input[0], value, data_type, operation)
+    format_inp = one_input[:2] + (data_value, data_type, data_op)
     formatted_inputs.append(format_inp)
 
   return formatted_inputs
+
+
+def build_input_func(inputs, show_code=False):
+  input_func_name = 'input_step'
+  code_scope = {'sys': sys}
+  code_lines = []
+  for target, key, value, type_, op in inputs:
+    variable = getattr(target, key)
+
+    # code scope
+    code_scope[target.name] = target
+
+    # code line left
+    if isinstance(variable, math.Variable):
+      left = f'{target.name}.{key}[...]'
+    else:
+      left = f'{target.name}.{key}'
+
+    # code line right
+    if type_ == 'iter':
+      code_scope[f'{target.name}_input_data_of_{key}'] = iter(value)
+      right = f'next({target.name}_input_data_of_{key})'
+    else:
+      code_scope[f'{target.name}_input_data_of_{key}'] = value
+      right = f'{target.name}_input_data_of_{key}'
+
+    # code line
+    if op == '=':
+      line = f'{left} = {right}'
+    else:
+      line = f'{left} {op}= {right}'
+
+    code_lines.append(line)
+
+  if len(code_lines):
+    code_scope_old = {k: v for k, v in code_scope.items()}
+    # function
+    code, func = tools.code_lines_to_func(
+      lines=code_lines,
+      func_name=input_func_name,
+      func_args=['_t', '_dt'],
+      scope=code_scope,
+      remind='Please check: \n'
+             '1. whether the "iter" input is set to "fix". \n'
+             '2. whether the dimensions are not match.\n')
+    if show_code:
+      print(code)
+      print()
+      pprint(code_scope_old)
+      print()
+  else:
+    func = lambda _t, _dt: None
+
+  return func
+
+
+def check_and_format_monitors(host):
+  formatted_mon_items = []
+
+  # reshape monitors
+  # ----
+  all_nodes = [host] + list(host.nodes().unique().values())
+  for node in all_nodes:
+    node.mon.build()  # build the monitor
+    for key in node.mon.item_contents.keys():
+      node.mon.item_contents[key] = []  # reshape the monitor items
+
+  # master node
+  name2node = {node.name: node for node in all_nodes}
+  for node in all_nodes:
+    mon = node.mon
+    for key, idx, interval in zip(mon.item_names, mon.item_indices, mon.item_intervals):
+      # target and variable
+      splits = key.split('.')
+      if len(splits) == 1:
+        if not hasattr(node, splits[0]):
+          raise errors.BrainPyError(f'{node} does not has variable {key}.')
+        target = node
+        variable = splits[-1]
+      else:
+        if not hasattr(node, splits[0]):
+          if splits[0] not in name2node:
+            raise errors.BrainPyError(f'Cannot find target {key} in monitor of {node}, please check.')
+          else:
+            target = name2node[splits[0]]
+            assert len(splits) == 2
+            variable = splits[-1]
+        else:
+          target = node
+          for s in splits[:-1]:
+            try:
+              target = getattr(target, s)
+            except KeyError:
+              raise errors.BrainPyError(f'Cannot find {key} in {node}, please check.')
+          variable = splits[-1]
+
+      # idx
+      if isinstance(idx, int):
+        idx = math.array([idx])
+
+      # interval
+      if interval is not None:
+        if not isinstance(interval, float):
+          raise errors.BrainPyError(f'"interval" must be a float (denotes time), but we got {interval}')
+
+      # append
+      formatted_mon_items.append((node, key, target, variable, idx, interval,))
+
+  return formatted_mon_items
+
+
+def build_monitor_func(monitors, show_code=False):
+  """Get the monitor function according to the user's setting.
+
+  This method will consider the following things:
+
+  1. the monitor variable
+  2. the monitor index
+  3. the monitor interval
+
+  Parameters
+  ----------
+  monitors : list, tuple
+    The items to monitor.
+  show_code : bool
+      Whether show the code.
+  """
+
+  monitor_func_name = 'monitor_step'
+
+  code_lines = []
+  code_scope = {'sys': sys}
+
+  for node, key, target, variable, idx, interval in monitors:
+    code_scope[node.name] = node
+
+    # get data
+    data = target
+    for k in variable.split('.'):
+      data = getattr(data, k)
+
+    # get the data key in the host
+
+    if isinstance(data, (int, float)):
+      if idx is not None:
+        raise errors.BrainPyError(f'"{key}" is a scalar, cannot define the slice index "{idx}"')
+      key_in_host = f'{target.name}.{variable}'
+    elif math.ndim(data) == 1:
+      if hasattr(data, 'value'):
+        key_in_host = f'{target.name}.{variable}.value.copy()'
+      else:
+        key_in_host = f'{target.name}.{variable}.copy()'
+    else:
+      if hasattr(data, 'value'):
+        key_in_host = f'{target.name}.{variable}.value.flatten().copy()'
+      else:
+        key_in_host = f'{target.name}.{variable}.flatten().copy()'
+
+    # format the monitor index
+    if idx is None:
+      right = key_in_host
+    else:
+      if hasattr(idx, 'value'):
+        idx = idx.value
+      right = f'{key_in_host}[{node.name}_mon_{key.replace(".", "_")}_idx]'
+      code_scope[f'{node.name}_mon_{key.replace(".", "_")}_idx'] = idx
+
+    # format the monitor lines according to the time interval
+    if interval is None:
+      code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
+    else:
+      code_scope[f'{node.name}_mon_{key.replace(".", "_")}_next_time'] = interval
+      # code_scope[f'{node.name}_mon_{key.replace(".", "_")}_interval'] = interval
+      code_lines.extend([f'global {node.name}_mon_{key.replace(".", "_")}_next_time',
+                         f'if _t >= {node.name}_mon_{key.replace(".", "_")}_next_time:',
+                         f'  {node.name}.mon.item_contents["{key}"].append({right})',
+                         f'  {node.name}.mon.item_contents["{key}.t"].append(_t)',
+                         f'  {node.name}_mon_{key.replace(".", "_")}_next_time += {interval}'])
+
+  if len(code_lines):
+    code_scope_old = {k: v for k, v in code_scope.items()}
+    # function
+    code, func = tools.code_lines_to_func(lines=code_lines,
+                                          func_name=monitor_func_name,
+                                          func_args=['_t', '_dt'],
+                                          scope=code_scope)
+    if show_code:
+      print(code)
+      print()
+      pprint(code_scope_old)
+      print()
+  else:
+    func = lambda _t, _dt: None
+
+  return func

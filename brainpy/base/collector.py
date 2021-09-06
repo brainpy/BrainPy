@@ -24,6 +24,12 @@ class Collector(dict):
         raise ValueError(f'Name "{key}" conflicts: same name for {value} and {self[key]}.')
     dict.__setitem__(self, key, value)
 
+  def replace(self, key, new_value):
+    """Replace the original key with the new value."""
+    self.pop(key)
+    self[key] = new_value
+    # dict.__setitem__(self, key, new_value)
+
   def update(self, other, **kwargs):
     assert isinstance(other, dict)
     for key, value in other.items():
@@ -58,6 +64,7 @@ class Collector(dict):
     ----------
     type_ : Any
       The type/class to match.
+    judge_func : optional, callable
     """
     global math
     if math is None:

@@ -148,7 +148,7 @@ def post2pre(i, j, num_post=None):
   if len(i) != len(j):
     raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_post is None:
-    print('WARNING: "num_post" is not provided, the result may not be accurate.')
+    logger.warning('WARNING: "num_post" is not provided, the result may not be accurate.')
     num_post = math.max(j)
 
   post2pre_list = [[] for _ in range(num_post)]
@@ -182,7 +182,7 @@ def pre2syn(i, num_pre=None):
       The conn list of pre2syn.
   """
   if num_pre is None:
-    print('WARNING: "num_pre" is not provided, the result may not be accurate.')
+    logger.warning('WARNING: "num_pre" is not provided, the result may not be accurate.')
     num_pre = math.max(i)
 
   pre2syn_list = [[] for _ in range(num_pre)]
@@ -216,7 +216,7 @@ def post2syn(j, num_post=None):
       The conn list of post2syn.
   """
   if num_post is None:
-    print('WARNING: "num_post" is not provided, the result may not be accurate.')
+    logger.warning('WARNING: "num_post" is not provided, the result may not be accurate.')
     num_post = math.max(j)
 
   post2syn_list = [[] for _ in range(num_post)]
@@ -256,7 +256,7 @@ def pre_slice(i, j, num_pre=None):
   if len(i) != len(j):
     raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_pre is None:
-    print('WARNING: "num_pre" is not provided, the result may not be accurate.')
+    logger.warning('WARNING: "num_pre" is not provided, the result may not be accurate.')
     num_pre = math.max(i)
 
   # pre2post connection
@@ -302,7 +302,7 @@ def post_slice(i, j, num_post=None):
   if len(i) != len(j):
     raise errors.BrainPyError('The length of "i" and "j" must be the same.')
   if num_post is None:
-    print('WARNING: "num_post" is not provided, the result may not be accurate.')
+    logger.warning('WARNING: "num_post" is not provided, the result may not be accurate.')
     num_post = math.max(j)
 
   # post2pre connection

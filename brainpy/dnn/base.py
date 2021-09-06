@@ -52,20 +52,20 @@ class Sequential(Module):
   """
 
   def __init__(self, *arg_modules, name=None, **kwarg_modules):
-    self.children_modules = dict()
+    self.child_modules = dict()
     # check "args"
     for module in arg_modules:
       if not isinstance(module, Module):
         raise errors.BrainPyError(f'Only support {Module.__name__}, '
                                   f'but we got {type(module)}.')
-      self.children_modules[module.name] = module
+      self.child_modules[module.name] = module
 
     # check "kwargs"
     for key, module in kwarg_modules.items():
       if not isinstance(module, Module):
         raise errors.BrainPyError(f'Only support {Module.__name__}, '
                                   f'but we got {type(module)}.')
-      self.children_modules[key] = module
+      self.child_modules[key] = module
 
     # initialize base class
     Module.__init__(self, name=name)
@@ -82,8 +82,8 @@ class Sequential(Module):
       If the "__call__" function in submodule receives "config" arguments,
       This "config" parameter will be passed into this function.
     """
-    keys = list(self.children_modules.keys())
-    calls = list(self.children_modules.values())
+    keys = list(self.child_modules.keys())
+    calls = list(self.child_modules.values())
 
     # module 0
     try:
@@ -92,7 +92,7 @@ class Sequential(Module):
       raise type(e)(f'Sequential [{keys[0]}] {calls[0]} {e}')
 
     # other modules
-    for i in range(1, len(self.children_modules)):
+    for i in range(1, len(self.child_modules)):
       try:
         args = calls[i](*_check_args(args=args), **_check_config(calls[i], config))
       except Exception as e:
@@ -113,13 +113,13 @@ class Sequential(Module):
     gather collector.ArrayCollector
         A collection of all the variables.
     """
-    gather = self._vars_in_container(self.children_modules, method=method)
+    gather = self._vars_in_container(self.child_modules, method=method)
     gather.update(super(Sequential, self).vars(method=method))
     return gather
 
   def nodes(self, method='absolute', _paths=None):
     if _paths is None:
       _paths = set()
-    gather = self._nodes_in_container(self.children_modules, method=method, _paths=_paths)
+    gather = self._nodes_in_container(self.child_modules, method=method, _paths=_paths)
     gather.update(super(Sequential, self).nodes(method=method))
     return gather

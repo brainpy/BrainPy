@@ -96,5 +96,5 @@ class TwoEndConn(DynamicSystem):
 
     return cdelay
 
-  def update(self, _t, _i):
+  def update(self, _t, _dt):
     raise NotImplementedError

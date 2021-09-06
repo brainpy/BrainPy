@@ -65,9 +65,9 @@ class Monitor(object):
     if isinstance(variables, (list, tuple)):
       if intervals is not None:
         if not isinstance(intervals, (list, tuple)):
-          raise errors.BrainPyError(f'"vars" and "every" must be the same type. '
+          raise errors.BrainPyError(f'"vars" and "intervals" must be the same type. '
                                     f'While we got type(vars)={type(variables)}, '
-                                    f'type(every)={type(intervals)}.')
+                                    f'type(intervals)={type(intervals)}.')
         if len(variables) != len(intervals):
           raise errors.BrainPyError(f'The length of "vars" and "every" are not equal.')
 
@@ -76,7 +76,7 @@ class Monitor(object):
         if not isinstance(intervals, dict):
           raise errors.BrainPyError(f'"vars" and "every" must be the same type. '
                                     f'While we got type(vars)={type(variables)}, '
-                                    f'type(every)={type(intervals)}.')
+                                    f'type(intervals)={type(intervals)}.')
         for key in intervals.keys():
           if key not in variables:
             raise errors.BrainPyError(f'"{key}" is not in "vars": {list(variables.keys())}')
@@ -120,7 +120,6 @@ class Monitor(object):
     if not self.has_build:
       item_names = []
       item_indices = []
-      item_intervals = []
       item_contents = dict()
 
       if isinstance(self.vars, (list, tuple)):
@@ -129,7 +128,7 @@ class Monitor(object):
         else:
           item_intervals = list(self.intervals)
 
-        for mon_var in self.vars:
+        for mon_var, interval in zip(self.vars, item_intervals):
           # users monitor a variable by a string
           if isinstance(mon_var, str):
             mon_key = mon_var
@@ -145,21 +144,23 @@ class Monitor(object):
           item_names.append(mon_key)
           item_indices.append(mon_idx)
           item_contents[mon_key] = []
-          item_contents[f'{mon_key}.t'] = []
+          if interval is not None:
+            item_contents[f'{mon_key}.t'] = []
 
       elif isinstance(self.vars, dict):
+        item_intervals = []
         # users monitor a variable by a dict: `{'a': None, 'b': math.array([1,2,3])}`
         for mon_key, mon_idx in self.vars.items():
           item_names.append(mon_key)
           item_indices.append(mon_idx)
           item_contents[mon_key] = []
-          item_contents[f'{mon_key}.t'] = []
           if self.intervals is None:
             item_intervals.append(None)
           else:
             if mon_key in self.intervals:
               item_intervals.append(self.intervals[mon_key])
-
+            if self.intervals[mon_key] is not None:
+              item_contents[f'{mon_key}.t'] = []
       else:
         raise errors.BrainPyError(f'Unknown monitors type: {type(self.vars)}')
 
