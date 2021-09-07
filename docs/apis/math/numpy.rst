@@ -13,4 +13,6 @@ Core Functions in NumPy backend
     pmap
     grad
     value_and_grad
-
+    Variable
+    TrainVar
+    Parameter
