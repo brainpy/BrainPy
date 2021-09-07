@@ -257,7 +257,7 @@ class JaxArray(object):
 
   def __ipow__(self, oc):
     # a **= b
-    self._value = self._value.__pow__(oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value ** (oc._value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __matmul__(self, oc):
