@@ -8,7 +8,7 @@
 
 
 
-# Version 1.1.0-alpha
+# Version 1.1.0
 
 
 
@@ -26,14 +26,16 @@
 
 ## Math
 
+- [ ] **[Numpy]**: JIT compilation in numpy backend supports ``Base`` and ``Function`` objects
+- [ ] **[Numpy]**: support JIT in `fft` sub-module
 - [x] **[Numpy]:** support JIT compilation in numpy backend (done @ 2021.09.01 by @chaoming)
 - [x] **[Numpy]:** support 'fft' (done @ 2021.09.03 by @chaoming)
-- [ ] support to set `dt`  in the single object level (i.e., single instance of DynamicSystem)
 - [ ] **[JAX]:** "random" module 
 - [ ] **[JAX]:** math operations
 - [ ] **[JAX]:** vmap
 - [ ] **[JAX]:** pmap
 - [ ] **[JAX]:** control conditions: 
+- [ ] static_argnums
 - [x] **[JAX]:** support 'fft' (done @ 2021.09.03 by @chaoming)
 - [x] **[JAX]:** **IMPORTANT!!!** Change API of `grad()` and `value_and_grad()`: There are bugs in the gradient functions. Gradient computation also needs to inspect the variable types. Moreover, it is independent from the JIT function. Therefore, we should pass dynamical variables into the gradient functions too. (done @ 2021.08.26 by @chaoming)
 - [x] **[JAX]:** **IMPORTANT!!!** change API of `vars()`: we should refer Dynamical Variables as `Variable`; We can not retrieve every "JaxArray" from `vars()`, otherwise the whole system will waste a lot of time on useless assignments. (done @ 2021.08.25 by @chaoming)
@@ -42,7 +44,7 @@
   - [x] register pytree  (done @ 2021.06.15 by @chaoming)
   - [x] support `ndarray` intrinsic methods: 
     - [x] functions in NumPy ndarray: any(), all() .... view() (done @ 2021.06.30 by @chaoming)
-    - [ ] functions in JAX DeviceArray: 
+    - [x] functions in JAX DeviceArray: 
   - [x] numpy methods in JaxArray (done @ 2021.08.25, @2021.08.28 by @chaoming)
   - [x] documentation for JaxArray methods (done @ 2021.08.25 by @chaoming)
   - [ ] test for ndarray wrapper 
@@ -74,6 +76,9 @@
 
 - [ ] Allow defining the `Soma` object
 - [ ] Allow defining the `Dendrite` object
+- [x] support to set `dt`  in the single object level (i.e., single instance of DynamicSystem) (done @2021.09.05 @chaoming)
+- [x] reimplement the ``input_step`` and ``monitor_step`` in a more intuitive way (done @2021.09 by chaoming)
+- [x] remove ``_i`` in ``update()`` function, replace ``_i`` with ``_dt``, meaning the dynamic system has the canonic equation form of $dx/dt = f(x, t, dt)$ (done @2021.09 by chaoming)
 
 
 
@@ -102,8 +107,9 @@
 
 ## Documentation
 
+- [x] documentation for ``math`` module (done @2021.09)
 - [ ] detailed documentation for numerical solvers of SDEs
-- [ ] doc comments for ODEs, like Euler, RK2, etc. We should provide the detailed mathematical equations, and the corresponding suggestions for the corresponding algorithm. 
+- [x] doc comments for ODEs, like Euler, RK2, etc. We should provide the detailed mathematical equations, and the corresponding suggestions for the corresponding algorithm.  (done @2021.09.01 @chaoming)
 - [x] APIs for integrators  (done @2021/08/23 by @chaoming)
 - [x] installation instruction, especially package dependency  (done @2021/08/23 by @chaoming)
 
@@ -125,7 +131,7 @@
 
 ## Others
 
-- [ ] publish `BrainPy` on `"conda-forge"`: https://conda-forge.org/docs/maintainer/adding_pkgs.html#
+- [x] publish `BrainPy` on `"conda-forge"`: https://conda-forge.org/docs/maintainer/adding_pkgs.html# (cancelled)
 
 
 
