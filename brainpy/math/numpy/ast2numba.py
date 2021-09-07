@@ -41,6 +41,7 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
     # Base
     elif isinstance(obj_or_fun, Base):
       return jit_Base(func=obj_or_fun.__call__, host=obj_or_fun,
+                      name=obj_or_fun.name + '_call',
                       show_code=show_code, **jit_setting)
 
       # integrator
@@ -113,12 +114,13 @@ def jit_Func(func, show_code=False, **jit_setting):
   return func
 
 
-def jit_Base(func, host, show_code=False, **jit_setting):
+def jit_Base(func, host, name=None, show_code=False, **jit_setting):
   r = _jit_cls_func(func, host=host, show_code=show_code, **jit_setting)
   if len(r['arguments']):
+    name = func.__name__ if name is None else name
     func = _form_final_call(f_org=func, f_rep=r['func'], arg2call=r['arg2call'],
                             arguments=r['arguments'], nodes=r['nodes'],
-                            show_code=show_code, name=host.name + '_call')
+                            show_code=show_code, name=name)
   else:
     func = r['func']
   return func
@@ -189,10 +191,7 @@ def _jit_Function(func, show_code=False, **jit_setting):
   # code, _scope = _add_try_except(code)
   # code_scope.update(_scope)
   if show_code:
-    print(code)
-    print()
-    pprint(code_scope)
-    print()
+    output_compiled_codes(code, code_scope)
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[func._f.__name__]
   func = numba.jit(func, **jit_setting)
@@ -258,10 +257,7 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   # code, _scope = _add_try_except(code)
   # code_scope.update(_scope)
   if show_code:
-    print(code)
-    print()
-    pprint(code_scope)
-    print()
+    output_compiled_codes(code, code_scope)
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[func_name]
   func = numba.jit(func, **jit_setting)
@@ -338,10 +334,7 @@ def _jit_intg_func(f, show_code=False, **jit_setting):
     code_scope_backup = {k: v for k, v in code_scope.items()}
     # compile functions
     if show_code:
-      print(code)
-      print()
-      pprint(code_scope)
-      print()
+      output_compiled_codes(code, code_scope)
     exec(compile(code, '', 'exec'), code_scope)
     new_f = code_scope[func_name]
     new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
@@ -560,10 +553,7 @@ def _form_final_call(f_org, f_rep, arg2call, arguments, nodes, show_code=False, 
   # code, _scope = _add_try_except(code)
   # code_scope.update(_scope)
   if show_code:
-    print(code)
-    print()
-    pprint(code_scope)
-    print()
+    output_compiled_codes(code, code_scope)
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[f'new_{name}']
   return func
@@ -602,3 +592,14 @@ def _get_args(f):
       raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
                                f'as the first argument.')
   return class_kw, reduced_args, original_args
+
+
+def output_compiled_codes(code, scope):
+  print('The recompiled function:')
+  print('-------------------------')
+  print(code)
+  print()
+  print('The namespace of the above function:')
+  print('------------------------------------')
+  pprint(scope)
+  print()
