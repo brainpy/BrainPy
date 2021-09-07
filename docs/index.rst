@@ -16,7 +16,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 6. And more ......
 
 
-.. _BrainPy:: https://github.com/PKU-NIP-Lab/BrainPy
+.. _BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
 
 .. note::
 

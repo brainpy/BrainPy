@@ -16,7 +16,9 @@ __all__ = [
 
 def grad(func, vars=None, argnums=None, has_aux=None,
          holomorphic=False, allow_int=False, reduce_axes=()):
-  """Creates a function which evaluates the gradient of ``fun``.
+  """Automatic Gradient Computation in JAX backend.
+
+  Creates a function which evaluates the gradient of ``fun``.
 
   Parameters
   ----------
@@ -97,7 +99,9 @@ def grad(func, vars=None, argnums=None, has_aux=None,
 
 def value_and_grad(func, vars=None, argnums=None, has_aux=None,
                    holomorphic=False, allow_int=False, reduce_axes=()):
-  """Create a function which evaluates both ``fun`` and the gradient of ``fun``.
+  """Automatic Gradient Computation in JAX backend.
+
+  Create a function which evaluates both ``fun`` and the gradient of ``fun``.
 
   Parameters
   ----------

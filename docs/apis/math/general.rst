@@ -12,4 +12,8 @@ General Functions
     get_backend_name
     set_dt
     get_dt
+    set_int_
+    set_float_
+    set_complex_
+
 

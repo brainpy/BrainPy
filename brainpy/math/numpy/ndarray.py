@@ -15,6 +15,9 @@ ndarray = np.ndarray
 
 
 class Variable(np.ndarray):
+  """Variable.
+
+  """
   def __new__(cls, value, type='', replicate=None):
     value2 = np.asarray(value)
     obj = value2.view(cls)
@@ -40,6 +43,9 @@ class Variable(np.ndarray):
 
 
 class TrainVar(Variable):
+  """Trainable Variable.
+
+  """
   __slots__ = ()
 
   def __new__(cls, value, replicate=None):
@@ -47,6 +53,9 @@ class TrainVar(Variable):
 
 
 class Parameter(Variable):
+  """Parameter.
+
+  """
   __slots__ = ()
 
   def __new__(cls, value, replicate=None):

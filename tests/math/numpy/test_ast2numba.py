@@ -6,7 +6,7 @@ from pprint import pprint
 
 import brainpy as bp
 from brainpy.math.numpy.ast2numba import FuncTransformer
-from brainpy.math.numpy.ast2numba import analyze_cls_func
+from brainpy.math.numpy.ast2numba import _jit_cls_func
 from brainpy.tools import ast2code
 
 bp.math.use_backend('numpy')
@@ -117,7 +117,7 @@ def test_cls_func_hh1():
 
   hh = HH(10)
 
-  r = analyze_cls_func(hh.update, show_code=True)
+  r = _jit_cls_func(hh.update, show_code=True)
   pprint(r['func'])
   pprint('arguments:')
   pprint(r['arguments'])
@@ -184,7 +184,7 @@ def test_cls_func_hh2():
 
   hh = HH(10)
 
-  r = analyze_cls_func(hh.update, show_code=True)
+  r = _jit_cls_func(hh.update, show_code=True)
   pprint(r['func'])
   pprint('arguments:')
   pprint(r['arguments'])
@@ -284,7 +284,7 @@ def test_cls_func_ampa1():
   hh = HH(10)
   ampa = AMPA_vec(pre=hh, post=hh, conn=bp.connect.All2All(), delay=10.)
 
-  r = analyze_cls_func(ampa.update, show_code=True)
+  r = _jit_cls_func(ampa.update, show_code=True)
   pprint(r['func'])
   pprint('arguments:')
   pprint(r['arguments'])

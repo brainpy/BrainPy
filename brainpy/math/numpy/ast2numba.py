@@ -2,10 +2,7 @@
 
 
 """
-
-TODO: support Base function
-TODO: enable code debug and error report
-
+TODO: enable code debug and error report; See https://github.com/numba/numba/issues/7370
 """
 
 import ast
@@ -21,89 +18,192 @@ from numba.core.dispatcher import Dispatcher
 from brainpy import errors, math, tools
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
+from brainpy.base.function import Function
 from brainpy.math import profile
 
 DE_INT = DynamicSystem = Container = None
 
 __all__ = [
-  'jit_cls',
-  'jit_integrator',
+  'jit',
 ]
 
 
-def jit_cls(ds, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
-  global DynamicSystem, Container
-  if DynamicSystem is None:
-    from brainpy.simulation.brainobjects.base import DynamicSystem
-  if Container is None:
-    from brainpy.simulation.brainobjects.base import Container
-
-  assert isinstance(ds, DynamicSystem)
-
-  # function analysis
-  for key, step in list(ds.steps.items()):
-    key = key.replace(".", "_")
-    r = analyze_func(step, nopython=nopython, fastmath=fastmath,
-                     parallel=parallel, nogil=nogil, show_code=show_code)
-
-    if len(r):
-      arguments = sorted(r['arguments'])
-      code_scope = {key: node for key, node in r['nodes'].items()}
-      code_scope[key] = r['func']
-      called_args = _items2lines([f"{a}={r['arg2call'][a]}" for a in arguments]).strip()
-      code_lines = [f'def new_{key}(_t, _dt):',
-                    f'  {key}(_t=_t, _dt=_dt, {called_args.strip()})']
-
-      # compile new function
-      code = '\n'.join(code_lines)
-      # code, _scope = _add_try_except(code)
-      # code_scope.update(_scope)
-      if show_code:
-        print(code)
-        print()
-        pprint(code_scope)
-        print()
-      exec(compile(code, '', 'exec'), code_scope)
-      func = code_scope[f'new_{key}']
-      ds.steps.replace(key, func)
-  return ds
-
-
-def jit_integrator(integrator, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
-  return analyze_intg_func(f=integrator, nopython=nopython, fastmath=fastmath,
-                           parallel=parallel, nogil=nogil, show_code=show_code)
-
-
-def analyze_func(f, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
-  global DE_INT, DynamicSystem
+def jit(obj_or_fun, show_code=False, **jit_setting):
+  global DE_INT
   if DE_INT is None:
     from brainpy.integrators.constants import DE_INT
+
+  if callable(obj_or_fun):
+    # Function
+    if isinstance(obj_or_fun, Function):
+      return jit_Func(obj_or_fun, show_code=show_code, **jit_setting)
+
+    # Base
+    elif isinstance(obj_or_fun, Base):
+      return jit_Base(func=obj_or_fun.__call__, host=obj_or_fun,
+                      name=obj_or_fun.name + '_call',
+                      show_code=show_code, **jit_setting)
+
+      # integrator
+    elif hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
+      return jit_integrator(intg=obj_or_fun, show_code=show_code, **jit_setting)
+
+    # bounded method
+    elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
+      return jit_Base(func=obj_or_fun, host=obj_or_fun.__self__,
+                      show_code=show_code, **jit_setting)
+
+    else:
+      # native function
+      if not isinstance(obj_or_fun, Dispatcher):
+        return numba.jit(obj_or_fun, **jit_setting)
+      else:
+        # numba function
+        return obj_or_fun
+
+  else:
+    return jit_DS(obj_or_fun, show_code=show_code, **jit_setting)
+
+
+def jit_DS(obj_or_fun, show_code=False, **jit_setting):
+  global DynamicSystem
   if DynamicSystem is None:
     from brainpy.simulation.brainobjects.base import DynamicSystem
 
-  if hasattr(f, '__name__') and f.__name__.startswith(DE_INT):
-    return analyze_intg_func(f, nopython=nopython, fastmath=fastmath, parallel=parallel,
-                             nogil=nogil, show_code=show_code)
+  if not isinstance(obj_or_fun, DynamicSystem):
+    raise errors.UnsupportedError(f'JIT compilation in numpy backend only '
+                                  f'supports {Base.__name__}, but we got '
+                                  f'{type(obj_or_fun)}.')
 
-  elif hasattr(f, '__self__'):
-    if isinstance(f.__self__, DynamicSystem):
-      return analyze_cls_func(f, nopython=nopython, fastmath=fastmath, parallel=parallel,
-                              nogil=nogil, show_code=show_code)
+  # function analysis
+  for key, step in list(obj_or_fun.steps.items()):
+    key = key.replace(".", "_")
+    r = _jit_func(obj_or_fun=step, show_code=show_code, **jit_setting)
+    if r['func'] != step:
+      func = _form_final_call(f_org=step, f_rep=r['func'], arg2call=r['arg2call'],
+                              arguments=r['arguments'], nodes=r['nodes'],
+                              show_code=show_code, name=step.__name__)
+      obj_or_fun.steps.replace(key, func)
 
-  if not isinstance(f, Dispatcher):
-    if inspector.inspect_function(f)['numba_type'] is None:
-      f = numba.jit(f, nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil)
-      return dict(func=f, arguments=set(), arg2call=Collector(), nodes=Collector())
-
-  return {}
+  # dynamic system
+  return obj_or_fun
 
 
-def analyze_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
-  global Container, DynamicSystem
+def jit_integrator(intg, show_code=False, **jit_setting):
+  r = _jit_intg_func(intg, show_code=show_code, **jit_setting)
+  if len(r['arguments']):
+    intg = _form_final_call(f_org=intg, f_rep=r['func'], arg2call=r['arg2call'],
+                            arguments=r['arguments'], nodes=r['nodes'],
+                            show_code=show_code, name=intg.__name__)
+  else:
+    intg = r['func']
+  return intg
+
+
+def jit_Func(func, show_code=False, **jit_setting):
+  assert isinstance(func, Function)
+
+  r = _jit_Function(func=func, show_code=show_code, **jit_setting)
+  if len(r['arguments']):
+    func = _form_final_call(f_org=func._f, f_rep=r['func'], arg2call=r['arg2call'],
+                            arguments=r['arguments'], nodes=r['nodes'],
+                            show_code=show_code, name=func.name + '_call')
+  else:
+    func = r['func']
+
+  return func
+
+
+def jit_Base(func, host, name=None, show_code=False, **jit_setting):
+  r = _jit_cls_func(func, host=host, show_code=show_code, **jit_setting)
+  if len(r['arguments']):
+    name = func.__name__ if name is None else name
+    func = _form_final_call(f_org=func, f_rep=r['func'], arg2call=r['arg2call'],
+                            arguments=r['arguments'], nodes=r['nodes'],
+                            show_code=show_code, name=name)
+  else:
+    func = r['func']
+  return func
+
+
+def _jit_func(obj_or_fun, show_code=False, **jit_setting):
+  global DE_INT
+  if DE_INT is None:
+    from brainpy.integrators.constants import DE_INT
+
+  if callable(obj_or_fun):
+    # integrator
+    if hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
+      return _jit_intg_func(obj_or_fun, show_code=show_code, **jit_setting)
+
+    # bounded method
+    elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
+      return _jit_cls_func(obj_or_fun, host=obj_or_fun.__self__,
+                           show_code=show_code, **jit_setting)
+
+    # wrapped function
+    elif isinstance(obj_or_fun, Function):
+      return _jit_Function(obj_or_fun, show_code=show_code, **jit_setting)
+
+    # base class function
+    elif isinstance(obj_or_fun, Base):
+      return _jit_cls_func(obj_or_fun.__call__, host=obj_or_fun,
+                           show_code=show_code, **jit_setting)
+
+    else:
+      # native function
+      if not isinstance(obj_or_fun, Dispatcher):
+        if inspector.inspect_function(obj_or_fun)['numba_type'] is None:
+          f = numba.jit(obj_or_fun, **jit_setting)
+          return dict(func=f, arguments=set(), arg2call=Collector(), nodes=Collector())
+      # numba function or innate supported function
+      return dict(func=obj_or_fun, arguments=set(), arg2call=Collector(), nodes=Collector())
+
+  else:
+    raise ValueError
+
+
+def _jit_Function(func, show_code=False, **jit_setting):
+  assert isinstance(func, Function)
+
+  # code_scope
+  closure_vars = inspect.getclosurevars(func._f)
+  code_scope = dict(closure_vars.nonlocals)
+  code_scope.update(closure_vars.globals)
+  # code
+  code = tools.deindent(inspect.getsource(func._f)).strip()
+  # arguments
+  arguments = set()
+  # nodes
+  nodes = {v.name: v for v in func._nodes.values()}
+  # arg2call
+  arg2call = dict()
+
+  for key, node in func._nodes.items():
+    code, _arguments, _arg2call, _nodes, code_scope = _analyze_cls_func(
+      host=node, code=code, show_code=show_code, code_scope=code_scope,
+      self_name=key, pop_self=True, **jit_setting)
+    arguments.update(_arguments)
+    arg2call.update(_arg2call)
+    nodes.update(_nodes)
+
+  # compile new function
+  # code, _scope = _add_try_except(code)
+  # code_scope.update(_scope)
+  if show_code:
+    output_compiled_codes(code, code_scope)
+  exec(compile(code, '', 'exec'), code_scope)
+  func = code_scope[func._f.__name__]
+  func = numba.jit(func, **jit_setting)
+
+  # returns
+  return dict(func=func, arguments=arguments, arg2call=arg2call, nodes=nodes)
+
+
+def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
+  global Container
   if Container is None:
     from brainpy.simulation.brainobjects.base import Container
-  if DynamicSystem is None:
-    from brainpy.simulation.brainobjects.base import DynamicSystem
 
   host = (host or f.__self__)
 
@@ -115,29 +215,28 @@ def analyze_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
 
   # step function of Container
   if isinstance(host, Container):
-    if f.__name__ != 'update':
-      raise errors.UnsupportedError(f'Currently, BrainPy only supports compile "update" step '
-                                    f'function, while we got {f.__name__}: {f}')
+    # if f.__name__ != 'update':
+    #   raise errors.UnsupportedError(f'Currently, BrainPy only supports compile "update" step '
+    #                                 f'function, while we got {f.__name__}: {f}')
     code_lines = []
     code_scope = {}
     for key, step in host.child_steps.items():
-      r = analyze_func(f=step, show_code=show_code, **jit_setting)
-      if len(r):
-        arguments.update(r['arguments'])
-        arg2call.update(r['arg2call'])
-        nodes.update(r['nodes'])
-        code_scope[key.replace('.', '_')] = r['func']
-        call_args = [f'{arg}={arg}' for arg in sorted(r['arguments'])]
-        code_lines.append("{call}(_t, _dt, {args})".format(
-          call=key.replace('.', '_'),
-          args=", ".join(call_args)))
-        # args=_items2lines(call_args, line_break='\n\t\t\t')))
+      r = _jit_func(obj_or_fun=step, show_code=show_code, **jit_setting)
+      # if r['func'] != step:
+      arguments.update(r['arguments'])
+      arg2call.update(r['arg2call'])
+      nodes.update(r['nodes'])
+      code_scope[key.replace('.', '_')] = r['func']
+      call_args = [f'{arg}={arg}' for arg in sorted(r['arguments'])]
+      code_lines.append("{call}(_t, _dt, {args})".format(call=key.replace('.', '_'),
+                                                         args=", ".join(call_args)))
+      # args=_items2lines(call_args, line_break='\n\t\t\t')))
     code_lines = ['  ' + line for line in code_lines]
     # code_lines.insert(0, f'def {host.name}_update(_t, _dt, {_items2lines(sorted(arguments))}):')
     code_lines.insert(0, f'def {host.name}_update(_t, _dt, {", ".join(sorted(arguments))}):')
     code = '\n'.join(code_lines)
     # code_scope.update(nodes)
-    func_name = f'{host.name}_update'
+    func_name = f'{host.name}_{f.__name__}'
 
   # step function of normal DynamicSystem
   else:
@@ -158,10 +257,7 @@ def analyze_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   # code, _scope = _add_try_except(code)
   # code_scope.update(_scope)
   if show_code:
-    print(code)
-    print()
-    pprint(code_scope)
-    print()
+    output_compiled_codes(code, code_scope)
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[func_name]
   func = numba.jit(func, **jit_setting)
@@ -170,19 +266,15 @@ def analyze_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   return dict(func=func, arguments=arguments, arg2call=arg2call, nodes=nodes)
 
 
-def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=False, show_code=False):
-  if f.brainpy_data['method'].startswith('exponential'):
-    return analyze_cls_func(f=f,
-                            code="\n".join(f.brainpy_data['code_lines']),
-                            nopython=nopython,
-                            fastmath=fastmath,
-                            parallel=parallel,
-                            nogil=nogil,
-                            show_code=show_code)
-
+def _jit_intg_func(f, show_code=False, **jit_setting):
   global DynamicSystem
   if DynamicSystem is None:
     from brainpy.simulation.brainobjects.base import DynamicSystem
+
+  # exponential euler methods
+  if f.brainpy_data['method'].startswith('exponential'):
+    return _jit_cls_func(f=f, code="\n".join(f.brainpy_data['code_lines']),
+                         show_code=show_code, **jit_setting)
 
   # information in the integrator
   func_name = f.brainpy_data['func_name']
@@ -218,13 +310,7 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
       continue
     elif func_node:
       need_recompile = True
-      r = analyze_cls_func(f=func,
-                           host=func_node,
-                           nopython=nopython,
-                           fastmath=fastmath,
-                           parallel=parallel,
-                           nogil=nogil,
-                           show_code=show_code)
+      r = _jit_cls_func(f=func, host=func_node, show_code=show_code, **jit_setting)
       if len(r['arguments']) or remove_self:
         tree = _replace_func(tree, func_call=key,
                              arg_to_append=r['arguments'],
@@ -236,11 +322,7 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
       nodes[func_node.name] = func_node  # update nodes
     else:
       need_recompile = True
-      code_scope[key] = numba.jit(func,
-                                  nopython=nopython,
-                                  fastmath=fastmath,
-                                  parallel=parallel,
-                                  nogil=nogil)
+      code_scope[key] = numba.jit(func, **jit_setting)
 
   if need_recompile:
     tree.body[0].decorator_list.clear()
@@ -252,16 +334,13 @@ def analyze_intg_func(f, nopython=True, fastmath=True, parallel=False, nogil=Fal
     code_scope_backup = {k: v for k, v in code_scope.items()}
     # compile functions
     if show_code:
-      print(code)
-      print()
-      pprint(code_scope)
-      print()
+      output_compiled_codes(code, code_scope)
     exec(compile(code, '', 'exec'), code_scope)
     new_f = code_scope[func_name]
     new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
     new_f.brainpy_data['code_lines'] = code.strip().split('\n')
     new_f.brainpy_data['code_scope'] = code_scope_backup
-    jit_f = numba.jit(new_f, nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil)
+    jit_f = numba.jit(new_f, **jit_setting)
     return dict(func=jit_f, arguments=arguments, arg2call=arg2call, nodes=nodes)
   else:
     return dict(func=f, arguments=arguments, arg2call=arg2call, nodes=nodes)
@@ -342,7 +421,7 @@ def _replace_func(code_or_tree, func_call, arg_to_append, remove_self=None):
   return new_tree
 
 
-def _analyze_cls_func(host, code, show_code, code_scope, cls_name=None, **jit_setting):
+def _analyze_cls_func(host, code, show_code, code_scope, self_name=None, pop_self=True, **jit_setting):
   """
 
   Parameters
@@ -351,7 +430,7 @@ def _analyze_cls_func(host, code, show_code, code_scope, cls_name=None, **jit_se
     The data host.
   code : str
     The function source code.
-  cls_name : optional, str
+  self_name : optional, str
     The class name, like "self", "cls".
   show_code : bool
 
@@ -364,14 +443,15 @@ def _analyze_cls_func(host, code, show_code, code_scope, cls_name=None, **jit_se
 
   # arguments
   tree = ast.parse(code)
-  if cls_name is None:
-    cls_name = tree.body[0].args.args[0].arg
+  if self_name is None:
+    self_name = tree.body[0].args.args[0].arg
     # data assigned by self.xx in line right
-    if cls_name not in profile.CLASS_KEYWORDS:
+    if self_name not in profile.CLASS_KEYWORDS:
       raise errors.CodeError(f'BrainPy only support class keyword '
-                             f'{profile.CLASS_KEYWORDS}, but we got {cls_name}.')
-  tree.body[0].args.args.pop(0)  # remove "self" etc. class argument
-  self_data = re.findall('\\b' + cls_name + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
+                             f'{profile.CLASS_KEYWORDS}, but we got {self_name}.')
+  if pop_self:
+    tree.body[0].args.args.pop(0)  # remove "self" etc. class argument
+  self_data = re.findall('\\b' + self_name + '\\.[A-Za-z_][A-Za-z0-9_.]*\\b', code)
   self_data = list(set(self_data))
 
   # analyze variables and functions accessed by the self.xx
@@ -405,7 +485,7 @@ def _analyze_cls_func(host, code, show_code, code_scope, cls_name=None, **jit_se
       code_scope[f'{target.name}_{split_keys[i]}'] = np.random  # replace RandomState
     elif callable(data):
       assert len(split_keys) == i + 1
-      r = analyze_func(f=data, show_code=show_code, **jit_setting)
+      r = _jit_func(obj_or_fun=data, show_code=show_code, **jit_setting)
       if len(r):
         tree = _replace_func(tree, func_call=key, arg_to_append=r['arguments'])
         arguments.update(r['arguments'])
@@ -456,3 +536,70 @@ def _items2lines(items, num_each_line=5, separator=', ', line_break='\n\t\t'):
     for item in items[i: i + num_each_line]:
       res += item + separator
   return res
+
+
+def _form_final_call(f_org, f_rep, arg2call, arguments, nodes, show_code=False, name=None):
+  cls_kw, reduce_args, org_args = _get_args(f_org)
+
+  name = (name or f_org.__name__)
+  code_scope = {key: node for key, node in nodes.items()}
+  code_scope[name] = f_rep
+  called_args = _items2lines(reduce_args + [f"{a}={arg2call[a]}" for a in sorted(arguments)]).strip()
+  code_lines = [f'def new_{name}({", ".join(org_args)}):',
+                f'  {name}({called_args.strip()})']
+
+  # compile new function
+  code = '\n'.join(code_lines)
+  # code, _scope = _add_try_except(code)
+  # code_scope.update(_scope)
+  if show_code:
+    output_compiled_codes(code, code_scope)
+  exec(compile(code, '', 'exec'), code_scope)
+  func = code_scope[f'new_{name}']
+  return func
+
+
+def _get_args(f):
+  # 1. get the function arguments
+  original_args = []
+  reduced_args = []
+
+  for name, par in inspect.signature(f).parameters.items():
+    if par.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
+      reduced_args.append(par.name)
+    elif par.kind is inspect.Parameter.VAR_POSITIONAL:
+      reduced_args.append(par.name)
+    elif par.kind is inspect.Parameter.KEYWORD_ONLY:
+      reduced_args.append(par.name)
+    elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
+      raise errors.DiffEqError('Don not support positional only parameters, e.g., /')
+    elif par.kind is inspect.Parameter.VAR_KEYWORD:
+      raise errors.DiffEqError(f'Don not support dict of keyword arguments: {str(par)}')
+    else:
+      raise errors.DiffEqError(f'Unknown argument type: {par.kind}')
+
+    original_args.append(str(par))
+
+  # 2. analyze the function arguments
+  #   2.1 class keywords
+  class_kw = []
+  if original_args[0] in profile.CLASS_KEYWORDS:
+    class_kw.append(original_args[0])
+    original_args = original_args[1:]
+    reduced_args = reduced_args[1:]
+  for a in original_args:
+    if a.split('=')[0].strip() in profile.CLASS_KEYWORDS:
+      raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
+                               f'as the first argument.')
+  return class_kw, reduced_args, original_args
+
+
+def output_compiled_codes(code, scope):
+  print('The recompiled function:')
+  print('-------------------------')
+  print(code)
+  print()
+  print('The namespace of the above function:')
+  print('------------------------------------')
+  pprint(scope)
+  print()

@@ -13,4 +13,6 @@ Core Functions in JAX backend
     pmap
     grad
     value_and_grad
-
+    Variable
+    TrainVar
+    Parameter

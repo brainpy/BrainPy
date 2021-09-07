@@ -17,6 +17,7 @@ Highlights of core changes:
 - support numba ``jit`` on class objects
 - unified numpy-like API 
 
+
 ``base`` module
 ~~~~~~~~~~~~~~~
 
@@ -24,10 +25,12 @@ Highlights of core changes:
 - ``Function`` to wrap functions
 - ``Collector`` and ``ArrayCollector`` to collect variables, integrators, nodes and others
 
+
 ``integrators`` module
 ~~~~~~~~~~~~~~~~~~~~~~
 
 - detailed documentation for ODE numerical methods
+
 
 ``simulation`` module
 ~~~~~~~~~~~~~~~~~~~~~
@@ -36,6 +39,13 @@ Highlights of core changes:
 - support multi-scale modeling
 - support large-scale modeling
 - support simulation on GPUs
+- fix bugs on ``firing_rate()``
+- remove ``_i`` in ``update()`` function, replace ``_i`` with ``_dt``,
+  meaning the dynamic system has the canonic equation form
+  of :math:`dx/dt = f(x, t, dt)`
+- reimplement the ``input_step`` and ``monitor_step`` in a more intuitive way
+- support to set `dt`  in the single object level (i.e., single instance of DynamicSystem)
+
 
 ``dnn`` module
 ~~~~~~~~~~~~~~
@@ -47,10 +57,15 @@ Highlights of core changes:
 - initializations
 - common used layers
 
-``measure`` module
-~~~~~~~~~~~~~~~~~~
 
-- fix bugs on ``firing_rate()``
+documentation
+~~~~~~~~~~~~~
+
+- documentation for ``base`` module
+- documentation for ``math`` module
+- documentation for ``integrators`` module
+- documentation for ``dnn`` module
+
 
 
 
