@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Soma'
 ]
 
 
-class Soma(DynamicSystem):
+class Soma(DynamicalSystem):
   """Soma object for neuron modeling.
 
   """

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
 from brainpy import math, errors
 from brainpy.base import collector
 from brainpy.base.base import Base
@@ -9,7 +7,7 @@ from brainpy.simulation import utils
 from brainpy.simulation.monitor import Monitor
 
 __all__ = [
-  'DynamicSystem',
+  'DynamicalSystem',
   'Container',
 ]
 
@@ -19,7 +17,7 @@ _error_msg = 'Unknown model type: {type}. ' \
              'tuple of function names.'
 
 
-class DynamicSystem(Base):
+class DynamicalSystem(Base):
   """Base Dynamic System class.
 
   Any object has step functions will be a dynamical system.
@@ -38,7 +36,7 @@ class DynamicSystem(Base):
   target_backend = None
 
   def __init__(self, steps=(), monitors=None, name=None):
-    super(DynamicSystem, self).__init__(name=name)
+    super(DynamicalSystem, self).__init__(name=name)
 
     # step functions
     self.steps = collector.Collector()
@@ -104,7 +102,7 @@ class DynamicSystem(Base):
     Parameters
     ----------
     inputs : list, tuple
-      The inputs for this instance of DynamicSystem. It should the format
+      The inputs for this instance of DynamicalSystem. It should the format
       of `[(target, value, [type, operation])]`, where `target` is the
       input target, `value` is the input value, `type` is the input type
       (such as "fix" or "iter"), `operation` is the operation for inputs
@@ -174,10 +172,10 @@ class DynamicSystem(Base):
     return running_time
 
 
-class Container(DynamicSystem):
+class Container(DynamicalSystem):
   """Container object which is designed to add other instances of DynamicalSystem.
 
-  What's different from the other objects of DynamicSystem is that Container has
+  What's different from the other objects of DynamicalSystem is that Container has
   one more useful function :py:func:`add`. It can be used to add the children
   objects.
 
@@ -192,23 +190,23 @@ class Container(DynamicSystem):
   show_code : bool
       Whether show the formatted code.
   ds_dict : dict of (str, )
-      The instance of DynamicSystem with the format of "key=dynamic_system".
+      The instance of DynamicalSystem with the format of "key=dynamic_system".
   """
 
   def __init__(self, *ds_tuple, steps=None, monitors=None, name=None, **ds_dict):
     # children dynamical systems
     self.child_ds = dict()
     for ds in ds_tuple:
-      if not isinstance(ds, DynamicSystem):
+      if not isinstance(ds, DynamicalSystem):
         raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
-                                  f'DynamicSystem, however, we got {type(ds)}.')
+                                  f'DynamicalSystem, however, we got {type(ds)}.')
       if ds.name in self.child_ds:
         raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
       self.child_ds[ds.name] = ds
     for key, ds in ds_dict.items():
-      if not isinstance(ds, DynamicSystem):
+      if not isinstance(ds, DynamicalSystem):
         raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
-                                  f'DynamicSystem, however, we got {type(ds)}.')
+                                  f'DynamicalSystem, however, we got {type(ds)}.')
       if key in self.child_ds:
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
       self.child_ds[key] = ds
@@ -234,7 +232,7 @@ class Container(DynamicSystem):
 
   def vars(self, method='absolute'):
     """Collect all the variables (and their names) contained
-    in the list and its children instance of DynamicSystem.
+    in the list and its children instance of DynamicalSystem.
 
     Parameters
     ----------

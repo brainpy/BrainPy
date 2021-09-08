@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Molecular'
 ]
 
 
-class Molecular(DynamicSystem):
+class Molecular(DynamicalSystem):
   """Molecular object for neuron modeling.
 
   """

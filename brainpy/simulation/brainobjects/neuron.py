@@ -2,7 +2,7 @@
 
 from brainpy import errors
 from brainpy.simulation import utils
-from brainpy.simulation.brainobjects.base import DynamicSystem, Container
+from brainpy.simulation.brainobjects.base import DynamicalSystem, Container
 from brainpy.simulation.brainobjects.channel import Channel
 
 __all__ = [
@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-class NeuGroup(DynamicSystem):
+class NeuGroup(DynamicalSystem):
   """Neuron Group.
 
   Parameters

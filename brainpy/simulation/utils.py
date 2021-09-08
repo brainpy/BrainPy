@@ -115,7 +115,7 @@ def check_and_format_inputs(host, inputs):
 
   Parameters
   ----------
-  host : DynamicSystem
+  host : DynamicalSystem
       The host which contains all data.
   inputs : tuple, list
       The inputs of the population.

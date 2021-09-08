@@ -4,7 +4,7 @@ import math as pmath
 
 from brainpy import errors
 from brainpy import math as bmath
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.utils import size2len
 
 __all__ = [
@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-class Delay(DynamicSystem):
+class Delay(DynamicalSystem):
   def __init__(self, steps=('update',), name=None):
     super(Delay, self).__init__(steps=steps, monitors=None, name=name)
 
