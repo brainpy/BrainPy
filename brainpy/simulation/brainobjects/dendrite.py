@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Dendrite'
 ]
 
 
-class Dendrite(DynamicSystem):
+class Dendrite(DynamicalSystem):
   """Dendrite object.
 
   """

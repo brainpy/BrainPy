@@ -11,7 +11,6 @@ except ModuleNotFoundError:
   ast2numba = None
   numba = None
 
-DE_INT = DynamicSystem = None
 
 __all__ = [
   'jit',
@@ -29,7 +28,7 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
 
   JIT compilation in NumPy backend relies on `Numba <http://numba.pydata.org/>`_. However,
   in BrainPy, `bp.math.numpy.jit()` can apply to class objects, especially the instance
-  of :py:class:`brainpy.DynamicSystem`.
+  of :py:class:`brainpy.DynamicalSystem`.
 
   If you are using JAX backend, please refer to the JIT compilation in
   JAX backend `bp.math.jax.jit() <brainpy.math.jax.jit.rst>`_.

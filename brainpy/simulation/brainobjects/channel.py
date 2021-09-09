@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Channel'
 ]
 
 
-class Channel(DynamicSystem):
+class Channel(DynamicalSystem):
   """Ion Channel object.
 
   Parameters

@@ -8,9 +8,10 @@ Brain Objects
 .. autosummary::
     :toctree: generated/
 
-    DynamicSystem
+    DynamicalSystem
     Container
     NeuGroup
+    CondNeuGroup
     TwoEndConn
     Network
     Channel
@@ -19,16 +20,18 @@ Brain Objects
     Dendrite
     Soma
     Molecular
-    CondNeuGroup
 
 
-.. autoclass:: DynamicSystem
+.. autoclass:: DynamicalSystem
    :members:
 
 .. autoclass:: Container
    :members:
 
 .. autoclass:: NeuGroup
+   :members:
+
+.. autoclass:: CondNeuGroup
    :members:
 
 .. autoclass:: TwoEndConn
@@ -53,9 +56,6 @@ Brain Objects
    :members:
 
 .. autoclass:: Molecular
-   :members:
-
-.. autoclass:: CondNeuGroup
    :members:
 
 

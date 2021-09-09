@@ -62,7 +62,7 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
   """JIT (Just-In-Time) Compilation for JAX backend.
 
   This function has the same ability to Just-In-Time compile a pure function,
-  but it can also JIT compile a :py:class:`brainpy.DynamicSystem`, or a
+  but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
   :py:class:`brainpy.Base` object, or a bounded method of a
   :py:class:`brainpy.Base` object.
 
@@ -72,7 +72,7 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
   Examples
   --------
 
-  You can JIT a :py:class:`brainpy.DynamicSystem`
+  You can JIT a :py:class:`brainpy.DynamicalSystem`
 
   >>> import brainpy as bp
   >>>
@@ -150,10 +150,10 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
     A wrapped version of Base object or function,
     set up for just-in-time compilation.
   """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
+  from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicSystem):
-    if len(obj_or_func.steps):  # DynamicSystem has step functions
+  if isinstance(obj_or_func, DynamicalSystem):
+    if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
       vars_to_change = (vars_to_change or obj_or_func.vars().unique())
@@ -329,10 +329,10 @@ def vmap(obj_or_func, vars=None, vars_batched=None,
     with extra array axes at positions indicated by ``out_axes``.
 
   """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
+  from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicSystem):
-    if len(obj_or_func.steps):  # DynamicSystem has step functions
+  if isinstance(obj_or_func, DynamicalSystem):
+    if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
       vars = (vars or obj_or_func.vars().unique())
@@ -553,10 +553,10 @@ def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_b
 
 
   """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
+  from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicSystem):
-    if len(obj_or_func.steps):  # DynamicSystem has step functions
+  if isinstance(obj_or_func, DynamicalSystem):
+    if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
       all_vars = (vars or obj_or_func.vars().unique())

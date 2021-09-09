@@ -12,6 +12,9 @@ __all__ = [
   'check_duration',
   'run_model',
   'check_and_format_inputs',
+  'build_input_func',
+  'check_and_format_monitors',
+  'build_monitor_func',
 ]
 
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
@@ -115,7 +118,7 @@ def check_and_format_inputs(host, inputs):
 
   Parameters
   ----------
-  host : DynamicSystem
+  host : DynamicalSystem
       The host which contains all data.
   inputs : tuple, list
       The inputs of the population.
@@ -158,6 +161,7 @@ def check_and_format_inputs(host, inputs):
 
   # absolute access
   nodes = host.nodes(method='absolute')
+  nodes[host.name] = host
   for one_input in inputs:
     key = one_input[0]
     if not isinstance(key, str):

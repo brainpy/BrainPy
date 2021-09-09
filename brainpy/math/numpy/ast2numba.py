@@ -21,7 +21,7 @@ from brainpy.base.collector import Collector
 from brainpy.base.function import Function
 from brainpy.math import profile
 
-DE_INT = DynamicSystem = Container = None
+DE_INT = DynamicalSystem = Container = None
 
 __all__ = [
   'jit',
@@ -66,11 +66,11 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
 
 
 def jit_DS(obj_or_fun, show_code=False, **jit_setting):
-  global DynamicSystem
-  if DynamicSystem is None:
-    from brainpy.simulation.brainobjects.base import DynamicSystem
+  global DynamicalSystem
+  if DynamicalSystem is None:
+    from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if not isinstance(obj_or_fun, DynamicSystem):
+  if not isinstance(obj_or_fun, DynamicalSystem):
     raise errors.UnsupportedError(f'JIT compilation in numpy backend only '
                                   f'supports {Base.__name__}, but we got '
                                   f'{type(obj_or_fun)}.')
@@ -238,7 +238,7 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
     # code_scope.update(nodes)
     func_name = f'{host.name}_{f.__name__}'
 
-  # step function of normal DynamicSystem
+  # step function of normal DynamicalSystem
   else:
     code = (code or tools.deindent(inspect.getsource(f)).strip())
     # function name
@@ -267,9 +267,9 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
 
 
 def _jit_intg_func(f, show_code=False, **jit_setting):
-  global DynamicSystem
-  if DynamicSystem is None:
-    from brainpy.simulation.brainobjects.base import DynamicSystem
+  global DynamicalSystem
+  if DynamicalSystem is None:
+    from brainpy.simulation.brainobjects.base import DynamicalSystem
 
   # exponential euler methods
   if f.brainpy_data['method'].startswith('exponential'):
@@ -290,7 +290,7 @@ def _jit_intg_func(f, show_code=False, **jit_setting):
   # jit raw functions
   f_node = None
   remove_self = None
-  if hasattr(f, '__self__') and isinstance(f.__self__, DynamicSystem):
+  if hasattr(f, '__self__') and isinstance(f.__self__, DynamicalSystem):
     f_node = f.__self__
     _arg = tree.body[0].args.args.pop(0)  # remove "self" arg
     # remove "self" in functional call
@@ -302,7 +302,7 @@ def _jit_intg_func(f, show_code=False, **jit_setting):
     func_node = None
     if f_node:
       func_node = f_node
-    elif hasattr(func, '__self__') and isinstance(func.__self__, DynamicSystem):
+    elif hasattr(func, '__self__') and isinstance(func.__self__, DynamicalSystem):
       func_node = func.__self__
 
     # get new compiled function
@@ -472,17 +472,23 @@ def _analyze_cls_func(host, code, show_code, code_scope, self_name=None, pop_sel
       raise errors.BrainPyError
     data = getattr(target, split_keys[i])
 
-    key = '.'.join(split_keys[:i + 1])
-
     # analyze data
     if isinstance(data, math.Variable):
       arguments.add(f'{target.name}_{split_keys[i]}')
       arg2call[f'{target.name}_{split_keys[i]}'] = f'{target.name}.{split_keys[-1]}.value'
       nodes[target.name] = target
-      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+      # replace the data
+      if len(split_keys) == i + 1:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'
+      else:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i:])}'
     elif isinstance(data, np.random.RandomState):
-      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
       code_scope[f'{target.name}_{split_keys[i]}'] = np.random  # replace RandomState
+      # replace the data
+      if len(split_keys) == i + 1:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'
+      else:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i:])}'
     elif callable(data):
       assert len(split_keys) == i + 1
       r = _jit_func(obj_or_fun=data, show_code=show_code, **jit_setting)
@@ -495,14 +501,19 @@ def _analyze_cls_func(host, code, show_code, code_scope, self_name=None, pop_sel
         data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
     else:
       code_scope[f'{target.name}_{split_keys[i]}'] = data
-      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+      # replace the data
+      if len(split_keys) == i + 1:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'
+      else:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i:])}'
 
   # final code
   tree.body[0].decorator_list.clear()
   tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
   tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
   code = tools.ast2code(tree)
-  code = tools.word_replace(code, data_to_replace, exclude_dot=False)
+  # code = tools.word_replace(code, data_to_replace, exclude_dot=False)
+  code = tools.word_replace(code, data_to_replace, exclude_dot=True)
 
   return code, arguments, arg2call, nodes, code_scope
 

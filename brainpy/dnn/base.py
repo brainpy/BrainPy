@@ -101,7 +101,7 @@ class Sequential(Module):
 
   def vars(self, method='absolute'):
     """Collect all the variables (and their names) contained
-    in the list and its children instance of DynamicSystem.
+    in the list and its children instance of Module.
 
     Parameters
     ----------

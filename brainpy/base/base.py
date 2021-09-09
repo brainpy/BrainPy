@@ -8,8 +8,7 @@ __all__ = [
   'Base',
 ]
 
-math = None
-DE_INT = None
+math = DE_INT = None
 
 
 class Base(object):
@@ -18,7 +17,7 @@ class Base(object):
   The subclass of Base includes:
 
   - ``Module`` in brainpy.dnn.base.py
-  - ``DynamicSystem`` in brainpy.simulation.brainobjects.base.py
+  - ``DynamicalSystem`` in brainpy.simulation.brainobjects.base.py
 
   """
 

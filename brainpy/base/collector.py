@@ -119,8 +119,8 @@ class ArrayCollector(Collector):
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
   is ordered by insertion order. It is the object
-  returned by DynamicSystem.vars() and used as input
-  in many DynamicSystem instance: optimizers, Jit, etc..."""
+  returned by DynamicalSystem.vars() and used as input
+  in many DynamicalSystem instance: optimizers, Jit, etc..."""
 
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
