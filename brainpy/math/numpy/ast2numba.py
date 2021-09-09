@@ -472,17 +472,23 @@ def _analyze_cls_func(host, code, show_code, code_scope, self_name=None, pop_sel
       raise errors.BrainPyError
     data = getattr(target, split_keys[i])
 
-    key = '.'.join(split_keys[:i + 1])
-
     # analyze data
     if isinstance(data, math.Variable):
       arguments.add(f'{target.name}_{split_keys[i]}')
       arg2call[f'{target.name}_{split_keys[i]}'] = f'{target.name}.{split_keys[-1]}.value'
       nodes[target.name] = target
-      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+      # replace the data
+      if len(split_keys) == i + 1:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'
+      else:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i:])}'
     elif isinstance(data, np.random.RandomState):
-      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
       code_scope[f'{target.name}_{split_keys[i]}'] = np.random  # replace RandomState
+      # replace the data
+      if len(split_keys) == i + 1:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'
+      else:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i:])}'
     elif callable(data):
       assert len(split_keys) == i + 1
       r = _jit_func(obj_or_fun=data, show_code=show_code, **jit_setting)
@@ -495,14 +501,19 @@ def _analyze_cls_func(host, code, show_code, code_scope, self_name=None, pop_sel
         data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
     else:
       code_scope[f'{target.name}_{split_keys[i]}'] = data
-      data_to_replace[key] = f'{target.name}_{split_keys[i]}'  # replace the data
+      # replace the data
+      if len(split_keys) == i + 1:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}'
+      else:
+        data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i:])}'
 
   # final code
   tree.body[0].decorator_list.clear()
   tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
   tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
   code = tools.ast2code(tree)
-  code = tools.word_replace(code, data_to_replace, exclude_dot=False)
+  # code = tools.word_replace(code, data_to_replace, exclude_dot=False)
+  code = tools.word_replace(code, data_to_replace, exclude_dot=True)
 
   return code, arguments, arg2call, nodes, code_scope
 
