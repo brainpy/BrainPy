@@ -18,7 +18,7 @@ _error_msg = 'Unknown model type: {type}. ' \
 
 
 class DynamicalSystem(Base):
-  """Base Dynamic System class.
+  """Base Dynamical System class.
 
   Any object has step functions will be a dynamical system.
   That is to say, in BrainPy, the essence of the dynamical system
@@ -35,12 +35,13 @@ class DynamicalSystem(Base):
   """
   target_backend = None
 
-  def __init__(self, steps=(), monitors=None, name=None):
+  def __init__(self, steps=None, monitors=None, name=None):
     super(DynamicalSystem, self).__init__(name=name)
 
     # step functions
+    if steps is None:
+      steps = ('update', )
     self.steps = collector.Collector()
-    steps = tuple() if steps is None else steps
     if isinstance(steps, tuple):
       for step in steps:
         if isinstance(step, str):
@@ -83,12 +84,20 @@ class DynamicalSystem(Base):
       raise errors.BrainPyError(f'Unknown setting of "target_backend": {self.target_backend}')
 
     # runner and run function
-    self.driver = None
     self._input_step = lambda _t, _dt: None
     self._monitor_step = lambda _t, _dt: None
 
   def update(self, _t, _dt):
-    raise NotImplementedError
+    """The function to specify the updating rule.
+
+    Parameters
+    ----------
+    _t : float
+      The current time.
+    _dt : float
+      The time step.
+    """
+    raise NotImplementedError('Must implement "update" function by user self.')
 
   def _step_run(self, _t, _dt):
     self._monitor_step(_t, _dt)
