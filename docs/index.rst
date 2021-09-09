@@ -53,7 +53,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
    tutorial_simulation/efficient_synaptic_computation
    tutorial_simulation/synaptic_connectivity
-   tutorial_simulation/monitor
+   tutorial_simulation/monitor_and_inputs
    tutorial_simulation/inputs
 
 
