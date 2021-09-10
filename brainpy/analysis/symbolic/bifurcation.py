@@ -9,8 +9,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import errors, math
 from brainpy.analysis import stability, utils
-from brainpy.analysis.by_sympy import base
-from brainpy.analysis.by_sympy.trajectory import Trajectory
+from brainpy.analysis.symbolic import base
+from brainpy.analysis.symbolic.trajectory import Trajectory
 
 logger = logging.getLogger('brainpy.analysis')
 
