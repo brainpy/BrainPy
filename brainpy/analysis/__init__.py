@@ -6,10 +6,10 @@ This module provides analysis tools for ordinary differential equations.
 
 """
 
-from .base import *
-from .bifurcation import *
-from .phase_plane import *
+# from brainpy.analysis.by_sympy.base import *
+# from brainpy.analysis.by_sympy.bifurcation import *
+# from brainpy.analysis.by_sympy.phase_plane import *
+# from brainpy.analysis.by_sympy.trajectory import *
 from .solver import *
 from .stability import *
-from .trajectory import *
 from .utils import *

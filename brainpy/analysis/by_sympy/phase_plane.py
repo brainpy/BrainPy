@@ -6,8 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from brainpy import errors, math
-from brainpy.analysis import base, stability, utils
-from brainpy.analysis.trajectory import Trajectory
+from brainpy.analysis import stability, utils
+from brainpy.analysis.by_sympy import base
+from brainpy.analysis.by_sympy.trajectory import Trajectory
 
 logger = logging.getLogger('brainpy.analysis')
 
