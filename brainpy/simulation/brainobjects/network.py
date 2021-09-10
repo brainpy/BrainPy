@@ -8,7 +8,7 @@ __all__ = [
 
 
 class Network(Container):
-  """Network object, an alias of Container.
+  """Base class to model network objects, an alias of Container.
 
   Network instantiates a network, which is aimed to load
   neurons, synapses, and other brain objects.

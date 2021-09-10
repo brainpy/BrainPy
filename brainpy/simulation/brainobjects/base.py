@@ -184,13 +184,9 @@ class DynamicalSystem(Base):
 class Container(DynamicalSystem):
   """Container object which is designed to add other instances of DynamicalSystem.
 
-  What's different from the other objects of DynamicalSystem is that Container has
-  one more useful function :py:func:`add`. It can be used to add the children
-  objects.
-
   Parameters
   ----------
-  steps : function, list of function, tuple of function, dict of (str, function), optional
+  steps : tuple of function, tuple of str, dict of (str, function), optional
       The step functions.
   monitors : tuple, list, Monitor, optional
       The monitor object.
@@ -270,5 +266,3 @@ class Container(DynamicalSystem):
       return children_ds[item]
     else:
       return super(Container, self).__getattribute__(item)
-
-
