@@ -165,6 +165,8 @@ def transform_integrals_to_model(integrals, method='euler'):
 
   if callable(integrals):
     integrals = [integrals]
+  if isinstance(integrals, DynamicalSystem):
+    integrals = list(integrals.ints().unique().values())
 
   integrals, pars_update = transform_integrals(integrals, method=method)
 

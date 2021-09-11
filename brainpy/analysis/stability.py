@@ -53,9 +53,9 @@ plot_scheme.update({
   CENTER_2D: {'color': 'lime'},
   STABLE_NODE_2D: {"color": 'tab:red'},
   STABLE_FOCUS_2D: {"color": 'tab:purple'},
-  STABLE_STAR_2D: {'color': 'orange'},
+  STABLE_STAR_2D: {'color': 'tab:olive'},
   STABLE_DEGENERATE_2D: {'color': 'blueviolet'},
-  UNSTABLE_NODE_2D: {"color": 'tab:olive'},
+  UNSTABLE_NODE_2D: {"color": 'tab:orange'},
   UNSTABLE_FOCUS_2D: {"color": 'tab:cyan'},
   UNSTABLE_STAR_2D: {'color': 'green'},
   UNSTABLE_DEGENERATE_2D: {'color': 'springgreen'},
@@ -72,13 +72,13 @@ UNSTABLE_FOCUS_3D = 'unstable focus'
 UNSTABLE_CENTER_3D = 'unstable center'
 UNKNOWN_3D = 'unknown 3d'
 plot_scheme.update({
-  STABLE_POINT_3D: {'color': 'tab:pink'},
+  STABLE_POINT_3D: {'color': 'tab:gray'},
   UNSTABLE_POINT_3D: {'color': 'tab:purple'},
   STABLE_NODE_3D: {'color': 'tab:green'},
   UNSTABLE_SADDLE_3D: {'color': 'tab:red'},
-  UNSTABLE_FOCUS_3D: {'color': 'tab:orange'},
+  UNSTABLE_FOCUS_3D: {'color': 'tab:pink'},
   STABLE_FOCUS_3D: {'color': 'tab:purple'},
-  UNSTABLE_NODE_3D: {'color': 'tab:gray'},
+  UNSTABLE_NODE_3D: {'color': 'tab:orange'},
   UNSTABLE_CENTER_3D: {'color': 'tab:olive'},
   UNKNOWN_3D: {'color': 'tab:cyan'},
 })
