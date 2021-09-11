@@ -289,7 +289,7 @@ def check_and_format_monitors(host):
 
   # reshape monitors
   # ----
-  all_nodes = [host] + list(host.nodes().unique().values())
+  all_nodes = list(host.nodes().unique().values())
   for node in all_nodes:
     node.mon.build()  # build the monitor
     for key in node.mon.item_contents.keys():

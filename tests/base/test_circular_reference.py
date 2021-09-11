@@ -70,8 +70,8 @@ def test_nodes():
   print(abs_nodes)
   print(rel_nodes)
 
-  assert len(abs_nodes) == 2
-  assert len(rel_nodes) == 4
+  assert len(abs_nodes) == 3
+  assert len(rel_nodes) == 5
 
 
 def test_ints():

@@ -171,7 +171,7 @@ class DynamicalSystem(Base):
     # --
     # 6.1 add 'ts' variable to every monitor
     # 6.2 wrap the monitor iterm with the 'list' type into the 'ndarray' type
-    for node in [self] + list(self.nodes().unique().values()):
+    for node in self.nodes().unique().values():
       if node.mon.num_item > 0:
         node.mon.ts = times
         for key, val in list(node.mon.item_contents.items()):
