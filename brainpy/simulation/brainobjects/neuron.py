@@ -128,14 +128,22 @@ class CondNeuGroup(NeuGroup):
     for ch in self._update_channels:
       ch.update(_t, _dt)
     for ch in self._output_channels:
-      self.input += ch.update(_t, _dt)
+      ch.update(_t, _dt)
+      self.input += ch.I
 
     # update variables
-    V = self.V + self.input / self.C / self.A * _dt
+    V = self.V + self.input / self.C * _dt
+    # V = self.V + self.input / self.C / self.A * _dt
     self.spike[:] = math.logical_and(V >= self.Vth, self.V < self.Vth)
     self.V[:] = V
     self.input[:] = 0.
 
+  def __getattr__(self, item):
+    child_channels = super(CondNeuGroup, self).__getattribute__('child_channels')
+    if item in child_channels:
+      return child_channels[item]
+    else:
+      return super(CondNeuGroup, self).__getattribute__(item)
 
 
 # ---------------------------------------------------------

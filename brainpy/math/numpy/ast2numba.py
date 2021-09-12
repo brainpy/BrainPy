@@ -84,6 +84,9 @@ def jit_DS(obj_or_fun, show_code=False, **jit_setting):
     raise errors.UnsupportedError(f'JIT compilation in numpy backend only '
                                   f'supports {Base.__name__}, but we got '
                                   f'{type(obj_or_fun)}.')
+  if not hasattr(obj_or_fun, 'steps'):
+    raise errors.BrainPyError(f'Please init this DynamicalSystem {obj_or_fun} first, '
+                              f'then apply JIT.')
 
   # function analysis
   for key, step in list(obj_or_fun.steps.items()):
