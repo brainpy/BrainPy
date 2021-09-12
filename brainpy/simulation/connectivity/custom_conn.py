@@ -13,6 +13,7 @@ __all__ = [
 
 
 class MatConn(TwoEndConnector):
+  """Connector built from the connection matrix."""
   def __init__(self, conn_mat):
     super(MatConn, self).__init__()
 
@@ -25,6 +26,7 @@ class MatConn(TwoEndConnector):
 
 
 class IJConn(TwoEndConnector):
+  """Connector built from the ``pre_ids`` and ``post_ids`` connections."""
   def __init__(self, i, j):
     super(IJConn, self).__init__()
 
@@ -37,10 +39,10 @@ class IJConn(TwoEndConnector):
     self.post_ids = math.asarray(j, dtype=math.int_)
 
   def __call__(self, pre_size, post_size):
-    # this is ncessary when create "pre2post" ,
+    # this is necessary when create "pre2post" ,
     # "pre2syn"  etc. structures
     self.num_pre = utils.size2len(pre_size)
-    # this is ncessary when create "post2pre" ,
+    # this is necessary when create "post2pre" ,
     # "post2syn"  etc. structures
     self.num_post = utils.size2len(post_size)
     return self

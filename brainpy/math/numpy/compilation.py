@@ -116,7 +116,7 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
   # checking
   if ast2numba is None or numba is None:
     raise errors.PackageMissingError('JIT compilation in numpy backend need Numba. '
-                                     'Please install numba via: \n\n'
+                                     'Please install numba via: \n'
                                      '>>> pip install numba\n'
                                      '>>> # or \n'
                                      '>>> conda install numba')

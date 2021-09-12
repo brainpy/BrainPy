@@ -14,6 +14,7 @@
 
 ## Base
 
+- [ ] ``vars()``: must check whether has circular references
 - [x] ``Collector``: must check whether the ``(key,value)`` pair are duplicate  (done @2021/08/26 by @chaoming)
 - [x] ``nodes``: slove the problem of circular reference (done @2021/08/24 by @chaoming)
 - [x] ``ints``: get integrators based on all nodes (done @2021/08/24 by @chaoming)
@@ -26,7 +27,7 @@
 
 ## Math
 
-- [ ] **[Numpy]**: JIT compilation in numpy backend supports ``Base`` and ``Function`` objects
+- [x] **[Numpy]**: JIT compilation in numpy backend supports ``Base`` and ``Function`` objects (done by chaoming@2021/09/08)
 - [ ] **[Numpy]**: support JIT in `fft` sub-module
 - [x] **[Numpy]:** support JIT compilation in numpy backend (done @ 2021.09.01 by @chaoming)
 - [x] **[Numpy]:** support 'fft' (done @ 2021.09.03 by @chaoming)
@@ -107,7 +108,16 @@
 
 ## Documentation
 
+- [ ] 
+- [ ] documentation
+- [ ] tutorial for "Numerical Solvers": more precise and intuitive
+- [x] tutorial for "JIT compilation": BrainPy's JIT for class objects (done by chaoming@2021.09.08)
+- [x] tutorial for "Dynamics Simulation", detail the function of ``brainpy.DynamicalSystem`` (done by chaoming@2021/09/09)
 - [x] documentation for ``math`` module (done @2021.09)
+- [ ] documentation for BrainModels
+  - [ ] documentation for neuron models
+  - [ ] documentation for synapse models
+  - [ ] documentation for COBA, CUBA synapses
 - [ ] detailed documentation for numerical solvers of SDEs
 - [x] doc comments for ODEs, like Euler, RK2, etc. We should provide the detailed mathematical equations, and the corresponding suggestions for the corresponding algorithm.  (done @2021.09.01 @chaoming)
 - [x] APIs for integrators  (done @2021/08/23 by @chaoming)
@@ -132,6 +142,10 @@
 ## Others
 
 - [x] publish `BrainPy` on `"conda-forge"`: https://conda-forge.org/docs/maintainer/adding_pkgs.html# (cancelled)
+
+
+
+
 
 
 

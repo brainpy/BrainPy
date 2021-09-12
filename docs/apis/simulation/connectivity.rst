@@ -84,6 +84,24 @@ Random Connections
    :members:
 
 
+
+Custom Connections
+------------------
+
+.. autosummary::
+    :toctree: generated/
+
+    MatConn
+    IJConn
+
+
+.. autoclass:: MatConn
+   :members:
+
+.. autoclass:: IJConn
+   :members:
+
+
 Formatter Functions
 -------------------
 

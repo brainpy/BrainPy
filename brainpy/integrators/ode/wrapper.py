@@ -329,6 +329,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
     _f_kw: 'the derivative function',
     _dt_kw: 'the precision of numerical integration',
     'exp': 'the exponential function',
+    'math': 'the math module',
   }
   for v in variables:
     keywords[f'{v}_new'] = 'the intermediate value'
@@ -341,7 +342,7 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
   code_scope = dict(closure_vars.nonlocals)
   code_scope.update(dict(closure_vars.globals))
   code_scope[_f_kw] = f
-  code_scope['exp'] = math.exp
+  code_scope['math'] = math
 
   analysis = separate_variables(f)
   variables_for_returns = analysis['variables_for_returns']
@@ -383,17 +384,18 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
       linear = sympy.collect(df_expr, var, evaluate=False)[var]
       code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
       # linear exponential
-      linear_exp = sympy.exp(linear * dt)
-      code_lines.append(f'  {s_linear_exp.name} = {analysis_by_sympy.sympy2str(linear_exp)}')
+      # linear_exp = sympy.exp(linear * dt)
+      # code_lines.append(f'  {s_linear_exp.name} = {analysis_by_sympy.sympy2str(linear_exp)}')
+      code_lines.append(f'  {s_linear_exp.name} = math.exp({s_linear.name} * {_dt_kw})')
       # df part
       df_part = (s_linear_exp - 1) / s_linear * s_df
       code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
 
     else:
       # linear exponential
-      code_lines.append(f'  {s_linear_exp.name} = {dt} ** 0.5')
+      code_lines.append(f'  {s_linear_exp.name} = {_dt_kw} ** 0.5')
       # df part
-      code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(dt * s_df)}')
+      code_lines.append(f'  {s_df_part.name} = {s_df.name} * {_dt_kw}')
 
     # update expression
     update = var + s_df_part

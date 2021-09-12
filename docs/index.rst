@@ -36,7 +36,9 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
 .. toctree::
    :maxdepth: 1
-   :caption: Tutorials for math module
+   :caption: JIT tutorials
+
+
 
 
 .. toctree::

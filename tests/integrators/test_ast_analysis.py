@@ -6,8 +6,8 @@ from pprint import pprint
 import pytest
 
 from brainpy.errors import DiffEqError
-from brainpy.integrators.ast_analysis import DiffEqReader
-from brainpy.integrators.ast_analysis import separate_variables
+from brainpy.integrators.analysis_by_ast import DiffEqReader
+from brainpy.integrators.analysis_by_ast import separate_variables
 
 
 def test_reader1():

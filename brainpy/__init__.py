@@ -36,7 +36,8 @@ from . import dnn
 
 
 # "analysis" module
-from . import analysis
+from .analysis import symbolic_analysis as sym_analysis
+from .analysis import continuation
 
 
 # "visualization" module

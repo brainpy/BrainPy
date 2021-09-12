@@ -12,7 +12,7 @@ __all__ = [
 
 
 class TwoEndConn(DynamicalSystem):
-  """Two End Synaptic Connections.
+  """Base class to model two-end synaptic connections.
 
   Parameters
   ----------
