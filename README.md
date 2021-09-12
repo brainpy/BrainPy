@@ -86,9 +86,9 @@ If you have installed the previous version of BrainPy,  please uninstall the old
 ## Step 2: useful links
 
 - **Documentation:** https://brainpy.readthedocs.io/
-- **Source code:** https://github.com/PKU-NIP-Lab/BrainPy   or   https://git.openi.org.cn/OpenI/BrainPy
-- **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues   or   Email to adaduo@outlook.com
-- **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/from_papers.html
+- **Source code:** https://github.com/PKU-NIP-Lab/BrainPy    or    https://git.openi.org.cn/OpenI/BrainPy
+- **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues    or    Email to adaduo@outlook.com
+- **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/
 
 
 
