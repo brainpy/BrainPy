@@ -363,6 +363,7 @@ def build_monitor_func(monitors, show_code=False):
 
   for node, key, target, variable, idx, interval in monitors:
     code_scope[node.name] = node
+    code_scope[target.name] = target
 
     # get data
     data = target
