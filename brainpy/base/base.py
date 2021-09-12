@@ -8,8 +8,7 @@ __all__ = [
   'Base',
 ]
 
-math = None
-DE_INT = None
+math = DE_INT = None
 
 
 class Base(object):
@@ -18,7 +17,7 @@ class Base(object):
   The subclass of Base includes:
 
   - ``Module`` in brainpy.dnn.base.py
-  - ``DynamicSystem`` in brainpy.simulation.brainobjects.base.py
+  - ``DynamicalSystem`` in brainpy.simulation.brainobjects.base.py
 
   """
 
@@ -122,8 +121,11 @@ class Base(object):
             nodes.append(v)
       for v in nodes:
         gather.update(v.nodes(method=method, _paths=_paths))
+      gather[self.name] = self
+
     elif method == 'relative':
       nodes = []
+      gather[''] = self
       for k, v in self.__dict__.items():
         if isinstance(v, Base):
           path = (id(self), id(v))
@@ -133,7 +135,8 @@ class Base(object):
             nodes.append((k, v))
       for k, v in nodes:
         for k2, v2 in v.nodes(method=method, _paths=_paths).items():
-          gather[f'{k}.{k2}'] = v2
+          if k2: gather[f'{k}.{k2}'] = v2
+
     else:
       raise ValueError(f'No support for the method of "{method}".')
     return gather
@@ -154,8 +157,11 @@ class Base(object):
       for node in nodes:
         gather[node.name] = node
         gather.update(node.nodes(method=method, _paths=_paths))
+      gather[self.name] = self
+
     elif method == 'relative':
       nodes = []
+      gather[''] = self
       for key, node in dict_container.items():
         path = (id(self), id(node))
         if path not in _paths:
@@ -164,7 +170,8 @@ class Base(object):
           nodes.append((key, node))
       for key, node in nodes:
         for key2, node2 in node.nodes(method=method, _paths=_paths).items():
-          gather[f'{key}.{key2}'] = node2
+          if key2: gather[f'{key}.{key2}'] = node2
+
     else:
       raise ValueError(f'No support for the method of "{method}".')
     return gather

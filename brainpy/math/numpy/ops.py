@@ -383,18 +383,36 @@ complex128 = numpy.complex128
 
 
 def set_int_(int_type):
+  """Set the default ``int`` type.
+
+  Parameters
+  ----------
+  int_type : type
+  """
   global int_
   assert isinstance(int_type, type)
   int_ = int_type
 
 
 def set_float_(float_type):
+  """Set the default ``float`` type.
+
+  Parameters
+  ----------
+  float_type : type
+  """
   global float_
   assert isinstance(float_type, type)
   float_ = float_type
 
 
 def set_complex_(complex_type):
+  """Set the default ``complex`` type.
+
+  Parameters
+  ----------
+  complex_type : type
+  """
   global complex_
   assert isinstance(complex_type, type)
   complex_ = complex_type

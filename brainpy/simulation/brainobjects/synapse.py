@@ -2,7 +2,7 @@
 
 from brainpy import errors, math
 from brainpy.simulation.connectivity import TwoEndConnector, MatConn, IJConn
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.brainobjects.neuron import NeuGroup
 
@@ -11,8 +11,8 @@ __all__ = [
 ]
 
 
-class TwoEndConn(DynamicSystem):
-  """Two End Synaptic Connections.
+class TwoEndConn(DynamicalSystem):
+  """Base class to model two-end synaptic connections.
 
   Parameters
   ----------

@@ -2,6 +2,7 @@ publishment.md
 #experimental/
 .vscode
 
+examples/
 examples/recurrent_neural_network/neurogym
 develop/iconip_paper
 develop/benchmark/COBA/results
@@ -19,6 +20,7 @@ docs/images/connection_methods.pptx
 */generated
 
 docs/apis/math/generated
+docs/apis/simulation/generated
 docs/apis/dnn/_autosummary
 docs/quickstart/_autosummary
 docs/apis/dnn/generated

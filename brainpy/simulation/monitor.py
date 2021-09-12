@@ -97,25 +97,6 @@ class Monitor(object):
     self.num_item = len(variables)
     super(Monitor, self).__init__()
 
-  def check(self, mon_key):
-    """Check whether the key has defined in the target.
-
-    Parameters
-    ----------
-    mon_key : str
-      The string to specify the target item.
-    """
-    if mon_key in self._KEYWORDS:
-      raise ValueError(f'"{mon_key}" is a keyword in Monitor class. '
-                       f'Please change to another name.')
-    data = self.target
-    for s in mon_key.split('.'):
-      try:
-        data = getattr(data, s)
-      except AttributeError:
-        raise errors.BrainPyError(f"Item \"{mon_key}\" isn't defined in model "
-                                   f"{self.target}, so it can not be monitored.")
-
   def build(self):
     if not self.has_build:
       item_names = []
@@ -140,7 +121,7 @@ class Monitor(object):
           else:
             raise errors.BrainPyError(f'Unknown monitor item: {str(mon_var)}')
 
-          self.check(mon_key)
+          # self.check(mon_key)
           item_names.append(mon_key)
           item_indices.append(mon_idx)
           item_contents[mon_key] = []
@@ -170,18 +151,6 @@ class Monitor(object):
       self.item_contents = item_contents
       self.num_item = len(item_contents)
       self.has_build = True
-
-  @staticmethod
-  def check_mon_idx(mon_idx):
-    if isinstance(mon_idx, int):
-      mon_idx = math.array([mon_idx])
-    else:
-      mon_idx = math.array(mon_idx)
-      if len(math.shape(mon_idx)) != 1:
-        raise errors.BrainPyError(f'Monitor item index only supports '
-                                  f'an int or a one-dimensional vector, '
-                                  f'not {str(mon_idx)}')
-    return mon_idx
 
   def __getitem__(self, item: str):
     """Get item in the monitor values.

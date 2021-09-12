@@ -16,7 +16,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 6. And more ......
 
 
-.. _BrainPy:: https://github.com/PKU-NIP-Lab/BrainPy
+.. _BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
 
 .. note::
 
@@ -36,7 +36,9 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
 .. toctree::
    :maxdepth: 1
-   :caption: Tutorials for math module
+   :caption: JIT tutorials
+
+
 
 
 .. toctree::
@@ -53,7 +55,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
    tutorial_simulation/efficient_synaptic_computation
    tutorial_simulation/synaptic_connectivity
-   tutorial_simulation/monitor
+   tutorial_simulation/monitor_and_inputs
    tutorial_simulation/inputs
 
 

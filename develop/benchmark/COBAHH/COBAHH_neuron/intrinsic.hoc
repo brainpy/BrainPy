@@ -1,6 +1,0 @@
-load_file("nrngui.hoc")
-load_file("hhcell.hoc")
-objref cell
-cell = new CobaHHCell(0)
-access cell.soma
-load_file("intrinsic.ses")

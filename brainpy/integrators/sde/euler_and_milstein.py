@@ -139,7 +139,7 @@ class Wrapper(object):
     code_scope['f'] = f
     code_scope['g'] = g
     code_scope['math'] = math
-    code_scope['exp'] = math.exp
+    # code_scope['exp'] = math.exp
 
     # 2. code lines
     code_lines = [f'def {func_name}({", ".join(arguments)}):']
@@ -209,17 +209,16 @@ class Wrapper(object):
         linear = sympy.collect(df_expr, var, evaluate=False)[var]
         code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
         # linear exponential
-        linear_exp = sympy.exp(linear * dt)
-        code_lines.append(f'  {s_linear_exp.name} = {analysis_by_sympy.sympy2str(linear_exp)}')
+        code_lines.append(f'  {s_linear_exp.name} = math.exp({linear.name} * {vdt})')
         # df part
         df_part = (s_linear_exp - 1) / s_linear * s_df
         code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
 
       else:
         # linear exponential
-        code_lines.append(f'  {s_linear_exp.name} = sqrt({dt})')
+        code_lines.append(f'  {s_linear_exp.name} = {vdt}_sqrt')
         # df part
-        code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(dt * s_df)}')
+        code_lines.append(f'  {s_df_part.name} = {s_df.name} * {vdt}')
 
       # update expression
       update = var + s_df_part

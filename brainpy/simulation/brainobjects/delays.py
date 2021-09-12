@@ -4,7 +4,7 @@ import math as pmath
 
 from brainpy import errors
 from brainpy import math as bmath
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.utils import size2len
 
 __all__ = [
@@ -13,7 +13,10 @@ __all__ = [
 ]
 
 
-class Delay(DynamicSystem):
+class Delay(DynamicalSystem):
+  """Base class to model delay variables.
+
+  """
   def __init__(self, steps=('update',), name=None):
     super(Delay, self).__init__(steps=steps, monitors=None, name=name)
 
@@ -22,15 +25,15 @@ class Delay(DynamicSystem):
 
 
 class ConstantDelay(Delay):
-  """Constant delay object.
+  """Class used to model constant delay variables.
 
   For examples:
 
-  >>> ConstantDelay(size=10, delay=10.)
+  >>> import brainpy as bp
   >>>
-  >>> import numpy as np
-  >>> ConstantDelay(size=100, delay=lambda: np.random.randint(5, 10))
-  >>> ConstantDelay(size=100, delay=np.random.random(100) * 4 + 10)
+  >>> bp.ConstantDelay(size=10, delay=10.)
+  >>> bp.ConstantDelay(size=100, delay=lambda: bp.math.random.randint(5, 10))
+  >>> bp.ConstantDelay(size=100, delay= bp.math.random.random(100) * 4 + 10)
 
   Parameters
   ----------
@@ -57,9 +60,9 @@ class ConstantDelay(Delay):
     # data and operations
     if isinstance(delay, (int, float)):  # uniform delay
       self.uniform_delay = True
-      self.num_step = bmath.array([int(pmath.ceil(delay / bmath.get_dt())) + 1])
-      self.data = bmath.Variable(bmath.zeros((self.num_step[0],) + self.size, dtype=dtype))
-      self.out_idx = bmath.Variable(bmath.array([0]))
+      self.num_step = int(pmath.ceil(delay / bmath.get_dt())) + 1
+      self.data = bmath.Variable(bmath.zeros((self.num_step,) + self.size, dtype=dtype))
+      self.out_idx = bmath.Variable(0)
       self.in_idx = bmath.Variable(self.num_step - 1)
 
       self.push = self._push_for_uniform_delay
@@ -95,22 +98,34 @@ class ConstantDelay(Delay):
     super(ConstantDelay, self).__init__(name=name)
 
   def _pull_for_uniform_delay(self):
-    return self.data[self.out_idx[0]]
+    """Pull delayed data for variables with the uniform delay.
+    """
+    return self.data[self.out_idx]
 
   def _pull_for_nonuniform_delay(self):
+    """Pull delayed data for variables with the non-uniform delay.
+    """
     return self.data[self.out_idx, self.diag]
 
   def _push_for_uniform_delay(self, value):
-    self.data[self.in_idx[0]] = value
+    """Push the latest data to the delay bottom.
+    """
+    self.data[self.in_idx] = value
 
   def _push_for_nonuniform_delay(self, value):
+    """Push the latest data to the delay bottom.
+    """
     self.data[self.in_idx, self.diag] = value
 
   def update(self, _t, _dt):
-    self.in_idx[:] = (self.in_idx + 1) % self.num_step
-    self.out_idx[:] = (self.out_idx + 1) % self.num_step
+    """Update the delay index.
+    """
+    self.in_idx[...] = (self.in_idx + 1) % self.num_step
+    self.out_idx[...] = (self.out_idx + 1) % self.num_step
 
   def reset(self):
-    self.data[:] = 0
-    self.in_idx[:] = self.num_step - 1
-    self.out_idx[:] = 0 if self.uniform_delay else bmath.zeros(self.num, dtype=bmath.int_)
+    """Reset the variables.
+    """
+    self.data[...] = 0
+    self.in_idx[...] = self.num_step - 1
+    self.out_idx[...] = 0

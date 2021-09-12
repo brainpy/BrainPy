@@ -58,17 +58,21 @@ def _make_jit(func, vars_to_change, vars_needed,
 
 def jit(obj_or_func, vars_to_change=None, vars_needed=None,
         static_argnums=None, static_argnames=None, device=None,
-        backend=None, donate_argnums=(), inline=False):
-  """JIT (Just-In-Time) Compilation.
+        backend=None, donate_argnums=(), inline=False, **kwargs):
+  """JIT (Just-In-Time) Compilation for JAX backend.
 
-  This function has the same ability to Just-In-Time transform a pure function,
-  but it can also JIT transform a :py:class:`DynamicSystem`, or a :py:class:`Base` object,
-  or a bounded method of a :py:class:`Base` object.
+  This function has the same ability to Just-In-Time compile a pure function,
+  but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
+  :py:class:`brainpy.Base` object, or a bounded method of a
+  :py:class:`brainpy.Base` object.
+
+  If you are using "numpy", please refer to the JIT compilation
+  in NumPy backend `bp.math.numpy.jit() <brainpy.math.numpy.jit.rst>`_.
 
   Examples
   --------
 
-  You can JIT a :py:class:`DynamicSystem`
+  You can JIT a :py:class:`brainpy.DynamicalSystem`
 
   >>> import brainpy as bp
   >>>
@@ -76,12 +80,12 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
   >>>   pass
   >>> lif = bp.math.jit(LIF(10))
 
-  You can JIT a :py:class:`Base` object with ``__call__()`` implementation.
+  You can JIT a :py:class:`brainpy.Base` object with ``__call__()`` implementation.
 
   >>> mlp = bp.dnn.MLP((10, 100, 10))
   >>> jit_mlp = bp.math.jit(mlp)
 
-  You can also JIT a bounded method of a :py:class:`Base` object.
+  You can also JIT a bounded method of a :py:class:`brainpy.Base` object.
 
   >>> class Hello(bp.dnn.Module):
   >>>   def __init__(self):
@@ -95,6 +99,10 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
   >>> bp.math.jit(test.transform)
 
   Further, you can JIT a normal function, just used like in JAX.
+
+  >>> @bp.math.jit
+  >>> def selu(x, alpha=1.67, lmbda=1.05):
+  >>>   return lmbda * bp.math.where(x > 0, x, alpha * bp.math.exp(x) - alpha)
 
   Parameters
   ----------
@@ -142,10 +150,10 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
     A wrapped version of Base object or function,
     set up for just-in-time compilation.
   """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
+  from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicSystem):
-    if len(obj_or_func.steps):  # DynamicSystem has step functions
+  if isinstance(obj_or_func, DynamicalSystem):
+    if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
       vars_to_change = (vars_to_change or obj_or_func.vars().unique())
@@ -267,7 +275,9 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
 
 def vmap(obj_or_func, vars=None, vars_batched=None,
          in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
-  """Vectorized compile a function or a module to run in parallel on a single device.
+  """Vectorization compilation in JAX backend.
+
+  Vectorized compile a function or a module to run in parallel on a single device.
 
   Examples
   --------
@@ -319,10 +329,10 @@ def vmap(obj_or_func, vars=None, vars_batched=None,
     with extra array axes at positions indicated by ``out_axes``.
 
   """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
+  from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicSystem):
-    if len(obj_or_func.steps):  # DynamicSystem has step functions
+  if isinstance(obj_or_func, DynamicalSystem):
+    if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
       vars = (vars or obj_or_func.vars().unique())
@@ -517,7 +527,9 @@ def _make_pmap(func, dyn_vars, rand_vars, reduce_func, axis_name=None, in_axes=0
 def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_broadcasted_argnums=(),
          devices=None, backend=None, axis_size=None, donate_argnums=(), global_arg_shapes=None,
          reduce_func=None):
-  """Parallel compile a function or a module to run on multiple devices in parallel.
+  """Parallel compilation in JAX backend.
+
+  Parallel compile a function or a module to run on multiple devices in parallel.
 
   Parameters
   ----------
@@ -541,10 +553,10 @@ def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_b
 
 
   """
-  from brainpy.simulation.brainobjects.base import DynamicSystem
+  from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicSystem):
-    if len(obj_or_func.steps):  # DynamicSystem has step functions
+  if isinstance(obj_or_func, DynamicalSystem):
+    if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
       all_vars = (vars or obj_or_func.vars().unique())

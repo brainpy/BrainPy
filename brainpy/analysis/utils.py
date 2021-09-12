@@ -10,7 +10,7 @@ import numpy as np
 
 from brainpy import errors, math, tools
 from brainpy.integrators import analysis_by_ast, odeint, utils
-from brainpy.simulation.brainobjects.base import DynamicSystem
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 try:
   import numba
@@ -85,14 +85,14 @@ def transform_integrals(integrals, method='euler'):
 
       # node of integral
       f_node = None
-      if hasattr(integral, '__self__') and isinstance(integral.__self__, DynamicSystem):
+      if hasattr(integral, '__self__') and isinstance(integral.__self__, DynamicalSystem):
         f_node = integral.__self__
 
       # node of derivative function
       func_node = None
       if f_node:
         func_node = f_node
-      elif hasattr(func, '__self__') and isinstance(func.__self__, DynamicSystem):
+      elif hasattr(func, '__self__') and isinstance(func.__self__, DynamicalSystem):
         func_node = func.__self__
 
       # code scope
@@ -113,7 +113,7 @@ def transform_integrals(integrals, method='euler'):
           target = func_node
           for i in range(1, len(split_keys)):
             next_target = getattr(target, split_keys[i])
-            if not isinstance(next_target, DynamicSystem):
+            if not isinstance(next_target, DynamicalSystem):
               break
             target = next_target
           else:
@@ -165,6 +165,8 @@ def transform_integrals_to_model(integrals, method='euler'):
 
   if callable(integrals):
     integrals = [integrals]
+  if isinstance(integrals, DynamicalSystem):
+    integrals = list(integrals.ints().unique().values())
 
   integrals, pars_update = transform_integrals(integrals, method=method)
 
