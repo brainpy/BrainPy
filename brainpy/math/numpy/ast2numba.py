@@ -37,22 +37,29 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
   if callable(obj_or_fun):
     # Function
     if isinstance(obj_or_fun, Function):
-      return jit_Func(obj_or_fun, show_code=show_code, **jit_setting)
+      return jit_Func(obj_or_fun,
+                      show_code=show_code,
+                      **jit_setting)
 
     # Base
     elif isinstance(obj_or_fun, Base):
-      return jit_Base(func=obj_or_fun.__call__, host=obj_or_fun,
+      return jit_Base(func=obj_or_fun.__call__,
+                      host=obj_or_fun,
                       name=obj_or_fun.name + '_call',
                       show_code=show_code, **jit_setting)
 
       # integrator
     elif hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
-      return jit_integrator(intg=obj_or_fun, show_code=show_code, **jit_setting)
+      return jit_integrator(intg=obj_or_fun,
+                            show_code=show_code,
+                            **jit_setting)
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
-      return jit_Base(func=obj_or_fun, host=obj_or_fun.__self__,
-                      show_code=show_code, **jit_setting)
+      return jit_Base(func=obj_or_fun,
+                      host=obj_or_fun.__self__,
+                      show_code=show_code,
+                      **jit_setting)
 
     else:
       # native function
@@ -63,7 +70,9 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
         return obj_or_fun
 
   else:
-    return jit_DS(obj_or_fun, show_code=show_code, **jit_setting)
+    return jit_DS(obj_or_fun,
+                  show_code=show_code,
+                  **jit_setting)
 
 
 def jit_DS(obj_or_fun, show_code=False, **jit_setting):
@@ -135,21 +144,29 @@ def _jit_func(obj_or_fun, show_code=False, **jit_setting):
   if callable(obj_or_fun):
     # integrator
     if hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
-      return _jit_intg_func(obj_or_fun, show_code=show_code, **jit_setting)
+      return _jit_intg_func(obj_or_fun,
+                            show_code=show_code,
+                            **jit_setting)
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
-      return _jit_cls_func(obj_or_fun, host=obj_or_fun.__self__,
-                           show_code=show_code, **jit_setting)
+      return _jit_cls_func(obj_or_fun,
+                           host=obj_or_fun.__self__,
+                           show_code=show_code,
+                           **jit_setting)
 
     # wrapped function
     elif isinstance(obj_or_fun, Function):
-      return _jit_Function(obj_or_fun, show_code=show_code, **jit_setting)
+      return _jit_Function(obj_or_fun,
+                           show_code=show_code,
+                           **jit_setting)
 
     # base class function
     elif isinstance(obj_or_fun, Base):
-      return _jit_cls_func(obj_or_fun.__call__, host=obj_or_fun,
-                           show_code=show_code, **jit_setting)
+      return _jit_cls_func(obj_or_fun.__call__,
+                           host=obj_or_fun,
+                           show_code=show_code,
+                           **jit_setting)
 
     else:
       # native function
@@ -406,7 +423,6 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
       r = _jit_func(obj_or_fun=data, show_code=show_code, **jit_setting)
       # if len(r['arguments']):
       tree = _replace_func_call_by_tee(tree, func_call=key, arg_to_append=r['arguments'])
-      # code = _replace_func_call_by_code(code, func_call=key, arg_to_append=r['arguments'])
       arguments.update(r['arguments'])
       arg2call.update(r['arg2call'])
       nodes.update(r['nodes'])
@@ -426,16 +442,12 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
         values = list(data)
         iter_name = key
 
-      # check iterable values
-      if len(values) == 0:
-        raise errors.BrainPyError('Cannot analyze tuple/list/dict with no values.')
-      if not (isinstance(values[0], Base) or callable(values[0])):
-        raise errors.BrainPyError(f'Only support JIT an iterable objects of function '
-                                  f'or Base object, but we got:\n\n {data}')
-
       # replace this for-loop
-      r = _replace_this_forloop(tree=tree, iter_name=iter_name, loop_values=values,
-                                show_code=show_code, **jit_setting)
+      r = _replace_this_forloop(tree=tree,
+                                iter_name=iter_name,
+                                loop_values=values,
+                                show_code=show_code,
+                                **jit_setting)
       tree, _arguments, _arg2call, _nodes, _code_scope = r
       arguments.update(_arguments)
       arg2call.update(_arg2call)
@@ -463,16 +475,63 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
 
 
 def _replace_this_forloop(tree, iter_name, loop_values, show_code=False, **jit_setting):
+  """Replace the given for-loop.
+
+  This function aims to replace the specific for-loop structure, like:
+
+  replace this for-loop
+
+  >>> def update(_t, _dt):
+  >>>    for step in self.child_steps.values():
+  >>>        step(_t, _dt)
+
+  to
+
+  >>> def update(_t, _dt, AMPA_vec0_delay_g_data=None, AMPA_vec0_delay_g_in_idx=None,
+  >>>            AMPA_vec0_delay_g_out_idx=None, AMPA_vec0_s=None, HH0_V=None, HH0_V_th=None,
+  >>>            HH0_gNa=None, HH0_h=None, HH0_input=None, HH0_m=None, HH0_n=None, HH0_spike=None):
+  >>>    HH0_step(_t, _dt, HH0_V=HH0_V, HH0_V_th=HH0_V_th, HH0_gNa=HH0_gNa,
+  >>>             HH0_h=HH0_h, HH0_input=HH0_input, HH0_m=HH0_m, HH0_n=HH0_n,
+  >>>             HH0_spike=HH0_spike)
+  >>>    AMPA_vec0_step(_t, _dt, AMPA_vec0_delay_g_data=AMPA_vec0_delay_g_data,
+  >>>                   AMPA_vec0_delay_g_in_idx=AMPA_vec0_delay_g_in_idx,
+  >>>                   AMPA_vec0_delay_g_out_idx=AMPA_vec0_delay_g_out_idx,
+  >>>                   AMPA_vec0_s=AMPA_vec0_s, HH0_V=HH0_V, HH0_input=HH0_input,
+  >>>                   HH0_spike=HH0_spike)
+  >>>    AMPA_vec0_delay_g_step(_t, _dt, AMPA_vec0_delay_g_in_idx=AMPA_vec0_delay_g_in_idx,
+  >>>                           AMPA_vec0_delay_g_out_idx=AMPA_vec0_delay_g_out_idx)
+
+  Parameters
+  ----------
+  tree : ast.Module
+    The target code tree.
+  iter_name : str
+    The for-loop iter.
+  loop_values : list/tuple
+    The iter contents in the current loop.
+  show_code : bool
+    Whether show the formatted code.
+  """
   assert isinstance(tree, ast.Module)
 
-  replacer = ReplaceThisForLoop(loop_values=loop_values, iter_name=iter_name,
-                                show_code=show_code, **jit_setting)
+  replacer = ReplaceThisForLoop(loop_values=loop_values,
+                                iter_name=iter_name,
+                                show_code=show_code,
+                                **jit_setting)
   tree = replacer.visit(tree)
+  if not replacer.success:
+    raise errors.BrainPyError(f'Do not find the for-loop for "{iter_name}", '
+                              f'currently we only support for-loop like '
+                              f'"for xxx in {iter_name}:". Does your for-loop '
+                              f'structure is not like this. ')
+
   return tree, replacer.arguments, replacer.arg2call, replacer.nodes, replacer.code_scope
 
 
 class ReplaceThisForLoop(ast.NodeTransformer):
   def __init__(self, loop_values, iter_name, show_code=False, **jit_setting):
+    self.success = False
+
     # targets
     self.loop_values = loop_values
     self.iter_name = iter_name
@@ -480,7 +539,6 @@ class ReplaceThisForLoop(ast.NodeTransformer):
     # setting
     self.show_code = show_code
     self.jit_setting = jit_setting
-    self.success = False
 
     # results
     self.arguments = set()
@@ -489,28 +547,36 @@ class ReplaceThisForLoop(ast.NodeTransformer):
     self.code_scope = dict()
 
   def visit_For(self, node):
-    self.success = True
-    data_to_replace = Collector()
-    final_node = ast.Module(body=[])
-
     iter_ = tools.ast2code(ast.fix_missing_locations(node.iter))
-    if iter_ == self.iter_name:
-      # target
-      assert isinstance(node.target, ast.Name)
-      target = node.target.id
 
-      # module and code
-      module = ast.Module(body=node.body)
-      code = tools.ast2code(module)
+    if iter_.strip() == self.iter_name:
+      data_to_replace = Collector()
+      final_node = ast.Module(body=[])
+      self.success = True
+
+      # target
+      if not isinstance(node.target, ast.Name):
+        raise errors.BrainPyError(f'Only support scalar iter, like "for x in xxxx:", not "for '
+                                  f'{tools.ast2code(ast.fix_missing_locations(node.target))} '
+                                  f'in {iter_}:')
+      target = node.target.id
 
       # for loop values
       for i, value in enumerate(self.loop_values):
-        if callable(value):
-          r = _jit_func(obj_or_fun=value, show_code=self.show_code, **self.jit_setting)
+        # module and code
+        module = ast.Module(body=deepcopy(node).body)
+        code = tools.ast2code(module)
+
+        if callable(value):  # transform functions
+          r = _jit_func(obj_or_fun=value,
+                        show_code=self.show_code,
+                        **self.jit_setting)
           tree = _replace_func_call_by_tee(deepcopy(module),
                                            func_call=target,
                                            arg_to_append=r['arguments'],
                                            new_func_name=f'{target}_{i}')
+
+          # update import parameters
           self.arguments.update(r['arguments'])
           self.arg2call.update(r['arg2call'])
           self.nodes.update(r['nodes'])
@@ -529,7 +595,7 @@ class ReplaceThisForLoop(ast.NodeTransformer):
 
           final_node.body.extend(tree.body)
 
-        elif isinstance(value, Base):
+        elif isinstance(value, Base):  # transform Base objects
           r = _analyze_cls_func_body(host=value,
                                      self_name=target,
                                      code=code,
@@ -547,11 +613,17 @@ class ReplaceThisForLoop(ast.NodeTransformer):
           final_node.body.extend(ast.parse(new_code).body)
 
         else:
-          raise errors.BrainPyError
+          raise errors.BrainPyError(f'Only support JIT an iterable objects of function '
+                                    f'or Base object, but we got:\n\n {value}')
 
-    final_code = tools.ast2code(final_node)
-    final_code = tools.word_replace(final_code, data_to_replace, exclude_dot=True)
-    final_node = ast.parse(final_code)
+      # replace words
+      final_code = tools.ast2code(final_node)
+      final_code = tools.word_replace(final_code, data_to_replace, exclude_dot=True)
+      final_node = ast.parse(final_code)
+
+    else:
+      final_node = node
+
     self.generic_visit(final_node)
     return final_node
 
@@ -661,10 +733,15 @@ class FuncTransformer(ast.NodeTransformer):
       # kwargs
       kwargs = [self.generic_visit(keyword) for keyword in node.keywords]
       # new kwargs
-      code = f'f({", ".join([f"{k}={k}" for k in self.arg_to_append])})'
-      tree = ast.parse(code)
-      new_keywords = tree.body[0].value.keywords
-      kwargs.extend(new_keywords)
+      arg_to_append = deepcopy(self.arg_to_append)
+      for arg in kwargs:
+        if arg.arg in arg_to_append:
+          arg_to_append.remove(arg.arg)
+      if len(arg_to_append):
+        code = f'f({", ".join([f"{k}={k}" for k in arg_to_append])})'
+        tree = ast.parse(code)
+        new_keywords = tree.body[0].value.keywords
+        kwargs.extend(new_keywords)
       # final function
       if self.new_func_name:
         func_call = ast.parse(f'{self.new_func_name}()').body[0].value.func
