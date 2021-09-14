@@ -32,7 +32,7 @@
 ``BrainPy`` is based on Python (>=3.6), and the following packages are required to be installed to use ``BrainPy``:
 
 - NumPy >= 1.15
-- Matplotlib >= 3.3
+- Matplotlib >= 3.4
 
 *The installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
 
@@ -42,7 +42,7 @@
 
 To install the stable release of BrainPy (V1.0.3), please use
 
-```python
+```bash
 > pip install -U brain-py
 ```
 
