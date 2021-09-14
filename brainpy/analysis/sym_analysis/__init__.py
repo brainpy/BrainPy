@@ -2,7 +2,7 @@
 
 
 """
-Dynamics analysis with the aid of `SymPy <https://www.sympy.org/en/index.html>`_  symbolic_analysis inference.
+Dynamics analysis with the aid of `SymPy <https://www.sympy.org/en/index.html>`_  symbolic inference.
 
 This module provide basic dynamics analysis for low-dimensional dynamical systems, including
 

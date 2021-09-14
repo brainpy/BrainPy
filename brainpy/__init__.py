@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.0rc1"
+__version__ = "1.1.0rc2"
 
 
 # "base" module
@@ -36,7 +36,8 @@ from . import dnn
 
 
 # "analysis" module
-from .analysis import symbolic_analysis as sym_analysis
+from . import analysis
+from .analysis import sym_analysis
 from .analysis import continuation
 
 
