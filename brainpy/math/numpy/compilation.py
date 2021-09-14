@@ -3,6 +3,7 @@
 import logging
 
 from brainpy import errors
+from brainpy.base.base import Base
 
 try:
   import numba
