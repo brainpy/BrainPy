@@ -15,8 +15,8 @@ __all__ = [
 
 class Delay(DynamicalSystem):
   """Base class to model delay variables.
-
   """
+
   def __init__(self, steps=('update',), name=None):
     super(Delay, self).__init__(steps=steps, monitors=None, name=name)
 
@@ -62,11 +62,12 @@ class ConstantDelay(Delay):
       self.uniform_delay = True
       self.num_step = int(pmath.ceil(delay / bmath.get_dt())) + 1
       self.data = bmath.Variable(bmath.zeros((self.num_step,) + self.size, dtype=dtype))
-      self.out_idx = bmath.Variable(0)
-      self.in_idx = bmath.Variable(self.num_step - 1)
+      self.out_idx = bmath.Variable(bmath.array([0]))
+      self.in_idx = bmath.Variable(bmath.array([self.num_step - 1]))
 
       self.push = self._push_for_uniform_delay
       self.pull = self._pull_for_uniform_delay
+
     else:  # non-uniform delay
       self.uniform_delay = False
       if not len(self.size) == 1:
@@ -100,17 +101,17 @@ class ConstantDelay(Delay):
   def _pull_for_uniform_delay(self):
     """Pull delayed data for variables with the uniform delay.
     """
-    return self.data[self.out_idx]
+    return self.data[self.out_idx[0]]
+
+  def _push_for_uniform_delay(self, value):
+    """Push the latest data to the delay bottom.
+    """
+    self.data[self.in_idx[0]] = value
 
   def _pull_for_nonuniform_delay(self):
     """Pull delayed data for variables with the non-uniform delay.
     """
     return self.data[self.out_idx, self.diag]
-
-  def _push_for_uniform_delay(self, value):
-    """Push the latest data to the delay bottom.
-    """
-    self.data[self.in_idx] = value
 
   def _push_for_nonuniform_delay(self, value):
     """Push the latest data to the delay bottom.
@@ -120,12 +121,12 @@ class ConstantDelay(Delay):
   def update(self, _t, _dt):
     """Update the delay index.
     """
-    self.in_idx[...] = (self.in_idx + 1) % self.num_step
-    self.out_idx[...] = (self.out_idx + 1) % self.num_step
+    self.in_idx[:] = (self.in_idx + 1) % self.num_step
+    self.out_idx[:] = (self.out_idx + 1) % self.num_step
 
   def reset(self):
     """Reset the variables.
     """
-    self.data[...] = 0
-    self.in_idx[...] = self.num_step - 1
-    self.out_idx[...] = 0
+    self.data[:] = 0
+    self.in_idx[:] = self.num_step - 1
+    self.out_idx[:] = 0
