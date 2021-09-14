@@ -192,17 +192,18 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
       assert isinstance(inline, dict)
 
       # jit functions
-      for key in obj_or_func.steps.keys():
-        obj_or_func.steps[key] = _make_jit(vars_to_change=vars_to_change,
-                                           vars_needed=vars_needed,
-                                           func=obj_or_func.steps[key],
-                                           static_argnums=static_argnums[key],
-                                           static_argnames=static_argnames[key],
-                                           device=device,
-                                           backend=backend,
-                                           donate_argnums=donate_argnums[key],
-                                           inline=inline[key],
-                                           f_name=key)
+      for key in list(obj_or_func.steps.keys()):
+        jitted_func = _make_jit(vars_to_change=vars_to_change,
+                                vars_needed=vars_needed,
+                                func=obj_or_func.steps[key],
+                                static_argnums=static_argnums[key],
+                                static_argnames=static_argnames[key],
+                                device=device,
+                                backend=backend,
+                                donate_argnums=donate_argnums[key],
+                                inline=inline[key],
+                                f_name=key)
+        obj_or_func.steps.replace(key, jitted_func)
       return obj_or_func
 
   if callable(obj_or_func):
