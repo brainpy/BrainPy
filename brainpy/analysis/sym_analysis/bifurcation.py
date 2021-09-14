@@ -9,8 +9,9 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import errors, math
 from brainpy.analysis import stability, utils
-from brainpy.analysis.symbolic_analysis import base
-from brainpy.analysis.symbolic_analysis.trajectory import Trajectory
+from brainpy.analysis.sym_analysis import base
+from brainpy.analysis.sym_analysis.trajectory import Trajectory
+
 
 logger = logging.getLogger('brainpy.analysis')
 
@@ -270,7 +271,7 @@ class _Bifurcation1D(base.Base1DAnalyzer):
 
       # visualization
       fig = plt.figure(self.x_var)
-      ax = fig.gca(projection='3d')
+      ax = fig.add_subplot(projection='3d')
       for fp_type, points in container.items():
         if len(points['x']):
           plot_style = stability.plot_scheme[fp_type]
@@ -380,7 +381,7 @@ class _Bifurcation2D(base.Base2DAnalyzer):
       # visualization
       for var in self.dvar_names:
         fig = plt.figure(var)
-        ax = fig.gca(projection='3d')
+        ax = fig.add_subplot(projection='3d')
         for fp_type, points in container.items():
           if len(points['p0']):
             plot_style = stability.plot_scheme[fp_type]
@@ -846,7 +847,7 @@ class _FastSlowTrajectory(object):
           #           shape='full')
 
         elif len(self.slow_var_names) == 2:
-          fig.gca(projection='3d')
+          fig.gca()
           s1 = traj_group.mon[self.slow_var_names[1]][start: end, 0]
           plt.plot(s0, s1, fast, label=legend)
         else:
@@ -863,7 +864,7 @@ class _FastSlowTrajectory(object):
         plt.xlabel(self.slow_var_names[0])
         plt.ylabel(var_name)
       elif len(self.slow_var_names) == 2:
-        ax = fig.gca(projection='3d')
+        ax = fig.add_subplot(projection='3d')
         # ax.set_xlim(*utils.rescale(self.slow_vars[self.slow_var_names[0]], scale=scale))
         # ax.set_ylim(*utils.rescale(self.slow_vars[self.slow_var_names[1]], scale=scale))
         # ax.set_zlim(*utils.rescale(self.fast_vars[var_name], scale=scale))

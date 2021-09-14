@@ -63,7 +63,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :maxdepth: 1
    :caption: Analysis Tutorials
 
-   tutorial_analysis/dynamics_analysis
+   tutorial_analysis/sym_analysis
 
 
 .. toctree::
@@ -75,14 +75,14 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :maxdepth: 1
    :caption: API documentation
 
-   apis/base
-   apis/math
-   apis/integrators
-   apis/simulation
-   apis/analysis
-   apis/dnn
-   apis/visualization
-   apis/changelog
+   apis/base.rst
+   apis/math.rst
+   apis/integrators.rst
+   apis/simulation.rst
+   apis/analysis.rst
+   apis/dnn.rst
+   apis/visualization.rst
+   apis/changelog.rst
 
 
 Indices and tables

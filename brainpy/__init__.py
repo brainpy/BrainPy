@@ -36,7 +36,8 @@ from . import dnn
 
 
 # "analysis" module
-from .analysis import symbolic_analysis as sym_analysis
+from . import analysis
+from .analysis import sym_analysis
 from .analysis import continuation
 
 
