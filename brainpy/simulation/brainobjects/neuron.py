@@ -3,8 +3,8 @@
 from brainpy import errors, math
 from brainpy.base.collector import Collector
 from brainpy.simulation import utils
-from brainpy.integrators.wrapper import odeint
 from brainpy.simulation.brainobjects.base import DynamicalSystem
+
 
 __all__ = [
   'NeuGroup',
@@ -66,6 +66,7 @@ class NeuGroup(DynamicalSystem):
 #
 # ----------------------------------------------------
 
+
 class Channel(DynamicalSystem):
   """Base class to model ion channels."""
 
@@ -80,23 +81,29 @@ class Channel(DynamicalSystem):
 
   def update(self, _t, _dt):
     """The function to specify the updating rule."""
-    raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '
-                              f'implement "update" function.')
+    raise NotImplementedError(f'Subclass of {self.__class__.__name__} '
+                              f'must implement "update" function.')
 
 
 class CondNeuGroup(NeuGroup):
-  """Conductance neuron group."""
+  """Conductance neuron group.
+
+  This model requires the channels implement
+
+
+  """
   def __init__(self, C=1., A=1e-3, Vth=0., **channels):
     self.C = C
-    self.A = A
+    self.A = 1e-3 / A
     self.Vth = Vth
 
     # children channels
     self.child_channels = Collector()
     for key, ch in channels.items():
       if not isinstance(ch, Channel):
-        raise errors.BrainPyError(f'{self.__class__.__name__} only receives {Channel.__name__} '
-                                  f'instance, while we got {type(ch)}: {ch}.')
+        raise errors.BrainPyError(f'{self.__class__.__name__} only receives '
+                                  f'{Channel.__name__} instance, while we '
+                                  f'got {type(ch)}: {ch}.')
       self.child_channels[key] = ch
 
   def init(self, size, monitors=None, name=None):
@@ -106,39 +113,34 @@ class CondNeuGroup(NeuGroup):
     self.V = math.Variable(math.zeros(self.num, dtype=math.float_))
     self.spike = math.Variable(math.zeros(self.num, dtype=math.bool_))
     self.input = math.Variable(math.zeros(self.num, dtype=math.float_))
+    self.I_ion = math.Variable(math.zeros(self.num, dtype=math.float_))
+    self.V_linear = math.Variable(math.zeros(self.num, dtype=math.float_))
 
-    # initialize node variables
+    # initialize variables in channels
     for ch in self.child_channels.values():
       ch.init(host=self)
-
-    # checking
-    self._output_channels = []
-    self._update_channels = []
-    for ch in self.child_channels.values():
-      if not hasattr(ch, 'I'):
-        self._update_channels.append(ch)
-      else:
-        if not isinstance(getattr(ch, 'I'), math.Variable):
-          raise errors.BrainPyError
-        self._output_channels.append(ch)
 
     return self
 
   def update(self, _t, _dt):
-    for ch in self._update_channels:
+    # update variables in channels
+    for ch in self.child_channels.values():
       ch.update(_t, _dt)
-    for ch in self._output_channels:
-      ch.update(_t, _dt)
-      self.input += ch.I
 
-    # update variables
-    V = self.V + self.input / self.C * _dt
-    # V = self.V + self.input / self.C / self.A * _dt
+    # update V using Exponential Euler method
+    dvdt = self.I_ion / self.C + self.input * (self.A / self.C)
+    linear = self.V_linear / self.C
+    V = self.V + dvdt * (math.exp(linear * _dt) - 1) / linear
+
+    # update other variables
     self.spike[:] = math.logical_and(V >= self.Vth, self.V < self.Vth)
-    self.V[:] = V
+    self.V_linear[:] = 0.
+    self.I_ion[:] = 0.
     self.input[:] = 0.
+    self.V[:] = V
 
   def __getattr__(self, item):
+    """Wrap the dot access ('self.'). """
     child_channels = super(CondNeuGroup, self).__getattribute__('child_channels')
     if item in child_channels:
       return child_channels[item]

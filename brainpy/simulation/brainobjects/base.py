@@ -105,7 +105,7 @@ class DynamicalSystem(Base):
     for step in self.steps.values():
       step(_t, _dt)
 
-  def run(self, duration, report=0., inputs=()):
+  def run(self, duration, report=0., inputs=(), dt=None, extra_func=None):
     """The running function.
 
     Parameters
@@ -131,11 +131,21 @@ class DynamicalSystem(Base):
       The percent of progress to report. [0, 1]. If zero, the model
       will not output report progress.
 
+    dt : float, optional
+      The numerical integration step size.
+
+    extra_func : function, callable
+      The extra function to run during each time step.
+
     Returns
     -------
     running_time : float
       The total running time.
     """
+
+    if dt is None:
+      dt = math.get_dt()
+    assert isinstance(dt, (int, float))
 
     # 1. Backend checking
     for node in self.nodes().values():
@@ -158,14 +168,18 @@ class DynamicalSystem(Base):
 
     # 4. times
     start, end = utils.check_duration(duration)
-    times = math.arange(start, end, math.get_dt())
+    times = math.arange(start, end, dt)
 
     # 5. run the model
     # ----
     # 5.1 iteratively run the step function.
     # 5.2 report the running progress.
     # 5.3 return the overall running time.
-    running_time = utils.run_model(run_func=self._step_run, times=times, report=report)
+    running_time = utils.run_model(run_func=self._step_run,
+                                   times=times,
+                                   report=report,
+                                   dt=dt,
+                                   extra_func=extra_func)
 
     # 6. monitor
     # --

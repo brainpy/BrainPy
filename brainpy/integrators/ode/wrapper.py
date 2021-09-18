@@ -392,8 +392,8 @@ def exp_euler_wrapper(f, show_code, dt, var_type):
       code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
 
     else:
-      # linear exponential
-      code_lines.append(f'  {s_linear_exp.name} = {_dt_kw} ** 0.5')
+      # # linear exponential
+      # code_lines.append(f'  {s_linear_exp.name} = {_dt_kw} ** 0.5')
       # df part
       code_lines.append(f'  {s_df_part.name} = {s_df.name} * {_dt_kw}')
 

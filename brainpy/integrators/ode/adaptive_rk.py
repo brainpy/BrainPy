@@ -152,11 +152,10 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
   References
   ----------
 
-  [1] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta%E2%80%93Fehlberg_method
-  [2] Erwin Fehlberg (1969). Low-order classical Runge-Kutta formulas with step
-      size control and their application to some heat transfer problems . NASA
-      Technical Report 315.
-      https://ntrs.nasa.gov/api/citations/19690021375/downloads/19690021375.pdf
+  .. [1] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta%E2%80%93Fehlberg_method
+  .. [2] Erwin Fehlberg (1969). Low-order classical Runge-Kutta formulas with step
+         size control and their application to some heat transfer problems . NASA Technical Report 315.
+         https://ntrs.nasa.gov/api/citations/19690021375/downloads/19690021375.pdf
 
   """
 
@@ -270,10 +269,10 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
   References
   ----------
 
-  [1] https://en.wikipedia.org/wiki/Dormand%E2%80%93Prince_method
-  [2] Dormand, J. R.; Prince, P. J. (1980), "A family of embedded Runge-Kutta formulae",
-      Journal of Computational and Applied Mathematics, 6 (1): 19–26,
-      doi:10.1016/0771-050X(80)90013-3.
+  .. [1] https://en.wikipedia.org/wiki/Dormand%E2%80%93Prince_method
+  .. [2] Dormand, J. R.; Prince, P. J. (1980), "A family of embedded Runge-Kutta formulae",
+         Journal of Computational and Applied Mathematics, 6 (1): 19–26,
+         doi:10.1016/0771-050X(80)90013-3.
   """
 
   A = [(),
@@ -331,10 +330,10 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
   References
   ----------
 
-  [1] https://en.wikipedia.org/wiki/Cash%E2%80%93Karp_method
-  [2] J. R. Cash, A. H. Karp. "A variable order Runge-Kutta method for initial value
-      problems with rapidly varying right-hand sides", ACM Transactions on Mathematical
-      Software 16: 201-222, 1990. doi:10.1145/79505.79507
+  .. [1] https://en.wikipedia.org/wiki/Cash%E2%80%93Karp_method
+  .. [2] J. R. Cash, A. H. Karp. "A variable order Runge-Kutta method for initial value
+         problems with rapidly varying right-hand sides", ACM Transactions on Mathematical
+         Software 16: 201-222, 1990. doi:10.1145/79505.79507
   """
 
   A = [(),
@@ -389,9 +388,9 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
   References
   ----------
 
-  [1] https://en.wikipedia.org/wiki/Bogacki%E2%80%93Shampine_method
-  [2] Bogacki, Przemysław; Shampine, Lawrence F. (1989), "A 3(2) pair of Runge–Kutta
-      formulas", Applied Mathematics Letters, 2 (4): 321–325, doi:10.1016/0893-9659(89)90079-7
+  .. [1] https://en.wikipedia.org/wiki/Bogacki%E2%80%93Shampine_method
+  .. [2] Bogacki, Przemysław; Shampine, Lawrence F. (1989), "A 3(2) pair of Runge–Kutta
+         formulas", Applied Mathematics Letters, 2 (4): 321–325, doi:10.1016/0893-9659(89)90079-7
   """
 
   A = [(),
@@ -466,9 +465,9 @@ def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is
   References
   ----------
 
-  [1] E. Hairer, S.P. Norsett and G. Wanner, "Solving ordinary Differential Equations
-      I. Nonstiff Problems", 2nd edition. Springer Series in Computational Mathematics,
-      Springer-Verlag (1993).
-  [2] http://www.unige.ch/~hairer/software.html
+  .. [1] E. Hairer, S.P. Norsett and G. Wanner, "Solving ordinary Differential Equations
+         I. Nonstiff Problems", 2nd edition. Springer Series in Computational Mathematics,
+         Springer-Verlag (1993).
+  .. [2] http://www.unige.ch/~hairer/software.html
   """
   pass

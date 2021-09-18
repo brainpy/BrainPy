@@ -613,7 +613,7 @@ def test_FindForLoop1():
   code = '''
 for ch in self._update_channels:
   ch.update(_t, _dt)
-for ch in self._output_channels:
+for ch in self._current_channels:
   self.input += ch.update(_t, _dt)
 
 # update variables
