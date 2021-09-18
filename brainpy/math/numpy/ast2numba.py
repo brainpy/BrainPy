@@ -857,11 +857,11 @@ def _find_all_forloop(code_or_tree):
   >>> code = '''
   >>> for ch in self._update_channels:
   >>>  ch.update(_t, _dt)
-  >>> for ch in self._output_channels:
+  >>> for ch in self._current_channels:
   >>>  self.input += ch.update(_t, _dt)
   >>> '''
   >>> _find_all_forloop(code)
-  {'self._output_channels': ('ch',
+  {'self._current_channels': ('ch',
                             <_ast.Module object at 0x00000155BD23B730>,
                             'self.input += ch.update(_t, _dt)\n'),
   'self._update_channels': ('ch',

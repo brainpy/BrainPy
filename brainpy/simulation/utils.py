@@ -70,7 +70,7 @@ def get_run_length_by_duration(duration):
   return mon_length
 
 
-def run_model(run_func, times, report):
+def run_model(run_func, times, report, dt=None, extra_func=None):
   """Run the model.
 
   The "run_func" can be the step run function of a dynamical system.
@@ -85,10 +85,24 @@ def run_model(run_func, times, report):
       The percent of the total running length for each report.
   """
 
+  # numerical integration step
+  if dt is None:
+    dt = math.get_dt()
+  assert isinstance(dt, (int, float))
+
+  # running function
+  if extra_func is None:
+    running_func = run_func
+  else:
+    def running_func(_t, _dt):
+      extra_func(_t, _dt)
+      run_func(_t, _dt)
+
+  # simulations
   run_length = len(times)
   if report:
     t0 = time.time()
-    run_func(_t=times[0], _dt=math.get_dt())
+    running_func(_t=times[0], _dt=dt)
     compile_time = time.time() - t0
     print('Compilation used {:.4f} s.'.format(compile_time))
 
@@ -96,7 +110,7 @@ def run_model(run_func, times, report):
     report_gap = int(run_length * report)
     t0 = time.time()
     for run_idx in range(1, run_length):
-      run_func(_t=times[run_idx], _dt=math.get_dt())
+      running_func(_t=times[run_idx], _dt=dt)
       if (run_idx + 1) % report_gap == 0:
         percent = (run_idx + 1) / run_length * 100
         print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
@@ -107,7 +121,7 @@ def run_model(run_func, times, report):
   else:
     t0 = time.time()
     for run_idx in range(run_length):
-      run_func(_t=times[run_idx], _dt=math.get_dt())
+      running_func(_t=times[run_idx], _dt=dt)
     running_time = time.time() - t0
 
   return running_time
