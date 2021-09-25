@@ -92,10 +92,10 @@ class CondNeuGroup(NeuGroup):
 
 
   """
-  def __init__(self, C=1., A=1e-3, Vth=0., **channels):
+  def __init__(self, C=1., A=1e-3, V_th=0., **channels):
     self.C = C
     self.A = 1e-3 / A
-    self.Vth = Vth
+    self.V_th = V_th
 
     # children channels
     self.child_channels = Collector()
@@ -133,7 +133,7 @@ class CondNeuGroup(NeuGroup):
     V = self.V + dvdt * (math.exp(linear * _dt) - 1) / linear
 
     # update other variables
-    self.spike[:] = math.logical_and(V >= self.Vth, self.V < self.Vth)
+    self.spike[:] = math.logical_and(V >= self.V_th, self.V < self.V_th)
     self.V_linear[:] = 0.
     self.I_ion[:] = 0.
     self.input[:] = 0.
