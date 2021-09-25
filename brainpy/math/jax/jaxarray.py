@@ -38,6 +38,8 @@ class JaxArray(object):
   __slots__ = "_value"
 
   def __init__(self, value):
+    if isinstance(value, (list, tuple)):
+      value = jnp.asarray(value)
     self._value = value
 
   @property
