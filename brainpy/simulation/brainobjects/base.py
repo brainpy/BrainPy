@@ -4,6 +4,7 @@ from brainpy import math, errors
 from brainpy.base import collector
 from brainpy.base.base import Base
 from brainpy.simulation import utils
+from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.monitor import Monitor
 
 __all__ = [
@@ -33,14 +34,13 @@ class DynamicalSystem(Base):
   name : str, optional
       The name of the dynamic system.
   """
-  target_backend = None
 
   def __init__(self, steps=None, monitors=None, name=None):
     super(DynamicalSystem, self).__init__(name=name)
 
     # step functions
     if steps is None:
-      steps = ('update', )
+      steps = ('update',)
     self.steps = collector.Collector()
     if isinstance(steps, tuple):
       for step in steps:
@@ -71,21 +71,39 @@ class DynamicalSystem(Base):
       raise errors.BrainPyError(f'"monitors" only supports list/tuple/dict/ '
                                 f'instance of Monitor, not {type(monitors)}.')
 
-    # target backend
-    if self.target_backend is None:
-      self._target_backend = ('general',)
-    elif isinstance(self.target_backend, str):
-      self._target_backend = (self.target_backend,)
-    elif isinstance(self.target_backend, (tuple, list)):
-      if not isinstance(self.target_backend[0], str):
-        raise errors.BrainPyError('"target_backend" must be a list/tuple of string.')
-      self._target_backend = tuple(self.target_backend)
-    else:
-      raise errors.BrainPyError(f'Unknown setting of "target_backend": {self.target_backend}')
-
     # runner and run function
     self._input_step = lambda _t, _dt: None
     self._monitor_step = lambda _t, _dt: None
+
+  def register_constant_delay(self, key, size, delay, dtype=None):
+    """Register a constant delay.
+
+    Parameters
+    ----------
+    key : str
+        The delay name.
+    size : int, list of int, tuple of int
+        The delay data size.
+    delay : int, float, ndarray
+        The delay time, with the unit same with `brainpy.math.get_dt()`.
+
+    Returns
+    -------
+    delay : ConstantDelay
+        An instance of ConstantDelay.
+    """
+
+    if not hasattr(self, 'steps'):
+      raise errors.BrainPyError('Please initialize the super class first before '
+                                'registering constant_delay. \n\n'
+                                'super(YourClassName, self).__init__(**kwargs)')
+    if not key.isidentifier():
+      raise ValueError(f'{key} is not a valid identifier.')
+
+    cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}', dtype=dtype)
+    self.steps[f'{key}_update'] = cdelay.update
+
+    return cdelay
 
   def update(self, _t, _dt):
     """The function to specify the updating rule.
@@ -146,15 +164,6 @@ class DynamicalSystem(Base):
     if dt is None:
       dt = math.get_dt()
     assert isinstance(dt, (int, float))
-
-    # 1. Backend checking
-    for node in self.nodes().values():
-      check1 = node._target_backend[0] != 'general'
-      check2 = math.get_backend_name() not in node._target_backend
-      if check1 and check2:
-        raise errors.BrainPyError(f'The model {node.name} is target to run on '
-                                  f'{node._target_backend}, but currently the '
-                                  f'selected backend is {math.get_backend_name()}')
 
     # 2. Build the inputs.
     #    All the inputs are wrapped into a single function.

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import errors, math
-from brainpy.simulation.connectivity import TwoEndConnector, MatConn, IJConn
 from brainpy.simulation.brainobjects.base import DynamicalSystem
-from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.brainobjects.neuron import NeuGroup
+from brainpy.simulation.connectivity import TwoEndConnector, MatConn, IJConn
 
 __all__ = [
   'TwoEndConn',
@@ -65,36 +64,3 @@ class TwoEndConn(DynamicalSystem):
     # initialize
     # ----------
     super(TwoEndConn, self).__init__(steps=steps, name=name, **kwargs)
-
-  def register_constant_delay(self, key, size, delay, dtype=None):
-    """Register a constant delay.
-
-    Parameters
-    ----------
-    key : str
-        The delay name.
-    size : int, list of int, tuple of int
-        The delay data size.
-    delay : int, float, ndarray
-        The delay time, with the unit same with `brainpy.math.get_dt()`.
-
-    Returns
-    -------
-    delay : ConstantDelay
-        An instance of ConstantDelay.
-    """
-
-    if not hasattr(self, 'steps'):
-      raise errors.BrainPyError('Please initialize the super class first before '
-                                'registering constant_delay. \n\n'
-                                'super(YourClassName, self).__init__(**kwargs)')
-    if not key.isidentifier():
-      raise ValueError(f'{key} is not a valid identifier.')
-
-    cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}', dtype=dtype)
-    self.steps[f'{key}_update'] = cdelay.update
-
-    return cdelay
-
-  def update(self, _t, _dt):
-    raise NotImplementedError
