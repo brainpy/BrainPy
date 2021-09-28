@@ -4,8 +4,10 @@ from brainpy import math, errors
 from brainpy.base import collector
 from brainpy.base.base import Base
 from brainpy.simulation import utils
-from brainpy.simulation.brainobjects.delays import ConstantDelay
 from brainpy.simulation.monitor import Monitor
+
+ConstantDelay = None
+
 
 __all__ = [
   'DynamicalSystem',
@@ -92,6 +94,9 @@ class DynamicalSystem(Base):
     delay : ConstantDelay
         An instance of ConstantDelay.
     """
+    global ConstantDelay
+    if ConstantDelay is None:
+      from brainpy.simulation.brainobjects.delays import ConstantDelay
 
     if not hasattr(self, 'steps'):
       raise errors.BrainPyError('Please initialize the super class first before '
@@ -99,10 +104,8 @@ class DynamicalSystem(Base):
                                 'super(YourClassName, self).__init__(**kwargs)')
     if not key.isidentifier():
       raise ValueError(f'{key} is not a valid identifier.')
-
     cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}', dtype=dtype)
     self.steps[f'{key}_update'] = cdelay.update
-
     return cdelay
 
   def update(self, _t, _dt):
@@ -257,24 +260,6 @@ class Container(DynamicalSystem):
     """
     for step in self.child_steps.values():
       step(_t, _dt)
-
-  def vars(self, method='absolute'):
-    """Collect all the variables (and their names) contained
-    in the list and its children instance of DynamicalSystem.
-
-    Parameters
-    ----------
-    method : str
-      string to prefix to the variable names.
-
-    Returns
-    -------
-    gather : collector.ArrayCollector
-        A collection of all the variables.
-    """
-    gather = self._vars_in_container(self.child_ds, method=method)
-    gather.update(super(Container, self).vars(method=method))
-    return gather
 
   def nodes(self, method='absolute', _paths=None):
     if _paths is None:

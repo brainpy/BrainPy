@@ -99,24 +99,6 @@ class Sequential(Module):
         raise type(e)(f'Sequential [{keys[i]}] {calls[i]} {e}')
     return args
 
-  def vars(self, method='absolute'):
-    """Collect all the variables (and their names) contained
-    in the list and its children instance of Module.
-
-    Parameters
-    ----------
-    method : str
-      string to prefix to the variable names.
-
-    Returns
-    -------
-    gather collector.ArrayCollector
-        A collection of all the variables.
-    """
-    gather = self._vars_in_container(self.child_modules, method=method)
-    gather.update(super(Sequential, self).vars(method=method))
-    return gather
-
   def nodes(self, method='absolute', _paths=None):
     if _paths is None:
       _paths = set()

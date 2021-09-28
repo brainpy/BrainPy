@@ -42,7 +42,7 @@ class Collector(dict):
     gather.update(other)
     return gather
 
-  def subset(self, type_, judge_func=None):
+  def subset(self, var_type, judge_func=None):
     """Get the subset of the (key, value) pair.
 
     ``subset()`` can be used to get a subset of some class:
@@ -50,10 +50,10 @@ class Collector(dict):
     >>> import brainpy as bp
     >>>
     >>> # get all trainable variables
-    >>> some_collector.subset(bp.TrainVar)
+    >>> some_collector.subset(bp.math.TrainVar)
     >>>
     >>> # get all JaxArray
-    >>> some_collector.subset(bp.math.JaxArray)
+    >>> some_collector.subset(bp.math.Variable)
 
     or, it can be used to get a subset of integrators:
 
@@ -62,7 +62,7 @@ class Collector(dict):
 
     Parameters
     ----------
-    type_ : Any
+    var_type : Any
       The type/class to match.
     judge_func : optional, callable
     """
@@ -71,23 +71,23 @@ class Collector(dict):
       from brainpy import math
 
     gather = type(self)()
-    if type(type_) == type:
-      judge_func = lambda v: isinstance(v, type_) if judge_func is None else judge_func
+    if type(var_type) == type:
+      judge_func = (lambda v: isinstance(v, var_type)) if judge_func is None else judge_func
       for key, value in self.items():
         if judge_func(value):
           gather[key] = value
-    elif isinstance(type_, str):
-      judge_func = lambda v: v.__name__.startswith(type_) if judge_func is None else judge_func
+    elif isinstance(var_type, str):
+      judge_func = (lambda v: v.__name__.startswith(var_type)) if judge_func is None else judge_func
       for key, value in self.items():
         if judge_func(value):
           gather[key] = value
-    elif isinstance(type_, math.Variable):
-      judge_func = lambda v: type_.issametype(v) if judge_func is None else judge_func
+    elif isinstance(var_type, math.Variable):
+      judge_func = (lambda v: var_type.issametype(v)) if judge_func is None else judge_func
       for key, value in self.items():
         if judge_func(value):
           gather[key] = value
     else:
-      raise errors.UnsupportedError(f'BrainPy do not support subset {type(type_)}. '
+      raise errors.UnsupportedError(f'BrainPy do not support to subset {type(var_type)}. '
                                     f'You should provide a class name, or a str.')
     return gather
 

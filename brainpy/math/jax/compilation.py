@@ -37,8 +37,12 @@ logger = logging.getLogger('brainpy.math.jax.compilation')
 def _make_jit(func, vars_to_change, vars_needed,
               static_argnums, static_argnames=None, device=None,
               backend=None, donate_argnums=(), inline=False, f_name=None):
-  @functools.partial(jax.jit, static_argnums=static_argnums, static_argnames=static_argnames,
-                     device=device, backend=backend, donate_argnums=donate_argnums, inline=inline)
+  @functools.partial(jax.jit,
+                     static_argnums=static_argnums,
+                     static_argnames=static_argnames,
+                     device=device, backend=backend,
+                     donate_argnums=donate_argnums,
+                     inline=inline)
   def jitted_func(data_to_change, data_needed, *args, **kwargs):
     vars_to_change.assign(data_to_change)
     vars_needed.assign(data_needed)

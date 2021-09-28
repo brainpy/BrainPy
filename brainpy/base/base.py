@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
 
+from brainpy import errors
 from brainpy.base import collector
 from brainpy.tools import namechecking
 
@@ -9,6 +11,7 @@ __all__ = [
 ]
 
 math = DE_INT = None
+logger = logging.getLogger('brainpy.base')
 
 
 class Base(object):
@@ -20,11 +23,35 @@ class Base(object):
   - ``DynamicalSystem`` in brainpy.simulation.brainobjects.base.py
 
   """
+  target_backend = None
 
   def __init__(self, name=None):
     # check whether the object has a unique name.
     self.name = self.unique_name(name=name)
     namechecking.check_name(name=self.name, obj=self)
+
+    # target backend
+    if self.target_backend is None:
+      self.target_backend = ('general',)
+    elif isinstance(self.target_backend, str):
+      self.target_backend = (self.target_backend,)
+    elif isinstance(self.target_backend, (tuple, list)):
+      if not isinstance(self.target_backend[0], str):
+        raise errors.BrainPyError('"target_backend" must be a list/tuple of string.')
+      self.target_backend = tuple(self.target_backend)
+    else:
+      raise errors.BrainPyError(f'Unknown setting of "target_backend": {self.target_backend}')
+
+    # check target backend
+    global math
+    if math is None: from brainpy import math
+    check1 = self.target_backend[0] != 'general'
+    check2 = math.get_backend_name() not in self.target_backend
+    if check1 and check2:
+      msg = f'ERROR: The model {self.name} is target to run on {self.target_backend}, ' \
+            f'but currently the selected backend is "{math.get_backend_name()}"'
+      logger.error(msg)
+      raise errors.BrainPyError(msg)
 
   def vars(self, method='absolute'):
     """Collect all variables in this node and the children nodes.
@@ -40,38 +67,15 @@ class Base(object):
       The collection contained (the path, the variable).
     """
     global math
-    if math is None:
-      from brainpy import math
+    if math is None: from brainpy import math
 
-    gather = collector.ArrayCollector()
-    if method == 'absolute':
-      for k, v in self.__dict__.items():
+    nodes = self.nodes(method=method)
+    gather = collector.Collector()
+    for node_path, node in nodes.items():
+      for k in dir(node):
+        v = getattr(node, k)
         if isinstance(v, math.Variable):
-          gather[f'{self.name}.{k}'] = v
-        elif isinstance(v, Base):
-          gather.update(v.vars(method=method))
-    elif method == 'relative':
-      for k, v in self.__dict__.items():
-        if isinstance(v, math.Variable):
-          gather[k] = v
-        elif isinstance(v, Base):
-          for k2, v2 in v.vars(method=method).items():
-            gather[f'{k}.{k2}'] = v2
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
-    return gather
-
-  def _vars_in_container(self, dict_container, method='absolute'):
-    gather = collector.ArrayCollector()
-    if method == 'absolute':
-      for _, v in dict_container.items():
-        gather.update(v.vars(method=method))
-    elif method == 'relative':
-      for k, v in dict_container.items():
-        for k2, v2 in v.vars(method=method).items():
-          gather[f'{k}.{k2}'] = v2
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
+          gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 
   def train_vars(self, method='absolute'):
@@ -135,7 +139,8 @@ class Base(object):
             nodes.append((k, v))
       for k, v in nodes:
         for k2, v2 in v.nodes(method=method, _paths=_paths).items():
-          if k2: gather[f'{k}.{k2}'] = v2
+          if k2:
+            gather[f'{k}.{k2}'] = v2
 
     else:
       raise ValueError(f'No support for the method of "{method}".')
@@ -199,7 +204,7 @@ class Base(object):
       for k in dir(node):
         v = getattr(node, k)
         if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(DE_INT):
-          gather[f'{node_path}.{k}'] = v
+          gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 
   def unique_name(self, name=None, type=None):
