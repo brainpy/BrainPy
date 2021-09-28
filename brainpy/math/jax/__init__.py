@@ -13,6 +13,7 @@
 from . import fft
 from . import linalg
 from . import random
+from .activations import *
 from .code import *
 from .controls import *
 from .compilation import *

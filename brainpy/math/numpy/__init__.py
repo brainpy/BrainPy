@@ -3,6 +3,7 @@
 from . import fft
 from . import linalg
 from . import random
+from .activations import *
 from .code import *
 from .compilation import *
 from .gradient import *

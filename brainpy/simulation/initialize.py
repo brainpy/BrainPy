@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import abc
-
 import numpy as np
-
 from brainpy import math
+
 
 __all__ = [
   'Initializer',
@@ -12,6 +11,7 @@ __all__ = [
   'OneInit',
   'Identity',
   'Orthogonal',
+  'Normal',
   'KaimingNormal',
   'KaimingTruncatedNormal',
   'XavierNormal',
@@ -26,19 +26,7 @@ class Initializer(abc.ABC):
 
   @abc.abstractmethod
   def __call__(self, *args, **kwargs):
-    pass
-
-
-def _gain_leaky_relu(relu_slope=0.1):
-  """The recommended gain value for leaky_relu.
-
-  Args:
-      relu_slope: negative slope of leaky_relu.
-
-  Returns:
-      The recommended gain value for leaky_relu.
-  """
-  return np.sqrt(2 / (1 + relu_slope ** 2))
+    raise NotImplementedError
 
 
 class ZeroInit(Initializer):
@@ -58,17 +46,17 @@ class OneInit(Initializer):
 class Identity(Initializer):
   """Returns the identity matrix.
 
-    This initializer was proposed in
-    `A Simple Way to Initialize Recurrent Networks of Rectified Linear Units
-    <https://arxiv.org/abs/1504.00941>`_.
+  This initializer was proposed in
+  `A Simple Way to Initialize Recurrent Networks of Rectified Linear Units
+  <https://arxiv.org/abs/1504.00941>`_.
 
-    Args:
-        shape: Shape of the tensor. It should have exactly rank 2.
-        gain: optional scaling factor.
+  Args:
+      shape: Shape of the tensor. It should have exactly rank 2.
+      gain: optional scaling factor.
 
-    Returns:
-        Tensor initialized to the identity matrix.
-    """
+  Returns:
+      Tensor initialized to the identity matrix.
+  """
 
   def __init__(self, gain=1.):
     self.gain = gain
@@ -275,4 +263,3 @@ class TruncatedNormal(Initializer):
                                        upper=self.upper)
     return math.asarray(res, dtype=self.dtype)
 
-# from scipy.stats import truncnorm

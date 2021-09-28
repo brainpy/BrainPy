@@ -126,7 +126,7 @@ class DynamicalSystem(Base):
     for step in self.steps.values():
       step(_t=_t, _dt=_dt, **kwargs)
 
-  def run(self, duration, report=0., inputs=(), dt=None, extra_func=None):
+  def run(self, duration, dt=None, report=0., inputs=(), extra_func=None):
     """The running function.
 
     Parameters

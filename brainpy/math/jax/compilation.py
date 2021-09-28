@@ -22,7 +22,7 @@ from jax.interpreters.pxla import ShardedDeviceArray
 from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import ArrayCollector
-from brainpy.math.jax.random import RandomState
+from brainpy.math.jax.random import RandomState, RS
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -37,6 +37,12 @@ logger = logging.getLogger('brainpy.math.jax.compilation')
 def _make_jit(func, vars_to_change, vars_needed,
               static_argnums, static_argnames=None, device=None,
               backend=None, donate_argnums=(), inline=False, f_name=None):
+  has_rand_state = False
+  for v in vars_to_change.values():
+    if v == RS: has_rand_state = True
+  if not has_rand_state:
+    vars_to_change['_sys_randon_state'] = RS
+
   @functools.partial(jax.jit,
                      static_argnums=static_argnums,
                      static_argnames=static_argnames,

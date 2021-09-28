@@ -70,7 +70,7 @@ class Base(object):
     if math is None: from brainpy import math
 
     nodes = self.nodes(method=method)
-    gather = collector.Collector()
+    gather = collector.ArrayCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
