@@ -13,5 +13,11 @@
     simulation/monitor
     simulation/inputs
     simulation/measure
+    simulation/layers
+    simulation/nets
+    simulation/activations
+    simulation/inits
+    simulation/losses
+    simulation/optimization
 
 

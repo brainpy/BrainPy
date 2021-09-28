@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.dnn import activations
-from brainpy.dnn.base import Module
+from brainpy.simulation.module import Module
 
 __all__ = [
   'Activation'
@@ -17,5 +17,5 @@ class Activation(Module):
     self.activation = activations.get(activation)
     self.setting = setting
 
-  def __call__(self, x):
+  def update(self, x, **kwargs):
     return self.activation(x, **self.setting)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.dnn.base import Module
-from brainpy.dnn.imports import jmath
+from brainpy.simulation.module import Module
+from brainpy.simulation._imports import mjax
 
 __all__ = [
   'Dropout'
@@ -35,11 +35,11 @@ class Dropout(Module):
     self.prob = prob
     super(Dropout, self).__init__(name=name)
 
-  def __call__(self, x, config=None):
+  def update(self, x, config=None, **kwargs):
     if config is None:
       config = dict()
     if config.get('train', True):
-      keep_mask = jmath.random.bernoulli(self.prob, x.shape)
-      return jmath.where(keep_mask, x / self.prob, 0.)
+      keep_mask = mjax.random.bernoulli(self.prob, x.shape)
+      return mjax.where(keep_mask, x / self.prob, 0.)
     else:
       return x

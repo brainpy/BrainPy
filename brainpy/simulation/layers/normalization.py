@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.dnn.base import Module
-from brainpy.dnn.imports import jmath
+from brainpy.simulation.module import Module
+from brainpy.simulation._imports import mjax
 
 
 class BatchNorm(Module):
@@ -31,12 +31,12 @@ class BatchNorm(Module):
     self.axis = axis
     self.momentum = momentum
     self.eps = eps
-    self.running_mean = jmath.zeros(dims)
-    self.running_var = jmath.zeros(dims)
-    self.shift = jmath.TrainVar(jmath.zeros(dims))
-    self.scale = jmath.TrainVar(jmath.ones(dims))
+    self.running_mean = mjax.zeros(dims)
+    self.running_var = mjax.zeros(dims)
+    self.shift = mjax.TrainVar(mjax.zeros(dims))
+    self.scale = mjax.TrainVar(mjax.ones(dims))
 
-  def __call__(self, x, config=None):
+  def update(self, x, config=None, **kwargs):
     if config is None:
       config = dict()
     if config.get('train', True):

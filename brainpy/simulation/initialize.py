@@ -4,7 +4,7 @@ import abc
 
 import numpy as np
 
-from brainpy.dnn.imports import jax, jmath
+from brainpy import math
 
 __all__ = [
   'Initializer',
@@ -21,6 +21,9 @@ __all__ = [
 
 
 class Initializer(abc.ABC):
+  def __init__(self, dtype):
+    self.dtype = math.float_ if dtype is None else dtype
+
   @abc.abstractmethod
   def __call__(self, *args, **kwargs):
     pass
@@ -38,47 +41,18 @@ def _gain_leaky_relu(relu_slope=0.1):
   return np.sqrt(2 / (1 + relu_slope ** 2))
 
 
-def _kaiming_normal_gain(shape):
-  """Returns Kaiming He gain from
-  `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
-  <https://arxiv.org/abs/1502.01852>`_.
-
-  Args:
-      shape: shape of the output tensor.
-
-  Returns:
-      Scalar, the standard deviation gain.
-  """
-  fan_in = np.prod(shape[:-1])
-  return np.sqrt(1 / fan_in)
-
-
-def _xavier_normal_gain(shape):
-  """Returns Xavier Glorot gain from
-  `Understanding the difficulty of training deep feedforward neural networks
-  <http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf>`_.
-
-  Args:
-      shape: shape of the output tensor.
-
-  Returns:
-      Scalar, the standard deviation gain.
-  """
-  fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
-  return np.sqrt(2 / (fan_in + fan_out))
-
-
 class ZeroInit(Initializer):
-  def __call__(self, shape, dtype=None):
-    return jmath.zeros(shape, dtype=dtype)
+  def __call__(self, shape):
+    return math.zeros(shape, dtype=self.dtype)
 
 
 class OneInit(Initializer):
-  def __init__(self, value=1.):
+  def __init__(self, value=1., dtype=None):
     self.value = value
+    super(OneInit, self).__init__(dtype=dtype)
 
-  def __call__(self, shape, dtype=None):
-    return jmath.ones(shape, dtype=dtype)
+  def __call__(self, shape):
+    return math.ones(shape, dtype=self.dtype)
 
 
 class Identity(Initializer):
@@ -98,9 +72,10 @@ class Identity(Initializer):
 
   def __init__(self, gain=1.):
     self.gain = gain
+    super(Identity, self).__init__(dtype=self.dtype)
 
-  def __call__(self, shape, dtype=None):
-    return self.gain * jax.numpy.eye(*shape, dtype=dtype)
+  def __call__(self, shape):
+    return self.gain * math.eye(*shape, dtype=self.dtype)
 
 
 class Orthogonal(Initializer):
@@ -125,15 +100,16 @@ class Orthogonal(Initializer):
         columns depending on which side is smaller.
     """
 
-  def __init__(self, gain=1., axis=-1):
+  def __init__(self, gain=1., axis=-1, dtype=None):
     self.gain = gain
     self.axis = axis
+    super(Orthogonal, self).__init__(dtype=dtype)
 
-  def __call__(self, shape, dtype=None):
+  def __call__(self, shape):
     n_rows = shape[self.axis]
     n_cols = np.prod(shape) // n_rows
     matrix_shape = (n_rows, n_cols) if n_rows > n_cols else (n_cols, n_rows)
-    norm_dst = jmath.random.normal(size=matrix_shape)
+    norm_dst = math.random.normal(size=matrix_shape)
     q_mat, r_mat = np.linalg.qr(norm_dst)
     # Enforce Q is uniformly distributed
     q_mat *= np.sign(np.diag(r_mat))
@@ -141,7 +117,18 @@ class Orthogonal(Initializer):
       q_mat = q_mat.T
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
-    return self.gain * jax.numpy.array(q_mat)
+    return self.gain * math.asarray(q_mat, dtype=self.dtype)
+
+
+class Normal(Initializer):
+  def __init__(self, gain=1., dtype=None):
+    self.gain = gain
+    super(Normal, self).__init__(dtype=dtype)
+
+  def __call__(self, shape):
+    gain = np.sqrt(1 / np.prod(shape))
+    res = math.random.normal(size=shape, scale=self.gain * gain)
+    return math.asarray(res, dtype=res)
 
 
 class KaimingNormal(Initializer):
@@ -157,12 +144,14 @@ class KaimingNormal(Initializer):
         Tensor initialized with normal random variables with standard deviation (gain * kaiming_normal_gain).
     """
 
-  def __init__(self, gain=1.):
+  def __init__(self, gain=1., dtype=None):
     self.gain = gain
+    super(KaimingNormal, self).__init__(dtype=dtype)
 
   def __call__(self, shape, dtype=None):
-    gain = _kaiming_normal_gain(shape)
-    return jmath.random.normal(size=shape, scale=self.gain * gain)
+    gain = np.sqrt(1 / np.prod(shape[:-1]))
+    res = math.random.normal(size=shape, scale=self.gain * gain)
+    return math.asarray(res, dtype=self.dtype)
 
 
 class KaimingTruncatedNormal(Initializer):
@@ -181,21 +170,23 @@ class KaimingTruncatedNormal(Initializer):
         deviation (gain * kaiming_normal_gain) and support [lower, upper].
     """
 
-  def __init__(self, lower=-2., upper=2., gain=1.):
+  def __init__(self, lower=-2., upper=2., gain=1., dtype=None):
     self.lower = lower
     self.upper = upper
     self.gain = gain
+    super(KaimingTruncatedNormal, self).__init__(dtype)
 
-  def __call__(self, shape, dtype=None):
+  def __call__(self, shape):
     truncated_std = scipy.stats.truncnorm.std(a=self.lower,
                                               b=self.upper,
                                               loc=0.,
                                               scale=1.)
-    stddev = self.gain * _kaiming_normal_gain(shape) / truncated_std
-    return jmath.random.truncated_normal(size=shape,
-                                         scale=stddev,
-                                         lower=self.lower,
-                                         upper=self.upper)
+    stddev = self.gain * np.sqrt(1 / np.prod(shape[:-1])) / truncated_std
+    res = math.random.truncated_normal(size=shape,
+                                       scale=stddev,
+                                       lower=self.lower,
+                                       upper=self.upper)
+    return math.asarray(res, dtype=self.dtype)
 
 
 class XavierNormal(Initializer):
@@ -211,12 +202,15 @@ class XavierNormal(Initializer):
         Tensor initialized with normal random variables with standard deviation (gain * xavier_normal_gain).
     """
 
-  def __init__(self, gain=1.):
+  def __init__(self, gain=1., dtype=None):
     self.gain = gain
+    super(XavierNormal, self).__init__(dtype=dtype)
 
   def __call__(self, shape, dtype=None):
-    gain = _xavier_normal_gain(shape)
-    return jmath.random.normal(size=shape, scale=self.gain * gain)
+    fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
+    gain = np.sqrt(2 / (fan_in + fan_out))
+    res = math.random.normal(size=shape, scale=self.gain * gain)
+    return math.asarray(res, dtype=self.dtype)
 
 
 class XavierTruncatedNormal(Initializer):
@@ -235,18 +229,22 @@ class XavierTruncatedNormal(Initializer):
         deviation (gain * xavier_normal_gain) and support [lower, upper].
     """
 
-  def __init__(self, lower=-2., upper=2., gain=1.):
+  def __init__(self, lower=-2., upper=2., gain=1., dtype=None):
     self.lower = lower
     self.upper = upper
     self.gain = gain
+    super(XavierTruncatedNormal, self).__init__(dtype=dtype)
 
   def __call__(self, shape, dtype=None):
     truncated_std = scipy.stats.truncnorm.std(a=self.lower, b=self.upper, loc=0., scale=1)
-    stddev = self.gain * _xavier_normal_gain(shape) / truncated_std
-    return jmath.random.truncated_normal(size=shape,
-                                         scale=stddev,
-                                         lower=self.lower,
-                                         upper=self.upper)
+    fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
+    gain = np.sqrt(2 / (fan_in + fan_out))
+    stddev = self.gain * gain / truncated_std
+    res = math.random.truncated_normal(size=shape,
+                                       scale=stddev,
+                                       lower=self.lower,
+                                       upper=self.upper)
+    return math.asarray(res, dtype=self.dtype)
 
 
 class TruncatedNormal(Initializer):
@@ -263,14 +261,18 @@ class TruncatedNormal(Initializer):
         deviation stddev and support [lower, upper].
     """
 
-  def __init__(self, lower=-2., upper=2., scale=1.):
+  def __init__(self, lower=-2., upper=2., scale=1., dtype=None):
     self.lower = lower
     self.upper = upper
     self.scale = scale
+    super(TruncatedNormal, self).__init__(dtype=dtype)
 
   def __call__(self, shape, dtype=None):
     truncated_std = scipy.stats.truncnorm.std(a=self.lower, b=self.upper, loc=0., scale=1)
-    return jmath.random.truncated_normal(size=shape,
-                                         scale=self.scale / truncated_std,
-                                         lower=self.lower,
-                                         upper=self.upper)
+    res = math.random.truncated_normal(size=shape,
+                                       scale=self.scale / truncated_std,
+                                       lower=self.lower,
+                                       upper=self.upper)
+    return math.asarray(res, dtype=self.dtype)
+
+# from scipy.stats import truncnorm

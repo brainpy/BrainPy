@@ -14,6 +14,7 @@ from . import fft
 from . import linalg
 from . import random
 from .code import *
+from .controls import *
 from .compilation import *
 from .gradient import *
 from .jaxarray import *

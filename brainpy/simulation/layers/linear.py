@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.dnn.base import Module
-from brainpy.dnn.imports import jmath
-from brainpy.dnn.inits import XavierNormal, Initializer, ZeroInit
+from brainpy.simulation.module import Module
+from brainpy.simulation._imports import mjax
+from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
 
 __all__ = [
   'Linear'
@@ -31,11 +31,11 @@ class Linear(Module):
     self.n_out = n_out
     self.n_in = n_in
 
-    self.w = jmath.TrainVar(w_init((n_in, n_out)))
-    self.b = jmath.TrainVar(b_init(n_out))
+    self.w = mjax.TrainVar(w_init((n_in, n_out)))
+    self.b = mjax.TrainVar(b_init(n_out))
     super(Linear, self).__init__(name=name)
 
-  def __call__(self, x):
+  def update(self, x, **kwargs):
     """Returns the results of applying the linear transformation to input x."""
-    y = jmath.dot(x, self.w) + self.b
+    y = mjax.dot(x, self.w) + self.b
     return y

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.dnn.base import Sequential
-from brainpy.dnn.inits import XavierNormal, ZeroInit
-from brainpy.dnn.layers import Linear, Activation
+from brainpy.simulation.module import Sequential
+from brainpy.simulation.initialize import XavierNormal, ZeroInit
+from brainpy.simulation.layers import Linear, Activation
 
 __all__ = [
   'MLP'

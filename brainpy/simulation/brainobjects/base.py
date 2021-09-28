@@ -74,8 +74,8 @@ class DynamicalSystem(Base):
                                 f'instance of Monitor, not {type(monitors)}.')
 
     # runner and run function
-    self._input_step = lambda _t, _dt: None
-    self._monitor_step = lambda _t, _dt: None
+    self._input_step = None
+    self._monitor_step = None
 
   def register_constant_delay(self, key, size, delay, dtype=None):
     """Register a constant delay.
@@ -120,11 +120,11 @@ class DynamicalSystem(Base):
     """
     raise NotImplementedError('Must implement "update" function by user self.')
 
-  def _step_run(self, _t, _dt):
-    self._monitor_step(_t, _dt)
-    self._input_step(_t, _dt)
+  def _step_run(self, _t, _dt, **kwargs):
+    self._monitor_step(_t=_t, _dt=_dt)
+    self._input_step(_t=_t, _dt=_dt)
     for step in self.steps.values():
-      step(_t, _dt)
+      step(_t=_t, _dt=_dt, **kwargs)
 
   def run(self, duration, report=0., inputs=(), dt=None, extra_func=None):
     """The running function.
@@ -170,13 +170,18 @@ class DynamicalSystem(Base):
 
     # 2. Build the inputs.
     #    All the inputs are wrapped into a single function.
-    self._input_step = utils.build_input_func(utils.check_and_format_inputs(host=self, inputs=inputs),
-                                              show_code=False)
+    self._input_step = utils.build_input_func(
+      utils.check_and_format_inputs(host=self, inputs=inputs), show_code=False)
 
     # 3. Build the monitors.
     #    All the monitors are wrapped in a single function.
-    self._monitor_step = utils.build_monitor_func(utils.check_and_format_monitors(host=self),
-                                                  show_code=False)
+    if self._monitor_step is None:
+      self._monitor_step = utils.build_monitor_func(
+        utils.check_and_format_monitors(host=self), show_code=False)
+    else:
+      for node in self.nodes().unique().values():
+        for key in node.mon.item_contents.keys():
+          node.mon.item_contents[key] = []  # reshape the monitor items
 
     # 4. times
     start, end = utils.check_duration(duration)

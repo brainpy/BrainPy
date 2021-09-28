@@ -12,7 +12,7 @@ The references used are included:
 """
 
 from brainpy import errors
-from brainpy.dnn.imports import jax, jmath
+from brainpy.simulation._imports import jax, mjax
 
 __all__ = [
   'cross_entropy_loss',
@@ -79,7 +79,7 @@ def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
     :math:`0 \leq \text{targets}[i] \leq C-1`, or
     :math:`(d_1, d_2, ..., d_K, N, C)` or :math:`(d_1, d_2, ..., d_K, N)`
     with :math:`K \geq 1` in the case of K-dimensional loss.
-  weight : jmath.JaxArray, optional
+  weight : mjax.JaxArray, optional
     A manual rescaling weight given to each class. If given, has to be an array of size `C`.
   reduction : str, optional
     Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
@@ -89,21 +89,21 @@ def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
 
   Returns
   -------
-  output : scalar, jmath.JaxArray
+  output : scalar, mjax.JaxArray
     If :attr:`reduction` is ``'none'``, then the same size as the target:
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
     in the case of K-dimensional loss.
   """
-  if jmath.ndim(targets) + 1 == jmath.ndim(logits):
+  if mjax.ndim(targets) + 1 == mjax.ndim(logits):
     targets_old = targets.reshape((-1,))
     length = targets_old.shape[0]
-    rows = jmath.arange(length)
-    targets = jmath.zeros((length, logits.shape[-1]))
+    rows = mjax.arange(length)
+    targets = mjax.zeros((length, logits.shape[-1]))
     targets[rows, targets_old] = 1.
     targets = targets.reshape(logits.shape)
 
   # loss
-  logits = logits.value if isinstance(logits, jmath.JaxArray) else logits
+  logits = logits.value if isinstance(logits, mjax.JaxArray) else logits
   loss = jax.scipy.special.logsumexp(logits, axis=-1) - (logits * targets).sum(axis=-1)
 
   # weighted loss
@@ -128,12 +128,12 @@ def cross_entropy_sparse(logits, labels):
   if isinstance(labels, int):
     labeled_logits = logits[..., labels]
   else:
-    logits = logits.value if isinstance(logits, jmath.JaxArray) else logits
-    labels = labels.value if isinstance(labels, jmath.JaxArray) else labels
-    # labeled_logits = jmath.take_along_axis(logits, labels[..., None], -1).squeeze(-1)
-    labeled_logits = jmath.take_along_axis(logits, labels, -1).squeeze(-1)
+    logits = logits.value if isinstance(logits, mjax.JaxArray) else logits
+    labels = labels.value if isinstance(labels, mjax.JaxArray) else labels
+    # labeled_logits = mjax.take_along_axis(logits, labels[..., None], -1).squeeze(-1)
+    labeled_logits = mjax.take_along_axis(logits, labels, -1).squeeze(-1)
   loss = jax.scipy.special.logsumexp(logits, axis=-1) - labeled_logits
-  return jmath.JaxArray(loss)
+  return mjax.JaxArray(loss)
 
 
 def cross_entropy_sigmoid(logits, labels):
@@ -198,7 +198,7 @@ def l1_loos(logits, targets, reduction='sum'):
     If :attr:`reduction` is ``'none'``, then :math:`(N, *)`, same shape as the input.
   """
   diff = (logits - targets).reshape((logits.shape[0], -1))
-  norm = jmath.linalg.norm(diff, ord=1, axis=1, keepdims=False)
+  norm = mjax.linalg.norm(diff, ord=1, axis=1, keepdims=False)
   return _return(outputs=norm, reduction=reduction)
 
 

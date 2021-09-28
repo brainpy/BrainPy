@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.base.collector import ArrayCollector
-from brainpy.dnn.base import Module
-from brainpy.dnn.imports import jmath, jax
+from brainpy.simulation._imports import mjax, jax
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Optimizer',
@@ -13,12 +13,14 @@ __all__ = [
 ]
 
 
-class Optimizer(Module):
+class Optimizer(DynamicalSystem):
+  target_backend = 'jax'
+
   def __init__(self, train_vars, lr, name):
     super(Optimizer, self).__init__(name=name)
 
     if isinstance(train_vars, ArrayCollector):
-      train_vars = train_vars.subset(jmath.TrainVar).unique()
+      train_vars = train_vars.subset(mjax.TrainVar).unique()
     elif isinstance(train_vars, (list, tuple)):
       train_vars = ArrayCollector((f'_unknown{i}', var) for i, var in enumerate(train_vars))
       train_vars = train_vars.unique()
@@ -46,7 +48,7 @@ class SGD(Optimizer):
   def __init__(self, lr, train_vars, name=None):
     super(SGD, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
-  def __call__(self, grads: dict):
+  def update(self, grads: dict, **kwargs):
     if len(grads) != len(self._train_vars):
       raise ValueError('Expecting as many gradients as trainable variables')
     for key, p in self._train_vars.items():
@@ -58,10 +60,10 @@ class Momentum(Optimizer):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    ms = dict((key + '_m', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
     self.register_dynamical_vars(ms)
 
-  def __call__(self, grads: dict):
+  def update(self, grads: dict, **kwargs):
     if not (len(grads) == len(self._train_vars)):
       raise ValueError('Expecting as many gradients as trainable variables')
     for key, p in self._train_vars.items():
@@ -76,10 +78,10 @@ class NesterovMomentum(Optimizer):
     super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    ms = dict((key + '_m', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
     self.register_dynamical_vars(ms)
 
-  def __call__(self, grads: dict):
+  def update(self, grads: dict, **kwargs):
     if not (len(grads) == len(self._train_vars)):
       raise ValueError('Expecting as many gradients as trainable variables')
     for key, p in self._train_vars.items():
@@ -96,20 +98,20 @@ class Adam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps
-    self.step = jmath.Variable(jmath.array([0]))
-    ms = dict((key + '_m', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
-    vs = dict((key + '_v', jmath.Variable(jmath.zeros_like(x))) for key, x in self._train_vars.items())
+    self.step = mjax.Variable(mjax.array([0]))
+    ms = dict((key + '_m', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
+    vs = dict((key + '_v', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
     self.register_dynamical_vars(ms)
     self.register_dynamical_vars(vs)
 
-  def __call__(self, grads: dict):
+  def update(self, grads: dict, **kwargs):
     """Updates variables and other state based on Adam algorithm.
     """
     if len(grads) != len(self._train_vars):
       raise ValueError('Expecting as many gradients as trainable variables')
     self.step += 1
     step = self.step.value[0]
-    lr = self.lr * jmath.sqrt(1 - self.beta2 ** step) / (1 - self.beta1 ** step)
+    lr = self.lr * mjax.sqrt(1 - self.beta2 ** step) / (1 - self.beta1 ** step)
     for key, p in self._train_vars.items():
       m = self.dynamic_vars[key + '_m']
       v = self.dynamic_vars[key + '_v']

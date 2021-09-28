@@ -29,10 +29,10 @@ from .simulation.brainobjects import *
 from .simulation.monitor import *
 from .simulation import inputs
 from .simulation import measure
-
-
-# "dnn" module
-from . import dnn
+from .simulation import activations
+from .simulation import initialize
+from .simulation import losses
+from .simulation import optimizers
 
 
 # "analysis" module

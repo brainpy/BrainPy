@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.dnn.base import Module
-from brainpy.dnn.imports import jmath, jax
-from brainpy.dnn.inits import XavierNormal, Initializer, ZeroInit
+from brainpy.simulation.module import Module
+from brainpy.simulation._imports import mjax, jax
+from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
 
 __all__ = [
   'Conv2D',
@@ -71,18 +71,18 @@ class Conv2D(Module):
     self.groups = groups
 
     # weight initialization
-    self.b = jmath.TrainVar(b_init((nout, 1, 1)))
-    self.w = jmath.TrainVar(w_init((*_check_tuple(kernel_size), nin // groups, nout)))  # HWIO
+    self.b = mjax.TrainVar(b_init((nout, 1, 1)))
+    self.w = mjax.TrainVar(w_init((*_check_tuple(kernel_size), nin // groups, nout)))  # HWIO
     self.w_init = w_init
     self.b_init = b_init
 
-  def __call__(self, x):
+  def update(self, x, **kwargs):
     nin = self.w.value.shape[2] * self.groups
     assert x.shape[1] == nin, (f'Attempting to convolve an input with {x.shape[1]} input channels '
                                f'when the convolution expects {nin} channels. For reference, '
                                f'self.w.value.shape={self.w.value.shape} and x.shape={x.shape}.')
 
-    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, jmath.JaxArray) else x,
+    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, mjax.JaxArray) else x,
                                      rhs=self.w.value,
                                      window_strides=self.strides,
                                      padding=self.padding,
