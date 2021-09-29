@@ -6,8 +6,9 @@ import pickle
 import numpy as np
 
 from brainpy import errors, math
-from brainpy.base.base import Base
 from brainpy.tools.collector import ArrayCollector
+
+Base = None
 
 try:
   import h5py
@@ -63,8 +64,10 @@ def save_h5(filename, all_vars):
 
 
 def load_h5(filename, target):
-  _check(h5py, module_name='h5py', ext=os.path.splitext(filename))
+  global Base
+  if Base is None: from brainpy.base.base import Base
   assert isinstance(target, Base)
+  _check(h5py, module_name='h5py', ext=os.path.splitext(filename))
 
   # load
   all_vars = target.vars()
@@ -90,6 +93,8 @@ def save_npz(filename, all_vars, compressed=False):
 
 
 def load_npz(filename, target):
+  global Base
+  if Base is None: from brainpy.base.base import Base
   assert isinstance(target, Base)
 
   # load
@@ -110,6 +115,8 @@ def save_pkl(filename, all_vars):
 
 
 def load_pkl(filename, target):
+  global Base
+  if Base is None: from brainpy.base.base import Base
   assert isinstance(target, Base)
   f = open(filename, 'r')
   all_data = pickle.load(f)
@@ -128,6 +135,8 @@ def save_mat(filename, all_vars):
 
 
 def load_mat(filename, target):
+  global Base
+  if Base is None: from brainpy.base.base import Base
   assert isinstance(target, Base)
   all_data = sio.loadmat(filename)
   all_vars = target.vars()

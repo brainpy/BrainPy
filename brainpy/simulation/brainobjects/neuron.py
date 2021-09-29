@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import errors, math
-from brainpy.base.collector import Collector
+from brainpy.tools.collector import Collector
 from brainpy.simulation import utils
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 

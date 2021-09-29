@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.base.collector import ArrayCollector
+from brainpy.tools.collector import ArrayCollector
 from brainpy.simulation._imports import mjax, jax
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 

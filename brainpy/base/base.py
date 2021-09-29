@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import os.path
 import logging
+import os.path
 
 from brainpy import errors, tools
 from brainpy.tools import namechecking, collector
+
+math = DE_INT = None
 
 __all__ = [
   'Base',
 ]
 
-math = DE_INT = None
 logger = logging.getLogger('brainpy.base')
 
 
@@ -272,18 +273,29 @@ class Base(object):
     raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {tools.io.SUPPORTED_FORMATS}')
 
   def to(self, devices):
-    pass
+    global math
+    if math is None: from brainpy import math
 
   def cpu(self):
-    pass
+    global math
+    if math is None: from brainpy import math
+
+    if math.get_backend_name() == 'jax':
+      all_vars = self.vars().unique()
+      for data in all_vars.values():
+        data[:] = math.asarray(data.value)
+        # TODO
 
   def cuda(self):
-    pass
+    global math
+    if math is None: from brainpy import math
+    if math.get_backend_name() != 'jax':
+      raise errors.BrainPyError(f'Only support to deploy data into "tpu" device in "jax" backend. '
+                                f'While currently the selected backend is "{math.get_backend_name()}".')
 
   def tpu(self):
-    pass
-
-  def numpy(self):
-    pass
-
-
+    global math
+    if math is None: from brainpy import math
+    if math.get_backend_name() != 'jax':
+      raise errors.BrainPyError(f'Only support to deploy data into "tpu" device in "jax" backend. '
+                                f'While currently the selected backend is "{math.get_backend_name()}".')

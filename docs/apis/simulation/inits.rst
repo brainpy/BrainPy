@@ -1,8 +1,8 @@
 Initialization Methods
 ======================
 
-.. currentmodule:: brainpy.dnn.inits
-.. automodule:: brainpy.dnn.inits
+.. currentmodule:: brainpy.simulation.inits
+.. automodule:: brainpy.simulation.inits
 
 
 .. autosummary::

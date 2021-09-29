@@ -8,5 +8,4 @@ from .ast2code import *
 from .codes import *
 from .collector import *
 from .decorators import *
-from .dicts import *
 from .others import *

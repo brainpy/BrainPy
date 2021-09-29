@@ -1,8 +1,8 @@
 Activation Functions
 ====================
 
-.. currentmodule:: brainpy.dnn.activations
-.. automodule:: brainpy.dnn.activations
+.. currentmodule:: brainpy.math.jax.activations
+.. automodule:: brainpy.math.jax.activations
 
 
 .. autosummary::

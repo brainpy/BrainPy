@@ -210,7 +210,13 @@ class DynamicalSystem(Base):
 
     return running_time
 
-  def fixed_points(self):
+  def find_fixed_points(self):
+    pass
+
+  def evaluate_stability(self):
+    pass
+
+  def continuation(self, method='euler_newton'):
     pass
 
 

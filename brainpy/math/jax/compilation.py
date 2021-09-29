@@ -21,8 +21,8 @@ from jax.interpreters.pxla import ShardedDeviceArray
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector
 from brainpy.math.jax.random import RandomState, RS
+from brainpy.tools.collector import ArrayCollector
 from brainpy.tools.codes import change_func_name
 
 __all__ = [

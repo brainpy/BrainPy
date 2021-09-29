@@ -4,7 +4,6 @@
 """
 This module provides APIs for brain simulations.
 
-
 """
 
 from .brainobjects import *
