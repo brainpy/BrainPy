@@ -17,5 +17,4 @@ the ability to gather nodes automatically.
 """
 
 from brainpy.base.base import *
-from brainpy.base.collector import *
 from brainpy.base.function import *

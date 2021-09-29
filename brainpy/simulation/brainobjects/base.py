@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math, errors
-from brainpy.base import collector
+from brainpy.tools import collector
 from brainpy.base.base import Base
 from brainpy.simulation import utils
 from brainpy.simulation.monitor import Monitor
 
 ConstantDelay = None
-
 
 __all__ = [
   'DynamicalSystem',
@@ -120,7 +119,7 @@ class DynamicalSystem(Base):
     """
     raise NotImplementedError('Must implement "update" function by user self.')
 
-  def _step_run(self, _t, _dt, **kwargs):
+  def step_run(self, _t, _dt, **kwargs):
     self._monitor_step(_t=_t, _dt=_dt)
     self._input_step(_t=_t, _dt=_dt)
     for step in self.steps.values():
@@ -192,7 +191,7 @@ class DynamicalSystem(Base):
     # 5.1 iteratively run the step function.
     # 5.2 report the running progress.
     # 5.3 return the overall running time.
-    running_time = utils.run_model(run_func=self._step_run,
+    running_time = utils.run_model(run_func=self.step_run,
                                    times=times,
                                    report=report,
                                    dt=dt,
@@ -210,6 +209,9 @@ class DynamicalSystem(Base):
           node.mon.item_contents[key] = val
 
     return running_time
+
+  def fixed_points(self):
+    pass
 
 
 class Container(DynamicalSystem):
