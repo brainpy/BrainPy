@@ -3,7 +3,7 @@
 from brainpy import errors, math
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.brainobjects.neuron import NeuGroup
-from brainpy.simulation.connectivity import TwoEndConnector, MatConn, IJConn
+from brainpy.simulation.connect import TwoEndConnector, MatConn, IJConn
 
 __all__ = [
   'TwoEndConn',

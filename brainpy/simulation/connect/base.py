@@ -3,9 +3,8 @@
 import abc
 from typing import Union, List, Tuple
 
-from brainpy import errors
-from brainpy.simulation import utils
-from brainpy.simulation.connectivity import formatter
+from brainpy import errors, tools
+from brainpy.simulation.connect import formatter
 
 __all__ = [
   'CONN_MAT',
@@ -17,10 +16,10 @@ __all__ = [
 
   'PROVIDE_MAT', 'PROVIDE_IJ',
 
-  'Connector', 'TwoEndConnector',
+  'Connector', 'TwoEndConnector', 'OneEndConnector',
 ]
 
-CONN_MAT = 'mat'
+CONN_MAT = 'conn_mat'
 PRE_IDS = 'pre_ids'
 POST_IDS = 'post_ids'
 PRE2POST = 'pre2post'
@@ -41,26 +40,12 @@ PROVIDE_IJ = 'ij'
 
 
 class Connector(abc.ABC):
+  """Base Synaptical Connector Class."""
   pass
 
 
 class TwoEndConnector(Connector):
-  """Abstract connector class for two end connections."""
-
-  def __init__(self):
-    # synaptic structures
-    self.pre_ids = None
-    self.post_ids = None
-    self.conn_mat = None
-    self.pre2post = None
-    self.post2pre = None
-    self.pre2syn = None
-    self.post2syn = None
-    self.pre_slice = None
-    self.post_slice = None
-
-    # synaptic weights
-    self.weights = None
+  """Synaptical connector to build synapse connections between two neuron groups."""
 
   def __call__(self, pre_size, post_size):
     """Create the concrete connections between two end objects.
@@ -77,9 +62,13 @@ class TwoEndConnector(Connector):
     conn : TwoEndConnector
         Return the self.
     """
+    if isinstance(pre_size, int): pre_size = (pre_size,)
+    pre_size = tuple(pre_size)
+    if isinstance(post_size, int): post_size = (post_size,)
+    post_size = tuple(post_size)
     self.pre_size, self.post_size = pre_size, post_size
-    self.pre_num = utils.size2len(self.pre_size)
-    self.post_num = utils.size2len(self.post_size)
+    self.pre_num = tools.size2num(self.pre_size)
+    self.post_num = tools.size2num(self.post_size)
     return self
 
   def check(self, structures: Union[Tuple, List, str]):
@@ -102,7 +91,7 @@ class TwoEndConnector(Connector):
                          f'support {SUPPORTED_SYN_STRUCTURE}.')
 
     # provide what synaptic structure?
-    if CONN_MAT in structures:
+    if len(structures) == 0 or CONN_MAT in structures:
       return PROVIDE_MAT
     else:
       return PROVIDE_IJ
@@ -139,7 +128,8 @@ class TwoEndConnector(Connector):
       elif POST_SLICE in self.structures:
         all_data[POST_SLICE] = formatter.post_slice(i=ij[0], j=ij[1], num_post=self.post_num)
       for n in self.structures:
-        if n in [PRE_SLICE, POST_SLICE, PRE_IDS, POST_IDS, CONN_MAT]: continue
+        if n in [PRE_SLICE, POST_SLICE, PRE_IDS, POST_IDS, CONN_MAT]:
+          continue
         elif n == PRE2POST:
           all_data[PRE2POST] = formatter.pre2post(i=ij[0], j=ij[1], num_pre=self.pre_num)
         elif n == PRE2SYN:
@@ -157,8 +147,25 @@ class TwoEndConnector(Connector):
       else:
         return tuple([all_data[n] for n in self.structures])
 
+  def requires(self, *structures):
+    return self.require(*structures)
+
   def require(self, *structures):
     raise NotImplementedError
 
-  def requires(self, *structures):
-    return self.require(*structures)
+
+class OneEndConnector(TwoEndConnector):
+  """Synaptical connector to build synapse connections within a population of neurons."""
+
+  def __call__(self, pre_size, post_size=None):
+    if post_size is None: post_size = pre_size
+    else: assert pre_size == post_size
+    if isinstance(pre_size, int): pre_size = (pre_size,)
+    pre_size = tuple(pre_size)
+    if isinstance(post_size, int): post_size = (post_size,)
+    post_size = tuple(post_size)
+    self.pre_size, self.post_size = pre_size, post_size
+    self.pre_num = tools.size2num(self.pre_size)
+    self.post_num = tools.size2num(self.post_size)
+    return self
+

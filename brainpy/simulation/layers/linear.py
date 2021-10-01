@@ -2,7 +2,7 @@
 
 
 from brainpy.simulation._imports import mjax
-from brainpy.simulation.connectivity.base import TwoEndConnector
+from brainpy.simulation import connect
 from brainpy.simulation.brainobjects.neuron import NeuGroup
 from brainpy.simulation.brainobjects.synapse import TwoEndConn
 from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
@@ -13,8 +13,7 @@ __all__ = [
 
 
 class Linear(TwoEndConn):
-  """A fully connected layer implemented as the dot product of inputs and
-  weights.
+  """A fully connected layer implemented as the dot product of inputs and weights.
 
   Parameters
   ----------
@@ -22,7 +21,7 @@ class Linear(TwoEndConn):
     The pre-synaptic neuron group.
   post : NeuGroup
     The post-synaptic neuron group.
-  conn : optional, math.ndarray, TwoEndConnector
+  conn : optional, math.ndarray, connect.TwoEndConnector
     The synaptic connectivity.
   train_mask : optional, math.ndarray
     The training mask.
@@ -41,19 +40,15 @@ class Linear(TwoEndConn):
     super(Linear, self).__init__(pre, post, conn, name=name)
 
     # parameters
-    self.pre = pre
-    self.post = post
     self.has_bias = has_bias
 
     # variables
-    self.conn_mask = self.conn.requires('conn_mat')
+    self.conn_mask = self.conn.requires(connect.CONN_MAT)
     self.w = mjax.TrainVar(w_init((pre.num, post.num)) * self.conn_mask)
     if has_bias: self.b = mjax.TrainVar(b_init(post.num))
     if train_mask is not None:
       assert train_mask
       self.train_mask = train_mask
-
-    del self.conn
 
   def update(self, x, **kwargs):
     """Returns the results of applying the linear transformation to input x."""

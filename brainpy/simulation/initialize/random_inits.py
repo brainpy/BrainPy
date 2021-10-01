@@ -1,89 +1,30 @@
 # -*- coding: utf-8 -*-
 
-import abc
 import numpy as np
-from brainpy import math
 
+from brainpy import math
+from .base import Initializer
 
 __all__ = [
-  'Initializer',
-  'ZeroInit',
-  'OneInit',
-  'Identity',
-  'Orthogonal',
   'Normal',
+  'Orthogonal',
   'KaimingNormal',
-  'KaimingTruncatedNormal',
+  'KaimingNormalTruncated',
   'XavierNormal',
-  'XavierTruncatedNormal',
+  'XavierNormalTruncated',
   'TruncatedNormal',
 ]
 
 
-class Initializer(abc.ABC):
-  def __init__(self, dtype=None):
-    self.dtype = math.float_ if dtype is None else dtype
-
-  @abc.abstractmethod
-  def __call__(self, *args, **kwargs):
-    raise NotImplementedError
-
-
-class ZeroInit(Initializer):
-  """Zero initializer.
-
-  Initialize the weights with zeros.
-  """
-  def __call__(self, shape):
-    return math.zeros(shape, dtype=self.dtype)
-
-
-class OneInit(Initializer):
-  """One initializer.
-
-  Initialize the weights with the given values.
-
-  Parameters
-  ----------
-  value : float, int, math.ndarray
-    The value to specify.
-  """
-  def __init__(self, value=1., dtype=None):
-    self.value = value
-    super(OneInit, self).__init__(dtype=dtype)
-
-  def __call__(self, shape):
-    return math.ones(shape, dtype=self.dtype) * self.value
-
-
-class Identity(Initializer):
-  """Returns the identity matrix.
-
-  This initializer was proposed in (Le, et al., 2015) [1]_.
-
-  Parameters
-  ----------
-  gain : float
-    The optional scaling factor.
-
-  Returns
-  -------
-  shape: tuple of int
-    The weight shape/size.
-
-  References
-  ----------
-  .. [1] Le, Quoc V., Navdeep Jaitly, and Geoffrey E. Hinton. "A simple way to
-         initialize recurrent networks of rectified linear units." arXiv preprint
-         arXiv:1504.00941 (2015).
-  """
-
-  def __init__(self, gain=1.):
+class Normal(Initializer):
+  def __init__(self, gain=1., dtype=None):
     self.gain = gain
-    super(Identity, self).__init__(dtype=self.dtype)
+    super(Normal, self).__init__(dtype=dtype)
 
   def __call__(self, shape):
-    return math.eye(*shape, dtype=self.dtype) * self.gain
+    gain = np.sqrt(1 / np.prod(shape))
+    weights = math.random.normal(size=shape, scale=self.gain * gain)
+    return math.asarray(weights, dtype=self.dtype)
 
 
 class Orthogonal(Initializer):
@@ -128,17 +69,6 @@ class Orthogonal(Initializer):
     return self.gain * math.asarray(q_mat, dtype=self.dtype)
 
 
-class Normal(Initializer):
-  def __init__(self, gain=1., dtype=None):
-    self.gain = gain
-    super(Normal, self).__init__(dtype=dtype)
-
-  def __call__(self, shape):
-    gain = np.sqrt(1 / np.prod(shape))
-    res = math.random.normal(size=shape, scale=self.gain * gain)
-    return math.asarray(res, dtype=res)
-
-
 class KaimingNormal(Initializer):
   """Returns a tensor with values assigned using Kaiming He normal initializer from
     `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
@@ -156,13 +86,13 @@ class KaimingNormal(Initializer):
     self.gain = gain
     super(KaimingNormal, self).__init__(dtype=dtype)
 
-  def __call__(self, shape, dtype=None):
+  def __call__(self, shape):
     gain = np.sqrt(1 / np.prod(shape[:-1]))
     res = math.random.normal(size=shape, scale=self.gain * gain)
     return math.asarray(res, dtype=self.dtype)
 
 
-class KaimingTruncatedNormal(Initializer):
+class KaimingNormalTruncated(Initializer):
   """Returns a tensor with values assigned using Kaiming He truncated normal initializer from
     `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
     <https://arxiv.org/abs/1502.01852>`_.
@@ -182,7 +112,7 @@ class KaimingTruncatedNormal(Initializer):
     self.lower = lower
     self.upper = upper
     self.gain = gain
-    super(KaimingTruncatedNormal, self).__init__(dtype)
+    super(KaimingNormalTruncated, self).__init__(dtype)
 
   def __call__(self, shape):
     truncated_std = scipy.stats.truncnorm.std(a=self.lower,
@@ -214,14 +144,14 @@ class XavierNormal(Initializer):
     self.gain = gain
     super(XavierNormal, self).__init__(dtype=dtype)
 
-  def __call__(self, shape, dtype=None):
+  def __call__(self, shape):
     fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
     gain = np.sqrt(2 / (fan_in + fan_out))
     res = math.random.normal(size=shape, scale=self.gain * gain)
     return math.asarray(res, dtype=self.dtype)
 
 
-class XavierTruncatedNormal(Initializer):
+class XavierNormalTruncated(Initializer):
   """Returns a tensor with values assigned using Xavier Glorot truncated normal initializer from
     `Understanding the difficulty of training deep feedforward neural networks
     <http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf>`_.
@@ -241,9 +171,9 @@ class XavierTruncatedNormal(Initializer):
     self.lower = lower
     self.upper = upper
     self.gain = gain
-    super(XavierTruncatedNormal, self).__init__(dtype=dtype)
+    super(XavierNormalTruncated, self).__init__(dtype=dtype)
 
-  def __call__(self, shape, dtype=None):
+  def __call__(self, shape):
     truncated_std = scipy.stats.truncnorm.std(a=self.lower, b=self.upper, loc=0., scale=1)
     fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
     gain = np.sqrt(2 / (fan_in + fan_out))
@@ -282,4 +212,3 @@ class TruncatedNormal(Initializer):
                                        lower=self.lower,
                                        upper=self.upper)
     return math.asarray(res, dtype=self.dtype)
-
