@@ -3,7 +3,7 @@
 import inspect
 
 from brainpy import errors
-from brainpy.base.base import Base
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Module', 'Sequential',
@@ -22,7 +22,7 @@ def _check_config(f, config):
     return {}
 
 
-class Module(Base):
+class Module(DynamicalSystem):
   """Basic DNN module.
 
   Parameters
@@ -30,12 +30,6 @@ class Module(Base):
   name : str, optional
     The name of the module.
   """
-
-  def __init__(self, name=None):
-    super(Module, self).__init__(name=name)
-
-  def __call__(self, *args, **kwargs):
-    raise NotImplementedError('Must customize your own "__call__" method.')
 
 
 class Sequential(Module):

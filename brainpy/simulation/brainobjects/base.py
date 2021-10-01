@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math, errors
-from brainpy.tools import collector
+from brainpy.base import collector
 from brainpy.base.base import Base
 from brainpy.simulation import utils
 from brainpy.simulation.monitor import Monitor

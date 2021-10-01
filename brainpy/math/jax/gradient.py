@@ -5,7 +5,7 @@ import jax
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.tools.collector import ArrayCollector
+from brainpy.base.collector import ArrayCollector
 from brainpy.math.jax.jaxarray import JaxArray, TrainVar
 
 __all__ = [

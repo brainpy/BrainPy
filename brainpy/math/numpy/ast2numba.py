@@ -18,7 +18,7 @@ from numba.core.dispatcher import Dispatcher
 
 from brainpy import errors, math, tools
 from brainpy.base.base import Base
-from brainpy.tools.collector import Collector
+from brainpy.base.collector import Collector
 from brainpy.base.function import Function
 from brainpy.math import profile
 

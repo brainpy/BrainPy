@@ -801,7 +801,7 @@ def moveaxis(x, source, destination):
 
 def transpose(x, axis=None):
   if isinstance(x, JaxArray): x = x.value
-  return JaxArray(jnp.transpose(x, axis=axis))
+  return JaxArray(jnp.transpose(x, axes=axis))
 
 
 def swapaxes(x, axis1, axis2):

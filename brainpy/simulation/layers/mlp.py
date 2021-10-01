@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.module import Sequential
+from brainpy.simulation.layers.base import Sequential
 from brainpy.simulation.initialize import XavierNormal, ZeroInit
 from brainpy.simulation.layers import Linear, Activation
 

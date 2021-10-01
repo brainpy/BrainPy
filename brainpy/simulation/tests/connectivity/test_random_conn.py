@@ -6,14 +6,17 @@ import brainpy as bp
 def test_random_prob_numpy():
   bp.math.use_backend('numpy')
 
-  conn1 = bp.connect.FixedProb(prob=0.1, method='iter', seed=123)
+  conn1 = bp.connect.FixedProb(prob=0.1,  seed=123)
   conn1(pre_size=(10, 20), post_size=(10, 20))
+  pre_ids, post_ids = conn1.require('pre_ids', 'post_ids')
 
-  conn2 = bp.connect.FixedProb(prob=0.1, method='matrix', seed=123)
+  conn2 = bp.connect.FixedProb(prob=0.1, seed=123)
   conn2(pre_size=(10, 20), post_size=(10, 20))
+  mat = conn2.require('mat')
+  pre_ids2, post_ids2 = bp.math.where(mat)
 
-  assert (conn2.pre_ids == conn1.pre_ids).all()
-  assert (conn2.post_ids == conn1.post_ids).all()
+  assert (pre_ids == pre_ids2).all()
+  assert (post_ids == post_ids2).all()
 
 
 def test_random_prob_jax():

@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 
 from brainpy import errors, math
-from brainpy.tools.collector import ArrayCollector
+from brainpy.base.collector import ArrayCollector
 
 Base = None
 

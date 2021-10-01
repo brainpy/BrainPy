@@ -21,7 +21,7 @@ __all__ = [
 
 
 class Initializer(abc.ABC):
-  def __init__(self, dtype):
+  def __init__(self, dtype=None):
     self.dtype = math.float_ if dtype is None else dtype
 
   @abc.abstractmethod
@@ -30,32 +30,52 @@ class Initializer(abc.ABC):
 
 
 class ZeroInit(Initializer):
+  """Zero initializer.
+
+  Initialize the weights with zeros.
+  """
   def __call__(self, shape):
     return math.zeros(shape, dtype=self.dtype)
 
 
 class OneInit(Initializer):
+  """One initializer.
+
+  Initialize the weights with the given values.
+
+  Parameters
+  ----------
+  value : float, int, math.ndarray
+    The value to specify.
+  """
   def __init__(self, value=1., dtype=None):
     self.value = value
     super(OneInit, self).__init__(dtype=dtype)
 
   def __call__(self, shape):
-    return math.ones(shape, dtype=self.dtype)
+    return math.ones(shape, dtype=self.dtype) * self.value
 
 
 class Identity(Initializer):
   """Returns the identity matrix.
 
-  This initializer was proposed in
-  `A Simple Way to Initialize Recurrent Networks of Rectified Linear Units
-  <https://arxiv.org/abs/1504.00941>`_.
+  This initializer was proposed in (Le, et al., 2015) [1]_.
 
-  Args:
-      shape: Shape of the tensor. It should have exactly rank 2.
-      gain: optional scaling factor.
+  Parameters
+  ----------
+  gain : float
+    The optional scaling factor.
 
-  Returns:
-      Tensor initialized to the identity matrix.
+  Returns
+  -------
+  shape: tuple of int
+    The weight shape/size.
+
+  References
+  ----------
+  .. [1] Le, Quoc V., Navdeep Jaitly, and Geoffrey E. Hinton. "A simple way to
+         initialize recurrent networks of rectified linear units." arXiv preprint
+         arXiv:1504.00941 (2015).
   """
 
   def __init__(self, gain=1.):
@@ -63,7 +83,7 @@ class Identity(Initializer):
     super(Identity, self).__init__(dtype=self.dtype)
 
   def __call__(self, shape):
-    return self.gain * math.eye(*shape, dtype=self.dtype)
+    return math.eye(*shape, dtype=self.dtype) * self.gain
 
 
 class Orthogonal(Initializer):

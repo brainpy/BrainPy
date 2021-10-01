@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-import brainpy as bp
 from pprint import pprint
+
+import brainpy as bp
 
 
 class GABAa_without_Variable(bp.TwoEndConn):
@@ -21,7 +22,7 @@ class GABAa_without_Variable(bp.TwoEndConn):
 
     # connections
     self.conn = conn(pre.size, post.size)
-    self.conn_mat = self.conn.requires('conn_mat')
+    self.conn_mat = self.conn.requires(bp.connect.CONN_MAT)
     self.size = bp.math.shape(self.conn_mat)
 
     # variables
@@ -96,7 +97,7 @@ class HH_without_Variable(bp.NeuGroup):
 
 
 def test_subset_integrator():
-  neu = HH_without_Variable(10, monitors=['spikes', 'V'], name='X')
+  neu = HH_without_Variable(10, monitors=['spikes', 'V'])
   syn = GABAa_without_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   syn.g_max = 0.1 / neu.num
   net = bp.Network(neu, syn)
@@ -111,13 +112,12 @@ def test_subset_integrator():
 
 
 def test_neu_vars_1():
-  neu = HH_without_Variable(10, monitors=['spikes', 'V'], name='X')
+  neu = HH_without_Variable(10, monitors=['spikes', 'V'])
   vars = neu.vars()
 
   print()
   print(vars)
   assert len(vars) == 0
-
 
 
 class HH_with_Variable(bp.NeuGroup):
@@ -173,7 +173,7 @@ class HH_with_Variable(bp.NeuGroup):
 
 
 def test_neu_vars_2():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'], name='X')
+  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
   vars = neu.vars()
   print()
   print(vars.keys())
@@ -184,7 +184,7 @@ def test_neu_vars_2():
 
 
 def test_neu_nodes_1():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'], name='X')
+  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
   print()
   print(neu.nodes().keys())
   assert len(neu.nodes()) == 1
@@ -195,7 +195,7 @@ def test_neu_nodes_1():
 
 
 def test_neu_ints_1():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'], name='X')
+  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
   print()
   print(neu.ints().keys())
   assert len(neu.ints()) == 1
@@ -221,7 +221,7 @@ class GABAa_with_Variable(bp.TwoEndConn):
 
     # connections
     self.conn = conn(pre.size, post.size)
-    self.conn_mat = self.conn.requires('conn_mat')
+    self.conn_mat = self.conn.requires(bp.connect.CONN_MAT)
     self.size = bp.math.shape(self.conn_mat)
 
     # variables
@@ -244,7 +244,7 @@ class GABAa_with_Variable(bp.TwoEndConn):
 
 
 def test_net_1():
-  neu = HH_without_Variable(10, monitors=['spikes', 'V'], name='X')
+  neu = HH_without_Variable(10, monitors=['spikes', 'V'])
   syn = GABAa_without_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   net = bp.Network(neu=neu, syn=syn)
 
@@ -277,7 +277,7 @@ def test_net_1():
 
 
 def test_net_vars_2():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'], name='X')
+  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
   syn = GABAa_with_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   net = bp.Network(neu=neu, syn=syn)
 

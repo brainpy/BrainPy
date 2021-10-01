@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
+from pprint import pprint
 
 
 class HH(bp.NeuGroup):
@@ -67,16 +68,16 @@ def test_nodes():
   abs_nodes = net.nodes(method='absolute')
   rel_nodes = net.nodes(method='relative')
   print()
-  print(abs_nodes)
-  print(rel_nodes)
+  pprint(abs_nodes)
+  pprint(rel_nodes)
 
   assert len(abs_nodes) == 3
   assert len(rel_nodes) == 5
 
 
 def test_ints():
-  A = HH(1, name='X')
-  B = HH(1, name='Y')
+  A = HH(1, name='X2')
+  B = HH(1, name='Y2')
   A.pre = B
   B.pre = A
 
@@ -84,6 +85,6 @@ def test_ints():
   abs_ints = net.ints(method='absolute')
   rel_ints = net.ints(method='relative')
   print()
-  print(abs_ints.keys())
-  print(rel_ints.keys())
+  pprint(abs_ints.keys())
+  pprint(rel_ints.keys())
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.module import Module
+from brainpy.simulation.layers.base import Module
 from brainpy.simulation._imports import mjax, jax
 from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
 

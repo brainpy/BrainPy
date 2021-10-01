@@ -2,7 +2,6 @@
 
 
 from brainpy import math
-from brainpy.simulation import utils
 from brainpy.simulation.connectivity.base import TwoEndConnector
 
 
@@ -14,15 +13,20 @@ __all__ = [
 
 class MatConn(TwoEndConnector):
   """Connector built from the connection matrix."""
-  def __init__(self, conn_mat):
+  def __init__(self, mat):
     super(MatConn, self).__init__()
 
-    assert isinstance(conn_mat, math.ndarray) and conn_mat.ndim == 2
-    self.conn_mat = conn_mat
-    self.num_pre, self.num_post = conn_mat.shape
+    assert isinstance(mat, math.ndarray) and mat.ndim == 2
+    self.mat = math.asarray(mat, dtype=math.bool_)
+    self.pre_num, self.post_num = mat.shape
 
   def __call__(self, *args, **kwargs):
+    self.pre_size, self.post_size = self.pre_num, self.post_num
     return self
+
+  def require(self, structures):
+    self.check(structures)
+    return self.returns(mat=self.mat)
 
 
 class IJConn(TwoEndConnector):
@@ -38,11 +42,6 @@ class IJConn(TwoEndConnector):
     self.pre_ids = math.asarray(i, dtype=math.int_)
     self.post_ids = math.asarray(j, dtype=math.int_)
 
-  def __call__(self, pre_size, post_size):
-    # this is necessary when create "pre2post" ,
-    # "pre2syn"  etc. structures
-    self.num_pre = utils.size2len(pre_size)
-    # this is necessary when create "post2pre" ,
-    # "post2syn"  etc. structures
-    self.num_post = utils.size2len(post_size)
-    return self
+  def require(self, structures):
+    self.check(structures)
+    return self.returns(ij=(self.pre_ids, self.post_ids))
