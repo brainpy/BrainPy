@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.layers.base import Module
-from brainpy.simulation._imports import mjax
+from brainpy import math
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Dropout'
 ]
 
 
-class Dropout(Module):
+class Dropout(DynamicalSystem):
   """A layer that stochastically ignores a subset of inputs each training step.
 
   In training, to compensate for the fraction of input values dropped (`rate`),
@@ -29,17 +29,22 @@ class Dropout(Module):
   ----------
   prob : float
     Probability to keep element of the tensor.
+  steps : tuple of str, tuple of function, dict of (str, function), optional
+    The callable function, or a list of callable functions.
+  monitors : None, list, tuple, Monitor
+    Variables to monitor.
+  name : str, optional
+    The name of the dynamic system.
   """
 
-  def __init__(self, prob, name=None):
-    self.prob = prob
-    super(Dropout, self).__init__(name=name)
+  def __init__(self, prob, **kwargs):
+    super(Dropout, self).__init__(**kwargs)
 
-  def update(self, x, config=None, **kwargs):
-    if config is None:
-      config = dict()
-    if config.get('train', True):
-      keep_mask = mjax.random.bernoulli(self.prob, x.shape)
-      return mjax.where(keep_mask, x / self.prob, 0.)
-    else:
-      return x
+    # probability
+    self.prob = prob
+
+  def update(self, x, **kwargs):
+    if kwargs.get('train', True):
+      keep_mask = math.random.bernoulli(self.prob, x.shape)
+      return math.where(keep_mask, x / self.prob, 0.)
+    else: return x

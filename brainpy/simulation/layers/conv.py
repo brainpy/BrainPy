@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.layers.base import Module
+from brainpy import math
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation._imports import mjax, jax
 from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
 
@@ -18,14 +19,14 @@ def _check_tuple(v):
     raise ValueError
 
 
-class Conv2D(Module):
+class Conv2D(DynamicalSystem):
   """Apply a 2D convolution on a 4D-input batch of shape (N,C,H,W).
 
   Parameters
   ----------
-  nin : int
+  num_input : int
     The number of channels of the input tensor.
-  nout : int
+  num_output : int
     The number of channels of the output tensor.
   kernel_size : int, tuple of int
     The size of the convolution kernel, either tuple (height, width)
@@ -48,15 +49,23 @@ class Conv2D(Module):
     shape and returns a 4D matrix).
   b_init : Initializer
     The bias initialization.
+
+  steps : tuple of str, tuple of function, dict of (str, function), optional
+      The callable function, or a list of callable functions.
+  monitors : None, list, tuple, datastructures.Monitor
+      Variables to monitor.
+  name : str, optional
+      The name of the dynamic system.
   """
 
-  def __init__(self, nin, nout, kernel_size, strides=1, dilations=1, groups=1,
-               padding='SAME', w_init=XavierNormal(), b_init=ZeroInit(), name=None):
-    super(Conv2D, self).__init__(name=name)
+  def __init__(self, num_input, num_output, kernel_size, strides=1, dilations=1,
+               groups=1, padding='SAME', w_init=XavierNormal(), b_init=ZeroInit(),
+               has_bias=True, **kwargs):
+    super(Conv2D, self).__init__(**kwargs)
 
-    assert nin % groups == 0, '"nin" should be divisible by groups'
-    assert nout % groups == 0, '"nout" should be divisible by groups'
-
+    # parameters
+    assert num_input % groups == 0, '"nin" should be divisible by groups'
+    assert num_output % groups == 0, '"nout" should be divisible by groups'
     self.strides = _check_tuple(strides)
     self.dilations = _check_tuple(dilations)
     if isinstance(padding, str):
@@ -69,12 +78,14 @@ class Conv2D(Module):
       raise ValueError
     self.padding = padding
     self.groups = groups
+    self.has_bias = has_bias
 
     # weight initialization
-    self.b = mjax.TrainVar(b_init((nout, 1, 1)))
-    self.w = mjax.TrainVar(w_init((*_check_tuple(kernel_size), nin // groups, nout)))  # HWIO
+    self.b = mjax.TrainVar(b_init((num_output, 1, 1)))
+    self.w = mjax.TrainVar(w_init((*_check_tuple(kernel_size), num_input // groups, num_output)))  # HWIO
     self.w_init = w_init
-    self.b_init = b_init
+    if has_bias:
+      self.b_init = b_init
 
   def update(self, x, **kwargs):
     nin = self.w.value.shape[2] * self.groups
@@ -89,5 +100,5 @@ class Conv2D(Module):
                                      rhs_dilation=self.dilations,
                                      feature_group_count=self.groups,
                                      dimension_numbers=('NCHW', 'HWIO', 'NCHW'))
-    y += self.b.value
+    if self.has_bias: y += self.b.value
     return y

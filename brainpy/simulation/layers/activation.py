@@ -1,21 +1,32 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.dnn import activations
-from brainpy.simulation.layers.base import Module
+from brainpy import math
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Activation'
 ]
 
 
-class Activation(Module):
+class Activation(DynamicalSystem):
+  """Activation Layer.
+
+  Parameters
+  ----------
+  activation : str
+    The name of the activation function.
+  name : optional, str
+    The name of the class.
+  setting : Any
+    The settings for the activation function.
+  """
   def __init__(self, activation, name=None, **setting):
     if name is None:
       name = self.unique_name(type=f'Activation_{activation}')
     super(Activation, self).__init__(name=name)
 
-    self.activation = activations.get(activation)
-    self.setting = setting
+    self._activation = math.activations.get(activation)
+    self._setting = setting
 
   def update(self, x, **kwargs):
-    return self.activation(x, **self.setting)
+    return self._activation(x, **self._setting)

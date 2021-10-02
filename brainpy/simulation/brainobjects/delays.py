@@ -15,12 +15,22 @@ __all__ = [
 
 class Delay(DynamicalSystem):
   """Base class to model delay variables.
+
+  Parameters
+  ----------
+
+  steps : tuple of str, tuple of function, dict of (str, function), optional
+      The callable function, or a list of callable functions.
+  monitors : None, list, tuple, datastructures.Monitor
+      Variables to monitor.
+  name : str, optional
+      The name of the dynamic system.
   """
 
-  def __init__(self, steps=('update',), name=None):
-    super(Delay, self).__init__(steps=steps, monitors=None, name=name)
+  def __init__(self, steps=('update',), name=None, monitors=None):
+    super(Delay, self).__init__(steps=steps, monitors=monitors, name=name)
 
-  def update(self, _t, _dt):
+  def update(self, _t, _dt, **kwargs):
     raise NotImplementedError
 
 
@@ -41,17 +51,19 @@ class ConstantDelay(Delay):
       The delay data size.
   delay : int, float, function, ndarray
       The delay time. With the unit of `brainpy.math.get_dt()`.
+  steps : tuple of str, tuple of function, dict of (str, function), optional
+      The callable function, or a list of callable functions.
+  monitors : None, list, tuple, datastructures.Monitor
+      Variables to monitor.
   name : str, optional
-      The name.
+      The name of the dynamic system.
   """
 
-  def __init__(self, size, delay, name=None, dtype=None):
+  def __init__(self, size, delay, dtype=None, **kwargs):
     # delay data size
-    if isinstance(size, int):
-      size = (size,)
+    if isinstance(size, int): size = (size,)
     if not isinstance(size, (tuple, list)):
-      raise errors.BrainPyError(f'"size" must a tuple/list of int, '
-                                f'but we got {type(size)}: {size}')
+      raise errors.BrainPyError(f'"size" must a tuple/list of int, but we got {type(size)}: {size}')
     self.size = tuple(size)
 
     # delay time length
@@ -96,7 +108,7 @@ class ConstantDelay(Delay):
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay
 
-    super(ConstantDelay, self).__init__(name=name)
+    super(ConstantDelay, self).__init__(**kwargs)
 
   def _pull_for_uniform_delay(self):
     """Pull delayed data for variables with the uniform delay.
@@ -125,8 +137,10 @@ class ConstantDelay(Delay):
     self.out_idx[:] = (self.out_idx + 1) % self.num_step
 
   def reset(self):
-    """Reset the variables.
-    """
+    """Reset the variables."""
     self.data[:] = 0
     self.in_idx[:] = self.num_step - 1
     self.out_idx[:] = 0
+
+  def init(self, num_batch=None, **kwargs):
+    pass

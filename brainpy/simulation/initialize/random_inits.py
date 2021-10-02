@@ -7,6 +7,7 @@ from .base import Initializer
 
 __all__ = [
   'Normal',
+  'Uniform',
   'Orthogonal',
   'KaimingNormal',
   'KaimingNormalTruncated',
@@ -17,14 +18,42 @@ __all__ = [
 
 
 class Normal(Initializer):
+  """Initialize weights with normal distribution.
+
+  Parameters
+  ----------
+  gain : float
+    The gain of the derivation of the normal distribution.
+
+  """
   def __init__(self, gain=1., dtype=None):
     self.gain = gain
     super(Normal, self).__init__(dtype=dtype)
 
   def __call__(self, shape):
-    gain = np.sqrt(1 / np.prod(shape))
-    weights = math.random.normal(size=shape, scale=self.gain * gain)
+    weights = math.random.normal(size=shape, scale=self.gain * np.sqrt(1 / np.prod(shape)))
     return math.asarray(weights, dtype=self.dtype)
+
+
+class Uniform(Initializer):
+  """Initialize weights with uniform distribution.
+
+  Parameters
+  ----------
+  min_val : float
+    The lower limit of the uniform distribution.
+  max_val : float
+    The upper limit of the uniform distribution.
+
+  """
+  def __init__(self, min_val=0., max_val=1., dtype=None):
+    super(Uniform, self).__init__(dtype=dtype)
+    self.min_val = min_val
+    self.max_val = max_val
+
+  def __call__(self, shape):
+    r = math.random.uniform(low=self.min_val, high=self.max_val, size=shape)
+    return math.asarray(r, dtype=self.dtype)
 
 
 class Orthogonal(Initializer):
@@ -50,9 +79,9 @@ class Orthogonal(Initializer):
     """
 
   def __init__(self, gain=1., axis=-1, dtype=None):
+    super(Orthogonal, self).__init__(dtype=dtype)
     self.gain = gain
     self.axis = axis
-    super(Orthogonal, self).__init__(dtype=dtype)
 
   def __call__(self, shape):
     n_rows = shape[self.axis]
@@ -62,8 +91,7 @@ class Orthogonal(Initializer):
     q_mat, r_mat = np.linalg.qr(norm_dst)
     # Enforce Q is uniformly distributed
     q_mat *= np.sign(np.diag(r_mat))
-    if n_rows < n_cols:
-      q_mat = q_mat.T
+    if n_rows < n_cols: q_mat = q_mat.T
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
     return self.gain * math.asarray(q_mat, dtype=self.dtype)

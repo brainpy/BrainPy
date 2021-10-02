@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.layers.base import Module
-from brainpy.simulation._imports import mjax
+from brainpy import math
+from brainpy.simulation.brainobjects.base import DynamicalSystem
+
+__all__ = [
+  'BatchNorm',
+]
 
 
-class BatchNorm(Module):
+class BatchNorm(DynamicalSystem):
   """Batch Normalization module.
 
   Normalizes inputs to maintain a mean of ~0 and stddev of ~1 [1]_.
@@ -31,15 +35,13 @@ class BatchNorm(Module):
     self.axis = axis
     self.momentum = momentum
     self.eps = eps
-    self.running_mean = mjax.zeros(dims)
-    self.running_var = mjax.zeros(dims)
-    self.shift = mjax.TrainVar(mjax.zeros(dims))
-    self.scale = mjax.TrainVar(mjax.ones(dims))
+    self.running_mean = math.zeros(dims)
+    self.running_var = math.zeros(dims)
+    self.shift = math.TrainVar(math.zeros(dims))
+    self.scale = math.TrainVar(math.ones(dims))
 
-  def update(self, x, config=None, **kwargs):
-    if config is None:
-      config = dict()
-    if config.get('train', True):
+  def update(self, x, **kwargs):
+    if kwargs.get('train', True):
       pass
     else:
       pass

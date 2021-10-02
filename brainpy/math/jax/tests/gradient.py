@@ -11,9 +11,9 @@ def test_grad1():
     def __init__(self):
       super(Test, self).__init__()
 
-      self.a = bp.TrainVar(bp.math.ones(10))
-      self.b = bp.TrainVar(bp.math.random.randn(10))
-      self.c = bp.TrainVar(bp.math.random.uniform(size=10))
+      self.a = bp.math.TrainVar(bp.math.ones(10))
+      self.b = bp.math.TrainVar(bp.math.random.randn(10))
+      self.c = bp.math.TrainVar(bp.math.random.uniform(size=10))
 
     def __call__(self):
       return bp.math.sum(self.a + self.b + self.c)
@@ -33,9 +33,9 @@ def test_grad2():
     def __init__(self):
       super(Test, self).__init__()
 
-      self.a = bp.TrainVar(bp.math.ones(10))
-      self.b = bp.TrainVar(bp.math.random.randn(10))
-      self.c = bp.TrainVar(bp.math.random.uniform(size=10))
+      self.a = bp.math.TrainVar(bp.math.ones(10))
+      self.b = bp.math.TrainVar(bp.math.random.randn(10))
+      self.c = bp.math.TrainVar(bp.math.random.uniform(size=10))
 
     def __call__(self, d):
       return bp.math.sum(self.a + self.b + self.c + d)
@@ -55,9 +55,9 @@ def test_grad3():
     def __init__(self):
       super(Test, self).__init__()
 
-      self.a = bp.TrainVar(bp.math.ones(10))
-      self.b = bp.TrainVar(bp.math.random.randn(10))
-      self.c = bp.TrainVar(bp.math.random.uniform(size=10))
+      self.a = bp.math.TrainVar(bp.math.ones(10))
+      self.b = bp.math.TrainVar(bp.math.random.randn(10))
+      self.c = bp.math.TrainVar(bp.math.random.uniform(size=10))
 
     def __call__(self, d):
       return bp.math.sum(self.a + self.b + self.c + 2 * d)
@@ -79,8 +79,8 @@ def test_grad_aux1():
     def __init__(self):
       super(Test, self).__init__()
 
-      self.a = bp.TrainVar(bp.math.ones(1))
-      self.b = bp.TrainVar(bp.math.ones(1))
+      self.a = bp.math.TrainVar(bp.math.ones(1))
+      self.b = bp.math.TrainVar(bp.math.ones(1))
 
     def __call__(self, c):
       ab = self.a * self.b
@@ -108,8 +108,8 @@ def test_value_and_grad_aux1():
     def __init__(self):
       super(Test, self).__init__()
 
-      self.a = bp.TrainVar(bp.math.ones(1))
-      self.b = bp.TrainVar(bp.math.ones(1))
+      self.a = bp.math.TrainVar(bp.math.ones(1))
+      self.b = bp.math.TrainVar(bp.math.ones(1))
 
     def __call__(self, c):
       ab = self.a * self.b

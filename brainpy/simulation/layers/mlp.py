@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.layers.base import Sequential
 from brainpy.simulation.initialize import XavierNormal, ZeroInit
-from brainpy.simulation.layers import Linear, Activation
+from brainpy.simulation.layers.activation import Activation
+from brainpy.simulation.layers.dense import Dense
+from brainpy.simulation.layers.sequential import Sequential
 
 __all__ = [
   'MLP'
@@ -10,14 +11,15 @@ __all__ = [
 
 
 class MLP(Sequential):
-  def __init__(self, layer_sizes, activation='relu',
-               w_init=XavierNormal(), b_init=ZeroInit(),
-               name=None):
+  """Multi-layer perceptron.
+  """
+
+  def __init__(self, layer_sizes, activation='relu', w_init=XavierNormal(), b_init=ZeroInit(), name=None):
     assert len(layer_sizes) >= 2
     name = self.unique_name(name)
-    ops = []
+    layers = []
     for i in range(1, len(layer_sizes)):
-      ops.append(Linear(n_in=layer_sizes[i - 1], n_out=layer_sizes[i],
-                        w_init=w_init, b_init=b_init, name=f'{name}_l{i}'))
-      ops.append(Activation(activation))
-    super(MLP, self).__init__(*ops, name=name)
+      layers.append(Dense(num_input=layer_sizes[i - 1], num_hidden=layer_sizes[i],
+                          w_init=w_init, b_init=b_init, name=f'{name}_l{i}'))
+      layers.append(Activation(activation))
+    super(MLP, self).__init__(*layers, name=name)

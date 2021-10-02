@@ -16,20 +16,20 @@ from . import math
 from . import integrators
 from .integrators import ode
 from .integrators import sde
-from .integrators import dde
-from .integrators import fde
 from .integrators.wrapper import *
 
 
 # "simulation" module
 from . import simulation
 from .simulation.brainobjects import *
-from .simulation.monitor import *
+from .simulation import brainobjects
 from .simulation import connect
-from .simulation import inputs
-from .simulation import measure
 from .simulation import initialize
+from .simulation import layers
+from .simulation import inputs
 from .simulation import losses
+from .simulation import measure
+from .simulation.monitor import *
 from .simulation import optimizers
 
 

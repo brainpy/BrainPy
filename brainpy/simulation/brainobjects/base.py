@@ -14,9 +14,11 @@ __all__ = [
 ]
 
 _error_msg = 'Unknown model type: {type}. ' \
-             'Currently, BrainPy only supports: ' \
-             'function, tuple/dict of functions, ' \
-             'tuple of function names.'
+             'Currently, BrainPy only supports: \n' \
+             '1. function \n' \
+             '2. function name (str) \n' \
+             '3. tuple/dict of functions \n' \
+             '4. tuple of function names \n' \
 
 
 class DynamicalSystem(Base):
@@ -76,17 +78,22 @@ class DynamicalSystem(Base):
     self._input_step = None
     self._monitor_step = None
 
+    # batch size
+    self.num_batch = None
+
   def register_constant_delay(self, key, size, delay, dtype=None):
     """Register a constant delay.
 
     Parameters
     ----------
     key : str
-        The delay name.
+      The delay name.
     size : int, list of int, tuple of int
-        The delay data size.
+      The delay data size.
     delay : int, float, ndarray
-        The delay time, with the unit same with `brainpy.math.get_dt()`.
+      The delay time, with the unit same with `brainpy.math.get_dt()`.
+    dtype : optional
+      The data type.
 
     Returns
     -------
@@ -107,7 +114,7 @@ class DynamicalSystem(Base):
     self.steps[f'{key}_update'] = cdelay.update
     return cdelay
 
-  def update(self, _t, _dt):
+  def update(self, _t, _dt, **kwargs):
     """The function to specify the updating rule.
 
     Parameters
@@ -119,13 +126,7 @@ class DynamicalSystem(Base):
     """
     raise NotImplementedError('Must implement "update" function by user self.')
 
-  def step_run(self, _t, _dt, **kwargs):
-    self._monitor_step(_t=_t, _dt=_dt)
-    self._input_step(_t=_t, _dt=_dt)
-    for step in self.steps.values():
-      step(_t=_t, _dt=_dt, **kwargs)
-
-  def run(self, duration, dt=None, report=0., inputs=(), extra_func=None):
+  def run(self, duration, dt=None, report=0., inputs=(), xs=None, extra_func=None):
     """The running function.
 
     Parameters
@@ -141,8 +142,9 @@ class DynamicalSystem(Base):
       - ``value``: should be a scalar, vector, matrix, iterable function or objects.
       - ``type``: should be a string. "fix" means the input `value` is a constant. "iter" means the
         input `value` can be changed over time.
-      - ``operation``: should be a string.
-      - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``.
+      - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
+      - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
+        for example ``[(target1, value1), (target2, value2)]``.
 
     duration : float, int, tuple, list
       The running duration.
@@ -191,7 +193,14 @@ class DynamicalSystem(Base):
     # 5.1 iteratively run the step function.
     # 5.2 report the running progress.
     # 5.3 return the overall running time.
-    running_time = utils.run_model(run_func=self.step_run,
+
+    def step_run(_t, _dt, **kwargs):
+      self._monitor_step(_t=_t, _dt=_dt)
+      self._input_step(_t=_t, _dt=_dt)
+      for step in self.steps.values():
+        step(_t=_t, _dt=_dt, **kwargs)
+
+    running_time = utils.run_model(run_func=step_run,
                                    times=times,
                                    report=report,
                                    dt=dt,
@@ -209,6 +218,9 @@ class DynamicalSystem(Base):
           node.mon.item_contents[key] = val
 
     return running_time
+
+  def init(self, num_batch=None, **kwargs):
+    pass
 
   def find_fixed_points(self):
     pass
@@ -265,7 +277,7 @@ class Container(DynamicalSystem):
       steps = ('update',)
     super(Container, self).__init__(steps=steps, monitors=monitors, name=name)
 
-  def update(self, _t, _dt):
+  def update(self, _t, _dt, **kwargs):
     """Step function of a network.
 
     In this update function, the step functions in children systems are
@@ -287,3 +299,7 @@ class Container(DynamicalSystem):
       return children_ds[item]
     else:
       return super(Container, self).__getattribute__(item)
+
+  def init(self, num_batch=None, **kwargs):
+    for ds in self.child_ds.values():
+      ds.init(num_batch=num_batch, **kwargs)

@@ -21,11 +21,14 @@ class TwoEndConn(DynamicalSystem):
       Pre-synaptic neuron group.
   post : NeuGroup
       Post-synaptic neuron group.
-  conn : math.ndarray, dict, TwoEndConnector
-  monitors : list of str, tuple of str
+  conn : math.ndarray, dict of (str, math.ndarray), TwoEndConnector
+      The connection method between pre- and post-synaptic groups.
+  steps : tuple of str, tuple of function, dict of (str, function), optional
+      The callable function, or a list of callable functions.
+  monitors : None, list, tuple, datastructures.Monitor
       Variables to monitor.
-  name : str
-      The name of the neuron group.
+  name : str, optional
+      The name of the dynamic system.
   show_code : bool
       Whether show the formatted code.
   """
