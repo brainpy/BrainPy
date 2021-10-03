@@ -21,11 +21,18 @@ from docs.apis import base_generator
 from docs.apis import math_generator
 from docs.apis import integrators_generator
 from docs.apis import simulation_generator
+from docs.apis import visualization_generator
 
 base_generator.generate('apis/')
 math_generator.generate('apis/math/')
 integrators_generator.generate('apis/integrators/')
 simulation_generator.generate('apis/simulation/')
+visualization_generator.generate('apis/')
+
+det_changelog = 'apis/changelog.rst'
+src_changelog = '../changelog.rst'
+if os.path.exists(det_changelog): os.remove(det_changelog)
+copyfile(src_changelog, det_changelog)
 
 
 # -- Project information -----------------------------------------------------
@@ -36,13 +43,6 @@ author = 'Chaoming Wang'
 
 # The full version, including alpha/beta/rc tags
 release = brainpy.__version__
-
-det_changelog = 'apis/changelog.rst'
-src_changelog = '../changelog.rst'
-
-if os.path.exists(det_changelog):
-    os.remove(det_changelog)
-copyfile(src_changelog, det_changelog)
 
 
 # -- General configuration ---------------------------------------------------

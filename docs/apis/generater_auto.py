@@ -4,7 +4,6 @@ import importlib
 import inspect
 import os
 
-
 __all__ = [
   'write_module',
   'write_submodules',
@@ -98,4 +97,3 @@ def write_submodules(module_name, filename, header=None,
       fout.write(f'   :members:\n\n')
 
   fout.close()
-
