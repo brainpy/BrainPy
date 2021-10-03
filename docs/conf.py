@@ -22,12 +22,14 @@ from docs.apis import math_generator
 from docs.apis import integrators_generator
 from docs.apis import simulation_generator
 from docs.apis import visualization_generator
+from docs.apis import tools_generator
 
 base_generator.generate('apis/')
 math_generator.generate('apis/math/')
 integrators_generator.generate('apis/integrators/')
 simulation_generator.generate('apis/simulation/')
 visualization_generator.generate('apis/')
+tools_generator.generate('apis/')
 
 det_changelog = 'apis/changelog.rst'
 src_changelog = '../changelog.rst'

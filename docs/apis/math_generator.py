@@ -4,14 +4,11 @@ import os
 
 from brainpy.math.numpy import activations, compilation, gradient
 
-if not os.path.exists('math/'):
-  os.makedirs('math/')
-
 
 block_list = ['test', 'control_transform', 'register_pytree_node']
 for module in [activations, compilation, gradient]:
   for k in dir(module):
-    if (not k.startswith('__') ) and (not inspect.ismodule(getattr(module, k))):
+    if (not k.startswith('_') ) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
 
 

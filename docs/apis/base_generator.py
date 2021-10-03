@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from docs.apis.generater_auto import *
+from docs.apis.auto_generater import *
 
 
 def generate(path):

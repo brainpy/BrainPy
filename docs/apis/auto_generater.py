@@ -10,16 +10,31 @@ __all__ = [
 ]
 
 
-def write_module(module_name, filename, header=None):
-  module = importlib.import_module(module_name)
+def get_class_funcs(module):
   classes, functions = [], []
-  for k in dir(module):
+  # Solution from: https://stackoverflow.com/questions/43059267/how-to-do-from-module-import-using-importlib
+  if "__all__" in module.__dict__:
+    names = module.__dict__["__all__"]
+  else:
+    names = [x for x in module.__dict__ if not x.startswith("_")]
+  for k in names:
     data = getattr(module, k)
-    if not k.startswith('__') and not inspect.ismodule(data):
+    if not inspect.ismodule(data) and not k.startswith("_"):
       if inspect.isfunction(data):
         functions.append(k)
       elif isinstance(data, type):
         classes.append(k)
+
+  return classes, functions
+
+
+def write_module(module_name, filename, header=None):
+  module = importlib.import_module(module_name)
+  classes, functions = get_class_funcs(module)
+
+  # if '__all__' not in module.__dict__:
+  #   raise ValueError(f'Only support auto generate APIs in a module has __all__ '
+  #                    f'specification, while __all__ is not specified in {module_name}')
 
   fout = open(filename, 'w')
   # write_module header
@@ -51,8 +66,6 @@ def write_module(module_name, filename, header=None):
 
 def write_submodules(module_name, filename, header=None,
                      submodule_names=(), section_names=()):
-  if not os.path.exists(os.path.dirname(filename)):
-    os.makedirs(os.path.dirname(filename))
 
   fout = open(filename, 'w')
   # write_module header
@@ -68,19 +81,10 @@ def write_submodules(module_name, filename, header=None,
   # whole module
   for i, name in enumerate(submodule_names):
     module = importlib.import_module(module_name + '.' + name)
+    classes, functions = get_class_funcs(module)
 
     fout.write(section_names[i] + '\n')
     fout.write('-' * len(section_names[i]) + '\n\n')
-
-    # functions and classes
-    classes, functions = [], []
-    for k in dir(module):
-      data = getattr(module, k)
-      if not k.startswith('__') and not inspect.ismodule(data):
-        if inspect.isfunction(data):
-          functions.append(k)
-        elif isinstance(data, type):
-          classes.append(k)
 
     # write_module autosummary
     fout.write('.. autosummary::\n')

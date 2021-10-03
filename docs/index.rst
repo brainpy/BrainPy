@@ -81,6 +81,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    apis/simulation.rst
    apis/analysis.rst
    apis/visualization.rst
+   apis/tools.rst
    apis/changelog.rst
 
 

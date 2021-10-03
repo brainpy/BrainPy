@@ -8,7 +8,7 @@ __all__ = [
 
 
 class DictPlus(dict):
-  """Python dictionaries with tutorials_advanced dot notation access.
+  """Python dictionaries with advanced dot notation access.
 
   For example:
 
