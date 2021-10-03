@@ -22,10 +22,13 @@ from .integrators.wrapper import *
 # "simulation" module
 from . import simulation
 from .simulation.brainobjects import *
+# submodules
 from .simulation import brainobjects
 from .simulation import connect
 from .simulation import initialize
 from .simulation import layers
+from .simulation import nets
+# py files
 from .simulation import inputs
 from .simulation import losses
 from .simulation import measure

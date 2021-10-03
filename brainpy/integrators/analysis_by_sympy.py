@@ -198,7 +198,7 @@ class Parser(object):
     """Use a simplified checking whether it is possible to omit parentheses:
     only omit parentheses for numbers, variable names or function calls.
     This means we still put needless parentheses because we ignore
-    precedence rules, e.g. we write "3 + (4 * 5)" but at least we do
+    precedence rules, e.g. we write_module "3 + (4 * 5)" but at least we do
     not do "(3) + ((4) + (5))" """
     ops = {'BitXor': ('^', '**'),
            'BitAnd': ('&', 'and'),

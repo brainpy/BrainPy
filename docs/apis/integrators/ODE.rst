@@ -8,10 +8,10 @@ Numerical Methods for ODEs
 .. toctree::
     :maxdepth: 2
 
-    1_1_explicit_rk
-    1_2_adaptive_rk
-    1_3_exponential
-    1_4_error
+    ode_explicit_rk
+    ode_adaptive_rk
+    ode_exponential
+    ode_error
 
 
 

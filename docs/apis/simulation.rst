@@ -9,15 +9,15 @@
     :maxdepth: 3
 
     simulation/brainobjects
-    simulation/connectivity
-    simulation/monitor
-    simulation/inputs
-    simulation/measure
     simulation/layers
     simulation/nets
-    simulation/activations
-    simulation/inits
+    simulation/connect
+    simulation/initialize
+
+    simulation/inputs
     simulation/losses
-    simulation/optimization
+    simulation/measure
+    simulation/monitor
+    simulation/optimizers
 
 

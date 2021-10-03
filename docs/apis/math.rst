@@ -9,8 +9,8 @@
     :maxdepth: 3
 
     math/general
-    math/numpy
-    math/jax
+    math/core_jax
+    math/core_numpy
     math/function
     math/comparison
 

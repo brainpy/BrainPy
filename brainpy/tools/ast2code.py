@@ -177,7 +177,7 @@ class Transformer(ast.NodeVisitor):
   def has_parent_of_type(self, node_type):
     return any(isinstance(parent, node_type) for parent in self.node_stack)
 
-  def write(self, code):
+  def write_module(self, code):
     assert isinstance(code, str), 'invalid code %r' % code
     self.current_line.append(code)
 
@@ -203,11 +203,11 @@ class Transformer(ast.NodeVisitor):
     separator : str
         Separators.
     allow_newlines : bool
-        If true, this function will write the expression over multiple lines.
+        If true, this function will write_module the expression over multiple lines.
     need_parens : bool
         If true, this function will surround the expression with parentheses in this case.
     final_separator_if_multiline : bool
-        If true, this function will write a separator at the end of the list if it is
+        If true, this function will write_module a separator at the end of the list if it is
         divided over multiple lines.
     """
     first = True
@@ -825,8 +825,8 @@ class Transformer(ast.NodeVisitor):
                             hasattr(parent_node, 'lineno')
     with self.parenthesize_if(should_parenthesize):
       if isinstance(number, float) and abs(number) > sys.float_info.max:
-        # otherwise we write inf, which won't be parsed back right
-        # I don't know of any way to write nan with a literal
+        # otherwise we write_module inf, which won't be parsed back right
+        # I don't know of any way to write_module nan with a literal
         self.write('1e1000' if number > 0 else '-1e1000')
       elif isinstance(number, (int, int, float)) and number < 0:
         # needed for precedence to work correctly
@@ -985,7 +985,7 @@ class Transformer(ast.NodeVisitor):
 
   # operators
   for op, string in _OP_TO_STR.items():
-    exec('def visit_%s(self, node): self.write(%r)' % (op.__name__, string))
+    exec('def visit_%s(self, node): self.write_module(%r)' % (op.__name__, string))
 
   # Other types
 

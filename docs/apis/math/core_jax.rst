@@ -1,8 +1,8 @@
-Core Functions in NumPy backend
-===============================
+Core Functions in JAX backend
+=============================
 
-.. currentmodule:: brainpy.math.numpy
-.. automodule:: brainpy.math.numpy
+.. currentmodule:: brainpy.math.jax
+.. automodule:: brainpy.math.jax
 
 
 Compilations
@@ -36,8 +36,9 @@ Variables
     TrainVar
     Parameter
 
+
 Activation Functions
-====================
+--------------------
 
 .. autosummary::
     :toctree: generated/

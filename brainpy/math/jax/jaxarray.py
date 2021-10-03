@@ -616,7 +616,7 @@ class JaxArray(object):
   # def setfield(self, val, dtype, offset=0):
   #   pass
 
-  # def setflags(self, write=None, align=None, uic=None):
+  # def setflags(self, write_module=None, align=None, uic=None):
   #   pass
 
   def sort(self, axis=-1, kind=None, order=None):
