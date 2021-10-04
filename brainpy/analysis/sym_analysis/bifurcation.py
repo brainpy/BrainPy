@@ -8,8 +8,8 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import errors, math
-from brainpy.analysis import stability, utils
-from brainpy.analysis.sym_analysis import base
+from brainpy.analysis import stability
+from brainpy.analysis.sym_analysis import base, utils
 from brainpy.analysis.sym_analysis.trajectory import Trajectory
 
 

@@ -2,7 +2,6 @@
 
 import importlib
 import inspect
-import os
 
 __all__ = [
   'write_module',
@@ -37,7 +36,7 @@ def write_module(module_name, filename, header=None):
   #                    f'specification, while __all__ is not specified in {module_name}')
 
   fout = open(filename, 'w')
-  # write_module header
+  # write header
   if header is None:
     header = f'``{module_name}`` module'
   else:
@@ -47,7 +46,7 @@ def write_module(module_name, filename, header=None):
   fout.write(f'.. currentmodule:: {module_name} \n')
   fout.write(f'.. automodule:: {module_name} \n\n')
 
-  # write_module autosummary
+  # write autosummary
   fout.write('.. autosummary::\n')
   fout.write('   :toctree: generated/\n\n')
   for m in functions:
@@ -55,7 +54,7 @@ def write_module(module_name, filename, header=None):
   for m in classes:
     fout.write(f'   {m}\n')
 
-  # write_module autoclass
+  # write autoclass
   fout.write('\n')
   for m in classes:
     fout.write(f'.. autoclass:: {m}\n')
@@ -68,7 +67,7 @@ def write_submodules(module_name, filename, header=None,
                      submodule_names=(), section_names=()):
 
   fout = open(filename, 'w')
-  # write_module header
+  # write header
   if header is None:
     header = f'``{module_name}`` module'
   else:
@@ -86,7 +85,7 @@ def write_submodules(module_name, filename, header=None,
     fout.write(section_names[i] + '\n')
     fout.write('-' * len(section_names[i]) + '\n\n')
 
-    # write_module autosummary
+    # write autosummary
     fout.write('.. autosummary::\n')
     fout.write('   :toctree: generated/\n\n')
     for m in functions:
@@ -94,7 +93,7 @@ def write_submodules(module_name, filename, header=None,
     for m in classes:
       fout.write(f'   {m}\n')
 
-    # write_module autoclass
+    # write autoclass
     fout.write('\n')
     for m in classes:
       fout.write(f'.. autoclass:: {m}\n')

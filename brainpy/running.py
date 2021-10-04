@@ -45,11 +45,11 @@ def process_pool_lock(func, all_net_params, nb_process):
   """Run multiple models in multi-processes with lock.
 
   Sometimes, you want to synchronize the processes. For example,
-  if you want to write_module something in a document, you cannot let
+  if you want to write something in a document, you cannot let
   multi-process simultaneously open this same file. So, you need
   add a `lock` argument in your defined `func`:
 
-  .. _code-block:: python
+  .. code-block:: python
 
       def some_func(..., lock, ...):
           ... do something ..

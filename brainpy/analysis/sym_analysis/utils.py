@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import re
-import ast
 import _thread as thread
+import ast
 import inspect
+import re
 import threading
 
 import numpy as np
 
 from brainpy import errors, math, tools
-from brainpy.integrators import analysis_by_ast, odeint, utils
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.integrators import analysis_by_ast, odeint, utils, DE_INT
 
 try:
   import numba
@@ -18,6 +17,8 @@ try:
 except ModuleNotFoundError:
   numba = None
   Dispatcher = None
+
+DynamicalSystem = None
 
 __all__ = [
   'transform_integrals_to_model',
@@ -53,6 +54,9 @@ def func_in_numpy_or_math(func):
 
 
 def transform_integrals(integrals, method='euler'):
+  global DynamicalSystem
+  if DynamicalSystem is None: from brainpy.simulation.brainobjects.base import DynamicalSystem
+
   pars_update = {}
   new_integrals = []
   for integral in integrals:
@@ -162,11 +166,23 @@ def transform_integrals(integrals, method='euler'):
 
 def transform_integrals_to_model(integrals, method='euler'):
   from brainpy.integrators import analysis_by_sympy
+  global DynamicalSystem
+  if DynamicalSystem is None: from brainpy.simulation.brainobjects.base import DynamicalSystem
 
+  # check integrals
   if callable(integrals):
     integrals = [integrals]
-  if isinstance(integrals, DynamicalSystem):
-    integrals = list(integrals.ints().unique().values())
+  if isinstance(integrals, (list, tuple)):
+    integrals = tuple(integrals)
+  elif isinstance(integrals, dict):
+    integrals = tuple(integrals.values())
+  elif isinstance(integrals, DynamicalSystem):
+    integrals = tuple(integrals.ints().unique().values())
+  else:
+    raise errors.UnsupportedError(f'Dynamics analysis by symbolic approach only supports '
+                                  f'integrators, but we got: {type(integrals)}: {str(integrals)}')
+  for intg in integrals:
+    assert callable(intg) and intg.__name__.startswith(DE_INT)
 
   integrals, pars_update = transform_integrals(integrals, method=method)
 
@@ -216,7 +232,7 @@ def transform_integrals_to_model(integrals, method='euler'):
     for var in integral.brainpy_data['variables']:
       if var in all_variables:
         raise errors.BrainPyError(f'Variable {var} has been defined before. Cannot group '
-                                   f'this integral as a dynamic system.')
+                                  f'this integral as a dynamic system.')
       all_variables.add(var)
     all_parameters.update(integral.brainpy_data['parameters'])
     all_scope.update(code_scope)

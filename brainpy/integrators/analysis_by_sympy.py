@@ -4,7 +4,6 @@
 TODO: enable operation recovery in 'str2sympy' and 'sympy2str'
 """
 
-
 import ast
 from collections import Counter
 
@@ -121,6 +120,23 @@ def get_mapping_scope():
   }
 
 
+_func2expr = {
+  'int_': 'int',
+  'sign': 'math.sign', 'cos': 'math.cos', 'sin': 'math.sin', 'tan': 'math.tan',
+  'sinc': 'math.sinc', 'arcsin': 'math.arcsin', 'arccos': 'math.arccos',
+  'arctan': 'math.arctan', 'arctan2': 'math.arctan2', 'cosh': 'math.cosh',
+  'sinh': 'math.cosh', 'tanh': 'math.tanh', 'arcsinh': 'math.arcsinh',
+  'arccosh': 'math.arccosh', 'arctanh': 'math.arctanh', 'ceil': 'math.ceil',
+  'floor': 'math.floor', 'log': 'math.log', 'log2': 'math.log2', 'log1p': 'math.log1p',
+  'log10': 'math.log10', 'exp': 'math.exp', 'expm1': 'math.expm1', 'exp2': 'math.exp2',
+  'hypot': 'math.hypot', 'sqrt': 'math.sqrt',
+}
+
+_constants = {
+  'pi': 'math.pi', 'e': 'math.e', 'inf': 'math.inf',
+}
+
+
 class Parser(object):
   expression_ops = {
     'Add': sympy.Add,
@@ -198,7 +214,7 @@ class Parser(object):
     """Use a simplified checking whether it is possible to omit parentheses:
     only omit parentheses for numbers, variable names or function calls.
     This means we still put needless parentheses because we ignore
-    precedence rules, e.g. we write_module "3 + (4 * 5)" but at least we do
+    precedence rules, e.g. we write "3 + (4 * 5)" but at least we do
     not do "(3) + ((4) + (5))" """
     ops = {'BitXor': ('^', '**'),
            'BitAnd': ('&', 'and'),
@@ -355,12 +371,16 @@ class Printer(StrPrinter):
 
   def _print_Function(self, expr):
     # Special workaround for the int function
-    if expr.func.__name__ == 'int_':
-      return f'int({self.stringify(expr.args, ", ")})'
-    elif expr.func.__name__ == 'Mod':
+    f_name = expr.func.__name__
+
+    if f_name == 'Mod':
       return f'(({self.doprint(expr.args[0])})%({self.doprint(expr.args[1])}))'
+
+    elif f_name in _func2expr:
+      return f'{_func2expr[f_name]}({self.stringify(expr.args, ", ")})'
+
     else:
-      return expr.func.__name__ + f"({self.stringify(expr.args, ', ')})"
+      return f"{f_name}({self.stringify(expr.args, ', ')})"
 
 
 _PRINTER = Printer()

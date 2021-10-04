@@ -6,7 +6,8 @@ from copy import deepcopy
 import numpy as np
 
 from brainpy import errors, tools
-from brainpy.analysis import solver, utils
+from brainpy.analysis import solver
+from brainpy.analysis.sym_analysis import utils
 
 try:
   import sympy

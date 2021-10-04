@@ -26,10 +26,10 @@ docs/apis/integrators/ode_adaptive_rk.rst
 docs/apis/integrators/ode_explicit_rk.rst
 docs/apis/integrators/ode_exponential.rst
 docs/apis/analysis/generated
+docs/apis/tools.rst
 docs/apis/visualization.rst
 docs/apis/math/generated
 docs/quickstart/_autosummary
-docs/apis/dnn/generated
 docs/quickstart/generated
 docs/quickstart/.ipynb_checkpoints
 
