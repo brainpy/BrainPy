@@ -8,6 +8,7 @@ from . import activations
 from .activations import *
 from .code import *
 from .compilation import *
+from .controls import *
 from .gradient import *
 from .ndarray import *
 from .ops import *

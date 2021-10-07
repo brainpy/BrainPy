@@ -46,11 +46,10 @@ class RandomState(Variable):
     seed : int, jax.DeviceArray, Optional
       The initial seed of the random number generator.
     """
-    if seed is None:
-      seed = np.random.randint(0, 100000)
+    if seed is None: seed = np.random.randint(0, 100000)
     if isinstance(seed, int):
       key = jr.PRNGKey(seed)
-    elif isinstance(seed, (jn.ndarray, JaxArray)):
+    elif isinstance(seed, jn.ndarray):
       if len(seed) == 1:  # seed
         key = jr.PRNGKey(seed[0])
       elif len(seed) == 2:  # key
@@ -78,7 +77,9 @@ class RandomState(Variable):
   def split_key(self):
     """Create a new seed from the current seed.
     """
-    self.value, subkey = jr.split(self.value)
+    key, subkey = jr.split(self.value)
+    self.value = key
+    # self.value = jn.asarray(key)
     return subkey
 
   def split_keys(self, n):
@@ -92,6 +93,7 @@ class RandomState(Variable):
       The number of seeds to generate.
     """
     keys = jr.split(self.value, n + 1)
+    # self.value = jn.asarray(keys[0])
     self.value = keys[0]
     return keys[1:]
 

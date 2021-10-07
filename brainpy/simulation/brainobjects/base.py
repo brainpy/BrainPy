@@ -195,10 +195,10 @@ class DynamicalSystem(Base):
     # 5.3 return the overall running time.
 
     def step_run(_t, _dt, **kwargs):
-      self._monitor_step(_t=_t, _dt=_dt)
       self._input_step(_t=_t, _dt=_dt)
       for step in self.steps.values():
         step(_t=_t, _dt=_dt, **kwargs)
+      self._monitor_step(_t=_t, _dt=_dt)
 
     running_time = utils.run_model(run_func=step_run,
                                    times=times,

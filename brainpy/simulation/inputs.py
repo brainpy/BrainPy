@@ -114,7 +114,7 @@ def constant_input(I_and_duration, dt=None):
 constant_current = constant_input
 
 
-def spike_input(points, lengths, sizes, duration, dt=None):
+def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
   """Format current input like a series of short-time spikes.
 
   For example:
@@ -123,18 +123,18 @@ def spike_input(points, lengths, sizes, duration, dt=None):
   and each spike lasts 1 ms and the spike current is 0.5, then you can use the
   following funtions:
 
-  >>> spike_input(points=[10, 20, 30, 200, 300],
-  >>>             lengths=1.,  # can be a list to specify the spike length at each point
-  >>>             sizes=0.5,  # can be a list to specify the current size at each point
+  >>> spike_input(sp_times=[10, 20, 30, 200, 300],
+  >>>             sp_lens=1.,  # can be a list to specify the spike length at each point
+  >>>             sp_sizes=0.5,  # can be a list to specify the current size at each point
   >>>             duration=400.)
 
   Parameters
   ----------
-  points : list, tuple
+  sp_times : list, tuple
       The spike time-points. Must be an iterable object.
-  lengths : int, float, list, tuple
+  sp_lens : int, float, list, tuple
       The length of each point-current, mimicking the spike durations.
-  sizes : int, float, list, tuple
+  sp_sizes : int, float, list, tuple
       The current sizes.
   duration : int, float
       The total current duration.
@@ -143,18 +143,18 @@ def spike_input(points, lengths, sizes, duration, dt=None):
 
   Returns
   -------
-  current_and_duration : tuple
-      (The formatted current, total duration)
+  current : math.ndarray
+      The formatted input current.
   """
   dt = math.get_dt() if dt is None else dt
-  assert isinstance(points, (list, tuple))
-  if isinstance(lengths, (float, int)):
-    lengths = [lengths] * len(points)
-  if isinstance(sizes, (float, int)):
-    sizes = [sizes] * len(points)
+  assert isinstance(sp_times, (list, tuple))
+  if isinstance(sp_lens, (float, int)):
+    sp_lens = [sp_lens] * len(sp_times)
+  if isinstance(sp_sizes, (float, int)):
+    sp_sizes = [sp_sizes] * len(sp_times)
 
   current = math.zeros(int(np.ceil(duration / dt)), dtype=math.float_)
-  for time, dur, size in zip(points, lengths, sizes):
+  for time, dur, size in zip(sp_times, sp_lens, sp_sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
     current[pp: pp + p_len] = size

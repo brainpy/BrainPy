@@ -51,7 +51,3 @@ from . import errors
 from . import running
 from . import tools
 
-
-# deprecated modules in V1.0.3
-from . import _backend as backend
-from . import _ops as ops

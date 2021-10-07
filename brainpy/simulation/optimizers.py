@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from brainpy.base.base import Base
 from brainpy.base.collector import ArrayCollector
 from brainpy.simulation._imports import mjax, jax
-from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'Optimizer',
@@ -13,7 +13,10 @@ __all__ = [
 ]
 
 
-class Optimizer(DynamicalSystem):
+class Optimizer(Base):
+  """Base Optimizer Class.
+
+  """
   target_backend = 'jax'
 
   def __init__(self, train_vars, lr, name):
@@ -31,11 +34,12 @@ class Optimizer(DynamicalSystem):
     self.dynamic_vars = ArrayCollector(train_vars)  # dynamic variables
 
   def register_dynamical_vars(self, vars: dict):
+    if not hasattr(self, 'dynamic_vars'):
+      raise ValueError('Please super initialize the Optimizer first, then call "register_dynamical_vars()".')
     for key, var in vars.items():
       if key in self.dynamic_vars:
         if id(self.dynamic_vars[key]) != id(var):
-          raise ValueError(f'Name "{key}" conflicts: same name for '
-                           f'{var} and {self.dynamic_vars[key]}.')
+          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.dynamic_vars[key]}.')
       self.dynamic_vars[key] = var
 
   def vars(self, method='absolute'):
@@ -45,6 +49,8 @@ class Optimizer(DynamicalSystem):
 
 
 class SGD(Optimizer):
+  """Stochastic gradient descent optimizer.
+  """
   def __init__(self, lr, train_vars, name=None):
     super(SGD, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
@@ -56,6 +62,9 @@ class SGD(Optimizer):
 
 
 class Momentum(Optimizer):
+  """Momentum optimizer.
+
+  """
   def __init__(self, lr, train_vars, momentum, name=None):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
@@ -92,6 +101,30 @@ class NesterovMomentum(Optimizer):
 
 
 class Adam(Optimizer):
+  """Adam optimizer.
+
+  Adam [1]_ - a stochastic gradient descent method (SGD) that computes
+  individual adaptive learning rates for different parameters from estimates of
+  first- and second-order moments of the gradients.
+
+  Parameters
+  ----------
+  beta1: optional, float
+    A positive scalar value for beta_1, the exponential decay rate
+    for the first moment estimates (default 0.9).
+  beta2: optional, float
+    A positive scalar value for beta_2, the exponential decay rate
+    for the second moment estimates (default 0.999).
+  eps: optional, float
+    A positive scalar value for epsilon, a small constant for
+    numerical stability (default 1e-8).
+  name : optional, str
+    The optimizer name.
+
+  References
+  ----------
+  .. [1] Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
+  """
   def __init__(self, lr, train_vars, beta1=0.9, beta2=0.999, eps=1e-8, name=None):
     super(Adam, self).__init__(lr=lr, train_vars=train_vars, name=name)
 

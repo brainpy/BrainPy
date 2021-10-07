@@ -2,14 +2,14 @@
 
 
 __all__ = [
-  'scan',
+  'easy_scan',
   'fori_loop',
   'while_loop',
   'cond',
 ]
 
 
-def scan(f, init, xs, length=None, reverse=False, unroll=1):
+def easy_scan(f, dyn_vars, out_vars):
   raise ValueError
 
 
