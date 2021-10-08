@@ -2,9 +2,8 @@
 
 from pprint import pprint
 
-from brainpy import math
+from brainpy import math, tools
 from brainpy.simulation.utils import run_model
-from brainpy.tools import DictPlus
 
 __all__ = [
   'Trajectory',
@@ -53,8 +52,8 @@ class Trajectory(object):
       raise ValueError
 
     # monitors, variables, parameters
-    self.mon = DictPlus()
-    self.vars_and_pars = DictPlus()
+    self.mon = tools.DictPlus()
+    self.vars_and_pars = tools.DictPlus()
     for key, val in target_vars.items():
       self.vars_and_pars[key] = math.ones(size) * val
       self.mon[key] = []

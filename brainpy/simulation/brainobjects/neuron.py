@@ -24,8 +24,12 @@ class NeuGroup(DynamicalSystem):
       The neuron group geometry.
   steps : tuple of str, tuple of function, dict of (str, function), optional
       The step functions.
+  steps : tuple of str, tuple of function, dict of (str, function), optional
+      The callable function, or a list of callable functions.
+  monitors : None, list, tuple, datastructures.Monitor
+      Variables to monitor.
   name : str, optional
-      The group name.
+      The name of the dynamic system.
   """
 
   def __init__(self, size, name=None, steps=('update',), **kwargs):
@@ -46,7 +50,7 @@ class NeuGroup(DynamicalSystem):
     # initialize
     super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
 
-  def update(self, _t, _dt):
+  def update(self, _t, _dt, **kwargs):
     """The function to specify the updating rule.
 
     Parameters
@@ -62,7 +66,7 @@ class NeuGroup(DynamicalSystem):
 
 # ----------------------------------------------------
 #
-#          Conductance Neuron Model
+#         Conductance-based Neuron Model
 #
 # ----------------------------------------------------
 
@@ -73,13 +77,13 @@ class Channel(DynamicalSystem):
   def __init__(self, **kwargs):
     super(Channel, self).__init__(**kwargs)
 
-  def init(self, host):
+  def init(self, num_batch, host):
     """Initialize variables in the channel."""
-    if not isinstance(host, CondNeuGroup):
-      raise ValueError
+    if not isinstance(host, CondNeuGroup): raise ValueError
+    self.num_batch = num_batch
     self.host = host
 
-  def update(self, _t, _dt):
+  def update(self, _t, _dt, **kwargs):
     """The function to specify the updating rule."""
     raise NotImplementedError(f'Subclass of {self.__class__.__name__} '
                               f'must implement "update" function.')
@@ -92,10 +96,10 @@ class CondNeuGroup(NeuGroup):
 
 
   """
-  def __init__(self, C=1., A=1e-3, Vth=0., **channels):
+  def __init__(self, C=1., A=1e-3, V_th=0., **channels):
     self.C = C
     self.A = 1e-3 / A
-    self.Vth = Vth
+    self.V_th = V_th
 
     # children channels
     self.child_channels = Collector()
@@ -106,7 +110,7 @@ class CondNeuGroup(NeuGroup):
                                   f'got {type(ch)}: {ch}.')
       self.child_channels[key] = ch
 
-  def init(self, size, monitors=None, name=None):
+  def init(self, size, num_batch=None, monitors=None, name=None):
     super(CondNeuGroup, self).__init__(size, steps=('update',), monitors=monitors, name=name)
 
     # initialize variables
@@ -117,15 +121,13 @@ class CondNeuGroup(NeuGroup):
     self.V_linear = math.Variable(math.zeros(self.num, dtype=math.float_))
 
     # initialize variables in channels
-    for ch in self.child_channels.values():
-      ch.init(host=self)
+    for ch in self.child_channels.values(): ch.init(host=self, num_batch=num_batch)
 
     return self
 
-  def update(self, _t, _dt):
+  def update(self, _t, _dt, **kwargs):
     # update variables in channels
-    for ch in self.child_channels.values():
-      ch.update(_t, _dt)
+    for ch in self.child_channels.values(): ch.update(_t, _dt)
 
     # update V using Exponential Euler method
     dvdt = self.I_ion / self.C + self.input * (self.A / self.C)
@@ -133,7 +135,7 @@ class CondNeuGroup(NeuGroup):
     V = self.V + dvdt * (math.exp(linear * _dt) - 1) / linear
 
     # update other variables
-    self.spike[:] = math.logical_and(V >= self.Vth, self.V < self.Vth)
+    self.spike[:] = math.logical_and(V >= self.V_th, self.V < self.V_th)
     self.V_linear[:] = 0.
     self.I_ion[:] = 0.
     self.input[:] = 0.

@@ -6,7 +6,8 @@ from copy import deepcopy
 import numpy as np
 
 from brainpy import errors, tools
-from brainpy.analysis import solver, utils
+from brainpy.analysis import solver
+from brainpy.analysis.sym_analysis import utils
 
 try:
   import sympy
@@ -255,7 +256,7 @@ class Base1DAnalyzer(BaseAnalyzer):
     if 'dxdt' not in self.analyzed_results:
       scope = deepcopy(self.pars_update)
       scope.update(self.fixed_vars)
-      scope.update(analysis_by_sympy.get_mapping_scope())
+      # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
@@ -277,7 +278,7 @@ class Base1DAnalyzer(BaseAnalyzer):
 
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -337,7 +338,7 @@ class Base1DAnalyzer(BaseAnalyzer):
 
       scope = deepcopy(self.pars_update)
       scope.update(self.fixed_vars)
-      scope.update(analysis_by_sympy.get_mapping_scope())
+      # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
       scope['np'] = np
 
@@ -468,7 +469,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
         # check "f"
         scope = deepcopy(self.pars_update)
         scope.update(self.fixed_vars)
-        scope.update(analysis_by_sympy.get_mapping_scope())
+        # scope.update(analysis_by_sympy.get_mapping_scope())
         if a.endswith('y_eq'):
           scope.update(self.y_eq_group['diff_eq'].func_scope)
         else:
@@ -499,7 +500,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       y_var = self.dvar_names[1]
       scope = deepcopy(self.pars_update)
       scope.update(self.fixed_vars)
-      scope.update(analysis_by_sympy.get_mapping_scope())
+      # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.y_eq_group.diff_eq.func_scope)
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
@@ -521,7 +522,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -584,7 +585,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -647,7 +648,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -730,7 +731,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
       eq_xy_scope = deepcopy(self.pars_update)
       eq_xy_scope.update(self.fixed_vars)
-      eq_xy_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_xy_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_xy_scope.update(self.x_eq_group['diff_eq'].func_scope)
       eq_xy_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
@@ -839,7 +840,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # f
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
       func_codes = [f'def f_x({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -851,7 +852,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # g
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
       func_codes = [f'def g_y({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -906,7 +907,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # x equation scope
       eq_x_scope = deepcopy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group.diff_eq.func_scope)
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
@@ -980,7 +981,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # y equation scope
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
+      # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group.diff_eq.func_scope)
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
@@ -1048,7 +1049,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
         eq_y_scope = deepcopy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
-        eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
+        # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1121,7 +1122,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
         eq_x_scope = deepcopy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
-        eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
+        # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1194,7 +1195,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
         eq_y_scope = deepcopy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
-        eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
+        # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
@@ -1266,7 +1267,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
 
         eq_x_scope = deepcopy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
-        eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
+        # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)

@@ -14,7 +14,6 @@ This module provides basic mathematical operations, including:
 
 
 from brainpy import errors
-from brainpy.math.function import *
 from brainpy.math.numpy import *
 
 

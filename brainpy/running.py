@@ -49,7 +49,7 @@ def process_pool_lock(func, all_net_params, nb_process):
   multi-process simultaneously open this same file. So, you need
   add a `lock` argument in your defined `func`:
 
-  .. _code-block:: python
+  .. code-block:: python
 
       def some_func(..., lock, ...):
           ... do something ..

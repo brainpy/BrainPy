@@ -21,8 +21,8 @@ from jax.interpreters.pxla import ShardedDeviceArray
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector
 from brainpy.math.jax.random import RandomState
+from brainpy.base.collector import ArrayCollector
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -34,30 +34,30 @@ __all__ = [
 logger = logging.getLogger('brainpy.math.jax.compilation')
 
 
-def _make_jit(func, vars_to_change, vars_needed,
-              static_argnums, static_argnames=None, device=None,
+def _make_jit(func, vars, static_argnums, static_argnames=None, device=None,
               backend=None, donate_argnums=(), inline=False, f_name=None):
-  @functools.partial(jax.jit, static_argnums=static_argnums, static_argnames=static_argnames,
-                     device=device, backend=backend, donate_argnums=donate_argnums, inline=inline)
-  def jitted_func(data_to_change, data_needed, *args, **kwargs):
-    vars_to_change.assign(data_to_change)
-    vars_needed.assign(data_needed)
+  @functools.partial(jax.jit,
+                     static_argnums=static_argnums,
+                     static_argnames=static_argnames,
+                     device=device, backend=backend,
+                     donate_argnums=donate_argnums,
+                     inline=inline)
+  def jitted_func(variable_data, *args, **kwargs):
+    vars.assign(variable_data)
     out = func(*args, **kwargs)
-    changes = vars_to_change.dict()
+    changes = vars.dict()
     return out, changes
 
   def call(*args, **kwargs):
-    data_to_change = vars_to_change.dict()
-    data_needed = vars_needed.dict()
-    out, changes = jitted_func(data_to_change, data_needed, *args, **kwargs)
-    vars_to_change.assign(changes)
+    variable_data = vars.dict()
+    out, changes = jitted_func(variable_data, *args, **kwargs)
+    vars.assign(changes)
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def jit(obj_or_func, vars_to_change=None, vars_needed=None,
-        static_argnums=None, static_argnames=None, device=None,
+def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, device=None,
         backend=None, donate_argnums=(), inline=False, **kwargs):
   """JIT (Just-In-Time) Compilation for JAX backend.
 
@@ -82,16 +82,16 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
 
   You can JIT a :py:class:`brainpy.Base` object with ``__call__()`` implementation.
 
-  >>> mlp = bp.dnn.MLP((10, 100, 10))
+  >>> mlp = bp.nets.MLP((10, 100, 10))
   >>> jit_mlp = bp.math.jit(mlp)
 
   You can also JIT a bounded method of a :py:class:`brainpy.Base` object.
 
-  >>> class Hello(bp.dnn.Module):
+  >>> class Hello(bp.Base):
   >>>   def __init__(self):
   >>>     super(Hello, self).__init__()
-  >>>     self.a = 10.
-  >>>     self.b = 2
+  >>>     self.a = bp.math.Variable(bp.math.array(10.))
+  >>>     self.b = bp.math.Variable(bp.math.array(2.))
   >>>   def transform(self):
   >>>     return self.a ** self.b
   >>>
@@ -104,16 +104,21 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
   >>> def selu(x, alpha=1.67, lmbda=1.05):
   >>>   return lmbda * bp.math.where(x > 0, x, alpha * bp.math.exp(x) - alpha)
 
+
+  Notes
+  -----
+
+  There are several notes:
+
+  1. Avoid using scalar in Variable, TrainVar, etc.
+
+
   Parameters
   ----------
   obj_or_func : Base, function
     The instance of Base or a function.
-  vars_to_change : optional, dict
-    These variables will be changed in the function. If ``obj_or_func`` is an instance of Base,
-    and ``vars_to_change`` is not provided, then all variables ``obj_or_func.vars()`` will be
-    assumed to ``vars_to_change``.
-  vars_needed : optional, dict
-    The variables are needed to do computations, and will not be changed during the computation.
+  vars : optional, dict
+    These variables will be changed in the function, or needed in the computation.
   static_argnums : optional, int, list, tuple, dict
     An optional int or collection of ints that specify which positional arguments to treat
     as static (compile-time constant).
@@ -147,8 +152,7 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
   Returns
   -------
   ds_of_func : Base, function
-    A wrapped version of Base object or function,
-    set up for just-in-time compilation.
+    A wrapped version of Base object or function, set up for just-in-time compilation.
   """
   from brainpy.simulation.brainobjects.base import DynamicalSystem
 
@@ -156,16 +160,15 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
     if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
-      vars_to_change = (vars_to_change or obj_or_func.vars().unique())
-      vars_needed = (vars_needed or ArrayCollector())
+      vars = (vars or obj_or_func.vars().unique())
 
       # static arguments by num
       if static_argnums is None:
         static_argnums = {key: () for key in obj_or_func.steps.keys()}
       elif isinstance(static_argnums, int):
-        static_argnums = {key: (static_argnums + 2,) for key in obj_or_func.steps.keys()}
+        static_argnums = {key: (static_argnums + 1,) for key in obj_or_func.steps.keys()}
       elif isinstance(static_argnums, (tuple, list)) and isinstance(static_argnums[0], int):
-        static_argnums = {key: tuple(x + 2 for x in static_argnums) for key in obj_or_func.steps.keys()}
+        static_argnums = {key: tuple(x + 1 for x in static_argnums) for key in obj_or_func.steps.keys()}
       assert isinstance(static_argnums, dict)
 
       # static arguments by name
@@ -181,9 +184,9 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
       if donate_argnums is None:
         donate_argnums = {key: () for key in obj_or_func.steps.keys()}
       elif isinstance(donate_argnums, int):
-        donate_argnums = {key: (donate_argnums + 2,) for key in obj_or_func.steps.keys()}
+        donate_argnums = {key: (donate_argnums + 1,) for key in obj_or_func.steps.keys()}
       elif isinstance(donate_argnums, (tuple, list)):
-        donate_argnums = {key: tuple(x + 2 for x in donate_argnums) for key in obj_or_func.steps.keys()}
+        donate_argnums = {key: tuple(x + 1 for x in donate_argnums) for key in obj_or_func.steps.keys()}
       assert isinstance(donate_argnums, dict)
 
       # inline
@@ -193,8 +196,7 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
 
       # jit functions
       for key in list(obj_or_func.steps.keys()):
-        jitted_func = _make_jit(vars_to_change=vars_to_change,
-                                vars_needed=vars_needed,
+        jitted_func = _make_jit(vars=vars,
                                 func=obj_or_func.steps[key],
                                 static_argnums=static_argnums[key],
                                 static_argnames=static_argnames[key],
@@ -207,22 +209,16 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
       return obj_or_func
 
   if callable(obj_or_func):
-    if vars_to_change is not None:
-      vars_to_change = vars_to_change
+    if vars is not None:
+      vars = vars
     elif isinstance(obj_or_func, Base):
-      vars_to_change = obj_or_func.vars().unique()
-    elif hasattr(obj_or_func, '__self__'):
-      if isinstance(obj_or_func.__self__, Base):
-        vars_to_change = obj_or_func.__self__.vars().unique()
+      vars = obj_or_func.vars().unique()
+    elif hasattr(obj_or_func, '__self__') and isinstance(obj_or_func.__self__, Base):
+      vars = obj_or_func.__self__.vars().unique()
     else:
-      vars_to_change = ArrayCollector()
+      vars = ArrayCollector()
 
-    if vars_needed is not None:
-      vars_needed = vars_needed
-    else:
-      vars_needed = ArrayCollector()
-
-    if len(vars_to_change) == 0 and len(vars_needed) == 0:  # pure function
+    if len(vars) == 0:  # pure function
       return jax.jit(obj_or_func,
                      static_argnums=static_argnums,
                      static_argnames=static_argnames,
@@ -233,9 +229,8 @@ def jit(obj_or_func, vars_to_change=None, vars_needed=None,
 
     else:  # Base object which implements __call__, or bounded method of Base object
 
-      static_argnums = tuple(x + 2 for x in sorted(static_argnums or ()))
-      return _make_jit(vars_to_change=vars_to_change,
-                       vars_needed=vars_needed,
+      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
+      return _make_jit(vars=vars,
                        func=obj_or_func,
                        static_argnums=static_argnums,
                        static_argnames=static_argnames,

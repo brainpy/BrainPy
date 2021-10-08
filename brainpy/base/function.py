@@ -45,11 +45,6 @@ class Function(Base):
       raise ValueError(f'Only support list/tuple/dict of {Base.__name__}, '
                        f'but we got {type(nodes)}: {nodes}')
 
-  def vars(self, method='absolute'):
-    gather = self._vars_in_container(self._nodes, method=method)
-    gather.update(super(Function, self).vars(method=method))
-    return gather
-
   def nodes(self, method='absolute', _paths=None):
     if _paths is None:
       _paths = set()

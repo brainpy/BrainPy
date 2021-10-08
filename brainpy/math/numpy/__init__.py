@@ -3,8 +3,11 @@
 from . import fft
 from . import linalg
 from . import random
+
 from .code import *
 from .compilation import *
+from .controls import *
+from .function import *
 from .gradient import *
 from .ndarray import *
 from .ops import *

@@ -14,11 +14,27 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-import brainpy
-import brainpy.math.numpy
-import brainpy.math.jax
-import brainpy.math.function
-from docs import comparison_generator
+from shutil import copyfile
+
+import brainpy.math.jax.function
+from docs.apis import base_generator
+from docs.apis import math_generator
+from docs.apis import integrators_generator
+from docs.apis import simulation_generator
+from docs.apis import visualization_generator
+from docs.apis import tools_generator
+
+base_generator.generate('apis/')
+math_generator.generate('apis/math/')
+integrators_generator.generate('apis/integrators/')
+simulation_generator.generate('apis/simulation/')
+visualization_generator.generate('apis/')
+tools_generator.generate('apis/')
+
+det_changelog = 'apis/changelog.rst'
+src_changelog = '../changelog.rst'
+if os.path.exists(det_changelog): os.remove(det_changelog)
+copyfile(src_changelog, det_changelog)
 
 
 # -- Project information -----------------------------------------------------
@@ -29,20 +45,6 @@ author = 'Chaoming Wang'
 
 # The full version, including alpha/beta/rc tags
 release = brainpy.__version__
-
-det_changelog = 'apis/changelog.rst'
-src_changelog = '../changelog.rst'
-
-if os.path.exists(det_changelog):
-    os.remove(det_changelog)
-
-from shutil import copyfile
-copyfile(src_changelog, det_changelog)
-
-
-# Generate comparison table.
-with open('apis/math/comparison_table.rst.inc', 'w') as f:
-    f.write(comparison_generator.generate())
 
 
 # -- General configuration ---------------------------------------------------

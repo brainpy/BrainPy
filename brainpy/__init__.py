@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.0rc3"
+__version__ = "1.1.0"
 
 
 # "base" module
@@ -17,23 +17,22 @@ from . import math
 from . import integrators
 from .integrators import ode
 from .integrators import sde
-from .integrators import dde
-from .integrators import fde
 from .integrators.wrapper import *
 
 
 # "simulation" module
 from . import simulation
-from .simulation import connectivity as connect
 from .simulation.brainobjects import *
 from .simulation.monitor import *
+# submodules
+from .simulation import brainobjects
+from .simulation import connect
+from .simulation import initialize
+from .simulation import layers
+from .simulation import nets
+# py files
 from .simulation import inputs
 from .simulation import measure
-
-
-# "dnn" module
-from . import dnn
-
 
 # "analysis" module
 from . import analysis
@@ -50,7 +49,3 @@ from . import errors
 from . import running
 from . import tools
 
-
-# deprecated modules in V1.0.3
-from . import _backend as backend
-from . import _ops as ops
