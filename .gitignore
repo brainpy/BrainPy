@@ -2,6 +2,7 @@ publishment.md
 #experimental/
 .vscode
 
+book/
 examples/
 examples/recurrent_neural_network/neurogym
 develop/iconip_paper

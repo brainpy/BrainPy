@@ -2,7 +2,6 @@
 
 import jax.numpy
 import numpy as np
-from jax import partial, jit
 from jax import numpy as jn
 from jax import random as jr
 from jax.tree_util import register_pytree_node
