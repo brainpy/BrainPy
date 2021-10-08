@@ -14,23 +14,27 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-from shutil import copyfile
+import brainpy
 
-import brainpy.math.jax.function
 from docs.apis import base_generator
-from docs.apis import math_generator
-from docs.apis import integrators_generator
-from docs.apis import simulation_generator
-from docs.apis import visualization_generator
-from docs.apis import tools_generator
-
 base_generator.generate('apis/')
+
+from docs.apis import math_generator
 math_generator.generate('apis/math/')
+
+from docs.apis import integrators_generator
 integrators_generator.generate('apis/integrators/')
+
+from docs.apis import simulation_generator
 simulation_generator.generate('apis/simulation/')
+
+from docs.apis import visualization_generator
 visualization_generator.generate('apis/')
+
+from docs.apis import tools_generator
 tools_generator.generate('apis/')
 
+from shutil import copyfile
 det_changelog = 'apis/changelog.rst'
 src_changelog = '../changelog.rst'
 if os.path.exists(det_changelog): os.remove(det_changelog)
