@@ -19,6 +19,13 @@ def generate(path):
   write_module(module_name='brainpy.simulation.nets',
                filename=os.path.join(path, 'nets.rst'),
                header='Brain Networks')
+  module_and_name = [
+    ('base', 'Base Class'),
+    ('codes', 'Code Tools'),
+    ('dicts', 'New Dict'),
+    ('namechecking', 'Name Checking'),
+    ('others', 'Other Tools'),
+  ]
   write_submodules(module_name='brainpy.simulation.connect',
                    filename=os.path.join(path, 'connect.rst'),
                    header='Synaptic Connectivity',
@@ -35,15 +42,10 @@ def generate(path):
   write_module(module_name='brainpy.simulation.inputs',
                filename=os.path.join(path, 'inputs.rst'),
                header='Current Inputs')
-  write_module(module_name='brainpy.simulation.losses',
-               filename=os.path.join(path, 'losses.rst'),
-               header='Loss Functions')
   write_module(module_name='brainpy.simulation.measure',
                filename=os.path.join(path, 'measure.rst'),
                header='Measurements')
   write_module(module_name='brainpy.simulation.monitor',
                filename=os.path.join(path, 'monitor.rst'),
                header='Monitors')
-  write_module(module_name='brainpy.simulation.optimizers',
-               filename=os.path.join(path, 'optimizers.rst'),
-               header='Optimizers')
+

@@ -2,11 +2,14 @@ import importlib
 import inspect
 import os
 
-from brainpy.math.numpy import activations, compilation, gradient
+from brainpy.math.numpy import compilation, gradient, function
+from brainpy.math.jax import controls, losses, activations, optimizers
+from docs.apis.auto_generater import write_module
 
 
 block_list = ['test', 'control_transform', 'register_pytree_node']
-for module in [activations, compilation, gradient]:
+for module in [compilation, gradient, function,
+               controls, losses, activations, optimizers]:
   for k in dir(module):
     if (not k.startswith('_') ) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -112,11 +115,22 @@ def generate(path):
                   numpy_mod='numpy.random',
                   brainpy_np='brainpy.math.numpy.random',
                   brainpy_jax='brainpy.math.jax.random')
-  buf += _section(header='Activation Functions',
-                  numpy_mod='numpy.random',
-                  brainpy_np='brainpy.math.numpy.activations',
-                  brainpy_jax='brainpy.math.jax.activations')
   codes = '\n'.join(buf)
 
   with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
     f.write(codes)
+
+
+  if not os.path.exists(os.path.join(path, 'jax')):
+    os.makedirs(os.path.join(path, 'jax'))
+  write_module(module_name='brainpy.math.jax.optimizers',
+               filename=os.path.join(path, 'jax/optimizers.rst'),
+               header='Optimizers')
+  write_module(module_name='brainpy.math.jax.losses',
+               filename=os.path.join(path, 'jax/losses.rst'),
+               header='Loss Functions')
+  write_module(module_name='brainpy.math.jax.activations',
+               filename=os.path.join(path, 'jax/activations.rst'),
+               header='Activation Functions')
+
+

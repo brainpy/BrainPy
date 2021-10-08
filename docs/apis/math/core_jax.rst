@@ -1,8 +1,9 @@
-Core Functions in JAX backend
-=============================
+Functions in JAX backend
+========================
 
 .. currentmodule:: brainpy.math.jax
 .. automodule:: brainpy.math.jax
+
 
 
 Compilations
@@ -37,33 +38,32 @@ Variables
     Parameter
 
 
-Activation Functions
---------------------
+Controls
+---------
 
 .. autosummary::
     :toctree: generated/
 
-    celu
-    elu
-    gelu
-    glu
-    hard_tanh
-    hard_sigmoid
-    hard_silu
-    hard_swish
-    leaky_relu
-    log_sigmoid
-    log_softmax
-    one_hot
-    normalize
-    relu
-    relu6
-    sigmoid
-    soft_sign
-    softmax
-    softplus
-    silu
-    swish
-    selu
-    tanh
+    easy_scan
+    easy_forloop
+    easy_while
+    easy_cond
+
+
+Functions
+---------
+
+.. autosummary::
+    :toctree: generated/
+
+    function
+
+
+
+.. toctree::
+    :maxdepth: 2
+
+    jax/optimizers
+    jax/losses
+    jax/activations
 

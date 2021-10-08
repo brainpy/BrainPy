@@ -11,6 +11,5 @@
     math/general
     math/core_jax
     math/core_numpy
-    math/function
     math/comparison
 

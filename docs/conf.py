@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 from shutil import copyfile
 
-import brainpy.math.function
+import brainpy.math.jax.function
 from docs.apis import base_generator
 from docs.apis import math_generator
 from docs.apis import integrators_generator

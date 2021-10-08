@@ -15,9 +15,7 @@
     simulation/initialize
 
     simulation/inputs
-    simulation/losses
     simulation/measure
     simulation/monitor
-    simulation/optimizers
 
 
