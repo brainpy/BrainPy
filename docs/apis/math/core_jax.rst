@@ -6,6 +6,14 @@ Functions in JAX backend
 
 
 
+.. toctree::
+    :maxdepth: 2
+
+    jax/optimizers
+    jax/losses
+    jax/activations
+
+
 Compilations
 ------------
 
@@ -59,11 +67,4 @@ Functions
     function
 
 
-
-.. toctree::
-    :maxdepth: 2
-
-    jax/optimizers
-    jax/losses
-    jax/activations
 
