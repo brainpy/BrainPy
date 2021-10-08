@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 import pickle
 
 import numpy as np
 
-from brainpy import errors, math
+from brainpy import errors
 from brainpy.base.collector import ArrayCollector
 
-Base = None
+Base = math = None
+logger = logging.getLogger('brainpy.base.io')
 
 try:
   import h5py
@@ -32,6 +34,8 @@ __all__ = [
   'load_mat',
 ]
 
+SUPPORTED_FORMATS = ['.h5', '.hdf5', '.npz', '.pkl', '.mat']
+
 
 def _check(module, module_name, ext):
   if module is None:
@@ -42,7 +46,10 @@ def _check(module, module_name, ext):
     )
 
 
-SUPPORTED_FORMATS = ['.h5', '.hdf5', '.npz', '.pkl', '.mat']
+def _check_missing(vars, filename):
+  if len(vars):
+    logger.warning(f'There are variable states missed in {filename}. '
+                   f'The missed variables are {list(vars.keys())}.')
 
 
 def save_h5(filename, all_vars):
@@ -64,12 +71,12 @@ def save_h5(filename, all_vars):
 
 
 def load_h5(filename, target):
-  global Base
+  global math, Base
   if Base is None: from brainpy.base.base import Base
+  if math is None: from brainpy import math
   assert isinstance(target, Base)
   _check(h5py, module_name='h5py', ext=os.path.splitext(filename))
 
-  # load
   all_vars = target.vars()
   f = h5py.File(filename, "r")
   for g_key in f.keys():
@@ -80,6 +87,7 @@ def load_h5(filename, target):
       var[:] = math.asarray(d.value)
       assert var.type == d.attrs['type']
   f.close()
+  _check_missing(all_vars, filename=filename)
 
 
 def save_npz(filename, all_vars, compressed=False):
@@ -93,16 +101,18 @@ def save_npz(filename, all_vars, compressed=False):
 
 
 def load_npz(filename, target):
-  global Base
+  global math, Base
   if Base is None: from brainpy.base.base import Base
+  if math is None: from brainpy import math
   assert isinstance(target, Base)
 
-  # load
   all_vars = target.vars()
   all_data = np.load(filename)
   for key in all_data.files:
     host_key, data_key = key.split('--')
-    all_vars[host_key + '.' + data_key][:] = math.asarray(all_data[key])
+    var = all_vars.pop(host_key + '.' + data_key)
+    var[:] = math.asarray(all_data[key])
+  _check_missing(all_vars, filename=filename)
 
 
 def save_pkl(filename, all_vars):
@@ -115,15 +125,19 @@ def save_pkl(filename, all_vars):
 
 
 def load_pkl(filename, target):
-  global Base
+  global math, Base
   if Base is None: from brainpy.base.base import Base
+  if math is None: from brainpy import math
   assert isinstance(target, Base)
   f = open(filename, 'r')
   all_data = pickle.load(f)
   f.close()
+
   all_vars = target.vars()
   for key, data in all_data.items():
-    all_vars[key] = math.asarray(data)
+    var = all_vars.pop(key)
+    var[:] = math.asarray(data)
+  _check_missing(all_vars, filename=filename)
 
 
 def save_mat(filename, all_vars):
@@ -135,10 +149,14 @@ def save_mat(filename, all_vars):
 
 
 def load_mat(filename, target):
-  global Base
+  global math, Base
   if Base is None: from brainpy.base.base import Base
+  if math is None: from brainpy import math
   assert isinstance(target, Base)
+
   all_data = sio.loadmat(filename)
   all_vars = target.vars()
   for key, data in all_data.items():
-    all_vars[key] = math.asarray(data)
+    var = all_vars.pop(key)
+    var[:] = math.asarray(data)
+  _check_missing(all_vars, filename=filename)

@@ -2,11 +2,11 @@
 
 import jax.numpy as jnp
 import numpy as np
+from jax.tree_util import tree_map
 
 from brainpy.math.jax.jaxarray import JaxArray
 from brainpy.math.numpy import ops
 from brainpy.tools import copy_doc
-
 
 __all__ = [
   # math funcs
@@ -1396,7 +1396,5 @@ def take_along_axis(a, indices, axis):
 
 @copy_doc(ops.clip_by_norm)
 def clip_by_norm(t, clip_norm, axis=None):
-  l2norm = sqrt(sum(t * t, axis=axis, keepdims=True))
-  clip_values = t * clip_norm / maximum(l2norm, clip_norm)
-  return clip_values
-
+  f = lambda l: l * clip_norm / maximum(sqrt(sum(l * l, axis=axis, keepdims=True)), clip_norm)
+  return tree_map(f, t)

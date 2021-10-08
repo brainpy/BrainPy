@@ -2,6 +2,7 @@
 
 from brainpy import math
 from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.simulation._imports import mjax
 
 __all__ = [
   'Activation'
@@ -25,7 +26,7 @@ class Activation(DynamicalSystem):
       name = self.unique_name(type=f'Activation_{activation}')
     super(Activation, self).__init__(name=name)
 
-    self._activation = math.activations.get(activation)
+    self._activation = mjax.activations.get(activation)
     self._setting = setting
 
   def update(self, x, **kwargs):

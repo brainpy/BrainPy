@@ -6,6 +6,7 @@ import os.path
 from brainpy import errors
 from brainpy.tools import namechecking
 from brainpy.base import collector
+from brainpy.base import io
 
 math = DE_INT = None
 
@@ -246,14 +247,14 @@ class Base(object):
     if not os.path.exists(filename):
       raise errors.BrainPyError(f'Cannot find the file path: {filename}')
     if filename.endswith('.hdf5') or filename.endswith('.h5'):
-      brainpy.base.io.load_h5(filename, target=self)
+      io.load_h5(filename, target=self)
     if filename.endswith('.pkl'):
-      brainpy.base.io.load_pkl(filename, target=self)
+      io.load_pkl(filename, target=self)
     if filename.endswith('.npz'):
-      brainpy.base.io.load_npz(filename, target=self)
+      io.load_npz(filename, target=self)
     if filename.endswith('.mat'):
-      brainpy.base.io.load_mat(filename, target=self)
-    raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {brainpy.base.io.SUPPORTED_FORMATS}')
+      io.load_mat(filename, target=self)
+    raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
   def save_states(self, filename, **setting):
     """Save the model states.
@@ -264,14 +265,14 @@ class Base(object):
       The file name which to store the model states.
     """
     if filename.endswith('.hdf5') or filename.endswith('.h5'):
-      brainpy.base.io.save_h5(filename, all_vars=self.vars())
+      io.save_h5(filename, all_vars=self.vars())
     if filename.endswith('.pkl'):
-      brainpy.base.io.save_pkl(filename, all_vars=self.vars())
+      io.save_pkl(filename, all_vars=self.vars())
     if filename.endswith('.npz'):
-      brainpy.base.io.save_npz(filename, all_vars=self.vars(), **setting)
+      io.save_npz(filename, all_vars=self.vars(), **setting)
     if filename.endswith('.mat'):
-      brainpy.base.io.save_mat(filename, all_vars=self.vars())
-    raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {brainpy.base.io.SUPPORTED_FORMATS}')
+      io.save_mat(filename, all_vars=self.vars())
+    raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
   def to(self, devices):
     global math

@@ -1,15 +1,25 @@
 # -*- coding: utf-8 -*-
 
+import jax.numpy as jn
+
+import brainpy.math.jax as bm
 from brainpy.base.base import Base
 from brainpy.base.collector import ArrayCollector
-from brainpy.simulation._imports import mjax, jax
 
 __all__ = [
+  # optimizers
   'Optimizer',
   'SGD',
   'Momentum',
   'NesterovMomentum',
   'Adam',
+
+  # schedules
+  'constant',
+  'exponential_decay',
+  'inverse_time_decay',
+  'polynomial_decay',
+  'piecewise_constant',
 ]
 
 
@@ -23,13 +33,14 @@ class Optimizer(Base):
     super(Optimizer, self).__init__(name=name)
 
     if isinstance(train_vars, ArrayCollector):
-      train_vars = train_vars.subset(mjax.TrainVar).unique()
+      train_vars = train_vars.subset(bm.TrainVar).unique()
     elif isinstance(train_vars, (list, tuple)):
       train_vars = ArrayCollector((f'_unknown{i}', var) for i, var in enumerate(train_vars))
       train_vars = train_vars.unique()
     else:
       raise ValueError
-    self.lr = lr
+    self.lr = _make_schedule(lr)
+    self.step = bm.Variable(bm.array([0]))
     self._train_vars = train_vars
     self.dynamic_vars = ArrayCollector(train_vars)  # dynamic variables
 
@@ -47,39 +58,46 @@ class Optimizer(Base):
     gather.update(super(Optimizer, self).vars(method=method))
     return gather
 
+  def update(self, grads):
+    if len(grads) != len(self._train_vars):
+      raise ValueError('Expecting as many gradients as trainable variables')
+    self.step += 1
+    lr = self.lr(self.step[0])
+    return lr
+
 
 class SGD(Optimizer):
   """Stochastic gradient descent optimizer.
   """
+
   def __init__(self, lr, train_vars, name=None):
     super(SGD, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
   def update(self, grads: dict, **kwargs):
-    if len(grads) != len(self._train_vars):
-      raise ValueError('Expecting as many gradients as trainable variables')
+    lr = super(SGD, self).update(grads)
     for key, p in self._train_vars.items():
-      p.value -= self.lr * grads[key]
+      p.value -= lr * grads[key]
 
 
 class Momentum(Optimizer):
   """Momentum optimizer.
 
   """
+
   def __init__(self, lr, train_vars, momentum, name=None):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    ms = dict((key + '_m', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
     self.register_dynamical_vars(ms)
 
   def update(self, grads: dict, **kwargs):
-    if not (len(grads) == len(self._train_vars)):
-      raise ValueError('Expecting as many gradients as trainable variables')
+    lr = super(Momentum, self).update(grads)
     for key, p in self._train_vars.items():
       m = self.dynamic_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
-      p.value -= self.lr * m.value
+      p.value -= lr * m.value
 
 
 class NesterovMomentum(Optimizer):
@@ -87,17 +105,16 @@ class NesterovMomentum(Optimizer):
     super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    ms = dict((key + '_m', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
     self.register_dynamical_vars(ms)
 
   def update(self, grads: dict, **kwargs):
-    if not (len(grads) == len(self._train_vars)):
-      raise ValueError('Expecting as many gradients as trainable variables')
+    lr = super(NesterovMomentum, self).update(grads)
     for key, p in self._train_vars.items():
       m = self.dynamic_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
-      p.value -= self.lr * (g + self.momentum * m.value)
+      p.value -= lr * (g + self.momentum * m.value)
 
 
 class Adam(Optimizer):
@@ -125,30 +142,83 @@ class Adam(Optimizer):
   ----------
   .. [1] Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
   """
+
   def __init__(self, lr, train_vars, beta1=0.9, beta2=0.999, eps=1e-8, name=None):
     super(Adam, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps
-    self.step = mjax.Variable(mjax.array([0]))
-    ms = dict((key + '_m', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
-    vs = dict((key + '_v', mjax.Variable(mjax.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
+    vs = dict((key + '_v', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
     self.register_dynamical_vars(ms)
     self.register_dynamical_vars(vs)
 
   def update(self, grads: dict, **kwargs):
-    """Updates variables and other state based on Adam algorithm.
-    """
-    if len(grads) != len(self._train_vars):
-      raise ValueError('Expecting as many gradients as trainable variables')
-    self.step += 1
-    step = self.step.value[0]
-    lr = self.lr * mjax.sqrt(1 - self.beta2 ** step) / (1 - self.beta1 ** step)
+    lr = super(Adam, self).update(grads)
+    lr *= jn.sqrt(1 - self.beta2 ** self.step[0]) / (1 - self.beta1 ** self.step[0])
     for key, p in self._train_vars.items():
       m = self.dynamic_vars[key + '_m']
       v = self.dynamic_vars[key + '_v']
       g = grads[key]
       m.value = self.beta1 * m.value + (1 - self.beta1) * g
       v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2
-      p.value -= lr * m.value * jax.lax.rsqrt(v.value + self.eps)
+      p.value -= lr * m.value / jn.sqrt(v.value + self.eps)
+
+
+# learning rate schedules
+
+def constant(lr):
+  def schedule(i):
+    return lr
+
+  return schedule
+
+
+def exponential_decay(lr, decay_steps, decay_rate):
+  def schedule(i):
+    return lr * decay_rate ** (i / decay_steps)
+
+  return schedule
+
+
+def inverse_time_decay(lr, decay_steps, decay_rate, staircase=False):
+  if staircase:
+    def schedule(i):
+      return lr / (1 + decay_rate * jn.floor(i / decay_steps))
+  else:
+    def schedule(i):
+      return lr / (1 + decay_rate * i / decay_steps)
+  return schedule
+
+
+def polynomial_decay(lr, decay_steps, final_lr, power=1.0):
+  def schedule(i):
+    i = jn.minimum(i, decay_steps)
+    step_mult = (1 - i / decay_steps) ** power
+    return step_mult * (lr - final_lr) + final_lr
+
+  return schedule
+
+
+def piecewise_constant(boundaries, values):
+  boundaries = jn.array(boundaries)
+  values = jn.array(values)
+  if not boundaries.ndim == values.ndim == 1:
+    raise ValueError("boundaries and values must be sequences")
+  if not boundaries.shape[0] == values.shape[0] - 1:
+    raise ValueError("boundaries length must be one shorter than values length")
+
+  def schedule(i):
+    return values[jn.sum(i > boundaries)]
+
+  return schedule
+
+
+def _make_schedule(scalar_or_schedule):
+  if callable(scalar_or_schedule):
+    return scalar_or_schedule
+  elif isinstance(scalar_or_schedule, (int, float)):
+    return constant(scalar_or_schedule)
+  else:
+    raise TypeError(type(scalar_or_schedule))

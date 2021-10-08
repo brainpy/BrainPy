@@ -40,7 +40,7 @@ class JaxArray(object):
   def __init__(self, value):
     if isinstance(value, (list, tuple)):
       value = jnp.asarray(value)
-    self._value = value
+    self.value = value
 
   @property
   def value(self):

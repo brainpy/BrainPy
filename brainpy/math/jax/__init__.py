@@ -10,15 +10,18 @@
 #
 
 
+from . import activations
 from . import fft
 from . import linalg
+from . import losses
+from . import optimizers
 from . import random
-from . import activations
 
 from .activations import *
 from .code import *
 from .controls import *
 from .compilation import *
+from .function import *
 from .gradient import *
 from .jaxarray import *
 from .ops import *

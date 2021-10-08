@@ -21,7 +21,7 @@ from jax.interpreters.pxla import ShardedDeviceArray
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.math.jax.random import RandomState, RS
+from brainpy.math.jax.random import RandomState
 from brainpy.base.collector import ArrayCollector
 from brainpy.tools.codes import change_func_name
 
@@ -36,29 +36,21 @@ logger = logging.getLogger('brainpy.math.jax.compilation')
 
 def _make_jit(func, vars, static_argnums, static_argnames=None, device=None,
               backend=None, donate_argnums=(), inline=False, f_name=None):
-  # has_rand_state = False
-  # for v in vars.values():
-  #   if id(v) == id(RS):
-  #     has_rand_state = True
-  #     break
-  # if not has_rand_state:
-  #   vars['_sys_random_state'] = RS
-
   @functools.partial(jax.jit,
                      static_argnums=static_argnums,
                      static_argnames=static_argnames,
                      device=device, backend=backend,
                      donate_argnums=donate_argnums,
                      inline=inline)
-  def jitted_func(data_to_change, *args, **kwargs):
-    vars.assign(data_to_change)
+  def jitted_func(variable_data, *args, **kwargs):
+    vars.assign(variable_data)
     out = func(*args, **kwargs)
     changes = vars.dict()
     return out, changes
 
   def call(*args, **kwargs):
-    data_to_change = vars.dict()
-    out, changes = jitted_func(data_to_change, *args, **kwargs)
+    variable_data = vars.dict()
+    out, changes = jitted_func(variable_data, *args, **kwargs)
     vars.assign(changes)
     return out
 
@@ -98,8 +90,8 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
   >>> class Hello(bp.Base):
   >>>   def __init__(self):
   >>>     super(Hello, self).__init__()
-  >>>     self.a = 10.
-  >>>     self.b = 2
+  >>>     self.a = bp.math.Variable(bp.math.array(10.))
+  >>>     self.b = bp.math.Variable(bp.math.array(2.))
   >>>   def transform(self):
   >>>     return self.a ** self.b
   >>>
@@ -112,16 +104,21 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
   >>> def selu(x, alpha=1.67, lmbda=1.05):
   >>>   return lmbda * bp.math.where(x > 0, x, alpha * bp.math.exp(x) - alpha)
 
+
+  Notes
+  -----
+
+  There are several notes:
+
+  1. Avoid using scalar in Variable, TrainVar, etc.
+
+
   Parameters
   ----------
   obj_or_func : Base, function
     The instance of Base or a function.
   vars : optional, dict
-    These variables will be changed in the function. If ``obj_or_func`` is an instance of Base,
-    and ``vars_to_change`` is not provided, then all variables ``obj_or_func.vars()`` will be
-    assumed to ``vars_to_change``.
-  vars_needed : optional, dict
-    The variables are needed to do computations, and will not be changed during the computation.
+    These variables will be changed in the function, or needed in the computation.
   static_argnums : optional, int, list, tuple, dict
     An optional int or collection of ints that specify which positional arguments to treat
     as static (compile-time constant).
@@ -155,8 +152,7 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
   Returns
   -------
   ds_of_func : Base, function
-    A wrapped version of Base object or function,
-    set up for just-in-time compilation.
+    A wrapped version of Base object or function, set up for just-in-time compilation.
   """
   from brainpy.simulation.brainobjects.base import DynamicalSystem
 
@@ -217,9 +213,8 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
       vars = vars
     elif isinstance(obj_or_func, Base):
       vars = obj_or_func.vars().unique()
-    elif hasattr(obj_or_func, '__self__'):
-      if isinstance(obj_or_func.__self__, Base):
-        vars = obj_or_func.__self__.vars().unique()
+    elif hasattr(obj_or_func, '__self__') and isinstance(obj_or_func.__self__, Base):
+      vars = obj_or_func.__self__.vars().unique()
     else:
       vars = ArrayCollector()
 

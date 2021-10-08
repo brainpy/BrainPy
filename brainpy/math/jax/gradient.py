@@ -143,14 +143,16 @@ def value_and_grad(func, vars=None, argnums=None, has_aux=None,
     a sequence of integers, the gradient is a tuple of values with the same
     shapes and types as the corresponding arguments.
   """
+  # function
+  if not callable(func):
+    raise ValueError('Must be a callable object.')
+
   # vars
   if vars is None:
     if isinstance(func, Base):
       vars = func.vars()
-
-  # function
-  if not callable(func):
-    raise ValueError('Must be a callable object.')
+    elif hasattr(func, '__self__') and isinstance(func.__self__, Base):
+      vars = func.__self__.vars()
 
   # jit compilation
   if vars is None:
