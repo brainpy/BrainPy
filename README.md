@@ -138,8 +138,11 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 - [*(Wang & Buzsáki, 1996)* Gamma Oscillation](https://brainmodels.readthedocs.io/en/latest/examples/oscillation_synchronization/Wang_1996_gamma_oscillation.html)
 - [*(Brunel & Hakim, 1999)* Fast Global Oscillation](https://brainmodels.readthedocs.io/en/latest/examples/oscillation_synchronization/Brunel_Hakim_1999_fast_oscillation.html)
 - [*(Diesmann, et, al., 1999)* Synfire Chains](https://brainmodels.readthedocs.io/en/latest/examples/oscillation_synchronization/Diesmann_1999_synfire_chains.html)
-- **[Working Memory Model]** [*(Mi, et. al., 2017)* STP for Working Memory Capacity](https://brainmodels.readthedocs.io/en/latest/examples/working_memory/Mi_2017_working_memory_capacity.html)
-- **[Working Memory Model]** [*(Bouchacourt & Buschman, 2019)* Flexible Working Memory Model](https://brainmodels.readthedocs.io/en/latest/examples/working_memory/Bouchacourt_2019_Flexible_working_memory.html)
+- **[Working Memory]** [*(Mi, et. al., 2017)* STP for Working Memory Capacity](https://brainmodels.readthedocs.io/en/latest/examples/working_memory/Mi_2017_working_memory_capacity.html)
+- **[Working Memory]** [*(Bouchacourt & Buschman, 2019)* Flexible Working Memory Model](https://brainmodels.readthedocs.io/en/latest/examples/working_memory/Bouchacourt_2019_Flexible_working_memory.html)
+- **[Decision Making]** [*(Wang, 2002)* Decision making spiking model](https://brainmodels.readthedocs.io/en/latest/examples/decision_making/Wang_2002_decision_making_spiking.html)
+- **[Recurrent Network]** [*(Laje & Buonomano, 2013)* Robust Timing in RNN](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/Laje_Buonomano_2013_robust_timing_rnn.html)
+- **[Recurrent Network]** [*(Sussillo & Abbott, 2009)* FORCE Learning](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/Sussillo_Abbott_2009_FORCE_Learning.html)
 
 
 
@@ -149,11 +152,12 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 - [Phase plane analysis of the I<sub>Na,p</sub>-I<sub>K</sub> model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html)
 - [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
 - [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
+- **[Decision Making Model]** [*(Wong & Wang, 2006)* Decision making rate model](https://brainmodels.readthedocs.io/en/latest/examples/decision_making/Wang_2006_decision_making_rate.html)
 
 
 
 ### Learning through back-propagation
 
-
+- [Integrator RNN Model](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/integrator_rnn.html)
 
  
