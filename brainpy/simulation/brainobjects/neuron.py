@@ -5,7 +5,6 @@ from brainpy.base.collector import Collector
 from brainpy.simulation import utils
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-
 __all__ = [
   'NeuGroup',
   'Channel',
@@ -17,6 +16,15 @@ __all__ = [
 
 class NeuGroup(DynamicalSystem):
   """Base class to model neuronal groups.
+
+  There are several essential attributes:
+
+  - ``size``: the geometry of the neuron group. For example, `(10, )` denotes a line of
+    neurons, `(10, 10)` denotes a neuron group aligned in a 2D space, `(10, 15, 4)` denotes
+    a 3-dimensional neuron group.
+  - ``num``: the flattened number of neurons in the group. For example, `size=(10, )` => \
+    `num=10`, `size=(10, 10)` => `num=100`, `size=(10, 15, 4)` => `num=600`.
+  - ``shape``: the variable shape with `(num, num_batch)`.
 
   Parameters
   ----------
@@ -30,7 +38,7 @@ class NeuGroup(DynamicalSystem):
     The callable function, or a list of callable functions.
   monitors : None, list, tuple, datastructures.Monitor
     Variables to monitor.
-  name : str, optional
+  name : optional, str
     The name of the dynamic system.
   """
 
@@ -52,8 +60,9 @@ class NeuGroup(DynamicalSystem):
     if num_batch is None:
       self.shape = (self.num, )
     else:
+      self.shape = (self.num, self.num_batch)
+      self.num_batch = num_batch
       assert isinstance(num_batch, int), 'Only support int for "num_batch"'
-      self.shape = (self.num, num_batch)
 
     # initialize
     super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
@@ -152,6 +161,7 @@ class CondNeuGroup(NeuGroup):
   the parameters of channels and this neuron group. The ``__call__()`` function
   is used to initialize the variables in this neuron group.
   """
+
   def __init__(self, C=1., A=1e-3, V_th=0., **channels):
     # parameters for neuron
     self.C = C

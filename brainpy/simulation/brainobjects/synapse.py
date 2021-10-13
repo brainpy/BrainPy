@@ -44,6 +44,7 @@ class TwoEndConn(DynamicalSystem):
       raise errors.BrainPyError('pre.num_batch != post.num_batch')
     self.pre = pre
     self.post = post
+    assert pre.num_batch is None, 'currently, synaptic computing does not support batch'
 
     # connectivity
     # ------------

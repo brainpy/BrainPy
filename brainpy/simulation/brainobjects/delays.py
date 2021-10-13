@@ -80,7 +80,7 @@ class ConstantDelay(Delay):
     self.size = tuple(size)
 
     # data shape
-    self.shape = batch_size + self.size
+    self.shape = self.size + batch_size
 
     # delay time length
     self.delay = delay
@@ -91,13 +91,10 @@ class ConstantDelay(Delay):
       self.num_step = int(pm.ceil(delay / self.dt)) + 1
       self.out_idx = bm.Variable(bm.array([0]))
       self.in_idx = bm.Variable(bm.array([self.num_step - 1]))
-      self.data = bm.Variable(bm.zeros(batch_size + (self.num_step,) + self.size, dtype=dtype))
-      if len(batch_size) == 0:
-        self.push = self._push_for_uniform_delay_no_batch
-        self.pull = self._pull_for_uniform_delay_no_batch
-      else:
-        self.push = self._push_for_uniform_delay_batch
-        self.pull = self._pull_for_uniform_delay_batch
+      self.data = bm.Variable(bm.zeros((self.num_step,) + self.size + batch_size, dtype=dtype))
+
+      self.push = self._push_for_uniform_delay
+      self.pull = self._pull_for_uniform_delay
 
     else:  # non-uniform delay
       self.uniform_delay = False
@@ -120,48 +117,44 @@ class ConstantDelay(Delay):
       self.num_step = bm.array(delay, dtype=bm.int_) + 1
       self.in_idx = bm.Variable(self.num_step - 1)
       self.out_idx = bm.Variable(bm.zeros(self.num, dtype=bm.int_))
-      self.data = bm.Variable(bm.zeros(batch_size + (self.num_step.max(),) + size, dtype=dtype))
+      self.data = bm.Variable(bm.zeros((self.num_step.max(),) + size + batch_size, dtype=dtype))
 
-      if len(batch_size):
-        self.push = self._push_for_nonuniform_delay_batch
-        self.pull = self._pull_for_nonuniform_delay_batch
-      else:
-        self.push = self._push_for_nonuniform_delay_no_batch
-        self.pull = self._pull_for_nonuniform_delay_no_batch
+      self.push = self._push_for_nonuniform_delay
+      self.pull = self._pull_for_nonuniform_delay
 
     super(ConstantDelay, self).__init__(**kwargs)
 
-  def _pull_for_uniform_delay_no_batch(self):
+  def _pull_for_uniform_delay(self):
     """Pull delayed data for variables with the uniform delay."""
     return self.data[self.out_idx[0]]
 
-  def _pull_for_uniform_delay_batch(self):
-    """Pull delayed data for variables with the uniform delay."""
-    return self.data[:, self.out_idx[0]]
+  # def _pull_for_uniform_delay_batch(self):
+  #   """Pull delayed data for variables with the uniform delay."""
+  #   return self.data[:, self.out_idx[0]]
 
-  def _push_for_uniform_delay_no_batch(self, value):
+  def _push_for_uniform_delay(self, value):
     """Push the latest data to the delay bottom."""
     self.data[self.in_idx[0]] = value
 
-  def _push_for_uniform_delay_batch(self, value):
-    """Push the latest data to the delay bottom."""
-    self.data[:, self.in_idx[0]] = value
+  # def _push_for_uniform_delay_batch(self, value):
+  #   """Push the latest data to the delay bottom."""
+  #   self.data[:, self.in_idx[0]] = value
 
-  def _pull_for_nonuniform_delay_no_batch(self):
+  def _pull_for_nonuniform_delay(self):
     """Pull delayed data for variables with the non-uniform delay."""
     return self.data[self.out_idx, self.diag]
 
-  def _pull_for_nonuniform_delay_batch(self):
-    """Pull delayed data for variables with the non-uniform delay."""
-    return self.data[:, self.out_idx, self.diag]
+  # def _pull_for_nonuniform_delay_batch(self):
+  #   """Pull delayed data for variables with the non-uniform delay."""
+  #   return self.data[:, self.out_idx, self.diag]
 
-  def _push_for_nonuniform_delay_no_batch(self, value):
+  def _push_for_nonuniform_delay(self, value):
     """Push the latest data to the delay bottom."""
     self.data[self.in_idx, self.diag] = value
 
-  def _push_for_nonuniform_delay_batch(self, value):
-    """Push the latest data to the delay bottom."""
-    self.data[:, self.in_idx, self.diag] = value
+  # def _push_for_nonuniform_delay_batch(self, value):
+  #   """Push the latest data to the delay bottom."""
+  #   self.data[:, self.in_idx, self.diag] = value
 
   def update(self, _t, _dt, **kwargs):
     """Update the delay index."""
