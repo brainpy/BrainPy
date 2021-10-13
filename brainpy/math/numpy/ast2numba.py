@@ -448,6 +448,12 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
         iter_name = key
         if len(values) > 0:
           if not (callable(values[0]) or isinstance(values[0], Base)):
+            code_scope[f'{target.name}_{split_keys[i]}'] = data
+            if len(split_keys) == i + 1:
+              data_to_replace[key] = f'{target.name}_{split_keys[i]}'
+            else:
+              data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i + 1:])}'
+            continue
             raise errors.BrainPyError(f'Only support JIT an iterable objects of function '
                                       f'or Base object, but we got:\n\n {values[0]}')
       # replace this for-loop

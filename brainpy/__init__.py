@@ -36,7 +36,7 @@ from .simulation import measure
 
 # "analysis" module
 from . import analysis
-from .analysis import sym_analysis
+from .analysis import symbolic
 from .analysis import continuation
 
 

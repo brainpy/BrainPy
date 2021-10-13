@@ -15,7 +15,8 @@ system analysis, like:
 
 """
 
-from . import sym_analysis
+from . import numeric
+from . import symbolic
 from . import continuation
 from . import solver
 from . import stability

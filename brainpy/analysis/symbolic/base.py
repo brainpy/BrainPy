@@ -5,9 +5,9 @@ from copy import deepcopy
 
 import numpy as np
 
-from brainpy import errors, tools
+from brainpy import errors, math, tools
 from brainpy.analysis import solver
-from brainpy.analysis.sym_analysis import utils
+from brainpy.analysis.symbolic import utils
 
 try:
   import sympy
@@ -258,6 +258,8 @@ class Base1DAnalyzer(BaseAnalyzer):
       scope.update(self.fixed_vars)
       # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
+      scope['math'] = math
+
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
       for expr in self.x_eq_group.old_exprs[:-1]:
@@ -280,6 +282,7 @@ class Base1DAnalyzer(BaseAnalyzer):
       eq_x_scope.update(self.fixed_vars)
       # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
+      eq_x_scope['math'] = math
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       time_out = self.options.sympy_solver_timeout
@@ -314,7 +317,7 @@ class Base1DAnalyzer(BaseAnalyzer):
           logger.info('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
+        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation, math=math)
         func_codes = [f'def dfdx({argument}):']
         if not origin:
           func_codes.append(f'origin = _fx({argument})')
@@ -340,7 +343,7 @@ class Base1DAnalyzer(BaseAnalyzer):
       scope.update(self.fixed_vars)
       # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
-      scope['np'] = np
+      scope['math'] = math
 
       timeout_len = self.options.sympy_solver_timeout
       argument1 = ', '.join(self.dvar_names + self.dpar_names)
@@ -372,7 +375,7 @@ class Base1DAnalyzer(BaseAnalyzer):
             result_expr = ', '.join([analysis_by_sympy.sympy2str(expr)
                                      for expr in results])
             func_codes.append(f'_res_ = {result_expr}')
-            func_codes.append(f'return np.array(_res_)')
+            func_codes.append(f'return math.array(_res_)')
 
             # function compilation
             exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
@@ -469,6 +472,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
         # check "f"
         scope = deepcopy(self.pars_update)
         scope.update(self.fixed_vars)
+        scope['math'] = math
         # scope.update(analysis_by_sympy.get_mapping_scope())
         if a.endswith('y_eq'):
           scope.update(self.y_eq_group['diff_eq'].func_scope)
@@ -502,6 +506,8 @@ class Base2DAnalyzer(Base1DAnalyzer):
       scope.update(self.fixed_vars)
       # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.y_eq_group.diff_eq.func_scope)
+      scope['math'] = math
+
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
       for expr in self.y_eq_group.old_exprs[:-1]:
@@ -524,6 +530,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       eq_x_scope.update(self.fixed_vars)
       # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
+      eq_x_scope['math'] = math
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       time_out = self.options.sympy_solver_timeout
@@ -558,7 +565,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           logger.info('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
+        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation, math=math)
         func_codes = [f'def dfdy({argument}):']
         if not origin:
           func_codes.append(f'origin = _fx({argument})')
@@ -587,6 +594,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       eq_y_scope.update(self.fixed_vars)
       # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
+      eq_y_scope['math'] = math
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       time_out = self.options.sympy_solver_timeout
@@ -621,7 +629,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           logger.info('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
+        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation, math=math)
         func_codes = [f'def dgdx({argument}):']
         if not origin:
           func_codes.append(f'origin = _fy({argument})')
@@ -650,6 +658,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       eq_y_scope.update(self.fixed_vars)
       # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
+      eq_y_scope['math'] = math
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       argument2 = ', '.join(self.dvar_names[2:] + self.dpar_names)
@@ -685,7 +694,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
           logger.info('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
+        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation, math=math)
         func_codes = [f'def dgdy({argument}):']
         if not origin:
           func_codes.append(f'origin = _fy({argument})')
@@ -710,13 +719,13 @@ class Base2DAnalyzer(Base1DAnalyzer):
       dgdy = self.get_f_dgdy()
 
       argument = ','.join(self.dvar_names + self.dpar_names)
-      scope = dict(f_dfydy=dgdy, f_dfydx=dgdx, f_dfxdy=dfdy, f_dfxdx=dfdx, np=np)
+      scope = dict(f_dfydy=dgdy, f_dfydx=dgdx, f_dfxdy=dfdy, f_dfxdx=dfdx, math=math)
       func_codes = [f'def f_jacobian({argument}):']
       func_codes.append(f'dfxdx = f_dfxdx({argument})')
       func_codes.append(f'dfxdy = f_dfxdy({argument})')
       func_codes.append(f'dfydx = f_dfydx({argument})')
       func_codes.append(f'dfydy = f_dfydy({argument})')
-      func_codes.append('return np.array([[dfxdx, dfxdy], [dfydx, dfydy]])')
+      func_codes.append('return math.array([[dfxdx, dfxdy], [dfydx, dfydy]])')
       exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
       self.analyzed_results['jacobian'] = scope['f_jacobian']
 
@@ -734,6 +743,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # eq_xy_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_xy_scope.update(self.x_eq_group['diff_eq'].func_scope)
       eq_xy_scope.update(self.y_eq_group['diff_eq'].func_scope)
+      eq_xy_scope['math'] = math
 
       # Try 1: substitute y_group to x_group
       #        y_by_x
@@ -842,6 +852,8 @@ class Base2DAnalyzer(Base1DAnalyzer):
       eq_x_scope.update(self.fixed_vars)
       # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
+      eq_x_scope['math'] = math
+
       func_codes = [f'def f_x({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
                          for expr in self.x_eq_group.old_exprs[:-1]])
@@ -854,6 +866,8 @@ class Base2DAnalyzer(Base1DAnalyzer):
       eq_y_scope.update(self.fixed_vars)
       # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
+      eq_y_scope['math'] = math
+
       func_codes = [f'def g_y({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
                          for expr in self.y_eq_group.old_exprs[:-1]])
@@ -909,6 +923,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       eq_x_scope.update(self.fixed_vars)
       # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group.diff_eq.func_scope)
+      eq_x_scope['math'] = math
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
 
@@ -983,6 +998,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
       eq_y_scope.update(self.fixed_vars)
       # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group.diff_eq.func_scope)
+      eq_y_scope['math'] = math
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
 
@@ -1051,6 +1067,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
         eq_y_scope.update(self.fixed_vars)
         # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
+        eq_y_scope['math'] = math
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
@@ -1124,6 +1141,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
         eq_x_scope.update(self.fixed_vars)
         # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
+        eq_x_scope['math'] = math
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
@@ -1197,6 +1215,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
         eq_y_scope.update(self.fixed_vars)
         # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
+        eq_y_scope['math'] = math
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
@@ -1269,6 +1288,7 @@ class Base2DAnalyzer(Base1DAnalyzer):
         eq_x_scope.update(self.fixed_vars)
         # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
+        eq_x_scope['math'] = math
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
