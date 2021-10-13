@@ -21,18 +21,20 @@ class NeuGroup(DynamicalSystem):
   Parameters
   ----------
   size : int, tuple of int, list of int
-      The neuron group geometry.
+    The neuron group geometry.
+  num_batch : optional, int
+    The batch size.
   steps : tuple of str, tuple of function, dict of (str, function), optional
-      The step functions.
+    The step functions.
   steps : tuple of str, tuple of function, dict of (str, function), optional
-      The callable function, or a list of callable functions.
+    The callable function, or a list of callable functions.
   monitors : None, list, tuple, datastructures.Monitor
-      Variables to monitor.
+    Variables to monitor.
   name : str, optional
-      The name of the dynamic system.
+    The name of the dynamic system.
   """
 
-  def __init__(self, size, name=None, steps=('update',), **kwargs):
+  def __init__(self, size, num_batch=None, name=None, steps=('update',), **kwargs):
     # size
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
@@ -46,6 +48,12 @@ class NeuGroup(DynamicalSystem):
       raise errors.BrainPyError('size must be int, or a tuple/list of int.')
     self.size = size
     self.num = utils.size2len(size)
+    self.num_batch = num_batch
+    if num_batch is None:
+      self.shape = (self.num, )
+    else:
+      assert isinstance(num_batch, int), 'Only support int for "num_batch"'
+      self.shape = (self.num, num_batch)
 
     # initialize
     super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
@@ -72,15 +80,23 @@ class NeuGroup(DynamicalSystem):
 
 
 class Channel(DynamicalSystem):
-  """Base class to model ion channels."""
+  """Base class to model ion channels.
+
+  Notes
+  -----
+
+  The ``__init__()`` function in :py:class:`Channel` is used to specify
+  the parameters of the channel. The ``__call__()`` function
+  is used to initialize the variables in this channel.
+  """
 
   def __init__(self, **kwargs):
     super(Channel, self).__init__(**kwargs)
 
-  def init(self, num_batch, host):
-    """Initialize variables in the channel."""
-    if not isinstance(host, CondNeuGroup): raise ValueError
-    self.num_batch = num_batch
+  def init(self, host, **kwargs):
+    """Initialize variables in this channel."""
+    if not isinstance(host, CondNeuGroup):
+      raise errors.BrainPyError(f'Only support host with instance of {str(DynamicalSystem)}, while we got {host}')
     self.host = host
 
   def update(self, _t, _dt, **kwargs):
@@ -90,47 +106,87 @@ class Channel(DynamicalSystem):
 
 
 class CondNeuGroup(NeuGroup):
-  """Conductance neuron group.
+  """Base class to model conductance-based neuron group.
 
-  This model requires the channels implement
+  The standard formulation for a conductance-based model is given as
 
+  .. math::
 
+      C_m {dV \over dt} = \sum_jg_j(E - V) + I_{ext}
+
+  where :math:`g_j=\bar{g}_{j} M^x N^y` is the channel conductance, :math:`E` is the
+  reversal potential, :math:`M` is the activation variable, and :math:`N` is the
+  inactivation variable.
+
+  :math:`M` and :math:`N` have the dynamics of
+
+  .. math::
+
+      {dx \over dt} = \phi_x {x_\infty (V) - x \over \tau_x(V)}
+
+  where :math:`x \in [M, N]`, :math:`\phi_x` is a temperature-dependent factor,
+  :math:`x_\infty` is the steady state, and :math:`\tau_x` is the time constant.
+  Equivalently, the above equation can be written as:
+
+  .. math::
+
+      \frac{d x}{d t}=\phi_{x}\left(\alpha_{x}(1-x)-\beta_{x} x\right)
+
+  where :math:`\alpha_{x}` and :math:`\beta_{x}` are rate constants.
+
+  Parameters
+  ----------
+  size : int, tuple of int
+    The network size of this neuron group.
+  num_batch : optional, int
+    The batch size.
+  monitors : optional, list of str, tuple of str
+    The neuron group monitor.
+  name : optional, str
+    The neuron group name.
+
+  Notes
+  -----
+
+  The ``__init__()`` function in :py:class:`CondNeuGroup` is used to specify
+  the parameters of channels and this neuron group. The ``__call__()`` function
+  is used to initialize the variables in this neuron group.
   """
   def __init__(self, C=1., A=1e-3, V_th=0., **channels):
+    # parameters for neuron
     self.C = C
-    self.A = 1e-3 / A
+    self.A = A
     self.V_th = V_th
 
     # children channels
     self.child_channels = Collector()
     for key, ch in channels.items():
       if not isinstance(ch, Channel):
-        raise errors.BrainPyError(f'{self.__class__.__name__} only receives '
-                                  f'{Channel.__name__} instance, while we '
-                                  f'got {type(ch)}: {ch}.')
+        raise errors.BrainPyError(f'{self.__class__.__name__} only receives {Channel.__name__} '
+                                  f'instance, while we got {type(ch)}: {ch}.')
       self.child_channels[key] = ch
 
-  def init(self, size, num_batch=None, monitors=None, name=None):
-    super(CondNeuGroup, self).__init__(size, steps=('update',), monitors=monitors, name=name)
+  def init(self, size, num_batch=None, monitors=None, steps=('update',), name=None):
+    super(CondNeuGroup, self).__init__(size, num_batch=num_batch, steps=steps, monitors=monitors, name=name)
 
     # initialize variables
-    self.V = math.Variable(math.zeros(self.num, dtype=math.float_))
-    self.spike = math.Variable(math.zeros(self.num, dtype=math.bool_))
-    self.input = math.Variable(math.zeros(self.num, dtype=math.float_))
-    self.I_ion = math.Variable(math.zeros(self.num, dtype=math.float_))
-    self.V_linear = math.Variable(math.zeros(self.num, dtype=math.float_))
+    self.V = math.Variable(math.zeros(self.shape, dtype=math.float_))
+    self.spike = math.Variable(math.zeros(self.shape, dtype=math.bool_))
+    self.input = math.Variable(math.zeros(self.shape, dtype=math.float_))
+    self.I_ion = math.Variable(math.zeros(self.shape, dtype=math.float_))
+    self.V_linear = math.Variable(math.zeros(self.shape, dtype=math.float_))
 
     # initialize variables in channels
-    for ch in self.child_channels.values(): ch.init(host=self, num_batch=num_batch)
-
+    for ch in self.child_channels.values(): ch.init(host=self)
     return self
 
   def update(self, _t, _dt, **kwargs):
     # update variables in channels
-    for ch in self.child_channels.values(): ch.update(_t, _dt)
+    for ch in self.child_channels.values():
+      ch.update(_t, _dt)
 
     # update V using Exponential Euler method
-    dvdt = self.I_ion / self.C + self.input * (self.A / self.C)
+    dvdt = self.I_ion / self.C + self.input * (1e-3 / self.A / self.C)
     linear = self.V_linear / self.C
     V = self.V + dvdt * (math.exp(linear * _dt) - 1) / linear
 

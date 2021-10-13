@@ -34,7 +34,7 @@ class GABAa(bp.TwoEndConn):
   def int_s(s, t, TT, alpha, beta):
     return alpha * TT * (1 - s) - beta * s
 
-  def update(self, _t, _i):
+  def update(self, _t, _i, **kwargs):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
     self.t_last_pre_spike = bp.math.where(spike, _t, self.t_last_pre_spike)
     TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
@@ -88,7 +88,7 @@ class HH(bp.NeuGroup):
 
     return dVdt, self.phi * dhdt, self.phi * dndt
 
-  def update(self, _t, _i):
+  def update(self, _t, _i, **kwargs):
     V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
     self.spikes[:] = (self.V < self.V_th) * (V >= self.V_th)
     self.V[:] = V

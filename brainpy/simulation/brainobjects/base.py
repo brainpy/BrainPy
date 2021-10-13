@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math, errors
-from brainpy.base import collector
 from brainpy.base.base import Base
+from brainpy.base.collector import Collector
 from brainpy.simulation import utils
 from brainpy.simulation.monitor import Monitor
 
@@ -18,7 +18,7 @@ _error_msg = 'Unknown model type: {type}. ' \
              '1. function \n' \
              '2. function name (str) \n' \
              '3. tuple/dict of functions \n' \
-             '4. tuple of function names \n' \
+             '4. tuple of function names \n'
 
 
 class DynamicalSystem(Base):
@@ -44,7 +44,7 @@ class DynamicalSystem(Base):
     # step functions
     if steps is None:
       steps = ('update',)
-    self.steps = collector.Collector()
+    self.steps = Collector()
     if isinstance(steps, tuple):
       for step in steps:
         if isinstance(step, str):
@@ -101,16 +101,18 @@ class DynamicalSystem(Base):
         An instance of ConstantDelay.
     """
     global ConstantDelay
-    if ConstantDelay is None:
-      from brainpy.simulation.brainobjects.delays import ConstantDelay
+    if ConstantDelay is None: from brainpy.simulation.brainobjects.delays import ConstantDelay
 
     if not hasattr(self, 'steps'):
       raise errors.BrainPyError('Please initialize the super class first before '
                                 'registering constant_delay. \n\n'
                                 'super(YourClassName, self).__init__(**kwargs)')
-    if not key.isidentifier():
-      raise ValueError(f'{key} is not a valid identifier.')
-    cdelay = ConstantDelay(size, delay, name=f'{self.name}_delay_{key}', dtype=dtype)
+    if not key.isidentifier(): raise ValueError(f'{key} is not a valid identifier.')
+    cdelay = ConstantDelay(size=size,
+                           delay=delay,
+                           num_batch=getattr(self, 'num_batch', None),
+                           name=f'{self.name}_delay_{key}',
+                           dtype=dtype)
     self.steps[f'{key}_update'] = cdelay.update
     return cdelay
 
@@ -126,7 +128,7 @@ class DynamicalSystem(Base):
     """
     raise NotImplementedError('Must implement "update" function by user self.')
 
-  def run(self, duration, dt=None, report=0., inputs=(), xs=None, extra_func=None):
+  def run(self, duration, dt=None, report=0., inputs=(), extra_func=None):
     """The running function.
 
     Parameters
@@ -219,9 +221,6 @@ class DynamicalSystem(Base):
 
     return running_time
 
-  def init(self, num_batch=None, **kwargs):
-    pass
-
   def find_fixed_points(self):
     pass
 
@@ -277,7 +276,7 @@ class Container(DynamicalSystem):
       steps = ('update',)
     super(Container, self).__init__(steps=steps, monitors=monitors, name=name)
 
-  def update(self, _t, _dt, **kwargs):
+  def update(self, _t, _dt):
     """Step function of a network.
 
     In this update function, the step functions in children systems are
@@ -299,7 +298,3 @@ class Container(DynamicalSystem):
       return children_ds[item]
     else:
       return super(Container, self).__getattribute__(item)
-
-  def init(self, num_batch=None, **kwargs):
-    for ds in self.child_ds.values():
-      ds.init(num_batch=num_batch, **kwargs)

@@ -7,6 +7,7 @@ TODO: enable code debug and error report; See https://github.com/numba/numba/iss
 
 import ast
 import inspect
+import logging
 import re
 from copy import deepcopy
 from pprint import pprint
@@ -23,6 +24,7 @@ from brainpy.base.function import Function
 from brainpy.math import profile
 
 DE_INT = DynamicalSystem = None
+logger = logging.getLogger('brainpy.math.numpy.ast2numba')
 
 __all__ = [
   'jit',
@@ -48,7 +50,7 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
                       name=obj_or_fun.name + '_call',
                       show_code=show_code, **jit_setting)
 
-      # integrator
+    # integrator
     elif hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
       return jit_integrator(intg=obj_or_fun,
                             show_code=show_code,
@@ -308,10 +310,10 @@ def _jit_intg_func(f, show_code=False, **jit_setting):
                         show_code=show_code,
                         **jit_setting)
       if len(r['arguments']) or remove_self:
-        tree = _replace_func_call_by_tee(tree,
-                                         func_call=key,
-                                         arg_to_append=r['arguments'],
-                                         remove_self=remove_self)
+        tree = _replace_func_call_by_tree(tree,
+                                          func_call=key,
+                                          arg_to_append=r['arguments'],
+                                          remove_self=remove_self)
       code_scope[key] = r['func']
       arguments.update(r['arguments'])  # update arguments
       arg2call.update(r['arg2call'])  # update arg2call
@@ -425,7 +427,7 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
       assert len(split_keys) == i + 1
       r = _jit_func(obj_or_fun=data, show_code=show_code, **jit_setting)
       # if len(r['arguments']):
-      tree = _replace_func_call_by_tee(tree, func_call=key, arg_to_append=r['arguments'])
+      tree = _replace_func_call_by_tree(tree, func_call=key, arg_to_append=r['arguments'])
       arguments.update(r['arguments'])
       arg2call.update(r['arg2call'])
       nodes.update(r['nodes'])
@@ -472,6 +474,7 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
     tree.body[0].decorator_list.clear()
     tree.body[0].args.args.extend([ast.Name(id=a) for a in sorted(arguments)])
     tree.body[0].args.defaults.extend([ast.Constant(None) for _ in sorted(arguments)])
+    tree.body[0].args.kwarg = None
 
   # replace words
   code = tools.ast2code(tree)
@@ -577,10 +580,10 @@ class ReplaceThisForLoop(ast.NodeTransformer):
           r = _jit_func(obj_or_fun=value,
                         show_code=self.show_code,
                         **self.jit_setting)
-          tree = _replace_func_call_by_tee(deepcopy(module),
-                                           func_call=target,
-                                           arg_to_append=r['arguments'],
-                                           new_func_name=f'{target}_{i}')
+          tree = _replace_func_call_by_tree(deepcopy(module),
+                                            func_call=target,
+                                            arg_to_append=r['arguments'],
+                                            new_func_name=f'{target}_{i}')
 
           # update import parameters
           self.arguments.update(r['arguments'])
@@ -634,8 +637,8 @@ class ReplaceThisForLoop(ast.NodeTransformer):
     return final_node
 
 
-def _replace_func_call_by_tee(tree, func_call, arg_to_append, remove_self=None,
-                              new_func_name=None):
+def _replace_func_call_by_tree(tree, func_call, arg_to_append, remove_self=None,
+                               new_func_name=None):
   assert isinstance(func_call, str)
   assert isinstance(arg_to_append, (list, tuple, set))
   assert isinstance(tree, ast.Module)
@@ -777,7 +780,7 @@ def _add_try_except(code):
                 '_code_': code}
 
 
-def _items2lines(items, num_each_line=5, separator=', ', line_break='\n\t\t'):
+def _items2lines(items, num_each_line=1, separator=', ', line_break='\n\t\t'):
   res = ''
   for item in items[:num_each_line]:
     res += item + separator
@@ -788,13 +791,53 @@ def _items2lines(items, num_each_line=5, separator=', ', line_break='\n\t\t'):
   return res
 
 
+def _get_args(f):
+  # 1. get the function arguments
+  original_args = []
+  args = []
+  kwargs = []
+
+  for name, par in inspect.signature(f).parameters.items():
+    if par.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
+      args.append(par.name)
+    elif par.kind is inspect.Parameter.VAR_POSITIONAL:
+      args.append(par.name)
+    elif par.kind is inspect.Parameter.KEYWORD_ONLY:
+      args.append(par.name)
+    elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
+      raise errors.BrainPyError('Don not support positional only parameters, e.g., /')
+    elif par.kind is inspect.Parameter.VAR_KEYWORD:
+      kwargs.append(par.name)
+    else:
+      raise errors.BrainPyError(f'Unknown argument type: {par.kind}')
+
+    original_args.append(str(par))
+
+  # 2. analyze the function arguments
+  #   2.1 class keywords
+  class_kw = []
+  if original_args[0] in profile.CLASS_KEYWORDS:
+    class_kw.append(original_args[0])
+    original_args = original_args[1:]
+    args = args[1:]
+  for a in original_args:
+    if a.split('=')[0].strip() in profile.CLASS_KEYWORDS:
+      raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
+                               f'as the first argument.')
+  return class_kw, args, kwargs, original_args
+
+
 def _form_final_call(f_org, f_rep, arg2call, arguments, nodes, show_code=False, name=None):
-  cls_kw, reduce_args, org_args = _get_args(f_org)
+  _, args, kwargs, org_args = _get_args(f_org)
 
   name = (name or f_org.__name__)
   code_scope = {key: node for key, node in nodes.items()}
   code_scope[name] = f_rep
-  called_args = _items2lines(reduce_args + [f"{a}={arg2call[a]}" for a in sorted(arguments)]).strip()
+
+  new_args = [] + args
+  new_args += [f"{a}={arg2call[a]}" for a in sorted(arguments)]
+  new_args += [f"**{a}" for a in kwargs]
+  called_args = _items2lines(new_args).strip()
   code_lines = [f'def new_{name}({", ".join(org_args)}):',
                 f'  {name}({called_args.strip()})']
 
@@ -807,41 +850,6 @@ def _form_final_call(f_org, f_rep, arg2call, arguments, nodes, show_code=False, 
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[f'new_{name}']
   return func
-
-
-def _get_args(f):
-  # 1. get the function arguments
-  original_args = []
-  reduced_args = []
-
-  for name, par in inspect.signature(f).parameters.items():
-    if par.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
-      reduced_args.append(par.name)
-    elif par.kind is inspect.Parameter.VAR_POSITIONAL:
-      reduced_args.append(par.name)
-    elif par.kind is inspect.Parameter.KEYWORD_ONLY:
-      reduced_args.append(par.name)
-    elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
-      raise errors.DiffEqError('Don not support positional only parameters, e.g., /')
-    elif par.kind is inspect.Parameter.VAR_KEYWORD:
-      raise errors.DiffEqError(f'Don not support dict of keyword arguments: {str(par)}')
-    else:
-      raise errors.DiffEqError(f'Unknown argument type: {par.kind}')
-
-    original_args.append(str(par))
-
-  # 2. analyze the function arguments
-  #   2.1 class keywords
-  class_kw = []
-  if original_args[0] in profile.CLASS_KEYWORDS:
-    class_kw.append(original_args[0])
-    original_args = original_args[1:]
-    reduced_args = reduced_args[1:]
-  for a in original_args:
-    if a.split('=')[0].strip() in profile.CLASS_KEYWORDS:
-      raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
-                               f'as the first argument.')
-  return class_kw, reduced_args, original_args
 
 
 def show_compiled_codes(code, scope):

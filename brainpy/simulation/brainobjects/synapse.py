@@ -40,6 +40,8 @@ class TwoEndConn(DynamicalSystem):
       raise errors.BrainPyError('"pre" must be an instance of NeuGroup.')
     if not isinstance(post, NeuGroup):
       raise errors.BrainPyError('"post" must be an instance of NeuGroup.')
+    if pre.num_batch != post.num_batch:
+      raise errors.BrainPyError('pre.num_batch != post.num_batch')
     self.pre = pre
     self.post = post
 
