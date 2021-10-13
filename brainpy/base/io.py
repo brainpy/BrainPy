@@ -14,12 +14,12 @@ logger = logging.getLogger('brainpy.base.io')
 
 try:
   import h5py
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
   h5py = None
 
 try:
   import scipy.io as sio
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
   sio = None
 
 __all__ = [

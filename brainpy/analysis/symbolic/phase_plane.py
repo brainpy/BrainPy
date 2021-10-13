@@ -7,10 +7,10 @@ import numpy as np
 
 from brainpy import errors, math
 from brainpy.analysis import stability
-from brainpy.analysis.sym_analysis import base, utils
-from brainpy.analysis.sym_analysis.trajectory import Trajectory
+from brainpy.analysis.symbolic import base, utils
+from brainpy.analysis.symbolic.trajectory import Trajectory
 
-logger = logging.getLogger('brainpy.analysis')
+logger = logging.getLogger('brainpy.analysis.symbolic')
 
 __all__ = [
   'PhasePlane',

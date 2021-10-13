@@ -24,7 +24,7 @@ logger = logging.getLogger('brainpy.math.numpy.compilation')
 
 def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
         forceobj=False, looplift=True, error_model='python', inline='never',
-        boundscheck=None, show_code=False, **kwargs):
+        boundscheck=None, show_code=False, debug=False, **kwargs):
   """Just-In-Time (JIT) Compilation in NumPy backend.
 
   JIT compilation in NumPy backend relies on `Numba <http://numba.pydata.org/>`_. However,
@@ -124,7 +124,7 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
   return ast2numba.jit(obj_or_fun, show_code=show_code,
                        nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil,
                        forceobj=forceobj, looplift=looplift, error_model=error_model,
-                       inline=inline, boundscheck=boundscheck)
+                       inline=inline, boundscheck=boundscheck, debug=debug)
 
 
 def vmap(obj_or_func, *args, **kwargs):

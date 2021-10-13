@@ -63,7 +63,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :maxdepth: 1
    :caption: Analysis Tutorials
 
-   tutorial_analysis/sym_analysis
+   tutorial_analysis/symbolic
 
 
 .. toctree::

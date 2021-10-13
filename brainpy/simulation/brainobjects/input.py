@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brainpy import errors, math, tools
+from brainpy import errors, math
 from brainpy.simulation.brainobjects.neuron import NeuGroup
 
 
@@ -45,7 +45,9 @@ class SpikeTimeInput(NeuGroup):
       The name of the dynamic system.
   """
 
-  def __init__(self, size, times, indices, need_sort=True, **kwargs):
+  def __init__(self, size, times, indices, num_batch=None, need_sort=True, **kwargs):
+    super(SpikeTimeInput, self).__init__(size=size, num_batch=num_batch, **kwargs)
+
     if len(indices) != len(times):
       raise errors.BrainPyError(f'The length of "indices" and "times" must be the same. '
                                 f'However, we got {len(indices)} != {len(times)}.')
@@ -58,11 +60,9 @@ class SpikeTimeInput(NeuGroup):
     if need_sort:
       sort_idx = np.argsort(times)
       self.indices = self.indices[sort_idx]
-    self.spike = math.zeros(tools.size2num(size), dtype=bool)
+    self.spike = math.zeros(self.shape, dtype=bool)
 
-    super(SpikeTimeInput, self).__init__(size=size, **kwargs)
-
-  def update(self, _t, _i):
+  def update(self, _t, _i, **kwargs):
     self.spike[:] = False
     while self.idx < self.num_times and _t >= self.times[self.idx]:
       self.spike[self.indices[self.idx]] = 1.
@@ -82,8 +82,8 @@ class PoissonInput(NeuGroup):
       The name of the dynamic system.
   """
 
-  def __init__(self, size, freqs, seed=None, **kwargs):
-    super(PoissonInput, self).__init__(size=size, **kwargs)
+  def __init__(self, size, freqs, num_batch=None, seed=None, **kwargs):
+    super(PoissonInput, self).__init__(size=size, num_batch=num_batch, **kwargs)
 
     self.freqs = freqs
     self.dt = math.get_dt() / 1000.
@@ -92,7 +92,7 @@ class PoissonInput(NeuGroup):
     self.t_last_spike = math.Variable(math.ones(self.num) * -1e7)
     self.rng = math.random.RandomState(seed=seed)
 
-  def update(self, _t, _i):
+  def update(self, _t, _i, **kwargs):
     self.spike[:] = self.rng.random(self.num) <= self.freqs * self.dt
     self.t_last_spike[:] = math.where(self.spike, _t, self.t_last_spike)
 

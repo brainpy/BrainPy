@@ -186,7 +186,7 @@ def transform_integrals_to_model(integrals, method='euler'):
 
   integrals, pars_update = transform_integrals(integrals, method=method)
 
-  all_scope = dict()
+  all_scope = dict(math=math)
   all_variables = set()
   all_parameters = set()
   analyzers = []

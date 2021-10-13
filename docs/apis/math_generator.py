@@ -85,14 +85,8 @@ def _section(header, numpy_mod, brainpy_np, brainpy_jax, klass=None):
 
 
 def generate(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
+  if not os.path.exists(path): os.makedirs(path)
 
-  buf = []
-
-  buf += ['NumPy / JAX / BrainPy APIs',
-          '--------------------------',
-          '', ]
   buf = []
   buf += _section(header='Multi-dimensional Array',
                   numpy_mod='numpy',
@@ -120,17 +114,16 @@ def generate(path):
   with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
     f.write(codes)
 
-
-  if not os.path.exists(os.path.join(path, 'jax')):
-    os.makedirs(os.path.join(path, 'jax'))
+  path = os.path.join(path, 'jax_math/')
+  if not os.path.exists(path): os.makedirs(path)
   write_module(module_name='brainpy.math.jax.optimizers',
-               filename=os.path.join(path, 'jax/optimizers.rst'),
+               filename=os.path.join(path, 'optimizers.rst'),
                header='Optimizers')
   write_module(module_name='brainpy.math.jax.losses',
-               filename=os.path.join(path, 'jax/losses.rst'),
+               filename=os.path.join(path, 'losses.rst'),
                header='Loss Functions')
   write_module(module_name='brainpy.math.jax.activations',
-               filename=os.path.join(path, 'jax/activations.rst'),
+               filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
 
 

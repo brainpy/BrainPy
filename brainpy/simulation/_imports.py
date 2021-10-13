@@ -4,7 +4,7 @@ try:
   import jax
   from brainpy.math import jax as mjax
 
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
   jax = None
   mjax = None
 

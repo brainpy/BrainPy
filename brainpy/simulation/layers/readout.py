@@ -31,7 +31,8 @@ class LinearReadout(NeuGroup):
     The training mask for the weights.
   """
 
-  def __init__(self, num_hidden, num_input, w_init=XavierNormal(), b_init=ZeroInit(),
+  def __init__(self, num_hidden, num_input, num_batch=1,
+               w_init=XavierNormal(), b_init=ZeroInit(),
                has_bias=True, s_init=Uniform(), train_mask=None, **kwargs):
     super(LinearReadout, self).__init__(size=num_hidden, **kwargs)
 
@@ -50,8 +51,8 @@ class LinearReadout(NeuGroup):
       assert train_mask.shape == self.w.shape
       self.train_mask = train_mask
 
-  def init(self, num_batch=1, **kwargs):
-    self.num_batch = num_batch
+
+    # variables
     self.s = math.Variable(self.s_init((num_batch, self.num)))
 
   def update(self, x, **kwargs):

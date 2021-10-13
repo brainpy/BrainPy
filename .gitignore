@@ -30,7 +30,7 @@ docs/apis/analysis/generated
 docs/apis/tools.rst
 docs/apis/visualization.rst
 docs/apis/math/generated
-docs/apis/math/jax
+docs/apis/math/jax_math
 docs/quickstart/_autosummary
 docs/quickstart/generated
 docs/quickstart/.ipynb_checkpoints

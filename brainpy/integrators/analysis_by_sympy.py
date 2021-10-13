@@ -7,7 +7,7 @@ from brainpy import errors, tools
 
 try:
   import sympy
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
   raise errors.PackageMissingError('Package "sympy" must be installed when the '
                                    'users want to utilize the sympy analysis.')
 import sympy.functions.elementary.complexes

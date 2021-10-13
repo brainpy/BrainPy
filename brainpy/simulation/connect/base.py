@@ -124,9 +124,11 @@ class TwoEndConnector(Connector):
 
       # names of the needed structures
       if PRE_SLICE in self.structures:
-        all_data[PRE_SLICE] = formatter.pre_slice(i=ij[0], j=ij[1], num_pre=self.pre_num)
+        all_data[PRE_IDS], all_data[POST_IDS], all_data[PRE_SLICE] = \
+          formatter.pre_slice(i=ij[0], j=ij[1], num_pre=self.pre_num)
       elif POST_SLICE in self.structures:
-        all_data[POST_SLICE] = formatter.post_slice(i=ij[0], j=ij[1], num_post=self.post_num)
+        all_data[PRE_IDS], all_data[POST_IDS], all_data[POST_SLICE] = \
+          formatter.post_slice(i=ij[0], j=ij[1], num_post=self.post_num)
       for n in self.structures:
         if n in [PRE_SLICE, POST_SLICE, PRE_IDS, POST_IDS, CONN_MAT]:
           continue

@@ -1,8 +1,8 @@
 Dynamics Analysis (Symbolic)
 ============================
 
-.. currentmodule:: brainpy.analysis.sym_analysis
-.. automodule:: brainpy.analysis.sym_analysis
+.. currentmodule:: brainpy.analysis.symbolic
+.. automodule:: brainpy.analysis.symbolic
 
 
 .. autosummary::

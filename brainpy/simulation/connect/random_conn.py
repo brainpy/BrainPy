@@ -10,7 +10,6 @@ try:
 except ModuleNotFoundError:
   numba = None
 
-
 __all__ = [
   'FixedProb',
   'FixedPreNum',
@@ -24,9 +23,9 @@ __all__ = [
 ]
 
 
-@tools.numba_jit
-def _random_prob_conn(pre_i, num_post, prob, include_self):
-  p = np.random.random(num_post) <= prob
+# @tools.numba_jit
+def _random_prob_conn(rng, pre_i, num_post, prob, include_self):
+  p = rng.random(num_post) <= prob
   if (not include_self) and pre_i < num_post: p[pre_i] = False
   conn_j = np.asarray(np.where(p)[0], dtype=np.int_)
   return conn_j
@@ -63,11 +62,11 @@ class FixedProb(TwoEndConnector):
       return self.returns(mat=conn_mat)
 
     elif type_to_provide == PROVIDE_IJ:
-      tools.numba_seed(self.seed)
+      # tools.numba_seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(self.pre_num):
-        posts = _random_prob_conn(pre_i=i, num_post=self.post_num, prob=self.prob,
-                                  include_self=self.include_self)
+        posts = _random_prob_conn(self.rng, pre_i=i, num_post=self.post_num,
+                                  prob=self.prob, include_self=self.include_self)
         if len(posts):
           pre_ids.append(np.ones_like(posts, dtype=np.int_) * i)
           post_ids.append(posts)
@@ -79,9 +78,9 @@ class FixedProb(TwoEndConnector):
       raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
 
 
-@tools.numba_jit
-def _fixed_num_prob_for_ij(num_need, num_total, i=0, include_self=False):
-  prob = np.random.random(num_total)
+# @tools.numba_jit
+def _fixed_num_prob_for_ij(rng, num_need, num_total, i=0, include_self=False):
+  prob = rng.random(num_total)
   if not include_self and i <= num_total: prob[i] = 1.
   pres = np.argsort(prob)[:num_need]
   posts = np.ones_like(pres, dtype=math.int_) * i
@@ -94,12 +93,12 @@ class FixedPreNum(TwoEndConnector):
   Parameters
   ----------
   num : float, int
-      The conn probability (if "num" is float) or the fixed number of
-      connectivity (if "num" is int).
+    The conn probability (if "num" is float) or the fixed number of
+    connectivity (if "num" is int).
   include_self : bool
-      Whether create (i, i) conn ?
+    Whether create (i, i) conn ?
   seed : None, int
-      Seed the random generator.
+    Seed the random generator.
   method : str
     The method used to create the connection.
 
@@ -150,10 +149,11 @@ class FixedPreNum(TwoEndConnector):
 
     # ij
     elif type_to_provide == PROVIDE_IJ:
-      tools.numba_seed(self.seed)
+      # tools.numba_seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(self.post_num):
-        pres, posts = _fixed_num_prob_for_ij(num_need=num, num_total=self.pre_num, i=i, include_self=self.include_self)
+        pres, posts = _fixed_num_prob_for_ij(rng=self.rng, num_need=num, num_total=self.pre_num,
+                                             i=i, include_self=self.include_self)
         pre_ids.append(pres)
         post_ids.append(posts)
       pre_ids = math.asarray(np.concatenate(pre_ids), dtype=math.int_)
@@ -225,10 +225,11 @@ class FixedPostNum(TwoEndConnector):
 
     # ij
     elif type_to_provide == PROVIDE_IJ:
-      tools.numba_seed(self.seed)
+      # tools.numba_seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(self.pre_num):
-        posts, pres = _fixed_num_prob_for_ij(num_need=num, num_total=self.post_num, i=i, include_self=self.include_self)
+        posts, pres = _fixed_num_prob_for_ij(rng=self.rng, num_need=num, num_total=self.post_num,
+                                             i=i, include_self=self.include_self)
         pre_ids.append(pres)
         post_ids.append(posts)
       pre_ids = np.concatenate(pre_ids)

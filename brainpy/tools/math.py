@@ -31,6 +31,7 @@ def numba_seed(seed):
   if numba is None:
     pass
   else:
+    if seed is None: seed = numpy.random.randint(0, 1000000)
     assert isinstance(seed, int)
     _numba_seed(seed)
 

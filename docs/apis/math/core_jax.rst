@@ -5,15 +5,6 @@ Functions in JAX backend
 .. automodule:: brainpy.math.jax
 
 
-
-.. toctree::
-    :maxdepth: 2
-
-    jax/optimizers
-    jax/losses
-    jax/activations
-
-
 Compilations
 ------------
 
