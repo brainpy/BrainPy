@@ -83,7 +83,3 @@ class Sequential(DynamicalSystem):
     gather = self._nodes_in_container(self.child_ds, method=method, _paths=_paths)
     gather.update(super(Sequential, self).nodes(method=method))
     return gather
-
-  def init(self, num_batch=1, **kwargs):
-    for ds in self.child_ds.values():
-      ds.init(num_batch=num_batch, **kwargs)

@@ -45,7 +45,7 @@ Controls
     :toctree: generated/
 
     easy_scan
-    easy_forloop
+    easy_loop
     easy_while
     easy_cond
 
