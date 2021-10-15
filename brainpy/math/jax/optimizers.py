@@ -42,21 +42,17 @@ class Optimizer(Base):
     self.lr = _make_schedule(lr)
     self.step = bm.Variable(bm.array([0]))
     self._train_vars = train_vars
-    self.dynamic_vars = ArrayCollector(train_vars)  # dynamic variables
+    self.implicit_variables = ArrayCollector()
+    self.implicit_variables.update(train_vars)  # dynamic variables
 
-  def register_dynamical_vars(self, vars: dict):
+  def register_variables(self, vars: dict):
     if not hasattr(self, 'dynamic_vars'):
-      raise ValueError('Please super initialize the Optimizer first, then call "register_dynamical_vars()".')
+      raise ValueError('Please super initialize the Optimizer first, then call "register_variables()".')
     for key, var in vars.items():
-      if key in self.dynamic_vars:
-        if id(self.dynamic_vars[key]) != id(var):
-          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.dynamic_vars[key]}.')
-      self.dynamic_vars[key] = var
-
-  def vars(self, method='absolute'):
-    gather = ArrayCollector(self.dynamic_vars)
-    gather.update(super(Optimizer, self).vars(method=method))
-    return gather
+      if key in self.implicit_variables:
+        if id(self.implicit_variables[key]) != id(var):
+          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.implicit_variables[key]}.')
+      self.implicit_variables[key] = var
 
   def update(self, grads):
     if len(grads) != len(self._train_vars):
@@ -89,12 +85,12 @@ class Momentum(Optimizer):
 
     self.momentum = momentum
     ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
-    self.register_dynamical_vars(ms)
+    self.register_variables(ms)
 
   def update(self, grads: dict, **kwargs):
     lr = super(Momentum, self).update(grads)
     for key, p in self._train_vars.items():
-      m = self.dynamic_vars[key + '_m']
+      m = self.implicit_variables[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= lr * m.value
@@ -106,12 +102,12 @@ class NesterovMomentum(Optimizer):
 
     self.momentum = momentum
     ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
-    self.register_dynamical_vars(ms)
+    self.register_variables(ms)
 
   def update(self, grads: dict, **kwargs):
     lr = super(NesterovMomentum, self).update(grads)
     for key, p in self._train_vars.items():
-      m = self.dynamic_vars[key + '_m']
+      m = self.implicit_variables[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= lr * (g + self.momentum * m.value)
@@ -151,15 +147,15 @@ class Adam(Optimizer):
     self.eps = eps
     ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
     vs = dict((key + '_v', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
-    self.register_dynamical_vars(ms)
-    self.register_dynamical_vars(vs)
+    self.register_variables(ms)
+    self.register_variables(vs)
 
   def update(self, grads: dict, **kwargs):
     lr = super(Adam, self).update(grads)
     lr *= jn.sqrt(1 - self.beta2 ** self.step[0]) / (1 - self.beta1 ** self.step[0])
     for key, p in self._train_vars.items():
-      m = self.dynamic_vars[key + '_m']
-      v = self.dynamic_vars[key + '_v']
+      m = self.implicit_variables[key + '_m']
+      v = self.implicit_variables[key + '_v']
       g = grads[key]
       m.value = self.beta1 * m.value + (1 - self.beta1) * g
       v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2

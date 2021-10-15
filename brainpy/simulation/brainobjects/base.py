@@ -110,7 +110,6 @@ class DynamicalSystem(Base):
     if not key.isidentifier(): raise ValueError(f'{key} is not a valid identifier.')
     cdelay = ConstantDelay(size=size,
                            delay=delay,
-                           num_batch=getattr(self, 'num_batch', None),
                            name=f'{self.name}_delay_{key}',
                            dtype=dtype)
     self.steps[f'{key}_update'] = cdelay.update

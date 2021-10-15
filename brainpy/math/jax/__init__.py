@@ -16,6 +16,7 @@ from . import linalg
 from . import losses
 from . import optimizers
 from . import random
+from . import gradient
 
 from .activations import *
 from .code import *
