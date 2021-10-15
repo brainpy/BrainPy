@@ -16,16 +16,6 @@ Compilations
     pmap
 
 
-Gradients
----------
-
-.. autosummary::
-    :toctree: generated/
-
-    grad
-    value_and_grad
-
-
 
 Variables
 ---------

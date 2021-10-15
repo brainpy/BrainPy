@@ -2,8 +2,8 @@ import importlib
 import inspect
 import os
 
-from brainpy.math.numpy import compilation, gradient, function
-from brainpy.math.jax import controls, losses, activations, optimizers
+from brainpy.math.numpy import function
+from brainpy.math.jax import controls, losses, activations, optimizers, gradient, compilation
 from docs.apis.auto_generater import write_module
 
 
@@ -125,5 +125,8 @@ def generate(path):
   write_module(module_name='brainpy.math.jax.activations',
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
+  write_module(module_name='brainpy.math.jax.gradient',
+               filename=os.path.join(path, 'gradient.rst'),
+               header='Automatic Differentiation')
 
 
