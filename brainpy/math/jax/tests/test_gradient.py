@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
 
-import pytest
+from pprint import pprint
+
 import jax.numpy as jnp
+import pytest
+
 import brainpy as bp
 import brainpy.math.jax as bm
+from brainpy.base import Base
 from brainpy.math.jax.gradient import _jac_rev_aux, _jac_fwd_aux
 from brainpy.math.jax.gradient import jacrev
-from brainpy.base import Base
 
 bp.math.use_backend('jax')
 
@@ -67,7 +70,7 @@ def test_grad_ob2():
   grads = grad()
 
   print('test_grad_ob1:')
-  print(grads)
+  pprint(grads)
   for g in grads.values():
     assert (g == 1.).all()
 
@@ -87,10 +90,19 @@ def test_grad_ob3():
   t = Test()
   grad = bm.grad(t, grad_vars=[t.a, t.b])
   grads = grad()
-
   print('test_grad_ob1:')
-  print(grads)
-  for g in grads.values():
+  pprint(grads)
+  for g in grads:
+    assert (g == 1.).all()
+
+  print('-' * 30)
+
+  t = Test()
+  grad = bm.grad(t, grad_vars=t.a)
+  grads = grad()
+  print('test_grad_ob1:')
+  pprint(grads)
+  for g in grads:
     assert (g == 1.).all()
 
 
@@ -111,7 +123,7 @@ def test_grad_ob4():
 
   res = grad(bm.random.random(10))
   print('test_grad_ob4:')
-  print(res)
+  pprint(res)
   for g in res.values():
     assert (g == 1.).all()
 
@@ -133,7 +145,7 @@ def test_grad_ob5():
 
   res = grad(bm.random.random(10))
   print('test_grad_ob5:')
-  print(res)
+  pprint(res)
   for g in res[1].values():
     assert (g == 1.).all()
   assert (res[0] == 2.).all()
@@ -158,8 +170,8 @@ def test_grad_ob_aux1():
   test_grad = bm.grad(test, test.vars(), argnums=0, has_aux=True)
   grads, outputs = test_grad(10.)
   print('test_grad_ob_aux1:')
-  print(grads)
-  print(outputs)
+  pprint(grads)
+  pprint(outputs)
 
   assert (grads[0] == 1.).all()  # grad of 'c'
   for g in grads[1].values():  # grad of TrainVar
@@ -202,7 +214,7 @@ def test_jacrev_aux1():
   print()
 
   def f(x):
-    r = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
     return r
 
   fr = _jac_rev_aux(f, has_aux=False)(jnp.array([1., 2., 3.]))
@@ -210,7 +222,7 @@ def test_jacrev_aux1():
   print(fr)
 
   def f(x):
-    r = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
     return r, 1
 
   fr = _jac_rev_aux(f, has_aux=True)(jnp.array([1., 2., 3.]))
@@ -218,7 +230,7 @@ def test_jacrev_aux1():
   print(fr)
 
   def f(x):
-    r = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
     return r, (r, 1)
 
   fr = _jac_rev_aux(f, has_aux=True)(jnp.array([1., 2., 3.]))
@@ -231,7 +243,7 @@ def test_jacrev_aux2():
   print()
 
   def f(x):
-    r = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
     return r
 
   with pytest.raises(Exception):
@@ -242,8 +254,8 @@ def test_jacrev_aux3():
   print()
 
   def f(x):
-    r1 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
-    r2 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2]])
+    r1 = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    r2 = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2]])
     return r1, r2
 
   fr = _jac_rev_aux(f, has_aux=False)(jnp.array([1., 2., 3.]))
@@ -255,8 +267,8 @@ def test_jacrev_aux4():
   print()
 
   def f(x):
-    r1 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
-    r2 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2]])
+    r1 = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    r2 = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2]])
     return (r1, r2), 1.
 
   fr = _jac_rev_aux(f, has_aux=True)(jnp.array([1., 2., 3.]))
@@ -269,7 +281,7 @@ def test_jacfwd_aux1():
   print()
 
   def f(x):
-    r = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
     return r
 
   fr = _jac_fwd_aux(f, has_aux=False)(jnp.array([1., 2., 3.]))
@@ -280,7 +292,7 @@ def test_jacfwd_aux2():
   print()
 
   def f(x):
-    r = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
     return r, jnp.zeros(1)
 
   fr = _jac_fwd_aux(f, has_aux=True)(jnp.array([1., 2., 3.]))
@@ -291,8 +303,8 @@ def test_jacfwd_aux3():
   print()
 
   def f(x):
-    r1 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
-    r2 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2]])
+    r1 = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    r2 = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2]])
     return (r1, r2)
 
   fr = _jac_fwd_aux(f, has_aux=False)(jnp.array([1., 2., 3.]))
@@ -300,14 +312,101 @@ def test_jacfwd_aux3():
   print(fr[1])
 
 
-# def test_jacfwd_aux4():
-#   print()
-#
-#   def f(x):
-#     r1 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2], x[2] * jnp.sin(x[0])])
-#     r2 = jnp.asarray([x[0], 5*x[2], 4*x[1]**2 - 2*x[2]])
-#     return (r1, r2), jnp.zeros(1)
-#
-#   fr = _jac_fwd_aux(f, has_aux=True)(jnp.array([1., 2., 3.]))
-#   print(fr)
+def test_jacrev1():
+  print()
 
+  def f(x):
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    return r
+
+  fr = jacrev(f, has_aux=False)(jnp.array([1., 2., 3.]))
+  print(fr)
+
+  print('-' * 20)
+
+  def f(x):
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    return r, 1
+
+  fr = _jac_rev_aux(f, has_aux=True)(jnp.array([1., 2., 3.]))
+  assert len(fr) == 2
+  print(fr)
+
+  print('-' * 20)
+
+  def f(x):
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    return r, (r, 1)
+
+  fr = _jac_rev_aux(f, has_aux=True)(jnp.array([1., 2., 3.]))
+  assert len(fr) == 2
+  assert len(fr[1]) == 2
+  pprint(fr)
+
+import jax
+
+
+def test_jacrev2():
+  print()
+
+  def f(x, y):
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    r += y
+    return r
+
+  fr = jacrev(f)(jnp.array([1., 2., 3.]), jnp.zeros(4))
+  # fr = jax.jacrev(f)(jnp.array([1., 2., 3.]), jnp.zeros(4))
+  print(fr)
+
+  print('-' * 20)
+
+
+def test_jacrev_object1():
+  print()
+
+  def f(x):
+    r = jnp.asarray([x[0], 5 * x[2], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+    return r
+
+  fr1 = jacrev(f)(jnp.array([1., 2., 3.]))
+
+  class F(bp.Base):
+    def __init__(self):
+      super(F, self).__init__()
+      self.x = bm.array([1., 2., 3.])
+
+    def __call__(self, *args, **kwargs):
+      r = jnp.asarray([self.x[0], 5 * self.x[2],
+                       4 * self.x[1] ** 2 - 2 * self.x[2],
+                       self.x[2] * jnp.sin(self.x[0])])
+      return r
+
+  f = F()
+  fr2 = jacrev(f, grad_vars=f.x)()
+  print(fr2)
+
+  assert (fr1 == fr2).all()
+
+  print('-' * 20)
+
+
+def test_jacrev_object2():
+  print()
+
+  class F(bp.Base):
+    def __init__(self):
+      super(F, self).__init__()
+      self.x = bm.array([1., 2., 3.])
+
+    def __call__(self, x2, **kwargs):
+      r = jnp.asarray([self.x[0], 5 * self.x[2],
+                       4 * self.x[1] ** 2 - 2 * self.x[2],
+                       self.x[2] * jnp.sin(self.x[0])])
+      r += x2
+      return r
+
+  f = F()
+  fr2 = jacrev(f, grad_vars=f.x)(bm.random.normal(4).value)
+  print(fr2)
+
+  print('-' * 20)
