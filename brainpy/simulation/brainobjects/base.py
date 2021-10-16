@@ -13,7 +13,7 @@ __all__ = [
   'Container',
 ]
 
-_error_msg = 'Unknown model type: {type}. ' \
+_error_msg = 'Unknown type of the update function: {} ({}). ' \
              'Currently, BrainPy only supports: \n' \
              '1. function \n' \
              '2. function name (str) \n' \
@@ -52,15 +52,15 @@ class DynamicalSystem(Base):
         elif callable(step):
           self.steps[step.__name__] = step
         else:
-          raise errors.BrainPyError(_error_msg.format(type(steps[0])))
+          raise errors.BrainPyError(_error_msg.format(steps[0].__class__, str(steps[0])))
     elif isinstance(steps, dict):
       for key, step in steps.items():
         if callable(step):
           self.steps[key] = step
         else:
-          raise errors.BrainPyError(_error_msg.format(type(step)))
+          raise errors.BrainPyError(_error_msg.format(steps.__class__, str(steps)))
     else:
-      raise errors.BrainPyError(_error_msg.format(type(steps)))
+      raise errors.BrainPyError(_error_msg.format(steps.__class__, str(steps)))
 
     # monitors
     if monitors is None:
