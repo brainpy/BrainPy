@@ -2,6 +2,7 @@
 
 
 from jax import lax
+from jax.tree_util import tree_flatten, tree_unflatten
 
 from brainpy.math.jax.jaxarray import JaxArray
 
@@ -13,18 +14,20 @@ __all__ = [
 ]
 
 
-def easy_scan(f, dyn_vars, out_vars):
+def easy_scan(f, dyn_vars, out_vars=None, has_return=False):
   """Make a scan function.
 
   Parameters
   ----------
-  f
-  dyn_vars
-  out_vars
+  f : callable, function
+  dyn_vars : dict of JaxArray, sequence of JaxArray
+  out_vars : Optional, JaxArray, dict of JaxArray, sequence of JaxArray
+  has_return : bool
 
   Returns
   -------
-
+  scan_func : callable, function
+    The function for scan iteration.
   """
 
   # iterable variables
@@ -39,32 +42,51 @@ def easy_scan(f, dyn_vars, out_vars):
       raise ValueError(f'easy_scan only support {JaxArray.__name__}, but got {type(v)}')
 
   # outputs
-  if isinstance(out_vars, dict):
-    out_keys = list(out_vars.keys())
+  if out_vars is None:
+    out_vars = ()
+    _, tree = tree_flatten(out_vars)
+  elif isinstance(out_vars, JaxArray):
+    _, tree = tree_flatten(out_vars)
+    out_vars = (out_vars, )
+  elif isinstance(out_vars, dict):
+    _, tree = tree_flatten(out_vars)
     out_vars = tuple(out_vars.values())
-    dict_return = True
   elif isinstance(out_vars, (tuple, list)):
-    out_keys = None
+    _, tree = tree_flatten(out_vars)
     out_vars = tuple(out_vars)
-    dict_return = False
   else:
     raise ValueError(f'Do not support {type(out_vars)}, only support dict/list/tuple of {JaxArray.__name__}')
 
-  # base function
-  def fun2scan(dyn_values, x):
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
-    f(x)
-    return [v.value for v in dyn_vars], [v.value for v in out_vars]
+  # functions
+  if has_return:
+    def fun2scan(dyn_values, x):
+      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      results = f(x)
+      dyn_values = [v.value for v in dyn_vars]
+      out_values = [v.value for v in out_vars]
+      return dyn_values, (out_values, results)
 
-  # return function
-  def call(xs=None, length=None, reverse=False, unroll=1):
-    dyn_values, out_values = lax.scan(f=fun2scan, init=[v.value for v in dyn_vars],
-                                      xs=xs, length=length, reverse=reverse, unroll=unroll)
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
-    if dict_return:
-      return {k: d for k, d in zip(out_keys, out_values)}
-    else:
-      return out_values
+    def call(xs=None, length=None, reverse=False, unroll=1):
+      dyn_values, (out_values, results) = lax.scan(
+        f=fun2scan, init=[v.value for v in dyn_vars],
+        xs=xs, length=length, reverse=reverse, unroll=unroll)
+      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      return (tree_unflatten(tree, out_values), results)
+
+  else:
+    def fun2scan(dyn_values, x):
+      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      f(x)
+      dyn_values = [v.value for v in dyn_vars]
+      out_values = [v.value for v in out_vars]
+      return dyn_values, out_values
+
+    def call(xs=None, length=None, reverse=False, unroll=1):
+      dyn_values, out_values = lax.scan(
+        f=fun2scan, init=[v.value for v in dyn_vars],
+        xs=xs, length=length, reverse=reverse, unroll=unroll)
+      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      return tree_unflatten(tree, out_values)
 
   return call
 
