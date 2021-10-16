@@ -46,7 +46,7 @@ class Optimizer(Base):
     self.implicit_variables.update(train_vars)  # dynamic variables
 
   def register_variables(self, vars: dict):
-    if not hasattr(self, 'dynamic_vars'):
+    if self.implicit_variables is None:
       raise ValueError('Please super initialize the Optimizer first, then call "register_variables()".')
     for key, var in vars.items():
       if key in self.implicit_variables:
