@@ -2,8 +2,8 @@ Continuation Analysis
 =====================
 
 
-.. currentmodule:: brainpy.continuation
-.. automodule:: brainpy.continuation
+.. currentmodule:: brainpy.analysis.continuation
+.. automodule:: brainpy.analysis.continuation
 
 .. contents::
     :depth: 2

@@ -8,6 +8,8 @@
 .. toctree::
     :maxdepth: 2
 
-    analysis/sym_analysis.rst
+    analysis/symbolic.rst
+    analysis/numeric.rst
+    analysis/continuation.rst
     analysis/stability.rst
 
