@@ -239,4 +239,4 @@ def stability_analysis(derivatives):
       return UNSTABLE_POINT_3D  # TODO
   else:
     raise ValueError('Unknown derivatives, only supports the jacobian '
-                     'matrix with the shape of(1), (2, 2), or (3, 3).')
+                     'matrix with the shape of (1), (2, 2), or (3, 3).')

@@ -25,20 +25,13 @@ __all__ = [
 
 class Optimizer(Base):
   """Base Optimizer Class.
-
   """
   target_backend = 'jax'
 
-  def __init__(self, train_vars, lr, name):
+  def __init__(self, train_vars: dict, lr, name):
     super(Optimizer, self).__init__(name=name)
 
-    if isinstance(train_vars, ArrayCollector):
-      train_vars = train_vars.subset(bm.TrainVar).unique()
-    elif isinstance(train_vars, (list, tuple)):
-      train_vars = ArrayCollector((f'_unknown{i}', var) for i, var in enumerate(train_vars))
-      train_vars = train_vars.unique()
-    else:
-      raise ValueError
+    assert isinstance(train_vars, dict), '"train_vars" must be a dict of JaxArray.'
     self.lr = _make_schedule(lr)
     self.step = bm.Variable(bm.array([0]))
     self._train_vars = train_vars
@@ -162,7 +155,18 @@ class Adam(Optimizer):
       p.value -= lr * m.value / jn.sqrt(v.value + self.eps)
 
 
-# learning rate schedules
+# learning rate schedules #
+# ----------------------- #
+
+
+def _make_schedule(scalar_or_schedule):
+  if callable(scalar_or_schedule):
+    return scalar_or_schedule
+  elif isinstance(scalar_or_schedule, (int, float)):
+    return constant(scalar_or_schedule)
+  else:
+    raise TypeError(type(scalar_or_schedule))
+
 
 def constant(lr):
   def schedule(i):
@@ -209,12 +213,3 @@ def piecewise_constant(boundaries, values):
     return values[jn.sum(i > boundaries)]
 
   return schedule
-
-
-def _make_schedule(scalar_or_schedule):
-  if callable(scalar_or_schedule):
-    return scalar_or_schedule
-  elif isinstance(scalar_or_schedule, (int, float)):
-    return constant(scalar_or_schedule)
-  else:
-    raise TypeError(type(scalar_or_schedule))

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
+import inspect
 from functools import partial
 from typing import Union, Sequence
 
-import inspect
 import jax
 import jax.linear_util as lu
 import jax.numpy
@@ -14,8 +14,8 @@ from jax._src.api import _check_input_dtype_jacfwd, _check_output_dtype_jacfwd, 
 from jax._src.api import _check_output_dtype_jacrev, _unravel_array_into_pytree, _dtype, _vjp
 from jax._src.api import core, safe_zip
 from jax._src.api import flatten_fun_nokwargs, vmap
-from jax.interpreters import ad
 from jax.api_util import argnums_partial
+from jax.interpreters import ad
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose, tree_structure
 
 from brainpy.base.base import Base
@@ -32,25 +32,25 @@ class Gradient(Base):
   pass
 
 
-def _check_vars(vars, prefix=''):
-  if vars is None:
-    _, tree = tree_flatten(vars)
+def _check_vars(variables, prefix=''):
+  if variables is None:
+    _, tree = tree_flatten(variables)
     return None, tree
-  if isinstance(vars, JaxArray):
-    _, tree = tree_flatten(vars)
-    vars = ArrayCollector({f'_{prefix}_v{0}': vars})
-  elif isinstance(vars, dict):
-    _, tree = tree_flatten(dict(vars))
-    vars = ArrayCollector(vars)
-  elif isinstance(vars, (list, tuple)):
-    _, tree = tree_flatten(vars)
-    vars = ArrayCollector({f'_{prefix}_v{i}': v for i, v in enumerate(vars)})
+  if isinstance(variables, JaxArray):
+    _, tree = tree_flatten(variables)
+    variables = ArrayCollector({f'_{prefix}_v{0}': variables})
+  elif isinstance(variables, dict):
+    _, tree = tree_flatten(dict(variables))
+    variables = ArrayCollector(variables)
+  elif isinstance(variables, (list, tuple)):
+    _, tree = tree_flatten(variables)
+    variables = ArrayCollector({f'_{prefix}_v{i}': v for i, v in enumerate(variables)})
   else:
     raise ValueError
-  for v in vars.values():
+  for v in variables.values():
     if not isinstance(v, JaxArray):
       raise ValueError(f'"vars" only supports dict of JaxArray, but got {type(v)}: {v}')
-  return vars, tree
+  return variables, tree
 
 
 def _separate_vars_and_grad_vars(vars, grad_vars):
@@ -79,18 +79,19 @@ def _grad_checking(func, vars, grad_vars):
     raise ValueError(f'Must be a callable object. But we got {func}')
 
   # vars and grad_vars
-  if vars is None:
-    if isinstance(func, Base):
-      vars = func.vars()
-    elif hasattr(func, '__self__') and isinstance(func.__self__, Base):
-      vars = func.__self__.vars()
+  # if vars is None:
+  #   if isinstance(func, Base):
+  #     vars = func.vars()
+  #   elif hasattr(func, '__self__') and isinstance(func.__self__, Base):
+  #     vars = func.__self__.vars()
   vars, _ = _check_vars(vars, prefix='dyn_var')
   vars, (grad_vars, grad_tree) = _separate_vars_and_grad_vars(vars, grad_vars)
   return func, vars, grad_vars, grad_tree
 
 
-def grad(func, vars=None, grad_vars=None, argnums=None, has_aux=None,
-         holomorphic=False, allow_int=False, reduce_axes=(), return_value=False):
+def grad(func, dyn_vars=None, grad_vars=None, argnums=None, has_aux=None,
+         holomorphic=False, allow_int=False, reduce_axes=(),
+         return_value=False, auto_detect_var=True):
   """Automatic Gradient Computation in JAX backend.
 
   Creates a function which evaluates the gradient of ``fun``.
@@ -103,23 +104,23 @@ def grad(func, vars=None, grad_vars=None, argnums=None, has_aux=None,
     Argument arrays in the positions specified by ``argnums`` must be of
     inexact (i.e., floating-point or complex) type. It should return a scalar
     (which includes arrays with shape ``()`` but not arrays with shape ``(1,)`` etc.)
-  vars : optional, dict of (key, JaxArray), list of JaxArray, tuple of JaxArray
-  grad_vars : optional, dict of (key, JaxArray), list of JaxArray, tuple of JaxArray
+  dyn_vars : optional, JaxArray, dict of str, sequence of JaxArray
+  grad_vars : optional, JaxArray, dict of str, sequence of JaxArray
   argnums : optional, integer or sequence of integers
     Specifies which positional argument(s) to differentiate with respect to (default 0).
-  has_aux: optional, bool.
+  has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
     first element is considered the output of the mathematical function to be
     differentiated and the second element is auxiliary data. Default False.
-  holomorphic: optional, bool.
+  holomorphic: optional, bool
     Indicates whether ``fun`` is promised to be
     holomorphic. If True, inputs and outputs must be complex. Default False.
-  allow_int: optional, bool.
+  allow_int: optional, bool
     Whether to allow differentiating with
     respect to integer valued inputs. The gradient of an integer input will
     have a trivial vector-space dtype (float0). Default False.
-  reduce_axes: optional, tuple of axis names.
-    If an axis is listed here, and
+  reduce_axes: optional, tuple of int
+    tuple of axis names. If an axis is listed here, and
     ``fun`` implicitly broadcasts a value over that axis, the backward pass
     will perform a ``psum`` of the corresponding gradient. Otherwise, the
     gradient will be per-example over named axes. For example, if ``'batch'``
@@ -147,10 +148,10 @@ def grad(func, vars=None, grad_vars=None, argnums=None, has_aux=None,
   >>> print(grad_tanh(0.2))
   0.961043
   """
-  func, vars, grad_vars, grad_tree = _grad_checking(func, vars, grad_vars)
+  func, dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
 
   # gradient
-  if vars is None and grad_vars is None:
+  if dyn_vars is None and grad_vars is None:
     has_aux = False if has_aux is None else has_aux
     argnums = 0 if argnums is None else argnums
     if return_value:
@@ -178,7 +179,7 @@ def grad(func, vars=None, grad_vars=None, argnums=None, has_aux=None,
 
   else:
     return Grad(fun=func,
-                vars=vars,
+                vars=dyn_vars,
                 grad_vars=grad_vars,
                 grad_tree=grad_tree,
                 argnums=argnums,
@@ -291,8 +292,8 @@ class Grad(Gradient):
       # >>> # 2. example of return multiple data
       # >>> return scalar_loss, (data1, data2, ...)
       def func(grad_values, dyn_values, *args, **kwargs):
-        for v, d in zip(self.grad_vars, grad_values): v.value = d
         for v, d in zip(self.dyn_vars, dyn_values): v.value = d
+        for v, d in zip(self.grad_vars, grad_values): v.value = d
         # outputs: [0] is the value for gradient,
         #          [1] is other values for return
         outputs = self.raw(*args, **kwargs)
@@ -303,8 +304,8 @@ class Grad(Gradient):
       # ------------
       # >>> return scalar_loss
       def func(grad_values, dyn_values, *args, **kwargs):
-        for v, d in zip(self.grad_vars, grad_values): v.value = d
         for v, d in zip(self.dyn_vars, dyn_values): v.value = d
+        for v, d in zip(self.grad_vars, grad_values): v.value = d
         output = self.raw(*args, **kwargs)
         output2 = output.value if isinstance(output, JaxArray) else output
         return output2, (output, [v.value for v in self.grad_vars], [v.value for v in self.dyn_vars])
@@ -323,7 +324,7 @@ class Grad(Gradient):
     for v, d in zip(self.grad_vars, grad_values): v.value = d
     for v, d in zip(self.dyn_vars, dyn_values): v.value = d
     grads_of_grad_vars = tree_unflatten(self.grad_tree, grads[0])
-    grads = grads_of_grad_vars if len(self.argnums) == 1 else grads[1:] + (grads_of_grad_vars, )
+    grads = grads_of_grad_vars if len(self.argnums) == 1 else grads[1:] + (grads_of_grad_vars,)
     if self.return_value:
       return grads, outputs
     else:
@@ -447,13 +448,13 @@ def _jac_fwd_aux(fun, argnums: Union[int, Sequence[int]] = 0, holomorphic: bool 
   return jacfun
 
 
-def jacrev(func, vars=None, grad_vars=None, argnums=None, holomorphic=False,
+def jacrev(func, dyn_vars=None, grad_vars=None, argnums=None, holomorphic=False,
            allow_int=False, has_aux=None, return_value=False):
   """Jacobian of ``fun`` evaluated row-by-row using reverse-mode AD.
   """
-  func, vars, grad_vars, grad_tree = _grad_checking(func, vars, grad_vars)
+  func, dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
 
-  if vars is None and grad_vars is None:
+  if dyn_vars is None and grad_vars is None:
     has_aux = False if has_aux is None else has_aux
     argnums = 0 if argnums is None else argnums
     return _jac_rev_aux(fun=func, argnums=argnums,
@@ -461,7 +462,7 @@ def jacrev(func, vars=None, grad_vars=None, argnums=None, holomorphic=False,
                         has_aux=has_aux, return_value=return_value)
   else:
     return Jacobian(fun=func,
-                    vars=vars,
+                    vars=dyn_vars,
                     grad_vars=grad_vars,
                     grad_tree=grad_tree,
                     holomorphic=holomorphic,
@@ -474,21 +475,21 @@ def jacrev(func, vars=None, grad_vars=None, argnums=None, holomorphic=False,
 jacobian = jacrev
 
 
-def jacfwd(func, vars=None, grad_vars=None, argnums=None, holomorphic=False,
+def jacfwd(func, dyn_vars=None, grad_vars=None, argnums=None, holomorphic=False,
            has_aux=None, return_value=False):
   """Jacobian of ``fun`` evaluated column-by-column using forward-mode AD.
 
   """
-  func, vars, grad_vars, grad_tree = _grad_checking(func, vars, grad_vars)
+  func, dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
 
-  if vars is None and grad_vars is None:
+  if dyn_vars is None and grad_vars is None:
     has_aux = False if has_aux is None else has_aux
     argnums = 0 if argnums is None else argnums
     return _jac_fwd_aux(fun=func, argnums=argnums, holomorphic=holomorphic,
                         has_aux=has_aux, return_value=return_value)
   else:
     return Jacobian(fun=func,
-                    vars=vars,
+                    vars=dyn_vars,
                     grad_vars=grad_vars,
                     grad_tree=grad_tree,
                     holomorphic=holomorphic,
@@ -536,8 +537,8 @@ class Jacobian(Gradient):
     # final functions
     if has_aux:
       def func(grad_values, dyn_values, *args, **kwargs):
-        for v, d in zip(self.grad_vars, grad_values): v.value = d
         for v, d in zip(self.dyn_vars, dyn_values): v.value = d
+        for v, d in zip(self.grad_vars, grad_values): v.value = d
         # outputs: [0] is the value for gradient,
         #          [1] is other values for return
         outputs = self.raw(*args, **kwargs)
@@ -546,8 +547,8 @@ class Jacobian(Gradient):
 
     else:
       def func(grad_values, dyn_values, *args, **kwargs):
-        for v, d in zip(self.grad_vars, grad_values): v.value = d
         for v, d in zip(self.dyn_vars, dyn_values): v.value = d
+        for v, d in zip(self.grad_vars, grad_values): v.value = d
         outputs = self.raw(*args, **kwargs)
         output = outputs.value if isinstance(outputs, JaxArray) else outputs
         return output, (outputs, [v.value for v in self.grad_vars], [v.value for v in self.dyn_vars])
@@ -603,11 +604,11 @@ def hessian(fun, vars=None, grad_vars=None, argnums: Union[int, Sequence[int]] =
     Whether return the hessian values.
   """
   return jacfwd(jacrev(fun,
-                       vars=vars,
+                       dyn_vars=vars,
                        grad_vars=grad_vars,
                        argnums=argnums,
                        holomorphic=holomorphic),
-                vars=vars,
+                dyn_vars=vars,
                 grad_vars=grad_vars,
                 argnums=argnums,
                 holomorphic=holomorphic,
