@@ -21,8 +21,9 @@ from jax.interpreters.pxla import ShardedDeviceArray
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.math.jax.random import RandomState
 from brainpy.base.collector import ArrayCollector
+from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jax.random import RandomState
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -34,10 +35,9 @@ __all__ = [
 logger = logging.getLogger('brainpy.math.jax.compilation')
 
 
-def _make_jit(func, vars, static_argnums, static_argnames=None, device=None,
+def _make_jit(func, vars, static_argnames=None, device=None,
               backend=None, donate_argnums=(), inline=False, f_name=None):
   @functools.partial(jax.jit,
-                     static_argnums=static_argnums,
                      static_argnames=static_argnames,
                      device=device, backend=backend,
                      donate_argnums=donate_argnums,
@@ -57,7 +57,7 @@ def _make_jit(func, vars, static_argnums, static_argnames=None, device=None,
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, device=None,
+def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
         backend=None, donate_argnums=(), inline=False, **kwargs):
   """JIT (Just-In-Time) Compilation for JAX backend.
 
@@ -68,6 +68,14 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
 
   If you are using "numpy", please refer to the JIT compilation
   in NumPy backend `bp.math.numpy.jit() <brainpy.math.numpy.jit.rst>`_.
+
+  Notes
+  -----
+
+  ``jit`` compilation in ``brainpy.math.jax`` does not support `static_argnums`.
+  Instead, users should use `static_argnames`, and call the jitted function with
+  keywords like ``jitted_func(arg1=var1, arg2=var2)``.
+
 
   Examples
   --------
@@ -117,11 +125,8 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
   ----------
   obj_or_func : Base, function
     The instance of Base or a function.
-  vars : optional, dict
+  dyn_vars : optional, dict
     These variables will be changed in the function, or needed in the computation.
-  static_argnums : optional, int, list, tuple, dict
-    An optional int or collection of ints that specify which positional arguments to treat
-    as static (compile-time constant).
   static_argnames : optional, str, list, tuple, dict
     An optional string or collection of strings specifying which named arguments to treat
     as static (compile-time constant). See the comment on ``static_argnums`` for details.
@@ -160,16 +165,15 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
     if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
-      vars = (vars or obj_or_func.vars().unique())
-
-      # static arguments by num
-      if static_argnums is None:
-        static_argnums = {key: () for key in obj_or_func.steps.keys()}
-      elif isinstance(static_argnums, int):
-        static_argnums = {key: (static_argnums + 1,) for key in obj_or_func.steps.keys()}
-      elif isinstance(static_argnums, (tuple, list)) and isinstance(static_argnums[0], int):
-        static_argnums = {key: tuple(x + 1 for x in static_argnums) for key in obj_or_func.steps.keys()}
-      assert isinstance(static_argnums, dict)
+      dyn_vars = (dyn_vars or obj_or_func.vars().unique())
+      if isinstance(dyn_vars, JaxArray):
+        dyn_vars = ArrayCollector({'_': dyn_vars})
+      elif isinstance(dyn_vars, dict):
+        dyn_vars = ArrayCollector(dyn_vars)
+      elif isinstance(dyn_vars, (tuple, list)):
+        dyn_vars = ArrayCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
+      else:
+        raise ValueError
 
       # static arguments by name
       if static_argnames is None:
@@ -196,9 +200,8 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
 
       # jit functions
       for key in list(obj_or_func.steps.keys()):
-        jitted_func = _make_jit(vars=vars,
+        jitted_func = _make_jit(vars=dyn_vars,
                                 func=obj_or_func.steps[key],
-                                static_argnums=static_argnums[key],
                                 static_argnames=static_argnames[key],
                                 device=device,
                                 backend=backend,
@@ -209,18 +212,24 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
       return obj_or_func
 
   if callable(obj_or_func):
-    if vars is not None:
-      vars = vars
+    if dyn_vars is not None:
+      if isinstance(dyn_vars, JaxArray):
+        dyn_vars = ArrayCollector({'_': dyn_vars})
+      elif isinstance(dyn_vars, dict):
+        dyn_vars = ArrayCollector(dyn_vars)
+      elif isinstance(dyn_vars, (tuple, list)):
+        dyn_vars = ArrayCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
+      else:
+        raise ValueError
     elif isinstance(obj_or_func, Base):
-      vars = obj_or_func.vars().unique()
+      dyn_vars = obj_or_func.vars().unique()
     elif hasattr(obj_or_func, '__self__') and isinstance(obj_or_func.__self__, Base):
-      vars = obj_or_func.__self__.vars().unique()
+      dyn_vars = obj_or_func.__self__.vars().unique()
     else:
-      vars = ArrayCollector()
+      dyn_vars = ArrayCollector()
 
-    if len(vars) == 0:  # pure function
+    if len(dyn_vars) == 0:  # pure function
       return jax.jit(obj_or_func,
-                     static_argnums=static_argnums,
                      static_argnames=static_argnames,
                      device=device,
                      backend=backend,
@@ -228,11 +237,8 @@ def jit(obj_or_func, vars=None, static_argnums=None, static_argnames=None, devic
                      inline=inline)
 
     else:  # Base object which implements __call__, or bounded method of Base object
-
-      static_argnums = tuple(x + 1 for x in sorted(static_argnums or ()))
-      return _make_jit(vars=vars,
+      return _make_jit(vars=dyn_vars,
                        func=obj_or_func,
-                       static_argnums=static_argnums,
                        static_argnames=static_argnames,
                        device=device,
                        backend=backend,
@@ -269,7 +275,7 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def vmap(obj_or_func, vars=None, vars_batched=None,
+def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
          in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
   """Vectorization compilation in JAX backend.
 
@@ -331,9 +337,9 @@ def vmap(obj_or_func, vars=None, vars_batched=None,
     if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
-      vars = (vars or obj_or_func.vars().unique())
+      dyn_vars = (dyn_vars or obj_or_func.vars().unique())
       dyn_vars, rand_vars = ArrayCollector(), ArrayCollector()
-      for key, val in vars.items():
+      for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
         else:
@@ -398,15 +404,15 @@ def vmap(obj_or_func, vars=None, vars_batched=None,
       return obj_or_func
 
   if callable(obj_or_func):
-    if vars is not None:
-      vars = vars
+    if dyn_vars is not None:
+      dyn_vars = dyn_vars
     elif isinstance(obj_or_func, Base):  # Base has '__call__()' implementation
-      vars = obj_or_func.vars().unique()
+      dyn_vars = obj_or_func.vars().unique()
     elif hasattr(obj_or_func, '__self__'):
       if isinstance(obj_or_func.__self__, Base):
-        vars = obj_or_func.__self__.vars().unique()
+        dyn_vars = obj_or_func.__self__.vars().unique()
 
-    if vars is None:
+    if dyn_vars is None:
       return jax.vmap(obj_or_func,
                       in_axes=in_axes,
                       out_axes=out_axes,
@@ -415,7 +421,7 @@ def vmap(obj_or_func, vars=None, vars_batched=None,
     else:
       # dynamical variables
       dyn_vars, rand_vars = ArrayCollector(), ArrayCollector()
-      for key, val in vars.items():
+      for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
         else:
@@ -520,7 +526,7 @@ def _make_pmap(func, dyn_vars, rand_vars, reduce_func, axis_name=None, in_axes=0
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_broadcasted_argnums=(),
+def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broadcasted_argnums=(),
          devices=None, backend=None, axis_size=None, donate_argnums=(), global_arg_shapes=None,
          reduce_func=None):
   """Parallel compilation in JAX backend.
@@ -555,7 +561,7 @@ def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_b
     if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
-      all_vars = (vars or obj_or_func.vars().unique())
+      all_vars = (dyn_vars or obj_or_func.vars().unique())
       dyn_vars = ArrayCollector()
       rand_vars = ArrayCollector()
       for key, val in all_vars.items():
@@ -597,15 +603,15 @@ def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_b
       return obj_or_func
 
   if callable(obj_or_func):
-    if vars is not None:
-      vars = vars
+    if dyn_vars is not None:
+      dyn_vars = dyn_vars
     elif isinstance(obj_or_func, Base):  # Base has '__call__()' implementation
-      vars = obj_or_func.vars().unique()
+      dyn_vars = obj_or_func.vars().unique()
     elif hasattr(obj_or_func, '__self__'):
       if isinstance(obj_or_func.__self__, Base):
-        vars = obj_or_func.__self__.vars().unique()
+        dyn_vars = obj_or_func.__self__.vars().unique()
 
-    if vars is None:
+    if dyn_vars is None:
       return jax.pmap(obj_or_func,
                       axis_name=axis_name,
                       in_axes=in_axes,
@@ -620,7 +626,7 @@ def pmap(obj_or_func, vars=None, axis_name=None, in_axes=0, out_axes=0, static_b
       # dynamical variables
       dyn_vars = ArrayCollector()
       rand_vars = ArrayCollector()
-      for key, val in vars.items():
+      for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
         else:
