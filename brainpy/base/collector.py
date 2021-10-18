@@ -13,7 +13,6 @@ __all__ = [
 ]
 
 
-
 class Collector(dict):
   """A Collector is a dictionary (name, var) with some additional methods to make manipulation
   of collections of variables easy. A Collector is ordered by insertion order. It is the object
@@ -127,8 +126,7 @@ class ArrayCollector(Collector):
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
     global math
-    if math is None:
-      from brainpy import math
+    if math is None: from brainpy import math
 
     assert isinstance(value, math.ndarray)
     if key in self:
@@ -163,8 +161,7 @@ class ArrayCollector(Collector):
     to have a new one per device.
     """
     global math
-    if math is None:
-      from brainpy import math
+    if math is None: from brainpy import math
 
     try:
       import jax

@@ -25,38 +25,27 @@ __all__ = [
 
 class Optimizer(Base):
   """Base Optimizer Class.
-
   """
   target_backend = 'jax'
 
-  def __init__(self, train_vars, lr, name):
+  def __init__(self, train_vars: dict, lr, name):
     super(Optimizer, self).__init__(name=name)
 
-    if isinstance(train_vars, ArrayCollector):
-      train_vars = train_vars.subset(bm.TrainVar).unique()
-    elif isinstance(train_vars, (list, tuple)):
-      train_vars = ArrayCollector((f'_unknown{i}', var) for i, var in enumerate(train_vars))
-      train_vars = train_vars.unique()
-    else:
-      raise ValueError
+    assert isinstance(train_vars, dict), '"train_vars" must be a dict of JaxArray.'
     self.lr = _make_schedule(lr)
     self.step = bm.Variable(bm.array([0]))
     self._train_vars = train_vars
-    self.dynamic_vars = ArrayCollector(train_vars)  # dynamic variables
+    self.implicit_variables = ArrayCollector()
+    self.implicit_variables.update(train_vars)  # dynamic variables
 
-  def register_dynamical_vars(self, vars: dict):
-    if not hasattr(self, 'dynamic_vars'):
-      raise ValueError('Please super initialize the Optimizer first, then call "register_dynamical_vars()".')
+  def register_variables(self, vars: dict):
+    if self.implicit_variables is None:
+      raise ValueError('Please super initialize the Optimizer first, then call "register_variables()".')
     for key, var in vars.items():
-      if key in self.dynamic_vars:
-        if id(self.dynamic_vars[key]) != id(var):
-          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.dynamic_vars[key]}.')
-      self.dynamic_vars[key] = var
-
-  def vars(self, method='absolute'):
-    gather = ArrayCollector(self.dynamic_vars)
-    gather.update(super(Optimizer, self).vars(method=method))
-    return gather
+      if key in self.implicit_variables:
+        if id(self.implicit_variables[key]) != id(var):
+          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.implicit_variables[key]}.')
+      self.implicit_variables[key] = var
 
   def update(self, grads):
     if len(grads) != len(self._train_vars):
@@ -89,12 +78,12 @@ class Momentum(Optimizer):
 
     self.momentum = momentum
     ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
-    self.register_dynamical_vars(ms)
+    self.register_variables(ms)
 
   def update(self, grads: dict, **kwargs):
     lr = super(Momentum, self).update(grads)
     for key, p in self._train_vars.items():
-      m = self.dynamic_vars[key + '_m']
+      m = self.implicit_variables[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= lr * m.value
@@ -106,12 +95,12 @@ class NesterovMomentum(Optimizer):
 
     self.momentum = momentum
     ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
-    self.register_dynamical_vars(ms)
+    self.register_variables(ms)
 
   def update(self, grads: dict, **kwargs):
     lr = super(NesterovMomentum, self).update(grads)
     for key, p in self._train_vars.items():
-      m = self.dynamic_vars[key + '_m']
+      m = self.implicit_variables[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= lr * (g + self.momentum * m.value)
@@ -151,22 +140,33 @@ class Adam(Optimizer):
     self.eps = eps
     ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
     vs = dict((key + '_v', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
-    self.register_dynamical_vars(ms)
-    self.register_dynamical_vars(vs)
+    self.register_variables(ms)
+    self.register_variables(vs)
 
   def update(self, grads: dict, **kwargs):
     lr = super(Adam, self).update(grads)
     lr *= jn.sqrt(1 - self.beta2 ** self.step[0]) / (1 - self.beta1 ** self.step[0])
     for key, p in self._train_vars.items():
-      m = self.dynamic_vars[key + '_m']
-      v = self.dynamic_vars[key + '_v']
+      m = self.implicit_variables[key + '_m']
+      v = self.implicit_variables[key + '_v']
       g = grads[key]
       m.value = self.beta1 * m.value + (1 - self.beta1) * g
       v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2
       p.value -= lr * m.value / jn.sqrt(v.value + self.eps)
 
 
-# learning rate schedules
+# learning rate schedules #
+# ----------------------- #
+
+
+def _make_schedule(scalar_or_schedule):
+  if callable(scalar_or_schedule):
+    return scalar_or_schedule
+  elif isinstance(scalar_or_schedule, (int, float)):
+    return constant(scalar_or_schedule)
+  else:
+    raise TypeError(type(scalar_or_schedule))
+
 
 def constant(lr):
   def schedule(i):
@@ -213,12 +213,3 @@ def piecewise_constant(boundaries, values):
     return values[jn.sum(i > boundaries)]
 
   return schedule
-
-
-def _make_schedule(scalar_or_schedule):
-  if callable(scalar_or_schedule):
-    return scalar_or_schedule
-  elif isinstance(scalar_or_schedule, (int, float)):
-    return constant(scalar_or_schedule)
-  else:
-    raise TypeError(type(scalar_or_schedule))

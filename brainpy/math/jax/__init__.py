@@ -9,19 +9,23 @@
 #    the index update is the same way with the numpy
 #
 
+# data structure
+from .jaxarray import *
 
-from . import activations
+# functions
+from .ops import *
 from . import fft
 from . import linalg
+from . import random
+from . import activations
+from .activations import *
 from . import losses
 from . import optimizers
-from . import random
 
-from .activations import *
-from .code import *
+# transformations
 from .controls import *
 from .compilation import *
-from .function import *
 from .gradient import *
-from .jaxarray import *
-from .ops import *
+
+# wrapper
+from .function import *

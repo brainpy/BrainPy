@@ -16,16 +16,6 @@ Compilations
     pmap
 
 
-Gradients
----------
-
-.. autosummary::
-    :toctree: generated/
-
-    grad
-    value_and_grad
-
-
 Variables
 ---------
 
@@ -44,7 +34,7 @@ Controls
     :toctree: generated/
 
     easy_scan
-    easy_forloop
+    easy_loop
     easy_while
     easy_cond
 

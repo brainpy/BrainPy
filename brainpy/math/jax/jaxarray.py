@@ -27,6 +27,7 @@ __all__ = [
 #    >>> x[...] = 2
 #    >>> x[()] = 2
 
+
 class JaxArray(object):
   """Multiple-dimensional array for JAX backend.
 
@@ -81,6 +82,10 @@ class JaxArray(object):
   # ----------------------- #
   # Python inherent methods #
   # ----------------------- #
+
+  # def __hash__(self):
+  #   # Anything that is not mutable (mutable means, likely to change) can be hashed.
+  #   return self.value.__hash__()
 
   def __repr__(self) -> str:
     lines = repr(self.value).split("\n")

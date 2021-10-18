@@ -5,7 +5,7 @@ import os.path
 
 from brainpy import errors
 from brainpy.tools import namechecking
-from brainpy.base import collector
+from brainpy.base.collector import Collector, ArrayCollector
 from brainpy.base import io
 
 math = DE_INT = None
@@ -26,7 +26,12 @@ class Base(object):
   - ``DynamicalSystem`` in brainpy.simulation.brainobjects.base.py
 
   """
+
+  # to specify the target backend which the model to run
   target_backend = None
+
+  # to wrap the implicit variables which cannot be accessed by the self.xxx
+  implicit_variables = None
 
   def __init__(self, name=None):
     # check whether the object has a unique name.
@@ -66,19 +71,21 @@ class Base(object):
 
     Returns
     -------
-    gather : collector.ArrayCollector
+    gather : ArrayCollector
       The collection contained (the path, the variable).
     """
     global math
     if math is None: from brainpy import math
 
     nodes = self.nodes(method=method)
-    gather = collector.ArrayCollector()
+    gather = ArrayCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
         if isinstance(v, math.Variable):
           gather[f'{node_path}.{k}' if node_path else k] = v
+      if node.implicit_variables is not None:
+        gather.update({f'{node_path}.{k}': v for k, v in node.implicit_variables.items()})
     return gather
 
   def train_vars(self, method='absolute'):
@@ -91,7 +98,7 @@ class Base(object):
 
     Returns
     -------
-    gather : collector.ArrayCollector
+    gather : ArrayCollector
       The collection contained (the path, the trainable variable).
     """
     global math
@@ -111,12 +118,12 @@ class Base(object):
 
     Returns
     -------
-    gather : collector.Collector
+    gather : Collector
       The collection contained (the path, the node).
     """
     if _paths is None:
       _paths = set()
-    gather = collector.Collector()
+    gather = Collector()
     if method == 'absolute':
       nodes = []
       for k, v in self.__dict__.items():
@@ -153,7 +160,7 @@ class Base(object):
     if _paths is None:
       _paths = set()
 
-    gather = collector.Collector()
+    gather = Collector()
     if method == 'absolute':
       nodes = []
       for _, node in dict_container.items():
@@ -194,7 +201,7 @@ class Base(object):
 
     Returns
     -------
-    collector : collector.Collector
+    collector : Collector
       The collection contained (the path, the integrator).
     """
     global DE_INT
@@ -202,7 +209,7 @@ class Base(object):
       from brainpy.integrators.constants import DE_INT
 
     nodes = self.nodes(method=method)
-    gather = collector.Collector()
+    gather = Collector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)

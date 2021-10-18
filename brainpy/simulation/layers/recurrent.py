@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import abc
-from brainpy import math
+import brainpy.math.jax as bm
 
-from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.brainobjects.neuron import NeuGroup
 from brainpy.simulation.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
 
@@ -54,17 +53,17 @@ class VanillaRNN(RNNCore):
     self.h_init = h_init
 
     # weights
-    self.w_ir = math.TrainVar(w_init((num_input, num_hidden)))
-    self.w_rr = math.TrainVar(w_init((num_hidden, num_hidden)))
-    self.b = math.TrainVar(b_init((num_hidden,)))
+    self.w_ir = bm.TrainVar(w_init((num_input, num_hidden)))
+    self.w_rr = bm.TrainVar(w_init((num_hidden, num_hidden)))
+    self.b = bm.TrainVar(b_init((num_hidden,)))
 
   def update(self, x, **kwargs):
-    self.h[:] = math.relu(x @ self.w_ir + self.h @ self.w_rr + self.b)
+    self.h[:] = bm.relu(x @ self.w_ir + self.h @ self.w_rr + self.b)
     return self.h
 
   def init(self, num_batch=1, **kwargs):
     self.num_batch = num_batch
-    self.h = math.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.h = bm.Variable(self.h_init((num_batch, self.num_hidden)))
 
 
 class GRU(RNNCore):
@@ -98,32 +97,32 @@ class GRU(RNNCore):
 
   def __init__(self, num_hidden, num_input, wx_init=Orthogonal(),
                wh_init=Orthogonal(), b_init=ZeroInit(), h_init=ZeroInit(), **kwargs):
-    super(GRU, self).__init__(num_hidden, num_input**kwargs)
+    super(GRU, self).__init__(num_hidden, num_input, **kwargs)
 
     # parameters
     self.h_init = h_init
 
     # weights
-    self.w_iz = math.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_ir = math.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_ia = math.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_hz = math.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.w_hr = math.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.w_ha = math.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.bz = math.TrainVar(b_init((num_hidden,)))
-    self.br = math.TrainVar(b_init((num_hidden,)))
-    self.ba = math.TrainVar(b_init((num_hidden,)))
+    self.w_iz = bm.TrainVar(wx_init((num_input, num_hidden)))
+    self.w_ir = bm.TrainVar(wx_init((num_input, num_hidden)))
+    self.w_ia = bm.TrainVar(wx_init((num_input, num_hidden)))
+    self.w_hz = bm.TrainVar(wh_init((num_hidden, num_hidden)))
+    self.w_hr = bm.TrainVar(wh_init((num_hidden, num_hidden)))
+    self.w_ha = bm.TrainVar(wh_init((num_hidden, num_hidden)))
+    self.bz = bm.TrainVar(b_init((num_hidden,)))
+    self.br = bm.TrainVar(b_init((num_hidden,)))
+    self.ba = bm.TrainVar(b_init((num_hidden,)))
 
   def update(self, x, **kwargs):
-    z = math.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
-    r = math.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
-    a = math.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
+    z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
+    r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
+    a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
     self.h[:] = (1 - z) * self.h + z * a
     return self.h
 
   def init(self, num_batch=1, **kwargs):
     self.num_batch = num_batch
-    self.h = math.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.h = bm.Variable(self.h_init((num_batch, self.num_hidden)))
 
 
 class LSTM(RNNCore):
@@ -175,23 +174,23 @@ class LSTM(RNNCore):
     self.h_init = h_init
 
     # weights
-    self.w = math.TrainVar(w_init((num_input + num_hidden, num_hidden * 4)))
-    self.b = math.TrainVar(b_init((num_hidden * 4,)))
+    self.w = bm.TrainVar(w_init((num_input + num_hidden, num_hidden * 4)))
+    self.b = bm.TrainVar(b_init((num_hidden * 4,)))
 
   def update(self, x, **kwargs):
-    xh = math.concatenate([x, self.h], axis=-1)
+    xh = bm.concatenate([x, self.h], axis=-1)
     gated = xh @ self.w + self.b
-    i, g, f, o = math.split(gated, indices_or_sections=4, axis=-1)
-    c = math.sigmoid(f + 1.) * self.c + math.sigmoid(i) * math.tanh(g)
-    h = math.sigmoid(o) * math.tanh(c)
+    i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
+    c = bm.sigmoid(f + 1.) * self.c + bm.sigmoid(i) * bm.tanh(g)
+    h = bm.sigmoid(o) * bm.tanh(c)
     self.h[:] = h
     self.c[:] = c
     return h
 
   def init(self, num_batch=1, **kwargs):
     self.num_batch = num_batch
-    self.h = math.Variable(self.h_init((num_batch, self.num_hidden)))
-    self.c = math.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.h = bm.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.c = bm.Variable(self.h_init((num_batch, self.num_hidden)))
 
 
 class ConvLSTM(RNNCore):
