@@ -126,7 +126,9 @@ def generate(path):
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
   write_module(module_name='brainpy.math.jax.gradient',
-               filename=os.path.join(path, 'gradient.rst'),
+               filename=os.path.join(path, 'gradients.rst'),
                header='Automatic Differentiation')
-
+  write_module(module_name='brainpy.math.jax.controls',
+               filename=os.path.join(path, 'controls.rst'),
+               header='Control Flows')
 

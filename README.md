@@ -40,16 +40,10 @@
 
 **Method 1**: install ``BrainPy`` by using ``pip``:
 
-To install the stable release of BrainPy (V1.0.3), please use
+To install the stable release of BrainPy (V1.1.0), please use
 
 ```bash
 > pip install -U brain-py
-```
-
-To install the latest pre-release version of BrainPy (V1.1.0), please use 
-
-```bash
-> pip install -U brain-py --pre
 ```
 
 If you have installed the previous version of BrainPy,  please uninstall the older one first
@@ -67,17 +61,17 @@ If you have installed the previous version of BrainPy,  please uninstall the old
 > pip install git+https://github.com/PKU-NIP-Lab/BrainPy
 >
 > # or
-> pip install git+https://git.openi.org.cn/OpenI/BrainPy
 >
-> # or
-> pip install -e git://github.com/PKU-NIP-Lab/BrainPy.git@V1.0.0
+> git clone https://github.com/PKU-NIP-Lab/BrainPy
+> cd BrainPy
+> python setup.py install
 ```
 
 
 
 **Other dependencies**: you want to get the full supports by BrainPy, please install the following packages:
 
-- `JAX >= 0.2.10`,  needed for "jax" backend and "dnn" module
+- `JAX >= 0.2.10`,  needed for "jax" backend and [many other supports](https://brainpy.readthedocs.io/en/latest/apis/math/special_jax.html)
 - `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend
 - `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method
 
@@ -106,7 +100,7 @@ Here list several examples of BrainPy. More detailed examples and tutorials plea
 - [Adaptive Quadratic integrate-and-fire model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.AdQuaIF.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/neurons/AdQuaIF.py)
 - [Adaptive Exponential integrate-and-fire model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.AdExIF.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/neurons/AdExIF.py)
 - [Generalized integrate-and-fire model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.GIF.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/neurons/GIF.py)
-- [Hodgkin–Huxley neuron model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.HH.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/tensor_backend/neurons/HodgkinHuxley_model.py)
+- [Hodgkin–Huxley neuron model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.HH.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/neurons/HH.py)
 - [Izhikevich neuron model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.Izhikevich.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/neurons/Izhikevich.py)
 - [Morris-Lecar neuron model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.MorrisLecar.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/neurons/MorrisLecar.py)
 - [Hindmarsh-Rose bursting neuron model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.neurons.HindmarshRose.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/neurons/HindmarshRose.py)
@@ -118,7 +112,7 @@ See [brainmodels.neurons](https://brainmodels.readthedocs.io/en/latest/apis/neur
 ### Synapse models
 
 - [Voltage jump synapse model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.synapses.VoltageJump.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/synapses/voltage_jump.py)
-- [Exponential synapse model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.synapses.ExponentialCUBA.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/synapses/exponential.py)
+- [Exponential synapse model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.synapses.ExpCUBA.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/synapses/exponential.py)
 - [Alpha synapse model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.synapses.AlphaCUBA.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/synapses/alpha.py)
 - [Dual exponential synapse model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.synapses.DualExpCUBA.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/synapses/dual_exp.py)
 - [AMPA synapse model](https://brainmodels.readthedocs.io/en/latest/apis/generated/brainmodels.synapses.AMPA.html), [source code](https://github.com/PKU-NIP-Lab/BrainModels/blob/main/brainmodels/synapses/AMPA.py)
@@ -146,6 +140,12 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
+### Learning through back-propagation
+
+- [Integrator RNN Model](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/integrator_rnn.html)
+
+ 
+
 
 ### Low-dimension dynamics analysis
 
@@ -156,8 +156,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
-### Learning through back-propagation
+### High-dimension dynamics analysis
 
-- [Integrator RNN Model](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/integrator_rnn.html)
+- [Fixed point finder]
 
- 

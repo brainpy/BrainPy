@@ -12,7 +12,7 @@
 # data structure
 from .jaxarray import *
 
-# functions
+# functions/operations
 from .ops import *
 from . import fft
 from . import linalg
