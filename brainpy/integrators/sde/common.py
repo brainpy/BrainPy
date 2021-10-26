@@ -20,33 +20,3 @@ def basic_info(f, g):
   class_kw, variables, parameters, arguments = utils.get_args(f)
   return vdt, variables, parameters, arguments, func_new_name
 
-
-def compile_and_assign_attrs(code_lines, code_scope, show_code,
-                             variables, parameters, func_name,
-                             intg_type, var_type, wiener_type, dt,
-                             method, raw_func):
-  code_scope_old = {key: val for key, val in code_scope.items()}
-
-  # compile functions
-  code = '\n'.join(code_lines)
-  if show_code:
-    print(code)
-    print()
-    pprint(code_scope)
-    print()
-  exec(compile(code, '', 'exec'), code_scope)
-  new_f = code_scope[func_name]
-
-  # assign values
-  new_f.brainpy_data = dict(raw_func=raw_func,
-                            code_lines=code_lines,
-                            code_scope=code_scope_old,
-                            variables=variables,
-                            parameters=parameters,
-                            dt=dt,
-                            func_name=func_name,
-                            var_type=var_type,
-                            intg_type=intg_type,
-                            wiener_type=wiener_type,
-                            method=method)
-  return new_f

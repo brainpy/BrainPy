@@ -7,6 +7,10 @@ from brainpy import math
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
 
+__all__ = [
+  'ODEIntegrator',
+]
+
 
 def f_names(f):
   func_name = constants.unique_name('ode')

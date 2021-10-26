@@ -12,7 +12,7 @@ from .adaptive_rk import *
 from .explicit_rk import *
 from .exponential import *
 
-_name2method = {
+name2method = {
   # explicit RK
   'euler': Euler,
   'midpoint': MidPoint,
@@ -55,11 +55,11 @@ def odeint(f=None, method='euler', **kwargs):
   integral : callable
       The numerical solver of `f`.
   """
-  if method not in _name2method:
+  if method not in name2method:
     raise ValueError(f'Unknown ODE numerical method "{method}". Currently '
-                     f'BrainPy only support: {list(_name2method.keys())}')
+                     f'BrainPy only support: {list(name2method.keys())}')
 
   if f is None:
-    return lambda f: _name2method[method](f, **kwargs)
+    return lambda f: name2method[method](f, **kwargs)
   else:
-    return _name2method[method](f, **kwargs)
+    return name2method[method](f, **kwargs)

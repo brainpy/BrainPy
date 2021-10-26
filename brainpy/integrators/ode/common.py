@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
-
-
 def step(class_kw, vars, dt_var, A, C, code_lines, other_args):
   # steps
   for si, sval in enumerate(A):
@@ -54,14 +51,3 @@ def update(vars, dt_var, B, code_lines):
     return_args.append(f'{v}_new')
   return return_args
 
-
-def compile_and_assign_attrs(code_lines, code_scope, func_name, show_code=False):
-  code = '\n'.join(code_lines)
-  if show_code:
-    print(code)
-    print()
-    pprint(code_scope)
-    print()
-  exec(compile(code, '', 'exec'), code_scope)
-  new_f = code_scope[func_name]
-  return new_f

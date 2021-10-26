@@ -250,7 +250,7 @@ class ExponentialEuler(ODEIntegrator):
         self.code_lines.append('')
 
       self.code_lines.append(f'  return {", ".join([f"{v}_new" for v in self.variables])}')
-      self.integral = common.compile_and_assign_attrs(
+      self.integral = utils.compile(
         code_scope={k: v for k, v in self.code_scope.items()},
         code_lines=self.code_lines,
         show_code=self.show_code,

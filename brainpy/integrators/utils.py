@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import inspect
+from pprint import pprint
 
 from brainpy import errors
 from brainpy.math import profile
@@ -97,3 +98,15 @@ def get_args(f):
     raise ValueError('Do not find time variable "t".')
   other_args = reduced_args[len(var_names):]
   return class_kw, var_names, other_args, original_args
+
+
+def compile(code_lines, code_scope, func_name, show_code=False):
+  code = '\n'.join(code_lines)
+  if show_code:
+    print(code)
+    print()
+    pprint(code_scope)
+    print()
+  exec(compile(code, '', 'exec'), code_scope)
+  new_f = code_scope[func_name]
+  return new_f
