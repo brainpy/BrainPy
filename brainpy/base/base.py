@@ -8,7 +8,7 @@ from brainpy.tools import namechecking
 from brainpy.base.collector import Collector, ArrayCollector
 from brainpy.base import io
 
-math = DE_INT = None
+math = Integrator = None
 
 __all__ = [
   'Base',
@@ -32,6 +32,9 @@ class Base(object):
 
   # to wrap the implicit variables which cannot be accessed by the self.xxx
   implicit_variables = None
+
+  # to wrap the implicit children nodes which cannot be accessed by the self.xxx
+  implicit_nodes = None
 
   def __init__(self, name=None):
     # check whether the object has a unique name.
@@ -133,6 +136,14 @@ class Base(object):
             _paths.add(path)
             gather[v.name] = v
             nodes.append(v)
+      if self.implicit_nodes is not None:
+        assert isinstance(self.implicit_nodes, dict)
+        for node in self.implicit_nodes.values():
+          path = (id(self), id(node))
+          if path not in _paths:
+            _paths.add(path)
+            gather[node.name] = node
+            nodes.append(node)
       for v in nodes:
         gather.update(v.nodes(method=method, _paths=_paths))
       gather[self.name] = self
@@ -147,45 +158,17 @@ class Base(object):
             _paths.add(path)
             gather[k] = v
             nodes.append((k, v))
-      for k, v in nodes:
-        for k2, v2 in v.nodes(method=method, _paths=_paths).items():
-          if k2:
-            gather[f'{k}.{k2}'] = v2
-
-    else:
-      raise ValueError(f'No support for the method of "{method}".')
-    return gather
-
-  def _nodes_in_container(self, dict_container, method='absolute', _paths=None):
-    if _paths is None:
-      _paths = set()
-
-    gather = Collector()
-    if method == 'absolute':
-      nodes = []
-      for _, node in dict_container.items():
-        path = (id(self), id(node))
-        if path not in _paths:
-          _paths.add(path)
-          gather[node.name] = node
-          nodes.append(node)
-      for node in nodes:
-        gather[node.name] = node
-        gather.update(node.nodes(method=method, _paths=_paths))
-      gather[self.name] = self
-
-    elif method == 'relative':
-      nodes = []
-      gather[''] = self
-      for key, node in dict_container.items():
-        path = (id(self), id(node))
-        if path not in _paths:
-          _paths.add(path)
-          gather[key] = node
-          nodes.append((key, node))
-      for key, node in nodes:
-        for key2, node2 in node.nodes(method=method, _paths=_paths).items():
-          if key2: gather[f'{key}.{key2}'] = node2
+      if self.implicit_nodes is not None:
+        assert isinstance(self.implicit_nodes, dict)
+        for key, node in self.implicit_nodes.items():
+          path = (id(self), id(node))
+          if path not in _paths:
+            _paths.add(path)
+            gather[key] = node
+            nodes.append((key, node))
+      for k1, v1 in nodes:
+        for k2, v2 in v1.nodes(method=method, _paths=_paths).items():
+          if k2: gather[f'{k1}.{k2}'] = v2
 
     else:
       raise ValueError(f'No support for the method of "{method}".')
@@ -204,16 +187,15 @@ class Base(object):
     collector : Collector
       The collection contained (the path, the integrator).
     """
-    global DE_INT
-    if DE_INT is None:
-      from brainpy.integrators.constants import DE_INT
+    global Integrator
+    if Integrator is None: from brainpy.integrators.base import Integrator
 
     nodes = self.nodes(method=method)
     gather = Collector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
-        if callable(v) and hasattr(v, '__name__') and v.__name__.startswith(DE_INT):
+        if isinstance(v, Integrator):
           gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 

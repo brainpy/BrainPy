@@ -249,24 +249,24 @@ class Container(DynamicalSystem):
 
   def __init__(self, *ds_tuple, steps=None, monitors=None, name=None, **ds_dict):
     # children dynamical systems
-    self.child_ds = dict()
+    self.implicit_nodes = Collector()
     for ds in ds_tuple:
       if not isinstance(ds, DynamicalSystem):
         raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
                                   f'DynamicalSystem, however, we got {type(ds)}.')
-      if ds.name in self.child_ds:
+      if ds.name in self.implicit_nodes:
         raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
-      self.child_ds[ds.name] = ds
+      self.implicit_nodes[ds.name] = ds
     for key, ds in ds_dict.items():
       if not isinstance(ds, DynamicalSystem):
         raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
                                   f'DynamicalSystem, however, we got {type(ds)}.')
-      if key in self.child_ds:
+      if key in self.implicit_nodes:
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
-      self.child_ds[key] = ds
+      self.implicit_nodes[key] = ds
     # step functions in children dynamical systems
     self.child_steps = dict()
-    for ds_key, ds in self.child_ds.items():
+    for ds_key, ds in self.implicit_nodes.items():
       for step_key, step in ds.steps.items():
         self.child_steps[f'{ds_key}_{step_key}'] = step
 
@@ -284,15 +284,8 @@ class Container(DynamicalSystem):
     for step in self.child_steps.values():
       step(_t, _dt)
 
-  def nodes(self, method='absolute', _paths=None):
-    if _paths is None:
-      _paths = set()
-    gather = self._nodes_in_container(self.child_ds, method=method, _paths=_paths)
-    gather.update(super(Container, self).nodes(method=method, _paths=_paths))
-    return gather
-
   def __getattr__(self, item):
-    children_ds = super(Container, self).__getattribute__('child_ds')
+    children_ds = super(Container, self).__getattribute__('implicit_nodes')
     if item in children_ds:
       return children_ds[item]
     else:
