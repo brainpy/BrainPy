@@ -9,7 +9,7 @@ import threading
 import numpy as np
 
 from brainpy import errors, math, tools
-from brainpy.integrators import analysis_by_ast, odeint, utils, DE_INT
+from brainpy.integrators import analysis_by_ast, utils, DE_INT
 
 try:
   import numba

@@ -16,8 +16,9 @@ from . import math
 # "integrators" module
 from . import integrators
 from .integrators import ode
+from .integrators.ode import odeint
 from .integrators import sde
-from .integrators.wrapper import *
+from .integrators.sde import sdeint
 
 
 # "simulation" module

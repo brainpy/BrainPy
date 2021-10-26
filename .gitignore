@@ -3,7 +3,8 @@ publishment.md
 .vscode
 
 book/
-examples/
+docs/examples
+others
 examples/recurrent_neural_network/neurogym
 develop/iconip_paper
 develop/benchmark/COBA/results

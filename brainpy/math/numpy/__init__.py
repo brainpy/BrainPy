@@ -5,7 +5,6 @@ from . import linalg
 from . import random
 
 from .compilation import *
-from .controls import *
 from .function import *
 from .ndarray import *
 from .ops import *

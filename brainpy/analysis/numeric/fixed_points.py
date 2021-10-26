@@ -30,7 +30,12 @@ class FixedPointFinder(object):
   ----------
   f_cell : callable, function
     The function to compute the recurrent units.
-  f_loss : callable, function
+  f_type : str
+    The system's type: continuous system or discrete system.
+
+    - 'df': continuous derivative function, denotes this is a continuous system, or
+    - 'F': discrete update function, denotes this is a discrete system.
+  f_loss_batch : callable, function
     The function to compute the loss.
   verbose : bool
     Whether print the optimization progress.
@@ -53,7 +58,8 @@ class FixedPointFinder(object):
   def __init__(self,
                # necessary functions
                f_cell,
-               f_loss,
+               f_type='df',
+               f_loss_batch=None,
 
                # training parameters
                verbose=True,
@@ -74,12 +80,19 @@ class FixedPointFinder(object):
     if jax is None or bm is None:
       raise errors.PackageMissingError('Package "jax" must be installed when the users '
                                        'want to utilize the fixed point finder analysis.')
+    assert f_type in ['df', 'F'], f'Only support "df" (continuous derivative function) or ' \
+                                  f'"F" (discrete update function), not {f_type}'
 
     # functions
     self.f_cell = f_cell
-    self.f_loss = f_loss
     self.f_cell_batch = jax.jit(jax.vmap(f_cell))
-    self.f_loss_batch = jax.jit(jax.vmap(f_loss))
+    if f_loss_batch is None:
+      if f_type == 'F':
+        self.f_loss_batch = jax.jit(lambda h: bm.mean((h - jax.vmap(f_cell)(h)) ** 2))
+      if f_type == 'df':
+        self.f_loss_batch = jax.jit(lambda h: bm.mean((jax.vmap(f_cell)(h)) ** 2))
+    else:
+      self.f_loss_batch = f_loss_batch
     self.f_jacob_batch = jax.jit(jax.vmap(jax.jacrev(f_cell)))
 
     # optimization parameters
@@ -202,7 +215,7 @@ class FixedPointFinder(object):
         opt.update(gradients)
         return loss
 
-      f = bm.easy_scan(train, dyn_vars=opt.implicit_variables, has_return=True)
+      f = bm.easy_loop(train, dyn_vars=opt.implicit_variables, has_return=True)
       return f(bm.arange(start_i, start_i + num_batch))
 
     # Run the optimization

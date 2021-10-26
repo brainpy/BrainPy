@@ -17,7 +17,7 @@ def test_easy_scan1():
   _v2 = bm.random.random(size=10)
   _xs = bm.random.uniform(size=(4, 10))
 
-  scan_f = bm.easy_scan(make_node(_v1, _v2),
+  scan_f = bm.easy_loop(make_node(_v1, _v2),
                         dyn_vars=(_v1, _v2),
                         out_vars=(_v1,),
                         has_return=True)
@@ -29,7 +29,7 @@ def test_easy_scan1():
   print(returns)
 
   print('-' * 20)
-  scan_f = bm.easy_scan(make_node(_v1, _v2),
+  scan_f = bm.easy_loop(make_node(_v1, _v2),
                         dyn_vars=(_v1, _v2),
                         out_vars=_v1,
                         has_return=True)
@@ -40,7 +40,7 @@ def test_easy_scan1():
   print(returns)
 
   print('-' * 20)
-  scan_f = bm.easy_scan(make_node(_v1, _v2),
+  scan_f = bm.easy_loop(make_node(_v1, _v2),
                         dyn_vars=(_v1, _v2),
                         has_return=True)
   outs, returns = scan_f(_xs)

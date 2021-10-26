@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import abc
-import brainpy.math.jax as bm
 
 from brainpy.simulation.brainobjects.neuron import NeuGroup
+from brainpy.simulation._imports import mjax
 from brainpy.simulation.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
 
 __all__ = [
@@ -53,17 +53,17 @@ class VanillaRNN(RNNCore):
     self.h_init = h_init
 
     # weights
-    self.w_ir = bm.TrainVar(w_init((num_input, num_hidden)))
-    self.w_rr = bm.TrainVar(w_init((num_hidden, num_hidden)))
-    self.b = bm.TrainVar(b_init((num_hidden,)))
+    self.w_ir = mjax.TrainVar(w_init((num_input, num_hidden)))
+    self.w_rr = mjax.TrainVar(w_init((num_hidden, num_hidden)))
+    self.b = mjax.TrainVar(b_init((num_hidden,)))
 
   def update(self, x, **kwargs):
-    self.h[:] = bm.relu(x @ self.w_ir + self.h @ self.w_rr + self.b)
+    self.h[:] = mjax.relu(x @ self.w_ir + self.h @ self.w_rr + self.b)
     return self.h
 
   def init(self, num_batch=1, **kwargs):
     self.num_batch = num_batch
-    self.h = bm.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.h = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
 
 
 class GRU(RNNCore):
@@ -103,26 +103,26 @@ class GRU(RNNCore):
     self.h_init = h_init
 
     # weights
-    self.w_iz = bm.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_ir = bm.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_ia = bm.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_hz = bm.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.w_hr = bm.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.w_ha = bm.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.bz = bm.TrainVar(b_init((num_hidden,)))
-    self.br = bm.TrainVar(b_init((num_hidden,)))
-    self.ba = bm.TrainVar(b_init((num_hidden,)))
+    self.w_iz = mjax.TrainVar(wx_init((num_input, num_hidden)))
+    self.w_ir = mjax.TrainVar(wx_init((num_input, num_hidden)))
+    self.w_ia = mjax.TrainVar(wx_init((num_input, num_hidden)))
+    self.w_hz = mjax.TrainVar(wh_init((num_hidden, num_hidden)))
+    self.w_hr = mjax.TrainVar(wh_init((num_hidden, num_hidden)))
+    self.w_ha = mjax.TrainVar(wh_init((num_hidden, num_hidden)))
+    self.bz = mjax.TrainVar(b_init((num_hidden,)))
+    self.br = mjax.TrainVar(b_init((num_hidden,)))
+    self.ba = mjax.TrainVar(b_init((num_hidden,)))
 
   def update(self, x, **kwargs):
-    z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
-    r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
-    a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
+    z = mjax.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
+    r = mjax.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
+    a = mjax.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
     self.h[:] = (1 - z) * self.h + z * a
     return self.h
 
   def init(self, num_batch=1, **kwargs):
     self.num_batch = num_batch
-    self.h = bm.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.h = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
 
 
 class LSTM(RNNCore):
@@ -174,23 +174,23 @@ class LSTM(RNNCore):
     self.h_init = h_init
 
     # weights
-    self.w = bm.TrainVar(w_init((num_input + num_hidden, num_hidden * 4)))
-    self.b = bm.TrainVar(b_init((num_hidden * 4,)))
+    self.w = mjax.TrainVar(w_init((num_input + num_hidden, num_hidden * 4)))
+    self.b = mjax.TrainVar(b_init((num_hidden * 4,)))
 
   def update(self, x, **kwargs):
-    xh = bm.concatenate([x, self.h], axis=-1)
+    xh = mjax.concatenate([x, self.h], axis=-1)
     gated = xh @ self.w + self.b
-    i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
-    c = bm.sigmoid(f + 1.) * self.c + bm.sigmoid(i) * bm.tanh(g)
-    h = bm.sigmoid(o) * bm.tanh(c)
+    i, g, f, o = mjax.split(gated, indices_or_sections=4, axis=-1)
+    c = mjax.sigmoid(f + 1.) * self.c + mjax.sigmoid(i) * mjax.tanh(g)
+    h = mjax.sigmoid(o) * mjax.tanh(c)
     self.h[:] = h
     self.c[:] = c
     return h
 
   def init(self, num_batch=1, **kwargs):
     self.num_batch = num_batch
-    self.h = bm.Variable(self.h_init((num_batch, self.num_hidden)))
-    self.c = bm.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.h = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
+    self.c = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
 
 
 class ConvLSTM(RNNCore):

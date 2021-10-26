@@ -34,11 +34,11 @@ visualization_generator.generate('apis/')
 from docs.apis import tools_generator
 tools_generator.generate('apis/')
 
-from shutil import copyfile
+import shutil
 det_changelog = 'apis/changelog.rst'
 src_changelog = '../changelog.rst'
 if os.path.exists(det_changelog): os.remove(det_changelog)
-copyfile(src_changelog, det_changelog)
+shutil.copyfile(src_changelog, det_changelog)
 
 
 # -- Project information -----------------------------------------------------
@@ -86,3 +86,5 @@ master_doc = 'index'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
+
+

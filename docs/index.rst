@@ -64,6 +64,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :caption: Analysis Tutorials
 
    tutorial_analysis/symbolic
+   tutorial_analysis/numeric
 
 
 .. toctree::
