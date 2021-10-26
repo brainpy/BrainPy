@@ -2,18 +2,6 @@
 
 from pprint import pprint
 
-from brainpy import errors
-from brainpy.integrators import constants
-
-_ODE_UNKNOWN_NO = 0
-
-
-def f_names(f):
-  func_name = constants.unique_name('ode')
-  if f.__name__.isidentifier():
-    func_name += '_' + f.__name__
-  return func_name
-
 
 def step(class_kw, vars, dt_var, A, C, code_lines, other_args):
   # steps
@@ -67,22 +55,7 @@ def update(vars, dt_var, B, code_lines):
   return return_args
 
 
-def compile_and_assign_attrs(raw_func,
-                             code_lines,
-                             code_scope,
-                             func_name,
-                             variables,
-                             parameters,
-                             dt,
-                             var_type,
-                             method,
-                             show_code=False):
-  if not isinstance(raw_func, dict):
-    raise errors.IntegratorError('"raw_func" must be a dict of functions.')
-
-  code_scope_old = {key: val for key, val in code_scope.items()}
-
-  # compile functions
+def compile_and_assign_attrs(code_lines, code_scope, func_name, show_code=False):
   code = '\n'.join(code_lines)
   if show_code:
     print(code)
@@ -91,16 +64,4 @@ def compile_and_assign_attrs(raw_func,
     print()
   exec(compile(code, '', 'exec'), code_scope)
   new_f = code_scope[func_name]
-
-  # assign values
-  new_f.brainpy_data = dict(raw_func=raw_func,
-                            code_lines=code_lines,
-                            code_scope=code_scope_old,
-                            variables=variables,
-                            parameters=parameters,
-                            method=method,
-                            dt=dt,
-                            func_name=func_name,
-                            var_type=var_type)
-
   return new_f

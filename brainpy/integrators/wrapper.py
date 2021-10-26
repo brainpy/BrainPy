@@ -1,56 +1,30 @@
 # -*- coding: utf-8 -*-
 
-from . import ode
-from . import sde
-
-__all__ = [
-  'SUPPORTED_ODE_METHODS',
-  'SUPPORTED_SDE_METHODS',
-
-  'odeint',
-  'sdeint',
-  'ddeint',
-  'fdeint',
-
-  'set_default_odeint', 'get_default_odeint',
-  'set_default_sdeint', 'get_default_sdeint',
-]
-
-_DEFAULT_ODE_METHOD = 'euler'
-_DEFAULT_SDE_METHOD = 'euler'
-SUPPORTED_ODE_METHODS = [m for m in dir(ode) if not m.startswith('__') and callable(getattr(ode, m))]
-SUPPORTED_SDE_METHODS = [m for m in dir(sde) if not m.startswith('__') and callable(getattr(sde, m))]
+# from . import ode
+# from . import sde
+#
+# __all__ = [
+#   'SUPPORTED_ODE_METHODS',
+#   'SUPPORTED_SDE_METHODS',
+#
+#   'odeint',
+#   'sdeint',
+#   'ddeint',
+#   'fdeint',
+#
+#   'set_default_odeint', 'get_default_odeint',
+#   'set_default_sdeint', 'get_default_sdeint',
+# ]
+#
+# _DEFAULT_ODE_METHOD = 'euler'
+# _DEFAULT_SDE_METHOD = 'euler'
+# SUPPORTED_ODE_METHODS = [m for m in dir(ode) if not m.startswith('__') and callable(getattr(ode, m))]
+# SUPPORTED_SDE_METHODS = [m for m in dir(sde) if not m.startswith('__') and callable(getattr(sde, m))]
 
 
 def _wrapper(f, module, method, **kwargs):
   integrator = getattr(module, method)
   return integrator(f, **kwargs)
-
-
-def odeint(f=None, method=None, **kwargs):
-  """Numerical integration for ODE_INT.
-
-  Parameters
-  ----------
-  f : callable
-  method : str
-  kwargs :
-
-  Returns
-  -------
-  int_f : callable
-      The numerical solver of `f`.
-  """
-  if method is None:
-    method = _DEFAULT_ODE_METHOD
-  if method not in SUPPORTED_ODE_METHODS:
-    raise ValueError(f'Unknown ODE_INT numerical method "{method}". Currently '
-                     f'BrainPy only support: {SUPPORTED_ODE_METHODS}')
-
-  if f is None:
-    return lambda f: _wrapper(f, method=method, module=ode, **kwargs)
-  else:
-    return _wrapper(f, method=method, module=ode, **kwargs)
 
 
 def sdeint(f=None, method=None, **kwargs):

@@ -67,40 +67,106 @@ More details please see references [2]_ [3]_ [4]_.
 
 """
 
-from brainpy import math
-from brainpy.integrators import constants
-from brainpy.integrators.ode.wrapper import general_rk_wrapper, rk2_wrapper
+from brainpy.integrators import constants, utils
+from brainpy.integrators.ode import common
+from brainpy.integrators.ode.base import ODEIntegrator
 
 __all__ = [
-  'euler',
-  'midpoint',
-  'heun2',
-  'ralston2',
-  'rk2',
-  'rk3',
-  'heun3',
-  'ralston3',
-  'ssprk3',
-  'rk4',
-  'ralston4',
-  'rk4_38rule',
+  'ExplicitRKIntegrator',
+  'Euler',
+  'MidPoint',
+  'Heun2',
+  'Ralston2',
+  'RK2',
+  'RK3',
+  'Heun3',
+  'Ralston3',
+  'SSPRK3',
+  'RK4',
+  'Ralston4',
+  'RK4Rule38',
 ]
 
 
-def _base(A, B, C, f, show_code, dt, var_type, method):
-  dt = math.get_dt() if dt is None else dt
-  show_code = False if show_code is None else show_code
-  var_type = constants.SCALAR_VAR if var_type is None else var_type
+class ExplicitRKIntegrator(ODEIntegrator):
+  r"""Explicit Runge–Kutta methods for ordinary differential equation.
 
-  if f is None:
-    return lambda func: general_rk_wrapper(f=func, show_code=show_code, dt=dt, A=A, B=B, C=C,
-                                           var_type=var_type, method=method)
-  else:
-    return general_rk_wrapper(f=f, show_code=show_code, dt=dt, A=A, B=B, C=C,
-                              var_type=var_type, method=method)
+  For the system,
+
+  .. math::
+
+      \frac{d y}{d t}=f(t, y)
 
 
-def euler(f=None, show_code=None, dt=None, var_type=None):
+  Explicit Runge-Kutta methods take the form
+
+  .. math::
+
+      k_{i}=f\left(t_{n}+c_{i}h,y_{n}+h\sum _{j=1}^{s}a_{ij}k_{j}\right) \\
+      y_{n+1}=y_{n}+h \sum_{i=1}^{s} b_{i} k_{i}
+
+  Each method listed on this page is defined by its Butcher tableau,
+  which puts the coefficients of the method in a table as follows:
+
+  .. math::
+
+      \begin{array}{c|cccc}
+          c_{1} & a_{11} & a_{12} & \ldots & a_{1 s} \\
+          c_{2} & a_{21} & a_{22} & \ldots & a_{2 s} \\
+          \vdots & \vdots & \vdots & \ddots & \vdots \\
+          c_{s} & a_{s 1} & a_{s 2} & \ldots & a_{s s} \\
+          \hline & b_{1} & b_{2} & \ldots & b_{s}
+      \end{array}
+
+  Parameters
+  ----------
+  f : callable
+      The derivative function.
+  show_code : bool
+      Whether show the formatted code.
+  dt : float
+      The numerical precision.
+  """
+  A = []  # The A matrix in the Butcher tableau.
+  B = []  # The B vector in the Butcher tableau.
+  C = []  # The C vector in the Butcher tableau.
+
+  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
+    super(ExplicitRKIntegrator, self).__init__(f=f, var_type=var_type, dt=dt,
+                                               name=name, show_code=show_code)
+
+    # integrator keywords
+    keywords = {
+      constants.F: 'the derivative function',
+      constants.DT: 'the precision of numerical integration'
+    }
+    for v in self.variables:
+      keywords[f'{v}_new'] = 'the intermediate value'
+      for i in range(1, len(self.A) + 1):
+        keywords[f'd{v}_k{i}'] = 'the intermediate value'
+      for i in range(2, len(self.A) + 1):
+        keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
+        keywords[f'k{i}_t_arg'] = 'the intermediate value'
+    utils.check_kws(self.arguments, keywords)
+    self.build()
+
+  def build(self):
+    # step stage
+    common.step(self.class_kw, self.variables, constants.DT,
+                self.A, self.C, self.code_lines, self.parameters)
+    # variable update
+    return_args = common.update(self.variables, constants.DT, self.B, self.code_lines)
+    # returns
+    self.code_lines.append(f'  return {", ".join(return_args)}')
+    # compile
+    self.integral = common.compile_and_assign_attrs(
+      code_scope={k: v for k, v in self.code_scope.items()},
+      code_lines=self.code_lines,
+      show_code=self.show_code,
+      func_name=self.func_name)
+
+
+class Euler(ExplicitRKIntegrator):
   r"""The Euler method for ODEs.
 
   Also named as `Forward Euler method`, or `Explicit Euler` method.
@@ -179,17 +245,9 @@ def euler(f=None, show_code=None, dt=None, var_type=None):
   A = [(), ]
   B = [1]
   C = [0]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='euler')
 
 
-def midpoint(f=None, show_code=None, dt=None, var_type=None):
+class MidPoint(ExplicitRKIntegrator):
   r"""Explicit midpoint method for ODEs.
 
   Also known as the `modified Euler method` [1]_.
@@ -281,17 +339,9 @@ def midpoint(f=None, show_code=None, dt=None, var_type=None):
   A = [(), (0.5,)]
   B = [0, 1]
   C = [0, 0.5]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='midpoint')
 
 
-def heun2(f=None, show_code=None, dt=None, var_type=None):
+class Heun2(ExplicitRKIntegrator):
   r"""Heun's method for ODEs.
 
   This method is named after Karl Heun [1]_. It is also known as
@@ -354,17 +404,9 @@ def heun2(f=None, show_code=None, dt=None, var_type=None):
   A = [(), (1,)]
   B = [0.5, 0.5]
   C = [0, 1]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='heun2')
 
 
-def ralston2(f=None, show_code=None, dt=None, var_type=None):
+class Ralston2(ExplicitRKIntegrator):
   r"""Ralston's method for ODEs.
 
   Ralston's method is a second-order method with two stages and
@@ -393,17 +435,9 @@ def ralston2(f=None, show_code=None, dt=None, var_type=None):
   A = [(), ('2/3',)]
   B = [0.25, 0.75]
   C = [0, '2/3']
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='ralston2')
 
 
-def rk2(f=None, show_code=None, dt=None, beta=None, var_type=None):
+class RK2(ExplicitRKIntegrator):
   r"""Generic second order Runge-Kutta method for ODEs.
 
   **Derivation**
@@ -518,18 +552,15 @@ def rk2(f=None, show_code=None, dt=None, beta=None, var_type=None):
          for engineers. Vol. 1221. New York: Mcgraw-hill, 2011.
 
   """
-  beta = 2 / 3 if beta is None else beta
-  dt = math.get_dt() if dt is None else dt
-  show_code = False if show_code is None else show_code
-  var_type = constants.POP_VAR if var_type is None else var_type
 
-  if f is None:
-    return lambda func: rk2_wrapper(func, show_code=show_code, dt=dt, beta=beta, var_type=var_type)
-  else:
-    return rk2_wrapper(f, show_code=show_code, dt=dt, beta=beta, var_type=var_type)
+  def __init__(self, f, beta=2 / 3, var_type=None, dt=None, name=None, show_code=False):
+    self.A = [(), (beta,)]
+    self.B = [1 - 1 / (2 * beta), 1 / (2 * beta)]
+    self.C = [0, beta]
+    super(RK2, self).__init__(f=f, var_type=var_type, dt=dt, name=name, show_code=show_code)
 
 
-def rk3(f=None, show_code=None, dt=None, var_type=None):
+class RK3(ExplicitRKIntegrator):
   r"""Classical third-order Runge-Kutta method for ODEs.
 
   For the given initial value problem :math:`y'(x) = f(t,y);\, y(t_0) = y_0`,
@@ -565,17 +596,9 @@ def rk3(f=None, show_code=None, dt=None, var_type=None):
   A = [(), (0.5,), (-1, 2)]
   B = ['1/6', '2/3', '1/6']
   C = [0, 0.5, 1]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='rk3')
 
 
-def heun3(f=None, show_code=None, dt=None, var_type=None):
+class Heun3(ExplicitRKIntegrator):
   r"""Heun's third-order method for ODEs.
 
   It has the characteristics of:
@@ -597,17 +620,9 @@ def heun3(f=None, show_code=None, dt=None, var_type=None):
   A = [(), ('1/3',), (0, '2/3')]
   B = [0.25, 0, 0.75]
   C = [0, '1/3', '2/3']
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='heun3')
 
 
-def ralston3(f=None, show_code=None, dt=None, var_type=None):
+class Ralston3(ExplicitRKIntegrator):
   r"""Ralston's third-order method for ODEs.
 
   It has the characteristics of:
@@ -634,17 +649,9 @@ def ralston3(f=None, show_code=None, dt=None, var_type=None):
   A = [(), (0.5,), (0, 0.75)]
   B = ['2/9', '1/3', '4/9']
   C = [0, 0.5, 0.75]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='ralston3')
 
 
-def ssprk3(f=None, show_code=None, dt=None, var_type=None):
+class SSPRK3(ExplicitRKIntegrator):
   r"""Third-order Strong Stability Preserving Runge-Kutta (SSPRK3).
 
   It has the characteristics of:
@@ -665,17 +672,9 @@ def ssprk3(f=None, show_code=None, dt=None, var_type=None):
   A = [(), (1,), (0.25, 0.25)]
   B = ['1/6', '1/6', '2/3']
   C = [0, 1, 0.5]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='ssprk3')
 
 
-def rk4(f=None, show_code=None, dt=None, var_type=None):
+class RK4(ExplicitRKIntegrator):
   r"""Classical fourth-order Runge-Kutta method for ODEs.
 
   For the given initial value problem of
@@ -740,17 +739,9 @@ def rk4(f=None, show_code=None, dt=None, var_type=None):
   A = [(), (0.5,), (0., 0.5), (0., 0., 1)]
   B = ['1/6', '1/3', '1/3', '1/6']
   C = [0, 0.5, 0.5, 1]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='rk4')
 
 
-def ralston4(f=None, show_code=None, dt=None, var_type=None):
+class Ralston4(ExplicitRKIntegrator):
   r"""Ralston's fourth-order method for ODEs.
 
   It has the characteristics of:
@@ -779,17 +770,9 @@ def ralston4(f=None, show_code=None, dt=None, var_type=None):
   A = [(), (.4,), (.29697761, .15875964), (.21810040, -3.05096516, 3.83286476)]
   B = [.17476028, -.55148066, 1.20553560, .17118478]
   C = [0, .4, .45573725, 1]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='rk4')
 
 
-def rk4_38rule(f=None, show_code=None, dt=None, var_type=None):
+class RK4Rule38(ExplicitRKIntegrator):
   r"""3/8-rule fourth-order method for ODEs.
 
   A slight variation of "the" Runge–Kutta method is also due
@@ -828,11 +811,3 @@ def rk4_38rule(f=None, show_code=None, dt=None, var_type=None):
   A = [(), ('1/3',), ('-1/3', '1'), (1, -1, 1)]
   B = ['1/8', '3/8', '3/8', '1/8']
   C = [0, '1/3', '2/3', 1]
-  return _base(A=A,
-               B=B,
-               C=C,
-               f=f,
-               show_code=show_code,
-               dt=dt,
-               var_type=var_type,
-               method='rk4_38rule')

@@ -16,7 +16,7 @@ def check_kws(parameters, keywords):
     if key in parameters:
       raise errors.CodeError(f'"{key}" is a keyword for '
                              f'numerical solvers in BrainPy, denoting '
-                             f'{meaning}. Please change another name.')
+                             f'"{meaning}". Please change another name.')
 
 
 def get_args(f):

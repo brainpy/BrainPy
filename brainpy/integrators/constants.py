@@ -3,6 +3,9 @@
 from brainpy.tools import namechecking
 
 __all__ = [
+  'DT',
+  'F',
+
   'SUPPORTED_VAR_TYPE',
   'SCALAR_VAR',
   'POP_VAR',
@@ -25,6 +28,14 @@ __all__ = [
 
   'unique_name',
 ]
+
+
+DT = 'dt'
+F = 'f'
+
+
+
+
 
 # Ito SDE_INT
 # ---

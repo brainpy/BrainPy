@@ -53,74 +53,194 @@ More details please check [1]_ [2]_ [3]_.
        Computers in Physics, 6(2), 188-191.
 """
 
-from brainpy import math
-from brainpy.integrators import constants
-from brainpy.integrators.ode.wrapper import adaptive_rk_wrapper
+from brainpy import errors
+from brainpy.integrators import constants, utils
+from brainpy.integrators.ode import common
+from brainpy.integrators.ode.base import ODEIntegrator
 
 __all__ = [
-  'rkf45',
-  'rkf12',
-  'rkdp',
-  'ck',
-  'bs',
-  'heun_euler'
+  'AdaptiveRKIntegrator',
+  'RKF12',
+  'RKF45',
+  'DormandPrince',
+  'CashKarp',
+  'BogackiShampine',
+  'HeunEuler',
 ]
 
 
-def _base(A, B1, B2, C, method, f=None, tol=None, adaptive=None,
-          dt=None, show_code=None, var_type=None):
-  """
+class AdaptiveRKIntegrator(ODEIntegrator):
+  r"""Adaptive Runge-Kutta method for ordinary differential equations.
+
+  The embedded methods are designed to produce an estimate of the local
+  truncation error of a single Runge-Kutta step, and as result, allow to
+  control the error with adaptive step-size. This is done by having two
+  methods in the tableau, one with order p and one with order :backend:`p-1`.
+
+  The lower-order step is given by
+
+  .. backend::
+
+      y^*_{n+1} = y_n + h\sum_{i=1}^s b^*_i k_i,
+
+  where the :backend:`k_{i}` are the same as for the higher order method. Then the error is
+
+  .. backend::
+
+      e_{n+1} = y_{n+1} - y^*_{n+1} = h\sum_{i=1}^s (b_i - b^*_i) k_i,
+
+
+  which is :backend:`O(h^{p})`. The Butcher Tableau for this kind of method is extended to
+  give the values of :backend:`b_{i}^{*}`
+
+  .. math::
+
+      \begin{array}{c|cccc}
+          c_1    & a_{11} & a_{12}& \dots & a_{1s}\\
+          c_2    & a_{21} & a_{22}& \dots & a_{2s}\\
+          \vdots & \vdots & \vdots& \ddots& \vdots\\
+          c_s    & a_{s1} & a_{s2}& \dots & a_{ss} \\
+      \hline & b_1    & b_2   & \dots & b_s\\
+             & b_1^*    & b_2^*   & \dots & b_s^*\\
+      \end{array}
 
   Parameters
   ----------
-  A : list
-  B1 : list
-  B2 : list
-  C : list
   f : callable
-  tol : float
-  adaptive : bool
-  dt : float
+    The derivative function.
   show_code : bool
+    Whether show the formatted code.
+  dt : float
+    The numerical precision.
+  adaptive : bool
+    Whether use the adaptive updating.
+  tol : float
+    The error tolerence.
   var_type : str
+    The variable type.
+  """
 
-  Returns
-  -------
+  A = []  # The A matrix in the Butcher tableau.
+  B1 = []  # The B1 vector in the Butcher tableau.
+  B2 = []  # The B2 vector in the Butcher tableau.
+  C = []  # The C vector in the Butcher tableau.
+
+  def __init__(self, f, var_type=None, dt=None, name=None,
+               adaptive=None, tol=None, show_code=False):
+    super(AdaptiveRKIntegrator, self).__init__(f=f, var_type=var_type, dt=dt,
+                                               name=name, show_code=show_code)
+
+    # check parameters
+    self.adaptive = False if (adaptive is None) else adaptive
+    self.tol = 0.1 if tol is None else tol
+    self.var_type = constants.POP_VAR if var_type is None else var_type
+    if self.var_type not in constants.SUPPORTED_VAR_TYPE:
+      raise errors.IntegratorError(f'"var_type" only supports {constants.SUPPORTED_VAR_TYPE}, '
+                                   f'not {self.var_type}.')
+
+    # integrator keywords
+    keywords = {constants.F: 'the derivative function',
+                constants.DT: 'the precision of numerical integration'}
+    for v in self.variables:
+      keywords[f'{v}_new'] = 'the intermediate value'
+      for i in range(1, len(self.A) + 1):
+        keywords[f'd{v}_k{i}'] = 'the intermediate value'
+      for i in range(2, len(self.A) + 1):
+        keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
+        keywords[f'k{i}_t_arg'] = 'the intermediate value'
+    if adaptive:
+      keywords['dt_new'] = 'the new numerical precision "dt"'
+      keywords['tol'] = 'the tolerance for the local truncation error'
+      keywords['error'] = 'the local truncation error'
+      for v in self.variables:
+        keywords[f'{v}_te'] = 'the local truncation error'
+      self.code_scope['tol'] = tol
+    utils.check_kws(self.arguments, keywords)
+
+    # build the integrator
+    self.build()
+
+  def build(self):
+    # step stage
+    common.step(self.class_kw, self.variables, constants.DT,
+                self.A, self.C, self.code_lines, self.parameters)
+    # variable update
+    return_args = common.update(self.variables, constants.DT, self.B1, self.code_lines)
+    # error adaptive item
+    if self.adaptive:
+      errors_ = []
+      for v in self.variables:
+        result = []
+        for i, (b1, b2) in enumerate(zip(self.B1, self.B2)):
+          if isinstance(b1, str):
+            b1 = eval(b1)
+          if isinstance(b2, str):
+            b2 = eval(b2)
+          diff = b1 - b2
+          if diff != 0.:
+            result.append(f'd{v}_k{i + 1} * {constants.DT} * {diff}')
+        if len(result) > 0:
+          if self.var_type == constants.SCALAR_VAR:
+            self.code_lines.append(f'  {v}_te = abs({" + ".join(result)})')
+          else:
+            self.code_lines.append(f'  {v}_te = sum(abs({" + ".join(result)}))')
+          errors_.append(f'{v}_te')
+      if len(errors_) > 0:
+        self.code_lines.append(f'  error = {" + ".join(errors_)}')
+        self.code_lines.append(f'  if error > tol:')
+        self.code_lines.append(f'    {constants.DT}_new = 0.9*{constants.DT}*(tol/error)**0.2')
+        self.code_lines.append(f'  else:')
+        self.code_lines.append(f'    {constants.DT}_new = {constants.DT}')
+        return_args.append(f'{constants.DT}_new')
+    # returns
+    self.code_lines.append(f'  return {", ".join(return_args)}')
+    # compile
+    self.integral = common.compile_and_assign_attrs(
+      code_scope={k: v for k, v in self.code_scope.items()},
+      code_lines=self.code_lines,
+      show_code=self.show_code,
+      func_name=self.func_name)
+
+
+class RKF12(AdaptiveRKIntegrator):
+  r"""The Fehlberg RK1(2) method for ODEs.
+
+  The Fehlberg method has two methods of orders 1 and 2.
+
+  It has the characteristics of:
+
+      - method stage = 2
+      - method order = 1
+      - Butcher Tables:
+
+  .. math::
+
+      \begin{array}{l|ll}
+          0 & & \\
+          1 / 2 & 1 / 2 & \\
+          1 & 1 / 256 & 255 / 256 & \\
+          \hline & 1 / 512 & 255 / 256 & 1 / 512 \\
+          & 1 / 256 & 255 / 256 & 0
+      \end{array}
+
+  References
+  ----------
+
+  .. [1] Fehlberg, E. (1969-07-01). "Low-order classical Runge-Kutta
+          formulas with stepsize control and their application to some heat
+          transfer problems"
 
   """
-  adaptive = False if (adaptive is None) else adaptive
-  dt = math.get_dt() if (dt is None) else dt
-  tol = 0.1 if tol is None else tol
-  show_code = False if tol is None else show_code
-  var_type = constants.SCALAR_VAR if var_type is None else var_type
 
-  if f is None:
-    return lambda f: adaptive_rk_wrapper(f,
-                                         dt=dt,
-                                         A=A,
-                                         B1=B1,
-                                         B2=B2,
-                                         C=C,
-                                         tol=tol,
-                                         adaptive=adaptive,
-                                         show_code=show_code,
-                                         var_type=var_type,
-                                         method=method)
-  else:
-    return adaptive_rk_wrapper(f,
-                               dt=dt,
-                               A=A,
-                               B1=B1,
-                               B2=B2,
-                               C=C,
-                               tol=tol,
-                               adaptive=adaptive,
-                               show_code=show_code,
-                               var_type=var_type,
-                               method=method)
+  A = [(),
+       (0.5,),
+       ('1/256', '255/256')]
+  B1 = ['1/512', '255/256', '1/512']
+  B2 = ['1/256', '255/256', 0]
+  C = [0, 0.5, 1]
 
 
-def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
+class RKF45(AdaptiveRKIntegrator):
   r"""The Runge–Kutta–Fehlberg method for ODEs.
 
   The method presented in Fehlberg's 1969 paper has been dubbed the
@@ -169,70 +289,8 @@ def rkf45(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=Non
   B2 = ['25/216', 0, '1408/2565', '2197/4104', -0.2, 0]
   C = [0, 0.25, 0.375, '12/13', 1, '1/3']
 
-  return _base(A=A,
-               B1=B1,
-               B2=B2,
-               C=C,
-               f=f,
-               dt=dt,
-               tol=tol,
-               adaptive=adaptive,
-               show_code=show_code,
-               var_type=var_type,
-               method='rkf45')
 
-
-def rkf12(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
-  r"""The Fehlberg RK1(2) method for ODEs.
-
-  The Fehlberg method has two methods of orders 1 and 2.
-
-  It has the characteristics of:
-
-      - method stage = 2
-      - method order = 1
-      - Butcher Tables:
-
-  .. math::
-
-      \begin{array}{l|ll}
-          0 & & \\
-          1 / 2 & 1 / 2 & \\
-          1 & 1 / 256 & 255 / 256 & \\
-          \hline & 1 / 512 & 255 / 256 & 1 / 512 \\
-          & 1 / 256 & 255 / 256 & 0
-      \end{array}
-
-  References
-  ----------
-
-  .. [1] Fehlberg, E. (1969-07-01). "Low-order classical Runge-Kutta
-          formulas with stepsize control and their application to some heat
-          transfer problems"
-
-  """
-
-  A = [(),
-       (0.5,),
-       ('1/256', '255/256')]
-  B1 = ['1/512', '255/256', '1/512']
-  B2 = ['1/256', '255/256', 0]
-  C = [0, 0.5, 1]
-
-  return _base(A=A,
-               B1=B1,
-               B2=B2,
-               C=C,
-               f=f,
-               dt=dt,
-               tol=tol,
-               adaptive=adaptive,
-               show_code=show_code,
-               var_type=var_type,
-               method='rkf12')
-
-
-def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
+class DormandPrince(AdaptiveRKIntegrator):
   r"""The Dormand–Prince method for ODEs.
 
   The DOPRI method, is an explicit method for solving ordinary differential equations
@@ -286,20 +344,8 @@ def rkdp(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None
   B2 = ['5179/57600', 0, '7571/16695', '393/640', '-92097/339200', '187/2100', 0.025]
   C = [0, 0.2, 0.3, 0.8, '8/9', 1, 1]
 
-  return _base(A=A,
-               B1=B1,
-               B2=B2,
-               C=C,
-               f=f,
-               dt=dt,
-               tol=tol,
-               adaptive=adaptive,
-               show_code=show_code,
-               var_type=var_type,
-               method='rkdp')
 
-
-def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
+class CashKarp(AdaptiveRKIntegrator):
   r"""The Cash–Karp method  for ODEs.
 
   The Cash–Karp method was proposed by Professor Jeff R. Cash from Imperial College London
@@ -346,20 +392,8 @@ def ck(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
   B2 = ['2825/27648', 0, '18575/48384', '13525/55296', '277/14336', 0.25]
   C = [0, 0.2, 0.3, 0.6, 1, 0.875]
 
-  return _base(A=A,
-               B1=B1,
-               B2=B2,
-               C=C,
-               f=f,
-               dt=dt,
-               tol=tol,
-               adaptive=adaptive,
-               show_code=show_code,
-               var_type=var_type,
-               method='ck')
 
-
-def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
+class BogackiShampine(AdaptiveRKIntegrator):
   r"""The Bogacki–Shampine method for ODEs.
 
   The Bogacki–Shampine method was proposed by Przemysław Bogacki and Lawrence F.
@@ -401,20 +435,8 @@ def bs(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
   B2 = ['7/24', 0.25, '1/3', 0.125]
   C = [0, 0.5, 0.75, 1]
 
-  return _base(A=A,
-               B1=B1,
-               B2=B2,
-               C=C,
-               f=f,
-               dt=dt,
-               tol=tol,
-               adaptive=adaptive,
-               show_code=show_code,
-               var_type=var_type,
-               method='bs')
 
-
-def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_type=None):
+class HeunEuler(AdaptiveRKIntegrator):
   r"""The Heun–Euler method for ODEs.
 
   The simplest adaptive Runge–Kutta method involves combining Heun's method,
@@ -443,20 +465,9 @@ def heun_euler(f=None, tol=None, adaptive=None, dt=None, show_code=None, var_typ
   B2 = [1, 0]
   C = [0, 1]
 
-  return _base(A=A,
-               B1=B1,
-               B2=B2,
-               C=C,
-               f=f,
-               dt=dt,
-               tol=tol,
-               adaptive=adaptive,
-               show_code=show_code,
-               var_type=var_type,
-               method='heun_euler')
 
-
-def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is_scalar=None):
+class DOP853(AdaptiveRKIntegrator):
+  # def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is_scalar=None):
   r"""The DOP853 method for ODEs.
 
   DOP853 is an explicit Runge-Kutta method of order 8(5,3) due to Dormand & Prince

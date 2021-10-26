@@ -5,6 +5,6 @@ from brainpy.base.base import Base
 
 
 class Integrator(Base):
+  """Basic Integrator Class."""
   pass
-
 
