@@ -45,8 +45,8 @@ class SpikeTimeInput(NeuGroup):
       The name of the dynamic system.
   """
 
-  def __init__(self, size, times, indices, num_batch=None, need_sort=True, **kwargs):
-    super(SpikeTimeInput, self).__init__(size=size, num_batch=num_batch, **kwargs)
+  def __init__(self, size, times, indices, need_sort=True, **kwargs):
+    super(SpikeTimeInput, self).__init__(size=size, **kwargs)
 
     if len(indices) != len(times):
       raise errors.BrainPyError(f'The length of "indices" and "times" must be the same. '
@@ -60,7 +60,7 @@ class SpikeTimeInput(NeuGroup):
     if need_sort:
       sort_idx = np.argsort(times)
       self.indices = self.indices[sort_idx]
-    self.spike = math.zeros(self.shape, dtype=bool)
+    self.spike = math.zeros(self.num, dtype=bool)
 
   def update(self, _t, _i, **kwargs):
     self.spike[:] = False
@@ -82,8 +82,8 @@ class PoissonInput(NeuGroup):
       The name of the dynamic system.
   """
 
-  def __init__(self, size, freqs, num_batch=None, seed=None, **kwargs):
-    super(PoissonInput, self).__init__(size=size, num_batch=num_batch, **kwargs)
+  def __init__(self, size, freqs, seed=None, **kwargs):
+    super(PoissonInput, self).__init__(size=size, **kwargs)
 
     self.freqs = freqs
     self.dt = math.get_dt() / 1000.

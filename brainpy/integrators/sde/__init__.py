@@ -73,7 +73,7 @@ def set_default_sdeint(method):
 
 
 def get_default_sdeint():
-  """Get the default ODE_INT numerical integrator method.
+  """Get the default SDE numerical integrator method.
 
   Returns
   -------

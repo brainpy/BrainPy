@@ -69,7 +69,7 @@ def odeint(f=None, method='euler', **kwargs):
 
 
 def set_default_odeint(method):
-  """Set the default ODE_INT numerical integrator method for differential equations.
+  """Set the default ODE numerical integrator method for differential equations.
 
   Parameters
   ----------
@@ -86,7 +86,7 @@ def set_default_odeint(method):
 
 
 def get_default_odeint():
-  """Get the default ODE_INT numerical integrator method.
+  """Get the default ODE numerical integrator method.
 
   Returns
   -------

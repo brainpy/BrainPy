@@ -5,8 +5,8 @@ __version__ = "1.1.0"
 
 # "base" module
 from . import base
-from .base.base import *
-from .base.collector import *
+from .base.base import Base
+from .base.collector import Collector, ArrayCollector
 
 
 # "math" module

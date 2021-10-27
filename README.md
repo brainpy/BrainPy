@@ -20,8 +20,8 @@
 
 - **Easy to learn and use**: BrainPy is only based on Python language and has little dependency requirements. 
 - **Flexible and transparent**: BrainPy endows the users with the fully data/logic flow control. Users can code any logic they want with BrainPy. 
-- **Extensible**: BrainPy allow users to extend new functionality just based on Python coding. For example, we extend the numerical integration with the ability to do numerical analysis. In such a way, the same code in BrainPy can not only be used for simulation, but also for dynamics analysis. 
-- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)) to run on CPU or GPU devices, thus guaranteeing its running efficiency. 
+- **Extensible**: BrainPy allow users to extend new functionality just based on Python coding. For example, we extend the same code with the ability to do numerical analysis (whatever low- or high-dimensional system). 
+- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)) to run on CPU, GPU or TPU devices, thus guaranteeing its running efficiency. 
 
 
 
@@ -80,15 +80,15 @@ If you have installed the previous version of BrainPy,  please uninstall the old
 ## Step 2: useful links
 
 - **Documentation:** https://brainpy.readthedocs.io/
-- **Source code:** https://github.com/PKU-NIP-Lab/BrainPy    or    https://git.openi.org.cn/OpenI/BrainPy
-- **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues    or    Email to adaduo@outlook.com
-- **Examples from papers**: https://brainmodels.readthedocs.io/en/latest/
+- **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues
+- **Examples from papers**: https://brainpy-examples.readthedocs.io/en/latest/
+- **Canonical brain models**: https://brainmodels.readthedocs.io/en/latest/
 
 
 
 ## Step 3: inspirational examples
 
-Here list several examples of BrainPy. More detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io).
+Here list several examples of BrainPy. More detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io) or [**BrainPy-Examples**](https://brainpy-examples.readthedocs.io/en/latest/). 
 
 
 
@@ -126,23 +126,23 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 ### Network models
 
-- **[CANN]** [*(Si Wu, 2008)* Continuous-attractor Neural Network](https://brainmodels.readthedocs.io/en/latest/examples/CANN/Wu_2008_CANN.html)
-- [*(Vreeswijk & Sompolinsky, 1996)* E/I balanced network](https://brainmodels.readthedocs.io/en/latest/examples/EI_nets/Vreeswijk_1996_EI_net.html)
-- [*(Sherman & Rinzel, 1992)* Gap junction leads to anti-synchronization](https://brainmodels.readthedocs.io/en/latest/examples/gj_nets/Sherman_1992_gj_antisynchrony.html)
-- [*(Wang & Buzsáki, 1996)* Gamma Oscillation](https://brainmodels.readthedocs.io/en/latest/examples/oscillation_synchronization/Wang_1996_gamma_oscillation.html)
-- [*(Brunel & Hakim, 1999)* Fast Global Oscillation](https://brainmodels.readthedocs.io/en/latest/examples/oscillation_synchronization/Brunel_Hakim_1999_fast_oscillation.html)
-- [*(Diesmann, et, al., 1999)* Synfire Chains](https://brainmodels.readthedocs.io/en/latest/examples/oscillation_synchronization/Diesmann_1999_synfire_chains.html)
-- **[Working Memory]** [*(Mi, et. al., 2017)* STP for Working Memory Capacity](https://brainmodels.readthedocs.io/en/latest/examples/working_memory/Mi_2017_working_memory_capacity.html)
-- **[Working Memory]** [*(Bouchacourt & Buschman, 2019)* Flexible Working Memory Model](https://brainmodels.readthedocs.io/en/latest/examples/working_memory/Bouchacourt_2019_Flexible_working_memory.html)
-- **[Decision Making]** [*(Wang, 2002)* Decision making spiking model](https://brainmodels.readthedocs.io/en/latest/examples/decision_making/Wang_2002_decision_making_spiking.html)
-- **[Recurrent Network]** [*(Laje & Buonomano, 2013)* Robust Timing in RNN](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/Laje_Buonomano_2013_robust_timing_rnn.html)
-- **[Recurrent Network]** [*(Sussillo & Abbott, 2009)* FORCE Learning](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/Sussillo_Abbott_2009_FORCE_Learning.html)
+- **[CANN]** [*(Si Wu, 2008)* Continuous-attractor Neural Network](https://brainpy-examples.readthedocs.io/en/latest/cann/Wu_2008_CANN.html)
+- [*(Vreeswijk & Sompolinsky, 1996)* E/I balanced network](https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Vreeswijk_1996_EI_net.html)
+- [*(Sherman & Rinzel, 1992)* Gap junction leads to anti-synchronization](https://brainpy-examples.readthedocs.io/en/latest/gj_nets/Sherman_1992_gj_antisynchrony.html)
+- [*(Wang & Buzsáki, 1996)* Gamma Oscillation](https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Wang_1996_gamma_oscillation.html)
+- [*(Brunel & Hakim, 1999)* Fast Global Oscillation](https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Brunel_Hakim_1999_fast_oscillation.html)
+- [*(Diesmann, et, al., 1999)* Synfire Chains](https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Diesmann_1999_synfire_chains.html)
+- **[Working Memory]** [*(Mi, et. al., 2017)* STP for Working Memory Capacity](https://brainpy-examples.readthedocs.io/en/latest/working_memory/Mi_2017_working_memory_capacity.html)
+- **[Working Memory]** [*(Bouchacourt & Buschman, 2019)* Flexible Working Memory Model](https://brainpy-examples.readthedocs.io/en/latest/working_memory/Bouchacourt_2019_Flexible_working_memory.html)
+- **[Decision Making]** [*(Wang, 2002)* Decision making spiking model](https://brainpy-examples.readthedocs.io/en/latest/decision_making/Wang_2002_decision_making_spiking.html)
+- **[Recurrent Network]** [*(Laje & Buonomano, 2013)* Robust Timing in RNN](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Laje_Buonomano_2013_robust_timing_rnn.html)
+- **[Recurrent Network]** [*(Sussillo & Abbott, 2009)* FORCE Learning](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Sussillo_Abbott_2009_FORCE_Learning.html)
 
 
 
 ### Learning through back-propagation
 
-- [Integrator RNN Model](https://brainmodels.readthedocs.io/en/latest/examples/recurrent_networks/integrator_rnn.html)
+- [Integrator RNN Model](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/integrator_rnn.html)
 
  
 
@@ -152,7 +152,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 - [Phase plane analysis of the I<sub>Na,p</sub>-I<sub>K</sub> model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html)
 - [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
 - [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
-- **[Decision Making Model]** [*(Wong & Wang, 2006)* Decision making rate model](https://brainmodels.readthedocs.io/en/latest/examples/decision_making/Wang_2006_decision_making_rate.html)
+- **[Decision Making Model]** [*(Wong & Wang, 2006)* Decision making rate model](https://brainpy-examples.readthedocs.io/en/latest/decision_making/Wang_2006_decision_making_rate.html)
 
 
 

@@ -15,7 +15,7 @@ __all__ = [
   # network.py
   'Network',
   # neuron.py
-  'NeuGroup', 'Channel', 'CondNeuGroup', 'Soma', 'Dendrite',
+  'NeuGroup', 'Channel', 'Soma', 'Dendrite',
   # synapse.py
   'TwoEndConn',
 ]

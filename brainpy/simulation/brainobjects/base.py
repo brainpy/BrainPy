@@ -78,9 +78,6 @@ class DynamicalSystem(Base):
     self._input_step = None
     self._monitor_step = None
 
-    # batch size
-    self.num_batch = None
-
   def register_constant_delay(self, key, size, delay, dtype=None):
     """Register a constant delay.
 

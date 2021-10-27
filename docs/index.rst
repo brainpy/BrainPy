@@ -21,6 +21,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 .. note::
 
     Comprehensive examples of BrainPy please see:
+
     - BrainModels: https://github.com/PKU-NIP-Lab/BrainModels
     - BrainPyExamples: https://github.com/PKU-NIP-Lab/BrainPyExamples
 
@@ -76,7 +77,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: API documentation
 
    apis/base.rst

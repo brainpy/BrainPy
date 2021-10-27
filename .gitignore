@@ -23,7 +23,6 @@ docs/images/connection_methods.pptx
 
 docs/apis/base.rst
 docs/apis/simulation/
-docs/apis/integrators/general.rst
 docs/apis/integrators/ode_adaptive_rk.rst
 docs/apis/integrators/ode_explicit_rk.rst
 docs/apis/integrators/ode_exponential.rst
