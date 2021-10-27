@@ -377,7 +377,7 @@ def _srk1_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter
   code_lines.append(f'  return {", ".join(new_vars)}')
 
   # return and compile
-  utils.compile(code_lines, code_scope, show_code, variables)
+  utils.compile_code(code_lines, code_scope, show_code, variables)
   return code_scope[func_name]
 
 

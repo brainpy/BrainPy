@@ -305,50 +305,52 @@ def check_and_format_monitors(host):
   # ----
   all_nodes = list(host.nodes().unique().values())
   for node in all_nodes:
-    node.mon.build()  # build the monitor
-    for key in node.mon.item_contents.keys():
-      node.mon.item_contents[key] = []  # reshape the monitor items
+    if hasattr(node, 'mon'):
+      node.mon.build()  # build the monitor
+      for key in node.mon.item_contents.keys():
+        node.mon.item_contents[key] = []  # reshape the monitor items
 
   # master node
   name2node = {node.name: node for node in all_nodes}
   for node in all_nodes:
-    mon = node.mon
-    for key, idx, interval in zip(mon.item_names, mon.item_indices, mon.item_intervals):
-      # target and variable
-      splits = key.split('.')
-      if len(splits) == 1:
-        if not hasattr(node, splits[0]):
-          raise errors.BrainPyError(f'{node} does not has variable {key}.')
-        target = node
-        variable = splits[-1]
-      else:
-        if not hasattr(node, splits[0]):
-          if splits[0] not in name2node:
-            raise errors.BrainPyError(f'Cannot find target {key} in monitor of {node}, please check.')
-          else:
-            target = name2node[splits[0]]
-            assert len(splits) == 2
-            variable = splits[-1]
-        else:
+    if hasattr(node, 'mon'):
+      mon = node.mon
+      for key, idx, interval in zip(mon.item_names, mon.item_indices, mon.item_intervals):
+        # target and variable
+        splits = key.split('.')
+        if len(splits) == 1:
+          if not hasattr(node, splits[0]):
+            raise errors.BrainPyError(f'{node} does not has variable {key}.')
           target = node
-          for s in splits[:-1]:
-            try:
-              target = getattr(target, s)
-            except KeyError:
-              raise errors.BrainPyError(f'Cannot find {key} in {node}, please check.')
           variable = splits[-1]
+        else:
+          if not hasattr(node, splits[0]):
+            if splits[0] not in name2node:
+              raise errors.BrainPyError(f'Cannot find target {key} in monitor of {node}, please check.')
+            else:
+              target = name2node[splits[0]]
+              assert len(splits) == 2
+              variable = splits[-1]
+          else:
+            target = node
+            for s in splits[:-1]:
+              try:
+                target = getattr(target, s)
+              except KeyError:
+                raise errors.BrainPyError(f'Cannot find {key} in {node}, please check.')
+            variable = splits[-1]
 
-      # idx
-      if isinstance(idx, int):
-        idx = math.array([idx])
+        # idx
+        if isinstance(idx, int):
+          idx = math.array([idx])
 
-      # interval
-      if interval is not None:
-        if not isinstance(interval, float):
-          raise errors.BrainPyError(f'"interval" must be a float (denotes time), but we got {interval}')
+        # interval
+        if interval is not None:
+          if not isinstance(interval, float):
+            raise errors.BrainPyError(f'"interval" must be a float (denotes time), but we got {interval}')
 
-      # append
-      formatted_mon_items.append((node, key, target, variable, idx, interval,))
+        # append
+        formatted_mon_items.append((node, key, target, variable, idx, interval,))
 
   return formatted_mon_items
 

@@ -25,6 +25,11 @@ class ODEIntegrator(Integrator):
   def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
     super(ODEIntegrator, self).__init__(name=name)
 
+    # others
+    self.dt = math.get_dt() if dt is None else dt
+    assert isinstance(self.dt, (int, float)), f'"dt" must be a float, but got {self.dt}'
+    self.show_code = show_code
+
     # derivative function
     self.f = f
 
@@ -36,7 +41,7 @@ class ODEIntegrator(Integrator):
     self.class_kw = class_kw  # class keywords
     self.variables = variables  # variable names, (before 't')
     self.parameters = parameters  # parameter names, (after 't')
-    self.arguments = list(arguments) + [f'{constants.DT}={dt}']  # function arguments
+    self.arguments = list(arguments) + [f'{constants.DT}={self.dt}']  # function arguments
     self.var_type = var_type  # variable type
 
     # code scope
@@ -44,12 +49,7 @@ class ODEIntegrator(Integrator):
 
     # code lines
     self.func_name = f_names(f)
-    self.code_lines = [f'def {self.func_name}({", ".join(arguments)}):']
-
-    # others
-    self.dt = math.get_dt() if dt is None else dt
-    assert isinstance(self.dt, (int, float)), f'"dt" must be a float, but got {self.dt}'
-    self.show_code = show_code
+    self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
 
   @abc.abstractmethod
   def build(self):

@@ -32,13 +32,6 @@ class SDEIntegrator(Integrator):
     # integration function
     self.integral = None
 
-    # parse function arguments
-    class_kw, variables, parameters, arguments = utils.get_args(f)
-    self.class_kw = class_kw  # class keywords
-    self.variables = variables  # variable names, (before 't')
-    self.parameters = parameters  # parameter names, (after 't')
-    self.arguments = list(arguments) + [f'{constants.DT}={dt}']  # function arguments
-
     # essential parameters
     self.dt = math.get_dt() if dt is None else dt
     assert isinstance(self.dt, (int, float)), f'"dt" must be a float, but got {self.dt}'
@@ -59,12 +52,19 @@ class SDEIntegrator(Integrator):
     self.intg_type = intg_type  # integral type
     self.wiener_type = wiener_type # wiener process type
 
+    # parse function arguments
+    class_kw, variables, parameters, arguments = utils.get_args(f)
+    self.class_kw = class_kw  # class keywords
+    self.variables = variables  # variable names, (before 't')
+    self.parameters = parameters  # parameter names, (after 't')
+    self.arguments = list(arguments) + [f'{constants.DT}={self.dt}']  # function arguments
+
     # code scope
     self.code_scope = {constants.F: f, constants.G: g, 'math': math}
 
     # code lines
     self.func_name = f_names(f)
-    self.code_lines = [f'def {self.func_name}({", ".join(arguments)}):']
+    self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
 
     # others
     self.show_code = show_code

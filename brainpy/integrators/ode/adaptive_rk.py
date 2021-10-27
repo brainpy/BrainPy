@@ -195,7 +195,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
     # returns
     self.code_lines.append(f'  return {", ".join(return_args)}')
     # compile
-    self.integral = utils.compile(
+    self.integral = utils.compile_code(
       code_scope={k: v for k, v in self.code_scope.items()},
       code_lines=self.code_lines,
       show_code=self.show_code,

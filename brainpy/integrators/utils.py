@@ -100,7 +100,7 @@ def get_args(f):
   return class_kw, var_names, other_args, original_args
 
 
-def compile(code_lines, code_scope, func_name, show_code=False):
+def compile_code(code_lines, code_scope, func_name, show_code=False):
   code = '\n'.join(code_lines)
   if show_code:
     print(code)
