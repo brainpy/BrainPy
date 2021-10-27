@@ -184,74 +184,81 @@ class ExponentialEuler(ODEIntegrator):
     #   raise NotImplementedError
     #
     # else:
-      if sympy is None or analysis_by_sympy is None:
-        raise errors.PackageMissingError('SymPy must be installed when '
-                                         'using exponential integrators.')
 
-      # code scope
-      closure_vars = inspect.getclosurevars(self.f)
-      self.code_scope.update(closure_vars.nonlocals)
-      self.code_scope.update(dict(closure_vars.globals))
-      self.code_scope['math'] = math
+    self.symbolic_build()
 
-      analysis = separate_variables(self.f)
-      variables_for_returns = analysis['variables_for_returns']
-      expressions_for_returns = analysis['expressions_for_returns']
-      for vi, (key, all_var) in enumerate(variables_for_returns.items()):
-        # separate variables
-        sd_variables = []
-        for v in all_var:
-          if len(v) > 1:
-            raise ValueError('Cannot analyze multi-assignment code line.')
-          sd_variables.append(v[0])
-        expressions = expressions_for_returns[key]
-        var_name = self.variables[vi]
-        diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
-                                                 variables=sd_variables,
-                                                 expressions=expressions,
-                                                 derivative_expr=key,
-                                                 scope=self.code_scope,
-                                                 func_name=self.func_name)
+  def autograd_build(self):
+    pass
 
-        f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
+  def symbolic_build(self):
+    if sympy is None or analysis_by_sympy is None:
+      raise errors.PackageMissingError('SymPy must be installed when '
+                                       'using exponential integrators.')
 
-        # code lines
-        self.code_lines.extend([f"  {str(expr)}" for expr in f_expressions[:-1]])
+    # code scope
+    closure_vars = inspect.getclosurevars(self.f)
+    self.code_scope.update(closure_vars.nonlocals)
+    self.code_scope.update(dict(closure_vars.globals))
+    self.code_scope['math'] = math
 
-        # get the linear system using sympy
-        f_res = f_expressions[-1]
-        df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
-        s_df = sympy.Symbol(f"{f_res.var_name}")
-        self.code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
-        var = sympy.Symbol(diff_eq.var_name, real=True)
+    analysis = separate_variables(self.f)
+    variables_for_returns = analysis['variables_for_returns']
+    expressions_for_returns = analysis['expressions_for_returns']
+    for vi, (key, all_var) in enumerate(variables_for_returns.items()):
+      # separate variables
+      sd_variables = []
+      for v in all_var:
+        if len(v) > 1:
+          raise ValueError('Cannot analyze multi-assignment code line.')
+        sd_variables.append(v[0])
+      expressions = expressions_for_returns[key]
+      var_name = self.variables[vi]
+      diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
+                                               variables=sd_variables,
+                                               expressions=expressions,
+                                               derivative_expr=key,
+                                               scope=self.code_scope,
+                                               func_name=self.func_name)
 
-        # get df part
-        s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
-        s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
-        s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
-        if df_expr.has(var):
-          # linear
-          linear = sympy.collect(df_expr, var, evaluate=False)[var]
-          self.code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
-          # linear exponential
-          self.code_lines.append(f'  {s_linear_exp.name} = math.exp({s_linear.name} * {constants.DT})')
-          # df part
-          df_part = (s_linear_exp - 1) / s_linear * s_df
-          self.code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
-        else:
-          # df part
-          self.code_lines.append(f'  {s_df_part.name} = {s_df.name} * {constants.DT}')
+      f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
-        # update expression
-        update = var + s_df_part
+      # code lines
+      self.code_lines.extend([f"  {str(expr)}" for expr in f_expressions[:-1]])
 
-        # The actual update step
-        self.code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)}')
-        self.code_lines.append('')
+      # get the linear system using sympy
+      f_res = f_expressions[-1]
+      df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
+      s_df = sympy.Symbol(f"{f_res.var_name}")
+      self.code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
+      var = sympy.Symbol(diff_eq.var_name, real=True)
 
-      self.code_lines.append(f'  return {", ".join([f"{v}_new" for v in self.variables])}')
-      self.integral = utils.compile(
-        code_scope={k: v for k, v in self.code_scope.items()},
-        code_lines=self.code_lines,
-        show_code=self.show_code,
-        func_name=self.func_name)
+      # get df part
+      s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
+      s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
+      s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
+      if df_expr.has(var):
+        # linear
+        linear = sympy.collect(df_expr, var, evaluate=False)[var]
+        self.code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
+        # linear exponential
+        self.code_lines.append(f'  {s_linear_exp.name} = math.exp({s_linear.name} * {constants.DT})')
+        # df part
+        df_part = (s_linear_exp - 1) / s_linear * s_df
+        self.code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
+      else:
+        # df part
+        self.code_lines.append(f'  {s_df_part.name} = {s_df.name} * {constants.DT}')
+
+      # update expression
+      update = var + s_df_part
+
+      # The actual update step
+      self.code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)}')
+      self.code_lines.append('')
+
+    self.code_lines.append(f'  return {", ".join([f"{v}_new" for v in self.variables])}')
+    self.integral = utils.compile(
+      code_scope={k: v for k, v in self.code_scope.items()},
+      code_lines=self.code_lines,
+      show_code=self.show_code,
+      func_name=self.func_name)

@@ -10,7 +10,6 @@
 
     simulation/brainobjects
     simulation/layers
-    simulation/nets
     simulation/connect
     simulation/initialize
 

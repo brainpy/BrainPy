@@ -241,7 +241,7 @@ class Milstein(SDEIntegrator):
 class ExponentialEuler(SDEIntegrator):
   r"""First order, explicit exponential Euler method.
 
-  For a SDE_INT equation of the form
+  For a SDE equation of the form
 
   .. math::
 

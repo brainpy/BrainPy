@@ -15,23 +15,19 @@ def generate(path):
                header='Brain Objects')
   write_module(module_name='brainpy.simulation.layers',
                filename=os.path.join(path, 'layers.rst'),
-               header='Brain Layers')
-  write_module(module_name='brainpy.simulation.nets',
-               filename=os.path.join(path, 'nets.rst'),
-               header='Brain Networks')
+               header='DNN Layers')
   module_and_name = [
     ('base', 'Base Class'),
-    ('codes', 'Code Tools'),
-    ('dicts', 'New Dict'),
-    ('namechecking', 'Name Checking'),
-    ('others', 'Other Tools'),
+    ('custom_conn', 'Custom Connections'),
+    ('random_conn', 'Random Connections'),
+    ('regular_conn', 'Regular Connections'),
+    ('formatter', 'Formatter Functions'),
   ]
   write_submodules(module_name='brainpy.simulation.connect',
                    filename=os.path.join(path, 'connect.rst'),
                    header='Synaptic Connectivity',
-                   submodule_names=['base', 'custom_conn', 'random_conn', 'regular_conn', 'formatter'],
-                   section_names=['Base Class', 'Custom Connections', 'Random Connections',
-                                  'Regular Connections', 'Formatter Functions'])
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
   write_submodules(module_name='brainpy.simulation.initialize',
                    filename=os.path.join(path, 'initialize.rst'),
                    header='Weight Initialization',

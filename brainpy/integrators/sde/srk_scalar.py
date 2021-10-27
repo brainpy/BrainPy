@@ -6,6 +6,7 @@ from brainpy.integrators.sde.base import SDEIntegrator
 __all__ = [
   'SRK1W1',
   'SRK2W1',
+  'KlPl',
 ]
 
 
@@ -97,6 +98,7 @@ class SRK1W1(SDEIntegrator):
     super(SRK1W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
                                  wiener_type=wiener_type)
+    assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
   def build(self):
@@ -212,6 +214,7 @@ class SRK2W1(SDEIntegrator):
     super(SRK2W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
                                  wiener_type=wiener_type)
+    assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
   def build(self):
@@ -298,6 +301,60 @@ class SRK2W1(SDEIntegrator):
       self.code_lines.append(f'  {var}_g4 = {var}_I111 / {constants.DT}')
       self.code_lines.append(f'  {var}_new = {var} + {constants.DT} * {var}_f1 + {var}_g1 * {var}_g_H1s1 + '
                              f'{var}_g2 * {var}_g_H1s2 + {var}_g3 * {var}_g_H1s3 + {var}_g4 * {var}_g_H1s4')
+      self.code_lines.append('  ')
+
+    # returns
+    new_vars = [f'{var}_new' for var in self.variables]
+    self.code_lines.append(f'  return {", ".join(new_vars)}')
+
+    # return and compile
+    self.integral = utils.compile(
+      code_scope={k: v for k, v in self.code_scope.items()},
+      code_lines=self.code_lines,
+      show_code=self.show_code,
+      func_name=self.func_name)
+
+
+class KlPl(SDEIntegrator):
+  def __init__(self, f, g, dt=None, name=None, show_code=False,
+               var_type=None, intg_type=None, wiener_type=None):
+    super(KlPl, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
+                               var_type=var_type, intg_type=intg_type,
+                               wiener_type=wiener_type)
+    assert self.wiener_type == constants.SCALAR_WIENER
+    self.build()
+
+  def build(self):
+    self.code_lines.append(f'  {constants.DT}_sqrt = {constants.DT} ** 0.5')
+
+    # 2.1 noise
+    _noise_terms(self.code_lines, self.variables, triple_integral=False)
+
+    # 2.2 stage 1
+    _state1(self.code_lines, self.variables, self.parameters)
+
+    # 2.3 stage 2
+    # ----
+    # H1s2 = x + dt * f_H0s1 + dt_sqrt * g_H1s1
+    # g_H1s2 = g(H1s2, t0, *args)
+    all_H1s2 = []
+    for var in self.variables:
+      self.code_lines.append(f'  {var}_H1s2 = {var} + {constants.DT} * {var}_f_H0s1 + dt_sqrt * {var}_g_H1s1')
+      all_H1s2.append(f'{var}_H1s2')
+    g_names = [f'{var}_g_H1s2' for var in self.variables]
+    self.code_lines.append(f'  {", ".join(g_names)} = g({", ".join(all_H1s2 + self.parameters)})')
+    self.code_lines.append('  ')
+
+    # 2.4 final stage
+    # ----
+    # g1 = (I1 - I11 / dt_sqrt + I10 / dt)
+    # g2 = I11 / dt_sqrt
+    # y1 = x + dt * f_H0s1 + g1 * g_H1s1 + g2 * g_H1s2
+    for var in self.variables:
+      self.code_lines.append(f'  {var}_g1 = -{var}_I1 + {var}_I11/dt_sqrt + {var}_I10/{constants.DT}')
+      self.code_lines.append(f'  {var}_g2 = {var}_I11 / dt_sqrt')
+      self.code_lines.append(f'  {var}_new = {var} + {constants.DT} * {var}_f_H0s1 + '
+                        f'{var}_g1 * {var}_g_H1s1 + {var}_g2 * {var}_g_H1s2')
       self.code_lines.append('  ')
 
     # returns
