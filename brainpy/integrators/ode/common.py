@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-def step(class_kw, vars, dt_var, A, C, code_lines, other_args):
+
+def step(vars, dt_var, A, C, code_lines, other_args):
   # steps
   for si, sval in enumerate(A):
     # k-step arguments
@@ -37,7 +38,7 @@ def step(class_kw, vars, dt_var, A, C, code_lines, other_args):
 
     # k-step code line
     code_lines.append(f'  {", ".join(k_derivatives)} = f('
-                      f'{", ".join(class_kw + k_args + other_args[1:])})')
+                      f'{", ".join(k_args + other_args[1:])})')
 
 
 def update(vars, dt_var, B, code_lines):

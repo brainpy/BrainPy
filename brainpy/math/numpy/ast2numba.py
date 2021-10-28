@@ -23,7 +23,7 @@ from brainpy.base.collector import Collector
 from brainpy.base.function import Function
 from brainpy.math import profile
 
-DE_INT = DynamicalSystem = None
+Integrator = DynamicalSystem = None
 logger = logging.getLogger('brainpy.math.numpy.ast2numba')
 
 __all__ = [
@@ -32,11 +32,17 @@ __all__ = [
 
 
 def jit(obj_or_fun, show_code=False, **jit_setting):
-  global DE_INT
-  if DE_INT is None:
-    from brainpy.integrators.constants import DE_INT
+  global Integrator
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
 
   if callable(obj_or_fun):
+    # integrator
+    if isinstance(obj_or_fun, Integrator):
+      return jit_Integrator(intg=obj_or_fun,
+                            show_code=show_code,
+                            **jit_setting)
+
     # Function
     if isinstance(obj_or_fun, Function):
       return jit_Func(obj_or_fun,
@@ -50,11 +56,7 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
                       name=obj_or_fun.name + '_call',
                       show_code=show_code, **jit_setting)
 
-    # integrator
-    elif hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
-      return jit_integrator(intg=obj_or_fun,
-                            show_code=show_code,
-                            **jit_setting)
+
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
@@ -104,8 +106,8 @@ def jit_DS(obj_or_fun, show_code=False, **jit_setting):
   return obj_or_fun
 
 
-def jit_integrator(intg, show_code=False, **jit_setting):
-  r = _jit_intg_func(intg, show_code=show_code, **jit_setting)
+def jit_Integrator(intg, show_code=False, **jit_setting):
+  r = _jit_intg(intg, show_code=show_code, **jit_setting)
   if len(r['arguments']):
     intg = _form_final_call(f_org=intg, f_rep=r['func'], arg2call=r['arg2call'],
                             arguments=r['arguments'], nodes=r['nodes'],
@@ -142,16 +144,16 @@ def jit_Base(func, host, name=None, show_code=False, **jit_setting):
 
 
 def _jit_func(obj_or_fun, show_code=False, **jit_setting):
-  global DE_INT
-  if DE_INT is None:
-    from brainpy.integrators.constants import DE_INT
+  global Integrator
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
 
   if callable(obj_or_fun):
     # integrator
-    if hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
-      return _jit_intg_func(obj_or_fun,
-                            show_code=show_code,
-                            **jit_setting)
+    if isinstance(obj_or_fun, Integrator):
+      return _jit_intg(obj_or_fun,
+                       show_code=show_code,
+                       **jit_setting)
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
@@ -261,21 +263,28 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   return dict(func=func, arguments=arguments, arg2call=arg2call, nodes=nodes)
 
 
-def _jit_intg_func(f, show_code=False, **jit_setting):
-  global DynamicalSystem
+def _jit_intg(f, show_code=False, **jit_setting):
+  global DynamicalSystem, Integrator
   if DynamicalSystem is None:
     from brainpy.simulation.brainobjects.base import DynamicalSystem
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
+
+  # TODO
+  assert isinstance(f, Integrator)
 
   # exponential euler methods
-  if f.brainpy_data['method'].startswith('exponential'):
-    return _jit_cls_func(f=f, code="\n".join(f.brainpy_data['code_lines']),
-                         show_code=show_code, **jit_setting)
+  if hasattr(f.integral, '__self__'):
+    return _jit_cls_func(f=f,
+                         code="\n".join(f.code_lines),
+                         show_code=show_code,
+                         **jit_setting)
 
   # information in the integrator
-  func_name = f.brainpy_data['func_name']
-  raw_func = f.brainpy_data['raw_func']
-  tree = ast.parse('\n'.join(f.brainpy_data['code_lines']))
-  code_scope = {key: val for key, val in f.brainpy_data['code_scope'].items()}
+  func_name = f.func_name
+  raw_func = f.derivative
+  tree = ast.parse('\n'.join(f.code_lines))
+  code_scope = {key: val for key, val in f.code_scope.items()}
 
   # essential information
   arguments = set()
@@ -330,15 +339,15 @@ def _jit_intg_func(f, show_code=False, **jit_setting):
     code = tools.ast2code(tree)
     # code, _scope = _add_try_except(code)
     # code_scope.update(_scope)
-    code_scope_backup = {k: v for k, v in code_scope.items()}
+    # code_scope_backup = {k: v for k, v in code_scope.items()}
     # compile functions
     if show_code:
       show_compiled_codes(code, code_scope)
     exec(compile(code, '', 'exec'), code_scope)
     new_f = code_scope[func_name]
-    new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
-    new_f.brainpy_data['code_lines'] = code.strip().split('\n')
-    new_f.brainpy_data['code_scope'] = code_scope_backup
+    # new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
+    # new_f.brainpy_data['code_lines'] = code.strip().split('\n')
+    # new_f.brainpy_data['code_scope'] = code_scope_backup
     jit_f = numba.jit(new_f, **jit_setting)
     return dict(func=jit_f, arguments=arguments, arg2call=arg2call, nodes=nodes)
   else:
@@ -379,6 +388,10 @@ def _analyze_cls_func(host, code, show_code, self_name=None, pop_self=True, **ji
 
 def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
                            has_func_def=False, **jit_setting):
+  global Integrator
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
+
   arguments, arg2call, nodes, code_scope = set(), dict(), Collector(), dict()
 
   # all self data
@@ -396,6 +409,8 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
     target = host
     for i in range(1, len(split_keys)):
       next_target = getattr(target, split_keys[i])
+      if isinstance(next_target, Integrator):
+        break
       if not isinstance(next_target, Base):
         break
       target = next_target

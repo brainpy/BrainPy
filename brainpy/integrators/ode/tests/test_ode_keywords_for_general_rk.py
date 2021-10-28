@@ -2,6 +2,7 @@
 
 import pytest
 
+import numpy as np
 from brainpy import errors
 from brainpy.integrators.ode import odeint
 
@@ -24,6 +25,17 @@ def test_euler():
     odeint(method='euler', show_code=True, f=lambda v, t, dv_k1: t)
 
   print('-' * 40)
+
+# def test_euler2():
+#   print('Test Euler method:')
+#   print()
+#
+#   def func(self, m, t, V):
+#     alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+#     beta = self.a * np.exp(-(V + 65) / 18)
+#     dmdt = alpha * (1 - m) - beta * m
+#     return dmdt
+#   odeint(method='euler', show_code=True, f=func)
 
 
 def test_order2_rk():

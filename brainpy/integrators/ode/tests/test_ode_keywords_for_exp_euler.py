@@ -59,3 +59,25 @@ def test_exp_euler():
 
   print('-' * 40)
 
+
+def test_exp_euler2():
+  method = 'exponential_euler'
+
+  print(f'Test {method} method:')
+  print()
+
+  class A():
+    def __init__(self):
+      self.a = 4.
+
+    def func(self, m, t, V):
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = self.a * np.exp(-(V + 65) / 18)
+      dmdt = alpha * (1 - m) - beta * m
+      return dmdt
+
+  i = odeint(method=method, show_code=True, f=A().func)
+
+  print(i.integral)
+  print('-' * 40)
+

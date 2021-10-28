@@ -73,7 +73,8 @@ def transform_integrals(integrals, method='euler'):
     func_name = func.__name__
 
     # arguments
-    class_kw, variables, parameters, _ = utils.get_args(func)
+    # class_kw, variables, parameters, _ = utils.get_args(func)
+    variables, parameters, _ = utils.get_args(func)
 
     if len(class_kw) == 0:
       pars_update.update({p: None for p in parameters[1:]})
@@ -167,7 +168,8 @@ def transform_integrals(integrals, method='euler'):
 def transform_integrals_to_model(integrals, method='euler'):
   from brainpy.integrators import analysis_by_sympy
   global DynamicalSystem
-  if DynamicalSystem is None: from brainpy.simulation.brainobjects.base import DynamicalSystem
+  if DynamicalSystem is None:
+    from brainpy.simulation.brainobjects.base import DynamicalSystem
 
   # check integrals
   if callable(integrals):

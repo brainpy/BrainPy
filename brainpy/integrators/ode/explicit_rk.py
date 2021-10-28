@@ -152,7 +152,7 @@ class ExplicitRKIntegrator(ODEIntegrator):
 
   def build(self):
     # step stage
-    common.step(self.class_kw, self.variables, constants.DT,
+    common.step(self.variables, constants.DT,
                 self.A, self.C, self.code_lines, self.parameters)
     # variable update
     return_args = common.update(self.variables, constants.DT, self.B, self.code_lines)

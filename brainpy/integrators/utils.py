@@ -80,14 +80,14 @@ def get_args(f):
 
   # 2. analyze the function arguments
   #   2.1 class keywords
-  class_kw = []
-  if reduced_args[0] in profile.CLASS_KEYWORDS:
-    class_kw.append(reduced_args[0])
-    reduced_args = reduced_args[1:]
-  for a in reduced_args:
-    if a in profile.CLASS_KEYWORDS:
-      raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
-                               f'as the first argument.')
+  # class_kw = []
+  # if reduced_args[0] in profile.CLASS_KEYWORDS:
+  #   class_kw.append(reduced_args[0])
+  #   reduced_args = reduced_args[1:]
+  # for a in reduced_args:
+  #   if a in profile.CLASS_KEYWORDS:
+  #     raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
+  #                              f'as the first argument.')
   #  2.2 variable names
   var_names = []
   for a in reduced_args:
@@ -97,7 +97,7 @@ def get_args(f):
   else:
     raise ValueError('Do not find time variable "t".')
   other_args = reduced_args[len(var_names):]
-  return class_kw, var_names, other_args, original_args
+  return var_names, other_args, original_args
 
 
 def compile_code(code_lines, code_scope, func_name, show_code=False):

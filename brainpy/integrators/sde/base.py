@@ -26,8 +26,7 @@ class SDEIntegrator(Integrator):
     super(SDEIntegrator, self).__init__(name=name)
 
     # derivative functions
-    self.f = f
-    self.g = g
+    self.derivative = {constants.F: f, constants.G: g}
 
     # integration function
     self.integral = None
@@ -53,8 +52,7 @@ class SDEIntegrator(Integrator):
     self.wiener_type = wiener_type # wiener process type
 
     # parse function arguments
-    class_kw, variables, parameters, arguments = utils.get_args(f)
-    self.class_kw = class_kw  # class keywords
+    variables, parameters, arguments = utils.get_args(f)
     self.variables = variables  # variable names, (before 't')
     self.parameters = parameters  # parameter names, (after 't')
     self.arguments = list(arguments) + [f'{constants.DT}={self.dt}']  # function arguments

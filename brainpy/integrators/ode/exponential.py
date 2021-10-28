@@ -182,26 +182,29 @@ class ExponentialEuler(ODEIntegrator):
   def build(self):
     # if math.get_backend_name() == 'jax':
     #   raise NotImplementedError
-    #
     # else:
-
     self.symbolic_build()
 
   def autograd_build(self):
     pass
 
   def symbolic_build(self):
+    # check package
     if sympy is None or analysis_by_sympy is None:
       raise errors.PackageMissingError('SymPy must be installed when '
                                        'using exponential integrators.')
 
+    # check bound method
+    if hasattr(self.derivative[constants.F], '__self__'):
+      self.code_lines = [f'def {self.func_name}({", ".join(["self"] + list(self.arguments))}):']
+
     # code scope
-    closure_vars = inspect.getclosurevars(self.f)
+    closure_vars = inspect.getclosurevars(self.derivative[constants.F])
     self.code_scope.update(closure_vars.nonlocals)
     self.code_scope.update(dict(closure_vars.globals))
     self.code_scope['math'] = math
 
-    analysis = separate_variables(self.f)
+    analysis = separate_variables(self.derivative[constants.F])
     variables_for_returns = analysis['variables_for_returns']
     expressions_for_returns = analysis['expressions_for_returns']
     for vi, (key, all_var) in enumerate(variables_for_returns.items()):
@@ -262,3 +265,8 @@ class ExponentialEuler(ODEIntegrator):
       code_lines=self.code_lines,
       show_code=self.show_code,
       func_name=self.func_name)
+
+    if hasattr(self.derivative[constants.F], '__self__'):
+      host = self.derivative[constants.F].__self__
+      self.integral = self.integral.__get__(host, host.__class__)
+

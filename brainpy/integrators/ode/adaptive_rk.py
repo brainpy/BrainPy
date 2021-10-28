@@ -162,7 +162,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
 
   def build(self):
     # step stage
-    common.step(self.class_kw, self.variables, constants.DT,
+    common.step(self.variables, constants.DT,
                 self.A, self.C, self.code_lines, self.parameters)
     # variable update
     return_args = common.update(self.variables, constants.DT, self.B1, self.code_lines)
@@ -250,11 +250,7 @@ class RKF45(AdaptiveRKIntegrator):
   identical function evaluations are used in conjunction with each other
   to create methods of varying order and similar error constants.
 
-  It has the characteristics of:
-
-      - method stage = 6
-      - method order = 5
-      - Butcher Tables:
+  Its Butcher table is:
 
   .. math::
 
@@ -304,11 +300,7 @@ class DormandPrince(AdaptiveRKIntegrator):
   continue the integration, a practice known as local extrapolation
   (Shampine 1986; Hairer, Nørsett & Wanner 2008, pp. 178–179).
 
-  It has the characteristics of:
-
-      - method stage = 7
-      - method order = 5
-      - Butcher Tables:
+  Its Butcher table is:
 
   .. math::
 

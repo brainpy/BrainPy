@@ -77,7 +77,7 @@ def celu(x, alpha=1.0):
 
   Parameters
   ----------
-  x : ndarray, jnp.ndarray
+  x : JaxArray, jnp.ndarray
     The input array.
   alpha : ndarray, float
     The default is 1.0.
@@ -98,9 +98,12 @@ def elu(x, alpha=1.0):
       \alpha \left(\exp(x) - 1\right), & x \le 0
     \end{cases}
 
-  Args:
-    x : input array
-    alpha : scalar or array of alpha values (default: 1.0)
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
+  alpha : scalar or JaxArray
+    default: 1.0.
   """
   x = x.value if isinstance(x, JaxArray) else x
   alpha = alpha.value if isinstance(alpha, JaxArray) else alpha
@@ -126,9 +129,12 @@ def gelu(x, approximate=True):
   For more information, see `Gaussian Error Linear Units (GELUs)
   <https://arxiv.org/abs/1606.08415>`_, section 2.
 
-  Args:
-    x : input array
-    approximate: whether to use the approximate or exact formulation.
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
+  approximate: bool
+    whether to use the approximate or exact formulation.
   """
   x = x.value if isinstance(x, JaxArray) else x
   if approximate:
@@ -143,9 +149,12 @@ def gelu(x, approximate=True):
 def glu(x, axis=-1):
   r"""Gated linear unit activation function.
 
-  Args:
-    x : input array
-    axis: the axis along which the split should be computed (default: -1)
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
+  axis: int
+    The axis along which the split should be computed (default: -1)
   """
   size = x.shape[axis]
   assert size % 2 == 0, "axis size must be divisible by 2"
@@ -166,8 +175,10 @@ def hard_tanh(x):
       1, & 1 < x
     \end{cases}
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
   return JaxArray(jax.numpy.where(x > 1, 1, jax.numpy.where(x < -1, -1, x)))
@@ -181,8 +192,10 @@ def hard_sigmoid(x):
   .. math::
     \mathrm{hard\_sigmoid}(x) = \frac{\mathrm{relu6}(x + 3)}{6}
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   return relu6(x + 3.) / 6.
 
@@ -195,8 +208,10 @@ def hard_silu(x):
   .. math::
     \mathrm{hard\_silu}(x) = x \cdot \mathrm{hard\_sigmoid}(x)
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   return x * hard_sigmoid(x)
 
@@ -217,9 +232,12 @@ def leaky_relu(x, negative_slope=1e-2):
 
   where :math:`\alpha` = :code:`negative_slope`.
 
-  Args:
-    x : input array
-    negative_slope  or scalar specifying the negative slope (default: 0.01)
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
+  negative_slope : float
+    The scalar specifying the negative slope (default: 0.01)
   """
   x = x.value if isinstance(x, JaxArray) else x
   return JaxArray(jax.numpy.where(x >= 0, x, negative_slope * x))
@@ -233,8 +251,10 @@ def softplus(x):
   .. math::
     \mathrm{softplus}(x) = \log(1 + e^x)
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
   return JaxArray(jax.numpy.logaddexp(x, 0))
@@ -248,8 +268,10 @@ def log_sigmoid(x):
   .. math::
     \mathrm{log\_sigmoid}(x) = \log(\mathrm{sigmoid}(x)) = -\log(1 + e^{-x})
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   return -softplus(-x)
 
@@ -264,10 +286,13 @@ def log_softmax(x, axis=-1):
     \mathrm{log\_softmax}(x) = \log \left( \frac{\exp(x_i)}{\sum_j \exp(x_j)}
     \right)
 
-  Args:
-    x : input array
-    axis: the axis or axes along which the :code:`log_softmax` should be
-      computed. Either an integer or a tuple of integers.
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
+  axis: int
+    The axis or axes along which the :code:`log_softmax` should be
+    computed. Either an integer or a tuple of integers.
   """
   x = x.value if isinstance(x, JaxArray) else x
   shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
@@ -361,8 +386,10 @@ def relu6(x):
   .. math::
     \mathrm{relu6}(x) = \min(\max(x, 0), 6)
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
   return JaxArray(jax.numpy.minimum(jax.numpy.maximum(x, 0), 6.))
@@ -376,8 +403,10 @@ def sigmoid(x):
   .. math::
     \mathrm{sigmoid}(x) = \frac{1}{1 + e^{-x}}
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
   return JaxArray(jax.scipy.special.expit(x))
@@ -391,8 +420,10 @@ def soft_sign(x):
   .. math::
     \mathrm{soft\_sign}(x) = \frac{x}{|x| + 1}
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
   return JaxArray(x / (jax.numpy.abs(x) + 1))
@@ -407,11 +438,14 @@ def softmax(x, axis=-1):
   .. math ::
     \mathrm{softmax}(x) = \frac{\exp(x_i)}{\sum_j \exp(x_j)}
 
-  Args:
-    x : input array
-    axis: the axis or axes along which the softmax should be computed. The
-      softmax output summed across these dimensions should sum to :math:`1`.
-      Either an integer or a tuple of integers.
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
+  axis: int
+    The axis or axes along which the softmax should be computed. The
+    softmax output summed across these dimensions should sum to :math:`1`.
+    Either an integer or a tuple of integers.
   """
   x = x.value if isinstance(x, JaxArray) else x
   unnormalized = jax.numpy.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
@@ -426,8 +460,10 @@ def silu(x):
   .. math::
     \mathrm{silu}(x) = x \cdot \mathrm{sigmoid}(x) = \frac{x}{1 + e^{-x}}
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
   return JaxArray(x * sigmoid(x))
@@ -454,8 +490,10 @@ def selu(x):
   `Self-Normalizing Neural Networks
   <https://papers.nips.cc/paper/6698-self-normalizing-neural-networks.pdf>`_.
 
-  Args:
-    x : input array
+  Parameters
+  ----------
+  x: JaxArray, jnp.ndarray
+    The input array.
   """
   alpha = 1.6732632423543772848170429916717
   scale = 1.0507009873554804934193349852946

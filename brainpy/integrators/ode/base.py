@@ -31,14 +31,13 @@ class ODEIntegrator(Integrator):
     self.show_code = show_code
 
     # derivative function
-    self.f = f
+    self.derivative = {constants.F: f}
 
     # integration function
     self.integral = None
 
     # parse function arguments
-    class_kw, variables, parameters, arguments = utils.get_args(f)
-    self.class_kw = class_kw  # class keywords
+    variables, parameters, arguments = utils.get_args(f)
     self.variables = variables  # variable names, (before 't')
     self.parameters = parameters  # parameter names, (after 't')
     self.arguments = list(arguments) + [f'{constants.DT}={self.dt}']  # function arguments
