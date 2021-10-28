@@ -8,7 +8,8 @@ import numpy as np
 from brainpy import errors, math
 from brainpy.analysis import stability
 from brainpy.analysis.symbolic import base, utils
-from brainpy.analysis.symbolic.trajectory import Trajectory
+from brainpy.integrators.base import Integrator
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 logger = logging.getLogger('brainpy.analysis.symbolic')
 
@@ -20,18 +21,24 @@ __all__ = [
 
 
 class PhasePlane(object):
-  """A tool class for phase plane analyzer.
+  """A tool class for phase plane analysis.
 
-  `PhasePlaneAnalyzer` is used to analyze the phase portrait of 1D
+  `PhasePlane` is used to analyze the phase portrait of 1D
   or 2D dynamical systems. It can also be used to analyze the phase
   portrait of high-dimensional system but with the fixation of other
-  variables to preserve only one/two dynamical variables.
+  variables to preserve only one/two variables dynamical.
+
+  Examples
+  --------
+
+  - Tutorials please see: `Dynamics Analysis (Symbolic) <../../../tutorial_analysis/symbolic.ipynb>`_
+
+
 
   Parameters
   ----------
-  integrals : NeuType
-      The neuron model which defines the differential equations by using
-      `brainpy.integrate`.
+  model : DynamicalSystem, Integrator, list of Integrator, tuple of Integrator
+      The neuron model which defines the differential equations.
   target_vars : dict
       The target variables to analyze, with the format of
       `{'var1': [var_min, var_max], 'var2': [var_min, var_max]}`.
@@ -42,44 +49,35 @@ class PhasePlane(object):
   numerical_resolution : float, dict, optional
       The variable resolution for numerical iterative solvers.
       This variable will be useful in the solving of nullcline and fixed points
-      by using the iterative optimization method. It can be a float, which will
-      be used as ``numpy.arange(var_min, var_max, resolution)``. Or, it can be
-      a dict, with the format of ``{'var1': resolution1, 'var2': resolution2}``.
-      Or, it can be a dict with the format of ``{'var1': np.arange(x, x, x),
-      'var2': np.arange(x, x, x)}``.
+      by using the iterative optimization method.
+
+      - It can be a float, which will be used as ``numpy.arange(var_min, var_max, resolution)``.
+      - Or, it can be a dict, with the format of ``{'var1': resolution1, 'var2': resolution2}``.
+      - Or, it can be a dict with the format of ``{'var1': np.arange(x, x, x), 'var2': np.arange(x, x, x)}``.
 
   options : dict, optional
       The other setting parameters, which includes:
 
-          lim_scale
-              float. The axis limit scale factor. Default is 1.05. The setting means
-              the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
-          sympy_solver_timeout
-              float, with the unit of second. The maximum  time allowed to use sympy solver
-              to get the variable relationship.
-          escape_sympy_solver
-              bool. Whether escape to use sympy solver, and directly use numerical optimization
-              method to solve the nullcline and fixed points.
-          shgo_args
-              dict. Arguments of `shgo` optimization method, which can be used to set the
-              fields of: constraints, n, iters, callback, minimizer_kwargs, options,
-              sampling_method.
-          show_shgo
-              bool. whether print the shgo's value.
-          perturbation
-              float. The small perturbation used to solve the function derivative.
-          fl_tol
-              float. The tolerance of the function value to recognize it as a condidate of
-              function root point.
-          xl_tol
-              float. The tolerance of the l2 norm distances between this point and previous
-              points. If the norm distances are all bigger than `xl_tol` means this
-              point belong to a new function root point.
+      - **lim_scale**: float. The axis limit scale factor. Default is 1.05. The setting means
+        the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
+      - **sympy_solver_timeout**: float, with the unit of second. The maximum time allowed to
+        use sympy solver to get the variable relationship.
+      - **escape_sympy_solver**: bool. Whether escape to use sympy solver, and directly use
+        numerical optimization method to solve the nullcline and fixed points.
+      - **shgo_args**: dict. Arguments of `shgo` optimization method, which can be used to
+        set the fields of: constraints, n, iters, callback, minimizer_kwargs, options, sampling_method.
+      - **show_shgo**: bool. whether print the shgo's value.
+      - **perturbation**: float. The small perturbation used to solve the function derivative.
+      - **fl_tol**: float. The tolerance of the function value to recognize it as a candidate of
+        function root point.
+      - **xl_tol**: float. The tolerance of the l2 norm distances between this point and previous
+        points. If the norm distances are all bigger than `xl_tol` means this
+        point belong to a new function root point.
   """
 
   def __init__(
       self,
-      integrals,
+      model,
       target_vars,
       fixed_vars=None,
       pars_update=None,
@@ -87,7 +85,7 @@ class PhasePlane(object):
       options=None,
   ):
     # check "model"
-    self.model = utils.transform_integrals_to_model(integrals)
+    self.model = utils.transform_integrals_to_model(model)
 
     # check "target_vars"
     if not isinstance(target_vars, dict):
@@ -111,7 +109,7 @@ class PhasePlane(object):
                                 '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{integrals}" model.')
+        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{model}" model.')
     self.pars_update = pars_update
 
     # analyzer
@@ -135,36 +133,19 @@ class PhasePlane(object):
                                 'then make 1D/2D phase plane analysis.')
 
   def plot_vector_field(self, *args, **kwargs):
-    """Plot vector filed of a 2D/1D system.
+    """Plot vector filed of a 2D/1D system."""
 
-    Parameters
-    ----------
-
-    show : bool
-        Whether show the figure.
-    """
     self.analyzer.plot_vector_field(*args, **kwargs)
 
   def plot_fixed_point(self, *args, **kwargs):
-    """Plot fixed points.
+    """Plot fixed points."""
 
-    Parameters
-    ----------
-
-    show : bool
-        Whether show the figure.
-    """
     return self.analyzer.plot_fixed_point(*args, **kwargs)
 
   def plot_nullcline(self, *args, **kwargs):
     """Plot nullcline (only supported in 2D system).
-
-    Parameters
-    ----------
-
-    show : bool
-        Whether show the figure.
     """
+
     self.analyzer.plot_nullcline(*args, **kwargs)
 
   def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
@@ -191,10 +172,10 @@ class PhasePlane(object):
     axes : str
         The axes to plot. It can be:
 
-             - 'v-v'
-                    Plot the trajectory in the 'x_var'-'y_var' axis.
-             - 't-v'
-                    Plot the trajectory in the 'time'-'var' axis.
+           - 'v-v'
+                  Plot the trajectory in the 'x_var'-'y_var' axis.
+           - 't-v'
+                  Plot the trajectory in the 'time'-'var' axis.
     show : bool
         Whether show or not.
     """
@@ -230,7 +211,7 @@ class PhasePlane(object):
                                           show=show)
 
 
-class _PhasePlane1D(base.Base1DAnalyzer):
+class _PhasePlane1D(base.Base1DSymAnalyzer):
   """Phase plane analyzer for 1D system.
   """
 
@@ -322,7 +303,7 @@ class _PhasePlane1D(base.Base1DAnalyzer):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _PhasePlane2D(base.Base2DAnalyzer):
+class _PhasePlane2D(base.Base2DSymAnalyzer):
   """Phase plane analyzer for 2D system.
   """
 
@@ -458,13 +439,11 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         Set the numerical method for solving nullclines.
         For each function setting, it contains the following keywords:
 
-            coords
-                The coordination setting, it can be 'var1-var2' (which means
-                for each possible value 'var1' the optimizer method will search
-                the zero root of 'var2') or 'var2-var1' (which means iterate each
-                'var2' and get the optimization results of 'var1').
-            plot
-                It can be 'scatter' (default) or 'line'.
+        - **coords**: The coordination setting, it can be 'var1-var2' (which means
+          for each possible value 'var1' the optimizer method will search
+          the zero root of 'var2') or 'var2-var1' (which means iterate each
+          'var2' and get the optimization results of 'var1').
+        - **plot**: It can be 'scatter' (default) or 'line'.
 
     show : bool
         Whether show the figure.
@@ -581,11 +560,12 @@ class _PhasePlane2D(base.Base2DAnalyzer):
         ``[(a1, b1), (a2, b2)]``).
     duration : int, float, tuple, list
         The running duration. Same with the ``duration`` in ``NeuGroup.run()``.
-        It can be a int/float (``t_end``) to specify the same running end time,
-        or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
-        the start and end simulation time. Or, it can be a list of tuple
-        (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
-        start and end simulation time for each initial value.
+
+        - It can be a int/float (``t_end``) to specify the same running end time,
+        - Or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
+          the start and end simulation time.
+        - Or, it can be a list of tuple (``[(t1_start, t1_end), (t2_start, t2_end)]``)
+          to specify the specific start and end simulation time for each initial value.
     plot_duration : tuple, list, optional
         The duration to plot. It can be a tuple with ``(start, end)``. It can
         also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
@@ -593,10 +573,8 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     axes : str
         The axes to plot. It can be:
 
-             - 'v-v'
-                    Plot the trajectory in the 'x_var'-'y_var' axis.
-             - 't-v'
-                    Plot the trajectory in the 'time'-'var' axis.
+         - 'v-v': Plot the trajectory in the 'x_var'-'y_var' axis.
+         - 't-v': Plot the trajectory in the 'time'-'var' axis.
     show : bool
         Whether show or not.
     """
@@ -639,12 +617,11 @@ class _PhasePlane2D(base.Base2DAnalyzer):
 
     # 5. run the network
     for init_i, initial in enumerate(initials):
-      traj_group = Trajectory(size=1,
-                              integrals=self.model.integrals,
-                              target_vars=initial,
-                              fixed_vars=self.fixed_vars,
-                              pars_update=self.pars_update,
-                              scope=self.model.scopes)
+      traj_group = utils.Trajectory(model=self.model,
+                                    size=1,
+                                    target_vars=initial,
+                                    fixed_vars=self.fixed_vars,
+                                    pars_update=self.pars_update)
 
       #   5.2 run the model
       traj_group.run(duration=duration[init_i], report=False, )
@@ -693,17 +670,20 @@ class _PhasePlane2D(base.Base2DAnalyzer):
     Parameters
     ----------
     initials : list, tuple
-        The initial value setting of the targets. It can be a tuple/list of floats to specify
-        each value of dynamical variables (for example, ``(a, b)``). It can also be a
-        tuple/list of tuple to specify multiple initial values (for example,
-        ``[(a1, b1), (a2, b2)]``).
+        The initial value setting of the targets.
+
+        - It can be a tuple/list of floats to specify each value of dynamical variables
+          (for example, ``(a, b)``).
+        - It can also be a tuple/list of tuple to specify multiple initial values (for
+          example, ``[(a1, b1), (a2, b2)]``).
     duration : int, float, tuple, list
         The running duration. Same with the ``duration`` in ``NeuGroup.run()``.
-        It can be a int/float (``t_end``) to specify the same running end time,
-        or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
-        the start and end simulation time. Or, it can be a list of tuple
-        (``[(t1_start, t1_end), (t2_start, t2_end)]``) to specify the specific
-        start and end simulation time for each initial value.
+
+        - It can be a int/float (``t_end``) to specify the same running end time,
+        - Or it can be a tuple/list of int/float (``(t_start, t_end)``) to specify
+          the start and end simulation time.
+        - Or, it can be a list of tuple (``[(t1_start, t1_end), (t2_start, t2_end)]``)
+          to specify the specific start and end simulation time for each initial value.
     show : bool
         Whether show or not.
     """
@@ -734,12 +714,11 @@ class _PhasePlane2D(base.Base2DAnalyzer):
 
     # 5. run the network
     for init_i, initial in enumerate(initials):
-      traj_group = Trajectory(size=1,
-                              integrals=self.model.integrals,
-                              target_vars=initial,
-                              fixed_vars=self.fixed_vars,
-                              pars_update=self.pars_update,
-                              scope=self.model.scopes)
+      traj_group = utils.Trajectory(model=self.model,
+                                    size=1,
+                                    target_vars=initial,
+                                    fixed_vars=self.fixed_vars,
+                                    pars_update=self.pars_update)
 
       #   5.2 run the model
       traj_group.run(duration=duration[init_i], report=False, )
@@ -765,3 +744,8 @@ class _PhasePlane2D(base.Base2DAnalyzer):
 
     if show:
       plt.show()
+
+
+if __name__ == '__main__':
+  DynamicalSystem
+  Integrator

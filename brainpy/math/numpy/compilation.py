@@ -106,12 +106,8 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
   show_code : bool
     Debugging.
 
-  kwargs
-
-  Returns
-  -------
-  res : callable, Base
-    The jitted objects.
+  kwargs : dict
+    The setting for jax JIT.
   """
 
   # checking

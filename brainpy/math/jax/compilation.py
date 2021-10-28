@@ -72,10 +72,12 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
   Notes
   -----
 
-  ``jit`` compilation in ``brainpy.math.jax`` does not support `static_argnums`.
-  Instead, users should use `static_argnames`, and call the jitted function with
-  keywords like ``jitted_func(arg1=var1, arg2=var2)``.
+  There are several notes:
 
+  1. Avoid using scalar in Variable, TrainVar, etc.
+  2. ``jit`` compilation in ``brainpy.math.jax`` does not support `static_argnums`.
+     Instead, users should use `static_argnames`, and call the jitted function with
+     keywords like ``jitted_func(arg1=var1, arg2=var2)``.
 
   Examples
   --------
@@ -113,14 +115,6 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
   >>>   return lmbda * bp.math.where(x > 0, x, alpha * bp.math.exp(x) - alpha)
 
 
-  Notes
-  -----
-
-  There are several notes:
-
-  1. Avoid using scalar in Variable, TrainVar, etc.
-
-
   Parameters
   ----------
   obj_or_func : Base, function
@@ -156,7 +150,7 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
 
   Returns
   -------
-  ds_of_func : Base, function
+  ds_of_func :
     A wrapped version of Base object or function, set up for just-in-time compilation.
   """
   from brainpy.simulation.brainobjects.base import DynamicalSystem

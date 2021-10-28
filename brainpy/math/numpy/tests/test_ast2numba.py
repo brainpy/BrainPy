@@ -67,6 +67,8 @@ def test_cls_func_hh1():
     def __init__(self, size, ENa=50., EK=-77., EL=-54.387,
                  C=1.0, gNa=120., gK=36., gL=0.03, V_th=20.,
                  **kwargs):
+      super(HH, self).__init__(size=size, **kwargs)
+
       # parameters
       self.ENa = ENa
       self.EK = EK
@@ -85,10 +87,10 @@ def test_cls_func_hh1():
       self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
       self.input = bp.math.Variable(bp.math.zeros(size))
 
-      super(HH, self).__init__(size=size, **kwargs)
+      # integral
+      self.integral = bp.odeint(method='rk4', f=self.derivaitve)
 
-    @bp.odeint(method='rk4')
-    def integral(self, V, m, h, n, t, Iext):
+    def derivaitve(self, V, m, h, n, t, Iext):
       alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
       beta = 4.0 * bp.math.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
@@ -127,6 +129,100 @@ def test_cls_func_hh1():
   pprint(r['arg2call'])
   pprint('nodes:')
   pprint(r['nodes'])
+
+def test_cls_func_hh1_1():
+  class HH(bp.NeuGroup):
+
+    def __init__(self, size, ENa=50., EK=-77., EL=-54.387,
+                 C=1.0, gNa=120., gK=36., gL=0.03, V_th=20.,
+                 **kwargs):
+      super(HH, self).__init__(size=size, **kwargs)
+
+      # parameters
+      self.ENa = ENa
+      self.EK = EK
+      self.EL = EL
+      self.C = C
+      self.gNa = gNa
+      self.gK = gK
+      self.gL = gL
+      self.V_th = V_th
+
+      # integral
+      self.integral = bp.odeint(method='rk4', f=self.derivaitve)
+
+    def derivaitve(self, V, m, h, n, t, Iext):
+      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      dmdt = alpha * (1 - m) - beta * m
+
+      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      dhdt = alpha * (1 - h) - beta * h
+
+      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      dndt = alpha * (1 - n) - beta * n
+
+      I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
+      I_K = (self.gK * n ** 4.0) * (V - self.EK)
+      I_leak = self.gL * (V - self.EL)
+      dVdt = (- I_Na - I_K - I_leak + Iext) / self.C
+
+      return dVdt, dmdt, dhdt, dndt
+
+  hh = HH(10)
+
+  r = _jit_cls_func(hh.derivaitve, show_code=True)
+  print(r)
+
+
+def test_cls_func_hh1_2():
+  class HH(bp.NeuGroup):
+    def __init__(self, size, ENa=50., EK=-77., EL=-54.387, C=1.0,
+                 gNa=120., gK=36., gL=0.03, V_th=20., **kwargs):
+      super(HH, self).__init__(size=size, **kwargs)
+
+      # parameters
+      self.ENa = ENa
+      self.EK = EK
+      self.EL = EL
+      self.C = C
+      self.gNa = gNa
+      self.gK = gK
+      self.gL = gL
+      self.V_th = V_th
+
+      # variable
+      self.input = bp.math.Variable(bp.math.zeros(size))
+
+      # integral
+      self.integral = bp.odeint(method='rk4', f=self.derivaitve)
+
+    def derivaitve(self, V, m, h, n, t):
+      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      dmdt = alpha * (1 - m) - beta * m
+
+      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      dhdt = alpha * (1 - h) - beta * h
+
+      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      dndt = alpha * (1 - n) - beta * n
+
+      I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
+      I_K = (self.gK * n ** 4.0) * (V - self.EK)
+      I_leak = self.gL * (V - self.EL)
+      dVdt = (- I_Na - I_K - I_leak + self.input) / self.C
+
+      return dVdt, dmdt, dhdt, dndt
+
+  hh = HH(10)
+
+  r = _jit_cls_func(hh.derivaitve, show_code=True)
+  print(r)
 
 
 def test_cls_func_hh2():
