@@ -19,6 +19,9 @@ import brainpy
 from docs.apis import base_generator
 base_generator.generate('apis/')
 
+from docs.apis import analysis_generator
+analysis_generator.generate('apis/analysis/')
+
 from docs.apis import math_generator
 math_generator.generate('apis/math/')
 
