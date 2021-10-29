@@ -179,8 +179,9 @@ class DynamicalSystem(Base):
         utils.check_and_format_monitors(host=self), show_code=False)
     else:
       for node in self.nodes().unique().values():
-        for key in node.mon.item_contents.keys():
-          node.mon.item_contents[key] = []  # reshape the monitor items
+        if hasattr(node, 'mon'):
+          for key in node.mon.item_contents.keys():
+            node.mon.item_contents[key] = []  # reshape the monitor items
 
     # 4. times
     start, end = utils.check_duration(duration)

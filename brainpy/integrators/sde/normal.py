@@ -36,7 +36,7 @@ def df_and_dg(code_lines, variables, parameters):
 
 def dfdt(code_lines, variables):
   for var in variables:
-    code_lines.append(f'  {constants.DT}_dfdt = {var}_df * {constants.DT}')
+    code_lines.append(f'  {var}_dfdt = {var}_df * {constants.DT}')
   code_lines.append('  ')
 
 
