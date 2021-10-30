@@ -445,12 +445,12 @@ def _jit_intg(f, show_code=False, **jit_setting):
   if Integrator is None:
     from brainpy.integrators.base import Integrator
 
-  # TODO
+  # TODO: integrator has "integral", "code_lines", "code_scope", "func_name", "derivative",
   assert isinstance(f, Integrator)
 
   # exponential euler methods
   if hasattr(f.integral, '__self__'):
-    return _jit_cls_func(f=f,
+    return _jit_cls_func(f=f.integral,
                          code="\n".join(f.code_lines),
                          show_code=show_code,
                          **jit_setting)
