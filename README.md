@@ -9,10 +9,10 @@
 
 ``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)). Core functions provided in BrainPy includes
 
-- **JIT compilation** for class objects. 
-- **Numerical solvers** for ODEs, SDEs, DDEs, FDEs, and others. 
+- **JIT compilation** for functions and class objects. 
+- **Numerical solvers** for ODEs, SDEs, and others. 
 - **Dynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even more. 
-- **Dynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, continuation analysis and sensitive analysis.
+- **Dynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, and linearization analysis.
 - **Seamless integration with deep learning models**, and has the speed benefit on JIT compilation.
 - And more ......
 

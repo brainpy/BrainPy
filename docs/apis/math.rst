@@ -11,7 +11,7 @@
 
     math/general
     math/core_jax
-    math/special_jax
     math/core_numpy
+    math/special_jax
     math/comparison
 

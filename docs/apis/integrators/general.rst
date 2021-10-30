@@ -13,4 +13,15 @@ General Functions
    get_default_odeint
    set_default_sdeint
    get_default_sdeint
+   ODEIntegrator
+   SDEIntegrator
+
+
+.. autoclass:: ODEIntegrator
+   :members:
+
+
+.. autoclass:: SDEIntegrator
+   :members:
+
 
