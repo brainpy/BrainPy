@@ -75,23 +75,23 @@ class AdaptiveRKIntegrator(ODEIntegrator):
   The embedded methods are designed to produce an estimate of the local
   truncation error of a single Runge-Kutta step, and as result, allow to
   control the error with adaptive step-size. This is done by having two
-  methods in the tableau, one with order p and one with order :backend:`p-1`.
+  methods in the tableau, one with order p and one with order :math:`p-1`.
 
   The lower-order step is given by
 
-  .. backend::
+  .. math::
 
       y^*_{n+1} = y_n + h\sum_{i=1}^s b^*_i k_i,
 
-  where the :backend:`k_{i}` are the same as for the higher order method. Then the error is
+  where the :math:`k_{i}` are the same as for the higher order method. Then the error is
 
-  .. backend::
+  .. math::
 
       e_{n+1} = y_{n+1} - y^*_{n+1} = h\sum_{i=1}^s (b_i - b^*_i) k_i,
 
 
-  which is :backend:`O(h^{p})`. The Butcher Tableau for this kind of method is extended to
-  give the values of :backend:`b_{i}^{*}`
+  which is :math:`O(h^{p})`. The Butcher Tableau for this kind of method is extended to
+  give the values of :math:`b_{i}^{*}`
 
   .. math::
 

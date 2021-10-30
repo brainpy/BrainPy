@@ -17,6 +17,30 @@ Numerical Methods for SDEs
 
 
 
-.. autoclass:: AdaptiveRKIntegrator
+.. autoclass:: Euler
    :members:
 
+
+
+.. autoclass:: Heun
+   :members:
+
+
+.. autoclass:: Milstein
+   :members:
+
+
+.. autoclass:: ExponentialEuler
+   :members:
+
+
+.. autoclass:: SRK1W1
+   :members:
+
+
+.. autoclass:: SRK2W1
+   :members:
+
+
+.. autoclass:: KlPl
+   :members:
