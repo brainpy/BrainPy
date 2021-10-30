@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 
 """
-The math module for whole BrainPy ecosystem.
-
+The ``math`` module for whole BrainPy ecosystem.
 This module provides basic mathematical operations, including:
 
 - numpy-like array operations
+- linear algebra functions
+- random sampling functions
+- discrete fourier transform functions
 - compilations of ``jit``, ``vmap``, ``pmap`` for class objects
-- automatic differentiation of ``grad``, ``value_and_grad`` for class objects
-- and more ...
+- automatic differentiation of ``grad``, ``jacocian``, ``hessian``, etc. for class objects
+- loss functions
+- activation functions
+- optimization classes
 
+Details in the following.
 """
 
 

@@ -2,6 +2,8 @@
 
 __version__ = "1.1.0"
 
+import jax
+jax.config.update('jax_platform_name', 'cpu')
 
 # "base" module
 from . import base
