@@ -69,7 +69,7 @@ class Function(Base):
     # variables
     # ---
     if dyn_vars is not None:
-      self.implicit_variables = ArrayCollector()
+      self.implicit_vars = ArrayCollector()
       global ndarray
       if ndarray is None: from brainpy.math import ndarray
       if isinstance(dyn_vars, ndarray):
@@ -77,11 +77,11 @@ class Function(Base):
       if isinstance(dyn_vars, (tuple, list)):
         for i, v in enumerate(dyn_vars):
           _check_var(v)
-          self.implicit_variables[f'_var{i}'] = v
+          self.implicit_vars[f'_var{i}'] = v
       elif isinstance(dyn_vars, dict):
         for v in dyn_vars.values():
           _check_var(v)
-        self.implicit_variables.update(dyn_vars)
+        self.implicit_vars.update(dyn_vars)
       else:
         raise ValueError(f'"dyn_vars" only support list/tuple/dict of {ndarray.__name__}, '
                          f'but we got {type(dyn_vars)}: {dyn_vars}')

@@ -268,9 +268,9 @@ class Grad(Gradient):
     # variables
     assert isinstance(vars, ArrayCollector)
     assert isinstance(grad_vars, ArrayCollector)
-    self.implicit_variables = ArrayCollector()
-    self.implicit_variables.update(vars)
-    self.implicit_variables.update(grad_vars)
+    self.implicit_vars = ArrayCollector()
+    self.implicit_vars.update(vars)
+    self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())
     self.grad_vars = list(grad_vars.values())
 
@@ -519,9 +519,9 @@ class Jacobian(Gradient):
     # variables
     assert isinstance(vars, ArrayCollector)
     assert isinstance(grad_vars, ArrayCollector)
-    self.implicit_variables = ArrayCollector()
-    self.implicit_variables.update(vars)
-    self.implicit_variables.update(grad_vars)
+    self.implicit_vars = ArrayCollector()
+    self.implicit_vars.update(vars)
+    self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())
     self.grad_vars = list(grad_vars.values())
 

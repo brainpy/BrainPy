@@ -35,17 +35,17 @@ class Optimizer(Base):
     self.lr = _make_schedule(lr)
     self.step = bm.Variable(bm.array([0]))
     self._train_vars = train_vars
-    self.implicit_variables = ArrayCollector()
-    self.implicit_variables.update(train_vars)  # dynamic variables
+    self.implicit_vars = ArrayCollector()
+    self.implicit_vars.update(train_vars)  # dynamic variables
 
   def register_variables(self, vars: dict):
-    if self.implicit_variables is None:
+    if self.implicit_vars is None:
       raise ValueError('Please super initialize the Optimizer first, then call "register_variables()".')
     for key, var in vars.items():
-      if key in self.implicit_variables:
-        if id(self.implicit_variables[key]) != id(var):
-          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.implicit_variables[key]}.')
-      self.implicit_variables[key] = var
+      if key in self.implicit_vars:
+        if id(self.implicit_vars[key]) != id(var):
+          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.implicit_vars[key]}.')
+      self.implicit_vars[key] = var
 
   def update(self, grads):
     if len(grads) != len(self._train_vars):
@@ -83,7 +83,7 @@ class Momentum(Optimizer):
   def update(self, grads: dict, **kwargs):
     lr = super(Momentum, self).update(grads)
     for key, p in self._train_vars.items():
-      m = self.implicit_variables[key + '_m']
+      m = self.implicit_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= lr * m.value
@@ -100,7 +100,7 @@ class NesterovMomentum(Optimizer):
   def update(self, grads: dict, **kwargs):
     lr = super(NesterovMomentum, self).update(grads)
     for key, p in self._train_vars.items():
-      m = self.implicit_variables[key + '_m']
+      m = self.implicit_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
       p.value -= lr * (g + self.momentum * m.value)
@@ -147,8 +147,8 @@ class Adam(Optimizer):
     lr = super(Adam, self).update(grads)
     lr *= jn.sqrt(1 - self.beta2 ** self.step[0]) / (1 - self.beta1 ** self.step[0])
     for key, p in self._train_vars.items():
-      m = self.implicit_variables[key + '_m']
-      v = self.implicit_variables[key + '_v']
+      m = self.implicit_vars[key + '_m']
+      v = self.implicit_vars[key + '_v']
       g = grads[key]
       m.value = self.beta1 * m.value + (1 - self.beta1) * g
       v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2

@@ -29,7 +29,7 @@ class Base(object):
   target_backend = None
   """Used to specify the target backend which the model to run."""
 
-  implicit_variables = None
+  implicit_vars = None
   """Used to wrap the implicit variables which cannot be accessed by self.xxx"""
 
   implicit_nodes = None
@@ -86,8 +86,8 @@ class Base(object):
         v = getattr(node, k)
         if isinstance(v, math.Variable):
           gather[f'{node_path}.{k}' if node_path else k] = v
-      if node.implicit_variables is not None:
-        gather.update({f'{node_path}.{k}': v for k, v in node.implicit_variables.items()})
+      if node.implicit_vars is not None:
+        gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather
 
   def train_vars(self, method='absolute'):
