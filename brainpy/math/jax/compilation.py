@@ -35,13 +35,8 @@ __all__ = [
 logger = logging.getLogger('brainpy.math.jax.compilation')
 
 
-def _make_jit(func, vars, static_argnames=None, device=None,
-              backend=None, donate_argnums=(), inline=False, f_name=None):
-  @functools.partial(jax.jit,
-                     static_argnames=static_argnames,
-                     device=device, backend=backend,
-                     donate_argnums=donate_argnums,
-                     inline=inline)
+def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
+  @functools.partial(jax.jit, static_argnames=static_argnames, device=device)
   def jitted_func(variable_data, *args, **kwargs):
     vars.assign(variable_data)
     out = func(*args, **kwargs)
@@ -57,8 +52,7 @@ def _make_jit(func, vars, static_argnames=None, device=None,
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
-        backend=None, donate_argnums=(), inline=False, **kwargs):
+def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, **kwargs):
   """JIT (Just-In-Time) Compilation for JAX backend.
 
   This function has the same ability to Just-In-Time compile a pure function,
@@ -92,7 +86,7 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
 
   You can JIT a :py:class:`brainpy.Base` object with ``__call__()`` implementation.
 
-  >>> mlp = bp.nets.MLP((10, 100, 10))
+  >>> mlp = bp.layers.GRU(100, 200)
   >>> jit_mlp = bp.math.jit(mlp)
 
   You can also JIT a bounded method of a :py:class:`brainpy.Base` object.
@@ -132,21 +126,6 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
     can be retrieved via :py:func:`jax.devices`.) The default is inherited
     from XLA's DeviceAssignment logic and is usually to use
     ``jax.devices()[0]``.
-  backend: optional, str, dict
-    This is an experimental feature and the API is likely to change. Optional,
-    a string representing the XLA backend: ``'cpu'``, ``'gpu'``, or ``'tpu'``.
-  donate_argnums: optional, int, dict, tuple, list
-    Specify which arguments are "donated" to the computation.
-    It is safe to donate arguments if you no longer need them once the
-    computation has finished. In some cases XLA can make use of donated
-    buffers to reduce the amount of memory needed to perform a computation,
-    for example recycling one of your input buffers to store a result. You
-    should not reuse buffers that you donate to a computation, JAX will raise
-    an error if you try to. By default, no arguments are donated.
-  inline: bool
-    Specify whether this function should be inlined into enclosing
-    jaxprs (rather than being represented as an application of the xla_call
-    primitive with its own subjaxpr). Default False.
 
   Returns
   -------
@@ -178,29 +157,12 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
         static_argnames = {key: static_argnames for key in obj_or_func.steps.keys()}
       assert isinstance(static_argnames, dict)
 
-      # donate arguments by num
-      if donate_argnums is None:
-        donate_argnums = {key: () for key in obj_or_func.steps.keys()}
-      elif isinstance(donate_argnums, int):
-        donate_argnums = {key: (donate_argnums + 1,) for key in obj_or_func.steps.keys()}
-      elif isinstance(donate_argnums, (tuple, list)):
-        donate_argnums = {key: tuple(x + 1 for x in donate_argnums) for key in obj_or_func.steps.keys()}
-      assert isinstance(donate_argnums, dict)
-
-      # inline
-      if not isinstance(inline, dict):
-        inline = {key: inline for key in obj_or_func.steps.keys()}
-      assert isinstance(inline, dict)
-
       # jit functions
       for key in list(obj_or_func.steps.keys()):
         jitted_func = _make_jit(vars=dyn_vars,
                                 func=obj_or_func.steps[key],
                                 static_argnames=static_argnames[key],
                                 device=device,
-                                backend=backend,
-                                donate_argnums=donate_argnums[key],
-                                inline=inline[key],
                                 f_name=key)
         obj_or_func.steps.replace(key, jitted_func)
       return obj_or_func
@@ -225,19 +187,13 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
     if len(dyn_vars) == 0:  # pure function
       return jax.jit(obj_or_func,
                      static_argnames=static_argnames,
-                     device=device,
-                     backend=backend,
-                     donate_argnums=donate_argnums,
-                     inline=inline)
+                     device=device)
 
     else:  # Base object which implements __call__, or bounded method of Base object
       return _make_jit(vars=dyn_vars,
                        func=obj_or_func,
                        static_argnames=static_argnames,
-                       device=device,
-                       backend=backend,
-                       donate_argnums=donate_argnums,
-                       inline=inline)
+                       device=device)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
