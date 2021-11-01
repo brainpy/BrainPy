@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-class Gradient(Base):
+class AutoGrad(Base):
   pass
 
 
@@ -190,7 +190,7 @@ def grad(func, dyn_vars=None, grad_vars=None, argnums=None, has_aux=None,
                 return_value=return_value)
 
 
-class Grad(Gradient):
+class Grad(AutoGrad):
   """Compute the gradients of trainable variables for the given object.
 
   Examples
@@ -499,7 +499,7 @@ def jacfwd(func, dyn_vars=None, grad_vars=None, argnums=None, holomorphic=False,
                     method='fwd')
 
 
-class Jacobian(Gradient):
+class Jacobian(AutoGrad):
   """Base Class to Compute Jacobian Matrix."""
 
   def __init__(self, fun, vars, grad_vars, grad_tree, argnums=None, holomorphic=False, name=None,

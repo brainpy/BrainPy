@@ -3,12 +3,12 @@ import inspect
 import os
 
 from brainpy.math.numpy import function
-from brainpy.math.jax import controls, losses, activations, optimizers, gradient, compilation
+from brainpy.math.jax import controls, losses, activations, optimizers, autograd, compilation
 from docs.apis.auto_generater import write_module
 
 
 block_list = ['test', 'control_transform', 'register_pytree_node']
-for module in [compilation, gradient, function,
+for module in [compilation, autograd, function,
                controls, losses, activations, optimizers]:
   for k in dir(module):
     if (not k.startswith('_') ) and (not inspect.ismodule(getattr(module, k))):
@@ -125,8 +125,8 @@ def generate(path):
   write_module(module_name='brainpy.math.jax.activations',
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
-  write_module(module_name='brainpy.math.jax.gradient',
-               filename=os.path.join(path, 'gradients.rst'),
+  write_module(module_name='brainpy.math.jax.autograd',
+               filename=os.path.join(path, 'autograd.rst'),
                header='Automatic Differentiation')
   write_module(module_name='brainpy.math.jax.controls',
                filename=os.path.join(path, 'controls.rst'),
