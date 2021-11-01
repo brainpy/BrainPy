@@ -25,7 +25,7 @@ from . import optimizers
 # transformations
 from .controls import *
 from .compilation import *
-from .gradient import *
+from .autograd import *
 
 # wrapper
 from .function import *

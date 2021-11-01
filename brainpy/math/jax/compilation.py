@@ -113,7 +113,7 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, **kwargs)
   ----------
   obj_or_func : Base, function
     The instance of Base or a function.
-  dyn_vars : optional, dict
+  dyn_vars : optional, dict, tuple, list, JaxArray
     These variables will be changed in the function, or needed in the computation.
   static_argnames : optional, str, list, tuple, dict
     An optional string or collection of strings specifying which named arguments to treat

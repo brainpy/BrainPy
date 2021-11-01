@@ -8,3 +8,4 @@ Dynamics Simulation
    synaptic_connectivity
    monitor_and_inputs
    inputs
+   save_and_load.ipynb
