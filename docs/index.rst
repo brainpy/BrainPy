@@ -43,8 +43,8 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    tutorial_math/tensors
    tutorial_math/variables
    tutorial_math/base
-   tutorial_math/gradients
-   tutorial_math/compilations
+   tutorial_math/compilation
+   tutorial_math/differentiation
    tutorial_math/control_flows
 
 
