@@ -2,13 +2,16 @@
 
 __version__ = "1.1.0"
 
-import jax
-jax.config.update('jax_platform_name', 'cpu')
+try:
+  import jax
+  jax.config.update('jax_platform_name', 'cpu')
+except ModuleNotFoundError:
+  pass
 
 # "base" module
 from . import base
 from .base.base import Base
-from .base.collector import Collector, ArrayCollector
+from .base.collector import Collector, TensorCollector
 
 
 # "math" module
