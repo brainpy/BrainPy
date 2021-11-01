@@ -19,7 +19,7 @@ from jax.interpreters import ad
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose, tree_structure
 
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector
+from brainpy.base.collector import TensorCollector
 from brainpy.math.jax.jaxarray import JaxArray, TrainVar
 
 __all__ = [
@@ -38,13 +38,13 @@ def _check_vars(variables, prefix=''):
     return None, tree
   if isinstance(variables, JaxArray):
     _, tree = tree_flatten(variables)
-    variables = ArrayCollector({f'_{prefix}_v{0}': variables})
+    variables = TensorCollector({f'_{prefix}_v{0}': variables})
   elif isinstance(variables, dict):
     _, tree = tree_flatten(dict(variables))
-    variables = ArrayCollector(variables)
+    variables = TensorCollector(variables)
   elif isinstance(variables, (list, tuple)):
     _, tree = tree_flatten(variables)
-    variables = ArrayCollector({f'_{prefix}_v{i}': v for i, v in enumerate(variables)})
+    variables = TensorCollector({f'_{prefix}_v{i}': v for i, v in enumerate(variables)})
   else:
     raise ValueError
   for v in variables.values():
@@ -59,7 +59,7 @@ def _separate_vars_and_grad_vars(vars, grad_vars):
       _, grad_tree = tree_flatten(None)
       return None, (None, grad_tree)
     else:
-      return ArrayCollector(), _check_vars(grad_vars, prefix='grad_var')
+      return TensorCollector(), _check_vars(grad_vars, prefix='grad_var')
   else:
     if grad_vars is None:
       grad_vars = vars.subset(TrainVar).unique()
@@ -67,7 +67,7 @@ def _separate_vars_and_grad_vars(vars, grad_vars):
     else:
       grad_vars, grad_tree = _check_vars(grad_vars, prefix='grad_var')
     grad_var_ids = [id(v) for v in grad_vars.values()]
-    dyn_vars = ArrayCollector()
+    dyn_vars = TensorCollector()
     for key, var in vars.items():
       if id(var) not in grad_var_ids:
         dyn_vars[key] = var
@@ -266,9 +266,9 @@ class Grad(Gradient):
     self.grad_tree = grad_tree
 
     # variables
-    assert isinstance(vars, ArrayCollector)
-    assert isinstance(grad_vars, ArrayCollector)
-    self.implicit_vars = ArrayCollector()
+    assert isinstance(vars, TensorCollector)
+    assert isinstance(grad_vars, TensorCollector)
+    self.implicit_vars = TensorCollector()
     self.implicit_vars.update(vars)
     self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())
@@ -517,9 +517,9 @@ class Jacobian(Gradient):
     self.grad_tree = grad_tree
 
     # variables
-    assert isinstance(vars, ArrayCollector)
-    assert isinstance(grad_vars, ArrayCollector)
-    self.implicit_vars = ArrayCollector()
+    assert isinstance(vars, TensorCollector)
+    assert isinstance(grad_vars, TensorCollector)
+    self.implicit_vars = TensorCollector()
     self.implicit_vars.update(vars)
     self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())

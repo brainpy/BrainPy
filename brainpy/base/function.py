@@ -2,7 +2,7 @@
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector
+from brainpy.base.collector import TensorCollector
 
 ndarray = None
 
@@ -69,7 +69,7 @@ class Function(Base):
     # variables
     # ---
     if dyn_vars is not None:
-      self.implicit_vars = ArrayCollector()
+      self.implicit_vars = TensorCollector()
       global ndarray
       if ndarray is None: from brainpy.math import ndarray
       if isinstance(dyn_vars, ndarray):

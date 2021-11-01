@@ -21,7 +21,7 @@ from jax.interpreters.pxla import ShardedDeviceArray
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector
+from brainpy.base.collector import TensorCollector
 from brainpy.math.jax.jaxarray import JaxArray
 from brainpy.math.jax.random import RandomState
 from brainpy.tools.codes import change_func_name
@@ -161,11 +161,11 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
       # dynamical variables
       dyn_vars = (dyn_vars or obj_or_func.vars().unique())
       if isinstance(dyn_vars, JaxArray):
-        dyn_vars = ArrayCollector({'_': dyn_vars})
+        dyn_vars = TensorCollector({'_': dyn_vars})
       elif isinstance(dyn_vars, dict):
-        dyn_vars = ArrayCollector(dyn_vars)
+        dyn_vars = TensorCollector(dyn_vars)
       elif isinstance(dyn_vars, (tuple, list)):
-        dyn_vars = ArrayCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
+        dyn_vars = TensorCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
       else:
         raise ValueError
 
@@ -208,11 +208,11 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
   if callable(obj_or_func):
     if dyn_vars is not None:
       if isinstance(dyn_vars, JaxArray):
-        dyn_vars = ArrayCollector({'_': dyn_vars})
+        dyn_vars = TensorCollector({'_': dyn_vars})
       elif isinstance(dyn_vars, dict):
-        dyn_vars = ArrayCollector(dyn_vars)
+        dyn_vars = TensorCollector(dyn_vars)
       elif isinstance(dyn_vars, (tuple, list)):
-        dyn_vars = ArrayCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
+        dyn_vars = TensorCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
       else:
         raise ValueError
     elif isinstance(obj_or_func, Base):
@@ -220,7 +220,7 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
     elif hasattr(obj_or_func, '__self__') and isinstance(obj_or_func.__self__, Base):
       dyn_vars = obj_or_func.__self__.vars().unique()
     else:
-      dyn_vars = ArrayCollector()
+      dyn_vars = TensorCollector()
 
     if len(dyn_vars) == 0:  # pure function
       return jax.jit(obj_or_func,
@@ -332,7 +332,7 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
       # dynamical variables
       dyn_vars = (dyn_vars or obj_or_func.vars().unique())
-      dyn_vars, rand_vars = ArrayCollector(), ArrayCollector()
+      dyn_vars, rand_vars = TensorCollector(), TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
@@ -414,7 +414,7 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
     else:
       # dynamical variables
-      dyn_vars, rand_vars = ArrayCollector(), ArrayCollector()
+      dyn_vars, rand_vars = TensorCollector(), TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
@@ -556,8 +556,8 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
 
       # dynamical variables
       all_vars = (dyn_vars or obj_or_func.vars().unique())
-      dyn_vars = ArrayCollector()
-      rand_vars = ArrayCollector()
+      dyn_vars = TensorCollector()
+      rand_vars = TensorCollector()
       for key, val in all_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
@@ -618,8 +618,8 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
                       global_arg_shapes=global_arg_shapes)
     else:
       # dynamical variables
-      dyn_vars = ArrayCollector()
-      rand_vars = ArrayCollector()
+      dyn_vars = TensorCollector()
+      rand_vars = TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val

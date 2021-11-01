@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 
 from brainpy import errors
-from brainpy.base.collector import ArrayCollector
+from brainpy.base.collector import TensorCollector
 
 Base = math = None
 logger = logging.getLogger('brainpy.base.io')
@@ -55,18 +55,12 @@ def _check_missing(vars, filename):
 def save_h5(filename, all_vars):
   _check(h5py, module_name='h5py', ext=os.path.splitext(filename))
   assert isinstance(all_vars, dict)
-  all_vars = ArrayCollector(all_vars).unique()
+  all_vars = TensorCollector(all_vars).unique()
 
   # save
   f = h5py.File(filename, "w")
   for key, data in all_vars.items():
-    host_name, val_name = key.split('.')
-    if host_name not in f:
-      g = f.create_group(host_name)
-    else:
-      g = f[host_name]
-    d = g.create_dataset(val_name, data=np.asarray(data.value))
-    d.attrs['type'] = data.type
+    f[key] = np.asarray(data.value)
   f.close()
 
 
@@ -79,20 +73,17 @@ def load_h5(filename, target):
 
   all_vars = target.vars()
   f = h5py.File(filename, "r")
-  for g_key in f.keys():
-    g = f[g_key]
-    for d_key in g.keys():
-      d = f[g_key][d_key]
-      var = all_vars.pop(g_key + '.' + d_key)
-      var[:] = math.asarray(d.value)
-      assert var.type == d.attrs['type']
+  for key in f.keys():
+    var = all_vars.pop(key)
+    var[:] = math.asarray(f[key][:])
+    # assert var.type == d.attrs['type']
   f.close()
   _check_missing(all_vars, filename=filename)
 
 
 def save_npz(filename, all_vars, compressed=False):
   assert isinstance(all_vars, dict)
-  all_vars = ArrayCollector(all_vars).unique()
+  all_vars = TensorCollector(all_vars).unique()
   all_vars = {k.replace('.', '--'): np.asarray(v.value) for k, v in all_vars.items()}
   if compressed:
     np.savez_compressed(filename, **all_vars)
@@ -117,10 +108,10 @@ def load_npz(filename, target):
 
 def save_pkl(filename, all_vars):
   assert isinstance(all_vars, dict)
-  all_vars = ArrayCollector(all_vars).unique()
+  all_vars = TensorCollector(all_vars).unique()
   targets = {k: np.asarray(v) for k, v in all_vars.items()}
-  f = open(filename, 'w')
-  pickle.dump(targets, f)
+  f = open(filename, 'wb')
+  pickle.dump(targets, f, protocol=pickle.HIGHEST_PROTOCOL)
   f.close()
 
 
@@ -129,7 +120,7 @@ def load_pkl(filename, target):
   if Base is None: from brainpy.base.base import Base
   if math is None: from brainpy import math
   assert isinstance(target, Base)
-  f = open(filename, 'r')
+  f = open(filename, 'rb')
   all_data = pickle.load(f)
   f.close()
 
@@ -142,7 +133,7 @@ def load_pkl(filename, target):
 
 def save_mat(filename, all_vars):
   assert isinstance(all_vars, dict)
-  all_vars = ArrayCollector(all_vars).unique()
+  all_vars = TensorCollector(all_vars).unique()
   _check(sio, module_name='scipy', ext=os.path.splitext(filename))
   all_vars = {k.replace('.', '--'): np.asarray(v.value) for k, v in all_vars.items()}
   sio.savemat(filename, all_vars)

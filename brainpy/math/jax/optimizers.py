@@ -4,7 +4,7 @@ import jax.numpy as jn
 
 import brainpy.math.jax as bm
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector
+from brainpy.base.collector import TensorCollector
 
 __all__ = [
   # optimizers
@@ -35,7 +35,7 @@ class Optimizer(Base):
     self.lr = _make_schedule(lr)
     self.step = bm.Variable(bm.array([0]))
     self._train_vars = train_vars
-    self.implicit_vars = ArrayCollector()
+    self.implicit_vars = TensorCollector()
     self.implicit_vars.update(train_vars)  # dynamic variables
 
   def register_variables(self, vars: dict):

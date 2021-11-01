@@ -5,7 +5,7 @@ import os.path
 
 from brainpy import errors
 from brainpy.tools import namechecking
-from brainpy.base.collector import Collector, ArrayCollector
+from brainpy.base.collector import Collector, TensorCollector
 from brainpy.base import io
 
 math = Integrator = None
@@ -73,14 +73,14 @@ class Base(object):
 
     Returns
     -------
-    gather : ArrayCollector
+    gather : TensorCollector
       The collection contained (the path, the variable).
     """
     global math
     if math is None: from brainpy import math
 
     nodes = self.nodes(method=method)
-    gather = ArrayCollector()
+    gather = TensorCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
@@ -100,7 +100,7 @@ class Base(object):
 
     Returns
     -------
-    gather : ArrayCollector
+    gather : TensorCollector
       The collection contained (the path, the trainable variable).
     """
     global math
@@ -233,17 +233,18 @@ class Base(object):
     """
     if not os.path.exists(filename):
       raise errors.BrainPyError(f'Cannot find the file path: {filename}')
-    if filename.endswith('.hdf5') or filename.endswith('.h5'):
+    elif filename.endswith('.hdf5') or filename.endswith('.h5'):
       io.load_h5(filename, target=self)
-    if filename.endswith('.pkl'):
+    elif filename.endswith('.pkl'):
       io.load_pkl(filename, target=self)
-    if filename.endswith('.npz'):
+    elif filename.endswith('.npz'):
       io.load_npz(filename, target=self)
-    if filename.endswith('.mat'):
+    elif filename.endswith('.mat'):
       io.load_mat(filename, target=self)
-    raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
+    else:
+      raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
-  def save_states(self, filename, **setting):
+  def save_states(self, filename, all_vars=None, **setting):
     """Save the model states.
 
     Parameters
@@ -251,15 +252,19 @@ class Base(object):
     filename : str
       The file name which to store the model states.
     """
+    if all_vars is None:
+      all_vars = self.vars().unique()
+
     if filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.save_h5(filename, all_vars=self.vars())
-    if filename.endswith('.pkl'):
-      io.save_pkl(filename, all_vars=self.vars())
-    if filename.endswith('.npz'):
-      io.save_npz(filename, all_vars=self.vars(), **setting)
-    if filename.endswith('.mat'):
-      io.save_mat(filename, all_vars=self.vars())
-    raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
+      io.save_h5(filename, all_vars=all_vars)
+    elif filename.endswith('.pkl'):
+      io.save_pkl(filename, all_vars=all_vars)
+    elif filename.endswith('.npz'):
+      io.save_npz(filename, all_vars=all_vars, **setting)
+    elif filename.endswith('.mat'):
+      io.save_mat(filename, all_vars=all_vars)
+    else:
+      raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
   def to(self, devices):
     global math
