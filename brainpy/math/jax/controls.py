@@ -8,9 +8,9 @@ from brainpy.math.jax.jaxarray import JaxArray
 from brainpy.math.jax.ops import arange
 
 __all__ = [
-  'easy_loop',
-  'easy_while',
-  'easy_cond',
+  'make_loop',
+  'make_while',
+  'make_cond',
 ]
 
 
@@ -62,7 +62,7 @@ def _get_scan_info(f, dyn_vars, out_vars=None, has_return=False):
   return fun2scan, dyn_vars, tree
 
 
-def easy_loop(f, dyn_vars, out_vars=None, has_return=False):
+def make_loop(f, dyn_vars, out_vars=None, has_return=False):
   """Make a scan function.
 
   Parameters
@@ -107,34 +107,8 @@ def easy_loop(f, dyn_vars, out_vars=None, has_return=False):
 
   return call
 
-#
-# def easy_loop(f, dyn_vars, out_vars, has_return=False):
-#   fun2scan, dyn_vars, tree = _get_scan_info(f=f,
-#                                             dyn_vars=dyn_vars,
-#                                             out_vars=out_vars,
-#                                             has_return=has_return)
-#
-#   # functions
-#   if has_return:
-#     def call(lower, upper):
-#       dyn_values, (out_values, results) = lax.scan(f=fun2scan,
-#                                                    init=[v.value for v in dyn_vars],
-#                                                    xs=arange(lower, upper))
-#       for v, d in zip(dyn_vars, dyn_values): v.value = d
-#       return tree_unflatten(tree, out_values), results
-#
-#   else:
-#     def call(lower, upper):
-#       dyn_values, out_values = lax.scan(f=fun2scan,
-#                                         init=[v.value for v in dyn_vars],
-#                                         xs=arange(lower, upper))
-#       for v, d in zip(dyn_vars, dyn_values): v.value = d
-#       return tree_unflatten(tree, out_values)
-#
-#   return call
 
-
-def easy_while(cond_fun, body_fun, dyn_vars):
+def make_while(cond_fun, body_fun, dyn_vars):
   # iterable variables
   if isinstance(dyn_vars, dict):
     dyn_vars = tuple(dyn_vars.values())
@@ -169,7 +143,7 @@ def easy_while(cond_fun, body_fun, dyn_vars):
   return call
 
 
-def easy_cond(true_fun, false_fun, dyn_vars):
+def make_cond(true_fun, false_fun, dyn_vars):
   # iterable variables
   if isinstance(dyn_vars, dict):
     dyn_vars = tuple(dyn_vars.values())

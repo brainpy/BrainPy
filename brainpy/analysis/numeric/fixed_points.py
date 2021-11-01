@@ -215,7 +215,7 @@ class FixedPointFinder(object):
         opt.update(gradients)
         return loss
 
-      f = bm.easy_loop(train, dyn_vars=opt.implicit_vars, has_return=True)
+      f = bm.make_loop(train, dyn_vars=opt.implicit_vars, has_return=True)
       return f(bm.arange(start_i, start_i + num_batch))
 
     # Run the optimization
