@@ -90,8 +90,7 @@ def _grad_checking(func, vars, grad_vars):
 
 
 def grad(func, dyn_vars=None, grad_vars=None, argnums=None, has_aux=None,
-         holomorphic=False, allow_int=False, reduce_axes=(),
-         return_value=False, auto_detect_var=True):
+         holomorphic=False, allow_int=False, reduce_axes=(), return_value=False):
   """Automatic Gradient Computation in JAX backend.
 
   Creates a function which evaluates the gradient of ``fun``.
@@ -199,12 +198,13 @@ class Grad(AutoGrad):
   This example is that we return two auxiliary data, i.e., ``has_aux=True``.
 
   >>> import brainpy as bp
+  >>> import brainpy.math as bm
   >>>
-  >>> class Test(bp.Module):
+  >>> class Test(bp.Base):
   >>>   def __init__(self):
   >>>     super(Test, self).__init__()
-  >>>     self.a = bp.TrainVar(bp.math.ones(1))
-  >>>     self.b = bp.TrainVar(bp.math.ones(1))
+  >>>     self.a = bm.TrainVar(bp.math.ones(1))
+  >>>     self.b = bm.TrainVar(bp.math.ones(1))
   >>>
   >>>   def __call__(self, c):
   >>>     ab = self.a * self.b
@@ -268,9 +268,9 @@ class Grad(AutoGrad):
     # variables
     assert isinstance(vars, TensorCollector)
     assert isinstance(grad_vars, TensorCollector)
-    self.implicit_vars = TensorCollector()
-    self.implicit_vars.update(vars)
-    self.implicit_vars.update(grad_vars)
+    # self.implicit_vars = TensorCollector()
+    # self.implicit_vars.update(vars)
+    # self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())
     self.grad_vars = list(grad_vars.values())
 
@@ -324,7 +324,7 @@ class Grad(AutoGrad):
     for v, d in zip(self.grad_vars, grad_values): v.value = d
     for v, d in zip(self.dyn_vars, dyn_values): v.value = d
     grads_of_grad_vars = tree_unflatten(self.grad_tree, grads[0])
-    grads = grads_of_grad_vars if len(self.argnums) == 1 else grads[1:] + (grads_of_grad_vars,)
+    grads = grads_of_grad_vars if len(self.argnums) == 1 else (grads_of_grad_vars,) + grads[1:]
     if self.return_value:
       return grads, outputs
     else:
@@ -519,9 +519,9 @@ class Jacobian(AutoGrad):
     # variables
     assert isinstance(vars, TensorCollector)
     assert isinstance(grad_vars, TensorCollector)
-    self.implicit_vars = TensorCollector()
-    self.implicit_vars.update(vars)
-    self.implicit_vars.update(grad_vars)
+    # self.implicit_vars = TensorCollector()
+    # self.implicit_vars.update(vars)
+    # self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())
     self.grad_vars = list(grad_vars.values())
 
@@ -574,7 +574,7 @@ class Jacobian(AutoGrad):
     for v, d in zip(self.grad_vars, grad_values): v.value = d
     for v, d in zip(self.dyn_vars, dyn_values): v.value = d
     grads_of_grad_vars = tree_unflatten(self.grad_tree, grads[0])
-    grads = grads_of_grad_vars if len(self.argnums) == 1 else grads[1:] + (grads_of_grad_vars,)
+    grads = grads_of_grad_vars if len(self.argnums) == 1 else (grads_of_grad_vars,) + grads[1:]
     if self.return_value:
       return grads, outputs
     else:
