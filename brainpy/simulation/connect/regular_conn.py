@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors, math, tools
+import numpy as np
+from brainpy import errors, tools
 from .base import *
 
 __all__ = [
@@ -31,13 +32,13 @@ class One2One(TwoEndConnector):
     type_to_provide = self.check(structures)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = math.zeros((self.pre_num, self.post_num), dtype=math.bool_)
-      mat = math.fill_diagonal(mat, True)
+      mat = np.zeros((self.pre_num, self.post_num), dtype=np.bool_)
+      np.fill_diagonal(mat, True)
       return self.returns(mat=mat)
 
     elif type_to_provide == PROVIDE_IJ:
-      pre_ids = math.arange(self.pre_num, dtype=math.int_)
-      post_ids = math.arange(self.pre_num, dtype=math.int_)
+      pre_ids = np.arange(self.pre_num, dtype=np.int_)
+      post_ids = np.arange(self.pre_num, dtype=np.int_)
       return self.returns(ij=(pre_ids, post_ids))
 
     else:
@@ -61,17 +62,17 @@ class All2All(TwoEndConnector):
     type_to_provide = self.check(structures)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = math.ones((self.pre_num, self.post_num), dtype=bool)
-      if not self.include_self: mat = math.fill_diagonal(mat, False)
+      mat = np.ones((self.pre_num, self.post_num), dtype=bool)
+      if not self.include_self: np.fill_diagonal(mat, False)
       return self.returns(mat=mat)
 
     elif type_to_provide == PROVIDE_IJ:
-      mat = math.ones((self.pre_num, self.post_num), dtype=bool)
-      if not self.include_self: mat = math.fill_diagonal(mat, False)
-      pre_ids, post_ids = math.where(mat)
+      mat = np.ones((self.pre_num, self.post_num), dtype=bool)
+      if not self.include_self: np.fill_diagonal(mat, False)
+      pre_ids, post_ids = np.where(mat)
       del mat
-      pre_ids = math.asarray(pre_ids, dtype=math.int_)
-      post_ids = math.asarray(post_ids, dtype=math.int_)
+      pre_ids = np.asarray(pre_ids, dtype=np.int_)
+      post_ids = np.asarray(post_ids, dtype=np.int_)
       return self.returns(ij=(pre_ids, post_ids))
 
     else:
@@ -134,11 +135,11 @@ class GridFour(OneEndConnector):
       a = _grid_four(height, width, row, include_self=self.include_self)
       conn_i.extend(a[0])
       conn_j.extend(a[1])
-    pre_ids = math.asarray(conn_i, dtype=math.int_)
-    post_ids = math.asarray(conn_j, dtype=math.int_)
+    pre_ids = np.asarray(conn_i, dtype=np.int_)
+    post_ids = np.asarray(conn_j, dtype=np.int_)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = math.zeros((self.pre_num, self.post_num), dtype=math.bool_)
+      mat = np.zeros((self.pre_num, self.post_num), dtype=np.bool_)
       mat[pre_ids, post_ids] = True
       return self.returns(mat=mat, ij=(pre_ids, post_ids))
 
@@ -221,11 +222,11 @@ class GridN(OneEndConnector):
                     n=self.N, include_self=self.include_self)
       conn_i.extend(res[0])
       conn_j.extend(res[1])
-    pre_ids = math.asarray(conn_i, dtype=math.int_)
-    post_ids = math.asarray(conn_j, dtype=math.int_)
+    pre_ids = np.asarray(conn_i, dtype=np.int_)
+    post_ids = np.asarray(conn_j, dtype=np.int_)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = math.zeros((self.pre_num, self.post_num), dtype=math.bool_)
+      mat = np.zeros((self.pre_num, self.post_num), dtype=np.bool_)
       mat[pre_ids, post_ids] = True
       return self.returns(mat=mat, ij=(pre_ids, post_ids))
 
