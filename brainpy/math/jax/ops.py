@@ -3,6 +3,8 @@
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map
+from jax import ops as jops
+from jax import jit
 
 from brainpy.math.jax.jaxarray import JaxArray
 from brainpy.math.numpy import ops
@@ -72,8 +74,65 @@ __all__ = [
   'float64', 'complex_', 'complex64', 'complex128', 'set_int_', 'set_float_', 'set_complex_',
 
   # others
-  'take_along_axis', 'clip_by_norm',
+  'take_along_axis', 'clip_by_norm', 'segment_sum',
+  'segment_prod', 'segment_max', 'segment_min',
 ]
+
+
+# others
+# ------
+
+jit_seg_sum = jit(jops.segment_sum, static_argnums=(2, 3, 4, 5))
+jit_seg_prod = jit(jops.segment_prod, static_argnums=(2, 3, 4, 5))
+jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3, 4, 5))
+jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
+
+
+def segment_sum(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                unique_indices: bool = False, bucket_size: int = None):
+  """Computes the sum within segments of an array."""
+  data = data.value if isinstance(data, JaxArray) else data
+  segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
+  return jit_seg_sum(data, segment_ids, num_segments, indices_are_sorted, unique_indices, bucket_size)
+
+
+def segment_prod(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array."""
+  data = data.value if isinstance(data, JaxArray) else data
+  segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
+  return jit_seg_prod(data, segment_ids, num_segments, indices_are_sorted, unique_indices, bucket_size)
+
+
+def segment_max(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array."""
+  data = data.value if isinstance(data, JaxArray) else data
+  segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
+  return jit_seg_max(data, segment_ids, num_segments, indices_are_sorted, unique_indices, bucket_size)
+
+
+def segment_min(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array."""
+  data = data.value if isinstance(data, JaxArray) else data
+  segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
+  return jit_seg_min(data, segment_ids, num_segments, indices_are_sorted, unique_indices, bucket_size)
+
+
+@copy_doc(np.take_along_axis)
+def take_along_axis(a, indices, axis):
+  if isinstance(a, JaxArray): a = a.value
+  if isinstance(indices, JaxArray): indices = indices.value
+  return JaxArray(jnp.take_along_axis(a, indices, axis))
+
+
+@copy_doc(ops.clip_by_norm)
+def clip_by_norm(t, clip_norm, axis=None):
+  f = lambda l: l * clip_norm / maximum(sqrt(sum(l * l, axis=axis, keepdims=True)), clip_norm)
+  return tree_map(f, t)
+
+
 
 
 # math funcs
@@ -1383,18 +1442,3 @@ def set_complex_(complex_type):
   global complex_
   assert isinstance(complex_type, type)
   complex_ = complex_type
-
-
-# others
-# ------
-@copy_doc(np.take_along_axis)
-def take_along_axis(a, indices, axis):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(indices, JaxArray): indices = indices.value
-  return JaxArray(jnp.take_along_axis(a, indices, axis))
-
-
-@copy_doc(ops.clip_by_norm)
-def clip_by_norm(t, clip_norm, axis=None):
-  f = lambda l: l * clip_norm / maximum(sqrt(sum(l * l, axis=axis, keepdims=True)), clip_norm)
-  return tree_map(f, t)
