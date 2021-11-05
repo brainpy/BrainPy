@@ -94,15 +94,15 @@ def run_model(run_func, times, report, dt=None, extra_func=None):
   if extra_func is None:
     running_func = run_func
   else:
-    def running_func(_t, _dt):
-      extra_func(_t, _dt)
-      run_func(_t, _dt)
+    def running_func(t_and_dt):
+      extra_func(*t_and_dt)
+      run_func(t_and_dt)
 
   # simulations
   run_length = len(times)
   if report:
     t0 = time.time()
-    running_func(_t=times[0], _dt=dt)
+    running_func((times[0], dt))
     compile_time = time.time() - t0
     print('Compilation used {:.4f} s.'.format(compile_time))
 
@@ -110,7 +110,7 @@ def run_model(run_func, times, report, dt=None, extra_func=None):
     report_gap = int(run_length * report)
     t0 = time.time()
     for run_idx in range(1, run_length):
-      running_func(_t=times[run_idx], _dt=dt)
+      running_func((times[run_idx], dt))
       if (run_idx + 1) % report_gap == 0:
         percent = (run_idx + 1) / run_length * 100
         print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
@@ -121,7 +121,7 @@ def run_model(run_func, times, report, dt=None, extra_func=None):
   else:
     t0 = time.time()
     for run_idx in range(run_length):
-      running_func(_t=times[run_idx], _dt=dt)
+      running_func((times[run_idx], dt))
     running_time = time.time() - t0
 
   return running_time
@@ -173,7 +173,9 @@ def check_and_format_inputs(host, inputs):
   inputs_which_found_target = []
   inputs_not_found_target = []
 
-  # absolute access
+  # checking 1: absolute access
+  #    Check whether the input target node is accessible,
+  #    and check whether the target node has the attribute
   nodes = host.nodes(method='absolute')
   nodes[host.name] = host
   for one_input in inputs:
@@ -195,7 +197,9 @@ def check_and_format_inputs(host, inputs):
       raise errors.BrainPyError(f'Input target key "{key}" is not defined in {real_target}.')
     inputs_which_found_target.append((real_target, key) + tuple(one_input[1:]))
 
-  # relative access
+  # checking 2: relative access
+  #    Check whether the input target node is accessible
+  #    and check whether the target node has the attribute
   if len(inputs_not_found_target):
     nodes = host.nodes(method='relative')
     for one_input in inputs_not_found_target:
@@ -219,11 +223,12 @@ def check_and_format_inputs(host, inputs):
     if len(one_input) >= 4:
       if one_input[3] == 'iter':
         if not isinstance(data_value, Iterable):
-          raise ValueError(f'Input "{data_value}" for "{one_input[0]}.{one_input[1]}" is set to be '
-                           f'"iter" type, however we got the value with the type of {type(data_value)}')
+          raise ValueError(f'Input "{data_value}" for "{one_input[0]}.{one_input[1]}" '
+                           f'is set to be "iter" type, however we got the value with '
+                           f'the type of {type(data_value)}')
       elif one_input[3] != 'fix':
-        raise errors.BrainPyError(f'Only support {SUPPORTED_INPUT_TYPE} input type, but we '
-                                  f'got "{one_input[3]}" in {one_input}')
+        raise errors.BrainPyError(f'Only support {SUPPORTED_INPUT_TYPE} input type, but '
+                                  f'we got "{one_input[3]}" in {one_input}')
       data_type = one_input[3]
     else:
       data_type = 'fix'
@@ -256,9 +261,10 @@ def build_input_func(inputs, show_code=False):
 
     # code line left
     if isinstance(variable, math.Variable):
-      left = f'{target.name}.{key}[...]'
+      left = f'{target.name}.{key}[:]'
     else:
-      left = f'{target.name}.{key}'
+      raise errors.BrainPyError(f'"{key}" in {target} is not a dynamically changed Variable, '
+                                f'its value will not change, we cannot give its input.')
 
     # code line right
     if type_ == 'iter':
@@ -310,7 +316,9 @@ def check_and_format_monitors(host):
       for key in node.mon.item_contents.keys():
         node.mon.item_contents[key] = []  # reshape the monitor items
 
-  # master node
+  # master node:
+  #    Check whether the input target node is accessible,
+  #    and check whether the target node has the attribute
   name2node = {node.name: node for node in all_nodes}
   for node in all_nodes:
     if hasattr(node, 'mon'):
@@ -341,8 +349,7 @@ def check_and_format_monitors(host):
             variable = splits[-1]
 
         # idx
-        if isinstance(idx, int):
-          idx = math.array([idx])
+        if isinstance(idx, int): idx = math.array([idx])
 
         # interval
         if interval is not None:
@@ -355,7 +362,7 @@ def check_and_format_monitors(host):
   return formatted_mon_items
 
 
-def build_monitor_func(monitors, show_code=False):
+def build_monitor_func(monitors, show_code=False, func_name ='monitor_step'):
   """Get the monitor function according to the user's setting.
 
   This method will consider the following things:
@@ -371,11 +378,8 @@ def build_monitor_func(monitors, show_code=False):
   show_code : bool
       Whether show the code.
   """
-
-  monitor_func_name = 'monitor_step'
-
   code_lines = []
-  code_scope = {'sys': sys}
+  code_scope = dict()
 
   for node, key, target, variable, idx, interval in monitors:
     code_scope[node.name] = node
@@ -387,28 +391,21 @@ def build_monitor_func(monitors, show_code=False):
       data = getattr(data, k)
 
     # get the data key in the host
-
-    if isinstance(data, (int, float)):
-      if idx is not None:
-        raise errors.BrainPyError(f'"{key}" is a scalar, cannot define the slice index "{idx}"')
-      key_in_host = f'{target.name}.{variable}'
-    elif math.ndim(data) == 1:
-      if hasattr(data, 'value'):
-        key_in_host = f'{target.name}.{variable}.value.copy()'
-      else:
-        key_in_host = f'{target.name}.{variable}.copy()'
+    if not isinstance(data, math.Variable):
+      raise errors.BrainPyError(f'"{key}" in {target} is not a dynamically changed Variable, '
+                                f'its value will not change, we cannot monitor its trajectory.')
+    if math.ndim(data) == 1:
+      key_in_host = f'{target.name}.{variable}.value'
     else:
-      if hasattr(data, 'value'):
-        key_in_host = f'{target.name}.{variable}.value.flatten().copy()'
-      else:
-        key_in_host = f'{target.name}.{variable}.flatten().copy()'
+      key_in_host = f'{target.name}.{variable}.value.flatten()'
+    if math.is_numpy_backend():
+      key_in_host += '.copy()'
 
     # format the monitor index
     if idx is None:
       right = key_in_host
     else:
-      if hasattr(idx, 'value'):
-        idx = idx.value
+      if hasattr(idx, 'value'): idx = idx.value
       right = f'{key_in_host}[{node.name}_mon_{key.replace(".", "_")}_idx]'
       code_scope[f'{node.name}_mon_{key.replace(".", "_")}_idx'] = idx
 
@@ -417,7 +414,6 @@ def build_monitor_func(monitors, show_code=False):
       code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
     else:
       code_scope[f'{node.name}_mon_{key.replace(".", "_")}_next_time'] = interval
-      # code_scope[f'{node.name}_mon_{key.replace(".", "_")}_interval'] = interval
       code_lines.extend([f'global {node.name}_mon_{key.replace(".", "_")}_next_time',
                          f'if _t >= {node.name}_mon_{key.replace(".", "_")}_next_time:',
                          f'  {node.name}.mon.item_contents["{key}"].append({right})',
@@ -428,7 +424,7 @@ def build_monitor_func(monitors, show_code=False):
     code_scope_old = {k: v for k, v in code_scope.items()}
     # function
     code, func = tools.code_lines_to_func(lines=code_lines,
-                                          func_name=monitor_func_name,
+                                          func_name=func_name,
                                           func_args=['_t', '_dt'],
                                           scope=code_scope)
     if show_code:

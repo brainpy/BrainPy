@@ -27,5 +27,6 @@ from .controls import *
 from .compilation import *
 from .autograd import *
 
-# wrapper
+# others
 from .function import *
+from .setting import *

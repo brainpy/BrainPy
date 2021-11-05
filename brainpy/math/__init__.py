@@ -39,6 +39,14 @@ def get_backend_name():
   return BACKEND_NAME
 
 
+def is_numpy_backend():
+  return get_backend_name() == 'numpy'
+
+
+def is_jax_backend():
+  return get_backend_name() == 'jax'
+
+
 # 2. numerical precision
 # --------------------------
 

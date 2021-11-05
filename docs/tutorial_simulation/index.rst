@@ -5,7 +5,6 @@ Dynamics Simulation
    :maxdepth: 1
 
    efficient_synaptic_computation
-   synaptic_connectivity
-   monitor_and_inputs
-   inputs
-   save_and_load.ipynb
+   customize_synaptic_connectivity
+   monitors_and_inputs
+   save_and_load

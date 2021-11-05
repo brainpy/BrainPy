@@ -130,7 +130,7 @@ hist_h.shape  # the shape should be (num_time,) + h.shape
 hist_o.shape  # the shape should be (num_time, ) + o.shape
 
 # %% [markdown]
-# If you have multiple input values, you should wrap them as a container and call the loop function with ``loop_fun(xs)``, where "xs" can be a JaxArray, list/tuple/dict of JaxArray. 
+# If you have multiple input values, you should wrap them as a container and call the loop function with ``loop_fun(xs)``, where "xs" can be a JaxArray, list/tuple/dict of JaxArray. For examples: 
 
 # %%
 a = bm.zeros(10)
@@ -170,11 +170,11 @@ loop(xs={'a': bm.arange(10), 'b': bm.ones(10)})
 #
 # ```python
 #
-# while cond_fun():
-#     body_fun()
+# while cond_fun(x):
+#     body_fun(x)
 # ```
 #
-# All the ``JaxArray`` used in ``cond_fun`` and ``body\_fun`` should be declared in a ``dyn_vars`` variable.
+# where ``x`` is the external input which is not iterated. All the iterated variables should be marked as ``JaxArray``. All ``JaxArray`` used in ``cond_fun`` and ``body_fun`` should be declared in a ``dyn_vars`` variable. 
 
 # %% [markdown]
 # Let's look an example:
@@ -183,10 +183,10 @@ loop(xs={'a': bm.arange(10), 'b': bm.ones(10)})
 i = bm.zeros(1)
 counter = bm.zeros(1)
 
-def cond_f(): 
+def cond_f(x): 
     return i[0] < 10
 
-def body_f():
+def body_f(x):
     i.value += 1.
     counter.value += i
 
@@ -218,17 +218,17 @@ i
 #     false statements
 # ```
 #
-# When using ``brainpy.math.jax.make_cond()`` , *true statements * should be wrapped as a ``true_fun`` function which implements logics under true assert (no return), and *false statements * should be wrapped as a ``false_fun`` function which implements logics under false assert (also does not support return values): 
+# When using ``brainpy.math.jax.make_cond()`` , *true statements* should be wrapped as a ``true_fun`` function which implements logics under true assert (no return), and *false statements* should be wrapped as a ``false_fun`` function which implements logics under false assert (also does not support return values): 
 #
 # ```python
 #
 # if True:
-#     true_fun()
+#     true_fun(x)
 # else:
-#     false_fun()
+#     false_fun(x)
 # ```
 #
-# All the ``JaxArray`` used in ``true_fun`` and ``false_fun`` should be declared in the ``dyn_vars`` argument.
+# All the ``JaxArray`` used in ``true_fun`` and ``false_fun`` should be declared in the ``dyn_vars`` argument. ``x`` is also used to receive the external input value. 
 
 # %% [markdown]
 # Let's make a try:
@@ -237,9 +237,9 @@ i
 a = bm.zeros(2)
 b = bm.ones(2)
 
-def true_f():  a.value += 1
+def true_f(x):  a.value += 1
 
-def false_f(): b.value -= 1
+def false_f(x): b.value -= 1
 
 cond = bm.make_cond(true_f, false_f, dyn_vars=[a, b])
 
@@ -247,7 +247,7 @@ cond = bm.make_cond(true_f, false_f, dyn_vars=[a, b])
 # Here, we have two tensors. If true, tensor ``a`` add 1; if false, tensor ``b`` subtract 1. 
 
 # %%
-cond(True)
+cond(pred=True)
 
 a, b
 
@@ -263,5 +263,28 @@ a, b
 
 # %%
 cond(False)
+
+a, b
+
+# %% [markdown]
+# Or, we define a conditional case which depends on the external input. 
+
+# %%
+a = bm.zeros(2)
+b = bm.ones(2)
+
+def true_f(x):  a.value += x
+
+def false_f(x): b.value -= x
+
+cond = bm.make_cond(true_f, false_f, dyn_vars=[a, b])
+
+# %%
+cond(True, 10.)
+
+a, b
+
+# %%
+cond(False, 5.)
 
 a, b

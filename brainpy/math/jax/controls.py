@@ -6,6 +6,7 @@ from jax.tree_util import tree_flatten, tree_unflatten
 
 from brainpy.math.jax.jaxarray import JaxArray
 
+
 __all__ = [
   'make_loop',
   'make_while',
@@ -152,11 +153,10 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
       return tree_unflatten(tree, out_values), results
 
   else:
-    def call(xs=None, length=None):
+    def call(xs):
       dyn_values, out_values = lax.scan(f=fun2scan,
                                         init=[v.value for v in dyn_vars],
-                                        xs=xs,
-                                        length=length)
+                                        xs=xs)
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return tree_unflatten(tree, out_values)
 
@@ -178,8 +178,8 @@ def make_while(cond_fun, body_fun, dyn_vars):
   >>>
   >>> a = bm.zeros(1)
   >>>
-  >>> def cond_f(): return a[0] < 10
-  >>> def body_f(): a.value += 1.
+  >>> def cond_f(x): return a[0] < 10
+  >>> def body_f(x): a.value += 1.
   >>>
   >>> loop = bm.make_while(cond_f, body_f, dyn_vars=[a])
   >>> loop()
@@ -189,16 +189,16 @@ def make_while(cond_fun, body_fun, dyn_vars):
   Parameters
   ----------
   cond_fun : function, callable
-    A function does not receive any argument, but return a boolean value.
+    A function receives one argument, but return a boolean value.
   body_fun : function, callable
-    A function does not receive any argument, without any returns.
+    A function receives one argument, without any returns.
   dyn_vars : dict of JaxArray, sequence of JaxArray
     The dynamically changed variables, while iterate between trials.
 
   Returns
   -------
   loop_func : callable, function
-      The function for loop iteration.
+      The function for loop iteration, which receive one argument ``x`` for external input.
   """
   # iterable variables
   if isinstance(dyn_vars, dict):
@@ -213,19 +213,21 @@ def make_while(cond_fun, body_fun, dyn_vars):
     if not isinstance(v, JaxArray):
       raise ValueError(f'brainpy.math.jax.loops only support {JaxArray.__name__}, but got {type(v)}')
 
-  def _body_fun(dyn_values):
+  def _body_fun(op):
+    dyn_values, static_values = op
     for v, d in zip(dyn_vars, dyn_values): v.value = d
-    body_fun()
-    return [v.value for v in dyn_vars]
+    body_fun(static_values)
+    return [v.value for v in dyn_vars], static_values
 
-  def _cond_fun(dyn_values):
+  def _cond_fun(op):
+    dyn_values, static_values = op
     for v, d in zip(dyn_vars, dyn_values): v.value = d
-    return cond_fun()
+    return cond_fun(static_values)
 
-  def call():
-    dyn_values = lax.while_loop(cond_fun=_cond_fun,
+  def call(x=None):
+    dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
                                 body_fun=_body_fun,
-                                init_val=[v.value for v in dyn_vars])
+                                init_val=([v.value for v in dyn_vars], x))
     for v, d in zip(dyn_vars, dyn_values): v.value = d
 
   return call
@@ -241,8 +243,8 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   >>> a = bm.zeros(2)
   >>> b = bm.ones(2)
   >>>
-  >>> def true_f():  a.value += 1
-  >>> def false_f(): b.value -= 1
+  >>> def true_f(x):  a.value += 1
+  >>> def false_f(x): b.value -= 1
   >>>
   >>> cond = bm.make_cond(true_f, false_f, dyn_vars=[a, b])
   >>> cond(True)
@@ -257,16 +259,17 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   Parameters
   ----------
   true_fun : callable, function
-    A function does not receive any argument, without any returns.
+    A function receives one argument, without any returns.
   false_fun : callable, function
-    A function does not receive any argument, without any returns.
+    A function receives one argument, without any returns.
   dyn_vars : dict of JaxArray, sequence of JaxArray
     The dynamically changed variables.
 
   Returns
   -------
   cond_func : callable, function
-      The function for condition judgement.
+      The condictional function receives two arguments: ``pred`` for true/false judgement
+      and ``x`` for external input.
   """
   # iterable variables
   if dyn_vars is None:
@@ -285,23 +288,26 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
         f'brainpy.math.jax.loops only support '
         f'{JaxArray.__name__}, but got {type(v)}')
 
-  def _true_fun(dyn_vals):
+  def _true_fun(op):
+    dyn_vals, static_vals = op
     for v, d in zip(dyn_vars, dyn_vals): v.value = d
-    true_fun()
+    res = true_fun(static_vals)
     dyn_vals = [v.value for v in dyn_vars]
-    return dyn_vals
+    return dyn_vals, res
 
-  def _false_fun(dyn_vals):
+  def _false_fun(op):
+    dyn_vals, static_vals = op
     for v, d in zip(dyn_vars, dyn_vals): v.value = d
-    false_fun()
+    res = false_fun(static_vals)
     dyn_vals = [v.value for v in dyn_vars]
-    return dyn_vals
+    return dyn_vals, res
 
-  def call(pred):
-    dyn_values = lax.cond(pred=pred,
-                          true_fun=_true_fun,
-                          false_fun=_false_fun,
-                          operand=[v.value for v in dyn_vars])
+  def call(pred, x=None):
+    dyn_values, res = lax.cond(pred=pred,
+                               true_fun=_true_fun,
+                               false_fun=_false_fun,
+                               operand=([v.value for v in dyn_vars], x))
     for v, d in zip(dyn_vars, dyn_values): v.value = d
+    return res
 
   return call
