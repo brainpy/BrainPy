@@ -112,6 +112,9 @@ class DynamicalSystem(Base):
     self.steps[f'{key}_update'] = cdelay.update
     return cdelay
 
+  def __call__(self, *args, **kwargs):
+    return self.update(*args, **kwargs)
+
   def update(self, _t, _dt, **kwargs):
     """The function to specify the updating rule.
 
@@ -123,6 +126,26 @@ class DynamicalSystem(Base):
       The time step.
     """
     raise NotImplementedError('Must implement "update" function by user self.')
+
+  def build_inputs(self, inputs=(), show_code=False):
+    inputs = utils.check_and_format_inputs(host=self, inputs=inputs)
+    self._input_step = utils.build_input_func(inputs, show_code=show_code)
+
+  def build_monitors(self, show_code=False):
+    if self._monitor_step is None:
+      monitors = utils.check_and_format_monitors(host=self)
+      self._monitor_step = utils.build_monitor_func(monitors, show_code=show_code)
+    else:
+      for node in self.nodes().unique().values():
+        if hasattr(node, 'mon'):
+          for key in node.mon.item_contents.keys():
+            node.mon.item_contents[key] = []  # reshape the monitor items
+
+  def step(self, t_and_dt, **kwargs):
+    self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+    for step in self.steps.values():
+      step(_t=t_and_dt[0], _dt=t_and_dt[1], **kwargs)
+    self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
 
   def run(self, duration, dt=None, report=0., inputs=(), extra_func=None):
     """The running function.
@@ -169,19 +192,11 @@ class DynamicalSystem(Base):
 
     # 2. Build the inputs.
     #    All the inputs are wrapped into a single function.
-    self._input_step = utils.build_input_func(
-      utils.check_and_format_inputs(host=self, inputs=inputs), show_code=False)
+    self.build_inputs(inputs=inputs)
 
     # 3. Build the monitors.
     #    All the monitors are wrapped in a single function.
-    if self._monitor_step is None:
-      self._monitor_step = utils.build_monitor_func(
-        utils.check_and_format_monitors(host=self), show_code=False)
-    else:
-      for node in self.nodes().unique().values():
-        if hasattr(node, 'mon'):
-          for key in node.mon.item_contents.keys():
-            node.mon.item_contents[key] = []  # reshape the monitor items
+    self.build_monitors()
 
     # 4. times
     start, end = utils.check_duration(duration)
@@ -192,14 +207,7 @@ class DynamicalSystem(Base):
     # 5.1 iteratively run the step function.
     # 5.2 report the running progress.
     # 5.3 return the overall running time.
-
-    def step_run(_t, _dt, **kwargs):
-      self._input_step(_t=_t, _dt=_dt)
-      for step in self.steps.values():
-        step(_t=_t, _dt=_dt, **kwargs)
-      self._monitor_step(_t=_t, _dt=_dt)
-
-    running_time = utils.run_model(run_func=step_run,
+    running_time = utils.run_model(run_func=self.step,
                                    times=times,
                                    report=report,
                                    dt=dt,
@@ -218,15 +226,6 @@ class DynamicalSystem(Base):
             node.mon.item_contents[key] = val
 
     return running_time
-
-  def find_fixed_points(self):
-    pass
-
-  def evaluate_stability(self):
-    pass
-
-  def continuation(self, method='euler_newton'):
-    pass
 
 
 class Container(DynamicalSystem):
