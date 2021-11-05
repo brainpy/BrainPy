@@ -9,7 +9,6 @@ from brainpy.simulation.brainobjects.neuron import NeuGroup
 __all__ = [
   'SpikeTimeInput',
   'PoissonInput',
-  'ConstantInput',
 ]
 
 
@@ -96,6 +95,3 @@ class PoissonInput(NeuGroup):
     self.spike[:] = self.rng.random(self.num) <= self.freqs * self.dt
     self.t_last_spike[:] = math.where(self.spike, _t, self.t_last_spike)
 
-
-class ConstantInput(NeuGroup):
-  pass

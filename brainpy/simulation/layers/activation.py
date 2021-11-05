@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math
-from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation._imports import mjax
+from .base import Module
 
 __all__ = [
   'Activation'
 ]
 
 
-class Activation(DynamicalSystem):
+class Activation(Module):
   """Activation Layer.
 
   Parameters
@@ -21,6 +21,7 @@ class Activation(DynamicalSystem):
   setting : Any
     The settings for the activation function.
   """
+
   def __init__(self, activation, name=None, **setting):
     if name is None:
       name = self.unique_name(type=f'Activation_{activation}')
@@ -29,5 +30,5 @@ class Activation(DynamicalSystem):
     self._activation = mjax.activations.get(activation)
     self._setting = setting
 
-  def update(self, x, **kwargs):
+  def update(self, x):
     return self._activation(x, **self._setting)

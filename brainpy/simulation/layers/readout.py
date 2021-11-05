@@ -51,11 +51,12 @@ class LinearReadout(NeuGroup):
       assert train_mask.shape == self.w.shape
       self.train_mask = train_mask
 
-
     # variables
     self.s = math.Variable(self.s_init((num_batch, self.num)))
 
   def update(self, x, **kwargs):
-    if self.has_bias: self.s[:] = x @ self.w + self.b
-    else: self.s[:] = x @ self.w
+    if self.has_bias:
+      self.s[:] = x @ self.w + self.b
+    else:
+      self.s[:] = x @ self.w
     return self.s

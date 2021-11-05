@@ -2,15 +2,15 @@
 
 
 from brainpy import math
-from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
+from .base import Module
 
 __all__ = [
   'Dense'
 ]
 
 
-class Dense(DynamicalSystem):
+class Dense(Module):
   """A fully connected layer implemented as the dot product of inputs and weights.
 
   Parameters
@@ -48,5 +48,7 @@ class Dense(DynamicalSystem):
 
   def update(self, x, **kwargs):
     """Returns the results of applying the linear transformation to input x."""
-    if self.has_bias: return x @ self.w + self.b
-    else: return x @ self.w
+    if self.has_bias:
+      return x @ self.w + self.b
+    else:
+      return x @ self.w

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math
-from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation._imports import mjax, jax
 from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
+from .base import Module
 
 __all__ = [
   'Conv2D',
@@ -19,7 +19,7 @@ def _check_tuple(v):
     raise ValueError
 
 
-class Conv2D(DynamicalSystem):
+class Conv2D(Module):
   """Apply a 2D convolution on a 4D-input batch of shape (N,C,H,W).
 
   Parameters

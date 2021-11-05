@@ -7,6 +7,7 @@ from brainpy.base.collector import Collector
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
+  'Module',
   'Sequential',
 ]
 
@@ -20,7 +21,15 @@ def _check_args(args):
     return (args,)
 
 
-class Sequential(DynamicalSystem):
+class Module(DynamicalSystem):
+  """Basic module class for DNN networks."""
+  target_backend = 'jax'
+
+  def update(self, *args, **kwargs):
+    raise NotImplementedError
+
+
+class Sequential(Module):
   """Basic sequential object to control data flow.
 
   Parameters

@@ -14,7 +14,7 @@ __all__ = [
   # delays.py
   'Delay', 'ConstantDelay',
   # input.py
-  'SpikeTimeInput', 'PoissonInput', 'ConstantInput',
+  'SpikeTimeInput', 'PoissonInput', # 'ConstantInput',
   # molecular.py
   'Molecular',
   # network.py
