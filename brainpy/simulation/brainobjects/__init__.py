@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module provides various interface to model brain objects.
+You can access them through ``brainpy.XXX`` or ``brainpy.brainobjects.XXX``.
+"""
+
 
 __all__ = [
   # area.py
@@ -9,13 +14,13 @@ __all__ = [
   # delays.py
   'Delay', 'ConstantDelay',
   # input.py
-  'SpikeTimeInput', 'PoissonInput', 'ConstantInput',
+  'SpikeTimeInput', 'PoissonInput', # 'ConstantInput',
   # molecular.py
   'Molecular',
   # network.py
   'Network',
   # neuron.py
-  'NeuGroup', 'Channel', 'CondNeuGroup', 'Soma', 'Dendrite',
+  'NeuGroup', 'Channel', 'Soma', 'Dendrite',
   # synapse.py
   'TwoEndConn',
 ]

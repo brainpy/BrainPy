@@ -255,9 +255,9 @@ def permutation(x):
 
 
 @copy_doc(np.random.shuffle)
-def shuffle(x, axis=0):
+def shuffle(x):
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jr.shuffle(DEFAULT.split_key(), x, axis=axis))
+  return JaxArray(jr.permutation(DEFAULT.split_key(), x))
 
 
 @copy_doc(np.random.beta)

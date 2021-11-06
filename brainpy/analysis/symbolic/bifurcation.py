@@ -10,11 +10,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from brainpy import errors, math
 from brainpy.analysis import stability
 from brainpy.analysis.symbolic import base, utils
-from brainpy.analysis.symbolic.trajectory import Trajectory
-
 
 logger = logging.getLogger('brainpy.analysis.symbolic')
-
 
 __all__ = [
   'Bifurcation',
@@ -37,6 +34,12 @@ class Bifurcation(object):
   Externally injected current is also treated as a model parameter in
   this class, instead of a model state.
 
+  Examples
+  --------
+
+  - Tutorials please see: `Dynamics Analysis (Symbolic) <../../../tutorial_analysis/symbolic.ipynb>`_
+
+
   Parameters
   ----------
 
@@ -58,44 +61,35 @@ class Bifurcation(object):
   numerical_resolution : float, dict, optional
       The resolution for numerical iterative solvers. Default is 0.1.
       It can set the numerical resolution of dynamical variables or dynamical parameters.
-      For example, set ``numerical_resolution=0.1`` will generalize it to all
-      variables and parameters;
-      set ``numerical_resolution={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will
-      specify the particular resolutions to variables and parameters.
-      Moreover, you can also set
-      ``numerical_resolution={var1: np.array([...]), var2: 0.1}`` to specify the
-      search points need to explore for variable `var1`. This will be useful to
-      set sense search points at some inflection points.
+      For example,
+
+      - set ``numerical_resolution=0.1`` will generalize it to all variables and parameters;
+      - set ``numerical_resolution={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will
+        specify the particular resolutions to variables and parameters.
+      - Moreover, you can also set ``numerical_resolution={var1: np.array([...]), var2: 0.1}``
+        to specify the search points need to explore for variable `var1`. This will be useful
+        to set sense search points at some inflection points.
   options : dict, optional
       The other setting parameters, which includes:
 
-          perturbation
-              float. The small perturbation used to solve the function derivatives.
-          sympy_solver_timeout
-              float, with the unit of second. The maximum time allowed to use sympy solver
-              to get the variable relationship.
-          escape_sympy_solver
-              bool. Whether escape to use sympy solver, and directly use numerical optimization
-              method to solve the nullcline and fixed points.
-          lim_scale
-              float. The axis limit scale factor. Default is 1.05. The setting means
-              the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
+      - **perturbation**: float. The small perturbation used to solve the function derivatives.
+      - **sympy_solver_timeout**: float, with the unit of second. The maximum time allowed
+        to use sympy solver to get the variable relationship.
+      - **escape_sympy_solver**: bool. Whether escape to use sympy solver, and directly use
+        numerical optimization method to solve the nullcline and fixed points.
+      - **lim_scale**: float. The axis limit scale factor. Default is 1.05. The setting means
+        the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
 
       The parameters which are usefull for two-dimensional bifurcation analysis:
 
-          shgo_args
-              dict. Arguments of `shgo` optimization method, which can be used to set the
-              fields of: constraints, n, iters, callback, minimizer_kwargs, options,
-              sampling_method.
-          show_shgo
-              bool. whether print the shgo's value.
-          fl_tol
-              float. The tolerance of the function value to recognize it as a candidate of
-              function root point.
-          xl_tol
-              float. The tolerance of the l2 norm distances between this point and previous
-              points. If the norm distances are all bigger than `xl_tol` means this
-              point belong to a new function root point.
+      - **shgo_args**: dict. Arguments of `shgo` optimization method, which can be used to
+        set the fields of: constraints, n, iters, callback, minimizer_kwargs, options, sampling_method.
+      - **show_shgo**: bool. whether print the shgo's value.
+      - **fl_tol**: float. The tolerance of the function value to recognize it as a candidate of
+        function root point.
+      - **xl_tol**: float. The tolerance of the l2 norm distances between this point and
+        previous points. If the norm distances are all bigger than `xl_tol` means this
+        point belong to a new function root point.
   """
 
   def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
@@ -106,25 +100,25 @@ class Bifurcation(object):
     # check "target_pars"
     if not isinstance(target_pars, dict):
       raise errors.BrainPyError('"target_pars" must a dict with the format of: '
-                                 '{"Parameter A": [A_min, A_max],'
-                                 ' "Parameter B": [B_min, B_max]}')
+                                '{"Parameter A": [A_min, A_max],'
+                                ' "Parameter B": [B_min, B_max]}')
     self.target_pars = target_pars
     if len(target_pars) > 2:
       raise errors.BrainPyError("The number of parameters in bifurcation"
-                                 "analysis cannot exceed 2.")
+                                "analysis cannot exceed 2.")
 
     # check "fixed_vars"
     if fixed_vars is None:
       fixed_vars = dict()
     if not isinstance(fixed_vars, dict):
       raise errors.BrainPyError('"fixed_vars" must be a dict the format of: '
-                                 '{"Variable A": A_value, "Variable B": B_value}')
+                                '{"Variable A": A_value, "Variable B": B_value}')
     self.fixed_vars = fixed_vars
 
     # check "target_vars"
     if not isinstance(target_vars, dict):
       raise errors.BrainPyError('"target_vars" must a dict with the format of: '
-                                 '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
+                                '{"Variable A": [A_min, A_max], "Variable B": [B_min, B_max]}')
     self.target_vars = target_vars
 
     # check "pars_update"
@@ -132,7 +126,7 @@ class Bifurcation(object):
       pars_update = dict()
     if not isinstance(pars_update, dict):
       raise errors.BrainPyError('"pars_update" must be a dict the format of: '
-                                 '{"Par A": A_value, "Par B": B_value}')
+                                '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
         raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{integrals}". ')
@@ -203,7 +197,7 @@ class Bifurcation(object):
                                           plot_style=plot_style, tol=tol, show=show)
 
 
-class _Bifurcation1D(base.Base1DAnalyzer):
+class _Bifurcation1D(base.Base1DSymAnalyzer):
   """Bifurcation analysis of 1D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -296,14 +290,14 @@ class _Bifurcation1D(base.Base1DAnalyzer):
 
     else:
       raise errors.BrainPyError(f'Cannot visualize co-dimension {len(self.target_pars)} '
-                                 f'bifurcation.')
+                                f'bifurcation.')
     return container
 
   def plot_limit_cycle_by_sim(self, *args, **kwargs):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _Bifurcation2D(base.Base2DAnalyzer):
+class _Bifurcation2D(base.Base2DSymAnalyzer):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -464,12 +458,11 @@ class _Bifurcation2D(base.Base2DAnalyzer):
 
     # initialize neuron group
     length = all_xs.shape[0]
-    traj_group = Trajectory(size=length,
-                            integrals=self.model.integrals,
-                            target_vars={self.x_var: all_xs, self.y_var: all_ys},
-                            fixed_vars=fixed_vars,
-                            pars_update=self.pars_update,
-                            scope=self.model.scopes)
+    traj_group = utils.Trajectory(model=self.model,
+                                  size=length,
+                                  target_vars={self.x_var: all_xs, self.y_var: all_ys},
+                                  fixed_vars=fixed_vars,
+                                  pars_update=self.pars_update)
     traj_group.run(duration=duration)
 
     # find limit cycles
@@ -526,6 +519,13 @@ class FastSlowBifurcation(object):
   system, we can treat the slow variables as the bifurcation parameters,
   and then study how the different value of slow variables affect the
   bifurcation of the fast sub-system.
+
+
+  Examples
+  --------
+
+  - Tutorials please see: `Dynamics Analysis (Symbolic) <../../../tutorial_analysis/symbolic.ipynb>`_
+
 
   Parameters
   ----------
@@ -595,22 +595,22 @@ class FastSlowBifurcation(object):
     # check "fast_vars"
     if not isinstance(fast_vars, dict):
       raise errors.BrainPyError('"fast_vars" must a dict with the format of: '
-                                 '{"Var A": [A_min, A_max],'
-                                 ' "Var B": [B_min, B_max]}')
+                                '{"Var A": [A_min, A_max],'
+                                ' "Var B": [B_min, B_max]}')
     self.fast_vars = fast_vars
     if len(fast_vars) > 2:
       raise errors.BrainPyError("FastSlowBifurcation can only analyze the system with less "
-                                 "than two-variable fast subsystem.")
+                                "than two-variable fast subsystem.")
 
     # check "slow_vars"
     if not isinstance(slow_vars, dict):
       raise errors.BrainPyError('"slow_vars" must a dict with the format of: '
-                                 '{"Variable A": [A_min, A_max], '
-                                 '"Variable B": [B_min, B_max]}')
+                                '{"Variable A": [A_min, A_max], '
+                                '"Variable B": [B_min, B_max]}')
     self.slow_vars = slow_vars
     if len(slow_vars) > 2:
       raise errors.BrainPyError("FastSlowBifurcation can only analyze the system with less "
-                                 "than two-variable slow subsystem.")
+                                "than two-variable slow subsystem.")
     for key in self.slow_vars:
       self.model.variables.remove(key)
       self.model.parameters.append(key)
@@ -620,7 +620,7 @@ class FastSlowBifurcation(object):
       fixed_vars = dict()
     if not isinstance(fixed_vars, dict):
       raise errors.BrainPyError('"fixed_vars" must be a dict the format of: '
-                                 '{"Variable A": A_value, "Variable B": B_value}')
+                                '{"Variable A": A_value, "Variable B": B_value}')
     self.fixed_vars = fixed_vars
 
     # check "pars_update"
@@ -628,7 +628,7 @@ class FastSlowBifurcation(object):
       pars_update = dict()
     if not isinstance(pars_update, dict):
       raise errors.BrainPyError('"pars_update" must be a dict the format of: '
-                                 '{"Par A": A_value, "Par B": B_value}')
+                                '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
         raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{integrals}" model. ')
@@ -814,12 +814,11 @@ class _FastSlowTrajectory(object):
 
     # 5. run the network
     for init_i, initial in enumerate(initials):
-      traj_group = Trajectory(size=1,
-                              integrals=self.model.integrals,
-                              target_vars=initial,
-                              fixed_vars=self.fixed_vars,
-                              pars_update=self.pars_update,
-                              scope=self.model.scopes)
+      traj_group = utils.Trajectory(model=self.model,
+                                    size=1,
+                                    target_vars=initial,
+                                    fixed_vars=self.fixed_vars,
+                                    pars_update=self.pars_update)
       traj_group.run(duration=duration[init_i], report=False)
 
       #   5.3 legend

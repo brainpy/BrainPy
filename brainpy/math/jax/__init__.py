@@ -12,7 +12,7 @@
 # data structure
 from .jaxarray import *
 
-# functions
+# functions/operations
 from .ops import *
 from . import fft
 from . import linalg
@@ -25,7 +25,8 @@ from . import optimizers
 # transformations
 from .controls import *
 from .compilation import *
-from .gradient import *
+from .autograd import *
 
-# wrapper
+# others
 from .function import *
+from .setting import *

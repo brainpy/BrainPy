@@ -19,28 +19,28 @@ except (ModuleNotFoundError, ImportError):
 logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
-  'BaseAnalyzer',
-  'Base1DAnalyzer',
-  'Base2DAnalyzer',
+  'BaseSymAnalyzer',
+  'Base1DSymAnalyzer',
+  'Base2DSymAnalyzer',
 ]
 
 
-class BaseAnalyzer(object):
-  """Dynamics Analyzer for Neuron Models.
+class BaseSymAnalyzer(object):
+  r"""Dynamics Analyzer for Neuron Models.
 
   This class is a base class which aims for analyze the analysis in
   neuron models. A neuron model is characterized by a series of dynamical
   variables and parameters:
 
-  .. backend::
+  .. math::
 
       {dF \over dt} = F(v_1, v_2, ..., p_1, p_2, ...)
 
-  where :backend:`v_1, v_2` are variables, :backend:`p_1, p_2` are parameters.
+  where :math:`v_1, v_2` are variables, :math:`p_1, p_2` are parameters.
 
   Parameters
   ----------
-  model_or_integrals : simulation.Population, function, functions
+  model_or_integrals : Any
       A model of the population, the integrator function,
       or a list/tuple of integrator functions.
   target_vars : dict
@@ -54,26 +54,23 @@ class BaseAnalyzer(object):
   numerical_resolution : float, dict
       The resolution for numerical iterative solvers. Default is 0.1. It can set the
       numerical resolution of dynamical variables or dynamical parameters. For example,
-      set ``numerical_resolution=0.1`` will generalize it to all variables and parameters;
-      set ``numerical_resolution={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will specify
-      the particular resolutions to variables and parameters. Moreover, you can also set
-      ``numerical_resolution={var1: np.array([...]), var2: 0.1}`` to specify the search points
-      need to explore for variable `var1`. This will be useful to set sense search points at some
-      inflection points.
+
+      - set ``numerical_resolution=0.1`` will generalize it to all variables and parameters;
+      - set ``numerical_resolution={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will specify
+        the particular resolutions to variables and parameters.
+      - Moreover, you can also set ``numerical_resolution={var1: np.array([...]), var2: 0.1}``
+        to specify the search points need to explore for variable `var1`. This will be useful
+        to set sense search points at some inflection points.
   options : dict, optional
       The other setting parameters, which includes:
 
-          perturbation
-              float. The small perturbation used to solve the function derivative.
-          sympy_solver_timeout
-              float, with the unit of second. The maximum  time allowed to use sympy solver
-              to get the variable relationship.
-          escape_sympy_solver
-              bool. Whether escape to use sympy solver, and directly use numerical optimization
-              method to solve the nullcline and fixed points.
-          lim_scale
-              float. The axis limit scale factor. Default is 1.05. The setting means
-              the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
+      - **perturbation**: float. The small perturbation used to solve the function derivative.
+      - **sympy_solver_timeout**: float, with the unit of second. The maximum  time allowed
+        to use sympy solver to get the variable relationship.
+      - **escape_sympy_solver**: bool. Whether escape to use sympy solver, and directly use
+        numerical optimization method to solve the nullcline and fixed points.
+      - **lim_scale**: float. The axis limit scale factor. Default is 1.05. The setting means
+        the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
   """
 
   def __init__(self,
@@ -235,18 +232,18 @@ class BaseAnalyzer(object):
     self.options['lim_scale'] = options.get('lim_scale', 1.05)
 
 
-class Base1DAnalyzer(BaseAnalyzer):
-  """Neuron analysis analyzer for 1D system.
+class Base1DSymAnalyzer(BaseSymAnalyzer):
+  r"""Neuron analysis analyzer for 1D system.
 
   It supports the analysis of 1D dynamical system.
 
-  .. backend::
+  .. math::
 
       {dx \over dt} = f(x, t)
   """
 
   def __init__(self, *args, **kwargs):
-    super(Base1DAnalyzer, self).__init__(*args, **kwargs)
+    super(Base1DSymAnalyzer, self).__init__(*args, **kwargs)
 
     self.x_var = self.dvar_names[0]
     self.x_eq_group = self.target_eqs[self.x_var]
@@ -409,12 +406,12 @@ class Base1DAnalyzer(BaseAnalyzer):
     return self.analyzed_results['fixed_point']
 
 
-class Base2DAnalyzer(Base1DAnalyzer):
-  """Neuron analysis analyzer for 2D system.
+class Base2DSymAnalyzer(Base1DSymAnalyzer):
+  r"""Neuron analysis analyzer for 2D system.
 
   It supports the analysis of 2D dynamical system.
 
-  .. backend::
+  .. math::
 
       {dx \over dt} = f(x, t, y)
 
@@ -426,24 +423,20 @@ class Base2DAnalyzer(Base1DAnalyzer):
   options : dict, optional
       The other setting parameters, which includes:
 
-          shgo_args
-              dict. Arguments of `shgo` optimization method, which can be used to set the
-              fields of: constraints, n, iters, callback, minimizer_kwargs, options,
-              sampling_method.
-          show_shgo
-              bool. whether print the shgo's value.
-          fl_tol
-              float. The tolerance of the function value to recognize it as a condidate of
-              function root point.
-          xl_tol
-              float. The tolerance of the l2 norm distances between this point and previous
-              points. If the norm distances are all bigger than `xl_tol` means this
-              point belong to a new function root point.
+      - **shgo_args**: dict. Arguments of `shgo` optimization method, which can be
+        used to set the fields of: constraints, n, iters, callback, minimizer_kwargs,
+        options, sampling_method.
+      - **show_shgo**: bool. whether print the shgo's value.
+      - **fl_tol**: float. The tolerance of the function value to recognize it as a
+        candidate of function root point.
+      - **xl_tol**: float. The tolerance of the l2 norm distances between this point
+        and previous points. If the norm distances are all bigger than `xl_tol` means
+        this point belong to a new function root point.
 
   """
 
   def __init__(self, *args, **kwargs):
-    super(Base2DAnalyzer, self).__init__(*args, **kwargs)
+    super(Base2DSymAnalyzer, self).__init__(*args, **kwargs)
 
     self.y_var = self.dvar_names[1]
     self.y_eq_group = self.target_eqs[self.y_var]
@@ -996,7 +989,6 @@ class Base2DAnalyzer(Base1DAnalyzer):
       # y equation scope
       eq_y_scope = deepcopy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group.diff_eq.func_scope)
       eq_y_scope['math'] = math
 

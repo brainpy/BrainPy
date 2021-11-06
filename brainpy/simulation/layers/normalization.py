@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from .base import Module
 
 __all__ = [
   'BatchNorm',
 ]
 
 
-class BatchNorm(DynamicalSystem):
+class BatchNorm(Module):
   """Batch Normalization module.
 
   Normalizes inputs to maintain a mean of ~0 and stddev of ~1 [1]_.

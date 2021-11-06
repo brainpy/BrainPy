@@ -23,7 +23,7 @@ from brainpy.base.collector import Collector
 from brainpy.base.function import Function
 from brainpy.math import profile
 
-DE_INT = DynamicalSystem = None
+Integrator = DynamicalSystem = None
 logger = logging.getLogger('brainpy.math.numpy.ast2numba')
 
 __all__ = [
@@ -32,11 +32,17 @@ __all__ = [
 
 
 def jit(obj_or_fun, show_code=False, **jit_setting):
-  global DE_INT
-  if DE_INT is None:
-    from brainpy.integrators.constants import DE_INT
+  global Integrator
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
 
   if callable(obj_or_fun):
+    # integrator
+    if isinstance(obj_or_fun, Integrator):
+      return jit_Integrator(intg=obj_or_fun,
+                            show_code=show_code,
+                            **jit_setting)
+
     # Function
     if isinstance(obj_or_fun, Function):
       return jit_Func(obj_or_fun,
@@ -50,11 +56,7 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
                       name=obj_or_fun.name + '_call',
                       show_code=show_code, **jit_setting)
 
-    # integrator
-    elif hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
-      return jit_integrator(intg=obj_or_fun,
-                            show_code=show_code,
-                            **jit_setting)
+
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
@@ -104,8 +106,8 @@ def jit_DS(obj_or_fun, show_code=False, **jit_setting):
   return obj_or_fun
 
 
-def jit_integrator(intg, show_code=False, **jit_setting):
-  r = _jit_intg_func(intg, show_code=show_code, **jit_setting)
+def jit_Integrator(intg, show_code=False, **jit_setting):
+  r = _jit_intg(intg, show_code=show_code, **jit_setting)
   if len(r['arguments']):
     intg = _form_final_call(f_org=intg, f_rep=r['func'], arg2call=r['arg2call'],
                             arguments=r['arguments'], nodes=r['nodes'],
@@ -142,16 +144,16 @@ def jit_Base(func, host, name=None, show_code=False, **jit_setting):
 
 
 def _jit_func(obj_or_fun, show_code=False, **jit_setting):
-  global DE_INT
-  if DE_INT is None:
-    from brainpy.integrators.constants import DE_INT
+  global Integrator
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
 
   if callable(obj_or_fun):
     # integrator
-    if hasattr(obj_or_fun, '__name__') and obj_or_fun.__name__.startswith(DE_INT):
-      return _jit_intg_func(obj_or_fun,
-                            show_code=show_code,
-                            **jit_setting)
+    if isinstance(obj_or_fun, Integrator):
+      return _jit_intg(obj_or_fun,
+                       show_code=show_code,
+                       **jit_setting)
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
@@ -224,6 +226,179 @@ def _jit_Function(func, show_code=False, **jit_setting):
 
 
 def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
+  """JIT a class function.
+
+  Examples
+  --------
+
+  Example 1: the model has static parameters.
+
+  >>> import brainpy as bp
+  >>>
+  >>> class HH(bp.NeuGroup):
+  >>>     def __init__(self, size, ENa=50., EK=-77., EL=-54.387, C=1.0,
+  >>>                  gNa=120., gK=36., gL=0.03, V_th=20., **kwargs):
+  >>>       super(HH, self).__init__(size=size, **kwargs)
+  >>>       # parameters
+  >>>       self.ENa = ENa
+  >>>       self.EK = EK
+  >>>       self.EL = EL
+  >>>       self.C = C
+  >>>       self.gNa = gNa
+  >>>       self.gK = gK
+  >>>       self.gL = gL
+  >>>       self.V_th = V_th
+  >>>
+  >>>     def derivaitve(self, V, m, h, n, t, Iext):
+  >>>       alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+  >>>       beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+  >>>       dmdt = alpha * (1 - m) - beta * m
+  >>>
+  >>>       alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
+  >>>       beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+  >>>       dhdt = alpha * (1 - h) - beta * h
+  >>>
+  >>>       alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+  >>>       beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+  >>>       dndt = alpha * (1 - n) - beta * n
+  >>>
+  >>>       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
+  >>>       I_K = (self.gK * n ** 4.0) * (V - self.EK)
+  >>>       I_leak = self.gL * (V - self.EL)
+  >>>       dVdt = (- I_Na - I_K - I_leak + Iext) / self.C
+  >>>
+  >>>       return dVdt, dmdt, dhdt, dndt
+  >>>
+  >>> r = _jit_cls_func(HH(10).derivaitve, show_code=True)
+
+  The recompiled function:
+  -------------------------
+
+  def derivaitve(V, m, h, n, t, Iext):
+      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      dmdt = alpha * (1 - m) - beta * m
+      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.0)
+      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      dhdt = alpha * (1 - h) - beta * h
+      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      dndt = alpha * (1 - n) - beta * n
+      I_Na = HH0_gNa * m ** 3.0 * h * (V - HH0_ENa)
+      I_K = HH0_gK * n ** 4.0 * (V - HH0_EK)
+      I_leak = HH0_gL * (V - HH0_EL)
+      dVdt = (-I_Na - I_K - I_leak + Iext) / HH0_C
+      return dVdt, dmdt, dhdt, dndt
+
+  The namespace of the above function:
+  {'HH0_C': 1.0,
+   'HH0_EK': -77.0,
+   'HH0_EL': -54.387,
+   'HH0_ENa': 50.0,
+   'HH0_gK': 36.0,
+   'HH0_gL': 0.03,
+   'HH0_gNa': 120.0,
+   'bp': <module 'brainpy' from 'D:\\codes\\Projects\\BrainPy\\brainpy\\__init__.py'>}
+  >>> r['func']
+  CPUDispatcher(<function derivaitve at 0x0000020DF1647DC0>)
+  >>> r['arguments']
+  set()
+  >>> r['arg2call']
+  {}
+  >>> r['nodes']
+  {'HH0': <__main__.<locals>.HH object at 0x0000020DF1623910>}
+
+
+  Example 2: the model has dynamical variables.
+
+  >>> import brainpy as bp
+  >>>
+  >>> class HH(bp.NeuGroup):
+  >>>     def __init__(self, size, ENa=50., EK=-77., EL=-54.387, C=1.0,
+  >>>                  gNa=120., gK=36., gL=0.03, V_th=20., **kwargs):
+  >>>       super(HH, self).__init__(size=size, **kwargs)
+  >>>       # parameters
+  >>>       self.ENa = ENa
+  >>>       self.EK = EK
+  >>>       self.EL = EL
+  >>>       self.C = C
+  >>>       self.gNa = gNa
+  >>>       self.gK = gK
+  >>>       self.gL = gL
+  >>>       self.V_th = V_th
+  >>>       self.input = bp.math.Variable(bp.math.zeros(size))
+  >>>
+  >>>     def derivaitve(self, V, m, h, n, t):
+  >>>       alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+  >>>       beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+  >>>       dmdt = alpha * (1 - m) - beta * m
+  >>>
+  >>>       alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
+  >>>       beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+  >>>       dhdt = alpha * (1 - h) - beta * h
+  >>>
+  >>>       alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+  >>>       beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+  >>>       dndt = alpha * (1 - n) - beta * n
+  >>>
+  >>>       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
+  >>>       I_K = (self.gK * n ** 4.0) * (V - self.EK)
+  >>>       I_leak = self.gL * (V - self.EL)
+  >>>       dVdt = (- I_Na - I_K - I_leak + self.input) / self.C
+  >>>
+  >>>       return dVdt, dmdt, dhdt, dndt
+  >>>
+  >>> r = _jit_cls_func(HH(10).derivaitve, show_code=True)
+
+  The recompiled function:
+  -------------------------
+
+  def derivaitve(V, m, h, n, t, HH0_input=None):
+      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
+      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      dmdt = alpha * (1 - m) - beta * m
+      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.0)
+      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      dhdt = alpha * (1 - h) - beta * h
+      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
+      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      dndt = alpha * (1 - n) - beta * n
+      I_Na = HH0_gNa * m ** 3.0 * h * (V - HH0_ENa)
+      I_K = HH0_gK * n ** 4.0 * (V - HH0_EK)
+      I_leak = HH0_gL * (V - HH0_EL)
+      dVdt = (-I_Na - I_K - I_leak + HH0_input) / HH0_C
+      return dVdt, dmdt, dhdt, dndt
+
+  The namespace of the above function:
+  {'HH0_C': 1.0,
+   'HH0_EK': -77.0,
+   'HH0_EL': -54.387,
+   'HH0_ENa': 50.0,
+   'HH0_gK': 36.0,
+   'HH0_gL': 0.03,
+   'HH0_gNa': 120.0,
+   'bp': <module 'brainpy' from 'D:\\codes\\Projects\\BrainPy\\brainpy\\__init__.py'>}
+  >>> r['func']
+  CPUDispatcher(<function derivaitve at 0x0000020DF1647DC0>)
+  >>> r['arguments']
+  {'HH0_input'}
+  >>> r['arg2call']
+  {'HH0_input': 'HH0.input.value'}
+  >>> r['nodes']
+  {'HH0': <__main__.<locals>.HH object at 0x00000219AE495E80>}
+
+  Parameters
+  ----------
+  f
+  code
+  host
+  show_code
+  jit_setting
+
+  Returns
+  -------
+
+  """
   host = (host or f.__self__)
 
   # data to return
@@ -251,31 +426,40 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   # compile new function
   # code, _scope = _add_try_except(code)
   # code_scope.update(_scope)
+  code_scope_to_compile = code_scope.copy()
   if show_code:
     show_compiled_codes(code, code_scope)
-  exec(compile(code, '', 'exec'), code_scope)
-  func = code_scope[func_name]
+  exec(compile(code, '', 'exec'), code_scope_to_compile)
+  func = code_scope_to_compile[func_name]
   func = numba.jit(func, **jit_setting)
 
   # returns
-  return dict(func=func, arguments=arguments, arg2call=arg2call, nodes=nodes)
+  return dict(func=func, code=code, code_scope=code_scope,
+              arguments=arguments, arg2call=arg2call, nodes=nodes)
 
 
-def _jit_intg_func(f, show_code=False, **jit_setting):
-  global DynamicalSystem
+def _jit_intg(f, show_code=False, **jit_setting):
+  global DynamicalSystem, Integrator
   if DynamicalSystem is None:
     from brainpy.simulation.brainobjects.base import DynamicalSystem
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
+
+  # TODO: integrator has "integral", "code_lines", "code_scope", "func_name", "derivative",
+  assert isinstance(f, Integrator)
 
   # exponential euler methods
-  if f.brainpy_data['method'].startswith('exponential'):
-    return _jit_cls_func(f=f, code="\n".join(f.brainpy_data['code_lines']),
-                         show_code=show_code, **jit_setting)
+  if hasattr(f.integral, '__self__'):
+    return _jit_cls_func(f=f.integral,
+                         code="\n".join(f.code_lines),
+                         show_code=show_code,
+                         **jit_setting)
 
   # information in the integrator
-  func_name = f.brainpy_data['func_name']
-  raw_func = f.brainpy_data['raw_func']
-  tree = ast.parse('\n'.join(f.brainpy_data['code_lines']))
-  code_scope = {key: val for key, val in f.brainpy_data['code_scope'].items()}
+  func_name = f.func_name
+  raw_func = f.derivative
+  tree = ast.parse('\n'.join(f.code_lines))
+  code_scope = {key: val for key, val in f.code_scope.items()}
 
   # essential information
   arguments = set()
@@ -330,15 +514,15 @@ def _jit_intg_func(f, show_code=False, **jit_setting):
     code = tools.ast2code(tree)
     # code, _scope = _add_try_except(code)
     # code_scope.update(_scope)
-    code_scope_backup = {k: v for k, v in code_scope.items()}
+    # code_scope_backup = {k: v for k, v in code_scope.items()}
     # compile functions
     if show_code:
       show_compiled_codes(code, code_scope)
     exec(compile(code, '', 'exec'), code_scope)
     new_f = code_scope[func_name]
-    new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
-    new_f.brainpy_data['code_lines'] = code.strip().split('\n')
-    new_f.brainpy_data['code_scope'] = code_scope_backup
+    # new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
+    # new_f.brainpy_data['code_lines'] = code.strip().split('\n')
+    # new_f.brainpy_data['code_scope'] = code_scope_backup
     jit_f = numba.jit(new_f, **jit_setting)
     return dict(func=jit_f, arguments=arguments, arg2call=arg2call, nodes=nodes)
   else:
@@ -370,15 +554,29 @@ def _analyze_cls_func(host, code, show_code, self_name=None, pop_self=True, **ji
     tree.body[0].args.args.pop(0)  # remove "self" etc. class argument
 
   # analyze function body
-  r = _analyze_cls_func_body(host=host, self_name=self_name, code=code, tree=tree,
-                             show_code=show_code, has_func_def=True, **jit_setting)
+  r = _analyze_cls_func_body(host=host,
+                             self_name=self_name,
+                             code=code,
+                             tree=tree,
+                             show_code=show_code,
+                             has_func_def=True,
+                             **jit_setting)
   code, arguments, arg2call, nodes, code_scope = r
 
   return code, arguments, arg2call, nodes, code_scope
 
 
-def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
-                           has_func_def=False, **jit_setting):
+def _analyze_cls_func_body(host,
+                           self_name,
+                           code,
+                           tree,
+                           show_code=False,
+                           has_func_def=False,
+                           **jit_setting):
+  global Integrator
+  if Integrator is None:
+    from brainpy.integrators.base import Integrator
+
   arguments, arg2call, nodes, code_scope = set(), dict(), Collector(), dict()
 
   # all self data
@@ -396,6 +594,8 @@ def _analyze_cls_func_body(host, self_name, code, tree, show_code=False,
     target = host
     for i in range(1, len(split_keys)):
       next_target = getattr(target, split_keys[i])
+      if isinstance(next_target, Integrator):
+        break
       if not isinstance(next_target, Base):
         break
       target = next_target

@@ -2,7 +2,13 @@
 
 import numpy as np
 
-from brainpy import tools
+from brainpy import tools, errors
+
+try:
+  from scipy.optimize import shgo
+except (ModuleNotFoundError, ImportError):
+  shgo = None
+
 
 __all__ = [
   'brentq',
@@ -238,7 +244,10 @@ def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
   res : tuple
       The roots.
   """
-  from scipy.optimize import shgo
+
+  if shgo is None:
+    raise errors.PackageMissingError('Package "scipy" must be installed when the users '
+                                     'want to find the root of a two dimensional function.')
 
   # 1. shgo arguments
   if shgo_args is None:

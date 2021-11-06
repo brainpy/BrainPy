@@ -9,8 +9,8 @@ import pytest
 import brainpy as bp
 import brainpy.math.jax as bm
 from brainpy.base import Base
-from brainpy.math.jax.gradient import _jac_rev_aux, _jac_fwd_aux
-from brainpy.math.jax.gradient import jacrev
+from brainpy.math.jax.autograd import _jac_rev_aux, _jac_fwd_aux
+from brainpy.math.jax.autograd import jacrev
 
 bp.math.use_backend('jax')
 

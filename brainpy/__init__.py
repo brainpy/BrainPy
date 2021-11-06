@@ -2,11 +2,16 @@
 
 __version__ = "1.1.0"
 
+try:
+  import jax
+  jax.config.update('jax_platform_name', 'cpu')
+except ModuleNotFoundError:
+  pass
 
 # "base" module
 from . import base
-from .base.base import *
-from .base.collector import *
+from .base.base import Base
+from .base.collector import Collector, TensorCollector
 
 
 # "math" module
@@ -17,7 +22,12 @@ from . import math
 from . import integrators
 from .integrators import ode
 from .integrators import sde
-from .integrators.wrapper import *
+from .integrators.ode import odeint
+from .integrators.ode import set_default_odeint
+from .integrators.ode import get_default_odeint
+from .integrators.sde import sdeint
+from .integrators.sde import set_default_sdeint
+from .integrators.sde import get_default_sdeint
 
 
 # "simulation" module
@@ -29,10 +39,9 @@ from .simulation import brainobjects
 from .simulation import connect
 from .simulation import initialize
 from .simulation import layers
-from .simulation import nets
-# py files
 from .simulation import inputs
 from .simulation import measure
+
 
 # "analysis" module
 from . import analysis

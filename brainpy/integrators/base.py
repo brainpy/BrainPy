@@ -5,6 +5,11 @@ from brainpy.base.base import Base
 
 
 class Integrator(Base):
-  pass
+  """Basic Integrator Class."""
 
+  # func_name
+  # derivative
+  # code_scope
+  #
+  pass
 

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""This module aims to provide commonly used methods for simulated neuronal data.
-
+"""
+This module aims to provide commonly used analysis methods for simulated neuronal data.
+You can access them through ``brainpy.measure.XXX``.
 """
 
 

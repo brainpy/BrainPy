@@ -7,10 +7,40 @@ Numerical Methods for SDEs
 .. autosummary::
     :toctree: generated/
 
-    euler
-    heun
-    milstein
-    exponential_euler
-    srk1w1_scalar
-    srk2w1_scalar
-    KlPl_scalar
+    Euler
+    Heun
+    Milstein
+    ExponentialEuler
+    SRK1W1
+    SRK2W1
+    KlPl
+
+
+
+.. autoclass:: Euler
+   :members:
+
+
+
+.. autoclass:: Heun
+   :members:
+
+
+.. autoclass:: Milstein
+   :members:
+
+
+.. autoclass:: ExponentialEuler
+   :members:
+
+
+.. autoclass:: SRK1W1
+   :members:
+
+
+.. autoclass:: SRK2W1
+   :members:
+
+
+.. autoclass:: KlPl
+   :members:

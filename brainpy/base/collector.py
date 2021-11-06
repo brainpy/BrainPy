@@ -2,14 +2,14 @@
 
 
 from contextlib import contextmanager
+
 from brainpy import errors
 
 math = None
 
-
 __all__ = [
   'Collector',
-  'ArrayCollector',
+  'TensorCollector',
 ]
 
 
@@ -106,16 +106,8 @@ class Collector(dict):
         gather[k] = v
     return gather
 
-  def dict(self):
-    """Get a dict with the key and the value data.
-    """
-    gather = dict()
-    for k, v in self.items():
-      gather[k] = v.value
-    return gather
 
-
-class ArrayCollector(Collector):
+class TensorCollector(Collector):
   """A ArrayCollector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
@@ -147,6 +139,14 @@ class ArrayCollector(Collector):
                        f'an input value with the length of {len(inputs)}.')
     for key, v in self.items():
       v.value = inputs[key]
+
+  def dict(self):
+    """Get a dict with the key and the value data.
+    """
+    gather = dict()
+    for k, v in self.items():
+      gather[k] = v.value
+    return gather
 
   def data(self):
     """Get all data in each value."""

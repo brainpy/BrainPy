@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy import math, tools
+import numpy as np
+from brainpy import tools
 from .base import TwoEndConnector
 
 
@@ -16,8 +17,8 @@ class MatConn(TwoEndConnector):
   def __init__(self, conn_mat):
     super(MatConn, self).__init__()
 
-    assert isinstance(conn_mat, math.ndarray) and conn_mat.ndim == 2
-    self.conn_mat = math.asarray(conn_mat, dtype=math.bool_)
+    assert isinstance(conn_mat, np.ndarray) and conn_mat.ndim == 2
+    self.conn_mat = np.asarray(conn_mat, dtype=np.bool_)
     self.pre_num, self.post_num = conn_mat.shape
 
   def __call__(self, pre_size, post_size):
@@ -40,13 +41,13 @@ class IJConn(TwoEndConnector):
   def __init__(self, i, j):
     super(IJConn, self).__init__()
 
-    assert isinstance(i, math.ndarray) and i.ndim == 1
-    assert isinstance(j, math.ndarray) and j.ndim == 1
+    assert isinstance(i, np.ndarray) and i.ndim == 1
+    assert isinstance(j, np.ndarray) and j.ndim == 1
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"
-    self.pre_ids = math.asarray(i, dtype=math.int_)
-    self.post_ids = math.asarray(j, dtype=math.int_)
+    self.pre_ids = np.asarray(i, dtype=np.int_)
+    self.post_ids = np.asarray(j, dtype=np.int_)
 
   def require(self, structures):
     self.check(structures)

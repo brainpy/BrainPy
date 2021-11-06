@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-from brainpy.integrators.sde.euler_and_milstein import exponential_euler
+from brainpy.integrators.sde.normal import exponential_euler
 
 
 def test1():

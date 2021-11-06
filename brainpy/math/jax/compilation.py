@@ -21,7 +21,7 @@ from jax.interpreters.pxla import ShardedDeviceArray
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.collector import ArrayCollector
+from brainpy.base.collector import TensorCollector
 from brainpy.math.jax.jaxarray import JaxArray
 from brainpy.math.jax.random import RandomState
 from brainpy.tools.codes import change_func_name
@@ -35,13 +35,8 @@ __all__ = [
 logger = logging.getLogger('brainpy.math.jax.compilation')
 
 
-def _make_jit(func, vars, static_argnames=None, device=None,
-              backend=None, donate_argnums=(), inline=False, f_name=None):
-  @functools.partial(jax.jit,
-                     static_argnames=static_argnames,
-                     device=device, backend=backend,
-                     donate_argnums=donate_argnums,
-                     inline=inline)
+def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
+  @functools.partial(jax.jit, static_argnames=static_argnames, device=device)
   def jitted_func(variable_data, *args, **kwargs):
     vars.assign(variable_data)
     out = func(*args, **kwargs)
@@ -57,8 +52,7 @@ def _make_jit(func, vars, static_argnames=None, device=None,
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
-        backend=None, donate_argnums=(), inline=False, **kwargs):
+def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, **kwargs):
   """JIT (Just-In-Time) Compilation for JAX backend.
 
   This function has the same ability to Just-In-Time compile a pure function,
@@ -72,10 +66,12 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
   Notes
   -----
 
-  ``jit`` compilation in ``brainpy.math.jax`` does not support `static_argnums`.
-  Instead, users should use `static_argnames`, and call the jitted function with
-  keywords like ``jitted_func(arg1=var1, arg2=var2)``.
+  There are several notes:
 
+  1. Avoid using scalar in Variable, TrainVar, etc.
+  2. ``jit`` compilation in ``brainpy.math.jax`` does not support `static_argnums`.
+     Instead, users should use `static_argnames`, and call the jitted function with
+     keywords like ``jitted_func(arg1=var1, arg2=var2)``.
 
   Examples
   --------
@@ -90,7 +86,7 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
 
   You can JIT a :py:class:`brainpy.Base` object with ``__call__()`` implementation.
 
-  >>> mlp = bp.nets.MLP((10, 100, 10))
+  >>> mlp = bp.layers.GRU(100, 200)
   >>> jit_mlp = bp.math.jit(mlp)
 
   You can also JIT a bounded method of a :py:class:`brainpy.Base` object.
@@ -113,19 +109,11 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
   >>>   return lmbda * bp.math.where(x > 0, x, alpha * bp.math.exp(x) - alpha)
 
 
-  Notes
-  -----
-
-  There are several notes:
-
-  1. Avoid using scalar in Variable, TrainVar, etc.
-
-
   Parameters
   ----------
   obj_or_func : Base, function
     The instance of Base or a function.
-  dyn_vars : optional, dict
+  dyn_vars : optional, dict, tuple, list, JaxArray
     These variables will be changed in the function, or needed in the computation.
   static_argnames : optional, str, list, tuple, dict
     An optional string or collection of strings specifying which named arguments to treat
@@ -138,25 +126,10 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
     can be retrieved via :py:func:`jax.devices`.) The default is inherited
     from XLA's DeviceAssignment logic and is usually to use
     ``jax.devices()[0]``.
-  backend: optional, str, dict
-    This is an experimental feature and the API is likely to change. Optional,
-    a string representing the XLA backend: ``'cpu'``, ``'gpu'``, or ``'tpu'``.
-  donate_argnums: optional, int, dict, tuple, list
-    Specify which arguments are "donated" to the computation.
-    It is safe to donate arguments if you no longer need them once the
-    computation has finished. In some cases XLA can make use of donated
-    buffers to reduce the amount of memory needed to perform a computation,
-    for example recycling one of your input buffers to store a result. You
-    should not reuse buffers that you donate to a computation, JAX will raise
-    an error if you try to. By default, no arguments are donated.
-  inline: bool
-    Specify whether this function should be inlined into enclosing
-    jaxprs (rather than being represented as an application of the xla_call
-    primitive with its own subjaxpr). Default False.
 
   Returns
   -------
-  ds_of_func : Base, function
+  ds_of_func :
     A wrapped version of Base object or function, set up for just-in-time compilation.
   """
   from brainpy.simulation.brainobjects.base import DynamicalSystem
@@ -167,11 +140,11 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
       # dynamical variables
       dyn_vars = (dyn_vars or obj_or_func.vars().unique())
       if isinstance(dyn_vars, JaxArray):
-        dyn_vars = ArrayCollector({'_': dyn_vars})
+        dyn_vars = TensorCollector({'_': dyn_vars})
       elif isinstance(dyn_vars, dict):
-        dyn_vars = ArrayCollector(dyn_vars)
+        dyn_vars = TensorCollector(dyn_vars)
       elif isinstance(dyn_vars, (tuple, list)):
-        dyn_vars = ArrayCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
+        dyn_vars = TensorCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
       else:
         raise ValueError
 
@@ -184,29 +157,12 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
         static_argnames = {key: static_argnames for key in obj_or_func.steps.keys()}
       assert isinstance(static_argnames, dict)
 
-      # donate arguments by num
-      if donate_argnums is None:
-        donate_argnums = {key: () for key in obj_or_func.steps.keys()}
-      elif isinstance(donate_argnums, int):
-        donate_argnums = {key: (donate_argnums + 1,) for key in obj_or_func.steps.keys()}
-      elif isinstance(donate_argnums, (tuple, list)):
-        donate_argnums = {key: tuple(x + 1 for x in donate_argnums) for key in obj_or_func.steps.keys()}
-      assert isinstance(donate_argnums, dict)
-
-      # inline
-      if not isinstance(inline, dict):
-        inline = {key: inline for key in obj_or_func.steps.keys()}
-      assert isinstance(inline, dict)
-
       # jit functions
       for key in list(obj_or_func.steps.keys()):
         jitted_func = _make_jit(vars=dyn_vars,
                                 func=obj_or_func.steps[key],
                                 static_argnames=static_argnames[key],
                                 device=device,
-                                backend=backend,
-                                donate_argnums=donate_argnums[key],
-                                inline=inline[key],
                                 f_name=key)
         obj_or_func.steps.replace(key, jitted_func)
       return obj_or_func
@@ -214,11 +170,11 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
   if callable(obj_or_func):
     if dyn_vars is not None:
       if isinstance(dyn_vars, JaxArray):
-        dyn_vars = ArrayCollector({'_': dyn_vars})
+        dyn_vars = TensorCollector({'_': dyn_vars})
       elif isinstance(dyn_vars, dict):
-        dyn_vars = ArrayCollector(dyn_vars)
+        dyn_vars = TensorCollector(dyn_vars)
       elif isinstance(dyn_vars, (tuple, list)):
-        dyn_vars = ArrayCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
+        dyn_vars = TensorCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
       else:
         raise ValueError
     elif isinstance(obj_or_func, Base):
@@ -226,24 +182,18 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None,
     elif hasattr(obj_or_func, '__self__') and isinstance(obj_or_func.__self__, Base):
       dyn_vars = obj_or_func.__self__.vars().unique()
     else:
-      dyn_vars = ArrayCollector()
+      dyn_vars = TensorCollector()
 
     if len(dyn_vars) == 0:  # pure function
       return jax.jit(obj_or_func,
                      static_argnames=static_argnames,
-                     device=device,
-                     backend=backend,
-                     donate_argnums=donate_argnums,
-                     inline=inline)
+                     device=device)
 
     else:  # Base object which implements __call__, or bounded method of Base object
       return _make_jit(vars=dyn_vars,
                        func=obj_or_func,
                        static_argnames=static_argnames,
-                       device=device,
-                       backend=backend,
-                       donate_argnums=donate_argnums,
-                       inline=inline)
+                       device=device)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
@@ -338,7 +288,7 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
       # dynamical variables
       dyn_vars = (dyn_vars or obj_or_func.vars().unique())
-      dyn_vars, rand_vars = ArrayCollector(), ArrayCollector()
+      dyn_vars, rand_vars = TensorCollector(), TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
@@ -420,7 +370,7 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
     else:
       # dynamical variables
-      dyn_vars, rand_vars = ArrayCollector(), ArrayCollector()
+      dyn_vars, rand_vars = TensorCollector(), TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
@@ -562,8 +512,8 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
 
       # dynamical variables
       all_vars = (dyn_vars or obj_or_func.vars().unique())
-      dyn_vars = ArrayCollector()
-      rand_vars = ArrayCollector()
+      dyn_vars = TensorCollector()
+      rand_vars = TensorCollector()
       for key, val in all_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val
@@ -624,8 +574,8 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
                       global_arg_shapes=global_arg_shapes)
     else:
       # dynamical variables
-      dyn_vars = ArrayCollector()
-      rand_vars = ArrayCollector()
+      dyn_vars = TensorCollector()
+      rand_vars = TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val

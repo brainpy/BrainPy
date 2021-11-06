@@ -1,12 +1,28 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math
-from brainpy.integrators import constants
-from . import common
+from brainpy.integrators import constants, utils
 
 __all__ = [
   'srk1_strong',
 ]
+
+
+_SDE_UNKNOWN_NO = 0
+
+
+def basic_info(f, g):
+  vdt = 'dt'
+  if f.__name__.isidentifier():
+    func_name = f.__name__
+  elif g.__name__.isidentifier():
+    func_name = g.__name__
+  else:
+    global _SDE_UNKNOWN_NO
+    func_name = f'unknown_sde{_SDE_UNKNOWN_NO}'
+  func_new_name = constants.SDE_INT + func_name
+  variables, parameters, arguments = utils.get_args(f)
+  return vdt, variables, parameters, arguments, func_new_name
 
 
 def _vector_wiener_terms(code_lines, sde_type, vdt, shape_D, shape_m):
@@ -313,7 +329,7 @@ def _srk1_system_var_with_scalar_wiener(sde_type, code_lines, variables, paramet
 
 
 def _srk1_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter):
-  vdt, variables, parameters, arguments, func_name = common.basic_info(f=f, g=g)
+  vdt, variables, parameters, arguments, func_name = basic_info(f=f, g=g)
 
   # 1. code scope
   code_scope = {'f': f, 'g': g, vdt: dt, f'{vdt}_sqrt': dt ** 0.5,
@@ -361,7 +377,7 @@ def _srk1_wrapper(f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter
   code_lines.append(f'  return {", ".join(new_vars)}')
 
   # return and compile
-  common.compile_and_assign_attrs(code_lines, code_scope, show_code, variables)
+  utils.compile_code(code_lines, code_scope, show_code, variables)
   return code_scope[func_name]
 
 

@@ -19,6 +19,9 @@ import brainpy
 from docs.apis import base_generator
 base_generator.generate('apis/')
 
+from docs.apis import analysis_generator
+analysis_generator.generate('apis/analysis/')
+
 from docs.apis import math_generator
 math_generator.generate('apis/math/')
 
@@ -34,11 +37,11 @@ visualization_generator.generate('apis/')
 from docs.apis import tools_generator
 tools_generator.generate('apis/')
 
-from shutil import copyfile
+import shutil
 det_changelog = 'apis/changelog.rst'
 src_changelog = '../changelog.rst'
 if os.path.exists(det_changelog): os.remove(det_changelog)
-copyfile(src_changelog, det_changelog)
+shutil.copyfile(src_changelog, det_changelog)
 
 
 # -- Project information -----------------------------------------------------
@@ -65,6 +68,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'nbsphinx',
     "sphinx_rtd_theme",
+    'matplotlib.sphinxext.plot_directive',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -86,3 +90,5 @@ master_doc = 'index'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
+
+

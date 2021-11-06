@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brainpy import tools, math, errors
+from brainpy import tools, errors
 from .base import *
 
 try:
@@ -50,15 +50,15 @@ class FixedProb(TwoEndConnector):
     self.prob = prob
     self.include_self = include_self
     self.seed = seed
-    self.rng = math.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=seed)
 
   def require(self, *structures):
     type_to_provide = self.check(structures)
 
     if type_to_provide == PROVIDE_MAT:
       prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-      if not self.include_self: prob_mat = math.fill_diagonal(prob_mat, 1.)
-      conn_mat = math.array(prob_mat <= self.prob, dtype=math.bool_)
+      if not self.include_self: np.fill_diagonal(prob_mat, 1.)
+      conn_mat = np.array(prob_mat <= self.prob, dtype=np.bool_)
       return self.returns(mat=conn_mat)
 
     elif type_to_provide == PROVIDE_IJ:
@@ -70,8 +70,8 @@ class FixedProb(TwoEndConnector):
         if len(posts):
           pre_ids.append(np.ones_like(posts, dtype=np.int_) * i)
           post_ids.append(posts)
-      pre_ids = math.asarray(np.concatenate(pre_ids), dtype=math.int_)
-      post_ids = math.asarray(np.concatenate(post_ids), dtype=math.int_)
+      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=np.int_)
+      post_ids = np.asarray(np.concatenate(post_ids), dtype=np.int_)
       return self.returns(ij=(pre_ids, post_ids))
 
     else:
@@ -83,7 +83,7 @@ def _fixed_num_prob_for_ij(rng, num_need, num_total, i=0, include_self=False):
   prob = rng.random(num_total)
   if not include_self and i <= num_total: prob[i] = 1.
   pres = np.argsort(prob)[:num_need]
-  posts = np.ones_like(pres, dtype=math.int_) * i
+  posts = np.ones_like(pres, dtype=np.int_) * i
   return pres, posts
 
 
@@ -122,7 +122,7 @@ class FixedPreNum(TwoEndConnector):
     self.num = num
     self.seed = seed
     self.include_self = include_self
-    self.rng = math.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=seed)
 
   def require(self, *structures):
     type_to_provide = self.check(structures)
@@ -141,10 +141,10 @@ class FixedPreNum(TwoEndConnector):
     # matrix
     if type_to_provide == PROVIDE_MAT:
       prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-      if not self.include_self: prob_mat = math.fill_diagonal(prob_mat, 1.)
+      if not self.include_self: np.fill_diagonal(prob_mat, 1.)
 
-      conn_mat = prob_mat <= math.quantile(prob_mat, prob, axis=0)
-      conn_mat = math.asarray(conn_mat, dtype=math.bool_)
+      conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
+      conn_mat = np.asarray(conn_mat, dtype=np.bool_)
       return self.returns(mat=conn_mat)
 
     # ij
@@ -156,8 +156,8 @@ class FixedPreNum(TwoEndConnector):
                                              i=i, include_self=self.include_self)
         pre_ids.append(pres)
         post_ids.append(posts)
-      pre_ids = math.asarray(np.concatenate(pre_ids), dtype=math.int_)
-      post_ids = math.asarray(np.concatenate(post_ids), dtype=math.int_)
+      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=np.int_)
+      post_ids = np.asarray(np.concatenate(post_ids), dtype=np.int_)
       return self.returns(ij=(pre_ids, post_ids))
 
     else:
@@ -199,7 +199,7 @@ class FixedPostNum(TwoEndConnector):
     self.num = num
     self.seed = seed
     self.include_self = include_self
-    self.rng = math.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=seed)
 
   def require(self, *structures):
     type_to_provide = self.check(structures)
@@ -218,9 +218,9 @@ class FixedPostNum(TwoEndConnector):
     # matrix
     if type_to_provide == PROVIDE_MAT:
       prob_mat = self.rng.random(size=(self.post_num, self.pre_num))
-      if not self.include_self: prob_mat = math.fill_diagonal(prob_mat, 1.)
-      conn_mat = prob_mat <= math.quantile(prob_mat, prob, axis=0)
-      conn_mat = math.asarray(math.transpose(conn_mat), dtype=math.bool_)
+      if not self.include_self: np.fill_diagonal(prob_mat, 1.)
+      conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
+      conn_mat = np.asarray(np.transpose(conn_mat), dtype=np.bool_)
       return self.returns(mat=conn_mat)
 
     # ij
@@ -322,7 +322,7 @@ class GaussianProb(OneEndConnector):
     self.include_self = include_self
     self.periodic_boundary = periodic_boundary
     self.seed = seed
-    self.rng = math.random.RandomState(seed)
+    self.rng = np.random.RandomState(seed)
 
   def require(self, *structures):
     type_tp_provide = self.check(structures)
@@ -383,11 +383,11 @@ class GaussianProb(OneEndConnector):
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
     if type_tp_provide == PROVIDE_MAT:
-      return self.returns(mat=math.asarray(conn_mat, dtype=math.float_))
+      return self.returns(mat=np.asarray(conn_mat, dtype=np.float_))
     elif type_tp_provide == PROVIDE_IJ:
       i, j = np.where(conn_mat)
-      pre_ids = math.asarray(i, dtype=math.int_)
-      post_ids = math.asarray(j, dtype=math.int_)
+      pre_ids = np.asarray(i, dtype=np.int_)
+      post_ids = np.asarray(j, dtype=np.int_)
       return self.returns(mat=conn_mat, ij=(pre_ids, post_ids))
     else:
       return ValueError
@@ -458,13 +458,13 @@ class SmallWorld(TwoEndConnector):
         raise ValueError("num_neighbor > num_node, choose smaller num_neighbor or larger num_node")
       # If k == n, the graph is complete not Watts-Strogatz
       if self.num_neighbor == num_node:
-        conn = math.ones((num_node, num_node), dtype=bool)
+        conn = np.ones((num_node, num_node), dtype=bool)
       else:
         conn = np.zeros((num_node, num_node), dtype=bool)
         nodes = np.array(list(range(num_node)))  # nodes are labeled 0 to n-1
         # connect each node to k/2 neighbors
         for j in range(1, self.num_neighbor // 2 + 1):
-          targets = math.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
+          targets = np.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
           conn[nodes, targets] = True
           conn[targets, nodes] = True
 
@@ -472,7 +472,7 @@ class SmallWorld(TwoEndConnector):
         # loop over all nodes in order (label) and neighbors in order (distance)
         # no self loops or multiple edges allowed
         for j in range(1, self.num_neighbor // 2 + 1):  # outer loop is neighbors
-          targets = math.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
+          targets = np.concatenate([nodes[j:], nodes[0:j]])  # first j nodes are now last in list
           if self.directed:
             # inner loop in node order
             for u, v in zip(nodes, targets):
@@ -493,7 +493,7 @@ class SmallWorld(TwoEndConnector):
                 conn[v, u] = False
                 conn[u, w] = True
                 conn[w, u] = True
-        conn = math.asarray(conn, dtype=math.bool_)
+        conn = np.asarray(conn, dtype=np.bool_)
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
@@ -501,9 +501,9 @@ class SmallWorld(TwoEndConnector):
       return self.returns(mat=conn)
 
     elif type_to_provide == PROVIDE_IJ:
-      pre_ids, post_ids = math.where(conn)
-      pre_ids = math.asarray(pre_ids, dtype=math.int_)
-      post_ids = math.asarray(post_ids, dtype=math.int_)
+      pre_ids, post_ids = np.where(conn)
+      pre_ids = np.asarray(pre_ids, dtype=np.int_)
+      post_ids = np.asarray(post_ids, dtype=np.int_)
       return self.returns(mat=conn, ij=(pre_ids, post_ids))
 
     else:
@@ -590,14 +590,14 @@ class ScaleFreeBA(TwoEndConnector):
       source += 1
 
     if type_to_provide == PROVIDE_MAT:
-      conn = math.asarray(conn, dtype=math.bool_)
+      conn = np.asarray(conn, dtype=np.bool_)
       return self.returns(mat=conn)
 
     elif type_to_provide == PROVIDE_IJ:
       pre_ids, post_ids = np.where(conn)
-      pre_ids = math.asarray(pre_ids, dtype=math.int_)
-      post_ids = math.asarray(post_ids, dtype=math.int_)
-      conn = math.asarray(conn, dtype=math.bool_)
+      pre_ids = np.asarray(pre_ids, dtype=np.int_)
+      post_ids = np.asarray(post_ids, dtype=np.int_)
+      conn = np.asarray(conn, dtype=np.bool_)
       return self.returns(mat=conn, ij=(pre_ids, post_ids))
 
     else:
@@ -683,13 +683,13 @@ class ScaleFreeBADual(TwoEndConnector):
       source += 1
 
     if type_tp_provide == PROVIDE_MAT:
-      conn = math.asarray(conn, dtype=math.bool_)
+      conn = np.asarray(conn, dtype=np.bool_)
       return self.returns(mat=conn)
     elif type_tp_provide == PROVIDE_IJ:
       pre_ids, post_ids = np.where(conn)
-      pre_ids = math.asarray(pre_ids, dtype=math.int_)
-      post_ids = math.asarray(post_ids, dtype=math.int_)
-      conn = math.asarray(conn, dtype=math.bool_)
+      pre_ids = np.asarray(pre_ids, dtype=np.int_)
+      post_ids = np.asarray(post_ids, dtype=np.int_)
+      conn = np.asarray(conn, dtype=np.bool_)
       return self.returns(mat=conn, ij=(pre_ids, post_ids))
     else:
       raise ValueError
@@ -776,7 +776,7 @@ class PowerLaw(TwoEndConnector):
       count = 1
       while count < self.m:  # add m-1 more new links
         if self.rng.random() < self.p:  # clustering step: add triangle
-          neighbors = math.where(conn[target])[0]
+          neighbors = np.where(conn[target])[0]
           neighborhood = [nbr for nbr in neighbors if not conn[source, nbr] and not nbr == source]
           if neighborhood:  # if there is a neighbor without a link
             nbr = self.rng.choice(neighborhood)
@@ -795,13 +795,13 @@ class PowerLaw(TwoEndConnector):
       source += 1
 
     if type_to_provide == PROVIDE_MAT:
-      conn = math.asarray(conn, dtype=math.bool_)
+      conn = np.asarray(conn, dtype=np.bool_)
       return self.returns(mat=conn)
     elif type_to_provide == PROVIDE_IJ:
       pre_ids, post_ids = np.where(conn)
-      pre_ids = math.asarray(pre_ids, dtype=math.int_)
-      post_ids = math.asarray(post_ids, dtype=math.int_)
-      conn = math.asarray(conn, dtype=math.bool_)
+      pre_ids = np.asarray(pre_ids, dtype=np.int_)
+      post_ids = np.asarray(post_ids, dtype=np.int_)
+      conn = np.asarray(conn, dtype=np.bool_)
       return self.returns(mat=conn, ij=(pre_ids, post_ids))
     else:
       raise ValueError

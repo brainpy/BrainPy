@@ -9,7 +9,7 @@ def test_one2one():
     conn = connect.One2One()(pre_size=size, post_size=size)
     mat = conn.require(connect.CONN_MAT)
     res = conn.require('pre_ids', 'post_ids', 'pre2post', 'pre_slice')
-    num = bp.simulation.size2len(size)
+    num = bp.tools.size2num(size)
 
     actual_mat = bp.math.zeros((num, num), dtype=bp.math.bool_)
     actual_mat = bp.math.fill_diagonal(actual_mat, True)
@@ -30,7 +30,7 @@ def test_all2all():
       conn = connect.All2All(include_self=has_self)(pre_size=size, post_size=size)
       mat = conn.require(connect.CONN_MAT)
       res = conn.require('pre_ids', 'post_ids', 'pre2post', 'pre_slice')
-      num = bp.simulation.size2len(size)
+      num = bp.tools.size2num(size)
 
       actual_mat = bp.math.ones((num, num), dtype=bp.math.bool_)
       if not has_self:

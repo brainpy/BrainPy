@@ -3,7 +3,9 @@
 import abc
 from typing import Union, List, Tuple
 
-from brainpy import errors, tools
+import numpy as np
+
+from brainpy import errors, tools, math
 from brainpy.simulation.connect import formatter
 
 __all__ = [
@@ -101,6 +103,12 @@ class TwoEndConnector(Connector):
       raise errors.BrainPyError(f'Please call "self.check" first to get synaptic '
                                 f'structures required. Error in {str(self)}')
 
+    if mat is not None:
+      assert isinstance(mat, np.ndarray), f'"mat" must be a numpy.ndarray, but got {type(mat)}'
+    if ij is not None:
+      assert isinstance(ij[0], np.ndarray), f'"ij[0]" must be a numpy.ndarray, but got {type(ij[0])}'
+      assert isinstance(ij[1], np.ndarray), f'"ij[1]" must be a numpy.ndarray, but got {type(ij[1])}'
+
     if len(self.structures) == 1 and self.structures[0] == CONN_MAT:
       if mat is None:
         mat = formatter.ij2mat(i=ij[0], j=ij[1], num_pre=self.pre_num, num_post=self.post_num)
@@ -113,22 +121,28 @@ class TwoEndConnector(Connector):
         if mat is None:
           raise errors.BrainPyError(f'"mat" and "ij" are both none, please provide at least one of them.')
         ij = formatter.mat2ij(mat)
-      all_data[PRE_IDS] = ij[0]
-      all_data[POST_IDS] = ij[1]
+      all_data[PRE_IDS] = math.asarray(ij[0], dtype=math.int_)
+      all_data[POST_IDS] = math.asarray(ij[1], dtype=math.int_)
 
       # check 'mat'
       if CONN_MAT in self.structures:
         if mat is None:
           mat = formatter.ij2mat(i=ij[0], j=ij[1], num_pre=self.pre_num, num_post=self.post_num)
-      all_data[CONN_MAT] = mat
+      all_data[CONN_MAT] = math.asarray(mat, dtype=math.bool_)
 
       # names of the needed structures
       if PRE_SLICE in self.structures:
-        all_data[PRE_IDS], all_data[POST_IDS], all_data[PRE_SLICE] = \
-          formatter.pre_slice(i=ij[0], j=ij[1], num_pre=self.pre_num)
+        r = formatter.pre_slice(i=ij[0], j=ij[1], num_pre=self.pre_num)
+        all_data[PRE_IDS] = math.asarray(r[0], dtype=math.int_)
+        all_data[POST_IDS] = math.asarray(r[1], dtype=math.int_)
+        all_data[PRE_SLICE] = math.asarray(r[2], dtype=math.int_)
+
       elif POST_SLICE in self.structures:
-        all_data[PRE_IDS], all_data[POST_IDS], all_data[POST_SLICE] = \
-          formatter.post_slice(i=ij[0], j=ij[1], num_post=self.post_num)
+        r = formatter.post_slice(i=ij[0], j=ij[1], num_post=self.post_num)
+        all_data[PRE_IDS] = math.asarray(r[0], dtype=math.int_)
+        all_data[POST_IDS] = math.asarray(r[1], dtype=math.int_)
+        all_data[PRE_SLICE] = math.asarray(r[2], dtype=math.int_)
+
       for n in self.structures:
         if n in [PRE_SLICE, POST_SLICE, PRE_IDS, POST_IDS, CONN_MAT]:
           continue

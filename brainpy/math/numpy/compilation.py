@@ -106,12 +106,8 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
   show_code : bool
     Debugging.
 
-  kwargs
-
-  Returns
-  -------
-  res : callable, Base
-    The jitted objects.
+  kwargs : dict
+    The setting for jax JIT.
   """
 
   # checking
@@ -127,7 +123,8 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
                        inline=inline, boundscheck=boundscheck, debug=debug)
 
 
-def vmap(obj_or_func, *args, **kwargs):
+def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
+         in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
   """Vectorization Compilation in NumPy backend.
 
   Vectorization compilation is not implemented in NumPy backend.
