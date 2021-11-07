@@ -66,8 +66,9 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'nbsphinx',
     "sphinx_rtd_theme",
+    'sphinx_autodoc_typehints',
+    'myst_nb',
     'matplotlib.sphinxext.plot_directive',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -92,3 +93,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'sphinx_rtd_theme'
 
 
+# -- Options for myst ----------------------------------------------
+# Notebook cell execution timeout; defaults to 30.
+execution_timeout = 200

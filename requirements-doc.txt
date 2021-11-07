@@ -10,4 +10,5 @@ pandoc
 Jinja2
 sphinx
 sphinx_rtd_theme
-nbsphinx
+sphinx-autodoc-typehints
+myst-nb
