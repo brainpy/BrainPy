@@ -115,7 +115,7 @@ class DynamicalSystem(Base):
   def __call__(self, *args, **kwargs):
     return self.update(*args, **kwargs)
 
-  def update(self, _t, _dt, **kwargs):
+  def update(self, *args, **kwargs):
     """The function to specify the updating rule.
 
     Parameters

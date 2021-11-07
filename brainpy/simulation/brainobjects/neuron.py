@@ -58,7 +58,7 @@ class NeuGroup(DynamicalSystem):
     # initialize
     super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
 
-  def update(self, _t, _dt, **kwargs):
+  def update(self, _t, _dt):
     """The function to specify the updating rule.
 
     Parameters
