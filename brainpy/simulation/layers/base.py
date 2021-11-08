@@ -25,9 +25,6 @@ class Module(DynamicalSystem):
   """Basic module class for DNN networks."""
   target_backend = 'jax'
 
-  def update(self, *args, **kwargs):
-    raise NotImplementedError
-
 
 class Sequential(Module):
   """Basic sequential object to control data flow.

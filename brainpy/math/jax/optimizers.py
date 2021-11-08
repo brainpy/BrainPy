@@ -3,6 +3,7 @@
 import jax.numpy as jn
 
 import brainpy.math.jax as bm
+from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 
@@ -11,15 +12,17 @@ __all__ = [
   'Optimizer',
   'SGD',
   'Momentum',
-  'NesterovMomentum',
+  'MomentumNesterov',
   'Adam',
 
   # schedules
-  'constant',
-  'exponential_decay',
-  'inverse_time_decay',
-  'polynomial_decay',
-  'piecewise_constant',
+  'make_schedule',
+  'Scheduler',
+  'Constant',
+  'ExponentialDecay',
+  'InverseTimeDecay',
+  'PolynomialDecay',
+  'PiecewiseConstant',
 ]
 
 
@@ -32,27 +35,28 @@ class Optimizer(Base):
     super(Optimizer, self).__init__(name=name)
 
     assert isinstance(train_vars, dict), '"train_vars" must be a dict of JaxArray.'
-    self.lr = _make_schedule(lr)
-    self.step = bm.Variable(bm.array([0]))
-    self._train_vars = train_vars
+    self.lr = make_schedule(lr)
+    self.vars_to_train = train_vars
     self.implicit_vars = TensorCollector()
-    self.implicit_vars.update(train_vars)  # dynamic variables
 
-  def register_variables(self, vars: dict):
+  def register_variables(self, variables: dict):
     if self.implicit_vars is None:
-      raise ValueError('Please super initialize the Optimizer first, then call "register_variables()".')
-    for key, var in vars.items():
+      raise ValueError(
+        'Please super initialize the Optimizer first, '
+        'then call "register_variables()".')
+    for key, var in variables.items():
       if key in self.implicit_vars:
         if id(self.implicit_vars[key]) != id(var):
-          raise ValueError(f'Name "{key}" conflicts: same name for {var} and {self.implicit_vars[key]}.')
+          raise ValueError(
+            f'Name "{key}" conflicts: same name for {var} '
+            f'and {self.implicit_vars[key]}.')
       self.implicit_vars[key] = var
 
-  def update(self, grads):
-    if len(grads) != len(self._train_vars):
-      raise ValueError('Expecting as many gradients as trainable variables')
-    self.step += 1
-    lr = self.lr(self.step[0])
-    return lr
+  def check_grads(self, grads):
+    if len(grads) != len(self.vars_to_train):
+      raise errors.BrainPyError(
+        f'The length of "grads" must be equal to "self.vars_to_train", '
+        f'while we got {len(grads)} != {len(self.vars_to_train)}!')
 
 
 class SGD(Optimizer):
@@ -62,48 +66,52 @@ class SGD(Optimizer):
   def __init__(self, lr, train_vars, name=None):
     super(SGD, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
-  def update(self, grads: dict, **kwargs):
-    lr = super(SGD, self).update(grads)
-    for key, p in self._train_vars.items():
-      p.value -= lr * grads[key]
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    for key, p in self.vars_to_train.items():
+      p.value -= self.lr() * grads[key]
+    self.lr.update()
 
 
 class Momentum(Optimizer):
   """Momentum optimizer.
-
   """
 
   def __init__(self, lr, train_vars, momentum, name=None):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x)))
+              for key, x in self.vars_to_train.items())
     self.register_variables(ms)
 
-  def update(self, grads: dict, **kwargs):
-    lr = super(Momentum, self).update(grads)
-    for key, p in self._train_vars.items():
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    for key, p in self.vars_to_train.items():
       m = self.implicit_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
-      p.value -= lr * m.value
+      p.value -= self.lr() * m.value
+    self.lr.update()
 
 
-class NesterovMomentum(Optimizer):
+class MomentumNesterov(Optimizer):
   def __init__(self, lr, train_vars, momentum, name=None):
-    super(NesterovMomentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
+    super(MomentumNesterov, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x)))
+              for key, x in self.vars_to_train.items())
     self.register_variables(ms)
 
-  def update(self, grads: dict, **kwargs):
-    lr = super(NesterovMomentum, self).update(grads)
-    for key, p in self._train_vars.items():
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    for key, p in self.vars_to_train.items():
       m = self.implicit_vars[key + '_m']
       g = grads[key]
       m.value = g + self.momentum * m.value
-      p.value -= lr * (g + self.momentum * m.value)
+      p.value -= self.lr() * (g + self.momentum * m.value)
+    self.lr.update()
 
 
 class Adam(Optimizer):
@@ -138,78 +146,115 @@ class Adam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps
-    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
-    vs = dict((key + '_v', bm.Variable(bm.zeros_like(x))) for key, x in self._train_vars.items())
+    ms = dict((key + '_m', bm.Variable(bm.zeros_like(x)))
+              for key, x in self.vars_to_train.items())
+    vs = dict((key + '_v', bm.Variable(bm.zeros_like(x)))
+              for key, x in self.vars_to_train.items())
     self.register_variables(ms)
     self.register_variables(vs)
 
-  def update(self, grads: dict, **kwargs):
-    lr = super(Adam, self).update(grads)
-    lr *= jn.sqrt(1 - self.beta2 ** self.step[0]) / (1 - self.beta1 ** self.step[0])
-    for key, p in self._train_vars.items():
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    lr = self.lr()
+    lr /= (1 - self.beta1 ** (self.lr.step[0] + 1))
+    lr *= jn.sqrt(1 - self.beta2 ** (self.lr.step[0] + 1))
+    for key, p in self.vars_to_train.items():
       m = self.implicit_vars[key + '_m']
       v = self.implicit_vars[key + '_v']
       g = grads[key]
+      # First  moment estimate.
       m.value = self.beta1 * m.value + (1 - self.beta1) * g
+      # Second moment estimate.
       v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2
-      p.value -= lr * m.value / jn.sqrt(v.value + self.eps)
+      # Bias correction.
+      p.value -= lr * m.value / (jn.sqrt(v.value) + self.eps)
+    self.lr.update()
 
 
 # learning rate schedules #
 # ----------------------- #
 
 
-def _make_schedule(scalar_or_schedule):
-  if callable(scalar_or_schedule):
+def make_schedule(scalar_or_schedule):
+  if isinstance(scalar_or_schedule, Scheduler):
     return scalar_or_schedule
   elif isinstance(scalar_or_schedule, (int, float)):
-    return constant(scalar_or_schedule)
+    return Constant(scalar_or_schedule)
   else:
     raise TypeError(type(scalar_or_schedule))
 
 
-def constant(lr):
-  def schedule(i):
-    return lr
+class Scheduler(Base):
+  def __init__(self, lr):
+    super(Scheduler, self).__init__()
 
-  return schedule
+    assert isinstance(lr, (float, int))
+    self.lr = lr
+    self.step = bm.Variable(bm.array([0]))
 
+  def update(self):
+    self.step += 1
 
-def exponential_decay(lr, decay_steps, decay_rate):
-  def schedule(i):
-    return lr * decay_rate ** (i / decay_steps)
-
-  return schedule
-
-
-def inverse_time_decay(lr, decay_steps, decay_rate, staircase=False):
-  if staircase:
-    def schedule(i):
-      return lr / (1 + decay_rate * jn.floor(i / decay_steps))
-  else:
-    def schedule(i):
-      return lr / (1 + decay_rate * i / decay_steps)
-  return schedule
+  def __call__(self, i=None):
+    raise NotImplementedError
 
 
-def polynomial_decay(lr, decay_steps, final_lr, power=1.0):
-  def schedule(i):
-    i = jn.minimum(i, decay_steps)
-    step_mult = (1 - i / decay_steps) ** power
-    return step_mult * (lr - final_lr) + final_lr
-
-  return schedule
+class Constant(Scheduler):
+  def __call__(self, i=None):
+    return self.lr
 
 
-def piecewise_constant(boundaries, values):
-  boundaries = jn.array(boundaries)
-  values = jn.array(values)
-  if not boundaries.ndim == values.ndim == 1:
-    raise ValueError("boundaries and values must be sequences")
-  if not boundaries.shape[0] == values.shape[0] - 1:
-    raise ValueError("boundaries length must be one shorter than values length")
+class ExponentialDecay(Scheduler):
+  def __init__(self, lr, decay_steps, decay_rate):
+    super(ExponentialDecay, self).__init__(lr=lr)
+    self.decay_steps = decay_steps
+    self.decay_rate = decay_rate
 
-  def schedule(i):
-    return values[jn.sum(i > boundaries)]
+  def __call__(self, i=None):
+    i = i if i else self.step[0]
+    return self.lr * self.decay_rate ** (i / self.decay_steps)
 
-  return schedule
+
+class InverseTimeDecay(ExponentialDecay):
+  def __init__(self, lr, decay_steps, decay_rate, staircase=False):
+    super(InverseTimeDecay, self).__init__(lr, decay_steps, decay_rate)
+    self.staircase = staircase
+
+  def __call__(self, i=None):
+    i = i if i else self.step[0]
+    if self.staircase:
+      return self.lr / (1 + self.decay_rate * jn.floor(i / self.decay_steps))
+    else:
+      return self.lr / (1 + self.decay_rate * i / self.decay_steps)
+
+
+class PolynomialDecay(Scheduler):
+  def __init__(self, lr, decay_steps, final_lr, power=1.0):
+    super(PolynomialDecay, self).__init__(lr)
+    self.decay_steps = decay_steps
+    self.final_lr = final_lr
+    self.power = power
+
+  def __call__(self, i=None):
+    i = i if i else self.step[0]
+    i = jn.minimum(i, self.decay_steps)
+    step_mult = (1 - i / self.decay_steps) ** self.power
+    return step_mult * (self.lr - self.final_lr) + self.final_lr
+
+
+class PiecewiseConstant(Scheduler):
+  def __init__(self, boundaries, values):
+    super(PiecewiseConstant, self).__init__(0.)
+
+    boundaries = jn.array(boundaries)
+    values = jn.array(values)
+    if not boundaries.ndim == values.ndim == 1:
+      raise ValueError("boundaries and values must be sequences")
+    if not boundaries.shape[0] == values.shape[0] - 1:
+      raise ValueError("boundaries length must be one shorter than values length")
+    self.boundaries = boundaries
+    self.values = values
+
+  def __call__(self, i=None):
+    i = i if i else self.step[0]
+    return self.values[jn.sum(i > self.boundaries)]

@@ -2,7 +2,7 @@
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.collector import TensorCollector
+from brainpy.base import collector
 
 ndarray = None
 
@@ -50,18 +50,18 @@ class Function(Base):
 
     # nodes 
     # ---
-    self._nodes = dict()
     if nodes is not None:
+      self.implicit_nodes = collector.Collector()
       if isinstance(nodes, Base):
         nodes = (nodes,)
       if isinstance(nodes, (tuple, list)):
         for i, node in enumerate(nodes):
           _check_node(node)
-          self._nodes[f'_node{i}'] = node
+          self.implicit_nodes[f'_node{i}'] = node
       elif isinstance(nodes, dict):
         for node in nodes.values():
           _check_node(node)
-        self._nodes.update(nodes)
+        self.implicit_nodes.update(nodes)
       else:
         raise ValueError(f'"nodes" only support list/tuple/dict of {Base.__name__}, '
                          f'but we got {type(nodes)}: {nodes}')
@@ -69,7 +69,7 @@ class Function(Base):
     # variables
     # ---
     if dyn_vars is not None:
-      self.implicit_vars = TensorCollector()
+      self.implicit_vars = collector.TensorCollector()
       global ndarray
       if ndarray is None: from brainpy.math import ndarray
       if isinstance(dyn_vars, ndarray):
@@ -85,13 +85,6 @@ class Function(Base):
       else:
         raise ValueError(f'"dyn_vars" only support list/tuple/dict of {ndarray.__name__}, '
                          f'but we got {type(dyn_vars)}: {dyn_vars}')
-
-  def nodes(self, method='absolute', _paths=None):
-    if _paths is None:
-      _paths = set()
-    gather = self._nodes_in_container(self._nodes, method=method, _paths=_paths)
-    gather.update(super(Function, self).nodes(method=method, _paths=_paths))
-    return gather
 
   def __call__(self, *args, **kwargs):
     return self._f(*args, **kwargs)

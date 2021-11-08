@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import inspect
 import time
 from functools import partial
 
 import numpy as np
+
 from brainpy import errors
 
 try:
@@ -16,7 +18,6 @@ try:
   import brainpy.math.jax as bm
 except (ModuleNotFoundError, ImportError):
   bm = jax = None
-
 
 __all__ = [
   'FixedPointFinder',
@@ -81,19 +82,21 @@ class FixedPointFinder(object):
       raise errors.PackageMissingError('Package "jax" must be installed when the users '
                                        'want to utilize the fixed point finder analysis.')
     assert f_type in ['df', 'F'], f'Only support "df" (continuous derivative function) or ' \
-                                  f'"F" (discrete update function), not {f_type}'
+                                  f'"F" (discrete update function), not {f_type}.'
 
     # functions
     self.f_cell = f_cell
-    self.f_cell_batch = jax.jit(jax.vmap(f_cell))
     if f_loss_batch is None:
       if f_type == 'F':
-        self.f_loss_batch = jax.jit(lambda h: bm.mean((h - jax.vmap(f_cell)(h)) ** 2))
+        self.f_loss = jax.jit(lambda h: bm.mean((h - jax.vmap(f_cell)(h)) ** 2))
+        self.f_loss_batch = jax.jit(lambda h: bm.mean((h - jax.vmap(f_cell)(h)) ** 2, axis=1))
       if f_type == 'df':
-        self.f_loss_batch = jax.jit(lambda h: bm.mean((jax.vmap(f_cell)(h)) ** 2))
+        self.f_loss = jax.jit(lambda h: bm.mean((jax.vmap(f_cell)(h)) ** 2))
+        self.f_loss_batch = jax.jit(lambda h: bm.mean((jax.vmap(f_cell)(h)) ** 2, axis=1))
     else:
       self.f_loss_batch = f_loss_batch
-    self.f_jacob_batch = jax.jit(jax.vmap(jax.jacrev(f_cell)))
+      self.f_loss = jax.jit(lambda h: bm.mean(self.f_loss_batch(h)))
+    self.f_jacob_batch = jax.jit(jax.vmap(jax.jacobian(f_cell)))
 
     # optimization parameters
     self.noise = noise
@@ -107,19 +110,26 @@ class FixedPointFinder(object):
     self.num_opt_batch = num_opt_batch
     self.num_opt_max = num_opt_max
     if opt_setting is None:
-      self.opt_setting = {'method': bm.optimizers.Adam,
-                          'lr': bm.optimizers.exponential_decay(0.2, 1, 0.9999),
-                          'beta1': 0.9,
+      self.opt_method = bm.optimizers.Adam
+      self.opt_lr = bm.optimizers.ExponentialDecay(0.2, 1, 0.9999)
+      self.opt_setting = {'beta1': 0.9,
                           'beta2': 0.999,
                           'eps': 1e-8,
                           'name': None}
     else:
       assert isinstance(opt_setting, dict)
       assert 'method' in opt_setting
-      if isinstance(opt_setting['method'], str):
-        assert opt_setting['method'] in bm.optimizers.__all__
-        opt_setting['method'] = getattr(bm.optimizers, opt_setting['method'])
       assert 'lr' in opt_setting
+      opt_method = opt_setting.pop('method')
+      if isinstance(opt_method, str):
+        assert opt_method in bm.optimizers.__all__
+        opt_method = getattr(bm.optimizers, opt_method)
+      assert isinstance(opt_method, type)
+      if bm.optimizers.Optimizer not in inspect.getmro(opt_method):
+        raise ValueError
+      self.opt_method = opt_method
+      self.opt_lr = opt_setting.pop('lr')
+      assert isinstance(self.opt_lr, (int, float, bm.optimizers.Scheduler))
       self.opt_setting = opt_setting
 
   def find_fixed_points(self, candidates):
@@ -152,28 +162,28 @@ class FixedPointFinder(object):
 
     # 2. find fixed points
     if self.verbose: print("Optimizing to find fixed points:")
-    fixed_points, opt_losses = self._optimize_fixed_points(candidates)
+    fixed_points, opt_losses = self.optimize_fixed_points(candidates)
 
     # 3. exclude fixed points whose loss is above threshold
     if self.verbose and self.tol_speed < np.inf:
       print(f"Excluding fixed points with squared speed above "
             f"tolerance {self.tol_speed:0.5f}:")
-    fixed_points, fp_ids = self._filter_fixed_points_with_tolerance(fixed_points)
+    fixed_points, fp_ids = self.speed_tolerance_filter(fixed_points)
     if len(fp_ids) == 0:
       return np.zeros([0, dim]), np.zeros([0]), [], opt_losses
 
     # 4. exclude the repeated fixed points
     if self.verbose and self.tol_unique > 0.0:
       print("Excluding non-unique fixed points:")
-    fixed_points, unique_ids = self._keep_unique_fixed_points(fixed_points)
+    fixed_points, unique_ids = self.keep_unique(fixed_points)
     if len(unique_ids) == 0:
       return np.zeros([0, dim]), np.zeros([0]), [], opt_losses
 
     # 5. exclude outliers
     if self.verbose and self.tol_outlier < np.inf:
       print("Excluding outliers:")
-    fixed_points, outlier_ids = self._exclude_outliers(fixed_points, 'euclidean')
-    if len(outlier_ids) == 0:
+    fixed_points, non_outlier_ids = self.exclude_outliers(fixed_points, 'euclidean')
+    if len(non_outlier_ids) == 0:
       return np.zeros([0, dim]), np.zeros([0]), [], opt_losses
 
     if self.verbose:
@@ -182,10 +192,10 @@ class FixedPointFinder(object):
     sort_ids = np.argsort(losses)
     fixed_points = fixed_points[sort_ids]
     losses = losses[sort_ids]
-    keep_ids = fp_ids[unique_ids[outlier_ids[sort_ids]]]
+    keep_ids = fp_ids[unique_ids[non_outlier_ids[sort_ids]]]
     return fixed_points, losses, keep_ids, opt_losses
 
-  def _optimize_fixed_points(self, candidates):
+  def optimize_fixed_points(self, candidates):
     """Find fixed points via optimization.
 
     Parameters
@@ -200,22 +210,22 @@ class FixedPointFinder(object):
       A tuple of (the fixed points, the optimization losses).
     """
     fixed_points = bm.Variable(bm.asarray(candidates))
+    grad_f = bm.grad(lambda: self.f_loss(fixed_points.value).mean(),
+                     grad_vars={'a': fixed_points},
+                     return_value=True)
+    opt = self.opt_method(train_vars={'a': fixed_points},
+                          lr=self.opt_lr,
+                          **self.opt_setting)
+    dyn_vars = opt.vars() + {'_a': fixed_points}
 
-    @partial(bm.jit, dyn_vars=fixed_points, static_argnames=('start_i', 'num_batch'))
+    def train(idx):
+      gradients, loss = grad_f()
+      opt.update(gradients)
+      return loss
+
+    @partial(bm.jit, dyn_vars=dyn_vars, static_argnames=('start_i', 'num_batch'))
     def batch_train(start_i, num_batch):
-      grad_f = bm.grad(lambda: self.f_loss_batch(fixed_points.value).mean(),
-                       grad_vars={'a': fixed_points}, return_value=True)
-      opt = self.opt_setting['method'](
-        train_vars={'a': fixed_points}, lr=self.opt_setting['lr'],
-        **{k: v for k, v in self.opt_setting.items() if k not in ['method', 'lr']})
-
-      def train(idx):
-        gradients, loss = grad_f()
-        # print(gradients)
-        opt.update(gradients)
-        return loss
-
-      f = bm.make_loop(train, dyn_vars=opt.implicit_vars, has_return=True)
+      f = bm.make_loop(train, dyn_vars=dyn_vars, has_return=True)
       return f(bm.arange(start_i, start_i + num_batch))
 
     # Run the optimization
@@ -243,7 +253,7 @@ class FixedPointFinder(object):
                 f'is below tolerance {self.tol_opt:0.10f}.')
     return fixed_points.numpy(), bm.concatenate(opt_losses).numpy()
 
-  def _filter_fixed_points_with_tolerance(self, fixed_points):
+  def speed_tolerance_filter(self, fixed_points):
     """Filter fixed points whose speed larger than a given tolerance.
 
     Parameters
@@ -267,7 +277,7 @@ class FixedPointFinder(object):
 
     return fps_w_tol, keep_ids
 
-  def _keep_unique_fixed_points(self, fixed_points):
+  def keep_unique(self, fixed_points):
     """Filter unique fixed points by choosing a representative within tolerance.
 
     Parameters
@@ -311,7 +321,7 @@ class FixedPointFinder(object):
 
     return unique_fps, keep_ids
 
-  def _exclude_outliers(self, fixed_points, metric='euclidean'):
+  def exclude_outliers(self, fixed_points, metric='euclidean'):
     """Exclude points whose closest neighbor is further than threshold.
 
     Parameters
@@ -326,7 +336,6 @@ class FixedPointFinder(object):
     fps_and_ids : tuple
       A 2-tuple of (kept fixed points, ids of kept fixed points).
     """
-
 
     if np.isinf(self.tol_outlier):
       return fixed_points, np.arange(len(fixed_points))
