@@ -46,6 +46,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    tutorial_math/compilation
    tutorial_math/differentiation
    tutorial_math/control_flows
+   tutorial_math/optimizers
 
 
 .. toctree::
