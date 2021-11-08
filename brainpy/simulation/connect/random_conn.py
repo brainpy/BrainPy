@@ -152,8 +152,11 @@ class FixedPreNum(TwoEndConnector):
       # tools.numba_seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(self.post_num):
-        pres, posts = _fixed_num_prob_for_ij(rng=self.rng, num_need=num, num_total=self.pre_num,
-                                             i=i, include_self=self.include_self)
+        pres, posts = _fixed_num_prob_for_ij(rng=self.rng,
+                                             num_need=num,
+                                             num_total=self.pre_num,
+                                             i=i,
+                                             include_self=self.include_self)
         pre_ids.append(pres)
         post_ids.append(posts)
       pre_ids = np.asarray(np.concatenate(pre_ids), dtype=np.int_)

@@ -45,9 +45,6 @@ __all__ = [
   'silu',
   'swish',
   'selu',
-
-  'tanh',
-
 ]
 
 
@@ -317,14 +314,14 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
   Each index in the input ``x`` is encoded as a vector of zeros of length
   ``num_classes`` with the element at ``index`` set to one::
 
-    >>> jax.nn.one_hot(ops.array([0, 1, 2]), 3)
+    >>> one_hot(ops.array([0, 1, 2]), 3)
     DeviceArray([[1., 0., 0.],
                   [0., 1., 0.],
                   [0., 0., 1.]], dtype=float32)
 
   Indicies outside the range [0, num_classes) will be encoded as zeros::
 
-    >>> jax.nn.one_hot(ops.array([-1, 3]), 3)
+    >>> one_hot(ops.array([-1, 3]), 3)
     DeviceArray([[0., 0., 0.],
                  [0., 0., 0.]], dtype=float32)
 
@@ -500,8 +497,3 @@ def selu(x):
   x = x.value if isinstance(x, JaxArray) else x
   safe_x = jax.numpy.where(x > 0, 0., x)
   return JaxArray(scale * jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(safe_x)))
-
-
-def tanh(x):
-  x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jax.lax.tanh(x))
