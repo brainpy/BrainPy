@@ -3,9 +3,13 @@
 
 from jax import lax
 from jax.tree_util import tree_flatten, tree_unflatten
+try:
+  from jax.errors import UnexpectedTracerError
+except ImportError:
+  from jax.core import UnexpectedTracerError
 
+from brainpy import errors
 from brainpy.math.jax.jaxarray import JaxArray
-
 
 __all__ = [
   'make_loop',
@@ -145,18 +149,24 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   # functions
   if has_return:
     def call(xs=None, length=None):
-      dyn_values, (out_values, results) = lax.scan(f=fun2scan,
-                                                   init=[v.value for v in dyn_vars],
-                                                   xs=xs,
-                                                   length=length)
+      init_values = [v.value for v in dyn_vars]
+      try:
+        dyn_values, (out_values, results) = lax.scan(
+          f=fun2scan, init=init_values, xs=xs, length=length)
+      except UnexpectedTracerError as e:
+        for v, d in zip(dyn_vars, init_values): v.value = d
+        raise errors.JaxTracerError() from e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return tree_unflatten(tree, out_values), results
 
   else:
     def call(xs):
-      dyn_values, out_values = lax.scan(f=fun2scan,
-                                        init=[v.value for v in dyn_vars],
-                                        xs=xs)
+      init_values = [v.value for v in dyn_vars]
+      try:
+        dyn_values, out_values = lax.scan(f=fun2scan, init=init_values, xs=xs)
+      except UnexpectedTracerError as e:
+        for v, d in zip(dyn_vars, init_values): v.value = d
+        raise errors.JaxTracerError() from e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return tree_unflatten(tree, out_values)
 
@@ -225,9 +235,14 @@ def make_while(cond_fun, body_fun, dyn_vars):
     return cond_fun(static_values)
 
   def call(x=None):
-    dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
-                                body_fun=_body_fun,
-                                init_val=([v.value for v in dyn_vars], x))
+    dyn_init = [v.value for v in dyn_vars]
+    try:
+      dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
+                                     body_fun=_body_fun,
+                                     init_val=(dyn_init, x))
+    except UnexpectedTracerError as e:
+      for v, d in zip(dyn_vars, dyn_init): v.value = d
+      raise errors.JaxTracerError() from e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
 
   return call
@@ -303,10 +318,15 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
     return dyn_vals, res
 
   def call(pred, x=None):
-    dyn_values, res = lax.cond(pred=pred,
-                               true_fun=_true_fun,
-                               false_fun=_false_fun,
-                               operand=([v.value for v in dyn_vars], x))
+    old_values = [v.value for v in dyn_vars]
+    try:
+      dyn_values, res = lax.cond(pred=pred,
+                                 true_fun=_true_fun,
+                                 false_fun=_false_fun,
+                                 operand=(old_values, x))
+    except UnexpectedTracerError as e:
+      for v, d in zip(dyn_vars, old_values): v.value = d
+      raise errors.JaxTracerError() from e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
     return res
 

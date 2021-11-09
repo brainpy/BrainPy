@@ -6,6 +6,7 @@ Version 1.1.0
 
 - fix bugs on symbolic analysis: model trajectory
 - change `absolute` access in the variable saving and loading to the `relative` access
+- add UnexpectedTracerError hints in JAX transformation functions
 
 
 Version 1.1.0

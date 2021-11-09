@@ -17,7 +17,12 @@ from jax._src.api import flatten_fun_nokwargs, vmap
 from jax.api_util import argnums_partial
 from jax.interpreters import ad
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose, tree_structure
+try:
+  from jax.errors import UnexpectedTracerError
+except ImportError:
+  from jax.core import UnexpectedTracerError
 
+from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.math.jax.jaxarray import JaxArray, TrainVar
@@ -268,9 +273,6 @@ class Grad(AutoGrad):
     # variables
     assert isinstance(vars, TensorCollector)
     assert isinstance(grad_vars, TensorCollector)
-    # self.implicit_vars = TensorCollector()
-    # self.implicit_vars.update(vars)
-    # self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())
     self.grad_vars = list(grad_vars.values())
 
@@ -319,10 +321,17 @@ class Grad(AutoGrad):
                           reduce_axes=self.reduce_axes)
 
   def __call__(self, *args, **kwargs):
-    grads, (outputs, grad_values, dyn_values) = self._call(
-      [v.value for v in self.grad_vars], [v.value for v in self.dyn_vars], *args, **kwargs)
-    for v, d in zip(self.grad_vars, grad_values): v.value = d
-    for v, d in zip(self.dyn_vars, dyn_values): v.value = d
+    old_grad_values = [v.value for v in self.grad_vars]
+    old_dyn_values = [v.value for v in self.dyn_vars]
+    try:
+      grads, (outputs, new_grad_values, new_dyn_values) = self._call(
+        old_grad_values, old_dyn_values, *args, **kwargs)
+    except UnexpectedTracerError as e:
+      for v, d in zip(self.grad_vars, old_grad_values): v.value = d
+      for v, d in zip(self.dyn_vars, old_dyn_values): v.value = d
+      raise errors.JaxTracerError() from e
+    for v, d in zip(self.grad_vars, new_grad_values): v.value = d
+    for v, d in zip(self.dyn_vars, new_dyn_values): v.value = d
     grads_of_grad_vars = tree_unflatten(self.grad_tree, grads[0])
     grads = grads_of_grad_vars if len(self.argnums) == 1 else (grads_of_grad_vars,) + grads[1:]
     if self.return_value:
@@ -519,9 +528,6 @@ class Jacobian(AutoGrad):
     # variables
     assert isinstance(vars, TensorCollector)
     assert isinstance(grad_vars, TensorCollector)
-    # self.implicit_vars = TensorCollector()
-    # self.implicit_vars.update(vars)
-    # self.implicit_vars.update(grad_vars)
     self.dyn_vars = list(vars.values())
     self.grad_vars = list(grad_vars.values())
 
@@ -568,11 +574,17 @@ class Jacobian(AutoGrad):
       raise ValueError
 
   def __call__(self, *args, **kwargs):
-    grads, (outputs, grad_values, dyn_values) = self._call(
-      tuple([v.value for v in self.grad_vars]),
-      tuple([v.value for v in self.dyn_vars]), *args, **kwargs)
-    for v, d in zip(self.grad_vars, grad_values): v.value = d
-    for v, d in zip(self.dyn_vars, dyn_values): v.value = d
+    old_grad_values = tuple([v.value for v in self.grad_vars])
+    old_dyn_values = tuple([v.value for v in self.dyn_vars])
+    try:
+      grads, (outputs, new_grad_values, new_dyn_values) = self._call(
+        old_grad_values, old_dyn_values, *args, **kwargs)
+    except UnexpectedTracerError as e:
+      for v, d in zip(self.grad_vars, old_grad_values): v.value = d
+      for v, d in zip(self.dyn_vars, old_dyn_values): v.value = d
+      raise errors.JaxTracerError() from e
+    for v, d in zip(self.grad_vars, new_grad_values): v.value = d
+    for v, d in zip(self.dyn_vars, new_dyn_values): v.value = d
     grads_of_grad_vars = tree_unflatten(self.grad_tree, grads[0])
     grads = grads_of_grad_vars if len(self.argnums) == 1 else (grads_of_grad_vars,) + grads[1:]
     if self.return_value:
