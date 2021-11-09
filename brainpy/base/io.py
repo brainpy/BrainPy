@@ -71,7 +71,7 @@ def load_h5(filename, target):
   assert isinstance(target, Base)
   _check(h5py, module_name='h5py', ext=os.path.splitext(filename))
 
-  all_vars = target.vars()
+  all_vars = target.vars(method='relative')
   f = h5py.File(filename, "r")
   for key in f.keys():
     var = all_vars.pop(key)
@@ -97,7 +97,7 @@ def load_npz(filename, target):
   if math is None: from brainpy import math
   assert isinstance(target, Base)
 
-  all_vars = target.vars()
+  all_vars = target.vars(method='relative')
   all_data = np.load(filename)
   for key in all_data.files:
     host_key, data_key = key.split('--')
@@ -124,7 +124,7 @@ def load_pkl(filename, target):
   all_data = pickle.load(f)
   f.close()
 
-  all_vars = target.vars()
+  all_vars = target.vars(method='relative')
   for key, data in all_data.items():
     var = all_vars.pop(key)
     var[:] = math.asarray(data)
@@ -146,7 +146,7 @@ def load_mat(filename, target):
   assert isinstance(target, Base)
 
   all_data = sio.loadmat(filename)
-  all_vars = target.vars()
+  all_vars = target.vars(method='relative')
   for key, data in all_data.items():
     var = all_vars.pop(key)
     var[:] = math.asarray(data)

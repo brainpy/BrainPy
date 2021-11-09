@@ -256,7 +256,7 @@ class Base(object):
       The file name which to store the model states.
     """
     if all_vars is None:
-      all_vars = self.vars().unique()
+      all_vars = self.vars(method='relative').unique()
 
     if filename.endswith('.hdf5') or filename.endswith('.h5'):
       io.save_h5(filename, all_vars=all_vars)

@@ -4,6 +4,13 @@ Release notes
 Version 1.1.0
 -------------
 
+- fix bugs on symbolic analysis: model trajectory
+- change `absolute` access in the variable saving and loading to the `relative` access
+
+
+Version 1.1.0
+-------------
+
 This package releases a new version of BrainPy.
 
 Highlights of core changes:
@@ -11,11 +18,19 @@ Highlights of core changes:
 ``math`` module
 ~~~~~~~~~~~~~~~
 
-- support JAX backend
 - support numpy backend
-- support JAX ``jit``, ``vmap``, ``pmap``, ``grad`` and ``value_and_grad`` on class objects
-- support numba ``jit`` on class objects
-- unified numpy-like API 
+- support JAX backend
+- support ``jit``, ``vmap`` and ``pmap`` on class objects on JAX backend
+- support ``grad``, ``jacobian``, ``hessian`` on class objects on JAX backend
+- support ``make_loop``, ``make_while``, and ``make_cond`` on JAX backend
+- support ``jit`` (based on numba) on class objects on numpy backend
+- unified numpy-like ndarray operation APIs
+- numpy-like random sampling APIs
+- FFT functions
+- gradient descent optimizers
+- activation functions
+- loss function
+- backend settings
 
 
 ``base`` module
@@ -23,14 +38,14 @@ Highlights of core changes:
 
 - ``Base`` for whole Version ecosystem
 - ``Function`` to wrap functions
-- ``Collector`` and ``ArrayCollector`` to collect variables, integrators, nodes and others
+- ``Collector`` and ``TensorCollector`` to collect variables, integrators, nodes and others
 
 
 ``integrators`` module
 ~~~~~~~~~~~~~~~~~~~~~~
 
-- detailed documentation for ODE numerical methods
-
+- class integrators for ODE numerical methods
+- class integrators for SDE numerical methods
 
 ``simulation`` module
 ~~~~~~~~~~~~~~~~~~~~~
@@ -45,27 +60,9 @@ Highlights of core changes:
   of :math:`dx/dt = f(x, t, dt)`
 - reimplement the ``input_step`` and ``monitor_step`` in a more intuitive way
 - support to set `dt`  in the single object level (i.e., single instance of DynamicSystem)
-
-
-``dnn`` module
-~~~~~~~~~~~~~~
-
-- support define deep neural networks
-- loss functions
-- optimizers
-- activation functions
-- initializations
-- common used layers
-
-
-documentation
-~~~~~~~~~~~~~
-
-- documentation for ``base`` module
-- documentation for ``math`` module
-- documentation for ``integrators`` module
-- documentation for ``dnn`` module
-
+- common used DNN layers
+- weight initializations
+- refine synaptic connections
 
 
 
