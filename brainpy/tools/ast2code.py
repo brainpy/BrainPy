@@ -203,11 +203,11 @@ class Transformer(ast.NodeVisitor):
     separator : str
         Separators.
     allow_newlines : bool
-        If true, this function will write the expression over multiple lines.
+        If true, this function will write_module the expression over multiple lines.
     need_parens : bool
         If true, this function will surround the expression with parentheses in this case.
     final_separator_if_multiline : bool
-        If true, this function will write a separator at the end of the list if it is
+        If true, this function will write_module a separator at the end of the list if it is
         divided over multiple lines.
     """
     first = True

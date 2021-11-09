@@ -69,7 +69,68 @@ __all__ = [
 
   # others
   'take_along_axis', 'clip_by_norm',
+  'segment_sum', 'segment_prod', 'segment_max', 'segment_min',
 ]
+
+
+# others
+# -------
+
+
+def segment_sum(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                unique_indices: bool = False, bucket_size: int = None):
+  """Computes the sum within segments of an array."""
+  raise NotImplementedError
+
+
+def segment_prod(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                 unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array."""
+  raise NotImplementedError
+
+
+def segment_max(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                unique_indices: bool = False, bucket_size: int = None):
+  raise NotImplementedError
+
+
+def segment_min(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array."""
+  raise NotImplementedError
+
+
+take_along_axis = numpy.take_along_axis
+
+
+@numba_jit
+def clip_by_norm(t, clip_norm, axis=None):
+  """Clips values to a maximum L2-norm.
+
+  Given a tensor ``t``, and a maximum clip value ``clip_norm``, this operation
+  normalizes ``t`` so that its L2-norm is less than or equal to ``clip_norm``,
+  along the dimensions given in ``axis``. Specifically, in the default case
+  where all dimensions are used for calculation, if the L2-norm of ``t`` is
+  already less than or equal to ``clip_norm``, then ``t`` is not modified. If
+  the L2-norm is greater than ``clip_norm``, then this operation returns a
+  tensor of the same type and shape as ``t`` with its values set to:
+
+  .. math::
+    t * clip_norm / l2norm(t)
+
+  In this case, the L2-norm of the output tensor is `clip_norm`.
+
+  As another example, if ``t`` is a matrix and ``axis=1``, then each row
+  of the output will have L2-norm less than or equal to ``clip_norm``. If
+  ``axis=0`` instead, each column of the output will be clipped.
+
+  This operation is typically used to clip gradients before applying them with
+  an optimizer.
+  """
+  l2norm = sqrt(sum(t * t, axis=axis, keepdims=True))
+  clip_values = t * clip_norm / maximum(l2norm, clip_norm)
+  return clip_values
+
 
 # math funcs
 # ----------
@@ -416,38 +477,3 @@ def set_complex_(complex_type):
   global complex_
   assert isinstance(complex_type, type)
   complex_ = complex_type
-
-
-# others
-# -------
-
-take_along_axis = numpy.take_along_axis
-
-
-@numba_jit
-def clip_by_norm(t, clip_norm, axis=None):
-  """Clips values to a maximum L2-norm.
-
-  Given a tensor ``t``, and a maximum clip value ``clip_norm``, this operation
-  normalizes ``t`` so that its L2-norm is less than or equal to ``clip_norm``,
-  along the dimensions given in ``axis``. Specifically, in the default case
-  where all dimensions are used for calculation, if the L2-norm of ``t`` is
-  already less than or equal to ``clip_norm``, then ``t`` is not modified. If
-  the L2-norm is greater than ``clip_norm``, then this operation returns a
-  tensor of the same type and shape as ``t`` with its values set to:
-
-  .. math::
-    t * clip_norm / l2norm(t)
-
-  In this case, the L2-norm of the output tensor is `clip_norm`.
-
-  As another example, if ``t`` is a matrix and ``axis=1``, then each row
-  of the output will have L2-norm less than or equal to ``clip_norm``. If
-  ``axis=0`` instead, each column of the output will be clipped.
-
-  This operation is typically used to clip gradients before applying them with
-  an optimizer.
-  """
-  l2norm = sqrt(sum(t * t, axis=axis, keepdims=True))
-  clip_values = t * clip_norm / maximum(l2norm, clip_norm)
-  return clip_values

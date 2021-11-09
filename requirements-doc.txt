@@ -7,11 +7,8 @@ jaxlib
 
 # document requirements
 pandoc
-docutils
 Jinja2
 sphinx
 sphinx_rtd_theme
-nbsphinx
-
-# docutils==0.16
-# sphinx_rtd_theme==1.0.0rc1
+sphinx-autodoc-typehints
+myst-nb

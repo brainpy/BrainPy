@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors, math
-from brainpy.base.collector import Collector
+from brainpy import errors
 from brainpy.simulation import utils
-from brainpy.integrators.wrapper import odeint
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'NeuGroup',
   'Channel',
-  'CondNeuGroup',
   'Soma',
   'Dendrite',
 ]
@@ -18,14 +15,29 @@ __all__ = [
 class NeuGroup(DynamicalSystem):
   """Base class to model neuronal groups.
 
+  There are several essential attributes:
+
+  - ``size``: the geometry of the neuron group. For example, `(10, )` denotes a line of
+    neurons, `(10, 10)` denotes a neuron group aligned in a 2D space, `(10, 15, 4)` denotes
+    a 3-dimensional neuron group.
+  - ``num``: the flattened number of neurons in the group. For example, `size=(10, )` => \
+    `num=10`, `size=(10, 10)` => `num=100`, `size=(10, 15, 4)` => `num=600`.
+  - ``shape``: the variable shape with `(num, num_batch)`.
+
   Parameters
   ----------
   size : int, tuple of int, list of int
-      The neuron group geometry.
+    The neuron group geometry.
+  num_batch : optional, int
+    The batch size.
   steps : tuple of str, tuple of function, dict of (str, function), optional
-      The step functions.
-  name : str, optional
-      The group name.
+    The step functions.
+  steps : tuple of str, tuple of function, dict of (str, function), optional
+    The callable function, or a list of callable functions.
+  monitors : None, list, tuple, datastructures.Monitor
+    Variables to monitor.
+  name : optional, str
+    The name of the dynamic system.
   """
 
   def __init__(self, size, name=None, steps=('update',), **kwargs):
@@ -62,88 +74,24 @@ class NeuGroup(DynamicalSystem):
 
 # ----------------------------------------------------
 #
-#          Conductance Neuron Model
+#         Conductance-based Neuron Model
 #
 # ----------------------------------------------------
 
+
 class Channel(DynamicalSystem):
-  """Base class to model ion channels."""
+  """Base class to model ion channels.
+
+  Notes
+  -----
+
+  The ``__init__()`` function in :py:class:`Channel` is used to specify
+  the parameters of the channel. The ``__call__()`` function
+  is used to initialize the variables in this channel.
+  """
 
   def __init__(self, **kwargs):
     super(Channel, self).__init__(**kwargs)
-
-  def init(self, host):
-    """Initialize variables in the channel."""
-    if not isinstance(host, CondNeuGroup):
-      raise ValueError
-    self.host = host
-
-  def update(self, _t, _dt):
-    """The function to specify the updating rule."""
-    raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '
-                              f'implement "update" function.')
-
-
-class CondNeuGroup(NeuGroup):
-  """Conductance neuron group."""
-  def __init__(self, C=1., A=1e-3, Vth=0., **channels):
-    self.C = C
-    self.A = A
-    self.Vth = Vth
-
-    # children channels
-    self.child_channels = Collector()
-    for key, ch in channels.items():
-      if not isinstance(ch, Channel):
-        raise errors.BrainPyError(f'{self.__class__.__name__} only receives {Channel.__name__} '
-                                  f'instance, while we got {type(ch)}: {ch}.')
-      self.child_channels[key] = ch
-
-  def init(self, size, monitors=None, name=None):
-    super(CondNeuGroup, self).__init__(size, steps=('update',), monitors=monitors, name=name)
-
-    # initialize variables
-    self.V = math.Variable(math.zeros(self.num, dtype=math.float_))
-    self.spike = math.Variable(math.zeros(self.num, dtype=math.bool_))
-    self.input = math.Variable(math.zeros(self.num, dtype=math.float_))
-
-    # initialize node variables
-    for ch in self.child_channels.values():
-      ch.init(host=self)
-
-    # checking
-    self._output_channels = []
-    self._update_channels = []
-    for ch in self.child_channels.values():
-      if not hasattr(ch, 'I'):
-        self._update_channels.append(ch)
-      else:
-        if not isinstance(getattr(ch, 'I'), math.Variable):
-          raise errors.BrainPyError
-        self._output_channels.append(ch)
-
-    return self
-
-  def update(self, _t, _dt):
-    for ch in self._update_channels:
-      ch.update(_t, _dt)
-    for ch in self._output_channels:
-      ch.update(_t, _dt)
-      self.input += ch.I
-
-    # update variables
-    V = self.V + self.input / self.C * _dt
-    # V = self.V + self.input / self.C / self.A * _dt
-    self.spike[:] = math.logical_and(V >= self.Vth, self.V < self.Vth)
-    self.V[:] = V
-    self.input[:] = 0.
-
-  def __getattr__(self, item):
-    child_channels = super(CondNeuGroup, self).__getattribute__('child_channels')
-    if item in child_channels:
-      return child_channels[item]
-    else:
-      return super(CondNeuGroup, self).__getattribute__(item)
 
 
 # ---------------------------------------------------------

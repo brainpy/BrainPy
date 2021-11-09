@@ -1,20 +1,24 @@
 # -*- coding: utf-8 -*-
 
 """
-The math module for whole BrainPy ecosystem.
-
+The ``math`` module for whole BrainPy ecosystem.
 This module provides basic mathematical operations, including:
 
 - numpy-like array operations
+- linear algebra functions
+- random sampling functions
+- discrete fourier transform functions
 - compilations of ``jit``, ``vmap``, ``pmap`` for class objects
-- automatic differentiation of ``grad``, ``value_and_grad`` for class objects
-- and more ...
+- automatic differentiation of ``grad``, ``jacocian``, ``hessian``, etc. for class objects
+- loss functions
+- activation functions
+- optimization classes
 
+Details in the following.
 """
 
 
 from brainpy import errors
-from brainpy.math.function import *
 from brainpy.math.numpy import *
 
 
@@ -33,6 +37,14 @@ def get_backend_name():
       The name of the current backend name.
   """
   return BACKEND_NAME
+
+
+def is_numpy_backend():
+  return get_backend_name() == 'numpy'
+
+
+def is_jax_backend():
+  return get_backend_name() == 'jax'
 
 
 # 2. numerical precision

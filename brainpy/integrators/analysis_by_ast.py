@@ -209,7 +209,7 @@ def separate_variables(func_or_code):
   """
   if callable(func_or_code):
     if tools.is_lambda_function(func_or_code):
-      raise errors.AnalyzerError('Cannot analyze lambda function.')
+      raise errors.AnalyzerError(f'Cannot analyze lambda function: {func_or_code}.')
     func_or_code = tools.deindent(inspect.getsource(func_or_code))
   assert isinstance(func_or_code, str)
   analyser = DiffEqReader()

@@ -5,12 +5,13 @@
 .. currentmodule:: brainpy.math
 .. automodule:: brainpy.math
 
+
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
 
     math/general
-    math/numpy
-    math/jax
-    math/function
+    math/core_jax
+    math/core_numpy
+    math/special_jax
     math/comparison
 

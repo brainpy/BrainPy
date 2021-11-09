@@ -5,15 +5,15 @@ import numpy
 from numba.extending import overload
 
 
-@overload(numpy.shape)
-def shape_func(x):
-  if isinstance(x, (numba.types.Integer, numba.types.Float)):
-    def shape(x):
-      return (1,)
-
-    return shape
-  else:
-    return numpy.shape
+# @overload(numpy.shape)
+# def shape_func(x):
+#   if isinstance(x, (numba.types.Integer, numba.types.Float)):
+#     def shape(x):
+#       return (1,)
+#
+#     return shape
+#   else:
+#     return numpy.shape
 
 
 @overload(numpy.clip)

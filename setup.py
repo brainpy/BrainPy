@@ -14,7 +14,6 @@ with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
 version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 
 # obtain long description from README
-# obtain long description from README
 with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
   README = f.read()
 
@@ -27,7 +26,7 @@ setup(
   long_description_content_type="text/markdown",
   author='Chaoming Wang',
   author_email='chao.brain@qq.com',
-  packages=find_packages(exclude=['examples*', 'docs*', 'develop*', 'tests*']),
+  packages=find_packages(exclude=['examples*', 'docs*', 'develop*', 'ode*']),
   python_requires='>=3.6',
   install_requires=[
     'numpy>=1.15',

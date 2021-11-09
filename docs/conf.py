@@ -15,10 +15,33 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 import brainpy
-import brainpy.math.numpy
-import brainpy.math.jax
-import brainpy.math.function
-from docs import comparison_generator
+
+from docs.apis import base_generator
+base_generator.generate('apis/')
+
+from docs.apis import analysis_generator
+analysis_generator.generate('apis/analysis/')
+
+from docs.apis import math_generator
+math_generator.generate('apis/math/')
+
+from docs.apis import integrators_generator
+integrators_generator.generate('apis/integrators/')
+
+from docs.apis import simulation_generator
+simulation_generator.generate('apis/simulation/')
+
+from docs.apis import visualization_generator
+visualization_generator.generate('apis/')
+
+from docs.apis import tools_generator
+tools_generator.generate('apis/')
+
+import shutil
+det_changelog = 'apis/changelog.rst'
+src_changelog = '../changelog.rst'
+if os.path.exists(det_changelog): os.remove(det_changelog)
+shutil.copyfile(src_changelog, det_changelog)
 
 
 # -- Project information -----------------------------------------------------
@@ -29,20 +52,6 @@ author = 'Chaoming Wang'
 
 # The full version, including alpha/beta/rc tags
 release = brainpy.__version__
-
-det_changelog = 'apis/changelog.rst'
-src_changelog = '../changelog.rst'
-
-if os.path.exists(det_changelog):
-    os.remove(det_changelog)
-
-from shutil import copyfile
-copyfile(src_changelog, det_changelog)
-
-
-# Generate comparison table.
-with open('apis/math/comparison_table.rst.inc', 'w') as f:
-    f.write(comparison_generator.generate())
 
 
 # -- General configuration ---------------------------------------------------
@@ -57,8 +66,10 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'nbsphinx',
     "sphinx_rtd_theme",
+    'sphinx_autodoc_typehints',
+    'myst_nb',
+    'matplotlib.sphinxext.plot_directive',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -80,3 +91,9 @@ master_doc = 'index'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
+
+
+# -- Options for myst ----------------------------------------------
+# Notebook cell execution timeout; defaults to 30.
+execution_timeout = 200
+jupyter_execute_notebooks = "off"

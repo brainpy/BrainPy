@@ -105,17 +105,27 @@ tableau as follows:
 .. [2] Hochbruck, M., & Ostermann, A. (2010). Exponential integrators. Acta Numerica, 19, 209-286.
 """
 
-from brainpy import math
-from brainpy.integrators import constants
-from brainpy.integrators.ode.wrapper import exp_euler_wrapper
+import inspect
+
+from brainpy import math, errors
+from brainpy.integrators import constants, utils
+from brainpy.integrators.analysis_by_ast import separate_variables
+from brainpy.integrators.ode import common
+from brainpy.integrators.ode.base import ODEIntegrator
+
+try:
+  import sympy
+  from brainpy.integrators import analysis_by_sympy
+except (ModuleNotFoundError, ImportError):
+  sympy = analysis_by_sympy = None
+
 
 __all__ = [
-  'exponential_euler',
-  'exponential_midpoint',
+  'ExponentialEuler',
 ]
 
 
-def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
+class ExponentialEuler(ODEIntegrator):
   r"""The exponential Euler method for ODEs.
 
   The simplest exponential Rosenbrock method is the exponential
@@ -149,70 +159,114 @@ def exponential_euler(f=None, show_code=None, dt=None, var_type=None):
     The variable type.
   show_code : bool
     Whether show the code.
-
-  Returns
-  -------
-  func : function
-      The one-step numerical integrator function.
   """
 
-  dt = math.get_dt() if dt is None else dt
-  show_code = False if show_code is None else show_code
-  var_type = constants.SCALAR_VAR if var_type is None else var_type
+  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
+    super(ExponentialEuler, self).__init__(f=f, var_type=var_type, dt=dt,
+                                           name=name, show_code=show_code)
 
-  if f is None:
-    return lambda f: exp_euler_wrapper(f,
-                                       show_code=show_code,
-                                       dt=dt,
-                                       var_type=var_type)
-  else:
-    return exp_euler_wrapper(f,
-                             show_code=show_code,
-                             dt=dt,
-                             var_type=var_type)
+    # keyword checking
+    keywords = {
+      constants.F: 'the derivative function',
+      constants.DT: 'the precision of numerical integration',
+      'exp': 'the exponential function',
+      'math': 'the math module',
+    }
+    for v in self.variables:
+      keywords[f'{v}_new'] = 'the intermediate value'
+    utils.check_kws(self.arguments, keywords)
 
+    # build the integrator
+    self.build()
 
-def exponential_midpoint(f=None, show_code=None, dt=None, var_type=None):
-  r"""The exponential midpoint method for ODEs.
+  def build(self):
+    # if math.get_backend_name() == 'jax':
+    #   raise NotImplementedError
+    # else:
+    self.symbolic_build()
 
-  Borgers and Nectow [1]_ [2]_ considered an explicit second-order method, called
-  the exponential midpoint method, which is given by:
+  def autograd_build(self):
+    pass
 
-  .. math::
-      \begin{align}
-      u_{n+1/2} = &e^{1/2hL(u_n)}u_n + \frac{e^{1/2hL}-1}{1/2hL(u_n)} \frac{1}{2}hN(U_n) \\
-      u_{n+1} = & e^{hL(u_{n+1/2})}u_n + \frac{e^{hL(u_{n+1/2})}-1}{hL(u_{n+1/2})}hN(u_{n+1/2})
-      \end{align}
+  def symbolic_build(self):
+    # check package
+    if sympy is None or analysis_by_sympy is None:
+      raise errors.PackageMissingError('SymPy must be installed when '
+                                       'using exponential integrators.')
 
-  The second line is similar to exponential Euler, except :math:`L` and :math:`N` are
-  evaluated at the approximate midpoint :math:`u_{n+1/2}`, obtained by first taking
-  a half-step of exponential Euler. Note that each nonlinear function is evaluated
-  twice, first at :math:`u_{n}` and again at :math:`u_{n+1/2}`, so this method is
-  twice as expensive per step as an Euler-type method.
+    # check bound method
+    if hasattr(self.derivative[constants.F], '__self__'):
+      self.code_lines = [f'def {self.func_name}({", ".join(["self"] + list(self.arguments))}):']
 
-  Parameters
-  ----------
-  f : function
-    The derivative function.
-  dt : optional, float
-    The numerical precision.
-  var_type : optional, str
-    The variable type.
-  show_code : bool
-    Whether show the code.
+    # code scope
+    closure_vars = inspect.getclosurevars(self.derivative[constants.F])
+    self.code_scope.update(closure_vars.nonlocals)
+    self.code_scope.update(dict(closure_vars.globals))
+    self.code_scope['math'] = math
 
-  Returns
-  -------
-  func : function
-      The one-step numerical integrator function.
+    analysis = separate_variables(self.derivative[constants.F])
+    variables_for_returns = analysis['variables_for_returns']
+    expressions_for_returns = analysis['expressions_for_returns']
+    for vi, (key, all_var) in enumerate(variables_for_returns.items()):
+      # separate variables
+      sd_variables = []
+      for v in all_var:
+        if len(v) > 1:
+          raise ValueError('Cannot analyze multi-assignment code line.')
+        sd_variables.append(v[0])
+      expressions = expressions_for_returns[key]
+      var_name = self.variables[vi]
+      diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
+                                               variables=sd_variables,
+                                               expressions=expressions,
+                                               derivative_expr=key,
+                                               scope=self.code_scope,
+                                               func_name=self.func_name)
 
-  References
-  ----------
-  .. [1] Borgers, C., & Nectow, A. R. (2013). Exponential Time Differencing for
-         Hodgkin--Huxley-like ODEs. SIAM Journal on Scientific Computing, 35(3),
-         B623-B643.
-  .. [2] Chen, Zhengdao, Baranidharan Raman, and Ari Stern. "Structure-Preserving
-         Numerical Integrators for Hodgkin--Huxley-Type Systems." SIAM Journal on
-         Scientific Computing 42, no. 1 (2020): B273-B298.
-  """
-  raise NotImplementedError
+      f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
+
+      # code lines
+      self.code_lines.extend([f"  {str(expr)}" for expr in f_expressions[:-1]])
+
+      # get the linear system using sympy
+      f_res = f_expressions[-1]
+      df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
+      s_df = sympy.Symbol(f"{f_res.var_name}")
+      self.code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
+      var = sympy.Symbol(diff_eq.var_name, real=True)
+
+      # get df part
+      s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
+      s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
+      s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
+      if df_expr.has(var):
+        # linear
+        linear = sympy.collect(df_expr, var, evaluate=False)[var]
+        self.code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
+        # linear exponential
+        self.code_lines.append(f'  {s_linear_exp.name} = math.exp({s_linear.name} * {constants.DT})')
+        # df part
+        df_part = (s_linear_exp - 1) / s_linear * s_df
+        self.code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
+      else:
+        # df part
+        self.code_lines.append(f'  {s_df_part.name} = {s_df.name} * {constants.DT}')
+
+      # update expression
+      update = var + s_df_part
+
+      # The actual update step
+      self.code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)}')
+      self.code_lines.append('')
+
+    self.code_lines.append(f'  return {", ".join([f"{v}_new" for v in self.variables])}')
+    self.integral = utils.compile_code(
+      code_scope={k: v for k, v in self.code_scope.items()},
+      code_lines=self.code_lines,
+      show_code=self.show_code,
+      func_name=self.func_name)
+
+    if hasattr(self.derivative[constants.F], '__self__'):
+      host = self.derivative[constants.F].__self__
+      self.integral = self.integral.__get__(host, host.__class__)
+

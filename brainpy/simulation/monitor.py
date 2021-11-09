@@ -60,7 +60,6 @@ class Monitor(object):
                'item_names', 'item_indices', 'item_intervals', 'item_contents',
                'has_build']
 
-  # TODO: support functional "every" specification
   def __init__(self, variables, intervals=None, target=None):
     if isinstance(variables, (list, tuple)):
       if intervals is not None:

@@ -3,6 +3,11 @@
 from typing import cast
 
 import numpy as np
+try:
+  import numba as nb
+except ModuleNotFoundError:
+  nb = None
+
 
 __all__ = [
   'ndarray',
@@ -19,9 +24,21 @@ class Variable(np.ndarray):
 
   """
   def __new__(cls, value, type='', replicate=None):
-    value2 = np.asarray(value)
-    obj = value2.view(cls)
-    obj.value = value if value2.dtype == np.dtype('O') else value2
+    if not isinstance(value, ndarray):
+      arr_value = np.asarray(value)
+    else:
+      arr_value = value
+    obj = arr_value.view(cls)
+    if arr_value.dtype == np.dtype('O'):
+      if isinstance(value, (list, tuple)):
+        if len(value) > 0 and isinstance(value[0], ndarray) and nb is not None:
+          value2 = nb.typed.List()
+          for v in value:
+            value2.append(v)
+          value = value2
+      obj.value = value
+    else:
+      obj.value = arr_value
     obj.type = type
     obj.replicate = replicate
     return obj

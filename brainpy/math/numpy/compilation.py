@@ -3,6 +3,7 @@
 import logging
 
 from brainpy import errors
+from brainpy.base.base import Base
 
 try:
   import numba
@@ -23,7 +24,7 @@ logger = logging.getLogger('brainpy.math.numpy.compilation')
 
 def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
         forceobj=False, looplift=True, error_model='python', inline='never',
-        boundscheck=None, show_code=False, **kwargs):
+        boundscheck=None, show_code=False, debug=False, **kwargs):
   """Just-In-Time (JIT) Compilation in NumPy backend.
 
   JIT compilation in NumPy backend relies on `Numba <http://numba.pydata.org/>`_. However,
@@ -105,12 +106,8 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
   show_code : bool
     Debugging.
 
-  kwargs
-
-  Returns
-  -------
-  res : callable, Base
-    The jitted objects.
+  kwargs : dict
+    The setting for jax JIT.
   """
 
   # checking
@@ -123,10 +120,11 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
   return ast2numba.jit(obj_or_fun, show_code=show_code,
                        nopython=nopython, fastmath=fastmath, parallel=parallel, nogil=nogil,
                        forceobj=forceobj, looplift=looplift, error_model=error_model,
-                       inline=inline, boundscheck=boundscheck)
+                       inline=inline, boundscheck=boundscheck, debug=debug)
 
 
-def vmap(obj_or_func, *args, **kwargs):
+def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
+         in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
   """Vectorization Compilation in NumPy backend.
 
   Vectorization compilation is not implemented in NumPy backend.

@@ -2,12 +2,15 @@ publishment.md
 #experimental/
 .vscode
 
-examples/
+book/
+docs/examples
+others
 examples/recurrent_neural_network/neurogym
 develop/iconip_paper
 develop/benchmark/COBA/results
 develop/test
 develop/outputdir
+docs/tutorial_math/data
 
 docs/images/numpybrain_arch.pptx
 docs/images/synapses_index.pdf
@@ -19,11 +22,18 @@ docs/images/connection_methods.pptx
 */_autosummary
 */generated
 
+docs/apis/base.rst
+docs/apis/simulation/
+docs/apis/analysis/
+docs/apis/integrators/ode_adaptive_rk.rst
+docs/apis/integrators/ode_explicit_rk.rst
+docs/apis/integrators/ode_exponential.rst
+docs/apis/analysis/generated
+docs/apis/tools.rst
+docs/apis/visualization.rst
 docs/apis/math/generated
-docs/apis/simulation/generated
-docs/apis/dnn/_autosummary
+docs/apis/math/jax_math
 docs/quickstart/_autosummary
-docs/apis/dnn/generated
 docs/quickstart/generated
 docs/quickstart/.ipynb_checkpoints
 
