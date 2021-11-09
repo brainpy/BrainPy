@@ -96,3 +96,4 @@ html_theme = 'sphinx_rtd_theme'
 # -- Options for myst ----------------------------------------------
 # Notebook cell execution timeout; defaults to 30.
 execution_timeout = 200
+jupyter_execute_notebooks = "off"
