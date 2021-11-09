@@ -211,7 +211,8 @@ class Trajectory(object):
     self.scope['MON'] = self.mon
     self.scope['_fixed_vars'] = fixed_vars
 
-    code_lines = ['def run_func(_t, _dt):']
+    code_lines = ['def run_func(t_and_dt):']
+    code_lines.append('  _t, _dt = t_and_dt')
     for integral in self.model.integrals:
       assert isinstance(integral, ODEIntegrator)
       func_name = integral.func_name
