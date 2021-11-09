@@ -18,6 +18,10 @@ import numpy as np
 from jax.interpreters.partial_eval import DynamicJaxprTracer
 from jax.interpreters.partial_eval import JaxprTracer
 from jax.interpreters.pxla import ShardedDeviceArray
+try:
+  from jax.errors import UnexpectedTracerError
+except ImportError:
+  from jax.core import UnexpectedTracerError
 
 from brainpy import errors
 from brainpy.base.base import Base
@@ -45,7 +49,11 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
 
   def call(*args, **kwargs):
     variable_data = vars.dict()
-    out, changes = jitted_func(variable_data, *args, **kwargs)
+    try:
+      out, changes = jitted_func(variable_data, *args, **kwargs)
+    except UnexpectedTracerError as e:
+      vars.assign(variable_data)
+      raise errors.JaxTracerError() from e
     vars.assign(changes)
     return out
 
@@ -215,11 +223,14 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
     dyn_data = dyn_vars.dict()
     n = args[batch_idx[0]].shape[batch_idx[1]]
     rand_data = {key: val.split_keys(n) for key, val in rand_vars.items()}
-    out, dyn_changes, rand_changes = vmapped_func(dyn_data, rand_data, *args, **kwargs)
-    for key, v in dyn_changes.items():
-      dyn_vars[key] = reduce_func(v)
-    for key, v in rand_changes.items():
-      rand_vars[key] = reduce_func(v)
+    try:
+      out, dyn_changes, rand_changes = vmapped_func(dyn_data, rand_data, *args, **kwargs)
+    except UnexpectedTracerError as e:
+      dyn_vars.assign(dyn_data)
+      rand_vars.assign(rand_data)
+      raise errors.JaxTracerError() from e
+    for key, v in dyn_changes.items(): dyn_vars[key] = reduce_func(v)
+    for key, v in rand_changes.items(): rand_vars[key] = reduce_func(v)
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
