@@ -8,6 +8,7 @@ from .compilation import *
 from .function import *
 from .ndarray import *
 from .ops import *
+from .operators import *
 
 try:
   from . import overload
