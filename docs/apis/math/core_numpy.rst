@@ -1,5 +1,5 @@
-Functions in NumPy backend
-==========================
+NumPy backend Supports
+======================
 
 .. currentmodule:: brainpy.math.numpy
 .. automodule:: brainpy.math.numpy
