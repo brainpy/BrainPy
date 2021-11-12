@@ -40,19 +40,10 @@
 
 **Method 1**: install ``BrainPy`` by using ``pip``:
 
-To install the stable release of BrainPy (V1.1.0), please use
+To install the stable release of BrainPy, please use
 
 ```bash
 > pip install -U brain-py
-```
-
-If you have installed the previous version of BrainPy,  please uninstall the older one first
-
-```bash
-> pip uninstall brainpy-simulator
-
-# Then install the latest version of BrainPy
-> pip install -U brain-py --pre
 ```
 
 **Method 2**: install ``BrainPy`` from source:

@@ -264,7 +264,8 @@ def build_input_func(inputs, show_code=False):
       left = f'{target.name}.{key}[:]'
     else:
       raise errors.BrainPyError(f'"{key}" in {target} is not a dynamically changed Variable, '
-                                f'its value will not change, we cannot give its input.')
+                                f'its value will not change, we think there is no need to '
+                                f'give its input.')
 
     # code line right
     if type_ == 'iter':
@@ -393,7 +394,8 @@ def build_monitor_func(monitors, show_code=False, func_name ='monitor_step'):
     # get the data key in the host
     if not isinstance(data, math.Variable):
       raise errors.BrainPyError(f'"{key}" in {target} is not a dynamically changed Variable, '
-                                f'its value will not change, we cannot monitor its trajectory.')
+                                f'its value will not change, we think there is no need to '
+                                f'monitor its trajectory.')
     if math.ndim(data) == 1:
       key_in_host = f'{target.name}.{variable}.value'
     else:

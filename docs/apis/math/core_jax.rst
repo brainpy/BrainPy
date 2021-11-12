@@ -12,8 +12,6 @@ Compilations
     :toctree: generated/
 
     jit
-    vmap
-    pmap
 
 
 Variables

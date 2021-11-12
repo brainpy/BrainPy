@@ -5,3 +5,4 @@ Dynamics Analysis
    :maxdepth: 1
 
    symbolic
+   numeric
