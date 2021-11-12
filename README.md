@@ -131,9 +131,11 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
-### Learning through back-propagation
+### Dynamics Learning
 
-- [Integrator RNN Model](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/integrator_rnn.html)
+- [Train Integrator RNN with BP](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/integrator_rnn.html)
+
+- [FORCE Learning](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Sussillo_Abbott_2009_FORCE_Learning.html)
 
  
 
