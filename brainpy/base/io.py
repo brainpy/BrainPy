@@ -49,7 +49,7 @@ def _check(module, module_name, ext):
 def _check_missing(vars, filename):
   if len(vars):
     logger.warning(f'There are variable states missed in {filename}. '
-                   f'The missed variables are {list(vars.keys())}.')
+                   f'The missed variables are: {list(vars.keys())}.')
 
 
 def save_h5(filename, all_vars):
@@ -64,7 +64,7 @@ def save_h5(filename, all_vars):
   f.close()
 
 
-def load_h5(filename, target):
+def load_h5(filename, target, verbose=False, check=False):
   global math, Base
   if Base is None: from brainpy.base.base import Base
   if math is None: from brainpy import math
@@ -74,11 +74,11 @@ def load_h5(filename, target):
   all_vars = target.vars(method='relative')
   f = h5py.File(filename, "r")
   for key in f.keys():
+    if verbose: print(f'Loading {key} ...')
     var = all_vars.pop(key)
     var[:] = math.asarray(f[key][:])
-    # assert var.type == d.attrs['type']
   f.close()
-  _check_missing(all_vars, filename=filename)
+  if check: _check_missing(all_vars, filename=filename)
 
 
 def save_npz(filename, all_vars, compressed=False):
@@ -91,7 +91,7 @@ def save_npz(filename, all_vars, compressed=False):
     np.savez(filename, **all_vars)
 
 
-def load_npz(filename, target):
+def load_npz(filename, target, verbose=False, check=False):
   global math, Base
   if Base is None: from brainpy.base.base import Base
   if math is None: from brainpy import math
@@ -100,10 +100,10 @@ def load_npz(filename, target):
   all_vars = target.vars(method='relative')
   all_data = np.load(filename)
   for key in all_data.files:
-    host_key, data_key = key.split('--')
-    var = all_vars.pop(host_key + '.' + data_key)
+    if verbose: print(f'Loading {key} ...')
+    var = all_vars.pop(key)
     var[:] = math.asarray(all_data[key])
-  _check_missing(all_vars, filename=filename)
+  if check: _check_missing(all_vars, filename=filename)
 
 
 def save_pkl(filename, all_vars):
@@ -115,7 +115,7 @@ def save_pkl(filename, all_vars):
   f.close()
 
 
-def load_pkl(filename, target):
+def load_pkl(filename, target, verbose=False, check=False):
   global math, Base
   if Base is None: from brainpy.base.base import Base
   if math is None: from brainpy import math
@@ -126,9 +126,10 @@ def load_pkl(filename, target):
 
   all_vars = target.vars(method='relative')
   for key, data in all_data.items():
+    if verbose: print(f'Loading {key} ...')
     var = all_vars.pop(key)
     var[:] = math.asarray(data)
-  _check_missing(all_vars, filename=filename)
+  if check: _check_missing(all_vars, filename=filename)
 
 
 def save_mat(filename, all_vars):
@@ -139,7 +140,7 @@ def save_mat(filename, all_vars):
   sio.savemat(filename, all_vars)
 
 
-def load_mat(filename, target):
+def load_mat(filename, target, verbose=False, check=False):
   global math, Base
   if Base is None: from brainpy.base.base import Base
   if math is None: from brainpy import math
@@ -148,6 +149,7 @@ def load_mat(filename, target):
   all_data = sio.loadmat(filename)
   all_vars = target.vars(method='relative')
   for key, data in all_data.items():
+    if verbose: print(f'Loading {key} ...')
     var = all_vars.pop(key)
     var[:] = math.asarray(data)
-  _check_missing(all_vars, filename=filename)
+  if check: _check_missing(all_vars, filename=filename)

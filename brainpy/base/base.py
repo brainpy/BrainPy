@@ -226,7 +226,7 @@ class Base(object):
       namechecking.check_name(name=name, obj=self)
       return name
 
-  def load_states(self, filename):
+  def load_states(self, filename, verbose=False, check=False):
     """Load the model states.
 
     Parameters
@@ -237,13 +237,13 @@ class Base(object):
     if not os.path.exists(filename):
       raise errors.BrainPyError(f'Cannot find the file path: {filename}')
     elif filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.load_h5(filename, target=self)
+      io.load_h5(filename, target=self, verbose=verbose, check=check)
     elif filename.endswith('.pkl'):
-      io.load_pkl(filename, target=self)
+      io.load_pkl(filename, target=self, verbose=verbose, check=check)
     elif filename.endswith('.npz'):
-      io.load_npz(filename, target=self)
+      io.load_npz(filename, target=self, verbose=verbose, check=check)
     elif filename.endswith('.mat'):
-      io.load_mat(filename, target=self)
+      io.load_mat(filename, target=self, verbose=verbose, check=check)
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
