@@ -14,6 +14,7 @@ from .jaxarray import *
 
 # functions/operations
 from .ops import *
+from .operators import *
 from . import fft
 from . import linalg
 from . import random

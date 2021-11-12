@@ -69,35 +69,11 @@ __all__ = [
 
   # others
   'take_along_axis', 'clip_by_norm',
-  'segment_sum', 'segment_prod', 'segment_max', 'segment_min',
 ]
 
 
 # others
 # -------
-
-
-def segment_sum(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                unique_indices: bool = False, bucket_size: int = None):
-  """Computes the sum within segments of an array."""
-  raise NotImplementedError
-
-
-def segment_prod(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                 unique_indices: bool = False, bucket_size: int = None):
-  """Computes the product within segments of an array."""
-  raise NotImplementedError
-
-
-def segment_max(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                unique_indices: bool = False, bucket_size: int = None):
-  raise NotImplementedError
-
-
-def segment_min(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                unique_indices: bool = False, bucket_size: int = None):
-  """Computes the product within segments of an array."""
-  raise NotImplementedError
 
 
 take_along_axis = numpy.take_along_axis

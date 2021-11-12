@@ -32,22 +32,26 @@ __all__ = [
 
 
 def jit(obj_or_fun, show_code=False, **jit_setting):
+  global DynamicalSystem
+  if DynamicalSystem is None:
+    from brainpy.simulation.brainobjects.base import DynamicalSystem
   global Integrator
   if Integrator is None:
     from brainpy.integrators.base import Integrator
 
-  if callable(obj_or_fun):
+  if isinstance(obj_or_fun, DynamicalSystem):
+    return jit_DS(obj_or_fun, show_code=show_code, **jit_setting)
+
+  else:
+    assert callable(obj_or_fun)
+
     # integrator
     if isinstance(obj_or_fun, Integrator):
-      return jit_Integrator(intg=obj_or_fun,
-                            show_code=show_code,
-                            **jit_setting)
+      return jit_Integrator(intg=obj_or_fun, show_code=show_code, **jit_setting)
 
     # Function
     if isinstance(obj_or_fun, Function):
-      return jit_Func(obj_or_fun,
-                      show_code=show_code,
-                      **jit_setting)
+      return jit_Func(obj_or_fun, show_code=show_code, **jit_setting)
 
     # Base
     elif isinstance(obj_or_fun, Base):
@@ -55,8 +59,6 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
                       host=obj_or_fun,
                       name=obj_or_fun.name + '_call',
                       show_code=show_code, **jit_setting)
-
-
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
@@ -72,11 +74,6 @@ def jit(obj_or_fun, show_code=False, **jit_setting):
       else:
         # numba function
         return obj_or_fun
-
-  else:
-    return jit_DS(obj_or_fun,
-                  show_code=show_code,
-                  **jit_setting)
 
 
 def jit_DS(obj_or_fun, show_code=False, **jit_setting):

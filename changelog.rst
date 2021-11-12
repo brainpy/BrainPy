@@ -1,7 +1,17 @@
 Release notes
 =============
 
-Version 1.1.0
+
+Version 1.1.2
+-------------
+
+- add `pre2syn` and `syn2post` operators
+- add `verbose` and `check` option to ``Base.load_states()``
+- fix bugs on JIT DynamicalSystem (numpy backend)
+
+
+
+Version 1.1.1
 -------------
 
 - fix bugs on symbolic analysis: model trajectory

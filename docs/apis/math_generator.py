@@ -3,13 +3,14 @@ import inspect
 import os
 
 from brainpy.math.numpy import function
-from brainpy.math.jax import controls, losses, activations, optimizers, autograd, compilation
+from brainpy.math.jax import controls, losses, activations, optimizers, autograd, compilation, operators, setting
 from docs.apis.auto_generater import write_module
 
 
 block_list = ['test', 'control_transform', 'register_pytree_node']
 for module in [compilation, autograd, function,
-               controls, losses, activations, optimizers]:
+               controls, losses, activations, optimizers,
+               operators, setting]:
   for k in dir(module):
     if (not k.startswith('_') ) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -131,4 +132,12 @@ def generate(path):
   write_module(module_name='brainpy.math.jax.controls',
                filename=os.path.join(path, 'controls.rst'),
                header='Control Flows')
-
+  write_module(module_name='brainpy.math.jax.operators',
+               filename=os.path.join(path, 'operators.rst'),
+               header='Operators')
+  write_module(module_name='brainpy.math.jax.setting',
+               filename=os.path.join(path, 'settings.rst'),
+               header='Platform Setting')
+  write_module(module_name='brainpy.math.jax.parallels',
+               filename=os.path.join(path, 'parallels.rst'),
+               header='Parallel Compilation')

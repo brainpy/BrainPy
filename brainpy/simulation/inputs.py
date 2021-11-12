@@ -25,7 +25,7 @@ def section_input(values, durations, dt=None, return_length=False):
 
   If you want to get an input where the size is 0 bwteen 0-100 ms,
   and the size is 1. between 100-200 ms.
-  >>> import numpy as np
+
   >>> section_input(values=[0, 1],
   >>>               durations=[100, 100])
 
@@ -79,9 +79,10 @@ def constant_input(I_and_duration, dt=None):
 
   If you want to get an input where the size is 0 bwteen 0-100 ms,
   and the size is 1. between 100-200 ms.
-  >>> import numpy as np
+
+  >>> import brainpy.math as bm
   >>> constant_input([(0, 100), (1, 100)])
-  >>> constant_input([(np.zeros(100), 100), (np.random.rand(100), 100)])
+  >>> constant_input([(bm.zeros(100), 100), (bm.random.rand(100), 100)])
 
   Parameters
   ----------
