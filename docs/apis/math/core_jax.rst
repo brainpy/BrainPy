@@ -1,5 +1,5 @@
-Functions in JAX backend
-========================
+JAX backend Supports
+====================
 
 .. currentmodule:: brainpy.math.jax
 .. automodule:: brainpy.math.jax

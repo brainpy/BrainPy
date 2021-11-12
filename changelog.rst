@@ -2,6 +2,13 @@ Release notes
 =============
 
 
+Version 1.1.3
+-------------
+
+- fix bugs of JAX parallel API imports
+- fix bugs of `post_slice` structure construction
+
+
 Version 1.1.2
 -------------
 
