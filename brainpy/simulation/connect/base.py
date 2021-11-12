@@ -141,7 +141,7 @@ class TwoEndConnector(Connector):
         r = formatter.post_slice(i=ij[0], j=ij[1], num_post=self.post_num)
         all_data[PRE_IDS] = math.asarray(r[0], dtype=math.int_)
         all_data[POST_IDS] = math.asarray(r[1], dtype=math.int_)
-        all_data[PRE_SLICE] = math.asarray(r[2], dtype=math.int_)
+        all_data[POST_SLICE] = math.asarray(r[2], dtype=math.int_)
 
       for n in self.structures:
         if n in [PRE_SLICE, POST_SLICE, PRE_IDS, POST_IDS, CONN_MAT]:
