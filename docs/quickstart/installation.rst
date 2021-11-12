@@ -18,7 +18,14 @@ To do so, use:
 
 .. code-block:: bash
 
+    pip install brain-py
+
+If you try to update the BrainPy version, you can use
+
+.. code-block:: bash
+
     pip install -U brain-py
+
 
 If you want to install the pre-release version (the latest development version)
 of BrainPy, you can use:

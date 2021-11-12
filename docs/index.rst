@@ -51,7 +51,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Programming System
+   :caption: Dynamics Ecosystem
 
    tutorial_intg/index
    tutorial_simulation/index
