@@ -142,6 +142,9 @@ class DynamicalSystem(Base):
     return []
 
   def build(self, inputs=(), method=utils.STRUCT_RUN, show_code=False):
+    if method == utils.STRUCT_RUN and math.is_numpy_backend():
+      raise NotImplementedError('Structural-loop running is not supported under NumPy backend.')
+
     # Build the inputs:
     #   All the inputs are wrapped into a single function.
     self._build_inputs(inputs=inputs, show_code=show_code)
@@ -164,7 +167,7 @@ class DynamicalSystem(Base):
         times, returns = x
         nodes = self.nodes()
         for i, (n, k) in enumerate(assigns):
-          nodes[n].mon.item_contents[k] = returns[i]
+          nodes[n].mon.item_contents[k] = math.asarray(returns[i])
           nodes[n].mon.ts = times
       self._post = post
 
@@ -194,6 +197,9 @@ class DynamicalSystem(Base):
       raise ValueError
 
   def struct_run(self, duration, dt=None):
+    if math.is_numpy_backend():
+      raise NotImplementedError('Structural-loop running is not supported under NumPy backend.')
+
     # time step
     if dt is None: dt = math.get_dt()
     assert isinstance(dt, (int, float))
@@ -203,7 +209,7 @@ class DynamicalSystem(Base):
     time_steps = math.ones_like(times) * dt
     # running
     t0 = time.time()
-    _, hists = self._step([times, time_steps])
+    _, hists = self._step([times.value, time_steps.value])
     running_time = time.time() - t0
     self._post((times, hists))
     return running_time

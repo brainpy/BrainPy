@@ -1,17 +1,34 @@
 # -*- coding: utf-8 -*-
 
 
+import numpy as np
 import inspect
 
 from brainpy import errors
 from brainpy.math import profile
 
+try:
+  from jax.numpy import ndarray as jarray
+  from brainpy.math.jax.jaxarray import JaxArray
+except (ModuleNotFoundError, ImportError):
+  jarray = JaxArray= None
+
+
 __all__ = [
-  'attr_replace',
-  'get_num_indent',
-  'get_func_body_code',
-  'get_args',
+  'numpy_array',
 ]
+
+
+def numpy_array(array):
+  if isinstance(array, np.ndarray):
+    array = array
+  elif JaxArray and isinstance(array, JaxArray):
+    array = array.numpy()
+  elif jarray and isinstance(array, jarray):
+    array = np.asarray(array)
+  else:
+    raise ValueError
+  return array
 
 
 def attr_replace(attr):
@@ -123,3 +140,6 @@ def get_args(f):
       raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
                                f'as the first argument.')
   return class_kw, arguments
+
+
+
