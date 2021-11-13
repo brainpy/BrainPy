@@ -2,6 +2,13 @@ Release notes
 =============
 
 
+Version 1.1.4
+-------------
+
+- add `.struct_run()` in DynamicalSystem
+- remove ``setting`` methods in `brainpy.math.jax` module
+
+
 Version 1.1.3
 -------------
 
@@ -9,13 +16,13 @@ Version 1.1.3
 - fix bugs of `post_slice` structure construction
 - update docs
 
+
 Version 1.1.2
 -------------
 
 - add `pre2syn` and `syn2post` operators
 - add `verbose` and `check` option to ``Base.load_states()``
 - fix bugs on JIT DynamicalSystem (numpy backend)
-
 
 
 Version 1.1.1

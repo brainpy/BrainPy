@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 
-try:
-  import jax
-  jax.config.update('jax_platform_name', 'cpu')
-except ModuleNotFoundError:
-  pass
 
 # "base" module
 from . import base

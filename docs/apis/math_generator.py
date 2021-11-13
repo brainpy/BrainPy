@@ -135,9 +135,6 @@ def generate(path):
   write_module(module_name='brainpy.math.jax.operators',
                filename=os.path.join(path, 'operators.rst'),
                header='Operators')
-  write_module(module_name='brainpy.math.jax.setting',
-               filename=os.path.join(path, 'settings.rst'),
-               header='Platform Setting')
   write_module(module_name='brainpy.math.jax.parallels',
                filename=os.path.join(path, 'parallels.rst'),
                header='Parallel Compilation')

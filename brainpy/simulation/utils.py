@@ -17,6 +17,8 @@ __all__ = [
   'build_monitor_func',
 ]
 
+NORMAL_RUN = None
+STRUCT_RUN = 'struct_run'
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter']
 
@@ -306,6 +308,12 @@ def build_input_func(inputs, show_code=False):
 
 
 def check_and_format_monitors(host):
+  """Return a formatted monitor items:
+
+  >>> [(node, key, target, variable, idx, interval),
+  >>>  ...... ]
+
+  """
   formatted_mon_items = []
 
   # reshape monitors
@@ -363,7 +371,7 @@ def check_and_format_monitors(host):
   return formatted_mon_items
 
 
-def build_monitor_func(monitors, show_code=False, func_name ='monitor_step'):
+def build_monitor_func(monitors, show_code=False, func_name='monitor_step', method=None):
   """Get the monitor function according to the user's setting.
 
   This method will consider the following things:
@@ -376,20 +384,26 @@ def build_monitor_func(monitors, show_code=False, func_name ='monitor_step'):
   ----------
   monitors : list, tuple
     The items to monitor.
+  func_name : str
+    The name of the monitor function.
   show_code : bool
       Whether show the code.
   """
+  assert method in [None, STRUCT_RUN], f'Only support two kinds of method: None ' \
+                                            f'or "{STRUCT_RUN}". But we got {method}'
+  if method == STRUCT_RUN:
+    assert math.is_jax_backend(), f'Running with "{STRUCT_RUN}" only supports "jax" backend.'
   code_lines = []
   code_scope = dict()
-
+  returns = []
+  assigns = []
   for node, key, target, variable, idx, interval in monitors:
     code_scope[node.name] = node
     code_scope[target.name] = target
 
     # get data
     data = target
-    for k in variable.split('.'):
-      data = getattr(data, k)
+    for k in variable.split('.'): data = getattr(data, k)
 
     # get the data key in the host
     if not isinstance(data, math.Variable):
@@ -412,19 +426,27 @@ def build_monitor_func(monitors, show_code=False, func_name ='monitor_step'):
       code_scope[f'{node.name}_mon_{key.replace(".", "_")}_idx'] = idx
 
     # format the monitor lines according to the time interval
-    if interval is None:
-      code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
+    if method == STRUCT_RUN:
+      returns.append(right)
+      assigns.append([node.name, key])
+      if interval is not None:
+        raise ValueError(f'Running with "{STRUCT_RUN}" method does not '
+                         f'support "interval" in the monitor.')
     else:
-      code_scope[f'{node.name}_mon_{key.replace(".", "_")}_next_time'] = interval
-      code_lines.extend([f'global {node.name}_mon_{key.replace(".", "_")}_next_time',
-                         f'if _t >= {node.name}_mon_{key.replace(".", "_")}_next_time:',
-                         f'  {node.name}.mon.item_contents["{key}"].append({right})',
-                         f'  {node.name}.mon.item_contents["{key}.t"].append(_t)',
-                         f'  {node.name}_mon_{key.replace(".", "_")}_next_time += {interval}'])
+      if interval is None:
+        code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
+      else:
+        code_scope[f'{node.name}_mon_{key.replace(".", "_")}_next_time'] = interval
+        code_lines.extend([f'global {node.name}_mon_{key.replace(".", "_")}_next_time',
+                           f'if _t >= {node.name}_mon_{key.replace(".", "_")}_next_time:',
+                           f'  {node.name}.mon.item_contents["{key}"].append({right})',
+                           f'  {node.name}.mon.item_contents["{key}.t"].append(_t)',
+                           f'  {node.name}_mon_{key.replace(".", "_")}_next_time += {interval}'])
 
-  if len(code_lines):
-    code_scope_old = {k: v for k, v in code_scope.items()}
+  if len(code_lines) or len(returns):
+    if method == STRUCT_RUN: code_lines.append(f'return {", ".join(returns)}')
     # function
+    code_scope_old = {k: v for k, v in code_scope.items()}
     code, func = tools.code_lines_to_func(lines=code_lines,
                                           func_name=func_name,
                                           func_args=['_t', '_dt'],
@@ -436,5 +458,4 @@ def build_monitor_func(monitors, show_code=False, func_name ='monitor_step'):
       print()
   else:
     func = lambda _t, _dt: None
-
-  return func
+  return func, assigns

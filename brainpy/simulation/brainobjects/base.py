@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 
 from brainpy import math, errors
 from brainpy.base.base import Base
@@ -77,6 +78,8 @@ class DynamicalSystem(Base):
     # runner and run function
     self._input_step = None
     self._monitor_step = None
+    self._step = None
+    self._post = None
 
   def register_constant_delay(self, key, size, delay, dtype=None):
     """Register a constant delay.
@@ -127,25 +130,83 @@ class DynamicalSystem(Base):
     """
     raise NotImplementedError('Must implement "update" function by user self.')
 
-  def build_inputs(self, inputs=(), show_code=False):
+  def _build_inputs(self, inputs=(), show_code=False):
     inputs = utils.check_and_format_inputs(host=self, inputs=inputs)
     self._input_step = utils.build_input_func(inputs, show_code=show_code)
 
-  def build_monitors(self, show_code=False):
+  def _build_monitors(self, show_code=False, method=None):
     if self._monitor_step is None:
       monitors = utils.check_and_format_monitors(host=self)
-      self._monitor_step = utils.build_monitor_func(monitors, show_code=show_code)
-    else:
-      for node in self.nodes().unique().values():
-        if hasattr(node, 'mon'):
-          for key in node.mon.item_contents.keys():
-            node.mon.item_contents[key] = []  # reshape the monitor items
+      self._monitor_step, assigns = utils.build_monitor_func(monitors, show_code=show_code, method=method)
+      return assigns
+    return []
 
-  def step(self, t_and_dt, **kwargs):
-    self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
-    for step in self.steps.values():
-      step(_t=t_and_dt[0], _dt=t_and_dt[1], **kwargs)
-    self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+  def build(self, inputs=(), method=utils.STRUCT_RUN, show_code=False):
+    # Build the inputs:
+    #   All the inputs are wrapped into a single function.
+    self._build_inputs(inputs=inputs, show_code=show_code)
+    # Build the monitors:
+    #   All the monitors are wrapped in a single function.
+    assigns = self._build_monitors(method=method, show_code=show_code)
+
+    if method == utils.STRUCT_RUN:
+      from brainpy.math.jax import make_loop, jit
+
+      def step(t_and_dt):
+        self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        for step in self.steps.values():
+          step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        return self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+      self._step = jit(make_loop(step, dyn_vars=self.vars(), has_return=True),
+                       dyn_vars=self.vars())
+
+      def post(x):
+        times, returns = x
+        nodes = self.nodes()
+        for i, (n, k) in enumerate(assigns):
+          nodes[n].mon.item_contents[k] = returns[i]
+          nodes[n].mon.ts = times
+      self._post = post
+
+    elif method == utils.NORMAL_RUN:
+      def step(t_and_dt):
+        self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        for step in self.steps.values():
+          step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+      self._step = step
+
+      # 6. monitor
+      # --
+      # 6.1 add 'ts' variable to every monitor
+      # 6.2 wrap the monitor iterm with the 'list' type into the 'ndarray' type
+      def post(x):
+        times = x
+        for node in self.nodes().values():
+          if hasattr(node, 'mon'):
+            if node.mon.num_item > 0:
+              node.mon.ts = times
+              for key, val in node.mon.item_contents.items():
+                node.mon.item_contents[key] = math.asarray(val)
+      self._post = post
+
+    else:
+      raise ValueError
+
+  def struct_run(self, duration, dt=None):
+    # time step
+    if dt is None: dt = math.get_dt()
+    assert isinstance(dt, (int, float))
+    # times
+    start, end = utils.check_duration(duration)
+    times = math.arange(start, end, dt)
+    time_steps = math.ones_like(times) * dt
+    # running
+    t0 = time.time()
+    _, hists = self._step([times, time_steps])
+    running_time = time.time() - t0
+    self._post((times, hists))
+    return running_time
 
   def run(self, duration, dt=None, report=0., inputs=(), extra_func=None):
     """The running function.
@@ -180,50 +241,41 @@ class DynamicalSystem(Base):
     extra_func : function, callable
       The extra function to run during each time step.
 
+    method : optional, str
+      The method to run the model.
+
     Returns
     -------
     running_time : float
       The total running time.
     """
 
-    if dt is None:
-      dt = math.get_dt()
+    # time step
+    if dt is None: dt = math.get_dt()
     assert isinstance(dt, (int, float))
 
-    # 2. Build the inputs.
-    #    All the inputs are wrapped into a single function.
-    self.build_inputs(inputs=inputs)
-
-    # 3. Build the monitors.
-    #    All the monitors are wrapped in a single function.
-    self.build_monitors()
-
-    # 4. times
+    # times
     start, end = utils.check_duration(duration)
     times = math.arange(start, end, dt)
 
-    # 5. run the model
-    # ----
-    # 5.1 iteratively run the step function.
-    # 5.2 report the running progress.
-    # 5.3 return the overall running time.
-    running_time = utils.run_model(run_func=self.step,
+    # build inputs and monitors
+    self.build(inputs=inputs, method=utils.NORMAL_RUN)
+    for node in self.nodes().values():
+      if hasattr(node, 'mon'):
+        for key in node.mon.item_contents.keys():
+          node.mon.item_contents[key] = []  # reshape the monitor items
+
+    # run the model
+    # -------------
+    #   iteratively run the step function.
+    #   report the running progress.
+    #   return the overall running time.
+    running_time = utils.run_model(run_func=self._step,
                                    times=times,
                                    report=report,
                                    dt=dt,
                                    extra_func=extra_func)
-
-    # 6. monitor
-    # --
-    # 6.1 add 'ts' variable to every monitor
-    # 6.2 wrap the monitor iterm with the 'list' type into the 'ndarray' type
-    for node in self.nodes().unique().values():
-      if hasattr(node, 'mon'):
-        if node.mon.num_item > 0:
-          node.mon.ts = times
-          for key, val in list(node.mon.item_contents.items()):
-            val = math.asarray(node.mon.item_contents[key])
-            node.mon.item_contents[key] = val
+    self._post(times)
 
     return running_time
 
