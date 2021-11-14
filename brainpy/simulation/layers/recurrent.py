@@ -2,7 +2,8 @@
 
 import abc
 
-from brainpy.simulation._imports import mjax
+import jax.numpy as jnp
+import brainpy.math.jax as bm
 from brainpy.simulation.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
 from .base import Module
 
@@ -40,25 +41,31 @@ class VanillaRNN(RNNCore):
   The output is equal to the new state, :math:`h_t`.
   """
 
-  def __init__(self, num_hidden, num_input,
-               w_init=XavierNormal(), b_init=ZeroInit(),
-               h_init=Uniform(), **kwargs):
+  def __init__(self, num_hidden, num_input, num_batch, h=Uniform(), w=XavierNormal(), b=ZeroInit(), **kwargs):
     super(VanillaRNN, self).__init__(num_hidden, num_input, **kwargs)
 
-    # parameters
-    self.h_init = h_init
+    # variables
+    if callable(h):
+      self.h = bm.Variable(h((num_batch, self.num_hidden)))
+    else:
+      self.h = bm.Variable(h)
 
     # weights
-    self.w_ir = mjax.TrainVar(w_init((num_input, num_hidden)))
-    self.w_rr = mjax.TrainVar(w_init((num_hidden, num_hidden)))
-    self.b = mjax.TrainVar(b_init((num_hidden,)))
+    if callable(w):
+      self.w_ir = bm.TrainVar(w((num_input, num_hidden)))
+      self.w_rr = bm.TrainVar(w((num_hidden, num_hidden)))
+    else:
+      w_ir, w_rr = w
+      self.w_ir = bm.TrainVar(w_ir)
+      self.w_rr = bm.TrainVar(w_rr)
+    if callable(b):
+      self.b = bm.TrainVar(b((num_hidden,)))
+    else:
+      self.b = bm.TrainVar(b)
 
   def update(self, x):
-    self.h.value = mjax.relu(x @ self.w_ir + self.h @ self.w_rr + self.b)
+    self.h.value = bm.relu(x @ self.w_ir + self.h @ self.w_rr + self.b)
     return self.h
-
-  def init(self, num_batch=1):
-    self.h = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
 
 
 class GRU(RNNCore):
@@ -90,34 +97,51 @@ class GRU(RNNCore):
          arXiv preprint arXiv:1412.3555.
   """
 
-  def __init__(self, num_hidden, num_input, wx_init=Orthogonal(),
-               wh_init=Orthogonal(), b_init=ZeroInit(),
-               h_init=ZeroInit(), **kwargs):
+  def __init__(self, num_hidden, num_input, num_batch, wx=Orthogonal(),
+               wh=Orthogonal(), b=ZeroInit(), h=ZeroInit(), **kwargs):
     super(GRU, self).__init__(num_hidden, num_input, **kwargs)
 
-    # parameters
-    self.h_init = h_init
+    # variables
+    if callable(h):
+      self.h = bm.Variable(h((num_batch, self.num_hidden)))
+    else:
+      self.h = bm.Variable(h)
 
     # weights
-    self.w_iz = mjax.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_ir = mjax.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_ia = mjax.TrainVar(wx_init((num_input, num_hidden)))
-    self.w_hz = mjax.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.w_hr = mjax.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.w_ha = mjax.TrainVar(wh_init((num_hidden, num_hidden)))
-    self.bz = mjax.TrainVar(b_init((num_hidden,)))
-    self.br = mjax.TrainVar(b_init((num_hidden,)))
-    self.ba = mjax.TrainVar(b_init((num_hidden,)))
+    if callable(wx):
+      self.w_iz = bm.TrainVar(wx((num_input, num_hidden)))
+      self.w_ir = bm.TrainVar(wx((num_input, num_hidden)))
+      self.w_ia = bm.TrainVar(wx((num_input, num_hidden)))
+    else:
+      w_iz, w_ir, w_ia = wx
+      self.w_iz = bm.TrainVar(w_iz)
+      self.w_ir = bm.TrainVar(w_ir)
+      self.w_ia = bm.TrainVar(w_ia)
+    if callable(wh):
+      self.w_hz = bm.TrainVar(wh((num_hidden, num_hidden)))
+      self.w_hr = bm.TrainVar(wh((num_hidden, num_hidden)))
+      self.w_ha = bm.TrainVar(wh((num_hidden, num_hidden)))
+    else:
+      w_hz, w_hr, w_ha = wh
+      self.w_hz = bm.TrainVar(w_hz)
+      self.w_hr = bm.TrainVar(w_hr)
+      self.w_ha = bm.TrainVar(w_ha)
+    if callable(b):
+      self.bz = bm.TrainVar(b((num_hidden,)))
+      self.br = bm.TrainVar(b((num_hidden,)))
+      self.ba = bm.TrainVar(b((num_hidden,)))
+    else:
+      bz, br, bz = b
+      self.bz = bm.TrainVar(bz)
+      self.br = bm.TrainVar(br)
+      self.ba = bm.TrainVar(bz)
 
   def update(self, x):
-    z = mjax.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
-    r = mjax.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
-    a = mjax.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
-    self.h[:] = (1 - z) * self.h + z * a
-    return self.h
-
-  def init(self, num_batch=1):
-    self.h = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
+    z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
+    r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
+    a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
+    self.h.value = (1 - z) * self.h + z * a
+    return self.h.value
 
 
 class LSTM(RNNCore):
@@ -160,28 +184,35 @@ class LSTM(RNNCore):
          on machine learning, pp. 2342-2350. PMLR, 2015.
   """
 
-  def __init__(self, num_hidden, num_input,
-               w_init=Orthogonal(), b_init=ZeroInit(),
-               h_init=ZeroInit(), **kwargs):
+  def __init__(self, num_hidden, num_input, num_batch, w=Orthogonal(), b=ZeroInit(), hc=ZeroInit(), **kwargs):
     super(LSTM, self).__init__(num_hidden, num_input, **kwargs)
 
-    # parameters
-    self.h_init = h_init
+    # variables
+    if callable(hc):
+      self.h = bm.Variable(hc((num_batch, self.num_hidden)))
+      self.c = bm.Variable(hc((num_batch, self.num_hidden)))
+    else:
+      h, c = hc
+      self.h = bm.Variable(h)
+      self.c = bm.Variable(c)
 
     # weights
-    self.w = mjax.TrainVar(w_init((num_input + num_hidden, num_hidden * 4)))
-    self.b = mjax.TrainVar(b_init((num_hidden * 4,)))
+    if callable(w):
+      self.w = bm.TrainVar(w((num_input + num_hidden, num_hidden * 4)))
+    else:
+      self.w = bm.TrainVar(w)
+    if callable(b):
+      self.b = bm.TrainVar(b((num_hidden * 4,)))
+    else:
+      self.b = bm.TrainVar(b)
 
   def update(self, x):
-    xh = mjax.concatenate([x, self.h], axis=-1)
+    xh = bm.concatenate([x, self.h], axis=-1)
     gated = xh @ self.w + self.b
-    i, g, f, o = mjax.split(gated, indices_or_sections=4, axis=-1)
-    c = mjax.sigmoid(f + 1.) * self.c + mjax.sigmoid(i) * mjax.tanh(g)
-    h = mjax.sigmoid(o) * mjax.tanh(c)
+    i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
+    c = bm.sigmoid(f + 1.) * self.c + bm.sigmoid(i) * bm.tanh(g)
+    h = bm.sigmoid(o) * bm.tanh(c)
     self.h.value = h
     self.c.value = c
-    return h
+    return self.h.value
 
-  def init(self, num_batch=1):
-    self.h = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
-    self.c = mjax.Variable(self.h_init((num_batch, self.num_hidden)))
