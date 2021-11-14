@@ -26,6 +26,7 @@ class Base(object):
   - ``Function`` in *brainpy.base.function.py*
   - ``AutoGrad`` in *brainpy.math.jax.autograd.py*
   - ``Optimizer`` in *brainpy.math.jax.optimizers.py*
+  - ``Scheduler`` in *brainpy.math.jax.optimizers.py*
 
   """
 

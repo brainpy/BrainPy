@@ -444,7 +444,7 @@ def build_monitor_func(monitors, show_code=False, func_name='monitor_step', meth
                            f'  {node.name}_mon_{key.replace(".", "_")}_next_time += {interval}'])
 
   if len(code_lines) or len(returns):
-    if method == STRUCT_RUN: code_lines.append(f'return {", ".join(returns)}')
+    if method == STRUCT_RUN: code_lines.append(f'return {", ".join(returns) + ", "}')
     # function
     code_scope_old = {k: v for k, v in code_scope.items()}
     code, func = tools.code_lines_to_func(lines=code_lines,
