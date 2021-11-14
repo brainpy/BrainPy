@@ -7,11 +7,7 @@ import inspect
 from brainpy import errors
 from brainpy.math import profile
 
-try:
-  from jax.numpy import ndarray as jarray
-  from brainpy.math.jax.jaxarray import JaxArray
-except (ModuleNotFoundError, ImportError):
-  jarray = JaxArray= None
+jarray = JaxArray= None
 
 
 __all__ = [
@@ -20,6 +16,13 @@ __all__ = [
 
 
 def numpy_array(array):
+  global jarray
+  if jarray is None:
+    from jax.numpy import ndarray as jarray
+  global JaxArray
+  if JaxArray is None:
+    from brainpy.math.jax.jaxarray import JaxArray
+
   if isinstance(array, np.ndarray):
     array = array
   elif JaxArray and isinstance(array, JaxArray):

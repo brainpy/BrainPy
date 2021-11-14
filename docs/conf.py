@@ -15,6 +15,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 import brainpy
+import brainpy.simulation.layers
 
 from docs.apis import base_generator
 base_generator.generate('apis/')

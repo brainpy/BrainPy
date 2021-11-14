@@ -33,16 +33,12 @@ from .simulation.monitor import *
 from .simulation import brainobjects
 from .simulation import connect
 from .simulation import initialize
-from .simulation import layers
 from .simulation import inputs
 from .simulation import measure
 
 
 # "analysis" module
 from . import analysis
-from .analysis import continuation
-from .analysis import numeric
-from .analysis import symbolic
 
 
 # "visualization" module
@@ -53,4 +49,4 @@ from . import visualization as visualize
 from . import errors
 from . import running
 from . import tools
-
+from .jaxsetting import *
