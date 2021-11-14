@@ -52,9 +52,8 @@ class GaussianDecay(Initializer):
   """
 
   def __init__(self, sigma, max_w, min_w=None, encoding_values=None,
-               periodic_boundary=False, include_self=True,
-               normalize=False, dtype=None):
-    super(GaussianDecay, self).__init__(dtype=dtype)
+               periodic_boundary=False, include_self=True, normalize=False):
+    super(GaussianDecay, self).__init__()
     self.sigma = sigma
     self.max_w = max_w
     self.min_w = max_w * 0.005 if min_w is None else min_w
@@ -63,7 +62,7 @@ class GaussianDecay(Initializer):
     self.include_self = include_self
     self.normalize = normalize
 
-  def __call__(self, shape):
+  def __call__(self, shape, dtype=None):
     """Build the weights.
 
     Parameters
@@ -132,7 +131,7 @@ class GaussianDecay(Initializer):
     # connectivity weights
     conn_weights = conn_mat * self.max_w
     conn_weights = np.where(conn_weights < self.min_w, 0., conn_weights)
-    return math.asarray(conn_weights, dtype=self.dtype)
+    return math.asarray(conn_weights, dtype=dtype)
 
 
 class DOGDecay(Initializer):
@@ -176,8 +175,8 @@ class DOGDecay(Initializer):
   """
 
   def __init__(self, sigmas, max_ws, min_w=None, encoding_values=None,
-               periodic_boundary=False, normalize=True, include_self=True, dtype=None):
-    super(DOGDecay, self).__init__(dtype=dtype)
+               periodic_boundary=False, normalize=True, include_self=True):
+    super(DOGDecay, self).__init__()
     self.sigma_p, self.sigma_n = sigmas
     self.max_w_p, self.max_w_n = max_ws
     self.min_w = 0.005 * max(self.max_w_p, self.max_w_n) if min_w is None else min_w
@@ -186,7 +185,7 @@ class DOGDecay(Initializer):
     self.encoding_values = encoding_values
     self.periodic_boundary = periodic_boundary
 
-  def __call__(self, shape):
+  def __call__(self, shape, dtype=None):
     """Build the weights.
 
     Parameters
@@ -252,4 +251,4 @@ class DOGDecay(Initializer):
 
     # connectivity weights
     conn_weights = np.where(np.abs(conn_weights) < self.min_w, 0., conn_weights)
-    return math.asarray(conn_weights, dtype=self.dtype)
+    return math.asarray(conn_weights, dtype=dtype)

@@ -16,8 +16,8 @@ class ZeroInit(Initializer):
   Initialize the weights with zeros.
   """
 
-  def __call__(self, shape):
-    return math.zeros(shape, dtype=self.dtype)
+  def __call__(self, shape, dtype=None):
+    return math.zeros(shape, dtype=dtype)
 
 
 class OneInit(Initializer):
@@ -31,12 +31,12 @@ class OneInit(Initializer):
     The value to specify.
   """
 
-  def __init__(self, value=1., dtype=None):
-    super(OneInit, self).__init__(dtype=dtype)
+  def __init__(self, value=1.):
+    super(OneInit, self).__init__()
     self.value = value
 
-  def __call__(self, shape):
-    return math.ones(shape, dtype=self.dtype) * self.value
+  def __call__(self, shape, dtype=None):
+    return math.ones(shape, dtype=dtype) * self.value
 
 
 class Identity(Initializer):
@@ -61,11 +61,11 @@ class Identity(Initializer):
          arXiv:1504.00941 (2015).
   """
 
-  def __init__(self, value=1., dtype=None):
-    super(Identity, self).__init__(dtype=dtype)
+  def __init__(self, value=1.):
+    super(Identity, self).__init__()
     self.value = value
 
-  def __call__(self, shape):
+  def __call__(self, shape, dtype=None):
     if isinstance(shape, int):
       shape = (shape, )
     elif isinstance(shape, (tuple, list)):
@@ -74,4 +74,4 @@ class Identity(Initializer):
     else:
       raise ValueError(f'Only support shape of int, or tuple/list of int '
                        f'in {self.__class__.__name__}, but we got {shape}.')
-    return math.eye(*shape, dtype=self.dtype) * self.value
+    return math.eye(*shape, dtype=dtype) * self.value
