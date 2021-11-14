@@ -2,7 +2,6 @@
 
 import abc
 
-import jax.numpy as jnp
 import brainpy.math.jax as bm
 from brainpy.simulation.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
 from .base import Module
@@ -44,6 +43,8 @@ class VanillaRNN(RNNCore):
   def __init__(self, num_hidden, num_input, num_batch, h=Uniform(), w=XavierNormal(), b=ZeroInit(), **kwargs):
     super(VanillaRNN, self).__init__(num_hidden, num_input, **kwargs)
 
+    self.has_bias = True
+
     # variables
     if callable(h):
       self.h = bm.Variable(h((num_batch, self.num_hidden)))
@@ -56,15 +57,22 @@ class VanillaRNN(RNNCore):
       self.w_rr = bm.TrainVar(w((num_hidden, num_hidden)))
     else:
       w_ir, w_rr = w
+      assert w_ir.shape == (num_input, num_hidden)
+      assert w_rr.shape == (num_hidden, num_hidden)
       self.w_ir = bm.TrainVar(w_ir)
       self.w_rr = bm.TrainVar(w_rr)
-    if callable(b):
+    if b is None:
+      self.has_bias = False
+    elif callable(b):
       self.b = bm.TrainVar(b((num_hidden,)))
     else:
+      assert b.shape == (num_hidden,)
       self.b = bm.TrainVar(b)
 
   def update(self, x):
-    self.h.value = bm.relu(x @ self.w_ir + self.h @ self.w_rr + self.b)
+    h = x @ self.w_ir + self.h @ self.w_rr
+    if self.has_bias: h += self.b
+    self.h.value = bm.relu(h)
     return self.h
 
 
@@ -101,6 +109,8 @@ class GRU(RNNCore):
                wh=Orthogonal(), b=ZeroInit(), h=ZeroInit(), **kwargs):
     super(GRU, self).__init__(num_hidden, num_input, **kwargs)
 
+    self.has_bias = True
+
     # variables
     if callable(h):
       self.h = bm.Variable(h((num_batch, self.num_hidden)))
@@ -114,6 +124,9 @@ class GRU(RNNCore):
       self.w_ia = bm.TrainVar(wx((num_input, num_hidden)))
     else:
       w_iz, w_ir, w_ia = wx
+      assert w_iz.shape == (num_input, num_hidden)
+      assert w_ir.shape == (num_input, num_hidden)
+      assert w_ia.shape == (num_input, num_hidden)
       self.w_iz = bm.TrainVar(w_iz)
       self.w_ir = bm.TrainVar(w_ir)
       self.w_ia = bm.TrainVar(w_ia)
@@ -123,18 +136,29 @@ class GRU(RNNCore):
       self.w_ha = bm.TrainVar(wh((num_hidden, num_hidden)))
     else:
       w_hz, w_hr, w_ha = wh
+      assert w_hz.shape == (num_hidden, num_hidden)
+      assert w_hr.shape == (num_hidden, num_hidden)
+      assert w_ha.shape == (num_hidden, num_hidden)
       self.w_hz = bm.TrainVar(w_hz)
       self.w_hr = bm.TrainVar(w_hr)
       self.w_ha = bm.TrainVar(w_ha)
-    if callable(b):
+    if b is None:
+      self.has_bias = False
+      self.bz = 0.
+      self.br = 0.
+      self.ba = 0.
+    elif callable(b):
       self.bz = bm.TrainVar(b((num_hidden,)))
       self.br = bm.TrainVar(b((num_hidden,)))
       self.ba = bm.TrainVar(b((num_hidden,)))
     else:
-      bz, br, bz = b
+      bz, br, ba = b
+      assert bz.shape == (num_hidden, )
+      assert br.shape == (num_hidden, )
+      assert ba.shape == (num_hidden, )
       self.bz = bm.TrainVar(bz)
       self.br = bm.TrainVar(br)
-      self.ba = bm.TrainVar(bz)
+      self.ba = bm.TrainVar(ba)
 
   def update(self, x):
     z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
@@ -187,12 +211,16 @@ class LSTM(RNNCore):
   def __init__(self, num_hidden, num_input, num_batch, w=Orthogonal(), b=ZeroInit(), hc=ZeroInit(), **kwargs):
     super(LSTM, self).__init__(num_hidden, num_input, **kwargs)
 
+    self.has_bias = True
+
     # variables
     if callable(hc):
       self.h = bm.Variable(hc((num_batch, self.num_hidden)))
       self.c = bm.Variable(hc((num_batch, self.num_hidden)))
     else:
       h, c = hc
+      assert h.shape == (num_batch, self.num_hidden)
+      assert c.shape == (num_batch, self.num_hidden)
       self.h = bm.Variable(h)
       self.c = bm.Variable(c)
 
@@ -200,10 +228,15 @@ class LSTM(RNNCore):
     if callable(w):
       self.w = bm.TrainVar(w((num_input + num_hidden, num_hidden * 4)))
     else:
+      assert w.shape == (num_input + num_hidden, num_hidden * 4)
       self.w = bm.TrainVar(w)
-    if callable(b):
+    if b is None:
+      self.b = 0.
+      self.has_bias = False
+    elif callable(b):
       self.b = bm.TrainVar(b((num_hidden * 4,)))
     else:
+      assert b.shape == (num_hidden * 4, )
       self.b = bm.TrainVar(b)
 
   def update(self, x):

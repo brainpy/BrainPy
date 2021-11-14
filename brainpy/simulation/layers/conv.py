@@ -61,8 +61,7 @@ class Conv2D(Module):
   """
 
   def __init__(self, num_input, num_output, kernel_size, strides=1, dilations=1,
-               groups=1, padding='SAME', w=XavierNormal(), b=ZeroInit(),
-               has_bias=True, **kwargs):
+               groups=1, padding='SAME', w=XavierNormal(), b=ZeroInit(), **kwargs):
     super(Conv2D, self).__init__(**kwargs)
 
     # parameters
@@ -80,16 +79,20 @@ class Conv2D(Module):
       raise ValueError
     self.padding = padding
     self.groups = groups
-    self.has_bias = has_bias
+    self.has_bias = True
 
     # weight initialization
     if callable(w):
       self.w = bm.TrainVar(w((*_check_tuple(kernel_size), num_input // groups, num_output)))  # HWIO
     else:
+      assert w.shape == (*_check_tuple(kernel_size), num_input // groups, num_output)
       self.w = bm.TrainVar(w)
     if callable(b):
       self.b = bm.TrainVar(b((num_output, 1, 1)))
+    elif b is None:
+      self.has_bias = False
     else:
+      assert b.shape == (num_output, 1, 1)
       self.b = bm.TrainVar(b)
 
   def update(self, x):
