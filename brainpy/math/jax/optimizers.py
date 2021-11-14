@@ -18,7 +18,7 @@ __all__ = [
   'RMSProp',
   'Adam',
 
-  # schedules
+  # schedulers
   'make_schedule',
   'Scheduler',
   'Constant',
@@ -86,7 +86,6 @@ class SGD(Optimizer):
 
 class Momentum(Optimizer):
   """Momentum optimizer.
-
 
   Momentum [1]_ is a method that helps accelerate SGD in the relevant direction
   and dampens oscillations. It does this by adding a fraction :math:`\gamma`
@@ -410,7 +409,7 @@ class ExponentialDecay(Scheduler):
     self.decay_rate = decay_rate
 
   def __call__(self, i=None):
-    i = i if i else self.step[0]
+    i = self.step[0] if i is None else i
     return self.lr * self.decay_rate ** (i / self.decay_steps)
 
 
@@ -420,9 +419,9 @@ class InverseTimeDecay(ExponentialDecay):
     self.staircase = staircase
 
   def __call__(self, i=None):
-    i = i if i else self.step[0]
+    i = self.step[0] if i is None else i
     if self.staircase:
-      return self.lr / (1 + self.decay_rate * jnp.floor(i / self.decay_steps))
+      return self.lr / (1 + self.decay_rate * bm.floor(i / self.decay_steps).value)
     else:
       return self.lr / (1 + self.decay_rate * i / self.decay_steps)
 
@@ -435,8 +434,8 @@ class PolynomialDecay(Scheduler):
     self.power = power
 
   def __call__(self, i=None):
-    i = i if i else self.step[0]
-    i = jnp.minimum(i, self.decay_steps)
+    i = self.step[0] if i is None else i
+    i = bm.minimum(i, self.decay_steps).value
     step_mult = (1 - i / self.decay_steps) ** self.power
     return step_mult * (self.lr - self.final_lr) + self.final_lr
 
@@ -455,5 +454,5 @@ class PiecewiseConstant(Scheduler):
     self.values = values
 
   def __call__(self, i=None):
-    i = i if i else self.step[0]
-    return self.values[jnp.sum(i > self.boundaries)]
+    i = self.step[0] if i is None else i
+    return self.values[bm.sum(i > self.boundaries)]
