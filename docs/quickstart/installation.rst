@@ -84,7 +84,21 @@ is based on JAX.
 Currently, JAX supports **Linux** (Ubuntu 16.04 or later) and **macOS** (10.12 or
 later) platforms. The provided binary releases of JAX for Linux and macOS
 systems are available at https://storage.googleapis.com/jax-releases/jax_releases.html .
-Users can download the preferred release ".whl" file, and install it via ``pip``:
+
+To install a CPU-only version of JAX, you can run
+
+.. code-block:: bash
+
+    pip install --upgrade "jax[cpu]"
+
+If you want to install JAX with both CPU and NVidia GPU support, you must first install
+`CUDA`_ and `CuDNN`_, if they have not already been installed. Next, run
+
+.. code-block:: bash
+
+    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+
+Alternatively, you can download the preferred release ".whl" file, and install it via ``pip``:
 
 .. code-block:: bash
 
@@ -92,13 +106,23 @@ Users can download the preferred release ".whl" file, and install it via ``pip``
 
 For **Windows** users, JAX can be installed by the following methods:
 
-- For Windows 10+ system, you can `Windows Subsystem for Linux (WSL)`_.
-  The installation guide can be found in `WSL Installation Guide for Windows 10`_.
-  Then, you can install JAX in WSL just like the installation step in Linux.
-- There are several precompiled Windows wheels, like `jaxlib_0.1.68_Windows_wheels`_ and `jaxlib_0.1.61_Windows_wheels`_.
-- Finally, you can also `build JAX from source`_.
+Method 1: For Windows 10+ system, you can `Windows Subsystem for Linux (WSL)`_.
+The installation guide can be found in `WSL Installation Guide for Windows 10`_.
+Then, you can install JAX in WSL just like the installation step in Linux.
 
-More details of JAX installation can be found in https://github.com/google/jax#installation .
+Method 2: There are several community supported Windows build for jax, please refer
+to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
+Simply speaking, you can run:
+
+.. code-block:: bash
+
+    # for only CPU
+    pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
+
+    # for GPU support
+    pip install <downloaded jaxlib>
+
+Method 3: You can also `build JAX from source`_.
 
 
 Numba
@@ -148,3 +172,5 @@ Therefore, we highly recommend you to install sympy, just typing
 .. _SymPy: https://github.com/sympy/sympy
 .. _Exponential Euler numerical solver: https://brainpy.readthedocs.io/en/latest/tutorials_advanced/ode_numerical_solvers.html#Exponential-Euler-methods
 .. _dynamics analysis module: https://brainpy.readthedocs.io/en/latest/apis/analysis.html
+.. _CUDA: https://developer.nvidia.com/cuda-downloads
+.. _CuDNN: https://developer.nvidia.com/CUDNN
