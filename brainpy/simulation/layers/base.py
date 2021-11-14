@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import inspect
+from typing import Union
 
 from brainpy import errors
 from brainpy.base.collector import Collector
@@ -83,3 +84,6 @@ class Sequential(Module):
     for i in range(1, len(self.implicit_nodes)):
       args = ds[i].update(*_check_args(args=args), **self._check_kwargs(i, kwargs))
     return args
+
+  def __getitem__(self, key: int):
+    return list(self.implicit_nodes.values())[key]

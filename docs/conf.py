@@ -15,27 +15,19 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 import brainpy
+import brainpy.simulation.layers
+import brainpy.analysis.numeric
 
-from docs.apis import base_generator
-base_generator.generate('apis/')
+from docs import auto_generater
+auto_generater.generate_analysis_docs('apis/analysis/')
+auto_generater.generate_base_docs('apis/')
+auto_generater.generate_math_docs('apis/math/')
+auto_generater.generate_integrators_doc('apis/integrators/')
+auto_generater.generate_simulation_docs('apis/simulation/')
+auto_generater.generate_tools_docs('apis/')
+auto_generater.generate_visualization_docs('apis/')
+auto_generater.generate_jaxsetting_docs('apis/')
 
-from docs.apis import analysis_generator
-analysis_generator.generate('apis/analysis/')
-
-from docs.apis import math_generator
-math_generator.generate('apis/math/')
-
-from docs.apis import integrators_generator
-integrators_generator.generate('apis/integrators/')
-
-from docs.apis import simulation_generator
-simulation_generator.generate('apis/simulation/')
-
-from docs.apis import visualization_generator
-visualization_generator.generate('apis/')
-
-from docs.apis import tools_generator
-tools_generator.generate('apis/')
 
 import shutil
 det_changelog = 'apis/changelog.rst'
@@ -97,3 +89,8 @@ html_theme = 'sphinx_rtd_theme'
 # Notebook cell execution timeout; defaults to 30.
 execution_timeout = 200
 jupyter_execute_notebooks = "off"
+
+
+if __name__ == '__main__':
+    print(brainpy)
+    print(brainpy.simulation.layers)

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import math
-from brainpy.simulation._imports import mjax
+import brainpy.math.jax as bm
 from .base import Module
 
 __all__ = [
@@ -27,7 +26,7 @@ class Activation(Module):
       name = self.unique_name(type=f'Activation_{activation}')
     super(Activation, self).__init__(name=name)
 
-    self._activation = mjax.activations.get(activation)
+    self._activation = bm.activations.get(activation)
     self._setting = setting
 
   def update(self, x):

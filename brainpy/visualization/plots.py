@@ -6,6 +6,9 @@ from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
 from brainpy import math, errors
+from brainpy.math import utils as math_utils
+
+
 
 __all__ = [
   'line_plot',
@@ -70,10 +73,8 @@ def line_plot(ts,
 
   val_matrix = val_matrix.reshape((val_matrix.shape[0], -1))
   # change data
-  if not isinstance(val_matrix, np.ndarray):
-    val_matrix = val_matrix.numpy()
-  if not isinstance(ts, np.ndarray):
-    ts = ts.numpy()
+  val_matrix = math_utils.numpy_array(val_matrix)
+  ts = math_utils.numpy_array(ts)
 
   # plot
   if legend:
@@ -152,12 +153,10 @@ def raster_plot(ts,
       Show the figure.
   """
 
-  if not isinstance(sp_matrix, np.ndarray):
-    sp_matrix = sp_matrix.numpy()
+  sp_matrix = math_utils.numpy_array(sp_matrix)
   if ts is None:
     raise errors.BrainPyError('Must provide "ts".')
-  if not isinstance(ts, np.ndarray):
-    ts = ts.numpy()
+  ts = math_utils.numpy_array(ts)
 
   # get index and time
   elements = np.where(sp_matrix > 0.)
@@ -250,8 +249,7 @@ def animate_2D(values,
   num_step, num_neuron = values.shape
   height, width = net_size
 
-  if not isinstance(values, np.ndarray):
-    values = values.numpy()
+  values = math_utils.numpy_array(values)
   val_min = values.min() if val_min is None else val_min
   val_max = values.max() if val_max is None else val_max
 
@@ -374,13 +372,11 @@ def animate_1D(dynamical_vars,
           var['legend'] = None
         else:
           has_legend = True
-        if not isinstance(var['ys'], np.ndarray):
-          var['ys'] = var['ys'].numpy()
+        var['ys'] = math_utils.numpy_array(var['ys'])
         if 'xs' not in var:
           var['xs'] = np.arange(var['ys'].shape[1])
       elif isinstance(var, np.ndarray):
-        if not isinstance(var, np.ndarray):
-          var = var.numpy()
+        var = math_utils.numpy_array(var)
         var = {'ys': var,
                'xs': np.arange(var.shape[1]),
                'legend': None}
@@ -395,16 +391,14 @@ def animate_1D(dynamical_vars,
       dynamical_vars['legend'] = None
     else:
       has_legend = True
-    if not isinstance(dynamical_vars['ys'], np.ndarray):
-      dynamical_vars['ys'] = dynamical_vars['ys'].numpy()
+    dynamical_vars['ys'] = math_utils.numpy_array(dynamical_vars['ys'])
     if 'xs' not in dynamical_vars:
       dynamical_vars['xs'] = np.arange(dynamical_vars['ys'].shape[1])
     lengths.append(dynamical_vars['ys'].shape[0])
     final_dynamic_vars.append(dynamical_vars)
   else:
     assert np.ndim(dynamical_vars) == 2, "Dynamic variable must be 2D data."
-    if not isinstance(dynamical_vars, np.ndarray):
-      dynamical_vars = dynamical_vars.numpy()
+    dynamical_vars = math_utils.numpy_array(dynamical_vars)
     lengths.append(dynamical_vars.shape[0])
     final_dynamic_vars.append({'ys': dynamical_vars,
                                'xs': np.arange(dynamical_vars.shape[1]),

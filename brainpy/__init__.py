@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 
-try:
-  import jax
-  jax.config.update('jax_platform_name', 'cpu')
-except ModuleNotFoundError:
-  pass
 
 # "base" module
 from . import base
@@ -38,15 +33,12 @@ from .simulation.monitor import *
 from .simulation import brainobjects
 from .simulation import connect
 from .simulation import initialize
-from .simulation import layers
 from .simulation import inputs
 from .simulation import measure
 
 
 # "analysis" module
 from . import analysis
-from .analysis import continuation
-from .analysis import numeric
 from .analysis import symbolic
 
 
@@ -58,4 +50,4 @@ from . import visualization as visualize
 from . import errors
 from . import running
 from . import tools
-
+from .jaxsetting import *

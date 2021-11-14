@@ -9,6 +9,6 @@ jaxlib
 pandoc
 Jinja2
 sphinx
-sphinx_rtd_theme
-sphinx-autodoc-typehints
 myst-nb
+sphinx_rtd_theme>=1.0.0
+sphinx-autodoc-typehints

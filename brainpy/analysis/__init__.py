@@ -17,7 +17,6 @@ This module provides analysis tools for differential equations.
 Details in the following.
 """
 
-from . import numeric
 from . import symbolic
 from . import continuation
 from . import solver

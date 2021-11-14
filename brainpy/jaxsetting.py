@@ -3,7 +3,6 @@
 import os
 import re
 
-from jax.config import config
 
 __all__ = [
   'enable_x64',
@@ -12,21 +11,18 @@ __all__ = [
 ]
 
 
-def enable_x64(mode=True):
+def enable_x64(mode):
   assert mode in [True, False]
-  config['JAX_ENABLE_X64'] = mode
+  os.environ['JAX_ENABLE_X64'] = str(int(mode))
 
 
-def set_platform(platform=None):
+def set_platform(platform):
   """
   Changes platform to CPU, GPU, or TPU. This utility only takes
   effect at the beginning of your program.
-
-  :param str platform: either 'cpu', 'gpu', or 'tpu'.
   """
-  if platform is None:
-    platform = os.getenv("JAX_PLATFORM_NAME", "cpu")
-  config.update("jax_platform_name", platform)
+  assert platform in ['cpu', 'gpu', 'tpu']
+  os.environ['JAX_PLATFORM_NAME'] = platform
 
 
 def set_host_device_count(n):

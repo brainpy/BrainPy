@@ -55,8 +55,8 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
    tutorial_intg/index
    tutorial_simulation/index
-   tutorial_analysis/index
    tutorial_training/index
+   tutorial_analysis/index
 
 
 .. toctree::
@@ -70,6 +70,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    apis/analysis.rst
    apis/visualization.rst
    apis/tools.rst
+   apis/jaxsetting.rst
    apis/changelog.rst
 
 
