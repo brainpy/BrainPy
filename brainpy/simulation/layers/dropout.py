@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import math
+import brainpy.math.jax as bm
 from .base import Module
 
 __all__ = [
@@ -37,15 +37,16 @@ class Dropout(Module):
     The name of the dynamic system.
   """
 
-  def __init__(self, prob, **kwargs):
+  def __init__(self, prob, seed=None, **kwargs):
     super(Dropout, self).__init__(**kwargs)
 
     # probability
     self.prob = prob
+    self.rng = bm.random.RandomState(seed=seed)
 
   def update(self, x, **kwargs):
     if kwargs.get('train', True):
-      keep_mask = math.random.bernoulli(self.prob, x.shape)
-      return math.where(keep_mask, x / self.prob, 0.)
+      keep_mask = self.rng.bernoulli(self.prob, x.shape)
+      return bm.where(keep_mask, x / self.prob, 0.)
     else:
       return x

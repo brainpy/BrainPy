@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy import math
+import brainpy.math.jax as bm
 from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
 from .base import Module
 
@@ -19,12 +19,10 @@ class Dense(Module):
     The neuron group size.
   num_input : int
     The input size.
-  w_init : Initializer
+  w : Initializer, JaxArray, jax.numpy.ndarray
     Initializer for the weights.
-  b_init : Initializer
+  b : Initializer, JaxArray, jax.numpy.ndarray, optional
     Initializer for the bias.
-  has_bias : bool
-    Whether has the bias to compute.
   steps : tuple of str, tuple of function, dict of (str, function), optional
       The callable function, or a list of callable functions.
   monitors : None, list, tuple, datastructures.Monitor
@@ -33,20 +31,29 @@ class Dense(Module):
       The name of the dynamic system.
   """
 
-  def __init__(self, num_hidden, num_input, w_init=XavierNormal(),
-               b_init=ZeroInit(), has_bias=True, **kwargs):
+  def __init__(self, num_hidden, num_input, w=XavierNormal(), b=ZeroInit(), **kwargs):
     super(Dense, self).__init__(**kwargs)
 
     # parameters
-    self.has_bias = has_bias
+    self.has_bias = True
     self.num_input = num_input
     self.num_hidden = num_hidden
 
     # variables
-    self.w = math.TrainVar(w_init((num_input, num_hidden)))
-    if has_bias: self.b = math.TrainVar(b_init((num_hidden,)))
+    if callable(w):
+      self.w = bm.TrainVar(w((num_input, num_hidden)))
+    else:
+      assert w.shape == (num_input, num_hidden)
+      self.w = bm.TrainVar(w)
+    if b is None:
+      self.has_bias = False
+    elif callable(b):
+      self.b = bm.TrainVar(b((num_hidden,)))
+    else:
+      assert b.shape == (num_hidden, )
+      self.b = bm.TrainVar(b)
 
-  def update(self, x, **kwargs):
+  def update(self, x):
     """Returns the results of applying the linear transformation to input x."""
     if self.has_bias:
       return x @ self.w + self.b

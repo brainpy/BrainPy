@@ -15,7 +15,6 @@ from .jaxarray import *
 # functions/operations
 from .ops import *
 from .operators import *
-from .parallels import *
 from . import fft
 from . import linalg
 from . import random
@@ -25,10 +24,10 @@ from . import losses
 from . import optimizers
 
 # transformations
+from .autograd import *
 from .controls import *
 from .compilation import *
-from .autograd import *
+from .parallels import *
 
 # others
 from .function import *
-from .setting import *

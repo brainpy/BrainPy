@@ -2,20 +2,45 @@ Release notes
 =============
 
 
+Version 1.1.4
+-------------
+
+**API changes:**
+
+- add ``.struct_run()`` in DynamicalSystem
+- add ``numpy_array()`` conversion in `brainpy.math.utils` module
+- add ``Adagrad``, ``Adadelta``, ``RMSProp`` optimizers
+- remove `setting` methods in `brainpy.math.jax` module
+- remove import jax in `brainpy.__init__.py` and enable jax setting, including
+
+  - ``enable_x64()``
+  - ``set_platform()``
+  - ``set_host_device_count()``
+- enable ``b=None`` as no bias in `brainpy.simulation.layers`
+- set `int_` and `float_` as default 32 bits
+- remove ``dtype`` setting in Initializer constructor
+
+**Doc changes:**
+
+- add ``optimizer`` in "Math Foundation"
+- add ``dynamics training`` docs
+- improve others
+
+
 Version 1.1.3
 -------------
 
 - fix bugs of JAX parallel API imports
 - fix bugs of `post_slice` structure construction
+- update docs
 
 
 Version 1.1.2
 -------------
 
-- add `pre2syn` and `syn2post` operators
+- add ``pre2syn`` and ``syn2post`` operators
 - add `verbose` and `check` option to ``Base.load_states()``
 - fix bugs on JIT DynamicalSystem (numpy backend)
-
 
 
 Version 1.1.1

@@ -26,6 +26,7 @@ class Base(object):
   - ``Function`` in *brainpy.base.function.py*
   - ``AutoGrad`` in *brainpy.math.jax.autograd.py*
   - ``Optimizer`` in *brainpy.math.jax.optimizers.py*
+  - ``Scheduler`` in *brainpy.math.jax.optimizers.py*
 
   """
 
@@ -62,7 +63,9 @@ class Base(object):
     check2 = math.get_backend_name() not in self.target_backend
     if check1 and check2:
       msg = f'ERROR: The model {self.name}: {self} is target to run on {self.target_backend}, ' \
-            f'but currently the selected backend is "{math.get_backend_name()}"'
+            f'but currently the selected backend is "{math.get_backend_name()}". \n\n' \
+            f'To switch backend, please use: \n' \
+            f'>>> brainpy.math.use_backend(BACKEND_NAME)'
       logger.error(msg)
       raise errors.BrainPyError(msg)
 

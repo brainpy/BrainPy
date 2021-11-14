@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import math
-from brainpy.simulation._imports import mjax, jax
-from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
+
+import jax.lax
+import brainpy.math.jax as bm
+from brainpy.simulation.initialize import Initializer, XavierNormal, ZeroInit
 from .base import Module
+
 
 __all__ = [
   'Conv2D',
@@ -44,10 +46,10 @@ class Conv2D(Module):
   padding : int, str
     The padding of the input tensor, either "SAME", "VALID" or numerical values
     (low, high).
-  w_init : Initializer
+  w : Initializer, JaxArray, jax.numpy.ndarray
     The initializer for convolution kernel (a function that takes in a HWIO
     shape and returns a 4D matrix).
-  b_init : Initializer
+  b : Initializer, JaxArray, jax.numpy.ndarray, optional
     The bias initialization.
 
   steps : tuple of str, tuple of function, dict of (str, function), optional
@@ -59,8 +61,7 @@ class Conv2D(Module):
   """
 
   def __init__(self, num_input, num_output, kernel_size, strides=1, dilations=1,
-               groups=1, padding='SAME', w_init=XavierNormal(), b_init=ZeroInit(),
-               has_bias=True, **kwargs):
+               groups=1, padding='SAME', w=XavierNormal(), b=ZeroInit(), **kwargs):
     super(Conv2D, self).__init__(**kwargs)
 
     # parameters
@@ -78,22 +79,29 @@ class Conv2D(Module):
       raise ValueError
     self.padding = padding
     self.groups = groups
-    self.has_bias = has_bias
+    self.has_bias = True
 
     # weight initialization
-    self.b = mjax.TrainVar(b_init((num_output, 1, 1)))
-    self.w = mjax.TrainVar(w_init((*_check_tuple(kernel_size), num_input // groups, num_output)))  # HWIO
-    self.w_init = w_init
-    if has_bias:
-      self.b_init = b_init
+    if callable(w):
+      self.w = bm.TrainVar(w((*_check_tuple(kernel_size), num_input // groups, num_output)))  # HWIO
+    else:
+      assert w.shape == (*_check_tuple(kernel_size), num_input // groups, num_output)
+      self.w = bm.TrainVar(w)
+    if callable(b):
+      self.b = bm.TrainVar(b((num_output, 1, 1)))
+    elif b is None:
+      self.has_bias = False
+    else:
+      assert b.shape == (num_output, 1, 1)
+      self.b = bm.TrainVar(b)
 
-  def update(self, x, **kwargs):
+  def update(self, x):
     nin = self.w.value.shape[2] * self.groups
     assert x.shape[1] == nin, (f'Attempting to convolve an input with {x.shape[1]} input channels '
                                f'when the convolution expects {nin} channels. For reference, '
                                f'self.w.value.shape={self.w.value.shape} and x.shape={x.shape}.')
 
-    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, mjax.JaxArray) else x,
+    y = jax.lax.conv_general_dilated(lhs=x.value if isinstance(x, bm.JaxArray) else x,
                                      rhs=self.w.value,
                                      window_strides=self.strides,
                                      padding=self.padding,
