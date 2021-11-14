@@ -39,6 +39,7 @@ from .simulation import measure
 
 # "analysis" module
 from . import analysis
+from .analysis import symbolic
 
 
 # "visualization" module

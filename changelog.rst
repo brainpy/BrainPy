@@ -5,8 +5,18 @@ Release notes
 Version 1.1.4
 -------------
 
+APIs
+~~~~
+
 - add `.struct_run()` in DynamicalSystem
+- add `numpy_array()` conversion in `brainpy.math.utils` module
+- add `Adagrad`, `Adadelta`, `RMSProp` optimizers
 - remove ``setting`` methods in `brainpy.math.jax` module
+
+Docs
+~~~~
+
+- add `optimizer` in "Math Foundation"
 
 
 Version 1.1.3

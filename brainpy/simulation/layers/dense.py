@@ -21,10 +21,8 @@ class Dense(Module):
     The input size.
   w : Initializer, JaxArray, jax.numpy.ndarray
     Initializer for the weights.
-  b : Initializer, JaxArray, jax.numpy.ndarray
+  b : Initializer, JaxArray, jax.numpy.ndarray, optional
     Initializer for the bias.
-  has_bias : bool
-    Whether has the bias to compute.
   steps : tuple of str, tuple of function, dict of (str, function), optional
       The callable function, or a list of callable functions.
   monitors : None, list, tuple, datastructures.Monitor

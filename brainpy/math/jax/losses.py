@@ -19,7 +19,7 @@ from jax.tree_util import tree_flatten
 
 from brainpy import errors
 from brainpy.math.jax import ops
-from brainpy.math.jax.activations import softplus
+from brainpy.math.jax.activations import softplus, one_hot
 from brainpy.math.jax.jaxarray import JaxArray
 
 __all__ = [
@@ -109,12 +109,13 @@ def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
 
   # loss
   if ops.ndim(targets) + 1 == ops.ndim(logits):
-    targets_old = targets.reshape((-1,))
-    length = targets_old.shape[0]
-    rows = jn.arange(length)
-    targets = jn.zeros((length, logits.shape[-1]))
-    targets[rows, targets_old] = 1.
-    targets = targets.reshape(logits.shape)
+    # targets_old = targets.reshape((-1,))
+    # length = targets_old.shape[0]
+    # rows = jn.arange(length)
+    # targets = ops.zeros((length, logits.shape[-1]))
+    # targets[rows, targets_old] = 1.
+    # targets = targets.reshape(logits.shape).value
+    targets = one_hot(targets, logits.shape[-1])
   loss = jax.scipy.special.logsumexp(logits, axis=-1) - (logits * targets).sum(axis=-1)
 
   # weighted loss

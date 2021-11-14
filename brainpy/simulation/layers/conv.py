@@ -49,7 +49,7 @@ class Conv2D(Module):
   w : Initializer, JaxArray, jax.numpy.ndarray
     The initializer for convolution kernel (a function that takes in a HWIO
     shape and returns a 4D matrix).
-  b : Initializer, JaxArray, jax.numpy.ndarray
+  b : Initializer, JaxArray, jax.numpy.ndarray, optional
     The bias initialization.
 
   steps : tuple of str, tuple of function, dict of (str, function), optional

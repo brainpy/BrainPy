@@ -6,6 +6,6 @@ Dynamics Simulation
 
    build_spiking_network
    efficient_synaptic_computation
-   customize_synaptic_connectivity
+   synaptic_connectivity
    monitors_and_inputs
    save_and_load
