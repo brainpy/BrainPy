@@ -62,9 +62,9 @@ To install the stable release of BrainPy, please use
 
 **Other dependencies**: you want to get the full supports by BrainPy, please install the following packages:
 
-- `JAX >= 0.2.10`,  needed for "jax" backend and [many other supports](https://brainpy.readthedocs.io/en/latest/apis/math/special_jax.html)
-- `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend
-- `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method
+- `JAX >= 0.2.10`,  needed for "jax" backend and many other supports ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#jax))
+- `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend ([how to install numba?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#numba))
+- `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method ([how to install sympy?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#sympy))
 
 
 
