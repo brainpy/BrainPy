@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import inspect
+import numpy as onp
 from typing import Union
+import jax.numpy as jnp
+import brainpy.math.jax as bm
 
 from brainpy import errors
 from brainpy.base.collector import Collector
@@ -25,6 +28,19 @@ def _check_args(args):
 class Module(DynamicalSystem):
   """Basic module class for DNN networks."""
   target_backend = 'jax'
+
+  @staticmethod
+  def get_param(param, size):
+    if param is None:
+      return None
+    if callable(param):
+      return bm.TrainVar(param(size))
+    if isinstance(param, onp.ndarray):
+      assert param.shape == size
+      return bm.TrainVar(bm.asarray(param))
+    if isinstance(param, (bm.JaxArray, jnp.ndarray)):
+      return bm.TrainVar(param)
+    raise ValueError
 
 
 class Sequential(Module):

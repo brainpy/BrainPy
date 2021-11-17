@@ -43,35 +43,17 @@ class VanillaRNN(RNNCore):
   def __init__(self, num_hidden, num_input, num_batch, h=Uniform(), w=XavierNormal(), b=ZeroInit(), **kwargs):
     super(VanillaRNN, self).__init__(num_hidden, num_input, **kwargs)
 
-    self.has_bias = True
-
     # variables
-    if callable(h):
-      self.h = bm.Variable(h((num_batch, self.num_hidden)))
-    else:
-      self.h = bm.Variable(h)
+    self.h = bm.Variable(self.get_param(h, (num_batch, self.num_hidden)))
 
     # weights
-    if callable(w):
-      self.w_ir = bm.TrainVar(w((num_input, num_hidden)))
-      self.w_rr = bm.TrainVar(w((num_hidden, num_hidden)))
-    else:
-      w_ir, w_rr = w
-      assert w_ir.shape == (num_input, num_hidden)
-      assert w_rr.shape == (num_hidden, num_hidden)
-      self.w_ir = bm.TrainVar(w_ir)
-      self.w_rr = bm.TrainVar(w_rr)
-    if b is None:
-      self.has_bias = False
-    elif callable(b):
-      self.b = bm.TrainVar(b((num_hidden,)))
-    else:
-      assert b.shape == (num_hidden,)
-      self.b = bm.TrainVar(b)
+    ws = self.get_param(w, (num_input + num_hidden, num_hidden))
+    self.w_ir = bm.TrainVar(ws[:num_input])
+    self.w_rr = bm.TrainVar(ws[num_input:])
+    self.b = self.get_param(b, (num_hidden,))
 
   def update(self, x):
-    h = x @ self.w_ir + self.h @ self.w_rr
-    if self.has_bias: h += self.b
+    h = x @ self.w_ir + self.h @ self.w_rr + self.b
     self.h.value = bm.relu(h)
     return self.h
 
@@ -112,60 +94,35 @@ class GRU(RNNCore):
     self.has_bias = True
 
     # variables
-    if callable(h):
-      self.h = bm.Variable(h((num_batch, self.num_hidden)))
-    else:
-      self.h = bm.Variable(h)
+    self.h = bm.Variable(self.get_param(h, (num_batch, self.num_hidden)))
 
     # weights
-    if callable(wx):
-      self.w_iz = bm.TrainVar(wx((num_input, num_hidden)))
-      self.w_ir = bm.TrainVar(wx((num_input, num_hidden)))
-      self.w_ia = bm.TrainVar(wx((num_input, num_hidden)))
-    else:
-      w_iz, w_ir, w_ia = wx
-      assert w_iz.shape == (num_input, num_hidden)
-      assert w_ir.shape == (num_input, num_hidden)
-      assert w_ia.shape == (num_input, num_hidden)
-      self.w_iz = bm.TrainVar(w_iz)
-      self.w_ir = bm.TrainVar(w_ir)
-      self.w_ia = bm.TrainVar(w_ia)
-    if callable(wh):
-      self.w_hz = bm.TrainVar(wh((num_hidden, num_hidden)))
-      self.w_hr = bm.TrainVar(wh((num_hidden, num_hidden)))
-      self.w_ha = bm.TrainVar(wh((num_hidden, num_hidden)))
-    else:
-      w_hz, w_hr, w_ha = wh
-      assert w_hz.shape == (num_hidden, num_hidden)
-      assert w_hr.shape == (num_hidden, num_hidden)
-      assert w_ha.shape == (num_hidden, num_hidden)
-      self.w_hz = bm.TrainVar(w_hz)
-      self.w_hr = bm.TrainVar(w_hr)
-      self.w_ha = bm.TrainVar(w_ha)
-    if b is None:
-      self.has_bias = False
-      self.bz = 0.
-      self.br = 0.
-      self.ba = 0.
-    elif callable(b):
-      self.bz = bm.TrainVar(b((num_hidden,)))
-      self.br = bm.TrainVar(b((num_hidden,)))
-      self.ba = bm.TrainVar(b((num_hidden,)))
-    else:
-      bz, br, ba = b
-      assert bz.shape == (num_hidden, )
-      assert br.shape == (num_hidden, )
-      assert ba.shape == (num_hidden, )
-      self.bz = bm.TrainVar(bz)
-      self.br = bm.TrainVar(br)
-      self.ba = bm.TrainVar(ba)
+    wxs = self.get_param(wx, (num_input * 3, num_hidden))
+    self.w_iz = bm.TrainVar(wxs[:num_input])
+    self.w_ir = bm.TrainVar(wxs[num_input: num_input * 2])
+    self.w_ia = bm.TrainVar(wxs[num_input * 2:])
+    whs = self.get_param(wh, (num_hidden * 3, num_hidden))
+    self.w_hz = bm.TrainVar(whs[:num_hidden])
+    self.w_hr = bm.TrainVar(whs[num_hidden: num_hidden * 2])
+    self.w_ha = bm.TrainVar(whs[num_hidden * 2:])
+    bs = self.get_param(b, (num_hidden * 3,))
+    self.bz = bm.TrainVar(bs[:num_hidden])
+    self.br = bm.TrainVar(bs[num_hidden: num_hidden * 2])
+    self.ba = bm.TrainVar(bs[num_hidden * 2:])
 
   def update(self, x):
-    z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
-    r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
-    a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
-    self.h.value = (1 - z) * self.h + z * a
-    return self.h.value
+    if self.bz is None:
+      z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz)
+      r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr)
+      a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha)
+      self.h.value = (1 - z) * self.h + z * a
+      return self.h.value
+    else:
+      z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
+      r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
+      a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
+      self.h.value = (1 - z) * self.h + z * a
+      return self.h.value
 
 
 class LSTM(RNNCore):
@@ -214,38 +171,23 @@ class LSTM(RNNCore):
     self.has_bias = True
 
     # variables
-    if callable(hc):
-      self.h = bm.Variable(hc((num_batch, self.num_hidden)))
-      self.c = bm.Variable(hc((num_batch, self.num_hidden)))
-    else:
-      h, c = hc
-      assert h.shape == (num_batch, self.num_hidden)
-      assert c.shape == (num_batch, self.num_hidden)
-      self.h = bm.Variable(h)
-      self.c = bm.Variable(c)
+    hc = bm.Variable(self.get_param(hc, (num_batch * 2, self.num_hidden)))
+    self.h = bm.Variable(hc[:num_batch])
+    self.c = bm.Variable(hc[num_batch:])
 
     # weights
-    if callable(w):
-      self.w = bm.TrainVar(w((num_input + num_hidden, num_hidden * 4)))
-    else:
-      assert w.shape == (num_input + num_hidden, num_hidden * 4)
-      self.w = bm.TrainVar(w)
-    if b is None:
-      self.b = 0.
-      self.has_bias = False
-    elif callable(b):
-      self.b = bm.TrainVar(b((num_hidden * 4,)))
-    else:
-      assert b.shape == (num_hidden * 4, )
-      self.b = bm.TrainVar(b)
+    self.w = self.get_param(w, (num_input + num_hidden, num_hidden * 4))
+    self.b = self.get_param(b, (num_hidden * 4,))
 
   def update(self, x):
     xh = bm.concatenate([x, self.h], axis=-1)
-    gated = xh @ self.w + self.b
+    if self.b is None:
+      gated = xh @ self.w
+    else:
+      gated = xh @ self.w + self.b
     i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
     c = bm.sigmoid(f + 1.) * self.c + bm.sigmoid(i) * bm.tanh(g)
     h = bm.sigmoid(o) * bm.tanh(c)
     self.h.value = h
     self.c.value = c
     return self.h.value
-
