@@ -228,7 +228,7 @@ class _PhasePlane1D(base.Base1DSymAnalyzer):
     results : np.ndarray
         The dx values.
     """
-    logger.info('plot vector field ...')
+    logger.warning('plot vector field ...')
 
     # 1. Nullcline of the x variable
     try:
@@ -265,7 +265,7 @@ class _PhasePlane1D(base.Base1DSymAnalyzer):
     points : np.ndarray
         The fixed points.
     """
-    logger.info('plot fixed point ...')
+    logger.warning('plot fixed point ...')
 
     # 1. functions
     f_fixed_point = self.get_f_fixed_point()
@@ -278,7 +278,7 @@ class _PhasePlane1D(base.Base1DSymAnalyzer):
       x = x_values[i]
       dfdx = f_dfdx(x)
       fp_type = stability.stability_analysis(dfdx)
-      logger.info(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
+      logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
       container[fp_type].append(x)
 
     # 3. visualization
@@ -330,7 +330,7 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
     result : tuple
         The ``dx``, ``dy`` values.
     """
-    logger.info('plot vector field ...')
+    logger.warning('plot vector field ...')
 
     if plot_style is None:
       plot_style = dict()
@@ -398,7 +398,7 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
     results : tuple
         The value points.
     """
-    logger.info('plot fixed point ...')
+    logger.warning('plot fixed point ...')
 
     # function for fixed point solving
     f_fixed_point = self.get_f_fixed_point()
@@ -414,7 +414,7 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
       x = x_values[i]
       y = y_values[i]
       fp_type = stability.stability_analysis(f_jacobian(x, y))
-      logger.info(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
+      logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 
@@ -453,7 +453,7 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
     values : dict
         A dict with the format of ``{func1: (x_val, y_val), func2: (x_val, y_val)}``.
     """
-    logger.info('plot nullcline ...')
+    logger.warning('plot nullcline ...')
 
     if numerical_setting is None:
       numerical_setting = dict()
@@ -579,7 +579,7 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
         Whether show or not.
     """
 
-    logger.info('plot trajectory ...')
+    logger.warning('plot trajectory ...')
 
     if axes not in ['v-v', 't-v']:
       raise errors.BrainPyError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
@@ -687,7 +687,7 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
     show : bool
         Whether show or not.
     """
-    logger.info('plot limit cycle ...')
+    logger.warning('plot limit cycle ...')
 
     # 1. format the initial values
     if isinstance(initials, dict):
@@ -732,7 +732,7 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
         lines = plt.plot(x_cycle, y_cycle, label='limit cycle')
         utils.add_arrow(lines[0])
       else:
-        logger.info(f'No limit cycle found for initial value {initial}')
+        logger.warning(f'No limit cycle found for initial value {initial}')
 
     # 6. visualization
     plt.xlabel(self.x_var)
