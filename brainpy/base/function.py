@@ -4,7 +4,7 @@ from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base import collector
 
-ndarray = None
+math = None
 
 __all__ = [
   'Function',
@@ -18,11 +18,11 @@ def _check_node(node):
 
 
 def _check_var(var):
-  global ndarray
-  if ndarray is None: from brainpy.math import ndarray
-  if not isinstance(var, ndarray):
+  global math
+  if math is None: from brainpy import math
+  if not isinstance(var, math.ndarray):
     raise errors.BrainPyError(f'Element in "dyn_vars" must be an instance of '
-                              f'{ndarray.__name__}, but we got {type(var)}.')
+                              f'{math.ndarray.__name__}, but we got {type(var)}.')
 
 
 class Function(Base):
@@ -70,9 +70,9 @@ class Function(Base):
     # ---
     if dyn_vars is not None:
       self.implicit_vars = collector.TensorCollector()
-      global ndarray
-      if ndarray is None: from brainpy.math import ndarray
-      if isinstance(dyn_vars, ndarray):
+      global math
+      if math is None: from brainpy import math
+      if isinstance(dyn_vars, math.ndarray):
         dyn_vars = (dyn_vars,)
       if isinstance(dyn_vars, (tuple, list)):
         for i, v in enumerate(dyn_vars):
@@ -83,7 +83,7 @@ class Function(Base):
           _check_var(v)
         self.implicit_vars.update(dyn_vars)
       else:
-        raise ValueError(f'"dyn_vars" only support list/tuple/dict of {ndarray.__name__}, '
+        raise ValueError(f'"dyn_vars" only support list/tuple/dict of {math.ndarray.__name__}, '
                          f'but we got {type(dyn_vars)}: {dyn_vars}')
 
   def __call__(self, *args, **kwargs):
