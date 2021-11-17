@@ -8,13 +8,23 @@ from .base import Initializer
 __all__ = [
   'Normal',
   'Uniform',
-  'Orthogonal',
+  'VarianceScaling',
+  'KaimingUniform',
   'KaimingNormal',
-  'KaimingNormalTruncated',
+  'XavierUniform',
   'XavierNormal',
-  'XavierNormalTruncated',
-  'TruncatedNormal',
+  'LecunUniform',
+  'LecunNormal',
+  'Orthogonal',
+  'DeltaOrthogonal',
 ]
+
+
+def _compute_fans(shape, in_axis=-2, out_axis=-1):
+  receptive_field_size = np.prod(shape) / shape[in_axis] / shape[out_axis]
+  fan_in = shape[in_axis] * receptive_field_size
+  fan_out = shape[out_axis] * receptive_field_size
+  return fan_in, fan_out
 
 
 class Normal(Initializer):
@@ -26,12 +36,13 @@ class Normal(Initializer):
     The gain of the derivation of the normal distribution.
 
   """
-  def __init__(self, gain=1.):
+
+  def __init__(self, scale=1.):
     super(Normal, self).__init__()
-    self.gain = gain
+    self.scale = scale
 
   def __call__(self, shape, dtype=None):
-    weights = math.random.normal(size=shape, scale=self.gain * np.sqrt(1 / np.prod(shape)))
+    weights = math.random.normal(size=shape, scale=self.scale)
     return math.asarray(weights, dtype=dtype)
 
 
@@ -46,41 +57,117 @@ class Uniform(Initializer):
     The upper limit of the uniform distribution.
 
   """
-  def __init__(self, min_val=0., max_val=1.):
+
+  def __init__(self, min_val=0., max_val=1., scale=1e-2):
     super(Uniform, self).__init__()
     self.min_val = min_val
     self.max_val = max_val
+    self.scale = scale
 
   def __call__(self, shape, dtype=None):
     r = math.random.uniform(low=self.min_val, high=self.max_val, size=shape)
-    return math.asarray(r, dtype=dtype)
+    return math.asarray(r * self.scale, dtype=dtype)
+
+
+class VarianceScaling(Initializer):
+  def __init__(self, scale, mode, distribution, in_axis=-2, out_axis=-1):
+    self.scale = scale
+    self.mode = mode
+    self.in_axis = in_axis
+    self.out_axis = out_axis
+    self.distribution = distribution
+
+  def __call__(self, shape, dtype=None):
+    fan_in, fan_out = _compute_fans(shape, in_axis=self.in_axis, out_axis=self.out_axis)
+    if self.mode == "fan_in":
+      denominator = fan_in
+    elif self.mode == "fan_out":
+      denominator = fan_out
+    elif self.mode == "fan_avg":
+      denominator = (fan_in + fan_out) / 2
+    else:
+      raise ValueError("invalid mode for variance scaling initializer: {}".format(self.mode))
+    variance = math.array(self.scale / denominator, dtype=dtype)
+    if self.distribution == "truncated_normal":
+      # constant is stddev of standard normal truncated to (-2, 2)
+      stddev = math.sqrt(variance) / math.array(.87962566103423978, dtype)
+      res = math.random.truncated_normal(-2, 2, shape) * stddev
+      return math.asarray(res, dtype=dtype)
+    elif self.distribution == "normal":
+      res = math.random.normal(size=shape) * math.sqrt(variance)
+      return math.asarray(res, dtype=dtype)
+    elif self.distribution == "uniform":
+      res = math.random.uniform(low=-1, high=1, size=shape) * math.sqrt(3 * variance)
+      return math.asarray(res, dtype=dtype)
+    else:
+      raise ValueError("invalid distribution for variance scaling initializer")
+
+
+class KaimingUniform(VarianceScaling):
+  def __init__(self, scale=2.0, mode="fan_in",
+               distribution="uniform",
+               in_axis=-2, out_axis=-1):
+    super(KaimingUniform, self).__init__(scale, mode, distribution,
+                                         in_axis=in_axis,
+                                         out_axis=out_axis)
+
+
+class KaimingNormal(VarianceScaling):
+  def __init__(self, scale=2.0, mode="fan_in",
+               distribution="truncated_normal",
+               in_axis=-2, out_axis=-1):
+    super(KaimingNormal, self).__init__(scale, mode, distribution,
+                                        in_axis=in_axis,
+                                        out_axis=out_axis)
+
+
+class XavierUniform(VarianceScaling):
+  def __init__(self, scale=1.0, mode="fan_avg",
+               distribution="uniform",
+               in_axis=-2, out_axis=-1):
+    super(XavierUniform, self).__init__(scale, mode, distribution,
+                                        in_axis=in_axis,
+                                        out_axis=out_axis)
+
+
+class XavierNormal(VarianceScaling):
+  def __init__(self, scale=1.0, mode="fan_avg",
+               distribution="truncated_normal",
+               in_axis=-2, out_axis=-1):
+    super(XavierNormal, self).__init__(scale, mode, distribution,
+                                       in_axis=in_axis,
+                                       out_axis=out_axis)
+
+
+class LecunUniform(VarianceScaling):
+  def __init__(self, scale=1.0, mode="fan_in",
+               distribution="uniform",
+               in_axis=-2, out_axis=-1):
+    super(LecunUniform, self).__init__(scale, mode, distribution,
+                                       in_axis=in_axis,
+                                       out_axis=out_axis)
+
+
+class LecunNormal(VarianceScaling):
+  def __init__(self, scale=1.0, mode="fan_in",
+               distribution="truncated_normal",
+               in_axis=-2, out_axis=-1):
+    super(LecunNormal, self).__init__(scale, mode, distribution,
+                                      in_axis=in_axis,
+                                      out_axis=out_axis)
 
 
 class Orthogonal(Initializer):
-  """Returns a uniformly distributed orthogonal tensor from
-    `Exact solutions to the nonlinear dynamics of learning in deep linear neural networks
-    <https://openreview.net/forum?id=_wzZwKpTDF_9C>`_.
+  """
+  Construct an initializer for uniformly distributed orthogonal matrices.
 
-    Args:
-        shape: shape of the output tensor.
-        gain: optional scaling factor.
-        axis: the orthogonalizarion axis
+  If the shape is not square, the matrices will have orthonormal rows or columns
+  depending on which side is smaller.
+  """
 
-    Returns:
-        An orthogonally initialized tensor.
-        These tensors will be row-orthonormal along the access specified by
-        ``axis``. If the rank of the weight is greater than 2, the shape will be
-        flattened in all other dimensions and then will be row-orthonormal along the
-        final dimension. Note that this only works if the ``axis`` dimension is
-        larger, otherwise the tensor will be transposed (equivalently, it will be
-        column orthonormal instead of row orthonormal).
-        If the shape is not square, the matrices will have orthonormal rows or
-        columns depending on which side is smaller.
-    """
-
-  def __init__(self, gain=1., axis=-1):
+  def __init__(self, scale=1., axis=-1):
     super(Orthogonal, self).__init__()
-    self.gain = gain
+    self.scale = scale
     self.axis = axis
 
   def __call__(self, shape, dtype=None):
@@ -94,149 +181,36 @@ class Orthogonal(Initializer):
     if n_rows < n_cols: q_mat = q_mat.T
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
-    return self.gain * math.asarray(q_mat, dtype=dtype)
+    return self.scale * math.asarray(q_mat, dtype=dtype)
 
 
-class KaimingNormal(Initializer):
-  """Returns a tensor with values assigned using Kaiming He normal initializer from
-    `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
-    <https://arxiv.org/abs/1502.01852>`_.
+class DeltaOrthogonal(Initializer):
+  """
+  Construct an initializer for delta orthogonal kernels; see arXiv:1806.05393.
 
-    Args:
-        shape: shape of the output tensor.
-        gain: optional scaling factor.
+  The shape must be 3D, 4D or 5D.
+  """
 
-    Returns:
-        Tensor initialized with normal random variables with standard deviation (gain * kaiming_normal_gain).
-    """
-
-  def __init__(self, gain=1.):
-    self.gain = gain
-    super(KaimingNormal, self).__init__()
-
-  def __call__(self, shape, dtype=None):
-    gain = np.sqrt(1 / np.prod(shape[:-1]))
-    res = math.random.normal(size=shape, scale=self.gain * gain)
-    return math.asarray(res, dtype=dtype)
-
-
-class KaimingNormalTruncated(Initializer):
-  """Returns a tensor with values assigned using Kaiming He truncated normal initializer from
-    `Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
-    <https://arxiv.org/abs/1502.01852>`_.
-
-    Args:
-        shape: shape of the output tensor.
-        lower: lower truncation of the normal.
-        upper: upper truncation of the normal.
-        gain: optional scaling factor.
-
-    Returns:
-        Tensor initialized with truncated normal random variables with standard
-        deviation (gain * kaiming_normal_gain) and support [lower, upper].
-    """
-
-  def __init__(self, lower=-2., upper=2., gain=1.):
-    self.lower = lower
-    self.upper = upper
-    self.gain = gain
-    super(KaimingNormalTruncated, self).__init__()
-
-  def __call__(self, shape, dtype=None):
-    truncated_std = scipy.stats.truncnorm.std(a=self.lower,
-                                              b=self.upper,
-                                              loc=0.,
-                                              scale=1.)
-    stddev = self.gain * np.sqrt(1 / np.prod(shape[:-1])) / truncated_std
-    res = math.random.truncated_normal(size=shape,
-                                       scale=stddev,
-                                       lower=self.lower,
-                                       upper=self.upper)
-    return math.asarray(res, dtype=dtype)
-
-
-class XavierNormal(Initializer):
-  """Returns a tensor with values assigned using Xavier Glorot normal initializer from
-    `Understanding the difficulty of training deep feedforward neural networks
-    <http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf>`_.
-
-    Args:
-        shape: shape of the output tensor.
-        gain: optional scaling factor.
-
-    Returns:
-        Tensor initialized with normal random variables with standard deviation (gain * xavier_normal_gain).
-    """
-
-  def __init__(self, gain=1.):
-    super(XavierNormal, self).__init__()
-    self.gain = gain
-
-  def __call__(self, shape, dtype=None):
-    fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
-    gain = np.sqrt(2 / (fan_in + fan_out))
-    res = math.random.normal(size=shape, scale=self.gain * gain)
-    return math.asarray(res, dtype=dtype)
-
-
-class XavierNormalTruncated(Initializer):
-  """Returns a tensor with values assigned using Xavier Glorot truncated normal initializer from
-    `Understanding the difficulty of training deep feedforward neural networks
-    <http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf>`_.
-
-    Args:
-        shape: shape of the output tensor.
-        lower: lower truncation of the normal.
-        upper: upper truncation of the normal.
-        gain: optional scaling factor.
-
-    Returns:
-        Tensor initialized with truncated normal random variables with standard
-        deviation (gain * xavier_normal_gain) and support [lower, upper].
-    """
-
-  def __init__(self, lower=-2., upper=2., gain=1.):
-    self.lower = lower
-    self.upper = upper
-    self.gain = gain
-    super(XavierNormalTruncated, self).__init__()
-
-  def __call__(self, shape, dtype=None):
-    truncated_std = scipy.stats.truncnorm.std(a=self.lower, b=self.upper, loc=0., scale=1)
-    fan_in, fan_out = np.prod(shape[:-1]), shape[-1]
-    gain = np.sqrt(2 / (fan_in + fan_out))
-    stddev = self.gain * gain / truncated_std
-    res = math.random.truncated_normal(size=shape,
-                                       scale=stddev,
-                                       lower=self.lower,
-                                       upper=self.upper)
-    return math.asarray(res, dtype=dtype)
-
-
-class TruncatedNormal(Initializer):
-  """Returns a tensor with values assigned using truncated normal initialization.
-
-    Args:
-        shape: shape of the output tensor.
-        lower: lower truncation of the normal.
-        upper: upper truncation of the normal.
-        stddev: expected standard deviation.
-
-    Returns:
-        Tensor initialized with truncated normal random variables with standard
-        deviation stddev and support [lower, upper].
-    """
-
-  def __init__(self, lower=-2., upper=2., scale=1.):
-    self.lower = lower
-    self.upper = upper
+  def __init__(self, scale=1.0, axis=-1, ):
+    super(DeltaOrthogonal, self).__init__()
     self.scale = scale
-    super(TruncatedNormal, self).__init__()
+    self.axis = axis
 
   def __call__(self, shape, dtype=None):
-    truncated_std = scipy.stats.truncnorm.std(a=self.lower, b=self.upper, loc=0., scale=1)
-    res = math.random.truncated_normal(size=shape,
-                                       scale=self.scale / truncated_std,
-                                       lower=self.lower,
-                                       upper=self.upper)
-    return math.asarray(res, dtype=dtype)
+    if len(shape) not in [3, 4, 5]:
+      raise ValueError("Delta orthogonal initializer requires a 3D, 4D or 5D shape.")
+    if shape[-1] < shape[-2]:
+      raise ValueError("`fan_in` must be less or equal than `fan_out`. ")
+    ortho_init = Orthogonal(scale=self.scale, axis=self.axis)
+    ortho_matrix = ortho_init(shape[-2:], dtype=dtype)
+    W = math.zeros(shape, dtype=dtype)
+    if len(shape) == 3:
+      k = shape[0]
+      W[(k - 1) // 2, ...] = ortho_matrix
+    elif len(shape) == 4:
+      k1, k2 = shape[:2]
+      W[(k1 - 1) // 2, (k2 - 1) // 2, ...] = ortho_matrix
+    else:
+      k1, k2, k3 = shape[:3]
+      W[(k1 - 1) // 2, (k2 - 1) // 2, (k3 - 1) // 2, ...] = ortho_matrix
+    return W

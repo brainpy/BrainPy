@@ -82,18 +82,8 @@ class Conv2D(Module):
     self.has_bias = True
 
     # weight initialization
-    if callable(w):
-      self.w = bm.TrainVar(w((*_check_tuple(kernel_size), num_input // groups, num_output)))  # HWIO
-    else:
-      assert w.shape == (*_check_tuple(kernel_size), num_input // groups, num_output)
-      self.w = bm.TrainVar(w)
-    if callable(b):
-      self.b = bm.TrainVar(b((num_output, 1, 1)))
-    elif b is None:
-      self.has_bias = False
-    else:
-      assert b.shape == (num_output, 1, 1)
-      self.b = bm.TrainVar(b)
+    self.w = self.get_param(w, (*_check_tuple(kernel_size), num_input // groups, num_output))
+    self.b = self.get_param(b, (num_output, 1, 1))
 
   def update(self, x):
     nin = self.w.value.shape[2] * self.groups
@@ -108,5 +98,5 @@ class Conv2D(Module):
                                      rhs_dilation=self.dilations,
                                      feature_group_count=self.groups,
                                      dimension_numbers=('NCHW', 'HWIO', 'NCHW'))
-    if self.has_bias: y += self.b.value
-    return y
+    if self.b is None: return y
+    return y + self.b.value

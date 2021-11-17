@@ -61,8 +61,8 @@ def bernoulli(p, size=None):
   return numpy.random.binomial(1, p=p, size=size)
 
 
-def truncated_normal():
-  raise NotImplementedError
+def truncated_normal(lower, upper, size, scale=1.):
+  raise NotImplementedError('Please use `brainpy.math.jax.random.truncated_normal()`')
 
 
 @tools.numba_jit

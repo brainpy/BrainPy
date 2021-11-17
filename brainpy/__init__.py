@@ -35,6 +35,7 @@ from .simulation import connect
 from .simulation import initialize
 from .simulation import inputs
 from .simulation import measure
+init = initialize
 
 
 # "analysis" module
