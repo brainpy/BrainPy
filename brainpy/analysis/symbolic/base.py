@@ -287,8 +287,8 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.info(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
-                      f'({argument})" by "{x_var}", ')
+          logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
+                         f'({argument})" by "{x_var}", ')
           x_eq = x_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, x_symbol))
           dfxdx_expr = f()
@@ -297,10 +297,10 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfxdx_expr), all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
             func_codes = [f'def dfdx({argument}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -309,9 +309,9 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
             dfdx = eq_x_scope['dfdx']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {time_out} s timeout.')
+          logger.warning(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation, math=math)
@@ -349,8 +349,8 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.info(f'SymPy solve "{self.x_eq_group.func_name}({argument1}) = 0" '
-                      f'to "{self.x_var} = f({argument2})", ')
+          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument1}) = 0" '
+                         f'to "{self.x_var} = f({argument2})", ')
 
           # solver
           f = utils.timeout(timeout_len)(
@@ -360,11 +360,11 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
             all_vars = set(scope.keys())
             all_vars.update(self.dvar_names + self.dpar_names)
             if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(res), all_vars):
-              logger.info('\tfailed because contain unknown symbols.')
+              logger.warning('\tfailed because contain unknown symbols.')
               sympy_failed = True
               break
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
             # function codes
             func_codes = [f'def solve_x({argument2}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
@@ -379,10 +379,10 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
             self.analyzed_results['fixed_point'] = scope['solve_x']
             sympy_failed = False
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
           sympy_failed = True
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {timeout_len} s timeout.')
+          logger.warning(f'\tfailed because {timeout_len} s timeout.')
           sympy_failed = True
 
       if sympy_failed:
@@ -531,8 +531,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.info(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
-                      f'({argument})" by "{y_var}", ')
+          logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
+                         f'({argument})" by "{y_var}", ')
           x_eq = x_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, y_symbol))
           dfxdy_expr = f()
@@ -541,10 +541,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfxdy_expr), all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
             func_codes = [f'def dfdy({argument}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -553,9 +553,9 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
             dfdy = eq_x_scope['dfdy']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {time_out} s timeout.')
+          logger.warning(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation, math=math)
@@ -595,8 +595,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not y_eq.contain_unknown_func:
         try:
-          logger.info(f'SymPy solve derivative of "{self.y_eq_group.func_name}'
-                      f'({argument})" by "{x_var}", ')
+          logger.warning(f'SymPy solve derivative of "{self.y_eq_group.func_name}'
+                         f'({argument})" by "{x_var}", ')
           y_eq = y_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, x_symbol))
           dfydx_expr = f()
@@ -605,10 +605,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
             func_codes = [f'def dgdx({argument}):']
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -617,9 +617,9 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
             dgdx = eq_y_scope['dgdx']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {time_out} s timeout.')
+          logger.warning(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation, math=math)
@@ -660,8 +660,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not y_eq.contain_unknown_func:
         try:
-          logger.info(f'\tSymPy solve derivative of "{self.y_eq_group.func_name}'
-                      f'({argument})" by "{y_var}", ')
+          logger.warning(f'\tSymPy solve derivative of "{self.y_eq_group.func_name}'
+                         f'({argument})" by "{y_var}", ')
           y_eq = y_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, y_symbol))
           dfydx_expr = f()
@@ -670,10 +670,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
             func_codes = [f'def dgdy({argument}):']
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -682,9 +682,9 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
             dgdy = eq_y_scope['dgdy']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {time_out} s timeout.')
+          logger.warning(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation, math=math)
@@ -1065,9 +1065,9 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.info(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
-                      f'"{self.y_var} = f({self.x_var}, '
-                      f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
+          logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
+                         f'"{self.y_var} = f({self.x_var}, '
+                         f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
           # solve the expression
           f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
           y_by_x_in_y_eq = f()
@@ -1079,10 +1079,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(y_by_x_in_y_eq, all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
                           for expr in self.y_eq_group.sub_exprs[:-1]]
@@ -1101,10 +1101,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
             results['f'] = eq_y_scope['func']
 
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {timeout_len} s timeout.')
+          logger.warning(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
@@ -1139,9 +1139,9 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.info(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
-                      f'"{self.y_var} = f({self.x_var}, '
-                      f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
+          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
+                         f'"{self.y_var} = f({self.x_var}, '
+                         f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
 
           # solve the expression
           f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, y_symbol))
@@ -1153,10 +1153,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(y_by_x_in_x_eq, all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
 
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
@@ -1175,10 +1175,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
             results['subs'] = subs_codes
             results['f'] = eq_x_scope['func']
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {timeout_len} s timeout.')
+          logger.warning(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
@@ -1213,8 +1213,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.info(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
-                      f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
+          logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
+                         f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
           f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
           x_by_y_in_y_eq = f()
@@ -1226,10 +1226,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(x_by_y_in_y_eq, all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
 
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
@@ -1248,10 +1248,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
             results['subs'] = subs_codes
             results['f'] = eq_y_scope['func']
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {timeout_len} s timeout.')
+          logger.warning(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
@@ -1286,8 +1286,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.info(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
-                      f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
+          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
+                         f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
           f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))
           x_by_y_in_x_eq = f()
@@ -1299,10 +1299,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.dvar_names + self.dpar_names)
           if utils.contain_unknown_symbol(x_by_y_in_x_eq, all_vars):
-            logger.info('\tfailed because contain unknown symbols.')
+            logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.info('\tsuccess.')
+            logger.warning('\tsuccess.')
 
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
@@ -1321,10 +1321,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
             results['subs'] = subs_codes
             results['f'] = eq_x_scope['func']
         except NotImplementedError:
-          logger.info('\tfailed because the equation is too complex.')
+          logger.warning('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.info(f'\tfailed because {timeout_len} s timeout.')
+          logger.warning(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'

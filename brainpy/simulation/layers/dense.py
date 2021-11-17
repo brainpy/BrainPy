@@ -40,22 +40,12 @@ class Dense(Module):
     self.num_hidden = num_hidden
 
     # variables
-    if callable(w):
-      self.w = bm.TrainVar(w((num_input, num_hidden)))
-    else:
-      assert w.shape == (num_input, num_hidden)
-      self.w = bm.TrainVar(w)
-    if b is None:
-      self.has_bias = False
-    elif callable(b):
-      self.b = bm.TrainVar(b((num_hidden,)))
-    else:
-      assert b.shape == (num_hidden, )
-      self.b = bm.TrainVar(b)
+    self.w = self.get_param(w, (num_input, num_hidden))
+    self.b = self.get_param(b, (num_hidden,))
 
   def update(self, x):
     """Returns the results of applying the linear transformation to input x."""
-    if self.has_bias:
-      return x @ self.w + self.b
-    else:
+    if self.b is None:
       return x @ self.w
+    else:
+      return x @ self.w + self.b

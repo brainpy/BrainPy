@@ -62,9 +62,9 @@ To install the stable release of BrainPy, please use
 
 **Other dependencies**: you want to get the full supports by BrainPy, please install the following packages:
 
-- `JAX >= 0.2.10`,  needed for "jax" backend and [many other supports](https://brainpy.readthedocs.io/en/latest/apis/math/special_jax.html)
-- `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend
-- `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method
+- `JAX >= 0.2.10`,  needed for "jax" backend and many other supports ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#jax))
+- `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend ([how to install numba?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#numba))
+- `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method ([how to install sympy?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#sympy))
 
 
 
@@ -126,8 +126,6 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 - **[Working Memory]** [*(Mi, et. al., 2017)* STP for Working Memory Capacity](https://brainpy-examples.readthedocs.io/en/latest/working_memory/Mi_2017_working_memory_capacity.html)
 - **[Working Memory]** [*(Bouchacourt & Buschman, 2019)* Flexible Working Memory Model](https://brainpy-examples.readthedocs.io/en/latest/working_memory/Bouchacourt_2019_Flexible_working_memory.html)
 - **[Decision Making]** [*(Wang, 2002)* Decision making spiking model](https://brainpy-examples.readthedocs.io/en/latest/decision_making/Wang_2002_decision_making_spiking.html)
-- **[Recurrent Network]** [*(Laje & Buonomano, 2013)* Robust Timing in RNN](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Laje_Buonomano_2013_robust_timing_rnn.html)
-- **[Recurrent Network]** [*(Sussillo & Abbott, 2009)* FORCE Learning](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Sussillo_Abbott_2009_FORCE_Learning.html)
 
 
 
@@ -135,16 +133,20 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 - [Train Integrator RNN with BP](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/integrator_rnn.html)
 
-- [FORCE Learning](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Sussillo_Abbott_2009_FORCE_Learning.html)
+- [*(Sussillo & Abbott, 2009)* FORCE Learning](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Sussillo_Abbott_2009_FORCE_Learning.html)
 
- 
+- [*(Laje & Buonomano, 2013)* Robust Timing in RNN](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Laje_Buonomano_2013_robust_timing_rnn.html)
+- [*(Song, et al., 2016)*: Training excitatory-inhibitory recurrent network](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Song_2016_EI_RNN.html)
+- **[Working Memory]** [*(Masse, et al., 2019)*: RNN with STP for Working Memory](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Masse_2019_STP_RNN.html)
+
+
 
 
 ### Low-dimension dynamics analysis
 
-- [Phase plane analysis of the I<sub>Na,p</sub>-I<sub>K</sub> model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/NaK_model_analysis.html)
-- [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
-- [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainmodels.readthedocs.io/en/latest/tutorials/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
+- [1D system bifurcation](https://brainmodels.readthedocs.io/en/latest/low_dim_analysis/1D_system_bifurcation.html)
+- [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainpy-examples.readthedocs.io/en/latest/low_dim_analysis/FitzHugh_Nagumo_analysis.html)
+- [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainpy-examples.readthedocs.io/en/latest/low_dim_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
 - **[Decision Making Model]** [*(Wong & Wang, 2006)* Decision making rate model](https://brainpy-examples.readthedocs.io/en/latest/decision_making/Wang_2006_decision_making_rate.html)
 
 

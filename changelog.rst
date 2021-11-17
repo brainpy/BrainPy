@@ -2,6 +2,20 @@ Release notes
 =============
 
 
+Version 1.1.5
+-------------
+
+**API changes:**
+
+- fix bugs on ndarray import in `brainpy.base.function.py`
+- convenient 'get_param' interface `brainpy.simulation.layers`
+- add more weight initialization methods
+
+**Doc changes:**
+
+- add more examples in README
+
+
 Version 1.1.4
 -------------
 

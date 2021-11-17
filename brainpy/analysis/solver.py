@@ -165,31 +165,34 @@ def find_root_of_1d(f, f_points, args=(), tol=1e-8):
   """
   vals = f(f_points, *args)
   fs_len = len(f_points)
-  fs_sign = np.sign(vals)
+  signs = np.sign(vals)
 
   roots = []
-  fl_sign = fs_sign[0]
-  f_i = 1
-  while f_i < fs_len and fl_sign == 0.:
-    roots.append(f_points[f_i - 1])
-    fl_sign = fs_sign[f_i]
-    f_i += 1
-  while f_i < fs_len:
-    fr_sign = fs_sign[f_i]
-    if fr_sign == 0.:
-      roots.append(f_points[f_i])
-      if f_i + 1 < fs_len:
-        fl_sign = fs_sign[f_i + 1]
+  sign_l = signs[0]
+  point_l = f_points[0]
+  idx = 1
+  while idx < fs_len and sign_l == 0.:
+    roots.append(f_points[idx - 1])
+    sign_l = signs[idx]
+    idx += 1
+  while idx < fs_len:
+    sign_r = signs[idx]
+    point_r = f_points[idx]
+    if sign_r == 0.:
+      roots.append(point_r)
+      if idx + 1 < fs_len:
+        sign_l = sign_r
+        point_l = point_r
       else:
         break
-      f_i += 2
+      idx += 1
     else:
-      if not np.isnan(fr_sign) and fl_sign != fr_sign:
-        root, funcalls, itr = brentq(f, f_points[f_i - 1], f_points[f_i], args)
-        if abs(f(root, *args)) < tol:
-          roots.append(root)
-      fl_sign = fr_sign
-      f_i += 1
+      if not np.isnan(sign_r) and sign_l != sign_r:
+        root, funcalls, itr = brentq(f, point_l, point_r, args)
+        if abs(f(root, *args)) < tol: roots.append(root)
+      sign_l = sign_r
+      point_l = point_r
+      idx += 1
 
   return roots
 
@@ -244,6 +247,7 @@ def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
   res : tuple
       The roots.
   """
+  print('Using scipy.optimize.shgo to solve fixed points.')
 
   if shgo is None:
     raise errors.PackageMissingError('Package "scipy" must be installed when the users '

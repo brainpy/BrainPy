@@ -50,6 +50,8 @@ class Collector(dict):
 
     >>> import brainpy as bp
     >>>
+    >>> some_collector = Collector()
+    >>>
     >>> # get all trainable variables
     >>> some_collector.subset(bp.math.TrainVar)
     >>>
@@ -59,7 +61,7 @@ class Collector(dict):
     or, it can be used to get a subset of integrators:
 
     >>> # get all ODE integrators
-    >>> some_collector.subset(bp.integrators.ODE_INT)
+    >>> some_collector.subset(bp.ode.ODEIntegrator)
 
     Parameters
     ----------

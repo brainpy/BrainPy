@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 
 # "base" module
@@ -35,6 +35,7 @@ from .simulation import connect
 from .simulation import initialize
 from .simulation import inputs
 from .simulation import measure
+init = initialize
 
 
 # "analysis" module
