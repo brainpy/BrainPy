@@ -141,7 +141,7 @@ class DynamicalSystem(Base):
       return assigns
     return []
 
-  def build(self, inputs=(), method=utils.STRUCT_RUN, show_code=False):
+  def build(self, inputs=(), dyn_vars=None, method=utils.STRUCT_RUN, show_code=False):
     if method == utils.STRUCT_RUN and math.is_numpy_backend():
       raise NotImplementedError('Structural-loop running is not supported under NumPy backend.')
 
@@ -160,8 +160,13 @@ class DynamicalSystem(Base):
         for step in self.steps.values():
           step(_t=t_and_dt[0], _dt=t_and_dt[1])
         return self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
-      self._step = jit(make_loop(step, dyn_vars=self.vars(), has_return=True),
-                       dyn_vars=self.vars())
+
+      if dyn_vars is None:
+        dyn_vars = self.vars().unique()
+      if isinstance(dyn_vars, (list, tuple)):
+        dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
+      assert isinstance(dyn_vars, dict)
+      self._step = jit(make_loop(step, dyn_vars=dyn_vars, has_return=True), dyn_vars=dyn_vars)
 
       def post(x):
         times, returns = x

@@ -5,18 +5,27 @@ from jax import jit, vmap
 from jax import ops as jops
 
 from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jax.ops import append, zeros_like
 
 __all__ = [
-  'pre2syn', 'syn2post',
+  'pre2syn', 'syn2post', 'pre2post',
   'segment_sum', 'segment_prod', 'segment_max', 'segment_min',
 ]
 
+_pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
 _syn2post = jit(jops.segment_sum, static_argnums=2)
 _jit_seg_sum = jit(jops.segment_sum, static_argnums=(2, 3, 4, 5))
 _jit_seg_prod = jit(jops.segment_prod, static_argnums=(2, 3, 4, 5))
 _jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3, 4, 5))
 _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
+
+
+def pre2post(pre_values, post2pre_conn):
+  pre_values = append(pre_values, zeros_like(pre_values[0]))
+  pre_values = pre_values.value
+  post2pre_conn = post2pre_conn.value if isinstance(post2pre_conn, JaxArray) else post2pre_conn
+  return _pre2post(post2pre_conn, pre_values)
 
 
 def pre2syn(pre_values, pre_ids):

@@ -4,9 +4,15 @@ import numpy as np
 from brainpy.tools import numba_jit
 
 __all__ = [
-  'pre2syn', 'syn2post',
+  'pre2syn', 'syn2post', 'pre2post',
   'segment_sum', 'segment_prod', 'segment_max', 'segment_min',
 ]
+
+
+@numba_jit
+def pre2post(pre_values, post2pre_conn):
+  raise NotImplementedError
+
 
 
 @numba_jit

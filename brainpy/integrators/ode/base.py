@@ -32,6 +32,7 @@ class ODEIntegrator(Integrator):
 
     # derivative function
     self.derivative = {constants.F: f}
+    self.f = f
 
     # integration function
     self.integral = None

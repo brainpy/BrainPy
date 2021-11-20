@@ -12,6 +12,7 @@ __all__ = [
   'CONN_MAT',
   'PRE_IDS', 'POST_IDS',
   'PRE2POST', 'POST2PRE',
+  'POST2PRE_MAT', 'PRE2POST_MAT',
   'PRE2SYN', 'POST2SYN',
   'PRE_SLICE', 'POST_SLICE',
   'SUPPORTED_SYN_STRUCTURE',
@@ -26,6 +27,8 @@ PRE_IDS = 'pre_ids'
 POST_IDS = 'post_ids'
 PRE2POST = 'pre2post'
 POST2PRE = 'post2pre'
+PRE2POST_MAT = 'pre2post_mat'
+POST2PRE_MAT = 'post2pre_mat'
 PRE2SYN = 'pre2syn'
 POST2SYN = 'post2syn'
 PRE_SLICE = 'pre_slice'
@@ -33,7 +36,7 @@ POST_SLICE = 'post_slice'
 
 SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
                            PRE_IDS, POST_IDS,
-                           PRE2POST, POST2PRE,
+                           PRE2POST, POST2PRE, PRE2POST_MAT, POST2PRE_MAT,
                            PRE2SYN, POST2SYN,
                            PRE_SLICE, POST_SLICE]
 
@@ -112,7 +115,7 @@ class TwoEndConnector(Connector):
     if len(self.structures) == 1 and self.structures[0] == CONN_MAT:
       if mat is None:
         mat = formatter.ij2mat(i=ij[0], j=ij[1], num_pre=self.pre_num, num_post=self.post_num)
-      return mat
+      return math.asarray(mat, dtype=math.bool_)
     else:
       all_data = dict()
 
@@ -148,10 +151,14 @@ class TwoEndConnector(Connector):
           continue
         elif n == PRE2POST:
           all_data[PRE2POST] = formatter.pre2post(i=ij[0], j=ij[1], num_pre=self.pre_num)
+        elif n == PRE2POST_MAT:
+          all_data[PRE2POST_MAT] = formatter.pre2post_mat(i=ij[0], j=ij[1], num_pre=self.pre_num)
         elif n == PRE2SYN:
           all_data[PRE2SYN] = formatter.pre2syn(i=ij[0], num_pre=self.pre_num)
         elif n == POST2PRE:
           all_data[POST2PRE] = formatter.post2pre(i=ij[0], j=ij[1], num_post=self.post_num)
+        elif n == POST2PRE_MAT:
+          all_data[POST2PRE_MAT] = formatter.post2pre_mat(i=ij[0], j=ij[1], num_post=self.post_num)
         elif n == POST2SYN:
           all_data[POST2SYN] = formatter.post2syn(j=ij[1], num_post=self.post_num)
         else:

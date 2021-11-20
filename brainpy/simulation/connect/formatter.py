@@ -120,6 +120,41 @@ def pre2post(i: np.ndarray, j: np.ndarray, num_pre=None):
   return pre2post_list
 
 
+
+def pre2post_mat(i: np.ndarray, j: np.ndarray, num_pre=None):
+  """Get pre2post connections from `i` and `j` indexes.
+
+  Parameters
+  ----------
+  i : list, np.ndarray
+      The pre-synaptic neuron indexes.
+  j : list, np.ndarray
+      The post-synaptic neuron indexes.
+  num_pre : int, None
+      The number of the pre-synaptic neurons.
+
+  Returns
+  -------
+  conn : list
+      The conn list of pre2post.
+  """
+  if len(i) != len(j):
+    raise errors.BrainPyError('The length of "i" and "j" must be the same.')
+  if num_pre is None:
+    logger.warning('"num_pre" is not provided, the result may not be accurate.')
+    num_pre = np.max(i)
+
+  pre2post_list = [[] for _ in range(num_pre)]
+  for pre_id, post_id in zip(i, j):
+    pre2post_list[pre_id].append(post_id)
+  max_len = max([len(l) for l in pre2post_list])
+  pre2post_list = [np.pad(np.array(l, dtype=np.int_),
+                          (0, max_len - len(l)),
+                          constant_values=-1)
+                   for l in pre2post_list]
+  return math.asarray(np.array(pre2post_list), dtype=math.int_)
+
+
 def post2pre(i: np.ndarray, j: np.ndarray, num_post=None):
   """Get post2pre connections from `i` and `j` indexes.
 
@@ -157,6 +192,42 @@ def post2pre(i: np.ndarray, j: np.ndarray, num_post=None):
                                   type='connection')
     post2pre_list.value = post2pre_list_nb
   return post2pre_list
+
+
+def post2pre_mat(i: np.ndarray, j: np.ndarray, num_post=None):
+  """Get post2pre connections from `i` and `j` indexes.
+
+  Parameters
+  ----------
+  i : list, np.ndarray
+      The pre-synaptic neuron indexes.
+  j : list, np.ndarray
+      The post-synaptic neuron indexes.
+  num_post : int, None
+      The number of the post-synaptic neurons.
+
+  Returns
+  -------
+  conn : list
+      The conn list of post2pre.
+  """
+
+  if len(i) != len(j):
+    raise errors.BrainPyError('The length of "i" and "j" must be the same.')
+  if num_post is None:
+    logger.warning('WARNING: "num_post" is not provided, the result may not be accurate.')
+    num_post = np.max(j)
+
+  post2pre_list = [[] for _ in range(num_post)]
+  for pre_id, post_id in zip(i, j):
+    post2pre_list[post_id].append(pre_id)
+
+  max_len = max([len(l) for l in post2pre_list])
+  post2pre_list = [np.pad(np.array(l, dtype=np.int_),
+                          (0, max_len - len(l)),
+                          constant_values=-1)
+                   for l in post2pre_list]
+  return math.asarray(np.array(post2pre_list, dtype=np.int_), dtype=math.int_)
 
 
 def pre2syn(i: np.ndarray, num_pre=None):
