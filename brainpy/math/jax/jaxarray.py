@@ -864,7 +864,7 @@ class Variable(JaxArray):
   """
   __slots__ = ('type', 'replicate')
 
-  def __init__(self, value, type='', replicate=None):
+  def __init__(self, value):
     if isinstance(value, JaxArray):
       value = value.value
     super(Variable, self).__init__(value)
@@ -873,26 +873,6 @@ class Variable(JaxArray):
       raise errors.UnsupportedError(f'Only support string to specify "type", '
                                     f'but we get {type.__class__.__name__}.')
     self.type = type
-    if not (callable(replicate) or replicate is None):
-      raise errors.UnsupportedError(f'Only support callable function to specify '
-                                    f'"replicate", but we get {type.__class__.__name__}.')
-    self.replicate = replicate
-
-  def issametype(self, other):
-    if self.type:
-      return not isinstance(other, Variable)
-    else:
-      if not isinstance(other, Variable):
-        return False
-      else:
-        types_of_self = set([s.strip() for s in self.type.split(';')])
-        types_of_other = set([s.strip() for s in other.type.split(';')])
-        return len(types_of_self - types_of_other) == 0
-
-  def duplicate(self, n):
-    if self.replicate is None:
-      raise ValueError('"replicate" is None, cannot duplicate.')
-    self._value = jnp.stack([self.replicate(self, i) for i in range(n)])
 
 
 class TrainVar(Variable):
@@ -900,10 +880,9 @@ class TrainVar(Variable):
   """
   __slots__ = ()
 
-  def __init__(self, value, replicate=None):
-    if isinstance(value, JaxArray):
-      value = value.value
-    super(TrainVar, self).__init__(value, type='train', replicate=replicate)
+  def __init__(self, value):
+    if isinstance(value, JaxArray): value = value.value
+    super(TrainVar, self).__init__(value)
 
 
 class Parameter(Variable):
@@ -911,10 +890,9 @@ class Parameter(Variable):
   """
   __slots__ = ()
 
-  def __init__(self, value, replicate=None):
-    if isinstance(value, JaxArray):
-      value = value.value
-    super(Parameter, self).__init__(value, type='param', replicate=replicate)
+  def __init__(self, value):
+    if isinstance(value, JaxArray): value = value.value
+    super(Parameter, self).__init__(value)
 
 
 register_pytree_node(JaxArray,
@@ -933,17 +911,3 @@ register_pytree_node(Parameter,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: Parameter(*flat_contents))
 
-
-def wrap(f):
-  def func(*args, **kwargs):
-    args = [a.value if isinstance(a, JaxArray) else a for a in args]
-    kwargs = {k: v.value if isinstance(v, JaxArray) else v for k, v in kwargs.items()}
-    result = f(*args, **kwargs)
-    if result is None:
-      return
-    elif isinstance(result, (tuple, list)):
-      return type(result)([JaxArray(res) if isinstance(res, jnp.ndarray) else res for res in result])
-    else:
-      return JaxArray(result) if isinstance(result, jnp.ndarray) else result
-
-  return func

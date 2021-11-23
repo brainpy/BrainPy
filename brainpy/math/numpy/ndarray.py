@@ -23,7 +23,7 @@ class Variable(np.ndarray):
   """Variable.
 
   """
-  def __new__(cls, value, type='', replicate=None):
+  def __new__(cls, value):
     if not isinstance(value, ndarray):
       arr_value = np.asarray(value)
     else:
@@ -39,8 +39,6 @@ class Variable(np.ndarray):
       obj.value = value
     else:
       obj.value = arr_value
-    obj.type = type
-    obj.replicate = replicate
     return obj
 
   def __array_finalize__(self, obj):
@@ -66,7 +64,7 @@ class TrainVar(Variable):
   __slots__ = ()
 
   def __new__(cls, value, replicate=None):
-    return cast(TrainVar, super().__new__(cls, value=value, type='train', replicate=replicate))
+    return cast(TrainVar, super().__new__(cls, value=value))
 
 
 class Parameter(Variable):
@@ -76,4 +74,4 @@ class Parameter(Variable):
   __slots__ = ()
 
   def __new__(cls, value, replicate=None):
-    return cast(TrainVar, super().__new__(cls, value=value, type='param', replicate=replicate))
+    return cast(TrainVar, super().__new__(cls, value=value))
