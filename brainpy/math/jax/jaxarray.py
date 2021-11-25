@@ -27,6 +27,8 @@ __all__ = [
 #    >>> x[...] = 2
 #    >>> x[()] = 2
 
+_all_slice = slice(None, None, None)
+
 
 class JaxArray(object):
   """Multiple-dimensional array for JAX backend.
@@ -112,31 +114,29 @@ class JaxArray(object):
       yield self._value[i]
 
   def __getitem__(self, index):
-    if isinstance(index, slice) and (slice.start == slice.stop == slice.step == None):
+    if isinstance(index, slice) and (index == _all_slice):
       return self.value
-    if isinstance(index, tuple):
+    elif isinstance(index, tuple):
       index = tuple(x.value if isinstance(x, JaxArray) else x for x in index)
     elif isinstance(index, JaxArray):
       index = index.value
     return self.value[index]
 
   def __setitem__(self, index, value):
-    # value
+    # value is JaxArray
     if isinstance(value, JaxArray):
       value = value.value
 
-    # # slice and update
-    # if isinstance(index, slice):
-    #   if slice.start == slice.stop == slice.step == None:
-    #     self._value = value
-
-    # index
+    # tuple index
     if isinstance(index, tuple):
       index = tuple(x.value if isinstance(x, JaxArray) else x for x in index)
+
+    # JaxArray index
     elif isinstance(index, JaxArray):
       index = index.value
+
     # update
-    self._value = jax.ops.index_update(self._value, jax.ops.index[index], value)
+    self._value = self._value.at[index].set(value)
 
   # ---------- #
   # operations #
@@ -862,17 +862,12 @@ class Variable(JaxArray):
     Used to specify the type of this variable.
 
   """
-  __slots__ = ('type', 'replicate')
+  __slots__ = ()
 
   def __init__(self, value):
     if isinstance(value, JaxArray):
       value = value.value
     super(Variable, self).__init__(value)
-
-    if not isinstance(type, str):
-      raise errors.UnsupportedError(f'Only support string to specify "type", '
-                                    f'but we get {type.__class__.__name__}.')
-    self.type = type
 
 
 class TrainVar(Variable):
