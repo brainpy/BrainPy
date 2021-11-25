@@ -81,6 +81,50 @@ class DynamicalSystem(Base):
     self._step = None
     self._post = None
 
+  def child_ds(self, method='absolute', include_self=False):
+    """Return the children instance of dynamical systems.
+
+    This is a shortcut function to get all children dynamical system
+    in this object. For example:
+
+    >>> import brainpy as bp
+    >>> class Net(bp.DynamicalSystem):
+    >>>   def __init__(self, **kwargs):
+    >>>     super(Net, self).__init__(**kwargs)
+    >>>     self.A = bp.NeuGroup(10)
+    >>>     self.B = bp.NeuGroup(20)
+    >>>
+    >>>   def update(self, _t, _dt):
+    >>>     for node in self.child_ds().values():
+    >>>        node.update(_t, _dt)
+    >>>
+    >>> net = Net()
+    >>> net.child_ds()
+    {'NeuGroup0': <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0x000001ABD4FF02B0>,
+    'NeuGroup1': <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0x000001ABD74E5670>}
+
+    Parameters
+    ----------
+    method : str
+      The method to access the children nodes.
+    include_self : bool
+      Whether include the self dynamical system.
+
+    Returns
+    -------
+    collector: Collector
+      A Collector includes all children systems.
+    """
+    nodes = self.nodes(method=method).subset(DynamicalSystem).unique()
+    if not include_self:
+      if method == 'absolute':
+        nodes.pop(self.name)
+      elif method == 'relative':
+        nodes.pop('')
+      else:
+        raise ValueError
+    return nodes
+
   def register_constant_delay(self, key, size, delay, dtype=None):
     """Register a constant delay.
 
