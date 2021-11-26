@@ -36,6 +36,7 @@ from .simulation import initialize
 from .simulation import inputs
 from .simulation import measure
 init = initialize
+conn = connect
 
 
 # "analysis" module
@@ -51,4 +52,5 @@ from . import visualization as visualize
 from . import errors
 from . import running
 from . import tools
+from . import jaxsetting
 from .jaxsetting import *

@@ -122,7 +122,7 @@ class DynamicalSystem(Base):
       elif method == 'relative':
         nodes.pop('')
       else:
-        raise ValueError
+        raise ValueError(f'Unknown access method: {method}')
     return nodes
 
   def register_constant_delay(self, key, size, delay, dtype=None):
@@ -369,11 +369,6 @@ class Container(DynamicalSystem):
       if key in self.implicit_nodes:
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
       self.implicit_nodes[key] = ds
-    # step functions in children dynamical systems
-    self.child_steps = dict()
-    for ds_key, ds in self.implicit_nodes.items():
-      for step_key, step in ds.steps.items():
-        self.child_steps[f'{ds_key}_{step_key}'] = step
 
     # integrative step function
     if steps is None:
@@ -386,12 +381,13 @@ class Container(DynamicalSystem):
     In this update function, the step functions in children systems are
     iteratively called.
     """
-    for step in self.child_steps.values():
-      step(_t, _dt)
+    for node in self.child_ds().values():
+      for step in node.steps.values():
+        step(_t, _dt)
 
   def __getattr__(self, item):
-    children_ds = super(Container, self).__getattribute__('implicit_nodes')
-    if item in children_ds:
-      return children_ds[item]
+    child_ds = super(Container, self).__getattribute__('implicit_nodes')
+    if item in child_ds:
+      return child_ds[item]
     else:
       return super(Container, self).__getattribute__(item)

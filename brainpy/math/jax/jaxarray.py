@@ -85,10 +85,6 @@ class JaxArray(object):
   # Python inherent methods #
   # ----------------------- #
 
-  # def __hash__(self):
-  #   # Anything that is not mutable (mutable means, likely to change) can be hashed.
-  #   return self.value.__hash__()
-
   def __repr__(self) -> str:
     lines = repr(self.value).split("\n")
     prefix = self.__class__.__name__ + "("
