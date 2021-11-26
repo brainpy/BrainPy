@@ -3,7 +3,7 @@
 
 from brainpy import math
 from brainpy.simulation.brainobjects.neuron import NeuGroup
-from brainpy.simulation.initialize import Initializer, XavierNormal, Uniform, ZeroInit
+from brainpy.training.initialize import Initializer, XavierNormal, Uniform, ZeroInit
 
 __all__ = [
   'LinearReadout'

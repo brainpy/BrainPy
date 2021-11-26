@@ -32,15 +32,13 @@ __all__ = [
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # formatter functions
-  'ij2mat',
-  'mat2ij',
-  'pre2post',
-  'post2pre',
-  'pre2syn',
-  'post2syn',
-  'pre_slice',
-  'post_slice',
+  'ij2mat', 'mat2ij',
+  'pre2post', 'post2pre',
+  'pre2post_mat', 'post2pre_mat',
+  'pre2syn', 'post2syn',
+  'pre_slice', 'post_slice',
 ]
+
 
 CONN_MAT = 'conn_mat'
 PRE_IDS = 'pre_ids'
@@ -360,7 +358,7 @@ def pre2post(i: np.ndarray, j: np.ndarray, num_pre=None):
 
 
 def pre2post_mat(i: np.ndarray, j: np.ndarray, num_pre=None):
-  """Get pre2post connections from `i` and `j` indexes.
+  """Get pre2post_mat connections from `i` and `j` indexes.
 
   Parameters
   ----------
@@ -373,8 +371,8 @@ def pre2post_mat(i: np.ndarray, j: np.ndarray, num_pre=None):
 
   Returns
   -------
-  conn : list
-      The conn list of pre2post.
+  conn : math.ndarray
+      The conn of pre2post.
   """
   if len(i) != len(j):
     raise ConnectorError('The length of "i" and "j" must be the same.')
@@ -425,7 +423,7 @@ def post2pre(i: np.ndarray, j: np.ndarray, num_post=None):
 
 
 def post2pre_mat(i: np.ndarray, j: np.ndarray, num_post=None):
-  """Get post2pre connections from `i` and `j` indexes.
+  """Get post2pre_mat connections from `i` and `j` indexes.
 
   Parameters
   ----------
@@ -438,8 +436,8 @@ def post2pre_mat(i: np.ndarray, j: np.ndarray, num_post=None):
 
   Returns
   -------
-  conn : list
-      The conn list of post2pre.
+  conn : math.ndarray
+      The conn of post2pre.
   """
 
   if len(i) != len(j):

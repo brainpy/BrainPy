@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-import brainpy.math as bm
-from brainpy.simulation.initialize import XavierNormal, Initializer, ZeroInit
+from brainpy.training.initialize import XavierNormal, ZeroInit
 from .base import Module
 
 __all__ = [

@@ -42,7 +42,7 @@ class Dropout(Module):
 
     # probability
     self.prob = prob
-    self.rng = brainpy.math.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed=seed)
 
   def update(self, x, **kwargs):
     if kwargs.get('train', True):

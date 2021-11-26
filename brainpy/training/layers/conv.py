@@ -3,7 +3,7 @@
 
 import jax.lax
 import brainpy.math as bm
-from brainpy.simulation.initialize import Initializer, XavierNormal, ZeroInit
+from brainpy.training.initialize import XavierNormal, ZeroInit
 from .base import Module
 
 
@@ -48,7 +48,7 @@ class Conv2D(Module):
     (low, high).
   w : Initializer, JaxArray, jax.numpy.ndarray
     The initializer for convolution kernel (a function that takes in a HWIO
-    shape and returns a 4D matrix).
+    shape and make_return a 4D matrix).
   b : Initializer, JaxArray, jax.numpy.ndarray, optional
     The bias initialization.
 
