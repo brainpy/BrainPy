@@ -2,7 +2,7 @@
 
 import jax.numpy.fft
 
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
   "fft", "fft2", "fftfreq", "fftn", "fftshift", "hfft",

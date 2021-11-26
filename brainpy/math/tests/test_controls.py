@@ -13,9 +13,9 @@ def test_easy_scan1():
 
     return update
 
-  _v1 = bm.random.normal(size=10)
-  _v2 = bm.random.random(size=10)
-  _xs = bm.random.uniform(size=(4, 10))
+  _v1 = brainpy.math.random.normal(size=10)
+  _v2 = brainpy.math.random.random(size=10)
+  _xs = brainpy.math.random.uniform(size=(4, 10))
 
   scan_f = bm.make_loop(make_node(_v1, _v2),
                         dyn_vars=(_v1, _v2),

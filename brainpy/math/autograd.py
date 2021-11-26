@@ -28,7 +28,7 @@ except ImportError:
 from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
-from brainpy.math.jax.jaxarray import JaxArray, TrainVar
+from brainpy.math.jaxarray import JaxArray, TrainVar
 
 __all__ = [
   'grad',

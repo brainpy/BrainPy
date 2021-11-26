@@ -4,8 +4,8 @@
 from jax import jit, vmap
 from jax import ops as jops
 
-from brainpy.math.jax.jaxarray import JaxArray
-from brainpy.math.jax.ops import append, zeros_like
+from brainpy.math.jaxarray import JaxArray
+from brainpy.math.ops import append, zeros_like
 
 __all__ = [
   'pre2syn', 'syn2post', 'pre2post',

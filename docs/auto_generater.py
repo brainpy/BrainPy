@@ -4,8 +4,7 @@ import os
 import inspect
 import importlib
 from brainpy.math.numpy import function
-from brainpy.math.jax import controls, losses, activations, optimizers
-from brainpy.math.jax import autograd, compilation, operators, parallels
+from brainpy.math import parallels, operators, activations, controls, autograd, losses, optimizers, compilation
 
 
 def get_class_funcs(module):

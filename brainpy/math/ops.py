@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map
 
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray
 from brainpy.math.numpy import ops
 from brainpy.tools import copy_doc
 

@@ -290,7 +290,7 @@ class ExponentialAuto(ODEIntegrator):
       raise errors.IntegratorError(f'{type(self).__name__} is only supported under jax backend. '
                                    f'However current selected backend is {math.get_backend_name()}.')
     global vector_grad
-    if vector_grad is None: from brainpy.math.jax.autograd import vector_grad
+    if vector_grad is None: from brainpy.math.autograd import vector_grad
 
     assert len(self.variables) == 1
 

@@ -18,9 +18,9 @@ import jax.scipy
 from jax.tree_util import tree_flatten
 
 from brainpy import errors
-from brainpy.math.jax import ops
-from brainpy.math.jax.activations import softplus, one_hot
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math import ops
+from brainpy.math.activations import softplus, one_hot
+from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
   'cross_entropy_loss',

@@ -9,7 +9,7 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
   'make_loop',

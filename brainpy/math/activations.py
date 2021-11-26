@@ -19,8 +19,8 @@ import jax.numpy
 import jax.scipy
 import jax.core
 
-from brainpy.math.jax import ops
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math import ops
+from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
   'celu',

@@ -20,7 +20,7 @@ except ImportError:
 from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray
 from brainpy.tools.codes import change_func_name
 
 __all__ = [

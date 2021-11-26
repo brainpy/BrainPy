@@ -2,7 +2,7 @@
 
 from jax.numpy import linalg
 
-from brainpy.math.jax.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
   'cholesky', 'cond', 'det', 'eig', 'eigh', 'eigvals', 'eigvalsh', 'inv', 'svd',
