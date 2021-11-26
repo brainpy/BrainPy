@@ -2,10 +2,11 @@
 
 import jax.numpy as jnp
 
-import brainpy.math.jax as bm
 from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
+from brainpy.math import ops
+from brainpy.math.jaxarray import Variable
 
 __all__ = [
   # optimizers
@@ -114,7 +115,7 @@ class Momentum(Optimizer):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    vs = dict((key + '_v', bm.Variable(bm.zeros_like(x)))
+    vs = dict((key + '_v', Variable(ops.zeros_like(x)))
               for key, x in self.vars_to_train.items())
     self.register_variables(vs)
 
@@ -151,7 +152,7 @@ class MomentumNesterov(Optimizer):
     super(MomentumNesterov, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
-    vs = dict((key + '_v', bm.Variable(bm.zeros_like(x)))
+    vs = dict((key + '_v', Variable(ops.zeros_like(x)))
               for key, x in self.vars_to_train.items())
     self.register_variables(vs)
 
@@ -195,7 +196,7 @@ class Adagrad(Optimizer):
     super(Adagrad, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.epsilon = epsilon
-    caches = dict((key + '_cache', bm.Variable(bm.zeros_like(x)))
+    caches = dict((key + '_cache', Variable(ops.zeros_like(x)))
                   for key, x in self.vars_to_train.items())
     self.register_variables(caches)
 
@@ -206,7 +207,7 @@ class Adagrad(Optimizer):
       g = grads[key]
       c = self.implicit_vars[key + '_cache']
       c.value += g ** 2
-      p.value -= lr * g / bm.sqrt(c + self.epsilon)
+      p.value -= lr * g / ops.sqrt(c + self.epsilon)
     self.lr.update()
 
 
@@ -252,8 +253,8 @@ class Adadelta(Optimizer):
 
     self.epsilon = epsilon
     self.rho = rho
-    caches = dict((key + '_cache', bm.Variable(bm.zeros_like(x))) for key, x in self.vars_to_train.items())
-    deltas = dict((key + '_delta', bm.Variable(bm.zeros_like(x))) for key, x in self.vars_to_train.items())
+    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in self.vars_to_train.items())
+    deltas = dict((key + '_delta', Variable(ops.zeros_like(x))) for key, x in self.vars_to_train.items())
     self.register_variables(caches)
     self.register_variables(deltas)
 
@@ -299,7 +300,7 @@ class RMSProp(Optimizer):
 
     self.epsilon = epsilon
     self.rho = rho
-    caches = dict((key + '_cache', bm.Variable(bm.zeros_like(x))) for key, x in self.vars_to_train.items())
+    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in self.vars_to_train.items())
     self.register_variables(caches)
 
   def update(self, grads: dict):
@@ -345,8 +346,8 @@ class Adam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps
-    ms = dict((k + '_m', bm.Variable(bm.zeros_like(x))) for k, x in self.vars_to_train.items())
-    vs = dict((k + '_v', bm.Variable(bm.zeros_like(x))) for k, x in self.vars_to_train.items())
+    ms = dict((k + '_m', Variable(ops.zeros_like(x))) for k, x in self.vars_to_train.items())
+    vs = dict((k + '_v', Variable(ops.zeros_like(x))) for k, x in self.vars_to_train.items())
     self.register_variables(ms)
     self.register_variables(vs)
 
@@ -388,7 +389,7 @@ class Scheduler(Base):
 
     assert isinstance(lr, (float, int))
     self.lr = lr
-    self.step = bm.Variable(bm.array([0]))
+    self.step = Variable(ops.array([0]))
 
   def update(self):
     self.step += 1
@@ -421,7 +422,7 @@ class InverseTimeDecay(ExponentialDecay):
   def __call__(self, i=None):
     i = self.step[0] if i is None else i
     if self.staircase:
-      return self.lr / (1 + self.decay_rate * bm.floor(i / self.decay_steps).value)
+      return self.lr / (1 + self.decay_rate * ops.floor(i / self.decay_steps).value)
     else:
       return self.lr / (1 + self.decay_rate * i / self.decay_steps)
 
@@ -435,7 +436,7 @@ class PolynomialDecay(Scheduler):
 
   def __call__(self, i=None):
     i = self.step[0] if i is None else i
-    i = bm.minimum(i, self.decay_steps).value
+    i = ops.minimum(i, self.decay_steps).value
     step_mult = (1 - i / self.decay_steps) ** self.power
     return step_mult * (self.lr - self.final_lr) + self.final_lr
 
@@ -455,4 +456,4 @@ class PiecewiseConstant(Scheduler):
 
   def __call__(self, i=None):
     i = self.step[0] if i is None else i
-    return self.values[bm.sum(i > self.boundaries)]
+    return self.values[ops.sum(i > self.boundaries)]

@@ -5,7 +5,6 @@ import numpy as np
 from jax.tree_util import tree_map
 
 from brainpy.math.jaxarray import JaxArray
-from brainpy.math.numpy import ops
 from brainpy.tools import copy_doc
 
 __all__ = [
@@ -87,7 +86,6 @@ def take_along_axis(a, indices, axis):
   return JaxArray(jnp.take_along_axis(a, indices, axis))
 
 
-@copy_doc(ops.clip_by_norm)
 def clip_by_norm(t, clip_norm, axis=None):
   f = lambda l: l * clip_norm / maximum(sqrt(sum(l * l, axis=axis, keepdims=True)), clip_norm)
   return tree_map(f, t)

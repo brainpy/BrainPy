@@ -107,16 +107,13 @@ tableau as follows:
 
 import inspect
 
+import sympy
+
 from brainpy import math, errors
+from brainpy.integrators import analysis_by_sympy
 from brainpy.integrators import constants, utils
 from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.ode.base import ODEIntegrator
-
-try:
-  import sympy
-  from brainpy.integrators import analysis_by_sympy
-except (ModuleNotFoundError, ImportError):
-  sympy = analysis_by_sympy = None
 
 vector_grad = None
 

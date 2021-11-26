@@ -2,7 +2,7 @@
 
 import abc
 
-import brainpy.math.jax as bm
+import brainpy.math as bm
 from brainpy.simulation.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
 from .base import Module
 

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import inspect
-import numpy as onp
-from typing import Union
-import jax.numpy as jnp
-import brainpy.math.jax as bm
 
+import jax.numpy as jnp
+import numpy as onp
+
+import brainpy.math as bm
 from brainpy import errors
 from brainpy.base.collector import Collector
 from brainpy.simulation.brainobjects.base import DynamicalSystem

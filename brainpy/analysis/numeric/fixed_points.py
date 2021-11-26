@@ -4,8 +4,10 @@ import inspect
 import time
 from functools import partial
 
+import jax
 import numpy as np
 
+import brainpy.math as bm
 from brainpy import errors
 
 try:
@@ -13,11 +15,6 @@ try:
 except (ModuleNotFoundError, ImportError):
   pdist = squareform = None
 
-try:
-  import jax
-  import brainpy.math.jax as bm
-except (ModuleNotFoundError, ImportError):
-  bm = jax = None
 
 __all__ = [
   'FixedPointFinder',
@@ -110,8 +107,8 @@ class FixedPointFinder(object):
     self.num_opt_batch = num_opt_batch
     self.num_opt_max = num_opt_max
     if opt_setting is None:
-      self.opt_method = brainpy.math.optimizers.Adam
-      self.opt_lr = brainpy.math.optimizers.ExponentialDecay(0.2, 1, 0.9999)
+      self.opt_method = bm.optimizers.Adam
+      self.opt_lr = bm.optimizers.ExponentialDecay(0.2, 1, 0.9999)
       self.opt_setting = {'beta1': 0.9,
                           'beta2': 0.999,
                           'eps': 1e-8,
@@ -122,14 +119,14 @@ class FixedPointFinder(object):
       assert 'lr' in opt_setting
       opt_method = opt_setting.pop('method')
       if isinstance(opt_method, str):
-        assert opt_method in brainpy.math.optimizers.__all__
-        opt_method = getattr(brainpy.math.optimizers, opt_method)
+        assert opt_method in bm.optimizers.__all__
+        opt_method = getattr(bm.optimizers, opt_method)
       assert isinstance(opt_method, type)
-      if brainpy.math.optimizers.Optimizer not in inspect.getmro(opt_method):
+      if bm.optimizers.Optimizer not in inspect.getmro(opt_method):
         raise ValueError
       self.opt_method = opt_method
       self.opt_lr = opt_setting.pop('lr')
-      assert isinstance(self.opt_lr, (int, float, brainpy.math.optimizers.Scheduler))
+      assert isinstance(self.opt_lr, (int, float, bm.optimizers.Scheduler))
       self.opt_setting = opt_setting
 
   def find_fixed_points(self, candidates):
@@ -158,7 +155,7 @@ class FixedPointFinder(object):
 
     if self.verbose and self.noise > 0.0:
       print("Adding noise to fixed point candidates.")
-      candidates += brainpy.math.random.randn(npoints, dim) * np.sqrt(self.noise)
+      candidates += bm.random.randn(npoints, dim) * np.sqrt(self.noise)
 
     # 2. find fixed points
     if self.verbose: print("Optimizing to find fixed points:")

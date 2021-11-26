@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
+import jax
+import jax.numpy as jnp
 from contextlib import contextmanager
 
 math = None
@@ -143,13 +145,6 @@ class TensorCollector(Collector):
     global math
     if math is None: from brainpy import math
 
-    try:
-      import jax
-      import jax.numpy as jnp
-    except ModuleNotFoundError as e:
-      raise ModuleNotFoundError('"ArrayCollector.replicate()" is only available in '
-                                'JAX backend, while JAX is not installed.') from e
-
     replicated, saved_states = {}, {}
     x = jnp.zeros((jax.local_device_count(), 1), dtype=math.float_)
     sharded_x = jax.pmap(lambda x: x, axis_name='device')(x)
@@ -157,10 +152,10 @@ class TensorCollector(Collector):
     num_device = len(devices)
     for k, d in self.items():
       if isinstance(d, math.random.RandomState):
-        replicated[k] = jax.api.device_put_sharded([shard for shard in d.split(num_device)], devices)
+        replicated[k] = jax.device_put_sharded([shard for shard in d.split(num_device)], devices)
         saved_states[k] = d.value
       else:
-        replicated[k] = jax.api.device_put_replicated(d.value, devices)
+        replicated[k] = jax.device_put_replicated(d.value, devices)
     self.assign(replicated)
     yield
     visited = set()

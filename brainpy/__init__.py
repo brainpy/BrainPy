@@ -31,6 +31,7 @@ from .simulation.brainobjects import *
 from .simulation.monitor import *
 # submodules
 from .simulation import brainobjects
+from .simulation import layers
 from .simulation import connect
 from .simulation import initialize
 from .simulation import inputs

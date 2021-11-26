@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import brainpy.math.jax as bm
+import brainpy.math as bm
 from .base import Module
 
 __all__ = [

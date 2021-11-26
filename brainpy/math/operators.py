@@ -21,6 +21,10 @@ _jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3, 4, 5))
 _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
 
 
+def event_add(events, conn_ids, value, out_len):
+  raise NotImplementedError
+
+
 def pre2post(pre_values, post2pre_conn):
   pre_values = append(pre_values, zeros_like(pre_values[0]))
   pre_values = pre_values.value

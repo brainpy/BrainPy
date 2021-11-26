@@ -2,7 +2,7 @@
 
 
 import jax.lax
-import brainpy.math.jax as bm
+import brainpy.math as bm
 from brainpy.simulation.initialize import Initializer, XavierNormal, ZeroInit
 from .base import Module
 

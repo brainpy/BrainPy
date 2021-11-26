@@ -9,7 +9,6 @@ from brainpy import math, errors
 from brainpy.math import utils as math_utils
 
 
-
 __all__ = [
   'line_plot',
   'raster_plot',
