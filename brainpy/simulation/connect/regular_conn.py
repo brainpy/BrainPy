@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import numpy as np
+
 from brainpy import errors, tools
 from .base import *
+
+logger = logging.getLogger('brainpy.simulation.connect')
 
 __all__ = [
   'One2One', 'one2one',
@@ -14,32 +19,24 @@ __all__ = [
 
 
 class One2One(TwoEndConnector):
-  """
-  Connect two neuron groups one by one. This means
+  """Connect two neuron groups one by one. This means
   The two neuron groups should have the same size.
   """
-
-  def __init__(self):
-    super(One2One, self).__init__()
-
   def require(self, *structures):
-    try:
-      assert self.pre_num == self.post_num
-    except AssertionError:
-      raise errors.BrainPyError(f'One2One connection must be defined in two groups with the '
-                                f'same size, but we got {self.pre_num} != {self.post_num}.')
+    if self.pre_num != self.post_num:
+      raise errors.ConnectorError(f'One2One connection must be defined in two groups with the '
+                                  f'same size, but we got {self.pre_num} != {self.post_num}.')
 
     type_to_provide = self.check(structures)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = np.zeros((self.pre_num, self.post_num), dtype=np.bool_)
+      mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
       np.fill_diagonal(mat, True)
-      return self.returns(mat=mat)
+      return self.make_return(mat=mat)
 
     elif type_to_provide == PROVIDE_IJ:
-      pre_ids = np.arange(self.pre_num, dtype=np.int_)
-      post_ids = np.arange(self.pre_num, dtype=np.int_)
-      return self.returns(ij=(pre_ids, post_ids))
+      pre_ids = post_ids= np.arange(self.pre_num, dtype=IDX_DTYPE)
+      return self.make_return(ij=(pre_ids, post_ids))
 
     else:
       raise ValueError
@@ -62,18 +59,18 @@ class All2All(TwoEndConnector):
     type_to_provide = self.check(structures)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = np.ones((self.pre_num, self.post_num), dtype=bool)
+      mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
       if not self.include_self: np.fill_diagonal(mat, False)
-      return self.returns(mat=mat)
+      return self.make_return(mat=mat)
 
     elif type_to_provide == PROVIDE_IJ:
-      mat = np.ones((self.pre_num, self.post_num), dtype=bool)
+      mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
       if not self.include_self: np.fill_diagonal(mat, False)
       pre_ids, post_ids = np.where(mat)
       del mat
-      pre_ids = np.asarray(pre_ids, dtype=np.int_)
-      post_ids = np.asarray(post_ids, dtype=np.int_)
-      return self.returns(ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
+      return self.make_return(ij=(pre_ids, post_ids))
 
     else:
       raise ValueError
@@ -135,16 +132,16 @@ class GridFour(OneEndConnector):
       a = _grid_four(height, width, row, include_self=self.include_self)
       conn_i.extend(a[0])
       conn_j.extend(a[1])
-    pre_ids = np.asarray(conn_i, dtype=np.int_)
-    post_ids = np.asarray(conn_j, dtype=np.int_)
+    pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
+    post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = np.zeros((self.pre_num, self.post_num), dtype=np.bool_)
+      mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
       mat[pre_ids, post_ids] = True
-      return self.returns(mat=mat, ij=(pre_ids, post_ids))
+      return self.make_return(mat=mat, ij=(pre_ids, post_ids))
 
     elif type_to_provide == PROVIDE_IJ:
-      return self.returns(ij=(pre_ids, post_ids))
+      return self.make_return(ij=(pre_ids, post_ids))
 
     else:
       raise ValueError
@@ -196,8 +193,6 @@ class GridN(OneEndConnector):
     self.N = N
     self.include_self = include_self
 
-
-
   def require(self, *structures):
     type_to_provide = self.check(structures)
 
@@ -222,16 +217,16 @@ class GridN(OneEndConnector):
                     n=self.N, include_self=self.include_self)
       conn_i.extend(res[0])
       conn_j.extend(res[1])
-    pre_ids = np.asarray(conn_i, dtype=np.int_)
-    post_ids = np.asarray(conn_j, dtype=np.int_)
+    pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
+    post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
     if type_to_provide == PROVIDE_MAT:
-      mat = np.zeros((self.pre_num, self.post_num), dtype=np.bool_)
+      mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
       mat[pre_ids, post_ids] = True
-      return self.returns(mat=mat, ij=(pre_ids, post_ids))
+      return self.make_return(mat=mat, ij=(pre_ids, post_ids))
 
     elif type_to_provide == PROVIDE_IJ:
-      return self.returns(ij=(pre_ids, post_ids))
+      return self.make_return(ij=(pre_ids, post_ids))
 
     else:
       raise ValueError
