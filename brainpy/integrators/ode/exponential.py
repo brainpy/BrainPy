@@ -110,7 +110,6 @@ import inspect
 from brainpy import math, errors
 from brainpy.integrators import constants, utils
 from brainpy.integrators.analysis_by_ast import separate_variables
-from brainpy.integrators.ode import common
 from brainpy.integrators.ode.base import ODEIntegrator
 
 try:
@@ -119,9 +118,11 @@ try:
 except (ModuleNotFoundError, ImportError):
   sympy = analysis_by_sympy = None
 
+vector_grad = None
 
 __all__ = [
   'ExponentialEuler',
+  'ExponentialAuto',
 ]
 
 
@@ -180,31 +181,22 @@ class ExponentialEuler(ODEIntegrator):
     self.build()
 
   def build(self):
-    # if math.get_backend_name() == 'jax':
-    #   raise NotImplementedError
-    # else:
-    self.symbolic_build()
-
-  def autograd_build(self):
-    pass
-
-  def symbolic_build(self):
     # check package
     if sympy is None or analysis_by_sympy is None:
       raise errors.PackageMissingError('SymPy must be installed when '
                                        'using exponential integrators.')
 
     # check bound method
-    if hasattr(self.derivative[constants.F], '__self__'):
+    if hasattr(self.f, '__self__'):
       self.code_lines = [f'def {self.func_name}({", ".join(["self"] + list(self.arguments))}):']
 
     # code scope
-    closure_vars = inspect.getclosurevars(self.derivative[constants.F])
+    closure_vars = inspect.getclosurevars(self.f)
     self.code_scope.update(closure_vars.nonlocals)
     self.code_scope.update(dict(closure_vars.globals))
     self.code_scope['math'] = math
 
-    analysis = separate_variables(self.derivative[constants.F])
+    analysis = separate_variables(self.f)
     variables_for_returns = analysis['variables_for_returns']
     expressions_for_returns = analysis['expressions_for_returns']
     for vi, (key, all_var) in enumerate(variables_for_returns.items()):
@@ -266,7 +258,51 @@ class ExponentialEuler(ODEIntegrator):
       show_code=self.show_code,
       func_name=self.func_name)
 
-    if hasattr(self.derivative[constants.F], '__self__'):
-      host = self.derivative[constants.F].__self__
+    if hasattr(self.f, '__self__'):
+      host = self.f.__self__
       self.integral = self.integral.__get__(host, host.__class__)
 
+
+class ExponentialAuto(ODEIntegrator):
+  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False, dyn_var=None, has_aux=False):
+    super(ExponentialAuto, self).__init__(f=f, var_type=var_type, dt=dt,
+                                          name=name, show_code=show_code)
+
+    self.dyn_var = dyn_var
+    self.has_aux = has_aux
+
+    # keyword checking
+    keywords = {
+      constants.F: 'the derivative function',
+      constants.DT: 'the precision of numerical integration',
+      'exp': 'the exponential function',
+      'math': 'the math module',
+    }
+    for v in self.variables:
+      keywords[f'{v}_new'] = 'the intermediate value'
+    utils.check_kws(self.arguments, keywords)
+
+    # build the integrator
+    self.build()
+
+  def build(self):
+    if not math.is_jax_backend():
+      raise errors.IntegratorError(f'{type(self).__name__} is only supported under jax backend. '
+                                   f'However current selected backend is {math.get_backend_name()}.')
+    global vector_grad
+    if vector_grad is None: from brainpy.math.jax.autograd import vector_grad
+
+    assert len(self.variables) == 1
+
+    # TODO : argnums
+    value_and_grad = vector_grad(self.f, argnums=0, dyn_vars=self.dyn_var, return_value=True, has_aux=self.has_aux)
+
+    def _int(v, t, *args, dt=math.get_dt(), **kwargs):
+      linear, derivative = value_and_grad(v, t, *args, **kwargs)
+      z = dt * linear
+      phi = (math.exp(z) - 1) / z
+      return v + dt * phi * derivative
+
+    self.code_lines = []
+    self.code_scope = {}
+    self.integral = _int

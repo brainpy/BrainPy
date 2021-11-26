@@ -129,7 +129,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
-### Dynamics Learning
+### Dynamics learning
 
 - [Train Integrator RNN with BP](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/integrator_rnn.html)
 
@@ -153,5 +153,5 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 ### High-dimension dynamics analysis
 
-- [Fixed point finder]
+- [*(Yang, 2020)*: Dynamical system analysis for RNN](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Yang_2020_RNN_Analysis.html)
 

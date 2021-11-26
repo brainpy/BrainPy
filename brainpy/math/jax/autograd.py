@@ -8,7 +8,9 @@ from typing import Union, Sequence
 import jax
 import jax.linear_util as lu
 import jax.numpy
+import jax.numpy as jnp
 import numpy as np
+from jax import vjp
 from jax._src.api import _check_callable, _check_input_dtype_jacrev, _ensure_index
 from jax._src.api import _check_input_dtype_jacfwd, _check_output_dtype_jacfwd, _std_basis
 from jax._src.api import _check_output_dtype_jacrev, _unravel_array_into_pytree, _dtype, _vjp
@@ -17,6 +19,7 @@ from jax._src.api import flatten_fun_nokwargs, vmap
 from jax.api_util import argnums_partial
 from jax.interpreters import ad
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose, tree_structure
+
 try:
   from jax.errors import UnexpectedTracerError
 except ImportError:
@@ -28,8 +31,9 @@ from brainpy.base.collector import TensorCollector
 from brainpy.math.jax.jaxarray import JaxArray, TrainVar
 
 __all__ = [
-  'grad', 'jacobian', 'jacrev', 'jacfwd', 'hessian',
-  'Grad', 'Jacobian',
+  'grad',
+  'jacobian', 'jacrev', 'jacfwd', 'hessian',
+  'vector_grad',
 ]
 
 
@@ -347,6 +351,18 @@ def _argnums_partial(f, dyn_argnums, args):
     return argnums_partial(f, dyn_argnums, args)
 
 
+def _jacrev(fun, dyn_vars=None, has_aux=False, return_value=False):
+  def jacfun(x):
+    y, vjp_fun = vjp(fun, x)
+    # Use vmap to do a matrix-Jacobian product.
+    # Here, the matrix is the Euclidean basis, so we get all
+    # entries in the Jacobian at once.
+    J, = vmap(vjp_fun, in_axes=0)(jnp.eye(len(y)))
+    return J
+
+  return jacfun
+
+
 def _jac_rev_aux(fun, argnums: Union[int, Sequence[int]] = 0, holomorphic=False,
                  allow_int=False, has_aux=False, return_value=False):
   _check_callable(fun)
@@ -593,13 +609,13 @@ class Jacobian(AutoGrad):
       return (grads, outputs[1]) if self.has_aux else grads
 
 
-def hessian(fun, vars=None, grad_vars=None, argnums: Union[int, Sequence[int]] = 0,
+def hessian(func, vars=None, grad_vars=None, argnums: Union[int, Sequence[int]] = 0,
             holomorphic=False, return_value=False):
-  """Hessian of ``fun`` as a dense array.
+  """Hessian of ``func`` as a dense array.
 
   Parameters
   ----------
-  fun : callable, function
+  func : callable, function
     Function whose Hessian is to be computed.  Its arguments at positions
     specified by ``argnums`` should be arrays, scalars, or standard Python
     containers thereof. It should return arrays, scalars, or standard Python
@@ -615,7 +631,7 @@ def hessian(fun, vars=None, grad_vars=None, argnums: Union[int, Sequence[int]] =
   return_value : bool
     Whether return the hessian values.
   """
-  return jacfwd(jacrev(fun,
+  return jacfwd(jacrev(func,
                        dyn_vars=vars,
                        grad_vars=grad_vars,
                        argnums=argnums,
@@ -625,3 +641,75 @@ def hessian(fun, vars=None, grad_vars=None, argnums: Union[int, Sequence[int]] =
                 argnums=argnums,
                 holomorphic=holomorphic,
                 return_value=return_value)
+
+
+def _vector_grad(func, return_value=False, has_aux=False):
+  if has_aux:
+    def grad_fun(*x):
+      y, vjp_fn, aux = vjp(func, *x, has_aux=has_aux)
+      leaves, tree = tree_flatten(y)
+      tangents = tree_unflatten(tree, [jnp.zeros(l.shape) for l in leaves])
+      returns = (vjp_fn(tangents), aux)
+      if return_value: returns += (y,)
+      return returns
+  else:
+    def grad_fun(*x):
+      y, vjp_fn = vjp(func, *x, has_aux=has_aux)
+      leaves, tree = tree_flatten(y)
+      tangents = tree_unflatten(tree, [jnp.zeros(l.shape) for l in leaves])
+      if return_value:
+        return vjp_fn(tangents), y
+      else:
+        return vjp_fn(tangents)
+
+  return grad_fun
+
+
+def vector_grad(func, dyn_vars=None, return_value=False, has_aux=None):
+  has_aux = False if has_aux is None else True
+
+  if dyn_vars is None:
+    return _vector_grad(func=func, return_value=return_value, has_aux=has_aux)
+
+  else:
+    if isinstance(dyn_vars, dict):
+      dyn_vars = list(dyn_vars.values())
+    assert isinstance(dyn_vars, (list, tuple))
+
+    if not has_aux:
+      @partial(_vector_grad, areturn_value=return_value, has_aux=True)
+      def grad_func(dyn_values, *x):
+        for v, d in zip(dyn_vars, dyn_values): v.value = d
+        outputs = func(*x)
+        return outputs, [v.value for v in dyn_vars]
+
+      def call_fun(*x):
+        old_dyn_values = tuple([v.value for v in dyn_vars])
+        try:
+          results = grad_func(old_dyn_values, *x)
+        except UnexpectedTracerError as e:
+          for v, d in zip(dyn_vars, old_dyn_values): v.value = d
+          raise errors.JaxTracerError() from e
+        new_dyn_values = results[1]
+        for v, d in zip(dyn_vars, new_dyn_values): v.value = d
+        return (results[0], results[1]) if return_value else results[0]
+
+    else:
+      @partial(_vector_grad, areturn_value=return_value, has_aux=True)
+      def grad_func(dyn_values, *args, **kwargs):
+        for v, d in zip(dyn_vars, dyn_values): v.value = d
+        outputs, aux = func(*args, **kwargs)
+        return outputs, ([v.value for v in dyn_vars], aux)
+
+      def call_fun(*x):
+        old_dyn_values = tuple([v.value for v in dyn_vars])
+        try:
+          results = grad_func(old_dyn_values, *x)
+        except UnexpectedTracerError as e:
+          for v, d in zip(dyn_vars, old_dyn_values): v.value = d
+          raise errors.JaxTracerError() from e
+        new_dyn_values, aux = results[1]
+        for v, d in zip(dyn_vars, new_dyn_values): v.value = d
+        return (results[0], aux, results[1]) if return_value else (results[0], aux)
+
+  return call_fun
