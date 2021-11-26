@@ -26,11 +26,14 @@ setup(
   long_description_content_type="text/markdown",
   author='Chaoming Wang',
   author_email='chao.brain@qq.com',
-  packages=find_packages(exclude=['examples*', 'docs*', 'develop*', 'ode*']),
+  packages=find_packages(exclude=['examples*', 'docs*', 'develop*']),
   python_requires='>=3.6',
   install_requires=[
     'numpy>=1.15',
     'matplotlib>=3.4',
+    'sympy>=1.6',
+    'jax>=0.2.10',
+    'jaxlib>=0.1.64',
   ],
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   keywords='computational neuroscience, '

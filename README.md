@@ -31,8 +31,10 @@
 
 ``BrainPy`` is based on Python (>=3.6), and the following packages are required to be installed to use ``BrainPy``:
 
-- NumPy >= 1.15
-- Matplotlib >= 3.4
+- numpy >= 1.15
+- jax >= 0.2.10
+- sympy >= 1.6
+- matplotlib >= 3.4
 
 *The installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
 
@@ -58,13 +60,6 @@ To install the stable release of BrainPy, please use
 > python setup.py install
 ```
 
-
-
-**Other dependencies**: you want to get the full supports by BrainPy, please install the following packages:
-
-- `JAX >= 0.2.10`,  needed for "jax" backend and many other supports ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#jax))
-- `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend ([how to install numba?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#numba))
-- `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method ([how to install sympy?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#sympy))
 
 
 

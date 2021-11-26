@@ -1,10 +1,5 @@
 -r requirements.txt
 
-sympy>=1.5
-numba>=0.52
-jax
-jaxlib
-
 # document requirements
 pandoc
 Jinja2
