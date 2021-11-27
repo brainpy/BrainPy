@@ -9,10 +9,7 @@
     :maxdepth: 3
 
     simulation/brainobjects
-    simulation/layers
     simulation/connect
-    simulation/initialize
-
     simulation/inputs
     simulation/measure
     simulation/monitor

@@ -8,12 +8,14 @@ General Functions
 .. autosummary::
     :toctree: generated/
 
-    use_backend
-    get_backend_name
+    function
     set_dt
     get_dt
     set_int_
     set_float_
     set_complex_
+    enable_x64
+    set_platform
+    set_host_device_count
 
 
