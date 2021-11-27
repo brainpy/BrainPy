@@ -6,7 +6,6 @@ from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
 from brainpy import math, errors
-from brainpy.math import utils as math_utils
 
 
 __all__ = [
@@ -72,8 +71,8 @@ def line_plot(ts,
 
   val_matrix = val_matrix.reshape((val_matrix.shape[0], -1))
   # change data
-  val_matrix = math_utils.numpy_array(val_matrix)
-  ts = math_utils.numpy_array(ts)
+  val_matrix = np.asarray(val_matrix)
+  ts = np.asarray(ts)
 
   # plot
   if legend:
@@ -152,10 +151,10 @@ def raster_plot(ts,
       Show the figure.
   """
 
-  sp_matrix = math_utils.numpy_array(sp_matrix)
+  sp_matrix = np.asarray(sp_matrix)
   if ts is None:
     raise errors.BrainPyError('Must provide "ts".')
-  ts = math_utils.numpy_array(ts)
+  ts = np.asarray(ts)
 
   # get index and time
   elements = np.where(sp_matrix > 0.)
@@ -248,7 +247,7 @@ def animate_2D(values,
   num_step, num_neuron = values.shape
   height, width = net_size
 
-  values = math_utils.numpy_array(values)
+  values = np.asarray(values)
   val_min = values.min() if val_min is None else val_min
   val_max = values.max() if val_max is None else val_max
 
@@ -371,11 +370,11 @@ def animate_1D(dynamical_vars,
           var['legend'] = None
         else:
           has_legend = True
-        var['ys'] = math_utils.numpy_array(var['ys'])
+        var['ys'] = np.asarray(var['ys'])
         if 'xs' not in var:
           var['xs'] = np.arange(var['ys'].shape[1])
       elif isinstance(var, np.ndarray):
-        var = math_utils.numpy_array(var)
+        var = np.asarray(var)
         var = {'ys': var,
                'xs': np.arange(var.shape[1]),
                'legend': None}
@@ -390,14 +389,14 @@ def animate_1D(dynamical_vars,
       dynamical_vars['legend'] = None
     else:
       has_legend = True
-    dynamical_vars['ys'] = math_utils.numpy_array(dynamical_vars['ys'])
+    dynamical_vars['ys'] = np.asarray(dynamical_vars['ys'])
     if 'xs' not in dynamical_vars:
       dynamical_vars['xs'] = np.arange(dynamical_vars['ys'].shape[1])
     lengths.append(dynamical_vars['ys'].shape[0])
     final_dynamic_vars.append(dynamical_vars)
   else:
     assert np.ndim(dynamical_vars) == 2, "Dynamic variable must be 2D data."
-    dynamical_vars = math_utils.numpy_array(dynamical_vars)
+    dynamical_vars = np.asarray(dynamical_vars)
     lengths.append(dynamical_vars.shape[0])
     final_dynamic_vars.append({'ys': dynamical_vars,
                                'xs': np.arange(dynamical_vars.shape[1]),

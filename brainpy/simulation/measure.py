@@ -66,7 +66,7 @@ def cross_correlation(spikes, bin, dt=None):
          inhibition in a hippocampal interneuronal network model." Journal of
          neuroscience 16.20 (1996): 6402-6413.
   """
-
+  spikes = np.asarray(spikes)
   dt = math.get_dt() if dt is None else dt
   bin_size = int(bin / dt)
   num_hist, num_neu = spikes.shape
@@ -142,6 +142,7 @@ def voltage_fluctuation(potentials):
   .. [3] David Golomb (2007) Neuronal synchrony measures. Scholarpedia, 2(1):1347.
   """
 
+  potentials = np.asarray(potentials)
   num_hist, num_neu = potentials.shape
   avg = np.mean(potentials, axis=1)
   avg_var = np.mean(avg * avg) - np.mean(avg) ** 2
@@ -168,6 +169,8 @@ def raster_plot(sp_matrix, times):
   raster_plot : tuple
       Include (neuron index, spike time).
   """
+  sp_matrix = np.asarray(sp_matrix)
+  times = np.asarray(times)
   elements = np.where(sp_matrix > 0.)
   index = elements[1]
   time = times[elements[0]]
@@ -200,6 +203,7 @@ def firing_rate(sp_matrix, width, dt=None):
   rate : numpy.ndarray
       The population rate in Hz, smoothed with the given window.
   """
+  sp_matrix = np.asarray(sp_matrix)
   rate = math.sum(sp_matrix, axis=1) / sp_matrix.shape[1]
   dt = math.get_dt() if dt is None else dt
   width1 = int(width / 2 / dt) * 2 + 1

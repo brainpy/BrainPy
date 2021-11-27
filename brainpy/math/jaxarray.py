@@ -533,15 +533,9 @@ class JaxArray(object):
     res = self.value.min(axis=axis, keepdims=keepdims, *args, **kwargs)
     return res if (axis is None or keepdims) else JaxArray(res)
 
-  # def newbyteorder(self, new_order='S', *args, **kwargs):
-  #   return type(self)(self.value.newbyteorder(new_order=new_order, *args, **kwargs))
-
   def nonzero(self):
     """Return the indices of the elements that are non-zero."""
     return tuple(JaxArray(a) for a in self.value.nonzero())
-
-  # def partition(self, kth, axis=-1, kind='introselect', order=None):
-  #   return type(self)(self.value.partition(kth=kth, axis=axis, kind=kind, order=order))
 
   def prod(self, axis=None, dtype=None, keepdims=False, initial=1, where=True):
     """Return the product of the array elements over the given axis."""
@@ -552,9 +546,6 @@ class JaxArray(object):
     """Peak to peak (maximum - minimum) value along a given axis."""
     r = self.value.ptp(axis=axis, keepdims=keepdims)
     return r if (axis is None or keepdims) else JaxArray(r)
-
-  # def put(indices, values, mode='raise'):
-  #   pass
 
   def ravel(self, order=None):
     """Return a flattened array."""
@@ -567,9 +558,6 @@ class JaxArray(object):
   def reshape(self, shape, order='C'):
     """Returns an array containing the same data with a new shape."""
     return JaxArray(self.value.reshape(*shape, order=order))
-
-  # def resize(self, new_shape, refcheck=True):
-  #   """Change shape and size of array in-place."""
 
   def round(self, decimals=0):
     """Return ``a`` with each element rounded to the given number of decimals."""
@@ -610,12 +598,6 @@ class JaxArray(object):
     """
     v = v.value if isinstance(v, JaxArray) else v
     return JaxArray(self.value.searchsorted(v=v, side=side, sorter=sorter))
-
-  # def setfield(self, val, dtype, offset=0):
-  #   pass
-
-  # def setflags(self, write=None, align=None, uic=None):
-  #   pass
 
   def sort(self, axis=-1, kind=None, order=None):
     """Sort an array in-place.
@@ -743,9 +725,6 @@ class JaxArray(object):
     controlled by the ``order`` parameter."""
     return JaxArray(self.value.tobytes(order=order))
 
-  # def tofile(fid, sep='', format='%s'):
-  #   pass
-
   def tolist(self):
     """Return the array as an ``a.ndim``-levels deep nested list of Python scalars.
 
@@ -835,8 +814,16 @@ class JaxArray(object):
     """New view of array with the same data."""
     return JaxArray(self.value.view(dtype=dtype, *args, **kwargs))
 
+  # ------------------
+  # NumPy support
+  # ------------------
+
   def numpy(self):
     """Convert to numpy.ndarray."""
+    return np.asarray(self.value)
+
+  def __array__(self):
+    """Support ``numpy.array()`` and ``numpy.array()`` functions."""
     return np.asarray(self.value)
 
 
