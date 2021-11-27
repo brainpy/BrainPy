@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 """
 The ``math`` module for whole BrainPy ecosystem.
 This module provides basic mathematical operations, including:
@@ -34,13 +35,13 @@ from .jaxarray import *
 # functions/operations
 from .ops import *
 from .operators import *
+from .activations import *
 from . import fft
 from . import linalg
 from . import random
-from . import activations
-from .activations import *
 from . import losses
 from . import optimizers
+from . import activations
 
 # transformations
 from .autograd import *
@@ -49,5 +50,6 @@ from .compilation import *
 from .parallels import *
 
 # others
-from .function import *
 from .profile import *
+from .setting import *
+from .function import *

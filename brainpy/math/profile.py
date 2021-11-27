@@ -1,14 +1,48 @@
 # -*- coding: utf-8 -*-
 
-from typing import List
 
-CLASS_KEYWORDS: List[str] = ['self', 'cls']
-SYSTEM_KEYWORDS: List[str] = ['_dt', '_t', '_i']
+import jax.numpy as jnp
 
 __all__ = [
+  'bool_',
+  'int_',
+  'float_',
+  'complex_',
+
+  'set_int_',
+  'set_float_',
+  'set_complex_',
   'set_dt',
   'get_dt',
 ]
+
+# default dtype
+# --------------------------
+
+
+bool_ = jnp.bool_
+int_ = jnp.int32
+float_ = jnp.float32
+complex_ = jnp.complex_
+
+
+def set_int_(int_type):
+  global int_
+  assert isinstance(int_type, type)
+  int_ = int_type
+
+
+def set_float_(float_type):
+  global float_
+  assert isinstance(float_type, type)
+  float_ = float_type
+
+
+def set_complex_(complex_type):
+  global complex_
+  assert isinstance(complex_type, type)
+  complex_ = complex_type
+
 
 # numerical precision
 # --------------------------
@@ -38,27 +72,3 @@ def get_dt():
       Numerical integration precision.
   """
   return __dt
-
-
-def set_class_keywords(*args):
-  """Set the keywords for class specification.
-
-  For example:
-
-  >>> class A(object):
-  >>>    def __init__(cls):
-  >>>        pass
-  >>>    def f(self, ):
-  >>>        pass
-
-  In this case, I use "cls" to denote the "self". So, I can set this by
-
-  >>> set_class_keywords('cls', 'self')
-
-  """
-  global CLASS_KEYWORDS
-  CLASS_KEYWORDS = list(args)
-
-
-def get_class_keywords():
-  return CLASS_KEYWORDS

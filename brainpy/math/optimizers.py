@@ -2,9 +2,9 @@
 
 import jax.numpy as jnp
 
-from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
+from brainpy.errors import MathError
 from brainpy.math import ops
 from brainpy.math.jaxarray import Variable
 
@@ -33,32 +33,30 @@ __all__ = [
 class Optimizer(Base):
   """Base Optimizer Class.
   """
-  target_backend = 'jax'
 
   def __init__(self, train_vars: dict, lr, name):
     super(Optimizer, self).__init__(name=name)
 
-    assert isinstance(train_vars, dict), '"train_vars" must be a dict of JaxArray.'
+    if not isinstance(train_vars, dict):
+      raise MathError('"train_vars" must be a dict of JaxArray.')
     self.lr = make_schedule(lr)
     self.vars_to_train = train_vars
     self.implicit_vars = TensorCollector()
 
   def register_variables(self, variables: dict):
     if self.implicit_vars is None:
-      raise ValueError(
-        'Please super initialize the Optimizer first, '
-        'then call "register_variables()".')
+      raise MathError('Please super initialize the Optimizer first, '
+                      'then call "register_variables()".')
     for key, var in variables.items():
       if key in self.implicit_vars:
         if id(self.implicit_vars[key]) != id(var):
-          raise ValueError(
-            f'Name "{key}" conflicts: same name for {var} '
-            f'and {self.implicit_vars[key]}.')
+          raise MathError(f'Name "{key}" conflicts: same name for {var} '
+                          f'and {self.implicit_vars[key]}.')
       self.implicit_vars[key] = var
 
   def check_grads(self, grads):
     if len(grads) != len(self.vars_to_train):
-      raise errors.BrainPyError(
+      raise MathError(
         f'The length of "grads" must be equal to "self.vars_to_train", '
         f'while we got {len(grads)} != {len(self.vars_to_train)}!')
 
@@ -148,6 +146,7 @@ class MomentumNesterov(Optimizer):
   .. [2] Nesterov, Y. (1983). A method for unconstrained convex minimization problem with the rate of convergence o(1/k2). Doklady ANSSSR (translated as Soviet.Math.Docl.), vol. 269, pp. 543– 547.
 
   """
+
   def __init__(self, lr, train_vars, momentum=0.9, name=None):
     super(MomentumNesterov, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
@@ -192,6 +191,7 @@ class Adagrad(Optimizer):
   .. [3] Duchi, J., Hazan, E., & Singer, Y. (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. Journal of Machine Learning Research, 12, 2121–2159. Retrieved from http://jmlr.org/papers/v12/duchi11a.html
 
   """
+
   def __init__(self, lr, train_vars, epsilon=1e-6, name=None):
     super(Adagrad, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
@@ -248,6 +248,7 @@ class Adadelta(Optimizer):
   .. [4] Zeiler, M. D. (2012). ADADELTA: An Adaptive Learning Rate Method. Retrieved from http://arxiv.org/abs/1212.5701
 
   """
+
   def __init__(self, train_vars, lr=0.01, epsilon=1e-6, rho=0.95, name=None):
     super(Adadelta, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
@@ -267,7 +268,7 @@ class Adadelta(Optimizer):
       c.value = self.rho * c.value + (1 - self.rho) * g ** 2
       update = g * jnp.sqrt(d.value + self.epsilon) / jnp.sqrt(c + self.epsilon)
       p.value -= update
-      d.value = self.rho * d.value + (1- self.rho) * update ** 2
+      d.value = self.rho * d.value + (1 - self.rho) * update ** 2
 
 
 class RMSProp(Optimizer):
@@ -295,6 +296,7 @@ class RMSProp(Optimizer):
          Neural Networks for Machine Learning, Lecture 6.5 - rmsprop.
          Coursera. http://www.youtube.com/watch?v=O3sxAc4hxZU (formula @5:20)
   """
+
   def __init__(self, lr, train_vars, epsilon=1e-6, rho=0.9, name=None):
     super(RMSProp, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
@@ -384,6 +386,7 @@ def make_schedule(scalar_or_schedule):
 
 class Scheduler(Base):
   """The learning rate scheduler."""
+
   def __init__(self, lr):
     super(Scheduler, self).__init__()
 
@@ -448,9 +451,9 @@ class PiecewiseConstant(Scheduler):
     boundaries = jnp.array(boundaries)
     values = jnp.array(values)
     if not boundaries.ndim == values.ndim == 1:
-      raise ValueError("boundaries and values must be sequences")
+      raise MathError("boundaries and values must be sequences")
     if not boundaries.shape[0] == values.shape[0] - 1:
-      raise ValueError("boundaries length must be one shorter than values length")
+      raise MathError("boundaries length must be one shorter than values length")
     self.boundaries = boundaries
     self.values = values
 

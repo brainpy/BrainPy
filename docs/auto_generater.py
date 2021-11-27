@@ -240,11 +240,10 @@ def generate_math_docs(path):
                   brainpy_jax='brainpy.math.random')
   codes = '\n'.join(buf)
 
-  with open(os.path.join(path, 'jax_math/comparison_table.rst.inc'), 'w') as f:
+  if not os.path.exists(path): os.makedirs(path)
+  with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
     f.write(codes)
 
-  path = os.path.join(path, 'jax_math/')
-  if not os.path.exists(path): os.makedirs(path)
   write_module(module_name='brainpy.math.optimizers',
                filename=os.path.join(path, 'optimizers.rst'),
                header='Optimizers')
@@ -266,6 +265,21 @@ def generate_math_docs(path):
   write_module(module_name='brainpy.math.parallels',
                filename=os.path.join(path, 'parallels.rst'),
                header='Parallel Compilation')
+  write_module(module_name='brainpy.math.compilation',
+               filename=os.path.join(path, 'jit.rst'),
+               header='JIT Compilation')
+  write_module(module_name='brainpy.math.jaxarray',
+               filename=os.path.join(path, 'variables.rst'),
+               header='Math Variables')
+  write_module(module_name='brainpy.math.setting',
+               filename=os.path.join(path, 'setting.rst'),
+               header='Setting')
+  write_module(module_name='brainpy.math.function',
+               filename=os.path.join(path, 'function.rst'),
+               header='Function')
+  write_module(module_name='brainpy.math.profile',
+               filename=os.path.join(path, 'profile.rst'),
+               header='Profile')
 
 
 
@@ -282,7 +296,6 @@ def generate_simulation_docs(path):
     ('custom_conn', 'Custom Connections'),
     ('random_conn', 'Random Connections'),
     ('regular_conn', 'Regular Connections'),
-    ('formatter', 'Formatter Functions'),
   ]
   write_submodules(module_name='brainpy.simulation.connect',
                    filename=os.path.join(path, 'connect.rst'),

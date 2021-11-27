@@ -66,9 +66,9 @@ __all__ = [
   'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
 
   # data types
-  'dtype', 'finfo', 'iinfo', 'bool_', 'uint8', 'uint16', 'uint32', 'uint64',
-  'int_', 'int8', 'int16', 'int32', 'int64', 'float_', 'float16', 'float32',
-  'float64', 'complex_', 'complex64', 'complex128', 'set_int_', 'set_float_', 'set_complex_',
+  'dtype', 'finfo', 'iinfo', 'uint8', 'uint16', 'uint32', 'uint64',
+  'int8', 'int16', 'int32', 'int64', 'float16', 'float32',
+  'float64', 'complex64', 'complex128',
 
   # others
   'take_along_axis', 'clip_by_norm',
@@ -1363,38 +1363,16 @@ dtype = jnp.dtype
 finfo = jnp.finfo
 iinfo = jnp.iinfo
 
-bool_ = jnp.bool_
 uint8 = jnp.uint8
 uint16 = jnp.uint16
 uint32 = jnp.uint32
 uint64 = jnp.uint64
-int_ = jnp.int32
 int8 = jnp.int8
 int16 = jnp.int16
 int32 = jnp.int32
 int64 = jnp.int64
-float_ = jnp.float32
 float16 = jnp.float16
 float32 = jnp.float32
 float64 = jnp.float64
-complex_ = jnp.complex_
 complex64 = jnp.complex64
 complex128 = jnp.complex128
-
-
-def set_int_(int_type):
-  global int_
-  assert isinstance(int_type, type)
-  int_ = int_type
-
-
-def set_float_(float_type):
-  global float_
-  assert isinstance(float_type, type)
-  float_ = float_type
-
-
-def set_complex_(complex_type):
-  global complex_
-  assert isinstance(complex_type, type)
-  complex_ = complex_type

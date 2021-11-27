@@ -6,11 +6,11 @@
 
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
 
-    simulation/brainobjects
-    simulation/connect
-    simulation/inputs
-    simulation/measure
-    simulation/monitor
+    auto/simulation/brainobjects
+    auto/simulation/connect
+    auto/simulation/inputs
+    auto/simulation/measure
+    auto/simulation/monitor
 

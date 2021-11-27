@@ -8,9 +8,9 @@ Numerical Methods for ODEs
 .. toctree::
     :maxdepth: 2
 
-    ode_explicit_rk
-    ode_adaptive_rk
-    ode_exponential
+    ../auto/integrators/ode_explicit_rk
+    ../auto/integrators/ode_adaptive_rk
+    ../auto/integrators/ode_exponential
     ode_error
 
 

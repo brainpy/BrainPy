@@ -7,17 +7,19 @@
 
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
-    math/general
-    math/variables
-    math/jit
-    math/jax_math/parallels
-    math/jax_math/operators
-    math/jax_math/controls
-    math/jax_math/autograd
-    math/jax_math/activations
-    math/jax_math/losses
-    math/jax_math/optimizers
+    auto/math/profile
+    auto/math/variables
+    auto/math/jit
+    auto/math/parallels
+    auto/math/operators
+    auto/math/controls
+    auto/math/autograd
+    auto/math/activations
+    auto/math/losses
+    auto/math/optimizers
+    auto/math/setting
+    auto/math/function
     math/comparison
 

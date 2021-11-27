@@ -63,15 +63,15 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :maxdepth: 1
    :caption: API Documentation
 
-   apis/base.rst
+   apis/auto/base.rst
    apis/math.rst
    apis/integrators.rst
    apis/simulation.rst
    apis/training.rst
    apis/analysis.rst
-   apis/visualization.rst
-   apis/tools.rst
-   apis/changelog.rst
+   apis/auto/visualization.rst
+   apis/auto/tools.rst
+   apis/auto/changelog.rst
 
 
 Indices and tables

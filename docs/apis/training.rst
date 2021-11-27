@@ -6,8 +6,8 @@
 
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
 
-    training/layers
-    training/initialize
+    auto/training/layers
+    auto/training/initialize
 
