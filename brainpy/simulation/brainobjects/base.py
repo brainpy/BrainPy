@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import time
 
-from brainpy import math, errors
+from brainpy import math
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
+from brainpy.errors import RunningError, MonitorError
 from brainpy.simulation import utils
 from brainpy.simulation.monitor import Monitor
 
@@ -53,15 +53,15 @@ class DynamicalSystem(Base):
         elif callable(step):
           self.steps[step.__name__] = step
         else:
-          raise errors.BrainPyError(_error_msg.format(steps[0].__class__, str(steps[0])))
+          raise RunningError(_error_msg.format(steps[0].__class__, str(steps[0])))
     elif isinstance(steps, dict):
       for key, step in steps.items():
         if callable(step):
           self.steps[key] = step
         else:
-          raise errors.BrainPyError(_error_msg.format(steps.__class__, str(steps)))
+          raise RunningError(_error_msg.format(steps.__class__, str(steps)))
     else:
-      raise errors.BrainPyError(_error_msg.format(steps.__class__, str(steps)))
+      raise RunningError(_error_msg.format(steps.__class__, str(steps)))
 
     # monitors
     if monitors is None:
@@ -72,14 +72,15 @@ class DynamicalSystem(Base):
       self.mon = monitors
       self.mon.target = self
     else:
-      raise errors.BrainPyError(f'"monitors" only supports list/tuple/dict/ '
-                                f'instance of Monitor, not {type(monitors)}.')
+      raise MonitorError(f'"monitors" only supports list/tuple/dict/ '
+                         f'instance of Monitor, not {type(monitors)}.')
 
     # runner and run function
     self._input_step = None
     self._monitor_step = None
     self._step = None
     self._post = None
+    self._former_run = {}
 
   def child_ds(self, method='absolute', include_self=False):
     """Return the children instance of dynamical systems.
@@ -88,6 +89,7 @@ class DynamicalSystem(Base):
     in this object. For example:
 
     >>> import brainpy as bp
+    >>>
     >>> class Net(bp.DynamicalSystem):
     >>>   def __init__(self, **kwargs):
     >>>     super(Net, self).__init__(**kwargs)
@@ -148,9 +150,9 @@ class DynamicalSystem(Base):
     if ConstantDelay is None: from brainpy.simulation.brainobjects.delays import ConstantDelay
 
     if not hasattr(self, 'steps'):
-      raise errors.BrainPyError('Please initialize the super class first before '
-                                'registering constant_delay. \n\n'
-                                'super(YourClassName, self).__init__(**kwargs)')
+      raise RunningError('Please initialize the super class first before '
+                         'registering constant_delay. \n\n'
+                         'super(YourClassName, self).__init__(**kwargs)')
     if not key.isidentifier(): raise ValueError(f'{key} is not a valid identifier.')
     cdelay = ConstantDelay(size=size,
                            delay=delay,
@@ -160,35 +162,29 @@ class DynamicalSystem(Base):
     return cdelay
 
   def __call__(self, *args, **kwargs):
+    """The shortcut to call ``update`` methods."""
     return self.update(*args, **kwargs)
 
   def update(self, *args, **kwargs):
-    """The function to specify the updating rule.
-
-    Parameters
-    ----------
-    _t : float
-      The current time.
-    _dt : float
-      The time step.
-    """
+    """The function to specify the updating rule."""
     raise NotImplementedError('Must implement "update" function by user self.')
 
   def _build_inputs(self, inputs=(), show_code=False):
+    """Build input function."""
     inputs = utils.check_and_format_inputs(host=self, inputs=inputs)
     self._input_step = utils.build_input_func(inputs, show_code=show_code)
 
   def _build_monitors(self, show_code=False, method=None):
+    """Build monitor function."""
     if self._monitor_step is None:
       monitors = utils.check_and_format_monitors(host=self)
       self._monitor_step, assigns = utils.build_monitor_func(monitors, show_code=show_code, method=method)
       return assigns
     return []
 
-  def build(self, inputs=(), dyn_vars=None, method=utils.STRUCT_RUN, show_code=False):
-    if method == utils.STRUCT_RUN and math.is_numpy_backend():
-      raise NotImplementedError('Structural-loop running is not supported under NumPy backend.')
-
+  def build(self, inputs=(), method=utils.STRUCT_RUN, show_code=False,
+            dyn_vars=None, jit=False  # arguments only works for STRUCT_RUN
+            ):
     # Build the inputs:
     #   All the inputs are wrapped into a single function.
     self._build_inputs(inputs=inputs, show_code=show_code)
@@ -197,42 +193,39 @@ class DynamicalSystem(Base):
     assigns = self._build_monitors(method=method, show_code=show_code)
 
     if method == utils.STRUCT_RUN:
-      from brainpy.math.jax import make_loop, jit
-
-      def step(t_and_dt):
-        self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
-        for step in self.steps.values():
-          step(_t=t_and_dt[0], _dt=t_and_dt[1])
-        return self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
 
       if dyn_vars is None:
         dyn_vars = self.vars().unique()
       if isinstance(dyn_vars, (list, tuple)):
         dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
       assert isinstance(dyn_vars, dict)
-      self._step = jit(make_loop(step, dyn_vars=dyn_vars, has_return=True), dyn_vars=dyn_vars)
 
-      def post(x):
+      def step(t_and_dt):  # the step function
+        self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        for step in self.steps.values():
+          step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        return self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+
+      def post(x):  # monitor
         times, returns = x
         nodes = self.nodes()
         for i, (n, k) in enumerate(assigns):
           nodes[n].mon.item_contents[k] = math.asarray(returns[i])
           nodes[n].mon.ts = times
+
+      self._step = math.make_loop(step, dyn_vars=dyn_vars, has_return=True)
+      if jit: self._step = math.jit(self._step, dyn_vars=dyn_vars)
       self._post = post
 
     elif method == utils.NORMAL_RUN:
-      def step(t_and_dt):
-        self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
-        for step in self.steps.values():
-          step(_t=t_and_dt[0], _dt=t_and_dt[1])
-        self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
-      self._step = step
 
-      # 6. monitor
-      # --
-      # 6.1 add 'ts' variable to every monitor
-      # 6.2 wrap the monitor iterm with the 'list' type into the 'ndarray' type
-      def post(x):
+      def step(t_and_dt):  # the step function
+        self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        for _step in self.steps.values():
+          _step(_t=t_and_dt[0], _dt=t_and_dt[1])
+        self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+
+      def post(x):  # monitor
         times = x
         for node in self.nodes().values():
           if hasattr(node, 'mon'):
@@ -240,30 +233,14 @@ class DynamicalSystem(Base):
               node.mon.ts = times
               for key, val in node.mon.item_contents.items():
                 node.mon.item_contents[key] = math.asarray(val)
+
+      self._step = step
       self._post = post
 
     else:
       raise ValueError
 
-  def struct_run(self, duration, dt=None):
-    if math.is_numpy_backend():
-      raise NotImplementedError('Structural-loop running is not supported under NumPy backend.')
-
-    # time step
-    if dt is None: dt = math.get_dt()
-    assert isinstance(dt, (int, float))
-    # times
-    start, end = utils.check_duration(duration)
-    times = math.arange(start, end, dt)
-    time_steps = math.ones_like(times) * dt
-    # running
-    t0 = time.time()
-    _, hists = self._step([times.value, time_steps.value])
-    running_time = time.time() - t0
-    self._post((times, hists))
-    return running_time
-
-  def run(self, duration, dt=None, report=0., inputs=(), extra_func=None):
+  def run(self, duration, dt=None, report=0., inputs=()):
     """The running function.
 
     Parameters
@@ -293,12 +270,6 @@ class DynamicalSystem(Base):
     dt : float, optional
       The numerical integration step size.
 
-    extra_func : function, callable
-      The extra function to run during each time step.
-
-    method : optional, str
-      The method to run the model.
-
     Returns
     -------
     running_time : float
@@ -321,15 +292,10 @@ class DynamicalSystem(Base):
           node.mon.item_contents[key] = []  # reshape the monitor items
 
     # run the model
-    # -------------
-    #   iteratively run the step function.
-    #   report the running progress.
-    #   return the overall running time.
     running_time = utils.run_model(run_func=self._step,
                                    times=times,
                                    report=report,
-                                   dt=dt,
-                                   extra_func=extra_func)
+                                   dt=dt)
     self._post(times)
 
     return running_time
@@ -357,15 +323,15 @@ class Container(DynamicalSystem):
     self.implicit_nodes = Collector()
     for ds in ds_tuple:
       if not isinstance(ds, DynamicalSystem):
-        raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
-                                  f'DynamicalSystem, however, we got {type(ds)}.')
+        raise RunningError(f'{self.__class__.__name__} receives instances of '
+                           f'DynamicalSystem, however, we got {type(ds)}.')
       if ds.name in self.implicit_nodes:
         raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
       self.implicit_nodes[ds.name] = ds
     for key, ds in ds_dict.items():
       if not isinstance(ds, DynamicalSystem):
-        raise errors.BrainPyError(f'{self.__class__.__name__} receives instances of '
-                                  f'DynamicalSystem, however, we got {type(ds)}.')
+        raise RunningError(f'{self.__class__.__name__} receives instances of '
+                           f'DynamicalSystem, however, we got {type(ds)}.')
       if key in self.implicit_nodes:
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
       self.implicit_nodes[key] = ds
