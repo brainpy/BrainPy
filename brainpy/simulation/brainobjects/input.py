@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from brainpy import errors, math
+from brainpy import math
+from brainpy.errors import ModelBuildError
 from brainpy.simulation.brainobjects.neuron import NeuGroup
-
 
 __all__ = [
   'SpikeTimeInput',
@@ -48,8 +48,8 @@ class SpikeTimeInput(NeuGroup):
     super(SpikeTimeInput, self).__init__(size=size, **kwargs)
 
     if len(indices) != len(times):
-      raise errors.BrainPyError(f'The length of "indices" and "times" must be the same. '
-                                f'However, we got {len(indices)} != {len(times)}.')
+      raise ModelBuildError(f'The length of "indices" and "times" must be the same. '
+                            f'However, we got {len(indices)} != {len(times)}.')
 
     # data about times and indices
     self.idx = 0
@@ -94,4 +94,3 @@ class PoissonInput(NeuGroup):
   def update(self, _t, _i, **kwargs):
     self.spike[:] = self.rng.random(self.num) <= self.freqs * self.dt
     self.t_last_spike[:] = math.where(self.spike, _t, self.t_last_spike)
-

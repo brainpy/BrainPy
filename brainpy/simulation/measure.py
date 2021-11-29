@@ -191,7 +191,7 @@ def firing_rate(sp_matrix, width, dt=None):
 
   Parameters
   ----------
-  sp_matrix : bnp.ndarray
+  sp_matrix : math.JaxArray
     The spike matrix which record spiking activities.
   width : int, float
     The width of the ``window`` in millisecond.
@@ -204,8 +204,8 @@ def firing_rate(sp_matrix, width, dt=None):
       The population rate in Hz, smoothed with the given window.
   """
   sp_matrix = np.asarray(sp_matrix)
-  rate = math.sum(sp_matrix, axis=1) / sp_matrix.shape[1]
+  rate = np.sum(sp_matrix, axis=1) / sp_matrix.shape[1]
   dt = math.get_dt() if dt is None else dt
   width1 = int(width / 2 / dt) * 2 + 1
-  window = math.ones(width1) * 1000 / width
+  window = np.ones(width1) * 1000 / width
   return np.convolve(rate, window, mode='same')

@@ -95,7 +95,7 @@ class Monitor(object):
     self.item_intervals = []
     self.item_contents = dict()
     self.num_item = len(variables)
-    super(Monitor, self).__init__()
+    self.build()
 
   def build(self):
     if not self.has_build:

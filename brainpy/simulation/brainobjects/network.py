@@ -25,5 +25,5 @@ class Network(Container):
     A dict container of dynamical system. 
   """
 
-  def __init__(self, *ds_tuple, monitors=None, name=None, **ds_dict):
-    super(Network, self).__init__(*ds_tuple, name=name, monitors=monitors, **ds_dict)
+  def __init__(self, *ds_tuple, name=None, **ds_dict):
+    super(Network, self).__init__(*ds_tuple, name=name, **ds_dict)

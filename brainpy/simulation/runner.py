@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import logging
+import sys
 import time
 from pprint import pprint
 
+import jax.numpy as jnp
+import numpy as np
+
 from brainpy import math, tools
-from brainpy.errors import RunningError
+from brainpy.errors import RunningError, MonitorError
 from brainpy.simulation import utils
 from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.simulation.monitor import Monitor
+
+logger = logging.getLogger('brainpy.simulation.runner')
 
 __all__ = [
   'Runner',
@@ -14,40 +22,127 @@ __all__ = [
   'StructRunner',
 ]
 
+_mon_func_name = 'monitor_step'
+_input_func_name = 'input_step'
+
 
 class Runner(object):
   def __call__(self, *args, **kwargs):
-    pass
+    raise NotImplementedError
 
 
-class ReportRunner(Runner):
-  def __init__(self, model, report=0., dyn_vars=None, jit=False, show_code=False):
-    assert isinstance(model, DynamicalSystem)
-    self.model = model
-    self.report = report
+class BaseRunner(Runner):
+  """The base runner class.
+
+  Parameters
+  ----------
+  target : DynamicalSystem
+    The target model to run.
+  monitors : None, list of str, tuple of str, Monitor
+    Variables to monitor.
+  inputs : list, tuple
+    The inputs for the target DynamicalSystem. It should be the format
+    of `[(target, value, [type, operation])]`, where `target` is the
+    input target, `value` is the input value, `type` is the input type
+    (such as "fix" or "iter"), `operation` is the operation for inputs
+    (such as "+", "-", "*", "/", "=").
+
+    - ``target``: should be a string. Can be specified by the *absolute access* or *relative access*.
+    - ``value``: should be a scalar, vector, matrix, iterable function or objects.
+    - ``type``: should be a string. "fix" means the input `value` is a constant. "iter" means the
+      input `value` can be changed over time.
+    - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
+    - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
+      for example ``[(target1, value1), (target2, value2)]``.
+  show_code : bool
+    Whether show the formatted input and monitor function.
+  """
+
+  def __init__(self, target, monitors=None, inputs=(), show_code=False,
+               dt=None, jit=False, dyn_vars=None):
+    dt = math.get_dt() if dt is None else dt
+    assert isinstance(dt, (int, float))
+    self.dt = dt
     self.jit = jit
 
+    # target
+    assert isinstance(target, DynamicalSystem)
+    self.target = target
+
+    # dynamical changed variables
     if dyn_vars is None:
-      dyn_vars = self.model.vars().unique()
+      dyn_vars = self.target.vars().unique()
     if isinstance(dyn_vars, (list, tuple)):
       dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
     assert isinstance(dyn_vars, dict)
     self.dyn_vars = dyn_vars
 
-    # input step function
-    self._input_step = None
-
-    # Build the monitors:
+    # monitors
+    if monitors is None:
+      self.mon = Monitor(target=self, variables=[])
+    elif isinstance(monitors, (list, tuple, dict)):
+      self.mon = Monitor(target=self, variables=monitors)
+    elif isinstance(monitors, Monitor):
+      self.mon = monitors
+      self.mon.target = self
+    else:
+      raise MonitorError(f'"monitors" only supports list/tuple/dict/ '
+                         f'instance of Monitor, not {type(monitors)}.')
+    self.mon.build()  # build the monitor
+    # Build the monitor function
     #   All the monitors are wrapped in a single function.
-    self._monitor_step = self._build_monitor_func(show_code=show_code)
+    self._monitor_step = self.build_monitors(show_code=show_code)
+
+    # Build input function
+    inputs = utils.check_and_format_inputs(host=target, inputs=inputs)
+    self._input_step = self.build_inputs(inputs, show_code=show_code)
+
+    # start simulation time
+    self._start_t = None
+
+  def build_inputs(self, inputs, show_code=False):
+    raise NotImplementedError
+
+  def build_monitors(self, show_code=False):
+    raise NotImplementedError
+
+  def __call__(self, duration, start_t=None):
+    raise NotImplementedError
+
+
+class ReportRunner(BaseRunner):
+  """The runner to report the running progress.
+
+  Parameters
+  ----------
+  target : DynamicalSystem
+    The target model to run.
+  monitors : None, list of str, tuple of str, Monitor
+    Variables to monitor.
+  inputs : list, tuple
+    The input settings.
+  show_code : bool
+    Whether show the formatted input and monitor function.
+
+  report : float
+    The percent of progress to report.
+  """
+
+  def __init__(self, target, inputs=(), monitors=None, report=0.1, dyn_vars=None,
+               jit=False, show_code=False, dt=None):
+    super(ReportRunner, self).__init__(target=target, inputs=inputs,
+                                       monitors=monitors, show_code=show_code,
+                                       jit=jit, dt=dt, dyn_vars=dyn_vars)
+
+    self.report = report
 
     # Build the update function
     self._update_step = lambda _t, _dt: [_step(_t=_t, _dt=_dt)
-                                         for _step in self.model.steps.values()]
+                                         for _step in self.target.steps.values()]
     if jit:
       self._update_step = math.jit(self._update_step, dyn_vars=self.dyn_vars)
 
-  def _build_monitor_func(self, show_code=False, func_name='monitor_step'):
+  def build_monitors(self, show_code=False):
     """Get the monitor function according to the user's setting.
 
     This method will consider the following things:
@@ -56,21 +151,14 @@ class ReportRunner(Runner):
     2. the monitor index
     3. the monitor interval
 
-    Parameters
-    ----------
-    monitors : list, tuple
-      The items to monitor.
-    func_name : str
-      The name of the monitor function.
-    show_code : bool
-        Whether show the code.
     """
-    monitors = utils.check_and_format_monitors(host=self.model)
+    monitors = utils.check_and_format_monitors(host=self.target, mon=self.mon)
 
+    host = self.target
     code_lines = []
-    code_scope = dict()
-    for node, key, target, variable, idx, interval in monitors:
-      code_scope[node.name] = node
+    code_scope = dict(sys=sys, self_mon=self.mon)
+    for key, target, variable, idx, interval in monitors:
+      code_scope[host.name] = host
       code_scope[target.name] = target
 
       # get data
@@ -91,26 +179,26 @@ class ReportRunner(Runner):
       if idx is None:
         right = key_in_host
       else:
-        if hasattr(idx, 'value'): idx = idx.value
-        right = f'{key_in_host}[{node.name}_mon_{key.replace(".", "_")}_idx]'
-        code_scope[f'{node.name}_mon_{key.replace(".", "_")}_idx'] = idx
+        idx = math.asarray(idx)
+        right = f'{key_in_host}[_{key.replace(".", "_")}_idx]'
+        code_scope[f'_{key.replace(".", "_")}_idx'] = idx.value
 
       # format the monitor lines according to the time interval
       if interval is None:
-        code_lines.append(f'{node.name}.mon.item_contents["{key}"].append({right})')
+        code_lines.append(f'self_mon.item_contents["{key}"].append({right})')
       else:
-        code_scope[f'{node.name}_mon_{key.replace(".", "_")}_next_time'] = interval
-        code_lines.extend([f'global {node.name}_mon_{key.replace(".", "_")}_next_time',
-                           f'if _t >= {node.name}_mon_{key.replace(".", "_")}_next_time:',
-                           f'  {node.name}.mon.item_contents["{key}"].append({right})',
-                           f'  {node.name}.mon.item_contents["{key}.t"].append(_t)',
-                           f'  {node.name}_mon_{key.replace(".", "_")}_next_time += {interval}'])
+        code_scope[f'_{key.replace(".", "_")}_next_time'] = interval
+        code_lines.extend([f'global _{key.replace(".", "_")}_next_time',
+                           f'if _t >= _{key.replace(".", "_")}_next_time:',
+                           f'  self_mon.item_contents["{key}"].append({right})',
+                           f'  self_mon.item_contents["{key}.t"].append(_t)',
+                           f'  _{key.replace(".", "_")}_next_time += {interval}'])
 
     if len(code_lines):
       # function
       code_scope_old = {k: v for k, v in code_scope.items()}
       code, func = tools.code_lines_to_func(lines=code_lines,
-                                            func_name=func_name,
+                                            func_name=_mon_func_name,
                                             func_args=['_t', '_dt'],
                                             scope=code_scope)
       if show_code:
@@ -122,74 +210,102 @@ class ReportRunner(Runner):
       func = lambda _t, _dt: None
     return func
 
-  def build_inputs(self, inputs=(), show_code=False):
-    """Build input function."""
-    # Build the inputs:
-    #   All the inputs are wrapped into a single function.
-    inputs = utils.check_and_format_inputs(host=self.model, inputs=inputs)
-    self._input_step = utils.build_input_func(inputs, show_code=show_code)
+  def build_inputs(self, inputs, show_code=False):
+    code_scope = {'sys': sys}
+    code_lines = []
+    for target, key, value, type_, op in inputs:
+      variable = getattr(target, key)
+
+      # code scope
+      code_scope[target.name] = target
+
+      # code line left
+      if isinstance(variable, math.Variable):
+        left = f'{target.name}.{key}'
+      else:
+        raise RunningError(f'"{key}" in {target} is not a dynamically changed Variable, '
+                           f'its value will not change, we think there is no need to '
+                           f'give its input.')
+
+      # code line right
+      if type_ == 'iter':
+        code_scope[f'{target.name}_input_data_of_{key}'] = iter(value)
+        right = f'next({target.name}_input_data_of_{key})'
+      elif type_ == 'func':
+        code_scope[f'{target.name}_input_data_of_{key}'] = value
+        right = f'{target.name}_input_data_of_{key}(_t, _dt)'
+      else:
+        code_scope[f'{target.name}_input_data_of_{key}'] = value
+        right = f'{target.name}_input_data_of_{key}'
+
+      # code line
+      if op == '=':
+        line = f'{left}[:] = {right}'
+      else:
+        line = f'{left} {op}= {right}'
+
+      code_lines.append(line)
+
+    if len(code_lines):
+      code_scope_old = {k: v for k, v in code_scope.items()}
+      # function
+      code, func = tools.code_lines_to_func(
+        lines=code_lines,
+        func_name=_input_func_name,
+        func_args=['_t', '_dt'],
+        scope=code_scope,
+        remind='Please check: \n'
+               '1. whether the "iter" input is set to "fix". \n'
+               '2. whether the dimensions are not match.\n')
+      if show_code:
+        print(code)
+        print()
+        pprint(code_scope_old)
+        print()
+    else:
+      func = lambda _t, _dt: None
+
+    return func
 
   def _step(self, t_and_dt):
     self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
     self._update_step(_t=t_and_dt[0], _dt=t_and_dt[1])
     self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
 
-  def __call__(self, duration, dt=None, inputs=()):
+  def __call__(self, duration, start_t=None):
     """The running function.
 
     Parameters
     ----------
-    inputs : list, tuple
-      The inputs for this instance of DynamicalSystem. It should the format
-      of `[(target, value, [type, operation])]`, where `target` is the
-      input target, `value` is the input value, `type` is the input type
-      (such as "fix" or "iter"), `operation` is the operation for inputs
-      (such as "+", "-", "*", "/", "=").
-
-      - ``target``: should be a string. Can be specified by the *absolute access* or *relative access*.
-      - ``value``: should be a scalar, vector, matrix, iterable function or objects.
-      - ``type``: should be a string. "fix" means the input `value` is a constant. "iter" means the
-        input `value` can be changed over time.
-      - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
-      - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
-        for example ``[(target1, value1), (target2, value2)]``.
-
     duration : float, int, tuple, list
       The running duration.
-
-    report : float
-      The percent of progress to report. [0, 1]. If zero, the model
-      will not output report progress.
-
-    dt : float, optional
-      The numerical integration step size.
+    start_t : float, optional
+      The start simulation time.
 
     Returns
     -------
     running_time : float
       The total running time.
     """
-
     # time step
-    if dt is None: dt = math.get_dt()
-    assert isinstance(dt, (int, float))
+    if start_t is None:
+      if self._start_t is None:
+        start_t = 0.
+      else:
+        start_t = self._start_t
 
     # times
-    start, end = utils.check_duration(duration)
-    times = math.arange(start, end, dt)
+    times = math.arange(start_t, duration, self.dt)
 
     # build inputs
-    self.build_inputs(inputs=inputs)
-    for node in self.model.nodes().values():
-      if hasattr(node, 'mon'):
-        for key in node.mon.item_contents.keys():
-          node.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.item_contents.keys():
+      self.mon.item_contents[key] = []  # reshape the monitor items
 
     # simulations
     run_length = len(times)
     if self.report > 0.:
       t0 = time.time()
-      self._step((times[0], dt))
+      self._step((times[0], self.dt))
       compile_time = time.time() - t0
       print('Compilation used {:.4f} s.'.format(compile_time))
 
@@ -197,7 +313,7 @@ class ReportRunner(Runner):
       report_gap = int(run_length * self.report)
       t0 = time.time()
       for run_idx in range(1, run_length):
-        self._step((times[run_idx], dt))
+        self._step((times[run_idx], self.dt))
         if (run_idx + 1) % report_gap == 0:
           percent = (run_idx + 1) / run_length * 100
           print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
@@ -208,65 +324,81 @@ class ReportRunner(Runner):
     else:
       t0 = time.time()
       for run_idx in range(run_length):
-        self._step((times[run_idx], dt))
+        self._step((times[run_idx], self.dt))
       running_time = time.time() - t0
 
     # monitor post steps
-    for node in self.model.nodes().values():
-      if hasattr(node, 'mon'):
-        if node.mon.num_item > 0:
-          node.mon.ts = times
-          for key, val in node.mon.item_contents.items():
-            node.mon.item_contents[key] = math.asarray(val)
-
+    self.mon.ts = times
+    for key, val in self.mon.item_contents.items():
+      self.mon.item_contents[key] = math.asarray(val)
+    self._start_t = start_t + duration
     return running_time
 
 
-class StructRunner(Runner):
-  def __init__(self, model, inputs=(), dyn_vars=None, jit=False, show_code=False):
-    assert isinstance(model, DynamicalSystem)
-    self.model = model
-    self.jit = jit
+class StructRunner(BaseRunner):
+  """The runner with structural loops.
 
-    if dyn_vars is None:
-      dyn_vars = self.model.vars().unique()
-    if isinstance(dyn_vars, (list, tuple)):
-      dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
-    assert isinstance(dyn_vars, dict)
-    self.dyn_vars = dyn_vars
+  Parameters
+  ----------
+  target : DynamicalSystem
+    The target model to run.
+  monitors : None, list of str, tuple of str, Monitor
+    Variables to monitor.
+  inputs : list, tuple
+    The input settings.
+  show_code : bool
+    Whether show the formatted input and monitor function.
+  """
 
-    # input step function
-    inputs = utils.check_and_format_inputs(host=self.model, inputs=inputs)
-    self._input_step = utils.build_input_func(inputs, show_code=show_code)
+  def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
+               jit=False, show_code=False, report=0., dt=None):
+    self._has_iter_array = False
 
-    # Build the monitors:
-    #   All the monitors are wrapped in a single function.
-    self._monitor_step, self._assigns = self._build_monitor_func(show_code=show_code)
+    super(StructRunner, self).__init__(target=target,
+                                       inputs=inputs,
+                                       monitors=monitors,
+                                       show_code=show_code,
+                                       jit=jit, dt=dt,
+                                       dyn_vars=dyn_vars)
+    # JAX does not support iterator in fori_loop, scan, etc.
+    #   https://github.com/google/jax/issues/3567
+    # We use Variable i to index the current input data.
+    if self._has_iter_array:
+      self._i = math.Variable(math.asarray([0]))
+      self.dyn_vars.update({'_i': self._i})
+    else:
+      self._i = None
+
+    # parameters
+    assert isinstance(target, DynamicalSystem)
+    self.target = target
+    if report > 0.: logger.warning(f'"report={report}" can not work in {self.__class__.__name__}.')
 
     # build the update step
-    self._step = math.make_loop(self._step, dyn_vars=dyn_vars, has_return=True)
+    self._step = math.make_loop(self._step, dyn_vars=self.dyn_vars, has_return=True)
     if jit: self._step = math.jit(self._step, dyn_vars=dyn_vars)
 
   def _step(self, t_and_dt):  # the step function
-    self._input_step(_t=t_and_dt[0], _dt=t_and_dt[1])
-    for step in self.model.steps.values():
-      step(_t=t_and_dt[0], _dt=t_and_dt[1])
-    return self._monitor_step(_t=t_and_dt[0], _dt=t_and_dt[1])
+    t, dt = t_and_dt[0], t_and_dt[1]
+    self._input_step(_t=t, _dt=dt)
+    for step in self.target.steps.values():
+      step(_t=t, _dt=dt)
+    return self._monitor_step(_t=t, _dt=dt)
 
   def _post(self, times, returns):  # monitor
-    nodes = self.model.nodes()
-    for i, (n, k) in enumerate(self._assigns):
-      nodes[n].mon.item_contents[k] = math.asarray(returns[i])
-      nodes[n].mon.ts = times
+    self.mon.ts = times
+    for i, key in enumerate(self.mon.item_names):
+      self.mon.item_contents[key] = math.asarray(returns[i])
 
-  def _build_monitor_func(self, show_code=False, func_name='monitor_step'):
-    monitors = utils.check_and_format_monitors(host=self.model)
-    code_lines = []
-    code_scope = dict()
+  def build_monitors(self, show_code=False):
+    monitors = utils.check_and_format_monitors(host=self.target, mon=self.mon)
+
     returns = []
-    assigns = []
-    for node, key, target, variable, idx, interval in monitors:
-      code_scope[node.name] = node
+    code_lines = []
+    host = self.target
+    code_scope = dict(sys=sys)
+    for key, target, variable, idx, interval in monitors:
+      code_scope[host.name] = host
       code_scope[target.name] = target
 
       # get data
@@ -287,23 +419,22 @@ class StructRunner(Runner):
       if idx is None:
         right = key_in_host
       else:
-        if hasattr(idx, 'value'): idx = idx.value
-        right = f'{key_in_host}[{node.name}_mon_{key.replace(".", "_")}_idx]'
-        code_scope[f'{node.name}_mon_{key.replace(".", "_")}_idx'] = idx
+        idx = math.asarray(idx)
+        right = f'{key_in_host}[_{key.replace(".", "_")}_idx]'
+        code_scope[f'_{key.replace(".", "_")}_idx'] = idx.value
 
       # format the monitor lines according to the time interval
       returns.append(right)
-      assigns.append([node.name, key])
       if interval is not None:
-        raise ValueError(f'Running with "{self.__class__.__name__}" method does not '
-                         f'support "interval" in the monitor.')
+        raise ValueError(f'Running with "{self.__class__.__name__}" does '
+                         f'not support "interval" in the monitor.')
 
     if len(code_lines) or len(returns):
       code_lines.append(f'return {", ".join(returns) + ", "}')
       # function
       code_scope_old = {k: v for k, v in code_scope.items()}
       code, func = tools.code_lines_to_func(lines=code_lines,
-                                            func_name=func_name,
+                                            func_name=_mon_func_name,
                                             func_args=['_t', '_dt'],
                                             scope=code_scope)
       if show_code:
@@ -313,19 +444,99 @@ class StructRunner(Runner):
         print()
     else:
       func = lambda _t, _dt: None
-    return func, assigns
+    return func
 
-  def __call__(self, duration, dt=None):
+  def build_inputs(self, inputs, show_code=False):
+    code_scope = {'sys': sys, '_runner': self}
+    code_lines = []
+    for target, key, value, type_, op in inputs:
+      variable = getattr(target, key)
+
+      # code scope
+      code_scope[target.name] = target
+
+      # code line left
+      if isinstance(variable, math.Variable):
+        left = f'{target.name}.{key}'
+      else:
+        raise RunningError(f'"{key}" in {target} is not a dynamically changed Variable, '
+                           f'its value will not change, we think there is no need to '
+                           f'give its input.')
+
+      # code line right
+      if type_ == 'iter':
+        if isinstance(value, (math.ndarray, np.ndarray, jnp.ndarray)):
+          code_scope[f'{target.name}_input_data_of_{key}'] = math.asarray(value)
+          right = f'{target.name}_input_data_of_{key}[_runner._i[0]]'
+          self._has_iter_array = True
+        else:
+          code_scope[f'{target.name}_input_data_of_{key}'] = iter(value)
+          right = f'next({target.name}_input_data_of_{key})'
+      elif type_ == 'func':
+        code_scope[f'{target.name}_input_data_of_{key}'] = value
+        right = f'{target.name}_input_data_of_{key}(_t, _dt)'
+      else:
+        code_scope[f'{target.name}_input_data_of_{key}'] = value
+        right = f'{target.name}_input_data_of_{key}'
+
+      # code line
+      if op == '=':
+        line = f'{left}[:] = {right}'
+      else:
+        line = f'{left} {op}= {right}'
+
+      code_lines.append(line)
+
+    if len(code_lines):
+      if self._has_iter_array:
+        code_lines.append('_runner._i += 1')
+      code_scope_old = {k: v for k, v in code_scope.items()}
+      # function
+      code, func = tools.code_lines_to_func(
+        lines=code_lines,
+        func_name=_input_func_name,
+        func_args=['_t', '_dt'],
+        scope=code_scope,
+        remind='Please check: \n'
+               '1. whether the "iter" input is set to "fix". \n'
+               '2. whether the dimensions are not match.\n')
+      if show_code:
+        print(code)
+        print()
+        pprint(code_scope_old)
+        print()
+    else:
+      func = lambda _t, _dt: None
+
+    return func
+
+  def __call__(self, duration, start_t=None):
+    """The running function.
+
+    Parameters
+    ----------
+    duration : float, int, tuple, list
+      The running duration.
+    start_t : float, optional
+
+    Returns
+    -------
+    running_time : float
+      The total running time.
+    """
     # time step
-    if dt is None: dt = math.get_dt()
-    assert isinstance(dt, (int, float))
+    if start_t is None:
+      if self._start_t is None:
+        start_t = 0.
+      else:
+        start_t = self._start_t
     # times
-    start, end = utils.check_duration(duration)
-    times = math.arange(start, end, dt)
-    time_steps = math.ones_like(times) * dt
+    times = math.arange(start_t, duration, self.dt)
+    time_steps = math.ones_like(times) * self.dt
     # running
     t0 = time.time()
     _, hists = self._step([times.value, time_steps.value])
     running_time = time.time() - t0
     self._post(times, hists)
+    self._start_t = start_t + duration
     return running_time

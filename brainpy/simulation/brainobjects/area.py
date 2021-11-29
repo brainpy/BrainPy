@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.brainobjects.base import DynamicalSystem, Container
-
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'BrainArea'
 ]
 
 
-class BrainArea(Container):
+class BrainArea(DynamicalSystem):
   pass
 
 

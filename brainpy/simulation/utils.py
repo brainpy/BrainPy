@@ -7,20 +7,20 @@ from pprint import pprint
 
 from brainpy import math, tools
 from brainpy.errors import RunningError
+from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.simulation.monitor import Monitor
 
 __all__ = [
   'size2len',
-  'check_duration',
   'run_model',
   'check_and_format_inputs',
-  'build_input_func',
   'check_and_format_monitors',
 ]
 
 NORMAL_RUN = None
 STRUCT_RUN = 'struct_run'
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
-SUPPORTED_INPUT_TYPE = ['fix', 'iter']
+SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
 
 
 def size2len(size):
@@ -35,42 +35,6 @@ def size2len(size):
     raise ValueError
 
 
-def check_duration(duration):
-  """Check the running duration.
-
-  Parameters
-  ----------
-  duration : int, list, tuple
-      The running duration, it can be an int (which represents the end
-      of the simulation), of a tuple/list of int (which represents the
-      [start, end] / [end, start] of the simulation).
-
-  Returns
-  -------
-  duration : tuple
-      The tuple of running duration includes (start, end).
-  """
-  if isinstance(duration, (int, float)):
-    start, end = 0., duration
-  elif isinstance(duration, (tuple, list)):
-    if len(duration) != 2:
-      raise RunningError('Only support duration setting with the '
-                         'format of "(start, end)" or "end".')
-    start, end = duration
-  else:
-    raise RunningError(f'Unknown duration type: {type(duration)}. Currently, BrainPy only '
-                       f'support duration specification with the format of "(start, end)" '
-                       f'or "end".')
-
-  if start > end:
-    start, end = end, start
-  return start, end
-
-
-def get_run_length_by_duration(duration):
-  start, end = check_duration(duration)
-  mon_length = int((end - start) / math.get_dt())
-  return mon_length
 
 
 def run_model(run_func, times, report, dt=None, extra_func=None):
@@ -229,9 +193,15 @@ def check_and_format_inputs(host, inputs):
           raise ValueError(f'Input "{data_value}" for "{one_input[0]}.{one_input[1]}" '
                            f'is set to be "iter" type, however we got the value with '
                            f'the type of {type(data_value)}')
+      elif one_input[3] == 'func':
+        if not callable(data_value):
+          raise ValueError(f'Input "{data_value}" for "{one_input[0]}.{one_input[1]}" '
+                           f'is set to be "func" type, however we got the value with '
+                           f'the type of {type(data_value)}')
       elif one_input[3] != 'fix':
         raise RunningError(f'Only support {SUPPORTED_INPUT_TYPE} input type, but '
                            f'we got "{one_input[3]}" in {one_input}')
+
       data_type = one_input[3]
     else:
       data_type = 'fix'
@@ -252,122 +222,58 @@ def check_and_format_inputs(host, inputs):
   return formatted_inputs
 
 
-def build_input_func(inputs, show_code=False):
-  input_func_name = 'input_step'
-  code_scope = {'sys': sys}
-  code_lines = []
-  for target, key, value, type_, op in inputs:
-    variable = getattr(target, key)
-
-    # code scope
-    code_scope[target.name] = target
-
-    # code line left
-    if isinstance(variable, math.Variable):
-      left = f'{target.name}.{key}[:]'
-    else:
-      raise RunningError(f'"{key}" in {target} is not a dynamically changed Variable, '
-                         f'its value will not change, we think there is no need to '
-                         f'give its input.')
-
-    # code line right
-    if type_ == 'iter':
-      code_scope[f'{target.name}_input_data_of_{key}'] = iter(value)
-      right = f'next({target.name}_input_data_of_{key})'
-    else:
-      code_scope[f'{target.name}_input_data_of_{key}'] = value
-      right = f'{target.name}_input_data_of_{key}'
-
-    # code line
-    if op == '=':
-      line = f'{left} = {right}'
-    else:
-      line = f'{left} {op}= {right}'
-
-    code_lines.append(line)
-
-  if len(code_lines):
-    code_scope_old = {k: v for k, v in code_scope.items()}
-    # function
-    code, func = tools.code_lines_to_func(
-      lines=code_lines,
-      func_name=input_func_name,
-      func_args=['_t', '_dt'],
-      scope=code_scope,
-      remind='Please check: \n'
-             '1. whether the "iter" input is set to "fix". \n'
-             '2. whether the dimensions are not match.\n')
-    if show_code:
-      print(code)
-      print()
-      pprint(code_scope_old)
-      print()
-  else:
-    func = lambda _t, _dt: None
-
-  return func
-
-
-def check_and_format_monitors(host):
+def check_and_format_monitors(host, mon):
   """Return a formatted monitor items:
 
   >>> [(node, key, target, variable, idx, interval),
   >>>  ...... ]
 
   """
-  formatted_mon_items = []
+  assert isinstance(host, DynamicalSystem)
+  assert isinstance(mon, Monitor)
 
-  # reshape monitors
-  # ----
-  all_nodes = list(host.nodes().unique().values())
-  for node in all_nodes:
-    if hasattr(node, 'mon'):
-      node.mon.build()  # build the monitor
-      for key in node.mon.item_contents.keys():
-        node.mon.item_contents[key] = []  # reshape the monitor items
+
+  formatted_mon_items = []
 
   # master node:
   #    Check whether the input target node is accessible,
   #    and check whether the target node has the attribute
-  name2node = {node.name: node for node in all_nodes}
-  for node in all_nodes:
-    if hasattr(node, 'mon'):
-      mon = node.mon
-      for key, idx, interval in zip(mon.item_names, mon.item_indices, mon.item_intervals):
-        # target and variable
-        splits = key.split('.')
-        if len(splits) == 1:
-          if not hasattr(node, splits[0]):
-            raise RunningError(f'{node} does not has variable {key}.')
-          target = node
-          variable = splits[-1]
+  name2node = {node.name: node for node in list(host.nodes().unique().values())}
+  for key, idx, interval in zip(mon.item_names, mon.item_indices, mon.item_intervals):
+    # target and variable
+    splits = key.split('.')
+    if len(splits) == 1:
+      if not hasattr(host, splits[0]):
+        raise RunningError(f'{host} does not has variable {key}.')
+      target = host
+      variable = splits[-1]
+    else:
+      if not hasattr(host, splits[0]):
+        if splits[0] not in name2node:
+          raise RunningError(f'Cannot find target {key} in monitor of {host}, please check.')
         else:
-          if not hasattr(node, splits[0]):
-            if splits[0] not in name2node:
-              raise RunningError(f'Cannot find target {key} in monitor of {node}, please check.')
-            else:
-              target = name2node[splits[0]]
-              assert len(splits) == 2
-              variable = splits[-1]
-          else:
-            target = node
-            for s in splits[:-1]:
-              try:
-                target = getattr(target, s)
-              except KeyError:
-                raise RunningError(f'Cannot find {key} in {node}, please check.')
-            variable = splits[-1]
+          target = name2node[splits[0]]
+          assert len(splits) == 2
+          variable = splits[-1]
+      else:
+        target = host
+        for s in splits[:-1]:
+          try:
+            target = getattr(target, s)
+          except KeyError:
+            raise RunningError(f'Cannot find {key} in {host}, please check.')
+        variable = splits[-1]
 
-        # idx
-        if isinstance(idx, int): idx = math.array([idx])
+    # idx
+    if isinstance(idx, int): idx = math.array([idx])
 
-        # interval
-        if interval is not None:
-          if not isinstance(interval, float):
-            raise RunningError(f'"interval" must be a float (denotes time), but we got {interval}')
+    # interval
+    if interval is not None:
+      if not isinstance(interval, float):
+        raise RunningError(f'"interval" must be a float (denotes time), but we got {interval}')
 
-        # append
-        formatted_mon_items.append((node, key, target, variable, idx, interval,))
+    # append
+    formatted_mon_items.append((key, target, variable, idx, interval,))
 
   return formatted_mon_items
 

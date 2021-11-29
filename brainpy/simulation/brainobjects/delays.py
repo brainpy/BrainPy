@@ -2,8 +2,8 @@
 
 import math as pm
 
-from brainpy import errors
 from brainpy import math as bm
+from brainpy.errors import ModelBuildError
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.utils import size2len
 
@@ -27,8 +27,8 @@ class Delay(DynamicalSystem):
       The name of the dynamic system.
   """
 
-  def __init__(self, steps=('update',), name=None, monitors=None):
-    super(Delay, self).__init__(steps=steps, monitors=monitors, name=name)
+  def __init__(self, steps=('update',), name=None):
+    super(Delay, self).__init__(steps=steps, name=name)
 
   def update(self, _t, _dt, **kwargs):
     raise NotImplementedError
@@ -71,7 +71,7 @@ class ConstantDelay(Delay):
     # data size
     if isinstance(size, int): size = (size,)
     if not isinstance(size, (tuple, list)):
-      raise errors.BrainPyError(f'"size" must a tuple/list of int, but we got {type(size)}: {size}')
+      raise ModelBuildError(f'"size" must a tuple/list of int, but we got {type(size)}: {size}')
     self.size = tuple(size)
 
     # delay time length
@@ -96,12 +96,12 @@ class ConstantDelay(Delay):
                                   f'{len(self.size)}-dimensions.')
       self.num = size2len(size)
       if bm.ndim(delay) != 1:
-        raise errors.BrainPyError(f'Only support a 1D non-uniform delay. '
-                                  f'But we got {delay.ndim}D: {delay}')
+        raise ModelBuildError(f'Only support a 1D non-uniform delay. '
+                              f'But we got {delay.ndim}D: {delay}')
       if delay.shape[0] != self.size[0]:
-        raise errors.BrainPyError(f"The first shape of the delay time size must "
-                                  f"be the same with the delay data size. But "
-                                  f"we got {delay.shape[0]} != {self.size[0]}")
+        raise ModelBuildError(f"The first shape of the delay time size must "
+                              f"be the same with the delay data size. But "
+                              f"we got {delay.shape[0]} != {self.size[0]}")
       delay = bm.around(delay / self.dt)
       self.diag = bm.array(bm.arange(self.num), dtype=bm.int_)
       self.num_step = bm.array(delay, dtype=bm.int_) + 1
