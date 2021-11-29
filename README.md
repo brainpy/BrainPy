@@ -7,7 +7,7 @@
 
 # Why to use BrainPy
 
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)). Core functions provided in BrainPy includes
+``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax)). Core functions provided in BrainPy includes
 
 - **JIT compilation** for functions and class objects. 
 - **Numerical solvers** for ODEs, SDEs, and others. 
@@ -21,7 +21,7 @@
 - **Easy to learn and use**: BrainPy is only based on Python language and has little dependency requirements. 
 - **Flexible and transparent**: BrainPy endows the users with the fully data/logic flow control. Users can code any logic they want with BrainPy. 
 - **Extensible**: BrainPy allow users to extend new functionality just based on Python coding. For example, we extend the same code with the ability to do numerical analysis (whatever low- or high-dimensional system). 
-- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)) to run on CPU, GPU or TPU devices, thus guaranteeing its running efficiency. 
+- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax)) to run on CPU, GPU or TPU devices, thus guaranteeing its running efficiency. 
 
 
 

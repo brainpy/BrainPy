@@ -135,7 +135,7 @@ class BaseSymAnalyzer(object):
       self.target_eqs[key] = tools.DictPlus(sub_exprs=sub_exprs,
                                             old_exprs=old_exprs,
                                             diff_eq=diff_eq,
-                                            func_name=diff_eq.func_name)
+                                            func_name=diff_eq._mon_func_name)
 
     # parameters to update
     # ---------------------
@@ -287,7 +287,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
+          logger.warning(f'SymPy solve derivative of "{self.x_eq_group._mon_func_name}'
                          f'({argument})" by "{x_var}", ')
           x_eq = x_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, x_symbol))
@@ -349,7 +349,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument1}) = 0" '
+          logger.warning(f'SymPy solve "{self.x_eq_group._mon_func_name}({argument1}) = 0" '
                          f'to "{self.x_var} = f({argument2})", ')
 
           # solver
@@ -531,7 +531,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
+          logger.warning(f'SymPy solve derivative of "{self.x_eq_group._mon_func_name}'
                          f'({argument})" by "{y_var}", ')
           x_eq = x_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, y_symbol))
@@ -595,7 +595,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not y_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve derivative of "{self.y_eq_group.func_name}'
+          logger.warning(f'SymPy solve derivative of "{self.y_eq_group._mon_func_name}'
                          f'({argument})" by "{x_var}", ')
           y_eq = y_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, x_symbol))
@@ -660,7 +660,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not y_eq.contain_unknown_func:
         try:
-          logger.warning(f'\tSymPy solve derivative of "{self.y_eq_group.func_name}'
+          logger.warning(f'\tSymPy solve derivative of "{self.y_eq_group._mon_func_name}'
                          f'({argument})" by "{y_var}", ')
           y_eq = y_eq.expr
           f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, y_symbol))
@@ -1065,7 +1065,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
+          logger.warning(f'SymPy solve "{self.y_eq_group._mon_func_name}({argument}) = 0" to '
                          f'"{self.y_var} = f({self.x_var}, '
                          f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
           # solve the expression
@@ -1139,7 +1139,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
+          logger.warning(f'SymPy solve "{self.x_eq_group._mon_func_name}({argument}) = 0" to '
                          f'"{self.y_var} = f({self.x_var}, '
                          f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
 
@@ -1213,7 +1213,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
+          logger.warning(f'SymPy solve "{self.y_eq_group._mon_func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
           f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
@@ -1286,7 +1286,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
+          logger.warning(f'SymPy solve "{self.x_eq_group._mon_func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
           f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))

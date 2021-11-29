@@ -5,7 +5,7 @@ import inspect
 import os
 
 from brainpy.math import (parallels, operators, activations, controls,
-                          autograd, losses, optimizers, compilation, function)
+                          autograd, losses, optimizers, jit, function)
 
 
 def get_class_funcs(module):
@@ -265,7 +265,7 @@ def generate_math_docs(path):
   write_module(module_name='brainpy.math.parallels',
                filename=os.path.join(path, 'parallels.rst'),
                header='Parallel Compilation')
-  write_module(module_name='brainpy.math.compilation',
+  write_module(module_name='brainpy.math.jit',
                filename=os.path.join(path, 'jit.rst'),
                header='JIT Compilation')
   write_module(module_name='brainpy.math.jaxarray',

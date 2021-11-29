@@ -27,7 +27,7 @@ __all__ = [
   'jit',
 ]
 
-logger = logging.getLogger('brainpy.math.jax.compilation')
+logger = logging.getLogger('brainpy.math.jit')
 
 
 def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
@@ -51,16 +51,13 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, **kwargs):
-  """JIT (Just-In-Time) Compilation for JAX backend.
+def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True):
+  """JIT (Just-In-Time) Compilation.
 
   This function has the same ability to Just-In-Time compile a pure function,
   but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
   :py:class:`brainpy.Base` object, or a bounded method of a
   :py:class:`brainpy.Base` object.
-
-  If you are using "numpy", please refer to the JIT compilation
-  in NumPy backend `bp.math.numpy.jit() <brainpy.math.numpy.jit.rst>`_.
 
   Notes
   -----
@@ -125,6 +122,8 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, **kwargs)
     can be retrieved via :py:func:`jax.devices`.) The default is inherited
     from XLA's DeviceAssignment logic and is usually to use
     ``jax.devices()[0]``.
+  auto_infer : bool
+    Automatical infer the dynamical variables.
 
   Returns
   -------
@@ -137,7 +136,11 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, **kwargs)
     if len(obj_or_func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
-      dyn_vars = (dyn_vars or obj_or_func.vars().unique())
+      if dyn_vars is None:
+        if auto_infer:
+          dyn_vars = obj_or_func.vars().unique()
+        else:
+          dyn_vars = TensorCollector()
       if isinstance(dyn_vars, JaxArray):
         dyn_vars = TensorCollector({'_': dyn_vars})
       elif isinstance(dyn_vars, dict):
@@ -176,12 +179,16 @@ def jit(obj_or_func, dyn_vars=None, static_argnames=None, device=None, **kwargs)
         dyn_vars = TensorCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
       else:
         raise ValueError
-    elif isinstance(obj_or_func, Base):
-      dyn_vars = obj_or_func.vars().unique()
-    elif hasattr(obj_or_func, '__self__') and isinstance(obj_or_func.__self__, Base):
-      dyn_vars = obj_or_func.__self__.vars().unique()
     else:
-      dyn_vars = TensorCollector()
+      if auto_infer:
+        if isinstance(obj_or_func, Base):
+          dyn_vars = obj_or_func.vars().unique()
+        elif hasattr(obj_or_func, '__self__') and isinstance(obj_or_func.__self__, Base):
+          dyn_vars = obj_or_func.__self__.vars().unique()
+        else:
+          dyn_vars = TensorCollector()
+      else:
+        dyn_vars = TensorCollector()
 
     if len(dyn_vars) == 0:  # pure function
       return jax.jit(obj_or_func,

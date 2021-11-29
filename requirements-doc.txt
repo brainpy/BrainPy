@@ -3,7 +3,7 @@
 # document requirements
 pandoc
 Jinja2
-sphinx
+sphinx>=3,<4
 myst-nb
 sphinx_rtd_theme>=1.0.0
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints==1.11.1

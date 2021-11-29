@@ -56,8 +56,8 @@ class Sequential(Module):
     The modules with name specifications.
   """
 
-  def __init__(self, *arg_ds, monitors=None, name=None, **kwarg_ds):
-    super(Sequential, self).__init__(monitors=monitors, name=name)
+  def __init__(self, *arg_ds, name=None, **kwarg_ds):
+    super(Sequential, self).__init__(name=name)
 
     self.implicit_nodes = Collector()
     # check "args"

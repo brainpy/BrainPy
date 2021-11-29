@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 
 
-class RunningError(Exception):
-  """The error occurred in the running function."""
+class BrainPyError(Exception):
+  """General BrainPy error."""
   pass
 
 
-class BrainPyError(Exception):
-  """General BrainPy error."""
+class ModelBuildError(BrainPyError):
+  """The error occurred during the definition of models."""
+  pass
+
+
+class RunningError(BrainPyError):
+  """The error occurred in the running function."""
   pass
 
 
@@ -16,8 +21,7 @@ class IntegratorError(BrainPyError):
 
 
 class DiffEqError(BrainPyError):
-  """The differential equation definition error.
-  """
+  """The differential equation definition error."""
   pass
 
 
@@ -67,12 +71,18 @@ class MonitorError(BrainPyError):
   pass
 
 
-class JaxTracerError(BrainPyError):
+class MathError(BrainPyError):
+  """Errors occurred in ``brainpy.math`` module."""
+  pass
+
+
+class JaxTracerError(MathError):
   def __init__(self):
     super(JaxTracerError, self).__init__(
       'There is an unexpected tracer. \n\n'
       'In BrainPy, all the dynamically changed variables must be provided '
       'into the "dyn_vars" when calling the transformation functions, '
       'like "jit()", "vmap()", "grad()", "make_loop()", etc. \n\n'
-      'We found there are changed variables which are not wrapped into "dyn_vars". Please check!'
+      'We found there are changed variables which are not wrapped into '
+      '"dyn_vars". Please check!'
     )

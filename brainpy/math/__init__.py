@@ -46,7 +46,7 @@ from . import activations
 # transformations
 from .autograd import *
 from .controls import *
-from .compilation import *
+from .jit import *
 from .parallels import *
 
 # others

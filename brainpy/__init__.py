@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.2.0"
+__version__ = "2.0.0"
 
 
 # "base" module
@@ -29,20 +29,23 @@ from .integrators.sde import get_default_sdeint
 from . import simulation
 from .simulation.brainobjects import *
 from .simulation.monitor import *
-# submodules
+from .simulation.runner import *
 from .simulation import brainobjects
-from .simulation import layers
 from .simulation import connect
-from .simulation import initialize
 from .simulation import inputs
 from .simulation import measure
-init = initialize
 conn = connect
 
+# "training" module
+from . import training
+from .training import layers, initialize
+init = initialize
 
 # "analysis" module
 from . import analysis
 from .analysis import symbolic
+from .analysis import numeric
+from .analysis import continuation
 
 
 # "visualization" module
@@ -53,5 +56,3 @@ from . import visualization as visualize
 from . import errors
 from . import running
 from . import tools
-from . import jaxsetting
-from .jaxsetting import *

@@ -373,7 +373,7 @@ def animate_1D(dynamical_vars,
         var['ys'] = np.asarray(var['ys'])
         if 'xs' not in var:
           var['xs'] = np.arange(var['ys'].shape[1])
-      elif isinstance(var, np.ndarray):
+      elif isinstance(var, (np.ndarray, math.ndarray)):
         var = np.asarray(var)
         var = {'ys': var,
                'xs': np.arange(var.shape[1]),
