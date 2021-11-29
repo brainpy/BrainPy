@@ -50,6 +50,8 @@ from .jit import *
 from .parallels import *
 
 # others
+from . import profile
 from .profile import *
+from . import setting
 from .setting import *
 from .function import *

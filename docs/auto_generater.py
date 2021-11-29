@@ -4,8 +4,9 @@ import importlib
 import inspect
 import os
 
-from brainpy.math import (parallels, operators, activations, controls,
-                          autograd, losses, optimizers, jit, function)
+from brainpy.math import (activations, autograd, controls, function,
+                          jit, losses, operators, optimizers, parallels,
+                          profile, setting)
 
 
 def get_class_funcs(module):
@@ -146,10 +147,10 @@ def generate_integrators_doc(path):
                header='Exponential Integrators')
 
 
-block_list = ['test', 'control_transform', 'register_pytree_node']
-for module in [compilation, autograd, function,
+block_list = ['test', 'register_pytree_node']
+for module in [jit, autograd, function,
                controls, losses, activations, optimizers,
-               operators, parallels]:
+               operators, parallels, setting, profile]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -280,7 +281,6 @@ def generate_math_docs(path):
   write_module(module_name='brainpy.math.profile',
                filename=os.path.join(path, 'profile.rst'),
                header='Profile')
-
 
 
 def generate_simulation_docs(path):
