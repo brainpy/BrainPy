@@ -18,11 +18,8 @@ class Delay(DynamicalSystem):
 
   Parameters
   ----------
-
   steps : tuple of str, tuple of function, dict of (str, function), optional
       The callable function, or a list of callable functions.
-  monitors : None, list, tuple, datastructures.Monitor
-      Variables to monitor.
   name : str, optional
       The name of the dynamic system.
   """
@@ -58,8 +55,6 @@ class ConstantDelay(Delay):
     The batch size.
   steps : optional, tuple of str, tuple of function, dict of (str, function)
     The callable function, or a list of callable functions.
-  monitors : optional, list, tuple, datastructures.Monitor
-    Variables to monitor.
   name : optional, str
     The name of the dynamic system.
   """
@@ -83,7 +78,7 @@ class ConstantDelay(Delay):
       self.num_step = int(pm.ceil(delay / self.dt)) + 1
       self.out_idx = bm.Variable(bm.array([0]))
       self.in_idx = bm.Variable(bm.array([self.num_step - 1]))
-      self.data = bm.Variable(bm.zeros((self.num_step,) + self.size, dtype=dtype))
+      self.data = bm.Variable(bm.zeros((self.num_step - 1,) + self.size, dtype=dtype))
 
       self.push = self._push_for_uniform_delay
       self.pull = self._pull_for_uniform_delay
@@ -107,7 +102,7 @@ class ConstantDelay(Delay):
       self.num_step = bm.array(delay, dtype=bm.int_) + 1
       self.in_idx = bm.Variable(self.num_step - 1)
       self.out_idx = bm.Variable(bm.zeros(self.num, dtype=bm.int_))
-      self.data = bm.Variable(bm.zeros((self.num_step.max(),) + size, dtype=dtype))
+      self.data = bm.Variable(bm.zeros((self.num_step.max() - 1,) + size, dtype=dtype))
 
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay
@@ -139,4 +134,4 @@ class ConstantDelay(Delay):
     """Reset the variables."""
     self.in_idx[:] = self.num_step - 1
     self.out_idx[:] = 0
-    self.data[:] = 0.
+    self.data[:] = 0

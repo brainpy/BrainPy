@@ -106,7 +106,21 @@ class DynamicalSystem(Base):
     return nodes
 
   def register_constant_delay(self, key, size, delay, dtype=None):
-    """Register a constant delay.
+    """Register a constant delay, whose update method will be appended into
+    the ``self.steps`` in this host class.
+
+    >>> import brainpy as bp
+    >>> group = bp.NeuGroup(10)
+    >>> group.steps
+    {'update': <bound method NeuGroup.update of <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0xxxx>>}
+    >>> delay1 = group.register_constant_delay('delay1', size=(10,), delay=2)
+    >>> delay1
+    <brainpy.simulation.brainobjects.delays.ConstantDelay at 0x219d5188280>
+    >>> group.steps
+    {'update': <bound method NeuGroup.update of <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0xxxx>>,
+     'delay1_update': <bound method ConstantDelay.update of <brainpy.simulation.brainobjects.delays.ConstantDelay object at 0xxxx>>}
+    >>> delay1.data.shape
+    (20, 10)
 
     Parameters
     ----------
@@ -129,8 +143,8 @@ class DynamicalSystem(Base):
 
     if not hasattr(self, 'steps'):
       raise ModelBuildError('Please initialize the super class first before '
-                         'registering constant_delay. \n\n'
-                         'super(YourClassName, self).__init__(**kwargs)')
+                            'registering constant_delay. \n\n'
+                            'super(YourClassName, self).__init__(**kwargs)')
     if not key.isidentifier(): raise ValueError(f'{key} is not a valid identifier.')
     cdelay = ConstantDelay(size=size,
                            delay=delay,
@@ -171,14 +185,14 @@ class Container(DynamicalSystem):
     for ds in ds_tuple:
       if not isinstance(ds, DynamicalSystem):
         raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
-                           f'DynamicalSystem, however, we got {type(ds)}.')
+                              f'DynamicalSystem, however, we got {type(ds)}.')
       if ds.name in self.implicit_nodes:
         raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
       self.implicit_nodes[ds.name] = ds
     for key, ds in ds_dict.items():
       if not isinstance(ds, DynamicalSystem):
         raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
-                           f'DynamicalSystem, however, we got {type(ds)}.')
+                              f'DynamicalSystem, however, we got {type(ds)}.')
       if key in self.implicit_nodes:
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
       self.implicit_nodes[key] = ds

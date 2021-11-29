@@ -91,6 +91,6 @@ class PoissonInput(NeuGroup):
     self.t_last_spike = math.Variable(math.ones(self.num) * -1e7)
     self.rng = math.random.RandomState(seed=seed)
 
-  def update(self, _t, _i, **kwargs):
-    self.spike[:] = self.rng.random(self.num) <= self.freqs * self.dt
-    self.t_last_spike[:] = math.where(self.spike, _t, self.t_last_spike)
+  def update(self, _t, _i):
+    self.spike.value = self.rng.random(self.num) <= self.freqs * self.dt
+    self.t_last_spike.value = math.where(self.spike, _t, self.t_last_spike)

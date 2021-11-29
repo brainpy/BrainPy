@@ -95,7 +95,7 @@ def test_gaussian_prob3():
 
 
 def test_gaussian_prob4():
-  conn = bp.connect.GaussianProb(sigma=4, periodic_boundary=True)(pre_size=(20, 20, 20))
+  conn = bp.connect.GaussianProb(sigma=4, periodic_boundary=True)(pre_size=(10, 10, 10))
   conn.require(bp.connect.CONN_MAT,
                bp.connect.PRE_IDS, bp.connect.POST_IDS,
                bp.connect.PRE2POST, bp.connect.POST_IDS)

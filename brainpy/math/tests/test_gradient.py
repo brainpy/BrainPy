@@ -7,12 +7,11 @@ import jax.numpy as jnp
 import pytest
 
 import brainpy as bp
-import brainpy.math.jax as bm
+import brainpy.math as bm
 from brainpy.base import Base
 from brainpy.math.autograd import _jac_rev_aux, _jac_fwd_aux
 from brainpy.math.autograd import jacrev
 
-bp.math.use_backend('jax')
 
 
 def test_grad_func1():
@@ -21,8 +20,8 @@ def test_grad_func1():
 
   grad = bm.grad(call, argnums=[0, 1, 2])
   a = bm.ones(10)
-  b = brainpy.math.random.randn(10)
-  c = brainpy.math.random.uniform(size=10)
+  b = bm.random.randn(10)
+  c = bm.random.uniform(size=10)
   grads = grad(a, b, c)
 
   print('test_grad_ob1:')
@@ -37,8 +36,8 @@ def test_grad_ob1():
       super(Test, self).__init__()
 
       self.a = bm.TrainVar(bm.ones(10))
-      self.b = bm.TrainVar(brainpy.math.random.randn(10))
-      self.c = bm.TrainVar(brainpy.math.random.uniform(size=10))
+      self.b = bm.TrainVar(bm.random.randn(10))
+      self.c = bm.TrainVar(bm.random.uniform(size=10))
 
     def __call__(self):
       return bm.sum(self.a + self.b + self.c)
@@ -59,8 +58,8 @@ def test_grad_ob2():
       super(Test, self).__init__()
 
       self.a = bm.TrainVar(bm.ones(10))
-      self.b = bm.TrainVar(brainpy.math.random.randn(10))
-      self.c = bm.TrainVar(brainpy.math.random.uniform(size=10))
+      self.b = bm.TrainVar(bm.random.randn(10))
+      self.c = bm.TrainVar(bm.random.uniform(size=10))
 
     def __call__(self):
       return bm.sum(self.a + self.b + self.c)
@@ -81,8 +80,8 @@ def test_grad_ob3():
       super(Test, self).__init__()
 
       self.a = bm.TrainVar(bm.ones(10))
-      self.b = bm.TrainVar(brainpy.math.random.randn(10))
-      self.c = bm.TrainVar(brainpy.math.random.uniform(size=10))
+      self.b = bm.TrainVar(bm.random.randn(10))
+      self.c = bm.TrainVar(bm.random.uniform(size=10))
 
     def __call__(self):
       return bm.sum(self.a + self.b + self.c)
@@ -112,8 +111,8 @@ def test_grad_ob4():
       super(Test, self).__init__()
 
       self.a = bm.TrainVar(bm.ones(10))
-      self.b = bm.TrainVar(brainpy.math.random.randn(10))
-      self.c = bm.TrainVar(brainpy.math.random.uniform(size=10))
+      self.b = bm.TrainVar(bm.random.randn(10))
+      self.c = bm.TrainVar(bm.random.uniform(size=10))
 
     def __call__(self, d):
       return bm.sum(self.a + self.b + self.c + d)
@@ -121,7 +120,7 @@ def test_grad_ob4():
   t = Test()
   grad = bm.grad(t, t.vars())
 
-  res = grad(brainpy.math.random.random(10))
+  res = grad(bm.random.random(10))
   print('test_grad_ob4:')
   pprint(res)
   for g in res.values():
@@ -134,8 +133,8 @@ def test_grad_ob5():
       super(Test, self).__init__()
 
       self.a = bm.TrainVar(bm.ones(10))
-      self.b = bm.TrainVar(brainpy.math.random.randn(10))
-      self.c = bm.TrainVar(brainpy.math.random.uniform(size=10))
+      self.b = bm.TrainVar(bm.random.randn(10))
+      self.c = bm.TrainVar(bm.random.uniform(size=10))
 
     def __call__(self, d):
       return bm.sum(self.a + self.b + self.c + 2 * d)
@@ -143,7 +142,7 @@ def test_grad_ob5():
   t = Test()
   grad = bm.grad(t, t.vars(), argnums=0)
 
-  res = grad(brainpy.math.random.random(10))
+  res = grad(bm.random.random(10))
   print('test_grad_ob5:')
   pprint(res)
   for g in res[1].values():
@@ -404,7 +403,7 @@ def test_jacrev_object2():
       return r
 
   f = F()
-  fr2 = jacrev(f, grad_vars=f.x)(brainpy.math.random.normal(4).value)
+  fr2 = jacrev(f, grad_vars=f.x)(bm.random.normal(4).value)
   print(fr2)
 
   print('-' * 20)

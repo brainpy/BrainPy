@@ -574,11 +574,11 @@ class ScaleFreeBADual(TwoEndConnector):
   Parameters
   ----------
   m1 : int
-      Number of edges to attach from a new node to existing nodes with probability $p$
+      Number of edges to attach from a new node to existing nodes with probability :math:`p`
   m2 : int
-      Number of edges to attach from a new node to existing nodes with probability $1-p$
+      Number of edges to attach from a new node to existing nodes with probability :math:`1-p`
   p : float
-      The probability of attaching $m_1$ edges (as opposed to $m_2$ edges)
+      The probability of attaching :math:`m\_1` edges (as opposed to :math:`m\_2` edges)
   seed : integer, random_state, or None (default)
       Indicator of random number generation state.
 

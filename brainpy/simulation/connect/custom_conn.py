@@ -3,6 +3,8 @@
 
 import numpy as np
 
+import jax.numpy as jnp
+from brainpy.math.jaxarray import JaxArray
 from brainpy import tools
 from .base import *
 
@@ -18,7 +20,7 @@ class MatConn(TwoEndConnector):
   def __init__(self, conn_mat):
     super(MatConn, self).__init__()
 
-    assert isinstance(conn_mat, np.ndarray) and conn_mat.ndim == 2
+    assert isinstance(conn_mat, (np.ndarray, JaxArray, jnp.ndarray)) and conn_mat.ndim == 2
     self.conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
     self.pre_num, self.post_num = conn_mat.shape
 
@@ -43,8 +45,8 @@ class IJConn(TwoEndConnector):
   def __init__(self, i, j):
     super(IJConn, self).__init__()
 
-    assert isinstance(i, np.ndarray) and i.ndim == 1
-    assert isinstance(j, np.ndarray) and j.ndim == 1
+    assert isinstance(i, (np.ndarray, JaxArray, jnp.ndarray)) and i.ndim == 1
+    assert isinstance(j, (np.ndarray, JaxArray, jnp.ndarray)) and j.ndim == 1
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"
