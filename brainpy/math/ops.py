@@ -74,6 +74,8 @@ __all__ = [
   'take_along_axis', 'clip_by_norm',
 ]
 
+_min = min
+_max = max
 
 # others
 # ------
@@ -1114,7 +1116,7 @@ def vander(x, N=None, increasing=False):
 def fill_diagonal(a, val):
   if isinstance(a, JaxArray): a = a.value
   assert a.ndim >= 2
-  i, j = jnp.diag_indices(min(a.shape[-2:]))
+  i, j = jnp.diag_indices(_min(a.shape[-2:]))
   return JaxArray(a.at[..., i, j].set(val))
 
 
