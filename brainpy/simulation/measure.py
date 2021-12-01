@@ -191,7 +191,7 @@ def firing_rate(sp_matrix, width, dt=None):
 
   Parameters
   ----------
-  sp_matrix : math.JaxArray
+  sp_matrix : math.JaxArray, np.ndarray
     The spike matrix which record spiking activities.
   width : int, float
     The width of the ``window`` in millisecond.
