@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import brainpylib
 from jax import jit, vmap
 from jax import ops as jops
 
@@ -8,8 +9,13 @@ from brainpy.math.jaxarray import JaxArray
 from brainpy.math.ops import append, zeros_like
 
 __all__ = [
-  'pre2syn', 'syn2post', 'pre2post',
-  'segment_sum', 'segment_prod', 'segment_max', 'segment_min',
+  'event_add',
+  'pre2syn', 'pre2post',
+  'syn2post',
+  'syn2post_sum',
+  'syn2post_prod',
+  'syn2post_max',
+  'syn2post_min',
 ]
 
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
@@ -21,8 +27,26 @@ _jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3, 4, 5))
 _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
 
 
-def event_add(events, conn_ids, value, out_len):
-  raise NotImplementedError
+def event_add(events, post_ids, pre2post_slice, post_num, value):
+  """
+
+  Parameters
+  ----------
+  events
+  post_ids
+  pre2post_slice
+  post_num
+  value
+
+  Returns
+  -------
+
+  """
+  events = events.value if isinstance(events, JaxArray) else events
+  post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
+  pre2post_slice = pre2post_slice.value if isinstance(pre2post_slice, JaxArray) else pre2post_slice
+  value = value.value if isinstance(value, JaxArray) else value
+  return brainpylib.event_add(events, post_ids, pre2post_slice, post_num, value)
 
 
 def pre2post(pre_values, post2pre_conn):
@@ -39,41 +63,109 @@ def pre2syn(pre_values, pre_ids):
 
 
 def syn2post(syn_values, post_ids, post_num):
+  """
+
+  Parameters
+  ----------
+  syn_values
+  post_ids
+  post_num
+
+  Returns
+  -------
+
+  """
   syn_values = syn_values.value if isinstance(syn_values, JaxArray) else syn_values
   post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
   return _syn2post(syn_values, post_ids, post_num)
 
 
-def segment_sum(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                unique_indices: bool = False, bucket_size: int = None):
-  """Computes the sum within segments of an array."""
+def syn2post_sum(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                 unique_indices: bool = False, bucket_size: int = None):
+  """Computes the sum within segments of an array.
+
+  Parameters
+  ----------
+  data
+  segment_ids
+  num_segments
+  indices_are_sorted
+  unique_indices
+  bucket_size
+
+  Returns
+  -------
+
+  """
   data = data.value if isinstance(data, JaxArray) else data
   segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
   return _jit_seg_sum(data, segment_ids, num_segments,
                       indices_are_sorted, unique_indices, bucket_size)
 
 
-def segment_prod(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                 unique_indices: bool = False, bucket_size: int = None):
-  """Computes the product within segments of an array."""
+def syn2post_prod(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                  unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array.
+
+  Parameters
+  ----------
+  data
+  segment_ids
+  num_segments
+  indices_are_sorted
+  unique_indices
+  bucket_size
+
+  Returns
+  -------
+
+  """
   data = data.value if isinstance(data, JaxArray) else data
   segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
   return _jit_seg_prod(data, segment_ids, num_segments,
                        indices_are_sorted, unique_indices, bucket_size)
 
 
-def segment_max(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                unique_indices: bool = False, bucket_size: int = None):
-  """Computes the product within segments of an array."""
+def syn2post_max(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                 unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array.
+
+  Parameters
+  ----------
+  data
+  segment_ids
+  num_segments
+  indices_are_sorted
+  unique_indices
+  bucket_size
+
+  Returns
+  -------
+
+  """
   data = data.value if isinstance(data, JaxArray) else data
   segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
   return _jit_seg_max(data, segment_ids, num_segments,
                       indices_are_sorted, unique_indices, bucket_size)
 
 
-def segment_min(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
-                unique_indices: bool = False, bucket_size: int = None):
-  """Computes the product within segments of an array."""
+def syn2post_min(data, segment_ids, num_segments: int, indices_are_sorted: bool = False,
+                 unique_indices: bool = False, bucket_size: int = None):
+  """Computes the product within segments of an array.
+
+  Parameters
+  ----------
+  data
+  segment_ids
+  num_segments
+  indices_are_sorted
+  unique_indices
+  bucket_size
+
+  Returns
+  -------
+
+  """
   data = data.value if isinstance(data, JaxArray) else data
   segment_ids = segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids
   return _jit_seg_min(data, segment_ids, num_segments,
