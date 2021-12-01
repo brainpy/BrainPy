@@ -2,6 +2,8 @@ publishment.md
 #experimental/
 .vscode
 
+BrainPyExamples/
+BrainModels/
 book/
 docs/examples
 docs/apis/jaxsetting.rst

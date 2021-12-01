@@ -205,12 +205,11 @@ class Container(DynamicalSystem):
   def update(self, _t, _dt):
     """Step function of a network.
 
-    In this update function, the step functions in children systems are
+    In this update function, the update functions in children systems are
     iteratively called.
     """
     for node in self.child_ds().values():
-      for step in node.steps.values():
-        step(_t, _dt)
+      node.update(_t, _dt)
 
   def __getattr__(self, item):
     child_ds = super(Container, self).__getattribute__('implicit_nodes')

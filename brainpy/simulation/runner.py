@@ -293,9 +293,10 @@ class ReportRunner(BaseRunner):
         start_t = 0.
       else:
         start_t = self._start_t
+    end_t = start_t + duration
 
     # times
-    times = math.arange(start_t, duration, self.dt)
+    times = math.arange(start_t, end_t, self.dt)
 
     # build inputs
     for key in self.mon.item_contents.keys():
@@ -331,7 +332,7 @@ class ReportRunner(BaseRunner):
     self.mon.ts = times
     for key, val in self.mon.item_contents.items():
       self.mon.item_contents[key] = math.asarray(val)
-    self._start_t = start_t + duration
+    self._start_t = end_t
     return running_time
 
 
@@ -352,8 +353,7 @@ class StructRunner(BaseRunner):
 
   def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
                jit=False, show_code=False, report=0., dt=None):
-    self._has_iter_array = False
-
+    self._has_iter_array = False  # default do not have iterable input array
     super(StructRunner, self).__init__(target=target,
                                        inputs=inputs,
                                        monitors=monitors,
@@ -369,9 +369,7 @@ class StructRunner(BaseRunner):
     else:
       self._i = None
 
-    # parameters
-    assert isinstance(target, DynamicalSystem)
-    self.target = target
+    # report
     if report > 0.: logger.warning(f'"report={report}" can not work in {self.__class__.__name__}.')
 
     # build the update step
@@ -530,13 +528,14 @@ class StructRunner(BaseRunner):
         start_t = 0.
       else:
         start_t = self._start_t
+    end_t = start_t + duration
     # times
-    times = math.arange(start_t, duration, self.dt)
+    times = math.arange(start_t, end_t, self.dt)
     time_steps = math.ones_like(times) * self.dt
     # running
     t0 = time.time()
     _, hists = self._step([times.value, time_steps.value])
     running_time = time.time() - t0
     self._post(times, hists)
-    self._start_t = start_t + duration
+    self._start_t = end_t
     return running_time

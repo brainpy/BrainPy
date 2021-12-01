@@ -2,6 +2,7 @@
 
 import os
 import re
+import jax.config
 
 
 __all__ = [
@@ -13,7 +14,7 @@ __all__ = [
 
 def enable_x64(mode):
   assert mode in [True, False]
-  os.environ['JAX_ENABLE_X64'] = str(int(mode))
+  jax.config.update("jax_enable_x64", mode)
 
 
 def set_platform(platform):
@@ -22,7 +23,7 @@ def set_platform(platform):
   effect at the beginning of your program.
   """
   assert platform in ['cpu', 'gpu', 'tpu']
-  os.environ['JAX_PLATFORM_NAME'] = platform
+  jax.config.update("jax_platform_name", platform)
 
 
 def set_host_device_count(n):
