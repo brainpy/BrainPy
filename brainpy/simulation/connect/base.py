@@ -63,7 +63,7 @@ PROVIDE_MAT = 'mat'
 PROVIDE_IJ = 'ij'
 
 MAT_DTYPE = np.bool_
-IDX_DTYPE = np.uint64
+IDX_DTYPE = np.uint32
 
 
 def set_default_dtype(mat_dtype=None, idx_dtype=None):
