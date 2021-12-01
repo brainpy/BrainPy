@@ -14,7 +14,7 @@ __all__ = [
 
 def enable_x64(mode):
   assert mode in [True, False]
-  jax.config.update("jax_enable_x64", str(int(mode)))
+  jax.config.update("jax_enable_x64", mode)
 
 
 def set_platform(platform):
