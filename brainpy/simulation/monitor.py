@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 from brainpy import math
 from brainpy.errors import MonitorError
 
@@ -203,3 +205,9 @@ class Monitor(object):
       self.item_contents[key] = value
     else:
       object.__setattr__(self, key, value)
+
+  def numpy(self):
+    for key, val in self.item_contents.items():
+      self.item_contents[key] = np.asarray(val)
+    if self.ts is not None:
+      self.ts = np.asarray(self.ts)
