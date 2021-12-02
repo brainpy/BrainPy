@@ -53,7 +53,7 @@ class TestExpnentialEuler(unittest.TestCase):
     with pytest.raises(bp.errors.AnalyzerError) as excinfo:
       ExponentialEuler(f=f, show_code=True, dt=0.01, var_type='SCALAR', )
 
-  def test_nonlinear_equation1(self):
+  def test_nonlinear_eq1_vdp(self):
     def vdp_derivative(x, y, t, mu):
       dx = mu * (x - x ** 3 / 3 - y)
       dy = x / mu
@@ -61,7 +61,7 @@ class TestExpnentialEuler(unittest.TestCase):
 
     ExponentialEuler(f=vdp_derivative, show_code=True, dt=0.01)
 
-  def test_nonlinear_equation2(self):
+  def test_nonlinear_eq2_reduced_trn(self):
     T = 36.
     phi_m = phi_h = phi_n = 3 ** ((T - 36) / 10)
     # parameters of IT
@@ -215,3 +215,11 @@ class TestExpnentialEuler(unittest.TestCase):
       return dVdt, dWdt
 
     ExponentialEuler(f=derivative, show_code=True, dt=0.01, timeout=5)
+
+  def test1(self):
+    def dev(x, t):
+      dx = bm.power(x, 3)
+      return dx
+
+    ExponentialEuler(f=dev, show_code=True, dt=0.01, timeout=5)
+
