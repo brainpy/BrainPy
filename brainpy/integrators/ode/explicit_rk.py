@@ -67,7 +67,7 @@ More details please see references [2]_ [3]_ [4]_.
 
 """
 
-from brainpy.integrators import constants, utils
+from brainpy.integrators import constants as C, utils
 from brainpy.integrators.ode import common
 from brainpy.integrators.ode.base import ODEIntegrator
 
@@ -137,8 +137,8 @@ class ExplicitRKIntegrator(ODEIntegrator):
 
     # integrator keywords
     keywords = {
-      constants.F: 'the derivative function',
-      constants.DT: 'the precision of numerical integration'
+      C.F: 'the derivative function',
+      C.DT: 'the precision of numerical integration'
     }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
@@ -152,10 +152,10 @@ class ExplicitRKIntegrator(ODEIntegrator):
 
   def build(self):
     # step stage
-    common.step(self.variables, constants.DT,
+    common.step(self.variables, C.DT,
                 self.A, self.C, self.code_lines, self.parameters)
     # variable update
-    return_args = common.update(self.variables, constants.DT, self.B, self.code_lines)
+    return_args = common.update(self.variables, C.DT, self.B, self.code_lines)
     # returns
     self.code_lines.append(f'  return {", ".join(return_args)}')
     # compile
