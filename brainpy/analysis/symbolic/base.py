@@ -290,7 +290,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
           logger.warning(f'SymPy solve derivative of "{self.x_eq_group._mon_func_name}'
                          f'({argument})" by "{x_var}", ')
           x_eq = x_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, x_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(x_eq, x_symbol))
           dfxdx_expr = f()
 
           # check
@@ -353,7 +353,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
                          f'to "{self.x_var} = f({argument2})", ')
 
           # solver
-          f = utils.timeout(timeout_len)(
+          f = tools.timeout(timeout_len)(
             lambda: sympy.solve(x_eq.expr, sympy.Symbol(self.x_var, real=True)))
           results = f()
           for res in results:
@@ -534,7 +534,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve derivative of "{self.x_eq_group._mon_func_name}'
                          f'({argument})" by "{y_var}", ')
           x_eq = x_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, y_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(x_eq, y_symbol))
           dfxdy_expr = f()
 
           # check
@@ -598,7 +598,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve derivative of "{self.y_eq_group._mon_func_name}'
                          f'({argument})" by "{x_var}", ')
           y_eq = y_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, x_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(y_eq, x_symbol))
           dfydx_expr = f()
 
           # check
@@ -663,7 +663,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'\tSymPy solve derivative of "{self.y_eq_group._mon_func_name}'
                          f'({argument})" by "{y_var}", ')
           y_eq = y_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, y_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(y_eq, y_symbol))
           dfydx_expr = f()
 
           # check
@@ -1069,7 +1069,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
                          f'"{self.y_var} = f({self.x_var}, '
                          f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
           y_by_x_in_y_eq = f()
           if len(y_by_x_in_y_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
@@ -1144,7 +1144,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
                          f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
 
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, y_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq, y_symbol))
           y_by_x_in_x_eq = f()
           if len(y_by_x_in_x_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
@@ -1216,7 +1216,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve "{self.y_eq_group._mon_func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
           x_by_y_in_y_eq = f()
           if len(x_by_y_in_y_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
@@ -1289,7 +1289,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve "{self.x_eq_group._mon_func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))
           x_by_y_in_x_eq = f()
           if len(x_by_y_in_x_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')

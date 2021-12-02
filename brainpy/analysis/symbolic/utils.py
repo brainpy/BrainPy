@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import _thread as thread
 import inspect
-import threading
 
 import numpy as np
 
@@ -29,7 +27,6 @@ __all__ = [
   'transform_integrals_to_model',
   'DynamicModel',
   'rescale',
-  'timeout',
   'jit_compile',
   'add_arrow',
   'contain_unknown_symbol',
@@ -270,32 +267,6 @@ def rescale(min_max, scale=0.01):
   max_ += scale * length
   return min_, max_
 
-
-def timeout(s):
-  """Add a timeout parameter to a function and return it.
-
-  Parameters
-  ----------
-  s : float
-      Time limit in seconds.
-
-  Returns
-  -------
-  func : callable
-      Functional results. Or, raise an error of KeyboardInterrupt.
-  """
-
-  def outer(fn):
-    def inner(*args, **kwargs):
-      timer = threading.Timer(s, thread.interrupt_main)
-      timer.start()
-      try:
-        result = fn(*args, **kwargs)
-      finally:
-        timer.cancel()
-      return result
-    return inner
-  return outer
 
 
 def _check_numpy_bk():
