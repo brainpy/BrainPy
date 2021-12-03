@@ -194,7 +194,7 @@ class Euler(ExplicitRKIntegrator):
   Illustration of the Euler method. The unknown curve is in blue,
   and its polygonal approximation is in red [2]_:
 
-  .. image:: ../../../_static/ode_Euler_method.svg
+  .. image:: ../../../../_static/ode_Euler_method.svg
      :align: center
 
   **Derivation**
@@ -317,7 +317,7 @@ class MidPoint(ExplicitRKIntegrator):
   line segment in the following figure [2]_), which would most likely give a more accurate
   approximation of the curve in that interval.
 
-  .. image:: ../../../_static/ode_Midpoint_method_illustration.png
+  .. image:: ../../../../_static/ode_Midpoint_method_illustration.png
      :align: center
 
   Although this midpoint tangent could not be accurately calculated, we can estimate midpoint
@@ -386,7 +386,7 @@ class Heun2(ExplicitRKIntegrator):
   *overestimates* the ideal vertical coordinates. The ideal point lies approximately
   halfway between the erroneous overestimation and underestimation, the average of the two slopes.
 
-  .. image:: ../../../_static/ode_Heun2_Method_Diagram.jpg
+  .. image:: ../../../../_static/ode_Heun2_Method_Diagram.jpg
      :align: center
 
   .. math::

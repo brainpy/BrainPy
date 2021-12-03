@@ -13,4 +13,5 @@
     auto/simulation/inputs
     auto/simulation/measure
     auto/simulation/monitor
+    auto/simulation/runner
 

@@ -54,11 +54,11 @@ def write_module(module_name, filename, header=None):
   for m in classes:
     fout.write(f'   {m}\n')
 
-  # write autoclass
-  fout.write('\n')
-  for m in classes:
-    fout.write(f'.. autoclass:: {m}\n')
-    fout.write(f'   :members:\n\n')
+  # # write autoclass
+  # fout.write('\n')
+  # for m in classes:
+  #   fout.write(f'.. autoclass:: {m}\n')
+  #   fout.write(f'   :members:\n\n')
 
   fout.close()
 
@@ -91,11 +91,11 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
     for m in classes:
       fout.write(f'   {m}\n')
 
-    # write autoclass
-    fout.write('\n')
-    for m in classes:
-      fout.write(f'.. autoclass:: {m}\n')
-      fout.write(f'   :members:\n\n')
+    # # write autoclass
+    # fout.write('\n')
+    # for m in classes:
+    #   fout.write(f'.. autoclass:: {m}\n')
+    #   fout.write(f'   :members:\n\n')
 
   fout.close()
 
@@ -313,6 +313,9 @@ def generate_simulation_docs(path):
   write_module(module_name='brainpy.simulation.monitor',
                filename=os.path.join(path, 'monitor.rst'),
                header='Monitors')
+  write_module(module_name='brainpy.simulation.runner',
+               filename=os.path.join(path, 'runner.rst'),
+               header='Runners')
 
 
 def generate_training_docs(path):
