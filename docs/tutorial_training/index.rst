@@ -5,4 +5,5 @@ Dynamics Training
    :maxdepth: 1
 
    build_artificial_network
-   creat_custom_layers
+   create_custom_layers
+   initialize_connection_weights
