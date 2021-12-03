@@ -63,7 +63,7 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
+def vmap(func, dyn_vars=None, vars_batched=None,
          in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
   """Vectorization compilation in JAX backend.
 
@@ -74,7 +74,7 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
   Parameters
   ----------
-  obj_or_func : Base, function
+  func : Base, function
     The function or the module to compile.
   vars_needed : dict
   vars_batched : dict
@@ -121,11 +121,11 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
   """
   from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicalSystem):
-    if len(obj_or_func.steps):  # DynamicalSystem has step functions
+  if isinstance(func, DynamicalSystem):
+    if len(func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
-      dyn_vars = (dyn_vars or obj_or_func.vars().unique())
+      dyn_vars = (dyn_vars or func.vars().unique())
       dyn_vars, rand_vars = TensorCollector(), TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
@@ -135,13 +135,13 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
       # in axes
       if in_axes is None:
-        in_axes = {key: (None, 0) for key in obj_or_func.steps.keys()}
+        in_axes = {key: (None, 0) for key in func.steps.keys()}
       elif isinstance(in_axes, int):
-        in_axes = {key: (None, 0, in_axes) for key in obj_or_func.steps.keys()}
+        in_axes = {key: (None, 0, in_axes) for key in func.steps.keys()}
       elif isinstance(in_axes, (tuple, list)):
-        in_axes = {key: (None, 0) + tuple(in_axes) for key in obj_or_func.steps.keys()}
+        in_axes = {key: (None, 0) + tuple(in_axes) for key in func.steps.keys()}
       elif isinstance(in_axes, dict):
-        keys = list(obj_or_func.steps.keys())
+        keys = list(func.steps.keys())
         if keys[0] not in in_axes:
           in_axes = {key: (None, 0, in_axes) for key in keys}
         else:
@@ -160,13 +160,13 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
       # out axes
       if out_axes is None:
-        out_axes = {key: 0 for key in obj_or_func.steps.keys()}
+        out_axes = {key: 0 for key in func.steps.keys()}
       elif isinstance(out_axes, int):
-        out_axes = {key: out_axes for key in obj_or_func.steps.keys()}
+        out_axes = {key: out_axes for key in func.steps.keys()}
       elif isinstance(out_axes, (tuple, list)):
-        out_axes = {key: tuple(out_axes) + (0, 0) for key in obj_or_func.steps.keys()}
+        out_axes = {key: tuple(out_axes) + (0, 0) for key in func.steps.keys()}
       elif isinstance(out_axes, dict):
-        keys = list(obj_or_func.steps.keys())
+        keys = list(func.steps.keys())
         if keys[0] not in out_axes:
           out_axes = {key: (out_axes, 0, 0) for key in keys}
         else:
@@ -178,30 +178,30 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
         reduce_func = lambda x: x.mean(axis=0)
 
       # vectorized map functions
-      for key in obj_or_func.steps.keys():
-        obj_or_func.steps[key] = _make_vmap(func=obj_or_func.steps[key],
-                                            dyn_vars=dyn_vars,
-                                            rand_vars=rand_vars,
-                                            in_axes=in_axes[key],
-                                            out_axes=out_axes[key],
-                                            axis_name=axis_name,
-                                            batch_idx=batch_idx[key],
-                                            reduce_func=reduce_func,
-                                            f_name=key)
+      for key in func.steps.keys():
+        func.steps[key] = _make_vmap(func=func.steps[key],
+                                     dyn_vars=dyn_vars,
+                                     rand_vars=rand_vars,
+                                     in_axes=in_axes[key],
+                                     out_axes=out_axes[key],
+                                     axis_name=axis_name,
+                                     batch_idx=batch_idx[key],
+                                     reduce_func=reduce_func,
+                                     f_name=key)
 
-      return obj_or_func
+      return func
 
-  if callable(obj_or_func):
+  if callable(func):
     if dyn_vars is not None:
       dyn_vars = dyn_vars
-    elif isinstance(obj_or_func, Base):  # Base has '__call__()' implementation
-      dyn_vars = obj_or_func.vars().unique()
-    elif hasattr(obj_or_func, '__self__'):
-      if isinstance(obj_or_func.__self__, Base):
-        dyn_vars = obj_or_func.__self__.vars().unique()
+    elif isinstance(func, Base):  # Base has '__call__()' implementation
+      dyn_vars = func.vars().unique()
+    elif hasattr(func, '__self__'):
+      if isinstance(func.__self__, Base):
+        dyn_vars = func.__self__.vars().unique()
 
     if dyn_vars is None:
-      return jax.vmap(obj_or_func,
+      return jax.vmap(func,
                       in_axes=in_axes,
                       out_axes=out_axes,
                       axis_name=axis_name)
@@ -248,7 +248,7 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
         reduce_func = lambda x: x.mean(axis=0)
 
       # jit function
-      return _make_vmap(func=obj_or_func,
+      return _make_vmap(func=func,
                         dyn_vars=dyn_vars,
                         rand_vars=rand_vars,
                         in_axes=in_axes,
@@ -259,7 +259,7 @@ def vmap(obj_or_func, dyn_vars=None, vars_batched=None,
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
-                              f'function, but we got {type(obj_or_func)}.')
+                              f'function, but we got {type(func)}.')
 
 
 def _device_reshape(x):
@@ -314,7 +314,7 @@ def _make_pmap(func, dyn_vars, rand_vars, reduce_func, axis_name=None, in_axes=0
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broadcasted_argnums=(),
+def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broadcasted_argnums=(),
          devices=None, backend=None, axis_size=None, donate_argnums=(), global_arg_shapes=None,
          reduce_func=None):
   """Parallel compilation in JAX backend.
@@ -323,7 +323,7 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
 
   Parameters
   ----------
-  obj_or_func
+  func
   axis_name
   in_axes
   out_axes
@@ -345,11 +345,11 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
   """
   from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-  if isinstance(obj_or_func, DynamicalSystem):
-    if len(obj_or_func.steps):  # DynamicalSystem has step functions
+  if isinstance(func, DynamicalSystem):
+    if len(func.steps):  # DynamicalSystem has step functions
 
       # dynamical variables
-      all_vars = (dyn_vars or obj_or_func.vars().unique())
+      all_vars = (dyn_vars or func.vars().unique())
       dyn_vars = TensorCollector()
       rand_vars = TensorCollector()
       for key, val in all_vars.items():
@@ -372,35 +372,35 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
       assert isinstance(static_broadcasted_argnums, (tuple, list))
 
       # jit functions
-      for key in obj_or_func.steps.keys():
-        step = obj_or_func.steps[key]
-        obj_or_func.steps[key] = _make_pmap(dyn_vars=dyn_vars,
-                                            rand_vars=rand_vars,
-                                            func=step,
-                                            axis_name=axis_name,
-                                            in_axes=in_axes,
-                                            out_axes=out_axes,
-                                            static_broadcasted_argnums=static_broadcasted_argnums,
-                                            devices=devices,
-                                            backend=backend,
-                                            axis_size=axis_size,
-                                            donate_argnums=donate_argnums,
-                                            global_arg_shapes=global_arg_shapes,
-                                            reduce_func=reduce_func,
-                                            f_name=key)
-      return obj_or_func
+      for key in func.steps.keys():
+        step = func.steps[key]
+        func.steps[key] = _make_pmap(dyn_vars=dyn_vars,
+                                     rand_vars=rand_vars,
+                                     func=step,
+                                     axis_name=axis_name,
+                                     in_axes=in_axes,
+                                     out_axes=out_axes,
+                                     static_broadcasted_argnums=static_broadcasted_argnums,
+                                     devices=devices,
+                                     backend=backend,
+                                     axis_size=axis_size,
+                                     donate_argnums=donate_argnums,
+                                     global_arg_shapes=global_arg_shapes,
+                                     reduce_func=reduce_func,
+                                     f_name=key)
+      return func
 
-  if callable(obj_or_func):
+  if callable(func):
     if dyn_vars is not None:
       dyn_vars = dyn_vars
-    elif isinstance(obj_or_func, Base):  # Base has '__call__()' implementation
-      dyn_vars = obj_or_func.vars().unique()
-    elif hasattr(obj_or_func, '__self__'):
-      if isinstance(obj_or_func.__self__, Base):
-        dyn_vars = obj_or_func.__self__.vars().unique()
+    elif isinstance(func, Base):  # Base has '__call__()' implementation
+      dyn_vars = func.vars().unique()
+    elif hasattr(func, '__self__'):
+      if isinstance(func.__self__, Base):
+        dyn_vars = func.__self__.vars().unique()
 
     if dyn_vars is None:
-      return jax.pmap(obj_or_func,
+      return jax.pmap(func,
                       axis_name=axis_name,
                       in_axes=in_axes,
                       out_axes=out_axes,
@@ -434,21 +434,21 @@ def pmap(obj_or_func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, stat
         reduce_func = jnp.concatenate
 
       # jit function
-      obj_or_func.__call__ = _make_pmap(dyn_vars=dyn_vars,
-                                        rand_vars=rand_vars,
-                                        func=obj_or_func,
-                                        axis_name=axis_name,
-                                        in_axes=in_axes,
-                                        out_axes=out_axes,
-                                        static_broadcasted_argnums=static_broadcasted_argnums,
-                                        devices=devices,
-                                        backend=backend,
-                                        axis_size=axis_size,
-                                        donate_argnums=donate_argnums,
-                                        global_arg_shapes=global_arg_shapes,
-                                        reduce_func=reduce_func)
-      return obj_or_func
+      func.__call__ = _make_pmap(dyn_vars=dyn_vars,
+                                 rand_vars=rand_vars,
+                                 func=func,
+                                 axis_name=axis_name,
+                                 in_axes=in_axes,
+                                 out_axes=out_axes,
+                                 static_broadcasted_argnums=static_broadcasted_argnums,
+                                 devices=devices,
+                                 backend=backend,
+                                 axis_size=axis_size,
+                                 donate_argnums=donate_argnums,
+                                 global_arg_shapes=global_arg_shapes,
+                                 reduce_func=reduce_func)
+      return func
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable function, '
-                              f'but we got {type(obj_or_func)}.')
+                              f'but we got {type(func)}.')
