@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-
-import brainpylib
+try:
+  import brainpylib
+except (ImportError, ModuleNotFoundError):
+  pass
 from jax import jit, vmap
 from jax import ops as jops
 
@@ -27,7 +29,7 @@ _jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3, 4, 5))
 _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
 
 
-def event_add(events, post_ids, pre2post_slice, post_num, value):
+def event_add(events, pre2post, post_num, value):
   """
 
   Parameters
@@ -43,10 +45,11 @@ def event_add(events, post_ids, pre2post_slice, post_num, value):
 
   """
   events = events.value if isinstance(events, JaxArray) else events
+  post_ids, pre2post_slice = pre2post
   post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
   pre2post_slice = pre2post_slice.value if isinstance(pre2post_slice, JaxArray) else pre2post_slice
   value = value.value if isinstance(value, JaxArray) else value
-  return brainpylib.event_add(events, post_ids, pre2post_slice, post_num, value)
+  return brainpylib.event_add(events, (post_ids, pre2post_slice), post_num, value)
 
 
 def pre2post(pre_values, post2pre_conn):

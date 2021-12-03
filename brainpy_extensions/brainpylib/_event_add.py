@@ -21,9 +21,12 @@ for _name, _value in cpu_ops.registrations().items():
 # This function exposes the primitive to user code and this is the only
 # public-facing function in this module
 
-def event_add(events, post_ids, pre2post_slice, post_num, value):
+def event_add(events, pre2post, post_num, value):
+  # output value
   value = jnp.array(value)
   out = jnp.zeros(post_num, dtype=value.dtype)
+  # pre2post connection
+  post_ids, pre2post_slice = pre2post
   assert len(events) + 1 == len(pre2post_slice)
   return _event_add_prim.bind(events, post_ids, pre2post_slice, value, out)
 
