@@ -2,6 +2,8 @@
 
 import unittest
 
+import numpy as np
+import matplotlib.pyplot as plt
 import pytest
 
 import brainpy as bp
@@ -222,4 +224,91 @@ class TestExpnentialEuler(unittest.TestCase):
       return dx
 
     ExponentialEuler(f=dev, show_code=True, dt=0.01, timeout=5)
+
+
+class TestExpEulerAuto(unittest.TestCase):
+  def test_hh_model(self):
+    import brainpy as bp
+    import brainpy.math as bm
+
+    class HH(bp.NeuGroup):
+      def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
+                   gL=0.1, V_th=20., phi=5.0, name=None, method='exponential_euler'):
+        super(HH, self).__init__(size=size, name=name)
+
+        # parameters
+        self.ENa = ENa
+        self.EK = EK
+        self.EL = EL
+        self.C = C
+        self.gNa = gNa
+        self.gK = gK
+        self.gL = gL
+        self.V_th = V_th
+        self.phi = phi
+
+        # variables
+        self.V = bm.Variable(bm.ones(size) * -65.)
+        self.h = bm.Variable(bm.ones(size) * 0.6)
+        self.n = bm.Variable(bm.ones(size) * 0.32)
+        self.spike = bm.Variable(bm.zeros(size, dtype=bool))
+        self.input = bm.Variable(bm.zeros(size))
+
+        self.int_h = bp.odeint(self.dh, method=method, show_code=True)
+        self.int_n = bp.odeint(self.dn, method=method, show_code=True)
+        self.int_V = bp.odeint(self.dV, method=method, show_code=True)
+
+      def dh(self, h, t, V):
+        alpha = 0.07 * bm.exp(-(V + 58) / 20)
+        beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
+        dhdt = self.phi * (alpha * (1 - h) - beta * h)
+        return dhdt
+
+      def dn(self, n, t, V):
+        alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+        beta = 0.125 * bm.exp(-(V + 44) / 80)
+        dndt = self.phi * (alpha * (1 - n) - beta * n)
+        return dndt
+
+      def dV(self, V, t, h, n, Iext):
+        m_alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+        m_beta = 4 * bm.exp(-(V + 60) / 18)
+        m = m_alpha / (m_alpha + m_beta)
+        INa = self.gNa * m ** 3 * h * (V - self.ENa)
+        IK = self.gK * n ** 4 * (V - self.EK)
+        IL = self.gL * (V - self.EL)
+        dVdt = (- INa - IK - IL + Iext) / self.C
+
+        return dVdt
+
+      def update(self, _t, _dt):
+        h = self.int_h(self.h, _t, self.V, dt=_dt)
+        n = self.int_n(self.n, _t, self.V, dt=_dt)
+        V = self.int_V(self.V, _t, self.h, self.n, self.input, dt=_dt)
+        self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+        self.V.value = V
+        self.h.value = h
+        self.n.value = n
+        self.input[:] = 0.
+
+    hh1 = HH(1, method='exp_euler')
+    runner1 = bp.StructRunner(hh1, inputs=('input', 2.), monitors=['V', 'h', 'n'])
+    runner1(100)
+    plt.figure()
+    plt.plot(runner1.mon.ts, runner1.mon.V, label='V')
+    plt.plot(runner1.mon.ts, runner1.mon.h, label='h')
+    plt.plot(runner1.mon.ts, runner1.mon.n, label='n')
+    # plt.show()
+
+    hh2 = HH(1, method='exp_euler_auto')
+    runner2 = bp.StructRunner(hh2, inputs=('input', 2.), monitors=['V', 'h', 'n'])
+    runner2(100)
+    plt.figure()
+    plt.plot(runner2.mon.ts, runner2.mon.V, label='V')
+    plt.plot(runner2.mon.ts, runner2.mon.h, label='h')
+    plt.plot(runner2.mon.ts, runner2.mon.n, label='n')
+    plt.show()
+
+    diff = (runner2.mon.V - runner1.mon.V).mean()
+    self.assertTrue(diff < 1e0)
 
