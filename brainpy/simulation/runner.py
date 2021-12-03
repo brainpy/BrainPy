@@ -59,11 +59,12 @@ class BaseRunner(Runner):
   """
 
   def __init__(self, target, monitors=None, inputs=(), show_code=False,
-               dt=None, jit=False, dyn_vars=None):
+               dt=None, jit=False, dyn_vars=None, numpy_mon=False):
     dt = math.get_dt() if dt is None else dt
     assert isinstance(dt, (int, float))
     self.dt = dt
     self.jit = jit
+    self.numpy_mon = numpy_mon
 
     # target
     assert isinstance(target, DynamicalSystem)
@@ -129,10 +130,11 @@ class ReportRunner(BaseRunner):
   """
 
   def __init__(self, target, inputs=(), monitors=None, report=0.1, dyn_vars=None,
-               jit=False, show_code=False, dt=None):
+               jit=False, show_code=False, dt=None, numpy_mon=True):
     super(ReportRunner, self).__init__(target=target, inputs=inputs,
                                        monitors=monitors, show_code=show_code,
-                                       jit=jit, dt=dt, dyn_vars=dyn_vars)
+                                       jit=jit, dt=dt, dyn_vars=dyn_vars,
+                                       numpy_mon=numpy_mon)
 
     self.report = report
 
@@ -333,6 +335,8 @@ class ReportRunner(BaseRunner):
     for key, val in self.mon.item_contents.items():
       self.mon.item_contents[key] = math.asarray(val)
     self._start_t = end_t
+    if self.numpy_mon:
+      self.mon.numpy()
     return running_time
 
 
@@ -352,14 +356,15 @@ class StructRunner(BaseRunner):
   """
 
   def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
-               jit=False, show_code=False, report=0., dt=None):
+               jit=False, show_code=False, report=0., dt=None, numpy_mon=True):
     self._has_iter_array = False  # default do not have iterable input array
     super(StructRunner, self).__init__(target=target,
                                        inputs=inputs,
                                        monitors=monitors,
                                        show_code=show_code,
                                        jit=jit, dt=dt,
-                                       dyn_vars=dyn_vars)
+                                       dyn_vars=dyn_vars,
+                                       numpy_mon=numpy_mon)
     # JAX does not support iterator in fori_loop, scan, etc.
     #   https://github.com/google/jax/issues/3567
     # We use Variable i to index the current input data.
@@ -538,4 +543,6 @@ class StructRunner(BaseRunner):
     running_time = time.time() - t0
     self._post(times, hists)
     self._start_t = end_t
+    if self.numpy_mon:
+      self.mon.numpy()
     return running_time
