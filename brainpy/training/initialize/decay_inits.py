@@ -153,8 +153,8 @@ class DOGDecay(Initializer):
       Widths of the positive and negative Gaussian functions.
   max_ws : tuple
       The weight amplitudes of the positive and negative Gaussian functions.
-  min_ws : float, None
-      The minimum weight value below which synapses are not created (default: :math:`0.005 * max(max\_ws)`).
+  min_w : float, None
+      The minimum weight value below which synapses are not created (default: :math:`0.005 * min(max\_ws)`).
   include_self : bool
     Whether create the conn at the same position.
   normalize : bool
@@ -179,7 +179,7 @@ class DOGDecay(Initializer):
     super(DOGDecay, self).__init__()
     self.sigma_p, self.sigma_n = sigmas
     self.max_w_p, self.max_w_n = max_ws
-    self.min_w = 0.005 * max(self.max_w_p, self.max_w_n) if min_w is None else min_w
+    self.min_w = 0.005 * min(self.max_w_p, self.max_w_n) if min_w is None else min_w
     self.normalize = normalize
     self.include_self = include_self
     self.encoding_values = encoding_values
