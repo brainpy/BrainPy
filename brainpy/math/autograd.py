@@ -433,7 +433,7 @@ def jacrev(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
   computation on functions and class functions. Moreover, it supports returning
   value ("return_value") and returning auxiliary data ("has_aux").
 
-  Same as `brainpy.math.grad <./brainpy.math.autograd.grad.rst>`_, the returns are
+  Same as `brainpy.math.grad <./brainpy.math.autograd.grad.html>`_, the returns are
   different for different argument settings in ``brainpy.math.jacrev``.
 
   1. When "grad_vars" is None
@@ -648,8 +648,8 @@ def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
 def vector_grad(func, dyn_vars=None, grad_vars=None, argnums=None, return_value=False, has_aux=None):
   """Take vector-valued gradients for function ``func``.
 
-  Same as `brainpy.math.grad <./brainpy.math.autograd.grad.rst>`_ and
-  `brainpy.math.jacrev <./brainpy.math.autograd.jacrev.rst>`_
+  Same as `brainpy.math.grad <./brainpy.math.autograd.grad.html>`_ and
+  `brainpy.math.jacrev <./brainpy.math.autograd.jacrev.html>`_
   the returns in this function are different for different argument settings.
 
   1. When "grad_vars" is None
