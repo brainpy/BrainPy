@@ -497,7 +497,7 @@ class ExponentialEuler(ODEIntegrator):
 class ExpEulerAuto(ODEIntegrator):
   """Exponential Euler method using automatic differentiation.
 
-  This method uses `brainpy.math.vector_grad <../../math/generated/brainpy.math.autograd.vector_grad.rst>`_
+  This method uses `brainpy.math.vector_grad <../../math/generated/brainpy.math.autograd.vector_grad.html>`_
   to automatically infer the linear part of the given function. Therefore, it has minimal constraints
   on your derivative function. Arbitrary complex functions can be numerically integrated with this method.
 
@@ -573,14 +573,9 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
     >>>
-    >>>
-    >>> hh2 = HH(1)
-    >>> run = bp.StructRunner(hh2, inputs=('input', 2.), monitors=['V', 'h', 'n'])
+    >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
-    >>>
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V')
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='h')
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='n', show=True)
+    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
 
   See Also
@@ -614,8 +609,6 @@ class ExpEulerAuto(ODEIntegrator):
       C.F: 'the derivative function',
       C.DT: 'the precision of numerical integration',
     }
-    for v in self.variables:
-      keywords[f'{v}_new'] = 'the intermediate value'
     utils.check_kws(self.arguments, keywords)
 
     # build the integrator
@@ -643,11 +636,13 @@ class ExpEulerAuto(ODEIntegrator):
     if self.has_aux:
       def _int(v, t, *args, dt=math.get_dt(), **kwargs):
         linear, derivative, aux = value_and_grad(v, t, *args, **kwargs)
-        phi = (math.exp(dt * linear) - 1) / dt * linear
+        z = dt * linear
+        phi = (math.exp(z) - 1) / z
         return v + dt * phi * derivative, aux
     else:
       def _int(v, t, *args, dt=math.get_dt(), **kwargs):
         linear, derivative = value_and_grad(v, t, *args, **kwargs)
-        phi = (math.exp(dt * linear) - 1) / dt * linear
+        z = dt * linear
+        phi = (math.exp(z) - 1) / z
         return v + dt * phi * derivative
     self.integral = _int
