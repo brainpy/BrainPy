@@ -6,15 +6,10 @@ from functools import partial
 
 import jax
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
 
 import brainpy.math as bm
 from brainpy import errors
-
-try:
-  from scipy.spatial.distance import pdist, squareform
-except (ModuleNotFoundError, ImportError):
-  pdist = squareform = None
-
 
 __all__ = [
   'FixedPointFinder',
@@ -74,9 +69,6 @@ class FixedPointFinder(object):
                ):
     if pdist is None or squareform is None:
       raise errors.PackageMissingError('Package "scipy" must be installed when the users '
-                                       'want to utilize the fixed point finder analysis.')
-    if jax is None or bm is None:
-      raise errors.PackageMissingError('Package "jax" must be installed when the users '
                                        'want to utilize the fixed point finder analysis.')
     assert f_type in ['df', 'F'], f'Only support "df" (continuous derivative function) or ' \
                                   f'"F" (discrete update function), not {f_type}.'

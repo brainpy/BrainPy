@@ -32,7 +32,7 @@ class CodeError(BrainPyError):
 
 
 class AnalyzerError(BrainPyError):
-  """Differential equation analyzer error.
+  """Error occurred in differential equation analyzer and dynamics analysis.
   """
 
 

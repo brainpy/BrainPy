@@ -85,7 +85,7 @@ class PhasePlane(object):
       options=None,
   ):
     # check "model"
-    self.model = utils.transform_integrals_to_model(model)
+    self.model = utils.integrators_into_model(model)
 
     # check "target_vars"
     if not isinstance(target_vars, dict):
@@ -211,7 +211,7 @@ class PhasePlane(object):
                                           show=show)
 
 
-class _PhasePlane1D(base.Base1DSymAnalyzer):
+class _PhasePlane1D(base.SymAnalyzer1D):
   """Phase plane analyzer for 1D system.
   """
 
@@ -303,7 +303,7 @@ class _PhasePlane1D(base.Base1DSymAnalyzer):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _PhasePlane2D(base.Base2DSymAnalyzer):
+class _PhasePlane2D(base.SymAnalyzer2D):
   """Phase plane analyzer for 2D system.
   """
 
@@ -457,8 +457,8 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
 
     if numerical_setting is None:
       numerical_setting = dict()
-    x_setting = numerical_setting.get(self.x_eq_group._mon_func_name, {})
-    y_setting = numerical_setting.get(self.y_eq_group._mon_func_name, {})
+    x_setting = numerical_setting.get(self.x_eq_group.func_name, {})
+    y_setting = numerical_setting.get(self.y_eq_group.func_name, {})
     x_coords = x_setting.get('coords', self.x_var + '-' + self.y_var)
     y_coords = y_setting.get('coords', self.x_var + '-' + self.y_var)
     x_plot_style = x_setting.get('plot', 'scatter')
@@ -545,8 +545,8 @@ class _PhasePlane2D(base.Base2DSymAnalyzer):
     if show:
       plt.show()
 
-    return {self.x_eq_group._mon_func_name: (x_values_in_x_eq, y_values_in_x_eq),
-            self.y_eq_group._mon_func_name: (x_values_in_y_eq, y_values_in_y_eq)}
+    return {self.x_eq_group.func_name: (x_values_in_x_eq, y_values_in_x_eq),
+            self.y_eq_group.func_name: (x_values_in_y_eq, y_values_in_y_eq)}
 
   def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
     """Plot trajectories according to the settings.
