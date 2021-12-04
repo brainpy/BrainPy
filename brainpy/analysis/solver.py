@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from scipy import optimize
 
-from brainpy import tools, errors
-
-try:
-  from scipy.optimize import shgo
-except (ModuleNotFoundError, ImportError):
-  shgo = None
-
+from brainpy import tools
 
 __all__ = [
   'brentq',
@@ -249,10 +244,6 @@ def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
   """
   print('Using scipy.optimize.shgo to solve fixed points.')
 
-  if shgo is None:
-    raise errors.PackageMissingError('Package "scipy" must be installed when the users '
-                                     'want to find the root of a two dimensional function.')
-
   # 1. shgo arguments
   if shgo_args is None:
     shgo_args = dict()
@@ -262,7 +253,7 @@ def find_root_of_2d(f, x_bound, y_bound, args=(), shgo_args=None,
     shgo_args['n'] = 400
 
   # 2. shgo optimization
-  ret = shgo(f, [x_bound, y_bound], args, **shgo_args)
+  ret = optimize.shgo(f, [x_bound, y_bound], args, **shgo_args)
   points = np.ascontiguousarray(ret.xl)
   values = np.ascontiguousarray(ret.funl)
   if verbose:

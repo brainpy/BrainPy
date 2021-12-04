@@ -85,7 +85,7 @@ class PhasePlane(object):
       options=None,
   ):
     # check "model"
-    self.model = utils.transform_integrals_to_model(model)
+    self.model = utils.integrators_into_model(model)
 
     # check "target_vars"
     if not isinstance(target_vars, dict):
@@ -211,7 +211,7 @@ class PhasePlane(object):
                                           show=show)
 
 
-class _PhasePlane1D(base.Base1DSymAnalyzer):
+class _PhasePlane1D(base.SymAnalyzer1D):
   """Phase plane analyzer for 1D system.
   """
 
@@ -303,7 +303,7 @@ class _PhasePlane1D(base.Base1DSymAnalyzer):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _PhasePlane2D(base.Base2DSymAnalyzer):
+class _PhasePlane2D(base.SymAnalyzer2D):
   """Phase plane analyzer for 2D system.
   """
 

@@ -1,31 +1,36 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from copy import deepcopy
 
 import numpy as np
+import sympy
 
-from brainpy import errors, math, tools
+from brainpy import errors, tools
 from brainpy.analysis import solver
 from brainpy.analysis.symbolic import utils
+from brainpy.integrators import analysis_by_sympy
 
-try:
-  import sympy
-  from brainpy.integrators import analysis_by_sympy
-except (ModuleNotFoundError, ImportError):
-  sympy = None
-  analysis_by_sympy = None
+logger = logging.getLogger('brainpy.analysis.symbolic')
 
-logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
-  'BaseSymAnalyzer',
-  'Base1DSymAnalyzer',
-  'Base2DSymAnalyzer',
+  'SymAnalyzer',
+  'SymAnalyzer1D',
+  'SymAnalyzer2D',
 ]
 
 
-class BaseSymAnalyzer(object):
+def _update_scope(scope):
+  scope['math'] = np
+  scope['bm'] = np
+
+
+def _dict_copy(target):
+  assert isinstance(target, dict)
+  return {k: v for k, v in target.items()}
+
+
+class SymAnalyzer(object):
   r"""Dynamics Analyzer for Neuron Models.
 
   This class is a base class which aims for analyze the analysis in
@@ -82,35 +87,32 @@ class BaseSymAnalyzer(object):
                numerical_resolution=0.1,
                options=None):
 
-    if (sympy is None) or (analysis_by_sympy is None):
-      raise errors.PackageMissingError('"SymPy" must be installed for dynamics analysis.')
-
     # model
     # -----
     if isinstance(model_or_integrals, utils.DynamicModel):
       self.model = model_or_integrals
-    elif (isinstance(model_or_integrals, (tuple, list)) and callable(model_or_integrals[0])) or \
-        callable(model_or_integrals):
-      self.model = utils.transform_integrals_to_model(model_or_integrals)
+    elif (isinstance(model_or_integrals, (tuple, list)) and
+          callable(model_or_integrals[0])) or callable(model_or_integrals):
+      self.model = utils.integrators_into_model(model_or_integrals)
     else:
-      raise ValueError
+      raise errors.AnalyzerError
 
     # target variables
     # ----------------
     if not isinstance(target_vars, dict):
-      raise errors.BrainPyError('"target_vars" must be a dict, with the format of '
-                                '{"var1": (var1_min, var1_max)}.')
+      raise errors.AnalyzerError('"target_vars" must be a dict, with the format of '
+                                 '{"var1": (var1_min, var1_max)}.')
     self.target_vars = target_vars
-    self.dvar_names = list(self.target_vars.keys())
+    self.dvar_names = list(self.target_vars.keys())  # list of target vars
     for key in self.target_vars.keys():
       if key not in self.model.variables:
-        raise ValueError(f'{key} is not a dynamical variable in {self.model}.')
+        raise errors.AnalyzerError(f'{key} is not a dynamical variable in {self.model}.')
 
     # fixed variables
     # ----------------
     if not isinstance(fixed_vars, dict):
-      raise errors.BrainPyError('"fixed_vars" must be a dict with the format '
-                                'of {"var1": val1, "var2": val2}.')
+      raise errors.AnalyzerError('"fixed_vars" must be a dict with the format '
+                                 'of {"var1": val1, "var2": val2}.')
     for key in fixed_vars.keys():
       if key not in self.model.variables:
         raise ValueError(f'{key} is not a dynamical variable in {self.model}.')
@@ -119,8 +121,8 @@ class BaseSymAnalyzer(object):
     # check duplicate
     for key in self.fixed_vars.keys():
       if key in self.target_vars:
-        raise errors.BrainPyError(f'"{key}" is defined as a target variable in "target_vars", '
-                                  f'but also defined as a fixed variable in "fixed_vars".')
+        raise errors.AnalyzerError(f'"{key}" is defined as a target variable in "target_vars", '
+                                   f'but also defined as a fixed variable in "fixed_vars".')
 
     # equations of dynamical variables
     # --------------------------------
@@ -128,7 +130,7 @@ class BaseSymAnalyzer(object):
     self.target_eqs = tools.DictPlus()
     for key in self.target_vars.keys():
       if key not in var2eq:
-        raise errors.BrainPyError(f'target "{key}" is not a dynamical variable.')
+        raise errors.AnalyzerError(f'target "{key}" is not a dynamical variable.')
       diff_eq = var2eq[key]
       sub_exprs = diff_eq.get_f_expressions(substitute_vars=list(self.target_vars.keys()))
       old_exprs = diff_eq.get_f_expressions(substitute_vars=None)
@@ -142,8 +144,8 @@ class BaseSymAnalyzer(object):
     if pars_update is None:
       pars_update = dict()
     if not isinstance(pars_update, dict):
-      raise errors.BrainPyError('"pars_update" must be a dict with the format '
-                                'of {"par1": val1, "par2": val2}.')
+      raise errors.AnalyzerError('"pars_update" must be a dict with the format '
+                                 'of {"par1": val1, "par2": val2}.')
     # keys = set(list(pars_update.keys()))
     # keys.update(list(self.model.pars_update.keys()))
     # new_pars_update = {}
@@ -154,7 +156,7 @@ class BaseSymAnalyzer(object):
     #     new_pars_update[key] = pars_update[key]
     for key in pars_update.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{self.model}" model.')
+        raise errors.AnalyzerError(f'"{key}" is not a valid parameter in "{self.model}" model.')
     self.pars_update = pars_update
 
     # dynamical parameters
@@ -162,18 +164,18 @@ class BaseSymAnalyzer(object):
     if target_pars is None:
       target_pars = dict()
     if not isinstance(target_pars, dict):
-      raise errors.BrainPyError('"target_pars" must be a dict with the format of {"par1": (val1, val2)}.')
+      raise errors.AnalyzerError('"target_pars" must be a dict with the format of {"par1": (val1, val2)}.')
     for key in target_pars.keys():
       if (key not in self.model.scopes) and (key not in self.model.parameters):
-        raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{self.model}" model.')
+        raise errors.AnalyzerError(f'"{key}" is not a valid parameter in "{self.model}" model.')
     self.target_pars = target_pars
-    self.dpar_names = list(self.target_pars.keys())
+    self.dpar_names = list(self.target_pars.keys())  # list of target_pars
 
     # check duplicate
     for key in self.pars_update.keys():
       if key in self.target_pars:
-        raise errors.BrainPyError(f'"{key}" is defined as a target parameter in "target_pars", '
-                                  f'but also defined as a fixed parameter in "pars_update".')
+        raise errors.AnalyzerError(f'"{key}" is defined as a target parameter in "target_pars", '
+                                   f'but also defined as a fixed parameter in "pars_update".')
 
     # resolutions for numerical methods
     # ---------------------------------
@@ -186,24 +188,24 @@ class BaseSymAnalyzer(object):
     elif isinstance(numerical_resolution, dict):
       for key in self.dvar_names + self.dpar_names:
         if key not in numerical_resolution:
-          raise errors.BrainPyError(f'Must provide the resolution setting of dynamical '
-                                    f'variable/parameter "{key}", '
-                                    f'but only get {numerical_resolution}.')
+          raise errors.AnalyzerError(f'Must provide the resolution setting of dynamical '
+                                     f'variable/parameter "{key}", '
+                                     f'but only get {numerical_resolution}.')
         resolution = numerical_resolution[key]
         if isinstance(resolution, float):
           lim = self.target_vars[key] if key in self.target_vars else self.target_pars[key]
           self.resolutions[key] = np.arange(*lim, resolution)
         elif isinstance(resolution, np.ndarray):
           if not np.ndim(resolution) == 1:
-            raise errors.BrainPyError(f'resolution must be a 1D vector, but get its '
-                                      f'shape with {resolution.shape}.')
+            raise errors.AnalyzerError(f'resolution must be a 1D vector, but get its '
+                                       f'shape with {resolution.shape}.')
           self.resolutions[key] = np.ascontiguousarray(resolution)
         else:
-          raise errors.BrainPyError(f'Unknown resolution setting: {key}: {resolution}')
+          raise errors.AnalyzerError(f'Unknown resolution setting: {key}: {resolution}')
     else:
-      raise errors.BrainPyError(f'Unknown resolution type: {type(numerical_resolution)}')
+      raise errors.AnalyzerError(f'Unknown resolution type: {type(numerical_resolution)}')
 
-    # a dict to store the analyzed results
+    # A dict to store the analyzed results
     # -------------------------------------
     # 'dxdt' : The differential function ``f`` of the first variable ``x``.
     #          It can be used as ``dxdt(x, y, ...)``.
@@ -232,7 +234,7 @@ class BaseSymAnalyzer(object):
     self.options['lim_scale'] = options.get('lim_scale', 1.05)
 
 
-class Base1DSymAnalyzer(BaseSymAnalyzer):
+class SymAnalyzer1D(SymAnalyzer):
   r"""Neuron analysis analyzer for 1D system.
 
   It supports the analysis of 1D dynamical system.
@@ -243,7 +245,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
   """
 
   def __init__(self, *args, **kwargs):
-    super(Base1DSymAnalyzer, self).__init__(*args, **kwargs)
+    super(SymAnalyzer1D, self).__init__(*args, **kwargs)
 
     self.x_var = self.dvar_names[0]
     self.x_eq_group = self.target_eqs[self.x_var]
@@ -251,11 +253,10 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
   def get_f_dx(self):
     """Get the derivative function of the first variable. """
     if 'dxdt' not in self.analyzed_results:
-      scope = deepcopy(self.pars_update)
+      scope = _dict_copy(self.pars_update)
       scope.update(self.fixed_vars)
-      # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
-      scope['math'] = math
+      _update_scope(scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
@@ -275,11 +276,10 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
       x_eq = self.x_eq_group.sub_exprs[-1].code
       x_eq = analysis_by_sympy.str2sympy(x_eq)
 
-      eq_x_scope = deepcopy(self.pars_update)
+      eq_x_scope = _dict_copy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
-      eq_x_scope['math'] = math
+      _update_scope(eq_x_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       time_out = self.options.sympy_solver_timeout
@@ -290,7 +290,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
           logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
                          f'({argument})" by "{x_var}", ')
           x_eq = x_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, x_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(x_eq, x_symbol))
           dfxdx_expr = f()
 
           # check
@@ -314,7 +314,8 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
           logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation, math=math)
+        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
+        _update_scope(scope)
         func_codes = [f'def dfdx({argument}):']
         if not origin:
           func_codes.append(f'origin = _fx({argument})')
@@ -336,11 +337,11 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
     if 'fixed_point' not in self.analyzed_results:
       x_eq = analysis_by_sympy.str2sympy(self.x_eq_group.sub_exprs[-1].code)
 
-      scope = deepcopy(self.pars_update)
+      scope = _dict_copy(self.pars_update)
       scope.update(self.fixed_vars)
       # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
-      scope['math'] = math
+      _update_scope(scope)
 
       timeout_len = self.options.sympy_solver_timeout
       argument1 = ', '.join(self.dvar_names + self.dpar_names)
@@ -353,7 +354,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
                          f'to "{self.x_var} = f({argument2})", ')
 
           # solver
-          f = utils.timeout(timeout_len)(
+          f = tools.timeout(timeout_len)(
             lambda: sympy.solve(x_eq.expr, sympy.Symbol(self.x_var, real=True)))
           results = f()
           for res in results:
@@ -406,7 +407,7 @@ class Base1DSymAnalyzer(BaseSymAnalyzer):
     return self.analyzed_results['fixed_point']
 
 
-class Base2DSymAnalyzer(Base1DSymAnalyzer):
+class SymAnalyzer2D(SymAnalyzer1D):
   r"""Neuron analysis analyzer for 2D system.
 
   It supports the analysis of 2D dynamical system.
@@ -436,7 +437,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
   """
 
   def __init__(self, *args, **kwargs):
-    super(Base2DSymAnalyzer, self).__init__(*args, **kwargs)
+    super(SymAnalyzer2D, self).__init__(*args, **kwargs)
 
     self.y_var = self.dvar_names[1]
     self.y_eq_group = self.target_eqs[self.y_var]
@@ -463,9 +464,9 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           raise ValueError(f'Unknown setting of "{a}": {subs}')
 
         # check "f"
-        scope = deepcopy(self.pars_update)
+        scope = _dict_copy(self.pars_update)
         scope.update(self.fixed_vars)
-        scope['math'] = math
+        _update_scope(scope)
         # scope.update(analysis_by_sympy.get_mapping_scope())
         if a.endswith('y_eq'):
           scope.update(self.y_eq_group['diff_eq'].func_scope)
@@ -492,14 +493,12 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
     """Get the derivative function of the second variable. """
     if 'dydt' not in self.analyzed_results:
       if len(self.dvar_names) < 2:
-        raise errors.BrainPyError(f'Analyzer only receives {len(self.dvar_names)} '
-                                  f'dynamical variables, cannot get "dy".')
-      y_var = self.dvar_names[1]
-      scope = deepcopy(self.pars_update)
+        raise errors.AnalyzerError(f'Analyzer only receives {len(self.dvar_names)} '
+                                   f'dynamical variables, cannot get "dy".')
+      scope = _dict_copy(self.pars_update)
       scope.update(self.fixed_vars)
-      # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.y_eq_group.diff_eq.func_scope)
-      scope['math'] = math
+      _update_scope(scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       func_code = f'def func({argument}):\n'
@@ -519,11 +518,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       x_eq = self.target_eqs[x_var].sub_exprs[-1].code
       x_eq = analysis_by_sympy.str2sympy(x_eq)
 
-      eq_x_scope = deepcopy(self.pars_update)
+      eq_x_scope = _dict_copy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
-      eq_x_scope['math'] = math
+      _update_scope(eq_x_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       time_out = self.options.sympy_solver_timeout
@@ -534,7 +532,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
                          f'({argument})" by "{y_var}", ')
           x_eq = x_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(x_eq, y_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(x_eq, y_symbol))
           dfxdy_expr = f()
 
           # check
@@ -558,7 +556,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation, math=math)
+        scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
+        _update_scope(scope)
         func_codes = [f'def dfdy({argument}):']
         if not origin:
           func_codes.append(f'origin = _fx({argument})')
@@ -583,11 +582,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       y_eq = self.target_eqs[y_var].sub_exprs[-1].code
       y_eq = analysis_by_sympy.str2sympy(y_eq)
 
-      eq_y_scope = deepcopy(self.pars_update)
+      eq_y_scope = _dict_copy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
-      eq_y_scope['math'] = math
+      _update_scope(eq_y_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       time_out = self.options.sympy_solver_timeout
@@ -598,7 +596,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve derivative of "{self.y_eq_group.func_name}'
                          f'({argument})" by "{x_var}", ')
           y_eq = y_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, x_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(y_eq, x_symbol))
           dfydx_expr = f()
 
           # check
@@ -622,7 +620,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation, math=math)
+        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
+        _update_scope(scope)
         func_codes = [f'def dgdx({argument}):']
         if not origin:
           func_codes.append(f'origin = _fy({argument})')
@@ -647,11 +646,11 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       y_eq = self.target_eqs[y_var].sub_exprs[-1].code
       y_eq = analysis_by_sympy.str2sympy(y_eq)
 
-      eq_y_scope = deepcopy(self.pars_update)
+      eq_y_scope = _dict_copy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
       # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
-      eq_y_scope['math'] = math
+      _update_scope(eq_y_scope)
 
       argument = ', '.join(self.dvar_names + self.dpar_names)
       argument2 = ', '.join(self.dvar_names[2:] + self.dpar_names)
@@ -663,7 +662,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'\tSymPy solve derivative of "{self.y_eq_group.func_name}'
                          f'({argument})" by "{y_var}", ')
           y_eq = y_eq.expr
-          f = utils.timeout(time_out)(lambda: sympy.diff(y_eq, y_symbol))
+          f = tools.timeout(time_out)(lambda: sympy.diff(y_eq, y_symbol))
           dfydx_expr = f()
 
           # check
@@ -687,7 +686,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning('\tfailed because the equation is too complex.')
 
       if sympy_failed:
-        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation, math=math)
+        scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
+        _update_scope(scope)
         func_codes = [f'def dgdy({argument}):']
         if not origin:
           func_codes.append(f'origin = _fy({argument})')
@@ -712,7 +712,8 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       dgdy = self.get_f_dgdy()
 
       argument = ','.join(self.dvar_names + self.dpar_names)
-      scope = dict(f_dfydy=dgdy, f_dfydx=dgdx, f_dfxdy=dfdy, f_dfxdx=dfdx, math=math)
+      scope = dict(f_dfydy=dgdy, f_dfydx=dgdx, f_dfxdy=dfdy, f_dfxdx=dfdx)
+      _update_scope(scope)
       func_codes = [f'def f_jacobian({argument}):']
       func_codes.append(f'dfxdx = f_dfxdx({argument})')
       func_codes.append(f'dfxdy = f_dfxdy({argument})')
@@ -731,12 +732,11 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
     if 'fixed_point' not in self.analyzed_results:
       vars_and_pars = ','.join(self.dvar_names[2:] + self.dpar_names)
 
-      eq_xy_scope = deepcopy(self.pars_update)
+      eq_xy_scope = _dict_copy(self.pars_update)
       eq_xy_scope.update(self.fixed_vars)
-      # eq_xy_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_xy_scope.update(self.x_eq_group['diff_eq'].func_scope)
       eq_xy_scope.update(self.y_eq_group['diff_eq'].func_scope)
-      eq_xy_scope['math'] = math
+      _update_scope(eq_xy_scope)
 
       # Try 1: substitute y_group to x_group
       #        y_by_x
@@ -841,11 +841,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       # Try 5: numerical optimization method
       # ------------------------------------
       # f
-      eq_x_scope = deepcopy(self.pars_update)
+      eq_x_scope = _dict_copy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
-      # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
-      eq_x_scope['math'] = math
+      _update_scope(eq_x_scope)
 
       func_codes = [f'def f_x({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -855,11 +854,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
       f_x = eq_x_scope['f_x']
 
       # g
-      eq_y_scope = deepcopy(self.pars_update)
+      eq_y_scope = _dict_copy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
-      # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
-      eq_y_scope['math'] = math
+      _update_scope(eq_y_scope)
 
       func_codes = [f'def g_y({",".join(self.dvar_names + self.dpar_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
@@ -912,11 +910,11 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
                          f'settings. But we get "{coords}".')
 
       # x equation scope
-      eq_x_scope = deepcopy(self.pars_update)
+      eq_x_scope = _dict_copy(self.pars_update)
       eq_x_scope.update(self.fixed_vars)
       # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
       eq_x_scope.update(self.x_eq_group.diff_eq.func_scope)
-      eq_x_scope['math'] = math
+      _update_scope(eq_x_scope)
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
 
@@ -987,10 +985,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
                          f'settings. But we get "{coords}".')
 
       # y equation scope
-      eq_y_scope = deepcopy(self.pars_update)
+      eq_y_scope = _dict_copy(self.pars_update)
       eq_y_scope.update(self.fixed_vars)
       eq_y_scope.update(self.y_eq_group.diff_eq.func_scope)
-      eq_y_scope['math'] = math
+      _update_scope(eq_y_scope)
 
       argument = ','.join(self.dvar_names[2:] + self.dpar_names)
 
@@ -1055,11 +1053,11 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         code = self.target_eqs[self.y_var].sub_exprs[-1].code
         y_eq = analysis_by_sympy.str2sympy(code).expr
 
-        eq_y_scope = deepcopy(self.pars_update)
+        eq_y_scope = _dict_copy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
         # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
-        eq_y_scope['math'] = math
+        _update_scope(eq_y_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
@@ -1069,7 +1067,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
                          f'"{self.y_var} = f({self.x_var}, '
                          f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
           y_by_x_in_y_eq = f()
           if len(y_by_x_in_y_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
@@ -1129,11 +1127,11 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         code = self.x_eq_group.sub_exprs[-1].code
         x_eq = analysis_by_sympy.str2sympy(code).expr
 
-        eq_x_scope = deepcopy(self.pars_update)
+        eq_x_scope = _dict_copy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
         # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
-        eq_x_scope['math'] = math
+        _update_scope(eq_x_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
@@ -1144,7 +1142,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
                          f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
 
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, y_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq, y_symbol))
           y_by_x_in_x_eq = f()
           if len(y_by_x_in_x_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
@@ -1203,11 +1201,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         code = self.target_eqs[self.y_var].sub_exprs[-1].code
         y_eq = analysis_by_sympy.str2sympy(code).expr
 
-        eq_y_scope = deepcopy(self.pars_update)
+        eq_y_scope = _dict_copy(self.pars_update)
         eq_y_scope.update(self.fixed_vars)
-        # eq_y_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
-        eq_y_scope['math'] = math
+        _update_scope(eq_y_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
@@ -1216,7 +1213,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
           x_by_y_in_y_eq = f()
           if len(x_by_y_in_y_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')
@@ -1276,11 +1273,10 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
         code = self.x_eq_group.sub_exprs[-1].code
         x_eq = analysis_by_sympy.str2sympy(code).expr
 
-        eq_x_scope = deepcopy(self.pars_update)
+        eq_x_scope = _dict_copy(self.pars_update)
         eq_x_scope.update(self.fixed_vars)
-        # eq_x_scope.update(analysis_by_sympy.get_mapping_scope())
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
-        eq_x_scope['math'] = math
+        _update_scope(eq_x_scope)
 
         argument = ', '.join(self.dvar_names + self.dpar_names)
         timeout_len = self.options.sympy_solver_timeout
@@ -1289,7 +1285,7 @@ class Base2DSymAnalyzer(Base1DSymAnalyzer):
           logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
           # solve the expression
-          f = utils.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))
           x_by_y_in_x_eq = f()
           if len(x_by_y_in_x_eq) > 1:
             raise NotImplementedError('Do not support multiple values.')

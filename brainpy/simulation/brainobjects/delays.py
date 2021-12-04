@@ -2,8 +2,8 @@
 
 import math as pm
 
-from brainpy import errors
 from brainpy import math as bm
+from brainpy.errors import ModelBuildError
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.utils import size2len
 
@@ -18,17 +18,14 @@ class Delay(DynamicalSystem):
 
   Parameters
   ----------
-
   steps : tuple of str, tuple of function, dict of (str, function), optional
       The callable function, or a list of callable functions.
-  monitors : None, list, tuple, datastructures.Monitor
-      Variables to monitor.
   name : str, optional
       The name of the dynamic system.
   """
 
-  def __init__(self, steps=('update',), name=None, monitors=None):
-    super(Delay, self).__init__(steps=steps, monitors=monitors, name=name)
+  def __init__(self, steps=('update',), name=None):
+    super(Delay, self).__init__(steps=steps, name=name)
 
   def update(self, _t, _dt, **kwargs):
     raise NotImplementedError
@@ -58,8 +55,6 @@ class ConstantDelay(Delay):
     The batch size.
   steps : optional, tuple of str, tuple of function, dict of (str, function)
     The callable function, or a list of callable functions.
-  monitors : optional, list, tuple, datastructures.Monitor
-    Variables to monitor.
   name : optional, str
     The name of the dynamic system.
   """
@@ -71,7 +66,7 @@ class ConstantDelay(Delay):
     # data size
     if isinstance(size, int): size = (size,)
     if not isinstance(size, (tuple, list)):
-      raise errors.BrainPyError(f'"size" must a tuple/list of int, but we got {type(size)}: {size}')
+      raise ModelBuildError(f'"size" must a tuple/list of int, but we got {type(size)}: {size}')
     self.size = tuple(size)
 
     # delay time length
@@ -83,7 +78,7 @@ class ConstantDelay(Delay):
       self.num_step = int(pm.ceil(delay / self.dt)) + 1
       self.out_idx = bm.Variable(bm.array([0]))
       self.in_idx = bm.Variable(bm.array([self.num_step - 1]))
-      self.data = bm.Variable(bm.zeros((self.num_step,) + self.size, dtype=dtype))
+      self.data = bm.Variable(bm.zeros((self.num_step - 1,) + self.size, dtype=dtype))
 
       self.push = self._push_for_uniform_delay
       self.pull = self._pull_for_uniform_delay
@@ -96,18 +91,18 @@ class ConstantDelay(Delay):
                                   f'{len(self.size)}-dimensions.')
       self.num = size2len(size)
       if bm.ndim(delay) != 1:
-        raise errors.BrainPyError(f'Only support a 1D non-uniform delay. '
-                                  f'But we got {delay.ndim}D: {delay}')
+        raise ModelBuildError(f'Only support a 1D non-uniform delay. '
+                              f'But we got {delay.ndim}D: {delay}')
       if delay.shape[0] != self.size[0]:
-        raise errors.BrainPyError(f"The first shape of the delay time size must "
-                                  f"be the same with the delay data size. But "
-                                  f"we got {delay.shape[0]} != {self.size[0]}")
+        raise ModelBuildError(f"The first shape of the delay time size must "
+                              f"be the same with the delay data size. But "
+                              f"we got {delay.shape[0]} != {self.size[0]}")
       delay = bm.around(delay / self.dt)
       self.diag = bm.array(bm.arange(self.num), dtype=bm.int_)
       self.num_step = bm.array(delay, dtype=bm.int_) + 1
       self.in_idx = bm.Variable(self.num_step - 1)
       self.out_idx = bm.Variable(bm.zeros(self.num, dtype=bm.int_))
-      self.data = bm.Variable(bm.zeros((self.num_step.max(),) + size, dtype=dtype))
+      self.data = bm.Variable(bm.zeros((self.num_step.max() - 1,) + size, dtype=dtype))
 
       self.push = self._push_for_nonuniform_delay
       self.pull = self._pull_for_nonuniform_delay
@@ -139,4 +134,4 @@ class ConstantDelay(Delay):
     """Reset the variables."""
     self.in_idx[:] = self.num_step - 1
     self.out_idx[:] = 0
-    self.data[:] = 0.
+    self.data[:] = 0

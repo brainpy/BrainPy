@@ -7,7 +7,7 @@
 
 # Why to use BrainPy
 
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)). Core functions provided in BrainPy includes
+``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax)). Core functions provided in BrainPy includes
 
 - **JIT compilation** for functions and class objects. 
 - **Numerical solvers** for ODEs, SDEs, and others. 
@@ -21,7 +21,7 @@
 - **Easy to learn and use**: BrainPy is only based on Python language and has little dependency requirements. 
 - **Flexible and transparent**: BrainPy endows the users with the fully data/logic flow control. Users can code any logic they want with BrainPy. 
 - **Extensible**: BrainPy allow users to extend new functionality just based on Python coding. For example, we extend the same code with the ability to do numerical analysis (whatever low- or high-dimensional system). 
-- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax) and [Numba](https://github.com/numba/)) to run on CPU, GPU or TPU devices, thus guaranteeing its running efficiency. 
+- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax)) to run on CPU, GPU or TPU devices, thus guaranteeing its running efficiency. 
 
 
 
@@ -31,8 +31,10 @@
 
 ``BrainPy`` is based on Python (>=3.6), and the following packages are required to be installed to use ``BrainPy``:
 
-- NumPy >= 1.15
-- Matplotlib >= 3.4
+- numpy >= 1.15
+- jax >= 0.2.10
+- sympy >= 1.6
+- matplotlib >= 3.4
 
 *The installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
 
@@ -58,13 +60,6 @@ To install the stable release of BrainPy, please use
 > python setup.py install
 ```
 
-
-
-**Other dependencies**: you want to get the full supports by BrainPy, please install the following packages:
-
-- `JAX >= 0.2.10`,  needed for "jax" backend and many other supports ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#jax))
-- `Numba >= 0.52`,  needed for JIT compilation on "numpy" backend ([how to install numba?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#numba))
-- `SymPy >= 1.4`, needed for dynamics "analysis" module and Exponential Euler method ([how to install sympy?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#sympy))
 
 
 
@@ -129,7 +124,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
-### Dynamics Learning
+### Dynamics learning
 
 - [Train Integrator RNN with BP](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/integrator_rnn.html)
 
@@ -153,5 +148,5 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 ### High-dimension dynamics analysis
 
-- [Fixed point finder]
+- [*(Yang, 2020)*: Dynamical system analysis for RNN](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Yang_2020_RNN_Analysis.html)
 

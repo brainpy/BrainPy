@@ -13,24 +13,23 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../'))
+
 import brainpy
-import brainpy.simulation.layers
-import brainpy.analysis.numeric
 
 from docs import auto_generater
-auto_generater.generate_analysis_docs('apis/analysis/')
-auto_generater.generate_base_docs('apis/')
-auto_generater.generate_math_docs('apis/math/')
-auto_generater.generate_integrators_doc('apis/integrators/')
-auto_generater.generate_simulation_docs('apis/simulation/')
-auto_generater.generate_tools_docs('apis/')
-auto_generater.generate_visualization_docs('apis/')
-auto_generater.generate_jaxsetting_docs('apis/')
+auto_generater.generate_base_docs('apis/auto/')
+auto_generater.generate_math_docs('apis/auto/math/')
+auto_generater.generate_integrators_doc('apis/auto/integrators/')
+auto_generater.generate_simulation_docs('apis/auto/simulation/')
+auto_generater.generate_training_docs('apis/auto/training/')
+auto_generater.generate_analysis_docs('apis/auto/analysis/')
+auto_generater.generate_visualization_docs('apis/auto/')
+auto_generater.generate_tools_docs('apis/auto/')
 
 
 import shutil
-det_changelog = 'apis/changelog.rst'
+det_changelog = 'apis/auto/changelog.rst'
 src_changelog = '../changelog.rst'
 if os.path.exists(det_changelog): os.remove(det_changelog)
 shutil.copyfile(src_changelog, det_changelog)
@@ -39,8 +38,8 @@ shutil.copyfile(src_changelog, det_changelog)
 # -- Project information -----------------------------------------------------
 
 project = 'BrainPy'
-copyright = '2021, Chaoming Wang'
-author = 'Chaoming Wang'
+copyright = '2021, BrainPy'
+author = 'BrainPy Team'
 
 # The full version, including alpha/beta/rc tags
 release = brainpy.__version__
@@ -89,8 +88,3 @@ html_theme = 'sphinx_rtd_theme'
 # Notebook cell execution timeout; defaults to 30.
 execution_timeout = 200
 jupyter_execute_notebooks = "off"
-
-
-if __name__ == '__main__':
-    print(brainpy)
-    print(brainpy.simulation.layers)

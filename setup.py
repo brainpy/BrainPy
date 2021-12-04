@@ -21,17 +21,22 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
 setup(
   name='brain-py',
   version=version,
-  description='BrainPy: A flexible and extensible framework for brain modeling',
+  description='BrainPy: a flexible, efficient and extensible framework for brain modeling',
   long_description=README,
   long_description_content_type="text/markdown",
-  author='Chaoming Wang',
+  author='BrainPy Team',
   author_email='chao.brain@qq.com',
-  packages=find_packages(exclude=['examples*', 'docs*', 'develop*', 'ode*']),
+  packages=find_packages(exclude=['docs*', 'develop*']),
   python_requires='>=3.6',
   install_requires=[
     'numpy>=1.15',
     'matplotlib>=3.4',
+    'sympy>=1.6',
   ],
+  extras_require={
+    'cpu': ['brainpylib>=0.01', 'jaxlib>=0.1.64', 'jax>=0.2.10'],
+    'cuda': [],
+  },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   keywords='computational neuroscience, '
            'brain-inspired computation, '

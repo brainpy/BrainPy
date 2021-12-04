@@ -5,11 +5,6 @@ import numpy as np
 from brainpy import tools, errors
 from .base import *
 
-try:
-  import numba
-except ModuleNotFoundError:
-  numba = None
-
 __all__ = [
   'FixedProb',
   'FixedPreNum',
@@ -23,11 +18,10 @@ __all__ = [
 ]
 
 
-# @tools.numba_jit
 def _random_prob_conn(rng, pre_i, num_post, prob, include_self):
   p = rng.random(num_post) <= prob
   if (not include_self) and pre_i < num_post: p[pre_i] = False
-  conn_j = np.asarray(np.where(p)[0], dtype=np.int_)
+  conn_j = np.asarray(np.where(p)[0], dtype=IDX_DTYPE)
   return conn_j
 
 
@@ -58,32 +52,30 @@ class FixedProb(TwoEndConnector):
     if type_to_provide == PROVIDE_MAT:
       prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
       if not self.include_self: np.fill_diagonal(prob_mat, 1.)
-      conn_mat = np.array(prob_mat <= self.prob, dtype=np.bool_)
-      return self.returns(mat=conn_mat)
+      conn_mat = np.array(prob_mat <= self.prob, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn_mat)
 
     elif type_to_provide == PROVIDE_IJ:
-      # tools.numba_seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(self.pre_num):
         posts = _random_prob_conn(self.rng, pre_i=i, num_post=self.post_num,
                                   prob=self.prob, include_self=self.include_self)
         if len(posts):
-          pre_ids.append(np.ones_like(posts, dtype=np.int_) * i)
+          pre_ids.append(np.ones_like(posts, dtype=IDX_DTYPE) * i)
           post_ids.append(posts)
-      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=np.int_)
-      post_ids = np.asarray(np.concatenate(post_ids), dtype=np.int_)
-      return self.returns(ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=IDX_DTYPE)
+      post_ids = np.asarray(np.concatenate(post_ids), dtype=IDX_DTYPE)
+      return self.make_return(ij=(pre_ids, post_ids))
 
     else:
       raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
 
 
-# @tools.numba_jit
 def _fixed_num_prob_for_ij(rng, num_need, num_total, i=0, include_self=False):
   prob = rng.random(num_total)
   if not include_self and i <= num_total: prob[i] = 1.
   pres = np.argsort(prob)[:num_need]
-  posts = np.ones_like(pres, dtype=np.int_) * i
+  posts = np.ones_like(pres, dtype=IDX_DTYPE) * i
   return pres, posts
 
 
@@ -144,12 +136,11 @@ class FixedPreNum(TwoEndConnector):
       if not self.include_self: np.fill_diagonal(prob_mat, 1.)
 
       conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
-      conn_mat = np.asarray(conn_mat, dtype=np.bool_)
-      return self.returns(mat=conn_mat)
+      conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn_mat)
 
     # ij
     elif type_to_provide == PROVIDE_IJ:
-      # tools.numba_seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(self.post_num):
         pres, posts = _fixed_num_prob_for_ij(rng=self.rng,
@@ -159,9 +150,9 @@ class FixedPreNum(TwoEndConnector):
                                              include_self=self.include_self)
         pre_ids.append(pres)
         post_ids.append(posts)
-      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=np.int_)
-      post_ids = np.asarray(np.concatenate(post_ids), dtype=np.int_)
-      return self.returns(ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=IDX_DTYPE)
+      post_ids = np.asarray(np.concatenate(post_ids), dtype=IDX_DTYPE)
+      return self.make_return(ij=(pre_ids, post_ids))
 
     else:
       raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
@@ -223,12 +214,11 @@ class FixedPostNum(TwoEndConnector):
       prob_mat = self.rng.random(size=(self.post_num, self.pre_num))
       if not self.include_self: np.fill_diagonal(prob_mat, 1.)
       conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
-      conn_mat = np.asarray(np.transpose(conn_mat), dtype=np.bool_)
-      return self.returns(mat=conn_mat)
+      conn_mat = np.asarray(np.transpose(conn_mat), dtype=MAT_DTYPE)
+      return self.make_return(mat=conn_mat)
 
     # ij
     elif type_to_provide == PROVIDE_IJ:
-      # tools.numba_seed(self.seed)
       pre_ids, post_ids = [], []
       for i in range(self.pre_num):
         posts, pres = _fixed_num_prob_for_ij(rng=self.rng, num_need=num, num_total=self.post_num,
@@ -237,45 +227,11 @@ class FixedPostNum(TwoEndConnector):
         post_ids.append(posts)
       pre_ids = np.concatenate(pre_ids)
       post_ids = np.concatenate(post_ids)
-      return self.returns(ij=(pre_ids, post_ids))
+      return self.make_return(ij=(pre_ids, post_ids))
 
     else:
       raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
 
-
-@tools.numba_jit
-def _gaussian_prob(pre_i, pre_width, pre_height, num_post, post_width, post_height,
-                   p_min, sigma, normalize, include_self):
-  conn_i = []
-  conn_j = []
-  conn_p = []
-
-  # get normalized coordination
-  pre_coords = (pre_i // pre_width, pre_i % pre_width)
-  if normalize:
-    pre_coords = (pre_coords[0] / (pre_height - 1) if pre_height > 1 else 1.,
-                  pre_coords[1] / (pre_width - 1) if pre_width > 1 else 1.)
-
-  for post_i in range(num_post):
-    if (pre_i == post_i) and (not include_self):
-      continue
-
-    # get normalized coordination
-    post_coords = (post_i // post_width, post_i % post_width)
-    if normalize:
-      post_coords = (post_coords[0] / (post_height - 1) if post_height > 1 else 1.,
-                     post_coords[1] / (post_width - 1) if post_width > 1 else 1.)
-
-    # Compute Euclidean distance between two coordinates
-    distance = (pre_coords[0] - post_coords[0]) ** 2
-    distance += (pre_coords[1] - post_coords[1]) ** 2
-    # get weight and conn
-    value = np.exp(-distance / (2.0 * sigma ** 2))
-    if value > p_min:
-      conn_i.append(pre_i)
-      conn_j.append(post_i)
-      conn_p.append(value)
-  return conn_i, conn_j, conn_p
 
 
 class GaussianProb(OneEndConnector):
@@ -386,12 +342,12 @@ class GaussianProb(OneEndConnector):
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
     if type_tp_provide == PROVIDE_MAT:
-      return self.returns(mat=np.asarray(conn_mat, dtype=np.float_))
+      return self.make_return(mat=np.asarray(conn_mat, dtype=np.float_))
     elif type_tp_provide == PROVIDE_IJ:
       i, j = np.where(conn_mat)
-      pre_ids = np.asarray(i, dtype=np.int_)
-      post_ids = np.asarray(j, dtype=np.int_)
-      return self.returns(mat=conn_mat, ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(i, dtype=IDX_DTYPE)
+      post_ids = np.asarray(j, dtype=IDX_DTYPE)
+      return self.make_return(mat=conn_mat, ij=(pre_ids, post_ids))
     else:
       return ValueError
 
@@ -461,9 +417,9 @@ class SmallWorld(TwoEndConnector):
         raise ValueError("num_neighbor > num_node, choose smaller num_neighbor or larger num_node")
       # If k == n, the graph is complete not Watts-Strogatz
       if self.num_neighbor == num_node:
-        conn = np.ones((num_node, num_node), dtype=bool)
+        conn = np.ones((num_node, num_node), dtype=MAT_DTYPE)
       else:
-        conn = np.zeros((num_node, num_node), dtype=bool)
+        conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
         nodes = np.array(list(range(num_node)))  # nodes are labeled 0 to n-1
         # connect each node to k/2 neighbors
         for j in range(1, self.num_neighbor // 2 + 1):
@@ -496,18 +452,18 @@ class SmallWorld(TwoEndConnector):
                 conn[v, u] = False
                 conn[u, w] = True
                 conn[w, u] = True
-        conn = np.asarray(conn, dtype=np.bool_)
+        conn = np.asarray(conn, dtype=MAT_DTYPE)
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
     if type_to_provide == PROVIDE_MAT:
-      return self.returns(mat=conn)
+      return self.make_return(mat=conn)
 
     elif type_to_provide == PROVIDE_IJ:
       pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=np.int_)
-      post_ids = np.asarray(post_ids, dtype=np.int_)
-      return self.returns(mat=conn, ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
+      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
 
     else:
       raise ValueError
@@ -570,7 +526,7 @@ class ScaleFreeBA(TwoEndConnector):
                        f"m < n, while m = {self.m} and n = {num_node}")
 
     # Add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=bool)
+    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
     # Target nodes for new edges
     targets = list(range(self.m))
     # List of existing nodes, with nodes repeated once for each adjacent edge
@@ -593,15 +549,15 @@ class ScaleFreeBA(TwoEndConnector):
       source += 1
 
     if type_to_provide == PROVIDE_MAT:
-      conn = np.asarray(conn, dtype=np.bool_)
-      return self.returns(mat=conn)
+      conn = np.asarray(conn, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn)
 
     elif type_to_provide == PROVIDE_IJ:
       pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=np.int_)
-      post_ids = np.asarray(post_ids, dtype=np.int_)
-      conn = np.asarray(conn, dtype=np.bool_)
-      return self.returns(mat=conn, ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
+      conn = np.asarray(conn, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
 
     else:
       raise ValueError
@@ -618,11 +574,11 @@ class ScaleFreeBADual(TwoEndConnector):
   Parameters
   ----------
   m1 : int
-      Number of edges to attach from a new node to existing nodes with probability $p$
+      Number of edges to attach from a new node to existing nodes with probability :math:`p`
   m2 : int
-      Number of edges to attach from a new node to existing nodes with probability $1-p$
+      Number of edges to attach from a new node to existing nodes with probability :math:`1-p`
   p : float
-      The probability of attaching $m_1$ edges (as opposed to $m_2$ edges)
+      The probability of attaching :math:`m\_1` edges (as opposed to :math:`m\_2` edges)
   seed : integer, random_state, or None (default)
       Indicator of random number generation state.
 
@@ -659,7 +615,7 @@ class ScaleFreeBADual(TwoEndConnector):
       raise ValueError(f"Dual Barabási–Albert network must have 0 <= p <= 1, while p = {self.p}")
 
     # Add max(m1,m2) initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=bool)
+    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
     # List of existing nodes, with nodes repeated once for each adjacent edge
     repeated_nodes = []
     # Start adding the remaining nodes.
@@ -686,14 +642,14 @@ class ScaleFreeBADual(TwoEndConnector):
       source += 1
 
     if type_tp_provide == PROVIDE_MAT:
-      conn = np.asarray(conn, dtype=np.bool_)
-      return self.returns(mat=conn)
+      conn = np.asarray(conn, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn)
     elif type_tp_provide == PROVIDE_IJ:
       pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=np.int_)
-      post_ids = np.asarray(post_ids, dtype=np.int_)
-      conn = np.asarray(conn, dtype=np.bool_)
-      return self.returns(mat=conn, ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
+      conn = np.asarray(conn, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
     else:
       raise ValueError
 
@@ -764,7 +720,7 @@ class PowerLaw(TwoEndConnector):
     if self.m < 1 or num_node < self.m:
       raise ValueError(f"Must have m>1 and m<n, while m={self.m} and n={num_node}")
     # add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=bool)
+    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
     repeated_nodes = list(range(self.m))  # list of existing nodes to sample from
     # with nodes repeated once for each adjacent edge
     source = self.m  # next node is m
@@ -798,13 +754,13 @@ class PowerLaw(TwoEndConnector):
       source += 1
 
     if type_to_provide == PROVIDE_MAT:
-      conn = np.asarray(conn, dtype=np.bool_)
-      return self.returns(mat=conn)
+      conn = np.asarray(conn, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn)
     elif type_to_provide == PROVIDE_IJ:
       pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=np.int_)
-      post_ids = np.asarray(post_ids, dtype=np.int_)
-      conn = np.asarray(conn, dtype=np.bool_)
-      return self.returns(mat=conn, ij=(pre_ids, post_ids))
+      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
+      conn = np.asarray(conn, dtype=MAT_DTYPE)
+      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
     else:
       raise ValueError

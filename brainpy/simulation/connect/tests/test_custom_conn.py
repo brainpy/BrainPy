@@ -1,27 +1,49 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
+from unittest import TestCase
+
+import numpy as np
 import pytest
 
+import brainpy as bp
 
-def test_IJConn():
-    conn = bp.connect.IJConn(i=bp.math.array([0, 1, 2]),
-                             j=bp.math.array([0, 0, 0]))
+
+class TestJIConn(TestCase):
+  def test_ij(self):
+    conn = bp.connect.IJConn(i=np.array([0, 1, 2]),
+                             j=np.array([0, 0, 0]))
     conn = conn(pre_size=5, post_size=3)
 
-    print(conn.requires('pre2post'))
-    print(conn.requires(bp.connect.CONN_MAT))
+    pre2post = conn.requires('pre2post')
+    assert bp.math.array_equal(pre2post[0], bp.math.array([0]))
+    assert bp.math.array_equal(pre2post[1], bp.math.array([0]))
+    assert bp.math.array_equal(pre2post[2], bp.math.array([0]))
+    assert len(pre2post[3]) == 0
+    assert len(pre2post[4]) == 0
+
+    post2pre = conn.requires('post2pre')
+    assert bp.math.array_equal(post2pre[0], bp.math.array([0, 1, 2]))
+    assert len(post2pre[1]) == 0
+    assert len(post2pre[2]) == 0
+
+    a = bp.math.array([[True, False, False],
+                       [True, False, False],
+                       [True, False, False],
+                       [False, False, False],
+                       [False, False, False]])
+    assert bp.math.array_equal(conn.require(bp.conn.CONN_MAT), a)
 
 
-def test_MatConn1():
+class TestMatConn(TestCase):
+  def test_MatConn1(self):
+    bp.math.random.seed(123)
     conn = bp.connect.MatConn(conn_mat=bp.math.random.randint(2, size=(5, 3), dtype=bp.math.bool_))
     conn = conn(pre_size=5, post_size=3)
 
     print(conn.requires('pre2post'))
     print(conn.requires(bp.connect.CONN_MAT))
 
-
-def test_MatConn2():
+  def test_MatConn2(self):
     conn = bp.connect.MatConn(conn_mat=bp.math.random.randint(2, size=(5, 3), dtype=bp.math.bool_))
     with pytest.raises(AssertionError):
       conn = conn(pre_size=5, post_size=1)

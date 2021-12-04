@@ -2,6 +2,8 @@ publishment.md
 #experimental/
 .vscode
 
+BrainPyExamples/
+BrainModels/
 book/
 docs/examples
 docs/apis/jaxsetting.rst
@@ -23,32 +25,12 @@ docs/images/connection_methods.pptx
 */_autosummary
 */generated
 
-docs/apis/base.rst
-docs/apis/simulation/
-docs/apis/analysis/
-docs/apis/integrators/ode_adaptive_rk.rst
-docs/apis/integrators/ode_explicit_rk.rst
-docs/apis/integrators/ode_exponential.rst
-docs/apis/analysis/generated
-docs/apis/tools.rst
-docs/apis/visualization.rst
-docs/apis/math/generated
-docs/apis/math/jax_math
-docs/quickstart/_autosummary
-docs/quickstart/generated
+docs/apis/auto
 docs/quickstart/.ipynb_checkpoints
-
-docs/tutorials_advanced/_autosummary
-docs/tutorials_advanced/generated
-docs/tutorials_advanced/.ipynb_checkpoints
-docs/tutorials_advanced/usage_of_inputfactory.py
-docs/tutorials_advanced/usage_of_utils_connect.py
 
 docs/apis/_autosummary
 docs/apis/generated
-docs/apis/math/comparison_table.rst.inc
-docs/apis/changelog.rst
-docs/apis/integrators/_autosummary
+docs/apis/math/generated
 docs/apis/integrators/generated
 
 develop/benchmark/COBA/brian2*
@@ -93,7 +75,6 @@ develop-eggs/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/

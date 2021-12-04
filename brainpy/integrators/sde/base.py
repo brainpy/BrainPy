@@ -27,6 +27,8 @@ class SDEIntegrator(Integrator):
 
     # derivative functions
     self.derivative = {constants.F: f, constants.G: g}
+    self.f = f
+    self.g = g
 
     # integration function
     self.integral = None

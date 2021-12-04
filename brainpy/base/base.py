@@ -23,16 +23,13 @@ class Base(object):
   The subclass of Base includes:
 
   - ``DynamicalSystem`` in *brainpy.simulation.brainobjects.base.py*
+  - ``Integrator`` in *brainpy.integrators.base.py*
   - ``Function`` in *brainpy.base.function.py*
   - ``AutoGrad`` in *brainpy.math.jax.autograd.py*
   - ``Optimizer`` in *brainpy.math.jax.optimizers.py*
   - ``Scheduler`` in *brainpy.math.jax.optimizers.py*
 
   """
-
-  target_backend = None
-  """Used to specify the target backend which the model to run."""
-
   implicit_vars = None
   """Used to wrap the implicit variables which cannot be accessed by self.xxx"""
 
@@ -43,31 +40,6 @@ class Base(object):
     # check whether the object has a unique name.
     self.name = self.unique_name(name=name)
     namechecking.check_name(name=self.name, obj=self)
-
-    # target backend
-    if self.target_backend is None:
-      self.target_backend = ('general',)
-    elif isinstance(self.target_backend, str):
-      self.target_backend = (self.target_backend,)
-    elif isinstance(self.target_backend, (tuple, list)):
-      if not isinstance(self.target_backend[0], str):
-        raise errors.BrainPyError('"target_backend" must be a list/tuple of string.')
-      self.target_backend = tuple(self.target_backend)
-    else:
-      raise errors.BrainPyError(f'Unknown setting of "target_backend": {self.target_backend}')
-
-    # check target backend
-    global math
-    if math is None: from brainpy import math
-    check1 = self.target_backend[0] != 'general'
-    check2 = math.get_backend_name() not in self.target_backend
-    if check1 and check2:
-      msg = f'ERROR: The model {self.name}: {self} is target to run on {self.target_backend}, ' \
-            f'but currently the selected backend is "{math.get_backend_name()}". \n\n' \
-            f'To switch backend, please use: \n' \
-            f'>>> brainpy.math.use_backend(BACKEND_NAME)'
-      logger.error(msg)
-      raise errors.BrainPyError(msg)
 
   def vars(self, method='absolute'):
     """Collect all variables in this node and the children nodes.
@@ -280,22 +252,15 @@ class Base(object):
     global math
     if math is None: from brainpy import math
 
-    if math.get_backend_name() == 'jax':
-      all_vars = self.vars().unique()
-      for data in all_vars.values():
-        data[:] = math.asarray(data.value)
-        # TODO
+    all_vars = self.vars().unique()
+    for data in all_vars.values():
+      data[:] = math.asarray(data.value)
+      # TODO
 
   def cuda(self):
     global math
     if math is None: from brainpy import math
-    if math.get_backend_name() != 'jax':
-      raise errors.BrainPyError(f'Only support to deploy data into "cuda" device in "jax" backend. '
-                                f'While currently the selected backend is "{math.get_backend_name()}".')
 
   def tpu(self):
     global math
     if math is None: from brainpy import math
-    if math.get_backend_name() != 'jax':
-      raise errors.BrainPyError(f'Only support to deploy data into "tpu" device in "jax" backend. '
-                                f'While currently the selected backend is "{math.get_backend_name()}".')

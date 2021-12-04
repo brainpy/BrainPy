@@ -6,12 +6,10 @@ from pprint import pprint
 
 import brainpy as bp
 from brainpy.math.numpy.ast2numba import FindAllForLoop
-from brainpy.math.numpy.ast2numba import _find_all_forloop
 from brainpy.math.numpy.ast2numba import FuncTransformer
+from brainpy.math.numpy.ast2numba import _find_all_forloop
 from brainpy.math.numpy.ast2numba import _jit_cls_func
 from brainpy.tools import ast2code
-
-bp.math.use_backend('numpy')
 
 
 def test_find_self_data1():
@@ -129,6 +127,7 @@ def test_cls_func_hh1():
   pprint(r['arg2call'])
   pprint('nodes:')
   pprint(r['nodes'])
+
 
 def test_cls_func_hh1_1():
   class HH(bp.NeuGroup):
@@ -753,6 +752,7 @@ for step in self.child_steps.values():
   print()
   pprint(_find_all_forloop(tree))
 
+
 def test_FindForLoop3():
   code = '''
 for i in range(self.num):
@@ -784,6 +784,7 @@ self.input[:] = 0.
   print()
   pprint(_find_all_forloop(tree))
 
+
 def test_FindForLoop4():
   code = '''
 self.pre_spike.push(self.pre.spike)
@@ -811,5 +812,3 @@ self.post.input[:] += self.output_current(self.g)
 
   print()
   pprint(_find_all_forloop(tree))
-
-

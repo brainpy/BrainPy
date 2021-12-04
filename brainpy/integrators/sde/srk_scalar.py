@@ -59,7 +59,7 @@ def _state1(code_lines, variables, parameters):
 class SRK1W1(SDEIntegrator):
   r"""Order 2.0 weak SRK methods for SDEs with scalar Wiener process.
 
-  This method has have strong orders :backend:`(p_d, p_s) = (2.0,1.5)`.
+  This method has have strong orders :math:`(p_d, p_s) = (2.0,1.5)`.
 
   The Butcher table is:
 
@@ -176,9 +176,9 @@ class SRK1W1(SDEIntegrator):
 
 
 class SRK2W1(SDEIntegrator):
-  """Order 1.5 Strong SRK Methods for SDEs witdt Scalar Noise.
+  r"""Order 1.5 Strong SRK Methods for SDEs witdt Scalar Noise.
 
-  This method has have strong orders :backend:`(p_d, p_s) = (3.0,1.5)`.
+  This method has have strong orders :math:`(p_d, p_s) = (3.0,1.5)`.
 
   The Butcher table is:
 
@@ -201,12 +201,12 @@ class SRK2W1(SDEIntegrator):
   References
   ----------
 
-  [1] Rößler, Andreas. "Strong and weak approximation methods for stochastic differential
-      equations—some recent developments." Recent developments in applied probability and
-      statistics. Physica-Verlag HD, 2010. 127-153.
-  [2] Rößler, Andreas. "Runge–Kutta methods for the strong approximation of solutions of
-      stochastic differential equations." SIAM Journal on Numerical Analysis 48.3
-      (2010): 922-952.
+  .. [1] Rößler, Andreas. "Strong and weak approximation methods for stochastic differential
+         equations—some recent developments." Recent developments in applied probability and
+         statistics. Physica-Verlag HD, 2010. 127-153.
+  .. [2] Rößler, Andreas. "Runge–Kutta methods for the strong approximation of solutions of
+         stochastic differential equations." SIAM Journal on Numerical Analysis 48.3
+         (2010): 922-952.
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,

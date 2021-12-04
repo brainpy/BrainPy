@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors
+from brainpy.errors import ModelBuildError
 from brainpy.simulation import utils
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
@@ -40,23 +40,23 @@ class NeuGroup(DynamicalSystem):
     The name of the dynamic system.
   """
 
-  def __init__(self, size, name=None, steps=('update',), **kwargs):
+  def __init__(self, size, name=None, steps=('update',)):
     # size
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
-        raise errors.BrainPyError('size must be int, or a tuple/list of int.')
+        raise ModelBuildError('size must be int, or a tuple/list of int.')
       if not isinstance(size[0], int):
-        raise errors.BrainPyError('size must be int, or a tuple/list of int.')
+        raise ModelBuildError('size must be int, or a tuple/list of int.')
       size = tuple(size)
     elif isinstance(size, int):
       size = (size,)
     else:
-      raise errors.BrainPyError('size must be int, or a tuple/list of int.')
+      raise ModelBuildError('size must be int, or a tuple/list of int.')
     self.size = size
     self.num = utils.size2len(size)
 
     # initialize
-    super(NeuGroup, self).__init__(steps=steps, name=name, **kwargs)
+    super(NeuGroup, self).__init__(steps=steps, name=name)
 
   def update(self, _t, _dt):
     """The function to specify the updating rule.

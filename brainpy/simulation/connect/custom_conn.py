@@ -2,9 +2,11 @@
 
 
 import numpy as np
-from brainpy import tools
-from .base import TwoEndConnector
 
+import jax.numpy as jnp
+from brainpy.math.jaxarray import JaxArray
+from brainpy import tools
+from .base import *
 
 __all__ = [
   'MatConn',
@@ -14,11 +16,12 @@ __all__ = [
 
 class MatConn(TwoEndConnector):
   """Connector built from the connection matrix."""
+
   def __init__(self, conn_mat):
     super(MatConn, self).__init__()
 
-    assert isinstance(conn_mat, np.ndarray) and conn_mat.ndim == 2
-    self.conn_mat = np.asarray(conn_mat, dtype=np.bool_)
+    assert isinstance(conn_mat, (np.ndarray, JaxArray, jnp.ndarray)) and conn_mat.ndim == 2
+    self.conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
     self.pre_num, self.post_num = conn_mat.shape
 
   def __call__(self, pre_size, post_size):
@@ -31,24 +34,25 @@ class MatConn(TwoEndConnector):
     assert self.post_num == tools.size2num(post_size)
     return self
 
-  def require(self, structures):
+  def require(self, *structures):
     self.check(structures)
-    return self.returns(mat=self.conn_mat)
+    return self.make_return(mat=self.conn_mat)
 
 
 class IJConn(TwoEndConnector):
   """Connector built from the ``pre_ids`` and ``post_ids`` connections."""
+
   def __init__(self, i, j):
     super(IJConn, self).__init__()
 
-    assert isinstance(i, np.ndarray) and i.ndim == 1
-    assert isinstance(j, np.ndarray) and j.ndim == 1
+    assert isinstance(i, (np.ndarray, JaxArray, jnp.ndarray)) and i.ndim == 1
+    assert isinstance(j, (np.ndarray, JaxArray, jnp.ndarray)) and j.ndim == 1
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"
-    self.pre_ids = np.asarray(i, dtype=np.int_)
-    self.post_ids = np.asarray(j, dtype=np.int_)
+    self.pre_ids = np.asarray(i, dtype=IDX_DTYPE)
+    self.post_ids = np.asarray(j, dtype=IDX_DTYPE)
 
-  def require(self, structures):
+  def require(self, *structures):
     self.check(structures)
-    return self.returns(ij=(self.pre_ids, self.post_ids))
+    return self.make_return(ij=(self.pre_ids, self.post_ids))

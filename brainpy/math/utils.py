@@ -21,7 +21,7 @@ def numpy_array(array):
     from jax.numpy import ndarray as jarray
   global JaxArray
   if JaxArray is None:
-    from brainpy.math.jax.jaxarray import JaxArray
+    from brainpy.math.jaxarray import JaxArray
 
   if isinstance(array, np.ndarray):
     array = array

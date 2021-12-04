@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import _thread as thread
 import inspect
-import threading
+from pprint import pprint
 
 import numpy as np
 
 from brainpy import errors, math, tools
 from brainpy.integrators import analysis_by_ast, constants
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.integrators import analysis_by_sympy
 from brainpy.integrators.ode.base import ODEIntegrator
-from pprint import pprint
+from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.utils import run_model
-
 
 try:
   import numba
@@ -26,17 +24,16 @@ except ModuleNotFoundError:
   _jit_cls_func = None
 
 __all__ = [
-  'transform_integrals_to_model',
+  'integrators_into_model',
   'DynamicModel',
   'rescale',
-  'timeout',
   'jit_compile',
   'add_arrow',
   'contain_unknown_symbol',
   'find_indexes_of_limit_cycle_max',
-  'find_indexes_of_limit_cycle_max2',
+  '_find_indexes_of_limit_cycle_max2',
   'find_indexes_of_limit_cycle_min',
-  'find_indexes_of_limit_cycle_min2',
+  '_find_indexes_of_limit_cycle_min2',
 ]
 
 
@@ -62,9 +59,7 @@ def _static_self_data(f):
   return code, code_scope
 
 
-def transform_integrals_to_model(integrals):
-  from brainpy.integrators import analysis_by_sympy
-
+def integrators_into_model(integrals):
   # check integrals
   if isinstance(integrals, ODEIntegrator):
     integrals = [integrals]
@@ -90,7 +85,7 @@ def transform_integrals_to_model(integrals):
   for intg in integrals:
     pars_update.update(intg.parameters[1:])
 
-  all_scope = dict(math=math)
+  all_scope = dict(math=np)
   all_variables = set()
   all_parameters = set()
   analyzers = []
@@ -147,6 +142,7 @@ def transform_integrals_to_model(integrals):
 
 class DynamicModel(object):
   """The wrapper of a dynamical model."""
+
   def __init__(self,
                integrals,
                analyzers,
@@ -154,12 +150,12 @@ class DynamicModel(object):
                parameters,
                scopes,
                pars_update=None):
-    self.integrals = integrals
-    self.analyzers = analyzers
-    self.variables = variables
-    self.parameters = parameters
-    self.scopes = scopes
-    self.pars_update = pars_update
+    self.integrals = integrals  # all integrators
+    self.analyzers = analyzers  # all instances of
+    self.variables = variables  # all variables SingleDiffEq
+    self.parameters = parameters  # all parameters
+    self.scopes = scopes  # the code scope
+    self.pars_update = pars_update  # the parameters to update
 
 
 class Trajectory(object):
@@ -178,6 +174,7 @@ class Trajectory(object):
   pars_update : dict
     The parameters to update.
   """
+
   def __init__(self, model, size, target_vars, fixed_vars, pars_update, show_code=False):
     assert isinstance(model, DynamicModel), f'"model" must be an instance of {DynamicModel}, ' \
                                             f'while we got {model}'
@@ -201,10 +198,10 @@ class Trajectory(object):
     self.mon = tools.DictPlus()
     self.vars_and_pars = tools.DictPlus()
     for key, val in target_vars.items():
-      self.vars_and_pars[key] = math.ones(size) * val
+      self.vars_and_pars[key] = np.ones(size) * val
       self.mon[key] = []
     for key, val in fixed_vars.items():
-      self.vars_and_pars[key] = math.ones(size) * val
+      self.vars_and_pars[key] = np.ones(size) * val
     for key, val in pars_update.items():
       self.vars_and_pars[key] = val
     self.scope['VP'] = self.vars_and_pars
@@ -251,7 +248,7 @@ class Trajectory(object):
       raise ValueError
 
     # get the times
-    times = math.arange(duration[0], duration[1], math.get_dt())
+    times = np.arange(duration[0], duration[1], math.get_dt())
     # reshape the monitor
     for key in self.mon.keys():
       self.mon[key] = []
@@ -259,7 +256,7 @@ class Trajectory(object):
     run_model(run_func=self.run_func, times=times, report=report)
     # reshape the monitor
     for key in self.mon.keys():
-      self.mon[key] = math.asarray(self.mon[key])
+      self.mon[key] = np.asarray(self.mon[key])
 
 
 def rescale(min_max, scale=0.01):
@@ -269,39 +266,6 @@ def rescale(min_max, scale=0.01):
   min_ -= scale * length
   max_ += scale * length
   return min_, max_
-
-
-def timeout(s):
-  """Add a timeout parameter to a function and return it.
-
-  Parameters
-  ----------
-  s : float
-      Time limit in seconds.
-
-  Returns
-  -------
-  func : callable
-      Functional results. Or, raise an error of KeyboardInterrupt.
-  """
-
-  def outer(fn):
-    def inner(*args, **kwargs):
-      timer = threading.Timer(s, thread.interrupt_main)
-      timer.start()
-      try:
-        result = fn(*args, **kwargs)
-      finally:
-        timer.cancel()
-      return result
-    return inner
-  return outer
-
-
-def _check_numpy_bk():
-  bk_name = math.get_backend_name()
-  if bk_name != 'numpy':
-    raise errors.UnsupportedError('Only support "numpy" backend in symbolic analysis.')
 
 
 def _jit(func):
@@ -332,7 +296,6 @@ def _jit(func):
 
 
 def jit_compile(scope, func_code, func_name):
-  _check_numpy_bk()
   assert Dispatcher is not None, 'Please install Numba first when using symbolic analysis.'
   # get function scope
   func_scope = dict()
@@ -442,7 +405,7 @@ def _identity(a, b, tol=0.01):
     return False
 
 
-def find_indexes_of_limit_cycle_max2(arr, tol=0.001):
+def _find_indexes_of_limit_cycle_max2(arr, tol=0.001):
   if np.ndim(arr) == 1:
     grad = np.gradient(arr)
     condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] >= 0)
@@ -470,7 +433,7 @@ def find_indexes_of_limit_cycle_max2(arr, tol=0.001):
     raise ValueError
 
 
-def find_indexes_of_limit_cycle_min2(arr, tol=0.01):
+def _find_indexes_of_limit_cycle_min2(arr, tol=0.01):
   if np.ndim(arr) == 1:
     grad = np.gradient(arr)
     condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] <= 0)
@@ -496,4 +459,3 @@ def find_indexes_of_limit_cycle_min2(arr, tol=0.01):
 
   else:
     raise ValueError
-
