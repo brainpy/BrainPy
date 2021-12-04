@@ -3,3 +3,6 @@ matplotlib>=3.4
 sympy>=1.6
 jax>=0.2.10
 jaxlib>=0.1.64
+scipy~=1.7.3
+pytest~=6.2.5
+setuptools~=59.4.0
