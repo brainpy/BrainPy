@@ -95,7 +95,7 @@ class Bifurcation(object):
   def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
                numerical_resolution=0.1, options=None):
     # check "model"
-    self.model = utils.transform_integrals_to_model(integrals)
+    self.model = utils.integrators_into_model(integrals)
 
     # check "target_pars"
     if not isinstance(target_pars, dict):
@@ -197,7 +197,7 @@ class Bifurcation(object):
                                           plot_style=plot_style, tol=tol, show=show)
 
 
-class _Bifurcation1D(base.Base1DSymAnalyzer):
+class _Bifurcation1D(base.SymAnalyzer1D):
   """Bifurcation analysis of 1D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -297,7 +297,7 @@ class _Bifurcation1D(base.Base1DSymAnalyzer):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _Bifurcation2D(base.Base2DSymAnalyzer):
+class _Bifurcation2D(base.SymAnalyzer2D):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -590,7 +590,7 @@ class FastSlowBifurcation(object):
   def __init__(self, integrals, fast_vars, slow_vars, fixed_vars=None,
                pars_update=None, numerical_resolution=0.1, options=None):
     # check "model"
-    self.model = utils.transform_integrals_to_model(integrals)
+    self.model = utils.integrators_into_model(integrals)
 
     # check "fast_vars"
     if not isinstance(fast_vars, dict):
@@ -731,7 +731,7 @@ class _FastSlowTrajectory(object):
     if isinstance(model_or_intgs, utils.DynamicModel):
       self.model = model_or_intgs
     elif (isinstance(model_or_intgs, (list, tuple)) and callable(model_or_intgs[0])) or callable(model_or_intgs):
-      self.model = utils.transform_integrals_to_model(model_or_intgs)
+      self.model = utils.integrators_into_model(model_or_intgs)
     else:
       raise ValueError
     self.fast_vars = fast_vars
