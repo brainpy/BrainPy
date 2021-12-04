@@ -605,14 +605,11 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
     tangents = tree_unflatten(tree, [jnp.ones(l.shape) for l in leaves])
     grads = vjp_fn(tangents)
     if isinstance(argnums, int):
-      out = y[0]
       grads = grads[0]
-    else:
-      out = y
     if has_aux:
-      return (grads, out, aux) if return_value else (grads, aux)
+      return (grads, y, aux) if return_value else (grads, aux)
     else:
-      return (grads, out) if return_value else grads
+      return (grads, y) if return_value else grads
 
   return grad_fun
 
