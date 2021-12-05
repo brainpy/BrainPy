@@ -169,7 +169,7 @@ class Orthogonal(Initializer):
   """
   Construct an initializer for uniformly distributed orthogonal matrices.
 
-  If the shape is not square, the matrices will have orthonormal rows or columns
+  If the shape is not square, the matrix will have orthonormal rows or columns
   depending on which side is smaller.
   """
 
