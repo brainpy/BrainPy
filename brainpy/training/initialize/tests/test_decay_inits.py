@@ -1,77 +1,71 @@
 # -*- coding: utf-8 -*-
+import unittest
 
 import matplotlib.pyplot as plt
 
 import brainpy as bp
 
-
-def test_GaussianDecay1():
-  bp.math.use_backend('numpy')
-  conn = bp.initialize.GaussianDecay(sigma=4, max_w=1., periodic_boundary=True)
-  weights = conn(100)
-
-  # plt.imshow(weights)
-  # plt.show()
+PI = bp.math.pi
 
 
-def test_GaussianDecay2():
-  bp.math.use_backend('numpy')
-
-  size = (30, 30)
-  conn = bp.initialize.GaussianDecay(sigma=4, max_w=1., periodic_boundary=True)
-  weights = conn(size)
-
-  # plt.imshow(weights)
-  # plt.show()
-  #
-  # plt.imshow(weights[0].reshape(size))
-  # plt.show()
+def _size2len(size):
+  if isinstance(size, int):
+    return size
+  elif isinstance(size, (tuple, list)):
+    length = 1
+    for e in size:
+      length *= e
+    return length
+  else:
+    raise ValueError(f'Must be a list/tuple of int, but got {size}')
 
 
-def test_GaussianDecay3():
-  bp.math.use_backend('numpy')
+class TestGaussianDecayInit(unittest.TestCase):
+  def test_gaussian_decay_init1(self):
+    init = bp.init.GaussianDecay(sigma=4, max_w=1.)
+    for size in [10, (10, 20), (10, 20, 30)]:
+      weights = init(size)
+      shape = _size2len(size)
+      assert weights.shape == (shape, shape)
+      assert isinstance(weights, bp.math.ndarray)
+      # plt.imshow(weights)
+      # plt.show()
 
-  size = (20, 20, 20)
-  conn = bp.initialize.GaussianDecay(sigma=4, max_w=1., periodic_boundary=True)
-  weights = conn(size)
-
-  # plt.imshow(weights)
-  # plt.show()
-
-
-def test_DOGDecay1():
-  bp.math.use_backend('numpy')
-  conn = bp.initialize.DOGDecay(sigmas=(1., 2.5), max_ws=(1.0, 0.7), periodic_boundary=True)
-  weights = conn(100)
-
-  # pos = plt.imshow(weights, cmap='cool', interpolation='none')
-  # plt.colorbar(pos)
-  # plt.show()
-
-
-def test_DOGDecay2():
-  bp.math.use_backend('numpy')
-
-  size = (30, 30)
-  conn = bp.initialize.DOGDecay(sigmas=(1., 2.5), max_ws=(1.0, 0.7), periodic_boundary=True)
-  weights = conn(size)
-
-  # pos = plt.imshow(weights, cmap='cool', interpolation='none')
-  # plt.colorbar(pos)
-  # plt.show()
-
-  # pos = plt.imshow(weights[0].reshape(size), cmap='cool', interpolation='none')
-  # plt.colorbar(pos)
-  # plt.show()
+  def test_gaussian_decay_init2(self):
+    init = bp.init.GaussianDecay(sigma=4, max_w=1., min_w=0.1, periodic_boundary=True,
+                                 encoding_values=((-PI, PI), (10, 20), (0, 2 * PI)),
+                                 include_self=False, normalize=True)
+    size = (10, 20, 30)
+    weights = init(size)
+    shape = _size2len(size)
+    assert weights.shape == (shape, shape)
+    assert isinstance(weights, bp.math.ndarray)
+    # plt.imshow(weights)
+    # plt.show()
 
 
-def test_DOGDecay3():
-  bp.math.use_backend('numpy')
+class TestDOGDecayInit(unittest.TestCase):
+  def test_dog_decay_init1(self):
+    init = bp.init.DOGDecay(sigmas=(1., 2.5), max_ws=(1.0, 0.7))
+    for size in [10, (10, 20), (10, 20, 30)]:
+      weights = init(size)
+      shape = _size2len(size)
+      assert weights.shape == (shape, shape)
+      assert isinstance(weights, bp.math.ndarray)
+      # plt.imshow(weights)
+      # plt.show()
 
-  size = (10, 10, 10)
-  conn = bp.initialize.DOGDecay(sigmas=(1., 2.5), max_ws=(1.0, 0.7), periodic_boundary=True)
-  weights = conn(size)
-
-  # pos = plt.imshow(weights, cmap='cool', interpolation='none')
-  # plt.colorbar(pos)
-  # plt.show()
+  def test_dog_decay_init2(self):
+    init = bp.init.DOGDecay(sigmas=(1., 2.5),
+                            max_ws=(1.0, 0.7), min_w=0.1,
+                            periodic_boundary=True,
+                            encoding_values=((-PI, PI), (10, 20), (0, 2 * PI)),
+                            include_self=False,
+                            normalize=True)
+    size = (10, 20, 30)
+    weights = init(size)
+    shape = _size2len(size)
+    assert weights.shape == (shape, shape)
+    assert isinstance(weights, bp.math.ndarray)
+    # plt.imshow(weights)
+    # plt.show()
