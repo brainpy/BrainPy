@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from .base import Initializer
+from .base import IntraLayerInitializer
 from brainpy import tools, math
 
 
@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-class GaussianDecay(Initializer):
+class GaussianDecay(IntraLayerInitializer):
   r"""Builds a Gaussian connectivity pattern within a population of neurons,
   where the weights decay with gaussian function.
 
@@ -70,7 +70,8 @@ class GaussianDecay(Initializer):
     shape : tuple of int, list of int, int
       The network shape. Note, this is not the weight shape.
     """
-    if isinstance(shape, int): shape = (shape,)
+    if isinstance(shape, int):
+      shape = (shape,)
     net_size = tools.size2num(shape)
 
     # value ranges to encode
@@ -134,7 +135,7 @@ class GaussianDecay(Initializer):
     return math.asarray(conn_weights, dtype=dtype)
 
 
-class DOGDecay(Initializer):
+class DOGDecay(IntraLayerInitializer):
   r"""Builds a Difference-Of-Gaussian (dog) connectivity pattern within a population of neurons.
 
   Mathematically, for the given pair of neurons :math:`(i, j)`, the weight between them is computed as
@@ -193,7 +194,8 @@ class DOGDecay(Initializer):
     shape : tuple of int, list of int, int
       The network shape. Note, this is not the weight shape.
     """
-    if isinstance(shape, int): shape = (shape,)
+    if isinstance(shape, int):
+      shape = (shape,)
     net_size = tools.size2num(shape)
 
     # value ranges to encode
@@ -241,7 +243,8 @@ class DOGDecay(Initializer):
         i_value = np.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
       # distances
       dists = np.abs(i_value - post_values)
-      if self.periodic_boundary: dists = np.where(dists > value_sizes / 2, value_sizes - dists, dists)
+      if self.periodic_boundary:
+        dists = np.where(dists > value_sizes / 2, value_sizes - dists, dists)
       dists_exp_p = self.max_w_p * np.exp(-(np.linalg.norm(dists, axis=0) / self.sigma_p) ** 2 / 2)
       dists_exp_n = self.max_w_n * np.exp(-(np.linalg.norm(dists, axis=0) / self.sigma_n) ** 2 / 2)
       conn_weights.append(dists_exp_p - dists_exp_n)
