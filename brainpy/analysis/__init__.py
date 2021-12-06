@@ -18,5 +18,4 @@ from . import symbolic
 from . import continuation
 from . import solver
 from . import stability
-from .solver import *
 from .stability import *

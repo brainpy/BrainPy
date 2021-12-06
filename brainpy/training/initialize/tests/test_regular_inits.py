@@ -6,9 +6,6 @@ import brainpy as bp
 
 class TestZeroInit(unittest.TestCase):
   def test_zero_init(self):
-    for bk in ['numpy', 'jax']:
-      bp.math.use_backend(bk)
-
       init = bp.init.ZeroInit()
       for size in [(100,), (10, 20), (10, 20, 30)]:
         weights = init(size)
@@ -18,9 +15,6 @@ class TestZeroInit(unittest.TestCase):
 
 class TestOneInit(unittest.TestCase):
   def test_one_init(self):
-    for bk in ['numpy', 'jax']:
-      bp.math.use_backend(bk)
-
       for size in [(100,), (10, 20), (10, 20, 30)]:
         for value in [0., 1., -1.]:
           init = bp.init.OneInit(value=value)
@@ -32,9 +26,6 @@ class TestOneInit(unittest.TestCase):
 
 class TestIdentityInit(unittest.TestCase):
   def test_identity_init(self):
-    for bk in ['numpy', 'jax']:
-      bp.math.use_backend(bk)
-
       for size in [(100,), (10, 20), ]:
         for value in [0., 1., -1.]:
           init = bp.init.Identity(value=value)

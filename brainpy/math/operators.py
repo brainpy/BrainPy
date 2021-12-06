@@ -45,11 +45,11 @@ def event_add(events, pre2post, post_num, value):
 
   """
   events = events.value if isinstance(events, JaxArray) else events
-  post_ids, pre2post_slice = pre2post
-  post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
-  pre2post_slice = pre2post_slice.value if isinstance(pre2post_slice, JaxArray) else pre2post_slice
+  indices, idnptr = pre2post
+  indices = indices.value if isinstance(indices, JaxArray) else indices
+  idnptr = idnptr.value if isinstance(idnptr, JaxArray) else idnptr
   value = value.value if isinstance(value, JaxArray) else value
-  return brainpylib.event_add(events, (post_ids, pre2post_slice), post_num, value)
+  return brainpylib.event_add(events, (indices, idnptr), post_num, value)
 
 
 def pre2post(pre_values, post2pre_conn):

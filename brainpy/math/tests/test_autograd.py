@@ -717,6 +717,37 @@ class TestPureFuncVectorGrad(unittest.TestCase):
     self.assertTrue(bm.array_equal(g, 2 * _x))
     self.assertTrue(bm.array_equal(aux, _x ** 3 + _y ** 3 - 10))
 
+  def test_return1(self):
+    def f(x, y):
+      dx = x ** 2 + y ** 2 + 10
+      return dx
+
+    _x = bm.ones(5)
+    _y = bm.ones(5)
+
+    g, value = bm.vector_grad(f, return_value=True)(_x, _y)
+    pprint(g,)
+    pprint(value)
+    self.assertTrue(bm.array_equal(g, 2 * _x))
+    self.assertTrue(bm.array_equal(value, _x ** 2 + _y ** 2 + 10))
+
+  def test_return_aux1(self):
+    def f(x, y):
+      dx = x ** 2 + y ** 2 + 10
+      dy = x ** 3 + y ** 3 - 10
+      return dx, dy
+
+    _x = bm.ones(5)
+    _y = bm.ones(5)
+
+    g, value, aux = bm.vector_grad(f, has_aux=True, return_value=True)(_x, _y)
+    print('grad', g)
+    print('value', value)
+    print('aux', aux)
+    self.assertTrue(bm.array_equal(g, 2 * _x))
+    self.assertTrue(bm.array_equal(value, _x ** 2 + _y ** 2 + 10))
+    self.assertTrue(bm.array_equal(aux, _x ** 3 + _y ** 3 - 10))
+
 
 class TestClassFuncVectorGrad(unittest.TestCase):
   def test1(self):
