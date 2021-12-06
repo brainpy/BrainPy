@@ -25,11 +25,11 @@ except ModuleNotFoundError:
 
 __all__ = [
   'integrators_into_model',
-  'DynamicModel',
+  'SymbolicDynSystem',
   'rescale',
   'jit_compile',
   'add_arrow',
-  'contain_unknown_symbol',
+  'unknown_symbol',
   'find_indexes_of_limit_cycle_max',
   '_find_indexes_of_limit_cycle_max2',
   'find_indexes_of_limit_cycle_min',
@@ -59,37 +59,39 @@ def _static_self_data(f):
   return code, code_scope
 
 
-def integrators_into_model(integrals):
+def integrators_into_model(model):
   # check integrals
-  if isinstance(integrals, ODEIntegrator):
-    integrals = [integrals]
-  if isinstance(integrals, (list, tuple)):
-    assert len(integrals), f'Found no integrators: {integrals}'
-    integrals = tuple(integrals)
-    for intg in integrals:
+  if isinstance(model, SymbolicDynSystem):
+    return model
+  elif isinstance(model, ODEIntegrator):
+    model = [model]
+  if isinstance(model, (list, tuple)):
+    assert len(model), f'Found no integrators: {model}'
+    model = tuple(model)
+    for intg in model:
       assert isinstance(intg, ODEIntegrator), f'Must be the instance of {ODEIntegrator}, but got {intg}.'
-  elif isinstance(integrals, dict):
-    assert len(integrals), f'Found no integrators: {integrals}'
-    integrals = tuple(integrals.values())
-    for intg in integrals:
+  elif isinstance(model, dict):
+    assert len(model), f'Found no integrators: {model}'
+    model = tuple(model.values())
+    for intg in model:
       assert isinstance(intg, ODEIntegrator), f'Must be the instance of {ODEIntegrator}, but got {intg}'
-  elif isinstance(integrals, DynamicalSystem):
-    integrals = tuple(integrals.ints().unique().values())
+  elif isinstance(model, DynamicalSystem):
+    model = tuple(model.ints().unique().values())
   else:
     raise errors.UnsupportedError(f'Dynamics analysis by symbolic approach only supports '
                                   f'{ODEIntegrator} or {DynamicalSystem}, but we got: '
-                                  f'{type(integrals)}: {str(integrals)}')
+                                  f'{type(model)}: {str(model)}')
 
   # pars to update
   pars_update = set()
-  for intg in integrals:
+  for intg in model:
     pars_update.update(intg.parameters[1:])
 
   all_scope = dict(math=np)
   all_variables = set()
   all_parameters = set()
   analyzers = []
-  for integral in integrals:
+  for integral in model:
     assert isinstance(integral, ODEIntegrator)
 
     # separate variables
@@ -132,15 +134,15 @@ def integrators_into_model(integrals):
     all_scope.update(code_scope)
 
   # form a dynamic model
-  return DynamicModel(integrals=integrals,
-                      analyzers=analyzers,
-                      variables=list(all_variables),
-                      parameters=list(all_parameters),
-                      pars_update=pars_update,
-                      scopes=all_scope)
+  return SymbolicDynSystem(integrals=model,
+                           analyzers=analyzers,
+                           variables=list(all_variables),
+                           parameters=list(all_parameters),
+                           pars_update=pars_update,
+                           scopes=all_scope)
 
 
-class DynamicModel(object):
+class SymbolicDynSystem(object):
   """The wrapper of a dynamical model."""
 
   def __init__(self,
@@ -150,7 +152,8 @@ class DynamicModel(object):
                parameters,
                scopes,
                pars_update=None):
-    self.integrals = integrals  # all integrators
+    self.INTG = integrals  # all integrators
+    self.F = {intg.variables[0]: intg.f for intg in integrals}
     self.analyzers = analyzers  # all instances of
     self.variables = variables  # all variables SingleDiffEq
     self.parameters = parameters  # all parameters
@@ -163,7 +166,7 @@ class Trajectory(object):
 
   Parameters
   ----------
-  model : DynamicModel
+  model : SymbolicDynSystem
     The instance of DynamicModel.
   size : int, tuple, list
     The network size.
@@ -176,7 +179,7 @@ class Trajectory(object):
   """
 
   def __init__(self, model, size, target_vars, fixed_vars, pars_update, show_code=False):
-    assert isinstance(model, DynamicModel), f'"model" must be an instance of {DynamicModel}, ' \
+    assert isinstance(model, SymbolicDynSystem), f'"model" must be an instance of {SymbolicDynSystem}, ' \
                                             f'while we got {model}'
     self.model = model
     self.target_vars = target_vars
@@ -210,7 +213,7 @@ class Trajectory(object):
 
     code_lines = ['def run_func(t_and_dt):']
     code_lines.append('  _t, _dt = t_and_dt')
-    for integral in self.model.integrals:
+    for integral in self.model.INTG:
       assert isinstance(integral, ODEIntegrator)
       func_name = integral.func_name
       self.scope[func_name] = integral
@@ -308,23 +311,12 @@ def jit_compile(scope, func_code, func_name):
   return numba.njit(func_scope[func_name])
 
 
-def contain_unknown_symbol(expr, scope):
+def unknown_symbol(expr, scope):
   """Examine where the given expression ``expr`` has the unknown symbol in ``scope``.
-
-  Returns
-  -------
-  res : bool
-      True or False.
   """
   ids = tools.get_identifiers(expr)
-  for id_ in ids:
-    if '.' in id_:
-      prefix = id_.split('.')[0].strip()
-      if prefix not in scope:
-        return True
-    if id_ not in scope:
-      return True
-  return False
+  ids = set([id_.split('.')[0].strip() for id_ in ids])
+  return ids - scope
 
 
 def add_arrow(line, position=None, direction='right', size=15, color=None):

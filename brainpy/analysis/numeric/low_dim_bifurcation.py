@@ -9,9 +9,10 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import errors, math
 from brainpy.analysis import stability
-from brainpy.analysis.symbolic import base, utils
+from brainpy.analysis.numeric import utils
+from brainpy.analysis.numeric.low_dim_analyzer import LowDimAnalyzer1D, LowDimAnalyzer2D
 
-logger = logging.getLogger('brainpy.analysis.symbolic')
+logger = logging.getLogger('brainpy.analysis.numeric')
 
 __all__ = [
   'Bifurcation',
@@ -197,7 +198,7 @@ class Bifurcation(object):
                                           plot_style=plot_style, tol=tol, show=show)
 
 
-class _Bifurcation1D(base.SymAnalyzer1D):
+class _Bifurcation1D(LowDimAnalyzer1D):
   """Bifurcation analysis of 1D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -217,7 +218,7 @@ class _Bifurcation1D(base.SymAnalyzer1D):
     logger.warning('plot bifurcation ...')
 
     f_fixed_point = self.get_f_fixed_point()
-    f_dfdx = self.get_f_dfdx()
+    f_dfdx = self.F_dfxdx()
 
     if len(self.target_pars) == 1:
       container = {c: {'p': [], 'x': []} for c in stability.get_1d_stability_types()}
@@ -241,8 +242,8 @@ class _Bifurcation1D(base.SymAnalyzer1D):
       plt.xlabel(par_a)
       plt.ylabel(self.x_var)
 
-      # scale = (self.options.lim_scale - 1) / 2
-      # plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+      # scale = (self.lim_scale - 1) / 2
+      # plt.xlim(*utils.rescale(self.target_pars[self.target_par_names[0]], scale=scale))
       # plt.ylim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
 
       plt.legend()
@@ -278,9 +279,9 @@ class _Bifurcation1D(base.SymAnalyzer1D):
       ax.set_ylabel(self.target_par_names[1])
       ax.set_zlabel(self.x_var)
 
-      # scale = (self.options.lim_scale - 1) / 2
-      # ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
-      # ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
+      # scale = (self.lim_scale - 1) / 2
+      # ax.set_xlim(*utils.rescale(self.target_pars[self.target_par_names[0]], scale=scale))
+      # ax.set_ylim(*utils.rescale(self.target_pars[self.target_par_names[1]], scale=scale))
       # ax.set_zlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
 
       ax.grid(True)
@@ -297,7 +298,7 @@ class _Bifurcation1D(base.SymAnalyzer1D):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _Bifurcation2D(base.SymAnalyzer2D):
+class _Bifurcation2D(LowDimAnalyzer2D):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -319,8 +320,8 @@ class _Bifurcation2D(base.SymAnalyzer2D):
     logger.warning('plot bifurcation ...')
 
     # functions
-    f_fixed_point = self.get_f_fixed_point()
-    f_jacobian = self.get_f_jacobian()
+    f_fixed_point = self.fixed_points()
+    f_jacobian = self.F_jacobian()
 
     # bifurcation analysis of co-dimension 1
     if len(self.target_pars) == 1:
@@ -347,8 +348,8 @@ class _Bifurcation2D(base.SymAnalyzer2D):
         plt.xlabel(self.target_par_names[0])
         plt.ylabel(var)
 
-        # scale = (self.options.lim_scale - 1) / 2
-        # plt.xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
+        # scale = (self.lim_scale - 1) / 2
+        # plt.xlim(*utils.rescale(self.target_pars[self.target_par_names[0]], scale=scale))
         # plt.ylim(*utils.rescale(self.target_vars[var], scale=scale))
 
         plt.legend()
@@ -388,9 +389,9 @@ class _Bifurcation2D(base.SymAnalyzer2D):
         ax.set_ylabel(self.target_par_names[1])
         ax.set_zlabel(var)
 
-        # scale = (self.options.lim_scale - 1) / 2
-        # ax.set_xlim(*utils.rescale(self.target_pars[self.dpar_names[0]], scale=scale))
-        # ax.set_ylim(*utils.rescale(self.target_pars[self.dpar_names[1]], scale=scale))
+        # scale = (self.lim_scale - 1) / 2
+        # ax.set_xlim(*utils.rescale(self.target_pars[self.target_par_names[0]], scale=scale))
+        # ax.set_ylim(*utils.rescale(self.target_pars[self.target_par_names[1]], scale=scale))
         # ax.set_zlim(*utils.rescale(self.target_vars[var], scale=scale))
 
         ax.grid(True)
