@@ -89,7 +89,7 @@ class SymAnalyzer(object):
 
     # model
     # -----
-    if isinstance(model_or_integrals, utils.DynamicModel):
+    if isinstance(model_or_integrals, utils.SymbolicDynSystem):
       self.model = model_or_integrals
     elif (isinstance(model_or_integrals, (tuple, list)) and
           callable(model_or_integrals[0])) or callable(model_or_integrals):
@@ -103,7 +103,7 @@ class SymAnalyzer(object):
       raise errors.AnalyzerError('"target_vars" must be a dict, with the format of '
                                  '{"var1": (var1_min, var1_max)}.')
     self.target_vars = target_vars
-    self.dvar_names = list(self.target_vars.keys())  # list of target vars
+    self.target_var_names = list(self.target_vars.keys())  # list of target vars
     for key in self.target_vars.keys():
       if key not in self.model.variables:
         raise errors.AnalyzerError(f'{key} is not a dynamical variable in {self.model}.')
@@ -169,7 +169,7 @@ class SymAnalyzer(object):
       if (key not in self.model.scopes) and (key not in self.model.parameters):
         raise errors.AnalyzerError(f'"{key}" is not a valid parameter in "{self.model}" model.')
     self.target_pars = target_pars
-    self.dpar_names = list(self.target_pars.keys())  # list of target_pars
+    self.target_par_names = list(self.target_pars.keys())  # list of target_pars
 
     # check duplicate
     for key in self.pars_update.keys():
@@ -186,7 +186,7 @@ class SymAnalyzer(object):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = np.arange(*lim, numerical_resolution)
     elif isinstance(numerical_resolution, dict):
-      for key in self.dvar_names + self.dpar_names:
+      for key in self.target_var_names + self.target_par_names:
         if key not in numerical_resolution:
           raise errors.AnalyzerError(f'Must provide the resolution setting of dynamical '
                                      f'variable/parameter "{key}", '
@@ -217,10 +217,10 @@ class SymAnalyzer(object):
     # 'dgdy' : The derivative of ``g`` by ``y``. It can be used as ``dgdy(x, y, ...)``.
     # 'jacobian' : The jacobian matrix. It can be used as ``jacobian(x, y, ...)``.
     # 'fixed_point' : The fixed point.
-    # 'y_by_x_in_y_eq' :
-    # 'x_by_y_in_y_eq' :
-    # 'y_by_x_in_x_eq' :
-    # 'x_by_y_in_x_eq' :
+    # 'y_by_x_in_fy' :
+    # 'x_by_y_in_fy' :
+    # 'y_by_x_in_fx' :
+    # 'x_by_y_in_fx' :
     self.analyzed_results = tools.DictPlus()
 
     # other settings
@@ -247,7 +247,7 @@ class SymAnalyzer1D(SymAnalyzer):
   def __init__(self, *args, **kwargs):
     super(SymAnalyzer1D, self).__init__(*args, **kwargs)
 
-    self.x_var = self.dvar_names[0]
+    self.x_var = self.target_var_names[0]
     self.x_eq_group = self.target_eqs[self.x_var]
 
   def get_f_dx(self):
@@ -258,7 +258,7 @@ class SymAnalyzer1D(SymAnalyzer):
       scope.update(self.x_eq_group.diff_eq.func_scope)
       _update_scope(scope)
 
-      argument = ', '.join(self.dvar_names + self.dpar_names)
+      argument = ', '.join(self.target_var_names + self.target_par_names)
       func_code = f'def func({argument}):\n'
       for expr in self.x_eq_group.old_exprs[:-1]:
         func_code += f'  {expr.var_name} = {expr.code}\n'
@@ -271,7 +271,7 @@ class SymAnalyzer1D(SymAnalyzer):
   def get_f_dfdx(self, origin=True):
     """Get the derivative of ``f`` by variable ``x``. """
     if 'dfdx' not in self.analyzed_results:
-      x_var = self.dvar_names[0]
+      x_var = self.target_var_names[0]
       x_symbol = sympy.Symbol(x_var, real=True)
       x_eq = self.x_eq_group.sub_exprs[-1].code
       x_eq = analysis_by_sympy.str2sympy(x_eq)
@@ -281,7 +281,7 @@ class SymAnalyzer1D(SymAnalyzer):
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
       _update_scope(eq_x_scope)
 
-      argument = ', '.join(self.dvar_names + self.dpar_names)
+      argument = ', '.join(self.target_var_names + self.target_par_names)
       time_out = self.options.sympy_solver_timeout
 
       sympy_failed = True
@@ -295,8 +295,8 @@ class SymAnalyzer1D(SymAnalyzer):
 
           # check
           all_vars = set(eq_x_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfxdx_expr), all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfxdx_expr), all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -320,7 +320,7 @@ class SymAnalyzer1D(SymAnalyzer):
         if not origin:
           func_codes.append(f'origin = _fx({argument})')
         func_codes.append(f'disturb = _fx({x_var}+perturb, '
-                          f'{",".join(self.dvar_names[1:] + self.dpar_names)})')
+                          f'{",".join(self.target_var_names[1:] + self.target_par_names)})')
         if not origin:
           func_codes.append(f'return (disturb - origin) / perturb')
         else:
@@ -339,13 +339,12 @@ class SymAnalyzer1D(SymAnalyzer):
 
       scope = _dict_copy(self.pars_update)
       scope.update(self.fixed_vars)
-      # scope.update(analysis_by_sympy.get_mapping_scope())
       scope.update(self.x_eq_group.diff_eq.func_scope)
       _update_scope(scope)
 
       timeout_len = self.options.sympy_solver_timeout
-      argument1 = ', '.join(self.dvar_names + self.dpar_names)
-      argument2 = ", ".join(self.dvar_names[1:] + self.dpar_names)
+      argument1 = ', '.join(self.target_var_names + self.target_par_names)
+      argument2 = ", ".join(self.target_var_names[1:] + self.target_par_names)
 
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
@@ -354,13 +353,12 @@ class SymAnalyzer1D(SymAnalyzer):
                          f'to "{self.x_var} = f({argument2})", ')
 
           # solver
-          f = tools.timeout(timeout_len)(
-            lambda: sympy.solve(x_eq.expr, sympy.Symbol(self.x_var, real=True)))
+          f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq.expr, sympy.Symbol(self.x_var, real=True)))
           results = f()
           for res in results:
             all_vars = set(scope.keys())
-            all_vars.update(self.dvar_names + self.dpar_names)
-            if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(res), all_vars):
+            all_vars.update(self.target_var_names + self.target_par_names)
+            if utils.unknown_symbol(analysis_by_sympy.sympy2str(res), all_vars):
               logger.warning('\tfailed because contain unknown symbols.')
               sympy_failed = True
               break
@@ -439,7 +437,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
   def __init__(self, *args, **kwargs):
     super(SymAnalyzer2D, self).__init__(*args, **kwargs)
 
-    self.y_var = self.dvar_names[1]
+    self.y_var = self.target_var_names[1]
     self.y_eq_group = self.target_eqs[self.y_var]
 
     # options
@@ -452,7 +450,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
     self.options['show_shgo'] = options.get('show_shgo', False)
     self.options['fl_tol'] = options.get('fl_tol', 1e-6)
     self.options['xl_tol'] = options.get('xl_tol', 1e-4)
-    for a in ['y_by_x_in_y_eq', 'y_by_x_in_x_eq', 'x_by_y_in_x_eq', 'x_by_y_in_y_eq']:
+    for a in ['y_by_x_in_fy', 'y_by_x_in_fx', 'x_by_y_in_fx', 'x_by_y_in_fy']:
       if a in options:
         # check "subs"
         subs = options[a]
@@ -474,7 +472,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
           scope.update(self.x_eq_group['diff_eq'].func_scope)
 
         # function code
-        argument = ",".join(self.dvar_names[2:] + self.dpar_names)
+        argument = ",".join(self.target_var_names[2:] + self.target_par_names)
         if a.startswith('y_by_x'):
           func_codes = [f'def func({self.x_var}, {argument}):\n']
         else:
@@ -492,15 +490,15 @@ class SymAnalyzer2D(SymAnalyzer1D):
   def get_f_dy(self):
     """Get the derivative function of the second variable. """
     if 'dydt' not in self.analyzed_results:
-      if len(self.dvar_names) < 2:
-        raise errors.AnalyzerError(f'Analyzer only receives {len(self.dvar_names)} '
+      if len(self.target_var_names) < 2:
+        raise errors.AnalyzerError(f'Analyzer only receives {len(self.target_var_names)} '
                                    f'dynamical variables, cannot get "dy".')
       scope = _dict_copy(self.pars_update)
       scope.update(self.fixed_vars)
       scope.update(self.y_eq_group.diff_eq.func_scope)
       _update_scope(scope)
 
-      argument = ', '.join(self.dvar_names + self.dpar_names)
+      argument = ', '.join(self.target_var_names + self.target_par_names)
       func_code = f'def func({argument}):\n'
       for expr in self.y_eq_group.old_exprs[:-1]:
         func_code += f'  {expr.var_name} = {expr.code}\n'
@@ -512,8 +510,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
   def get_f_dfdy(self, origin=True):
     """Get the derivative of ``f`` by variable ``y``. """
     if 'dfdy' not in self.analyzed_results:
-      x_var = self.dvar_names[0]
-      y_var = self.dvar_names[1]
+      x_var = self.target_var_names[0]
+      y_var = self.target_var_names[1]
       y_symbol = sympy.Symbol(y_var, real=True)
       x_eq = self.target_eqs[x_var].sub_exprs[-1].code
       x_eq = analysis_by_sympy.str2sympy(x_eq)
@@ -523,7 +521,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
       _update_scope(eq_x_scope)
 
-      argument = ', '.join(self.dvar_names + self.dpar_names)
+      argument = ', '.join(self.target_var_names + self.target_par_names)
       time_out = self.options.sympy_solver_timeout
 
       sympy_failed = True
@@ -537,8 +535,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
 
           # check
           all_vars = set(eq_x_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfxdy_expr), all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfxdy_expr), all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -562,7 +560,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
         if not origin:
           func_codes.append(f'origin = _fx({argument})')
         func_codes.append(f'disturb = _fx({x_var}, {y_var}+perturb, '
-                          f'{",".join(self.dvar_names[2:] + self.dpar_names)})')
+                          f'{",".join(self.target_var_names[2:] + self.target_par_names)})')
         if not origin:
           func_codes.append(f'return (disturb - origin) / perturb')
         else:
@@ -576,9 +574,9 @@ class SymAnalyzer2D(SymAnalyzer1D):
   def get_f_dgdx(self, origin=True):
     """Get the derivative of ``g`` by variable ``x``. """
     if 'dgdx' not in self.analyzed_results:
-      x_var = self.dvar_names[0]
+      x_var = self.target_var_names[0]
       x_symbol = sympy.Symbol(x_var, real=True)
-      y_var = self.dvar_names[1]
+      y_var = self.target_var_names[1]
       y_eq = self.target_eqs[y_var].sub_exprs[-1].code
       y_eq = analysis_by_sympy.str2sympy(y_eq)
 
@@ -587,7 +585,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
       _update_scope(eq_y_scope)
 
-      argument = ', '.join(self.dvar_names + self.dpar_names)
+      argument = ', '.join(self.target_var_names + self.target_par_names)
       time_out = self.options.sympy_solver_timeout
 
       sympy_failed = True
@@ -601,8 +599,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
 
           # check
           all_vars = set(eq_y_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -626,7 +624,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
         if not origin:
           func_codes.append(f'origin = _fy({argument})')
         func_codes.append(f'disturb = _fy({x_var}+perturb, '
-                          f'{",".join(self.dvar_names[1:] + self.dpar_names)})')
+                          f'{",".join(self.target_var_names[1:] + self.target_par_names)})')
         if not origin:
           func_codes.append(f'return (disturb - origin) / perturb')
         else:
@@ -640,8 +638,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
   def get_f_dgdy(self, origin=True):
     """Get the derivative of ``g`` by variable ``y``. """
     if 'dgdy' not in self.analyzed_results:
-      x_var = self.dvar_names[0]
-      y_var = self.dvar_names[1]
+      x_var = self.target_var_names[0]
+      y_var = self.target_var_names[1]
       y_symbol = sympy.Symbol(y_var, real=True)
       y_eq = self.target_eqs[y_var].sub_exprs[-1].code
       y_eq = analysis_by_sympy.str2sympy(y_eq)
@@ -652,8 +650,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
       _update_scope(eq_y_scope)
 
-      argument = ', '.join(self.dvar_names + self.dpar_names)
-      argument2 = ', '.join(self.dvar_names[2:] + self.dpar_names)
+      argument = ', '.join(self.target_var_names + self.target_par_names)
+      argument2 = ', '.join(self.target_var_names[2:] + self.target_par_names)
       time_out = self.options.sympy_solver_timeout
 
       sympy_failed = True
@@ -667,8 +665,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
 
           # check
           all_vars = set(eq_y_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
@@ -711,17 +709,17 @@ class SymAnalyzer2D(SymAnalyzer1D):
       dgdx = self.get_f_dgdx()
       dgdy = self.get_f_dgdy()
 
-      argument = ','.join(self.dvar_names + self.dpar_names)
+      argument = ','.join(self.target_var_names + self.target_par_names)
       scope = dict(f_dfydy=dgdy, f_dfydx=dgdx, f_dfxdy=dfdy, f_dfxdx=dfdx)
       _update_scope(scope)
-      func_codes = [f'def f_jacobian({argument}):']
+      func_codes = [f'def jacobian({argument}):']
       func_codes.append(f'dfxdx = f_dfxdx({argument})')
       func_codes.append(f'dfxdy = f_dfxdy({argument})')
       func_codes.append(f'dfydx = f_dfydx({argument})')
       func_codes.append(f'dfydy = f_dfydy({argument})')
       func_codes.append('return math.array([[dfxdx, dfxdy], [dfydx, dfydy]])')
       exec(compile('\n  '.join(func_codes), '', 'exec'), scope)
-      self.analyzed_results['jacobian'] = scope['f_jacobian']
+      self.analyzed_results['jacobian'] = scope['jacobian']
 
     return self.analyzed_results['jacobian']
 
@@ -730,7 +728,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
     """
 
     if 'fixed_point' not in self.analyzed_results:
-      vars_and_pars = ','.join(self.dvar_names[2:] + self.dpar_names)
+      vars_and_pars = ','.join(self.target_var_names[2:] + self.target_par_names)
 
       eq_xy_scope = _dict_copy(self.pars_update)
       eq_xy_scope.update(self.fixed_vars)
@@ -846,7 +844,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
       eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
       _update_scope(eq_x_scope)
 
-      func_codes = [f'def f_x({",".join(self.dvar_names + self.dpar_names)}):']
+      func_codes = [f'def f_x({",".join(self.target_var_names + self.target_par_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
                          for expr in self.x_eq_group.old_exprs[:-1]])
       func_codes.append(f'return {self.x_eq_group.old_exprs[-1].code}')
@@ -859,7 +857,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
       eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
       _update_scope(eq_y_scope)
 
-      func_codes = [f'def g_y({",".join(self.dvar_names + self.dpar_names)}):']
+      func_codes = [f'def g_y({",".join(self.target_var_names + self.target_par_names)}):']
       func_codes.extend([f'{expr.var_name} = {expr.code}'
                          for expr in self.y_eq_group.old_exprs[:-1]])
       func_codes.append(f'return {self.y_eq_group.old_exprs[-1].code}')
@@ -916,7 +914,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
       eq_x_scope.update(self.x_eq_group.diff_eq.func_scope)
       _update_scope(eq_x_scope)
 
-      argument = ','.join(self.dvar_names[2:] + self.dpar_names)
+      argument = ','.join(self.target_var_names[2:] + self.target_par_names)
 
       # optimization function
       func_codes = [f'def optimizer_x({self.x_var},{self.y_var},{argument}):']
@@ -990,7 +988,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
       eq_y_scope.update(self.y_eq_group.diff_eq.func_scope)
       _update_scope(eq_y_scope)
 
-      argument = ','.join(self.dvar_names[2:] + self.dpar_names)
+      argument = ','.join(self.target_var_names[2:] + self.target_par_names)
 
       # optimization function
       func_codes = [f'def optimizer_x({self.x_var},{self.y_var},{argument}):']
@@ -1037,16 +1035,16 @@ class SymAnalyzer2D(SymAnalyzer1D):
     return self.analyzed_results[key]
 
   def get_y_by_x_in_y_eq(self):
-    """Get the expression of "y_by_x_in_y_eq".
+    """Get the expression of "y_by_x_in_fy".
 
-    Specifically, ``self.analyzed_results['y_by_x_in_y_eq']`` is a Dict,
+    Specifically, ``self.analyzed_results['y_by_x_in_fy']`` is a Dict,
     with the following keywords:
 
     - status : 'sympy_success', 'sympy_failed', 'escape'
     - subs : substituted expressions (relationship) of y_by_x
     - f : function of y_by_x
     """
-    if 'y_by_x_in_y_eq' not in self.analyzed_results:
+    if 'y_by_x_in_fy' not in self.analyzed_results:
       results = tools.DictPlus()
       if not self.options.escape_sympy_solver:
         y_symbol = sympy.Symbol(self.y_var, real=True)
@@ -1059,13 +1057,13 @@ class SymAnalyzer2D(SymAnalyzer1D):
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
         _update_scope(eq_y_scope)
 
-        argument = ', '.join(self.dvar_names + self.dpar_names)
+        argument = ', '.join(self.target_var_names + self.target_par_names)
         timeout_len = self.options.sympy_solver_timeout
 
         try:
           logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.y_var} = f({self.x_var}, '
-                         f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
+                         f'{",".join(self.target_var_names[2:] + self.target_par_names)})", ')
           # solve the expression
           f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
           y_by_x_in_y_eq = f()
@@ -1075,8 +1073,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
 
           # check
           all_vars = set(eq_y_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(y_by_x_in_y_eq, all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(y_by_x_in_y_eq, all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
@@ -1087,7 +1085,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
             subs_codes.append(f'{self.y_var} = {y_by_x_in_y_eq}')
 
             # compile the function
-            func_code = f'def func({self.x_var}, {",".join(self.dvar_names[2:] + self.dpar_names)}):\n'
+            func_code = f'def func({self.x_var}, {",".join(self.target_var_names[2:] + self.target_par_names)}):\n'
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_code += f'  {expr.var_name} = {expr.code}\n'
             func_code += f'  return {y_by_x_in_y_eq}'
@@ -1106,20 +1104,20 @@ class SymAnalyzer2D(SymAnalyzer1D):
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
-      self.analyzed_results['y_by_x_in_y_eq'] = results
-    return self.analyzed_results['y_by_x_in_y_eq']
+      self.analyzed_results['y_by_x_in_fy'] = results
+    return self.analyzed_results['y_by_x_in_fy']
 
   def get_y_by_x_in_x_eq(self):
-    """Get the expression of "y_by_x_in_x_eq".
+    """Get the expression of "y_by_x_in_fx".
 
-    Specifically, ``self.analyzed_results['y_by_x_in_x_eq']`` is a Dict,
+    Specifically, ``self.analyzed_results['y_by_x_in_fx']`` is a Dict,
     with the following keywords:
 
     - status : 'sympy_success', 'sympy_failed', 'escape'
     - subs : substituted expressions (relationship) of y_by_x
     - f : function of y_by_x
     """
-    if 'y_by_x_in_x_eq' not in self.analyzed_results:
+    if 'y_by_x_in_fx' not in self.analyzed_results:
       results = tools.DictPlus()
 
       if not self.options.escape_sympy_solver:
@@ -1133,13 +1131,13 @@ class SymAnalyzer2D(SymAnalyzer1D):
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
         _update_scope(eq_x_scope)
 
-        argument = ', '.join(self.dvar_names + self.dpar_names)
+        argument = ', '.join(self.target_var_names + self.target_par_names)
         timeout_len = self.options.sympy_solver_timeout
 
         try:
           logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.y_var} = f({self.x_var}, '
-                         f'{",".join(self.dvar_names[2:] + self.dpar_names)})", ')
+                         f'{",".join(self.target_var_names[2:] + self.target_par_names)})", ')
 
           # solve the expression
           f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq, y_symbol))
@@ -1149,8 +1147,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
           y_by_x_in_x_eq = analysis_by_sympy.sympy2str(y_by_x_in_x_eq[0])
 
           all_vars = set(eq_x_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(y_by_x_in_x_eq, all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(y_by_x_in_x_eq, all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
@@ -1162,7 +1160,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
             subs_codes.append(f'{self.y_var} = {y_by_x_in_x_eq}')
 
             # compile the function
-            func_code = f'def func({self.x_var}, {",".join(self.dvar_names[2:] + self.dpar_names)}):\n'
+            func_code = f'def func({self.x_var}, {",".join(self.target_var_names[2:] + self.target_par_names)}):\n'
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_code += f'  {expr.var_name} = {expr.code}\n'
             func_code += f'  return {y_by_x_in_x_eq}'
@@ -1180,20 +1178,20 @@ class SymAnalyzer2D(SymAnalyzer1D):
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
-      self.analyzed_results['y_by_x_in_x_eq'] = results
-    return self.analyzed_results['y_by_x_in_x_eq']
+      self.analyzed_results['y_by_x_in_fx'] = results
+    return self.analyzed_results['y_by_x_in_fx']
 
   def get_x_by_y_in_y_eq(self):
-    """Get the expression of "x_by_y_in_y_eq".
+    """Get the expression of "x_by_y_in_fy".
 
-    Specifically, ``self.analyzed_results['x_by_y_in_y_eq']`` is a Dict,
+    Specifically, ``self.analyzed_results['x_by_y_in_fy']`` is a Dict,
     with the following keywords:
 
     - status : 'sympy_success', 'sympy_failed', 'escape'
     - subs : substituted expressions (relationship) of x_by_y
     - f : function of x_by_y
     """
-    if 'x_by_y_in_y_eq' not in self.analyzed_results:
+    if 'x_by_y_in_fy' not in self.analyzed_results:
       results = tools.DictPlus()
 
       if not self.options.escape_sympy_solver:
@@ -1206,12 +1204,12 @@ class SymAnalyzer2D(SymAnalyzer1D):
         eq_y_scope.update(self.y_eq_group['diff_eq'].func_scope)
         _update_scope(eq_y_scope)
 
-        argument = ', '.join(self.dvar_names + self.dpar_names)
+        argument = ', '.join(self.target_var_names + self.target_par_names)
         timeout_len = self.options.sympy_solver_timeout
 
         try:
           logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
-                         f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
+                         f'"{self.x_var} = f({",".join(self.target_var_names[1:] + self.target_par_names)})", ')
           # solve the expression
           f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
           x_by_y_in_y_eq = f()
@@ -1221,8 +1219,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
 
           # check
           all_vars = set(eq_y_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(x_by_y_in_y_eq, all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(x_by_y_in_y_eq, all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
@@ -1234,7 +1232,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
             subs_codes.append(f'{self.x_var} = {x_by_y_in_y_eq}')
 
             # compile the function
-            func_code = f'def func({",".join(self.dvar_names[1:] + self.dpar_names)}):\n'
+            func_code = f'def func({",".join(self.target_var_names[1:] + self.target_par_names)}):\n'
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_code += f'  {expr.var_name} = {expr.code}\n'
             func_code += f'  return {x_by_y_in_y_eq}'
@@ -1252,20 +1250,20 @@ class SymAnalyzer2D(SymAnalyzer1D):
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
-      self.analyzed_results['x_by_y_in_y_eq'] = results
-    return self.analyzed_results['x_by_y_in_y_eq']
+      self.analyzed_results['x_by_y_in_fy'] = results
+    return self.analyzed_results['x_by_y_in_fy']
 
   def get_x_by_y_in_x_eq(self):
-    """Get the expression of "x_by_y_in_x_eq".
+    """Get the expression of "x_by_y_in_fx".
 
-    Specifically, ``self.analyzed_results['x_by_y_in_x_eq']`` is a Dict,
+    Specifically, ``self.analyzed_results['x_by_y_in_fx']`` is a Dict,
     with the following keywords:
 
     - status : 'sympy_success', 'sympy_failed', 'escape'
     - subs : substituted expressions (relationship) of x_by_y
     - f : function of x_by_y
     """
-    if 'x_by_y_in_x_eq' not in self.analyzed_results:
+    if 'x_by_y_in_fx' not in self.analyzed_results:
       results = tools.DictPlus()
 
       if not self.options.escape_sympy_solver:
@@ -1278,12 +1276,12 @@ class SymAnalyzer2D(SymAnalyzer1D):
         eq_x_scope.update(self.x_eq_group['diff_eq'].func_scope)
         _update_scope(eq_x_scope)
 
-        argument = ', '.join(self.dvar_names + self.dpar_names)
+        argument = ', '.join(self.target_var_names + self.target_par_names)
         timeout_len = self.options.sympy_solver_timeout
 
         try:
           logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
-                         f'"{self.x_var} = f({",".join(self.dvar_names[1:] + self.dpar_names)})", ')
+                         f'"{self.x_var} = f({",".join(self.target_var_names[1:] + self.target_par_names)})", ')
           # solve the expression
           f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))
           x_by_y_in_x_eq = f()
@@ -1293,8 +1291,8 @@ class SymAnalyzer2D(SymAnalyzer1D):
 
           # check
           all_vars = set(eq_x_scope.keys())
-          all_vars.update(self.dvar_names + self.dpar_names)
-          if utils.contain_unknown_symbol(x_by_y_in_x_eq, all_vars):
+          all_vars.update(self.target_var_names + self.target_par_names)
+          if utils.unknown_symbol(x_by_y_in_x_eq, all_vars):
             logger.warning('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
@@ -1306,7 +1304,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
             subs_codes.append(f'{self.x_var} = {x_by_y_in_x_eq}')
 
             # compile the function
-            func_code = f'def func({",".join(self.dvar_names[1:] + self.dpar_names)}):\n'
+            func_code = f'def func({",".join(self.target_var_names[1:] + self.target_par_names)}):\n'
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_code += f'  {expr.var_name} = {expr.code}\n'
             func_code += f'  return {x_by_y_in_x_eq}'
@@ -1324,5 +1322,5 @@ class SymAnalyzer2D(SymAnalyzer1D):
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
-      self.analyzed_results['x_by_y_in_x_eq'] = results
-    return self.analyzed_results['x_by_y_in_x_eq']
+      self.analyzed_results['x_by_y_in_fx'] = results
+    return self.analyzed_results['x_by_y_in_fx']

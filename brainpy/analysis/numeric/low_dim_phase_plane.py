@@ -2,21 +2,24 @@
 
 import logging
 
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 
+import brainpy.math as bm
 from brainpy import errors, math
-from brainpy.analysis import stability
-from brainpy.analysis.symbolic import base, utils
+from brainpy.analysis import stability, constants as C
+from brainpy.analysis.numeric import utils, solver
+from brainpy.analysis.numeric.low_dim_analyzer import LowDimAnalyzer1D, LowDimAnalyzer2D
 from brainpy.integrators.base import Integrator
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-logger = logging.getLogger('brainpy.analysis.symbolic')
+logger = logging.getLogger('brainpy.analysis.numeric')
 
 __all__ = [
   'PhasePlane',
-  '_PhasePlane1D',
-  '_PhasePlane2D',
+  'PhasePlane1D',
+  'PhasePlane2D',
 ]
 
 
@@ -80,9 +83,14 @@ class PhasePlane(object):
       model,
       target_vars,
       fixed_vars=None,
+      target_pars=None,
       pars_update=None,
-      numerical_resolution=0.1,
+      resolutions=None,
       options=None,
+      jit_device=None,
+      escape_sympy_solver=False,
+      sympy_solver_timeout=5.,
+      lim_scale=1.05
   ):
     # check "model"
     self.model = utils.integrators_into_model(model)
@@ -108,25 +116,25 @@ class PhasePlane(object):
       raise errors.BrainPyError('"pars_update" must be a dict with the format of: '
                                 '{"Par A": A_value, "Par B": B_value}')
     for key in pars_update.keys():
-      if (key not in self.model.scopes) and (key not in self.model.parameters):
+      if key not in self.model.parameters:
         raise errors.BrainPyError(f'"{key}" is not a valid parameter in "{model}" model.')
     self.pars_update = pars_update
 
     # analyzer
     if len(target_vars) == 1:
-      self.analyzer = _PhasePlane1D(model_or_integrals=self.model,
-                                    target_vars=target_vars,
-                                    fixed_vars=fixed_vars,
-                                    pars_update=pars_update,
-                                    numerical_resolution=numerical_resolution,
-                                    options=options)
+      self.analyzer = PhasePlane1D(model=self.model,
+                                   target_vars=target_vars,
+                                   fixed_vars=fixed_vars,
+                                   pars_update=pars_update,
+                                   resolutions=resolutions,
+                                   options=options)
     elif len(target_vars) == 2:
-      self.analyzer = _PhasePlane2D(model_or_integrals=self.model,
-                                    target_vars=target_vars,
-                                    fixed_vars=fixed_vars,
-                                    pars_update=pars_update,
-                                    numerical_resolution=numerical_resolution,
-                                    options=options)
+      self.analyzer = PhasePlane2D(model=self.model,
+                                   target_vars=target_vars,
+                                   fixed_vars=fixed_vars,
+                                   pars_update=pars_update,
+                                   resolutions=resolutions,
+                                   options=options)
     else:
       raise errors.BrainPyError('BrainPy only support 1D/2D phase plane analysis. '
                                 'Or, you can set "fixed_vars" to fix other variables, '
@@ -134,18 +142,15 @@ class PhasePlane(object):
 
   def plot_vector_field(self, *args, **kwargs):
     """Plot vector filed of a 2D/1D system."""
-
     self.analyzer.plot_vector_field(*args, **kwargs)
 
   def plot_fixed_point(self, *args, **kwargs):
     """Plot fixed points."""
-
     return self.analyzer.plot_fixed_point(*args, **kwargs)
 
   def plot_nullcline(self, *args, **kwargs):
     """Plot nullcline (only supported in 2D system).
     """
-
     self.analyzer.plot_nullcline(*args, **kwargs)
 
   def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
@@ -211,87 +216,80 @@ class PhasePlane(object):
                                           show=show)
 
 
-class _PhasePlane1D(base.SymAnalyzer1D):
+
+class PhasePlane1D(LowDimAnalyzer1D):
   """Phase plane analyzer for 1D system.
   """
 
-  def plot_vector_field(self, show=False):
-    """Plot the vector filed.
+  def __init__(self,
+               model,
+               target_vars,
+               fixed_vars=None,
+               target_pars=None,
+               pars_update=None,
+               resolutions=None,
+               **kwargs):
+    if (target_pars is not None) and len(target_pars) > 0:
+      raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
+                                 f'While we detect "target_pars={target_pars}".')
+    super(PhasePlane1D, self).__init__(model=model,
+                                       target_vars=target_vars,
+                                       fixed_vars=fixed_vars,
+                                       target_pars=target_pars,
+                                       pars_update=pars_update,
+                                       resolutions=resolutions,
+                                       **kwargs)
 
-    Parameters
-    ----------
-    show : bool
-        Whether show the figure.
+  def plot_vector_field(self, show=False, with_plot=True, with_return=False):
+    """Plot the vector filed."""
+    logger.warning('I am creating vector fields ...')
 
-    Returns
-    -------
-    results : np.ndarray
-        The dx values.
-    """
-    logger.warning('plot vector field ...')
+    # Nullcline of the x variable
+    y_val = self.F_fx(self.resolutions[self.x_var])
+    y_val = np.asarray(y_val)
 
-    # 1. Nullcline of the x variable
-    try:
-      y_val = self.get_f_dx()(self.resolutions[self.x_var])
-    except TypeError:
-      raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
+    # visualization
+    if with_plot:
+      label = f"d{self.x_var}dt"
+      x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
+      plt.plot(np.asarray(self.resolutions[self.x_var]), y_val, **x_style, label=label)
+      plt.axhline(0)
+      plt.xlabel(self.x_var)
+      plt.ylabel(label)
+      plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=(self.lim_scale - 1.) / 2))
+      plt.legend()
+      if show: plt.show()
+    # return
+    if with_return:
+      return y_val
 
-    # 2. visualization
-    label = f"d{self.x_var}dt"
-    x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
-    plt.plot(self.resolutions[self.x_var], y_val, **x_style, label=label)
-    plt.axhline(0)
+  def plot_fixed_point(self, show=False, with_plot=True, with_return=False):
+    """Plot the fixed point."""
+    logger.warning('I am searching fixed points ...')
 
-    plt.xlabel(self.x_var)
-    plt.ylabel(label)
-    plt.xlim(*utils.rescale(self.target_vars[self.x_var],
-                            scale=(self.options.lim_scale - 1.) / 2))
-    plt.legend()
-    if show:
-      plt.show()
-    return y_val
-
-  def plot_fixed_point(self, show=False):
-    """Plot the fixed point.
-
-    Parameters
-    ----------
-    show : bool
-        Whether show the figure.
-
-    Returns
-    -------
-    points : np.ndarray
-        The fixed points.
-    """
-    logger.warning('plot fixed point ...')
-
-    # 1. functions
-    f_fixed_point = self.get_f_fixed_point()
-    f_dfdx = self.get_f_dfdx()
-
-    # 2. stability analysis
-    x_values = f_fixed_point()
+    # fixed points and stability analysis
+    fps = self.F_fixed_points(self.resolutions[self.x_var])
     container = {a: [] for a in stability.get_1d_stability_types()}
-    for i in range(len(x_values)):
-      x = x_values[i]
-      dfdx = f_dfdx(x)
+    for i in range(len(fps)):
+      x = fps[i]
+      dfdx = self.F_dfxdx(x)
       fp_type = stability.stability_analysis(dfdx)
       logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
       container[fp_type].append(x)
 
-    # 3. visualization
-    for fp_type, points in container.items():
-      if len(points):
-        plot_style = stability.plot_scheme[fp_type]
-        plt.plot(points, [0] * len(points), '.',
-                 markersize=20, **plot_style, label=fp_type)
-    plt.legend()
-    if show:
-      plt.show()
+    # visualization
+    if with_plot:
+      for fp_type, points in container.items():
+        if len(points):
+          plot_style = stability.plot_scheme[fp_type]
+          plt.plot(points, [0] * len(points), '.', markersize=20, **plot_style, label=fp_type)
+      plt.legend()
+      if show:
+        plt.show()
 
-    return np.array(x_values)
+    # return
+    if with_return:
+      return fps
 
   def plot_nullcline(self, resolution=0.1, show=False):
     raise NotImplementedError('1D phase plane do not support plot_nullcline.')
@@ -303,18 +301,40 @@ class _PhasePlane1D(base.SymAnalyzer1D):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _PhasePlane2D(base.SymAnalyzer2D):
+class PhasePlane2D(LowDimAnalyzer2D):
   """Phase plane analyzer for 2D system.
   """
 
-  def plot_vector_field(self, plot_method='streamplot', plot_style=None, show=False):
+  def __init__(self,
+               model,
+               target_vars,
+               fixed_vars=None,
+               target_pars=None,
+               pars_update=None,
+               resolutions=None,
+               **kwargs):
+    if (target_pars is not None) and len(target_pars) > 0:
+      raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
+                                 f'While we detect "target_pars={target_pars}".')
+    super(PhasePlane2D, self).__init__(model=model,
+                                       target_vars=target_vars,
+                                       fixed_vars=fixed_vars,
+                                       target_pars=target_pars,
+                                       pars_update=pars_update,
+                                       resolutions=resolutions,
+                                       **kwargs)
+
+  def plot_vector_field(self, with_plot=True, with_return=False,
+                        plot_method='streamplot', plot_style=None, show=False):
     """Plot the vector field.
 
     Parameters
     ----------
+    with_plot: bool
+    with_return : bool
+    show : bool
     plot_method : str
-        The method to plot the vector filed.
-        It can be "streamplot" or "quiver".
+        The method to plot the vector filed. It can be "streamplot" or "quiver".
     plot_style : dict, optional
         The style for vector filed plotting.
 
@@ -324,229 +344,164 @@ class _PhasePlane2D(base.SymAnalyzer2D):
         - For ``plot_method="quiver"``, it can set the keywords like "color",
           "units", "angles", "scale". More settings please check
           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html.
-
-    Returns
-    -------
-    result : tuple
-        The ``dx``, ``dy`` values.
     """
-    logger.warning('plot vector field ...')
+    logger.warning('I am creating vector fields ...')
 
-    if plot_style is None:
-      plot_style = dict()
-
+    # get dx, dy
     xs = self.resolutions[self.x_var]
     ys = self.resolutions[self.y_var]
-    X, Y = np.meshgrid(xs, ys)
-
-    # dx
-    try:
-      dx = self.get_f_dx()(X, Y)
-    except TypeError:
-      raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
-
-    # dy
-    try:
-      dy = self.get_f_dy()(X, Y)
-    except TypeError:
-      raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                'variables to "fixed_vars".')
+    X, Y = bm.meshgrid(xs, ys)
+    dx = self.F_fx(X, Y)
+    dy = self.F_fy(X, Y)
+    X, Y = np.asarray(X), np.asarray(Y)
+    dx, dy = np.asarray(dx), np.asarray(dy)
 
     # vector field
-    if plot_method == 'quiver':
-      styles = dict()
-      styles['units'] = plot_style.get('units', 'xy')
-      if (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
-        speed = np.sqrt(dx ** 2 + dy ** 2)
-        dx = dx / speed
-        dy = dy / speed
-      plt.quiver(X, Y, dx, dy, **styles)
-    elif plot_method == 'streamplot':
-      styles = dict()
-      styles['arrowsize'] = plot_style.get('arrowsize', 1.2)
-      styles['density'] = plot_style.get('density', 1)
-      styles['color'] = plot_style.get('color', 'thistle')
-      linewidth = plot_style.get('linewidth', None)
-      if (linewidth is None) and (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
-        min_width = plot_style.get('min_width', 0.5)
-        max_width = plot_style.get('min_width', 5.5)
-        speed = np.sqrt(dx ** 2 + dy ** 2)
-        linewidth = min_width + max_width * speed / speed.max()
-      plt.streamplot(X, Y, dx, dy, linewidth=linewidth, **styles)
-    else:
-      raise ValueError(f'Unknown plot_method "{plot_method}", only supports "quiver" and "streamplot".')
+    if with_plot:
+      if plot_method == 'quiver':
+        if plot_style is None:
+          plot_style = dict(units='xy')
+        if (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
+          speed = np.sqrt(dx ** 2 + dy ** 2)
+          dx = dx / speed
+          dy = dy / speed
+        plt.quiver(X, Y, dx, dy, **plot_style)
+      elif plot_method == 'streamplot':
+        if plot_style is None:
+          plot_style = dict(arrowsize=1.2, density=1, color='thistle')
+        linewidth = plot_style.get('linewidth', None)
+        if linewidth is None:
+          if (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
+            min_width, max_width = 0.5, 5.5
+            speed = np.sqrt(dx ** 2 + dy ** 2)
+            linewidth = min_width + max_width * speed / speed.max()
+        plt.streamplot(X, Y, dx, dy, linewidth=linewidth, **plot_style)
+      else:
+        raise ValueError(f'Unknown plot_method "{plot_method}", only supports "quiver" and "streamplot".')
 
-    plt.xlabel(self.x_var)
-    plt.ylabel(self.y_var)
+      plt.xlabel(self.x_var)
+      plt.ylabel(self.y_var)
+      if show:
+        plt.show()
 
-    if show:
-      plt.show()
+    if with_return:
+      return dx, dy
 
-    return dx, dy
+  def _get_fx_nullcline_points(self, coords=None):
+    if C.fx_nullcline_points not in self.analyzed_results:
+      xs = self.resolutions[self.x_var]
+      ys = self.resolutions[self.y_var]
+      coords = (self.x_var + '-' + self.y_var) if coords is None else coords
+      if coords == self.x_var + '-' + self.y_var:
+        _starts, _ends, _args = solver.get_brentq_candidates(self.F_fx, xs, ys)
+        x_values_in_fx, y_values_in_fx = solver.roots_of_1d_by_xy(self.F_fx, _starts, _ends, _args)
+        x_values_in_fx = np.asarray(x_values_in_fx)
+        y_values_in_fx = np.asarray(y_values_in_fx)
+      elif coords == self.y_var + '-' + self.x_var:
+        f = lambda y, x: self.F_fx(x, y)
+        _starts, _ends, _args = solver.get_brentq_candidates(f, ys, xs)
+        y_values_in_fx, x_values_in_fx = solver.roots_of_1d_by_xy(f, _starts, _ends, _args)
+        x_values_in_fx = np.asarray(x_values_in_fx)
+        y_values_in_fx = np.asarray(y_values_in_fx)
+      else:
+        raise ValueError
+      self.analyzed_results[C.fx_nullcline_points] = (x_values_in_fx, y_values_in_fx)
+    return self.analyzed_results[C.fx_nullcline_points]
 
-  def plot_fixed_point(self, show=False):
+  def _get_fy_nullcline_points(self, coords=None):
+    if C.fy_nullcline_points not in self.analyzed_results:
+      xs = self.resolutions[self.x_var]
+      ys = self.resolutions[self.y_var]
+      coords = (self.x_var + '-' + self.y_var) if coords is None else coords
+      if coords == self.x_var + '-' + self.y_var:
+        _starts, _ends, _args = solver.get_brentq_candidates(self.F_fy, xs, ys)
+        x_values_in_fy, y_values_in_fy = solver.roots_of_1d_by_xy(self.F_fy, _starts, _ends, _args)
+        x_values_in_fy = np.asarray(x_values_in_fy)
+        y_values_in_fy = np.asarray(y_values_in_fy)
+      elif coords == self.y_var + '-' + self.x_var:
+        f = lambda y, x: self.F_fy(x, y)
+        _starts, _ends, _args = solver.get_brentq_candidates(f, ys, xs)
+        y_values_in_fy, x_values_in_fy = solver.roots_of_1d_by_xy(f, _starts, _ends, _args)
+        x_values_in_fy = np.asarray(x_values_in_fy)
+        y_values_in_fy = np.asarray(y_values_in_fy)
+      else:
+        raise ValueError
+      self.analyzed_results[C.fy_nullcline_points] = (x_values_in_fy, y_values_in_fy)
+    return self.analyzed_results[C.fy_nullcline_points]
+
+  def plot_nullcline(self, with_plot=True, with_return=False,
+                     y_style=None, x_style=None, show=False,
+                     x_coord=None, y_coord=None):
+    """Plot the nullcline."""
+    logger.warning('I am computing fx-nullcline ...')
+
+    # Nullcline of the x variable
+    # ---------------------------
+    x_values_in_fx, y_values_in_fx = self._get_fx_nullcline_points(coords=x_coord)
+    if with_plot:
+      if x_style is None:
+        x_style = dict(color='cornflowerblue', alpha=.7, marker='.')
+        x_style = dict(color='cornflowerblue', alpha=.7, )
+      plt.plot(x_values_in_fx, y_values_in_fx, '.', **x_style, label=f"{self.x_var} nullcline")
+
+    # Nullcline of the y variable
+    # ---------------------------
+    logger.warning('I am computing fy-nullcline ...')
+    x_values_in_fy, y_values_in_fy = self._get_fy_nullcline_points(coords=y_coord)
+    if with_plot:
+      if y_style is None:
+        y_style = dict(color='lightcoral', alpha=.7, marker='.')
+        y_style = dict(color='lightcoral', alpha=.7, )
+      plt.plot(x_values_in_fy, y_values_in_fy, '.', **y_style, label=f"{self.y_var} nullcline")
+
+    if with_plot:
+      plt.xlabel(self.x_var)
+      plt.ylabel(self.y_var)
+      scale = (self.lim_scale - 1.) / 2
+      plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+      plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
+      plt.legend()
+      if show:
+        plt.show()
+
+    if with_return:
+      return {self.x_var: (x_values_in_fx, y_values_in_fx),
+              self.y_var: (x_values_in_fy, y_values_in_fy)}
+
+  def plot_fixed_point(self, with_plot=True, with_return=False, show=False):
     """Plot the fixed point and analyze its stability.
-
-    Parameters
-    ----------
-    show : bool
-        Whether show the figure.
-
-    Returns
-    -------
-    results : tuple
-        The value points.
     """
-    logger.warning('plot fixed point ...')
+    logger.warning('I am searching fixed points ...')
 
-    # function for fixed point solving
-    f_fixed_point = self.get_f_fixed_point()
-    x_values, y_values = f_fixed_point()
-
-    # function for jacobian matrix
-    f_jacobian = self.get_f_jacobian()
+    fixed_points = self.F_fixed_points(None)
+    print(fixed_points)
 
     # stability analysis
     # ------------------
     container = {a: {'x': [], 'y': []} for a in stability.get_2d_stability_types()}
-    for i in range(len(x_values)):
-      x = x_values[i]
-      y = y_values[i]
-      fp_type = stability.stability_analysis(f_jacobian(x, y))
+    for i in range(len(fixed_points)):
+      x = fixed_points[i, 0]
+      y = fixed_points[i, 0]
+      print(fixed_points[i], self.F_fixed_point_aux(jnp.asarray(fixed_points[i])))
+
+      fp_type = stability.stability_analysis(self.F_jacobian(x, y))
       logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 
     # visualization
     # -------------
-    for fp_type, points in container.items():
-      if len(points['x']):
-        plot_style = stability.plot_scheme[fp_type]
-        plt.plot(points['x'], points['y'], '.', markersize=20, **plot_style, label=fp_type)
-    plt.legend()
-    if show:
-      plt.show()
+    if with_plot:
+      for fp_type, points in container.items():
+        if len(points['x']):
+          plot_style = stability.plot_scheme[fp_type]
+          plt.plot(points['x'], points['y'], '.', markersize=20, **plot_style, label=fp_type)
+      plt.legend()
+      if show:
+        plt.show()
 
-    return x_values, y_values
-
-  def plot_nullcline(self, numerical_setting=None, show=False):
-    """Plot the nullcline.
-
-    Parameters
-    ----------
-    numerical_setting : dict, optional
-        Set the numerical method for solving nullclines.
-        For each function setting, it contains the following keywords:
-
-        - **coords**: The coordination setting, it can be 'var1-var2' (which means
-          for each possible value 'var1' the optimizer method will search
-          the zero root of 'var2') or 'var2-var1' (which means iterate each
-          'var2' and get the optimization results of 'var1').
-        - **plot**: It can be 'scatter' (default) or 'line'.
-
-    show : bool
-        Whether show the figure.
-
-    Returns
-    -------
-    values : dict
-        A dict with the format of ``{func1: (x_val, y_val), func2: (x_val, y_val)}``.
-    """
-    logger.warning('plot nullcline ...')
-
-    if numerical_setting is None:
-      numerical_setting = dict()
-    x_setting = numerical_setting.get(self.x_eq_group.func_name, {})
-    y_setting = numerical_setting.get(self.y_eq_group.func_name, {})
-    x_coords = x_setting.get('coords', self.x_var + '-' + self.y_var)
-    y_coords = y_setting.get('coords', self.x_var + '-' + self.y_var)
-    x_plot_style = x_setting.get('plot', 'scatter')
-    y_plot_style = y_setting.get('plot', 'scatter')
-
-    xs = self.resolutions[self.x_var]
-    ys = self.resolutions[self.y_var]
-
-    # Nullcline of the y variable
-    y_style = dict(color='cornflowerblue', alpha=.7, )
-    y_by_x = self.get_y_by_x_in_y_eq()
-    if y_by_x['status'] == 'sympy_success':
-      try:
-        y_values_in_y_eq = y_by_x['f'](xs)
-      except TypeError:
-        raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                  'variables to "fixed_vars".')
-      x_values_in_y_eq = xs
-      plt.plot(xs, y_values_in_y_eq, **y_style, label=f"{self.y_var} nullcline")
-
-    else:
-      x_by_y = self.get_x_by_y_in_y_eq()
-      if x_by_y['status'] == 'sympy_success':
-        try:
-          x_values_in_y_eq = x_by_y['f'](ys)
-        except TypeError:
-          raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                    'variables to "fixed_vars".')
-        y_values_in_y_eq = ys
-        plt.plot(x_values_in_y_eq, ys, **y_style, label=f"{self.y_var} nullcline")
-      else:
-        # optimization results
-        optimizer = self.get_f_optimize_y_nullcline(y_coords)
-        x_values_in_y_eq, y_values_in_y_eq = optimizer()
-
-        if x_plot_style == 'scatter':
-          plt.plot(x_values_in_y_eq, y_values_in_y_eq, '.', **y_style, label=f"{self.y_var} nullcline")
-        elif x_plot_style == 'line':
-          plt.plot(x_values_in_y_eq, y_values_in_y_eq, **y_style, label=f"{self.y_var} nullcline")
-        else:
-          raise ValueError(f'Unknown plot style: {x_plot_style}')
-
-    # Nullcline of the x variable
-    x_style = dict(color='lightcoral', alpha=.7, )
-    y_by_x = self.get_y_by_x_in_x_eq()
-    if y_by_x['status'] == 'sympy_success':
-      try:
-        y_values_in_x_eq = y_by_x['f'](xs)
-      except TypeError:
-        raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                  'variables to "fixed_vars".')
-      x_values_in_x_eq = xs
-      plt.plot(xs, y_values_in_x_eq, **x_style, label=f"{self.x_var} nullcline")
-
-    else:
-      x_by_y = self.get_x_by_y_in_x_eq()
-      if x_by_y['status'] == 'sympy_success':
-        try:
-          x_values_in_x_eq = x_by_y['f'](ys)
-        except TypeError:
-          raise errors.BrainPyError('Missing variables. Please check and set missing '
-                                    'variables to "fixed_vars".')
-        y_values_in_x_eq = ys
-        plt.plot(x_values_in_x_eq, ys, **x_style, label=f"{self.x_var} nullcline")
-      else:
-        # optimization results
-        optimizer = self.get_f_optimize_x_nullcline(x_coords)
-        x_values_in_x_eq, y_values_in_x_eq = optimizer()
-
-        # visualization
-        if y_plot_style == 'scatter':
-          plt.plot(x_values_in_x_eq, y_values_in_x_eq, '.', **x_style, label=f"{self.x_var} nullcline")
-        elif y_plot_style == 'line':
-          plt.plot(x_values_in_x_eq, y_values_in_x_eq, **x_style, label=f"{self.x_var} nullcline")
-        else:
-          raise ValueError(f'Unknown plot style: {x_plot_style}')
-    # finally
-    plt.xlabel(self.x_var)
-    plt.ylabel(self.y_var)
-    scale = (self.options.lim_scale - 1.) / 2
-    plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
-    plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
-    plt.legend()
-    if show:
-      plt.show()
-
-    return {self.x_eq_group.func_name: (x_values_in_x_eq, y_values_in_x_eq),
-            self.y_eq_group.func_name: (x_values_in_y_eq, y_values_in_y_eq)}
+    if with_return:
+      return fixed_points
 
   def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
     """Plot trajectories according to the settings.
@@ -654,7 +609,7 @@ class _PhasePlane2D(base.SymAnalyzer2D):
     if axes == 'v-v':
       plt.xlabel(self.x_var)
       plt.ylabel(self.y_var)
-      scale = (self.options.lim_scale - 1.) / 2
+      scale = (self.lim_scale - 1.) / 2
       plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
       plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
       plt.legend()
@@ -694,11 +649,11 @@ class _PhasePlane2D(base.SymAnalyzer2D):
       initials = [initials]
     elif isinstance(initials, (list, tuple)):
       if isinstance(initials[0], (int, float)):
-        initials = [{self.target_var_names[i]: v for i, v in enumerate(initials)}]
+        initials = [{self.dvar_names[i]: v for i, v in enumerate(initials)}]
       elif isinstance(initials[0], dict):
         initials = initials
       elif isinstance(initials[0], (tuple, list)) and isinstance(initials[0][0], (int, float)):
-        initials = [{self.target_var_names[i]: v for i, v in enumerate(init)} for init in initials]
+        initials = [{self.dvar_names[i]: v for i, v in enumerate(init)} for init in initials]
       else:
         raise ValueError
     else:
@@ -737,7 +692,7 @@ class _PhasePlane2D(base.SymAnalyzer2D):
     # 6. visualization
     plt.xlabel(self.x_var)
     plt.ylabel(self.y_var)
-    scale = (self.options.lim_scale - 1.) / 2
+    scale = (self.lim_scale - 1.) / 2
     plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
     plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
     plt.legend()

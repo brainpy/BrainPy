@@ -24,24 +24,24 @@ def get_args(f):
   """Get the function arguments.
 
   >>> def f1(a, b, t, *args, c=1): pass
-  >>> get_args(f1)
+  >>> _get_args(f1)
   (['a', 'b'], ['t', '*args', 'c'], ['a', 'b', 't', '*args', 'c=1'])
 
   >>> def f2(a, b, *args, c=1, **kwargs): pass
-  >>> get_args(f2)
+  >>> _get_args(f2)
   ValueError: Don not support dict of keyword arguments: **kwargs
 
   >>> def f3(a, b, t, c=1, d=2): pass
-  >>> get_args(f4)
+  >>> _get_args(f4)
   (['a', 'b'], ['t', 'c', 'd'], ['a', 'b', 't', 'c=1', 'd=2'])
 
   >>> def f4(a, b, t, *args): pass
-  >>> get_args(f4)
+  >>> _get_args(f4)
   (['a', 'b'], ['t', '*args'], ['a', 'b', 't', '*args'])
 
   >>> scope = {}
   >>> exec(compile('def f5(a, b, t, *args): pass', '', 'exec'), scope)
-  >>> get_args(scope['f5'])
+  >>> _get_args(scope['f5'])
   (['a', 'b'], ['t', '*args'], ['a', 'b', 't', '*args'])
 
   Parameters
@@ -71,7 +71,7 @@ def get_args(f):
 
     elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
       raise errors.DiffEqError('Don not support positional only parameters, e.g., /')
-    elif par.kind is inspect.Parameter.VAR_KEYWORD:
+    elif par.kind is inspect.Parameter.VAR_KEYWORD:  # TODO
       raise errors.DiffEqError(f'Don not support dict of keyword arguments: {str(par)}')
     else:
       raise errors.DiffEqError(f'Unknown argument type: {par.kind}')

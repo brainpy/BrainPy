@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-def enable_x64(mode):
+def enable_x64(mode=True):
   assert mode in [True, False]
   jax.config.update("jax_enable_x64", mode)
 
