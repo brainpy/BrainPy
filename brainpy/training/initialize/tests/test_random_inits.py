@@ -20,14 +20,13 @@ class TestNormalInit(unittest.TestCase):
       assert isinstance(weights, bp.math.ndarray)
 
   def test_normal_init3(self):
-    init = bp.init.Normal(scale=0.5, seed=10)
+    init1 = bp.init.Normal(scale=0.5, seed=10)
+    init2 = bp.init.Normal(scale=0.5, seed=10)
     size = (10,)
-    weights1 = init(size)
-    weights2 = init(size)
+    weights1 = init1(size)
+    weights2 = init2(size)
     assert weights1.shape == size
     assert isinstance(weights1, bp.math.ndarray)
-    print(weights1)
-    print(weights2)
     assert (weights1 == weights2).all()
 
 

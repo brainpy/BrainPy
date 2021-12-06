@@ -28,8 +28,6 @@ class TestGaussianDecayInit(unittest.TestCase):
       shape = _size2len(size)
       assert weights.shape == (shape, shape)
       assert isinstance(weights, bp.math.ndarray)
-      # plt.imshow(weights)
-      # plt.show()
 
   def test_gaussian_decay_init2(self):
     init = bp.init.GaussianDecay(sigma=4, max_w=1., min_w=0.1, periodic_boundary=True,
@@ -40,8 +38,6 @@ class TestGaussianDecayInit(unittest.TestCase):
     shape = _size2len(size)
     assert weights.shape == (shape, shape)
     assert isinstance(weights, bp.math.ndarray)
-    # plt.imshow(weights)
-    # plt.show()
 
 
 class TestDOGDecayInit(unittest.TestCase):
@@ -52,8 +48,6 @@ class TestDOGDecayInit(unittest.TestCase):
       shape = _size2len(size)
       assert weights.shape == (shape, shape)
       assert isinstance(weights, bp.math.ndarray)
-      # plt.imshow(weights)
-      # plt.show()
 
   def test_dog_decay_init2(self):
     init = bp.init.DOGDecay(sigmas=(1., 2.5),
@@ -67,5 +61,3 @@ class TestDOGDecayInit(unittest.TestCase):
     shape = _size2len(size)
     assert weights.shape == (shape, shape)
     assert isinstance(weights, bp.math.ndarray)
-    # plt.imshow(weights)
-    # plt.show()
