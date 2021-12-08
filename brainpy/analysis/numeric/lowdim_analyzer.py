@@ -294,21 +294,8 @@ class Num1DAnalyzer(LowDimAnalyzer):
   @property
   def F_vmap_fx(self):
     if C.F_vmap_fx not in self.analyzed_results:
-      # _, arguments = _get_args(self.model.F[self.x_var])
-      # wrapper = _std_derivative(arguments, self.target_var_names, self.target_par_names)
-      # f = wrapper(self.model.F[self.x_var])
-      # f = partial(f, **(self.pars_update + self.fixed_vars))
-      # f = utils.f_without_jaxarray_return(f)
       self.analyzed_results[C.F_vmap_fx] = bm.jit(bm.vmap(self.F_fx), device=self.jit_device)
     return self.analyzed_results[C.F_vmap_fx]
-
-  #
-  # def _get_fx_signs(self, pars=(), cache=False):
-  #   xyz = tuple(self.resolutions.values())
-  #   return utils.get_sign2(self.F_fx, *xyz, args=pars)
-  #   # if C.fx_sign not in self.analyzed_results:
-  #   #   self.analyzed_results[C.fx_sign] = signs
-  #   # return self.analyzed_results[C.fx_sign]
 
   @property
   def F_dfxdx(self):
@@ -387,25 +374,25 @@ class Num1DAnalyzer(LowDimAnalyzer):
     candidates = candidates.value if isinstance(candidates, bm.JaxArray) else candidates
     selected_ids = np.arange(len(candidates))
     args = tuple(a.value if isinstance(candidates, bm.JaxArray) else a for a in args)
-    for a in args:
-      assert len(a) == len(candidates)
+    for a in args: assert len(a) == len(candidates)
     if num_seg is None:
       num_seg = len(self.resolutions[self.x_var])
     assert isinstance(num_seg, int)
 
     # get the signs
     signs = jnp.sign(self.F_vmap_fx(candidates, *args))
-    signs = signs.reshape((num_seg, -1)).T
+    signs = signs.reshape((num_seg, -1))
+    par_len = signs.shape[1]
     signs1 = signs.at[-1].set(1)
     signs2 = jnp.vstack((signs[1:], signs[:1])).at[-1].set(1)
-    ids = jnp.where((signs1 * signs2).T.flatten() <= 0)[0]
+    ids = jnp.where((signs1 * signs2).flatten() <= 0)[0]
     if len(ids) <= 0:
       return [], []
 
     # selected the proper candidates to optimize fixed points
     selected_ids = selected_ids[np.asarray(ids)]
     starts = candidates[ids]
-    ends = candidates[ids + 1]
+    ends = candidates[ids + par_len]
     X = jnp.stack((starts, ends)).T
     args = tuple(a[ids] for a in args)
 
@@ -644,7 +631,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
       arg_id_segments = tuple(np.arange(0, l, arg_pre_len[i]) for i, l in enumerate(arg_lens))
       arg_id_segments = tuple(ids.flatten() for ids in np.meshgrid(*arg_id_segments))
       if len(arg_id_segments) == 0:
-        arg_id_segments = ((0,), )
+        arg_id_segments = ((0,),)
       for _j, ids in enumerate(zip(*arg_id_segments)):
         logger.warning(f"{C.prefix}segment {_j} ...")
 
@@ -721,7 +708,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
           x_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f1, starts, ends, *vps)
           y_values_in_fy = out_args[0]
           p_values_in_fy = out_args[1:]
-          x_values_in_fy, y_values_in_fy, p_values_in_fy= \
+          x_values_in_fy, y_values_in_fy, p_values_in_fy = \
             self._fp_filter(x_values_in_fy, y_values_in_fy, p_values_in_fy, fp_aux_filter)
         elif coords == self.y_var + '-' + self.x_var:
           starts, ends, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
@@ -794,7 +781,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
     for _j, i in enumerate(segment_ids):
       logger.warning(f"{C.prefix}segment {_j} ...")
-      seg_fps = candidates[i: i+seg_len]
+      seg_fps = candidates[i: i + seg_len]
       seg_args = tuple(a[i: i + seg_len] for a in args)
       seg_ids = selected_ids[i: i + seg_len]
 

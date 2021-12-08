@@ -54,11 +54,13 @@ class Bifurcation1D(Num1DAnalyzer):
 
     xs = self.resolutions[self.x_var]
     vps = bm.meshgrid(xs, *tuple(self.resolutions[p] for p in self.target_par_names))
-    vps = tuple(vp.flatten() for vp in vps)
+    vps = tuple(jnp.moveaxis(vp.value, 0, 1).flatten() for vp in vps)
     candidates = vps[0]
     pars = vps[1:]
-    fixed_points, selected_ids = self._get_fixed_points(
-      candidates, *pars, tol_loss=tol_loss, loss_screen=loss_screen)
+    fixed_points, selected_ids = self._get_fixed_points(candidates, *pars,
+                                                        tol_loss=tol_loss,
+                                                        loss_screen=loss_screen,
+                                                        num_seg=len(xs))
     selected_pars = tuple(np.asarray(p)[selected_ids] for p in pars)
     dfxdx = np.asarray(self.F_vmap_dfxdx(jnp.asarray(fixed_points), *selected_pars))
 

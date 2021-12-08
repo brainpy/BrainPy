@@ -62,13 +62,6 @@ class PhasePlane1D(Num1DAnalyzer):
                                        pars_update=pars_update,
                                        resolutions=resolutions,
                                        **kwargs)
-  #
-  # def _get_fixed_points(self):
-  #   """The function to evalute fixed points :math:`F(*\mathrm{vars}, *\mathrm{pars})`."""
-  #   if C.F_fixed_point not in self.analyzed_results:
-  #     f = lambda candidates: solver.roots_of_1d_by_x(self.F_fx, candidates)
-  #     self.analyzed_results[C.F_fixed_point] = f
-  #   return self.analyzed_results[C.F_fixed_point]
 
   def plot_vector_field(self, show=False, with_plot=True, with_return=False):
     """Plot the vector filed."""
