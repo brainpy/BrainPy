@@ -3,7 +3,7 @@
 import numpy as np
 
 from brainpy import math
-from .base import Initializer
+from .base import InterLayerInitializer
 
 __all__ = [
   'Normal',
@@ -27,7 +27,7 @@ def _compute_fans(shape, in_axis=-2, out_axis=-1):
   return fan_in, fan_out
 
 
-class Normal(Initializer):
+class Normal(InterLayerInitializer):
   """Initialize weights with normal distribution.
 
   Parameters
@@ -47,7 +47,7 @@ class Normal(Initializer):
     return math.asarray(weights, dtype=dtype)
 
 
-class Uniform(Initializer):
+class Uniform(InterLayerInitializer):
   """Initialize weights with uniform distribution.
 
   Parameters
@@ -70,7 +70,7 @@ class Uniform(Initializer):
     return math.asarray(r, dtype=dtype)
 
 
-class VarianceScaling(Initializer):
+class VarianceScaling(InterLayerInitializer):
   def __init__(self, scale, mode, distribution, in_axis=-2, out_axis=-1, seed=None):
     self.scale = scale
     self.mode = mode
@@ -151,7 +151,7 @@ class LecunUniform(VarianceScaling):
                in_axis=-2, out_axis=-1,
                seed=None):
     super(LecunUniform, self).__init__(scale, mode, distribution,
-                                       in_axis=in_axis,out_axis=out_axis,
+                                       in_axis=in_axis, out_axis=out_axis,
                                        seed=seed)
 
 
@@ -165,7 +165,7 @@ class LecunNormal(VarianceScaling):
                                       seed=seed)
 
 
-class Orthogonal(Initializer):
+class Orthogonal(InterLayerInitializer):
   """
   Construct an initializer for uniformly distributed orthogonal matrices.
 
@@ -187,13 +187,14 @@ class Orthogonal(Initializer):
     q_mat, r_mat = np.linalg.qr(norm_dst)
     # Enforce Q is uniformly distributed
     q_mat *= np.sign(np.diag(r_mat))
-    if n_rows < n_cols: q_mat = q_mat.T
+    if n_rows < n_cols:
+      q_mat = q_mat.T
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
     return self.scale * math.asarray(q_mat, dtype=dtype)
 
 
-class DeltaOrthogonal(Initializer):
+class DeltaOrthogonal(InterLayerInitializer):
   """
   Construct an initializer for delta orthogonal kernels; see arXiv:1806.05393.
 

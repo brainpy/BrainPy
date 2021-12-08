@@ -26,7 +26,7 @@ class TestOneInit(unittest.TestCase):
 
 class TestIdentityInit(unittest.TestCase):
   def test_identity_init(self):
-      for size in [(100,), (10, 20), ]:
+      for size in [(100,), (10, 20)]:
         for value in [0., 1., -1.]:
           init = bp.init.Identity(value=value)
           weights = init(size)
