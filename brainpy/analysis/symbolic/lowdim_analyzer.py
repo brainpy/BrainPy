@@ -311,13 +311,13 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
       if self.y_by_x_in_fx['status'] == 'sympy_success':
         vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((xs,) + P)))
         y_values = self.y_by_x_in_fx['vmap_f'](*vps)
-        self.analyzed_results[key] = (vps[0], y_values) + vps[1:]
+        self.analyzed_results[key] = (jnp.stack((vps[0], y_values)).T, ) + vps[1:]
       else:
         ys = self.resolutions[self.y_var]
         if self.x_by_y_in_fx['status'] == 'sympy_success':
           vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((ys,) + P)))
           x_values = self.x_by_y_in_fx['vmap_f'](*vps)
-          self.analyzed_results[key] = (x_values,) + vps
+          self.analyzed_results[key] = (jnp.stack(x_values, vps[0]).T,) + vps[1:]
         else:
           super(Sym2DAnalyzer, self)._get_fx_nullcline_points(coords=coords, tol=tol,
                                                               num_segments=num_segments,
@@ -333,13 +333,13 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
       if self.y_by_x_in_fy['status'] == 'sympy_success':
         vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((xs,) + P)))
         y_values = self.y_by_x_in_fy['vmap_f'](*vps)
-        self.analyzed_results[key] = (vps[0], y_values) + vps[1:]
+        self.analyzed_results[key] = (jnp.stack((vps[0], y_values)).T, ) + vps[1:]
       else:
         ys = self.resolutions[self.y_var]
         if self.x_by_y_in_fy['status'] == 'sympy_success':
           vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((ys,) + P)))
           x_values = self.x_by_y_in_fy['vmap_f'](*vps)
-          self.analyzed_results[key] = (x_values, ) + vps
+          self.analyzed_results[key] = (jnp.stack(x_values, vps[0]).T,) + vps[1:]
         else:
           super(Sym2DAnalyzer, self)._get_fy_nullcline_points(coords=coords, tol=tol,
                                                               num_segments=num_segments,

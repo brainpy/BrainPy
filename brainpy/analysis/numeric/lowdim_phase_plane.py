@@ -15,7 +15,7 @@ logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
   'PhasePlane1D',
-  'NumPhasePlane2D',
+  'PhasePlane2DNum',
 ]
 
 
@@ -115,7 +115,7 @@ class PhasePlane1D(Num1DAnalyzer):
       return fps
 
 
-class NumPhasePlane2D(Num2DAnalyzer):
+class PhasePlane2DNum(Num2DAnalyzer):
   """Phase plane analyzer for 2D dynamical system.
 
   Parameters
@@ -142,10 +142,11 @@ class NumPhasePlane2D(Num2DAnalyzer):
                pars_update=None,
                resolutions=None,
                **kwargs):
+    logger.warning(f'I am {PhasePlane2DNum.__name__}, ')
     if (target_pars is not None) and len(target_pars) > 0:
       raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
                                  f'While we detect "target_pars={target_pars}".')
-    super(NumPhasePlane2D, self).__init__(model=model,
+    super(PhasePlane2DNum, self).__init__(model=model,
                                           target_vars=target_vars,
                                           fixed_vars=fixed_vars,
                                           target_pars=target_pars,
@@ -235,9 +236,9 @@ class NumPhasePlane2D(Num2DAnalyzer):
 
     # Nullcline of the x variable
     # ---------------------------
-    x_values_in_fx, y_values_in_fx = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
-    x_values_in_fx = np.asarray(x_values_in_fx)
-    y_values_in_fx = np.asarray(y_values_in_fx)
+    xy_values_in_fx,  = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
+    x_values_in_fx = np.asarray(xy_values_in_fx[:, 0])
+    y_values_in_fx = np.asarray(xy_values_in_fx[:, 1])
     if with_plot:
       if x_style is None:
         x_style = dict(color='cornflowerblue', alpha=.7, marker='.')
@@ -247,9 +248,9 @@ class NumPhasePlane2D(Num2DAnalyzer):
     # Nullcline of the y variable
     # ---------------------------
     logger.warning('I am computing fy-nullcline ...')
-    x_values_in_fy, y_values_in_fy = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
-    x_values_in_fy = np.asarray(x_values_in_fy)
-    y_values_in_fy = np.asarray(y_values_in_fy)
+    xy_values_in_fy,  = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
+    x_values_in_fy = np.asarray(xy_values_in_fy[:, 0])
+    y_values_in_fy = np.asarray(xy_values_in_fy[:, 1])
     if with_plot:
       if y_style is None:
         y_style = dict(color='lightcoral', alpha=.7, marker='.')
@@ -280,7 +281,7 @@ class NumPhasePlane2D(Num2DAnalyzer):
     candidates = []
     for key in self.analyzed_results.keys():
       if key.startswith(C.fx_nullcline_points) or key.startswith(C.fy_nullcline_points):
-        candidates.append(jnp.stack(self.analyzed_results[key]).T)
+        candidates.append(self.analyzed_results[key][0])
     if len(candidates) == 0:
       raise errors.AnalyzerError(f'No nullcline points are found, please call '
                                  f'".{self.plot_nullcline.__name__}()" first.')
@@ -288,13 +289,16 @@ class NumPhasePlane2D(Num2DAnalyzer):
 
     # get fixed points
     if len(candidates):
-      fixed_points, _ = self._get_fixed_points(jnp.asarray(candidates),
-                                               tol_loss=tol_loss,
-                                               tol_unique=tol_unique,
-                                               loss_screen=loss_screen)
+      fixed_points, _, _ = self._get_fixed_points(jnp.asarray(candidates),
+                                                  tol_loss=tol_loss,
+                                                  tol_unique=tol_unique,
+                                                  loss_screen=loss_screen)
+      logger.warning('I am trying to filter out duplicate fixed points ...')
       fixed_points = np.asarray(fixed_points)
+      fixed_points, _ = utils.keep_unique(fixed_points, tol=tol_unique)
+      logger.warning(f'{C.prefix}Found {len(fixed_points)} fixed points.')
     else:
-      logger.warning('Found no fixed points.')
+      logger.warning(f'{C.prefix}Found no fixed points.')
       return
 
     # stability analysis
@@ -304,7 +308,7 @@ class NumPhasePlane2D(Num2DAnalyzer):
       x = fixed_points[i, 0]
       y = fixed_points[i, 1]
       fp_type = stability.stability_analysis(self.F_jacobian(x, y))
-      logger.warning(f"{C.prefix}#{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
+      logger.warning(f"{C.prefix}#{i + 1} {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 

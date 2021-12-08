@@ -600,6 +600,51 @@ class Num2DAnalyzer(Num1DAnalyzer):
       par_values = tuple(p[ids] for p in par_values)
     return x_values, y_values, par_values
 
+  def _get_fp_candidates(self, num_segments=1, num_rank=100):
+    logger.warning(f"I am filtering out fixed point candidates with auxiliary function ...")
+    all_xs = []
+    all_ys = []
+    all_ps = tuple([] for _ in range(len(self.target_par_names)))
+
+    # points of variables and parameters
+    xs = self.resolutions[self.x_var].value
+    ys = self.resolutions[self.y_var].value
+    P = tuple(self.resolutions[p].value for p in self.target_par_names)
+    f_select = bm.jit(bm.vmap(lambda vals, ids: vals[ids], in_axes=(1, 1)))
+
+    # num seguments
+    if isinstance(num_segments, int):
+      num_segments = tuple([num_segments] * len(self.target_par_names))
+    assert isinstance(num_segments, (tuple, list)) and len(num_segments) == len(self.target_par_names)
+    arg_lens = tuple(len(p) for p in P)
+    arg_pre_len = tuple(int(np.ceil(l / num_segments[i])) for i, l in enumerate(arg_lens))
+    arg_id_segments = tuple(np.arange(0, l, arg_pre_len[i]) for i, l in enumerate(arg_lens))
+    arg_id_segments = tuple(ids.flatten() for ids in np.meshgrid(*arg_id_segments))
+    if len(arg_id_segments) == 0:
+      arg_id_segments = ((0,),)
+    for _j, ids in enumerate(zip(*arg_id_segments)):
+      if len(arg_id_segments[0]) > 1:
+        logger.warning(f"{C.prefix}segment {_j} ...")
+
+      ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
+      # change the position of meshgrid values
+      vps = tuple((v.value if isinstance(v, bm.JaxArray) else v) for v in ((xs, ys) + ps))
+      mesh_values = jnp.meshgrid(*vps)
+      mesh_values = tuple(jnp.moveaxis(m, 0, 1) for m in mesh_values)
+      mesh_values = tuple(m.flatten() for m in mesh_values)
+      # function outputs
+      losses = self.F_vmap_fp_aux(jnp.stack([mesh_values[0], mesh_values[1]]).T, *mesh_values[2:])
+      shape = (len(xs) * len(ys), -1)
+      losses = losses.reshape(shape)
+      argsorts = jnp.argsort(losses, axis=0)[:num_rank]
+      all_xs.append(f_select(mesh_values[0].reshape(shape), argsorts).flatten())
+      all_ys.append(f_select(mesh_values[1].reshape(shape), argsorts).flatten())
+      for i, p in enumerate(ps):
+        all_ps[i].append(f_select(mesh_values[i+2].reshape(shape), argsorts).flatten())
+    all_xys = jnp.vstack([jnp.concatenate(all_xs), jnp.concatenate(all_ys)]).T
+    all_ps = tuple(jnp.concatenate(p) for p in all_ps)
+    return (all_xys, all_ps)
+
   def _get_fx_nullcline_points(self, coords=None, tol=1e-7, num_segments=1, fp_aux_filter=0.):
     coords = (self.x_var + '-' + self.y_var) if coords is None else coords
     key = C.fx_nullcline_points + ',' + coords
@@ -633,7 +678,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
       if len(arg_id_segments) == 0:
         arg_id_segments = ((0,),)
       for _j, ids in enumerate(zip(*arg_id_segments)):
-        logger.warning(f"{C.prefix}segment {_j} ...")
+        if len(arg_id_segments[0]) > 1:
+          logger.warning(f"{C.prefix}segment {_j} ...")
 
         Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
         if coords == self.x_var + '-' + self.y_var:
@@ -667,7 +713,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
       all_x_values_in_fx = all_x_values_in_fx[ids]
       all_y_values_in_fx = all_y_values_in_fx[ids]
       all_p_values_in_fx = tuple(a[ids] for a in all_p_values_in_fx)
-      self.analyzed_results[key] = (all_x_values_in_fx, all_y_values_in_fx) + all_p_values_in_fx
+      all_xy_values = jnp.stack([all_x_values_in_fx, all_y_values_in_fx]).T
+      self.analyzed_results[key] = (all_xy_values,) + all_p_values_in_fx
     return self.analyzed_results[key]
 
   def _get_fy_nullcline_points(self, coords=None, tol=1e-7, num_segments=1, fp_aux_filter=0.):
@@ -700,7 +747,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
       if len(arg_id_segments) == 0:
         arg_id_segments = ((0,),)
       for _j, ids in enumerate(zip(*arg_id_segments)):
-        logger.warning(f"{C.prefix}segment {_j} ...")
+        if len(arg_id_segments[0]) > 1:
+          logger.warning(f"{C.prefix}segment {_j} ...")
 
         Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
         if coords == self.x_var + '-' + self.y_var:
@@ -733,7 +781,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
       all_x_values_in_fy = all_x_values_in_fy[ids]
       all_y_values_in_fy = all_y_values_in_fy[ids]
       all_p_values_in_fy = tuple(a[ids] for a in all_p_values_in_fy)
-      self.analyzed_results[key] = (all_x_values_in_fy, all_y_values_in_fy) + all_p_values_in_fy
+      all_xy_values = jnp.stack([all_x_values_in_fy, all_y_values_in_fy]).T
+      self.analyzed_results[key] = (all_xy_values,) + all_p_values_in_fy
     return self.analyzed_results[key]
 
   def _get_fixed_points(self, candidates, *args, tol_loss=1e-7,
@@ -775,12 +824,14 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
     all_ids = []
     all_fps = []
+    all_args = tuple([] for _ in range(len(args)))
     seg_len = int(np.ceil(len(candidates) / num_segment))
     segment_ids = np.arange(0, len(candidates), seg_len)
     selected_ids = jnp.arange(len(candidates))
 
     for _j, i in enumerate(segment_ids):
-      logger.warning(f"{C.prefix}segment {_j} ...")
+      if len(segment_ids) > 1:
+        logger.warning(f"{C.prefix}segment {_j} ...")
       seg_fps = candidates[i: i + seg_len]
       seg_args = tuple(a[i: i + seg_len] for a in args)
       seg_ids = selected_ids[i: i + seg_len]
@@ -800,13 +851,15 @@ class Num2DAnalyzer(Num1DAnalyzer):
         # valid indices
         ids = jnp.where(losses <= tol_loss)[0]
         seg_ids = seg_ids[ids]
-        seg_fps, keep_ids = utils.keep_unique(np.asarray(seg_fps.x[ids]), tol=tol_unique)
-        all_fps.append(seg_fps)
-        all_ids.append(np.asarray(seg_ids)[keep_ids])
-    fps = np.concatenate(all_fps)
-    ids = np.concatenate(all_ids)
-    logger.warning(f"{C.prefix}Found {len(fps)} fixed points")
-    return fps, ids
+        all_fps.append(seg_fps.x[ids])
+        all_ids.append(seg_ids)
+        for i in range(len(all_args)):
+          all_args[i].append(seg_args[i][ids])
+    all_fps = jnp.concatenate(all_fps)
+    all_ids = jnp.concatenate(all_ids)
+    all_args = tuple(jnp.concatenate(args) for args in all_args)
+    # logger.warning(f"{C.prefix}Found {len(all_fps)} fixed points")
+    return all_fps, all_ids, all_args
 
 
 class Num3DAnalyzer(Num2DAnalyzer):

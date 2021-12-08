@@ -38,39 +38,27 @@ def int_s2(s2, t, s1, gamma=0.641):
   ds2dt = - s2 / tau + (1. - s2) * gamma * r2
   return ds2dt
 
-# from brainpy.analysis.symbolic.sym_phase_plane import PhasePlane
-# analyzer = PhasePlane(
-#   model=[int_s1, int_s2],
-#   target_vars={'s1': [0, 1], 's2': [0, 1]},
-#   pars_update={'gamma': 0.641},
-#   numerical_resolution=0.001
-# )
-# analyzer.plot_vector_field()
-# analyzer.plot_nullcline()
-# analyzer.plot_fixed_point(show=True)
 
-
-analyzer = bp.analysis.NumPhasePlane2D(
+analyzer = bp.analysis.PhasePlane2DNum(
   model=[int_s1, int_s2],
   target_vars={'s1': [0, 1], 's2': [0, 1]},
   pars_update={'gamma': 0.641},
   resolutions=0.001,
-  # options={'sympy_solver_timeout': 5}
 )
 analyzer.plot_vector_field()
 analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
 analyzer.plot_fixed_point(show=True, loss_screen=None)
 
 
-analyzer = bp.analysis.NumBifurcation2D(
+analyzer = bp.analysis.Bifurcation2DNum(
   model=[int_s1, int_s2],
   target_vars={'s1': [0., 1.], 's2': [0., 1.]},
   target_pars={'gamma': [0.4, 0.8]},
-  resolutions={'s1': 0.001, 's2': 0.001, 'gamma': 0.02}
+  resolutions={'s1': 0.001, 's2': 0.001, 'gamma': 0.01}
 )
 analyzer.plot_bifurcation(show=True,
-                          num_nullcline_segments=4,
+                          num_par_segments=4,
                           num_fp_segment=4,
-                          nullcline_aux_filter=0)
-
-
+                          nullcline_aux_filter=0.1,
+                          select_candidates='aux_rank',
+                          num_rank=100)

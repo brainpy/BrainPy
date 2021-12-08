@@ -16,7 +16,7 @@ logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
   'Bifurcation1D',
-  'NumBifurcation2D',
+  'Bifurcation2DNum',
   'FastSlow1D',
   'FastSlow2D',
 ]
@@ -132,7 +132,7 @@ class Bifurcation1D(Num1DAnalyzer):
       return fixed_points, selected_pars, dfxdx
 
 
-class NumBifurcation2D(Num2DAnalyzer):
+class Bifurcation2DNum(Num2DAnalyzer):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -140,7 +140,7 @@ class NumBifurcation2D(Num2DAnalyzer):
 
   def __init__(self, model, target_pars, target_vars, fixed_vars=None,
                pars_update=None, resolutions=0.1, options=None):
-    super(NumBifurcation2D, self).__init__(model=model,
+    super(Bifurcation2DNum, self).__init__(model=model,
                                            target_pars=target_pars,
                                            target_vars=target_vars,
                                            fixed_vars=fixed_vars,
@@ -162,8 +162,8 @@ class NumBifurcation2D(Num2DAnalyzer):
 
   def plot_bifurcation(self, with_plot=True, show=False, with_return=False,
                        tol_loss=1e-7, tol_unique=1e-2, loss_screen=None,
-                       num_nullcline_segments=1, num_fp_segment=1,
-                       nullcline_aux_filter=1.):
+                       num_par_segments=1, num_fp_segment=1, nullcline_aux_filter=1.,
+                       select_candidates='aux_rank', num_rank=100):
     """Make the bifurcation analysis.
 
     Parameters
@@ -174,28 +174,58 @@ class NumBifurcation2D(Num2DAnalyzer):
     tol_loss: float
     tol_unique: float
     loss_screen: float, optional
-    method : str
-      The method to compute bifurcation analysis.
+    num_par_segments: int, sequence of int
+    num_fp_segment: int
+    nullcline_aux_filter: float
+    select_candidates: str
+      The method to select candidate fixed points.
     """
     logger.warning('I am making bifurcation analysis ...')
 
-    fx_nullclines = self._get_fx_nullcline_points(num_segments=num_nullcline_segments, fp_aux_filter=nullcline_aux_filter)
-    fy_nullclines = self._get_fy_nullcline_points(num_segments=num_nullcline_segments, fp_aux_filter=nullcline_aux_filter)
-    candidates = jnp.vstack([jnp.stack(fx_nullclines[:2]).T,
-                             jnp.stack(fy_nullclines[:2]).T])
-    parameters = []
-    for i in range(2, len(fx_nullclines)):
-      parameters.append(jnp.concatenate([fx_nullclines[i], fy_nullclines[i]]))
-    fps, selected_ids = self._get_fixed_points(candidates,
-                                               *parameters,
-                                               tol_loss=tol_loss,
-                                               tol_unique=tol_unique,
-                                               loss_screen=loss_screen,
-                                               num_segment=num_fp_segment)
-    _selected_ids = jnp.asarray(selected_ids)
-    parameters = tuple(a[_selected_ids] for a in parameters)
-    jacobians = np.asarray(self.F_vmap_jacobian(jnp.asarray(fps), *parameters))
-    parameters = tuple(np.asarray(a) for a in parameters)
+    if select_candidates == 'fx-nullcline':
+      fx_nullclines = self._get_fx_nullcline_points(num_segments=num_par_segments,
+                                                    fp_aux_filter=nullcline_aux_filter)
+      candidates = fx_nullclines[0]
+      parameters = fx_nullclines[1:]
+    elif select_candidates == 'fy-nullcline':
+      fy_nullclines = self._get_fy_nullcline_points(num_segments=num_par_segments,
+                                                    fp_aux_filter=nullcline_aux_filter)
+      candidates = fy_nullclines[0]
+      parameters = fy_nullclines[1:]
+    elif select_candidates == 'nullclines':
+      fx_nullclines = self._get_fx_nullcline_points(num_segments=num_par_segments,
+                                                    fp_aux_filter=nullcline_aux_filter)
+      fy_nullclines = self._get_fy_nullcline_points(num_segments=num_par_segments,
+                                                    fp_aux_filter=nullcline_aux_filter)
+      candidates = jnp.vstack([fx_nullclines[0], fy_nullclines[0]])
+      parameters = [jnp.concatenate([fx_nullclines[i], fy_nullclines[i]])
+                    for i in range(1, len(fy_nullclines))]
+    elif select_candidates == 'aux_rank':
+      assert nullcline_aux_filter > 0.
+      candidates, parameters = self._get_fp_candidates(num_segments=num_par_segments,
+                                                       num_rank=num_rank)
+    else:
+      raise ValueError
+    candidates, _, parameters = self._get_fixed_points(candidates,
+                                                       *parameters,
+                                                       tol_loss=tol_loss,
+                                                       tol_unique=tol_unique,
+                                                       loss_screen=loss_screen,
+                                                       num_segment=num_fp_segment)
+    candidates = np.asarray(candidates)
+    parameters = np.stack(tuple(np.asarray(p) for p in parameters)).T
+    logger.warning('I am trying to filter out duplicate fixed points ...')
+    final_fps = []
+    final_pars = []
+    for par in np.unique(parameters, axis=0):
+      ids = np.where(np.all(parameters == par, axis=1))[0]
+      fps, ids2 = utils.keep_unique(candidates[ids], tol=tol_unique)
+      final_fps.append(fps)
+      final_pars.append(parameters[ids[ids2]])
+    final_fps = np.vstack(final_fps)
+    final_pars = np.vstack(final_pars)
+    jacobians = np.asarray(self.F_vmap_jacobian(jnp.asarray(final_fps), *final_pars.T))
+    logger.warning(f'{C.prefix}Found {len(final_fps)} fixed points.')
 
     # bifurcation analysis of co-dimension 1
     if len(self.target_pars) == 1:
@@ -203,11 +233,11 @@ class NumBifurcation2D(Num2DAnalyzer):
                    for c in stability.get_2d_stability_types()}
 
       # fixed point
-      for p, xy, J in zip(parameters[0], fps, jacobians):
-          fp_type = stability.stability_analysis(J)
-          container[fp_type]['p'].append(p)
-          container[fp_type][self.x_var].append(xy[0])
-          container[fp_type][self.y_var].append(xy[1])
+      for p, xy, J in zip(final_pars, final_fps, jacobians):
+        fp_type = stability.stability_analysis(J)
+        container[fp_type]['p'].append(p[0])
+        container[fp_type][self.x_var].append(xy[0])
+        container[fp_type][self.y_var].append(xy[1])
 
       # visualization
       for var in self.target_var_names:
@@ -233,10 +263,10 @@ class NumBifurcation2D(Num2DAnalyzer):
                    for c in stability.get_2d_stability_types()}
 
       # fixed point
-      for p0, p1, xy, J in zip(parameters[0], parameters[1], fps, jacobians):
+      for p, xy, J in zip(final_pars, final_fps, jacobians):
         fp_type = stability.stability_analysis(J)
-        container[fp_type]['p0'].append(p0)
-        container[fp_type]['p1'].append(p1)
+        container[fp_type]['p0'].append(p[0])
+        container[fp_type]['p1'].append(p[1])
         container[fp_type][self.x_var].append(xy[0])
         container[fp_type][self.y_var].append(xy[1])
 
@@ -268,7 +298,7 @@ class NumBifurcation2D(Num2DAnalyzer):
       raise ValueError('Unknown length of parameters.')
 
     if with_return:
-      return fps, parameters, jacobians
+      return final_fps, final_pars, jacobians
 
   def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(),
                               plot_style=None, tol=0.001, show=False):
@@ -559,7 +589,7 @@ class FastSlow1D(Bifurcation1D):
     super(FastSlow1D, self).plot_limit_cycle_by_sim(*args, **kwargs)
 
 
-class FastSlow2D(NumBifurcation2D):
+class FastSlow2D(Bifurcation2DNum):
   def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                pars_update=None, numerical_resolution=0.1, options=None):
     super(FastSlow2D, self).__init__(model=model,

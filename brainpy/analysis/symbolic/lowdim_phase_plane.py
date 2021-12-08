@@ -16,11 +16,11 @@ from brainpy.simulation.brainobjects.base import DynamicalSystem
 logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
-  'SymPhasePlane2D',
+  'PhasePlane2DSym',
 ]
 
 
-class SymPhasePlane2D(Sym2DAnalyzer):
+class PhasePlane2DSym(Sym2DAnalyzer):
   """Phase plane analyzer for 2D system.
   """
 
@@ -35,7 +35,7 @@ class SymPhasePlane2D(Sym2DAnalyzer):
     if (target_pars is not None) and len(target_pars) > 0:
       raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
                                  f'While we detect "target_pars={target_pars}".')
-    super(SymPhasePlane2D, self).__init__(model=model,
+    super(PhasePlane2DSym, self).__init__(model=model,
                                           target_vars=target_vars,
                                           fixed_vars=fixed_vars,
                                           target_pars=target_pars,
@@ -118,9 +118,9 @@ class SymPhasePlane2D(Sym2DAnalyzer):
 
     # Nullcline of the x variable
     # ---------------------------
-    x_values_in_fx, y_values_in_fx = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
-    x_values_in_fx = np.asarray(x_values_in_fx)
-    y_values_in_fx = np.asarray(y_values_in_fx)
+    xy_values_in_fx,  = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
+    x_values_in_fx = np.asarray(xy_values_in_fx[:, 0])
+    y_values_in_fx = np.asarray(xy_values_in_fx[:, 1])
     if with_plot:
       if x_style is None:
         x_style = dict(color='cornflowerblue', alpha=.7, marker='.')
@@ -130,9 +130,9 @@ class SymPhasePlane2D(Sym2DAnalyzer):
     # Nullcline of the y variable
     # ---------------------------
     logger.warning('I am computing fy-nullcline ...')
-    x_values_in_fy, y_values_in_fy = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
-    x_values_in_fy = np.asarray(x_values_in_fy)
-    y_values_in_fy = np.asarray(y_values_in_fy)
+    xy_values_in_fy, = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
+    x_values_in_fy = np.asarray(xy_values_in_fy[:, 0])
+    y_values_in_fy = np.asarray(xy_values_in_fy[:, 1])
     if with_plot:
       if y_style is None:
         y_style = dict(color='lightcoral', alpha=.7, marker='.')
