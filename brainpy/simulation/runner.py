@@ -110,6 +110,9 @@ class BaseRunner(Runner):
   def __call__(self, duration, start_t=None):
     raise NotImplementedError
 
+  def run(self, duration, start_t=None):
+    return self.__call__(duration, start_t=start_t)
+
 
 class ReportRunner(BaseRunner):
   """The runner to report the running progress.
