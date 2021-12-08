@@ -6,17 +6,17 @@ import numpy as np
 import sympy
 
 from brainpy import errors, tools
-from brainpy.analysis import solver
-from brainpy.analysis.symbolic import utils
+from brainpy.analysis import utils
+from brainpy.analysis.symbolic import utils as sutils
 from brainpy.integrators import analysis_by_sympy
 
 logger = logging.getLogger('brainpy.analysis.symbolic')
 
 
 __all__ = [
-  'SymAnalyzer',
-  'SymAnalyzer1D',
-  'SymAnalyzer2D',
+  'OldSymAnalyzer',
+  'OldSymAnalyzer1D',
+  'OldSymAnalyzer2D',
 ]
 
 
@@ -30,7 +30,7 @@ def _dict_copy(target):
   return {k: v for k, v in target.items()}
 
 
-class SymAnalyzer(object):
+class OldSymAnalyzer(object):
   r"""Dynamics Analyzer for Neuron Models.
 
   This class is a base class which aims for analyze the analysis in
@@ -89,11 +89,11 @@ class SymAnalyzer(object):
 
     # model
     # -----
-    if isinstance(model_or_integrals, utils.SymbolicDynSystem):
+    if isinstance(model_or_integrals, sutils.SymbolicDynSystem):
       self.model = model_or_integrals
     elif (isinstance(model_or_integrals, (tuple, list)) and
           callable(model_or_integrals[0])) or callable(model_or_integrals):
-      self.model = utils.integrators_into_model(model_or_integrals)
+      self.model = sutils.integrators_into_model(model_or_integrals)
     else:
       raise errors.AnalyzerError
 
@@ -234,7 +234,7 @@ class SymAnalyzer(object):
     self.options['lim_scale'] = options.get('lim_scale', 1.05)
 
 
-class SymAnalyzer1D(SymAnalyzer):
+class OldSymAnalyzer1D(OldSymAnalyzer):
   r"""Neuron analysis analyzer for 1D system.
 
   It supports the analysis of 1D dynamical system.
@@ -245,7 +245,7 @@ class SymAnalyzer1D(SymAnalyzer):
   """
 
   def __init__(self, *args, **kwargs):
-    super(SymAnalyzer1D, self).__init__(*args, **kwargs)
+    super(OldSymAnalyzer1D, self).__init__(*args, **kwargs)
 
     self.x_var = self.target_var_names[0]
     self.x_eq_group = self.target_eqs[self.x_var]
@@ -392,12 +392,12 @@ class SymAnalyzer1D(SymAnalyzer):
         func_codes.append(f'return {self.x_eq_group.old_exprs[-1].code}')
 
         # function compile
-        optimizer = utils.jit_compile(scope, '\n  '.join(func_codes), 'optimizer_x')
+        optimizer = sutils.jit_compile(scope, '\n  '.join(func_codes), 'optimizer_x')
         xs = self.resolutions[self.x_var]
 
         def f(*args):
           # `args` corresponds to `self.dvar_names[1:] + self.dpar_names`
-          x_values = solver.find_root_of_1d(optimizer, xs, args)
+          x_values = utils.find_root_of_1d_numpy(optimizer, xs, args)
           return np.array(x_values)
 
         self.analyzed_results['fixed_point'] = f
@@ -405,7 +405,7 @@ class SymAnalyzer1D(SymAnalyzer):
     return self.analyzed_results['fixed_point']
 
 
-class SymAnalyzer2D(SymAnalyzer1D):
+class OldSymAnalyzer2D(OldSymAnalyzer1D):
   r"""Neuron analysis analyzer for 2D system.
 
   It supports the analysis of 2D dynamical system.
@@ -435,7 +435,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
   """
 
   def __init__(self, *args, **kwargs):
-    super(SymAnalyzer2D, self).__init__(*args, **kwargs)
+    super(OldSymAnalyzer2D, self).__init__(*args, **kwargs)
 
     self.y_var = self.target_var_names[1]
     self.y_eq_group = self.target_eqs[self.y_var]
@@ -747,12 +747,12 @@ class SymAnalyzer2D(SymAnalyzer1D):
                            for expr in self.x_eq_group.old_exprs[:-1]])
         func_codes.append(f'return {self.x_eq_group.old_exprs[-1].code}')
         func_code = '\n  '.join(func_codes)
-        optimizer = utils.jit_compile(eq_xy_scope, func_code, 'optimizer_x')
+        optimizer = sutils.jit_compile(eq_xy_scope, func_code, 'optimizer_x')
 
         def f(*args):
           # ``args`` are equal to ``vars_and_pars``
           x_range = self.resolutions[self.x_var]
-          x_values = solver.find_root_of_1d(optimizer, x_range, args)
+          x_values = utils.find_root_of_1d_numpy(optimizer, x_range, args)
           x_values = np.array(x_values)
           y_values = y_by_x_in_y_eq['f'](x_values, *args)
           y_values = np.array(y_values)
@@ -772,12 +772,12 @@ class SymAnalyzer2D(SymAnalyzer1D):
                            for expr in self.x_eq_group.old_exprs[:-1]])
         func_codes.append(f'return {self.x_eq_group.old_exprs[-1].code}')
         func_code = '\n  '.join(func_codes)
-        optimizer = utils.jit_compile(eq_xy_scope, func_code, 'optimizer_y')
+        optimizer = sutils.jit_compile(eq_xy_scope, func_code, 'optimizer_y')
 
         def f(*args):
           # ``args`` are equal to ``vars_and_pars``
           y_range = self.resolutions[self.y_var]
-          y_values = solver.find_root_of_1d(optimizer, y_range, args)
+          y_values = utils.find_root_of_1d_numpy(optimizer, y_range, args)
           y_values = np.array(y_values)
           x_values = x_by_y_in_y_eq['f'](y_values, *args)
           x_values = np.array(x_values)
@@ -797,12 +797,12 @@ class SymAnalyzer2D(SymAnalyzer1D):
                            for expr in self.y_eq_group.old_exprs[:-1]])
         func_codes.append(f'return {self.y_eq_group.old_exprs[-1].code}')
         func_code = '\n  '.join(func_codes)
-        optimizer = utils.jit_compile(eq_xy_scope, func_code, 'optimizer_x')
+        optimizer = sutils.jit_compile(eq_xy_scope, func_code, 'optimizer_x')
 
         def f(*args):
           # ``args`` are equal to ``vars_and_pars``
           x_range = self.resolutions[self.x_var]
-          x_values = solver.find_root_of_1d(optimizer, x_range, args)
+          x_values = utils.find_root_of_1d_numpy(optimizer, x_range, args)
           x_values = np.array(x_values)
           y_values = y_by_x_in_x_eq['f'](x_values, *args)
           y_values = np.array(y_values)
@@ -822,12 +822,12 @@ class SymAnalyzer2D(SymAnalyzer1D):
                            for expr in self.y_eq_group.old_exprs[:-1]])
         func_codes.append(f'return {self.y_eq_group.old_exprs[-1].code}')
         func_code = '\n  '.join(func_codes)
-        optimizer = utils.jit_compile(eq_xy_scope, func_code, 'optimizer_y')
+        optimizer = sutils.jit_compile(eq_xy_scope, func_code, 'optimizer_y')
 
         def f(*args):
           # ``args`` are equal to ``vars_and_pars``
           y_range = self.resolutions[self.y_var]
-          y_values = solver.find_root_of_1d(optimizer, y_range, args)
+          y_values = utils.find_root_of_1d_numpy(optimizer, y_range, args)
           y_values = np.array(y_values)
           x_values = x_by_y_in_x_eq['f'](y_values, *args)
           x_values = np.array(x_values)
@@ -871,7 +871,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
       # optimization results
       def f(*args):
         # ``args`` are equal to ``vars_and_pars``
-        return solver.find_root_of_2d(optimizer,
+        return utils.find_root_of_2d(optimizer,
                                       x_bound=self.target_vars[self.x_var],
                                       y_bound=self.target_vars[self.y_var],
                                       args=args,
@@ -922,14 +922,14 @@ class SymAnalyzer2D(SymAnalyzer1D):
         func_codes.append(f'{expr.var_name} = {expr.code}')
       func_codes.append(f'return {self.x_eq_group.old_exprs[-1].code}')
       func_code = '\n  '.join(func_codes)
-      optimizer_x_by_y = utils.jit_compile(eq_x_scope, func_code, 'optimizer_x')
+      optimizer_x_by_y = sutils.jit_compile(eq_x_scope, func_code, 'optimizer_x')
 
       func_codes = [f'def optimizer_y({self.y_var},{self.x_var},{argument}):']
       for expr in self.x_eq_group.old_exprs[:-1]:
         func_codes.append(f'{expr.var_name} = {expr.code}')
       func_codes.append(f'return {self.x_eq_group.old_exprs[-1].code}')
       func_code = '\n  '.join(func_codes)
-      optimizer_y_by_x = utils.jit_compile(eq_x_scope, func_code, 'optimizer_y')
+      optimizer_y_by_x = sutils.jit_compile(eq_x_scope, func_code, 'optimizer_y')
 
       # optimization results
       xs = self.resolutions[self.x_var]
@@ -939,7 +939,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
         # ``args`` corresponds to the dynamical parameters
         x_values, y_values = [], []
         for y in ys:
-          for x in solver.find_root_of_1d(optimizer_x_by_y, xs, (y,) + args):
+          for x in utils.find_root_of_1d_numpy(optimizer_x_by_y, xs, (y,) + args):
             x_values.append(x)
             y_values.append(y)
         return np.array(x_values), np.array(y_values)
@@ -948,7 +948,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
         # ``args`` corresponds to the dynamical parameters
         x_values, y_values = [], []
         for x in xs:
-          for y in solver.find_root_of_1d(optimizer_y_by_x, ys, (x,) + args):
+          for y in utils.find_root_of_1d_numpy(optimizer_y_by_x, ys, (x,) + args):
             x_values.append(x)
             y_values.append(y)
         return np.array(x_values), np.array(y_values)
@@ -996,14 +996,14 @@ class SymAnalyzer2D(SymAnalyzer1D):
         func_codes.append(f'{expr.var_name} = {expr.code}')
       func_codes.append(f'return {self.y_eq_group.old_exprs[-1].code}')
       func_code = '\n  '.join(func_codes)
-      optimizer_x_by_y = utils.jit_compile(eq_y_scope, func_code, 'optimizer_x')
+      optimizer_x_by_y = sutils.jit_compile(eq_y_scope, func_code, 'optimizer_x')
 
       func_codes = [f'def optimizer_y({self.y_var},{self.x_var},{argument}):']
       for expr in self.y_eq_group.old_exprs[:-1]:
         func_codes.append(f'{expr.var_name} = {expr.code}')
       func_codes.append(f'return {self.y_eq_group.old_exprs[-1].code}')
       func_code = '\n  '.join(func_codes)
-      optimizer_y_by_x = utils.jit_compile(eq_y_scope, func_code, 'optimizer_y')
+      optimizer_y_by_x = sutils.jit_compile(eq_y_scope, func_code, 'optimizer_y')
 
       # optimization results
       xs = self.resolutions[self.x_var]
@@ -1013,7 +1013,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
         # ``args`` corresponds to the dynamical parameters
         x_values, y_values = [], []
         for y in ys:
-          for x in solver.find_root_of_1d(optimizer_x_by_y, xs, (y,) + args):
+          for x in utils.find_root_of_1d_numpy(optimizer_x_by_y, xs, (y,) + args):
             x_values.append(x)
             y_values.append(y)
         return np.array(x_values), np.array(y_values)
@@ -1022,7 +1022,7 @@ class SymAnalyzer2D(SymAnalyzer1D):
         # ``args`` corresponds to the dynamical parameters
         x_values, y_values = [], []
         for x in xs:
-          for y in solver.find_root_of_1d(optimizer_y_by_x, ys, (x,) + args):
+          for y in utils.find_root_of_1d_numpy(optimizer_y_by_x, ys, (x,) + args):
             x_values.append(x)
             y_values.append(y)
         return np.array(x_values), np.array(y_values)

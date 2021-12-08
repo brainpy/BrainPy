@@ -74,11 +74,11 @@ def vmap(func, dyn_vars=None, vars_batched=None,
 
   Parameters
   ----------
-  func : Base, function
+  func : Base, function, callable
     The function or the module to compile.
   vars_needed : dict
   vars_batched : dict
-  in_axes : optional, int, tuple/list/dict
+  in_axes : optional, int, sequence of int
     Specify which input array axes to map over. If each positional argument to
     ``obj_or_func`` is an array, then ``in_axes`` can be an integer, a None,
     or a tuple of integers and Nones with length equal to the number of

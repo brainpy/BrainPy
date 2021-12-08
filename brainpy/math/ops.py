@@ -1086,7 +1086,8 @@ def logspace(*args, **kwargs):
 
 def meshgrid(*xi, copy=True, sparse=False, indexing='xy'):
   xi = [x.value if isinstance(x, JaxArray) else x for x in xi]
-  return JaxArray(jnp.meshgrid(*xi, copy=copy, sparse=sparse, indexing=indexing))
+  rr = jnp.meshgrid(*xi, copy=copy, sparse=sparse, indexing=indexing)
+  return tuple(JaxArray(r) for r in rr)
 
 
 def diag(a, k=0):

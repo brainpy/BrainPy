@@ -9,22 +9,22 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import errors, math
 from brainpy.analysis import stability
-from brainpy.analysis.symbolic import base, utils
+from brainpy.analysis.symbolic import old_base, utils
 
 logger = logging.getLogger('brainpy.analysis.symbolic')
 
 __all__ = [
-  'Bifurcation',
+  'OldBifurcation',
   '_Bifurcation1D',
   '_Bifurcation2D',
 
-  'FastSlowBifurcation',
+  'OldFastSlowBifurcation',
   '_FastSlow1D',
   '_FastSlow2D',
 ]
 
 
-class Bifurcation(object):
+class OldBifurcation(object):
   """A tool class for bifurcation analysis.
 
   The bifurcation analyzer is restricted to analyze the bifurcation
@@ -197,7 +197,7 @@ class Bifurcation(object):
                                           plot_style=plot_style, tol=tol, show=show)
 
 
-class _Bifurcation1D(base.SymAnalyzer1D):
+class _Bifurcation1D(sym_base.OldSymAnalyzer1D):
   """Bifurcation analysis of 1D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -297,7 +297,7 @@ class _Bifurcation1D(base.SymAnalyzer1D):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _Bifurcation2D(base.SymAnalyzer2D):
+class _Bifurcation2D(base.OldSymAnalyzer2D):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -512,7 +512,7 @@ class _Bifurcation2D(base.SymAnalyzer2D):
     gc.collect()
 
 
-class FastSlowBifurcation(object):
+class OldFastSlowBifurcation(object):
   """Fast slow analysis analysis proposed by John Rinzel [1]_ [2]_ [3]_.
 
   (J Rinzel, 1985, 1986, 1987) proposed that in a fast-slow dynamical

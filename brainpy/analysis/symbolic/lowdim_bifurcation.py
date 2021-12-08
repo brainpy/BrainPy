@@ -8,9 +8,8 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import errors, math
-from brainpy.analysis import stability
-from brainpy.analysis.numeric import utils
-from brainpy.analysis.numeric.low_dim_analyzer import LowDimAnalyzer1D, LowDimAnalyzer2D
+from brainpy.analysis import stability, utils
+from brainpy.analysis.numeric.lowdim_analyzer import Num1DAnalyzer, Num2DAnalyzer
 
 logger = logging.getLogger('brainpy.analysis.numeric')
 
@@ -96,7 +95,7 @@ class Bifurcation(object):
   def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
                numerical_resolution=0.1, options=None):
     # check "model"
-    self.model = utils.integrators_into_model(integrals)
+    self.model = utils.model_transform(integrals)
 
     # check "target_pars"
     if not isinstance(target_pars, dict):
@@ -198,7 +197,7 @@ class Bifurcation(object):
                                           plot_style=plot_style, tol=tol, show=show)
 
 
-class _Bifurcation1D(LowDimAnalyzer1D):
+class _Bifurcation1D(Num1DAnalyzer):
   """Bifurcation analysis of 1D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -298,7 +297,7 @@ class _Bifurcation1D(LowDimAnalyzer1D):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _Bifurcation2D(LowDimAnalyzer2D):
+class _Bifurcation2D(Num2DAnalyzer):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -591,7 +590,7 @@ class FastSlowBifurcation(object):
   def __init__(self, integrals, fast_vars, slow_vars, fixed_vars=None,
                pars_update=None, numerical_resolution=0.1, options=None):
     # check "model"
-    self.model = utils.integrators_into_model(integrals)
+    self.model = utils.model_transform(integrals)
 
     # check "fast_vars"
     if not isinstance(fast_vars, dict):
@@ -729,10 +728,10 @@ class FastSlowBifurcation(object):
 class _FastSlowTrajectory(object):
   def __init__(self, model_or_intgs, fast_vars, slow_vars, fixed_vars=None,
                pars_update=None, **kwargs):
-    if isinstance(model_or_intgs, utils.SymbolicDynSystem):
+    if isinstance(model_or_intgs, utils.NumDSWrapper):
       self.model = model_or_intgs
     elif (isinstance(model_or_intgs, (list, tuple)) and callable(model_or_intgs[0])) or callable(model_or_intgs):
-      self.model = utils.integrators_into_model(model_or_intgs)
+      self.model = utils.model_transform(model_or_intgs)
     else:
       raise ValueError
     self.fast_vars = fast_vars

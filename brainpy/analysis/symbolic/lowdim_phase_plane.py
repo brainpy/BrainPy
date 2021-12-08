@@ -8,20 +8,19 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy import errors, math
-from brainpy.analysis import stability, constants as C
-from brainpy.analysis.numeric import utils, solver
-from brainpy.analysis.symbolic.low_dim_analyzer import LowDimAnalyzer2D
+from brainpy.analysis import stability, constants as C, utils
+from brainpy.analysis.symbolic.lowdim_analyzer import Sym2DAnalyzer
 from brainpy.integrators.base import Integrator
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-logger = logging.getLogger('brainpy.analysis.numeric')
+logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
-  'PhasePlane2D',
+  'SymPhasePlane2D',
 ]
 
 
-class PhasePlane2D(LowDimAnalyzer2D):
+class SymPhasePlane2D(Sym2DAnalyzer):
   """Phase plane analyzer for 2D system.
   """
 
@@ -36,13 +35,13 @@ class PhasePlane2D(LowDimAnalyzer2D):
     if (target_pars is not None) and len(target_pars) > 0:
       raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
                                  f'While we detect "target_pars={target_pars}".')
-    super(PhasePlane2D, self).__init__(model=model,
-                                       target_vars=target_vars,
-                                       fixed_vars=fixed_vars,
-                                       target_pars=target_pars,
-                                       pars_update=pars_update,
-                                       resolutions=resolutions,
-                                       **kwargs)
+    super(SymPhasePlane2D, self).__init__(model=model,
+                                          target_vars=target_vars,
+                                          fixed_vars=fixed_vars,
+                                          target_pars=target_pars,
+                                          pars_update=pars_update,
+                                          resolutions=resolutions,
+                                          **kwargs)
 
   def plot_vector_field(self, with_plot=True, with_return=False,
                         plot_method='streamplot', plot_style=None, show=False):
@@ -107,73 +106,21 @@ class PhasePlane2D(LowDimAnalyzer2D):
     if with_return:
       return dx, dy
 
-  def _get_fx_nullcline_points(self, coords=None):
-    xs = self.resolutions[self.x_var]
-    ys = self.resolutions[self.y_var]
-    if C.fx_nullcline_points not in self.analyzed_results:
-      if self.y_by_x_in_fx['status'] == 'sympy_success':
-        y_values_in_fx = self.y_by_x_in_fx['f'](xs)
-        self.analyzed_results[C.fx_nullcline_points] = (xs, y_values_in_fx)
-      else:
-        if self.x_by_y_in_fx['status'] == 'sympy_success':
-          x_values_in_fx = self.x_by_y_in_fx['f'](ys)
-          self.analyzed_results[C.fx_nullcline_points] = (x_values_in_fx, ys)
-        else:
-          coords = (self.x_var + '-' + self.y_var) if coords is None else coords
-          if coords == self.x_var + '-' + self.y_var:
-            _starts, _ends, _args = solver.get_brentq_candidates(self.F_fx, xs, ys)
-            x_values_in_fx, y_values_in_fx = solver.roots_of_1d_by_xy(self.F_fx, _starts, _ends, _args)
-            x_values_in_fx = np.asarray(x_values_in_fx)
-            y_values_in_fx = np.asarray(y_values_in_fx)
-          elif coords == self.y_var + '-' + self.x_var:
-            f = lambda y, x: self.F_fx(x, y)
-            _starts, _ends, _args = solver.get_brentq_candidates(f, ys, xs)
-            y_values_in_fx, x_values_in_fx = solver.roots_of_1d_by_xy(f, _starts, _ends, _args)
-            x_values_in_fx = np.asarray(x_values_in_fx)
-            y_values_in_fx = np.asarray(y_values_in_fx)
-          else:
-            raise ValueError
-          self.analyzed_results[C.fx_nullcline_points] = (x_values_in_fx, y_values_in_fx)
-    return self.analyzed_results[C.fx_nullcline_points]
-
-  def _get_fy_nullcline_points(self, coords=None):
-    xs = self.resolutions[self.x_var]
-    ys = self.resolutions[self.y_var]
-    if C.fy_nullcline_points not in self.analyzed_results:
-      if self.y_by_x_in_fy['status'] == 'sympy_success':
-        y_values_in_fy = self.y_by_x_in_fy['f'](xs)
-        self.analyzed_results[C.fy_nullcline_points] = (xs, y_values_in_fy)
-      else:
-        if self.x_by_y_in_fy['status'] == 'sympy_success':
-          x_values_in_fy = self.x_by_y_in_fy['f'](ys)
-          self.analyzed_results[C.fy_nullcline_points] = (x_values_in_fy, ys)
-        else:
-          coords = (self.x_var + '-' + self.y_var) if coords is None else coords
-          if coords == self.x_var + '-' + self.y_var:
-            _starts, _ends, _args = solver.get_brentq_candidates(self.F_fy, xs, ys)
-            x_values_in_fy, y_values_in_fy = solver.roots_of_1d_by_xy(self.F_fy, _starts, _ends, _args)
-            x_values_in_fy = np.asarray(x_values_in_fy)
-            y_values_in_fy = np.asarray(y_values_in_fy)
-          elif coords == self.y_var + '-' + self.x_var:
-            f = lambda y, x: self.F_fy(x, y)
-            _starts, _ends, _args = solver.get_brentq_candidates(f, ys, xs)
-            y_values_in_fy, x_values_in_fy = solver.roots_of_1d_by_xy(f, _starts, _ends, _args)
-            x_values_in_fy = np.asarray(x_values_in_fy)
-            y_values_in_fy = np.asarray(y_values_in_fy)
-          else:
-            raise ValueError
-          self.analyzed_results[C.fy_nullcline_points] = (x_values_in_fy, y_values_in_fy)
-    return self.analyzed_results[C.fy_nullcline_points]
-
-  def plot_nullcline(self, with_plot=True, with_return=False,
-                     y_style=None, x_style=None, show=False,
-                     x_coord=None, y_coord=None):
+  def plot_nullcline(self, with_plot=True, with_return=False, y_style=None, x_style=None,
+                     show=False, coords=None, tol_nullcline=1e-7):
     """Plot the nullcline."""
     logger.warning('I am computing fx-nullcline ...')
 
+    if coords is None:
+      coords = dict()
+    x_coord = coords.get(self.x_var, None)
+    y_coord = coords.get(self.y_var, None)
+
     # Nullcline of the x variable
     # ---------------------------
-    x_values_in_fx, y_values_in_fx = self._get_fx_nullcline_points(coords=x_coord)
+    x_values_in_fx, y_values_in_fx = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
+    x_values_in_fx = np.asarray(x_values_in_fx)
+    y_values_in_fx = np.asarray(y_values_in_fx)
     if with_plot:
       if x_style is None:
         x_style = dict(color='cornflowerblue', alpha=.7, marker='.')
@@ -183,7 +130,9 @@ class PhasePlane2D(LowDimAnalyzer2D):
     # Nullcline of the y variable
     # ---------------------------
     logger.warning('I am computing fy-nullcline ...')
-    x_values_in_fy, y_values_in_fy = self._get_fy_nullcline_points(coords=y_coord)
+    x_values_in_fy, y_values_in_fy = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
+    x_values_in_fy = np.asarray(x_values_in_fy)
+    y_values_in_fy = np.asarray(y_values_in_fy)
     if with_plot:
       if y_style is None:
         y_style = dict(color='lightcoral', alpha=.7, marker='.')
@@ -204,24 +153,37 @@ class PhasePlane2D(LowDimAnalyzer2D):
       return {self.x_var: (x_values_in_fx, y_values_in_fx),
               self.y_var: (x_values_in_fy, y_values_in_fy)}
 
-  def plot_fixed_point(self, with_plot=True, with_return=False, show=False):
+  def plot_fixed_point(self, with_plot=True, with_return=False, show=False,
+                       tol_unique=1e-2, tol_loss=1e-7, loss_screen=None):
     """Plot the fixed point and analyze its stability.
     """
     logger.warning('I am searching fixed points ...')
 
-    fixed_points = self.F_fixed_points(None)
-    print(fixed_points)
+    fixed_points, _ = self._get_fixed_points2()
+    if fixed_points is None:
+      # candidates
+      candidates = []
+      for key in self.analyzed_results.keys():
+        if key.startswith(C.fx_nullcline_points) or key.startswith(C.fy_nullcline_points):
+          candidates.append(jnp.stack(self.analyzed_results[key]).T)
+      if len(candidates) == 0:
+        raise errors.AnalyzerError(f'No nullcline points are found, please call '
+                                   f'".{self.plot_nullcline.__name__}()" first.')
+      candidates = jnp.vstack(candidates)
+      fixed_points, _ = self._get_fixed_points(jnp.asarray(candidates),
+                                               tol_loss=tol_loss,
+                                               tol_unique=tol_unique,
+                                               loss_screen=loss_screen)
 
     # stability analysis
     # ------------------
     container = {a: {'x': [], 'y': []} for a in stability.get_2d_stability_types()}
     for i in range(len(fixed_points)):
       x = fixed_points[i, 0]
-      y = fixed_points[i, 0]
-      print(fixed_points[i], self.F_fixed_point_aux(jnp.asarray(fixed_points[i])))
+      y = fixed_points[i, 1]
 
       fp_type = stability.stability_analysis(self.F_jacobian(x, y))
-      logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
+      logger.warning(f"{C.prefix}#{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 

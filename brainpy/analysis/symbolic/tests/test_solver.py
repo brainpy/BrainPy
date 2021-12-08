@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.analysis.numeric.solver import brentq
+from brainpy.analysis.numeric.solver import jax_brentq
 
 
 def f(x):
   return (x ** 2 - 1)
 
 
-print(brentq(f, -2, 0))
+print(jax_brentq(f, -2, 0))

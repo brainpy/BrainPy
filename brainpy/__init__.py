@@ -43,9 +43,6 @@ init = initialize
 
 # "analysis" module
 from . import analysis
-from .analysis import symbolic
-from .analysis import numeric
-from .analysis import continuation
 
 
 # "visualization" module

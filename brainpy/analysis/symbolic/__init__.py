@@ -12,6 +12,10 @@ This module provide basic dynamics analysis for low-dimensional dynamical system
 
 """
 
-from .base import *
-from .bifurcation import *
-from .phase_plane import *
+from .lowdim_analyzer import *
+from .lowdim_phase_plane import *
+from .lowdim_bifurcation import *
+
+from .old_base import *
+from .old_phase_plane import *
+from .old_bifurcation import *

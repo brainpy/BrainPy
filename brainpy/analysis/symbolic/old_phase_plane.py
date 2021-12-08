@@ -7,20 +7,20 @@ import numpy as np
 
 from brainpy import errors, math
 from brainpy.analysis import stability
-from brainpy.analysis.symbolic import base, utils
+from brainpy.analysis.symbolic import old_base, utils
 from brainpy.integrators.base import Integrator
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 logger = logging.getLogger('brainpy.analysis.symbolic')
 
 __all__ = [
-  'PhasePlane',
+  'OldPhasePlane',
   '_PhasePlane1D',
   '_PhasePlane2D',
 ]
 
 
-class PhasePlane(object):
+class OldPhasePlane(object):
   """A tool class for phase plane analysis.
 
   `PhasePlane` is used to analyze the phase portrait of 1D
@@ -211,7 +211,7 @@ class PhasePlane(object):
                                           show=show)
 
 
-class _PhasePlane1D(base.SymAnalyzer1D):
+class _PhasePlane1D(sym_base.OldSymAnalyzer1D):
   """Phase plane analyzer for 1D system.
   """
 
@@ -303,7 +303,7 @@ class _PhasePlane1D(base.SymAnalyzer1D):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _PhasePlane2D(base.SymAnalyzer2D):
+class _PhasePlane2D(sym_base.OldSymAnalyzer2D):
   """Phase plane analyzer for 2D system.
   """
 

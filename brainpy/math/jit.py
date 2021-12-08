@@ -142,7 +142,7 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
 
   Parameters
   ----------
-  func : Base, function
+  func : Base, function, callable
     The instance of Base or a function.
   dyn_vars : optional, dict, tuple, list, JaxArray
     These variables will be changed in the function, or needed in the computation.
