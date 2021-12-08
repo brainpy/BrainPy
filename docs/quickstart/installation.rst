@@ -53,15 +53,11 @@ To do so, use:
     pip install git+https://git.openi.org.cn/OpenI/BrainPy
 
 
-Package Dependency
-------------------
+Dependency 1: NumPy & Matplotlib
+--------------------------------
 
 In order to make BrainPy work normally, users should install
 several dependent Python packages.
-
-
-NumPy & Matplotlib
-^^^^^^^^^^^^^^^^^^
 
 The basic function of ``BrainPy`` only relies on `NumPy`_
 and `Matplotlib`_. Install these two packages is very
@@ -73,13 +69,16 @@ easy, just using ``pip`` or ``conda``:
     # or
     conda install numpy matplotlib
 
-JAX
-^^^
+Dependency 2: JAX
+-----------------
 
 We highly recommend you to install `JAX`_.
 JAX is a high-performance JIT compiler which enables users run
 Python code on CPU, GPU, or TPU devices. Most functionalities of BrainPy
 is based on JAX.
+
+Linux & MacOS
+^^^^^^^^^^^^^
 
 Currently, JAX supports **Linux** (Ubuntu 16.04 or later) and **macOS** (10.12 or
 later) platforms. The provided binary releases of JAX for Linux and macOS
@@ -104,6 +103,9 @@ Alternatively, you can download the preferred release ".whl" file, and install i
 
     pip install xxxx.whl
 
+Windows
+^^^^^^^
+
 For **Windows** users, JAX can be installed by the following methods:
 
 Method 1: For Windows 10+ system, you can `Windows Subsystem for Linux (WSL)`_.
@@ -125,28 +127,8 @@ Simply speaking, you can run:
 Method 3: You can also `build JAX from source`_.
 
 
-Numba
-^^^^^
-
-`Numba <https://numba.pydata.org/>`_ is also an excellent JIT compiler,
-which can accelerate your Python codes to approach the speeds of C or FORTRAN.
-Numba works best with NumPy. Many BrainPy modules rely on Numba for speed
-acceleration, such like connectivity, simulation, analysis, measurements, etc.
-Numba is also a suitable framework for the computation of sparse synaptic
-connections commonly used in the computational neuroscience project.
-
-Numba is a cross-platform package which can be installed on Windows, Linux, and macOS.
-Install Numba is a piece of cake. You just need type the following commands in you terminal:
-
-.. code-block:: bash
-
-    pip install numba
-    # or
-    conda install numba
-
-
-SymPy
-^^^^^
+Dependency 3: SymPy
+-------------------
 
 In BrainPy, several modules need the symbolic inference by `SymPy`_. For example,
 `Exponential Euler numerical solver`_ needs SymPy to compute the linear part of
