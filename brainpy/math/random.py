@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from jax import numpy as jnp
 from jax import random as jr
 from jax.tree_util import register_pytree_node
 
 from brainpy.math.jaxarray import JaxArray, Variable
+
 
 __all__ = [
   'RandomState',
@@ -42,7 +44,7 @@ class RandomState(Variable):
     seed : int, jax.DeviceArray, Optional
       The initial seed of the random number generator.
     """
-    if seed is None: seed = np.random.randint(0, 100000)
+    if seed is None: seed = np.random.randint(0, 100000, 2, dtype=np.uint32)
     if isinstance(seed, int):
       key = jr.PRNGKey(seed)
     else:
@@ -67,6 +69,8 @@ class RandomState(Variable):
   def split_key(self):
     """Create a new seed from the current seed.
     """
+    if not isinstance(self.value, jnp.ndarray):
+      self.value = jnp.asarray(self.value)
     keys = jr.split(self.value, num=2)
     self.value = keys[0]
     return keys[1]
