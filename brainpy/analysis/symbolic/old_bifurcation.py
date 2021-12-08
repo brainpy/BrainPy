@@ -197,7 +197,7 @@ class OldBifurcation(object):
                                           plot_style=plot_style, tol=tol, show=show)
 
 
-class _Bifurcation1D(sym_base.OldSymAnalyzer1D):
+class _Bifurcation1D(old_base.OldSymAnalyzer1D):
   """Bifurcation analysis of 1D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
@@ -297,7 +297,7 @@ class _Bifurcation1D(sym_base.OldSymAnalyzer1D):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _Bifurcation2D(base.OldSymAnalyzer2D):
+class _Bifurcation2D(old_base.OldSymAnalyzer2D):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.

@@ -211,7 +211,7 @@ class OldPhasePlane(object):
                                           show=show)
 
 
-class _PhasePlane1D(sym_base.OldSymAnalyzer1D):
+class _PhasePlane1D(old_base.OldSymAnalyzer1D):
   """Phase plane analyzer for 1D system.
   """
 
@@ -303,7 +303,7 @@ class _PhasePlane1D(sym_base.OldSymAnalyzer1D):
     raise NotImplementedError('1D phase plane do not support plot_limit_cycle_by_sim.')
 
 
-class _PhasePlane2D(sym_base.OldSymAnalyzer2D):
+class _PhasePlane2D(old_base.OldSymAnalyzer2D):
   """Phase plane analyzer for 2D system.
   """
 
