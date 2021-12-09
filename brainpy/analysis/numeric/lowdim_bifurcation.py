@@ -37,6 +37,7 @@ class Bifurcation1D(Num1DAnalyzer):
                                         pars_update=pars_update,
                                         resolutions=resolutions,
                                         options=options)
+    # logger.warning(f'I am {Bifurcation1D.__name__}.')
 
     if len(self.target_pars) == 0:
       raise ValueError
@@ -140,6 +141,7 @@ class Bifurcation2DNum(Num2DAnalyzer):
 
   def __init__(self, model, target_pars, target_vars, fixed_vars=None,
                pars_update=None, resolutions=0.1, options=None):
+    logger.warning(f'I am {Bifurcation2DNum.__name__}.')
     super(Bifurcation2DNum, self).__init__(model=model,
                                            target_pars=target_pars,
                                            target_vars=target_vars,
