@@ -281,6 +281,9 @@ def generate_math_docs(path):
   write_module(module_name='brainpy.math.profile',
                filename=os.path.join(path, 'profile.rst'),
                header='Profile')
+  write_module(module_name='brainpy.math.numpy',
+               filename=os.path.join(path, 'numpy.rst'),
+               header='JIT for NumPy')
 
 
 def generate_simulation_docs(path):

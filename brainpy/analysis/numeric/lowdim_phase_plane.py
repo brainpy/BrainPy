@@ -62,6 +62,7 @@ class PhasePlane1D(Num1DAnalyzer):
                                        pars_update=pars_update,
                                        resolutions=resolutions,
                                        **kwargs)
+    # logger.warning(f'I am {PhasePlane1D.__name__}.')
 
   def plot_vector_field(self, show=False, with_plot=True, with_return=False):
     """Plot the vector filed."""
@@ -142,7 +143,6 @@ class PhasePlane2DNum(Num2DAnalyzer):
                pars_update=None,
                resolutions=None,
                **kwargs):
-    logger.warning(f'I am {PhasePlane2DNum.__name__}, ')
     if (target_pars is not None) and len(target_pars) > 0:
       raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
                                  f'While we detect "target_pars={target_pars}".')
@@ -153,6 +153,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
                                           pars_update=pars_update,
                                           resolutions=resolutions,
                                           **kwargs)
+    # logger.warning(f'I am {PhasePlane2DNum.__name__}.')
 
   @property
   def F_vmap_brentq_fy(self):

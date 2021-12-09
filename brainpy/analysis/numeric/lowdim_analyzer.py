@@ -453,20 +453,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
   @property
   def F_vmap_fy(self):
     if C.F_vmap_fy not in self.analyzed_results:
-      # _, arguments = _get_args(self.model.F[self.y_var])
-      # wrapper = _std_derivative(arguments, self.target_var_names, self.target_par_names)
-      # f = wrapper(self.model.F[self.y_var])
-      # f = partial(f, **(self.pars_update + self.fixed_vars))
-      # f = utils.f_without_jaxarray_return(f)
       self.analyzed_results[C.F_vmap_fy] = bm.jit(bm.vmap(self.F_fy), device=self.jit_device)
     return self.analyzed_results[C.F_vmap_fy]
-
-  # def _get_fy_signs(self, pars=(), cache=False):
-  #   xyz = tuple(self.resolutions.values())
-  #   return utils.get_sign2(self.F_fy, *xyz, args=pars)
-  #   # if C.fy_sign not in self.analyzed_results:
-  #   #   self.analyzed_results[C.fy_sign] = signs
-  #   # return self.analyzed_results[C.fy_sign]
 
   @property
   def F_dfxdy(self):
@@ -506,65 +494,6 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       self.analyzed_results[C.F_jacobian] = call
     return self.analyzed_results[C.F_jacobian]
-
-  # def F_fx_nullcline_by_opt(self, coords=None):
-  #   """Get the function to solve :math:`fx` nullcline by using numerical optimization method."""
-  #   # check coordinates
-  #   if coords is None:
-  #     coords = self.x_var + '-' + self.y_var
-  #   key = f'{C.F_fx_nullcline_by_opt},{coords}'
-  #   if key not in self.analyzed_results:
-  #     # check coordinates
-  #     _splits = [a.strip() for a in coords.split('-')]
-  #     assert len(_splits) == 2
-  #     if self.x_var not in _splits:
-  #       raise ValueError(f'Variable "{self.x_var}" must be in coordinate '
-  #                        f'settings. But we get "{coords}".')
-  #     if self.y_var not in _splits:
-  #       raise ValueError(f'Variable "{self.y_var}" must be in coordinate '
-  #                        f'settings. But we get "{coords}".')
-  #     target_to_opt = _splits[1]
-  #
-  #     # optimization function
-  #     if target_to_opt == self.y_var:
-  #       f_to_opt = lambda y, *fixed_vp: self.F_fx(fixed_vp[0], y, *fixed_vp[2:])
-  #     else:
-  #       f_to_opt = lambda x, *fixed_vp: self.F_fx(x, *fixed_vp[1:])
-  #     f_opt = lambda candidates, *args: utils.roots_of_1d_by_x(f_to_opt, candidates, args)
-  #     self.analyzed_results[key] = f_opt
-  #   return self.analyzed_results[key]
-  #
-  # def F_fy_nullcline_by_opt(self, coords=None):
-  #   """Get the function to solve Y nullcline by using numerical optimization method.
-  #
-  #   Parameters
-  #   ----------
-  #   coords : str
-  #       The coordination.
-  #   """
-  #   if coords is None:
-  #     coords = self.x_var + '-' + self.y_var
-  #   key = f'{C.F_fy_nullcline_by_opt},{coords}'
-  #   if key not in self.analyzed_results:
-  #     # check coordinates
-  #     _splits = [a.strip() for a in coords.split('-')]
-  #     assert len(_splits) == 2
-  #     if self.x_var not in _splits:
-  #       raise ValueError(f'Variable "{self.x_var}" must be in coordinate '
-  #                        f'settings. But we get "{coords}".')
-  #     if self.y_var not in _splits:
-  #       raise ValueError(f'Variable "{self.y_var}" must be in coordinate '
-  #                        f'settings. But we get "{coords}".')
-  #     target_to_opt = _splits[1]
-  #
-  #     # optimization function
-  #     if target_to_opt == self.y_var:
-  #       f_to_opt = lambda y, *fixed_vp: self.F_fy(fixed_vp[0], y, *fixed_vp[2:])
-  #     else:
-  #       f_to_opt = lambda x, *fixed_vp: self.F_fy(x, *fixed_vp[1:])
-  #     f_opt = lambda candidates, *args: utils.roots_of_1d_by_x(f_to_opt, candidates, args)
-  #     self.analyzed_results[key] = f_opt
-  #   return self.analyzed_results[key]
 
   @property
   def F_fixed_point_opt(self):
@@ -858,7 +787,6 @@ class Num2DAnalyzer(Num1DAnalyzer):
     all_fps = jnp.concatenate(all_fps)
     all_ids = jnp.concatenate(all_ids)
     all_args = tuple(jnp.concatenate(args) for args in all_args)
-    # logger.warning(f"{C.prefix}Found {len(all_fps)} fixed points")
     return all_fps, all_ids, all_args
 
 
