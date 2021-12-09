@@ -7,13 +7,11 @@ from jax.tree_util import register_pytree_node
 
 __all__ = [
   'JaxArray',
+  'ndarray',  # alias of JaxArray
   'Variable',
   'TrainVar',
   'Parameter',
-
-  'ndarray',  # alias of JaxArray
 ]
-
 
 # Ways to change values in a zero-dimensional array
 # -----
@@ -29,11 +27,6 @@ _all_slice = slice(None, None, None)
 
 class JaxArray(object):
   """Multiple-dimensional array for JAX backend.
-
-  Limitations
-  -----------
-
-  1. Do not support "out" argument in all methods.
   """
   __slots__ = "_value"
 
@@ -835,12 +828,8 @@ class Variable(JaxArray):
 
   Parameters
   ----------
-
   value :
     Used to specify the data.
-  type : str
-    Used to specify the type of this variable.
-
   """
   __slots__ = ()
 
@@ -851,7 +840,7 @@ class Variable(JaxArray):
     super(Variable, self).__init__(value)
 
   def update(self, val):
-    assert val.shape == self.value.shape
+    assert (val.shape == self.value.shape) and (val.dtype == self.value.dtype)
     self.value = val
 
 
@@ -890,4 +879,3 @@ register_pytree_node(TrainVar,
 register_pytree_node(Parameter,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: Parameter(*flat_contents))
-

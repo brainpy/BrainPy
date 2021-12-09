@@ -26,7 +26,6 @@ from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.base.function import Function
 from brainpy.integrators.base import Integrator
-from brainpy.math import profile
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
 logger = logging.getLogger('brainpy.math.numpy.ast2numba')
@@ -35,18 +34,24 @@ __all__ = [
   'jit',
 ]
 
+CLASS_KEYWORDS = ['self', 'cls']
+
 
 def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
         forceobj=False, looplift=True, error_model='python', inline='never',
-        boundscheck=None, show_code=False, debug=False, **kwargs):
+        boundscheck=None, show_code=False, debug=False):
   """Just-In-Time (JIT) Compilation in NumPy backend.
+
   JIT compilation in NumPy backend relies on `Numba <http://numba.pydata.org/>`_. However,
-  in BrainPy, `bp.math.numpy.jit()` can apply to class objects, especially the instance
+  in BrainPy, `brainpy.math.numpy.jit()` can apply to class objects, especially the instance
   of :py:class:`brainpy.DynamicalSystem`.
+
   If you are using JAX backend, please refer to the JIT compilation in
-  JAX backend `bp.math.jax.jit() <brainpy.math.jax.jit.rst>`_.
+  JAX backend ``brainpy.math.jit()``.
+
   Parameters
   ----------
+  debug : bool
   obj_or_fun : callable, Base
     The function or the base model to jit compile.
   nopython : bool
@@ -106,8 +111,6 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
     enabled.
   show_code : bool
     Debugging.
-  kwargs : dict
-    The setting for jax JIT.
   """
 
   # checking
@@ -125,32 +128,32 @@ def jit(obj_or_fun, nopython=True, fastmath=True, parallel=False, nogil=False,
 
 def _jit(obj_or_fun, show_code=False, **jit_setting):
   if isinstance(obj_or_fun, DynamicalSystem):
-    return jit_DS(obj_or_fun, show_code=show_code, **jit_setting)
+    return _jit_DS(obj_or_fun, show_code=show_code, **jit_setting)
 
   else:
     assert callable(obj_or_fun)
 
     # integrator
     if isinstance(obj_or_fun, Integrator):
-      return jit_Integrator(intg=obj_or_fun, show_code=show_code, **jit_setting)
+      return _jit_Integrator(intg=obj_or_fun, show_code=show_code, **jit_setting)
 
     # Function
     if isinstance(obj_or_fun, Function):
-      return jit_Func(obj_or_fun, show_code=show_code, **jit_setting)
+      return _jit_Func(obj_or_fun, show_code=show_code, **jit_setting)
 
     # Base
     elif isinstance(obj_or_fun, Base):
-      return jit_Base(func=obj_or_fun.__call__,
-                      host=obj_or_fun,
-                      name=obj_or_fun.name + '_call',
-                      show_code=show_code, **jit_setting)
+      return _jit_Base(func=obj_or_fun.__call__,
+                       host=obj_or_fun,
+                       name=obj_or_fun.name + '_call',
+                       show_code=show_code, **jit_setting)
 
     # bounded method
     elif hasattr(obj_or_fun, '__self__') and isinstance(obj_or_fun.__self__, Base):
-      return jit_Base(func=obj_or_fun,
-                      host=obj_or_fun.__self__,
-                      show_code=show_code,
-                      **jit_setting)
+      return _jit_Base(func=obj_or_fun,
+                       host=obj_or_fun.__self__,
+                       show_code=show_code,
+                       **jit_setting)
 
     else:
       # native function
@@ -161,7 +164,7 @@ def _jit(obj_or_fun, show_code=False, **jit_setting):
         return obj_or_fun
 
 
-def jit_DS(obj_or_fun, show_code=False, **jit_setting):
+def _jit_DS(obj_or_fun, show_code=False, **jit_setting):
   if not isinstance(obj_or_fun, DynamicalSystem):
     raise errors.UnsupportedError(f'JIT compilation in numpy backend only '
                                   f'supports {Base.__name__}, but we got '
@@ -184,7 +187,7 @@ def jit_DS(obj_or_fun, show_code=False, **jit_setting):
   return obj_or_fun
 
 
-def jit_Integrator(intg, show_code=False, **jit_setting):
+def _jit_Integrator(intg, show_code=False, **jit_setting):
   r = _jit_intg(intg, show_code=show_code, **jit_setting)
   if len(r['arguments']):
     intg = _form_final_call(f_org=intg, f_rep=r['func'], arg2call=r['arg2call'],
@@ -195,7 +198,7 @@ def jit_Integrator(intg, show_code=False, **jit_setting):
   return intg
 
 
-def jit_Func(func, show_code=False, **jit_setting):
+def _jit_Func(func, show_code=False, **jit_setting):
   assert isinstance(func, Function)
 
   r = _jit_Function(func=func, show_code=show_code, **jit_setting)
@@ -209,7 +212,7 @@ def jit_Func(func, show_code=False, **jit_setting):
   return func
 
 
-def jit_Base(func, host, name=None, show_code=False, **jit_setting):
+def _jit_Base(func, host, name=None, show_code=False, **jit_setting):
   r = _jit_cls_func(func, host=host, show_code=show_code, **jit_setting)
   if len(r['arguments']):
     name = func.__name__ if name is None else name
@@ -290,7 +293,7 @@ def _jit_Function(func, show_code=False, **jit_setting):
   # code, _scope = _add_try_except(code)
   # code_scope.update(_scope)
   if show_code:
-    show_compiled_codes(code, code_scope)
+    _show_compiled_codes(code, code_scope)
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[func._f.__name__]
   func = numba.jit(func, **jit_setting)
@@ -324,16 +327,16 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   >>>       self.V_th = V_th
   >>>
   >>>     def derivaitve(self, V, m, h, n, t, Iext):
-  >>>       alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-  >>>       beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+  >>>       alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+  >>>       beta = 4.0 * np.exp(-(V + 65) / 18)
   >>>       dmdt = alpha * (1 - m) - beta * m
   >>>
-  >>>       alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-  >>>       beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+  >>>       alpha = 0.07 * np.exp(-(V + 65) / 20.)
+  >>>       beta = 1 / (1 + np.exp(-(V + 35) / 10))
   >>>       dhdt = alpha * (1 - h) - beta * h
   >>>
-  >>>       alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-  >>>       beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+  >>>       alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+  >>>       beta = 0.125 * np.exp(-(V + 65) / 80)
   >>>       dndt = alpha * (1 - n) - beta * n
   >>>
   >>>       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -349,14 +352,14 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   -------------------------
 
   def derivaitve(V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.0)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.0)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
       I_Na = HH0_gNa * m ** 3.0 * h * (V - HH0_ENa)
       I_K = HH0_gK * n ** 4.0 * (V - HH0_EK)
@@ -400,19 +403,19 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   >>>       self.gK = gK
   >>>       self.gL = gL
   >>>       self.V_th = V_th
-  >>>       self.input = bp.math.Variable(bp.math.zeros(size))
+  >>>       self.input = bp.math.numpy.Variable(np.zeros(size))
   >>>
   >>>     def derivaitve(self, V, m, h, n, t):
-  >>>       alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-  >>>       beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+  >>>       alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+  >>>       beta = 4.0 * np.exp(-(V + 65) / 18)
   >>>       dmdt = alpha * (1 - m) - beta * m
   >>>
-  >>>       alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-  >>>       beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+  >>>       alpha = 0.07 * np.exp(-(V + 65) / 20.)
+  >>>       beta = 1 / (1 + np.exp(-(V + 35) / 10))
   >>>       dhdt = alpha * (1 - h) - beta * h
   >>>
-  >>>       alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-  >>>       beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+  >>>       alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+  >>>       beta = 0.125 * np.exp(-(V + 65) / 80)
   >>>       dndt = alpha * (1 - n) - beta * n
   >>>
   >>>       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -428,14 +431,14 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   -------------------------
 
   def derivaitve(V, m, h, n, t, HH0_input=None):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.0)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.0)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
       I_Na = HH0_gNa * m ** 3.0 * h * (V - HH0_ENa)
       I_K = HH0_gK * n ** 4.0 * (V - HH0_EK)
@@ -502,7 +505,7 @@ def _jit_cls_func(f, code=None, host=None, show_code=False, **jit_setting):
   # code_scope.update(_scope)
   code_scope_to_compile = code_scope.copy()
   if show_code:
-    show_compiled_codes(code, code_scope)
+    _show_compiled_codes(code, code_scope)
   exec(compile(code, '', 'exec'), code_scope_to_compile)
   func = code_scope_to_compile[func_name]
   func = numba.jit(func, **jit_setting)
@@ -585,7 +588,7 @@ def _jit_intg(f, show_code=False, **jit_setting):
     # code_scope_backup = {k: v for k, v in code_scope.items()}
     # compile functions
     if show_code:
-      show_compiled_codes(code, code_scope)
+      _show_compiled_codes(code, code_scope)
     exec(compile(code, '', 'exec'), code_scope)
     new_f = code_scope[func_name]
     # new_f.brainpy_data = {key: val for key, val in f.brainpy_data.items()}
@@ -615,9 +618,9 @@ def _analyze_cls_func(host, code, show_code, self_name=None, pop_self=True, **ji
   if self_name is None:
     self_name = tree.body[0].args.args[0].arg
     # data assigned by self.xx in line right
-    if self_name not in profile.CLASS_KEYWORDS:
+    if self_name not in CLASS_KEYWORDS:
       raise errors.CodeError(f'BrainPy only support class keyword '
-                             f'{profile.CLASS_KEYWORDS}, but we got {self_name}.')
+                             f'{CLASS_KEYWORDS}, but we got {self_name}.')
   if pop_self:
     tree.body[0].args.args.pop(0)  # remove "self" etc. class argument
 
@@ -668,7 +671,7 @@ def _analyze_cls_func_body(host,
     data = getattr(target, split_keys[i])
 
     # analyze data
-    if isinstance(data, math.Variable):  # data is a variable
+    if isinstance(data, math.numpy.Variable):  # data is a variable
       arguments.add(f'{target.name}_{split_keys[i]}')
       arg2call[f'{target.name}_{split_keys[i]}'] = f'{target.name}.{split_keys[-1]}.value'
       nodes[target.name] = target
@@ -1086,12 +1089,12 @@ def _get_args(f):
   # 2. analyze the function arguments
   #   2.1 class keywords
   class_kw = []
-  if original_args[0] in profile.CLASS_KEYWORDS:
+  if original_args[0] in CLASS_KEYWORDS:
     class_kw.append(original_args[0])
     original_args = original_args[1:]
     args = args[1:]
   for a in original_args:
-    if a.split('=')[0].strip() in profile.CLASS_KEYWORDS:
+    if a.split('=')[0].strip() in CLASS_KEYWORDS:
       raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
                                f'as the first argument.')
   return class_kw, args, kwargs, original_args
@@ -1116,13 +1119,13 @@ def _form_final_call(f_org, f_rep, arg2call, arguments, nodes, show_code=False, 
   # code, _scope = _add_try_except(code)
   # code_scope.update(_scope)
   if show_code:
-    show_compiled_codes(code, code_scope)
+    _show_compiled_codes(code, code_scope)
   exec(compile(code, '', 'exec'), code_scope)
   func = code_scope[f'new_{name}']
   return func
 
 
-def show_compiled_codes(code, scope):
+def _show_compiled_codes(code, scope):
   print('The recompiled function:')
   print('-------------------------')
   print(code)

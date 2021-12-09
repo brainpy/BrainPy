@@ -51,7 +51,8 @@ from .parallels import *
 
 # others
 from . import profile
-from .profile import *
 from . import setting
+from .profile import *
 from .setting import *
 from .function import *
+from . import numpy

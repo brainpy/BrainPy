@@ -63,7 +63,7 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
   return change_func_name(name=f_name, f=call) if f_name else call
 
 
-def vmap(func, dyn_vars=None, vars_batched=None,
+def vmap(func, dyn_vars=None, batched_vars=None,
          in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
   """Vectorization compilation in JAX backend.
 
@@ -76,8 +76,8 @@ def vmap(func, dyn_vars=None, vars_batched=None,
   ----------
   func : Base, function, callable
     The function or the module to compile.
-  vars_needed : dict
-  vars_batched : dict
+  dyn_vars : dict
+  batched_vars : dict
   in_axes : optional, int, sequence of int
     Specify which input array axes to map over. If each positional argument to
     ``obj_or_func`` is an array, then ``in_axes`` can be an integer, a None,
@@ -112,7 +112,7 @@ def vmap(func, dyn_vars=None, vars_batched=None,
 
   Returns
   -------
-  obj_or_func : Base, function
+  obj_or_func : Any
     Batched/vectorized version of ``obj_or_func`` with arguments that correspond to
     those of ``obj_or_func``, but with extra array axes at positions indicated by
     ``in_axes``, and a return value that corresponds to that of ``obj_or_func``, but

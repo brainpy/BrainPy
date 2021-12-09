@@ -19,7 +19,8 @@
     auto/math/activations
     auto/math/losses
     auto/math/optimizers
-    auto/math/setting
     auto/math/function
     math/comparison
+    auto/math/setting
+    auto/math/numpy
 

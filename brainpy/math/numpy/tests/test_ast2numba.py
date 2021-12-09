@@ -4,6 +4,7 @@ import ast
 import re
 from pprint import pprint
 
+import numpy as np
 import brainpy as bp
 from brainpy.math.numpy.ast2numba import FindAllForLoop
 from brainpy.math.numpy.ast2numba import FuncTransformer
@@ -14,16 +15,16 @@ from brainpy.tools import ast2code
 
 def test_find_self_data1():
   code = '''
-  alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-  beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+  alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+  beta = 4.0 * np.exp(-(V + 65) / 18)
   dmdt = alpha * (1 - m) - beta * m
 
-  alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-  beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+  alpha = 0.07 * np.exp(-(V + 65) / 20.)
+  beta = 1 / (1 + np.exp(-(V + 35) / 10))
   dhdt = alpha * (1 - h) - beta * h
 
-  alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-  beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+  alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+  beta = 0.125 * np.exp(-(V + 65) / 80)
   dndt = alpha * (1 - n) - beta * n
 
   I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -60,7 +61,7 @@ def update(self, _t, _dt):
 
 def test_cls_func_hh1():
   class HH(bp.NeuGroup):
-    target_backend = 'general'
+    target_backend = 'numpy'
 
     def __init__(self, size, ENa=50., EK=-77., EL=-54.387,
                  C=1.0, gNa=120., gK=36., gL=0.03, V_th=20.,
@@ -78,27 +79,27 @@ def test_cls_func_hh1():
       self.V_th = V_th
 
       # variables
-      self.V = bp.math.Variable(bp.math.ones(size) * -65.)
-      self.m = bp.math.Variable(bp.math.ones(size) * 0.5)
-      self.h = bp.math.Variable(bp.math.ones(size) * 0.6)
-      self.n = bp.math.Variable(bp.math.ones(size) * 0.32)
-      self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.V = bp.math.numpy.Variable(np.ones(size) * -65.)
+      self.m = bp.math.numpy.Variable(np.ones(size) * 0.5)
+      self.h = bp.math.numpy.Variable(np.ones(size) * 0.6)
+      self.n = bp.math.numpy.Variable(np.ones(size) * 0.32)
+      self.spike = bp.math.numpy.Variable(np.zeros(size, dtype=bool))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       # integral
       self.integral = bp.odeint(method='rk4', f=self.derivaitve)
 
     def derivaitve(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -151,16 +152,16 @@ def test_cls_func_hh1_1():
       self.integral = bp.odeint(method='rk4', f=self.derivaitve)
 
     def derivaitve(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -193,22 +194,22 @@ def test_cls_func_hh1_2():
       self.V_th = V_th
 
       # variable
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       # integral
       self.integral = bp.odeint(method='rk4', f=self.derivaitve)
 
     def derivaitve(self, V, m, h, n, t):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -234,33 +235,33 @@ def test_cls_func_hh2():
       self.EK = EK
       self.EL = EL
       self.C = C
-      self.gNa = bp.math.Variable(gNa)
+      self.gNa = bp.math.numpy.Variable(gNa)
       self.gK = gK
       self.gL = gL
-      self.V_th = bp.math.Variable(V_th)
+      self.V_th = bp.math.numpy.Variable(V_th)
 
       # variables
-      self.V = bp.math.Variable(bp.math.ones(size) * -65.)
-      self.m = bp.math.Variable(bp.math.ones(size) * 0.5)
-      self.h = bp.math.Variable(bp.math.ones(size) * 0.6)
-      self.n = bp.math.Variable(bp.math.ones(size) * 0.32)
-      self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.V = bp.math.numpy.Variable(np.ones(size) * -65.)
+      self.m = bp.math.numpy.Variable(np.ones(size) * 0.5)
+      self.h = bp.math.numpy.Variable(np.ones(size) * 0.6)
+      self.n = bp.math.numpy.Variable(np.ones(size) * 0.32)
+      self.spike = bp.math.numpy.Variable(np.zeros(size, dtype=bool))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       super(HH, self).__init__(size=size, **kwargs)
 
     @bp.odeint(method='rk4')
     def integral(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -301,33 +302,33 @@ def test_cls_func_ampa1():
       self.EK = EK
       self.EL = EL
       self.C = C
-      self.gNa = bp.math.Variable(gNa)
+      self.gNa = bp.math.numpy.Variable(gNa)
       self.gK = gK
       self.gL = gL
-      self.V_th = bp.math.Variable(V_th)
+      self.V_th = bp.math.numpy.Variable(V_th)
 
       # variables
-      self.V = bp.math.Variable(bp.math.ones(size) * -65.)
-      self.m = bp.math.Variable(bp.math.ones(size) * 0.5)
-      self.h = bp.math.Variable(bp.math.ones(size) * 0.6)
-      self.n = bp.math.Variable(bp.math.ones(size) * 0.32)
-      self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.V = bp.math.numpy.Variable(np.ones(size) * -65.)
+      self.m = bp.math.numpy.Variable(np.ones(size) * 0.5)
+      self.h = bp.math.numpy.Variable(np.ones(size) * 0.6)
+      self.n = bp.math.numpy.Variable(np.ones(size) * 0.32)
+      self.spike = bp.math.numpy.Variable(np.zeros(size, dtype=bool))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       super(HH, self).__init__(size=size, **kwargs)
 
     @bp.odeint(method='rk4')
     def integral(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -362,7 +363,7 @@ def test_cls_func_ampa1():
       self.size = len(self.pre_ids)
 
       # data
-      self.s = bp.math.Variable(bp.math.zeros(self.size))
+      self.s = bp.math.numpy.Variable(np.zeros(self.size))
       self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
     @bp.odeint
@@ -401,33 +402,33 @@ def test_container1():
       self.EK = EK
       self.EL = EL
       self.C = C
-      self.gNa = bp.math.Variable(gNa)
+      self.gNa = bp.math.numpy.Variable(gNa)
       self.gK = gK
       self.gL = gL
-      self.V_th = bp.math.Variable(V_th)
+      self.V_th = bp.math.numpy.Variable(V_th)
 
       # variables
-      self.V = bp.math.Variable(bp.math.ones(size) * -65.)
-      self.m = bp.math.Variable(bp.math.ones(size) * 0.5)
-      self.h = bp.math.Variable(bp.math.ones(size) * 0.6)
-      self.n = bp.math.Variable(bp.math.ones(size) * 0.32)
-      self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.V = bp.math.numpy.Variable(np.ones(size) * -65.)
+      self.m = bp.math.numpy.Variable(np.ones(size) * 0.5)
+      self.h = bp.math.numpy.Variable(np.ones(size) * 0.6)
+      self.n = bp.math.numpy.Variable(np.ones(size) * 0.32)
+      self.spike = bp.math.numpy.Variable(np.zeros(size, dtype=bool))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       super(HH, self).__init__(size=size, **kwargs)
 
     @bp.odeint(method='rk4')
     def integral(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -462,7 +463,7 @@ def test_container1():
       self.size = len(self.pre_ids)
 
       # data
-      self.s = bp.math.Variable(bp.math.zeros(self.size))
+      self.s = bp.math.numpy.Variable(np.zeros(self.size))
       self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
     @bp.odeint
@@ -508,27 +509,27 @@ def test_hh1():
       self.V_th = V_th
 
       # variables
-      self.V = bp.math.Variable(bp.math.ones(size) * -65.)
-      self.m = bp.math.Variable(bp.math.ones(size) * 0.5)
-      self.h = bp.math.Variable(bp.math.ones(size) * 0.6)
-      self.n = bp.math.Variable(bp.math.ones(size) * 0.32)
-      self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.V = bp.math.numpy.Variable(np.ones(size) * -65.)
+      self.m = bp.math.numpy.Variable(np.ones(size) * 0.5)
+      self.h = bp.math.numpy.Variable(np.ones(size) * 0.6)
+      self.n = bp.math.numpy.Variable(np.ones(size) * 0.32)
+      self.spike = bp.math.numpy.Variable(np.zeros(size, dtype=bool))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       super(HH, self).__init__(size=size, **kwargs)
 
     @bp.odeint(method='rk4')
     def integral(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -548,7 +549,7 @@ def test_hh1():
       self.input[:] = 0.
 
   hh = HH(10)
-  bp.math.jit(hh, show_code=True)
+  bp.math.numpy.jit(hh, show_code=True)
 
 
 def test_hh2():
@@ -561,33 +562,33 @@ def test_hh2():
       self.EK = EK
       self.EL = EL
       self.C = C
-      self.gNa = bp.math.Variable(gNa)
+      self.gNa = bp.math.numpy.Variable(gNa)
       self.gK = gK
       self.gL = gL
-      self.V_th = bp.math.Variable(V_th)
+      self.V_th = bp.math.numpy.Variable(V_th)
 
       # variables
-      self.V = bp.math.Variable(bp.math.ones(size) * -65.)
-      self.m = bp.math.Variable(bp.math.ones(size) * 0.5)
-      self.h = bp.math.Variable(bp.math.ones(size) * 0.6)
-      self.n = bp.math.Variable(bp.math.ones(size) * 0.32)
-      self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.V = bp.math.numpy.Variable(np.ones(size) * -65.)
+      self.m = bp.math.numpy.Variable(np.ones(size) * 0.5)
+      self.h = bp.math.numpy.Variable(np.ones(size) * 0.6)
+      self.n = bp.math.numpy.Variable(np.ones(size) * 0.32)
+      self.spike = bp.math.numpy.Variable(np.zeros(size, dtype=bool))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       super(HH, self).__init__(size=size, **kwargs)
 
     @bp.odeint(method='rk4')
     def integral(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -620,33 +621,33 @@ def test_hh_ampa_net1():
       self.EK = EK
       self.EL = EL
       self.C = C
-      self.gNa = bp.math.Variable(gNa)
+      self.gNa = bp.math.numpy.Variable(gNa)
       self.gK = gK
       self.gL = gL
-      self.V_th = bp.math.Variable(V_th)
+      self.V_th = bp.math.numpy.Variable(V_th)
 
       # variables
-      self.V = bp.math.Variable(bp.math.ones(size) * -65.)
-      self.m = bp.math.Variable(bp.math.ones(size) * 0.5)
-      self.h = bp.math.Variable(bp.math.ones(size) * 0.6)
-      self.n = bp.math.Variable(bp.math.ones(size) * 0.32)
-      self.spike = bp.math.Variable(bp.math.zeros(size, dtype=bool))
-      self.input = bp.math.Variable(bp.math.zeros(size))
+      self.V = bp.math.numpy.Variable(np.ones(size) * -65.)
+      self.m = bp.math.numpy.Variable(np.ones(size) * 0.5)
+      self.h = bp.math.numpy.Variable(np.ones(size) * 0.6)
+      self.n = bp.math.numpy.Variable(np.ones(size) * 0.32)
+      self.spike = bp.math.numpy.Variable(np.zeros(size, dtype=bool))
+      self.input = bp.math.numpy.Variable(np.zeros(size))
 
       super(HH, self).__init__(size=size, **kwargs)
 
     @bp.odeint(method='rk4')
     def integral(self, V, m, h, n, t, Iext):
-      alpha = 0.1 * (V + 40) / (1 - bp.math.exp(-(V + 40) / 10))
-      beta = 4.0 * bp.math.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
+      beta = 4.0 * np.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * bp.math.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + bp.math.exp(-(V + 35) / 10))
+      alpha = 0.07 * np.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + np.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - bp.math.exp(-(V + 55) / 10))
-      beta = 0.125 * bp.math.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - np.exp(-(V + 55) / 10))
+      beta = 0.125 * np.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -681,7 +682,7 @@ def test_hh_ampa_net1():
       self.size = len(self.pre_ids)
 
       # data
-      self.s = bp.math.Variable(bp.math.zeros(self.size))
+      self.s = bp.math.numpy.Variable(np.zeros(self.size))
       self.g = self.register_constant_delay('g', size=self.size, delay=delay)
 
     @bp.odeint

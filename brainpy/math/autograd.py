@@ -427,7 +427,7 @@ def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
 
 def jacrev(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
            allow_int=False, has_aux=None, return_value=False):
-  """Exding Jacobian of ``func`` to classes.
+  """Extending Jacobian of ``func`` to classes.
 
   This function extends the JAX official ``jacrev`` to make automatic jacobian
   computation on functions and class functions. Moreover, it supports returning
