@@ -11,7 +11,7 @@ MAT_DTYPE = np.bool_
 IDX_DTYPE = np.uint32
 
 
-class TestJIConn(TestCase):
+class TestIJConn(TestCase):
     def test_ij(self):
         conn = bp.connect.IJConn(i=np.array([0, 1, 2]),
                                  j=np.array([0, 0, 0]))

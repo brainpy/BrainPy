@@ -46,13 +46,6 @@ class FixedProb(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
-
-
-
-
-
-
-
   def require(self, *structures):
     type_to_provide = self.check(structures)
 
