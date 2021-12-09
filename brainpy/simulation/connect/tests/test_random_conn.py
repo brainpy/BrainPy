@@ -8,7 +8,7 @@ import brainpy as bp
 def test_random_prob():
   conn1 = bp.connect.FixedProb(prob=0.1, seed=123)
   conn1(pre_size=(10, 20), post_size=(10, 20))
-  pre_ids, post_ids = conn1.require('pre_ids', 'post_ids')
+  pre_ids, post_ids, pre2post = conn1.require('pre_ids', 'post_ids', 'pre2post')
 
   conn2 = bp.connect.FixedProb(prob=0.1, seed=123)
   conn2(pre_size=(10, 20), post_size=(10, 20))
