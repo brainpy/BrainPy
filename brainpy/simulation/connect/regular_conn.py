@@ -4,8 +4,9 @@ import logging
 
 import numpy as np
 
-from brainpy import errors, tools
+from brainpy import errors, tools, math
 from .base import *
+from scipy.sparse import csr_matrix
 
 logger = logging.getLogger('brainpy.simulation.connect')
 
@@ -22,6 +23,7 @@ class One2One(TwoEndConnector):
   """Connect two neuron groups one by one. This means
   The two neuron groups should have the same size.
   """
+
   def require(self, *structures):
     if self.pre_num != self.post_num:
       raise errors.ConnectorError(f'One2One connection must be defined in two groups with the '
