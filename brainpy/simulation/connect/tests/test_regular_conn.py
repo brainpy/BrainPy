@@ -17,7 +17,7 @@ def test_one2one():
     post2pre = conn.post2pre
     pre2syn = conn.pre2syn
     post2syn = conn.post2syn
-    dense_mat = conn.dense_mat
+    dense_mat = conn.conn_mat
     num = bp.tools.size2num(size)
 
     actual_mat = bp.math.zeros((num, num), dtype=bp.math.bool_)
@@ -51,7 +51,7 @@ def test_all2all():
       assert bp.math.array_equal(actual_mat, mat)
 
       print()
-      print('mat', conn.dense_mat)
+      print('mat', conn.conn_mat)
       print('pre_ids', conn.pre_ids)
       print('post_ids', conn.post_ids)
       print('pre2post', conn.pre2post)
@@ -62,4 +62,3 @@ def test_all2all():
 
 def test_grid_four():
   pass
-

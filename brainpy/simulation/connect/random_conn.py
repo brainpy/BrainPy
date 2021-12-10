@@ -233,7 +233,6 @@ class FixedPostNum(TwoEndConnector):
       raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
 
 
-
 class GaussianProb(OneEndConnector):
   r"""Builds a Gaussian connectivity pattern within a population of neurons,
   where the connection probability decay according to the gaussian function.
