@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-from abc import ABC
-
-import numpy as np
 
 import jax.numpy as jnp
-from brainpy.math.jaxarray import JaxArray
-from brainpy import tools, math
-from .base import *
+import numpy as np
 from scipy.sparse import csr_matrix
+
+from brainpy import tools
+from brainpy.math.jaxarray import JaxArray
+from .base import *
 
 __all__ = [
   'MatConn',
@@ -23,7 +22,7 @@ class MatConn(TwoEndConnector):
     super(MatConn, self).__init__()
 
     assert isinstance(conn_mat, (np.ndarray, JaxArray, jnp.ndarray)) and conn_mat.ndim == 2
-    self.conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
+    self.dense_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
     self.pre_num, self.post_num = conn_mat.shape
 
   def __call__(self, pre_size, post_size):
@@ -38,7 +37,7 @@ class MatConn(TwoEndConnector):
 
   def require(self, *structures):
     self.check(structures)
-    return self.make_return(mat=self.conn_mat)
+    return self.make_return(mat=self.dense_mat)
 
 
 class IJConn(TwoEndConnector):

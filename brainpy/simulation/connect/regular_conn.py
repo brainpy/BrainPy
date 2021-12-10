@@ -4,9 +4,8 @@ import logging
 
 import numpy as np
 
-from brainpy import errors, tools, math
+from brainpy import errors, tools
 from .base import *
-from scipy.sparse import csr_matrix
 
 logger = logging.getLogger('brainpy.simulation.connect')
 
@@ -37,7 +36,7 @@ class One2One(TwoEndConnector):
       return self.make_return(mat=mat)
 
     elif type_to_provide == PROVIDE_IJ:
-      pre_ids = post_ids= np.arange(self.pre_num, dtype=IDX_DTYPE)
+      pre_ids = post_ids = np.arange(self.pre_num, dtype=IDX_DTYPE)
       return self.make_return(ij=(pre_ids, post_ids))
 
     else:
