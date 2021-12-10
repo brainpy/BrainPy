@@ -31,7 +31,6 @@ class TestIJConn(TestCase):
 
     assert bp.math.array_equal(conn.require(bp.conn.CONN_MAT), a)
 
-
 class TestMatConn(TestCase):
   def test_MatConn1(self):
     bp.math.random.seed(123)
@@ -54,9 +53,9 @@ class TestSparseMatConn(TestCase):
     conn = bp.conn.SparseMatConn(sparse_mat)
     conn = conn(pre_size=sparse_mat.shape[0], post_size=sparse_mat.shape[1])
 
+    print(conn.requires('pre2post'))
+    print(conn.requires(bp.connect.CONN_MAT))
+
     pre2syn = conn.require('pre2syn')
     assert bp.math.array_equal(pre2syn[0], conn.pre2syn[0])
     assert bp.math.array_equal(pre2syn[1], conn.pre2syn[1])
-
-    print(conn.requires('pre2post'))
-    print(conn.requires(bp.connect.CONN_MAT))

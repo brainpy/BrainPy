@@ -8,8 +8,8 @@ def test_one2one():
   for size in [100, (3, 4), (4, 5, 6)]:
     conn = connect.One2One()(pre_size=size, post_size=size)
 
-    mat = conn.require(connect.CONN_MAT)
-    conn.require('conn_mat', 'pre_ids', 'post_ids', 'pre2post', 'pre2syn', 'post2pre', 'post2syn')
+    # mat = conn.require(connect.CONN_MAT)
+    conn.require('pre_ids', 'post_ids', 'pre2post', 'pre2syn', 'post2pre', 'post2syn', 'conn_mat')
 
     pre_ids = conn.pre_ids
     post_ids = conn.post_ids

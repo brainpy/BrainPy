@@ -35,8 +35,8 @@ def test_random_fix_pre2():
 
 
 def test_random_fix_pre3():
-  conn1 = bp.connect.FixedPreNum(num=6, seed=1234)(pre_size=3, post_size=4)
   with pytest.raises(AssertionError):
+    conn1 = bp.connect.FixedPreNum(num=6, seed=1234)(pre_size=3, post_size=4)
     conn1.require(bp.connect.CONN_MAT)
 
 
@@ -59,8 +59,8 @@ def test_random_fix_post2():
 
 
 def test_random_fix_post3():
-  conn1 = bp.connect.FixedPostNum(num=6, seed=1234)(pre_size=3, post_size=4)
   with pytest.raises(AssertionError):
+    conn1 = bp.connect.FixedPostNum(num=6, seed=1234)(pre_size=3, post_size=4)
     conn1.require(bp.connect.CONN_MAT)
 
 
@@ -102,9 +102,10 @@ def test_gaussian_prob4():
 
 
 def test_SmallWorld1():
-  conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5)
-  conn(pre_size=(20, 3), post_size=(20, 3))
   with pytest.raises(NotImplementedError):
+    conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5)
+    conn(pre_size=(20, 3), post_size=(20, 3))
+
     conn.require(bp.connect.CONN_MAT)
 
 

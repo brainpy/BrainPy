@@ -5,6 +5,7 @@ import logging
 import numpy as np
 
 from brainpy import errors, tools
+from scipy.sparse import csr_matrix
 from .base import *
 
 logger = logging.getLogger('brainpy.simulation.connect')
@@ -23,25 +24,19 @@ class One2One(TwoEndConnector):
   The two neuron groups should have the same size.
   """
 
-  def require(self, *structures):
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
+
     if self.pre_num != self.post_num:
       raise errors.ConnectorError(f'One2One connection must be defined in two groups with the '
                                   f'same size, but we got {self.pre_num} != {self.post_num}.')
 
-    type_to_provide = self.check(structures)
+    mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
+    np.fill_diagonal(mat, True)
 
-    if type_to_provide == PROVIDE_MAT:
-      mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
-      np.fill_diagonal(mat, True)
-      return self.make_return(mat=mat)
+    self._data = csr_matrix(mat)
 
-    elif type_to_provide == PROVIDE_IJ:
-      pre_ids = post_ids = np.arange(self.pre_num, dtype=IDX_DTYPE)
-      return self.make_return(ij=(pre_ids, post_ids))
-
-    else:
-      raise ValueError
-
+    return self
 
 one2one = One2One()
 
@@ -56,26 +51,15 @@ class All2All(TwoEndConnector):
     self.include_self = include_self
     super(All2All, self).__init__()
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
 
-    if type_to_provide == PROVIDE_MAT:
-      mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
-      if not self.include_self: np.fill_diagonal(mat, False)
-      return self.make_return(mat=mat)
+    mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
+    if not self.include_self: np.fill_diagonal(mat, False)
 
-    elif type_to_provide == PROVIDE_IJ:
-      mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
-      if not self.include_self: np.fill_diagonal(mat, False)
-      pre_ids, post_ids = np.where(mat)
-      del mat
-      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
-      return self.make_return(ij=(pre_ids, post_ids))
+    self._data = csr_matrix(mat)
 
-    else:
-      raise ValueError
-
+    return self
 
 all2all = All2All(include_self=True)
 
@@ -116,8 +100,8 @@ class GridFour(OneEndConnector):
     super(GridFour, self).__init__()
     self.include_self = include_self
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size=None):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
 
     assert self.pre_size == self.post_size
     if len(self.pre_size) == 1:
@@ -136,17 +120,9 @@ class GridFour(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    if type_to_provide == PROVIDE_MAT:
-      mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
-      mat[pre_ids, post_ids] = True
-      return self.make_return(mat=mat, ij=(pre_ids, post_ids))
+    self._data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
 
-    elif type_to_provide == PROVIDE_IJ:
-      return self.make_return(ij=(pre_ids, post_ids))
-
-    else:
-      raise ValueError
-
+    return self
 
 grid_four = GridFour()
 
@@ -194,8 +170,8 @@ class GridN(OneEndConnector):
     self.N = N
     self.include_self = include_self
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size=None):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
 
     try:
       assert self.pre_size == self.post_size
@@ -221,16 +197,9 @@ class GridN(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    if type_to_provide == PROVIDE_MAT:
-      mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
-      mat[pre_ids, post_ids] = True
-      return self.make_return(mat=mat, ij=(pre_ids, post_ids))
+    self._data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
 
-    elif type_to_provide == PROVIDE_IJ:
-      return self.make_return(ij=(pre_ids, post_ids))
-
-    else:
-      raise ValueError
+    return self
 
 
 class GridEight(GridN):

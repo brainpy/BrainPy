@@ -3,6 +3,7 @@
 import numpy as np
 
 from brainpy import tools, errors
+from scipy.sparse import csr_matrix
 from .base import *
 
 __all__ = [
@@ -16,13 +17,6 @@ __all__ = [
   'ScaleFreeBADual',
   'PowerLaw',
 ]
-
-
-def _random_prob_conn(rng, pre_i, num_post, prob, include_self):
-  p = rng.random(num_post) <= prob
-  if (not include_self) and pre_i < num_post: p[pre_i] = False
-  conn_j = np.asarray(np.where(p)[0], dtype=IDX_DTYPE)
-  return conn_j
 
 
 class FixedProb(TwoEndConnector):
@@ -46,37 +40,16 @@ class FixedProb(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
 
-    if type_to_provide == PROVIDE_MAT:
-      prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-      if not self.include_self: np.fill_diagonal(prob_mat, 1.)
-      conn_mat = np.array(prob_mat <= self.prob, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn_mat)
+    prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
+    if not self.include_self: np.fill_diagonal(prob_mat, 1.)
+    conn_mat = np.array(prob_mat <= self.prob, dtype=MAT_DTYPE)
 
-    elif type_to_provide == PROVIDE_IJ:
-      pre_ids, post_ids = [], []
-      for i in range(self.pre_num):
-        posts = _random_prob_conn(self.rng, pre_i=i, num_post=self.post_num,
-                                  prob=self.prob, include_self=self.include_self)
-        if len(posts):
-          pre_ids.append(np.ones_like(posts, dtype=IDX_DTYPE) * i)
-          post_ids.append(posts)
-      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=IDX_DTYPE)
-      post_ids = np.asarray(np.concatenate(post_ids), dtype=IDX_DTYPE)
-      return self.make_return(ij=(pre_ids, post_ids))
+    self._data = csr_matrix(conn_mat)
 
-    else:
-      raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
-
-
-def _fixed_num_prob_for_ij(rng, num_need, num_total, i=0, include_self=False):
-  prob = rng.random(num_total)
-  if not include_self and i <= num_total: prob[i] = 1.
-  pres = np.argsort(prob)[:num_need]
-  posts = np.ones_like(pres, dtype=IDX_DTYPE) * i
-  return pres, posts
+    return self
 
 
 class FixedPreNum(TwoEndConnector):
@@ -116,8 +89,8 @@ class FixedPreNum(TwoEndConnector):
     self.include_self = include_self
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
 
     # check
     if isinstance(self.num, int):
@@ -130,32 +103,15 @@ class FixedPreNum(TwoEndConnector):
       prob = self.num
       num = int(self.pre_num * self.num)
 
-    # matrix
-    if type_to_provide == PROVIDE_MAT:
-      prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-      if not self.include_self: np.fill_diagonal(prob_mat, 1.)
+    prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
+    if not self.include_self: np.fill_diagonal(prob_mat, 1.)
 
-      conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
-      conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn_mat)
+    conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
+    conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
 
-    # ij
-    elif type_to_provide == PROVIDE_IJ:
-      pre_ids, post_ids = [], []
-      for i in range(self.post_num):
-        pres, posts = _fixed_num_prob_for_ij(rng=self.rng,
-                                             num_need=num,
-                                             num_total=self.pre_num,
-                                             i=i,
-                                             include_self=self.include_self)
-        pre_ids.append(pres)
-        post_ids.append(posts)
-      pre_ids = np.asarray(np.concatenate(pre_ids), dtype=IDX_DTYPE)
-      post_ids = np.asarray(np.concatenate(post_ids), dtype=IDX_DTYPE)
-      return self.make_return(ij=(pre_ids, post_ids))
+    self._data = csr_matrix(conn_mat)
 
-    else:
-      raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
+    return self
 
 
 class FixedPostNum(TwoEndConnector):
@@ -195,8 +151,8 @@ class FixedPostNum(TwoEndConnector):
     self.include_self = include_self
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
 
     # check
     if isinstance(self.num, int):
@@ -209,28 +165,14 @@ class FixedPostNum(TwoEndConnector):
       num = int(self.post_num * self.num)
       prob = self.num
 
-    # matrix
-    if type_to_provide == PROVIDE_MAT:
-      prob_mat = self.rng.random(size=(self.post_num, self.pre_num))
-      if not self.include_self: np.fill_diagonal(prob_mat, 1.)
-      conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
-      conn_mat = np.asarray(np.transpose(conn_mat), dtype=MAT_DTYPE)
-      return self.make_return(mat=conn_mat)
+    prob_mat = self.rng.random(size=(self.post_num, self.pre_num))
+    if not self.include_self: np.fill_diagonal(prob_mat, 1.)
+    conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
+    conn_mat = np.asarray(np.transpose(conn_mat), dtype=MAT_DTYPE)
 
-    # ij
-    elif type_to_provide == PROVIDE_IJ:
-      pre_ids, post_ids = [], []
-      for i in range(self.pre_num):
-        posts, pres = _fixed_num_prob_for_ij(rng=self.rng, num_need=num, num_total=self.post_num,
-                                             i=i, include_self=self.include_self)
-        pre_ids.append(pres)
-        post_ids.append(posts)
-      pre_ids = np.concatenate(pre_ids)
-      post_ids = np.concatenate(post_ids)
-      return self.make_return(ij=(pre_ids, post_ids))
+    self._data = csr_matrix(conn_mat)
 
-    else:
-      raise errors.BrainPyError(f'Unknown providing type: {type_to_provide}')
+    return self
 
 
 class GaussianProb(OneEndConnector):
@@ -282,8 +224,8 @@ class GaussianProb(OneEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def require(self, *structures):
-    type_tp_provide = self.check(structures)
+  def __call__(self, pre_size, post_size=None):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
 
     # value range to encode
     if self.encoding_values is None:
@@ -340,15 +282,10 @@ class GaussianProb(OneEndConnector):
 
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
-    if type_tp_provide == PROVIDE_MAT:
-      return self.make_return(mat=np.asarray(conn_mat, dtype=np.float_))
-    elif type_tp_provide == PROVIDE_IJ:
-      i, j = np.where(conn_mat)
-      pre_ids = np.asarray(i, dtype=IDX_DTYPE)
-      post_ids = np.asarray(j, dtype=IDX_DTYPE)
-      return self.make_return(mat=conn_mat, ij=(pre_ids, post_ids))
-    else:
-      return ValueError
+
+    self._data = csr_matrix(conn_mat)
+
+    return self
 
 
 @tools.numba_jit
@@ -405,8 +342,8 @@ class SmallWorld(TwoEndConnector):
     self.num_neighbor = num_neighbor
     self.include_self = include_self
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size, post_size)
 
     assert self.pre_size == self.post_size
     if isinstance(self.pre_size, int) or (isinstance(self.pre_size, (tuple, list)) and len(self.pre_size) == 1):
@@ -455,17 +392,9 @@ class SmallWorld(TwoEndConnector):
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
-    if type_to_provide == PROVIDE_MAT:
-      return self.make_return(mat=conn)
+    self._data  = csr_matrix(conn)
 
-    elif type_to_provide == PROVIDE_IJ:
-      pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
-      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
-
-    else:
-      raise ValueError
+    return self
 
 
 def _random_subset(seq, m, rng):
@@ -516,8 +445,9 @@ class ScaleFreeBA(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size, post_size)
+
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m < 1 or self.m >= num_node:
@@ -547,19 +477,10 @@ class ScaleFreeBA(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, self.m, self.rng))
       source += 1
 
-    if type_to_provide == PROVIDE_MAT:
-      conn = np.asarray(conn, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn)
+    conn = np.asarray(conn, dtype=MAT_DTYPE)
+    self._data = csr_matrix(conn)
 
-    elif type_to_provide == PROVIDE_IJ:
-      pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
-      conn = np.asarray(conn, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
-
-    else:
-      raise ValueError
+    return self
 
 
 class ScaleFreeBADual(TwoEndConnector):
@@ -600,8 +521,9 @@ class ScaleFreeBADual(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    type_tp_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
+
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m1 < 1 or self.m1 >= num_node:
@@ -640,22 +562,10 @@ class ScaleFreeBADual(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, m, self.rng))
       source += 1
 
-    if type_tp_provide == PROVIDE_MAT:
-      conn = np.asarray(conn, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn)
-    elif type_tp_provide == PROVIDE_IJ:
-      pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
-      conn = np.asarray(conn, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
-    else:
-      raise ValueError
+    conn = np.asarray(conn, dtype=MAT_DTYPE)
+    self._data = csr_matrix(conn)
 
-
-class ScaleFreeBAExtended(TwoEndConnector):
-  def __init__(self, ):
-    raise NotImplementedError
+    return self
 
 
 class PowerLaw(TwoEndConnector):
@@ -712,8 +622,9 @@ class PowerLaw(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def require(self, *structures):
-    type_to_provide = self.check(structures)
+  def __call__(self, pre_size, post_size):
+    self._reset_conn(pre_size=pre_size, post_size=post_size)
+
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m < 1 or num_node < self.m:
@@ -752,14 +663,7 @@ class PowerLaw(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
 
-    if type_to_provide == PROVIDE_MAT:
-      conn = np.asarray(conn, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn)
-    elif type_to_provide == PROVIDE_IJ:
-      pre_ids, post_ids = np.where(conn)
-      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
-      conn = np.asarray(conn, dtype=MAT_DTYPE)
-      return self.make_return(mat=conn, ij=(pre_ids, post_ids))
-    else:
-      raise ValueError
+    conn = np.asarray(conn, dtype=MAT_DTYPE)
+    self._data = csr_matrix(conn)
+
+    return self

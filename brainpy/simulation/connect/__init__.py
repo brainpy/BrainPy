@@ -8,6 +8,5 @@ You can access them through ``brainpy.connect.XXX``.
 
 from .base import *
 from .custom_conn import *
-from .measurement import *
 from .random_conn import *
 from .regular_conn import *
