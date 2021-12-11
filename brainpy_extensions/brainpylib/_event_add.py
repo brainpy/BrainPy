@@ -6,14 +6,15 @@ __all__ = [
 
 from functools import partial
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 from jax import core, dtypes
 from jax.interpreters import xla
 from jax.lib import xla_client
 
 # Register the CPU XLA custom calls
 from . import cpu_ops
+
 for _name, _value in cpu_ops.registrations().items():
   xla_client.register_cpu_custom_call_target(_name, _value)
 
@@ -71,9 +72,9 @@ def _event_add_v2_abstract(events, pre_ids, post_ids, value, out):
   assert dtypes.canonicalize_dtype(value.dtype) == dtypes.canonicalize_dtype(out.dtype)
   return out
 
+
 _event_add_v2_prim.def_abstract_eval(_event_add_v2_abstract)
 _event_add_v2_prim.def_impl(partial(xla.apply_primitive, _event_add_v2_prim))
-
 
 
 # We also need a translation rule to convert the function into an XLA op. In
@@ -145,3 +146,70 @@ def _event_add_translation(c, events, indices, indptr, value, out, *, platform="
 # Connect the XLA translation rules for JIT compilation
 xla.backend_specific_translations["cpu"][_event_add_prim] = \
   partial(_event_add_translation, platform="cpu")
+
+
+def _event_add_v2_translation(c, events, pre_ids, post_ids, value, out, *, platform="cpu"):
+  # The event shape
+  events_shape = c.get_shape(events)
+  events_dim = events_shape.dimensions()
+  _events_shape = xla_client.Shape.array_shape(
+    events_shape.element_type(), events_dim, (0,))
+
+  # The pre_size shape
+  pre_size = np.array(events_dim[0], dtype=np.uint32)
+  _pre_shape = xla_client.Shape.array_shape(np.dtype(np.uint32), (), ())
+
+  # The post_ids shape
+  pre_ids_shape = c.get_shape(pre_ids)
+  _pre_ids_shape = xla_client.Shape.array_shape(
+    pre_ids_shape.element_type(), pre_ids_shape.dimensions(), (0,))
+
+  # The pre_slice shape
+  post_ids_shape = c.get_shape(post_ids)
+  _post_ids_shape = xla_client.Shape.array_shape(
+    post_ids_shape.element_type(), post_ids_shape.dimensions(), (0,))
+
+  # The value shape
+  value_shape = c.get_shape(value)
+  dtype = value_shape.element_type()
+  _value_shape = xla_client.Shape.array_shape(dtype, (), (0,))
+
+  # The output value shape
+  out_shape = c.get_shape(out)
+  _out_shape = xla_client.Shape.array_shape(
+    dtype, out_shape.dimensions(), (0,))
+
+  # We dispatch a different call depending on the dtype
+  if dtype == np.float32:
+    op_name = platform.encode() + b"_event_add_f32"
+  elif dtype == np.float64:
+    op_name = platform.encode() + b"_event_add_f64"
+  else:
+    raise NotImplementedError(f"Unsupported dtype {dtype}")
+
+  # And then the following is what changes between the GPU and CPU
+  if platform == "cpu":
+    # On the CPU, we pass the size of the data as a the first input argument
+    return xla_client.ops.CustomCallWithLayout(
+      c,  # builder
+      op_name,  # call_target_name
+      operands=(xla_client.ops.ConstantLiteral(c, pre_size),
+                events,
+                pre_ids,
+                post_ids,
+                value),  # The inputs
+      operand_shapes_with_layout=(_pre_shape,
+                                  _events_shape,
+                                  _pre_ids_shape,
+                                  _post_ids_shape,
+                                  _value_shape),  # The input shapes
+      shape_with_layout=_out_shape,  # The output shapes
+    )
+  elif platform == 'gpu':
+    pass
+
+  raise ValueError("Unsupported platform; this must be either 'cpu' or 'gpu'")
+
+
+xla.backend_specific_translations["cpu"][_event_add_v2_prim] = \
+  partial(_event_add_v2_translation, platform="cpu")

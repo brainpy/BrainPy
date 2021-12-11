@@ -4,7 +4,7 @@
 // of the problem size that will be passed to the op. The actually implementation of the
 // custom call can be found in kernels.cc.cu.
 
-#include "gpu_event_add_kernels.h"
+#include "event_add_gpu_kernels.h"
 #include "pybind11_kernel_helpers.h"
 
 using namespace brainpy_lib;

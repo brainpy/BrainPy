@@ -3,7 +3,7 @@
 // it should get the point accross.
 
 #include "kernel_helpers.h"
-#include "gpu_event_add_kernels.h"
+#include "event_add_gpu_kernels.h"
 
 namespace brainpy_lib {
 

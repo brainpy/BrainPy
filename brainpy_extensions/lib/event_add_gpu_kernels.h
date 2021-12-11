@@ -1,5 +1,5 @@
-#ifndef _EVENT_ADD_KERNELS_H_
-#define _EVENT_ADD_KERNELS_H_
+#ifndef _BRAINPY_EVENT_ADD_KERNELS_H_
+#define _BRAINPY_EVENT_ADD_KERNELS_H_
 
 #include <cuda_runtime_api.h>
 #include <cstddef>
