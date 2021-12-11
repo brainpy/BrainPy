@@ -52,7 +52,7 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
 
 
 def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True):
-  """JIT (Just-In-Time) Compilation.
+  """JIT (Just-In-Time) compilation for class objects.
 
   This function has the same ability to Just-In-Time compile a pure function,
   but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a

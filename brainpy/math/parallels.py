@@ -65,7 +65,7 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
 
 def vmap(func, dyn_vars=None, batched_vars=None,
          in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
-  """Vectorization compilation in JAX backend.
+  """Vectorization compilation for class objects.
 
   Vectorized compile a function or a module to run in parallel on a single device.
 
@@ -317,7 +317,7 @@ def _make_pmap(func, dyn_vars, rand_vars, reduce_func, axis_name=None, in_axes=0
 def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broadcasted_argnums=(),
          devices=None, backend=None, axis_size=None, donate_argnums=(), global_arg_shapes=None,
          reduce_func=None):
-  """Parallel compilation in JAX backend.
+  """Parallel compilation for class objects.
 
   Parallel compile a function or a module to run on multiple devices in parallel.
 

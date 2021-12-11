@@ -2,7 +2,7 @@
 
 """
 This module provides methods to initialize weights.
-You can access them through ``brainpy.initialize.XXX``.
+You can access them through ``brainpy.init.XXX``.
 """
 
 from .base import *
