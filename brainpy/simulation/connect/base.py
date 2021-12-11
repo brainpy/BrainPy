@@ -17,9 +17,7 @@ __all__ = [
   'CONN_MAT',
   'PRE_IDS', 'POST_IDS',
   'PRE2POST', 'POST2PRE',
-  'POST2PRE_MAT', 'PRE2POST_MAT',
   'PRE2SYN', 'POST2SYN',
-  'PRE_SLICE', 'POST_SLICE',
   'SUPPORTED_SYN_STRUCTURE',
 
   # the types to provide
@@ -32,11 +30,8 @@ __all__ = [
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # formatter functions
-  'ij2mat', 'mat2ij',
   'pre2post', 'post2pre',
-  'pre2post_mat', 'post2pre_mat',
   'pre2syn', 'post2syn',
-  'pre_slice', 'post_slice',
 ]
 
 CONN_MAT = 'conn_mat'
