@@ -115,6 +115,17 @@ class Connector(abc.ABC):
     self._pre2syn = None
     self._post2syn = None
 
+  @property
+  def data(self):
+    return self._data
+
+  @data.setter
+  def data(self, data):
+    if not isinstance(data, csr_matrix):
+      raise ConnectorError(f'{Connector.__name__}.data only receive instance of {csr_matrix}, '
+                           f'but we got {type(data)}.')
+    self._data = data
+
 
 class TwoEndConnector(Connector):
   """Synaptical connector to build synapse connections between two neuron groups."""
@@ -155,10 +166,6 @@ class TwoEndConnector(Connector):
     self.post_num = tools.size2num(self.post_size)
 
   def check(self, structures: Union[Tuple, List, str]):
-    if (not hasattr(self, 'pre_size')) or (not hasattr(self, 'post_size')):
-      raise ConnectorError(f'Please call "__call__" first to gather the size of the '
-                           f'pre-synaptic and post-synaptic neuron groups for: {str(self)}')
-
     # get synaptic structures
     for n in structures:
       if n not in SUPPORTED_SYN_STRUCTURE:
@@ -169,51 +176,44 @@ class TwoEndConnector(Connector):
     if len(structures) == 0:
       raise ConnectorError('Do not return any synaptic structures.')
 
-  def _check(self):
+    # check sparse connection matrix
     if self._data is None:
-      raise ConnectorError('Please initialize the class first.')
+      raise ConnectorError(f'Please call "__call__" first to obtain the connection data.')
     if not isinstance(self._data, csr_matrix):
-      raise ConnectorError(f'Please call "__call__" first to gather the size of the '
-                           f'pre-synaptic and post-synaptic neuron groups for: {str(self)}.')
+      raise ConnectorError(f'"self._data" must be an instance of {csr_matrix}, while we got {type(self._data)}.')
 
   @property
   def conn_mat(self):
-    self._check()
     if self._conn_mat is None:
       raise ConnectorError('Please require conn_mat first.')
     return self._conn_mat
 
   @property
   def pre_ids(self):
-    self._check()
     if self._pre_ids is None:
       raise ConnectorError('Please require pre_ids first.')
     return self._pre_ids
 
   @property
   def post_ids(self):
-    self._check()
     if self._post_ids is None:
       raise ConnectorError('Please require post_ids first.')
     return self._post_ids
 
   @property
   def pre2post(self):
-    self._check()
     if self._pre2post is None:
       raise ConnectorError('Please require pre2post first.')
     return self._pre2post
 
   @property
   def post2pre(self):
-    self._check()
     if self._post2pre is None:
       raise ConnectorError('Please require post2pre first.')
     return self._post2pre
 
   @property
   def pre2syn(self):
-    self._check()
     if self._pre2syn is None:
       raise ConnectorError('Please require pre2syn first.')
     return self._pre2syn
@@ -226,17 +226,17 @@ class TwoEndConnector(Connector):
 
   def require(self, *structures):
     self.check(structures)
-    if isinstance(structures, str):
-      structures = (structures,)
-    all_data = dict()
+    if isinstance(structures, str): structures = (structures,)
 
+    all_data = dict()
     for n in structures:
       if n == CONN_MAT:
         self._conn_mat = all_data[CONN_MAT] = math.asarray(self._data.todense(), dtype=MAT_DTYPE)
       elif n == PRE_IDS:
-        self._pre_ids = all_data[PRE_IDS] = math.asarray(self._data.nonzero()[0], dtype=IDX_DTYPE)
+        pre_ids = np.repeat(np.arange(self.pre_num), np.diff(self._data.indptr))
+        self._pre_ids = all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
       elif n == POST_IDS:
-        self._post_ids = all_data[POST_IDS] = math.asarray(self._data.nonzero()[1], dtype=IDX_DTYPE)
+        self._post_ids = all_data[POST_IDS] = math.asarray(self._data.indices, dtype=IDX_DTYPE)
       elif n == PRE2POST:
         self._pre2post = all_data[PRE2POST] = pre2post(self._data)
       elif n == PRE2SYN:
