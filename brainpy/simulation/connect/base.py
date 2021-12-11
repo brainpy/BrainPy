@@ -32,11 +32,8 @@ __all__ = [
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # formatter functions
-  'ij2mat', 'mat2ij',
   'pre2post', 'post2pre',
-  'pre2post_mat', 'post2pre_mat',
   'pre2syn', 'post2syn',
-  'pre_slice', 'post_slice',
 ]
 
 CONN_MAT = 'conn_mat'
