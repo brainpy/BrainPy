@@ -1,6 +1,7 @@
 #include "event_add_cpu.h"
 
 namespace brainpy_lib {
+namespace{
     template <typename T>
     void cpu_event_add(void *out, const void **in) {
       // Parse the inputs
@@ -42,4 +43,18 @@ namespace brainpy_lib {
         }
       }
     }
+}
+
+void cpu_event_add_f32(void *out, const void **in){
+    cpu_event_add<float>(out, in);
+}
+void cpu_event_add_f64(void *out, const void **in){
+    cpu_event_add<double>(out, in);
+}
+void cpu_event_add_v2_f32(void *out, const void **in){
+    cpu_event_add_v2<float>(out, in);
+}
+void cpu_event_add_v2_f64(void *out, const void **in){
+    cpu_event_add_v2<double>(out, in);
+}
 }

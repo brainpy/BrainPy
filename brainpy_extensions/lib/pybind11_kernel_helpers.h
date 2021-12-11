@@ -11,7 +11,7 @@
 
 #include "kernel_helpers.h"
 
-namespace brainpy_extension {
+namespace brainpy_lib {
 
     template <typename T>
     pybind11::bytes PackDescriptor(const T& descriptor) {
@@ -23,6 +23,6 @@ namespace brainpy_extension {
       return pybind11::capsule(bit_cast<void*>(fn), "xla._CUSTOM_CALL_TARGET");
     }
 
-}  // namespace brainpy_extension
+}  // namespace brainpy_lib
 
 #endif

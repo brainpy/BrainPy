@@ -111,32 +111,32 @@ namespace brainpy_lib {
 
   }  // namespace
 
-    void gpu_event_add_f32(cudaStream_t stream,
-                           void **buffers,
-                           const char *opaque,
-                           std::size_t opaque_len) {
-      event_add<float>(stream, buffers, opaque, opaque_len);
-    }
+void gpu_event_add_f32(cudaStream_t stream,
+                       void **buffers,
+                       const char *opaque,
+                       std::size_t opaque_len) {
+  event_add<float>(stream, buffers, opaque, opaque_len);
+}
 
-    void gpu_event_add_f64(cudaStream_t stream,
-                           void **buffers,
-                           const char *opaque,
-                           std::size_t opaque_len) {
-      event_add<double>(stream, buffers, opaque, opaque_len);
-    }
+void gpu_event_add_f64(cudaStream_t stream,
+                       void **buffers,
+                       const char *opaque,
+                       std::size_t opaque_len) {
+  event_add<double>(stream, buffers, opaque, opaque_len);
+}
 
-    void gpu_event_add_v2_f32(cudaStream_t stream,
-                              void **buffers,
-                              const char *opaque,
-                              std::size_t opaque_len) {
-      event_add_v2<float>(stream, buffers, opaque, opaque_len);
-    }
+void gpu_event_add_v2_f32(cudaStream_t stream,
+                          void **buffers,
+                          const char *opaque,
+                          std::size_t opaque_len) {
+  event_add_v2<float>(stream, buffers, opaque, opaque_len);
+}
 
-    void gpu_event_add_v2_f64(cudaStream_t stream,
-                              void **buffers,
-                              const char *opaque,
-                              std::size_t opaque_len) {
-      event_add_v2<double>(stream, buffers, opaque, opaque_len);
-    }
+void gpu_event_add_v2_f64(cudaStream_t stream,
+                          void **buffers,
+                          const char *opaque,
+                          std::size_t opaque_len) {
+  event_add_v2<double>(stream, buffers, opaque, opaque_len);
+}
 
 }  // namespace kepler_jax

@@ -11,7 +11,7 @@
 #include <string>
 #include <type_traits>
 
-namespace brainpy_extension {
+namespace brainpy_lib {
 
     // https://en.cppreference.com/w/cpp/numeric/bit_cast
     template <class To, class From>
@@ -39,6 +39,6 @@ namespace brainpy_extension {
       return bit_cast<const T*>(opaque);
     }
 
-}  // namespace brainpy_extension
+}  // namespace brainpy_lib
 
 #endif
