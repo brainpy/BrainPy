@@ -13,6 +13,8 @@ from brainpy import tools
 from . import f_without_jaxarray_return
 
 __all__ = [
+  'ECONVERGED',
+  'ECONVERR',
   'jax_brentq',
   'get_brentq_candidates',
   'brentq_candidates',
@@ -23,8 +25,8 @@ __all__ = [
   'roots_of_1d_by_xy',
 ]
 
-_ECONVERGED = 0
-_ECONVERR = -1
+ECONVERGED = 0
+ECONVERR = -1
 
 
 def _logical_or(a, b):
@@ -64,9 +66,9 @@ def jax_brentq(fun):
 
     # Root found at either end of [a,b]
     root = _where(fpre == 0, xpre, 0.)
-    status = _where(fpre == 0, _ECONVERGED, _ECONVERR)
+    status = _where(fpre == 0, ECONVERGED, ECONVERR)
     root = _where(fcur == 0, xcur, root)
-    status = _where(fcur == 0, _ECONVERGED, status)
+    status = _where(fcur == 0, ECONVERGED, status)
 
     # Check for sign error and early termination
     # Perform Brent's method
@@ -118,7 +120,7 @@ def jax_brentq(fun):
       x['sbis'] = (x['xblk'] - x['xcur']) / 2
       # Root found
       j = _logical_or(x['fcur'] == 0, abs(x['sbis']) < x['delta'])
-      x['status'] = _where(j, _ECONVERGED, x['status'])
+      x['status'] = _where(j, ECONVERGED, x['status'])
       x['root'] = _where(j, x['xcur'], x['root'])
       x = jax.lax.cond(_logical_and(abs(x['spre']) > x['delta'], abs(x['fcur']) < abs(x['fpre'])),
                        _f3, _f4, x)
@@ -131,7 +133,7 @@ def jax_brentq(fun):
       return x
 
     def cond_fun(R):
-      return jnp.logical_and(R['status'] != _ECONVERGED, R['itr'] <= maxiter)
+      return jnp.logical_and(R['status'] != ECONVERGED, R['itr'] <= maxiter)
 
     R = dict(root=root, status=status, xpre=xpre, xcur=xcur, fpre=fpre, fcur=fcur,
              itr=0, funcalls=2, xblk=xpre, fblk=fpre,
@@ -140,7 +142,7 @@ def jax_brentq(fun):
              stry=-fcur * (xcur - xpre) / (fcur - fpre),
              scur=xcur - xpre, spre=xcur - xpre,
              dpre=(fpre - fcur) / (xpre - xcur))
-    R = jax.lax.cond(status == _ECONVERGED,
+    R = jax.lax.cond(status == ECONVERGED,
                      lambda x: x,
                      lambda x: jax.lax.while_loop(cond_fun, body_fun, x),
                      R)
@@ -192,7 +194,7 @@ def brentq_roots(f, starts, ends, *vmap_args, args=()):
     res = vmap_f_opt(starts, ends, all_args)
   else:
     res = vmap_f_opt(starts, ends, )
-  valid_idx = jnp.where(res['status'] == _ECONVERGED)[0]
+  valid_idx = jnp.where(res['status'] == ECONVERGED)[0]
   roots = res['root'][valid_idx]
   vmap_args = tuple(a[valid_idx] for a in vmap_args)
   return roots, vmap_args
@@ -201,7 +203,7 @@ def brentq_roots(f, starts, ends, *vmap_args, args=()):
 def brentq_roots2(vmap_f, starts, ends, *vmap_args, args=()):
   all_args = vmap_args + args
   res = vmap_f(starts, ends, all_args)
-  valid_idx = jnp.where(res['status'] == _ECONVERGED)[0]
+  valid_idx = jnp.where(res['status'] == ECONVERGED)[0]
   roots = res['root'][valid_idx]
   vmap_args = tuple(a[valid_idx] for a in vmap_args)
   return roots, vmap_args
@@ -384,7 +386,7 @@ def roots_of_1d_by_x(f, candidates, args=()):
   ends = candidates[candidate_ids + 1]
   f_opt = bm.jit(bm.vmap(jax_brentq(f), in_axes=(0, 0, None)))
   res = f_opt(starts, ends, args)
-  valid_idx = jnp.where(res['status'] == _ECONVERGED)[0]
+  valid_idx = jnp.where(res['status'] == ECONVERGED)[0]
   fps2 = res['root'][valid_idx]
   return jnp.concatenate([fps, fps2])
 
@@ -393,7 +395,7 @@ def roots_of_1d_by_xy(f, starts, ends, args):
   f = f_without_jaxarray_return(f)
   f_opt = bm.jit(bm.vmap(jax_brentq(f)))
   res = f_opt(starts, ends, (args,))
-  valid_idx = jnp.where(res['status'] == _ECONVERGED)[0]
+  valid_idx = jnp.where(res['status'] == ECONVERGED)[0]
   xs = res['root'][valid_idx]
   ys = args[valid_idx]
   return xs, ys
@@ -445,20 +447,20 @@ def numpy_brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(fl
   if fpre * fcur > 0:
     raise ValueError("f(a) and f(b) must have different signs")
   root = 0.0
-  status = _ECONVERR
+  status = ECONVERR
 
   # Root found at either end of [a,b]
   if fpre == 0:
     root = xpre
-    status = _ECONVERGED
+    status = ECONVERGED
   if fcur == 0:
     root = xcur
-    status = _ECONVERGED
+    status = ECONVERGED
 
   root, status = root, status
 
   # Check for sign error and early termination
-  if status == _ECONVERGED:
+  if status == ECONVERGED:
     itr = 0
   else:
     # Perform Brent's method
@@ -481,7 +483,7 @@ def numpy_brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(fl
 
       # Root found
       if fcur == 0 or abs(sbis) < delta:
-        status = _ECONVERGED
+        status = ECONVERGED
         root = xcur
         itr += 1
         break
@@ -519,7 +521,7 @@ def numpy_brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(fl
       fcur = f(xcur, *args)
       funcalls += 1
 
-  if status == _ECONVERR:
+  if status == ECONVERR:
     raise RuntimeError("Failed to converge")
 
   # x, funcalls, iterations = root, funcalls, itr

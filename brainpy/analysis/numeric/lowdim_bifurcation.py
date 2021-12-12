@@ -37,7 +37,6 @@ class Bifurcation1D(Num1DAnalyzer):
                                         pars_update=pars_update,
                                         resolutions=resolutions,
                                         options=options)
-    # print(f'I am {Bifurcation1D.__name__}.')
 
     if len(self.target_pars) == 0:
       raise ValueError
@@ -51,7 +50,7 @@ class Bifurcation1D(Num1DAnalyzer):
 
   def plot_bifurcation(self, with_plot=True, show=False, with_return=False,
                        tol_loss=1e-7, loss_screen=None):
-    print('I am making bifurcation analysis ...')
+    utils.output('I am making bifurcation analysis ...')
 
     xs = self.resolutions[self.x_var]
     vps = bm.meshgrid(xs, *tuple(self.resolutions[p] for p in self.target_par_names))
@@ -141,7 +140,6 @@ class Bifurcation2D(Num2DAnalyzer):
 
   def __init__(self, model, target_pars, target_vars, fixed_vars=None,
                pars_update=None, resolutions=None, options=None):
-    utils.output(f'I am {Bifurcation2D.__name__}.')
     super(Bifurcation2D, self).__init__(model=model,
                                         target_pars=target_pars,
                                         target_vars=target_vars,
@@ -182,7 +180,7 @@ class Bifurcation2D(Num2DAnalyzer):
     select_candidates: str
       The method to select candidate fixed points.
     """
-    print('I am making bifurcation analysis ...')
+    utils.output('I am making bifurcation analysis ...')
 
     if select_candidates == 'fx-nullcline':
       fx_nullclines = self._get_fx_nullcline_points(num_segments=num_par_segments,
@@ -216,7 +214,7 @@ class Bifurcation2D(Num2DAnalyzer):
                                                        num_segment=num_fp_segment)
     candidates = np.asarray(candidates)
     parameters = np.stack(tuple(np.asarray(p) for p in parameters)).T
-    print('I am trying to filter out duplicate fixed points ...')
+    utils.output('I am trying to filter out duplicate fixed points ...')
     final_fps = []
     final_pars = []
     for par in np.unique(parameters, axis=0):
@@ -227,7 +225,7 @@ class Bifurcation2D(Num2DAnalyzer):
     final_fps = np.vstack(final_fps)
     final_pars = np.vstack(final_pars)
     jacobians = np.asarray(self.F_vmap_jacobian(jnp.asarray(final_fps), *final_pars.T))
-    print(f'{C.prefix}Found {len(final_fps)} fixed points.')
+    utils.output(f'{C.prefix}Found {len(final_fps)} fixed points.')
 
     # bifurcation analysis of co-dimension 1
     if len(self.target_pars) == 1:
@@ -304,7 +302,7 @@ class Bifurcation2D(Num2DAnalyzer):
 
   def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(),
                               plot_style=None, tol=0.001, show=False):
-    print('plot limit cycle ...')
+    utils.output('plot limit cycle ...')
 
     if self.fixed_points is None:
       raise errors.AnalyzerError('Please call "plot_bifurcation()" before "plot_limit_cycle_by_sim()".')
@@ -459,7 +457,7 @@ class _FastSlowTrajectory(object):
     show : bool
         Whether show or not.
     """
-    print('plot trajectory ...')
+    utils.output('plot trajectory ...')
 
     # 1. format the initial values
     all_vars = self.fast_var_names + self.slow_var_names

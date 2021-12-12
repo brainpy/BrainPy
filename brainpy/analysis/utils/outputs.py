@@ -2,7 +2,6 @@
 
 import sys
 
-
 __all__ = [
   'output',
 ]
@@ -10,6 +9,5 @@ __all__ = [
 
 def output(msg, file=None):
   if file is None:
-    file=sys.stderr
+    file = sys.stderr
   print(msg, file=file)
-

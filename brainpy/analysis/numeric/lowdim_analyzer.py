@@ -400,7 +400,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
     # optimize the fixed points
     res = self.F_vmap_fp_opt(X, *args)
     losses = self.F_vmap_fp_aux(res['root'], *args)
-    valid_or_not = jnp.logical_and(res['status'] == utils._ECONVERGED, losses <= tol_loss)
+    valid_or_not = jnp.logical_and(res['status'] == utils.ECONVERGED, losses <= tol_loss)
     ids = np.asarray(jnp.where(valid_or_not)[0])
     fps = np.asarray(res['root'])[ids]
     selected_ids = selected_ids[np.asarray(ids)]
@@ -531,7 +531,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     return x_values, y_values, par_values
 
   def _get_fp_candidates(self, num_segments=1, num_rank=100):
-    print(f"I am filtering out fixed point candidates with auxiliary function ...")
+    utils.output(f"I am filtering out fixed point candidates with auxiliary function ...")
     all_xs = []
     all_ys = []
     all_ps = tuple([] for _ in range(len(self.target_par_names)))
@@ -554,7 +554,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
       arg_id_segments = ((0,),)
     for _j, ids in enumerate(zip(*arg_id_segments)):
       if len(arg_id_segments[0]) > 1:
-        print(f"{C.prefix}segment {_j} ...")
+        utils.output(f"{C.prefix}segment {_j} ...")
 
       ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
       # change the position of meshgrid values
@@ -579,7 +579,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     coords = (self.x_var + '-' + self.y_var) if coords is None else coords
     key = C.fx_nullcline_points + ',' + coords
     if key not in self.analyzed_results:
-      print("I am evaluating fx-nullcline by optimization ...")
+      utils.output("I am evaluating fx-nullcline by optimization ...")
 
       all_losses = []
       all_x_values_in_fx = []
@@ -609,7 +609,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
         arg_id_segments = ((0,),)
       for _j, ids in enumerate(zip(*arg_id_segments)):
         if len(arg_id_segments[0]) > 1:
-          print(f"{C.prefix}segment {_j} ...")
+          utils.output(f"{C.prefix}segment {_j} ...")
 
         Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
         if coords == self.x_var + '-' + self.y_var:
@@ -651,7 +651,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     coords = (self.x_var + '-' + self.y_var) if coords is None else coords
     key = C.fy_nullcline_points + ',' + coords
     if key not in self.analyzed_results:
-      print("I am evaluating fy-nullcline by optimization ...")
+      utils.output("I am evaluating fy-nullcline by optimization ...")
 
       all_losses = []
       all_x_values_in_fy = []
@@ -678,7 +678,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
         arg_id_segments = ((0,),)
       for _j, ids in enumerate(zip(*arg_id_segments)):
         if len(arg_id_segments[0]) > 1:
-          print(f"{C.prefix}segment {_j} ...")
+          utils.output(f"{C.prefix}segment {_j} ...")
 
         Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
         if coords == self.x_var + '-' + self.y_var:
@@ -746,8 +746,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
     res : tuple
       The fixed point results.
     """
-    print("I am trying to find fixed points by optimization ...")
-    print(f"{C.prefix}There are {len(candidates)} candidates")
+    utils.output("I am trying to find fixed points by optimization ...")
+    utils.output(f"{C.prefix}There are {len(candidates)} candidates")
 
     candidates = jnp.asarray(candidates)
     args = tuple(jnp.asarray(a) for a in args)
@@ -761,7 +761,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
     for _j, i in enumerate(segment_ids):
       if len(segment_ids) > 1:
-        print(f"{C.prefix}segment {_j} ...")
+        utils.output(f"{C.prefix}segment {_j} ...")
       seg_fps = candidates[i: i + seg_len]
       seg_args = tuple(a[i: i + seg_len] for a in args)
       seg_ids = selected_ids[i: i + seg_len]

@@ -133,7 +133,7 @@ def fhn_model():
 
 
 if __name__ == '__main__':
-  # wilson_cowan_model()
-  # decision_making_model()
+  wilson_cowan_model()
+  decision_making_model()
   fhn_model()
 
