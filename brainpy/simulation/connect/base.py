@@ -41,8 +41,6 @@ PRE_IDS = 'pre_ids'
 POST_IDS = 'post_ids'
 PRE2POST = 'pre2post'
 POST2PRE = 'post2pre'
-PRE2POST_MAT = 'pre2post_mat'
-POST2PRE_MAT = 'post2pre_mat'
 PRE2SYN = 'pre2syn'
 POST2SYN = 'post2syn'
 PRE_SLICE = 'pre_slice'
@@ -51,7 +49,6 @@ POST_SLICE = 'post_slice'
 SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
                            PRE_IDS, POST_IDS,
                            PRE2POST, POST2PRE,
-                           PRE2POST_MAT, POST2PRE_MAT,
                            PRE2SYN, POST2SYN,
                            PRE_SLICE, POST_SLICE]
 
@@ -115,17 +112,6 @@ class Connector(abc.ABC):
     self._pre2syn = None
     self._post2syn = None
 
-  @property
-  def data(self):
-    return self._data
-
-  @data.setter
-  def data(self, data):
-    if not isinstance(data, csr_matrix):
-      raise ConnectorError(f'{Connector.__name__}.data only receive instance of {csr_matrix}, '
-                           f'but we got {type(data)}.')
-    self._data = data
-
 
 class TwoEndConnector(Connector):
   """Synaptical connector to build synapse connections between two neuron groups."""
@@ -133,6 +119,17 @@ class TwoEndConnector(Connector):
   @abc.abstractmethod
   def __call__(self, pre_size, post_size):
     raise NotImplementedError
+
+  @property
+  def data(self):
+    return self._data
+
+  @data.setter
+  def data(self, data):
+    if not isinstance(data, csr_matrix):
+      raise ConnectorError(f'{Connector.__name__}.data only receive instance '
+                           f'of {csr_matrix}, but we got {type(data)}.')
+    self._data = data
 
   def _reset_conn(self, pre_size, post_size):
     """

@@ -47,7 +47,7 @@ class FixedProb(TwoEndConnector):
     if not self.include_self: np.fill_diagonal(prob_mat, 1.)
     conn_mat = np.array(prob_mat <= self.prob, dtype=MAT_DTYPE)
 
-    self._data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat)
 
     return self
 
@@ -109,7 +109,7 @@ class FixedPreNum(TwoEndConnector):
     conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
     conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
 
-    self._data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat)
 
     return self
 
@@ -170,7 +170,7 @@ class FixedPostNum(TwoEndConnector):
     conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
     conn_mat = np.asarray(np.transpose(conn_mat), dtype=MAT_DTYPE)
 
-    self._data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat)
 
     return self
 
@@ -283,7 +283,7 @@ class GaussianProb(OneEndConnector):
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
 
-    self._data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat)
 
     return self
 
@@ -392,7 +392,7 @@ class SmallWorld(TwoEndConnector):
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
-    self._data  = csr_matrix(conn)
+    self.data  = csr_matrix(conn)
 
     return self
 
@@ -478,7 +478,7 @@ class ScaleFreeBA(TwoEndConnector):
       source += 1
 
     conn = np.asarray(conn, dtype=MAT_DTYPE)
-    self._data = csr_matrix(conn)
+    self.data = csr_matrix(conn)
 
     return self
 
@@ -563,7 +563,7 @@ class ScaleFreeBADual(TwoEndConnector):
       source += 1
 
     conn = np.asarray(conn, dtype=MAT_DTYPE)
-    self._data = csr_matrix(conn)
+    self.data = csr_matrix(conn)
 
     return self
 
@@ -664,6 +664,6 @@ class PowerLaw(TwoEndConnector):
       source += 1
 
     conn = np.asarray(conn, dtype=MAT_DTYPE)
-    self._data = csr_matrix(conn)
+    self.data = csr_matrix(conn)
 
     return self

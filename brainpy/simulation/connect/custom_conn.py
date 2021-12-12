@@ -29,7 +29,7 @@ class MatConn(TwoEndConnector):
     assert self.pre_num == tools.size2num(pre_size)
     assert self.post_num == tools.size2num(post_size)
     self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self._data = csr_matrix(self.dense_mat)
+    self.data = csr_matrix(self.dense_mat)
     return self
 
 class IJConn(TwoEndConnector):
@@ -48,7 +48,7 @@ class IJConn(TwoEndConnector):
 
   def __call__(self, pre_size, post_size):
     self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self._data = csr_matrix((np.ones_like(self.pre_ids_list, np.bool_), (self.pre_ids_list, self.post_ids_list)), shape=(pre_size, post_size))
+    self.data = csr_matrix((np.ones_like(self.pre_ids_list, np.bool_), (self.pre_ids_list, self.post_ids_list)), shape=(pre_size, post_size))
     return self
 
 
@@ -66,5 +66,5 @@ class SparseMatConn(TwoEndConnector):
     assert self.pre_num == tools.size2num(pre_size)
     assert self.post_num == tools.size2num(post_size)
     self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self._data = self.csr_mat
+    self.data = self.csr_mat
     return self

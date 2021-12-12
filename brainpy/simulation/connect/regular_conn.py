@@ -34,7 +34,7 @@ class One2One(TwoEndConnector):
     mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
     np.fill_diagonal(mat, True)
 
-    self._data = csr_matrix(mat)
+    self.data = csr_matrix(mat)
 
     return self
 
@@ -57,7 +57,7 @@ class All2All(TwoEndConnector):
     mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
     if not self.include_self: np.fill_diagonal(mat, False)
 
-    self._data = csr_matrix(mat)
+    self.data = csr_matrix(mat)
 
     return self
 
@@ -120,7 +120,7 @@ class GridFour(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self._data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
+    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
 
     return self
 
@@ -197,7 +197,7 @@ class GridN(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self._data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
+    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
 
     return self
 
