@@ -9,6 +9,7 @@
     :maxdepth: 1
 
     auto/simulation/brainobjects
+    auto/simulation/models
     auto/simulation/connect
     auto/simulation/inputs
     auto/simulation/measure

@@ -31,10 +31,11 @@ from .simulation.brainobjects import *
 from .simulation.monitor import *
 from .simulation.runner import *
 from .simulation import brainobjects
+from .simulation import models
 from .simulation import connect
+conn = connect
 from .simulation import inputs
 from .simulation import measure
-conn = connect
 
 # "training" module
 from . import training

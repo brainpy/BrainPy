@@ -206,7 +206,8 @@ def _generate_comparison_rst(numpy_mod, brainpy_jax, klass, header=', , '):
     '',
     '**Summary**\n',
     '- Number of NumPy functions: {}\n'.format(len(np_funcs)),
-    '- Number of functions covered by ``brainpy.math``: {}\n'.format(len(brainpy_funcs & np_funcs)),
+    '- Number of functions covered by ``brainpy.math``: {}\n'.format(
+      len(brainpy_funcs & np_funcs)),
   ]
   return buf
 
@@ -294,12 +295,17 @@ def generate_simulation_docs(path):
   write_module(module_name='brainpy.simulation.brainobjects',
                filename=os.path.join(path, 'brainobjects.rst'),
                header='Brain Objects')
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('custom_conn', 'Custom Connections'),
-    ('random_conn', 'Random Connections'),
-    ('regular_conn', 'Regular Connections'),
-  ]
+  module_and_name = [('neurons', 'Neuron Models'),
+                     ('synapses', 'Synapse Models'), ]
+  write_submodules(module_name='brainpy.simulation.models',
+                   filename=os.path.join(path, 'models.rst'),
+                   header='Brain Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+  module_and_name = [('base', 'Base Class'),
+                     ('custom_conn', 'Custom Connections'),
+                     ('random_conn', 'Random Connections'),
+                     ('regular_conn', 'Regular Connections'), ]
   write_submodules(module_name='brainpy.simulation.connect',
                    filename=os.path.join(path, 'connect.rst'),
                    header='Synaptic Connectivity',
@@ -329,12 +335,10 @@ def generate_training_docs(path):
   write_module(module_name='brainpy.training.layers',
                filename=os.path.join(path, 'layers.rst'),
                header='DNN Layers')
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('regular_inits', 'Regular Initializers'),
-    ('random_inits', 'Random Initializers'),
-    ('decay_inits', 'Decay Initializers'),
-  ]
+  module_and_name = [('base', 'Base Class'),
+                     ('regular_inits', 'Regular Initializers'),
+                     ('random_inits', 'Random Initializers'),
+                     ('decay_inits', 'Decay Initializers'), ]
   write_submodules(module_name='brainpy.training.initialize',
                    filename=os.path.join(path, 'initialize.rst'),
                    header='Weight Initialization',
@@ -346,13 +350,11 @@ def generate_tools_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  module_and_name = [
-    ('ast2code', 'AST-to-Code'),
-    ('codes', 'Code Tools'),
-    ('dicts', 'New Dict'),
-    ('namechecking', 'Name Checking'),
-    ('others', 'Other Tools'),
-  ]
+  module_and_name = [('ast2code', 'AST-to-Code'),
+                     ('codes', 'Code Tools'),
+                     ('dicts', 'New Dict'),
+                     ('namechecking', 'Name Checking'),
+                     ('others', 'Other Tools'), ]
   write_submodules(module_name='brainpy.tools',
                    filename=os.path.join(path, 'tools.rst'),
                    submodule_names=[k[0] for k in module_and_name],
