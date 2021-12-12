@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import gc
-import logging
+import sys
 
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -12,11 +12,11 @@ from brainpy import errors
 from brainpy.analysis import stability, utils, constants as C
 from brainpy.analysis.numeric.lowdim_analyzer import *
 
-logger = logging.getLogger('brainpy.analysis')
+_file = sys.stderr
 
 __all__ = [
   'Bifurcation1D',
-  'Bifurcation2DNum',
+  'Bifurcation2D',
   'FastSlow1D',
   'FastSlow2D',
 ]
@@ -29,7 +29,7 @@ class Bifurcation1D(Num1DAnalyzer):
   """
 
   def __init__(self, model, target_pars, target_vars, fixed_vars=None,
-               pars_update=None, resolutions=0.1, options=None):
+               pars_update=None, resolutions=None, options=None):
     super(Bifurcation1D, self).__init__(model=model,
                                         target_pars=target_pars,
                                         target_vars=target_vars,
@@ -37,7 +37,7 @@ class Bifurcation1D(Num1DAnalyzer):
                                         pars_update=pars_update,
                                         resolutions=resolutions,
                                         options=options)
-    # logger.warning(f'I am {Bifurcation1D.__name__}.')
+    # print(f'I am {Bifurcation1D.__name__}.')
 
     if len(self.target_pars) == 0:
       raise ValueError
@@ -51,7 +51,7 @@ class Bifurcation1D(Num1DAnalyzer):
 
   def plot_bifurcation(self, with_plot=True, show=False, with_return=False,
                        tol_loss=1e-7, loss_screen=None):
-    logger.warning('I am making bifurcation analysis ...')
+    print('I am making bifurcation analysis ...')
 
     xs = self.resolutions[self.x_var]
     vps = bm.meshgrid(xs, *tuple(self.resolutions[p] for p in self.target_par_names))
@@ -133,22 +133,22 @@ class Bifurcation1D(Num1DAnalyzer):
       return fixed_points, selected_pars, dfxdx
 
 
-class Bifurcation2DNum(Num2DAnalyzer):
+class Bifurcation2D(Num2DAnalyzer):
   """Bifurcation analysis of 2D system.
 
   Using this class, we can make co-dimension1 or co-dimension2 bifurcation analysis.
   """
 
   def __init__(self, model, target_pars, target_vars, fixed_vars=None,
-               pars_update=None, resolutions=0.1, options=None):
-    logger.warning(f'I am {Bifurcation2DNum.__name__}.')
-    super(Bifurcation2DNum, self).__init__(model=model,
-                                           target_pars=target_pars,
-                                           target_vars=target_vars,
-                                           fixed_vars=fixed_vars,
-                                           pars_update=pars_update,
-                                           resolutions=resolutions,
-                                           options=options)
+               pars_update=None, resolutions=None, options=None):
+    utils.output(f'I am {Bifurcation2D.__name__}.')
+    super(Bifurcation2D, self).__init__(model=model,
+                                        target_pars=target_pars,
+                                        target_vars=target_vars,
+                                        fixed_vars=fixed_vars,
+                                        pars_update=pars_update,
+                                        resolutions=resolutions,
+                                        options=options)
 
     if len(self.target_pars) == 0:
       raise ValueError
@@ -182,7 +182,7 @@ class Bifurcation2DNum(Num2DAnalyzer):
     select_candidates: str
       The method to select candidate fixed points.
     """
-    logger.warning('I am making bifurcation analysis ...')
+    print('I am making bifurcation analysis ...')
 
     if select_candidates == 'fx-nullcline':
       fx_nullclines = self._get_fx_nullcline_points(num_segments=num_par_segments,
@@ -216,7 +216,7 @@ class Bifurcation2DNum(Num2DAnalyzer):
                                                        num_segment=num_fp_segment)
     candidates = np.asarray(candidates)
     parameters = np.stack(tuple(np.asarray(p) for p in parameters)).T
-    logger.warning('I am trying to filter out duplicate fixed points ...')
+    print('I am trying to filter out duplicate fixed points ...')
     final_fps = []
     final_pars = []
     for par in np.unique(parameters, axis=0):
@@ -227,7 +227,7 @@ class Bifurcation2DNum(Num2DAnalyzer):
     final_fps = np.vstack(final_fps)
     final_pars = np.vstack(final_pars)
     jacobians = np.asarray(self.F_vmap_jacobian(jnp.asarray(final_fps), *final_pars.T))
-    logger.warning(f'{C.prefix}Found {len(final_fps)} fixed points.')
+    print(f'{C.prefix}Found {len(final_fps)} fixed points.')
 
     # bifurcation analysis of co-dimension 1
     if len(self.target_pars) == 1:
@@ -304,7 +304,7 @@ class Bifurcation2DNum(Num2DAnalyzer):
 
   def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(),
                               plot_style=None, tol=0.001, show=False):
-    logger.warning('plot limit cycle ...')
+    print('plot limit cycle ...')
 
     if self.fixed_points is None:
       raise errors.AnalyzerError('Please call "plot_bifurcation()" before "plot_limit_cycle_by_sim()".')
@@ -459,7 +459,7 @@ class _FastSlowTrajectory(object):
     show : bool
         Whether show or not.
     """
-    logger.warning('plot trajectory ...')
+    print('plot trajectory ...')
 
     # 1. format the initial values
     all_vars = self.fast_var_names + self.slow_var_names
@@ -565,33 +565,30 @@ class _FastSlowTrajectory(object):
 
 class FastSlow1D(Bifurcation1D):
   def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
-               pars_update=None, numerical_resolution=0.1, options=None):
+               pars_update=None, resolutions=None, options=None):
     super(FastSlow1D, self).__init__(model=model,
                                      target_pars=slow_vars,
                                      target_vars=fast_vars,
                                      fixed_vars=fixed_vars,
                                      pars_update=pars_update,
-                                     resolutions=numerical_resolution,
+                                     resolutions=resolutions,
                                      options=options)
-    self.traj = _FastSlowTrajectory(model_or_intgs=model,
-                                    fast_vars=fast_vars,
-                                    slow_vars=slow_vars,
-                                    fixed_vars=fixed_vars,
-                                    pars_update=pars_update,
-                                    numerical_resolution=numerical_resolution,
-                                    options=options)
+  #   self.traj = _FastSlowTrajectory(model_or_intgs=model,
+  #                                   fast_vars=fast_vars,
+  #                                   slow_vars=slow_vars,
+  #                                   fixed_vars=fixed_vars,
+  #                                   pars_update=pars_update,
+  #                                   numerical_resolution=resolutions,
+  #                                   options=options)
+  #
+  # def plot_trajectory(self, *args, **kwargs):
+  #   self.traj.plot_trajectory(*args, **kwargs)
 
-  def plot_trajectory(self, *args, **kwargs):
-    self.traj.plot_trajectory(*args, **kwargs)
-
-  def plot_bifurcation(self, *args, **kwargs):
-    return super(FastSlow1D, self).plot_bifurcation(*args, **kwargs)
-
-  def plot_limit_cycle_by_sim(self, *args, **kwargs):
-    super(FastSlow1D, self).plot_limit_cycle_by_sim(*args, **kwargs)
+  # def plot_limit_cycle_by_sim(self, *args, **kwargs):
+  #   super(FastSlow1D, self).plot_limit_cycle_by_sim(*args, **kwargs)
 
 
-class FastSlow2D(Bifurcation2DNum):
+class FastSlow2D(Bifurcation2D):
   def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
                pars_update=None, numerical_resolution=0.1, options=None):
     super(FastSlow2D, self).__init__(model=model,
@@ -601,19 +598,16 @@ class FastSlow2D(Bifurcation2DNum):
                                      pars_update=pars_update,
                                      resolutions=numerical_resolution,
                                      options=options)
-    self.traj = _FastSlowTrajectory(model_or_intgs=model,
-                                    fast_vars=fast_vars,
-                                    slow_vars=slow_vars,
-                                    fixed_vars=fixed_vars,
-                                    pars_update=pars_update,
-                                    numerical_resolution=numerical_resolution,
-                                    options=options)
-
-  def plot_trajectory(self, *args, **kwargs):
-    self.traj.plot_trajectory(*args, **kwargs)
-
-  def plot_bifurcation(self, *args, **kwargs):
-    return super(FastSlow2D, self).plot_bifurcation(*args, **kwargs)
+  #   self.traj = _FastSlowTrajectory(model_or_intgs=model,
+  #                                   fast_vars=fast_vars,
+  #                                   slow_vars=slow_vars,
+  #                                   fixed_vars=fixed_vars,
+  #                                   pars_update=pars_update,
+  #                                   numerical_resolution=numerical_resolution,
+  #                                   options=options)
+  #
+  # def plot_trajectory(self, *args, **kwargs):
+  #   self.traj.plot_trajectory(*args, **kwargs)
 
   def plot_limit_cycle_by_sim(self, *args, **kwargs):
     super(FastSlow2D, self).plot_limit_cycle_by_sim(*args, **kwargs)

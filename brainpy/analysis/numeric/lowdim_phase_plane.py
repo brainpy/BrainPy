@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import logging
 
 import jax.numpy as jnp
@@ -11,11 +12,11 @@ from brainpy import errors, math
 from brainpy.analysis import stability, constants as C, utils
 from brainpy.analysis.numeric.lowdim_analyzer import *
 
-logger = logging.getLogger('brainpy.analysis')
+_file = sys.stderr
 
 __all__ = [
   'PhasePlane1D',
-  'PhasePlane2DNum',
+  'PhasePlane2D',
 ]
 
 
@@ -62,11 +63,11 @@ class PhasePlane1D(Num1DAnalyzer):
                                        pars_update=pars_update,
                                        resolutions=resolutions,
                                        **kwargs)
-    # logger.warning(f'I am {PhasePlane1D.__name__}.')
+    # print(f'I am {PhasePlane1D.__name__}.')
 
   def plot_vector_field(self, show=False, with_plot=True, with_return=False):
     """Plot the vector filed."""
-    logger.warning('I am creating vector fields ...')
+    print('I am creating vector fields ...')
 
     # Nullcline of the x variable
     y_val = self.F_fx(self.resolutions[self.x_var])
@@ -89,7 +90,7 @@ class PhasePlane1D(Num1DAnalyzer):
 
   def plot_fixed_point(self, show=False, with_plot=True, with_return=False):
     """Plot the fixed point."""
-    logger.warning('I am searching fixed points ...')
+    print('I am searching fixed points ...')
 
     # fixed points and stability analysis
     fps, _ = self._get_fixed_points(self.resolutions[self.x_var])
@@ -98,7 +99,7 @@ class PhasePlane1D(Num1DAnalyzer):
       x = fps[i]
       dfdx = self.F_dfxdx(x)
       fp_type = stability.stability_analysis(dfdx)
-      logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
+      print(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
       container[fp_type].append(x)
 
     # visualization
@@ -116,7 +117,7 @@ class PhasePlane1D(Num1DAnalyzer):
       return fps
 
 
-class PhasePlane2DNum(Num2DAnalyzer):
+class PhasePlane2D(Num2DAnalyzer):
   """Phase plane analyzer for 2D dynamical system.
 
   Parameters
@@ -146,14 +147,14 @@ class PhasePlane2DNum(Num2DAnalyzer):
     if (target_pars is not None) and len(target_pars) > 0:
       raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
                                  f'While we detect "target_pars={target_pars}".')
-    super(PhasePlane2DNum, self).__init__(model=model,
-                                          target_vars=target_vars,
-                                          fixed_vars=fixed_vars,
-                                          target_pars=target_pars,
-                                          pars_update=pars_update,
-                                          resolutions=resolutions,
-                                          **kwargs)
-    # logger.warning(f'I am {PhasePlane2DNum.__name__}.')
+    super(PhasePlane2D, self).__init__(model=model,
+                                       target_vars=target_vars,
+                                       fixed_vars=fixed_vars,
+                                       target_pars=target_pars,
+                                       pars_update=pars_update,
+                                       resolutions=resolutions,
+                                       **kwargs)
+    # print(f'I am {PhasePlane2DNum.__name__}.')
 
   @property
   def F_vmap_brentq_fy(self):
@@ -183,7 +184,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
           "units", "angles", "scale". More settings please check
           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html.
     """
-    logger.warning('I am creating vector fields ...')
+    print('I am creating vector fields ...')
 
     # get dx, dy
     xs = self.resolutions[self.x_var]
@@ -228,7 +229,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
   def plot_nullcline(self, with_plot=True, with_return=False, y_style=None, x_style=None,
                      show=False, coords=None, tol_nullcline=1e-7):
     """Plot the nullcline."""
-    logger.warning('I am computing fx-nullcline ...')
+    print('I am computing fx-nullcline ...')
 
     if coords is None:
       coords = dict()
@@ -248,7 +249,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
 
     # Nullcline of the y variable
     # ---------------------------
-    logger.warning('I am computing fy-nullcline ...')
+    print('I am computing fy-nullcline ...')
     xy_values_in_fy,  = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
     x_values_in_fy = np.asarray(xy_values_in_fy[:, 0])
     y_values_in_fy = np.asarray(xy_values_in_fy[:, 1])
@@ -276,7 +277,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
                        tol_unique=1e-2, tol_loss=1e-7, loss_screen=None):
     """Plot the fixed point and analyze its stability.
     """
-    logger.warning('I am searching fixed points ...')
+    print('I am searching fixed points ...')
 
     # candidates
     candidates = []
@@ -294,12 +295,12 @@ class PhasePlane2DNum(Num2DAnalyzer):
                                                   tol_loss=tol_loss,
                                                   tol_unique=tol_unique,
                                                   loss_screen=loss_screen)
-      logger.warning('I am trying to filter out duplicate fixed points ...')
+      print('I am trying to filter out duplicate fixed points ...')
       fixed_points = np.asarray(fixed_points)
       fixed_points, _ = utils.keep_unique(fixed_points, tol=tol_unique)
-      logger.warning(f'{C.prefix}Found {len(fixed_points)} fixed points.')
+      print(f'{C.prefix}Found {len(fixed_points)} fixed points.')
     else:
-      logger.warning(f'{C.prefix}Found no fixed points.')
+      print(f'{C.prefix}Found no fixed points.')
       return
 
     # stability analysis
@@ -309,7 +310,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
       x = fixed_points[i, 0]
       y = fixed_points[i, 1]
       fp_type = stability.stability_analysis(self.F_jacobian(x, y))
-      logger.warning(f"{C.prefix}#{i + 1} {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
+      print(f"{C.prefix}#{i + 1} {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 
@@ -358,7 +359,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
         Whether show or not.
     """
 
-    logger.warning('plot trajectory ...')
+    print('plot trajectory ...')
 
     if axes not in ['v-v', 't-v']:
       raise errors.BrainPyError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
@@ -466,7 +467,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
     show : bool
         Whether show or not.
     """
-    logger.warning('plot limit cycle ...')
+    print('plot limit cycle ...')
 
     # 1. format the initial values
     if isinstance(initials, dict):
@@ -511,7 +512,7 @@ class PhasePlane2DNum(Num2DAnalyzer):
         lines = plt.plot(x_cycle, y_cycle, label='limit cycle')
         utils.add_arrow(lines[0])
       else:
-        logger.warning(f'No limit cycle found for initial value {initial}')
+        print(f'No limit cycle found for initial value {initial}')
 
     # 6. visualization
     plt.xlabel(self.x_var)

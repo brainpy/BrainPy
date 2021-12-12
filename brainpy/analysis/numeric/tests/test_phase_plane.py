@@ -57,7 +57,7 @@ class TestPhasePlane(unittest.TestCase):
       ds2dt = - s2 / tau + (1. - s2) * gamma * r2
       return ds2dt
 
-    analyzer = bp.numeric.PhasePlane2DNum(
+    analyzer = bp.numeric.PhasePlane2D(
       model=[int_s1, int_s2],
       target_vars={'s1': [0, 1], 's2': [0, 1]},
       escape_sympy_solver=True,

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import inspect
 import logging
 from functools import partial
@@ -13,7 +14,7 @@ from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
 from brainpy.base.collector import Collector
 
-logger = logging.getLogger('brainpy.analysis')
+_file = sys.stderr
 
 __all__ = [
   'LowDimAnalyzer',
@@ -530,7 +531,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     return x_values, y_values, par_values
 
   def _get_fp_candidates(self, num_segments=1, num_rank=100):
-    logger.warning(f"I am filtering out fixed point candidates with auxiliary function ...")
+    print(f"I am filtering out fixed point candidates with auxiliary function ...")
     all_xs = []
     all_ys = []
     all_ps = tuple([] for _ in range(len(self.target_par_names)))
@@ -553,7 +554,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
       arg_id_segments = ((0,),)
     for _j, ids in enumerate(zip(*arg_id_segments)):
       if len(arg_id_segments[0]) > 1:
-        logger.warning(f"{C.prefix}segment {_j} ...")
+        print(f"{C.prefix}segment {_j} ...")
 
       ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
       # change the position of meshgrid values
@@ -578,7 +579,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     coords = (self.x_var + '-' + self.y_var) if coords is None else coords
     key = C.fx_nullcline_points + ',' + coords
     if key not in self.analyzed_results:
-      logger.warning("I am evaluating fx-nullcline by optimization ...")
+      print("I am evaluating fx-nullcline by optimization ...")
 
       all_losses = []
       all_x_values_in_fx = []
@@ -608,7 +609,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
         arg_id_segments = ((0,),)
       for _j, ids in enumerate(zip(*arg_id_segments)):
         if len(arg_id_segments[0]) > 1:
-          logger.warning(f"{C.prefix}segment {_j} ...")
+          print(f"{C.prefix}segment {_j} ...")
 
         Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
         if coords == self.x_var + '-' + self.y_var:
@@ -650,7 +651,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     coords = (self.x_var + '-' + self.y_var) if coords is None else coords
     key = C.fy_nullcline_points + ',' + coords
     if key not in self.analyzed_results:
-      logger.warning("I am evaluating fy-nullcline by optimization ...")
+      print("I am evaluating fy-nullcline by optimization ...")
 
       all_losses = []
       all_x_values_in_fy = []
@@ -677,7 +678,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
         arg_id_segments = ((0,),)
       for _j, ids in enumerate(zip(*arg_id_segments)):
         if len(arg_id_segments[0]) > 1:
-          logger.warning(f"{C.prefix}segment {_j} ...")
+          print(f"{C.prefix}segment {_j} ...")
 
         Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
         if coords == self.x_var + '-' + self.y_var:
@@ -745,8 +746,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
     res : tuple
       The fixed point results.
     """
-    logger.warning("I am trying to find fixed points by optimization ...")
-    logger.warning(f"{C.prefix}There are {len(candidates)} candidates")
+    print("I am trying to find fixed points by optimization ...")
+    print(f"{C.prefix}There are {len(candidates)} candidates")
 
     candidates = jnp.asarray(candidates)
     args = tuple(jnp.asarray(a) for a in args)
@@ -760,7 +761,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
     for _j, i in enumerate(segment_ids):
       if len(segment_ids) > 1:
-        logger.warning(f"{C.prefix}segment {_j} ...")
+        print(f"{C.prefix}segment {_j} ...")
       seg_fps = candidates[i: i + seg_len]
       seg_args = tuple(a[i: i + seg_len] for a in args)
       seg_ids = selected_ids[i: i + seg_len]

@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import logging
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from brainpy import errors, math
 from brainpy.analysis import stability
-from brainpy.analysis.symbolic import old_base, utils
-from brainpy.integrators.base import Integrator
-from brainpy.simulation.brainobjects.base import DynamicalSystem
-
-logger = logging.getLogger('brainpy.analysis.symbolic')
+from brainpy.analysis import utils
+from brainpy.analysis.symbolic import old_base
+from brainpy.analysis.utils import olds
 
 __all__ = [
   'OldPhasePlane',
@@ -85,7 +81,7 @@ class OldPhasePlane(object):
       options=None,
   ):
     # check "model"
-    self.model = utils.integrators_into_model(model)
+    self.model = olds.integrators_into_model(model)
 
     # check "target_vars"
     if not isinstance(target_vars, dict):
@@ -228,7 +224,7 @@ class _PhasePlane1D(old_base.OldSymAnalyzer1D):
     results : np.ndarray
         The dx values.
     """
-    logger.warning('plot vector field ...')
+    utils.output('plot vector field ...')
 
     # 1. Nullcline of the x variable
     try:
@@ -265,7 +261,7 @@ class _PhasePlane1D(old_base.OldSymAnalyzer1D):
     points : np.ndarray
         The fixed points.
     """
-    logger.warning('plot fixed point ...')
+    utils.output('plot fixed point ...')
 
     # 1. functions
     f_fixed_point = self.get_f_fixed_point()
@@ -278,7 +274,7 @@ class _PhasePlane1D(old_base.OldSymAnalyzer1D):
       x = x_values[i]
       dfdx = f_dfdx(x)
       fp_type = stability.stability_analysis(dfdx)
-      logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
+      utils.output(f"Fixed point #{i + 1} at {self.x_var}={x} is a {fp_type}.")
       container[fp_type].append(x)
 
     # 3. visualization
@@ -330,7 +326,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
     result : tuple
         The ``dx``, ``dy`` values.
     """
-    logger.warning('plot vector field ...')
+    utils.output('plot vector field ...')
 
     if plot_style is None:
       plot_style = dict()
@@ -398,7 +394,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
     results : tuple
         The value points.
     """
-    logger.warning('plot fixed point ...')
+    utils.output('plot fixed point ...')
 
     # function for fixed point solving
     f_fixed_point = self.get_f_fixed_point()
@@ -414,7 +410,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
       x = x_values[i]
       y = y_values[i]
       fp_type = stability.stability_analysis(f_jacobian(x, y))
-      logger.warning(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
+      utils.output(f"Fixed point #{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 
@@ -453,7 +449,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
     values : dict
         A dict with the format of ``{func1: (x_val, y_val), func2: (x_val, y_val)}``.
     """
-    logger.warning('plot nullcline ...')
+    utils.output('plot nullcline ...')
 
     if numerical_setting is None:
       numerical_setting = dict()
@@ -579,7 +575,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
         Whether show or not.
     """
 
-    logger.warning('plot trajectory ...')
+    utils.output('plot trajectory ...')
 
     if axes not in ['v-v', 't-v']:
       raise errors.BrainPyError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
@@ -617,7 +613,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
 
     # 5. run the network
     for init_i, initial in enumerate(initials):
-      traj_group = utils.Trajectory(model=self.model,
+      traj_group = olds.Trajectory(model=self.model,
                                     size=1,
                                     target_vars=initial,
                                     fixed_vars=self.fixed_vars,
@@ -687,7 +683,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
     show : bool
         Whether show or not.
     """
-    logger.warning('plot limit cycle ...')
+    utils.output('plot limit cycle ...')
 
     # 1. format the initial values
     if isinstance(initials, dict):
@@ -714,7 +710,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
 
     # 5. run the network
     for init_i, initial in enumerate(initials):
-      traj_group = utils.Trajectory(model=self.model,
+      traj_group = olds.Trajectory(model=self.model,
                                     size=1,
                                     target_vars=initial,
                                     fixed_vars=self.fixed_vars,
@@ -724,7 +720,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
       traj_group.run(duration=duration[init_i], report=False, )
       x_data = traj_group.mon[self.x_var][:, 0]
       y_data = traj_group.mon[self.y_var][:, 0]
-      max_index = utils.find_indexes_of_limit_cycle_max(x_data, tol=tol)
+      max_index = olds.find_indexes_of_limit_cycle_max(x_data, tol=tol)
       if max_index[0] != -1:
         x_cycle = x_data[max_index[0]: max_index[1]]
         y_cycle = y_data[max_index[0]: max_index[1]]
@@ -732,7 +728,7 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
         lines = plt.plot(x_cycle, y_cycle, label='limit cycle')
         utils.add_arrow(lines[0])
       else:
-        logger.warning(f'No limit cycle found for initial value {initial}')
+        utils.output(f'No limit cycle found for initial value {initial}')
 
     # 6. visualization
     plt.xlabel(self.x_var)
@@ -746,6 +742,3 @@ class _PhasePlane2D(old_base.OldSymAnalyzer2D):
       plt.show()
 
 
-if __name__ == '__main__':
-  DynamicalSystem
-  Integrator

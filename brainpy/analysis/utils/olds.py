@@ -28,7 +28,6 @@ __all__ = [
   'SymbolicDynSystem',
   'rescale',
   'jit_compile',
-  'add_arrow',
   'unknown_symbol',
   'find_indexes_of_limit_cycle_max',
   '_find_indexes_of_limit_cycle_max2',
@@ -317,38 +316,6 @@ def unknown_symbol(expr, scope):
   ids = tools.get_identifiers(expr)
   ids = set([id_.split('.')[0].strip() for id_ in ids])
   return ids - scope
-
-
-def add_arrow(line, position=None, direction='right', size=15, color=None):
-  """
-  add an arrow to a line.
-
-  line:       Line2D object
-  position:   x-position of the arrow. If None, mean of xdata is taken
-  direction:  'left' or 'right'
-  size:       size of the arrow in fontsize points
-  color:      if None, line color is taken.
-  """
-  if color is None:
-    color = line.get_color()
-
-  xdata = line.get_xdata()
-  ydata = line.get_ydata()
-
-  if position is None:
-    position = xdata.mean()
-  # find closest index
-  start_ind = np.argmin(np.absolute(xdata - position))
-  if direction == 'right':
-    end_ind = start_ind + 1
-  else:
-    end_ind = start_ind - 1
-
-  line.axes.annotate(text='',
-                     xytext=(xdata[start_ind], ydata[start_ind]),
-                     xy=(xdata[end_ind], ydata[end_ind]),
-                     arrowprops=dict(arrowstyle="->", color=color),
-                     size=size)
 
 
 @tools.numba_jit

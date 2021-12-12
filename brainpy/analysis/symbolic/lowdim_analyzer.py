@@ -49,7 +49,7 @@ def _get_substitution(substitute_var: str,
     argument = ', '.join(target_var_names + target_par_names)
 
     try:
-      logger.warning(f'{C.prefix}SymPy solve "{eq_group["func_name"]}({argument}) = 0" to '
+      utils.output(f'{C.prefix}SymPy solve "{eq_group["func_name"]}({argument}) = 0" to '
                      f'"{target_var} = f({substitute_var}, {",".join(target_var_names[2:] + target_par_names)})", ')
       # solve the expression
       f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
@@ -63,13 +63,13 @@ def _get_substitution(substitute_var: str,
       all_vars.update(target_var_names + target_par_names)
       unknown_symbols = utils.unknown_symbol(y_by_x_in_y_eq, all_vars)
       if len(unknown_symbols):
-        logger.warning(f'{C.prefix}{C.prefix}failed because contain unknown '
+        utils.output(f'{C.prefix}{C.prefix}failed because contain unknown '
                        f'symbols: {unknown_symbols}.')
         results['status'] = C.sympy_failed
         results['subs'] = []
         results['f'] = None
       else:
-        logger.warning(f'{C.prefix}{C.prefix}success.')
+        utils.output(f'{C.prefix}{C.prefix}success.')
         # substituted codes
         subs_codes = [f'{expr.var_name} = {expr.code}' for expr in eq_group["sub_exprs"][:-1]]
         subs_codes.append(f'{target_var} = {y_by_x_in_y_eq}')
@@ -89,12 +89,12 @@ def _get_substitution(substitute_var: str,
         results['_non_jit_f'] = eq_y_scope['func']
 
     except NotImplementedError:
-      logger.warning(f'{C.prefix}{C.prefix}failed because the equation is too complex.')
+      utils.output(f'{C.prefix}{C.prefix}failed because the equation is too complex.')
       results['status'] = C.sympy_failed
       results['subs'] = []
       results['f'] = None
     except KeyboardInterrupt:
-      logger.warning(f'{C.prefix}{C.prefix}failed because {timeout_len} s timeout.')
+      utils.output(f'{C.prefix}{C.prefix}failed because {timeout_len} s timeout.')
       results['status'] = C.sympy_failed
       results['subs'] = []
       results['f'] = None

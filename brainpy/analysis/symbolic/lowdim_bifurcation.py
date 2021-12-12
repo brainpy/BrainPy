@@ -11,7 +11,6 @@ from brainpy import errors, math
 from brainpy.analysis import stability, utils
 from brainpy.analysis.numeric.lowdim_analyzer import Num1DAnalyzer, Num2DAnalyzer
 
-logger = logging.getLogger('brainpy.analysis.numeric')
 
 __all__ = [
   'Bifurcation',
@@ -214,7 +213,7 @@ class _Bifurcation1D(Num1DAnalyzer):
                                          options=options)
 
   def plot_bifurcation(self, show=False):
-    logger.warning('plot bifurcation ...')
+    utils.output('plot bifurcation ...')
 
     f_fixed_point = self.get_f_fixed_point()
     f_dfdx = self.F_dfxdx()
@@ -316,7 +315,7 @@ class _Bifurcation2D(Num2DAnalyzer):
     self.fixed_points = None
 
   def plot_bifurcation(self, show=False):
-    logger.warning('plot bifurcation ...')
+    utils.output('plot bifurcation ...')
 
     # functions
     f_fixed_point = self.fixed_points()
@@ -405,7 +404,7 @@ class _Bifurcation2D(Num2DAnalyzer):
     return container
 
   def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(), plot_style=None, tol=0.001, show=False):
-    logger.warning('plot limit cycle ...')
+    utils.output('plot limit cycle ...')
 
     if self.fixed_points is None:
       raise errors.AnalyzerError('Please call "plot_bifurcation()" before "plot_limit_cycle_by_sim()".')
@@ -773,7 +772,7 @@ class _FastSlowTrajectory(object):
     show : bool
         Whether show or not.
     """
-    logger.warning('plot trajectory ...')
+    utils.output('plot trajectory ...')
 
     # 1. format the initial values
     all_vars = self.fast_var_names + self.slow_var_names

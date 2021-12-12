@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import logging
-
 import numpy as np
 import sympy
 
 from brainpy import errors, tools
 from brainpy.analysis import utils
-from brainpy.analysis.symbolic import utils as sutils
+from brainpy.analysis.utils import olds as sutils
 from brainpy.integrators import analysis_by_sympy
-
-logger = logging.getLogger('brainpy.analysis.symbolic')
 
 
 __all__ = [
@@ -287,7 +283,7 @@ class OldSymAnalyzer1D(OldSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
+          utils.output(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
                          f'({argument})" by "{x_var}", ')
           x_eq = x_eq.expr
           f = tools.timeout(time_out)(lambda: sympy.diff(x_eq, x_symbol))
@@ -297,10 +293,10 @@ class OldSymAnalyzer1D(OldSymAnalyzer):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfxdx_expr), all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
             func_codes = [f'def dfdx({argument}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -309,9 +305,9 @@ class OldSymAnalyzer1D(OldSymAnalyzer):
             dfdx = eq_x_scope['dfdx']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {time_out} s timeout.')
+          utils.output(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
@@ -349,7 +345,7 @@ class OldSymAnalyzer1D(OldSymAnalyzer):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument1}) = 0" '
+          utils.output(f'SymPy solve "{self.x_eq_group.func_name}({argument1}) = 0" '
                          f'to "{self.x_var} = f({argument2})", ')
 
           # solver
@@ -359,11 +355,11 @@ class OldSymAnalyzer1D(OldSymAnalyzer):
             all_vars = set(scope.keys())
             all_vars.update(self.target_var_names + self.target_par_names)
             if utils.unknown_symbol(analysis_by_sympy.sympy2str(res), all_vars):
-              logger.warning('\tfailed because contain unknown symbols.')
+              utils.output('\tfailed because contain unknown symbols.')
               sympy_failed = True
               break
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
             # function codes
             func_codes = [f'def solve_x({argument2}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
@@ -378,10 +374,10 @@ class OldSymAnalyzer1D(OldSymAnalyzer):
             self.analyzed_results['fixed_point'] = scope['solve_x']
             sympy_failed = False
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
           sympy_failed = True
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {timeout_len} s timeout.')
+          utils.output(f'\tfailed because {timeout_len} s timeout.')
           sympy_failed = True
 
       if sympy_failed:
@@ -527,7 +523,7 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not x_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
+          utils.output(f'SymPy solve derivative of "{self.x_eq_group.func_name}'
                          f'({argument})" by "{y_var}", ')
           x_eq = x_eq.expr
           f = tools.timeout(time_out)(lambda: sympy.diff(x_eq, y_symbol))
@@ -537,10 +533,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfxdy_expr), all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
             func_codes = [f'def dfdy({argument}):']
             for expr in self.x_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -549,9 +545,9 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
             dfdy = eq_x_scope['dfdy']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {time_out} s timeout.')
+          utils.output(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fx=self.get_f_dx(), perturb=self.options.perturbation)
@@ -591,7 +587,7 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not y_eq.contain_unknown_func:
         try:
-          logger.warning(f'SymPy solve derivative of "{self.y_eq_group.func_name}'
+          utils.output(f'SymPy solve derivative of "{self.y_eq_group.func_name}'
                          f'({argument})" by "{x_var}", ')
           y_eq = y_eq.expr
           f = tools.timeout(time_out)(lambda: sympy.diff(y_eq, x_symbol))
@@ -601,10 +597,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
             func_codes = [f'def dgdx({argument}):']
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -613,9 +609,9 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
             dgdx = eq_y_scope['dgdx']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {time_out} s timeout.')
+          utils.output(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
@@ -657,7 +653,7 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
       sympy_failed = True
       if not self.options.escape_sympy_solver and not y_eq.contain_unknown_func:
         try:
-          logger.warning(f'\tSymPy solve derivative of "{self.y_eq_group.func_name}'
+          utils.output(f'\tSymPy solve derivative of "{self.y_eq_group.func_name}'
                          f'({argument})" by "{y_var}", ')
           y_eq = y_eq.expr
           f = tools.timeout(time_out)(lambda: sympy.diff(y_eq, y_symbol))
@@ -667,10 +663,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(analysis_by_sympy.sympy2str(dfydx_expr), all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             sympy_failed = True
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
             func_codes = [f'def dgdy({argument}):']
             for expr in self.y_eq_group.sub_exprs[:-1]:
               func_codes.append(f'{expr.var_name} = {expr.code}')
@@ -679,9 +675,9 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
             dgdy = eq_y_scope['dgdy']
             sympy_failed = False
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {time_out} s timeout.')
+          utils.output(f'\tfailed because {time_out} s timeout.')
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
 
       if sympy_failed:
         scope = dict(_fy=self.get_f_dy(), perturb=self.options.perturbation)
@@ -1061,7 +1057,7 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
+          utils.output(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.y_var} = f({self.x_var}, '
                          f'{",".join(self.target_var_names[2:] + self.target_par_names)})", ')
           # solve the expression
@@ -1075,10 +1071,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(y_by_x_in_y_eq, all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
                           for expr in self.y_eq_group.sub_exprs[:-1]]
@@ -1097,10 +1093,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
             results['f'] = eq_y_scope['func']
 
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {timeout_len} s timeout.')
+          utils.output(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
@@ -1135,7 +1131,7 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
+          utils.output(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.y_var} = f({self.x_var}, '
                          f'{",".join(self.target_var_names[2:] + self.target_par_names)})", ')
 
@@ -1149,10 +1145,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(y_by_x_in_x_eq, all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
 
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
@@ -1171,10 +1167,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
             results['subs'] = subs_codes
             results['f'] = eq_x_scope['func']
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {timeout_len} s timeout.')
+          utils.output(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
@@ -1208,7 +1204,7 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
+          utils.output(f'SymPy solve "{self.y_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.target_var_names[1:] + self.target_par_names)})", ')
           # solve the expression
           f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, x_symbol))
@@ -1221,10 +1217,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
           all_vars = set(eq_y_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(x_by_y_in_y_eq, all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
 
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
@@ -1243,10 +1239,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
             results['subs'] = subs_codes
             results['f'] = eq_y_scope['func']
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {timeout_len} s timeout.')
+          utils.output(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'
@@ -1280,7 +1276,7 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
         timeout_len = self.options.sympy_solver_timeout
 
         try:
-          logger.warning(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
+          utils.output(f'SymPy solve "{self.x_eq_group.func_name}({argument}) = 0" to '
                          f'"{self.x_var} = f({",".join(self.target_var_names[1:] + self.target_par_names)})", ')
           # solve the expression
           f = tools.timeout(timeout_len)(lambda: sympy.solve(x_eq, x_symbol))
@@ -1293,10 +1289,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
           all_vars = set(eq_x_scope.keys())
           all_vars.update(self.target_var_names + self.target_par_names)
           if utils.unknown_symbol(x_by_y_in_x_eq, all_vars):
-            logger.warning('\tfailed because contain unknown symbols.')
+            utils.output('\tfailed because contain unknown symbols.')
             results['status'] = 'sympy_failed'
           else:
-            logger.warning('\tsuccess.')
+            utils.output('\tsuccess.')
 
             # substituted codes
             subs_codes = [f'{expr.var_name} = {expr.code}'
@@ -1315,10 +1311,10 @@ class OldSymAnalyzer2D(OldSymAnalyzer1D):
             results['subs'] = subs_codes
             results['f'] = eq_x_scope['func']
         except NotImplementedError:
-          logger.warning('\tfailed because the equation is too complex.')
+          utils.output('\tfailed because the equation is too complex.')
           results['status'] = 'sympy_failed'
         except KeyboardInterrupt:
-          logger.warning(f'\tfailed because {timeout_len} s timeout.')
+          utils.output(f'\tfailed because {timeout_len} s timeout.')
           results['status'] = 'sympy_failed'
       else:
         results['status'] = 'escape'

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import gc
-import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,9 +8,9 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from brainpy import errors, math
 from brainpy.analysis import stability
-from brainpy.analysis.symbolic import old_base, utils
-
-logger = logging.getLogger('brainpy.analysis.symbolic')
+from brainpy.analysis import utils
+from brainpy.analysis.symbolic import old_base
+from brainpy.analysis.utils import olds
 
 __all__ = [
   'OldBifurcation',
@@ -95,7 +94,7 @@ class OldBifurcation(object):
   def __init__(self, integrals, target_pars, target_vars, fixed_vars=None, pars_update=None,
                numerical_resolution=0.1, options=None):
     # check "model"
-    self.model = utils.integrators_into_model(integrals)
+    self.model = olds.integrators_into_model(integrals)
 
     # check "target_pars"
     if not isinstance(target_pars, dict):
@@ -214,7 +213,7 @@ class _Bifurcation1D(old_base.OldSymAnalyzer1D):
                                          options=options)
 
   def plot_bifurcation(self, show=False):
-    logger.warning('plot bifurcation ...')
+    utils.output('plot bifurcation ...')
 
     f_fixed_point = self.get_f_fixed_point()
     f_dfdx = self.get_f_dfdx()
@@ -316,7 +315,7 @@ class _Bifurcation2D(old_base.OldSymAnalyzer2D):
     self.fixed_points = None
 
   def plot_bifurcation(self, show=False):
-    logger.warning('plot bifurcation ...')
+    utils.output('plot bifurcation ...')
 
     # functions
     f_fixed_point = self.get_f_fixed_point()
@@ -405,7 +404,7 @@ class _Bifurcation2D(old_base.OldSymAnalyzer2D):
     return container
 
   def plot_limit_cycle_by_sim(self, var, duration=100, inputs=(), plot_style=None, tol=0.001, show=False):
-    logger.warning('plot limit cycle ...')
+    utils.output('plot limit cycle ...')
 
     if self.fixed_points is None:
       raise errors.AnalyzerError('Please call "plot_bifurcation()" before "plot_limit_cycle_by_sim()".')
@@ -458,7 +457,7 @@ class _Bifurcation2D(old_base.OldSymAnalyzer2D):
 
     # initialize neuron group
     length = all_xs.shape[0]
-    traj_group = utils.Trajectory(model=self.model,
+    traj_group = olds.Trajectory(model=self.model,
                                   size=length,
                                   target_vars={self.x_var: all_xs, self.y_var: all_ys},
                                   fixed_vars=fixed_vars,
@@ -473,7 +472,7 @@ class _Bifurcation2D(old_base.OldSymAnalyzer2D):
     p1_limit_cycle = []
     for i in range(length):
       data = traj_group.mon[var][:, i]
-      max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
+      max_index = olds.find_indexes_of_limit_cycle_max(data, tol=tol)
       if max_index[0] != -1:
         x_cycle = data[max_index[0]: max_index[1]]
         limit_cycle_max.append(data[max_index[1]])
@@ -590,7 +589,7 @@ class OldFastSlowBifurcation(object):
   def __init__(self, integrals, fast_vars, slow_vars, fixed_vars=None,
                pars_update=None, numerical_resolution=0.1, options=None):
     # check "model"
-    self.model = utils.integrators_into_model(integrals)
+    self.model = olds.integrators_into_model(integrals)
 
     # check "fast_vars"
     if not isinstance(fast_vars, dict):
@@ -728,10 +727,10 @@ class OldFastSlowBifurcation(object):
 class _FastSlowTrajectory(object):
   def __init__(self, model_or_intgs, fast_vars, slow_vars, fixed_vars=None,
                pars_update=None, **kwargs):
-    if isinstance(model_or_intgs, utils.SymbolicDynSystem):
+    if isinstance(model_or_intgs, olds.SymbolicDynSystem):
       self.model = model_or_intgs
     elif (isinstance(model_or_intgs, (list, tuple)) and callable(model_or_intgs[0])) or callable(model_or_intgs):
-      self.model = utils.integrators_into_model(model_or_intgs)
+      self.model = olds.integrators_into_model(model_or_intgs)
     else:
       raise ValueError
     self.fast_vars = fast_vars
@@ -773,7 +772,7 @@ class _FastSlowTrajectory(object):
     show : bool
         Whether show or not.
     """
-    logger.warning('plot trajectory ...')
+    utils.output('plot trajectory ...')
 
     # 1. format the initial values
     all_vars = self.fast_var_names + self.slow_var_names
@@ -814,7 +813,7 @@ class _FastSlowTrajectory(object):
 
     # 5. run the network
     for init_i, initial in enumerate(initials):
-      traj_group = utils.Trajectory(model=self.model,
+      traj_group = olds.Trajectory(model=self.model,
                                     size=1,
                                     target_vars=initial,
                                     fixed_vars=self.fixed_vars,

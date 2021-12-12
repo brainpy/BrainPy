@@ -13,7 +13,6 @@ from brainpy.analysis.symbolic.lowdim_analyzer import Sym2DAnalyzer
 from brainpy.integrators.base import Integrator
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 
-logger = logging.getLogger('brainpy.analysis')
 
 __all__ = [
   'PhasePlane2DSym',
@@ -23,7 +22,6 @@ __all__ = [
 class PhasePlane2DSym(Sym2DAnalyzer):
   """Phase plane analyzer for 2D system.
   """
-
   def __init__(self,
                model,
                target_vars,
@@ -64,7 +62,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
           "units", "angles", "scale". More settings please check
           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html.
     """
-    logger.warning('I am creating vector fields ...')
+    utils.output('I am creating vector fields ...')
 
     # get dx, dy
     xs = self.resolutions[self.x_var]
@@ -109,7 +107,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
   def plot_nullcline(self, with_plot=True, with_return=False, y_style=None, x_style=None,
                      show=False, coords=None, tol_nullcline=1e-7):
     """Plot the nullcline."""
-    logger.warning('I am computing fx-nullcline ...')
+    utils.output('I am computing fx-nullcline ...')
 
     if coords is None:
       coords = dict()
@@ -129,7 +127,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
 
     # Nullcline of the y variable
     # ---------------------------
-    logger.warning('I am computing fy-nullcline ...')
+    utils.output('I am computing fy-nullcline ...')
     xy_values_in_fy, = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
     x_values_in_fy = np.asarray(xy_values_in_fy[:, 0])
     y_values_in_fy = np.asarray(xy_values_in_fy[:, 1])
@@ -157,7 +155,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
                        tol_unique=1e-2, tol_loss=1e-7, loss_screen=None):
     """Plot the fixed point and analyze its stability.
     """
-    logger.warning('I am searching fixed points ...')
+    utils.output('I am searching fixed points ...')
 
     fixed_points, _ = self._get_fixed_points2()
     if fixed_points is None:
@@ -183,7 +181,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
       y = fixed_points[i, 1]
 
       fp_type = stability.stability_analysis(self.F_jacobian(x, y))
-      logger.warning(f"{C.prefix}#{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
+      utils.output(f"{C.prefix}#{i + 1} at {self.x_var}={x}, {self.y_var}={y} is a {fp_type}.")
       container[fp_type]['x'].append(x)
       container[fp_type]['y'].append(y)
 
@@ -232,7 +230,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
         Whether show or not.
     """
 
-    logger.warning('plot trajectory ...')
+    utils.output('plot trajectory ...')
 
     if axes not in ['v-v', 't-v']:
       raise errors.BrainPyError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
@@ -340,7 +338,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
     show : bool
         Whether show or not.
     """
-    logger.warning('plot limit cycle ...')
+    utils.output('plot limit cycle ...')
 
     # 1. format the initial values
     if isinstance(initials, dict):
@@ -385,7 +383,7 @@ class PhasePlane2DSym(Sym2DAnalyzer):
         lines = plt.plot(x_cycle, y_cycle, label='limit cycle')
         utils.add_arrow(lines[0])
       else:
-        logger.warning(f'No limit cycle found for initial value {initial}')
+        utils.output(f'No limit cycle found for initial value {initial}')
 
     # 6. visualization
     plt.xlabel(self.x_var)
@@ -398,7 +396,3 @@ class PhasePlane2DSym(Sym2DAnalyzer):
     if show:
       plt.show()
 
-
-if __name__ == '__main__':
-  DynamicalSystem
-  Integrator
