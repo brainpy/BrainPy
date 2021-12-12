@@ -155,14 +155,14 @@ def _event_add_v2_translation(c, events, pre_ids, post_ids, value, out, *, platf
   _events_shape = xla_client.Shape.array_shape(
     events_shape.element_type(), events_dim, (0,))
 
-  # The pre_size shape
-  pre_size = np.array(events_dim[0], dtype=np.uint32)
-  _pre_shape = xla_client.Shape.array_shape(np.dtype(np.uint32), (), ())
-
   # The post_ids shape
   pre_ids_shape = c.get_shape(pre_ids)
   _pre_ids_shape = xla_client.Shape.array_shape(
     pre_ids_shape.element_type(), pre_ids_shape.dimensions(), (0,))
+
+  # The pre_size shape
+  conn_size = np.array(pre_ids_shape.dimensions()[0], dtype=np.uint32)
+  _conn_shape = xla_client.Shape.array_shape(np.dtype(np.uint32), (), ())
 
   # The pre_slice shape
   post_ids_shape = c.get_shape(post_ids)
@@ -181,9 +181,9 @@ def _event_add_v2_translation(c, events, pre_ids, post_ids, value, out, *, platf
 
   # We dispatch a different call depending on the dtype
   if dtype == np.float32:
-    op_name = platform.encode() + b"_event_add_f32"
+    op_name = platform.encode() + b"_event_add_v2_f32"
   elif dtype == np.float64:
-    op_name = platform.encode() + b"_event_add_f64"
+    op_name = platform.encode() + b"_event_add_v2_f64"
   else:
     raise NotImplementedError(f"Unsupported dtype {dtype}")
 
@@ -193,15 +193,15 @@ def _event_add_v2_translation(c, events, pre_ids, post_ids, value, out, *, platf
     return xla_client.ops.CustomCallWithLayout(
       c,  # builder
       op_name,  # call_target_name
-      operands=(xla_client.ops.ConstantLiteral(c, pre_size),
-                events,
+      operands=(events,
                 pre_ids,
                 post_ids,
+                xla_client.ops.ConstantLiteral(c, conn_size),
                 value),  # The inputs
-      operand_shapes_with_layout=(_pre_shape,
-                                  _events_shape,
+      operand_shapes_with_layout=(_events_shape,
                                   _pre_ids_shape,
                                   _post_ids_shape,
+                                  conn_size,
                                   _value_shape),  # The input shapes
       shape_with_layout=_out_shape,  # The output shapes
     )
