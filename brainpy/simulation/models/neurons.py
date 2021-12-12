@@ -99,15 +99,15 @@ class LIF(NeuGroup):
     self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.int_V = odeint(method=method, f=self.dV)
 
-  def derivative(self, V, t, Iext):
+  def dV(self, V, t, Iext):
     dvdt = (-V + self.V_rest + Iext) / self.tau
     return dvdt
 
   def update(self, _t, _dt):
     refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, _t, self.input, dt=_dt)
+    V = self.int_V(self.V, _t, self.input, dt=_dt)
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
@@ -207,15 +207,20 @@ class Izhikevich(NeuGroup):
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
-    self.integral = odeint(method=method, f=self.derivative)
+    self.int_V = odeint(method=method, f=self.dV)
+    self.int_u = odeint(method=method, f=self.du)
 
-  def derivative(self, V, u, t, Iext):
+  def dV(self, V, t, u, Iext):
     dVdt = 0.04 * V * V + 5 * V + 140 - u + Iext
+    return dVdt
+
+  def du(self, u, t, V):
     dudt = self.a * (self.b * V - u)
-    return dVdt, dudt
+    return dudt
 
   def update(self, _t, _dt):
-    V, u = self.integral(self.V, self.u, _t, self.input, dt=_dt)
+    V = self.int_V(self.V, _t, self.u, self.input, dt=_dt)
+    u = self.int_u(self.u, _t, self.V, dt=_dt)
     refractory = (_t - self.t_last_spike) <= self.tau_ref
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
@@ -325,16 +330,21 @@ class AdExIF(NeuGroup):
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
-    self.integral = odeint(method=method, f=self.derivative)
+    self.int_V = odeint(method=method, f=self.dV)
+    self.int_w = odeint(method=method, f=self.dw)
 
-  def derivative(self, V, w, t, Iext):
+  def dV(self, V, t, w, Iext):
     dVdt = (- V + self.V_rest + self.delta_T * bm.exp((V - self.V_T) / self.delta_T) -
             self.R * w + self.R * Iext) / self.tau
+    return dVdt
+
+  def dw(self, w, t, V):
     dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
-    return dVdt, dwdt
+    return dwdt
 
   def update(self, _t, _dt):
-    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
+    V = self.int_V(self.V, _t, self.w, self.input, dt=_dt)
+    w = self.int_w(self.w, _t, self.V, dt=_dt)
     spike = V >= self.V_th
     self.t_last_spike[:] = bm.where(spike, _t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
