@@ -5,6 +5,11 @@
 
 
 
+
+:clap::clap: **CHEERS**: A new version of BrainPy (>=2.0.0) has been released! :clap::clap: 
+
+
+
 # Why to use BrainPy
 
 ``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax)). Core functions provided in BrainPy includes
@@ -13,14 +18,14 @@
 - **Numerical solvers** for ODEs, SDEs, and others. 
 - **Dynamics simulation tools** for various brain objects, like neurons, synapses, networks, soma, dendrites, channels, and even more. 
 - **Dynamics analysis tools** for differential equations, including phase plane analysis and bifurcation analysis, and linearization analysis.
-- **Seamless integration with deep learning models**, and has the speed benefit on JIT compilation.
+- **Seamless integration with deep learning models**.
 - And more ......
 
 `BrainPy` is designed to effectively satisfy your basic requirements: 
 
-- **Easy to learn and use**: BrainPy is only based on Python language and has little dependency requirements. 
+- **Pythonic**: BrainPy is based on Python language and has a Pythonic coding style. 
 - **Flexible and transparent**: BrainPy endows the users with the fully data/logic flow control. Users can code any logic they want with BrainPy. 
-- **Extensible**: BrainPy allow users to extend new functionality just based on Python coding. For example, we extend the same code with the ability to do numerical analysis (whatever low- or high-dimensional system). 
+- **Extensible**: BrainPy allow users to extend new functionality just based on Python cods. Almost every part of BrainPy system can be extended to be customized. 
 - **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax)) to run on CPU, GPU or TPU devices, thus guaranteeing its running efficiency. 
 
 
@@ -74,7 +79,7 @@ To install the stable release of BrainPy, please use
 
 ## Step 3: inspirational examples
 
-Here list several examples of BrainPy. More detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io) or [**BrainPy-Examples**](https://brainpy-examples.readthedocs.io/en/latest/). 
+Here we list several examples of BrainPy. More detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io) or [**BrainPy-Examples**](https://brainpy-examples.readthedocs.io/en/latest/). 
 
 
 
@@ -137,7 +142,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
-### Low-dimension dynamics analysis
+### Low-dimensional dynamics analysis
 
 - [1D system bifurcation](https://brainmodels.readthedocs.io/en/latest/low_dim_analysis/1D_system_bifurcation.html)
 - [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainpy-examples.readthedocs.io/en/latest/low_dim_analysis/FitzHugh_Nagumo_analysis.html)
@@ -146,7 +151,23 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 
 
-### High-dimension dynamics analysis
+### High-dimensional dynamics analysis
 
 - [*(Yang, 2020)*: Dynamical system analysis for RNN](https://brainpy-examples.readthedocs.io/en/latest/recurrent_networks/Yang_2020_RNN_Analysis.html)
+
+
+
+# BrainPy V1
+
+If you are using ``brainpy==1.x``, you can find *documentations*, *examples*, and *models* though the following links:
+
+- **Documentation:** https://brainpy.readthedocs.io/en/v1.1.6/
+- **Examples from papers**: https://brainpy-examples.readthedocs.io/en/brainpy-1.x/
+- **Canonical brain models**: https://brainmodels.readthedocs.io/en/brainpy-1.x/
+
+The changes from ``brainpy==1.x`` to ``brainpy==2.x`` can be inspected through [API documentation: release notes](https://brainpy.readthedocs.io/en/latest/apis/changelog.html).
+
+
+
+
 
