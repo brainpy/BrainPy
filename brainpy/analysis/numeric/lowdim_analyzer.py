@@ -83,7 +83,7 @@ class LowDimAnalyzer(object):
   where :math:`v_1, v_2` are variables, :math:`p_1, p_2` are parameters.
 
   .. note::
-    ``LowDimAnalyzer`` cannot analyze dynamical system depends on time :math`t`.
+    ``LowDimAnalyzer`` cannot analyze dynamical system depends on time :math:`t`.
 
   Parameters
   ----------

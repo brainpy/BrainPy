@@ -2,6 +2,7 @@ publishment.md
 #experimental/
 .vscode
 
+brainpy_extensions/.idea
 BrainPyExamples/
 BrainModels/
 book/

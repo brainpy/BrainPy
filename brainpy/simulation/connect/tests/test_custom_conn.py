@@ -7,9 +7,6 @@ from scipy.sparse import csr_matrix
 
 import brainpy as bp
 
-MAT_DTYPE = np.bool_
-IDX_DTYPE = np.uint32
-
 
 class TestIJConn(TestCase):
   def test_ij(self):

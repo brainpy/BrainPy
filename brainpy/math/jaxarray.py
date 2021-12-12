@@ -816,7 +816,7 @@ class JaxArray(object):
     return np.asarray(self.value)
 
   def __array__(self):
-    """Support ``numpy.array()`` and ``numpy.array()`` functions."""
+    """Support ``numpy.array()`` and ``numpy.asarray()`` functions."""
     return np.asarray(self.value)
 
 
