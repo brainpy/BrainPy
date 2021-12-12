@@ -18,7 +18,6 @@ __all__ = [
   'PRE_IDS', 'POST_IDS',
   'PRE2POST', 'POST2PRE',
   'PRE2SYN', 'POST2SYN',
-  'PRE_SLICE', 'POST_SLICE',
   'SUPPORTED_SYN_STRUCTURE',
 
   # the types to provide
