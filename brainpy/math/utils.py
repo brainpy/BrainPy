@@ -18,16 +18,22 @@ __all__ = [
 def numpy_array(array):
   global jarray
   if jarray is None:
-    from jax.numpy import ndarray as jarray
+    try:
+      from jax.numpy import ndarray as jarray
+    except (ModuleNotFoundError, ImportError):
+      pass
   global JaxArray
   if JaxArray is None:
-    from brainpy.math.jax.jaxarray import JaxArray
+    try:
+      from brainpy.math.jax.jaxarray import JaxArray
+    except (ModuleNotFoundError, ImportError):
+      pass
 
   if isinstance(array, np.ndarray):
     array = array
-  elif JaxArray and isinstance(array, JaxArray):
+  elif (JaxArray is not None) and isinstance(array, JaxArray):
     array = array.numpy()
-  elif jarray and isinstance(array, jarray):
+  elif (jarray is not None) and isinstance(array, jarray):
     array = np.asarray(array)
   else:
     raise ValueError

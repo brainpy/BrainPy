@@ -2,6 +2,9 @@ publishment.md
 #experimental/
 .vscode
 
+BrainPyExamples
+BrainModels
+docs/apis/auto
 book/
 docs/examples
 docs/apis/jaxsetting.rst
