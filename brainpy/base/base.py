@@ -30,16 +30,26 @@ class Base(object):
   - ``Scheduler`` in *brainpy.math.jax.optimizers.py*
 
   """
-  implicit_vars = None
-  """Used to wrap the implicit variables which cannot be accessed by self.xxx"""
-
-  implicit_nodes = None
-  """Used to wrap the implicit children nodes which cannot be accessed by self.xxx"""
-
   def __init__(self, name=None):
     # check whether the object has a unique name.
     self.name = self.unique_name(name=name)
     namechecking.check_name(name=self.name, obj=self)
+
+    # Used to wrap the implicit variables
+    # which cannot be accessed by self.xxx
+    self.implicit_vars = TensorCollector()
+
+    # Used to wrap the implicit children nodes
+    # which cannot be accessed by self.xxx
+    self.implicit_nodes = Collector()
+
+  def register_implicit_vars(self, variables):
+    assert isinstance(variables, dict)
+    self.implicit_vars.update(variables)
+
+  def register_implicit_nodes(self, nodes):
+    assert isinstance(nodes, dict)
+    self.implicit_nodes.update(nodes)
 
   def vars(self, method='absolute'):
     """Collect all variables in this node and the children nodes.
@@ -64,8 +74,7 @@ class Base(object):
         v = getattr(node, k)
         if isinstance(v, math.Variable):
           gather[f'{node_path}.{k}' if node_path else k] = v
-      if node.implicit_vars is not None:
-        gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
+      gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather
 
   def train_vars(self, method='absolute'):
@@ -113,14 +122,12 @@ class Base(object):
             _paths.add(path)
             gather[v.name] = v
             nodes.append(v)
-      if self.implicit_nodes is not None:
-        assert isinstance(self.implicit_nodes, dict)
-        for node in self.implicit_nodes.values():
-          path = (id(self), id(node))
-          if path not in _paths:
-            _paths.add(path)
-            gather[node.name] = node
-            nodes.append(node)
+      for node in self.implicit_nodes.values():
+        path = (id(self), id(node))
+        if path not in _paths:
+          _paths.add(path)
+          gather[node.name] = node
+          nodes.append(node)
       for v in nodes:
         gather.update(v.nodes(method=method, _paths=_paths))
       gather[self.name] = self
@@ -135,9 +142,7 @@ class Base(object):
             _paths.add(path)
             gather[k] = v
             nodes.append((k, v))
-      if self.implicit_nodes is not None:
-        assert isinstance(self.implicit_nodes, dict)
-        for key, node in self.implicit_nodes.items():
+      for key, node in self.implicit_nodes.items():
           path = (id(self), id(node))
           if path not in _paths:
             _paths.add(path)
