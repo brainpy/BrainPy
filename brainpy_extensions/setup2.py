@@ -20,8 +20,8 @@ if cuda_version:
 # extension modules
 ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
-                    ["lib/cpu_ops.cc", ],
-                    define_macros=[('VERSION_INFO', '0.02')]),
+                    ["lib/cpu_ops.cc", "lib/event_add_cpu.cc"],
+                    define_macros=[('VERSION_INFO', __version__)]),
 ]
 
 # build

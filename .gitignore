@@ -3,6 +3,7 @@ publishment.md
 .vscode
 
 brainpy_extensions/.idea
+brainpy_extensions/wheelhouse
 BrainPyExamples/
 BrainModels/
 book/

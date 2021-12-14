@@ -161,7 +161,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 If you are using ``brainpy==1.x``, you can find *documentations*, *examples*, and *models* though the following links:
 
-- **Documentation:** https://brainpy.readthedocs.io/en/v1.1.6/
+- **Documentation:** https://brainpy.readthedocs.io/en/brainpy-1.x/
 - **Examples from papers**: https://brainpy-examples.readthedocs.io/en/brainpy-1.x/
 - **Canonical brain models**: https://brainmodels.readthedocs.io/en/brainpy-1.x/
 
