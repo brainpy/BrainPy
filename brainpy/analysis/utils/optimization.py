@@ -170,7 +170,8 @@ def brentq_candidates(vmap_f, *values, args=()):
   values = tuple((v.value if isinstance(v, bm.JaxArray) else v) for v in values)
   xs = values[0]
   mesh_values = jnp.meshgrid(*values)
-  mesh_values = tuple(jnp.moveaxis(m, 0, 1) for m in mesh_values)
+  if bm.ndim(mesh_values[0]) > 1:
+    mesh_values = tuple(jnp.moveaxis(m, 0, 1) for m in mesh_values)
   mesh_values = tuple(m.flatten() for m in mesh_values)
   # function outputs
   signs = jnp.sign(vmap_f(*(mesh_values + args)))

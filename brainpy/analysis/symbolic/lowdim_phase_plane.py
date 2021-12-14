@@ -169,9 +169,9 @@ class PhasePlane2DSym(Sym2DAnalyzer):
                                    f'".{self.plot_nullcline.__name__}()" first.')
       candidates = jnp.vstack(candidates)
       fixed_points, _ = self._get_fixed_points(jnp.asarray(candidates),
-                                               tol_loss=tol_loss,
+                                               tol_aux=tol_loss,
                                                tol_unique=tol_unique,
-                                               loss_screen=loss_screen)
+                                               tol_opt_candidate=loss_screen)
 
     # stability analysis
     # ------------------

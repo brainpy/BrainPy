@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import jax.numpy as jnp
 import logging
+import sympy
 from typing import List
 
-import sympy
-import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy import tools, errors
 from brainpy.analysis import constants as C, utils
 from brainpy.analysis.numeric import lowdim_analyzer as numeric_analyzer
-from brainpy.integrators import analysis_by_sympy, constants as IC
+from brainpy.integrators import analysis_by_sympy
 
 logger = logging.getLogger('brainpy.analysis')
 
@@ -50,7 +50,7 @@ def _get_substitution(substitute_var: str,
 
     try:
       utils.output(f'{C.prefix}SymPy solve "{eq_group["func_name"]}({argument}) = 0" to '
-                     f'"{target_var} = f({substitute_var}, {",".join(target_var_names[2:] + target_par_names)})", ')
+                   f'"{target_var} = f({substitute_var}, {",".join(target_var_names[2:] + target_par_names)})", ')
       # solve the expression
       f = tools.timeout(timeout_len)(lambda: sympy.solve(y_eq, y_symbol))
       y_by_x_in_y_eq = f()
@@ -64,7 +64,7 @@ def _get_substitution(substitute_var: str,
       unknown_symbols = utils.unknown_symbol(y_by_x_in_y_eq, all_vars)
       if len(unknown_symbols):
         utils.output(f'{C.prefix}{C.prefix}failed because contain unknown '
-                       f'symbols: {unknown_symbols}.')
+                     f'symbols: {unknown_symbols}.')
         results['status'] = C.sympy_failed
         results['subs'] = []
         results['f'] = None
@@ -166,10 +166,15 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
 
         # function compilation
         exec(compile("\n  ".join(func_codes), '', 'exec'), scope)
-        f = scope['func']
 
         # results
-        self.analyzed_results[a] = tools.DictPlus(status=C.sympy_success, subs=subs, f=f)
+        self.analyzed_results[a] = tools.DictPlus(
+          status=C.sympy_success,
+          subs=subs,
+          _non_jit_f=scope['func'],
+          f=bm.jit(scope['func'], device=self.jit_device),
+          vmap_f=bm.jit(bm.vmap(scope['func']), device=self.jit_device),
+        )
 
   @property
   def target_eqs(self):
@@ -181,7 +186,8 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
           raise errors.AnalyzerError(f'target "{key}" is not a dynamical variable.')
         diff_eq = var2eq[key]
         sub_exprs = diff_eq.get_f_expressions(substitute_vars=list(self.target_vars.keys()))
-        old_exprs = diff_eq.get_f_expressions(substitute_vars=None)
+        # old_exprs = diff_eq.get_f_expressions(substitute_vars=None)
+        old_exprs = diff_eq.expressions
         fnames = diff_eq.func_name.split('_')[4:]
         target_eqs[key] = tools.DictPlus(sub_exprs=sub_exprs,
                                          old_exprs=old_exprs,
@@ -311,13 +317,13 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
       if self.y_by_x_in_fx['status'] == 'sympy_success':
         vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((xs,) + P)))
         y_values = self.y_by_x_in_fx['vmap_f'](*vps)
-        self.analyzed_results[key] = (jnp.stack((vps[0], y_values)).T, ) + vps[1:]
+        self.analyzed_results[key] = (jnp.stack((vps[0], y_values)).T,) + vps[1:]
       else:
         ys = self.resolutions[self.y_var]
         if self.x_by_y_in_fx['status'] == 'sympy_success':
           vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((ys,) + P)))
           x_values = self.x_by_y_in_fx['vmap_f'](*vps)
-          self.analyzed_results[key] = (jnp.stack(x_values, vps[0]).T,) + vps[1:]
+          self.analyzed_results[key] = (jnp.stack((x_values, vps[0])).T,) + vps[1:]
         else:
           super(Sym2DAnalyzer, self)._get_fx_nullcline_points(coords=coords, tol=tol,
                                                               num_segments=num_segments,
@@ -333,13 +339,13 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
       if self.y_by_x_in_fy['status'] == 'sympy_success':
         vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((xs,) + P)))
         y_values = self.y_by_x_in_fy['vmap_f'](*vps)
-        self.analyzed_results[key] = (jnp.stack((vps[0], y_values)).T, ) + vps[1:]
+        self.analyzed_results[key] = (jnp.stack((vps[0], y_values)).T,) + vps[1:]
       else:
         ys = self.resolutions[self.y_var]
         if self.x_by_y_in_fy['status'] == 'sympy_success':
           vps = tuple(vp.value.flatten() for vp in bm.meshgrid(*((ys,) + P)))
           x_values = self.x_by_y_in_fy['vmap_f'](*vps)
-          self.analyzed_results[key] = (jnp.stack(x_values, vps[0]).T,) + vps[1:]
+          self.analyzed_results[key] = (jnp.stack((x_values, vps[0])).T,) + vps[1:]
         else:
           super(Sym2DAnalyzer, self)._get_fy_nullcline_points(coords=coords, tol=tol,
                                                               num_segments=num_segments,
@@ -368,7 +374,7 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
       func_codes.append(f'return {self.fx_eqs["old_exprs"][-1].code}')
       func_code = '\n  '.join(func_codes)
       exec(compile(func_code, '', 'exec'), eq_xy_scope)
-      opt1 = eq_xy_scope['optimizer_x']
+      opt1 = utils.f_without_jaxarray_return(eq_xy_scope['optimizer_x'])
       vmap_opt1 = bm.jit(bm.vmap(opt1), device=self.jit_device)
       vmap_berentq_opt1 = bm.jit(bm.vmap(utils.jax_brentq(opt1)), device=self.jit_device)
 
@@ -388,8 +394,9 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
                          for expr in self.fx_eqs.old_exprs[:-1]])
       func_codes.append(f'return {self.fx_eqs.old_exprs[-1].code}')
       func_code = '\n  '.join(func_codes)
+      print(func_code)
       exec(compile(func_code, '', 'exec'), eq_xy_scope)
-      opt2 = eq_xy_scope['optimizer_y']
+      opt2 = utils.f_without_jaxarray_return(eq_xy_scope['optimizer_y'])
       vmap_opt2 = bm.jit(bm.vmap(opt2), device=self.jit_device)
       vmap_berentq_opt2 = bm.jit(bm.vmap(utils.jax_brentq(opt2)), device=self.jit_device)
 
@@ -410,7 +417,7 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
       func_codes.append(f'return {self.fy_eqs.old_exprs[-1].code}')
       func_code = '\n  '.join(func_codes)
       exec(compile(func_code, '', 'exec'), eq_xy_scope)
-      opt3 = eq_xy_scope['optimizer_y']
+      opt3 = utils.f_without_jaxarray_return(eq_xy_scope['optimizer_y'])
       vmap_opt3 = bm.jit(bm.vmap(opt3), device=self.jit_device)
       vmap_berentq_opt3 = bm.jit(bm.vmap(utils.jax_brentq(opt3)), device=self.jit_device)
 
@@ -431,7 +438,7 @@ class Sym2DAnalyzer(numeric_analyzer.Num2DAnalyzer):
       func_codes.append(f'return {self.fy_eqs.old_exprs[-1].code}')
       func_code = '\n  '.join(func_codes)
       exec(compile(func_code, '', 'exec'), eq_xy_scope)
-      opt4 = eq_xy_scope['optimizer_x']
+      opt4 = utils.f_without_jaxarray_return(eq_xy_scope['optimizer_x'])
       vmap_opt4 = bm.jit(bm.vmap(opt4), device=self.jit_device)
       vmap_berentq_opt4 = bm.jit(bm.vmap(utils.jax_brentq(opt4)), device=self.jit_device)
 

@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import sys
-import inspect
-import logging
 from functools import partial
 
 import numpy as np
@@ -14,61 +11,11 @@ from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
 from brainpy.base.collector import Collector
 
-_file = sys.stderr
-
 __all__ = [
   'LowDimAnalyzer',
   'Num1DAnalyzer',
   'Num2DAnalyzer',
 ]
-
-
-def _get_args(f):
-  reduced_args = []
-  for name, par in inspect.signature(f).parameters.items():
-    if par.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
-      reduced_args.append(par.name)
-    elif par.kind is inspect.Parameter.KEYWORD_ONLY:
-      reduced_args.append(par.name)
-    elif par.kind is inspect.Parameter.VAR_POSITIONAL:
-      raise errors.DiffEqError('Don not support positional only parameters, e.g., /')
-    elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
-      raise errors.DiffEqError('Don not support positional only parameters, e.g., /')
-    elif par.kind is inspect.Parameter.VAR_KEYWORD:
-      raise errors.DiffEqError(f'Don not support dict of keyword arguments: {str(par)}')
-    else:
-      raise errors.DiffEqError(f'Unknown argument type: {par.kind}')
-
-  var_names = []
-  for a in reduced_args:
-    if a == 't': break
-    var_names.append(a)
-  else:
-    raise ValueError('Do not find time variable "t".')
-  return var_names, reduced_args
-
-
-def _std_derivative(original_fargs, target_vars, target_pars):
-  var = original_fargs[0]
-  num_vars = len(target_vars)
-
-  def inner(f):
-    def call(*dyn_vars_and_pars, **fixed_vars_and_pars):
-      params = dict()
-      for i, v in enumerate(target_vars):
-        if (v != var) and (v in original_fargs):
-          params[v] = dyn_vars_and_pars[i]
-      for j, p in enumerate(target_pars):
-        if p in original_fargs:
-          params[p] = dyn_vars_and_pars[num_vars + j]
-      for k, v in fixed_vars_and_pars.items():
-        if k in original_fargs:
-          params[k] = v
-      return f(dyn_vars_and_pars[target_vars.index(var)], 0., **params)
-
-    return call
-
-  return inner
 
 
 class LowDimAnalyzer(object):
@@ -284,8 +231,8 @@ class Num1DAnalyzer(LowDimAnalyzer):
     >>> self.F_fx(v1, v2, p1, p2)
     """
     if C.F_fx not in self.analyzed_results:
-      _, arguments = _get_args(self.model.F[self.x_var])
-      wrapper = _std_derivative(arguments, self.target_var_names, self.target_par_names)
+      _, arguments = utils.get_args(self.model.F[self.x_var])
+      wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
       f = wrapper(self.model.F[self.x_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
@@ -388,7 +335,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
     signs2 = jnp.vstack((signs[1:], signs[:1])).at[-1].set(1)
     ids = jnp.where((signs1 * signs2).flatten() <= 0)[0]
     if len(ids) <= 0:
-      return [], []
+      return [], [], []
 
     # selected the proper candidates to optimize fixed points
     selected_ids = selected_ids[np.asarray(ids)]
@@ -403,8 +350,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
     valid_or_not = jnp.logical_and(res['status'] == utils.ECONVERGED, losses <= tol_loss)
     ids = np.asarray(jnp.where(valid_or_not)[0])
     fps = np.asarray(res['root'])[ids]
+    args = tuple(a[ids] for a in args)
     selected_ids = selected_ids[np.asarray(ids)]
-    return fps, selected_ids
+    return fps, selected_ids, args
 
 
 class Num2DAnalyzer(Num1DAnalyzer):
@@ -443,13 +391,91 @@ class Num2DAnalyzer(Num1DAnalyzer):
     >>> self.F_fy(v1, v2, p1, p2)
     """
     if C.F_fy not in self.analyzed_results:
-      variables, arguments = _get_args(self.model.F[self.y_var])
-      wrapper = _std_derivative(arguments, self.target_var_names, self.target_par_names)
+      variables, arguments = utils.get_args(self.model.F[self.y_var])
+      wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
       f = wrapper(self.model.F[self.y_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
       self.analyzed_results[C.F_fy] = bm.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fy]
+
+  @property
+  def F_int_x(self):
+    if C.F_int_x not in self.analyzed_results:
+      wrap_x = utils.std_derivative(utils.get_args(self.model.F[self.x_var])[1],
+                                    self.target_var_names, self.target_par_names)
+      init_x = partial(wrap_x(self.model.INTG[0]), **(self.pars_update + self.fixed_vars))
+      self.analyzed_results[C.F_int_x] = init_x
+    return self.analyzed_results[C.F_int_x]
+
+  @property
+  def F_int_y(self):
+    if C.F_int_y not in self.analyzed_results:
+      wrap_x = utils.std_derivative(utils.get_args(self.model.F[self.y_var])[1],
+                                    self.target_var_names, self.target_par_names)
+      init_x = partial(wrap_x(self.model.INTG[1]), **(self.pars_update + self.fixed_vars))
+      self.analyzed_results[C.F_int_y] = init_x
+    return self.analyzed_results[C.F_int_y]
+
+  @property
+  def F_x_by_y_in_fx(self):
+    if C.F_x_by_y_in_fx not in self.analyzed_results:
+      if C.x_by_y_in_fx in self.options:
+        wrapper = utils.std_func(utils.get_args(self.options[C.x_by_y_in_fx], gather_var=False),
+                                 self.target_var_names[1:],
+                                 self.target_par_names)
+        f = wrapper(self.options[C.x_by_y_in_fx])
+        f = partial(f, **(self.pars_update + self.fixed_vars))
+        f = utils.f_without_jaxarray_return(f)
+        self.analyzed_results[C.F_x_by_y_in_fx] = f
+      else:
+        self.analyzed_results[C.F_x_by_y_in_fx] = None
+    return self.analyzed_results[C.F_x_by_y_in_fx]
+
+  @property
+  def F_y_by_x_in_fx(self):
+    if C.F_y_by_x_in_fx not in self.analyzed_results:
+      if C.y_by_x_in_fx in self.options:
+        wrapper = utils.std_func(utils.get_args(self.options[C.y_by_x_in_fx], gather_var=False),
+                                 self.target_var_names[:1] + self.target_var_names[2:],
+                                 self.target_par_names)
+        f = wrapper(self.options[C.y_by_x_in_fx])
+        f = partial(f, **(self.pars_update + self.fixed_vars))
+        f = utils.f_without_jaxarray_return(f)
+        self.analyzed_results[C.F_y_by_x_in_fx] = f
+      else:
+        self.analyzed_results[C.F_y_by_x_in_fx] = None
+    return self.analyzed_results[C.F_y_by_x_in_fx]
+
+  @property
+  def F_x_by_y_in_fy(self):
+    if C.F_x_by_y_in_fy not in self.analyzed_results:
+      if C.x_by_y_in_fy in self.options:
+        wrapper = utils.std_func(utils.get_args(self.options[C.x_by_y_in_fy], gather_var=False),
+                                 self.target_var_names[1:],
+                                 self.target_par_names)
+        f = wrapper(self.options[C.x_by_y_in_fy])
+        f = partial(f, **(self.pars_update + self.fixed_vars))
+        f = utils.f_without_jaxarray_return(f)
+        self.analyzed_results[C.F_x_by_y_in_fy] = f
+      else:
+        self.analyzed_results[C.F_x_by_y_in_fy] = None
+    return self.analyzed_results[C.F_x_by_y_in_fy]
+
+  @property
+  def F_y_by_x_in_fy(self):
+    if C.F_y_by_x_in_fy not in self.analyzed_results:
+      if C.y_by_x_in_fy in self.options:
+        wrapper = utils.std_func(utils.get_args(self.options[C.y_by_x_in_fy], gather_var=False),
+                                 self.target_var_names[:1] + self.target_var_names[2:],
+                                 self.target_par_names)
+        f = wrapper(self.options[C.y_by_x_in_fy])
+        f = partial(f, **(self.pars_update + self.fixed_vars))
+        f = utils.f_without_jaxarray_return(f)
+        self.analyzed_results[C.F_y_by_x_in_fy] = f
+      else:
+        self.analyzed_results[C.F_y_by_x_in_fy] = None
+    return self.analyzed_results[C.F_y_by_x_in_fy]
 
   @property
   def F_vmap_fy(self):
@@ -499,27 +525,96 @@ class Num2DAnalyzer(Num1DAnalyzer):
   @property
   def F_fixed_point_opt(self):
     if C.F_fixed_point_opt not in self.analyzed_results:
-      def opt_fun(xy_init, *args):
-        # "xy_init" is a vector with length 2,
-        # "args: is a tuple of scalar
-        return minimize(self.F_fixed_point_aux, xy_init, args=args, method='BFGS')
+      if self._can_convert_to_one_eq():
+        if self.convert_type() == C.x_by_y:
+          def f(start_and_end, *args):
+            return utils.jax_brentq(self.F_y_convert[1])(start_and_end[0], start_and_end[1], args)
+        else:
+          def f(start_and_end, *args):
+            return utils.jax_brentq(self.F_x_convert[1])(start_and_end[0], start_and_end[1], args)
+        self.analyzed_results[C.F_fixed_point_opt] = f
 
-      self.analyzed_results[C.F_fixed_point_opt] = opt_fun
+      else:
+        # If cannot convert to one variable equation
+        def opt_fun(xy_init, *args):
+          # "xy_init" is a vector with length 2,
+          # "args: is a tuple of scalar
+          return minimize(self.F_fixed_point_aux, xy_init, args=args, method='BFGS')
+
+        self.analyzed_results[C.F_fixed_point_opt] = opt_fun
     return self.analyzed_results[C.F_fixed_point_opt]
 
   @property
   def F_fixed_point_aux(self):
     if C.F_fixed_point_aux not in self.analyzed_results:
-      def aux_fun(xy, *args):
-        # "xy" is a vector with length 2,
-        # "args": is a tuple of scalar
-        dx = self.F_fx(xy[0], xy[1], *args)
-        dy = self.F_fy(xy[0], xy[1], *args)
-        # return (jnp.abs(dx) + jnp.abs(dy)).sum()
-        return (dx ** 2 + dy ** 2).sum()
+      if self._can_convert_to_one_eq():
+        if self.convert_type() == C.x_by_y:
+          f = lambda y, *args: jnp.abs(self.F_y_convert[1](y, *args)).sum()
+        else:
+          f = lambda x, *args: jnp.abs(self.F_x_convert[1](x, *args)).sum()
+        self.analyzed_results[C.F_fixed_point_aux] = f
 
-      self.analyzed_results[C.F_fixed_point_aux] = aux_fun
+      else:
+        def aux_fun(xy, *args):
+          # "xy" is a vector with length 2,
+          # "args": is a tuple of scalar
+          dx = self.F_fx(xy[0], xy[1], *args)
+          dy = self.F_fy(xy[0], xy[1], *args)
+          # return (jnp.abs(dx) + jnp.abs(dy)).sum()
+          return (dx ** 2 + dy ** 2).sum()
+
+        self.analyzed_results[C.F_fixed_point_aux] = aux_fun
     return self.analyzed_results[C.F_fixed_point_aux]
+
+  def _can_convert_to_one_eq(self):
+    if self.F_x_by_y_in_fx is not None:
+      return True
+    if self.F_x_by_y_in_fy is not None:
+      return True
+    if self.F_y_by_x_in_fx is not None:
+      return True
+    if self.F_y_by_x_in_fy is not None:
+      return True
+    return False
+
+  def convert_type(self):
+    if self.F_x_by_y_in_fx is not None:
+      return C.x_by_y
+    if self.F_x_by_y_in_fy is not None:
+      return C.x_by_y
+    if self.F_y_by_x_in_fx is not None:
+      return C.y_by_x
+    if self.F_y_by_x_in_fy is not None:
+      return C.y_by_x
+    raise errors.AnalyzerError
+
+  @property
+  def F_y_convert(self):
+    if C.F_y_convert not in self.analyzed_results:
+      if self.F_x_by_y_in_fy is not None:
+        f = lambda y, *pars: self.F_fx(self.F_x_by_y_in_fy(y, *pars), y, *pars)
+        res = (self.F_x_by_y_in_fy, f)
+      elif self.F_x_by_y_in_fx is not None:
+        f = lambda y, *pars: self.F_fy(self.F_x_by_y_in_fx(y, *pars), y, *pars)
+        res = (self.F_x_by_y_in_fx, f)
+      else:
+        res = None
+      self.analyzed_results[C.F_y_convert] = res
+    return self.analyzed_results[C.F_y_convert]
+
+  @property
+  def F_x_convert(self):
+    if C.F_x_convert not in self.analyzed_results:
+      if self.F_y_by_x_in_fy is not None:
+        f = lambda x, *pars: self.F_fx(x, self.F_y_by_x_in_fy(x, *pars), *pars)
+        res = (self.F_y_by_x_in_fy, f)
+      elif self.F_y_by_x_in_fx is not None:
+        f = lambda x, *pars: self.F_fy(x, self.F_y_by_x_in_fx(x, *pars), *pars)
+        res = (self.F_y_by_x_in_fx, f)
+      else:
+        res = None
+      self.analyzed_results[C.F_x_convert] = res
+    return self.analyzed_results[C.F_x_convert]
 
   def _fp_filter(self, x_values, y_values, par_values, aux_filter=0.):
     if aux_filter > 0.:
@@ -530,7 +625,192 @@ class Num2DAnalyzer(Num1DAnalyzer):
       par_values = tuple(p[ids] for p in par_values)
     return x_values, y_values, par_values
 
-  def _get_fp_candidates(self, num_segments=1, num_rank=100):
+  def _get_fx_nullcline_points(self, coords=None, tol=1e-7, num_segments=1, fp_aux_filter=0.):
+    coords = (self.x_var + '-' + self.y_var) if coords is None else coords
+    key = C.fx_nullcline_points + ',' + coords
+    if key not in self.analyzed_results:
+      all_losses = []
+      all_x_values_in_fx = []
+      all_y_values_in_fx = []
+      all_p_values_in_fx = tuple([] for _ in range(len(self.target_par_names)))
+
+      # points of variables and parameters
+      xs = self.resolutions[self.x_var].value
+      ys = self.resolutions[self.y_var].value
+      par_seg = utils.Segment(targets=tuple(self.resolutions[p].value for p in self.target_par_names),
+                              num_segments=num_segments)
+
+      if self.F_x_by_y_in_fx is not None:
+        utils.output("I am evaluating fx-nullcline by F_x_by_y_in_fx ...")
+        vmap_f = bm.jit(bm.vmap(self.F_x_by_y_in_fx), device=self.jit_device)
+        for j, pars in enumerate(par_seg):
+          if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
+          mesh_values = jnp.meshgrid(*((ys,) + pars))
+          x_values_in_fx = vmap_f(*mesh_values)
+          y_values_in_fx = mesh_values[0]
+          p_values_in_fx = mesh_values[1:]
+          losses = self.F_vmap_fx(x_values_in_fx, y_values_in_fx, *p_values_in_fx)
+          all_losses.append(losses)
+          all_x_values_in_fx.append(x_values_in_fx)
+          all_y_values_in_fx.append(y_values_in_fx)
+          for i, arg in enumerate(p_values_in_fx):
+            all_p_values_in_fx[i].append(arg)
+
+      elif self.F_y_by_x_in_fx is not None:
+        utils.output("I am evaluating fx-nullcline by F_y_by_x_in_fx ...")
+        vmap_f = bm.jit(bm.vmap(self.F_y_by_x_in_fx), device=self.jit_device)
+        for j, pars in enumerate(par_seg):
+          if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
+          mesh_values = jnp.meshgrid(*((xs,) + pars))
+          y_values_in_fx = vmap_f(*mesh_values)
+          x_values_in_fx = mesh_values[0]
+          p_values_in_fx = mesh_values[1:]
+          losses = self.F_vmap_fx(x_values_in_fx, y_values_in_fx, *p_values_in_fx)
+          all_losses.append(losses)
+          all_x_values_in_fx.append(x_values_in_fx)
+          all_y_values_in_fx.append(y_values_in_fx)
+          for i, arg in enumerate(p_values_in_fx):
+            all_p_values_in_fx[i].append(arg)
+
+      else:
+        utils.output("I am evaluating fx-nullcline by optimization ...")
+        # auxiliary functions
+        f2 = lambda y, x, *pars: self.F_fx(x, y, *pars)
+        vmap_f2 = bm.jit(bm.vmap(f2), device=self.jit_device)
+        vmap_brentq_f2 = bm.jit(bm.vmap(utils.jax_brentq(f2)), device=self.jit_device)
+        vmap_brentq_f1 = bm.jit(bm.vmap(utils.jax_brentq(self.F_fx)), device=self.jit_device)
+
+        # num segments
+        for _j, Ps in enumerate(par_seg):
+          if len(par_seg.arg_id_segments[0]) > 1:
+            utils.output(f"{C.prefix}segment {_j} ...")
+          if coords == self.x_var + '-' + self.y_var:
+            x0s, x1s, vps = utils.brentq_candidates(self.F_vmap_fx, *((xs, ys) + Ps))
+            x_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f1, x0s, x1s, *vps)
+            y_values_in_fx = out_args[0]
+            p_values_in_fx = out_args[1:]
+            x_values_in_fx, y_values_in_fx, p_values_in_fx = \
+              self._fp_filter(x_values_in_fx, y_values_in_fx, p_values_in_fx, fp_aux_filter)
+          elif coords == self.y_var + '-' + self.x_var:
+            x0s, x1s, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
+            y_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f2, x0s, x1s, *vps)
+            x_values_in_fx = out_args[0]
+            p_values_in_fx = out_args[1:]
+            x_values_in_fx, y_values_in_fx, p_values_in_fx = \
+              self._fp_filter(x_values_in_fx, y_values_in_fx, p_values_in_fx, fp_aux_filter)
+          else:
+            raise ValueError
+          losses = self.F_vmap_fx(x_values_in_fx, y_values_in_fx, *p_values_in_fx)
+          all_losses.append(losses)
+          all_x_values_in_fx.append(x_values_in_fx)
+          all_y_values_in_fx.append(y_values_in_fx)
+          for i, arg in enumerate(p_values_in_fx):
+            all_p_values_in_fx[i].append(arg)
+
+      all_losses = jnp.concatenate(all_losses)
+      all_x_values_in_fx = jnp.concatenate(all_x_values_in_fx)
+      all_y_values_in_fx = jnp.concatenate(all_y_values_in_fx)
+      all_p_values_in_fx = tuple(jnp.concatenate(p) for p in all_p_values_in_fx)
+      ids = jnp.where(all_losses < tol)[0]
+      all_x_values_in_fx = all_x_values_in_fx[ids]
+      all_y_values_in_fx = all_y_values_in_fx[ids]
+      all_p_values_in_fx = tuple(a[ids] for a in all_p_values_in_fx)
+      all_xy_values = jnp.stack([all_x_values_in_fx, all_y_values_in_fx]).T
+      self.analyzed_results[key] = (all_xy_values,) + all_p_values_in_fx
+    return self.analyzed_results[key]
+
+  def _get_fy_nullcline_points(self, coords=None, tol=1e-7, num_segments=1, fp_aux_filter=0.):
+    coords = (self.x_var + '-' + self.y_var) if coords is None else coords
+    key = C.fy_nullcline_points + ',' + coords
+    if key not in self.analyzed_results:
+      all_losses = []
+      all_x_values_in_fy = []
+      all_y_values_in_fy = []
+      all_p_values_in_fy = tuple([] for _ in range(len(self.target_par_names)))
+
+      xs = self.resolutions[self.x_var].value
+      ys = self.resolutions[self.y_var].value
+      par_seg = utils.Segment(tuple(self.resolutions[p].value for p in self.target_par_names),
+                              num_segments=num_segments)
+
+      if self.F_x_by_y_in_fy is not None:
+        utils.output("I am evaluating fy-nullcline by F_x_by_y_in_fy ...")
+        vmap_f = bm.jit(bm.vmap(self.F_x_by_y_in_fy), device=self.jit_device)
+        for j, pars in enumerate(par_seg):
+          if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
+          mesh_values = jnp.meshgrid(*((ys,) + pars))
+          x_values_in_fy = vmap_f(*mesh_values)
+          y_values_in_fy = mesh_values[0]
+          p_values_in_fy = mesh_values[1:]
+          losses = self.F_vmap_fy(x_values_in_fy, y_values_in_fy, *p_values_in_fy)
+          all_losses.append(losses)
+          all_x_values_in_fy.append(x_values_in_fy)
+          all_y_values_in_fy.append(y_values_in_fy)
+          for i, arg in enumerate(p_values_in_fy):
+            all_p_values_in_fy[i].append(arg)
+
+      elif self.F_y_by_x_in_fy is not None:
+        utils.output("I am evaluating fy-nullcline by F_y_by_x_in_fy ...")
+        vmap_f = bm.jit(bm.vmap(self.F_y_by_x_in_fy), device=self.jit_device)
+        for j, pars in enumerate(par_seg):
+          if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
+          mesh_values = jnp.meshgrid(*((xs,) + pars))
+          y_values_in_fy = vmap_f(*mesh_values)
+          x_values_in_fy = mesh_values[0]
+          p_values_in_fy = mesh_values[1:]
+          losses = self.F_vmap_fy(x_values_in_fy, y_values_in_fy, *p_values_in_fy)
+          all_losses.append(losses)
+          all_x_values_in_fy.append(x_values_in_fy)
+          all_y_values_in_fy.append(y_values_in_fy)
+          for i, arg in enumerate(p_values_in_fy):
+            all_p_values_in_fy[i].append(arg)
+
+      else:
+        utils.output("I am evaluating fy-nullcline by optimization ...")
+
+        # auxiliary functions
+        f2 = lambda y, x, *pars: self.F_fy(x, y, *pars)
+        vmap_f2 = bm.jit(bm.vmap(f2), device=self.jit_device)
+        vmap_brentq_f2 = bm.jit(bm.vmap(utils.jax_brentq(f2)), device=self.jit_device)
+        vmap_brentq_f1 = bm.jit(bm.vmap(utils.jax_brentq(self.F_fy)), device=self.jit_device)
+
+        for j, Ps in enumerate(par_seg):
+          if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
+          if coords == self.x_var + '-' + self.y_var:
+            starts, ends, vps = utils.brentq_candidates(self.F_vmap_fy, *((xs, ys) + Ps))
+            x_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f1, starts, ends, *vps)
+            y_values_in_fy = out_args[0]
+            p_values_in_fy = out_args[1:]
+            x_values_in_fy, y_values_in_fy, p_values_in_fy = \
+              self._fp_filter(x_values_in_fy, y_values_in_fy, p_values_in_fy, fp_aux_filter)
+          elif coords == self.y_var + '-' + self.x_var:
+            starts, ends, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
+            y_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f2, starts, ends, *vps)
+            x_values_in_fy = out_args[0]
+            p_values_in_fy = out_args[1:]
+            x_values_in_fy, y_values_in_fy, p_values_in_fy = \
+              self._fp_filter(x_values_in_fy, y_values_in_fy, p_values_in_fy, fp_aux_filter)
+          else:
+            raise ValueError
+          losses = self.F_vmap_fy(x_values_in_fy, y_values_in_fy, *p_values_in_fy)
+          all_losses.append(losses)
+          all_x_values_in_fy.append(x_values_in_fy)
+          all_y_values_in_fy.append(y_values_in_fy)
+          for i, arg in enumerate(p_values_in_fy):
+            all_p_values_in_fy[i].append(arg)
+      all_losses = jnp.concatenate(all_losses)
+      all_x_values_in_fy = jnp.concatenate(all_x_values_in_fy)
+      all_y_values_in_fy = jnp.concatenate(all_y_values_in_fy)
+      all_p_values_in_fy = tuple(jnp.concatenate(p) for p in all_p_values_in_fy)
+      ids = jnp.where(all_losses < tol)[0]
+      all_x_values_in_fy = all_x_values_in_fy[ids]
+      all_y_values_in_fy = all_y_values_in_fy[ids]
+      all_p_values_in_fy = tuple(a[ids] for a in all_p_values_in_fy)
+      all_xy_values = jnp.stack([all_x_values_in_fy, all_y_values_in_fy]).T
+      self.analyzed_results[key] = (all_xy_values,) + all_p_values_in_fy
+    return self.analyzed_results[key]
+
+  def _get_fp_candidates_by_aux_rank(self, num_segments=1, num_rank=100):
     utils.output(f"I am filtering out fixed point candidates with auxiliary function ...")
     all_xs = []
     all_ys = []
@@ -570,153 +850,14 @@ class Num2DAnalyzer(Num1DAnalyzer):
       all_xs.append(f_select(mesh_values[0].reshape(shape), argsorts).flatten())
       all_ys.append(f_select(mesh_values[1].reshape(shape), argsorts).flatten())
       for i, p in enumerate(ps):
-        all_ps[i].append(f_select(mesh_values[i+2].reshape(shape), argsorts).flatten())
+        all_ps[i].append(f_select(mesh_values[i + 2].reshape(shape), argsorts).flatten())
     all_xys = jnp.vstack([jnp.concatenate(all_xs), jnp.concatenate(all_ys)]).T
     all_ps = tuple(jnp.concatenate(p) for p in all_ps)
     return (all_xys, all_ps)
 
-  def _get_fx_nullcline_points(self, coords=None, tol=1e-7, num_segments=1, fp_aux_filter=0.):
-    coords = (self.x_var + '-' + self.y_var) if coords is None else coords
-    key = C.fx_nullcline_points + ',' + coords
-    if key not in self.analyzed_results:
-      utils.output("I am evaluating fx-nullcline by optimization ...")
-
-      all_losses = []
-      all_x_values_in_fx = []
-      all_y_values_in_fx = []
-      all_p_values_in_fx = tuple([] for _ in range(len(self.target_par_names)))
-
-      # auxiliary functions
-      f2 = lambda y, x, *pars: self.F_fx(x, y, *pars)
-      vmap_f2 = bm.jit(bm.vmap(f2), device=self.jit_device)
-      vmap_brentq_f2 = bm.jit(bm.vmap(utils.jax_brentq(f2)), device=self.jit_device)
-      vmap_brentq_f1 = bm.jit(bm.vmap(utils.jax_brentq(self.F_fx)), device=self.jit_device)
-
-      # points of variables and parameters
-      xs = self.resolutions[self.x_var].value
-      ys = self.resolutions[self.y_var].value
-      P = tuple(self.resolutions[p].value for p in self.target_par_names)
-
-      # num seguments
-      if isinstance(num_segments, int):
-        num_segments = tuple([num_segments] * len(self.target_par_names))
-      assert isinstance(num_segments, (tuple, list)) and len(num_segments) == len(self.target_par_names)
-      arg_lens = tuple(len(p) for p in P)
-      arg_pre_len = tuple(int(np.ceil(l / num_segments[i])) for i, l in enumerate(arg_lens))
-      arg_id_segments = tuple(np.arange(0, l, arg_pre_len[i]) for i, l in enumerate(arg_lens))
-      arg_id_segments = tuple(ids.flatten() for ids in np.meshgrid(*arg_id_segments))
-      if len(arg_id_segments) == 0:
-        arg_id_segments = ((0,),)
-      for _j, ids in enumerate(zip(*arg_id_segments)):
-        if len(arg_id_segments[0]) > 1:
-          utils.output(f"{C.prefix}segment {_j} ...")
-
-        Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
-        if coords == self.x_var + '-' + self.y_var:
-          x0s, x1s, vps = utils.brentq_candidates(self.F_vmap_fx, *((xs, ys) + Ps))
-          x_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f1, x0s, x1s, *vps)
-          y_values_in_fx = out_args[0]
-          p_values_in_fx = out_args[1:]
-          x_values_in_fx, y_values_in_fx, p_values_in_fx = \
-            self._fp_filter(x_values_in_fx, y_values_in_fx, p_values_in_fx, fp_aux_filter)
-        elif coords == self.y_var + '-' + self.x_var:
-          x0s, x1s, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
-          y_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f2, x0s, x1s, *vps)
-          x_values_in_fx = out_args[0]
-          p_values_in_fx = out_args[1:]
-          x_values_in_fx, y_values_in_fx, p_values_in_fx = \
-            self._fp_filter(x_values_in_fx, y_values_in_fx, p_values_in_fx, fp_aux_filter)
-        else:
-          raise ValueError
-        losses = self.F_vmap_fx(x_values_in_fx, y_values_in_fx, *p_values_in_fx)
-        all_losses.append(losses)
-        all_x_values_in_fx.append(x_values_in_fx)
-        all_y_values_in_fx.append(y_values_in_fx)
-        for i, arg in enumerate(p_values_in_fx):
-          all_p_values_in_fx[i].append(arg)
-
-      all_losses = jnp.concatenate(all_losses)
-      all_x_values_in_fx = jnp.concatenate(all_x_values_in_fx)
-      all_y_values_in_fx = jnp.concatenate(all_y_values_in_fx)
-      all_p_values_in_fx = tuple(jnp.concatenate(p) for p in all_p_values_in_fx)
-      ids = jnp.where(all_losses < tol)[0]
-      all_x_values_in_fx = all_x_values_in_fx[ids]
-      all_y_values_in_fx = all_y_values_in_fx[ids]
-      all_p_values_in_fx = tuple(a[ids] for a in all_p_values_in_fx)
-      all_xy_values = jnp.stack([all_x_values_in_fx, all_y_values_in_fx]).T
-      self.analyzed_results[key] = (all_xy_values,) + all_p_values_in_fx
-    return self.analyzed_results[key]
-
-  def _get_fy_nullcline_points(self, coords=None, tol=1e-7, num_segments=1, fp_aux_filter=0.):
-    coords = (self.x_var + '-' + self.y_var) if coords is None else coords
-    key = C.fy_nullcline_points + ',' + coords
-    if key not in self.analyzed_results:
-      utils.output("I am evaluating fy-nullcline by optimization ...")
-
-      all_losses = []
-      all_x_values_in_fy = []
-      all_y_values_in_fy = []
-      all_p_values_in_fy = tuple([] for _ in range(len(self.target_par_names)))
-
-      # auxiliary functions
-      f2 = lambda y, x, *pars: self.F_fy(x, y, *pars)
-      vmap_f2 = bm.jit(bm.vmap(f2), device=self.jit_device)
-      vmap_brentq_f2 = bm.jit(bm.vmap(utils.jax_brentq(f2)), device=self.jit_device)
-      vmap_brentq_f1 = bm.jit(bm.vmap(utils.jax_brentq(self.F_fy)), device=self.jit_device)
-
-      if isinstance(num_segments, int):
-        num_segments = tuple([num_segments] * len(self.target_par_names))
-      assert isinstance(num_segments, (tuple, list)) and len(num_segments) == len(self.target_par_names)
-      xs = self.resolutions[self.x_var].value
-      ys = self.resolutions[self.y_var].value
-      P = tuple(self.resolutions[p].value for p in self.target_par_names)
-      arg_lens = tuple(len(p) for p in P)
-      arg_pre_len = tuple(int(np.ceil(l / num_segments[i])) for i, l in enumerate(arg_lens))
-      arg_id_segments = tuple(np.arange(0, l, arg_pre_len[i]) for i, l in enumerate(arg_lens))
-      arg_id_segments = tuple(ids.flatten() for ids in np.meshgrid(*arg_id_segments))
-      if len(arg_id_segments) == 0:
-        arg_id_segments = ((0,),)
-      for _j, ids in enumerate(zip(*arg_id_segments)):
-        if len(arg_id_segments[0]) > 1:
-          utils.output(f"{C.prefix}segment {_j} ...")
-
-        Ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
-        if coords == self.x_var + '-' + self.y_var:
-          starts, ends, vps = utils.brentq_candidates(self.F_vmap_fy, *((xs, ys) + Ps))
-          x_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f1, starts, ends, *vps)
-          y_values_in_fy = out_args[0]
-          p_values_in_fy = out_args[1:]
-          x_values_in_fy, y_values_in_fy, p_values_in_fy = \
-            self._fp_filter(x_values_in_fy, y_values_in_fy, p_values_in_fy, fp_aux_filter)
-        elif coords == self.y_var + '-' + self.x_var:
-          starts, ends, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
-          y_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f2, starts, ends, *vps)
-          x_values_in_fy = out_args[0]
-          p_values_in_fy = out_args[1:]
-          x_values_in_fy, y_values_in_fy, p_values_in_fy = \
-            self._fp_filter(x_values_in_fy, y_values_in_fy, p_values_in_fy, fp_aux_filter)
-        else:
-          raise ValueError
-        losses = self.F_vmap_fy(x_values_in_fy, y_values_in_fy, *p_values_in_fy)
-        all_losses.append(losses)
-        all_x_values_in_fy.append(x_values_in_fy)
-        all_y_values_in_fy.append(y_values_in_fy)
-        for i, arg in enumerate(p_values_in_fy):
-          all_p_values_in_fy[i].append(arg)
-      all_losses = jnp.concatenate(all_losses)
-      all_x_values_in_fy = jnp.concatenate(all_x_values_in_fy)
-      all_y_values_in_fy = jnp.concatenate(all_y_values_in_fy)
-      all_p_values_in_fy = tuple(jnp.concatenate(p) for p in all_p_values_in_fy)
-      ids = jnp.where(all_losses < tol)[0]
-      all_x_values_in_fy = all_x_values_in_fy[ids]
-      all_y_values_in_fy = all_y_values_in_fy[ids]
-      all_p_values_in_fy = tuple(a[ids] for a in all_p_values_in_fy)
-      all_xy_values = jnp.stack([all_x_values_in_fy, all_y_values_in_fy]).T
-      self.analyzed_results[key] = (all_xy_values,) + all_p_values_in_fy
-    return self.analyzed_results[key]
-
-  def _get_fixed_points(self, candidates, *args, tol_loss=1e-7,
-                        tol_unique=1e-2, loss_screen=None, num_segment=1):
+  def _get_fixed_points(self, candidates, *args, tol_aux=1e-7,
+                        tol_unique=1e-2, tol_opt_candidate=None,
+                        num_segment=1):
     """Get the fixed points according to the initial ``candidates`` and the parameter setting ``args``.
 
     "candidates" and "args" can be obtained through:
@@ -737,58 +878,110 @@ class Num2DAnalyzer(Num1DAnalyzer):
       The candidate points (batched) to optimize, like the nullcline points.
     args : tuple
       The parameters (batched).
-    tol_loss : float
+    tol_aux : float
     tol_unique : float
-    loss_screen : float, optional
+    tol_opt_candidate : float, optional
 
     Returns
     -------
     res : tuple
       The fixed point results.
     """
-    utils.output("I am trying to find fixed points by optimization ...")
-    utils.output(f"{C.prefix}There are {len(candidates)} candidates")
 
-    candidates = jnp.asarray(candidates)
-    args = tuple(jnp.asarray(a) for a in args)
+    if self._can_convert_to_one_eq():
+      # candidates: xs, a vector with the length of self.resolutions[self.x_var]
+      # args: parameters, a list/tuple of vectors
+      candidates = candidates.value if isinstance(candidates, bm.JaxArray) else candidates
+      selected_ids = np.arange(len(candidates))
+      args = tuple(a.value if isinstance(candidates, bm.JaxArray) else a for a in args)
+      for a in args: assert len(a) == len(candidates)
 
-    all_ids = []
-    all_fps = []
-    all_args = tuple([] for _ in range(len(args)))
-    seg_len = int(np.ceil(len(candidates) / num_segment))
-    segment_ids = np.arange(0, len(candidates), seg_len)
-    selected_ids = jnp.arange(len(candidates))
+      if self.convert_type() == C.x_by_y:
+        num_seg = len(self.resolutions[self.y_var])
+        f_vmap = bm.jit(bm.vmap(self.F_y_convert[1]))
+      else:
+        num_seg = len(self.resolutions[self.x_var])
+        f_vmap = bm.jit(bm.vmap(self.F_x_convert[1]))
+      # get the signs
+      signs = jnp.sign(f_vmap(candidates, *args))
+      signs = signs.reshape((num_seg, -1))
+      par_len = signs.shape[1]
+      signs1 = signs.at[-1].set(1)
+      signs2 = jnp.vstack((signs[1:], signs[:1])).at[-1].set(1)
+      ids = jnp.where((signs1 * signs2).flatten() <= 0)[0]
+      if len(ids) <= 0:
+        return [], [], []
 
-    for _j, i in enumerate(segment_ids):
-      if len(segment_ids) > 1:
-        utils.output(f"{C.prefix}segment {_j} ...")
-      seg_fps = candidates[i: i + seg_len]
-      seg_args = tuple(a[i: i + seg_len] for a in args)
-      seg_ids = selected_ids[i: i + seg_len]
+      # selected the proper candidates to optimize fixed points
+      selected_ids = selected_ids[np.asarray(ids)]
+      starts = candidates[ids]
+      ends = candidates[ids + par_len]
+      X = jnp.stack((starts, ends)).T
+      args = tuple(a[ids] for a in args)
 
-      if loss_screen is not None:
-        # screen by the function loss
-        losses = self.F_vmap_fp_aux(seg_fps, *seg_args)
-        ids = jnp.where(losses < loss_screen)[0]
-        seg_fps = seg_fps[ids]
-        seg_args = tuple(a[ids] for a in seg_args)
-        seg_ids = seg_ids[ids]
-      if len(seg_fps):
-        # optimization
-        seg_fps = self.F_vmap_fp_opt(seg_fps, *seg_args)
-        # loss
-        losses = self.F_vmap_fp_aux(seg_fps.x, *seg_args)
-        # valid indices
-        ids = jnp.where(losses <= tol_loss)[0]
-        seg_ids = seg_ids[ids]
-        all_fps.append(seg_fps.x[ids])
-        all_ids.append(seg_ids)
-        for i in range(len(all_args)):
-          all_args[i].append(seg_args[i][ids])
-    all_fps = jnp.concatenate(all_fps)
-    all_ids = jnp.concatenate(all_ids)
-    all_args = tuple(jnp.concatenate(args) for args in all_args)
-    return all_fps, all_ids, all_args
+      # optimize the fixed points
+      res = self.F_vmap_fp_opt(X, *args)
+      losses = self.F_vmap_fp_aux(res['root'], *args)
+      valid_or_not = jnp.logical_and(res['status'] == utils.ECONVERGED, losses <= tol_aux)
+      ids = np.asarray(jnp.where(valid_or_not)[0])
+      fps = np.asarray(res['root'])[ids]
+      args = tuple(a[ids] for a in args)
+      selected_ids = selected_ids[np.asarray(ids)]
+
+      # get another value
+      if self.convert_type() == C.x_by_y:
+        y_values = fps
+        x_values = bm.jit(bm.vmap(self.F_y_convert[0]))(y_values, *args)
+      else:
+        x_values = fps
+        y_values = bm.jit(bm.vmap(self.F_x_convert[0]))(x_values, *args)
+      fps = jnp.stack([x_values, y_values]).T
+      return fps, selected_ids, args
+
+    else:
+      utils.output("I am trying to find fixed points by optimization ...")
+      utils.output(f"{C.prefix}There are {len(candidates)} candidates")
+
+      candidates = jnp.asarray(candidates)
+      args = tuple(jnp.asarray(a) for a in args)
+
+      all_ids = []
+      all_fps = []
+      all_args = tuple([] for _ in range(len(args)))
+      seg_len = int(np.ceil(len(candidates) / num_segment))
+      segment_ids = np.arange(0, len(candidates), seg_len)
+      selected_ids = jnp.arange(len(candidates))
+
+      for _j, i in enumerate(segment_ids):
+        if len(segment_ids) > 1:
+          utils.output(f"{C.prefix}segment {_j} ...")
+        seg_fps = candidates[i: i + seg_len]
+        seg_args = tuple(a[i: i + seg_len] for a in args)
+        seg_ids = selected_ids[i: i + seg_len]
+
+        if tol_opt_candidate is not None:
+          # screen by the function loss
+          losses = self.F_vmap_fp_aux(seg_fps, *seg_args)
+          ids = jnp.where(losses < tol_opt_candidate)[0]
+          seg_fps = seg_fps[ids]
+          seg_args = tuple(a[ids] for a in seg_args)
+          seg_ids = seg_ids[ids]
+        if len(seg_fps):
+          # optimization
+          seg_fps = self.F_vmap_fp_opt(seg_fps, *seg_args)
+          # loss
+          losses = self.F_vmap_fp_aux(seg_fps.x, *seg_args)
+          # valid indices
+          ids = jnp.where(losses <= tol_aux)[0]
+          seg_ids = seg_ids[ids]
+          all_fps.append(seg_fps.x[ids])
+          all_ids.append(seg_ids)
+          for i in range(len(all_args)):
+            all_args[i].append(seg_args[i][ids])
+      all_fps = jnp.concatenate(all_fps)
+      all_ids = jnp.concatenate(all_ids)
+      all_args = tuple(jnp.concatenate(args) for args in all_args)
+      return all_fps, all_ids, all_args
 
 
 class Num3DAnalyzer(Num2DAnalyzer):
@@ -804,8 +997,8 @@ class Num3DAnalyzer(Num2DAnalyzer):
   def F_fz(self):
     """The function to evaluate :math:`f_y(*\mathrm{vars}, *\mathrm{pars})`."""
     if C.F_fz not in self.analyzed_results:
-      variables, arguments = _get_args(self.model.F[self.z_var])
-      wrapper = _std_derivative(arguments, self.target_var_names, self.target_par_names)
+      variables, arguments = utils.get_args(self.model.F[self.z_var])
+      wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
       f = wrapper(self.model.F[self.z_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_fz] = bm.jit(f, device=self.jit_device)

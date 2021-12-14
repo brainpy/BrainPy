@@ -9,12 +9,63 @@ from brainpy import tools
 from .function import f_without_jaxarray_return
 
 __all__ = [
+  'Segment',
+  'check_initials',
+  'check_plot_durations',
   'get_sign',
   'get_sign2',
   'keep_unique',
   'rescale',
   'unknown_symbol',
 ]
+
+
+class Segment(object):
+  def __init__(self, targets, num_segments):
+    assert isinstance(targets, (tuple, list))
+    # num segments
+    if isinstance(num_segments, int):
+      num_segments = tuple([num_segments] * len(targets))
+    assert isinstance(num_segments, (tuple, list)) and len(num_segments) == len(targets)
+    arg_lens = tuple(len(p) for p in targets)
+    self. arg_pre_len = tuple(int(np.ceil(l / num_segments[i])) for i, l in enumerate(arg_lens))
+    arg_id_segments = tuple(np.arange(0, l, self. arg_pre_len[i]) for i, l in enumerate(arg_lens))
+    self. arg_id_segments = tuple(ids.flatten() for ids in np.meshgrid(*arg_id_segments))
+    if len(arg_id_segments) == 0:
+     self. arg_id_segments = ((0,),)
+    self.targets = targets
+
+  def __iter__(self):
+    for ids in zip(*self. arg_id_segments):
+      yield tuple(p[ids[i]: ids[i] + self. arg_pre_len[i]] for i, p in enumerate(self.targets))
+
+
+def check_initials(initials, target_var_names):
+  # check the initial values
+  assert isinstance(initials, dict)
+  for p in target_var_names:
+    assert p in initials
+  initials = {p: initials[p] for p in target_var_names}
+  len_of_init = []
+  for v in initials.values():
+    assert isinstance(v, (tuple, list, np.ndarray, jnp.ndarray, bm.ndarray))
+    len_of_init.append(len(v))
+  len_of_init = np.unique(len_of_init)
+  assert len(len_of_init) == 1
+  return initials
+
+
+def check_plot_durations(plot_durations, duration, initials):
+  if plot_durations is None:
+    plot_durations = [(0., duration) for _ in range(len(initials))]
+  if isinstance(plot_durations[0], (int, float)):
+    assert len(plot_durations) == 2
+    plot_durations = [plot_durations for _ in range(len(initials))]
+  else:
+    assert len(plot_durations) == len(initials)
+    for dur in plot_durations:
+      assert len(dur) == 2
+  return plot_durations
 
 
 def get_sign(f, xs, ys):

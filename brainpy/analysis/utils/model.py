@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 
 
-
 import inspect
-from pprint import pprint
-
-import numpy as np
 
 import brainpy.math as bm
 from brainpy import errors, tools
+from brainpy.base.base import TensorCollector
 from brainpy.integrators import analysis_by_ast
 from brainpy.integrators import analysis_by_sympy
 from brainpy.integrators.ode.base import ODEIntegrator
 from brainpy.simulation.brainobjects.base import DynamicalSystem
-from brainpy.simulation.utils import run_model
+from brainpy.simulation.runner import StructRunner
 
 __all__ = [
   'model_transform',
   'num2sym',
   'NumDSWrapper',
   'SymDSWrapper',
-  'Trajectory',
+  'TrajectModel',
 ]
 
 
@@ -151,104 +148,41 @@ class SymDSWrapper(NumDSWrapper):
     self.scopes = scopes
 
 
+class TrajectModel(DynamicalSystem):
+  def __init__(self, integrals, initial_vars, pars=None, dt=None):
+    super(TrajectModel, self).__init__()
 
-class Trajectory(object):
-  """Trajectory Class.
+    # variables
+    assert isinstance(initial_vars, dict)
+    initial_vars = {k: bm.Variable(bm.asarray(v)) for k, v in initial_vars.items()}
+    self.register_implicit_vars(initial_vars)
+    self.all_vars = tuple(self.implicit_vars.values())
 
-  Parameters
-  ----------
-  model : NumDSWrapper
-    The instance of DynamicModel.
-  size : int, tuple, list
-    The network size.
-  target_vars : dict
-    The target variables, with the format of "{key: initial_v}".
-  fixed_vars : dict
-    The fixed variables, with the format of "{key: fixed_v}".
-  pars_update : dict
-    The parameters to update.
-  """
+    # parameters
+    pars = dict() if pars is None else pars
+    assert isinstance(pars, dict)
+    self.pars = [bm.asarray(v) for k, v in pars.items()]
 
-  def __init__(self, model, size, target_vars, fixed_vars, pars_update, show_code=False):
-    assert isinstance(model, NumDSWrapper), f'"model" must be an instance of {NumDSWrapper}, ' \
-                                            f'while we got {model}'
-    self.model = model
-    self.target_vars = target_vars
-    self.fixed_vars = fixed_vars
-    self.pars_update = pars_update
-    self.show_code = show_code
-    self.scope = {k: v for k, v in model.scopes.items()}
+    # integrals
+    self.integrals = integrals
 
-    # check network size
-    if isinstance(size, int):
-      size = (size,)
-    elif isinstance(size, (tuple, list)):
-      assert isinstance(size[0], int)
-      size = tuple(size)
+    # runner
+    self.runner = StructRunner(self,
+                               monitors=list(initial_vars.keys()),
+                               dyn_vars=self.vars().unique(), dt=dt)
+
+  def update(self, _t, _dt):
+    for i, intg in enumerate(self.integrals):
+      self.all_vars[i].update(intg(*self.all_vars, *self.pars, dt=_dt))
+
+  def __getattr__(self, item):
+    child_vars = super(TrajectModel, self).__getattribute__('implicit_vars')
+    if item in child_vars:
+      return child_vars[item]
     else:
-      raise ValueError
+      return super(TrajectModel, self).__getattribute__(item)
 
-    # monitors, variables, parameters
-    self.mon = tools.DictPlus()
-    self.vars_and_pars = tools.DictPlus()
-    for key, val in target_vars.items():
-      self.vars_and_pars[key] = np.ones(size) * val
-      self.mon[key] = []
-    for key, val in fixed_vars.items():
-      self.vars_and_pars[key] = np.ones(size) * val
-    for key, val in pars_update.items():
-      self.vars_and_pars[key] = val
-    self.scope['VP'] = self.vars_and_pars
-    self.scope['MON'] = self.mon
-    self.scope['_fixed_vars'] = fixed_vars
-
-    code_lines = ['def run_func(t_and_dt):']
-    code_lines.append('  _t, _dt = t_and_dt')
-    for integral in self.model.INTG:
-      assert isinstance(integral, ODEIntegrator)
-      func_name = integral.func_name
-      self.scope[func_name] = integral
-      # update the step function
-      assigns = [f'VP["{var}"]' for var in integral.variables]
-      calls = [f'VP["{var}"]' for var in integral.variables]
-      calls.append('_t')
-      calls.extend([f'VP["{var}"]' for var in integral.parameters[1:]])
-      code_lines.append(f'  {", ".join(assigns)} = {func_name}({", ".join(calls)})')
-      # reassign the fixed variables
-      for key, val in fixed_vars.items():
-        code_lines.append(f'  VP["{key}"][:] = _fixed_vars["{key}"]')
-    # monitor the target variables
-    for key in target_vars.keys():
-      code_lines.append(f'  MON["{key}"].append(VP["{key}"])')
-    # compile
-    code = '\n'.join(code_lines)
-    if show_code:
-      print(code)
-      print()
-      pprint(self.scope)
-      print()
-
-    # recompile
-    exec(compile(code, '', 'exec'), self.scope)
-    self.run_func = self.scope['run_func']
-
-  def run(self, duration, report=0.1):
-    if isinstance(duration, (int, float)):
-      duration = [0, duration]
-    elif isinstance(duration, (tuple, list)):
-      assert len(duration) == 2
-      duration = tuple(duration)
-    else:
-      raise ValueError
-
-    # get the times
-    times = np.arange(duration[0], duration[1], bm.get_dt())
-    # reshape the monitor
-    for key in self.mon.keys():
-      self.mon[key] = []
-    # run the model
-    run_model(run_func=self.run_func, times=times, report=report)
-    # reshape the monitor
-    for key in self.mon.keys():
-      self.mon[key] = np.asarray(self.mon[key])
+  def run(self, duration):
+    self.runner.run(duration)
+    return self.runner.mon
 

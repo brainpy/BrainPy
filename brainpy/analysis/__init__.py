@@ -24,5 +24,7 @@ from .numeric.fixed_points import *
 from .numeric.lowdim_phase_plane import *
 from .numeric.lowdim_bifurcation import *
 
+from . import constants
+C = constants
 from . import stability
 from . import utils

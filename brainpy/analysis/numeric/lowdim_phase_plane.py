@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys
-import logging
+from functools import partial
 
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -11,8 +10,6 @@ import brainpy.math as bm
 from brainpy import errors, math
 from brainpy.analysis import stability, constants as C, utils
 from brainpy.analysis.numeric.lowdim_analyzer import *
-
-_file = sys.stderr
 
 __all__ = [
   'PhasePlane1D',
@@ -93,7 +90,7 @@ class PhasePlane1D(Num1DAnalyzer):
     utils.output('I am searching fixed points ...')
 
     # fixed points and stability analysis
-    fps, _ = self._get_fixed_points(self.resolutions[self.x_var])
+    fps, _, pars = self._get_fixed_points(self.resolutions[self.x_var])
     container = {a: [] for a in stability.get_1d_stability_types()}
     for i in range(len(fps)):
       x = fps[i]
@@ -238,7 +235,7 @@ class PhasePlane2D(Num2DAnalyzer):
 
     # Nullcline of the x variable
     # ---------------------------
-    xy_values_in_fx,  = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
+    xy_values_in_fx, = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
     x_values_in_fx = np.asarray(xy_values_in_fx[:, 0])
     y_values_in_fx = np.asarray(xy_values_in_fx[:, 1])
     if with_plot:
@@ -250,7 +247,7 @@ class PhasePlane2D(Num2DAnalyzer):
     # Nullcline of the y variable
     # ---------------------------
     utils.output('I am computing fy-nullcline ...')
-    xy_values_in_fy,  = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
+    xy_values_in_fy, = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
     x_values_in_fy = np.asarray(xy_values_in_fy[:, 0])
     y_values_in_fy = np.asarray(xy_values_in_fy[:, 1])
     if with_plot:
@@ -274,27 +271,52 @@ class PhasePlane2D(Num2DAnalyzer):
               self.y_var: (x_values_in_fy, y_values_in_fy)}
 
   def plot_fixed_point(self, with_plot=True, with_return=False, show=False,
-                       tol_unique=1e-2, tol_loss=1e-7, loss_screen=None):
+                       tol_unique=1e-2, tol_aux=1e-7, tol_opt_screen=None,
+                       nullcline_aux_filter=1., select_candidates='fx-nullcline',
+                       num_rank=100, ):
     """Plot the fixed point and analyze its stability.
     """
     utils.output('I am searching fixed points ...')
 
-    # candidates
-    candidates = []
-    for key in self.analyzed_results.keys():
-      if key.startswith(C.fx_nullcline_points) or key.startswith(C.fy_nullcline_points):
-        candidates.append(self.analyzed_results[key][0])
-    if len(candidates) == 0:
-      raise errors.AnalyzerError(f'No nullcline points are found, please call '
-                                 f'".{self.plot_nullcline.__name__}()" first.')
-    candidates = jnp.vstack(candidates)
+    if self._can_convert_to_one_eq():
+      if self.convert_type() == C.x_by_y:
+        candidates = self.resolutions[self.y_var].value
+      else:
+        candidates = self.resolutions[self.x_var].value
+    else:
+      if select_candidates == 'fx-nullcline':
+        candidates = [self.analyzed_results[key][0] for key in self.analyzed_results.keys()
+                      if key.startswith(C.fx_nullcline_points)]
+        if len(candidates) == 0:
+          raise errors.AnalyzerError(f'No nullcline points are found, please call '
+                                     f'".{self.plot_nullcline.__name__}()" first.')
+        candidates = jnp.vstack(candidates)
+      elif select_candidates == 'fy-nullcline':
+        candidates = [self.analyzed_results[key][0] for key in self.analyzed_results.keys()
+                      if key.startswith(C.fy_nullcline_points)]
+        if len(candidates) == 0:
+          raise errors.AnalyzerError(f'No nullcline points are found, please call '
+                                     f'".{self.plot_nullcline.__name__}()" first.')
+        candidates = jnp.vstack(candidates)
+      elif select_candidates == 'nullclines':
+        candidates = [self.analyzed_results[key][0] for key in self.analyzed_results.keys()
+                      if key.startswith(C.fy_nullcline_points) or key.startswith(C.fy_nullcline_points)]
+        if len(candidates) == 0:
+          raise errors.AnalyzerError(f'No nullcline points are found, please call '
+                                     f'".{self.plot_nullcline.__name__}()" first.')
+        candidates = jnp.vstack(candidates)
+      elif select_candidates == 'aux_rank':
+        assert nullcline_aux_filter > 0.
+        candidates, _ = self._get_fp_candidates_by_aux_rank(num_rank=num_rank)
+      else:
+        raise ValueError
 
     # get fixed points
     if len(candidates):
       fixed_points, _, _ = self._get_fixed_points(jnp.asarray(candidates),
-                                                  tol_loss=tol_loss,
+                                                  tol_aux=tol_aux,
                                                   tol_unique=tol_unique,
-                                                  loss_screen=loss_screen)
+                                                  tol_opt_candidate=tol_opt_screen)
       utils.output('I am trying to filter out duplicate fixed points ...')
       fixed_points = np.asarray(fixed_points)
       fixed_points, _ = utils.keep_unique(fixed_points, tol=tol_unique)
@@ -328,7 +350,8 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_return:
       return fixed_points
 
-  def plot_trajectory(self, initials, duration, plot_duration=None, axes='v-v', show=False):
+  def plot_trajectory(self, initials, duration, plot_durations=None,
+                      axes='v-v', dt=None, show=False, with_plot=True, with_return=False):
     """Plot trajectories according to the settings.
 
     Parameters
@@ -346,7 +369,7 @@ class PhasePlane2D(Num2DAnalyzer):
           the start and end simulation time.
         - Or, it can be a list of tuple (``[(t1_start, t1_end), (t2_start, t2_end)]``)
           to specify the specific start and end simulation time for each initial value.
-    plot_duration : tuple, list, optional
+    plot_durations : tuple, list, optional
         The duration to plot. It can be a tuple with ``(start, end)``. It can
         also be a list of tuple ``[(start1, end1), (start2, end2)]`` to specify
         the plot duration for each initial value running.
@@ -359,92 +382,66 @@ class PhasePlane2D(Num2DAnalyzer):
         Whether show or not.
     """
 
-    utils.output('plot trajectory ...')
+    utils.output('I am plot trajectory ...')
 
     if axes not in ['v-v', 't-v']:
-      raise errors.BrainPyError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
+      raise errors.AnalyzerError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
 
-    # 1. format the initial values
-    if isinstance(initials, dict):
-      initials = [initials]
-    elif isinstance(initials, (list, tuple)):
-      if isinstance(initials[0], (int, float)):
-        initials = [{self.target_var_names[i]: v for i, v in enumerate(initials)}]
-      elif isinstance(initials[0], dict):
-        initials = initials
-      elif isinstance(initials[0], (tuple, list)) and isinstance(initials[0][0], (int, float)):
-        initials = [{self.target_var_names[i]: v for i, v in enumerate(init)} for init in initials]
-      else:
-        raise ValueError
-    else:
-      raise ValueError
+    # check the initial values
+    initials = utils.check_initials(initials, self.target_var_names)
 
     # 2. format the running duration
-    if isinstance(duration, (int, float)):
-      duration = [(0, duration) for _ in range(len(initials))]
-    elif isinstance(duration[0], (int, float)):
-      duration = [duration for _ in range(len(initials))]
-    else:
-      assert len(duration) == len(initials)
+    assert isinstance(duration, (int, float))
 
     # 3. format the plot duration
-    if plot_duration is None:
-      plot_duration = duration
-    if isinstance(plot_duration[0], (int, float)):
-      plot_duration = [plot_duration for _ in range(len(initials))]
-    else:
-      assert len(plot_duration) == len(initials)
+    plot_durations = utils.check_plot_durations(plot_durations, duration, initials)
 
     # 5. run the network
-    for init_i, initial in enumerate(initials):
-      traj_group = utils.Trajectory(model=self.model,
-                                    size=1,
-                                    target_vars=initial,
-                                    fixed_vars=self.fixed_vars,
-                                    pars_update=self.pars_update)
+    dt = math.get_dt() if dt is None else dt
+    traject_model = utils.TrajectModel(initial_vars=initials,
+                                       integrals=[self.F_int_x, self.F_int_y],
+                                       dt=dt)
+    mon_res = traject_model.run(duration=duration)
 
-      #   5.2 run the model
-      traj_group.run(duration=duration[init_i], report=False, )
+    if with_plot:
+      # plots
+      for i, initial in enumerate(zip(*list(initials.values()))):
+        # legend
+        legend = f'$traj_{i}$: '
+        for j, key in enumerate(self.target_var_names):
+          legend += f'{key}={initial[j]}, '
+        legend = legend[:-2]
 
-      #   5.3 legend
-      legend = f'$traj_{init_i}$: '
-      for key in self.target_var_names:
-        legend += f'{key}={initial[key]}, '
-      legend = legend[:-2]
+        # visualization
+        start = int(plot_durations[i][0] / dt)
+        end = int(plot_durations[i][1] / dt)
+        if axes == 'v-v':
+          lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i], label=legend)
+          utils.add_arrow(lines[0])
+        else:
+          plt.plot(mon_res.ts[start: end], mon_res[self.x_var][start: end, i],
+                   label=legend + f', {self.x_var}')
+          plt.plot(mon_res.ts[start: end], mon_res[self.y_var][start: end, i],
+                   label=legend + f', {self.y_var}')
 
-      #   5.4 trajectory
-      start = int(plot_duration[init_i][0] / math.get_dt())
-      end = int(plot_duration[init_i][1] / math.get_dt())
-
-      #   5.5 visualization
+      # visualization of others
       if axes == 'v-v':
-        lines = plt.plot(traj_group.mon[self.x_var][start: end, 0],
-                         traj_group.mon[self.y_var][start: end, 0],
-                         label=legend)
-        utils.add_arrow(lines[0])
+        plt.xlabel(self.x_var)
+        plt.ylabel(self.y_var)
+        scale = (self.lim_scale - 1.) / 2
+        plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+        plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
+        plt.legend()
       else:
-        plt.plot(traj_group.mon.ts[start: end],
-                 traj_group.mon[self.x_var][start: end, 0],
-                 label=legend + f', {self.x_var}')
-        plt.plot(traj_group.mon.ts[start: end],
-                 traj_group.mon[self.y_var][start: end, 0],
-                 label=legend + f', {self.y_var}')
+        plt.legend(title='Initial values')
 
-    # 6. visualization
-    if axes == 'v-v':
-      plt.xlabel(self.x_var)
-      plt.ylabel(self.y_var)
-      scale = (self.lim_scale - 1.) / 2
-      plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
-      plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
-      plt.legend()
-    else:
-      plt.legend(title='Initial values')
+      if show:
+        plt.show()
 
-    if show:
-      plt.show()
+    if with_return:
+      return mon_res
 
-  def plot_limit_cycle_by_sim(self, initials, duration, tol=0.001, show=False):
+  def plot_limit_cycle_by_sim(self, initials, duration, tol=0.001, show=False, dt=None):
     """Plot trajectories according to the settings.
 
     Parameters
@@ -467,43 +464,25 @@ class PhasePlane2D(Num2DAnalyzer):
     show : bool
         Whether show or not.
     """
-    utils.output('plot limit cycle ...')
+    utils.output('I am plotting limit cycle ...')
 
     # 1. format the initial values
-    if isinstance(initials, dict):
-      initials = [initials]
-    elif isinstance(initials, (list, tuple)):
-      if isinstance(initials[0], (int, float)):
-        initials = [{self.dvar_names[i]: v for i, v in enumerate(initials)}]
-      elif isinstance(initials[0], dict):
-        initials = initials
-      elif isinstance(initials[0], (tuple, list)) and isinstance(initials[0][0], (int, float)):
-        initials = [{self.dvar_names[i]: v for i, v in enumerate(init)} for init in initials]
-      else:
-        raise ValueError
-    else:
-      raise ValueError
+    initials = utils.check_initials(initials, self.target_var_names)
 
     # 2. format the running duration
-    if isinstance(duration, (int, float)):
-      duration = [(0, duration) for _ in range(len(initials))]
-    elif isinstance(duration[0], (int, float)):
-      duration = [duration for _ in range(len(initials))]
-    else:
-      assert len(duration) == len(initials)
+    assert isinstance(duration, (int, float))
+
+    dt = math.get_dt() if dt is None else dt
+    traject_model = utils.TrajectModel(initial_vars=initials,
+                                       integrals=[self.F_int_x, self.F_int_y],
+                                       dt=dt)
+    mon_res = traject_model.run(duration=duration)
 
     # 5. run the network
     for init_i, initial in enumerate(initials):
-      traj_group = utils.Trajectory(model=self.model,
-                                    size=1,
-                                    target_vars=initial,
-                                    fixed_vars=self.fixed_vars,
-                                    pars_update=self.pars_update)
-
       #   5.2 run the model
-      traj_group.run(duration=duration[init_i], report=False, )
-      x_data = traj_group.mon[self.x_var][:, 0]
-      y_data = traj_group.mon[self.y_var][:, 0]
+      x_data = mon_res[self.x_var][:, init_i]
+      y_data = mon_res[self.y_var][:, init_i]
       max_index = utils.find_indexes_of_limit_cycle_max(x_data, tol=tol)
       if max_index[0] != -1:
         x_cycle = x_data[max_index[0]: max_index[1]]

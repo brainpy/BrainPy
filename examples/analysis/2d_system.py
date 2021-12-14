@@ -44,7 +44,9 @@ def wilson_cowan_model():
                                 resolutions=0.001)
   pp.plot_vector_field()
   pp.plot_nullcline(coords={'i': 'i-e'})
-  pp.plot_fixed_point(show=True)
+  pp.plot_fixed_point()
+  pp.plot_trajectory(initials={'i': [0.5, 0.6], 'e': [-0.1, 0.4]},
+                     duration=10, dt=0.1, show=True)
 
 
 def decision_making_model():
@@ -89,7 +91,7 @@ def decision_making_model():
   )
   analyzer.plot_vector_field()
   analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
-  analyzer.plot_fixed_point(show=True, loss_screen=None)
+  analyzer.plot_fixed_point(show=True, tol_opt_screen=None)
 
   analyzer = bp.analysis.Bifurcation2D(
     model=[int_s1, int_s2],
