@@ -9,7 +9,11 @@ find_package(pybind11 CONFIG REQUIRED)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
 
 # CPU op library
-pybind11_add_module(cpu_ops ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc)
+pybind11_add_module(
+    cpu_ops
+    ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc
+    ${CMAKE_CURRENT_LIST_DIR}/lib/event_add_cpu.cc
+    )
 install(TARGETS cpu_ops DESTINATION brainpylib)
 
 # GPU op library
