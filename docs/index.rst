@@ -40,6 +40,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :maxdepth: 1
    :caption: Math Foundation
 
+   tutorial_math/overview
    tutorial_math/tensors
    tutorial_math/variables
    tutorial_math/base
