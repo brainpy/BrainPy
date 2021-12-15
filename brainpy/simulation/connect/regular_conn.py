@@ -120,9 +120,11 @@ class GridFour(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
+    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)),
+                           shape=(self.pre_num, self.post_num))
 
     return self
+
 
 grid_four = GridFour()
 
@@ -197,7 +199,8 @@ class GridN(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)), shape=(pre_size, post_size))
+    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)),
+                           shape=(self.pre_num, self.post_num))
 
     return self
 

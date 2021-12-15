@@ -48,7 +48,9 @@ class IJConn(TwoEndConnector):
 
   def __call__(self, pre_size, post_size):
     self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self.data = csr_matrix((np.ones_like(self.pre_ids_list, np.bool_), (self.pre_ids_list, self.post_ids_list)), shape=(pre_size, post_size))
+    self.data = csr_matrix((np.ones_like(self.pre_ids_list, np.bool_),
+                            (self.pre_ids_list, self.post_ids_list)),
+                           shape=(self.pre_num, self.post_num))
     return self
 
 
