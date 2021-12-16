@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import jax.numpy as jnp
 import numpy as np
+import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from brainpy.math.jaxarray import JaxArray

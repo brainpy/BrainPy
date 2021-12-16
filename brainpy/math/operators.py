@@ -8,7 +8,7 @@ from jax import jit, vmap
 from jax import ops as jops
 
 from brainpy.math.jaxarray import JaxArray
-from brainpy.math.ops import append, zeros_like
+from brainpy.math.numpy_ops import append, zeros_like
 
 __all__ = [
   'event_add',
@@ -30,15 +30,14 @@ _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
 
 
 def event_add(events, pre2post, post_num, value):
-  """
+  """Event add
 
   Parameters
   ----------
   events
-  post_ids
-  pre2post_slice
-  post_num
-  value
+  pre2post: tuple of JaxArray, tuple of jnp.ndarray
+  post_num: int
+  value: float, JaxArray, jnp.ndarray
 
   Returns
   -------
@@ -66,7 +65,7 @@ def pre2syn(pre_values, pre_ids):
 
 
 def syn2post(syn_values, post_ids, post_num):
-  """
+  """Syn to post
 
   Parameters
   ----------

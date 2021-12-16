@@ -33,7 +33,7 @@ Details in the following.
 from .jaxarray import *
 
 # functions/operations
-from .ops import *
+from .numpy_ops import *
 from .operators import *
 from .activations import *
 from . import fft

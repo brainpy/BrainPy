@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-This module implements many commonly used loss functions.
+This module implements several loss functions.
 
-The references used are included:
+More commonly used loss functions please check the following references:
 
-- https://zhuanlan.zhihu.com/p/61379965
-- https://pytorch.org/docs/stable/nn.html#loss-functions
-- https://github.com/ddbourgin/numpy-ml
 - https://github.com/deepmind/optax/blob/master/optax/_src/loss.py
 - https://github.com/google/jaxopt/blob/main/jaxopt/_src/loss.py
 
@@ -18,9 +15,10 @@ import jax.scipy
 from jax.tree_util import tree_flatten
 
 from brainpy import errors
-from brainpy.math import ops
+from brainpy.math import numpy_ops as ops
 from brainpy.math.activations import softplus, one_hot
 from brainpy.math.jaxarray import JaxArray
+
 
 __all__ = [
   'cross_entropy_loss',
@@ -331,10 +329,6 @@ def huber_loss(predicts, targets, delta: float = 1.0):
   return jn.where(diff > delta, delta * (diff - .5 * delta), 0.5 * diff ** 2)
 
 
-def nll_loss(logits, targets, weight=None, reduction='mean'):
-  pass
-
-
 def binary_logistic_loss(logits: float, labels: int, ) -> float:
   """Binary logistic loss.
 
@@ -348,7 +342,6 @@ def binary_logistic_loss(logits: float, labels: int, ) -> float:
   # softplus = proba * logit - xlogx(proba) - xlogx(1 - proba),
   # where xlogx(proba) = proba * log(proba).
   return softplus(logits) - labels * logits
-
 
 
 def multiclass_logistic_loss(label: int, logits: jn.ndarray) -> float:
@@ -365,28 +358,6 @@ def multiclass_logistic_loss(label: int, logits: jn.ndarray) -> float:
   # Logsumexp is the Fenchel conjugate of the Shannon negentropy on the simplex.
   # logsumexp = jnp.dot(proba, logits) - jnp.dot(proba, jnp.log(proba))
   return jax.scipy.special.logsumexp(logits) - jn.dot(logits, one_hot)
-
-
-def multiclass_sparsemax_loss(label: int, scores: jn.ndarray) -> float:
-  """Multiclass sparsemax loss.
-
-  Args:
-    label: ground-truth integer label, between 0 and n_classes - 1.
-    scores: scores produced by the model, shape = (n_classes, ).
-  Returns:
-    loss value
-  References:
-    From Softmax to Sparsemax: A Sparse Model of Attention and Multi-Label
-    Classification. André F. T. Martins, Ramón Fernandez Astudillo.
-    ICML 2016.
-  """
-  n_classes = scores.shape[0]
-  one_hot = jax.nn.one_hot(label, n_classes)
-  proba = projection_simplex(scores)
-  # Fenchel conjugate of the Gini negentropy, defined by:
-  # cumulant = jnp.dot(proba, scores) + 0.5 * jnp.dot(proba, (1 - proba)).
-  cumulant = 0.5 + jn.dot(proba, scores - 0.5 * proba)
-  return cumulant - jn.dot(scores, one_hot)
 
 
 def smooth_labels(labels, alpha: float) -> jn.ndarray:
@@ -445,49 +416,6 @@ def softmax_cross_entropy(logits, labels):
   logits = logits.value if isinstance(logits, JaxArray) else logits
   labels = labels.value if isinstance(labels, JaxArray) else labels
   return -jn.sum(labels * jax.nn.log_softmax(logits, axis=-1), axis=-1)
-
-
-def cosine_similarity(predictions, targets, epsilon: float = 0., ):
-  r"""Computes the cosine similarity between targets and predictions.
-  The cosine **similarity** is a measure of similarity between vectors defined
-  as the cosine of the angle between them, which is also the inner product of
-  those vectors normalized to have unit norm.
-  References:
-    [Wikipedia, 2021](https://en.wikipedia.org/wiki/Cosine_similarity)
-  Args:
-    predictions: The predicted vector.
-    targets: Ground truth target vector.
-    epsilon: minimum norm for terms in the denominator of the cosine similarity.
-  Returns:
-    cosine similarity values.
-  """
-  # vectorize norm fn, to treat all dimensions except the last as batch dims.
-  batched_norm_fn = jn.vectorize(
-    utils.safe_norm, signature='(k)->()', excluded={1})
-  # normalise the last dimension of targets and predictions.
-  unit_targets = targets / jn.expand_dims(
-    batched_norm_fn(targets, epsilon), axis=-1)
-  unit_predictions = predictions / jn.expand_dims(
-    batched_norm_fn(predictions, epsilon), axis=-1)
-  # return cosine similarity.
-  return jn.sum(unit_targets * unit_predictions, axis=-1)
-
-
-def cosine_distance(predicts, targets, epsilon: float = 0.):
-  r"""Computes the cosine distance between targets and predictions.
-  The cosine **distance**, implemented here, measures the **dissimilarity**
-  of two vectors as the opposite of cosine **similarity**: `1 - cos(\theta)`.
-  References:
-    [Wikipedia, 2021](https://en.wikipedia.org/wiki/Cosine_similarity)
-  Args:
-    predicts: The predicted vector.
-    targets: Ground truth target vector.
-    epsilon: minimum norm for terms in the denominator of the cosine similarity.
-  Returns:
-    cosine similarity values.
-  """
-  # cosine distance = 1 - cosine similarity.
-  return 1. - cosine_similarity(predicts, targets, epsilon)
 
 
 def log_cosh(predicts, targets=None, ):

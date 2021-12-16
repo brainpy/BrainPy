@@ -768,7 +768,7 @@ class TestClassFuncVectorGrad(unittest.TestCase):
     g = bm.vector_grad(t, grad_vars=(t.x, ))()
     self.assertTrue(bm.array_equal(g[0], 2 * t.x))
 
-    g = bm.vector_grad(t, grad_vars=(t.x, t.y))(t.x, t.y)
+    g = bm.vector_grad(t, grad_vars=(t.x, t.y))()
     self.assertTrue(bm.array_equal(g[0], 2 * t.x))
     self.assertTrue(bm.array_equal(g[1], 2 * t.y))
 

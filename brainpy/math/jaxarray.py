@@ -5,6 +5,8 @@ import numpy as np
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node
 
+from brainpy.errors import MathError
+
 __all__ = [
   'JaxArray',
   'ndarray',  # alias of JaxArray
@@ -819,6 +821,15 @@ class JaxArray(object):
     """Support ``numpy.array()`` and ``numpy.asarray()`` functions."""
     return np.asarray(self.value)
 
+  def update(self, val):
+    if np.shape(val) != np.shape(self.value):
+      raise MathError(f"The shape of the data is {np.shape(self.value)}, "
+                      f"while we got {np.shape(val)}.")
+    if val.dtype != self.value.dtype:
+      raise MathError(f"The dtype of the data is {self.value.dtype}, "
+                      f"while we got {val.dtype}.")
+    self.value = val
+
 
 ndarray = JaxArray
 
@@ -838,10 +849,6 @@ class Variable(JaxArray):
       value = value.value
     # assert jnp.ndim(value) >= 1, 'Must be an array, not scalar.'
     super(Variable, self).__init__(value)
-
-  def update(self, val):
-    assert (val.shape == self.value.shape) and (val.dtype == self.value.dtype)
-    self.value = val
 
 
 class TrainVar(Variable):

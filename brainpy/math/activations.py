@@ -15,11 +15,9 @@ import operator
 
 import numpy as np
 import jax
-import jax.numpy
+import jax.numpy as jnp
 import jax.scipy
-import jax.core
 
-from brainpy.math import ops
 from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
@@ -81,7 +79,7 @@ def celu(x, alpha=1.0):
   """
   x = x.value if isinstance(x, JaxArray) else x
   alpha = alpha.value if isinstance(alpha, JaxArray) else alpha
-  return JaxArray(jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(x / alpha)))
+  return JaxArray(jnp.where(x > 0, x, alpha * jnp.expm1(x / alpha)))
 
 
 def elu(x, alpha=1.0):
@@ -104,8 +102,8 @@ def elu(x, alpha=1.0):
   """
   x = x.value if isinstance(x, JaxArray) else x
   alpha = alpha.value if isinstance(alpha, JaxArray) else alpha
-  safe_x = jax.numpy.where(x > 0, 0., x)
-  return JaxArray(jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(safe_x)))
+  safe_x = jnp.where(x > 0, 0., x)
+  return JaxArray(jnp.where(x > 0, x, alpha * jnp.expm1(safe_x)))
 
 
 def gelu(x, approximate=True):
@@ -136,10 +134,10 @@ def gelu(x, approximate=True):
   x = x.value if isinstance(x, JaxArray) else x
   if approximate:
     sqrt_2_over_pi = np.sqrt(2 / np.pi).astype(x.dtype)
-    cdf = 0.5 * (1.0 + jax.numpy.tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
+    cdf = 0.5 * (1.0 + jnp.tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
     y = x * cdf
   else:
-    y = jax.numpy.array(x * (jax.lax.erf(x / np.sqrt(2)) + 1) / 2, dtype=x.dtype)
+    y = jnp.array(x * (jax.lax.erf(x / np.sqrt(2)) + 1) / 2, dtype=x.dtype)
   return JaxArray(y)
 
 
@@ -156,7 +154,7 @@ def glu(x, axis=-1):
   size = x.shape[axis]
   assert size % 2 == 0, "axis size must be divisible by 2"
   x = x.value if isinstance(x, JaxArray) else x
-  x1, x2 = jax.numpy.split(x, 2, axis)
+  x1, x2 = jnp.split(x, 2, axis)
   return JaxArray(x1 * sigmoid(x2))
 
 
@@ -178,7 +176,7 @@ def hard_tanh(x):
     The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jax.numpy.where(x > 1, 1, jax.numpy.where(x < -1, -1, x)))
+  return JaxArray(jnp.where(x > 1, 1, jnp.where(x < -1, -1, x)))
 
 
 def hard_sigmoid(x):
@@ -237,7 +235,7 @@ def leaky_relu(x, negative_slope=1e-2):
     The scalar specifying the negative slope (default: 0.01)
   """
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jax.numpy.where(x >= 0, x, negative_slope * x))
+  return JaxArray(jnp.where(x >= 0, x, negative_slope * x))
 
 
 def softplus(x):
@@ -254,7 +252,7 @@ def softplus(x):
     The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jax.numpy.logaddexp(x, 0))
+  return JaxArray(jnp.logaddexp(x, 0))
 
 
 def log_sigmoid(x):
@@ -293,7 +291,7 @@ def log_softmax(x, axis=-1):
   """
   x = x.value if isinstance(x, JaxArray) else x
   shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
-  return JaxArray(shifted - jax.numpy.log(jax.numpy.sum(jax.numpy.exp(shifted), axis, keepdims=True)))
+  return JaxArray(shifted - jnp.log(jnp.sum(jnp.exp(shifted), axis, keepdims=True)))
 
 
 def _canonicalize_axis(axis, num_dims) -> int:
@@ -314,14 +312,14 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
   Each index in the input ``x`` is encoded as a vector of zeros of length
   ``num_classes`` with the element at ``index`` set to one::
 
-    >>> one_hot(ops.array([0, 1, 2]), 3)
+    >>> one_hot(bm.array([0, 1, 2]), 3)
     DeviceArray([[1., 0., 0.],
                   [0., 1., 0.],
                   [0., 0., 1.]], dtype=float32)
 
   Indicies outside the range [0, num_classes) will be encoded as zeros::
 
-    >>> one_hot(ops.array([-1, 3]), 3)
+    >>> one_hot(bm.array([-1, 3]), 3)
     DeviceArray([[0., 0., 0.],
                  [0., 0., 0.]], dtype=float32)
 
@@ -335,8 +333,8 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
   """
   num_classes = jax.core.concrete_or_error(
     int, num_classes, "The error arose in jax.nn.one_hot argument `num_classes`.")
-  dtype = jax.dtypes.canonicalize_dtype(jax.numpy.float64 if dtype is None else dtype)
-  x = jax.numpy.asarray(x)
+  dtype = jax.dtypes.canonicalize_dtype(jnp.float64 if dtype is None else dtype)
+  x = jnp.asarray(x)
   try:
     output_pos_axis = _canonicalize_axis(axis, x.ndim + 1)
   except TypeError:
@@ -345,27 +343,27 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
       raise ValueError(f"Expected num_classes to match the size of axis {axis}, "
                        f"but {num_classes} != {axis_size}") from None
     axis_idx = jax.lax.axis_index(axis)
-    return jax.numpy.asarray(x == axis_idx, dtype=dtype)
+    return jnp.asarray(x == axis_idx, dtype=dtype)
   axis = operator.index(axis)
   lhs = jax.lax.expand_dims(x, (axis,))
   rhs_shape = [1] * x.ndim
   rhs_shape.insert(output_pos_axis, num_classes)
-  rhs = jax.lax.broadcast_in_dim(jax.numpy.arange(num_classes, dtype=x.dtype),
+  rhs = jax.lax.broadcast_in_dim(jnp.arange(num_classes, dtype=x.dtype),
                                  rhs_shape, (output_pos_axis,))
-  return JaxArray(jax.numpy.asarray(lhs == rhs, dtype=dtype))
+  return JaxArray(jnp.asarray(lhs == rhs, dtype=dtype))
 
 
 def normalize(x, axis=-1, mean=None, variance=None, epsilon=1e-5):
   """Normalizes an array by subtracting mean and dividing by sqrt(var)."""
   x = x.value if isinstance(x, JaxArray) else x
   if mean is None:
-    mean = jax.numpy.mean(x, axis, keepdims=True)
+    mean = jnp.mean(x, axis, keepdims=True)
   if variance is None:
     # this definition is traditionally seen as less accurate than jnp.var's
     # mean((x - mean(x))**2) but may be faster and even, given typical
     # activation distributions and low-precision arithmetic, more accurate
     # when used in neural network normalization layers
-    variance = jax.numpy.mean(jax.numpy.square(x), axis, keepdims=True) - jax.numpy.square(mean)
+    variance = jnp.mean(jnp.square(x), axis, keepdims=True) - jnp.square(mean)
   y = (x - mean) * jax.lax.rsqrt(variance + epsilon)
   return JaxArray(y)
 
@@ -389,7 +387,7 @@ def relu6(x):
     The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jax.numpy.minimum(jax.numpy.maximum(x, 0), 6.))
+  return JaxArray(jnp.minimum(jnp.maximum(x, 0), 6.))
 
 
 def sigmoid(x):
@@ -423,7 +421,7 @@ def soft_sign(x):
     The input array.
   """
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(x / (jax.numpy.abs(x) + 1))
+  return JaxArray(x / (jnp.abs(x) + 1))
 
 
 def softmax(x, axis=-1):
@@ -445,7 +443,7 @@ def softmax(x, axis=-1):
     Either an integer or a tuple of integers.
   """
   x = x.value if isinstance(x, JaxArray) else x
-  unnormalized = jax.numpy.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
+  unnormalized = jnp.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
   return JaxArray(unnormalized / unnormalized.sum(axis, keepdims=True))
 
 
@@ -495,5 +493,5 @@ def selu(x):
   alpha = 1.6732632423543772848170429916717
   scale = 1.0507009873554804934193349852946
   x = x.value if isinstance(x, JaxArray) else x
-  safe_x = jax.numpy.where(x > 0, 0., x)
-  return JaxArray(scale * jax.numpy.where(x > 0, x, alpha * jax.numpy.expm1(safe_x)))
+  safe_x = jnp.where(x > 0, 0., x)
+  return JaxArray(scale * jnp.where(x > 0, x, alpha * jnp.expm1(safe_x)))

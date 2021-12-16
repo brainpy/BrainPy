@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MathError
-from brainpy.math import ops
+from brainpy.math import numpy_ops as ops
 from brainpy.math.jaxarray import Variable
 
 __all__ = [
@@ -41,18 +41,14 @@ class Optimizer(Base):
       raise MathError('"train_vars" must be a dict of JaxArray.')
     self.lr = make_schedule(lr)
     self.vars_to_train = train_vars
-    self.implicit_vars = TensorCollector()
 
-  def register_variables(self, variables: dict):
-    if self.implicit_vars is None:
-      raise MathError('Please super initialize the Optimizer first, '
-                      'then call "register_variables()".')
-    for key, var in variables.items():
-      if key in self.implicit_vars:
-        if id(self.implicit_vars[key]) != id(var):
-          raise MathError(f'Name "{key}" conflicts: same name for {var} '
-                          f'and {self.implicit_vars[key]}.')
-      self.implicit_vars[key] = var
+  # def register_variables(self, variables: dict):
+  #   for key, var in variables.items():
+  #     if key in self.implicit_vars:
+  #       if id(self.implicit_vars[key]) != id(var):
+  #         raise MathError(f'Name "{key}" conflicts: same name for {var} '
+  #                         f'and {self.implicit_vars[key]}.')
+  #     self.implicit_vars[key] = var
 
   def check_grads(self, grads):
     if len(grads) != len(self.vars_to_train):
@@ -115,7 +111,7 @@ class Momentum(Optimizer):
     self.momentum = momentum
     vs = dict((key + '_v', Variable(ops.zeros_like(x)))
               for key, x in self.vars_to_train.items())
-    self.register_variables(vs)
+    self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
     self.check_grads(grads)
@@ -153,7 +149,7 @@ class MomentumNesterov(Optimizer):
     self.momentum = momentum
     vs = dict((key + '_v', Variable(ops.zeros_like(x)))
               for key, x in self.vars_to_train.items())
-    self.register_variables(vs)
+    self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
     self.check_grads(grads)
@@ -198,7 +194,7 @@ class Adagrad(Optimizer):
     self.epsilon = epsilon
     caches = dict((key + '_cache', Variable(ops.zeros_like(x)))
                   for key, x in self.vars_to_train.items())
-    self.register_variables(caches)
+    self.register_implicit_vars(caches)
 
   def update(self, grads: dict):
     self.check_grads(grads)
@@ -256,8 +252,8 @@ class Adadelta(Optimizer):
     self.rho = rho
     caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in self.vars_to_train.items())
     deltas = dict((key + '_delta', Variable(ops.zeros_like(x))) for key, x in self.vars_to_train.items())
-    self.register_variables(caches)
-    self.register_variables(deltas)
+    self.register_implicit_vars(caches)
+    self.register_implicit_vars(deltas)
 
   def update(self, grads: dict):
     self.check_grads(grads)
@@ -303,7 +299,7 @@ class RMSProp(Optimizer):
     self.epsilon = epsilon
     self.rho = rho
     caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in self.vars_to_train.items())
-    self.register_variables(caches)
+    self.register_implicit_vars(caches)
 
   def update(self, grads: dict):
     self.check_grads(grads)
@@ -350,8 +346,8 @@ class Adam(Optimizer):
     self.eps = eps
     ms = dict((k + '_m', Variable(ops.zeros_like(x))) for k, x in self.vars_to_train.items())
     vs = dict((k + '_v', Variable(ops.zeros_like(x))) for k, x in self.vars_to_train.items())
-    self.register_variables(ms)
-    self.register_variables(vs)
+    self.register_implicit_vars(ms)
+    self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
     self.check_grads(grads)
