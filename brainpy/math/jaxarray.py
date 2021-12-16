@@ -836,7 +836,7 @@ class Variable(JaxArray):
   def __init__(self, value):
     if isinstance(value, JaxArray):
       value = value.value
-    assert jnp.ndim(value) >= 1, 'Must be an array, not scalar.'
+    # assert jnp.ndim(value) >= 1, 'Must be an array, not scalar.'
     super(Variable, self).__init__(value)
 
   def update(self, val):

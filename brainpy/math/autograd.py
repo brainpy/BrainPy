@@ -141,7 +141,7 @@ def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False, a
   2. When "grad_vars" is not None and "argnums" is None
     - "has_aux=False" + "return_value=False" => ``var_grads``.
     - "has_aux=True" + "return_value=False" => ``(var_grads, aux_data)``.
-    - "has_aux=False" + "return_value=True" => ``(var_grads, loss_value`)`.
+    - "has_aux=False" + "return_value=True" => ``(var_grads, loss_value)``.
     - "has_aux=True" + "return_value=True" => ``(var_grads, loss_value, aux_data)``.
   3. When "grad_vars" is not None and "argnums" is not None
     - "has_aux=False" + "return_value=False" => ``(var_grads, arg_grads)``.
@@ -444,7 +444,7 @@ def jacrev(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
   2. When "grad_vars" is not None and "argnums" is None
     - "has_aux=False" + "return_value=False" => ``var_grads``.
     - "has_aux=True" + "return_value=False" => ``(var_grads, aux_data)``.
-    - "has_aux=False" + "return_value=True" => ``(var_grads, loss_value`)`.
+    - "has_aux=False" + "return_value=True" => ``(var_grads, loss_value)``.
     - "has_aux=True" + "return_value=True" => ``(var_grads, loss_value, aux_data)``.
   3. When "grad_vars" is not None and "argnums" is not None
     - "has_aux=False" + "return_value=False" => ``(var_grads, arg_grads)``.
@@ -657,7 +657,7 @@ def vector_grad(func, dyn_vars=None, grad_vars=None, argnums=None, return_value=
   2. When "grad_vars" is not None and "argnums" is None
     - "has_aux=False" + "return_value=False" => ``var_grads``.
     - "has_aux=True" + "return_value=False" => ``(var_grads, aux_data)``.
-    - "has_aux=False" + "return_value=True" => ``(var_grads, loss_value`)`.
+    - "has_aux=False" + "return_value=True" => ``(var_grads, loss_value)``.
     - "has_aux=True" + "return_value=True" => ``(var_grads, loss_value, aux_data)``.
   3. When "grad_vars" is not None and "argnums" is not None
     - "has_aux=False" + "return_value=False" => ``(var_grads, arg_grads)``.

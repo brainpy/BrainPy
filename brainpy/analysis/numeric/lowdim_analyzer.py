@@ -2,6 +2,7 @@
 
 from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
 from jax import numpy as jnp
 from jax.scipy.optimize import minimize
@@ -192,6 +193,9 @@ class LowDimAnalyzer(object):
     # 'y_by_x_in_fx' :
     # 'x_by_y_in_fx' :
     self.analyzed_results = tools.DictPlus()
+
+  def show_figure(self):
+    plt.show()
 
 
 class Num1DAnalyzer(LowDimAnalyzer):
@@ -889,6 +893,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
     """
 
     if self._can_convert_to_one_eq():
+      utils.output("I am trying to find fixed points by brentq optimization ...")
+
       # candidates: xs, a vector with the length of self.resolutions[self.x_var]
       # args: parameters, a list/tuple of vectors
       candidates = candidates.value if isinstance(candidates, bm.JaxArray) else candidates

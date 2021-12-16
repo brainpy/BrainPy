@@ -46,7 +46,8 @@ def wilson_cowan_model():
   pp.plot_nullcline(coords={'i': 'i-e'})
   pp.plot_fixed_point()
   pp.plot_trajectory(initials={'i': [0.5, 0.6], 'e': [-0.1, 0.4]},
-                     duration=10, dt=0.1, show=True)
+                     duration=10, dt=0.1)
+  pp.show_figure()
 
 
 def decision_making_model():
@@ -91,7 +92,8 @@ def decision_making_model():
   )
   analyzer.plot_vector_field()
   analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
-  analyzer.plot_fixed_point(show=True, tol_opt_screen=None)
+  analyzer.plot_fixed_point()
+  analyzer.show_figure()
 
   analyzer = bp.analysis.Bifurcation2D(
     model=[int_s1, int_s2],
@@ -99,12 +101,12 @@ def decision_making_model():
     target_pars={'gamma': [0.4, 0.8]},
     resolutions={'s1': 0.001, 's2': 0.001, 'gamma': 0.01}
   )
-  analyzer.plot_bifurcation(show=True,
-                            num_par_segments=4,
+  analyzer.plot_bifurcation(num_par_segments=4,
                             num_fp_segment=4,
                             nullcline_aux_filter=0.1,
                             select_candidates='aux_rank',
                             num_rank=100)
+  analyzer.show_figure()
 
 
 def fhn_model():
@@ -131,11 +133,14 @@ def fhn_model():
   )
   pp.plot_vector_field()
   pp.plot_nullcline(coords={'V': 'w-V'})
-  pp.plot_fixed_point(show=True)
+  pp.plot_fixed_point()
+  pp.plot_trajectory(initials={'V': [0.], 'w': [1.]},
+                     duration=100, plot_durations=[50, 100])
+  pp.show_figure()
 
 
 if __name__ == '__main__':
-  wilson_cowan_model()
-  decision_making_model()
+  # wilson_cowan_model()
+  # decision_making_model()
   fhn_model()
 

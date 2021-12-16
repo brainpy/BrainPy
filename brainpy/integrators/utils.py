@@ -55,7 +55,7 @@ def get_args(f):
       The variable names, the other arguments, and the original args.
   """
 
-  # 1. get the function arguments
+  # get the function arguments
   reduced_args = []
   original_args = []
 
@@ -78,17 +78,7 @@ def get_args(f):
 
     original_args.append(str(par))
 
-  # 2. analyze the function arguments
-  #   2.1 class keywords
-  # class_kw = []
-  # if reduced_args[0] in profile.CLASS_KEYWORDS:
-  #   class_kw.append(reduced_args[0])
-  #   reduced_args = reduced_args[1:]
-  # for a in reduced_args:
-  #   if a in profile.CLASS_KEYWORDS:
-  #     raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
-  #                              f'as the first argument.')
-  #  2.2 variable names
+  #  variable names
   var_names = []
   for a in reduced_args:
     if a == 't':

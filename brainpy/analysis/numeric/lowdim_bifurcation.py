@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import gc
-
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -202,6 +200,15 @@ class Bifurcation2D(Num2DAnalyzer):
     num_rank: int
       The number of candidates to be used to optimize the fixed points.
       rank to use.
+
+    Returns
+    -------
+    results : tuple
+      Return a tuple of analyzed results:
+
+      - fixed points: a 2D matrix with the shape of (num_point, num_var)
+      - parameters: a 2D matrix with the shape of (num_point, num_par)
+      - jacobians: a 3D tensors with the shape of (num_point, 2, 2)
     """
     utils.output('I am making bifurcation analysis ...')
 
@@ -257,12 +264,12 @@ class Bifurcation2D(Num2DAnalyzer):
       fps, ids2 = utils.keep_unique(candidates[ids], tol=tol_unique)
       final_fps.append(fps)
       final_pars.append(parameters[ids[ids2]])
-    final_fps = np.vstack(final_fps)
-    final_pars = np.vstack(final_pars)
+    final_fps = np.vstack(final_fps)  # with the shape of (num_point, num_var)
+    final_pars = np.vstack(final_pars)  # with the shape of (num_point, num_par)
     jacobians = np.asarray(self.F_vmap_jacobian(jnp.asarray(final_fps), *final_pars.T))
     utils.output(f'{C.prefix}Found {len(final_fps)} fixed points.')
 
-    # remember the fixed points
+    # remember the fixed points for later limit cycle plotting
     self._fixed_points = (final_fps, final_pars)
 
     if with_plot:
@@ -339,66 +346,72 @@ class Bifurcation2D(Num2DAnalyzer):
     if with_return:
       return final_fps, final_pars, jacobians
 
-  def plot_limit_cycle_by_sim(self, var, duration=100, with_plot=True, with_return=False,
+  def plot_limit_cycle_by_sim(self, duration=100, with_plot=True, with_return=False,
                               plot_style=None, tol=0.001, show=False, dt=None, offset=1.):
     utils.output('I am plotting limit cycle ...')
-
     if self._fixed_points is None:
       utils.output('No fixed points found, you may call "plot_bifurcation(with_plot=True)" first.')
       return
-    if plot_style is None: plot_style = dict()
-    fmt = plot_style.pop('fmt', '.')
-
-    if var not in [self.x_var, self.y_var]:
-      raise errors.AnalyzerError()
 
     final_fps, final_pars = self._fixed_points
     dt = bm.get_dt() if dt is None else dt
     traject_model = utils.TrajectModel(
-      initial_vars={self.x_var: final_fps[:, 0] + offset,
-                    self.y_var: final_fps[:, 1] + offset},
+      initial_vars={self.x_var: final_fps[:, 0] + offset, self.y_var: final_fps[:, 1] + offset},
       integrals=[self.F_int_x, self.F_int_y],
-      pars={p: v for p, v in zip(self.target_par_names, final_pars)},
+      pars={p: v for p, v in zip(self.target_par_names, final_pars.T)},
       dt=dt
     )
     mon_res = traject_model.run(duration=duration)
 
     # find limit cycles
-    limit_cycle_max = []
-    limit_cycle_min = []
+    vs_limit_cycle = tuple({'min': [], 'max': []} for _ in self.target_var_names)
     ps_limit_cycle = tuple([] for _ in self.target_par_names)
     for i in range(mon_res[self.x_var].shape[1]):
-      data = mon_res[var][:, i]
+      data = mon_res[self.x_var][:, i]
       max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
       if max_index[0] != -1:
-        x_cycle = data[max_index[0]: max_index[1]]
-        limit_cycle_max.append(data[max_index[1]])
-        limit_cycle_min.append(x_cycle.min())
+        cycle = data[max_index[0]: max_index[1]]
+        vs_limit_cycle[0]['max'].append(mon_res[self.x_var][max_index[1], i])
+        vs_limit_cycle[0]['min'].append(cycle.min())
+        cycle = mon_res[self.y_var][max_index[0]: max_index[1], i]
+        vs_limit_cycle[1]['max'].append(mon_res[self.y_var][max_index[1], i])
+        vs_limit_cycle[1]['min'].append(cycle.min())
         for j in range(len(self.target_par_names)):
-          ps_limit_cycle[j].append(final_pars[j][i])
-    limit_cycle_max = np.array(limit_cycle_max)
-    limit_cycle_min = np.array(limit_cycle_min)
+          ps_limit_cycle[j].append(final_pars[i, j])
+    vs_limit_cycle = tuple({k: np.asarray(v) for k, v in lm.items()} for lm in vs_limit_cycle)
     ps_limit_cycle = tuple(np.array(p) for p in ps_limit_cycle)
 
     # visualization
-    if len(self.target_par_names) == 2:
-      plt.figure(var)
-      plt.plot(ps_limit_cycle[0], ps_limit_cycle[1], limit_cycle_max, **plot_style, label='limit cycle (max)')
-      plt.plot(ps_limit_cycle[0], ps_limit_cycle[1], limit_cycle_min, **plot_style, label='limit cycle (min)')
-      plt.legend()
+    if with_plot:
+      if plot_style is None: plot_style = dict()
+      fmt = plot_style.pop('fmt', '.')
 
-    else:
-      if len(limit_cycle_max):
-        plt.figure(var)
-        plt.plot(ps_limit_cycle[0], limit_cycle_max, fmt, **plot_style, label='limit cycle (max)')
-        plt.plot(ps_limit_cycle[0], limit_cycle_min, fmt, **plot_style, label='limit cycle (min)')
-        plt.legend()
+      if len(self.target_par_names) == 2:
+        for i, var in enumerate(self.target_var_names):
+          plt.figure(var)
+          plt.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['max'],
+                   **plot_style, label='limit cycle (max)')
+          plt.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['min'],
+                   **plot_style, label='limit cycle (min)')
+          plt.legend()
 
-    if show:
-      plt.show()
+      elif len(self.target_par_names) == 1:
+        for i, var in enumerate(self.target_var_names):
+          plt.figure(var)
+          plt.plot(ps_limit_cycle[0], vs_limit_cycle[i]['max'], fmt,
+                   **plot_style, label='limit cycle (max)')
+          plt.plot(ps_limit_cycle[0], vs_limit_cycle[i]['min'], fmt,
+                   **plot_style, label='limit cycle (min)')
+          plt.legend()
 
-    del traject_model
-    gc.collect()
+      else:
+        raise errors.AnalyzerError
+
+      if show:
+        plt.show()
+
+    if with_return:
+      return vs_limit_cycle, ps_limit_cycle
 
 
 class FastSlow1D(Bifurcation1D):
