@@ -8,6 +8,12 @@ from setuptools import find_packages, setup
 from setuptools.command.build_ext import build_ext
 
 
+def get_export_symbols():
+  return []
+
+
+build_ext.get_export_symbols = get_export_symbols
+
 # version control
 HERE = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
@@ -20,7 +26,7 @@ if cuda_version:
 # extension modules
 ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
-                    ["lib/cpu_ops.cc", "lib/event_add_cpu.cc"],
+                    sources=["lib/cpu_ops.cc", "lib/event_add_cpu.cc"],
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
 
