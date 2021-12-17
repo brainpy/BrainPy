@@ -16,8 +16,6 @@ class TwoEndConn(DynamicalSystem):
 
   Parameters
   ----------
-  steps : function, list of function, tuple of function, dict of (str, function), optional
-      The step functions.
   pre : NeuGroup
       Pre-synaptic neuron group.
   post : NeuGroup

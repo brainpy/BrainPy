@@ -22,15 +22,15 @@ class MatConn(TwoEndConnector):
     super(MatConn, self).__init__()
 
     assert isinstance(conn_mat, (np.ndarray, JaxArray, jnp.ndarray)) and conn_mat.ndim == 2
-    self.dense_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
     self.pre_num, self.post_num = conn_mat.shape
+    self._reset_conn(pre_size=self.pre_num, post_size=self.post_num)
+    self.data = csr_matrix(np.asarray(conn_mat, dtype=WEIGHT_DTYPE))
 
   def __call__(self, pre_size, post_size):
     assert self.pre_num == tools.size2num(pre_size)
     assert self.post_num == tools.size2num(post_size)
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self.data = csr_matrix(self.dense_mat)
     return self
+
 
 class IJConn(TwoEndConnector):
   """Connector built from the ``pre_ids`` and ``post_ids`` connections."""
@@ -48,7 +48,7 @@ class IJConn(TwoEndConnector):
 
   def __call__(self, pre_size, post_size):
     self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self.data = csr_matrix((np.ones_like(self.pre_ids_list, np.bool_),
+    self.data = csr_matrix((np.ones_like(self.pre_ids_list, WEIGHT_DTYPE),
                             (self.pre_ids_list, self.post_ids_list)),
                            shape=(self.pre_num, self.post_num))
     return self
@@ -61,6 +61,7 @@ class SparseMatConn(TwoEndConnector):
     super(SparseMatConn, self).__init__()
 
     assert isinstance(csr_mat, csr_matrix)
+    csr_mat.data = np.asarray(csr_mat.data, dtype=WEIGHT_DTYPE)
     self.csr_mat = csr_mat
     self.pre_num, self.post_num = csr_mat.shape
 

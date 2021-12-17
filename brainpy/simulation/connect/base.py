@@ -5,6 +5,7 @@ import logging
 from typing import Union, List, Tuple
 
 import numpy as np
+import jax.numpy as jnp
 from scipy.sparse import csr_matrix
 
 from brainpy import tools, math
@@ -14,7 +15,7 @@ logger = logging.getLogger('brainpy.simulation.connect')
 
 __all__ = [
   # the connection types
-  'CONN_MAT',
+  'CONN_MAT', 'WEIGHT_MAT',
   'PRE_IDS', 'POST_IDS',
   'PRE2POST', 'POST2PRE',
   'PRE2SYN', 'POST2SYN',
@@ -24,7 +25,7 @@ __all__ = [
   'PROVIDE_MAT', 'PROVIDE_IJ',
 
   # the types to store connections
-  'set_default_dtype', 'MAT_DTYPE', 'IDX_DTYPE',
+  'set_default_dtype', 'MAT_DTYPE', 'IDX_DTYPE', 'WEIGHT_DTYPE',
 
   # base class
   'Connector', 'TwoEndConnector', 'OneEndConnector',
@@ -35,6 +36,7 @@ __all__ = [
 ]
 
 CONN_MAT = 'conn_mat'
+WEIGHT_MAT = 'weight_mat'
 PRE_IDS = 'pre_ids'
 POST_IDS = 'post_ids'
 PRE2POST = 'pre2post'
@@ -44,7 +46,7 @@ POST2SYN = 'post2syn'
 PRE_SLICE = 'pre_slice'
 POST_SLICE = 'post_slice'
 
-SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
+SUPPORTED_SYN_STRUCTURE = [CONN_MAT, WEIGHT_MAT,
                            PRE_IDS, POST_IDS,
                            PRE2POST, POST2PRE,
                            PRE2SYN, POST2SYN,
@@ -55,6 +57,7 @@ PROVIDE_IJ = 'ij'
 
 MAT_DTYPE = np.bool_
 IDX_DTYPE = np.uint32
+WEIGHT_DTYPE = np.float32
 
 
 def set_default_dtype(mat_dtype=None, idx_dtype=None):
@@ -105,6 +108,7 @@ class Connector(abc.ABC):
     self._pre_ids = None
     self._post_ids = None
     self._conn_mat = None
+    self._weight_mat = None
     self._pre2post = None
     self._post2pre = None
     self._pre2syn = None
@@ -147,16 +151,20 @@ class TwoEndConnector(Connector):
     self._pre_ids = None
     self._post_ids = None
     self._conn_mat = None
+    self._weight_mat = None
     self._pre2post = None
     self._post2pre = None
     self._pre2syn = None
     self._post2syn = None
 
-    if isinstance(pre_size, int): pre_size = (pre_size,)
+    if isinstance(pre_size, int):
+      pre_size = (pre_size,)
     pre_size = tuple(pre_size)
-    if isinstance(post_size, int): post_size = (post_size,)
+    if isinstance(post_size, int):
+      post_size = (post_size,)
     post_size = tuple(post_size)
     self.pre_size, self.post_size = pre_size, post_size
+
     self.pre_num = tools.size2num(self.pre_size)
     self.post_num = tools.size2num(self.post_size)
 
@@ -164,8 +172,7 @@ class TwoEndConnector(Connector):
     # get synaptic structures
     for n in structures:
       if n not in SUPPORTED_SYN_STRUCTURE:
-        raise ConnectorError(f'Unknown synapse structure "{n}". We only '
-                             f'support {SUPPORTED_SYN_STRUCTURE}.')
+        raise ConnectorError(f'Unknown synapse structure "{n}". Only {SUPPORTED_SYN_STRUCTURE} is supported.')
 
     # provide what synaptic structure?
     if len(structures) == 0:
@@ -175,24 +182,42 @@ class TwoEndConnector(Connector):
     if self._data is None:
       raise ConnectorError(f'Please call "__call__" first to obtain the connection data.')
     if not isinstance(self._data, csr_matrix):
-      raise ConnectorError(f'"self._data" must be an instance of {csr_matrix}, while we got {type(self._data)}.')
+      raise ConnectorError(f'"{Connector.__name__}._data" must be an instance of {csr_matrix}, '
+                           f'while we got {type(self._data)}.')
+
+  @property
+  def weights(self):
+      return self._weights # JAxArray
+
+  @weights.setter
+  def weights(self, w):
+    if not isinstance(w, math.jaxarray.JaxArray):
+      raise ConnectorError(f'{Connector.__name__}.weights only receive instance '
+                           f'of {math.jaxarray.JaxArray}, but we got {type(w)}.')
+    self._data.data = w
+
+  @property
+  def weight_mat(self):
+    if self._weight_mat is None:
+      return math.asarray(self._data.todense(), dtype=WEIGHT_DTYPE)
+    return self._weight_mat
 
   @property
   def conn_mat(self):
     if self._conn_mat is None:
-      raise ConnectorError('Please require conn_mat first.')
+      return math.asarray(self._data.todense(), dtype=MAT_DTYPE)
     return self._conn_mat
 
   @property
   def pre_ids(self):
     if self._pre_ids is None:
-      raise ConnectorError('Please require pre_ids first.')
+      return math.asarray(np.repeat(np.arange(self.pre_num), np.diff(self._data.indptr)))
     return self._pre_ids
 
   @property
   def post_ids(self):
     if self._post_ids is None:
-      raise ConnectorError('Please require post_ids first.')
+      return math.asarray(self._data.indices, dtype=IDX_DTYPE)
     return self._post_ids
 
   @property
@@ -227,6 +252,8 @@ class TwoEndConnector(Connector):
     for n in structures:
       if n == CONN_MAT:
         self._conn_mat = all_data[CONN_MAT] = math.asarray(self._data.todense(), dtype=MAT_DTYPE)
+      elif n == WEIGHT_MAT:
+        self._weight_mat = all_data[WEIGHT_MAT] = math.asarray(self._data.todense(), dtype=WEIGHT_DTYPE)
       elif n == PRE_IDS:
         pre_ids = np.repeat(np.arange(self.pre_num), np.diff(self._data.indptr))
         self._pre_ids = all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
@@ -252,9 +279,28 @@ class TwoEndConnector(Connector):
   def requires(self, *structures):
     return self.require(*structures)
 
+  def set_weights(self, x):
+    """used for weight initialization."""
+    pass
+    # if isinstance(x, (float, int)):
+    #   self.weights = math.ones(self._data.shape) * x
+    # elif isinstance(x, (np.ndarray, math.jaxarray.JaxArray, jnp.ndarray)):
+    #   if len(x) != len(self.weights):
+    #     raise ConnectorError(f'The length of the given weights {len(x)} does not match '
+    #                          f'the length of connections {len(self.weights)}.')
+    #   self.weights = math.asarray(x)
+    # elif callable(x):
+    #   try:
+    #     w_mat = x((self.pre_num, self.post_num))
+    #
+    #   except ConnectorError:
+    #     print('The input function is not valid for weight setting.')
+    # else:
+    #   raise ConnectorError(f'Unknown input type for weight setting.')
+
 
 class OneEndConnector(TwoEndConnector):
-  """Synaptical connector to build synapse connections within a population of neurons."""
+  """Synaptic connector to build synapse connections within a population of neurons."""
 
   def __call__(self, pre_size, post_size=None):
     raise NotImplementedError
@@ -264,6 +310,7 @@ class OneEndConnector(TwoEndConnector):
     self._pre_ids = None
     self._post_ids = None
     self._conn_mat = None
+    self._weight_mat = None
     self._pre2post = None
     self._post2pre = None
     self._pre2syn = None
@@ -273,11 +320,14 @@ class OneEndConnector(TwoEndConnector):
       post_size = pre_size
     else:
       assert pre_size == post_size
-    if isinstance(pre_size, int): pre_size = (pre_size,)
+    if isinstance(pre_size, int):
+      pre_size = (pre_size,)
     pre_size = tuple(pre_size)
-    if isinstance(post_size, int): post_size = (post_size,)
+    if isinstance(post_size, int):
+      post_size = (post_size,)
     post_size = tuple(post_size)
     self.pre_size, self.post_size = pre_size, post_size
+
     self.pre_num = tools.size2num(self.pre_size)
     self.post_num = tools.size2num(self.post_size)
     return self

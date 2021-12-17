@@ -25,8 +25,11 @@ class TestIJConn(TestCase):
                        [True, False, False],
                        [False, False, False],
                        [False, False, False]])
-
+    print()
+    print('weight_mat', conn.weight_mat)
+    print('conn_mat', conn.conn_mat)
     assert bp.math.array_equal(conn.require(bp.conn.CONN_MAT), a)
+
 
 class TestMatConn(TestCase):
   def test_MatConn1(self):
@@ -36,6 +39,11 @@ class TestMatConn(TestCase):
 
     print(conn.requires('pre2post'))
     print(conn.requires(bp.connect.CONN_MAT))
+
+    print()
+    print('weight_mat', conn.weight_mat)
+    print('conn_mat', conn.conn_mat)
+    # print(type(conn.weight_mat))
 
   def test_MatConn2(self):
     conn = bp.connect.MatConn(conn_mat=np.random.randint(2, size=(5, 3), dtype=bp.math.bool_))
@@ -56,3 +64,7 @@ class TestSparseMatConn(TestCase):
     pre2syn = conn.require('pre2syn')
     assert bp.math.array_equal(pre2syn[0], conn.pre2syn[0])
     assert bp.math.array_equal(pre2syn[1], conn.pre2syn[1])
+
+    print()
+    print('weight_mat', conn.weight_mat)
+    print('conn_mat', conn.conn_mat)

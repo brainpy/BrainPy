@@ -28,14 +28,10 @@ class NeuGroup(DynamicalSystem):
   ----------
   size : int, tuple of int, list of int
     The neuron group geometry.
-  num_batch : optional, int
-    The batch size.
   steps : tuple of str, tuple of function, dict of (str, function), optional
     The step functions.
   steps : tuple of str, tuple of function, dict of (str, function), optional
     The callable function, or a list of callable functions.
-  monitors : None, list, tuple, datastructures.Monitor
-    Variables to monitor.
   name : optional, str
     The name of the dynamic system.
   """
