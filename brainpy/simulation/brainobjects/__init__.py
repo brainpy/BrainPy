@@ -13,8 +13,6 @@ __all__ = [
   'DynamicalSystem', 'Container',
   # delays.py
   'Delay', 'ConstantDelay',
-  # input.py
-  'SpikeTimeInput', 'PoissonInput', # 'ConstantInput',
   # molecular.py
   'Molecular',
   # network.py
@@ -28,7 +26,6 @@ __all__ = [
 from .area import *
 from .base import *
 from .delays import *
-from .input import *
 from .molecular import *
 from .network import *
 from .neuron import *
