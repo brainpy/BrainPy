@@ -30,8 +30,6 @@ class DynamicalSystem(Base):
   ----------
   steps : tuple of str, tuple of function, dict of (str, function), optional
       The callable function, or a list of callable functions.
-  monitors : None, list, tuple, datastructures.Monitor
-      Variables to monitor.
   name : str, optional
       The name of the dynamic system.
   """
