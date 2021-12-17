@@ -44,10 +44,11 @@ class FixedProb(TwoEndConnector):
     self._reset_conn(pre_size=pre_size, post_size=post_size)
 
     prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-    if not self.include_self: np.fill_diagonal(prob_mat, 1.)
-    conn_mat = np.array(prob_mat <= self.prob, dtype=MAT_DTYPE)
+    if not self.include_self:
+      np.fill_diagonal(prob_mat, 1.)
+    conn_mat = prob_mat <= self.prob
 
-    self.data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
 
     return self
 
@@ -104,12 +105,12 @@ class FixedPreNum(TwoEndConnector):
       num = int(self.pre_num * self.num)
 
     prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-    if not self.include_self: np.fill_diagonal(prob_mat, 1.)
+    if not self.include_self:
+      np.fill_diagonal(prob_mat, 1.)
 
     conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
-    conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
 
-    self.data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
 
     return self
 
@@ -166,11 +167,12 @@ class FixedPostNum(TwoEndConnector):
       prob = self.num
 
     prob_mat = self.rng.random(size=(self.post_num, self.pre_num))
-    if not self.include_self: np.fill_diagonal(prob_mat, 1.)
+    if not self.include_self:
+      np.fill_diagonal(prob_mat, 1.)
     conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
-    conn_mat = np.asarray(np.transpose(conn_mat), dtype=MAT_DTYPE)
+    conn_mat = np.transpose(conn_mat)
 
-    self.data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
 
     return self
 
@@ -283,7 +285,7 @@ class GaussianProb(OneEndConnector):
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
 
-    self.data = csr_matrix(conn_mat)
+    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
 
     return self
 
@@ -388,11 +390,11 @@ class SmallWorld(TwoEndConnector):
                 conn[v, u] = False
                 conn[u, w] = True
                 conn[w, u] = True
-        conn = np.asarray(conn, dtype=MAT_DTYPE)
+        # conn = np.asarray(conn, dtype=MAT_DTYPE)
     else:
       raise NotImplementedError('Currently only support 1D ring connection.')
 
-    self.data  = csr_matrix(conn)
+    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
 
     return self
 
@@ -477,8 +479,7 @@ class ScaleFreeBA(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, self.m, self.rng))
       source += 1
 
-    conn = np.asarray(conn, dtype=MAT_DTYPE)
-    self.data = csr_matrix(conn)
+    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
 
     return self
 
@@ -562,8 +563,7 @@ class ScaleFreeBADual(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, m, self.rng))
       source += 1
 
-    conn = np.asarray(conn, dtype=MAT_DTYPE)
-    self.data = csr_matrix(conn)
+    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
 
     return self
 
@@ -650,20 +650,21 @@ class PowerLaw(TwoEndConnector):
           if neighborhood:  # if there is a neighbor without a link
             nbr = self.rng.choice(neighborhood)
             conn[source, nbr] = True  # add triangle
-            if not self.directed: conn[nbr, source] = True
+            if not self.directed:
+              conn[nbr, source] = True
             repeated_nodes.append(nbr)
             count = count + 1
             continue  # go to top of while loop
         # else do preferential attachment step if above fails
         target = possible_targets.pop()
         conn[source, target] = True
-        if not self.directed: conn[target, source] = True
+        if not self.directed:
+          conn[target, source] = True
         repeated_nodes.append(target)
         count = count + 1
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
 
-    conn = np.asarray(conn, dtype=MAT_DTYPE)
-    self.data = csr_matrix(conn)
+    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
 
     return self

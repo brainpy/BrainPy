@@ -31,12 +31,13 @@ class One2One(TwoEndConnector):
       raise errors.ConnectorError(f'One2One connection must be defined in two groups with the '
                                   f'same size, but we got {self.pre_num} != {self.post_num}.')
 
-    mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
+    mat = np.zeros((self.pre_num, self.post_num))
     np.fill_diagonal(mat, True)
 
-    self.data = csr_matrix(mat)
+    self.data = csr_matrix(mat, dtype=WEIGHT_DTYPE)
 
     return self
+
 
 one2one = One2One()
 
@@ -54,12 +55,13 @@ class All2All(TwoEndConnector):
   def __call__(self, pre_size, post_size):
     self._reset_conn(pre_size=pre_size, post_size=post_size)
 
-    mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
+    mat = np.ones((self.pre_num, self.post_num))
     if not self.include_self: np.fill_diagonal(mat, False)
 
-    self.data = csr_matrix(mat)
+    self.data = csr_matrix(mat, dtype=WEIGHT_DTYPE)
 
     return self
+
 
 all2all = All2All(include_self=True)
 
@@ -120,7 +122,7 @@ class GridFour(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)),
+    self.data = csr_matrix((np.ones_like(pre_ids, WEIGHT_DTYPE), (pre_ids, post_ids)),
                            shape=(self.pre_num, self.post_num))
 
     return self
@@ -199,7 +201,7 @@ class GridN(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self.data = csr_matrix((np.ones_like(pre_ids, np.bool_), (pre_ids, post_ids)),
+    self.data = csr_matrix((np.ones_like(pre_ids, WEIGHT_DTYPE), (pre_ids, post_ids)),
                            shape=(self.pre_num, self.post_num))
 
     return self

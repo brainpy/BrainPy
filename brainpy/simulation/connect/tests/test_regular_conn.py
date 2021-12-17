@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 
 import brainpy as bp
 from brainpy import connect
@@ -9,7 +10,7 @@ def test_one2one():
     conn = connect.One2One()(pre_size=size, post_size=size)
 
     # mat = conn.require(connect.CONN_MAT)
-    conn.require('pre_ids', 'post_ids', 'pre2post', 'pre2syn', 'post2pre', 'post2syn', 'conn_mat')
+    conn.require('pre_ids', 'post_ids', 'pre2post', 'pre2syn', 'post2pre', 'post2syn')
 
     pre_ids = conn.pre_ids
     post_ids = conn.post_ids
@@ -18,16 +19,19 @@ def test_one2one():
     pre2syn = conn.pre2syn
     post2syn = conn.post2syn
     dense_mat = conn.conn_mat
+    weight_mat = conn.weight_mat
     num = bp.tools.size2num(size)
 
     actual_mat = bp.math.zeros((num, num), dtype=bp.math.bool_)
     actual_mat = bp.math.fill_diagonal(actual_mat, True)
+    actual_mat = bp.math.asarray(actual_mat, dtype=np.float32)
     assert bp.math.array_equal(actual_mat, dense_mat)
     assert bp.math.array_equal(pre_ids, bp.math.arange(num))
     assert bp.math.array_equal(post_ids, bp.math.arange(num))
 
     print()
-    print('mat', dense_mat)
+    print('weight_mat', weight_mat)
+    print('conn_mat', dense_mat)
     print('pre_ids', pre_ids)
     print('post_ids', post_ids)
     print('pre2post', pre2post)
@@ -41,7 +45,7 @@ def test_all2all():
     for size in [100, (3, 4), (4, 5, 6)]:
       conn = connect.All2All(include_self=has_self)(pre_size=size, post_size=size)
       mat = conn.require(connect.CONN_MAT)
-      conn.require('conn_mat', 'pre_ids', 'post_ids', 'pre2post', 'pre2syn', 'post2pre', 'post2syn')
+      conn.require('conn_mat', 'weight_mat', 'pre_ids', 'post_ids', 'pre2post', 'pre2syn', 'post2pre', 'post2syn')
       num = bp.tools.size2num(size)
 
       print(mat)
@@ -51,7 +55,8 @@ def test_all2all():
       assert bp.math.array_equal(actual_mat, mat)
 
       print()
-      print('mat', conn.conn_mat)
+      print('weight_mat', conn.weight_mat)
+      print('conn_mat', conn.conn_mat)
       print('pre_ids', conn.pre_ids)
       print('post_ids', conn.post_ids)
       print('pre2post', conn.pre2post)
