@@ -7,136 +7,141 @@
 
 namespace brainpy_lib {
 
-  namespace {
+    namespace {
 
-    // error handling //
-    void ThrowIfError(cudaError_t error) {
-      if (error != cudaSuccess) {
-        throw std::runtime_error(cudaGetErrorString(error));
-      }
-    }
-
-
-    // "event_add" operator //
-
-    template <typename T>
-    __global__ void event_add_kernel(std::int64_t size,
-                                     const bool *events,
-                                     const std::int64_t *indices,
-                                     const std::int64_t *indptr,
-                                     const T value,
-                                     T *result) {
-      for (std::int64_t i = blockIdx.x * blockDim.x + threadIdx.x;
-           i < size; i += blockDim.x * gridDim.x) {
-        if (events[i]){
-          for(std::int64_t j = indptr[i]; j < indptr[i+1]; j++)
-            atomicAdd(&result[j], value)
+        // error handling //
+        void ThrowIfError(cudaError_t error) {
+            if (error != cudaSuccess) {
+                throw std::runtime_error(cudaGetErrorString(error));
+            }
         }
-      }
-    }
-
-    template <typename T>
-    inline void event_add(cudaStream_t stream,
-                          void **buffers,
-                          const char *opaque,
-                          std::size_t opaque_len) {
-      // size
-      const SizeDescriptor &d = *UnpackDescriptor<SizeDescriptor>(opaque, opaque_len);
-      const std::int64_t size = d.size;
-
-      // input and output data
-      const bool *events = reinterpret_cast<const bool *>(buffers[0]);
-      const std::int64_t *indices = reinterpret_cast<const std::int64_t *>(buffers[1]);
-      const std::int64_t *indptr = reinterpret_cast<const std::int64_t *>(buffers[2]);
-      const T value = *reinterpret_cast<const T *>(buffers[3]);
-      T *result = reinterpret_cast<T *>(buffers[4]);
-
-      // call kernel
-      const int block_dim = 512;
-      const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
-      event_add_kernel<T><<<grid_dim, block_dim, 0, stream>>>(size,
-                                                              events,
-                                                              indices,
-                                                              indptr,
-                                                              value,
-                                                              result);
-      ThrowIfError(cudaGetLastError());
-    }
 
 
-    // "event_add_v2" operator //
+        // "event_add" operator //
 
-    template <typename T>
-    __global__ void event_add_v2_kernel(std::int64_t size,
-                                        const bool *events,
-                                        const std::int64_t *pre_ids,
-                                        const std::int64_t *post_ids,
-                                        const T value,
-                                        T *result) {
-      for (std::int64_t i = blockIdx.x * blockDim.x + threadIdx.x;
-           i < size; i += blockDim.x * gridDim.x) {
-        if (events[pre_ids[i]]){
-            atomicAdd(&result[post_ids[i]], value)
+        template<typename F, typename I>
+        __global__ void event_add_kernel(const std::int32_t size,
+                                         const bool *events,
+                                         const I *indices,
+                                         const I *indptr,
+                                         const F value,
+                                         F *result) {
+            for (std::int32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+                 i < size; i += blockDim.x * gridDim.x) {
+                if (events[i]) {
+                    for (I j = indptr[i]; j < indptr[i + 1]; j++)
+                        atomicAdd(&result[j], value)
+                }
+            }
         }
-      }
+
+        template<typename F, typename I>
+        inline void event_add(cudaStream_t stream,
+                              void **buffers,
+                              const char *opaque,
+                              std::size_t opaque_len) {
+            // size
+            const SizeDescriptor &d = *UnpackDescriptor<SizeDescriptor>(opaque, opaque_len);
+            const std::int32_t size = d.size;
+
+            // input and output data
+            const bool *events = reinterpret_cast<const bool *>(buffers[0]);
+            const I *indices = reinterpret_cast<const I *>(buffers[1]);
+            const I *indptr = reinterpret_cast<const I *>(buffers[2]);
+            const F value = *reinterpret_cast<const F *>(buffers[3]);
+            F *result = reinterpret_cast<F *>(buffers[4]);
+
+            // call kernel
+            const int block_dim = 512;
+            const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            event_add_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(size,
+                                                                       events,
+                                                                       indices,
+                                                                       indptr,
+                                                                       value,
+                                                                       result);
+            ThrowIfError(cudaGetLastError());
+        }
+
+
+        // "event_add2" operator //
+
+        template<typename F, typename I>
+        __global__ void event_add2_kernel(const std::int32_t size,
+                                          const bool *events,
+                                          const I *pre_ids,
+                                          const I *post_ids,
+                                          const F value,
+                                          F *result) {
+            for (std::int32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+                 i < size; i += blockDim.x * gridDim.x) {
+                if (events[pre_ids[i]]) {
+                    atomicAdd(&result[post_ids[i]], value)
+                }
+            }
+        }
+
+        template<typename F, typename I>
+        inline void event_add2(cudaStream_t stream,
+                               void **buffers,
+                               const char *opaque,
+                               std::size_t opaque_len) {
+            // size
+            const SizeDescriptor &d = *UnpackDescriptor<SizeDescriptor>(opaque, opaque_len);
+            const std::int32_t size = d.size;
+
+            // input and output data
+            const bool *events = reinterpret_cast<const bool *>(buffers[0]);
+            const I *pre_ids = reinterpret_cast<const I *>(buffers[1]);
+            const I *post_ids = reinterpret_cast<const I *>(buffers[2]);
+            const F value = *reinterpret_cast<const F *>(buffers[3]);
+            F *result = reinterpret_cast<F *>(buffers[4]);
+
+            // call kernel
+            const int block_dim = 512;
+            const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            event_add2_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(size,
+                                                                        events,
+                                                                        pre_ids,
+                                                                        post_ids,
+                                                                        value,
+                                                                        result);
+            ThrowIfError(cudaGetLastError());
+        }
+
+    }  // namespace
+
+    void gpu_event_add_f32_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add<float, std::uint32_t>(stream, buffers, opaque, opaque_len);
     }
 
-    template <typename T>
-    inline void event_add_v2(cudaStream_t stream,
-                             void **buffers,
-                             const char *opaque,
-                             std::size_t opaque_len) {
-      // size
-      const SizeDescriptor &d = *UnpackDescriptor<SizeDescriptor>(opaque, opaque_len);
-      const std::int64_t size = d.size;
-
-      // input and output data
-      const bool *events = reinterpret_cast<const bool *>(buffers[0]);
-      const std::int64_t *pre_ids = reinterpret_cast<const std::int64_t *>(buffers[1]);
-      const std::int64_t *post_ids = reinterpret_cast<const std::int64_t *>(buffers[2]);
-      const T value = *reinterpret_cast<const T *>(buffers[3]);
-      T *result = reinterpret_cast<T *>(buffers[4]);
-
-      // call kernel
-      const int block_dim = 512;
-      const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
-      event_add_v2_kernel<T><<<grid_dim, block_dim, 0, stream>>>(size,
-                                                                 events,
-                                                                 pre_ids,
-                                                                 post_ids,
-                                                                 value,
-                                                                 result);
-      ThrowIfError(cudaGetLastError());
+    void gpu_event_add_f32_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
     }
 
-  }  // namespace
+    void gpu_event_add_f64_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
 
-void gpu_event_add_f32(cudaStream_t stream,
-                       void **buffers,
-                       const char *opaque,
-                       std::size_t opaque_len) {
-  event_add<float>(stream, buffers, opaque, opaque_len);
-}
+    void gpu_event_add_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
 
-void gpu_event_add_f64(cudaStream_t stream,
-                       void **buffers,
-                       const char *opaque,
-                       std::size_t opaque_len) {
-  event_add<double>(stream, buffers, opaque, opaque_len);
-}
+    void gpu_event_add2_f32_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add2<float, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
 
-void gpu_event_add_v2_f32(cudaStream_t stream,
-                          void **buffers,
-                          const char *opaque,
-                          std::size_t opaque_len) {
-  event_add_v2<float>(stream, buffers, opaque, opaque_len);
-}
+    void gpu_event_add2_f32_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add2<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
 
-void gpu_event_add_v2_f64(cudaStream_t stream,
-                          void **buffers,
-                          const char *opaque,
-                          std::size_t opaque_len) {
-  event_add_v2<double>(stream, buffers, opaque, opaque_len);
-}
+    void gpu_event_add2_f64_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add2<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_add2_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add2<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
+
 
 }  // namespace kepler_jax

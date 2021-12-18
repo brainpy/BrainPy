@@ -7,12 +7,7 @@ from pybind11.setup_helpers import Pybind11Extension
 from setuptools import find_packages, setup
 from setuptools.command.build_ext import build_ext
 
-
-def get_export_symbols():
-  return []
-
-
-build_ext.get_export_symbols = get_export_symbols
+build_ext.get_export_symbols = lambda *args: []
 
 # version control
 HERE = os.path.dirname(os.path.realpath(__file__))
@@ -45,4 +40,5 @@ setup(
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=ext_modules,
   cmdclass={"build_ext": build_ext},
+  license='GPL-3.0 License',
 )

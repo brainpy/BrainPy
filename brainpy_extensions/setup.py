@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import distutils.sysconfig as sysconfig
 import os
 import platform
@@ -94,8 +96,8 @@ setup(
   python_requires='>=3.6',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=[
-    Extension("cpu_ops", ["lib/cpu_ops.cc"]),
+    Extension("cpu_ops", ['lib/cpu_ops.cc', 'lib/event_add_cpu.cc']),
   ],
   cmdclass={"build_ext": CMakeBuildExt},
-  license='MIT',
+  license='GPL-3.0 License',
 )

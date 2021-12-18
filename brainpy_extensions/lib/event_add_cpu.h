@@ -5,10 +5,14 @@
 #include <cmath>
 
 namespace brainpy_lib {
-    void cpu_event_add_f32(void *out, const void **in);
-    void cpu_event_add_f64(void *out, const void **in);
-    void cpu_event_add_v2_f32(void *out, const void **in);
-    void cpu_event_add_v2_f64(void *out, const void **in);
+    void cpu_event_add_f32_i32(void *out, const void **in);
+    void cpu_event_add_f32_i64(void *out, const void **in);
+    void cpu_event_add_f64_i32(void *out, const void **in);
+    void cpu_event_add_f64_i64(void *out, const void **in);
+    void cpu_event_add2_f32_i32(void *out, const void **in);
+    void cpu_event_add2_f32_i64(void *out, const void **in);
+    void cpu_event_add2_f64_i32(void *out, const void **in);
+    void cpu_event_add2_f64_i64(void *out, const void **in);
 }
 
 #endif
