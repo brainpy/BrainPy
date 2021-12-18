@@ -23,6 +23,7 @@ from .integrators.ode import get_default_odeint
 from .integrators.sde import sdeint
 from .integrators.sde import set_default_sdeint
 from .integrators.sde import get_default_sdeint
+from .integrators.joint_eq import JointEq
 
 
 # "simulation" module

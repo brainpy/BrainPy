@@ -14,8 +14,7 @@ Details please see the following.
 from .base import *
 from .constants import *
 from .delay_vars import *
-from .analysis_by_ast import *
-from .analysis_by_sympy import *
+from .joint_eq import *
 
 # ODE tools
 from . import ode

@@ -4,7 +4,6 @@ import inspect
 from pprint import pprint
 
 from brainpy import errors
-from brainpy.math import profile
 
 __all__ = [
   'get_args',
@@ -24,24 +23,24 @@ def get_args(f):
   """Get the function arguments.
 
   >>> def f1(a, b, t, *args, c=1): pass
-  >>> _get_args(f1)
+  >>> get_args(f1)
   (['a', 'b'], ['t', '*args', 'c'], ['a', 'b', 't', '*args', 'c=1'])
 
   >>> def f2(a, b, *args, c=1, **kwargs): pass
-  >>> _get_args(f2)
-  ValueError: Don not support dict of keyword arguments: **kwargs
+  >>> get_args(f2)
+  ValueError: Do not support dict of keyword arguments: **kwargs
 
   >>> def f3(a, b, t, c=1, d=2): pass
-  >>> _get_args(f4)
+  >>> get_args(f4)
   (['a', 'b'], ['t', 'c', 'd'], ['a', 'b', 't', 'c=1', 'd=2'])
 
   >>> def f4(a, b, t, *args): pass
-  >>> _get_args(f4)
+  >>> get_args(f4)
   (['a', 'b'], ['t', '*args'], ['a', 'b', 't', '*args'])
 
   >>> scope = {}
   >>> exec(compile('def f5(a, b, t, *args): pass', '', 'exec'), scope)
-  >>> _get_args(scope['f5'])
+  >>> get_args(scope['f5'])
   (['a', 'b'], ['t', '*args'], ['a', 'b', 't', '*args'])
 
   Parameters
@@ -57,7 +56,7 @@ def get_args(f):
 
   # get the function arguments
   reduced_args = []
-  original_args = []
+  args = []
 
   for name, par in inspect.signature(f).parameters.items():
     if par.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
@@ -67,27 +66,29 @@ def get_args(f):
       reduced_args.append(f'*{par.name}')
 
     elif par.kind is inspect.Parameter.KEYWORD_ONLY:
-      reduced_args.append(par.name)
-
+      raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support KEYWORD_ONLY '
+                               f'parameters, e.g., * (error in {f}).')
     elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
-      raise errors.DiffEqError('Don not support positional only parameters, e.g., /')
+      raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support POSITIONAL_ONLY '
+                               f'parameters, e.g., / (error in {f}).')
     elif par.kind is inspect.Parameter.VAR_KEYWORD:  # TODO
-      raise errors.DiffEqError(f'Don not support dict of keyword arguments: {str(par)}')
+      raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support VAR_KEYWORD '
+                               f'arguments: {str(par)} (error in {f}).')
     else:
-      raise errors.DiffEqError(f'Unknown argument type: {par.kind}')
+      raise errors.DiffEqError(f'Unknown argument type: {par.kind} (error in {f}).')
 
-    original_args.append(str(par))
+    args.append(str(par))
 
   #  variable names
-  var_names = []
+  vars = []
   for a in reduced_args:
     if a == 't':
       break
-    var_names.append(a)
+    vars.append(a)
   else:
     raise ValueError('Do not find time variable "t".')
-  other_args = reduced_args[len(var_names):]
-  return var_names, other_args, original_args
+  pars = reduced_args[len(vars):]
+  return vars, pars, args
 
 
 def compile_code(code_lines, code_scope, func_name, show_code=False):
