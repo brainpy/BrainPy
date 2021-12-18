@@ -35,7 +35,7 @@ class JaxArray(object):
   def __init__(self, value):
     if isinstance(value, (list, tuple)):
       value = jnp.asarray(value)
-    self.value = value
+    self._value = value
 
   @property
   def value(self):
@@ -43,6 +43,17 @@ class JaxArray(object):
 
   @value.setter
   def value(self, value):
+    self.update(value)
+
+  def update(self, value):
+    """Update the value of this JaxArray.
+    """
+    if value.shape != self._value.shape:
+      raise MathError(f"The shape of the original data is {self._value.shape}, "
+                      f"while we got {value.shape}.")
+    if value.dtype != self._value.dtype:
+      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
+                      f"while we got {value.dtype}.")
     self._value = value.value if isinstance(value, JaxArray) else value
 
   @property
@@ -820,15 +831,6 @@ class JaxArray(object):
   def __array__(self):
     """Support ``numpy.array()`` and ``numpy.asarray()`` functions."""
     return np.asarray(self.value)
-
-  def update(self, val):
-    if np.shape(val) != np.shape(self.value):
-      raise MathError(f"The shape of the data is {np.shape(self.value)}, "
-                      f"while we got {np.shape(val)}.")
-    if val.dtype != self.value.dtype:
-      raise MathError(f"The dtype of the data is {self.value.dtype}, "
-                      f"while we got {val.dtype}.")
-    self.value = val
 
 
 ndarray = JaxArray
