@@ -111,8 +111,9 @@ import logging
 import sympy
 
 from brainpy import math, errors, tools
+from brainpy.base.collector import Collector
 from brainpy.integrators import analysis_by_sympy
-from brainpy.integrators import constants as C, utils
+from brainpy.integrators import constants as C, utils, joint_eq
 from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.ode.base import ODEIntegrator
 
@@ -577,6 +578,76 @@ class ExpEulerAuto(ODEIntegrator):
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
+  However, the above example can be defined with ``brainpy.JointEq``.
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> import brainpy.math as bm
+    >>>
+    >>> class HH(bp.NeuGroup):
+    >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
+    >>>                gL=0.1, V_th=20., phi=5.0, name=None):
+    >>>     super(HH, self).__init__(size=size, name=name)
+    >>>
+    >>>     # parameters
+    >>>     self.ENa = ENa
+    >>>     self.EK = EK
+    >>>     self.EL = EL
+    >>>     self.C = C
+    >>>     self.gNa = gNa
+    >>>     self.gK = gK
+    >>>     self.gL = gL
+    >>>     self.V_th = V_th
+    >>>     self.phi = phi
+    >>>
+    >>>     # variables
+    >>>     self.V = bm.Variable(bm.ones(size) * -65.)
+    >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
+    >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
+    >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
+    >>>     self.input = bm.Variable(bm.zeros(size))
+    >>>
+    >>>     # functions
+    >>>     derivative = bp.JointEq([self.dh, self.dn, self.dV],
+    >>>                              variables=['h', 'n', 'V'])
+    >>>     self.integral = bp.ode.ExpEulerAuto(derivative)
+    >>>
+    >>>   def dh(self, h, t, V):
+    >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
+    >>>     beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
+    >>>     dhdt = self.phi * (alpha * (1 - h) - beta * h)
+    >>>     return dhdt
+    >>>
+    >>>   def dn(self, n, t, V):
+    >>>     alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+    >>>     beta = 0.125 * bm.exp(-(V + 44) / 80)
+    >>>     dndt = self.phi * (alpha * (1 - n) - beta * n)
+    >>>     return dndt
+    >>>
+    >>>   def dV(self, V, t, h, n, Iext):
+    >>>     m_alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+    >>>     m_beta = 4 * bm.exp(-(V + 60) / 18)
+    >>>     m = m_alpha / (m_alpha + m_beta)
+    >>>     INa = self.gNa * m ** 3 * h * (V - self.ENa)
+    >>>     IK = self.gK * n ** 4 * (V - self.EK)
+    >>>     IL = self.gL * (V - self.EL)
+    >>>     dVdt = (- INa - IK - IL + Iext) / self.C
+    >>>
+    >>>     return dVdt
+    >>>
+    >>>   def update(self, _t, _dt):
+    >>>     h, n, V = self.integral(self.h, self.n, self.V, _t, self.input, dt=_dt)
+    >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+    >>>     self.V.value = V
+    >>>     self.h.value = h
+    >>>     self.n.value = n
+    >>>     self.input[:] = 0.
+    >>>
+    >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
+    >>> run(100)
+    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
   See Also
   --------
@@ -584,7 +655,7 @@ class ExpEulerAuto(ODEIntegrator):
 
   Parameters
   ----------
-  f : function
+  f : function, joint_eq.JointEq
     The derivative function.
   var_type : optional, str
     The variable type.
@@ -596,13 +667,12 @@ class ExpEulerAuto(ODEIntegrator):
   dyn_var : optional, dict, sequence of JaxArray, JaxArray
   has_aux : bool
   """
-  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False,
-               dyn_var=None, has_aux=False):
+
+  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False, dyn_var=None):
     super(ExpEulerAuto, self).__init__(f=f, var_type=var_type, dt=dt,
                                        name=name, show_code=show_code)
 
     self.dyn_var = dyn_var
-    self.has_aux = has_aux
 
     # keyword checking
     keywords = {
@@ -612,37 +682,70 @@ class ExpEulerAuto(ODEIntegrator):
     utils.check_kws(self.arguments, keywords)
 
     # build the integrator
-    self.build()
-
-  def build(self):
     self.code_lines = []
     self.code_scope = {}
+    self.integral = self.build()
 
-    # checking
-    if len(self.variables) != 1:
-      raise errors.DiffEqError(f'{self.__class__} only supports numerical integration '
-                               f'for one variable once, while we got {self.variables}. '
-                               f'Please split your multiple variables into multiple '
-                               f'derivative functions. ')
+  def build(self):
+    all_vars, all_pars = [], []
+    integrals, arg_names = [], []
+    a = self._build_integrator(self.f)
+    for integral, vars, _ in a:
+      integrals.append(integral)
+      for var in vars:
+        if var not in all_vars:
+          all_vars.append(var)
+    for _, vars, pars in a:
+      for par in pars:
+        if (par not in all_vars) and (par not in all_pars):
+          all_pars.append(par)
+      arg_names.append(vars + pars + ['dt'])
+    all_pars.append('dt')
+    all_vps = all_vars + all_pars
 
-    # gradient function
-    value_and_grad = math.vector_grad(self.f,
-                                      argnums=0,
-                                      dyn_vars=self.dyn_var,
-                                      return_value=True,
-                                      has_aux=self.has_aux)
+    def integral_func(*args, dt=math.get_dt(), **kwargs):
+      # format arguments
+      params_in = Collector()
+      for i, arg in enumerate(args):
+        params_in[all_vps[i]] = arg
+      params_in.update(kwargs)
+      params_in['dt'] = dt
 
-    # integration function
-    if self.has_aux:
-      def _int(v, t, *args, dt=math.get_dt(), **kwargs):
-        linear, derivative, aux = value_and_grad(v, t, *args, **kwargs)
-        z = dt * linear
-        phi = (math.exp(z) - 1) / z
-        return v + dt * phi * derivative, aux
+      # call integrals
+      results = []
+      for i, int_fun in enumerate(integrals):
+        _key = arg_names[i][0]
+        r = int_fun(params_in[_key], **{arg: params_in[arg] for arg in arg_names[i][1:]})
+        results.append(r)
+      return results if isinstance(self.f, joint_eq.JointEq) else results[0]
+
+    return integral_func
+
+  def _build_integrator(self, eq):
+    if isinstance(eq, joint_eq.JointEq):
+      results = []
+      for sub_eq in eq.eqs:
+        results.extend(self._build_integrator(sub_eq))
+      return results
+
     else:
-      def _int(v, t, *args, dt=math.get_dt(), **kwargs):
-        linear, derivative = value_and_grad(v, t, *args, **kwargs)
+      vars, pars, _ = utils.get_args(eq)
+
+      # checking
+      if len(vars) != 1:
+        raise errors.DiffEqError(f'{self.__class__} only supports numerical integration '
+                                 f'for one variable once, while we got {vars} in {eq}. '
+                                 f'Please split your multiple variables into multiple '
+                                 f'derivative functions.')
+
+      # gradient function
+      value_and_grad = math.vector_grad(eq, argnums=0, dyn_vars=self.dyn_var, return_value=True)
+
+      # integration function
+      def integral(v, *args, dt=math.get_dt(), **kwargs):
+        linear, derivative = value_and_grad(v, *args, **kwargs)
         z = dt * linear
         phi = (math.exp(z) - 1) / z
         return v + dt * phi * derivative
-    self.integral = _int
+
+      return [(integral, vars, pars), ]
