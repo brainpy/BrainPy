@@ -4,6 +4,7 @@ publishment.md
 
 brainpy_extensions/.idea
 brainpy_extensions/wheelhouse
+brainpy_extensions/cmake-build-debug
 BrainPyExamples/
 BrainModels/
 book/

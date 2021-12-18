@@ -30,20 +30,17 @@ setup(
   python_requires='>=3.6',
   install_requires=[
     'numpy>=1.15',
-    'sympy>=1.6',
-    'scipy>=1.5.0',
     'matplotlib>=3.4',
+    'jax>=0.2.10',
   ],
   extras_require={
-    'cpu': ['jaxlib>=0.1.64', 'jax>=0.2.10'],
-    'cuda': ['jaxlib>=0.1.64', 'jax>=0.2.10'],
+    'cpu': ['jaxlib>=0.1.64', 'brainpylib>=0.01'],
+    'cuda': ['jaxlib>=0.1.64', 'brainpylib>=0.01'],
   },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
-  keywords='computational neuroscience, '
-           'brain-inspired computation, '
-           'dynamical systems, '
-           'differential equations, '
-           'numerical integration',
+  keywords='computational neuroscience, brain-inspired computation, '
+           'dynamical systems, differential equations, '
+           'brain modeling, brain dynamics programming',
   classifiers=[
     'Natural Language :: English',
     'Operating System :: OS Independent',
@@ -59,5 +56,6 @@ setup(
     'Topic :: Scientific/Engineering :: Mathematics',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'Topic :: Software Development :: Libraries',
-  ]
+  ],
+  license='GPL-3.0 License',
 )
