@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-import inspect
-
 import brainpy.math as bm
-from brainpy import errors, tools
-from brainpy.base.base import TensorCollector
-from brainpy.integrators import analysis_by_ast
-from brainpy.integrators import analysis_by_sympy
+from brainpy import errors
 from brainpy.integrators.ode.base import ODEIntegrator
 from brainpy.simulation.brainobjects.base import DynamicalSystem
 from brainpy.simulation.runner import StructRunner

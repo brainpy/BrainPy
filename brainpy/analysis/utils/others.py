@@ -2,11 +2,11 @@
 
 import jax.numpy as jnp
 import numpy as np
-from scipy.spatial.distance import squareform, pdist
 
 import brainpy.math as bm
 from brainpy import tools
 from .function import f_without_jaxarray_return
+from .measurement import euclidean_distance
 
 __all__ = [
   'Segment',
@@ -110,8 +110,8 @@ def keep_unique(candidates, tol=2.5e-2, verbose=False):
 
   # If point a and point b are within identical_tol of each other, and the
   # a is first in the list, we keep a.
+  distances = np.asarray(euclidean_distance(jnp.asarray(candidates)))
   example_idxs = np.arange(nfps)
-  distances = squareform(pdist(candidates, metric="euclidean"))
   for fidx in range(nfps - 1):
     distances_f = distances[fidx, fidx + 1:]
     drop_idxs = example_idxs[fidx + 1:][distances_f <= tol]
@@ -122,14 +122,13 @@ def keep_unique(candidates, tol=2.5e-2, verbose=False):
   if keep_ids.shape[0] > 0:
     unique_fps = candidates[keep_ids, :]
   else:
-    unique_fps = np.array([], dtype=np.int64)
+    unique_fps = jnp.array([], dtype=candidates.dtype)
 
   if verbose:
     print(f"    Kept {unique_fps.shape[0]}/{nfps} unique fixed points "
           f"with uniqueness tolerance {tol}.")
 
   return unique_fps, keep_ids
-
 
 
 def rescale(min_max, scale=0.01):

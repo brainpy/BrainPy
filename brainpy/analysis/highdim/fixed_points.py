@@ -6,10 +6,9 @@ from functools import partial
 
 import jax
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
 
 import brainpy.math as bm
-from brainpy import errors
+from brainpy.analysis import utils
 
 __all__ = [
   'FixedPointFinder',
@@ -67,9 +66,6 @@ class FixedPointFinder(object):
                tol_unique=2.5e-2,  # distance threshold to determine identical FPs
                tol_outlier=1e0  # distance threshold with closest FP to determine outlier
                ):
-    if pdist is None or squareform is None:
-      raise errors.PackageMissingError('Package "scipy" must be installed when the users '
-                                       'want to utilize the fixed point finder analysis.')
     assert f_type in ['df', 'F'], f'Only support "df" (continuous derivative function) or ' \
                                   f'"F" (discrete update function), not {f_type}.'
 
@@ -133,15 +129,13 @@ class FixedPointFinder(object):
     5. Exclude any far-away "outlier" fixed points ('outlier_tol')
 
     Arguments:
-      rnn_fun: one-step update function as a function of hidden state
       candidates: ndarray with shape npoints x ndims
-      hyper_params: dict of hyper parameters for fp optimization, including
-        tolerances related to keeping fixed points
 
     Returns:
       4-tuple of (kept fixed points sorted with slowest points first,
         fixed point losses, indicies of kept fixed points, details of
-        optimization)"""
+        optimization)
+    """
 
     npoints, dim = candidates.shape
 
@@ -152,12 +146,16 @@ class FixedPointFinder(object):
     # 2. find fixed points
     if self.verbose: print("Optimizing to find fixed points:")
     fixed_points, opt_losses = self.optimize_fixed_points(candidates)
+    # fixed_points: JaxArray
+    # opt_losses: JaxArray
 
     # 3. exclude fixed points whose loss is above threshold
     if self.verbose and self.tol_speed < np.inf:
       print(f"Excluding fixed points with squared speed above "
             f"tolerance {self.tol_speed:0.5f}:")
     fixed_points, fp_ids = self.speed_tolerance_filter(fixed_points)
+    # fixed_points: JaxArray
+    # fp_ids: numpy.ndarray
     if len(fp_ids) == 0:
       return np.zeros([0, dim]), np.zeros([0]), [], opt_losses
 
@@ -165,19 +163,23 @@ class FixedPointFinder(object):
     if self.verbose and self.tol_unique > 0.0:
       print("Excluding non-unique fixed points:")
     fixed_points, unique_ids = self.keep_unique(fixed_points)
+    # fixed_points: JaxArray
+    # unique_ids: numpy.ndarray
     if len(unique_ids) == 0:
       return np.zeros([0, dim]), np.zeros([0]), [], opt_losses
 
     # 5. exclude outliers
     if self.verbose and self.tol_outlier < np.inf:
       print("Excluding outliers:")
-    fixed_points, non_outlier_ids = self.exclude_outliers(fixed_points, 'euclidean')
+    fixed_points, non_outlier_ids = self.exclude_outliers(fixed_points)
+    # fixed_points: JaxArray
+    # non_outlier_ids: numpy.ndarray
     if len(non_outlier_ids) == 0:
       return np.zeros([0, dim]), np.zeros([0]), [], opt_losses
 
     if self.verbose:
       print('Sorting fixed points with slowest speed first.')
-    losses = np.array(self.f_loss_batch(fixed_points))  # came back as jax.interpreters.xla.DeviceArray
+    losses = np.asarray(self.f_loss_batch(fixed_points))  # came back as jax.interpreters.xla.DeviceArray
     sort_ids = np.argsort(losses)
     fixed_points = fixed_points[sort_ids]
     losses = losses[sort_ids]
@@ -240,7 +242,7 @@ class FixedPointFinder(object):
           print(f'    '
                 f'Stop optimization as mean training loss {losses[-1]:0.10f} '
                 f'is below tolerance {self.tol_opt:0.10f}.')
-    return fixed_points.numpy(), bm.concatenate(opt_losses).numpy()
+    return fixed_points, bm.concatenate(opt_losses)
 
   def speed_tolerance_filter(self, fixed_points):
     """Filter fixed points whose speed larger than a given tolerance.
@@ -257,14 +259,14 @@ class FixedPointFinder(object):
     """
     losses = self.f_loss_batch(fixed_points)
     ids = losses < self.tol_speed
-    keep_ids = np.where(ids)[0]
+    keep_ids = bm.where(ids)[0]
     fps_w_tol = fixed_points[ids]
     if self.verbose:
       print(f"    "
             f"Kept {fps_w_tol.shape[0]}/{fixed_points.shape[0]} "
             f"fixed points with tolerance under {self.tol_speed}.")
 
-    return fps_w_tol, keep_ids
+    return fps_w_tol, np.asarray(keep_ids)
 
   def keep_unique(self, fixed_points):
     """Filter unique fixed points by choosing a representative within tolerance.
@@ -290,8 +292,8 @@ class FixedPointFinder(object):
 
     # If point a and point b are within identical_tol of each other, and the
     # a is first in the list, we keep a.
+    distances = np.asarray(utils.euclidean_distance(fixed_points))
     example_idxs = np.arange(nfps)
-    distances = squareform(pdist(fixed_points, metric="euclidean"))
     for fidx in range(nfps - 1):
       distances_f = distances[fidx, fidx + 1:]
       drop_idxs = example_idxs[fidx + 1:][distances_f <= self.tol_unique]
@@ -302,7 +304,7 @@ class FixedPointFinder(object):
     if keep_ids.shape[0] > 0:
       unique_fps = fixed_points[keep_ids, :]
     else:
-      unique_fps = np.array([], dtype=np.int64)
+      unique_fps = bm.array([]).value
 
     if self.verbose:
       print(f"    Kept {unique_fps.shape[0]}/{nfps} unique fixed points "
@@ -310,15 +312,13 @@ class FixedPointFinder(object):
 
     return unique_fps, keep_ids
 
-  def exclude_outliers(self, fixed_points, metric='euclidean'):
+  def exclude_outliers(self, fixed_points):
     """Exclude points whose closest neighbor is further than threshold.
 
     Parameters
     ----------
     fixed_points: np.ndarray
       The fixed points with the shape of (num_point, num_dim).
-    metric: str
-      The distance metric passed to scipy.spatial.pdist. Defaults to "euclidean"
 
     Returns
     -------
@@ -332,7 +332,7 @@ class FixedPointFinder(object):
       return fixed_points, np.arange(len(fixed_points))
 
     # Compute pairwise distances between all fixed points.
-    distances = squareform(pdist(fixed_points, metric=metric))
+    distances = np.asarray(utils.euclidean_distance(fixed_points))
 
     # Find second smallest element in each column of the pairwise distance matrix.
     # This corresponds to the closest neighbor for each fixed point.

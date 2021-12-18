@@ -4,13 +4,18 @@
 import jax.lax
 import jax.numpy as jnp
 import numpy as np
-import scipy.optimize
 from jax import grad, jit
 from jax.flatten_util import ravel_pytree
 
 import brainpy.math as bm
-from brainpy import tools
+from brainpy import tools, errors
 from . import f_without_jaxarray_return
+
+try:
+  import scipy.optimize as soptimize
+except (ModuleNotFoundError, ImportError):
+  soptimize = None
+
 
 __all__ = [
   'ECONVERGED',
@@ -328,6 +333,10 @@ def scipy_minimize_with_jax(fun, x0,
     See `scipy.optimize.OptimizeResult` for a description of other attributes.
 
   """
+  if soptimize is None:
+    raise errors.PackageMissingError(f'"scipy" must be installed when user want to use '
+                                     f'function: {scipy_minimize_with_jax}')
+
   # Use tree flatten and unflatten to convert params x0 from PyTrees to flat arrays
   x0_flat, unravel = ravel_pytree(x0)
 
@@ -354,7 +363,7 @@ def scipy_minimize_with_jax(fun, x0,
       return callback(x, *args)
 
   # Minimize with scipy
-  results = scipy.optimize.minimize(fun_wrapper,
+  results = soptimize.minimize(fun_wrapper,
                                     x0_flat,
                                     args=args,
                                     method=method,
