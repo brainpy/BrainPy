@@ -14,9 +14,7 @@ from brainpy.simulation.runner import StructRunner
 
 __all__ = [
   'model_transform',
-  'num2sym',
   'NumDSWrapper',
-  'SymDSWrapper',
   'TrajectModel',
 ]
 
@@ -87,65 +85,6 @@ class NumDSWrapper(object):
     self.variables = variables  # all variables
     self.parameters = parameters  # all parameters
     self.pars_update = pars_update  # the parameters to update
-
-
-def num2sym(model):
-  assert isinstance(model, NumDSWrapper)
-  all_scope = dict(math=bm)
-  analyzers = []
-  for integral in model.INTG:
-    assert isinstance(integral, ODEIntegrator)
-
-    # code scope
-    code_scope = dict()
-    closure_vars = inspect.getclosurevars(integral.f)
-    code_scope.update(closure_vars.nonlocals)
-    code_scope.update(closure_vars.globals)
-    if hasattr(integral.f, '__self__'):
-      code_scope['self'] = integral.f.__self__
-    # separate variables
-    code = tools.deindent(inspect.getsource(integral.f))
-    analysis = analysis_by_ast.separate_variables(code)
-    variables_for_returns = analysis['variables_for_returns']
-    expressions_for_returns = analysis['expressions_for_returns']
-    for vi, (key, vars) in enumerate(variables_for_returns.items()):
-      variables = []
-      for v in vars:
-        if len(v) > 1:
-          raise ValueError(f'Cannot analyze multi-assignment code line: {vars}.')
-        variables.append(v[0])
-      expressions = expressions_for_returns[key]
-      var_name = integral.variables[vi]
-      DE = analysis_by_sympy.SingleDiffEq(var_name=var_name,
-                                          variables=variables,
-                                          expressions=expressions,
-                                          derivative_expr=key,
-                                          scope={k: v for k, v in code_scope.items()},
-                                          func_name=integral.func_name)
-      analyzers.append(DE)
-    all_scope.update(code_scope)
-  return SymDSWrapper(analyzers=analyzers, scopes=all_scope,
-                      integrals=model.INTG,
-                      variables=model.variables,
-                      parameters=model.parameters,
-                      pars_update=model.pars_update)
-
-
-class SymDSWrapper(NumDSWrapper):
-  def __init__(self,
-               analyzers,
-               scopes,
-
-               integrals,
-               variables,
-               parameters,
-               pars_update=None):
-    super(SymDSWrapper, self).__init__(integrals=integrals,
-                                       variables=variables,
-                                       parameters=parameters,
-                                       pars_update=pars_update)
-    self.analyzers = analyzers
-    self.scopes = scopes
 
 
 class TrajectModel(DynamicalSystem):

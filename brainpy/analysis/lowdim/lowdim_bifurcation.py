@@ -7,7 +7,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy import errors
 from brainpy.analysis import stability, utils, constants as C
-from brainpy.analysis.numeric.lowdim_analyzer import *
+from brainpy.analysis.lowdim.lowdim_analyzer import *
 
 __all__ = [
   'Bifurcation1D',

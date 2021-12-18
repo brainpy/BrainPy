@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
 import unittest
+
+import brainpy as bp
 
 
 class TestPhasePlane(unittest.TestCase):
@@ -13,14 +14,13 @@ class TestPhasePlane(unittest.TestCase):
       dx = x ** 3 - x + Iext
       return dx
 
-    analyzer = bp.numeric.PhasePlane1D(model=int_x,
-                                       target_vars={'x': [-2, 2]},
-                                       pars_update={'Iext': 0.},
-                                       resolutions=0.001)
+    analyzer = bp.analysis.PhasePlane1D(model=int_x,
+                                        target_vars={'x': [-2, 2]},
+                                        pars_update={'Iext': 0.},
+                                        resolutions=0.001)
 
     analyzer.plot_vector_field()
     analyzer.plot_fixed_point(show=True)
-
 
   def test_2d_decision_making_model(self):
     bp.math.enable_x64()
@@ -57,7 +57,7 @@ class TestPhasePlane(unittest.TestCase):
       ds2dt = - s2 / tau + (1. - s2) * gamma * r2
       return ds2dt
 
-    analyzer = bp.numeric.PhasePlane2D(
+    analyzer = bp.analysis.PhasePlane2D(
       model=[int_s1, int_s2],
       target_vars={'s1': [0, 1], 's2': [0, 1]},
       escape_sympy_solver=True,

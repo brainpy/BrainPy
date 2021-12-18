@@ -104,17 +104,17 @@ def generate_analysis_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_module(module_name='brainpy.analysis.symbolic',
-               filename=os.path.join(path, 'symbolic.rst'),
-               header='Dynamics Analysis (Symbolic)')
+  write_module(module_name='brainpy.analysis.lowdim',
+               filename=os.path.join(path, 'lowdim.rst'),
+               header='Analysis for Low-dimensional Systems')
 
-  write_module(module_name='brainpy.analysis.numeric',
-               filename=os.path.join(path, 'numeric.rst'),
-               header='Dynamics Analysis (Numeric)')
+  write_module(module_name='brainpy.analysis.highdim',
+               filename=os.path.join(path, 'highdim.rst'),
+               header='Analysis for High-dimensional Systems')
 
-  write_module(module_name='brainpy.analysis.continuation',
-               filename=os.path.join(path, 'continuation.rst'),
-               header='Continuation Analysis')
+  # write_module(module_name='brainpy.analysis.continuation',
+  #              filename=os.path.join(path, 'continuation.rst'),
+  #              header='Continuation Analysis')
 
   write_module(module_name='brainpy.analysis.stability',
                filename=os.path.join(path, 'stability.rst'),
@@ -145,6 +145,9 @@ def generate_integrators_doc(path):
   write_module(module_name='brainpy.integrators.ode.exponential',
                filename=os.path.join(path, 'ode_exponential.rst'),
                header='Exponential Integrators')
+  write_module(module_name='brainpy.integrators.joint_eq',
+               filename=os.path.join(path, 'joint_eq.rst'),
+               header='Joint Equation')
 
 
 block_list = ['test', 'register_pytree_node']

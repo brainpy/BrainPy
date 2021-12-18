@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from functools import partial
-
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +7,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy import errors, math
 from brainpy.analysis import stability, constants as C, utils
-from brainpy.analysis.numeric.lowdim_analyzer import *
+from brainpy.analysis.lowdim.lowdim_analyzer import *
 
 __all__ = [
   'PhasePlane1D',
