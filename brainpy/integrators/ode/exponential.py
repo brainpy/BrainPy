@@ -108,14 +108,17 @@ tableau as follows:
 import inspect
 import logging
 
-import sympy
-
 from brainpy import math, errors, tools
 from brainpy.base.collector import Collector
-from brainpy.integrators import analysis_by_sympy
 from brainpy.integrators import constants as C, utils, joint_eq
 from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.ode.base import ODEIntegrator
+
+try:
+  import sympy
+  from brainpy.integrators import analysis_by_sympy
+except (ModuleNotFoundError, ImportError):
+  sympy = analysis_by_sympy = None
 
 logger = logging.getLogger('brainpy.integrators.ode.exponential')
 
@@ -399,6 +402,10 @@ class ExponentialEuler(ODEIntegrator):
     self.build()
 
   def build(self):
+    if analysis_by_sympy is None or sympy is None:
+      raise errors.PackageMissingError(f'Package "sympy" must be installed when the users '
+                                       f'want to utilize {ExponentialEuler.__name__}. ')
+
     # check bound method
     if hasattr(self.f, '__self__'):
       self.code_lines = [f'def {self.func_name}({", ".join(["self"] + list(self.arguments))}):']
@@ -456,6 +463,10 @@ class ExponentialEuler(ODEIntegrator):
       self.integral = self.integral.__get__(host, host.__class__)
 
   def solve(self, diff_eq, var):
+    if analysis_by_sympy is None or sympy is None:
+      raise errors.PackageMissingError(f'Package "sympy" must be installed when the users '
+                                       f'want to utilize {ExponentialEuler.__name__}. ')
+
     f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
 
     # code lines
