@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import abc
-from abc import ABC
-
-from brainpy import math
 
 __all__ = [
   'Initializer',

@@ -61,7 +61,8 @@ class DeltaSynapse(TwoEndConn):
     # variables
     self.w = w
     assert bm.size(w) == 1, 'This implementation only support scalar weight. '
-    self.pre_spike = self.register_constant_delay('pre_spike', size=self.pre.num, delay=delay)
+    self.pre_spike = self.register_constant_delay('pre_spike', self.pre.num, delay,
+                                                  dtype=pre.spike.dtype)
 
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
@@ -158,7 +159,8 @@ class ExpCUBA(TwoEndConn):
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))
-    self.pre_spike = self.register_constant_delay('pre_spike', self.pre.num, delay)
+    self.pre_spike = self.register_constant_delay('pre_spike', self.pre.num, delay,
+                                                  dtype=pre.spike.dtype)
 
     # function
     self.integral = odeint(method=method, f=self.derivative)
@@ -237,8 +239,8 @@ class ExpCOBA(ExpCUBA):
 
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
-    delayed_pre_spike = self.pre_spike.pull()
-    post_sp = bm.event_add(delayed_pre_spike, self.conn.pre2post, self.post.num, self.g_max)
+    delayed_spike = self.pre_spike.pull()
+    post_sp = bm.event_add(delayed_spike, self.conn.pre2post, self.post.num, self.g_max)
     self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_sp
     self.post.input += self.g * (self.E - self.post.V)
 
@@ -339,7 +341,8 @@ class AMPA(TwoEndConn):
 
     # variables
     self.g = bm.Variable(bm.zeros(self.num))
-    self.pre_spike = self.register_constant_delay('ps', self.pre.num, delay)
+    self.pre_spike = self.register_constant_delay('ps', self.pre.num, delay,
+                                                  dtype=pre.spike.dtype)
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
 
     # functions
@@ -351,10 +354,10 @@ class AMPA(TwoEndConn):
 
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
-    self.spike_arrival_time.update(bm.where(self.pre_spike.pull(), _t, self.spike_arrival_time))
+    self.spike_arrival_time.value = bm.where(self.pre_spike.pull(), _t, self.spike_arrival_time)
     syn_sp_times = bm.pre2syn(self.spike_arrival_time, self.conn.pre_ids)
     TT = ((_t - syn_sp_times) < self.T_duration) * self.T
-    self.g.update(self.integral(self.g, _t, TT, dt=_dt))
+    self.g.value = self.integral(self.g, _t, TT, dt=_dt)
     g_post = bm.syn2post(self.g, self.conn.post_ids, self.post.num)
     self.post.input -= self.g_max * g_post * (self.post.V - self.E)
 

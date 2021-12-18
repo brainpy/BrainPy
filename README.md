@@ -1,8 +1,13 @@
 
 ![Logo](docs/_static/logo.png)
 
-[![LICENSE](https://anaconda.org/brainpy/brainpy/badges/license.svg)](https://github.com/PKU-NIP-Lab/BrainPy)    [![Documentation](https://readthedocs.org/projects/brainpy/badge/?version=latest)](https://brainpy.readthedocs.io/en/latest/?badge=latest)   [![PyPI version](https://badge.fury.io/py/brain-py.svg)](https://badge.fury.io/py/brain-py)   [![Build Status](https://travis-ci.com/PKU-NIP-Lab/BrainPy.svg?branch=master)](https://travis-ci.com/PKU-NIP-Lab/BrainPy)
 
+<p align="center">
+	<a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="LICENSE" src="https://anaconda.org/brainpy/brainpy/badges/license.svg"></a>
+  	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
+  	<a href="https://badge.fury.io/py/brain-py"><img alt="PyPI version" src="https://badge.fury.io/py/brain-py.svg"></a>
+  	<a href="https://travis-ci.com/PKU-NIP-Lab/BrainPy"><img alt="Build Status" src="https://travis-ci.com/PKU-NIP-Lab/BrainPy.svg?branch=master"></a>
+</p>
 
 
 
@@ -12,7 +17,7 @@
 
 # Why to use BrainPy
 
-``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on Just-In-Time (JIT) compilation (built on the top of [JAX](https://github.com/google/jax)). Core functions provided in BrainPy includes
+``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation (built on top of [JAX](https://github.com/google/jax)). Core functions provided in BrainPy includes
 
 - **JIT compilation** for functions and class objects. 
 - **Numerical solvers** for ODEs, SDEs, and others. 
@@ -24,9 +29,9 @@
 `BrainPy` is designed to effectively satisfy your basic requirements: 
 
 - **Pythonic**: BrainPy is based on Python language and has a Pythonic coding style. 
-- **Flexible and transparent**: BrainPy endows the users with the fully data/logic flow control. Users can code any logic they want with BrainPy. 
-- **Extensible**: BrainPy allow users to extend new functionality just based on Python cods. Almost every part of BrainPy system can be extended to be customized. 
-- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax)) to run on CPU, GPU or TPU devices, thus guaranteeing its running efficiency. 
+- **Flexible and transparent**: BrainPy endows the users with full data/logic flow control. Users can code any logic they want with BrainPy. 
+- **Extensible**: BrainPy allows users to extend new functionality just based on Python code. Almost every part of the BrainPy system can be extended to be customized. 
+- **Efficient**: All codes in BrainPy can be just-in-time compiled (based on [JAX](https://github.com/google/jax)) to run on CPU, GPU, or TPU devices, thus guaranteeing its running efficiency. 
 
 
 
@@ -41,7 +46,7 @@
 - sympy >= 1.6
 - matplotlib >= 3.4
 
-*The installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
+*For the installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
 
 
 
@@ -79,7 +84,7 @@ To install the stable release of BrainPy, please use
 
 ## Step 3: inspirational examples
 
-Here we list several examples of BrainPy. More detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io) or [**BrainPy-Examples**](https://brainpy-examples.readthedocs.io/en/latest/). 
+Here we list several examples of BrainPy. For more detailed examples and tutorials please see [**BrainModels**](https://brainmodels.readthedocs.io) or [**BrainPy-Examples**](https://brainpy-examples.readthedocs.io/en/latest/). 
 
 
 
@@ -159,7 +164,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/latest/apis/syn
 
 # BrainPy V1
 
-If you are using ``brainpy==1.x``, you can find *documentations*, *examples*, and *models* though the following links:
+If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and *models* through the following links:
 
 - **Documentation:** https://brainpy.readthedocs.io/en/brainpy-1.x/
 - **Examples from papers**: https://brainpy-examples.readthedocs.io/en/brainpy-1.x/

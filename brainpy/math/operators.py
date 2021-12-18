@@ -3,10 +3,11 @@
 try:
   import brainpylib
 except (ImportError, ModuleNotFoundError):
-  pass
+  brainpylib = None
 from jax import jit, vmap
 from jax import ops as jops
 
+from brainpy.errors import PackageMissingError
 from brainpy.math.jaxarray import JaxArray
 from brainpy.math.numpy_ops import append, zeros_like
 
@@ -30,7 +31,7 @@ _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
 
 
 def event_add(events, pre2post, post_num, value):
-  """Event add
+  """Event add.
 
   Parameters
   ----------
@@ -41,10 +42,16 @@ def event_add(events, pre2post, post_num, value):
 
   Returns
   -------
-
+  out: JaxArray, jnp.ndarray
   """
-  events = events.value if isinstance(events, JaxArray) else events
+  if brainpylib is None:
+    raise PackageMissingError(
+      '"brainpylib" must be installed when the user wants to use "event_add" operator. \n'
+      'Please install "brainpylib" through:\n\n'
+      '>>> pip install brainpylib')
+
   indices, idnptr = pre2post
+  events = events.value if isinstance(events, JaxArray) else events
   indices = indices.value if isinstance(indices, JaxArray) else indices
   idnptr = idnptr.value if isinstance(idnptr, JaxArray) else idnptr
   value = value.value if isinstance(value, JaxArray) else value
