@@ -18,8 +18,8 @@ except (ModuleNotFoundError, ImportError):
 
 
 __all__ = [
-  'ECONVERGED',
-  'ECONVERR',
+  'ECONVERGED', 'ECONVERR',
+
   'jax_brentq',
   'get_brentq_candidates',
   'brentq_candidates',

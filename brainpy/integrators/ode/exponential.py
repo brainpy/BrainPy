@@ -714,19 +714,20 @@ class ExpEulerAuto(ODEIntegrator):
     all_pars.append('dt')
     all_vps = all_vars + all_pars
 
-    def integral_func(*args, dt=math.get_dt(), **kwargs):
+    def integral_func(*args, **kwargs):
       # format arguments
       params_in = Collector()
       for i, arg in enumerate(args):
         params_in[all_vps[i]] = arg
       params_in.update(kwargs)
-      params_in['dt'] = dt
+      if 'dt' not in params_in:
+        params_in['dt'] = math.get_dt()
 
       # call integrals
       results = []
       for i, int_fun in enumerate(integrals):
         _key = arg_names[i][0]
-        r = int_fun(params_in[_key], **{arg: params_in[arg] for arg in arg_names[i][1:]})
+        r = int_fun(params_in[_key], **{arg: params_in[arg] for arg in arg_names[i][1:] if arg in params_in})
         results.append(r)
       return results if isinstance(self.f, joint_eq.JointEq) else results[0]
 
@@ -753,10 +754,12 @@ class ExpEulerAuto(ODEIntegrator):
       value_and_grad = math.vector_grad(eq, argnums=0, dyn_vars=self.dyn_var, return_value=True)
 
       # integration function
-      def integral(v, *args, dt=math.get_dt(), **kwargs):
-        linear, derivative = value_and_grad(v, *args, **kwargs)
+      def integral(*args, **kwargs):
+        assert len(args) > 0
+        dt = kwargs.pop('dt', math.get_dt())
+        linear, derivative = value_and_grad(*args, **kwargs)
         z = dt * linear
         phi = (math.exp(z) - 1) / z
-        return v + dt * phi * derivative
+        return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]
