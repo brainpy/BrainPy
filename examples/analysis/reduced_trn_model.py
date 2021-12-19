@@ -7,9 +7,9 @@ bp.math.enable_x64()
 bp.math.set_platform('cpu')
 
 
-class TRNNeuronModel(bp.NeuGroup):
+class ReducedTRNModel(bp.NeuGroup):
   def __init__(self, size, name=None, T=36., method='rk4'):
-    super(TRNNeuronModel, self).__init__(size=size, name=name)
+    super(ReducedTRNModel, self).__init__(size=size, name=name)
 
     self.IT_th = -3.
     self.b = 0.5
@@ -204,7 +204,7 @@ class TRNNeuronModel(bp.NeuGroup):
 
 
 def try1():
-  trn = TRNNeuronModel(1, method='rk4')
+  trn = ReducedTRNModel(1, method='rk4')
   trn.b = 0.5
   trn.rho_p = 0.01
 
@@ -231,7 +231,7 @@ def try1():
     options={bp.analysis.C.y_by_x_in_fy: lambda V: V}
   )
   pp.plot_bifurcation()
-  pp.plot_limit_cycle_by_sim(var='V', duration=500, dt=0.002, show=True)
+  pp.plot_limit_cycle_by_sim(duration=100, dt=0.01, show=True)
 
 
   # pp = bp.analysis.FastSlow2D(
