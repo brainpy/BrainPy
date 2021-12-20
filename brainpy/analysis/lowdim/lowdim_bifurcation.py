@@ -259,6 +259,7 @@ class Bifurcation2D(Num2DAnalyzer):
     utils.output('I am trying to filter out duplicate fixed points ...')
     final_fps = []
     final_pars = []
+    # TODO: this is time consuming with many parameters
     for par in np.unique(parameters, axis=0):
       ids = np.where(np.all(parameters == par, axis=1))[0]
       fps, ids2 = utils.keep_unique(candidates[ids], tol=tol_unique)

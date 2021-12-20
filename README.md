@@ -15,7 +15,7 @@
 
 
 
-# Why to use BrainPy
+# Why use BrainPy
 
 ``BrainPy`` is an integrative framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation (built on top of [JAX](https://github.com/google/jax)). Core functions provided in BrainPy includes
 
@@ -43,7 +43,6 @@
 
 - numpy >= 1.15
 - jax >= 0.2.10
-- sympy >= 1.6
 - matplotlib >= 3.4
 
 *For the installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*

@@ -11,8 +11,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 4. **Dynamics analysis tools** for differential equations, including
    phase plane analysis, bifurcation analysis, and
    linearization analysis.
-5. **Seamless integration with deep learning models**, but has the high speed
-   acceleration because of JIT compilation.
+5. **Seamless integration with deep learning models**.
 6. And more ......
 
 

@@ -3,7 +3,6 @@
 import jax.numpy as jnp
 
 from brainpy.base.base import Base
-from brainpy.base.collector import TensorCollector
 from brainpy.errors import MathError
 from brainpy.math import numpy_ops as ops
 from brainpy.math.jaxarray import Variable
