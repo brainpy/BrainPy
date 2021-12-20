@@ -30,15 +30,15 @@ _jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3, 4, 5))
 _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3, 4, 5))
 
 
-def event_add(events, pre2post, post_num, value):
+def event_add(events, pre2post, post_num, values):
   """Event add.
 
   Parameters
   ----------
-  events
+  events: JaxArray, jnp.ndarray
   pre2post: tuple of JaxArray, tuple of jnp.ndarray
   post_num: int
-  value: float, JaxArray, jnp.ndarray
+  values: float, JaxArray, jnp.ndarray
 
   Returns
   -------
@@ -54,8 +54,8 @@ def event_add(events, pre2post, post_num, value):
   events = events.value if isinstance(events, JaxArray) else events
   indices = indices.value if isinstance(indices, JaxArray) else indices
   idnptr = idnptr.value if isinstance(idnptr, JaxArray) else idnptr
-  value = value.value if isinstance(value, JaxArray) else value
-  return brainpylib.event_add(events, (indices, idnptr), post_num, value)
+  values = values.value if isinstance(values, JaxArray) else values
+  return brainpylib.event_add(events, (indices, idnptr), post_num, values)
 
 
 def pre2post(pre_values, post2pre_conn):

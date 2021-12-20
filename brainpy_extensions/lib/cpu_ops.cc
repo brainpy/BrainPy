@@ -10,10 +10,10 @@ using namespace brainpy_lib;
 namespace {
     pybind11::dict Registrations() {
       pybind11::dict dict;
-      dict["cpu_event_add_f32_i32"] = EncapsulateFunction(cpu_event_add_f32_i32);
-      dict["cpu_event_add_f32_i64"] = EncapsulateFunction(cpu_event_add_f32_i64);
-      dict["cpu_event_add_f64_i32"] = EncapsulateFunction(cpu_event_add_f64_i32);
-      dict["cpu_event_add_f64_i64"] = EncapsulateFunction(cpu_event_add_f64_i64);
+      dict["cpu_event_add_homo_f32_i32"] = EncapsulateFunction(cpu_event_add_homo_f32_i32);
+      dict["cpu_event_add_homo_f32_i64"] = EncapsulateFunction(cpu_event_add_homo_f32_i64);
+      dict["cpu_event_add_homo_f64_i32"] = EncapsulateFunction(cpu_event_add_homo_f64_i32);
+      dict["cpu_event_add_homo_f64_i64"] = EncapsulateFunction(cpu_event_add_homo_f64_i64);
 
       dict["cpu_event_add_heter_f32_i32"] = EncapsulateFunction(cpu_event_add_heter_f32_i32);
       dict["cpu_event_add_heter_f32_i64"] = EncapsulateFunction(cpu_event_add_heter_f32_i64);

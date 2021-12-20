@@ -20,7 +20,7 @@ namespace brainpy_lib {
         // "event_add" operator //
 
         template<typename F, typename I>
-        __global__ void event_add_kernel(const std::int32_t size,
+        __global__ void event_add_homo_kernel(const std::int32_t size,
                                          const bool *events,
                                          const I *indices,
                                          const I *indptr,
@@ -36,7 +36,7 @@ namespace brainpy_lib {
         }
 
         template<typename F, typename I>
-        inline void event_add(cudaStream_t stream,
+        inline void event_add_homo(cudaStream_t stream,
                               void **buffers,
                               const char *opaque,
                               std::size_t opaque_len) {
@@ -54,12 +54,8 @@ namespace brainpy_lib {
             // call kernel
             const int block_dim = 512;
             const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
-            event_add_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(size,
-                                                                       events,
-                                                                       indices,
-                                                                       indptr,
-                                                                       value,
-                                                                       result);
+            event_add_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(
+              size, events, indices, indptr, value, result);
             ThrowIfError(cudaGetLastError());
         }
 
@@ -111,18 +107,19 @@ namespace brainpy_lib {
 
     }  // namespace
 
-    void gpu_event_add_f32_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
-        event_add<float, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    void gpu_event_add_homo_f32_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add_homo<float, std::uint32_t>(stream, buffers, opaque, opaque_len);
     }
-    void gpu_event_add_f32_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
-        event_add<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    void gpu_event_add_homo_f32_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add_homo<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
     }
-    void gpu_event_add_f64_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
-        event_add<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    void gpu_event_add_homo_f64_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add_homo<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
     }
-    void gpu_event_add_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
-        event_add<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    void gpu_event_add_homo_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
+        event_add_homo<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
     }
+
 
     void gpu_event_add2_f32_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len) {
         event_add2<float, std::uint32_t>(stream, buffers, opaque, opaque_len);

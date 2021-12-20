@@ -3,7 +3,7 @@
 namespace brainpy_lib {
 namespace{
     template <typename F, typename I>
-    void cpu_event_add(void *out, const void **in) {
+    void cpu_event_add_homo(void *out, const void **in) {
       // Parse the inputs
       const std::int32_t pre_size = *reinterpret_cast<const std::int32_t *>(in[0]);
       const bool *events = reinterpret_cast<const bool *>(in[1]);
@@ -67,10 +67,10 @@ namespace{
     }
 }
 
-void cpu_event_add_f32_i32(void *out, const void **in){cpu_event_add<float, std::uint32_t>(out, in);}
-void cpu_event_add_f32_i64(void *out, const void **in){cpu_event_add<float, std::uint64_t>(out, in);}
-void cpu_event_add_f64_i32(void *out, const void **in){cpu_event_add<double, std::uint32_t>(out, in);}
-void cpu_event_add_f64_i64(void *out, const void **in){cpu_event_add<double, std::uint64_t>(out, in);}
+void cpu_event_add_homo_f32_i32(void *out, const void **in){cpu_event_add_homo<float, std::uint32_t>(out, in);}
+void cpu_event_add_homo_f32_i64(void *out, const void **in){cpu_event_add_homo<float, std::uint64_t>(out, in);}
+void cpu_event_add_homo_f64_i32(void *out, const void **in){cpu_event_add_homo<double, std::uint32_t>(out, in);}
+void cpu_event_add_homo_f64_i64(void *out, const void **in){cpu_event_add_homo<double, std::uint64_t>(out, in);}
 
 void cpu_event_add_heter_f32_i32(void *out, const void **in){cpu_event_add_heter<float, std::uint32_t>(out, in);}
 void cpu_event_add_heter_f32_i64(void *out, const void **in){cpu_event_add_heter<float, std::uint64_t>(out, in);}

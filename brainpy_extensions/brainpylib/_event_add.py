@@ -22,9 +22,9 @@ from . import cpu_ops
 for _name, _value in cpu_ops.registrations().items():
   xla_client.register_cpu_custom_call_target(_name, _value)
 
-# ----------------------------------
-# Event add with homogenous values
-# ----------------------------------
+# ----------------------------------------------
+# Event add with homogenous/heterogeneous values
+# ----------------------------------------------
 
 _event_add_prim = core.Primitive("event_add")
 
@@ -35,9 +35,10 @@ def event_add(events, pre2post, post_num, values):
   assert len(events) + 1 == len(indptr)
   # output value
   values = jnp.asarray(values)
+  assert values.dtype in [jnp.float32, jnp.float64]
   assert values.size == 1 or values.size == indices.size
   out = jnp.zeros(post_num, dtype=values.dtype)
-  # return
+  # bind operator
   return _event_add_prim.bind(events, indices, indptr, values, out)
 
 
@@ -91,7 +92,7 @@ def _event_add_translation(c, events, indices, indptr, values, out, *, platform=
   _out_shape = x_shape(Ftype, out_shape.dimensions(), (0,))
 
   # We dispatch a different call depending on the dtype
-  v_type = b'_event_add' if len(values_dim) == 0 else b'_event_add_heter'
+  v_type = b'_event_add_homo' if len(values_dim) == 0 else b'_event_add_heter'
   f_type = b'_f32' if Ftype == np.float32 else b'_f64'
   i_type = b'_i32' if Itype == np.uint32 else b'_i64'
 
