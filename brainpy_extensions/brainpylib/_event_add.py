@@ -7,8 +7,8 @@ __all__ = [
 
 from functools import partial
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 from jax import core, dtypes
 from jax.interpreters import xla
 from jax.lib import xla_client
@@ -18,30 +18,37 @@ x_ops = xla_client.ops
 
 # Register the CPU XLA custom calls
 from . import cpu_ops
+
 for _name, _value in cpu_ops.registrations().items():
   xla_client.register_cpu_custom_call_target(_name, _value)
 
+# ----------------------------------
+# Event add with homogenous values
+# ----------------------------------
 
 _event_add_prim = core.Primitive("event_add")
 
 
-def event_add(events, pre2post, post_num, value):
-  # output value
-  value = jnp.asarray(value)
-  out = jnp.zeros(post_num, dtype=value.dtype)
+def event_add(events, pre2post, post_num, values):
   # connections
   indices, indptr = pre2post
   assert len(events) + 1 == len(indptr)
-  return _event_add_prim.bind(events, indices, indptr, value, out)
+  # output value
+  values = jnp.asarray(values)
+  assert values.size == 1 or values.size == indices.size
+  out = jnp.zeros(post_num, dtype=values.dtype)
+  # return
+  return _event_add_prim.bind(events, indices, indptr, values, out)
 
 
-def _event_add_abstract(events, indices, indptr, value, out):
+def _event_add_abstract(events, indices, indptr, values, out):
   dtype1 = dtypes.canonicalize_dtype(indices.dtype)
   dtype2 = dtypes.canonicalize_dtype(indptr.dtype)
   assert dtype1 in [np.uint32, np.uint64]
   assert dtype2 in [np.uint32, np.uint64]
   assert dtype1 == dtype2
   assert dtypes.canonicalize_dtype(events.dtype) == np.bool_
+  assert dtypes.canonicalize_dtype(values.dtype) == dtypes.canonicalize_dtype(out.dtype)
   return out
 
 
@@ -49,7 +56,7 @@ _event_add_prim.def_abstract_eval(_event_add_abstract)
 _event_add_prim.def_impl(partial(xla.apply_primitive, _event_add_prim))
 
 
-def _event_add_translation(c, events, indices, indptr, value, out, *, platform="cpu"):
+def _event_add_translation(c, events, indices, indptr, values, out, *, platform="cpu"):
   # The event shape
   events_shape = c.get_shape(events)
   events_dim = events_shape.dimensions()
@@ -62,45 +69,41 @@ def _event_add_translation(c, events, indices, indptr, value, out, *, platform="
   # The indices shape
   indices_shape = c.get_shape(indices)
   Itype = indices_shape.element_type()
+  assert Itype in [np.uint32, np.uint64]
   _indices_shape = x_shape(Itype, indices_shape.dimensions(), (0,))
 
   # The indptr shape
   _indptr_shape = x_shape(Itype, c.get_shape(indptr).dimensions(), (0,))
 
   # The value shape
-  Ftype = c.get_shape(value).element_type()
-  _value_shape = x_shape(Ftype, (), ())
+  values_shape = c.get_shape(values)
+  Ftype = values_shape.element_type()
+  assert Ftype in [np.float32, np.float64]
+  values_dim = values_shape.dimensions()
+  if len(values_dim) == 0:
+    _values_shape = x_shape(Ftype, values_dim, ())
+  else:
+    assert values_dim == indices_shape.dimensions()
+    _values_shape = x_shape(Ftype, values_dim, (0,))
 
   # The output value shape
   out_shape = c.get_shape(out)
   _out_shape = x_shape(Ftype, out_shape.dimensions(), (0,))
 
   # We dispatch a different call depending on the dtype
-  if Ftype == np.float32:
-    if Itype == np.uint32:
-      op_name = platform.encode() + b"_event_add_f32_i32"
-    elif Itype == np.uint64:
-      op_name = platform.encode() + b"_event_add_f32_i64"
-    else:
-      raise NotImplementedError
-  elif Ftype == np.float64:
-    if Itype == np.uint32:
-      op_name = platform.encode() + b"_event_add_f64_i32"
-    elif Itype == np.uint64:
-      op_name = platform.encode() + b"_event_add_f64_i64"
-    else:
-      raise NotImplementedError
-  else: raise NotImplementedError
+  v_type = b'_event_add' if len(values_dim) == 0 else b'_event_add_heter'
+  f_type = b'_f32' if Ftype == np.float32 else b'_f64'
+  i_type = b'_i32' if Itype == np.uint32 else b'_i64'
 
   # And then the following is what changes between the GPU and CPU
   if platform == "cpu":
     # On the CPU, we pass the size of the data as a the first input argument
     return x_ops.CustomCallWithLayout(
-      c,  # builder
-      op_name,  # call_target_name
-      operands=(x_ops.ConstantLiteral(c, pre_size), events, indices, indptr, value),  # The inputs
+      c, # builder
+      platform.encode() + v_type + f_type + i_type,  # call_target_name
+      operands=(x_ops.ConstantLiteral(c, pre_size), events, indices, indptr, values),  # The inputs
       operand_shapes_with_layout=(
-        _pre_shape, _events_shape, _indices_shape, _indptr_shape, _value_shape),  # The input shapes
+        _pre_shape, _events_shape, _indices_shape, _indptr_shape, _values_shape),  # The input shapes
       shape_with_layout=_out_shape,  # The output shapes
     )
   elif platform == 'gpu':
@@ -109,8 +112,13 @@ def _event_add_translation(c, events, indices, indptr, value, out, *, platform="
   raise ValueError("Unsupported platform; this must be either 'cpu' or 'gpu'")
 
 
-# Connect the XLA translation rules for JIT compilation
-xla.backend_specific_translations["cpu"][_event_add_prim] = partial(_event_add_translation, platform="cpu")
+xla.backend_specific_translations["cpu"][_event_add_prim] = \
+  partial(_event_add_translation, platform="cpu")
+
+
+# ---------------------------
+#
+# ---------------------------
 
 
 _event_add2_prim = core.Primitive("event_add2")
@@ -123,7 +131,6 @@ def event_add2(events, pre_ids, post_ids, post_num, value):
   # connections
   assert len(pre_ids) == len(post_ids)
   return _event_add2_prim.bind(events, pre_ids, post_ids, value, out)
-
 
 
 def _event_add2_abstract(events, pre_ids, post_ids, value, out):

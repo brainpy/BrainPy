@@ -14,6 +14,12 @@ namespace {
       dict["cpu_event_add_f32_i64"] = EncapsulateFunction(cpu_event_add_f32_i64);
       dict["cpu_event_add_f64_i32"] = EncapsulateFunction(cpu_event_add_f64_i32);
       dict["cpu_event_add_f64_i64"] = EncapsulateFunction(cpu_event_add_f64_i64);
+
+      dict["cpu_event_add_heter_f32_i32"] = EncapsulateFunction(cpu_event_add_heter_f32_i32);
+      dict["cpu_event_add_heter_f32_i64"] = EncapsulateFunction(cpu_event_add_heter_f32_i64);
+      dict["cpu_event_add_heter_f64_i32"] = EncapsulateFunction(cpu_event_add_heter_f64_i32);
+      dict["cpu_event_add_heter_f64_i64"] = EncapsulateFunction(cpu_event_add_heter_f64_i64);
+
       dict["cpu_event_add2_f32_i32"] = EncapsulateFunction(cpu_event_add2_f32_i32);
       dict["cpu_event_add2_f32_i64"] = EncapsulateFunction(cpu_event_add2_f32_i64);
       dict["cpu_event_add2_f64_i32"] = EncapsulateFunction(cpu_event_add2_f64_i32);
