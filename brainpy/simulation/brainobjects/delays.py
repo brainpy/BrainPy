@@ -76,8 +76,8 @@ class ConstantDelay(Delay):
     if isinstance(delay, (int, float)):  # uniform delay
       self.uniform_delay = True
       self.num_step = int(pm.ceil(delay / self.dt)) + 1
-      self.out_idx = bm.Variable(bm.array([0]))
-      self.in_idx = bm.Variable(bm.array([self.num_step - 1]))
+      self.out_idx = bm.Variable(bm.array([0], dtype=bm.uint32))
+      self.in_idx = bm.Variable(bm.array([self.num_step - 1], dtype=bm.uint32))
       self.data = bm.Variable(bm.zeros((self.num_step,) + self.size, dtype=dtype))
 
       self.push = self._push_for_uniform_delay
@@ -99,9 +99,9 @@ class ConstantDelay(Delay):
                               f"we got {delay.shape[0]} != {self.size[0]}")
       delay = bm.around(delay / self.dt)
       self.diag = bm.array(bm.arange(self.num), dtype=bm.int_)
-      self.num_step = bm.array(delay, dtype=bm.int_) + 1
+      self.num_step = bm.array(delay, dtype=bm.uint32) + 1
       self.in_idx = bm.Variable(self.num_step - 1)
-      self.out_idx = bm.Variable(bm.zeros(self.num, dtype=bm.int_))
+      self.out_idx = bm.Variable(bm.zeros(self.num, dtype=bm.uint32))
       self.data = bm.Variable(bm.zeros((self.num_step.max(),) + size, dtype=dtype))
 
       self.push = self._push_for_nonuniform_delay

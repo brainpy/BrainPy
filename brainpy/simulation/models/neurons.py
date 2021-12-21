@@ -111,7 +111,7 @@ class LIF(NeuGroup):
     refractory = (_t - self.t_last_spike) <= self.tau_ref
     V = self.int_V(self.V, _t, self.input, dt=_dt)
     V = bm.where(refractory, self.V, V)
-    spike = self.V_th <= V
+    spike = V >= self.V_th
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
     self.refractory.value = bm.logical_or(refractory, spike)

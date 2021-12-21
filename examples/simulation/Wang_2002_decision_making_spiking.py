@@ -320,12 +320,7 @@ class DecisionMaking(bp.Network):
     IB = PoissonStim(num_B, freq_var=10., t_interval=50.,
                      freq_mean=mu0 - mu0 / 100. * coherence)
 
-    self.A = A
-    self.B = B
-    self.N = N
-    self.I = I
-    self.IA = IA
-    self.IB = IB
+    # noises
     self.noise_A = PoissonNoise(num_A, freq=poisson_freq)
     self.noise_B = PoissonNoise(num_B, freq=poisson_freq)
     self.noise_N = PoissonNoise(num_N, freq=poisson_freq)
@@ -385,6 +380,14 @@ class DecisionMaking(bp.Network):
     self.noise2B = AMPA_One(pre=self.noise_B, post=B, g_max=g_max_ext2E_AMPA)
     self.noise2N = AMPA_One(pre=self.noise_N, post=N, g_max=g_max_ext2E_AMPA)
     self.noise2I = AMPA_One(pre=self.noise_I, post=I, g_max=g_max_ext2I_AMPA)
+
+    # nodes
+    self.A = A
+    self.B = B
+    self.N = N
+    self.I = I
+    self.IA = IA
+    self.IB = IB
 
 
 # %%

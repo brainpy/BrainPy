@@ -3,6 +3,7 @@
 import brainpy.math as bm
 from brainpy.integrators.ode import odeint
 from brainpy.simulation.brainobjects import TwoEndConn
+from brainpy.simulation.brainobjects.delays import ConstantDelay
 
 __all__ = [
   'DeltaSynapse',
@@ -56,7 +57,7 @@ class DeltaSynapse(TwoEndConn):
 
     # connections
     assert self.conn is not None
-    self.conn.require('pre2post')
+    self.pre2post = self.conn.require('pre2post')
 
     # variables
     self.w = w
@@ -67,7 +68,7 @@ class DeltaSynapse(TwoEndConn):
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
     delayed_pre_spike = self.pre_spike.pull()
-    spikes = bm.event_add(delayed_pre_spike, self.conn.pre2post, self.post.num, self.w)
+    spikes = bm.pre2post_event_sum(delayed_pre_spike, self.pre2post, self.post.num, self.w)
     target = getattr(self.post, self.post_key)
     if self.post_has_ref:
       target += spikes * (1. - self.post.refractory)
@@ -148,6 +149,10 @@ class ExpCUBA(TwoEndConn):
                method='exp_auto', **kwargs):
     super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
 
+    assert hasattr(self.pre, 'spike')
+    assert hasattr(self.post, 'input')
+    assert hasattr(self.post, 'V')
+
     # parameters
     self.tau = tau
     self.delay = delay
@@ -155,24 +160,21 @@ class ExpCUBA(TwoEndConn):
 
     # connection
     assert self.conn is not None
-    self.conn.require('pre2post')
+    self.pre2post = self.conn.require('pre2post')
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))
-    self.pre_spike = self.register_constant_delay('pre_spike', self.pre.num, delay,
-                                                  dtype=pre.spike.dtype)
+    # self.pre_spike = self.register_constant_delay(
+    #   'pre_spike', self.pre.num, delay, dtype=pre.spike.dtype)
+    self.pre_spike = ConstantDelay(self.pre.num, delay=delay, dtype=pre.spike.dtype)
 
     # function
-    self.integral = odeint(method=method, f=self.derivative)
-
-  def derivative(self, g, t):
-    dg = -g / self.tau
-    return dg
+    self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
     delayed_pre_spike = self.pre_spike.pull()
-    post_sp = bm.event_add(delayed_pre_spike, self.conn.pre2post, self.post.num, self.g_max)
+    post_sp = bm.pre2post_event_sum(delayed_pre_spike, self.conn.pre2post, self.post.num, self.g_max)
     self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_sp
     self.post.input += self.g
 
@@ -240,9 +242,9 @@ class ExpCOBA(ExpCUBA):
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
     delayed_spike = self.pre_spike.pull()
-    post_sp = bm.event_add(delayed_spike, self.conn.pre2post, self.post.num, self.g_max)
+    post_sp = bm.pre2post_event_sum(delayed_spike, self.pre2post, self.post.num, self.g_max)
     self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_sp
-    self.post.input += self.g * (self.E - self.post.V)
+    self.post.input.value += self.g * (self.E - self.post.V)
 
 
 class AMPA(TwoEndConn):
@@ -337,7 +339,7 @@ class AMPA(TwoEndConn):
 
     # connection
     assert self.conn is not None
-    self.conn.require('pre_ids', 'post_ids')
+    self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
 
     # variables
     self.g = bm.Variable(bm.zeros(self.num))
@@ -355,10 +357,10 @@ class AMPA(TwoEndConn):
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
     self.spike_arrival_time.value = bm.where(self.pre_spike.pull(), _t, self.spike_arrival_time)
-    syn_sp_times = bm.pre2syn(self.spike_arrival_time, self.conn.pre_ids)
+    syn_sp_times = bm.pre2syn(self.spike_arrival_time, self.pre_ids)
     TT = ((_t - syn_sp_times) < self.T_duration) * self.T
     self.g.value = self.integral(self.g, _t, TT, dt=_dt)
-    g_post = bm.syn2post(self.g, self.conn.post_ids, self.post.num)
+    g_post = bm.syn2post(self.g, self.post_ids, self.post.num)
     self.post.input -= self.g_max * g_post * (self.post.V - self.E)
 
 

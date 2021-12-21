@@ -178,6 +178,11 @@ class Container(DynamicalSystem):
   """
 
   def __init__(self, *ds_tuple, steps=None, name=None, **ds_dict):
+    # integrative step function
+    if steps is None:
+      steps = ('update',)
+    super(Container, self).__init__(steps=steps, name=name)
+
     # children dynamical systems
     self.implicit_nodes = Collector()
     for ds in ds_tuple:
@@ -186,19 +191,14 @@ class Container(DynamicalSystem):
                               f'DynamicalSystem, however, we got {type(ds)}.')
       if ds.name in self.implicit_nodes:
         raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
-      self.implicit_nodes[ds.name] = ds
+    self.register_implicit_nodes({node.name: node for node in ds_tuple})
     for key, ds in ds_dict.items():
       if not isinstance(ds, DynamicalSystem):
         raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
                               f'DynamicalSystem, however, we got {type(ds)}.')
       if key in self.implicit_nodes:
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
-      self.implicit_nodes[key] = ds
-
-    # integrative step function
-    if steps is None:
-      steps = ('update',)
-    super(Container, self).__init__(steps=steps, name=name)
+    self.register_implicit_nodes(ds_dict)
 
   def update(self, _t, _dt):
     """Step function of a network.
