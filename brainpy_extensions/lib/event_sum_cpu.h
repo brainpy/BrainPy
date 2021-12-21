@@ -2,7 +2,7 @@
 #define _BRAINPY_event_sum_H_
 
 #include <cstdint>
-#include <string.h>
+#include <cstring>
 #include <cmath>
 
 namespace brainpy_lib {

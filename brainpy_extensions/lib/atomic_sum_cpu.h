@@ -2,7 +2,7 @@
 #define _BRAINPYLIB_ATOMIC_SUM_H_
 
 #include <cstdint>
-#include <string.h>
+#include <cstring>
 #include <cmath>
 
 namespace brainpy_lib {

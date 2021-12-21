@@ -12,7 +12,8 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
 pybind11_add_module(
     cpu_ops
     ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/event_add_cpu.cc
+    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_cpu.cc
+    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_cpu.cc
     )
 install(TARGETS cpu_ops DESTINATION brainpylib)
 
