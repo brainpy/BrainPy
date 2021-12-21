@@ -96,7 +96,7 @@ setup(
   python_requires='>=3.6',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=[
-    Extension("cpu_ops", ['lib/cpu_ops.cc', 'lib/event_add_cpu.cc']),
+    Extension("cpu_ops", ['lib/cpu_ops.cc', 'lib/event_sum_cpu.cc']),
   ],
   cmdclass={"build_ext": CMakeBuildExt},
   license='GPL-3.0 License',

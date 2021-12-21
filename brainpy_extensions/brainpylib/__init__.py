@@ -2,5 +2,10 @@
 
 __version__ = "0.0.2"
 
-from ._event_add import *
+# IMPORTANT, must import first
+from . import register_custom_calls
+
+# import operators
+from .event_sum import *
+from .atomic_sum import *
 

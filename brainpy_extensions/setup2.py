@@ -2,6 +2,7 @@
 
 import os
 import re
+import glob
 
 from pybind11.setup_helpers import Pybind11Extension
 from setuptools import find_packages, setup
@@ -18,10 +19,12 @@ cuda_version = os.environ.get("JAX_CUDA_VERSION")
 if cuda_version:
   __version__ += "+cuda" + cuda_version.replace(".", "")
 
+a = ["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc")
+print("LIB: ", a)
 # extension modules
 ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
-                    sources=["lib/cpu_ops.cc", "lib/event_add_cpu.cc"],
+                    sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
 

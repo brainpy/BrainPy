@@ -4,7 +4,7 @@
 // of the problem size that will be passed to the op. The actually implementation of the
 // custom call can be found in kernels.cc.cu.
 
-#include "event_add_gpu_kernels.h"
+#include "event_sum_gpu_kernels.h"
 #include "pybind11_kernel_helpers.h"
 
 using namespace brainpy_lib;
@@ -12,15 +12,15 @@ using namespace brainpy_lib;
 namespace {
     pybind11::dict Registrations() {
       pybind11::dict dict;
-      dict["gpu_event_add_homo_f32_i32"] = EncapsulateFunction(gpu_event_add_homo_f32_i32);
-      dict["gpu_event_add_homo_f32_i64"] = EncapsulateFunction(gpu_event_add_homo_f32_i64);
-      dict["gpu_event_add_homo_f64_i32"] = EncapsulateFunction(gpu_event_add_homo_f64_i32);
-      dict["gpu_event_add_homo_f64_i64"] = EncapsulateFunction(gpu_event_add_homo_f64_i64);
+      dict["gpu_event_sum_homo_f32_i32"] = EncapsulateFunction(gpu_event_sum_homo_f32_i32);
+      dict["gpu_event_sum_homo_f32_i64"] = EncapsulateFunction(gpu_event_sum_homo_f32_i64);
+      dict["gpu_event_sum_homo_f64_i32"] = EncapsulateFunction(gpu_event_sum_homo_f64_i32);
+      dict["gpu_event_sum_homo_f64_i64"] = EncapsulateFunction(gpu_event_sum_homo_f64_i64);
 
-      dict["gpu_event_add2_f32_i32"] = EncapsulateFunction(gpu_event_add2_f32_i32);
-      dict["gpu_event_add2_f32_i64"] = EncapsulateFunction(gpu_event_add2_f32_i64);
-      dict["gpu_event_add2_f64_i32"] = EncapsulateFunction(gpu_event_add2_f64_i32);
-      dict["gpu_event_add2_f64_i64"] = EncapsulateFunction(gpu_event_add2_f64_i64);
+      dict["gpu_event_sum2_f32_i32"] = EncapsulateFunction(gpu_event_sum2_f32_i32);
+      dict["gpu_event_sum2_f32_i64"] = EncapsulateFunction(gpu_event_sum2_f32_i64);
+      dict["gpu_event_sum2_f64_i32"] = EncapsulateFunction(gpu_event_sum2_f64_i32);
+      dict["gpu_event_sum2_f64_i64"] = EncapsulateFunction(gpu_event_sum2_f64_i64);
       return dict;
     }
 
