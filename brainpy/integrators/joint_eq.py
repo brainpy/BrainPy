@@ -124,7 +124,7 @@ class JointEq(object):
     the order of variables to call later.
   """
 
-  def __init__(self, eqs, variables):
+  def __init__(self, eqs):
     # equations
     if not isinstance(eqs, (tuple, list)):
       raise errors.DiffEqError(f'"eqs" only supports list/tuple of '
@@ -164,26 +164,26 @@ class JointEq(object):
         else:
           raise errors.DiffEqError
 
-    # variable names provided
-    if not isinstance(variables, (tuple, list)):
-      raise errors.DiffEqError(f'"variables" must be a list/tuple of str, but we got {variables}')
-    for v in variables:
-      if not isinstance(v, str):
-        raise errors.DiffEqError(f'"variables" must be a list/tuple of str, but we got {v} in "variables"')
-    if len(vars_in_eqs) != len(variables):
-      raise errors.DiffEqError(f'We detect {len(vars_in_eqs)} variables "{vars_in_eqs}" '
-                               f'in the provided equations. However, the used provided '
-                               f'"variables" have {len(variables)} variables '
-                               f'"{variables}".')
-    if len(set(vars_in_eqs) - set(variables)) != 0:
-      raise errors.DiffEqError(f'We detect there are variable "{vars_in_eqs}" in the provided '
-                               f'equations, while the user provided variables "{variables}" '
-                               f'is not the same.')
+    # # variable names provided
+    # if not isinstance(variables, (tuple, list)):
+    #   raise errors.DiffEqError(f'"variables" must be a list/tuple of str, but we got {variables}')
+    # for v in variables:
+    #   if not isinstance(v, str):
+    #     raise errors.DiffEqError(f'"variables" must be a list/tuple of str, but we got {v} in "variables"')
+    # if len(vars_in_eqs) != len(variables):
+    #   raise errors.DiffEqError(f'We detect {len(vars_in_eqs)} variables "{vars_in_eqs}" '
+    #                            f'in the provided equations. However, the used provided '
+    #                            f'"variables" have {len(variables)} variables '
+    #                            f'"{variables}".')
+    # if len(set(vars_in_eqs) - set(variables)) != 0:
+    #   raise errors.DiffEqError(f'We detect there are variable "{vars_in_eqs}" in the provided '
+    #                            f'equations, while the user provided variables "{variables}" '
+    #                            f'is not the same.')
 
     # finally
     self.eqs = eqs
-    self.variables = variables
-    self.arg_keys = self.variables + ['t'] + all_arg_pars
+    # self.variables = variables
+    self.arg_keys = vars_in_eqs + ['t'] + all_arg_pars
     self.kwarg_keys = list(all_kwarg_pars.keys())
     self.kwargs = all_kwarg_pars
     parameters = [inspect.Parameter(vp, inspect.Parameter.POSITIONAL_OR_KEYWORD)
