@@ -25,7 +25,7 @@ class PhasePlane1D(Num1DAnalyzer):
 
   Parameters
   ----------
-  model : Any, Integrator, sequence of Integrator, DynamicalSystem
+  model : Any
       A model of the population, the integrator function,
       or a list/tuple of integrator functions.
   target_vars : dict
@@ -237,9 +237,9 @@ class PhasePlane2D(Num2DAnalyzer):
     y_values_in_fx = np.asarray(xy_values_in_fx[:, 1])
     if with_plot:
       if x_style is None:
-        x_style = dict(color='cornflowerblue', alpha=.7, marker='.')
         x_style = dict(color='cornflowerblue', alpha=.7, )
-      plt.plot(x_values_in_fx, y_values_in_fx, '.', **x_style, label=f"{self.x_var} nullcline")
+      fmt = x_style.pop('fmt', '.')
+      plt.plot(x_values_in_fx, y_values_in_fx, fmt, **x_style, label=f"{self.x_var} nullcline")
 
     # Nullcline of the y variable
     # ---------------------------
@@ -249,9 +249,9 @@ class PhasePlane2D(Num2DAnalyzer):
     y_values_in_fy = np.asarray(xy_values_in_fy[:, 1])
     if with_plot:
       if y_style is None:
-        y_style = dict(color='lightcoral', alpha=.7, marker='.')
         y_style = dict(color='lightcoral', alpha=.7, )
-      plt.plot(x_values_in_fy, y_values_in_fy, '.', **y_style, label=f"{self.y_var} nullcline")
+      fmt = y_style.pop('fmt', '.')
+      plt.plot(x_values_in_fy, y_values_in_fy, fmt, **y_style, label=f"{self.y_var} nullcline")
 
     if with_plot:
       plt.xlabel(self.x_var)

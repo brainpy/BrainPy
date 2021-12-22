@@ -154,17 +154,17 @@ class LowDimAnalyzer(object):
       for key in self.target_var_names + self.target_par_names:
         if key not in resolutions:
           self.resolutions[key] = bm.linspace(*_target_vp[key], 20)
-          continue
-        resolution = resolutions[key]
-        if isinstance(resolution, float):
-          self.resolutions[key] = bm.arange(*_target_vp[key], resolution)
-        elif isinstance(resolution, (bm.ndarray, np.ndarray, jnp.ndarray)):
-          if not np.ndim(resolution) == 1:
-            raise errors.AnalyzerError(f'resolution must be a 1D vector, but get its '
-                                       f'shape with {resolution.shape}.')
-          self.resolutions[key] = bm.asarray(resolution)
         else:
-          raise errors.AnalyzerError(f'Unknown resolution setting: {key}: {resolution}')
+          resolution = resolutions[key]
+          if isinstance(resolution, float):
+            self.resolutions[key] = bm.arange(*_target_vp[key], resolution)
+          elif isinstance(resolution, (bm.ndarray, np.ndarray, jnp.ndarray)):
+            if not np.ndim(resolution) == 1:
+              raise errors.AnalyzerError(f'resolution must be a 1D vector, but get its '
+                                         f'shape with {resolution.shape}.')
+            self.resolutions[key] = bm.asarray(resolution)
+          else:
+            raise errors.AnalyzerError(f'Unknown resolution setting: {key}: {resolution}')
     else:
       raise errors.AnalyzerError(f'Unknown resolution type: {type(resolutions)}')
 
