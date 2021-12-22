@@ -52,19 +52,19 @@ class Bifurcation1D(Num1DAnalyzer):
     vps = tuple(jnp.moveaxis(vp.value, 0, 1).flatten() for vp in vps)
     candidates = vps[0]
     pars = vps[1:]
-    fixed_points, _, selected_pars = self._get_fixed_points(candidates, *pars,
-                                                            tol_loss=tol_loss,
-                                                            loss_screen=loss_screen,
-                                                            num_seg=len(xs))
-    dfxdx = np.asarray(self.F_vmap_dfxdx(jnp.asarray(fixed_points), *selected_pars))
-    selected_pars = tuple(np.asarray(p) for p in pars)
+    fixed_points, _, pars = self._get_fixed_points(candidates, *pars,
+                                                   tol_loss=tol_loss,
+                                                   loss_screen=loss_screen,
+                                                   num_seg=len(xs))
+    dfxdx = np.asarray(self.F_vmap_dfxdx(jnp.asarray(fixed_points), *pars))
+    pars = tuple(np.asarray(p) for p in pars)
 
     if with_plot:
       if len(self.target_pars) == 1:
         container = {c: {'p': [], 'x': []} for c in stability.get_1d_stability_types()}
 
         # fixed point
-        for p, x, dx in zip(selected_pars[0], fixed_points, dfxdx):
+        for p, x, dx in zip(pars[0], fixed_points, dfxdx):
           fp_type = stability.stability_analysis(dx)
           container[fp_type]['p'].append(p)
           container[fp_type]['x'].append(x)
@@ -90,7 +90,7 @@ class Bifurcation1D(Num1DAnalyzer):
         container = {c: {'p0': [], 'p1': [], 'x': []} for c in stability.get_1d_stability_types()}
 
         # fixed point
-        for p0, p1, x, dx in zip(selected_pars[0], selected_pars[1], fixed_points, dfxdx):
+        for p0, p1, x, dx in zip(pars[0], pars[1], fixed_points, dfxdx):
           fp_type = stability.stability_analysis(dx)
           container[fp_type]['p0'].append(p0)
           container[fp_type]['p1'].append(p1)
@@ -125,7 +125,7 @@ class Bifurcation1D(Num1DAnalyzer):
         raise errors.BrainPyError(f'Cannot visualize co-dimension {len(self.target_pars)} '
                                   f'bifurcation.')
     if with_return:
-      return fixed_points, selected_pars, dfxdx
+      return fixed_points, pars, dfxdx
 
 
 class Bifurcation2D(Num2DAnalyzer):

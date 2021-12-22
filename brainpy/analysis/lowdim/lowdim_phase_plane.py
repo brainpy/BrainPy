@@ -149,7 +149,6 @@ class PhasePlane2D(Num2DAnalyzer):
                                        pars_update=pars_update,
                                        resolutions=resolutions,
                                        **kwargs)
-    # utils.output(f'I am {PhasePlane2DNum.__name__}.')
 
   @property
   def F_vmap_brentq_fy(self):
