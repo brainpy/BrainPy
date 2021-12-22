@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
+from brainpy import tools
 import jax.numpy as jnp
 import numpy as np
 from jax import jit, vmap
 
 import brainpy.math as bm
+
+try:
+  from numba import prange
+except ModuleNotFoundError:
+  prange = range
 
 __all__ = [
   'find_indexes_of_limit_cycle_max',
@@ -30,7 +36,8 @@ def find_indexes_of_limit_cycle_max(arr, tol=0.001):
   return _f1(arr, grad, tol)
 
 
-def euclidean_distance(points: jnp.ndarray):
+@tools.numba_jit
+def euclidean_distance(points: np.ndarray):
   """Get the distance matrix.
 
   Equivalent to:
@@ -48,12 +55,13 @@ def euclidean_distance(points: jnp.ndarray):
   dist_matrix: jnp.ndarray
     The distance matrix.
   """
-  points = points.value if isinstance(points, bm.JaxArray) else points
   num_point = points.shape[0]
-  indices = jnp.triu_indices(num_point)
-  f = jit(vmap(lambda i, j: jnp.linalg.norm(points[i] - points[j])))
-  dists = f(*indices)
-  dist_mat = bm.zeros((num_point, num_point))
-  dist_mat[indices] = dists
+  indices = np.triu_indices(num_point)
+  dist_mat = np.zeros((num_point, num_point))
+  for idx in prange(len(indices[0])):
+    i = indices[0][idx]
+    j = indices[1][idx]
+    dist_mat[i, j] = np.linalg.norm(points[i] - points[j])
+  dist_mat = np.maximum(dist_mat, dist_mat.T)
   return dist_mat
 
