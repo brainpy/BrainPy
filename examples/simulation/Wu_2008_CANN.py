@@ -158,13 +158,13 @@ bp.visualize.animate_1D(
 # The cann can track moving stimulus.
 
 # %%
-dur1, dur2, dur3 = 20., 20., 20.
+dur1, dur2, dur3 = 10., 100., 20.
 num1 = int(dur1 / bm.get_dt())
 num2 = int(dur2 / bm.get_dt())
 num3 = int(dur3 / bm.get_dt())
 position = bm.zeros(num1 + num2 + num3)
-position[num1: num1 + num2] = bm.linspace(0., 12., num2)
-position[num1 + num2:] = 12.
+position[num1: num1 + num2] = bm.linspace(0., 20., num2)
+position[num1 + num2:] = 20.
 position = position.reshape((-1, 1))
 Iext = cann.get_stimulus_by_pos(position)
 runner = bp.StructRunner(cann,
@@ -178,7 +178,7 @@ bp.visualize.animate_1D(
   frame_step=5,
   frame_delay=50,
   show=True,
-  # save_path='../../images/cann-tracking.gif'
+  save_path='./cann-tracking.mp4'
 )
 
 # %% [markdown]

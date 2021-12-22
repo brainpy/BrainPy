@@ -54,6 +54,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :caption: Dynamics Ecosystem
 
    tutorial_intg/index
+   tutorial_building/index
    tutorial_simulation/index
    tutorial_training/index
    tutorial_analysis/index

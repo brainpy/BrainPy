@@ -96,9 +96,9 @@ class ExpCOBA(bp.TwoEndConn):
 
   def update(self, _t, _dt):
     self.g.value = self.integral(self.g, _t, dt=_dt)
-    post_sps = bm.pre2post_event_sum(self.pre.spike, self.pre2post, self.post.num, 1.)
-    self.g.value += post_sps * self.g_max
-    self.post.input.value += self.g * (self.E - self.post.V)
+    post_sps = bm.pre2post_event_sum(self.pre.spike, self.pre2post, self.post.num, self.g_max)
+    self.g.value += post_sps
+    self.post.input += self.g * (self.E - self.post.V)
 
 
 class COBAHH(bp.Network):

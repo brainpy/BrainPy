@@ -27,8 +27,8 @@ def sin_1d():
     return bp.math.sin(x) + Iext
 
   pp = bp.analysis.PhasePlane1D(model=int_x,
-                                target_vars={'x': [-10, 10]},
-                                pars_update={'Iext': 0.999},
+                                target_vars={'x': [-5, 5]},
+                                pars_update={'Iext': 0.},
                                 resolutions=0.0001)
   pp.plot_vector_field()
   pp.plot_fixed_point(show=True)
@@ -41,5 +41,5 @@ def sin_1d():
 
 
 if __name__ == '__main__':
-  cubic_system_1d()
+  # cubic_system_1d()
   sin_1d()

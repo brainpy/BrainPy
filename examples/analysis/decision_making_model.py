@@ -74,5 +74,5 @@ analyzer.plot_bifurcation(num_par_segments=4,
                           num_fp_segment=4,
                           nullcline_aux_filter=0.1,
                           select_candidates='aux_rank',
-                          num_rank=100)
+                          num_rank=50)
 analyzer.show_figure()
