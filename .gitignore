@@ -17,6 +17,7 @@ develop/benchmark/COBA/results
 develop/test
 develop/outputdir
 docs/tutorial_math/data
+docs/tutorial_simulation/data
 
 docs/images/numpybrain_arch.pptx
 docs/images/synapses_index.pdf

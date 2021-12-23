@@ -2,9 +2,15 @@
 
 from brainpy import errors
 
+import logging
+
+logger = logging.getLogger('brainpy.tools')
+
+
 __all__ = [
   'check_name',
   'get_name',
+  'clear_cache',
 ]
 
 _name2id = dict()
@@ -24,9 +30,15 @@ def check_name(name, obj):
     _name2id[name] = id(obj)
 
 
-def get_name(type):
-  if type not in _typed_names:
-    _typed_names[type] = 0
-  name = f'{type}{_typed_names[type]}'
-  _typed_names[type] += 1
+def get_name(type_):
+  if type_ not in _typed_names:
+    _typed_names[type_] = 0
+  name = f'{type_}{_typed_names[type_]}'
+  _typed_names[type_] += 1
   return name
+
+
+def clear_cache():
+  _name2id.clear()
+  _typed_names.clear()
+  logger.warning(f'All named models and their ids are cleared.')

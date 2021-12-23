@@ -27,6 +27,7 @@ _input_func_name = 'input_step'
 
 
 class Runner(object):
+  """Basic Runner Class."""
   def __call__(self, *args, **kwargs):
     raise NotImplementedError
 
@@ -54,20 +55,23 @@ class BaseRunner(Runner):
     - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
     - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
       for example ``[(target1, value1), (target2, value2)]``.
-  show_code : bool
-    Whether show the formatted input and monitor function.
   """
 
-  def __init__(self, target, monitors=None, inputs=(), show_code=False,
-               dt=None, jit=False, dyn_vars=None, numpy_mon=False):
+  def __init__(self, target, monitors=None, inputs=(),
+               dt=None, jit=False, dyn_vars=None,
+               numpy_mon_after_run=False):
     dt = math.get_dt() if dt is None else dt
-    assert isinstance(dt, (int, float))
+    if not isinstance(dt, (int, float)):
+      raise RunningError(f'"dt" must be scalar, but got {dt}')
+    assert isinstance
     self.dt = dt
     self.jit = jit
-    self.numpy_mon = numpy_mon
+    self.numpy_mon_after_run = numpy_mon_after_run
 
     # target
-    assert isinstance(target, DynamicalSystem)
+    if not isinstance(target, DynamicalSystem):
+      raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
+                         f'but we got {type(target)}: {target}')
     self.target = target
 
     # dynamical changed variables
@@ -75,7 +79,8 @@ class BaseRunner(Runner):
       dyn_vars = self.target.vars().unique()
     if isinstance(dyn_vars, (list, tuple)):
       dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
-    assert isinstance(dyn_vars, dict)
+    if not isinstance(dyn_vars, dict):
+      raise RunningError(f'"dyn_vars" must be a dict, but we got {type(dyn_vars)}')
     self.dyn_vars = dyn_vars
 
     # monitors
@@ -92,11 +97,11 @@ class BaseRunner(Runner):
     self.mon.build()  # build the monitor
     # Build the monitor function
     #   All the monitors are wrapped in a single function.
-    self._monitor_step = self.build_monitors(show_code=show_code)
+    self._monitor_step = self.build_monitors()
 
     # Build input function
     inputs = utils.check_and_format_inputs(host=target, inputs=inputs)
-    self._input_step = self.build_inputs(inputs, show_code=show_code)
+    self._input_step = self.build_inputs(inputs)
 
     # start simulation time
     self._start_t = None
@@ -115,7 +120,8 @@ class BaseRunner(Runner):
 
 
 class ReportRunner(BaseRunner):
-  """The runner to report the running progress.
+  """The runner provides convenient interface for debugging.
+  It is also able to report the running progress.
 
   Parameters
   ----------
@@ -125,19 +131,15 @@ class ReportRunner(BaseRunner):
     Variables to monitor.
   inputs : list, tuple
     The input settings.
-  show_code : bool
-    Whether show the formatted input and monitor function.
-
   report : float
     The percent of progress to report.
   """
 
   def __init__(self, target, inputs=(), monitors=None, report=0.1, dyn_vars=None,
-               jit=False, show_code=False, dt=None, numpy_mon=True):
-    super(ReportRunner, self).__init__(target=target, inputs=inputs,
-                                       monitors=monitors, show_code=show_code,
+               jit=False, dt=None, numpy_mon_after_run=True):
+    super(ReportRunner, self).__init__(target=target, inputs=inputs, monitors=monitors,
                                        jit=jit, dt=dt, dyn_vars=dyn_vars,
-                                       numpy_mon=numpy_mon)
+                                       numpy_mon_after_run=numpy_mon_after_run)
 
     self.report = report
 
@@ -338,13 +340,13 @@ class ReportRunner(BaseRunner):
     for key, val in self.mon.item_contents.items():
       self.mon.item_contents[key] = math.asarray(val)
     self._start_t = end_t
-    if self.numpy_mon:
+    if self.numpy_mon_after_run:
       self.mon.numpy()
     return running_time
 
 
 class StructRunner(BaseRunner):
-  """The runner with structural loops.
+  """The runner with the structural for loops.
 
   Parameters
   ----------
@@ -354,20 +356,17 @@ class StructRunner(BaseRunner):
     Variables to monitor.
   inputs : list, tuple
     The input settings.
-  show_code : bool
-    Whether show the formatted input and monitor function.
   """
 
   def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
-               jit=False, show_code=False, report=0., dt=None, numpy_mon=True):
+               jit=False, report=0., dt=None, numpy_mon_after_run=True):
     self._has_iter_array = False  # default do not have iterable input array
     super(StructRunner, self).__init__(target=target,
                                        inputs=inputs,
                                        monitors=monitors,
-                                       show_code=show_code,
                                        jit=jit, dt=dt,
                                        dyn_vars=dyn_vars,
-                                       numpy_mon=numpy_mon)
+                                       numpy_mon_after_run=numpy_mon_after_run)
     # JAX does not support iterator in fori_loop, scan, etc.
     #   https://github.com/google/jax/issues/3567
     # We use Variable i to index the current input data.
@@ -546,6 +545,6 @@ class StructRunner(BaseRunner):
     running_time = time.time() - t0
     self._post(times, hists)
     self._start_t = end_t
-    if self.numpy_mon:
+    if self.numpy_mon_after_run:
       self.mon.numpy()
     return running_time

@@ -181,7 +181,7 @@ class Base(object):
           gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 
-  def unique_name(self, name=None, type=None):
+  def unique_name(self, name=None, type_=None):
     """Get the unique name for this object.
 
     Parameters
@@ -189,8 +189,8 @@ class Base(object):
     name : str, optional
       The expected name. If None, the default unique name will be returned.
       Otherwise, the provided name will be checked to guarantee its uniqueness.
-    type : str, optional
-      The type of this class, used for object naming.
+    type_ : str, optional
+      The name of this class, used for object naming.
 
     Returns
     -------
@@ -198,32 +198,34 @@ class Base(object):
       The unique name for this object.
     """
     if name is None:
-      if type is None:
-        return namechecking.get_name(type=self.__class__.__name__)
+      if type_ is None:
+        return namechecking.get_name(type_=self.__class__.__name__)
       else:
-        return namechecking.get_name(type=type)
+        return namechecking.get_name(type_=type_)
     else:
       namechecking.check_name(name=name, obj=self)
       return name
 
-  def load_states(self, filename, verbose=False, check=False):
+  def load_states(self, filename, verbose=False, check_missing=False):
     """Load the model states.
 
     Parameters
     ----------
     filename : str
       The filename which stores the model states.
+    verbose: bool
+    check_missing: bool
     """
     if not os.path.exists(filename):
       raise errors.BrainPyError(f'Cannot find the file path: {filename}')
     elif filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.load_h5(filename, target=self, verbose=verbose, check=check)
+      io.load_h5(filename, target=self, verbose=verbose, check=check_missing)
     elif filename.endswith('.pkl'):
-      io.load_pkl(filename, target=self, verbose=verbose, check=check)
+      io.load_pkl(filename, target=self, verbose=verbose, check=check_missing)
     elif filename.endswith('.npz'):
-      io.load_npz(filename, target=self, verbose=verbose, check=check)
+      io.load_npz(filename, target=self, verbose=verbose, check=check_missing)
     elif filename.endswith('.mat'):
-      io.load_mat(filename, target=self, verbose=verbose, check=check)
+      io.load_mat(filename, target=self, verbose=verbose, check=check_missing)
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
@@ -234,6 +236,7 @@ class Base(object):
     ----------
     filename : str
       The file name which to store the model states.
+    all_vars: optional, dict, TensorCollector
     """
     if all_vars is None:
       all_vars = self.vars(method='relative').unique()
@@ -249,23 +252,23 @@ class Base(object):
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
-  def to(self, devices):
-    global math
-    if math is None: from brainpy import math
-
-  def cpu(self):
-    global math
-    if math is None: from brainpy import math
-
-    all_vars = self.vars().unique()
-    for data in all_vars.values():
-      data[:] = math.asarray(data.value)
-      # TODO
-
-  def cuda(self):
-    global math
-    if math is None: from brainpy import math
-
-  def tpu(self):
-    global math
-    if math is None: from brainpy import math
+  # def to(self, devices):
+  #   global math
+  #   if math is None: from brainpy import math
+  #
+  # def cpu(self):
+  #   global math
+  #   if math is None: from brainpy import math
+  #
+  #   all_vars = self.vars().unique()
+  #   for data in all_vars.values():
+  #     data[:] = math.asarray(data.value)
+  #     # TODO
+  #
+  # def cuda(self):
+  #   global math
+  #   if math is None: from brainpy import math
+  #
+  # def tpu(self):
+  #   global math
+  #   if math is None: from brainpy import math

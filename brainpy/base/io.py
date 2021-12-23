@@ -40,7 +40,7 @@ SUPPORTED_FORMATS = ['.h5', '.hdf5', '.npz', '.pkl', '.mat']
 def _check(module, module_name, ext):
   if module is None:
     raise errors.PackageMissingError(
-      '"{package}" must be installed when you want to save/load data with .{ext} '
+      '"{package}" must be installed when you want to save/load data with {ext} '
       'format. \nPlease install {package} through "pip install {package}" or '
       '"conda install {package}".'.format(package=module_name, ext=ext)
     )

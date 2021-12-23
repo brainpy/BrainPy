@@ -23,7 +23,7 @@ class Activation(Module):
 
   def __init__(self, activation, name=None, **setting):
     if name is None:
-      name = self.unique_name(type=f'Activation_{activation}')
+      name = self.unique_name(type_=f'Activation_{activation}')
     super(Activation, self).__init__(name=name)
 
     self._activation = activations.get(activation)

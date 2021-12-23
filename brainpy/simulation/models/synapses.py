@@ -47,13 +47,15 @@ class DeltaSynapse(TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., post_has_ref=False, w=1.,
                post_key='V', **kwargs):
     super(DeltaSynapse, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
+    self.check_pre('spike')
+    self.check_post(post_key)
 
     # parameters
     self.delay = delay
     self.post_key = post_key
     self.post_has_ref = post_has_ref
     if post_has_ref:  # checking
-      assert hasattr(post, 'refractory'), 'Post-synaptic group must has "refractory" variable.'
+      self.check_post('refractory')
 
     # connections
     assert self.conn is not None
@@ -148,10 +150,8 @@ class ExpCUBA(TwoEndConn):
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0,
                method='exp_auto', **kwargs):
     super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
-
-    assert hasattr(self.pre, 'spike')
-    assert hasattr(self.post, 'input')
-    assert hasattr(self.post, 'V')
+    self.check_pre('spike')
+    self.check_post('input', 'V')
 
     # parameters
     self.tau = tau
@@ -327,6 +327,8 @@ class AMPA(TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.42, E=0., alpha=0.98,
                beta=0.18, T=0.5, T_duration=0.5, method='exp_auto', **kwargs):
     super(AMPA, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
+    self.check_pre('spike')
+    self.check_post('input', 'V')
 
     # parameters
     self.delay = delay
