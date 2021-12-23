@@ -106,11 +106,11 @@ def generate_analysis_docs(path):
 
   write_module(module_name='brainpy.analysis.lowdim',
                filename=os.path.join(path, 'lowdim.rst'),
-               header='Analysis for Low-dimensional Systems')
+               header='Low-dimensional Analyzers')
 
   write_module(module_name='brainpy.analysis.highdim',
                filename=os.path.join(path, 'highdim.rst'),
-               header='Analysis for High-dimensional Systems')
+               header='High-dimensional Analyzers')
 
   # write_module(module_name='brainpy.analysis.continuation',
   #              filename=os.path.join(path, 'continuation.rst'),

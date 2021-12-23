@@ -180,7 +180,7 @@ class PhasePlane2D(Num2DAnalyzer):
     """
     utils.output('I am creating vector fields ...')
 
-    # get dx, dy
+    # get vector fields
     xs = self.resolutions[self.x_var]
     ys = self.resolutions[self.y_var]
     X, Y = bm.meshgrid(xs, ys)
@@ -189,8 +189,7 @@ class PhasePlane2D(Num2DAnalyzer):
     X, Y = np.asarray(X), np.asarray(Y)
     dx, dy = np.asarray(dx), np.asarray(dy)
 
-    # vector field
-    if with_plot:
+    if with_plot:  # plot vector fields
       if plot_method == 'quiver':
         if plot_style is None:
           plot_style = dict(units='xy')
@@ -210,18 +209,20 @@ class PhasePlane2D(Num2DAnalyzer):
             linewidth = min_width + max_width * (speed / speed.max())
         plt.streamplot(X, Y, dx, dy, linewidth=linewidth, **plot_style)
       else:
-        raise ValueError(f'Unknown plot_method "{plot_method}", only supports "quiver" and "streamplot".')
+        raise errors.AnalyzerError(f'Unknown plot_method "{plot_method}", '
+                                   f'only supports "quiver" and "streamplot".')
 
       plt.xlabel(self.x_var)
       plt.ylabel(self.y_var)
       if show:
         plt.show()
 
-    if with_return:
+    if with_return:  # return vector fields
       return dx, dy
 
-  def plot_nullcline(self, with_plot=True, with_return=False, y_style=None, x_style=None,
-                     show=False, coords=None, tol_nullcline=1e-7):
+  def plot_nullcline(self, with_plot=True, with_return=False,
+                     y_style=None, x_style=None, show=False,
+                     coords=None, tol_nullcline=1e-7):
     """Plot the nullcline."""
     utils.output('I am computing fx-nullcline ...')
 
@@ -231,10 +232,10 @@ class PhasePlane2D(Num2DAnalyzer):
     y_coord = coords.get(self.y_var, None)
 
     # Nullcline of the x variable
-    # ---------------------------
     xy_values_in_fx, = self._get_fx_nullcline_points(coords=x_coord, tol=tol_nullcline)
     x_values_in_fx = np.asarray(xy_values_in_fx[:, 0])
     y_values_in_fx = np.asarray(xy_values_in_fx[:, 1])
+
     if with_plot:
       if x_style is None:
         x_style = dict(color='cornflowerblue', alpha=.7, )
@@ -242,11 +243,11 @@ class PhasePlane2D(Num2DAnalyzer):
       plt.plot(x_values_in_fx, y_values_in_fx, fmt, **x_style, label=f"{self.x_var} nullcline")
 
     # Nullcline of the y variable
-    # ---------------------------
     utils.output('I am computing fy-nullcline ...')
     xy_values_in_fy, = self._get_fy_nullcline_points(coords=y_coord, tol=tol_nullcline)
     x_values_in_fy = np.asarray(xy_values_in_fy[:, 0])
     y_values_in_fy = np.asarray(xy_values_in_fy[:, 1])
+
     if with_plot:
       if y_style is None:
         y_style = dict(color='lightcoral', alpha=.7, )
@@ -268,9 +269,8 @@ class PhasePlane2D(Num2DAnalyzer):
               self.y_var: (x_values_in_fy, y_values_in_fy)}
 
   def plot_fixed_point(self, with_plot=True, with_return=False, show=False,
-                       tol_unique=1e-2, tol_aux=1e-7, tol_opt_screen=None,
-                       nullcline_aux_filter=1., select_candidates='fx-nullcline',
-                       num_rank=100, ):
+                       tol_unique=1e-2, tol_aux=1e-8, tol_opt_screen=None,
+                       select_candidates='fx-nullcline', num_rank=100, ):
     """Plot the fixed point and analyze its stability.
     """
     utils.output('I am searching fixed points ...')
@@ -303,7 +303,6 @@ class PhasePlane2D(Num2DAnalyzer):
                                      f'".{self.plot_nullcline.__name__}()" first.')
         candidates = jnp.vstack(candidates)
       elif select_candidates == 'aux_rank':
-        assert nullcline_aux_filter > 0.
         candidates, _ = self._get_fp_candidates_by_aux_rank(num_rank=num_rank)
       else:
         raise ValueError

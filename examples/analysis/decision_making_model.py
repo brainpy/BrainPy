@@ -68,11 +68,10 @@ analyzer = bp.analysis.Bifurcation2D(
   target_vars={'s1': [0., 1.], 's2': [0., 1.]},
   target_pars={'coh': [0., 1.]},
   pars_update={'mu': 40.},
-  resolutions={'s1': 0.001, 's2': 0.001, 'coh': 0.01}
+  resolutions={'coh': 0.005},
 )
-analyzer.plot_bifurcation(num_par_segments=4,
-                          num_fp_segment=4,
-                          nullcline_aux_filter=0.1,
+analyzer.plot_bifurcation(num_par_segments=1,
+                          num_fp_segment=1,
                           select_candidates='aux_rank',
                           num_rank=50)
 analyzer.show_figure()

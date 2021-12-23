@@ -37,7 +37,7 @@ def sin_1d():
                                  target_vars={'x': [-5, 5]},
                                  target_pars={'Iext': [0., 1.5]},
                                  resolutions=0.001)
-  bf.plot_bifurcation(show=True, tol_loss=1e-7)
+  bf.plot_bifurcation(show=True, tol_aux=1e-7)
 
 
 def sincos_1d():

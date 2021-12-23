@@ -44,7 +44,7 @@ class Bifurcation1D(Num1DAnalyzer):
     return self.analyzed_results[C.F_vmap_dfxdx]
 
   def plot_bifurcation(self, with_plot=True, show=False, with_return=False,
-                       tol_loss=1e-7, loss_screen=None):
+                       tol_aux=1e-8, loss_screen=None):
     utils.output('I am making bifurcation analysis ...')
 
     xs = self.resolutions[self.x_var]
@@ -53,7 +53,7 @@ class Bifurcation1D(Num1DAnalyzer):
     candidates = vps[0]
     pars = vps[1:]
     fixed_points, _, pars = self._get_fixed_points(candidates, *pars,
-                                                   tol_loss=tol_loss,
+                                                   tol_aux=tol_aux,
                                                    loss_screen=loss_screen,
                                                    num_seg=len(xs))
     dfxdx = np.asarray(self.F_vmap_dfxdx(jnp.asarray(fixed_points), *pars))
@@ -159,7 +159,7 @@ class Bifurcation2D(Num2DAnalyzer):
     return self.analyzed_results[C.F_vmap_jacobian]
 
   def plot_bifurcation(self, with_plot=True, show=False, with_return=False,
-                       tol_aux=1e-7, tol_unique=1e-2, tol_opt_candidate=None,
+                       tol_aux=1e-8, tol_unique=1e-2, tol_opt_candidate=None,
                        num_par_segments=1, num_fp_segment=1, nullcline_aux_filter=1.,
                        select_candidates='aux_rank', num_rank=100):
     """Make the bifurcation analysis.
@@ -424,6 +424,57 @@ class FastSlow1D(Bifurcation1D):
                                      pars_update=pars_update,
                                      resolutions=resolutions,
                                      options=options)
+
+  def plot_trajectory(self, initials, duration, plot_durations=None,
+                      dt=None, show=False, with_plot=True, with_return=False):
+    utils.output('I am plot trajectory ...')
+
+    # check the initial values
+    initials = utils.check_initials(initials, self.target_var_names + self.target_par_names)
+
+    # 2. format the running duration
+    assert isinstance(duration, (int, float))
+
+    # 3. format the plot duration
+    plot_durations = utils.check_plot_durations(plot_durations, duration, initials)
+
+    # 5. run the network
+    dt = bm.get_dt() if dt is None else dt
+    traject_model = utils.TrajectModel(initial_vars=initials,
+                                       integrals=[self.F_int_x, self.F_int_y],
+                                       dt=dt)
+    mon_res = traject_model.run(duration=duration)
+
+    if with_plot:
+      # plots
+      for i, initial in enumerate(zip(*list(initials.values()))):
+        # legend
+        legend = f'$traj_{i}$: '
+        for j, key in enumerate(self.target_var_names):
+          legend += f'{key}={initial[j]}, '
+        legend = legend[:-2]
+
+        # visualization
+        start = int(plot_durations[i][0] / dt)
+        end = int(plot_durations[i][1] / dt)
+        lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i], label=legend)
+        utils.add_arrow(lines[0])
+
+      # visualization of others
+      plt.xlabel(self.x_var)
+      plt.ylabel(self.target_par_names[0])
+      scale = (self.lim_scale - 1.) / 2
+      plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+      plt.ylim(*utils.rescale(self.target_vars[self.target_par_names[0]], scale=scale))
+      plt.legend()
+
+      if show:
+        plt.show()
+
+    if with_return:
+      return mon_res
+
+
 
 
 class FastSlow2D(Bifurcation2D):
