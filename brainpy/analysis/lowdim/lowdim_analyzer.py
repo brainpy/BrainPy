@@ -20,7 +20,7 @@ __all__ = [
 
 
 class LowDimAnalyzer(object):
-  r"""Dynamics Analyzer for Low-dimensional Dynamical Systems.
+  r"""Automatic Analyzer for Low-dimensional Dynamical Systems.
 
   A dynamical model is characterized by a series of dynamical
   variables and parameters:
@@ -48,8 +48,10 @@ class LowDimAnalyzer(object):
   pars_update : dict, optional
       The parameters to update.
   resolutions : float, dict
-      The resolution for numerical iterative solvers. Default is 0.1. It can set the
-      numerical resolution of dynamical variables or dynamical parameters. For example,
+      The resolution for numerical iterative solvers. Default is 20 equal parts
+      (:math:`\frac{\mathrm{max} - \mathrm{min}}{20}`). It can
+      set the numerical resolution of dynamical variables or dynamical parameters.
+      For example,
 
       - set ``resolutions=0.1`` will generalize it to all variables and parameters;
       - set ``resolutions={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will specify
@@ -60,6 +62,8 @@ class LowDimAnalyzer(object):
   lim_scale: float
     The axis limit scale factor. Default is 1.05. The setting means
     the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
+  options : optional, dict
+    The optional setting. Maybe needed in the individual analyzer.
   """
 
   def __init__(self,
@@ -151,20 +155,28 @@ class LowDimAnalyzer(object):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = bm.arange(*lim, resolutions)
     elif isinstance(resolutions, dict):
+      for key in resolutions.keys():
+        if key in self.target_var_names:
+          continue
+        if key in self.target_par_names:
+          continue
+        raise errors.AnalyzerError(f'The resolution setting target "{key}" is not found in '
+                                   f'the target variables {self.target_var_names} and '
+                                   f'the target parameters {self.target_par_names}.')
       for key in self.target_var_names + self.target_par_names:
         if key not in resolutions:
           self.resolutions[key] = bm.linspace(*_target_vp[key], 20)
-          continue
-        resolution = resolutions[key]
-        if isinstance(resolution, float):
-          self.resolutions[key] = bm.arange(*_target_vp[key], resolution)
-        elif isinstance(resolution, (bm.ndarray, np.ndarray, jnp.ndarray)):
-          if not np.ndim(resolution) == 1:
-            raise errors.AnalyzerError(f'resolution must be a 1D vector, but get its '
-                                       f'shape with {resolution.shape}.')
-          self.resolutions[key] = bm.asarray(resolution)
         else:
-          raise errors.AnalyzerError(f'Unknown resolution setting: {key}: {resolution}')
+          resolution = resolutions[key]
+          if isinstance(resolution, float):
+            self.resolutions[key] = bm.arange(*_target_vp[key], resolution)
+          elif isinstance(resolution, (bm.ndarray, np.ndarray, jnp.ndarray)):
+            if not np.ndim(resolution) == 1:
+              raise errors.AnalyzerError(f'resolution must be a 1D array, but get its '
+                                         f'shape with {resolution.shape}.')
+            self.resolutions[key] = bm.asarray(resolution)
+          else:
+            raise errors.AnalyzerError(f'Unknown resolution setting: {key}: {resolution}')
     else:
       raise errors.AnalyzerError(f'Unknown resolution type: {type(resolutions)}')
 
@@ -199,16 +211,15 @@ class LowDimAnalyzer(object):
 
 
 class Num1DAnalyzer(LowDimAnalyzer):
-  r"""Neuron analysis analyzer for 1D system.
+  r"""Analyzer for one-dimensional dynamical system.
 
-  It supports the analysis of 1D dynamical system.
+  It supports the analysis for 1D dynamical system.
 
   .. math::
 
       {dx \over dt} = f(x, t)
 
-  Actually, the analysis for 1D system is purely analytical. It do not
-  rely on SymPy.
+  Actually, the analysis for 1D system is purely numerically.
   """
 
   def __init__(self, *args, **kwargs):
@@ -295,7 +306,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
       self.analyzed_results[C.F_vmap_fp_opt] = bm.jit(bm.vmap(self.F_fixed_point_opt))
     return self.analyzed_results[C.F_vmap_fp_opt]
 
-  def _get_fixed_points(self, candidates, *args, num_seg=None, tol_loss=1e-7, loss_screen=None):
+  def _get_fixed_points(self, candidates, *args, num_seg=None, tol_aux=1e-7, loss_screen=None):
     """
 
     "candidates" and "args" can be obtained through:
@@ -314,7 +325,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
     ----------
     candidates
     args
-    tol_loss
+    tol_aux
     loss_screen
 
     Returns
@@ -351,7 +362,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
     # optimize the fixed points
     res = self.F_vmap_fp_opt(X, *args)
     losses = self.F_vmap_fp_aux(res['root'], *args)
-    valid_or_not = jnp.logical_and(res['status'] == utils.ECONVERGED, losses <= tol_loss)
+    valid_or_not = jnp.logical_and(res['status'] == utils.ECONVERGED, losses <= tol_aux)
     ids = np.asarray(jnp.where(valid_or_not)[0])
     fps = np.asarray(res['root'])[ids]
     args = tuple(a[ids] for a in args)
@@ -360,9 +371,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
 
 
 class Num2DAnalyzer(Num1DAnalyzer):
-  r"""Neuron analysis analyzer for 2D system.
+  r"""Analyzer for two-dimensional dynamical system.
 
-  It supports the analysis of 2D dynamical system.
+  It supports the analysis for 2D dynamical system.
 
   .. math::
 

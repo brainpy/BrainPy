@@ -4,7 +4,6 @@ import jax.numpy as jnp
 import numpy as np
 
 import brainpy.math as bm
-from brainpy import tools
 from .function import f_without_jaxarray_return
 from .measurement import euclidean_distance
 
@@ -16,7 +15,6 @@ __all__ = [
   'get_sign2',
   'keep_unique',
   'rescale',
-  'unknown_symbol',
 ]
 
 
@@ -86,7 +84,7 @@ def get_sign2(f, *xyz, args=()):
   return jnp.sign(f(*(XYZ + args))).reshape(shape)
 
 
-def keep_unique(candidates, tol=2.5e-2, verbose=False):
+def keep_unique(candidates, tol=2.5e-2):
   """Filter unique fixed points by choosing a representative within tolerance.
 
   Parameters
@@ -105,29 +103,21 @@ def keep_unique(candidates, tol=2.5e-2, verbose=False):
   if candidates.shape[0] <= 1:
     return candidates, keep_ids
 
+  # If point A and point B are within identical_tol of each other, and the
+  # A is first in the list, we keep A.
   nfps = candidates.shape[0]
-  all_drop_idxs = []
-
-  # If point a and point b are within identical_tol of each other, and the
-  # a is first in the list, we keep a.
-  distances = np.asarray(euclidean_distance(jnp.asarray(candidates)))
+  distances = euclidean_distance(candidates)
   example_idxs = np.arange(nfps)
+  all_drop_idxs = []
   for fidx in range(nfps - 1):
     distances_f = distances[fidx, fidx + 1:]
     drop_idxs = example_idxs[fidx + 1:][distances_f <= tol]
     all_drop_idxs += list(drop_idxs)
-
-  unique_dropidxs = np.unique(all_drop_idxs)
-  keep_ids = np.setdiff1d(example_idxs, unique_dropidxs)
+  keep_ids = np.setdiff1d(example_idxs, np.unique(all_drop_idxs))
   if keep_ids.shape[0] > 0:
     unique_fps = candidates[keep_ids, :]
   else:
-    unique_fps = jnp.array([], dtype=candidates.dtype)
-
-  if verbose:
-    print(f"    Kept {unique_fps.shape[0]}/{nfps} unique fixed points "
-          f"with uniqueness tolerance {tol}.")
-
+    unique_fps = np.array([], dtype=candidates.dtype)
   return unique_fps, keep_ids
 
 
@@ -138,11 +128,3 @@ def rescale(min_max, scale=0.01):
   min_ -= scale * length
   max_ += scale * length
   return min_, max_
-
-
-def unknown_symbol(expr, scope):
-  """Examine where the given expression ``expr`` has the unknown symbol in ``scope``.
-  """
-  ids = tools.get_identifiers(expr)
-  ids = set([id_.split('.')[0].strip() for id_ in ids])
-  return ids - scope

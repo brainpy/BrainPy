@@ -6,3 +6,4 @@ Dynamics Analysis
 
    lowdim_analysis
    highdim_analysis
+   decision_making_model
