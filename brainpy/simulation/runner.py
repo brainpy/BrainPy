@@ -553,8 +553,8 @@ class StructRunner(BaseRunner):
 
 
 class NumpyRunner(BaseRunner):
-  """The runner provides convenient interface for debugging.
-  It is also able to report the running progress.
+  """The runner provided interface for model simulation with pure NumPy, along
+  with the model acceleration with Numba.
 
   Parameters
   ----------

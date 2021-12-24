@@ -66,7 +66,9 @@ easy, just using ``pip`` or ``conda``:
 .. code-block:: bash
 
     pip install numpy matplotlib
+
     # or
+
     conda install numpy matplotlib
 
 Dependency 2: JAX
@@ -127,32 +129,40 @@ Simply speaking, you can run:
 Method 3: You can also `build JAX from source`_.
 
 
-Dependency 3: SymPy
--------------------
+Other Dependency
+----------------
 
-In BrainPy, several modules need the symbolic inference by `SymPy`_. For example,
-`Exponential Euler numerical solver`_ needs SymPy to compute the linear part of
-your defined Python codes, phase plane and bifurcation analysis in
-`dynamics analysis module`_ needs symbolic computation from SymPy.
-Therefore, we highly recommend you to install sympy, just typing
+In order to get full supports of BrainPy, we recommend you install the following
+packages:
+
+- `SymPy`_: needed in one of Exponential Euler methods
 
 .. code-block:: bash
 
     pip install sympy
+
     # or
+
     conda install sympy
 
+
+- `Numba`_: needed in some NumPy-based computations
+
+.. code-block:: bash
+
+    pip install numba
+
+    # or
+
+    conda install numba
 
 .. _NumPy: https://numpy.org/
 .. _Matplotlib: https://matplotlib.org/
 .. _JAX: https://github.com/google/jax
 .. _Windows Subsystem for Linux (WSL): https://docs.microsoft.com/en-us/windows/wsl/about
 .. _WSL Installation Guide for Windows 10: https://docs.microsoft.com/en-us/windows/wsl/install-win10
-.. _jaxlib_0.1.68_Windows_wheels: https://github.com/erwincoumans/jax/releases/tag/jax-v0.1.68_windows
-.. _jaxlib_0.1.61_Windows_wheels: https://github.com/erwincoumans/jax/releases/tag/winwhl-0.1.61
 .. _build JAX from source: https://jax.readthedocs.io/en/latest/developer.html
 .. _SymPy: https://github.com/sympy/sympy
-.. _Exponential Euler numerical solver: https://brainpy.readthedocs.io/en/latest/tutorials_advanced/ode_numerical_solvers.html#Exponential-Euler-methods
-.. _dynamics analysis module: https://brainpy.readthedocs.io/en/latest/apis/analysis.html
+.. _Numba: https://numba.pydata.org/
 .. _CUDA: https://developer.nvidia.com/cuda-downloads
 .. _CuDNN: https://developer.nvidia.com/CUDNN
