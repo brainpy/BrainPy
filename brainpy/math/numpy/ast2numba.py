@@ -721,8 +721,8 @@ def _analyze_cls_func_body(host,
             else:
               data_to_replace[key] = f'{target.name}_{split_keys[i]}.{".".join(split_keys[i + 1:])}'
             continue
-            raise errors.BrainPyError(f'Only support JIT an iterable objects of function '
-                                      f'or Base object, but we got:\n\n {values[0]}')
+            # raise errors.BrainPyError(f'Only support JIT an iterable objects of function '
+            #                           f'or Base object, but we got:\n\n {values[0]}')
       # replace this for-loop
       r = _replace_this_forloop(tree=tree,
                                 iter_name=iter_name,
@@ -849,7 +849,24 @@ class ReplaceThisForLoop(ast.NodeTransformer):
         module = ast.Module(body=deepcopy(node).body)
         code = tools.ast2code(module)
 
-        if callable(value):  # transform functions
+        if isinstance(value, Base):  # transform Base objects
+          r = _analyze_cls_func_body(host=value,
+                                     self_name=target,
+                                     code=code,
+                                     tree=module,
+                                     show_code=self.show_code,
+                                     **self.jit_setting)
+
+          new_code, arguments, arg2call, nodes, code_scope = r
+          self.arguments.update(arguments)
+          self.arg2call.update(arg2call)
+          self.arg2call.update(arg2call)
+          self.nodes.update(nodes)
+          self.code_scope.update(code_scope)
+
+          final_node.body.extend(ast.parse(new_code).body)
+
+        elif callable(value):  # transform functions
           r = _jit_func(obj_or_fun=value,
                         show_code=self.show_code,
                         **self.jit_setting)
@@ -876,23 +893,6 @@ class ReplaceThisForLoop(ast.NodeTransformer):
           data_to_replace[f'{target}_{i}'] = replace_name
 
           final_node.body.extend(tree.body)
-
-        elif isinstance(value, Base):  # transform Base objects
-          r = _analyze_cls_func_body(host=value,
-                                     self_name=target,
-                                     code=code,
-                                     tree=module,
-                                     show_code=self.show_code,
-                                     **self.jit_setting)
-
-          new_code, arguments, arg2call, nodes, code_scope = r
-          self.arguments.update(arguments)
-          self.arg2call.update(arg2call)
-          self.arg2call.update(arg2call)
-          self.nodes.update(nodes)
-          self.code_scope.update(code_scope)
-
-          final_node.body.extend(ast.parse(new_code).body)
 
         else:
           raise errors.BrainPyError(f'Only support JIT an iterable objects of function '

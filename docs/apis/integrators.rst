@@ -8,7 +8,7 @@
     :maxdepth: 1
 
     integrators/general
-    integrators/joint_eq
+    auto/integrators/joint_eq
     integrators/ODE
     integrators/SDE
 
