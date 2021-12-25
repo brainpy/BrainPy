@@ -4,6 +4,7 @@ import numpy as np
 
 from brainpy import math
 from .base import InterLayerInitializer
+from brainpy.simulation.utils import size2len
 
 __all__ = [
   'Normal',
@@ -43,6 +44,7 @@ class Normal(InterLayerInitializer):
     self.rng = math.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
+    shape = [size2len(d) for d in shape]
     weights = self.rng.normal(size=shape, scale=self.scale)
     return math.asarray(weights, dtype=dtype)
 
@@ -66,6 +68,7 @@ class Uniform(InterLayerInitializer):
     self.rng = math.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
+    shape = [size2len(d) for d in shape]
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
     return math.asarray(r, dtype=dtype)
 
@@ -80,6 +83,7 @@ class VarianceScaling(InterLayerInitializer):
     self.rng = math.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
+    shape = [size2len(d) for d in shape]
     fan_in, fan_out = _compute_fans(shape, in_axis=self.in_axis, out_axis=self.out_axis)
     if self.mode == "fan_in":
       denominator = fan_in
@@ -180,6 +184,7 @@ class Orthogonal(InterLayerInitializer):
     self.rng = math.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
+    shape = [size2len(d) for d in shape]
     n_rows = shape[self.axis]
     n_cols = np.prod(shape) // n_rows
     matrix_shape = (n_rows, n_cols) if n_rows > n_cols else (n_cols, n_rows)
@@ -207,6 +212,7 @@ class DeltaOrthogonal(InterLayerInitializer):
     self.axis = axis
 
   def __call__(self, shape, dtype=None):
+    shape = [size2len(d) for d in shape]
     if len(shape) not in [3, 4, 5]:
       raise ValueError("Delta orthogonal initializer requires a 3D, 4D or 5D shape.")
     if shape[-1] < shape[-2]:

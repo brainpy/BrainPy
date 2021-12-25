@@ -2,6 +2,7 @@
 
 from .base import InterLayerInitializer
 from brainpy import math
+from brainpy.simulation.utils import size2len
 
 __all__ = [
   'ZeroInit',
@@ -17,6 +18,7 @@ class ZeroInit(InterLayerInitializer):
   """
 
   def __call__(self, shape, dtype=None):
+    shape = [size2len(d) for d in shape]
     return math.zeros(shape, dtype=dtype)
 
 
@@ -36,6 +38,7 @@ class OneInit(InterLayerInitializer):
     self.value = value
 
   def __call__(self, shape, dtype=None):
+    shape = [size2len(d) for d in shape]
     return math.ones(shape, dtype=dtype) * self.value
 
 
@@ -74,4 +77,5 @@ class Identity(InterLayerInitializer):
     else:
       raise ValueError(f'Only support shape of int, or tuple/list of int '
                        f'in {self.__class__.__name__}, but we got {shape}.')
+    shape = [size2len(d) for d in shape]
     return math.eye(*shape, dtype=dtype) * self.value
