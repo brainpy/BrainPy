@@ -47,15 +47,15 @@ class DeltaSynapse(TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., post_has_ref=False, w=1.,
                post_key='V', **kwargs):
     super(DeltaSynapse, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
-    self.check_pre('spike')
-    self.check_post(post_key)
+    self.check_pre_attrs('spike')
+    self.check_post_attrs(post_key)
 
     # parameters
     self.delay = delay
     self.post_key = post_key
     self.post_has_ref = post_has_ref
     if post_has_ref:  # checking
-      self.check_post('refractory')
+      self.check_post_attrs('refractory')
 
     # connections
     assert self.conn is not None
@@ -150,8 +150,8 @@ class ExpCUBA(TwoEndConn):
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0,
                method='exp_auto', **kwargs):
     super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
-    self.check_pre('spike')
-    self.check_post('input', 'V')
+    self.check_pre_attrs('spike')
+    self.check_post_attrs('input', 'V')
 
     # parameters
     self.tau = tau
@@ -244,7 +244,7 @@ class ExpCOBA(ExpCUBA):
     delayed_spike = self.pre_spike.pull()
     post_sp = bm.pre2post_event_sum(delayed_spike, self.pre2post, self.post.num, self.g_max)
     self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_sp
-    self.post.input.value += self.g * (self.E - self.post.V)
+    self.post.input += self.g * (self.E - self.post.V)
 
 
 class AMPA(TwoEndConn):
@@ -327,8 +327,8 @@ class AMPA(TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.42, E=0., alpha=0.98,
                beta=0.18, T=0.5, T_duration=0.5, method='exp_auto', **kwargs):
     super(AMPA, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
-    self.check_pre('spike')
-    self.check_post('input', 'V')
+    self.check_pre_attrs('spike')
+    self.check_post_attrs('input', 'V')
 
     # parameters
     self.delay = delay

@@ -63,7 +63,7 @@ class TwoEndConn(DynamicalSystem):
     # ----------
     super(TwoEndConn, self).__init__(steps=steps, name=name)
 
-  def check_pre(self, *attrs):
+  def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""
     if not hasattr(self, 'pre'):
       raise ModelBuildError('Please call __init__ function first.')
@@ -73,7 +73,7 @@ class TwoEndConn(DynamicalSystem):
       if not hasattr(self.pre, attr):
         raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
 
-  def check_post(self, *attrs):
+  def check_post_attrs(self, *attrs):
     """Check whether post group satisfies the requirement."""
     if not hasattr(self, 'post'):
       raise ModelBuildError('Please call __init__ function first.')
