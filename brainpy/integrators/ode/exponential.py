@@ -757,8 +757,8 @@ class ExpEulerAuto(ODEIntegrator):
         assert len(args) > 0
         dt = kwargs.pop('dt', math.get_dt())
         linear, derivative = value_and_grad(*args, **kwargs)
-        z = dt * linear
-        phi = (math.exp(z) - 1) / z
+        phi = math.where(linear == 0., math.ones_like(linear),
+                         (math.exp(dt * linear) - 1) / (dt * linear))
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]
