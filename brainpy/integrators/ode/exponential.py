@@ -589,7 +589,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
-  However, the above example can be defined with ``brainpy.JointEq``.
+  The above example can also be defined with ``brainpy.JointEq``.
 
   .. plot::
     :include-source: True
@@ -621,8 +621,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.input = bm.Variable(bm.zeros(size))
     >>>
     >>>     # functions
-    >>>     derivative = bp.JointEq([self.dh, self.dn, self.dV],
-    >>>                              variables=['h', 'n', 'V'])
+    >>>     derivative = bp.JointEq([self.dh, self.dn, self.dV])
     >>>     self.integral = bp.ode.ExpEulerAuto(derivative)
     >>>
     >>>   def dh(self, h, t, V):

@@ -5,73 +5,93 @@ import brainpy.math as bm
 
 bp.math.enable_x64()
 
+# parameters
+gamma = 0.641  # Saturation factor for gating variable
+tau = 0.06  # Synaptic time constant [sec]
+a = 270.
+b = 108.
+d = 0.154
 
-class DecisionMakingModel(bp.DynamicalSystem):
-  def __init__(self, method='exp_auto'):
-    super(DecisionMakingModel, self).__init__()
+JE = 0.3725  # self-coupling strength [nA]
+JI = -0.1137  # cross-coupling strength [nA]
+JAext = 0.00117  # Stimulus input strength [nA]
 
-    # parameters
-    self.gamma = 0.641  # Saturation factor for gating variable
-    self.tau = 0.06  # Synaptic time constant [sec]
-    self.a = 270.
-    self.b = 108.
-    self.d = 0.154
-
-    self.JE = 0.3725  # self-coupling strength [nA]
-    self.JI = -0.1137  # cross-coupling strength [nA]
-    self.JAext = 0.00117  # Stimulus input strength [nA]
-
-    self.mu = 20.  # Stimulus firing rate [spikes/sec]
-    self.coh = 0.5  # Stimulus coherence [%]
-    self.Ib1 = 0.3297
-    self.Ib2 = 0.3297
-
-    # variables
-    self.s1 = bm.Variable(bm.zeros(1))
-    self.s2 = bm.Variable(bm.zeros(1))
-
-    # functions
-    def ds1(s1, t, s2, coh=0.5, mu=20.):
-      I1 = self.JE * s1 + self.JI * s2 + self.Ib1 + self.JAext * mu * (1. + coh)
-      r1 = (self.a * I1 - self.b) / (1. - bm.exp(-self.d * (self.a * I1 - self.b)))
-      return - s1 / self.tau + (1. - s1) * self.gamma * r1
-
-    def ds2(s2, t, s1, coh=0.5, mu=20.):
-      I2 = self.JE * s2 + self.JI * s1 + self.Ib2 + self.JAext * mu * (1. - coh)
-      r2 = (self.a * I2 - self.b) / (1. - bm.exp(-self.d * (self.a * I2 - self.b)))
-      return - s2 / self.tau + (1. - s2) * self.gamma * r2
-
-    self.int_s1 = bp.odeint(ds1, method=method)
-    self.int_s2 = bp.odeint(ds2, method=method)
-
-  def update(self, _t, _dt):
-    self.s1.value = self.int_s1(self.s1, _t, self.s2, self.coh, self.mu, _dt)
-    self.s2.value = self.int_s2(self.s2, _t, self.s1, self.coh, self.mu, _dt)
+mu = 20.  # Stimulus firing rate [spikes/sec]
+coh = 0.5  # Stimulus coherence [%]
+Ib1 = 0.3297
+Ib2 = 0.3297
 
 
-model = DecisionMakingModel()
+@bp.odeint
+def int_s1(s1, t, s2, coh=0.5, mu=20.):
+  I1 = JE * s1 + JI * s2 + Ib1 + JAext * mu * (1. + coh)
+  r1 = (a * I1 - b) / (1. - bm.exp(-d * (a * I1 - b)))
+  return - s1 / tau + (1. - s1) * gamma * r1
 
-# phase plane analysis
-analyzer = bp.analysis.PhasePlane2D(
-  model=model,
-  target_vars={'s1': [0, 1], 's2': [0, 1]},
-  resolutions=0.001,
-)
-analyzer.plot_vector_field()
-analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
-analyzer.plot_fixed_point()
-analyzer.show_figure()
 
-# codimension 1 bifurcation
-analyzer = bp.analysis.Bifurcation2D(
-  model=model,
-  target_vars={'s1': [0., 1.], 's2': [0., 1.]},
-  target_pars={'coh': [0., 1.]},
-  pars_update={'mu': 40.},
-  resolutions={'coh': 0.005},
-)
-analyzer.plot_bifurcation(num_par_segments=1,
-                          num_fp_segment=1,
-                          select_candidates='aux_rank',
-                          num_rank=50)
-analyzer.show_figure()
+@bp.odeint
+def int_s2(s2, t, s1, coh=0.5, mu=20.):
+  I2 = JE * s2 + JI * s1 + Ib2 + JAext * mu * (1. - coh)
+  r2 = (a * I2 - b) / (1. - bm.exp(-d * (a * I2 - b)))
+  return - s2 / tau + (1. - s2) * gamma * r2
+
+
+def phase_plane_analysis():
+  # phase plane analysis
+  analyzer = bp.analysis.PhasePlane2D(
+    model=[int_s1, int_s2],
+    target_vars={'s1': [0, 1], 's2': [0, 1]},
+    resolutions=0.001,
+  )
+  analyzer.plot_vector_field()
+  analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
+  analyzer.plot_fixed_point()
+  analyzer.show_figure()
+
+
+def bifurcation_analysis():
+  # codimension 1 bifurcation
+  analyzer = bp.analysis.Bifurcation2D(
+    model=[int_s1, int_s2],
+    target_vars={'s1': [0., 1.], 's2': [0., 1.]},
+    target_pars={'coh': [0., 1.]},
+    pars_update={'mu': 40.},
+    resolutions={'coh': 0.005},
+  )
+  analyzer.plot_bifurcation(num_par_segments=1,
+                            num_fp_segment=1,
+                            select_candidates='aux_rank',
+                            num_rank=50)
+  analyzer.show_figure()
+
+
+def fixed_point_finder():
+  def step(s):
+    s1, s2 = s[0], s[1]
+    ds1 = int_s1.f(s1, 0., s2)
+    ds2 = int_s2.f(s2, 0., s1)
+    return bm.asarray([ds1.value, ds2.value])
+
+  finder = bp.analysis.FixedPointFinder(
+    candidates=bm.random.random((1000, 2)),
+    f_cell=step,
+    f_type='df',
+  )
+  finder.optimize_fixed_points(
+    tolerance=1e-5,
+    opt_setting=dict(method=bm.optimizers.Adam,
+                     lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)),
+    num_opt_batch=200)
+  finder.filter_loss(1e-5)
+  finder.keep_unique()
+
+  print(finder.fixed_points)
+  print(finder.losses)
+  print(finder.selected_ids)
+  print(finder.compute_jacobians(finder.fixed_points))
+
+
+if __name__ == '__main__':
+  # phase_plane_analysis()
+  # bifurcation_analysis()
+  fixed_point_finder()

@@ -76,17 +76,15 @@ class ExpCOBA(bp.TwoEndConn):
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
                method='exp_auto'):
     super(ExpCOBA, self).__init__(pre=pre, post=post, conn=conn)
-
-    assert hasattr(self.pre, 'spike')
-    assert hasattr(self.post, 'input')
-    assert hasattr(self.post, 'V')
+    self.check_pre_attrs('spike')
+    self.check_post_attrs('input', 'V')
 
     # parameters
     self.E = E
     self.tau = tau
     self.delay = delay
     self.g_max = g_max
-    self.pre_ids, self.pre2post = self.conn.require('pre_ids', 'pre2post')
+    self.pre2post = self.conn.require('pre2post')
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))

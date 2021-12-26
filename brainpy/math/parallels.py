@@ -64,7 +64,8 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
 
 
 def vmap(func, dyn_vars=None, batched_vars=None,
-         in_axes=0, out_axes=0, axis_name=None, reduce_func=None):
+         in_axes=0, out_axes=0, axis_name=None,
+         reduce_func=None, auto_infer=False):
   """Vectorization compilation for class objects.
 
   Vectorized compile a function or a module to run in parallel on a single device.
@@ -192,13 +193,14 @@ def vmap(func, dyn_vars=None, batched_vars=None,
       return func
 
   if callable(func):
-    if dyn_vars is not None:
-      dyn_vars = dyn_vars
-    elif isinstance(func, Base):  # Base has '__call__()' implementation
-      dyn_vars = func.vars().unique()
-    elif hasattr(func, '__self__'):
-      if isinstance(func.__self__, Base):
-        dyn_vars = func.__self__.vars().unique()
+    if auto_infer:
+      if dyn_vars is not None:
+        dyn_vars = dyn_vars
+      elif isinstance(func, Base):  # Base has '__call__()' implementation
+        dyn_vars = func.vars().unique()
+      elif hasattr(func, '__self__'):
+        if isinstance(func.__self__, Base):
+          dyn_vars = func.__self__.vars().unique()
 
     if dyn_vars is None:
       return jax.vmap(func,

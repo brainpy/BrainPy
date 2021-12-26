@@ -260,18 +260,15 @@ fp_candidates = bm.vstack([activity_dict[i] for i in range(num_trial)])
 fp_candidates.shape
 
 # %%
-finder = bp.numeric.FixedPointFinder(
-  f_cell=f_cell,
-  f_type='F',
-  tol_opt=1e-5,
-  tol_speed=1e-5,
-  tol_unique=0.03,
-  tol_outlier=0.1,
+finder = bp.analysis.FixedPointFinder(candidates=fp_candidates, f_cell=f_cell, f_type='F')
+finder.optimize_fixed_points(
+  tolerance=1e-5, num_opt_batch=200,
   opt_setting=dict(method=bm.optimizers.Adam,
-                   lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)),
-  num_opt_batch=200, 
-)
-fixed_points, _, _, _ = finder.find_fixed_points(candidates=fp_candidates)
+                   lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)))
+finder.filter_loss(tolerance=1e-5)
+finder.keep_unique(tolerance=0.03)
+finder.exclude_outliers(0.1)
+fixed_points = finder.fixed_points
 
 # %% [markdown]
 # ## Visualize the found approximate fixed points.
