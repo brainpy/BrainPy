@@ -73,15 +73,14 @@ def fixed_point_finder():
     return bm.asarray([ds1.value, ds2.value])
 
   finder = bp.analysis.FixedPointFinder(
-    candidates=bm.random.random((1000, 2)),
-    f_cell=step,
-    f_type='df',
+    candidates=bm.random.random((1000, 2)), f_cell=step,
   )
   finder.optimize_fixed_points(
     tolerance=1e-5,
     opt_setting=dict(method=bm.optimizers.Adam,
                      lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)),
-    num_opt_batch=200)
+    num_batch=200
+  )
   finder.filter_loss(1e-5)
   finder.keep_unique()
 

@@ -10,6 +10,7 @@ import brainpy.math as bm
 from brainpy.analysis import utils
 from brainpy.errors import AnalyzerError
 
+
 __all__ = [
   'FixedPointFinder',
 ]
@@ -25,6 +26,8 @@ class FixedPointFinder(object):
   3. exclude any fixed points whose fixed point loss is above threshold
   4. exclude any non-unique fixed points according to a tolerance
   5. exclude any far-away "outlier" fixed points
+
+  This model implementation follows https://github.com/google-research/computation-thru-dynamics.
 
   Parameters
   ----------
@@ -96,17 +99,17 @@ class FixedPointFinder(object):
     """The selected ids of candidate points."""
     return self._selected_ids
 
-  def optimize_fixed_points(self, tolerance=1e-5, num_opt_batch=100,
-                            num_opt_max=10000, opt_setting=None, ):
+  def optimize_fixed_points(self, tolerance=1e-5, num_batch=100,
+                            num_opt=10000, opt_setting=None):
     """Optimize fixed points.
 
     Parameters
     ----------
     tolerance: float
       The loss threshold during optimization
-    num_opt_max : int
+    num_opt : int
       The maximum number of optimization.
-    num_opt_batch : int
+    num_batch : int
       Print training information during optimization every so often.
     opt_setting: optional, dict
       The optimization settings.
@@ -158,18 +161,18 @@ class FixedPointFinder(object):
     # Run the optimization
     opt_losses = []
     do_stop = False
-    num_opt_loops = int(num_opt_max / num_opt_batch)
+    num_opt_loops = int(num_opt / num_batch)
     for oidx in range(num_opt_loops):
       if do_stop: break
-      batch_idx_start = oidx * num_opt_batch
+      batch_idx_start = oidx * num_batch
       start_time = time.time()
-      (_, losses) = batch_train(start_i=batch_idx_start, num_batch=num_opt_batch)
+      (_, losses) = batch_train(start_i=batch_idx_start, num_batch=num_batch)
       batch_time = time.time() - start_time
       opt_losses.append(losses)
 
       if self.verbose:
         print(f"    "
-              f"Batches {batch_idx_start + 1}-{batch_idx_start + num_opt_batch} "
+              f"Batches {batch_idx_start + 1}-{batch_idx_start + num_batch} "
               f"in {batch_time:0.2f} sec, Training loss {losses[-1]:0.10f}")
 
       if losses[-1] < tolerance:

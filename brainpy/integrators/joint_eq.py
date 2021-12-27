@@ -112,7 +112,7 @@ class JointEq(object):
   the instance of ``JointEq`` can be an element to compose a new ``JointEq``.
 
   >>> dw = lambda w, t, V: a * (b * V - w)
-  >>> eq2 = bp.JointEq(eqs=(eq, dw), variables=['V', 'u', 'w'])
+  >>> eq2 = bp.JointEq(eqs=(eq, dw))
 
 
   Parameters

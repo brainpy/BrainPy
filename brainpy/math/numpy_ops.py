@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import numpy
 import numpy as np
 import jax.numpy as jnp
 from jax.tree_util import tree_map
@@ -71,7 +71,7 @@ __all__ = [
   'float64', 'complex64', 'complex128',
 
   # others
-  'take_along_axis', 'clip_by_norm',
+  'take_along_axis', 'clip_by_norm', 'device_array',
 ]
 
 _min = min
@@ -91,6 +91,16 @@ def take_along_axis(a, indices, axis):
 def clip_by_norm(t, clip_norm, axis=None):
   f = lambda l: l * clip_norm / maximum(sqrt(sum(l * l, axis=axis, keepdims=True)), clip_norm)
   return tree_map(f, t)
+
+
+def device_array(tensor):
+  if isinstance(tensor, JaxArray):
+    return tensor.value
+  if isinstance(tensor, jnp.ndarray):
+    return tensor
+  if isinstance(tensor, numpy.ndarray):
+    return jnp.asarray(tensor)
+  raise ValueError
 
 
 # math funcs

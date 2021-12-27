@@ -262,7 +262,7 @@ fp_candidates.shape
 # %%
 finder = bp.analysis.FixedPointFinder(candidates=fp_candidates, f_cell=f_cell, f_type='F')
 finder.optimize_fixed_points(
-  tolerance=1e-5, num_opt_batch=200,
+  tolerance=1e-5, num_batch=200,
   opt_setting=dict(method=bm.optimizers.Adam,
                    lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)))
 finder.filter_loss(tolerance=1e-5)

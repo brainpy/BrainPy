@@ -89,7 +89,7 @@ def find_fixed_points():
     opt_setting=dict(method=bm.optimizers.Adam,
                      # lr=bm.optimizers.ExponentialDecay(0.05, 1, 0.9999)),
                      lr=bm.optimizers.ExponentialDecay(0.1, 2, 0.999)),
-    num_opt_batch=200
+    num_batch=200
   )
   finder.filter_loss(1e-8)
   finder.keep_unique()
