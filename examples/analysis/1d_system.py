@@ -6,7 +6,23 @@ bp.math.enable_x64()
 bp.math.set_platform('cpu')
 
 
-def cubic_system_1d():
+def cubic_system1():
+  int_x = bp.odeint(lambda x, t: -x ** 3)
+  analyzer = bp.analysis.PhasePlane1D(model=int_x,
+                                      target_vars={'x': [-2, 2]},
+                                      resolutions=0.001)
+  analyzer.plot_vector_field()
+  analyzer.plot_fixed_point(show=True)
+
+  int_x = bp.odeint(lambda x, t: x ** 3)
+  analyzer = bp.analysis.PhasePlane1D(model=int_x,
+                                      target_vars={'x': [-2, 2]},
+                                      resolutions=0.001)
+  analyzer.plot_vector_field()
+  analyzer.plot_fixed_point(show=True)
+
+
+def cubic_system_2():
   @bp.odeint
   def int_x(x, t, Iext):
     dx = x ** 3 - x + Iext
@@ -16,7 +32,6 @@ def cubic_system_1d():
                                       target_vars={'x': [-2, 2]},
                                       pars_update={'Iext': 0.},
                                       resolutions=0.001)
-
   analyzer.plot_vector_field()
   analyzer.plot_fixed_point(show=True)
 
@@ -60,9 +75,3 @@ def sincos_1d():
     resolutions={'a': 0.01, 'b': 0.01}
   )
   bf.plot_bifurcation(show=True)
-
-
-if __name__ == '__main__':
-  # cubic_system_1d()
-  # sin_1d()
-  sincos_1d()

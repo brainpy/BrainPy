@@ -129,9 +129,9 @@ def stability_analysis(derivatives):
     if derivatives == 0:
       return SADDLE_NODE
     elif derivatives > 0:
-      return STABLE_POINT_1D
-    else:
       return UNSTABLE_POINT_1D
+    else:
+      return STABLE_POINT_1D
 
   elif np.size(derivatives) == 4:  # 2D dynamical system
     a = derivatives[0][0]
