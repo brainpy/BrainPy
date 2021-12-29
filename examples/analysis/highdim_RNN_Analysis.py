@@ -260,11 +260,13 @@ fp_candidates = bm.vstack([activity_dict[i] for i in range(num_trial)])
 fp_candidates.shape
 
 # %%
-finder = bp.analysis.FixedPointFinder(candidates=fp_candidates, f_cell=f_cell, f_type='F')
-finder.optimize_fixed_points(
+finder = bp.analysis.SlowPointFinder(f_cell=f_cell, f_type='discrete')
+finder.find_fps_with_gd_method(
+  candidates=fp_candidates,
   tolerance=1e-5, num_batch=200,
   opt_setting=dict(method=bm.optimizers.Adam,
-                   lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)))
+                   lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999))
+)
 finder.filter_loss(tolerance=1e-5)
 finder.keep_unique(tolerance=0.03)
 finder.exclude_outliers(0.1)

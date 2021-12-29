@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.decomposition import PCA
 
 import brainpy as bp
 import brainpy.math as bm
@@ -73,33 +74,35 @@ class CANN1D(bp.NeuGroup):
 
 k = 0.1
 a = 0.5
-A = 30
-fps_output_fn = f'data/fps,k={k},a={a},A={A},f32,noise=0.5.npy'
+A = 10
+fps_output_fn = f'data/fps,k={k},a={a},A={A},f32,BFGS.npy'
 
 
 def find_fixed_points():
   cann = CANN1D(num=512, k=k, A=A, a=a)
 
-  candidates = cann.get_stimulus_by_pos(bm.arange(-bm.pi, bm.pi, 0.005).reshape((-1, 1)))
-  # candidates = bm.random.random(size=(10000, cann.num)) * 20.
+  candidates = cann.get_stimulus_by_pos(bm.arange(-bm.pi, bm.pi, 0.01).reshape((-1, 1)))
+  candidates += bm.random.normal(0., 0.01, candidates.shape)
 
-  finder = bp.analysis.FixedPointFinder(candidates=candidates, f_cell=cann.cell, noise=0.5)
-  finder.optimize_fixed_points(
-    tolerance=1e-6,
-    opt_setting=dict(method=bm.optimizers.Adam,
-                     # lr=bm.optimizers.ExponentialDecay(0.05, 1, 0.9999)),
-                     lr=bm.optimizers.ExponentialDecay(0.1, 2, 0.999)),
-    num_batch=200
-  )
-  finder.filter_loss(1e-8)
+  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell)
+  # finder.find_fps_with_gd_method(
+  #   candidates=candidates,
+  #   tolerance=1e-6,
+  #   opt_setting=dict(method=bm.optimizers.Adam,
+  #                    # lr=bm.optimizers.ExponentialDecay(0.05, 1, 0.9999)),
+  #                    lr=bm.optimizers.ExponentialDecay(0.1, 2, 0.999)),
+  #   num_batch=200
+  # )
+  finder.find_fps_with_opt_solver(candidates)
+  finder.filter_loss(1e-5)
   finder.keep_unique()
-  finder.exclude_outliers()
+  # finder.exclude_outliers()
 
   np.save(fps_output_fn, finder.fixed_points)
 
   print(finder.fixed_points)
   print(finder.losses)
-  print(finder.selected_ids)
+  # print(finder.selected_ids)
 
 
 def visualize_fixed_points():
@@ -108,10 +111,11 @@ def visualize_fixed_points():
   bp.visualize.animate_1D(
     dynamical_vars={'ys': fixed_points,
                     'xs': bm.linspace(-bm.pi, bm.pi, fixed_points.shape[1]),
-                    'legend': 'u'},
+                    'legend': 'fixed point'},
     frame_step=1,
     frame_delay=100,
     show=True,
+    # save_path='cann_fps.gif'
   )
 
 
@@ -135,8 +139,7 @@ def verify_fixed_point_stability(num=3):
   fixed_points = np.load(fps_output_fn)
 
   cann = CANN1D(num=512, k=k, a=a, A=A)
-  finder = bp.analysis.FixedPointFinder(candidates=bm.random.rand(10),
-                                        f_cell=cann.cell, noise=0.0)
+  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell)
   J = finder.compute_jacobians(fixed_points[:num])
 
   for i in range(num):
@@ -149,8 +152,23 @@ def verify_fixed_point_stability(num=3):
     plt.show()
 
 
+def pca_reduction():
+  fixed_points = np.load(fps_output_fn)
+
+  pca = PCA(2)
+  pca.fit(fixed_points)
+  fixedpoints_pc = pca.transform(fixed_points)
+  plt.plot(fixedpoints_pc[:, 0], fixedpoints_pc[:, 1], 'x', label='fixed points')
+
+  plt.xlabel('PC 1')
+  plt.ylabel('PC 2')
+  plt.legend()
+  plt.show()
+
+
 if __name__ == '__main__':
   find_fixed_points()
   visualize_fixed_points()
   verify_fixed_points_through_simulation()
   verify_fixed_point_stability(num=6)
+  pca_reduction()

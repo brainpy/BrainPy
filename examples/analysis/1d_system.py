@@ -6,6 +6,22 @@ bp.math.enable_x64()
 bp.math.set_platform('cpu')
 
 
+def quadratic_system1():
+  int_x = bp.odeint(lambda x, t: -x ** 2)
+  analyzer = bp.analysis.PhasePlane1D(model=int_x,
+                                      target_vars={'x': [-2, 2]},
+                                      resolutions=0.001)
+  analyzer.plot_vector_field()
+  analyzer.plot_fixed_point(show=True)
+
+  int_x = bp.odeint(lambda x, t: x ** 2)
+  analyzer = bp.analysis.PhasePlane1D(model=int_x,
+                                      target_vars={'x': [-2, 2]},
+                                      resolutions=0.001)
+  analyzer.plot_vector_field()
+  analyzer.plot_fixed_point(show=True)
+
+
 def cubic_system1():
   int_x = bp.odeint(lambda x, t: -x ** 3)
   analyzer = bp.analysis.PhasePlane1D(model=int_x,
@@ -43,8 +59,8 @@ def sin_1d():
 
   pp = bp.analysis.PhasePlane1D(model=int_x,
                                 target_vars={'x': [-5, 5]},
-                                pars_update={'Iext': 0.},
-                                resolutions=0.0001)
+                                pars_update={'Iext': 1.},
+                                resolutions=0.001)
   pp.plot_vector_field()
   pp.plot_fixed_point(show=True)
 
