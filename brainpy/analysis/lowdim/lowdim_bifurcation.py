@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from functools import partial
+
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -261,7 +263,7 @@ class Bifurcation2D(Num2DAnalyzer):
     final_pars = []
     for par in np.unique(parameters, axis=0):
       ids = np.where(np.all(parameters == par, axis=1))[0]
-      fps, ids2 = utils.keep_unique(candidates[ids], tol=tol_unique)
+      fps, ids2 = utils.keep_unique(candidates[ids], tolerance=tol_unique)
       final_fps.append(fps)
       final_pars.append(parameters[ids[ids2]])
     final_fps = np.vstack(final_fps)  # with the shape of (num_point, num_var)
@@ -357,7 +359,7 @@ class Bifurcation2D(Num2DAnalyzer):
     dt = bm.get_dt() if dt is None else dt
     traject_model = utils.TrajectModel(
       initial_vars={self.x_var: final_fps[:, 0] + offset, self.y_var: final_fps[:, 1] + offset},
-      integrals=[self.F_int_x, self.F_int_y],
+      integrals={self.x_var: self.F_int_x, self.y_var: self.F_int_y},
       pars={p: v for p, v in zip(self.target_par_names, final_pars.T)},
       dt=dt
     )
@@ -425,6 +427,14 @@ class FastSlow1D(Bifurcation1D):
                                      resolutions=resolutions,
                                      options=options)
 
+    # standard integrators
+    self._std_integrators = dict()
+    for key, intg in self.model.name2integral.items():
+      wrap_x = utils.std_derivative(utils.get_args(self.model.name2derivative[key])[1],
+                                    self.target_var_names + self.target_par_names, [])
+      self._std_integrators[key] = partial(wrap_x(self.model.name2integral[key]),
+                                           **(self.pars_update + self.fixed_vars))
+
   def plot_trajectory(self, initials, duration, plot_durations=None,
                       dt=None, show=False, with_plot=True, with_return=False):
     utils.output('I am plot trajectory ...')
@@ -440,12 +450,13 @@ class FastSlow1D(Bifurcation1D):
 
     # 5. run the network
     dt = bm.get_dt() if dt is None else dt
-    traject_model = utils.TrajectModel(initial_vars=initials,
-                                       integrals=[self.F_int_x, self.F_int_y],
-                                       dt=dt)
+
+    traject_model = utils.TrajectModel(initial_vars=initials, integrals=self._std_integrators, dt=dt)
     mon_res = traject_model.run(duration=duration)
 
     if with_plot:
+      assert len(self.target_par_names) <= 2
+
       # plots
       for i, initial in enumerate(zip(*list(initials.values()))):
         # legend
@@ -457,15 +468,26 @@ class FastSlow1D(Bifurcation1D):
         # visualization
         start = int(plot_durations[i][0] / dt)
         end = int(plot_durations[i][1] / dt)
-        lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i], label=legend)
+        p1_var = self.target_par_names[0]
+        if len(self.target_par_names) == 1:
+          lines = plt.plot(mon_res[self.x_var][start: end, i],
+                           mon_res[p1_var][start: end, i], label=legend)
+        elif len(self.target_par_names) == 2:
+          p2_var = self.target_par_names[1]
+          lines = plt.plot(mon_res[self.x_var][start: end, i],
+                           mon_res[p1_var][start: end, i],
+                           mon_res[p2_var][start: end, i],
+                           label=legend)
+        else:
+          raise ValueError
         utils.add_arrow(lines[0])
 
-      # visualization of others
-      plt.xlabel(self.x_var)
-      plt.ylabel(self.target_par_names[0])
-      scale = (self.lim_scale - 1.) / 2
-      plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
-      plt.ylim(*utils.rescale(self.target_vars[self.target_par_names[0]], scale=scale))
+      # # visualization of others
+      # plt.xlabel(self.x_var)
+      # plt.ylabel(self.target_par_names[0])
+      # scale = (self.lim_scale - 1.) / 2
+      # plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+      # plt.ylim(*utils.rescale(self.target_vars[self.target_par_names[0]], scale=scale))
       plt.legend()
 
       if show:
@@ -473,8 +495,6 @@ class FastSlow1D(Bifurcation1D):
 
     if with_return:
       return mon_res
-
-
 
 
 class FastSlow2D(Bifurcation2D):
@@ -487,3 +507,66 @@ class FastSlow2D(Bifurcation2D):
                                      pars_update=pars_update,
                                      resolutions=resolutions,
                                      options=options)
+    # standard integrators
+    self._std_integrators = dict()
+    for key, intg in self.model.name2integral.items():
+      wrap_x = utils.std_derivative(utils.get_args(self.model.name2derivative[key])[1],
+                                    self.target_var_names + self.target_par_names, [])
+      self._std_integrators[key] = partial(wrap_x(self.model.name2integral[key]),
+                                           **(self.pars_update + self.fixed_vars))
+
+  def plot_trajectory(self, initials, duration, plot_durations=None,
+                      dt=None, show=False, with_plot=True, with_return=False):
+    utils.output('I am plot trajectory ...')
+
+    # check the initial values
+    initials = utils.check_initials(initials, self.target_var_names + self.target_par_names)
+
+    # 2. format the running duration
+    assert isinstance(duration, (int, float))
+
+    # 3. format the plot duration
+    plot_durations = utils.check_plot_durations(plot_durations, duration, initials)
+
+    # 5. run the network
+    dt = bm.get_dt() if dt is None else dt
+
+    traject_model = utils.TrajectModel(initial_vars=initials, integrals=self._std_integrators, dt=dt)
+    mon_res = traject_model.run(duration=duration)
+
+    if with_plot:
+      assert len(self.target_par_names) <= 1
+      # plots
+      for i, initial in enumerate(zip(*list(initials.values()))):
+        # legend
+        legend = f'$traj_{i}$: '
+        for j, key in enumerate(self.target_var_names):
+          legend += f'{key}={initial[j]}, '
+        legend = legend[:-2]
+
+        start = int(plot_durations[i][0] / dt)
+        end = int(plot_durations[i][1] / dt)
+
+        # visualization
+        plt.figure(self.x_var)
+        lines = plt.plot(mon_res[self.target_par_names[0]][start: end, i],
+                         mon_res[self.x_var][start: end, i],
+                         label=legend)
+        utils.add_arrow(lines[0])
+
+        plt.figure(self.y_var)
+        lines = plt.plot(mon_res[self.target_par_names[0]][start: end, i],
+                         mon_res[self.y_var][start: end, i],
+                         label=legend)
+        utils.add_arrow(lines[0])
+
+      plt.figure(self.x_var)
+      plt.legend()
+      plt.figure(self.y_var)
+      plt.legend()
+
+      if show:
+        plt.show()
+
+    if with_return:
+      return mon_res

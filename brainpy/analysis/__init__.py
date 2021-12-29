@@ -14,7 +14,7 @@ This module provides analysis tools for differential equations.
 Details in the following.
 """
 
-from .highdim.fixed_points import *
+from .highdim.slow_points import *
 
 from .lowdim.lowdim_phase_plane import *
 from .lowdim.lowdim_bifurcation import *

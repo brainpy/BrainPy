@@ -4,79 +4,66 @@ import inspect
 import time
 from functools import partial
 
+import jax.numpy
 import numpy as np
+from jax.scipy.optimize import minimize
 
 import brainpy.math as bm
 from brainpy.analysis import utils
 from brainpy.errors import AnalyzerError
 
-
 __all__ = [
-  'FixedPointFinder',
+  'SlowPointFinder',
 ]
 
 
-class FixedPointFinder(object):
-  """Find fixed points by numerical optimization.
+class SlowPointFinder(object):
+  """Find fixed/slow points by numerical optimization.
 
   This class can help you:
 
-  1. add noise to the fixed point candidates
-  2. optimize to find the closest fixed points / slow points
-  3. exclude any fixed points whose fixed point loss is above threshold
-  4. exclude any non-unique fixed points according to a tolerance
-  5. exclude any far-away "outlier" fixed points
+  - optimize to find the closest fixed points / slow points
+  - exclude any fixed points whose fixed point loss is above threshold
+  - exclude any non-unique fixed points according to a tolerance
+  - exclude any far-away "outlier" fixed points
 
-  This model implementation follows https://github.com/google-research/computation-thru-dynamics.
+  This model implementation is inspired by https://github.com/google-research/computation-thru-dynamics.
 
   Parameters
   ----------
-  candidates : jax.ndarray, JaxArray
-      The array with the shape of (batch size, state dim) of hidden states
-      of RNN to start training for fixed points.
   f_cell : callable, function
     The function to compute the recurrent units.
   f_type : str
     The system's type: continuous system or discrete system.
 
-    - 'df': continuous derivative function, denotes this is a continuous system, or
-    - 'F': discrete update function, denotes this is a discrete system.
+    - 'continuous': continuous derivative function, denotes this is a continuous system, or
+    - 'discrete': discrete update function, denotes this is a discrete system.
   f_loss_batch : callable, function
     The function to compute the loss.
   verbose : bool
     Whether print the optimization progress.
-  noise : float
-    Gaussian noise added to fixed point candidates before optimization.
   """
 
-  def __init__(self, f_cell, candidates, f_type='df', f_loss_batch=None,
-               verbose=True, noise=0.):
+  def __init__(self, f_cell, f_type='continuous', f_loss_batch=None, verbose=True):
     self.verbose = verbose
-
-    if f_type not in ['df', 'F']:
-      raise AnalyzerError(f'Only support "df" (continuous derivative function) or '
-                          f'"F" (discrete update function), not {f_type}.')
+    if f_type not in ['discrete', 'continuous']:
+      raise AnalyzerError(f'Only support "continuous" (continuous derivative function) or '
+                          f'"discrete" (discrete update function), not {f_type}.')
 
     # functions
     self.f_cell = f_cell
     if f_loss_batch is None:
-      if f_type == 'F':
-        self.f_loss = bm.jit(lambda h: bm.mean((h - bm.vmap(f_cell, auto_infer=False)(h)) ** 2))
+      if f_type == 'discrete':
+        self.f_loss = bm.jit(lambda h: bm.mean((h - f_cell(h)) ** 2))
         self.f_loss_batch = bm.jit(lambda h: bm.mean((h - bm.vmap(f_cell, auto_infer=False)(h)) ** 2, axis=1))
-      if f_type == 'df':
-        self.f_loss = bm.jit(lambda h: bm.mean((bm.vmap(f_cell, auto_infer=False)(h)) ** 2))
+      if f_type == 'continuous':
+        self.f_loss = bm.jit(lambda h: bm.mean(f_cell(h) ** 2))
         self.f_loss_batch = bm.jit(lambda h: bm.mean((bm.vmap(f_cell, auto_infer=False)(h)) ** 2, axis=1))
+
     else:
       self.f_loss_batch = f_loss_batch
-      self.f_loss = bm.jit(lambda h: bm.mean(self.f_loss_batch(h)))
+      self.f_loss = bm.jit(lambda h: bm.mean(f_cell(h) ** 2))
     self.f_jacob_batch = bm.jit(bm.vmap(bm.jacobian(f_cell)))
-
-    # candidates
-    self.noise = noise
-    self.candidates = candidates
-    if self.verbose and self.noise > 0.0:
-      print("Adding noise to fixed point candidates.")
-      self.candidates += bm.random.randn(*candidates.shape) * np.sqrt(self.noise)
 
     # essential variables
     self._losses = None
@@ -99,12 +86,15 @@ class FixedPointFinder(object):
     """The selected ids of candidate points."""
     return self._selected_ids
 
-  def optimize_fixed_points(self, tolerance=1e-5, num_batch=100,
-                            num_opt=10000, opt_setting=None):
-    """Optimize fixed points.
+  def find_fps_with_gd_method(self, candidates, tolerance=1e-5, num_batch=100,
+                              num_opt=10000, opt_setting=None):
+    """Optimize fixed points with gradient descent methods.
 
     Parameters
     ----------
+    candidates : jax.ndarray, JaxArray
+      The array with the shape of (batch size, state dim) of hidden states
+      of RNN to start training for fixed points.
     tolerance: float
       The loss threshold during optimization
     num_opt : int
@@ -114,8 +104,6 @@ class FixedPointFinder(object):
     opt_setting: optional, dict
       The optimization settings.
     """
-    if self.verbose:
-      print("Optimizing to find fixed points:")
 
     # optimization settings
     if opt_setting is None:
@@ -140,11 +128,13 @@ class FixedPointFinder(object):
       assert isinstance(opt_lr, (int, float, bm.optimizers.Scheduler))
       opt_setting = opt_setting
 
+    if self.verbose:
+      print(f"Optimizing with {opt_method.__name__} to find fixed points:")
+
     # set up optimization
-    fixed_points = bm.Variable(bm.asarray(self.candidates))
-    grad_f = bm.grad(lambda: self.f_loss(fixed_points.value).mean(),
-                     grad_vars={'a': fixed_points},
-                     return_value=True)
+    fixed_points = bm.Variable(bm.asarray(candidates))
+    grad_f = bm.grad(lambda: self.f_loss_batch(fixed_points.value).mean(),
+                     grad_vars={'a': fixed_points}, return_value=True)
     opt = opt_method(train_vars={'a': fixed_points}, lr=opt_lr, **opt_setting)
     dyn_vars = opt.vars() + {'_a': fixed_points}
 
@@ -186,6 +176,30 @@ class FixedPointFinder(object):
     self._fixed_points = np.asarray(fixed_points)
     self._selected_ids = np.arange(fixed_points.shape[0])
 
+  def find_fps_with_opt_solver(self, candidates, opt_method=None):
+    """Optimize fixed points with nonlinear optimization solvers.
+
+    Parameters
+    ----------
+    candidates
+    opt_method: function, callable
+    """
+
+    assert bm.ndim(candidates) == 2 and isinstance(candidates, (bm.JaxArray, jax.numpy.ndarray))
+    if opt_method is None:
+      opt_method = lambda f, x0: minimize(f, x0, method='BFGS')
+    if self.verbose:
+      print(f"Optimizing to find fixed points:")
+    f_opt = bm.vmap(lambda x0: opt_method(self.f_loss, x0))
+    res = f_opt(bm.device_array(candidates))
+    valid_ids = jax.numpy.where(res.success)[0]
+    self._fixed_points = np.asarray(res.x[valid_ids])
+    self._losses = np.asarray(res.fun[valid_ids])
+    self._selected_ids = np.asarray(valid_ids)
+    if self.verbose:
+      print(f'    '
+            f'Found {len(valid_ids)} fixed points from {len(candidates)} initial points.')
+
   def filter_loss(self, tolerance=1e-5):
     """Filter fixed points whose speed larger than a given tolerance.
 
@@ -196,7 +210,7 @@ class FixedPointFinder(object):
     """
     if self.verbose:
       print(f"Excluding fixed points with squared speed above "
-            f"tolerance {tolerance:0.5f}:")
+            f"tolerance {tolerance}:")
     num_fps = self.fixed_points.shape[0]
     ids = self._losses < tolerance
     keep_ids = bm.where(ids)[0]
@@ -218,30 +232,11 @@ class FixedPointFinder(object):
     """
     if self.verbose:
       print("Excluding non-unique fixed points:")
-    if tolerance <= 0.0:
-      return
-    if self._fixed_points.shape[0] <= 1:
-      return
-
-    # If point a and point b are within identical_tol of each other, and the
-    # a is first in the list, we keep a.
-    all_drop_idxs = []
-    distances = np.asarray(utils.euclidean_distance(self._fixed_points))
-    num_fps = self._fixed_points.shape[0]
-    example_idxs = np.arange(num_fps)
-    for fidx in range(num_fps - 1):
-      distances_f = distances[fidx, fidx + 1:]
-      drop_idxs = example_idxs[fidx + 1:][distances_f <= tolerance]
-      all_drop_idxs += list(drop_idxs)
-    unique_dropidxs = np.unique(all_drop_idxs)
-    keep_ids = np.setdiff1d(example_idxs, unique_dropidxs)
-    if keep_ids.shape[0] > 0:
-      self._fixed_points = self._fixed_points[keep_ids, :]
-    else:
-      self._fixed_points = np.array([], dtype=self._fixed_points.dtype)
-    self._selected_ids = self._selected_ids[keep_ids]
+    num_fps = self.fixed_points.shape[0]
+    fps, keep_ids = utils.keep_unique(self.fixed_points, tolerance=tolerance)
+    self._fixed_points = fps
     self._losses = self._losses[keep_ids]
-
+    self._selected_ids = self._selected_ids[keep_ids]
     if self.verbose:
       print(f"    Kept {self._fixed_points.shape[0]}/{num_fps} unique fixed points "
             f"with uniqueness tolerance {tolerance}.")

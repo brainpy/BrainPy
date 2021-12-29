@@ -315,7 +315,7 @@ class PhasePlane2D(Num2DAnalyzer):
                                                   tol_opt_candidate=tol_opt_screen)
       utils.output('I am trying to filter out duplicate fixed points ...')
       fixed_points = np.asarray(fixed_points)
-      fixed_points, _ = utils.keep_unique(fixed_points, tol=tol_unique)
+      fixed_points, _ = utils.keep_unique(fixed_points, tolerance=tol_unique)
       utils.output(f'{C.prefix}Found {len(fixed_points)} fixed points.')
     else:
       utils.output(f'{C.prefix}Found no fixed points.')
@@ -394,9 +394,10 @@ class PhasePlane2D(Num2DAnalyzer):
 
     # 5. run the network
     dt = math.get_dt() if dt is None else dt
-    traject_model = utils.TrajectModel(initial_vars=initials,
-                                       integrals=[self.F_int_x, self.F_int_y],
-                                       dt=dt)
+    traject_model = utils.TrajectModel(
+      initial_vars=initials,
+      integrals={self.x_var: self.F_int_x, self.y_var: self.F_int_y},
+      dt=dt)
     mon_res = traject_model.run(duration=duration)
 
     if with_plot:
@@ -437,7 +438,7 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_return:
       return mon_res
 
-  def plot_limit_cycle_by_sim(self, initials, duration, tol=0.001, show=False, dt=None):
+  def plot_limit_cycle_by_sim(self, initials, duration, tol=0.01, show=False, dt=None):
     """Plot trajectories according to the settings.
 
     Parameters
@@ -469,13 +470,14 @@ class PhasePlane2D(Num2DAnalyzer):
     assert isinstance(duration, (int, float))
 
     dt = math.get_dt() if dt is None else dt
-    traject_model = utils.TrajectModel(initial_vars=initials,
-                                       integrals=[self.F_int_x, self.F_int_y],
-                                       dt=dt)
+    traject_model = utils.TrajectModel(
+      initial_vars=initials,
+      integrals={self.x_var: self.F_int_x, self.y_var: self.F_int_y},
+      dt=dt)
     mon_res = traject_model.run(duration=duration)
 
     # 5. run the network
-    for init_i, initial in enumerate(initials):
+    for init_i, initial in enumerate(zip(*list(initials.values()))):
       #   5.2 run the model
       x_data = mon_res[self.x_var][:, init_i]
       y_data = mon_res[self.y_var][:, init_i]

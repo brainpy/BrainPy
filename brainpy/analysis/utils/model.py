@@ -80,17 +80,19 @@ class NumDSWrapper(object):
     self.variables = variables  # all variables
     self.parameters = parameters  # all parameters
     self.pars_update = pars_update  # the parameters to update
+    self.name2integral = {intg.variables[0]: intg for intg in integrals}
+    self.name2derivative = {intg.variables[0]: intg.f for intg in integrals}
 
 
 class TrajectModel(DynamicalSystem):
-  def __init__(self, integrals, initial_vars, pars=None, dt=None):
+  def __init__(self, integrals: dict, initial_vars: dict, pars=None, dt=None):
     super(TrajectModel, self).__init__()
 
     # variables
     assert isinstance(initial_vars, dict)
     initial_vars = {k: bm.Variable(bm.asarray(v)) for k, v in initial_vars.items()}
     self.register_implicit_vars(initial_vars)
-    self.all_vars = tuple(self.implicit_vars.values())
+    # self.all_vars = tuple(self.implicit_vars.values())
 
     # parameters
     pars = dict() if pars is None else pars
@@ -106,8 +108,9 @@ class TrajectModel(DynamicalSystem):
                                dyn_vars=self.vars().unique(), dt=dt)
 
   def update(self, _t, _dt):
-    for i, intg in enumerate(self.integrals):
-      self.all_vars[i].update(intg(*self.all_vars, *self.pars, dt=_dt))
+    all_vars = list(self.implicit_vars.values())
+    for key, intg in self.integrals.items():
+      self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=_dt))
 
   def __getattr__(self, item):
     child_vars = super(TrajectModel, self).__getattribute__('implicit_vars')

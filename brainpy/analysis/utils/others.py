@@ -84,7 +84,7 @@ def get_sign2(f, *xyz, args=()):
   return jnp.sign(f(*(XYZ + args))).reshape(shape)
 
 
-def keep_unique(candidates, tol=2.5e-2):
+def keep_unique(candidates, tolerance=2.5e-2):
   """Filter unique fixed points by choosing a representative within tolerance.
 
   Parameters
@@ -98,7 +98,7 @@ def keep_unique(candidates, tol=2.5e-2):
     A 2-tuple of (kept fixed points, ids of kept fixed points).
   """
   keep_ids = np.arange(candidates.shape[0])
-  if tol <= 0.0:
+  if tolerance <= 0.0:
     return candidates, keep_ids
   if candidates.shape[0] <= 1:
     return candidates, keep_ids
@@ -111,7 +111,7 @@ def keep_unique(candidates, tol=2.5e-2):
   all_drop_idxs = []
   for fidx in range(nfps - 1):
     distances_f = distances[fidx, fidx + 1:]
-    drop_idxs = example_idxs[fidx + 1:][distances_f <= tol]
+    drop_idxs = example_idxs[fidx + 1:][distances_f <= tolerance]
     all_drop_idxs += list(drop_idxs)
   keep_ids = np.setdiff1d(example_idxs, np.unique(all_drop_idxs))
   if keep_ids.shape[0] > 0:
