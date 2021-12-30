@@ -16,7 +16,7 @@ namespace{
       F *result = reinterpret_cast<F *>(out);
 
       // algorithm
-      memset(&result[0], 0., sizeof(result[0]) * post_size);
+      memset(&result[0], 0, sizeof(result[0]) * post_size);
       for (std::uint32_t i=0; i<pre_size; ++i) {
         if (events[i]){
           for (I j=indptr[i]; j<indptr[i+1]; ++j) {
@@ -40,7 +40,7 @@ namespace{
       F *result = reinterpret_cast<F *>(out);
 
       // algorithm
-      memset(&result[0], 0., sizeof(result[0]) * post_size);
+      memset(&result[0], 0, sizeof(result[0]) * post_size);
       for (std::uint32_t i = 0; i < pre_size; ++i) {
         if (events[i]){
           for (I j = indptr[i]; j < indptr[i+1]; ++j) {
