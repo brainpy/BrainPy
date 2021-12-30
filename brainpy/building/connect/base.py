@@ -19,14 +19,14 @@ __all__ = [
   'PRE2SYN', 'POST2SYN',
   'SUPPORTED_SYN_STRUCTURE',
 
-  # the types to store connections
-  'set_default_dtype', 'CONN_DTYPE', 'IDX_DTYPE', 'WEIGHT_DTYPE',
+  # the connection dtypes
+  'set_default_dtype', 'MAT_DTYPE', 'IDX_DTYPE',
 
   # base class
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # methods
-  'tocsc', 'todense', 'tocsr', 'toind'
+  'csr2csc', 'csr2mat', 'mat2csr', 'ij2csr'
 ]
 
 CONN_MAT = 'conn_mat'
@@ -46,9 +46,8 @@ SUPPORTED_SYN_STRUCTURE = [CONN_MAT, WEIGHT_MAT,
                            PRE2SYN, POST2SYN,
                            PRE_SLICE, POST_SLICE]
 
-CONN_DTYPE = np.bool_
+MAT_DTYPE = np.bool_
 IDX_DTYPE = np.uint32
-WEIGHT_DTYPE = np.float32
 
 
 def set_default_dtype(mat_dtype=None, idx_dtype=None):
@@ -84,8 +83,8 @@ def set_default_dtype(mat_dtype=None, idx_dtype=None):
     The default dtype for connection index.
   """
   if mat_dtype is not None:
-    global CONN_DTYPE
-    CONN_DTYPE = mat_dtype
+    global MAT_DTYPE
+    MAT_DTYPE = mat_dtype
   if idx_dtype is not None:
     global IDX_DTYPE
     IDX_DTYPE = idx_dtype
@@ -98,12 +97,12 @@ class Connector(abc.ABC):
 
 class TwoEndConnector(Connector):
   """Synaptic connector to build synapse connections between two neuron groups."""
+
   def __init__(self, ):
     self.pre_size = None
     self.post_size = None
     self.pre_num = None
     self.post_num = None
-    self.structures = None
 
   def __call__(self, pre_size, post_size):
     """Create the concrete connections between two end objects.
@@ -134,7 +133,7 @@ class TwoEndConnector(Connector):
     return self
 
   def _reset_conn(self, pre_size, post_size):
-    """
+    """Reset connection attributes.
 
     Parameters
     ----------
@@ -142,16 +141,11 @@ class TwoEndConnector(Connector):
         The size of the pre-synaptic group.
     post_size : int, tuple of int, list of int
         The size of the post-synaptic group.
-
-    Returns
-    -------
-
     """
-    self.__init__()
-
     self.__call__(pre_size, post_size)
 
   def check(self, structures: Union[Tuple, List, str]):
+    # check "pre_num" and "post_num"
     try:
       assert self.pre_num is not None and self.post_num is not None
     except AssertionError:
@@ -159,65 +153,64 @@ class TwoEndConnector(Connector):
                            f'Please use self.__call__(pre_size, post_size) '
                            f'before requiring properties.')
 
+    # check synaptic structures
     if isinstance(structures, str):
       structures = [structures]
-
     if structures is None or len(structures) == 0:
       raise ConnectorError('No synaptic structure is received.')
-
-    # check synaptic structures
     for n in structures:
       if n not in SUPPORTED_SYN_STRUCTURE:
-        raise ConnectorError(f'Unknown synapse structure "{n}". Only {SUPPORTED_SYN_STRUCTURE} is supported.')
+        raise ConnectorError(f'Unknown synapse structure "{n}". '
+                             f'Only {SUPPORTED_SYN_STRUCTURE} is supported.')
 
-    self.structures = list(structures)
+  def make_returns(self, structures, csr):
+    """Make the desired synaptic structures and return them.
+    """
 
-  def returns(self, ind, indptr):
-    """
-    calculate the desired properties
-    """
-    # ind = np.asarray(ind)
-    # indptr = np.asarray(indptr)
-    assert isinstance(ind, np.ndarray)
+    indices, indptr = csr
+    assert isinstance(indices, np.ndarray)
     assert isinstance(indptr, np.ndarray)
+    assert self.pre_num == indptr.size - 1
 
     all_data = dict()
+    if isinstance(structures, str):
+      structures = (structures,)
+    assert isinstance(structures, (tuple, list))
+    if CONN_MAT in structures:
+      conn_mat = csr2mat((indices, indptr), self.pre_num, self.post_num)
+      all_data[CONN_MAT] = math.asarray(conn_mat, dtype=MAT_DTYPE)
 
-    if CONN_MAT in self.structures:
-      conn_mat = todense(ind, indptr, self.pre_num, self.post_num)
-      all_data[CONN_MAT] = math.asarray(conn_mat, dtype=math.bool_)
-
-    if PRE_IDS in self.structures:
+    if PRE_IDS in structures:
       pre_ids = np.repeat(np.arange(self.pre_num), np.diff(indptr))
-      all_data[PRE_IDS] = math.asarray(pre_ids, dtype=math.int_)
+      all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
 
-    if POST_IDS in self.structures:
-      all_data[POST_IDS] = math.asarray(ind, dtype=math.int_)
+    if POST_IDS in structures:
+      all_data[POST_IDS] = math.asarray(indices, dtype=IDX_DTYPE)
 
-    if PRE2POST in self.structures:
-      all_data[PRE2POST] = math.asarray(ind, dtype=math.int_), \
-                           math.asarray(indptr, dtype=math.int_)
+    if PRE2POST in structures:
+      all_data[PRE2POST] = (math.asarray(indices, dtype=IDX_DTYPE),
+                            math.asarray(indptr, dtype=IDX_DTYPE))
 
-    if POST2PRE in self.structures:
-      indc, indptrc = tocsc(ind, indptr, self.post_num)
-      all_data[POST2PRE] = math.asarray(indc, dtype=math.int_), \
-                           math.asarray(indptrc, dtype=math.int_)
+    if POST2PRE in structures:
+      indc, indptrc = csr2csc((indices, indptr), self.post_num)
+      all_data[POST2PRE] = (math.asarray(indc, dtype=IDX_DTYPE),
+                            math.asarray(indptrc, dtype=IDX_DTYPE))
 
-    if PRE2SYN in self.structures:
-      syn_seq = np.arange(ind.size)
-      all_data[PRE2SYN] = math.asarray(syn_seq, dtype=math.int_), \
-                          math.asarray(indptr, dtype=math.int_)
+    if PRE2SYN in structures:
+      syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
+      all_data[PRE2SYN] = (math.asarray(syn_seq, dtype=IDX_DTYPE),
+                           math.asarray(indptr, dtype=IDX_DTYPE))
 
-    if POST2SYN in self.structures:
-      syn_seq = np.arange(ind.size)
-      _, indptrc, syn_seqc = tocsc(ind, indptr, self.post_num, syn_seq)
-      all_data[POST2SYN] = math.asarray(syn_seqc, dtype=math.int_), \
-                           math.asarray(indptrc, dtype=math.int_)
+    if POST2SYN in structures:
+      syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
+      _, indptrc, syn_seqc = csr2csc((indices, indptr), self.post_num, syn_seq)
+      all_data[POST2SYN] = (math.asarray(syn_seqc, dtype=IDX_DTYPE),
+                            math.asarray(indptrc, dtype=IDX_DTYPE))
 
-    if len(self.structures) == 1:
-      return all_data[self.structures[0]]
+    if len(structures) == 1:
+      return all_data[structures[0]]
     else:
-      return tuple([all_data[n] for n in self.structures])
+      return tuple([all_data[n] for n in structures])
 
   def require(self, *structures):
     raise NotImplementedError
@@ -228,6 +221,7 @@ class TwoEndConnector(Connector):
 
 class OneEndConnector(TwoEndConnector):
   """Synaptic connector to build synapse connections within a population of neurons."""
+
   def __init__(self):
     super(OneEndConnector, self).__init__()
 
@@ -262,56 +256,62 @@ class OneEndConnector(TwoEndConnector):
     self.__call__(pre_size, post_size)
 
 
-def tocsc(ind, indptr, post_num, data=None):
+def csr2csc(csr, post_num, data=None):
+  """Convert csr to csc."""
+  indices, indptr = csr
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
 
-  sort_idx = np.argsort(ind, kind='mergesort')  # to maintain the original order of the elements with the same value
-  ind_new = pre_ids[sort_idx]
+  sort_ids = np.argsort(indices, kind='mergesort')  # to maintain the original order of the elements with the same value
+  pre_ids_new = pre_ids[sort_ids]
 
-  uni_idx, count = np.unique(ind, return_counts=True)
+  unique_post_ids, count = np.unique(indices, return_counts=True)
   post_count = np.zeros(post_num, dtype=IDX_DTYPE)
-  post_count[uni_idx] = count
+  post_count[unique_post_ids] = count
 
-  indptr_new = np.concatenate(([0], post_count)).cumsum()
+  indptr_new = post_count.cumsum()
+  indptr_new = np.insert(indptr_new, 0, 0)
+  indptr_new = np.asarray(indptr_new, dtype=IDX_DTYPE)
 
   if data is None:
-    return ind_new, indptr_new
+    return pre_ids_new, indptr_new
+  else:
+    data_new = data[sort_ids]
+    return pre_ids_new, indptr_new, data_new
 
-  data_new = data[sort_idx]
-  return ind_new, indptr_new, data_new
 
-
-def tocsr(dense):
-  """convert a dense matrix to ind, indptr."""
-  pre_ids, post_ids = np.where(dense)
+def mat2csr(dense):
+  """convert a dense matrix to (indices, indptr)."""
+  pre_ids, post_ids = np.where(dense > 0)
   pre_num = dense.shape[0]
 
   uni_idx, count = np.unique(pre_ids, return_counts=True)
   pre_count = np.zeros(pre_num, dtype=IDX_DTYPE)
   pre_count[uni_idx] = count
-  indptr = np.concatenate(([0], count)).cumsum()
+  indptr = count.cumsum()
+  indptr = np.insert(indptr, 0, 0)
 
-  return post_ids, indptr
+  return np.asarray(post_ids, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
 
 
-def todense(ind, indptr, num_pre, num_post):
-  """convert ind, indptr to a dense matrix."""
-  d = np.zeros((num_pre, num_post), dtype=CONN_DTYPE)  # num_pre, num_post
+def csr2mat(csr, num_pre, num_post):
+  """convert (indices, indptr) to a dense matrix."""
+  indices, indptr = csr
+  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
-  d[pre_ids, ind] = True
-
+  d[pre_ids, indices] = True
   return d
 
 
-def toind(pre_ids, post_ids):
-  """convert pre_ids, post_ids to ind, indptr."""
+def ij2csr(pre_ids, post_ids):
+  """convert pre_ids, post_ids to (indices, indptr)."""
   # sorting
-  sort_idx = np.argsort(pre_ids, kind='mergesort')
-  pre_ids = pre_ids[sort_idx]
-  post_ids = post_ids[sort_idx]
+  sort_ids = np.argsort(pre_ids, kind='mergesort')
+  pre_ids = pre_ids[sort_ids]
+  post_ids = post_ids[sort_ids]
 
-  ind = post_ids
+  indices = post_ids
   _, pre_count = np.unique(pre_ids, return_counts=True)
-  indptr = np.concatenate(([0], pre_count)).cumsum()
+  indptr = pre_count.cumsum()
+  indptr = np.insert(indptr, 0, 0)
 
-  return ind, indptr
+  return indices, np.asarray(indptr, dtype=IDX_DTYPE)

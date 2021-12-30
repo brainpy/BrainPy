@@ -1,7 +1,6 @@
 <p align="center">
-  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="./images/logo3.png"  >
+  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="./images/logo.png"  >
 </p> 
-
 
 
 

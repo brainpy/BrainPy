@@ -25,7 +25,7 @@ class MatConn(TwoEndConnector):
     self.pre_num, self.post_num = conn_mat.shape
     self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
     
-    self.conn_mat = np.asarray(conn_mat, dtype=CONN_DTYPE)
+    self.conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
   
   def __call__(self, pre_size, post_size):
     assert self.pre_num == tools.size2num(pre_size)
@@ -34,10 +34,7 @@ class MatConn(TwoEndConnector):
   
   def require(self, *structures):
     self.check(structures)
-    
-    ind, indptr = tocsr(self.conn_mat)
-    
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, mat2csr(self.conn_mat))
 
 
 class IJConn(TwoEndConnector):
@@ -69,10 +66,7 @@ class IJConn(TwoEndConnector):
   
   def require(self, *structures):
     self.check(structures)
-
-    ind, indptr = toind(self.pre_ids, self.post_ids)
-
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, ij2csr(self.pre_ids, self.post_ids))
 
 
 class SparseMatConn(TwoEndConnector):
@@ -83,12 +77,12 @@ class SparseMatConn(TwoEndConnector):
 
     try:
       from scipy.sparse import csr_matrix
-    except ImportError:
+    except (ModuleNotFoundError, ImportError):
       raise ConnectorError(f'Using SparseMatConn requires the scipy package. '
                            f'Please run "pip install scipy" to install scipy.')
 
     assert isinstance(csr_mat, csr_matrix)
-    csr_mat.data = np.asarray(csr_mat.data, dtype=CONN_DTYPE)
+    csr_mat.data = np.asarray(csr_mat.data, dtype=MAT_DTYPE)
     self.csr_mat = csr_mat
     self.pre_num, self.post_num = csr_mat.shape
 
@@ -104,7 +98,5 @@ class SparseMatConn(TwoEndConnector):
 
   def require(self, *structures):
     self.check(structures)
-
     ind, indptr = self.csr_mat.indices, self.csr_mat.indptr
-
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
