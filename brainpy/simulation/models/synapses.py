@@ -45,8 +45,8 @@ class DeltaSynapse(TwoEndConn):
   """
 
   def __init__(self, pre, post, conn, delay=0., post_has_ref=False, w=1.,
-               post_key='V', **kwargs):
-    super(DeltaSynapse, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
+               post_key='V', name=None):
+    super(DeltaSynapse, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs(post_key)
 
@@ -63,19 +63,18 @@ class DeltaSynapse(TwoEndConn):
 
     # variables
     self.w = w
-    assert bm.size(w) == 1, 'This implementation only support scalar weight. '
-    self.pre_spike = self.register_constant_delay('pre_spike', self.pre.num, delay,
-                                                  dtype=pre.spike.dtype)
+    # assert bm.size(w) == 1 or bm.size(w) ==
+    self.pre_spike = ConstantDelay(self.pre.num, delay, dtype=pre.spike.dtype)
 
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
     delayed_pre_spike = self.pre_spike.pull()
-    spikes = bm.pre2post_event_sum(delayed_pre_spike, self.pre2post, self.post.num, self.w)
+    post_vs = bm.pre2post_event_sum(delayed_pre_spike, self.pre2post, self.post.num, self.w)
     target = getattr(self.post, self.post_key)
     if self.post_has_ref:
-      target += spikes * (1. - self.post.refractory)
+      target += post_vs * (1. - self.post.refractory)
     else:
-      target += spikes
+      target += post_vs
 
 
 class ExpCUBA(TwoEndConn):
@@ -148,8 +147,8 @@ class ExpCUBA(TwoEndConn):
   """
 
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0,
-               method='exp_auto', **kwargs):
-    super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
+               method='exp_auto', name=None):
+    super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
 
@@ -164,8 +163,6 @@ class ExpCUBA(TwoEndConn):
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))
-    # self.pre_spike = self.register_constant_delay(
-    #   'pre_spike', self.pre.num, delay, dtype=pre.spike.dtype)
     self.pre_spike = ConstantDelay(self.pre.num, delay=delay, dtype=pre.spike.dtype)
 
     # function
@@ -231,10 +228,10 @@ class ExpCOBA(ExpCUBA):
   """
 
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
-               method='exp_auto', **kwargs):
+               method='exp_auto', name=None):
     super(ExpCOBA, self).__init__(pre=pre, post=post, conn=conn,
                                   g_max=g_max, delay=delay, tau=tau,
-                                  method=method, **kwargs)
+                                  method=method, name=name)
 
     # parameter
     self.E = E
@@ -345,8 +342,7 @@ class AMPA(TwoEndConn):
 
     # variables
     self.g = bm.Variable(bm.zeros(self.num))
-    self.pre_spike = self.register_constant_delay('ps', self.pre.num, delay,
-                                                  dtype=pre.spike.dtype)
+    self.pre_spike = ConstantDelay(self.pre.num, delay, dtype=pre.spike.dtype)
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
 
     # functions
