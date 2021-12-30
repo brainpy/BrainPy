@@ -11,8 +11,7 @@ import brainpy as bp
 class TestIJConn(TestCase):
   def test_ij(self):
     conn = bp.connect.IJConn(i=np.array([0, 1, 2]),
-                             j=np.array([0, 0, 0]))
-    conn(pre_size=5, post_size=3)
+                             j=np.array([0, 0, 0]))(pre_size=5, post_size=3)
 
     pre2post, post2pre, conn_mat = conn.requires('pre2post', 'post2pre', 'conn_mat')
 
@@ -33,8 +32,7 @@ class TestMatConn(TestCase):
   def test_MatConn1(self):
     bp.math.random.seed(123)
     actual_mat = np.random.randint(2, size=(5, 3), dtype=bp.math.bool_)
-    conn = bp.connect.MatConn(conn_mat=actual_mat)
-    conn(pre_size=5, post_size=3)
+    conn = bp.connect.MatConn(conn_mat=actual_mat)(pre_size=5, post_size=3)
 
     pre2post, post2pre, conn_mat = conn.requires('pre2post', 'post2pre', 'conn_mat')
 
@@ -53,8 +51,7 @@ class TestSparseMatConn(TestCase):
   def test_sparseMatConn(self):
     conn_mat = np.random.randint(2, size=(5, 3), dtype=bp.math.bool_)
     sparse_mat = csr_matrix(conn_mat)
-    conn = bp.conn.SparseMatConn(sparse_mat)
-    conn(pre_size=sparse_mat.shape[0], post_size=sparse_mat.shape[1])
+    conn = bp.conn.SparseMatConn(sparse_mat)(pre_size=sparse_mat.shape[0], post_size=sparse_mat.shape[1])
 
     print(conn.requires('pre2post'))
 

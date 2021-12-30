@@ -16,10 +16,9 @@ def test_random_prob():
   pre_ids2, post_ids2 = bp.math.where(mat)
 
   print()
-  print('weight_mat', conn1.weight_mat)
-  print('conn_mat', conn1.conn_mat)
-  print('weight_mat', conn2.weight_mat)
-  print('conn_mat', conn2.conn_mat)
+  assert bp.math.array_equal(pre_ids, pre_ids2)
+  assert bp.math.array_equal(post_ids, post_ids2)
+  print('weight_mat', mat)
 
 
 def test_random_fix_pre1():
@@ -31,10 +30,8 @@ def test_random_fix_pre1():
     mat2 = conn2.require(bp.connect.CONN_MAT)
 
     print()
-    print('weight_mat', conn1.weight_mat)
-    print('conn_mat', conn1.conn_mat)
-    print('weight_mat', conn2.weight_mat)
-    print('conn_mat', conn2.conn_mat)
+    print('conn_mat 1\n', mat1)
+    print('conn_mat 2\n', mat2)
 
     assert bp.math.array_equal(mat1, mat2)
 
@@ -43,6 +40,7 @@ def test_random_fix_pre2():
   for num in [0.5, 3]:
     conn1 = bp.connect.FixedPreNum(num, seed=1234)(pre_size=5, post_size=4)
     mat1 = conn1.require(bp.connect.CONN_MAT)
+    print()
     print(mat1)
 
 
@@ -61,10 +59,8 @@ def test_random_fix_post1():
     mat2 = conn2.require(bp.connect.CONN_MAT)
 
     print()
-    print('weight_mat', conn1.weight_mat)
-    print('conn_mat', conn1.conn_mat)
-    print('weight_mat', conn2.weight_mat)
-    print('conn_mat', conn2.conn_mat)
+    print('conn_mat 1\n', mat1)
+    print('conn_mat 2\n', mat2)
 
     assert bp.math.array_equal(mat1, mat2)
 
@@ -87,32 +83,23 @@ def test_gaussian_prob1():
   mat = conn.require(bp.connect.CONN_MAT)
 
   print()
-  print('weight_mat', conn.weight_mat)
-  print('conn_mat', conn.conn_mat)
-  # plt.imshow(mat)
-  # plt.show()
+  print('conn_mat', mat)
 
 
 def test_gaussian_prob2():
   conn = bp.connect.GaussianProb(sigma=4)(pre_size=(50, 50))
   mat = conn.require(bp.connect.CONN_MAT)
 
-  # plt.imshow(mat)
-  # plt.show()
-
-  # plt.imshow(mat[0].reshape(conn.pre_size))
-  # plt.show()
+  print()
+  print('conn_mat', mat)
 
 
 def test_gaussian_prob3():
   conn = bp.connect.GaussianProb(sigma=4, periodic_boundary=True)(pre_size=(50, 50))
   mat = conn.require(bp.connect.CONN_MAT)
 
-  # plt.imshow(mat)
-  # plt.show()
-
-  # plt.imshow(mat[0].reshape(conn.pre_size))
-  # plt.show()
+  print()
+  print('conn_mat', mat)
 
 
 def test_gaussian_prob4():
@@ -125,7 +112,7 @@ def test_gaussian_prob4():
 def test_SmallWorld1():
   with pytest.raises(NotImplementedError):
     conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5)
-    conn(pre_size=(20, 3), post_size=(20, 3))
+    conn(pre_size=20, post_size=20)
 
     conn.require(bp.connect.CONN_MAT)
 
@@ -133,45 +120,41 @@ def test_SmallWorld1():
 def test_SmallWorld2():
   conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5)
   conn(pre_size=(100,), post_size=(100,))
-  conn.require(bp.connect.CONN_MAT,
-               bp.connect.PRE_IDS, bp.connect.POST_IDS,
-               bp.connect.PRE2POST, bp.connect.POST_IDS)
+  mat, _, _, _, _ = conn.require(bp.connect.CONN_MAT,
+                                 bp.connect.PRE_IDS, bp.connect.POST_IDS,
+                                 bp.connect.PRE2POST, bp.connect.POST_IDS)
   print()
-  print('weight_mat', conn.weight_mat)
-  print('conn_mat', conn.conn_mat)
+  print('conn_mat', mat)
 
 
 def test_ScaleFreeBA():
   conn = bp.connect.ScaleFreeBA(m=2)
   for size in [100, (10, 20), (2, 10, 20)]:
     conn(pre_size=size, post_size=size)
-    conn.require(bp.connect.CONN_MAT,
-                 bp.connect.PRE_IDS, bp.connect.POST_IDS,
-                 bp.connect.PRE2POST, bp.connect.POST_IDS)
+    mat, _, _, _, _ = conn.require(bp.connect.CONN_MAT,
+                                   bp.connect.PRE_IDS, bp.connect.POST_IDS,
+                                   bp.connect.PRE2POST, bp.connect.POST_IDS)
     print()
-    print('weight_mat', conn.weight_mat)
-    print('conn_mat', conn.conn_mat)
+    print('conn_mat', mat)
 
 
 def test_ScaleFreeBADual():
   conn = bp.connect.ScaleFreeBADual(m1=2, m2=3, p=0.4)
   for size in [100, (10, 20), (2, 10, 20)]:
     conn(pre_size=size, post_size=size)
-    conn.require(bp.connect.CONN_MAT,
-                 bp.connect.PRE_IDS, bp.connect.POST_IDS,
-                 bp.connect.PRE2POST, bp.connect.POST_IDS)
+    mat, _, _, _, _ = conn.require(bp.connect.CONN_MAT,
+                                   bp.connect.PRE_IDS, bp.connect.POST_IDS,
+                                   bp.connect.PRE2POST, bp.connect.POST_IDS)
   print()
-  print('weight_mat', conn.weight_mat)
-  print('conn_mat', conn.conn_mat)
+  print('conn_mat', mat)
 
 
 def test_PowerLaw():
   conn = bp.connect.PowerLaw(m=3, p=0.4)
   for size in [100, (10, 20), (2, 10, 20)]:
     conn(pre_size=size, post_size=size)
-    conn.require(bp.connect.CONN_MAT,
-                 bp.connect.PRE_IDS, bp.connect.POST_IDS,
-                 bp.connect.PRE2POST, bp.connect.POST_IDS)
+    mat, _, _, _, _ = conn.require(bp.connect.CONN_MAT,
+                                   bp.connect.PRE_IDS, bp.connect.POST_IDS,
+                                   bp.connect.PRE2POST, bp.connect.POST_IDS)
     print()
-    print('weight_mat', conn.weight_mat)
-    print('conn_mat', conn.conn_mat)
+    print('conn_mat', mat)

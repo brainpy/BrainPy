@@ -65,6 +65,7 @@ class IJConn(TwoEndConnector):
     if max_post >= self.post_num:
       raise ConnectorError(f'post_num ({self.post_num}) should be greater than '
                            f'the maximum id ({max_post}) of self.post_ids.')
+    return self
   
   def require(self, *structures):
     self.check(structures)
@@ -99,6 +100,7 @@ class SparseMatConn(TwoEndConnector):
       raise ConnectorError(f'(pre_size, post_size) is inconsistent with the shape of the sparse matrix.')
 
     super(SparseMatConn, self).__call__(pre_size, post_size)
+    return self
 
   def require(self, *structures):
     self.check(structures)
