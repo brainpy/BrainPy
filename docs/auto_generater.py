@@ -360,11 +360,14 @@ def generate_tools_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  module_and_name = [('ast2code', 'AST-to-Code'),
-                     ('codes', 'Code Tools'),
-                     ('dicts', 'New Dict'),
-                     ('namechecking', 'Name Checking'),
-                     ('others', 'Other Tools'), ]
+  module_and_name = [
+    ('ast2code', 'AST-to-Code'),
+    ('codes', 'Code Tools'),
+    ('dicts', 'Dict Tools'),
+    ('namechecking', 'Name Tools'),
+    ('numba_tools', 'Numba Tools'),
+    ('others', 'Other Tools'),
+  ]
   write_submodules(module_name='brainpy.tools',
                    filename=os.path.join(path, 'tools.rst'),
                    submodule_names=[k[0] for k in module_and_name],
