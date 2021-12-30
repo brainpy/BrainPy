@@ -4,7 +4,7 @@ import numpy as np
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray, Variable
 from brainpy.tools import copy_doc
 
 __all__ = [
@@ -71,7 +71,8 @@ __all__ = [
   'float64', 'complex64', 'complex128',
 
   # others
-  'take_along_axis', 'clip_by_norm', 'device_array',
+  'take_along_axis', 'clip_by_norm',
+  'as_device_array', 'as_variable', 'as_jaxarray',
 ]
 
 _min = min
@@ -93,7 +94,7 @@ def clip_by_norm(t, clip_norm, axis=None):
   return tree_map(f, t)
 
 
-def device_array(tensor):
+def as_device_array(tensor):
   if isinstance(tensor, JaxArray):
     return tensor.value
   if isinstance(tensor, jnp.ndarray):
@@ -101,6 +102,14 @@ def device_array(tensor):
   if isinstance(tensor, numpy.ndarray):
     return jnp.asarray(tensor)
   raise ValueError
+
+
+def as_variable(tensor):
+  return Variable(asarray(tensor))
+
+
+def as_jaxarray(tensor):
+  return asarray(tensor)
 
 
 # math funcs
@@ -957,7 +966,7 @@ def sort(x, axis=-1, kind='quicksort', order=None):
   return JaxArray(jnp.sort(x, axis=axis, kind=kind, order=order))
 
 
-def argsort(x, axis=-1, kind='quicksort', order=None):
+def argsort(x, axis=-1, kind='stable', order=None):
   if isinstance(x, JaxArray): x = x.value
   return JaxArray(jnp.argsort(x, axis=axis, kind=kind, order=order))
 
