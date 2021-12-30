@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'BrainArea'

@@ -26,7 +26,7 @@ from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.base.function import Function
 from brainpy.integrators.base import Integrator
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects import DynamicalSystem
 
 logger = logging.getLogger('brainpy.math.numpy.ast2numba')
 

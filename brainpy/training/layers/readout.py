@@ -2,7 +2,7 @@
 
 
 from brainpy import math
-from brainpy.simulation.brainobjects.neuron import NeuGroup
+from brainpy.building.brainobjects import NeuGroup
 from brainpy.training.initialize import Initializer, XavierNormal, Uniform, ZeroInit
 
 __all__ = [

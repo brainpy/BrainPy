@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import time
 from collections import Iterable
-from pprint import pprint
 
-from brainpy import math, tools
+from brainpy import math
 from brainpy.errors import RunningError
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects import DynamicalSystem
 from brainpy.simulation.monitor import Monitor
 
 __all__ = [

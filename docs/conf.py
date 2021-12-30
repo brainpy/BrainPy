@@ -21,6 +21,7 @@ from docs import auto_generater
 auto_generater.generate_base_docs('apis/auto/')
 auto_generater.generate_math_docs('apis/auto/math/')
 auto_generater.generate_integrators_doc('apis/auto/integrators/')
+auto_generater.generate_building_docs('apis/auto/building/')
 auto_generater.generate_simulation_docs('apis/auto/simulation/')
 auto_generater.generate_training_docs('apis/auto/training/')
 auto_generater.generate_analysis_docs('apis/auto/analysis/')

@@ -4,7 +4,7 @@
 import brainpy.math as bm
 from brainpy import errors
 from brainpy.integrators.ode.base import ODEIntegrator
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects import DynamicalSystem
 from brainpy.simulation.runner import StructRunner
 
 __all__ = [

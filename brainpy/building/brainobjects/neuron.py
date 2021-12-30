@@ -2,7 +2,7 @@
 
 from brainpy.errors import ModelBuildError
 from brainpy.simulation import utils
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects.base import DynamicalSystem
 
 __all__ = [
   'NeuGroup',
@@ -22,7 +22,6 @@ class NeuGroup(DynamicalSystem):
     a 3-dimensional neuron group.
   - ``num``: the flattened number of neurons in the group. For example, `size=(10, )` => \
     `num=10`, `size=(10, 10)` => `num=100`, `size=(10, 15, 4)` => `num=600`.
-  - ``shape``: the variable shape with `(num, num_batch)`.
 
   Parameters
   ----------

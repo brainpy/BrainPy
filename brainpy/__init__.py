@@ -25,18 +25,16 @@ from .integrators.sde import set_default_sdeint
 from .integrators.sde import get_default_sdeint
 from .integrators.joint_eq import JointEq
 
+# "building" module
+from .building.brainobjects import *
+from .building import inputs, models, brainobjects
 
 # "simulation" module
 from . import simulation
-from .simulation.brainobjects import *
 from .simulation.monitor import *
 from .simulation.runner import *
-from .simulation import brainobjects
-from .simulation import models
-from .simulation import connect
+from .simulation import measure, connect
 conn = connect
-from .simulation import inputs
-from .simulation import measure
 
 # "training" module
 from . import training

@@ -10,6 +10,7 @@ except ImportError:
 
 from brainpy import errors
 from brainpy.math.jaxarray import JaxArray
+from brainpy.math.numpy_ops import as_device_array
 
 __all__ = [
   'make_loop',
@@ -232,7 +233,7 @@ def make_while(cond_fun, body_fun, dyn_vars):
   def _cond_fun(op):
     dyn_values, static_values = op
     for v, d in zip(dyn_vars, dyn_values): v.value = d
-    return cond_fun(static_values)
+    return as_device_array(cond_fun(static_values))
 
   def call(x=None):
     dyn_init = [v.value for v in dyn_vars]

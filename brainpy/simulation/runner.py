@@ -11,7 +11,7 @@ import numpy as np
 from brainpy import math, tools
 from brainpy.errors import RunningError, MonitorError
 from brainpy.simulation import utils
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects import DynamicalSystem
 from brainpy.simulation.monitor import Monitor
 
 logger = logging.getLogger('brainpy.simulation.runner')

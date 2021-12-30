@@ -165,7 +165,7 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
   func : Any
     A wrapped version of Base object or function, set up for just-in-time compilation.
   """
-  from brainpy.simulation.brainobjects.base import DynamicalSystem
+  from brainpy.building.brainobjects import DynamicalSystem
 
   if isinstance(func, DynamicalSystem):
     if len(func.steps):  # DynamicalSystem has step functions

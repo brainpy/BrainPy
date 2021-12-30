@@ -3,7 +3,7 @@
 
 import numpy as np
 import brainpy.math as bm
-from brainpy.simulation.brainobjects.delays import ConstantDelay
+from brainpy.building.brainobjects.delays import ConstantDelay
 
 
 def test_constant_delay_uniform_no_batch1():

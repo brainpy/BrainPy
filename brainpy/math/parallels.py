@@ -120,7 +120,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
     with extra array axes at positions indicated by ``out_axes``.
 
   """
-  from brainpy.simulation.brainobjects.base import DynamicalSystem
+  from brainpy.building.brainobjects import DynamicalSystem
 
   if isinstance(func, DynamicalSystem):
     if len(func.steps):  # DynamicalSystem has step functions
@@ -345,7 +345,7 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
 
 
   """
-  from brainpy.simulation.brainobjects.base import DynamicalSystem
+  from brainpy.building.brainobjects import DynamicalSystem
 
   if isinstance(func, DynamicalSystem):
     if len(func.steps):  # DynamicalSystem has step functions

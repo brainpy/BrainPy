@@ -290,17 +290,17 @@ def generate_math_docs(path):
                header='JIT for NumPy')
 
 
-def generate_simulation_docs(path):
+def generate_building_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
   # submodules in 'simulation' package
-  write_module(module_name='brainpy.simulation.brainobjects',
+  write_module(module_name='brainpy.building.brainobjects',
                filename=os.path.join(path, 'brainobjects.rst'),
                header='Brain Objects')
   module_and_name = [('neurons', 'Neuron Models'),
                      ('synapses', 'Synapse Models'), ]
-  write_submodules(module_name='brainpy.simulation.models',
+  write_submodules(module_name='brainpy.building.models',
                    filename=os.path.join(path, 'models.rst'),
                    header='Brain Models',
                    submodule_names=[a[0] for a in module_and_name],
@@ -309,16 +309,23 @@ def generate_simulation_docs(path):
                      ('custom_conn', 'Custom Connections'),
                      ('random_conn', 'Random Connections'),
                      ('regular_conn', 'Regular Connections'), ]
-  write_submodules(module_name='brainpy.simulation.connect',
+  write_submodules(module_name='brainpy.building.connect',
                    filename=os.path.join(path, 'connect.rst'),
                    header='Synaptic Connectivity',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
   # py-files in 'simulation' package
-  write_module(module_name='brainpy.simulation.inputs',
+  write_module(module_name='brainpy.building.inputs',
                filename=os.path.join(path, 'inputs.rst'),
                header='Current Inputs')
+
+
+def generate_simulation_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  # py-files in 'simulation' package
   write_module(module_name='brainpy.simulation.measure',
                filename=os.path.join(path, 'measure.rst'),
                header='Measurements')

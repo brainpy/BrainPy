@@ -2,8 +2,8 @@
 
 import brainpy.math as bm
 from brainpy.integrators.ode import odeint
-from brainpy.simulation.brainobjects import TwoEndConn
-from brainpy.simulation.brainobjects.delays import ConstantDelay
+from brainpy.building.brainobjects import TwoEndConn
+from brainpy.building.brainobjects.delays import ConstantDelay
 
 __all__ = [
   'DeltaSynapse',

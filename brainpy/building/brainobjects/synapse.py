@@ -2,8 +2,8 @@
 
 from brainpy import math
 from brainpy.errors import ModelBuildError
-from brainpy.simulation.brainobjects.base import DynamicalSystem
-from brainpy.simulation.brainobjects.neuron import NeuGroup
+from brainpy.building.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects.neuron import NeuGroup
 from brainpy.simulation.connect import TwoEndConnector, MatConn, IJConn
 
 __all__ = [

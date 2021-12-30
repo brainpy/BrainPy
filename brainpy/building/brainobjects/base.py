@@ -137,7 +137,7 @@ class DynamicalSystem(Base):
         An instance of ConstantDelay.
     """
     global ConstantDelay
-    if ConstantDelay is None: from brainpy.simulation.brainobjects.delays import ConstantDelay
+    if ConstantDelay is None: from brainpy.building.brainobjects.delays import ConstantDelay
 
     if not hasattr(self, 'steps'):
       raise ModelBuildError('Please initialize the super class first before '

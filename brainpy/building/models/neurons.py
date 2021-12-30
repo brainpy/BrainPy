@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
 import brainpy.math as bm
 from brainpy.errors import ModelBuildError
 from brainpy.integrators.ode import odeint
-from brainpy.simulation.brainobjects import NeuGroup
+from brainpy.building.brainobjects import NeuGroup
 
 __all__ = [
   'LIF',

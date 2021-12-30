@@ -8,7 +8,7 @@ import numpy as onp
 import brainpy.math as bm
 from brainpy import errors
 from brainpy.base.collector import Collector
-from brainpy.simulation.brainobjects.base import DynamicalSystem
+from brainpy.building.brainobjects import DynamicalSystem
 
 __all__ = [
   'Module',
