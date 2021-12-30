@@ -379,34 +379,42 @@ class SpikeTimeInput(NeuGroup):
       The neuron indices at each time point to emit spikes.
   times : list, np.ndarray
       The time points which generate the spikes.
-  steps : tuple of str, tuple of function, dict of (str, function), optional
-      The callable function, or a list of callable functions.
   name : str, optional
       The name of the dynamic system.
   """
 
-  def __init__(self, size, times, indices, need_sort=True, **kwargs):
-    super(SpikeTimeInput, self).__init__(size=size, **kwargs)
+  def __init__(self, size, times, indices, need_sort=True, name=None):
+    super(SpikeTimeInput, self).__init__(size=size, name=name)
 
+    # parameters
     if len(indices) != len(times):
       raise ModelBuildError(f'The length of "indices" and "times" must be the same. '
                             f'However, we got {len(indices)} != {len(times)}.')
+    self.num_times = len(times)
 
     # data about times and indices
-    self.idx = 0
-    self.times = bm.asarray(times, dtype=bm.float_)
-    self.indices = np.asarray(indices, dtype=bm.int_)
-    self.num_times = len(times)
+    self.i = bm.Variable(bm.zeros(1, dtype=bm.int_))
+    self.times = bm.Variable(bm.asarray(times, dtype=bm.float_))
+    self.indices = bm.Variable(bm.asarray(indices, dtype=bm.int_))
+    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     if need_sort:
-      sort_idx = np.argsort(times)
-      self.indices = self.indices[sort_idx]
-    self.spike = bm.zeros(self.num, dtype=bool)
+      sort_idx = bm.argsort(times)
+      self.indices.value = self.indices[sort_idx]
+      self.times.value = self.times[sort_idx]
+
+    # functions
+    def cond_fun(t):
+      return bm.logical_and(self.i[0] < self.num_times, t >= self.times[self.i[0]])
+
+    def body_fun(t):
+      self.spike[self.indices[self.i[0]]] = True
+      self.i[0] += 1
+
+    self._run = bm.make_while(cond_fun, body_fun, dyn_vars=self.vars())
 
   def update(self, _t, _i, **kwargs):
     self.spike[:] = False
-    while self.idx < self.num_times and _t >= self.times[self.idx]:
-      self.spike[self.indices[self.idx]] = True
-      self.idx += 1
+    self._run(_t)
 
 
 class PoissonInput(NeuGroup):
