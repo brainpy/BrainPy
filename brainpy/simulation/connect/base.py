@@ -29,10 +29,6 @@ __all__ = [
 
   # base class
   'Connector', 'TwoEndConnector', 'OneEndConnector',
-
-  # formatter functions
-  'pre2post', 'post2pre',
-  'pre2syn', 'post2syn',
 ]
 
 CONN_MAT = 'conn_mat'
@@ -101,37 +97,50 @@ def set_default_dtype(mat_dtype=None, idx_dtype=None):
 
 
 class Connector(abc.ABC):
-  """Base Synaptical Connector Class."""
-
-  def __init__(self, ):
-    self._data = None
-    self._pre_ids = None
-    self._post_ids = None
-    self._conn_mat = None
-    self._weight_mat = None
-    self._pre2post = None
-    self._post2pre = None
-    self._pre2syn = None
-    self._post2syn = None
+  """Base Synaptic Connector Class."""
+  pass
 
 
 class TwoEndConnector(Connector):
-  """Synaptical connector to build synapse connections between two neuron groups."""
+  """Synaptic connector to build synapse connections between two neuron groups."""
+  def __init__(self, ):
+    self.pre_size = None
+    self.post_size = None
+    self.pre_num = None
+    self.post_num = None
+    self.structures = None
 
-  @abc.abstractmethod
+  # @abc.abstractmethod
+  # def __call__(self, pre_size, post_size):
+  #   raise NotImplementedError
+
   def __call__(self, pre_size, post_size):
-    raise NotImplementedError
+    """Create the concrete connections between two end objects.
 
-  @property
-  def data(self):
-    return self._data
+    Parameters
+    ----------
+    pre_size : int, tuple of int, list of int
+        The size of the pre-synaptic group.
+    post_size : int, tuple of int, list of int
+        The size of the post-synaptic group.
 
-  @data.setter
-  def data(self, data):
-    if not isinstance(data, csr_matrix):
-      raise ConnectorError(f'{Connector.__name__}.data only receive instance '
-                           f'of {csr_matrix}, but we got {type(data)}.')
-    self._data = data
+    Returns
+    -------
+    conn : TwoEndConnector
+        Return the self.
+    """
+    if isinstance(pre_size, int):
+      pre_size = (pre_size,)
+    else:
+      pre_size = tuple(pre_size)
+    if isinstance(post_size, int):
+      post_size = (post_size,)
+    else:
+      post_size = tuple(post_size)
+    self.pre_size, self.post_size = pre_size, post_size
+    self.pre_num = tools.size2num(self.pre_size)
+    self.post_num = tools.size2num(self.post_size)
+    return self
 
   def _reset_conn(self, pre_size, post_size):
     """
@@ -147,160 +156,69 @@ class TwoEndConnector(Connector):
     -------
 
     """
-    self._data = None
-    self._pre_ids = None
-    self._post_ids = None
-    self._conn_mat = None
-    self._weight_mat = None
-    self._pre2post = None
-    self._post2pre = None
-    self._pre2syn = None
-    self._post2syn = None
+    self.__init__()
 
-    if isinstance(pre_size, int):
-      pre_size = (pre_size,)
-    pre_size = tuple(pre_size)
-    if isinstance(post_size, int):
-      post_size = (post_size,)
-    post_size = tuple(post_size)
-    self.pre_size, self.post_size = pre_size, post_size
-
-    self.pre_num = tools.size2num(self.pre_size)
-    self.post_num = tools.size2num(self.post_size)
+    self.__call__(pre_size, post_size)
 
   def check(self, structures: Union[Tuple, List, str]):
-    # get synaptic structures
+    if isinstance(structures, str):
+      structures = [structures]
+
+    if structures is None or len(structures) == 0:
+      raise ConnectorError('No synaptic structure is received.')
+
+    # check synaptic structures
     for n in structures:
       if n not in SUPPORTED_SYN_STRUCTURE:
         raise ConnectorError(f'Unknown synapse structure "{n}". Only {SUPPORTED_SYN_STRUCTURE} is supported.')
 
-    # provide what synaptic structure?
-    if len(structures) == 0:
-      raise ConnectorError('Do not return any synaptic structures.')
-
-    # check sparse connection matrix
-    if self._data is None:
-      raise ConnectorError(f'Please call "__call__" first to obtain the connection data.')
-    if not isinstance(self._data, csr_matrix):
-      raise ConnectorError(f'"{Connector.__name__}._data" must be an instance of {csr_matrix}, '
-                           f'while we got {type(self._data)}.')
-
-  @property
-  def weights(self):
-      return self._weights # JAxArray
-
-  @weights.setter
-  def weights(self, w):
-    if not isinstance(w, math.jaxarray.JaxArray):
-      raise ConnectorError(f'{Connector.__name__}.weights only receive instance '
-                           f'of {math.jaxarray.JaxArray}, but we got {type(w)}.')
-    self._data.data = w
-
-  @property
-  def weight_mat(self):
-    if self._weight_mat is None:
-      return math.asarray(self._data.todense(), dtype=WEIGHT_DTYPE)
-    return self._weight_mat
-
-  @property
-  def conn_mat(self):
-    if self._conn_mat is None:
-      return math.asarray(self._data.todense(), dtype=MAT_DTYPE)
-    return self._conn_mat
-
-  @property
-  def pre_ids(self):
-    if self._pre_ids is None:
-      return math.asarray(np.repeat(np.arange(self.pre_num), np.diff(self._data.indptr)))
-    return self._pre_ids
-
-  @property
-  def post_ids(self):
-    if self._post_ids is None:
-      return math.asarray(self._data.indices, dtype=IDX_DTYPE)
-    return self._post_ids
-
-  @property
-  def pre2post(self):
-    if self._pre2post is None:
-      raise ConnectorError('Please require pre2post first.')
-    return self._pre2post
-
-  @property
-  def post2pre(self):
-    if self._post2pre is None:
-      raise ConnectorError('Please require post2pre first.')
-    return self._post2pre
-
-  @property
-  def pre2syn(self):
-    if self._pre2syn is None:
-      raise ConnectorError('Please require pre2syn first.')
-    return self._pre2syn
-
-  @property
-  def post2syn(self):
-    if self._post2syn is None:
-      raise ConnectorError('Please require post2syn first.')
-    return self._post2syn
-
-  def require(self, *structures):
-    self.check(structures)
-    if isinstance(structures, str): structures = (structures,)
+    self.structures = list(structures)
+  
+  def returns(self, ind, indptr):
+    """
+    calculate the desired properties
+    """
+    ind = math.asarray(ind)
+    indptr = math.asarray(indptr)
 
     all_data = dict()
-    for n in structures:
-      if n == CONN_MAT:
-        self._conn_mat = all_data[CONN_MAT] = math.asarray(self._data.todense(), dtype=MAT_DTYPE)
-      elif n == WEIGHT_MAT:
-        self._weight_mat = all_data[WEIGHT_MAT] = math.asarray(self._data.todense(), dtype=WEIGHT_DTYPE)
-      elif n == PRE_IDS:
-        pre_ids = np.repeat(np.arange(self.pre_num), np.diff(self._data.indptr))
-        self._pre_ids = all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
-      elif n == POST_IDS:
-        self._post_ids = all_data[POST_IDS] = math.asarray(self._data.indices, dtype=IDX_DTYPE)
-      elif n == PRE2POST:
-        self._pre2post = all_data[PRE2POST] = pre2post(self._data)
-      elif n == PRE2SYN:
-        self._pre2syn = all_data[PRE2SYN] = pre2syn(self._data)
-      elif n == POST2PRE:
-        self._post2pre = all_data[POST2PRE] = post2pre(self._data)
-      elif n == POST2SYN:
-        self._post2syn = all_data[POST2SYN] = post2syn(self._data)
-      else:
-        raise ConnectorError(f'Unknown synaptic structures "{n}", only support {SUPPORTED_SYN_STRUCTURE}.')
 
-    # data of the needed structures
-    if len(structures) == 1:
-      return all_data[structures[0]]
-    else:
-      return tuple([all_data[n] for n in structures])
+    if CONN_MAT in self.structures:
+      all_data[CONN_MAT] = todense(ind, indptr)
+
+    if PRE_IDS in self.structures:
+      all_data[PRE_IDS] = math.repeat(math.arange(indptr.size - 1), math.diff(indptr))
+
+    if POST_IDS in self.structures:
+      all_data[POST_IDS] = ind
+
+    if PRE2POST in self.structures:
+      all_data[PRE2POST] = ind, indptr
+
+    if POST2PRE in self.structures:
+      indc, indptrc = tocsc(ind, indptr)
+      all_data[POST2PRE] = indc, indptrc
+
+    if PRE2SYN in self.structures:
+      syn_seq = math.arange(ind.size)
+      all_data[PRE2SYN] = syn_seq, indptr
+
+    if POST2SYN in self.structures:
+      syn_seq = math.arange(ind.size)
+      _, indptrc, syn_seqc = tocsc(ind, indptr, syn_seq)
+      all_data[POST2SYN] = syn_seqc, indptrc
+  
+  def require(self, *structures):
+    raise NotImplementedError
 
   def requires(self, *structures):
     return self.require(*structures)
 
-  def set_weights(self, x):
-    """used for weight initialization."""
-    pass
-    # if isinstance(x, (float, int)):
-    #   self.weights = math.ones(self._data.shape) * x
-    # elif isinstance(x, (np.ndarray, math.jaxarray.JaxArray, jnp.ndarray)):
-    #   if len(x) != len(self.weights):
-    #     raise ConnectorError(f'The length of the given weights {len(x)} does not match '
-    #                          f'the length of connections {len(self.weights)}.')
-    #   self.weights = math.asarray(x)
-    # elif callable(x):
-    #   try:
-    #     w_mat = x((self.pre_num, self.post_num))
-    #
-    #   except ConnectorError:
-    #     print('The input function is not valid for weight setting.')
-    # else:
-    #   raise ConnectorError(f'Unknown input type for weight setting.')
-
 
 class OneEndConnector(TwoEndConnector):
   """Synaptic connector to build synapse connections within a population of neurons."""
+  def __init__(self):
+    super(OneEndConnector, self).__init__()
 
   def __call__(self, pre_size, post_size=None):
     raise NotImplementedError
@@ -333,73 +251,29 @@ class OneEndConnector(TwoEndConnector):
     return self
 
 
-def pre2post(data: csr_matrix):
-  """Get pre2post connections from `i` and `j` indexes.
+def tocsc(ind, indptr, data=None):
+  pre_ids = math.repeat(math.arange(indptr.size - 1), math.diff(indptr))
 
-  Parameters
-  ----------
-  data: class, csr_matrix
-        The instance of class csr_matrix
+  sort_idx = math.argsort(ind, kind='mergesort') # to maintain the original order of the elements with the same value
+  ind_new = pre_ids[sort_idx]
 
-  Returns
-  -------
-  conn : Tuple
-        A tuple of two vectors: indices and indptr
-  """
-  return (math.asarray(data.indices, dtype=IDX_DTYPE),
-          math.asarray(data.indptr, dtype=IDX_DTYPE))
+  post_idx = math.arange(math.max(ind) + 1)
+  post_count = math.zeros_like(post_idx)
+  for i in ind:
+    post_count[i] += 1
 
+  indptr_new = math.concatenate(([0], post_count)).cumsum()
 
-def post2pre(data: csr_matrix):
-  """Get post2pre connections from `i` and `j` indexes.
+  if data is None:
+    return ind_new, indptr_new
 
-  Parameters
-  ----------
-  data: class, csr_matrix
-        The instance of class csr_matrix
-
-  Returns
-  -------
-  conn : Tuple
-        A tuple of two vectors: indices and indptr
-  """
-  return (math.asarray(data.tocsc().indices, dtype=IDX_DTYPE),
-          math.asarray(data.tocsc().indptr, dtype=IDX_DTYPE))
+  data_new = data[sort_idx]
+  return ind_new, indptr_new, data_new
 
 
-def pre2syn(data: csr_matrix):
-  """Get pre2syn connections from `i` and `j` indexes.
+def todense(ind, indptr):
+  d = math.zeros((indptr.size - 1, math.max(ind) + 1), dtype=math.bool_)  # num_pre, num_post
+  pre_ids = math.repeat(math.arange(indptr.size - 1), math.diff(indptr))
+  d[pre_ids, ind] = True
 
-  Parameters
-  ----------
-  data: class, csr_matrix
-        The instance of class csr_matrix
-
-  Returns
-  -------
-  conn : Tuple
-        A tuple of two vectors: indices and indptr
-  """
-  syn_seq = np.arange(data.indices.shape[0])
-  syn_csr_mat = csr_matrix((syn_seq, data.indices, data.indptr))
-  return (math.asarray(syn_csr_mat.data, dtype=IDX_DTYPE),
-          math.asarray(syn_csr_mat.indptr, dtype=IDX_DTYPE))
-
-
-def post2syn(data: csr_matrix):
-  """Get post2syn connections from `i` and `j` indexes.
-
-  Parameters
-  ----------
-  data: class, csr_matrix
-        The instance of class csr_matrix
-
-  Returns
-  -------
-  conn : Tuple
-        A tuple of two vectors: indices and indptr
-  """
-  syn_seq = np.arange(data.indices.shape[0])
-  syn_csr_mat = csr_matrix((syn_seq, data.indices, data.indptr))
-  return (math.asarray(syn_csr_mat.tocsc().data, dtype=IDX_DTYPE),
-          math.asarray(syn_csr_mat.tocsc().indptr, dtype=IDX_DTYPE))
+  return d
