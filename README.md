@@ -1,5 +1,8 @@
+<p align="center">
+  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="./images/logo3.png"  >
+</p> 
 
-![Logo](docs/_static/logo.png)
+
 
 
 <p align="center">
