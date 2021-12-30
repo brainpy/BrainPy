@@ -321,7 +321,7 @@ class GaussianProb(OneEndConnector):
 @tools.numba_jit
 def _smallworld_rewire(prob, i, all_j, include_self):
   if np.random.random(1) < prob:
-    non_connected = np.where(all_j is False)[0]
+    non_connected = np.where(all_j == False)[0]
     if len(non_connected) <= 1:
       return -1
     # Enforce no self-loops or multiple edges

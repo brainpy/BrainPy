@@ -79,7 +79,7 @@ def test_random_fix_post3():
 
 
 def test_gaussian_prob1():
-  conn = bp.connect.GaussianProb(sigma=1.)(pre_size=100)
+  conn = bp.connect.GaussianProb(sigma=1., include_self=False)(pre_size=100)
   mat = conn.require(bp.connect.CONN_MAT)
 
   print()
@@ -110,7 +110,6 @@ def test_gaussian_prob4():
 
 
 def test_SmallWorld1():
-  with pytest.raises(NotImplementedError):
     conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5)
     conn(pre_size=20, post_size=20)
 
