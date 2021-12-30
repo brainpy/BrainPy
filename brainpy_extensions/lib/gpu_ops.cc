@@ -4,7 +4,7 @@
 // of the problem size that will be passed to the op. The actually implementation of the
 // custom call can be found in kernels.cc.cu.
 
-#include "event_sum_gpu_kernels.h"
+#include "event_sum_gpu.h"
 #include "pybind11_kernel_helpers.h"
 
 using namespace brainpy_lib;
@@ -26,8 +26,10 @@ namespace {
 
     PYBIND11_MODULE(gpu_ops, m) {
       m.def("registrations", &Registrations);
-      m.def("build_gpu_descriptor", [](std::int64_t size) {
-        return PackDescriptor(SizeDescriptor{size});
-        });
+      m.def("build_gpu_descriptor",
+        [](std::int32_t pre_size, std::int32_t post_size) {
+         return PackDescriptor(SizeDescriptor{pre_size, post_size});
+        }
+      );
     }
 }  // namespace

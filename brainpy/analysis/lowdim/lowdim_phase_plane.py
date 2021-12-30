@@ -406,7 +406,7 @@ class PhasePlane2D(Num2DAnalyzer):
         # legend
         legend = f'$traj_{i}$: '
         for j, key in enumerate(self.target_var_names):
-          legend += f'{key}={initial[j]}, '
+          legend += f'{key}={round(float(initial[j]), 4)}, '
         legend = legend[:-2]
 
         # visualization

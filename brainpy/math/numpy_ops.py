@@ -97,11 +97,12 @@ def clip_by_norm(t, clip_norm, axis=None):
 def as_device_array(tensor):
   if isinstance(tensor, JaxArray):
     return tensor.value
-  if isinstance(tensor, jnp.ndarray):
+  elif isinstance(tensor, jnp.ndarray):
     return tensor
-  if isinstance(tensor, numpy.ndarray):
+  elif isinstance(tensor, numpy.ndarray):
     return jnp.asarray(tensor)
-  raise ValueError
+  else:
+    return jnp.asarray(tensor)
 
 
 def as_variable(tensor):
