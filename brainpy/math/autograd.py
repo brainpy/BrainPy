@@ -602,7 +602,7 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
     else:
       y, vjp_fn = _vjp(f_partial, *dyn_args, has_aux=False)
     leaves, tree = tree_flatten(y)
-    tangents = tree_unflatten(tree, [jnp.ones(l.shape) for l in leaves])
+    tangents = tree_unflatten(tree, [jnp.ones_like(l) for l in leaves])
     grads = vjp_fn(tangents)
     if isinstance(argnums, int):
       grads = grads[0]
