@@ -27,14 +27,15 @@ from .integrators.joint_eq import JointEq
 
 # "building" module
 from .building.brainobjects import *
-from .building import inputs, models, brainobjects
+from .building import inputs, models, brainobjects, connect
+conn = connect
 
 # "simulation" module
 from . import simulation
 from .simulation.monitor import *
 from .simulation.runner import *
-from .simulation import measure, connect
-conn = connect
+from .simulation import measure
+
 
 # "training" module
 from . import training

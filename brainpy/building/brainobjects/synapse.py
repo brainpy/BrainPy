@@ -4,7 +4,7 @@ from brainpy import math
 from brainpy.errors import ModelBuildError
 from brainpy.building.brainobjects.base import DynamicalSystem
 from brainpy.building.brainobjects.neuron import NeuGroup
-from brainpy.simulation.connect import TwoEndConnector, MatConn, IJConn
+from brainpy.building.connect import TwoEndConnector, MatConn, IJConn
 
 __all__ = [
   'TwoEndConn',
