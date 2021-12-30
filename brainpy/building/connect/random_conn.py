@@ -2,8 +2,9 @@
 
 import numpy as np
 
-from brainpy import tools, errors
-from scipy.sparse import csr_matrix
+from brainpy import tools
+from brainpy.errors import ConnectorError
+
 from .base import *
 
 __all__ = [
@@ -17,6 +18,15 @@ __all__ = [
   'ScaleFreeBADual',
   'PowerLaw',
 ]
+
+
+# @tools.numba_jit
+def _random_prob_conn(rng, pre_i, num_post, prob, include_self):
+  p = rng.random(num_post) <= prob
+  if (not include_self) and pre_i < num_post:
+    p[pre_i] = False
+  conn_j = np.asarray(np.where(p)[0], dtype=IDX_DTYPE)
+  return conn_j
 
 
 class FixedProb(TwoEndConnector):
@@ -40,17 +50,31 @@ class FixedProb(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
-    prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-    if not self.include_self:
-      np.fill_diagonal(prob_mat, 1.)
-    conn_mat = prob_mat <= self.prob
+    ind = []
+    count = np.zeros(self.pre_num, dtype=IDX_DTYPE)
 
-    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
+    for i in range(self.pre_num):
+      posts = _random_prob_conn(self.rng, pre_i=i, num_post=self.post_num,
+                                prob=self.prob, include_self=self.include_self)
+      ind.append(posts)
+      count[i] = len(posts)
 
-    return self
+    ind = np.concatenate(ind)
+    indptr = np.concatenate(([0], count)).cumsum()
+
+    return self.returns(ind, indptr)
+
+
+# @tools.numba_jit
+def _fixed_num_prob(rng, num_need, num_total, i=0, include_self=False):
+  prob = rng.random(num_total)
+  if not include_self and i <= num_total:
+    prob[i] = 1.
+  neu_idx = np.argsort(prob)[:num_need]
+  return np.asarray(neu_idx, dtype=IDX_DTYPE)
 
 
 class FixedPreNum(TwoEndConnector):
@@ -59,14 +83,12 @@ class FixedPreNum(TwoEndConnector):
   Parameters
   ----------
   num : float, int
-    The conn probability (if "num" is float) or the fixed number of
+    The connection probability (if "num" is float) or the fixed number of
     connectivity (if "num" is int).
   include_self : bool
     Whether create (i, i) conn ?
   seed : None, int
     Seed the random generator.
-  method : str
-    The method used to create the connection.
 
     - ``matrix``: This method will create a big matrix, then, the connectivity is constructed
       from this matrix :math:`(N_{pre}, N_{post})`. In a large network, this method will
@@ -80,39 +102,43 @@ class FixedPreNum(TwoEndConnector):
   def __init__(self, num, include_self=True, seed=None):
     super(FixedPreNum, self).__init__()
     if isinstance(num, int):
-      assert num >= 0, '"num" must be bigger than 0.'
+      assert num >= 0, '"num" must be a non-negative integer.'
     elif isinstance(num, float):
-      assert 0. <= num <= 1., '"num" must be in [0., 1.].'
+      assert 0. <= num <= 1., '"num" must be in [0., 1.).'
     else:
-      raise ValueError(f'Unknown type: {type(num)}')
+      raise ConnectorError(f'Unknown type: {type(num)}')
     self.num = num
     self.seed = seed
     self.include_self = include_self
     self.rng = np.random.RandomState(seed=seed)
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
     # check
     if isinstance(self.num, int):
-      assert 0 <= self.num <= self.pre_num, f'"num" must be less than "self.pre_num", ' \
+      assert 0 <= self.num <= self.pre_num, f'"num" must be smaller than "self.pre_num", ' \
                                             f'but got {self.num} > {self.pre_num}'
       prob = self.num / self.pre_num
       num = self.num
     else:
-      assert 0. <= self.num <= 1., f'"num" must be in [0., 1.], but got {self.num}'
+      assert 0. <= self.num <= 1., f'"num" must be in [0., 1.), but got {self.num}'
       prob = self.num
       num = int(self.pre_num * self.num)
 
-    prob_mat = self.rng.random(size=(self.pre_num, self.post_num))
-    if not self.include_self:
-      np.fill_diagonal(prob_mat, 1.)
+    pre_ids = []
+    for i in range(self.post_num):
+      pres = _fixed_num_prob(rng=self.rng, num_need=num, num_total=self.pre_num,
+                             i=i, include_self=self.include_self)
+      pre_ids.append(pres)
 
-    conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
+    pre_ids = np.concatenate(pre_ids)
+    pre_count = np.ones(self.post_num, dtype=IDX_DTYPE) * num
+    indptr_pre = np.concatenate(([0], pre_count)).cumsum()
 
-    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
+    ind, indptr = tocsc(pre_ids, indptr_pre, self.pre_num)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 class FixedPostNum(TwoEndConnector):
@@ -142,39 +168,41 @@ class FixedPostNum(TwoEndConnector):
   def __init__(self, num, include_self=True, seed=None):
     super(FixedPostNum, self).__init__()
     if isinstance(num, int):
-      assert num >= 0, '"num" must be bigger than 0.'
+      assert num >= 0, '"num" must be a non-negative integer.'
     elif isinstance(num, float):
-      assert 0. <= num <= 1., '"num" must be in [0., 1.].'
+      assert 0. <= num <= 1., '"num" must be in [0., 1.).'
     else:
-      raise ValueError(f'Unknown type: {type(num)}')
+      raise ConnectorError(f'Unknown type: {type(num)}')
     self.num = num
     self.seed = seed
     self.include_self = include_self
     self.rng = np.random.RandomState(seed=seed)
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
     # check
     if isinstance(self.num, int):
-      assert 0 <= self.num <= self.post_num, f'"num" must be less than "self.post_num", ' \
+      assert 0 <= self.num <= self.post_num, f'"num" must be smaller than "self.post_num", ' \
                                              f'but got {self.num} > {self.post_num}'
       prob = self.num / self.post_num
       num = self.num
     else:
-      assert 0. <= self.num <= 1., f'"num" must be in [0., 1.], but got {self.num}'
+      assert 0. <= self.num <= 1., f'"num" must be in [0., 1.), but got {self.num}'
       num = int(self.post_num * self.num)
       prob = self.num
 
-    prob_mat = self.rng.random(size=(self.post_num, self.pre_num))
-    if not self.include_self:
-      np.fill_diagonal(prob_mat, 1.)
-    conn_mat = prob_mat <= np.quantile(prob_mat, prob, axis=0)
-    conn_mat = np.transpose(conn_mat)
+    ind = []  # i.e. post_ids
+    for i in range(self.pre_num):
+      posts = _fixed_num_prob(rng=self.rng, num_need=num, num_total=self.post_num,
+                              i=i, include_self=self.include_self)
+      ind.append(posts)
 
-    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
+    ind = np.concatenate(ind)
+    count = np.ones(self.pre_num, dtype=IDX_DTYPE) * num
+    indptr = np.concatenate(([0], count)).cumsum()
 
-    return self
+    return self.returns(ind, indptr)
 
 
 class GaussianProb(OneEndConnector):
@@ -211,7 +239,7 @@ class GaussianProb(OneEndConnector):
       Whether normalize the connection probability .
   include_self : bool
       Whether create the conn at the same position.
-  seed : bool
+  seed : int
       The random seed.
   """
 
@@ -226,32 +254,32 @@ class GaussianProb(OneEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def __call__(self, pre_size, post_size=None):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
     # value range to encode
     if self.encoding_values is None:
       value_ranges = tuple([(0, s) for s in self.pre_size])
     elif isinstance(self.encoding_values, (tuple, list)):
       if len(self.encoding_values) == 0:
-        raise ValueError
+        raise ConnectorError(f'encoding_values has a length of 0.')
       elif isinstance(self.encoding_values[0], (int, float)):
         assert len(self.encoding_values) == 2
         assert self.encoding_values[0] < self.encoding_values[1]
         value_ranges = tuple([self.encoding_values for _ in self.pre_size])
       elif isinstance(self.encoding_values[0], (tuple, list)):
         if len(self.encoding_values) != len(self.pre_size):
-          raise ValueError(f'The network size has {len(self.pre_size)} dimensions, while '
-                           f'the encoded values provided only has {len(self.encoding_values)}-D. '
-                           f'Error in {str(self)}.')
+          raise ConnectorError(f'The network size has {len(self.pre_size)} dimensions, while '
+                               f'the encoded values provided only has {len(self.encoding_values)}-D. '
+                               f'Error in {str(self)}.')
         for v in self.encoding_values:
           assert isinstance(v[0], (int, float))
           assert len(v) == 2
         value_ranges = tuple(self.encoding_values)
       else:
-        raise ValueError(f'Unsupported encoding values: {self.encoding_values}')
+        raise ConnectorError(f'Unsupported encoding values: {self.encoding_values}')
     else:
-      raise ValueError(f'Unsupported encoding values: {self.encoding_values}')
+      raise ConnectorError(f'Unsupported encoding values: {self.encoding_values}')
 
     # values
     values = [np.linspace(vs[0], vs[1], n + 1)[:n] for vs, n in zip(value_ranges, self.pre_size)]
@@ -285,15 +313,15 @@ class GaussianProb(OneEndConnector):
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
 
-    self.data = csr_matrix(conn_mat, dtype=WEIGHT_DTYPE)
+    ind, indptr = tocsr(conn_mat)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 @tools.numba_jit
 def _smallworld_rewire(prob, i, all_j, include_self):
   if np.random.random(1) < prob:
-    non_connected = np.where(all_j == False)[0]
+    non_connected = np.where(all_j is False)[0]
     if len(non_connected) <= 1:
       return -1
     # Enforce no self-loops or multiple edges
@@ -344,20 +372,21 @@ class SmallWorld(TwoEndConnector):
     self.num_neighbor = num_neighbor
     self.include_self = include_self
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size, post_size)
+  def require(self, *structures):
+    self.check(structures)
 
     assert self.pre_size == self.post_size
+
     if isinstance(self.pre_size, int) or (isinstance(self.pre_size, (tuple, list)) and len(self.pre_size) == 1):
       num_node = self.pre_num
 
       if self.num_neighbor > num_node:
-        raise ValueError("num_neighbor > num_node, choose smaller num_neighbor or larger num_node")
+        raise ConnectorError("num_neighbor > num_node, choose smaller num_neighbor or larger num_node")
       # If k == n, the graph is complete not Watts-Strogatz
       if self.num_neighbor == num_node:
-        conn = np.ones((num_node, num_node), dtype=MAT_DTYPE)
+        conn = np.ones((num_node, num_node), dtype=CONN_DTYPE)
       else:
-        conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
+        conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
         nodes = np.array(list(range(num_node)))  # nodes are labeled 0 to n-1
         # connect each node to k/2 neighbors
         for j in range(1, self.num_neighbor // 2 + 1):
@@ -392,11 +421,11 @@ class SmallWorld(TwoEndConnector):
                 conn[w, u] = True
         # conn = np.asarray(conn, dtype=MAT_DTYPE)
     else:
-      raise NotImplementedError('Currently only support 1D ring connection.')
+      raise ConnectorError('Currently only support 1D ring connection.')
 
-    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
+    ind, indptr = tocsr(conn)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 def _random_subset(seq, m, rng):
@@ -431,7 +460,7 @@ class ScaleFreeBA(TwoEndConnector):
 
   Raises
   ------
-  ValueError
+  ConnectorError
       If `m` does not satisfy ``1 <= m < n``.
 
   References
@@ -447,17 +476,17 @@ class ScaleFreeBA(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size, post_size)
+  def require(self, *structures):
+    self.check(structures)
 
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m < 1 or self.m >= num_node:
-      raise ValueError(f"Barabási–Albert network must have m >= 1 and "
-                       f"m < n, while m = {self.m} and n = {num_node}")
+      raise ConnectorError(f"Barabási–Albert network must have m >= 1 and "
+                           f"m < n, while m = {self.m} and n = {num_node}")
 
     # Add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
+    conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
     # Target nodes for new edges
     targets = list(range(self.m))
     # List of existing nodes, with nodes repeated once for each adjacent edge
@@ -479,9 +508,9 @@ class ScaleFreeBA(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, self.m, self.rng))
       source += 1
 
-    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
+    ind, indptr = tocsr(conn)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 class ScaleFreeBADual(TwoEndConnector):
@@ -505,7 +534,7 @@ class ScaleFreeBADual(TwoEndConnector):
 
   Raises
   ------
-  ValueError
+  ConnectorError
       If `m1` and `m2` do not satisfy ``1 <= m1,m2 < n`` or `p` does not satisfy ``0 <= p <= 1``.
 
   References
@@ -522,22 +551,22 @@ class ScaleFreeBADual(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m1 < 1 or self.m1 >= num_node:
-      raise ValueError(f"Dual Barabási–Albert network must have m1 >= 1 and m1 < num_node, "
-                       f"while m1 = {self.m1} and num_node = {num_node}.")
+      raise ConnectorError(f"Dual Barabási–Albert network must have m1 >= 1 and m1 < num_node, "
+                           f"while m1 = {self.m1} and num_node = {num_node}.")
     if self.m2 < 1 or self.m2 >= num_node:
-      raise ValueError(f"Dual Barabási–Albert network must have m2 >= 1 and m2 < num_node, "
-                       f"while m2 = {self.m2} and num_node = {num_node}.")
+      raise ConnectorError(f"Dual Barabási–Albert network must have m2 >= 1 and m2 < num_node, "
+                           f"while m2 = {self.m2} and num_node = {num_node}.")
     if self.p < 0 or self.p > 1:
-      raise ValueError(f"Dual Barabási–Albert network must have 0 <= p <= 1, while p = {self.p}")
+      raise ConnectorError(f"Dual Barabási–Albert network must have 0 <= p <= 1, while p = {self.p}")
 
     # Add max(m1,m2) initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
+    conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
     # List of existing nodes, with nodes repeated once for each adjacent edge
     repeated_nodes = []
     # Start adding the remaining nodes.
@@ -563,9 +592,9 @@ class ScaleFreeBADual(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, m, self.rng))
       source += 1
 
-    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
+    ind, indptr = tocsr(conn)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 class PowerLaw(TwoEndConnector):
@@ -601,7 +630,7 @@ class PowerLaw(TwoEndConnector):
 
   Raises
   ------
-  ValueError
+  ConnectorError
       If :math:`m` does not satisfy :math:`1 <= m <= n` or :math:`p` does not
       satisfy :math:`0 <= p <= 1`.
 
@@ -617,20 +646,20 @@ class PowerLaw(TwoEndConnector):
     self.m = m
     self.p = p
     if self.p > 1 or self.p < 0:
-      raise ValueError(f"p must be in [0,1], while p={self.p}")
+      raise ConnectorError(f"p must be in [0,1], while p={self.p}")
     self.directed = directed
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m < 1 or num_node < self.m:
-      raise ValueError(f"Must have m>1 and m<n, while m={self.m} and n={num_node}")
+      raise ConnectorError(f"Must have m>1 and m<n, while m={self.m} and n={num_node}")
     # add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
+    conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
     repeated_nodes = list(range(self.m))  # list of existing nodes to sample from
     # with nodes repeated once for each adjacent edge
     source = self.m  # next node is m
@@ -665,6 +694,6 @@ class PowerLaw(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
 
-    self.data = csr_matrix(conn, dtype=WEIGHT_DTYPE)
+    ind, indptr = tocsr(conn)
 
-    return self
+    return self.returns(ind, indptr)

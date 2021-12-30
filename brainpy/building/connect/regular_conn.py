@@ -4,11 +4,12 @@ import logging
 
 import numpy as np
 
-from brainpy import errors, tools
-from scipy.sparse import csr_matrix
+from brainpy import tools, math
+from brainpy.errors import ConnectorError
+
 from .base import *
 
-logger = logging.getLogger('brainpy.simulation.connect')
+logger = logging.getLogger('brainpy.building.connect')
 
 __all__ = [
   'One2One', 'one2one',
@@ -23,20 +24,22 @@ class One2One(TwoEndConnector):
   """Connect two neuron groups one by one. This means
   The two neuron groups should have the same size.
   """
+  def __init__(self):
+    super(One2One, self).__init__()
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
-    if self.pre_num != self.post_num:
-      raise errors.ConnectorError(f'One2One connection must be defined in two groups with the '
-                                  f'same size, but we got {self.pre_num} != {self.post_num}.')
+    try:
+      assert self.pre_num == self.post_num
+    except AssertionError:
+      raise ConnectorError(f'One2One connection must be defined in two groups with the '
+                           f'same size, but {self.pre_num} != {self.post_num}.')
 
-    mat = np.zeros((self.pre_num, self.post_num))
-    np.fill_diagonal(mat, True)
+    ind = np.arange(self.pre_num)
+    indptr = np.arange(self.pre_num + 1)
 
-    self.data = csr_matrix(mat, dtype=WEIGHT_DTYPE)
-
-    return self
+    return self.returns(ind, indptr)
 
 
 one2one = One2One()
@@ -52,15 +55,16 @@ class All2All(TwoEndConnector):
     self.include_self = include_self
     super(All2All, self).__init__()
 
-  def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
-    mat = np.ones((self.pre_num, self.post_num))
-    if not self.include_self: np.fill_diagonal(mat, False)
+    mat = np.ones((self.pre_num, self.post_num), dtype=CONN_DTYPE)
+    if not self.include_self:
+      np.fill_diagonal(mat, False)
 
-    self.data = csr_matrix(mat, dtype=WEIGHT_DTYPE)
+    ind, indptr = tocsr(mat)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 all2all = All2All(include_self=True)
@@ -102,16 +106,16 @@ class GridFour(OneEndConnector):
     super(GridFour, self).__init__()
     self.include_self = include_self
 
-  def __call__(self, pre_size, post_size=None):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
+  def require(self, *structures):
+    self.check(structures)
 
-    assert self.pre_size == self.post_size
+    # only the 1- or 2-D structure is supported
     if len(self.pre_size) == 1:
       height, width = self.pre_size[0], 1
     elif len(self.pre_size) == 2:
       height, width = self.pre_size
     else:
-      raise errors.BrainPyError('Currently only support two-dimensional geometry.')
+      raise ConnectorError(f'Currently, GridFour only supports the two-dimensional geometry.')
 
     conn_i = []
     conn_j = []
@@ -122,10 +126,9 @@ class GridFour(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self.data = csr_matrix((np.ones_like(pre_ids, WEIGHT_DTYPE), (pre_ids, post_ids)),
-                           shape=(self.pre_num, self.post_num))
+    ind, indptr = toind(pre_ids, post_ids)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 grid_four = GridFour()
@@ -174,22 +177,15 @@ class GridN(OneEndConnector):
     self.N = N
     self.include_self = include_self
 
-  def __call__(self, pre_size, post_size=None):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
-
-    try:
-      assert self.pre_size == self.post_size
-    except AssertionError:
-      raise errors.BrainPyError(
-        f'The shape of pre-synaptic group should be the same with the post group. '
-        f'But we got {self.pre_size} != {self.post_size}.')
+  def require(self, *structures):
+    self.check(structures)
 
     if len(self.pre_size) == 1:
       height, width = self.pre_size[0], 1
     elif len(self.pre_size) == 2:
       height, width = self.pre_size
     else:
-      raise errors.BrainPyError('Currently only support two-dimensional geometry.')
+      raise ConnectorError(f'Currently, GridN only supports the two-dimensional geometry.')
 
     conn_i = []
     conn_j = []
@@ -201,10 +197,9 @@ class GridN(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    self.data = csr_matrix((np.ones_like(pre_ids, WEIGHT_DTYPE), (pre_ids, post_ids)),
-                           shape=(self.pre_num, self.post_num))
+    ind, indptr = toind(pre_ids, post_ids)
 
-    return self
+    return self.returns(ind, indptr)
 
 
 class GridEight(GridN):

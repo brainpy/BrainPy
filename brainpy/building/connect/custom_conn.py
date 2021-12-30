@@ -2,9 +2,9 @@
 
 import jax.numpy as jnp
 import numpy as np
-from scipy.sparse import csr_matrix
 
 from brainpy import tools
+from brainpy.errors import ConnectorError
 from brainpy.math.jaxarray import JaxArray
 from .base import *
 
@@ -23,13 +23,21 @@ class MatConn(TwoEndConnector):
 
     assert isinstance(conn_mat, (np.ndarray, JaxArray, jnp.ndarray)) and conn_mat.ndim == 2
     self.pre_num, self.post_num = conn_mat.shape
-    self._reset_conn(pre_size=self.pre_num, post_size=self.post_num)
-    self.data = csr_matrix(np.asarray(conn_mat, dtype=WEIGHT_DTYPE))
-
+    self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
+    
+    self.conn_mat = np.asarray(conn_mat, dtype=CONN_DTYPE)
+  
   def __call__(self, pre_size, post_size):
     assert self.pre_num == tools.size2num(pre_size)
     assert self.post_num == tools.size2num(post_size)
     return self
+  
+  def require(self, *structures):
+    self.check(structures)
+    
+    ind, indptr = tocsr(self.conn_mat)
+    
+    return self.returns(ind, indptr)
 
 
 class IJConn(TwoEndConnector):
@@ -43,15 +51,27 @@ class IJConn(TwoEndConnector):
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"
-    self.pre_ids_list = np.asarray(i, dtype=IDX_DTYPE)
-    self.post_ids_list = np.asarray(j, dtype=IDX_DTYPE)
+    self.pre_ids = np.asarray(i, dtype=IDX_DTYPE)
+    self.post_ids = np.asarray(j, dtype=IDX_DTYPE)
 
   def __call__(self, pre_size, post_size):
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self.data = csr_matrix((np.ones_like(self.pre_ids_list, WEIGHT_DTYPE),
-                            (self.pre_ids_list, self.post_ids_list)),
-                           shape=(self.pre_num, self.post_num))
-    return self
+    super(IJConn, self).__call__(pre_size, post_size)
+
+    max_pre = np.max(self.pre_ids)
+    max_post = np.max(self.post_ids)
+    if max_pre >= self.pre_num:
+      raise ConnectorError(f'pre_num ({self.pre_num}) should be greater than '
+                           f'the maximum id ({max_pre}) of self.pre_ids.')
+    if max_post >= self.post_num:
+      raise ConnectorError(f'post_num ({self.post_num}) should be greater than '
+                           f'the maximum id ({max_post}) of self.post_ids.')
+  
+  def require(self, *structures):
+    self.check(structures)
+
+    ind, indptr = toind(self.pre_ids, self.post_ids)
+
+    return self.returns(ind, indptr)
 
 
 class SparseMatConn(TwoEndConnector):
@@ -60,14 +80,29 @@ class SparseMatConn(TwoEndConnector):
   def __init__(self, csr_mat):
     super(SparseMatConn, self).__init__()
 
+    try:
+      from scipy.sparse import csr_matrix
+    except ImportError:
+      raise ConnectorError(f'Using SparseMatConn requires the scipy package. '
+                           f'Please run "pip install scipy" to install scipy.')
+
     assert isinstance(csr_mat, csr_matrix)
-    csr_mat.data = np.asarray(csr_mat.data, dtype=WEIGHT_DTYPE)
+    csr_mat.data = np.asarray(csr_mat.data, dtype=CONN_DTYPE)
     self.csr_mat = csr_mat
     self.pre_num, self.post_num = csr_mat.shape
 
   def __call__(self, pre_size, post_size):
-    assert self.pre_num == tools.size2num(pre_size)
-    assert self.post_num == tools.size2num(post_size)
-    self._reset_conn(pre_size=pre_size, post_size=post_size)
-    self.data = self.csr_mat
-    return self
+    try:
+      assert self.pre_num == tools.size2num(pre_size)
+      assert self.post_num == tools.size2num(post_size)
+    except AssertionError:
+      raise ConnectorError(f'(pre_size, post_size) is inconsistent with the shape of the sparse matrix.')
+
+    super(SparseMatConn, self).__call__(pre_size, post_size)
+
+  def require(self, *structures):
+    self.check(structures)
+
+    ind, indptr = self.csr_mat.indices, self.csr_mat.indptr
+
+    return self.returns(ind, indptr)
