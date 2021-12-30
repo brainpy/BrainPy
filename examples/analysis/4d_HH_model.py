@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
-import brainpy.math as bm
 import matplotlib.pyplot as plt
 import numpy as np
+
+import brainpy as bp
+import brainpy.math as bm
 
 
 class HH(bp.NeuGroup):
@@ -83,20 +84,17 @@ class HH(bp.NeuGroup):
 
 model = HH(1)
 I = 5.
-# run = bp.StructRunner(model, inputs=('input', I), monitors=['V'])
-# run(100)
-# bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
-
+run = bp.StructRunner(model, inputs=('input', I), monitors=['V'])
+run(100)
+bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
 # analysis
-V = bm.random.normal(0., 5., (1000, model.num)) - 60.
-mhn = bm.random.random((1000, model.num * 3))
-
 finder = bp.analysis.SlowPointFinder(lambda h: model.step(h, I))
+V = bm.random.normal(0., 5., (1000, model.num)) - 50.
+mhn = bm.random.random((1000, model.num * 3))
 finder.find_fps_with_opt_solver(candidates=bm.hstack([V, mhn]))
 finder.filter_loss(1e-7)
 finder.keep_unique()
-
 print('fixed_points: ', finder.fixed_points)
 print('losses:', finder.losses)
 if len(finder.fixed_points):
@@ -110,3 +108,13 @@ if len(finder.fixed_points):
     plt.ylabel('Imaginary')
     plt.title(f'FP {i}')
     plt.show()
+
+# verify
+for i, fp in enumerate(finder.fixed_points):
+  model.V[:] = fp[0]
+  model.m[:] = fp[1]
+  model.h[:] = fp[2]
+  model.n[:] = fp[3]
+  run = bp.StructRunner(model, inputs=('input', I), monitors=['V'])
+  run(100)
+  bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', title=f'FP {i}', show=True)

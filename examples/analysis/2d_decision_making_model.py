@@ -72,13 +72,13 @@ def fixed_point_finder():
     return bm.asarray([ds1.value, ds2.value])
 
   finder = bp.analysis.SlowPointFinder(f_cell=step)
-  # finder.find_fps_with_gd_method(
-  #   candidates=bm.random.random((1000, 2)),
-  #   tolerance=1e-5, num_batch=200,
-  #   opt_setting=dict(method=bm.optimizers.Adam,
-  #                    lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)),
-  # )
-  finder.find_fps_with_opt_solver(bm.random.random((1000, 2)))
+  finder.find_fps_with_gd_method(
+    candidates=bm.random.random((1000, 2)),
+    tolerance=1e-5, num_batch=200,
+    opt_setting=dict(method=bm.optimizers.Adam,
+                     lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999)),
+  )
+  # finder.find_fps_with_opt_solver(bm.random.random((1000, 2)))
   finder.filter_loss(1e-5)
   finder.keep_unique()
 

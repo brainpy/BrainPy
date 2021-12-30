@@ -190,8 +190,8 @@ class SlowPointFinder(object):
       opt_method = lambda f, x0: minimize(f, x0, method='BFGS')
     if self.verbose:
       print(f"Optimizing to find fixed points:")
-    f_opt = bm.vmap(lambda x0: opt_method(self.f_loss, x0))
-    res = f_opt(bm.device_array(candidates))
+    f_opt = bm.jit(bm.vmap(lambda x0: opt_method(self.f_loss, x0)))
+    res = f_opt(bm.as_device_array(candidates))
     valid_ids = jax.numpy.where(res.success)[0]
     self._fixed_points = np.asarray(res.x[valid_ids])
     self._losses = np.asarray(res.fun[valid_ids])

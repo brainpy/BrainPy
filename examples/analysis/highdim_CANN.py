@@ -75,7 +75,7 @@ class CANN1D(bp.NeuGroup):
 k = 0.1
 a = 0.5
 A = 10
-fps_output_fn = f'data/fps,k={k},a={a},A={A},f32,BFGS.npy'
+fps_output_fn = f'data/fps,k={k},a={a},A={A},f32,BFGS,randominit.npy'
 
 
 def find_fixed_points():
@@ -83,6 +83,8 @@ def find_fixed_points():
 
   candidates = cann.get_stimulus_by_pos(bm.arange(-bm.pi, bm.pi, 0.01).reshape((-1, 1)))
   candidates += bm.random.normal(0., 0.01, candidates.shape)
+
+  # candidates = bm.random.uniform(0, 20., (1000, cann.num))
 
   finder = bp.analysis.SlowPointFinder(f_cell=cann.cell)
   # finder.find_fps_with_gd_method(
