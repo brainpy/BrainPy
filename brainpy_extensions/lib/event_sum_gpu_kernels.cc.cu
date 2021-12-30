@@ -54,6 +54,7 @@ namespace brainpy_lib {
             // call kernel
             const int block_dim = 512;
             const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            cudaMemset(result, 0, sizeof(F)*size);
             event_sum_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(
               size, events, indices, indptr, value, result);
             ThrowIfError(cudaGetLastError());
@@ -96,6 +97,7 @@ namespace brainpy_lib {
             // call kernel
             const int block_dim = 512;
             const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            cudaMemset(result, 0, sizeof(F)*size);
             event_sum2_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(size,
                                                                         events,
                                                                         pre_ids,
