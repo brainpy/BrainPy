@@ -65,7 +65,7 @@ class FixedProb(TwoEndConnector):
     ind = np.concatenate(ind)
     indptr = np.concatenate(([0], count)).cumsum()
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 # @tools.numba_jit
@@ -136,9 +136,9 @@ class FixedPreNum(TwoEndConnector):
     pre_count = np.ones(self.post_num, dtype=IDX_DTYPE) * num
     indptr_pre = np.concatenate(([0], pre_count)).cumsum()
 
-    ind, indptr = tocsc(pre_ids, indptr_pre, self.pre_num)
+    ind, indptr = csr2csc((pre_ids, indptr_pre), self.pre_num)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 class FixedPostNum(TwoEndConnector):
@@ -202,7 +202,7 @@ class FixedPostNum(TwoEndConnector):
     count = np.ones(self.pre_num, dtype=IDX_DTYPE) * num
     indptr = np.concatenate(([0], count)).cumsum()
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 class GaussianProb(OneEndConnector):
@@ -313,9 +313,9 @@ class GaussianProb(OneEndConnector):
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
 
-    ind, indptr = tocsr(conn_mat)
+    ind, indptr = mat2csr(conn_mat)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 @tools.numba_jit
@@ -384,9 +384,9 @@ class SmallWorld(TwoEndConnector):
         raise ConnectorError("num_neighbor > num_node, choose smaller num_neighbor or larger num_node")
       # If k == n, the graph is complete not Watts-Strogatz
       if self.num_neighbor == num_node:
-        conn = np.ones((num_node, num_node), dtype=CONN_DTYPE)
+        conn = np.ones((num_node, num_node), dtype=MAT_DTYPE)
       else:
-        conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
+        conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
         nodes = np.array(list(range(num_node)))  # nodes are labeled 0 to n-1
         # connect each node to k/2 neighbors
         for j in range(1, self.num_neighbor // 2 + 1):
@@ -423,9 +423,9 @@ class SmallWorld(TwoEndConnector):
     else:
       raise ConnectorError('Currently only support 1D ring connection.')
 
-    ind, indptr = tocsr(conn)
+    ind, indptr = mat2csr(conn)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 def _random_subset(seq, m, rng):
@@ -486,7 +486,7 @@ class ScaleFreeBA(TwoEndConnector):
                            f"m < n, while m = {self.m} and n = {num_node}")
 
     # Add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
+    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
     # Target nodes for new edges
     targets = list(range(self.m))
     # List of existing nodes, with nodes repeated once for each adjacent edge
@@ -508,9 +508,9 @@ class ScaleFreeBA(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, self.m, self.rng))
       source += 1
 
-    ind, indptr = tocsr(conn)
+    ind, indptr = mat2csr(conn)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 class ScaleFreeBADual(TwoEndConnector):
@@ -566,7 +566,7 @@ class ScaleFreeBADual(TwoEndConnector):
       raise ConnectorError(f"Dual Barabási–Albert network must have 0 <= p <= 1, while p = {self.p}")
 
     # Add max(m1,m2) initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
+    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
     # List of existing nodes, with nodes repeated once for each adjacent edge
     repeated_nodes = []
     # Start adding the remaining nodes.
@@ -592,9 +592,9 @@ class ScaleFreeBADual(TwoEndConnector):
       targets = list(_random_subset(repeated_nodes, m, self.rng))
       source += 1
 
-    ind, indptr = tocsr(conn)
+    ind, indptr = mat2csr(conn)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 class PowerLaw(TwoEndConnector):
@@ -659,7 +659,7 @@ class PowerLaw(TwoEndConnector):
     if self.m < 1 or num_node < self.m:
       raise ConnectorError(f"Must have m>1 and m<n, while m={self.m} and n={num_node}")
     # add m initial nodes (m0 in barabasi-speak)
-    conn = np.zeros((num_node, num_node), dtype=CONN_DTYPE)
+    conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
     repeated_nodes = list(range(self.m))  # list of existing nodes to sample from
     # with nodes repeated once for each adjacent edge
     source = self.m  # next node is m
@@ -694,6 +694,6 @@ class PowerLaw(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
 
-    ind, indptr = tocsr(conn)
+    ind, indptr = mat2csr(conn)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))

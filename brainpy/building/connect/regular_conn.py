@@ -39,7 +39,7 @@ class One2One(TwoEndConnector):
     ind = np.arange(self.pre_num)
     indptr = np.arange(self.pre_num + 1)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 one2one = One2One()
@@ -58,13 +58,13 @@ class All2All(TwoEndConnector):
   def require(self, *structures):
     self.check(structures)
 
-    mat = np.ones((self.pre_num, self.post_num), dtype=CONN_DTYPE)
+    mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
     if not self.include_self:
       np.fill_diagonal(mat, False)
 
-    ind, indptr = tocsr(mat)
+    ind, indptr = mat2csr(mat)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 all2all = All2All(include_self=True)
@@ -126,9 +126,9 @@ class GridFour(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    ind, indptr = toind(pre_ids, post_ids)
+    ind, indptr = ij2csr(pre_ids, post_ids)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 grid_four = GridFour()
@@ -197,9 +197,9 @@ class GridN(OneEndConnector):
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    ind, indptr = toind(pre_ids, post_ids)
+    ind, indptr = ij2csr(pre_ids, post_ids)
 
-    return self.returns(ind, indptr)
+    return self.make_returns(structures, (ind, indptr))
 
 
 class GridEight(GridN):
