@@ -64,12 +64,31 @@ class CMakeBuildExt(build_ext):
     super().build_extensions()
 
     # Finally run install
-    subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
+    subprocess.check_call(["cmake", "--build", ".", "--target", "install"] + cmake_args,
                           cwd=self.build_temp, )
 
   def build_extension(self, ext):
     target_name = ext.name.split(".")[-1]
-    subprocess.check_call(["cmake", "--build", ".", "--target", target_name],
+    cmake_python_library = "{}/{}".format(sysconfig.get_config_var("LIBDIR"),
+                                          sysconfig.get_config_var("INSTSONAME"))
+    cmake_python_include_dir = sysconfig.get_python_inc()
+    install_dir = os.path.abspath(os.path.dirname(self.get_ext_fullpath("dummy")))
+    print("install_dir", install_dir)
+    os.makedirs(install_dir, exist_ok=True)
+    cmake_args = [
+      # "-DPYTHON_LIBRARY={}".format(os.path.join(sysconfig.get_config_var('LIBDIR'),
+      #                                           sysconfig.get_config_var('LDLIBRARY'))),
+      # "-DPYTHON_INCLUDE_DIRS={}".format(sysconfig.get_python_inc()),
+      "-DPYTHON_INCLUDE_DIR={}".format(sysconfig.get_python_inc()),
+      "-DCMAKE_INSTALL_PREFIX={}".format(install_dir),
+      "-DPython_EXECUTABLE={}".format(sys.executable),
+      "-DPython_LIBRARIES={}".format(cmake_python_library),
+      "-DPython_INCLUDE_DIRS={}".format(cmake_python_include_dir),
+      "-DCMAKE_BUILD_TYPE={}".format("Debug" if self.debug else "Release"),
+      "-DCMAKE_PREFIX_PATH={}".format(pybind11.get_cmake_dir()),
+      # "-DCMAKE_CUDA_FLAGS={}".format("-arch=sm_30")
+    ]
+    subprocess.check_call(["cmake", "--build", ".", "--target", target_name] + cmake_args,
                           cwd=self.build_temp, )
 
 
