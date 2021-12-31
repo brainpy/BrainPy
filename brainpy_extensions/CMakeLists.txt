@@ -10,6 +10,8 @@ include_directories(
     ./pybind11/include
     )
 
+find_package(pybind11 CONFIG REQUIRED)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
