@@ -13,6 +13,7 @@ from setuptools.command.build_ext import build_ext
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
+
 # This custom class for building the extensions uses CMake to compile. You
 # don't have to use CMake for this task, but I found it to be the easiest when
 # compiling ops with GPU support since setuptools doesn't have great CUDA
@@ -49,7 +50,6 @@ class CMakeBuildExt(build_ext):
       "-DPython_INCLUDE_DIRS={}".format(cmake_python_include_dir),
       "-DCMAKE_BUILD_TYPE={}".format("Debug" if self.debug else "Release"),
       "-DCMAKE_PREFIX_PATH={}".format(pybind11.get_cmake_dir()),
-      "-DCMAKE_CUDA_FLAGS={}".format("-arch=sm_61")
     ]
     if os.environ.get("BRAINPY_CUDA", "no").lower() == "yes":
       cmake_args.append("-BRAINPY_CUDA=yes")
@@ -61,16 +61,16 @@ class CMakeBuildExt(build_ext):
     )
 
     # Build all the extensions
-    # super().build_extensions()
+    super().build_extensions()
 
     # Finally run install
-    subprocess.check_call(["cmake", "--build", "..", "--target", "install"],
-                          cwd=self.build_temp)
+    subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
+                          cwd=self.build_temp, )
 
   def build_extension(self, ext):
-    # target_name = ext.name.split(".")[-1]
-    subprocess.check_call(
-      ["cmake", "."], cwd=self.build_temp)
+    target_name = ext.name.split(".")[-1]
+    subprocess.check_call(["cmake", "--build", ".", "--target", target_name],
+                          cwd=self.build_temp, )
 
 
 # version control
@@ -96,7 +96,7 @@ setup(
   python_requires='>=3.6',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=[
-    Extension("gpu_ops", ['lib/gpu_ops.cc'] + glob.glob("lib/*.cu")),
+    Extension("gpu_ops", ),
   ],
   cmdclass={"build_ext": CMakeBuildExt},
   license='GPL-3.0 License',
