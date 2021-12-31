@@ -171,7 +171,7 @@ class TwoEndConnector(Connector):
     if require_other_structs:
       pre_ids, post_ids = np.where(mat > 0)
       pre_ids = np.ascontiguousarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.ascontiguousarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.ascontiguousarray(post_ids, dtype=IDX_DTYPE)
       self._return_by_ij(structures, ij=(pre_ids, post_ids), all_data=all_data)
 
   def _return_by_csr(self, structures, csr: tuple, all_data: dict):
@@ -228,7 +228,7 @@ class TwoEndConnector(Connector):
     require_other_structs = len([s for s in structures
                                  if s not in [CONN_MAT, PRE_IDS, POST_IDS]]) > 0
     if require_other_structs:
-      csr = ij2csr(pre_ids, post_ids)
+      csr = ij2csr(pre_ids, post_ids, self.pre_num)
       self._return_by_csr(structures, csr=csr, all_data=all_data)
 
   def make_returns(self, structures, csr=None, mat=None, ij=None):
@@ -321,7 +321,7 @@ def csr2csc(csr, post_num, data=None):
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
 
   sort_ids = np.argsort(indices, kind='mergesort')  # to maintain the original order of the elements with the same value
-  pre_ids_new = pre_ids[sort_ids]
+  pre_ids_new = np.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
 
   unique_post_ids, count = np.unique(indices, return_counts=True)
   post_count = np.zeros(post_num, dtype=IDX_DTYPE)
@@ -369,16 +369,18 @@ def ij2mat(ij, num_pre, num_post):
   return d
 
 
-def ij2csr(pre_ids, post_ids):
+def ij2csr(pre_ids, post_ids, num_pre):
   """convert pre_ids, post_ids to (indices, indptr)."""
   # sorting
   sort_ids = np.argsort(pre_ids, kind='mergesort')
-  pre_ids = pre_ids[sort_ids]
+  # pre_ids = pre_ids[sort_ids]
   post_ids = post_ids[sort_ids]
 
   indices = post_ids
-  _, pre_count = np.unique(pre_ids, return_counts=True)
-  indptr = pre_count.cumsum()
+  unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
+  final_pre_count = np.zeros(num_pre, dtype=IDX_DTYPE)
+  final_pre_count[unique_pre_ids] = pre_count
+  indptr = final_pre_count.cumsum()
   indptr = np.insert(indptr, 0, 0)
 
-  return indices, np.asarray(indptr, dtype=IDX_DTYPE)
+  return np.asarray(indices, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
