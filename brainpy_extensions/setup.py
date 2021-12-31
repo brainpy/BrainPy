@@ -64,7 +64,7 @@ class CMakeBuildExt(build_ext):
     # super().build_extensions()
 
     # Finally run install
-    subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
+    subprocess.check_call(["cmake", "--build", "..", "--target", "install"],
                           cwd=self.build_temp)
 
   def build_extension(self, ext):
