@@ -13,7 +13,7 @@ logger = logging.getLogger('brainpy.simulation.connect')
 
 __all__ = [
   # the connection types
-  'CONN_MAT', 'WEIGHT_MAT',
+  'CONN_MAT',
   'PRE_IDS', 'POST_IDS',
   'PRE2POST', 'POST2PRE',
   'PRE2SYN', 'POST2SYN',
@@ -30,7 +30,6 @@ __all__ = [
 ]
 
 CONN_MAT = 'conn_mat'
-WEIGHT_MAT = 'weight_mat'
 PRE_IDS = 'pre_ids'
 POST_IDS = 'post_ids'
 PRE2POST = 'pre2post'
@@ -40,7 +39,7 @@ POST2SYN = 'post2syn'
 PRE_SLICE = 'pre_slice'
 POST_SLICE = 'post_slice'
 
-SUPPORTED_SYN_STRUCTURE = [CONN_MAT, WEIGHT_MAT,
+SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
                            PRE_IDS, POST_IDS,
                            PRE2POST, POST2PRE,
                            PRE2SYN, POST2SYN,
@@ -163,50 +162,110 @@ class TwoEndConnector(Connector):
         raise ConnectorError(f'Unknown synapse structure "{n}". '
                              f'Only {SUPPORTED_SYN_STRUCTURE} is supported.')
 
-  def make_returns(self, structures, csr):
-    """Make the desired synaptic structures and return them.
-    """
+  def _return_by_mat(self, structures, mat, all_data: dict):
+    assert isinstance(mat, np.ndarray) and np.ndim(mat) == 2
+    if (CONN_MAT in structures) and (CONN_MAT not in all_data):
+      all_data[CONN_MAT] = math.asarray(mat, dtype=MAT_DTYPE)
 
+    require_other_structs = len([s for s in structures if s != CONN_MAT]) > 0
+    if require_other_structs:
+      pre_ids, post_ids = np.where(mat > 0)
+      pre_ids = np.ascontiguousarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.ascontiguousarray(pre_ids, dtype=IDX_DTYPE)
+      self._return_by_ij(structures, ij=(pre_ids, post_ids), all_data=all_data)
+
+  def _return_by_csr(self, structures, csr: tuple, all_data: dict):
     indices, indptr = csr
     assert isinstance(indices, np.ndarray)
     assert isinstance(indptr, np.ndarray)
     assert self.pre_num == indptr.size - 1
 
-    all_data = dict()
-    if isinstance(structures, str):
-      structures = (structures,)
-    assert isinstance(structures, (tuple, list))
-    if CONN_MAT in structures:
+    if (CONN_MAT in structures) and (CONN_MAT not in all_data):
       conn_mat = csr2mat((indices, indptr), self.pre_num, self.post_num)
       all_data[CONN_MAT] = math.asarray(conn_mat, dtype=MAT_DTYPE)
 
-    if PRE_IDS in structures:
+    if (PRE_IDS in structures) and (PRE_IDS not in all_data):
       pre_ids = np.repeat(np.arange(self.pre_num), np.diff(indptr))
       all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
 
-    if POST_IDS in structures:
+    if (POST_IDS in structures) and (POST_IDS not in all_data):
       all_data[POST_IDS] = math.asarray(indices, dtype=IDX_DTYPE)
 
-    if PRE2POST in structures:
+    if (PRE2POST in structures) and (PRE2POST not in all_data):
       all_data[PRE2POST] = (math.asarray(indices, dtype=IDX_DTYPE),
                             math.asarray(indptr, dtype=IDX_DTYPE))
 
-    if POST2PRE in structures:
+    if (POST2PRE in structures) and (POST2PRE not in all_data):
       indc, indptrc = csr2csc((indices, indptr), self.post_num)
       all_data[POST2PRE] = (math.asarray(indc, dtype=IDX_DTYPE),
                             math.asarray(indptrc, dtype=IDX_DTYPE))
 
-    if PRE2SYN in structures:
+    if (PRE2SYN in structures) and (PRE2SYN not in all_data):
       syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
       all_data[PRE2SYN] = (math.asarray(syn_seq, dtype=IDX_DTYPE),
                            math.asarray(indptr, dtype=IDX_DTYPE))
 
-    if POST2SYN in structures:
+    if (POST2SYN in structures) and (POST2SYN not in all_data):
       syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
       _, indptrc, syn_seqc = csr2csc((indices, indptr), self.post_num, syn_seq)
       all_data[POST2SYN] = (math.asarray(syn_seqc, dtype=IDX_DTYPE),
                             math.asarray(indptrc, dtype=IDX_DTYPE))
 
+  def _return_by_ij(self, structures, ij: tuple, all_data: dict):
+    pre_ids, post_ids = ij
+    assert isinstance(pre_ids, np.ndarray)
+    assert isinstance(post_ids, np.ndarray)
+
+    if (CONN_MAT in structures) and (CONN_MAT not in all_data):
+      all_data[CONN_MAT] = math.asarray(ij2mat(ij, self.pre_num, self.post_num), dtype=MAT_DTYPE)
+
+    if (PRE_IDS in structures) and (PRE_IDS not in all_data):
+      all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
+
+    if (POST_IDS in structures) and (POST_IDS not in all_data):
+      all_data[POST_IDS] = math.asarray(post_ids, dtype=IDX_DTYPE)
+
+    require_other_structs = len([s for s in structures
+                                 if s not in [CONN_MAT, PRE_IDS, POST_IDS]]) > 0
+    if require_other_structs:
+      csr = ij2csr(pre_ids, post_ids)
+      self._return_by_csr(structures, csr=csr, all_data=all_data)
+
+  def make_returns(self, structures, csr=None, mat=None, ij=None):
+    """Make the desired synaptic structures and return them.
+    """
+    # checking
+    all_data = dict()
+    if (csr is None) and (mat is None) and (ij is None):
+      raise ConnectorError('Must provide one of "csr", "mat" or "ij".')
+    structures = (structures,) if isinstance(structures, str) else structures
+    assert isinstance(structures, (tuple, list))
+
+    # "csr" structure
+    if csr is not None:
+      assert isinstance(csr[0], np.ndarray)
+      assert isinstance(csr[1], np.ndarray)
+      if (PRE2POST in structures) and (PRE2POST not in all_data):
+        all_data[PRE2POST] = (math.asarray(csr[0], dtype=IDX_DTYPE),
+                              math.asarray(csr[1], dtype=IDX_DTYPE))
+      self._return_by_csr(structures, csr=csr, all_data=all_data)
+    # "mat" structure
+    if mat is not None:
+      assert isinstance(mat, np.ndarray) and np.ndim(mat) == 2
+      if (CONN_MAT in structures) and (CONN_MAT not in all_data):
+        all_data[CONN_MAT] = math.asarray(mat, dtype=MAT_DTYPE)
+      self._return_by_mat(structures, mat=mat, all_data=all_data)
+    # "ij" structure
+    if ij is not None:
+      assert isinstance(ij[0], np.ndarray)
+      assert isinstance(ij[1], np.ndarray)
+      if (PRE_IDS in structures) and (PRE_IDS not in structures):
+        all_data[PRE_IDS] = math.asarray(ij[0], dtype=IDX_DTYPE)
+      if (POST_IDS in structures) and (POST_IDS not in structures):
+        all_data[POST_IDS] = math.asarray(ij[1], dtype=IDX_DTYPE)
+      self._return_by_ij(structures, ij=ij, all_data=all_data)
+
+    # return
     if len(structures) == 1:
       return all_data[structures[0]]
     else:
@@ -299,6 +358,14 @@ def csr2mat(csr, num_pre, num_post):
   d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
   d[pre_ids, indices] = True
+  return d
+
+
+def ij2mat(ij, num_pre, num_post):
+  """convert (indices, indptr) to a dense matrix."""
+  pre_ids, post_ids = ij
+  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
+  d[pre_ids, post_ids] = True
   return d
 
 

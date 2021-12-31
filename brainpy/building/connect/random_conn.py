@@ -65,7 +65,7 @@ class FixedProb(TwoEndConnector):
     ind = np.concatenate(ind)
     indptr = np.concatenate(([0], count)).cumsum()
 
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, csr=(ind, indptr))
 
 
 # @tools.numba_jit
@@ -119,11 +119,9 @@ class FixedPreNum(TwoEndConnector):
     if isinstance(self.num, int):
       assert 0 <= self.num <= self.pre_num, f'"num" must be smaller than "self.pre_num", ' \
                                             f'but got {self.num} > {self.pre_num}'
-      prob = self.num / self.pre_num
       num = self.num
     else:
       assert 0. <= self.num <= 1., f'"num" must be in [0., 1.), but got {self.num}'
-      prob = self.num
       num = int(self.pre_num * self.num)
 
     pre_ids = []
@@ -131,14 +129,9 @@ class FixedPreNum(TwoEndConnector):
       pres = _fixed_num_prob(rng=self.rng, num_need=num, num_total=self.pre_num,
                              i=i, include_self=self.include_self)
       pre_ids.append(pres)
-
     pre_ids = np.concatenate(pre_ids)
-    pre_count = np.ones(self.post_num, dtype=IDX_DTYPE) * num
-    indptr_pre = np.concatenate(([0], pre_count)).cumsum()
-
-    ind, indptr = csr2csc((pre_ids, indptr_pre), self.pre_num)
-
-    return self.make_returns(structures, (ind, indptr))
+    post_ids = np.repeat(np.arange(self.post_num), num)
+    return self.make_returns(structures, ij=(pre_ids, post_ids))
 
 
 class FixedPostNum(TwoEndConnector):
@@ -192,17 +185,17 @@ class FixedPostNum(TwoEndConnector):
       num = int(self.post_num * self.num)
       prob = self.num
 
-    ind = []  # i.e. post_ids
+    post_ids = []  # i.e. post_ids
     for i in range(self.pre_num):
       posts = _fixed_num_prob(rng=self.rng, num_need=num, num_total=self.post_num,
                               i=i, include_self=self.include_self)
-      ind.append(posts)
+      post_ids.append(posts)
 
-    ind = np.concatenate(ind)
+    post_ids = np.concatenate(post_ids)
     count = np.ones(self.pre_num, dtype=IDX_DTYPE) * num
     indptr = np.concatenate(([0], count)).cumsum()
 
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, csr=(post_ids, indptr))
 
 
 class GaussianProb(OneEndConnector):
@@ -312,10 +305,7 @@ class GaussianProb(OneEndConnector):
 
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
-
-    ind, indptr = mat2csr(conn_mat)
-
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, mat=conn_mat)
 
 
 @tools.numba_jit
@@ -422,10 +412,7 @@ class SmallWorld(TwoEndConnector):
         # conn = np.asarray(conn, dtype=MAT_DTYPE)
     else:
       raise ConnectorError('Currently only support 1D ring connection.')
-
-    ind, indptr = mat2csr(conn)
-
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, mat=conn)
 
 
 def _random_subset(seq, m, rng):
@@ -507,10 +494,7 @@ class ScaleFreeBA(TwoEndConnector):
       # Pick uniformly from repeated_nodes (preferential attachment)
       targets = list(_random_subset(repeated_nodes, self.m, self.rng))
       source += 1
-
-    ind, indptr = mat2csr(conn)
-
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, mat=conn)
 
 
 class ScaleFreeBADual(TwoEndConnector):
@@ -591,10 +575,7 @@ class ScaleFreeBADual(TwoEndConnector):
       # Pick uniformly from repeated_nodes (preferential attachment)
       targets = list(_random_subset(repeated_nodes, m, self.rng))
       source += 1
-
-    ind, indptr = mat2csr(conn)
-
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, mat=conn)
 
 
 class PowerLaw(TwoEndConnector):
@@ -693,7 +674,4 @@ class PowerLaw(TwoEndConnector):
         count = count + 1
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
-
-    ind, indptr = mat2csr(conn)
-
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, mat=conn)

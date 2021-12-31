@@ -34,7 +34,7 @@ class MatConn(TwoEndConnector):
   
   def require(self, *structures):
     self.check(structures)
-    return self.make_returns(structures, mat2csr(self.conn_mat))
+    return self.make_returns(structures, mat=self.conn_mat)
 
 
 class IJConn(TwoEndConnector):
@@ -66,7 +66,7 @@ class IJConn(TwoEndConnector):
   
   def require(self, *structures):
     self.check(structures)
-    return self.make_returns(structures, ij2csr(self.pre_ids, self.post_ids))
+    return self.make_returns(structures, ij=(self.pre_ids, self.post_ids))
 
 
 class SparseMatConn(TwoEndConnector):
@@ -99,4 +99,4 @@ class SparseMatConn(TwoEndConnector):
   def require(self, *structures):
     self.check(structures)
     ind, indptr = self.csr_mat.indices, self.csr_mat.indptr
-    return self.make_returns(structures, (ind, indptr))
+    return self.make_returns(structures, csr=(ind, indptr))
