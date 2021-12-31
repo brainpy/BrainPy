@@ -13,8 +13,6 @@ from setuptools.command.build_ext import build_ext
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
-os.environ['']
-
 # This custom class for building the extensions uses CMake to compile. You
 # don't have to use CMake for this task, but I found it to be the easiest when
 # compiling ops with GPU support since setuptools doesn't have great CUDA
