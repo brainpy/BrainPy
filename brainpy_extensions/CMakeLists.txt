@@ -4,7 +4,8 @@ project(brainpylib LANGUAGES CXX)
 message(STATUS "Using CMake version " ${CMAKE_VERSION})
 find_package(CUDA REQUIRED)
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
-find_package(pybind11 REQUIRED)
+set(CMAKE_MODULE_PATH "/home/brainpy/miniconda3/lib/python3.9/site-packages/pybind11/share/cmake/;${CMAKE_MODULE_PATH}")
+find_package(pybind11 CONFIG REQUIRED)
 
 include_directories(
     ${PYTHON_INCLUDE_DIRS}
