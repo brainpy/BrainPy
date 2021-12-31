@@ -4,25 +4,24 @@ project(brainpylib LANGUAGES CXX)
 message(STATUS "Using CMake version " ${CMAKE_VERSION})
 find_package(CUDA REQUIRED)
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 REQUIRED)
 
 include_directories(
     ${PYTHON_INCLUDE_DIRS}
     ./pybind11/include
     )
 
-find_package(pybind11 CONFIG REQUIRED)
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
 
 enable_language(CUDA)
-  include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-  pybind11_add_module(
+include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+pybind11_add_module(
     gpu_ops
     ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_gpu.cc.cu
     ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc)
-  install(TARGETS gpu_ops DESTINATION brainpylib)
+install(TARGETS gpu_ops DESTINATION brainpylib)
 
 # GPU op library
 #if (BRAINPY_CUDA)
