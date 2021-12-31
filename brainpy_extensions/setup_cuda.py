@@ -96,7 +96,7 @@ setup(
   python_requires='>=3.6',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=[
-    Extension("gpu_ops", ['lib/gpu_ops.cc'] + glob.glob("lib/*.cu")),
+    Extension("gpu_ops", ),
   ],
   cmdclass={"build_ext": CMakeBuildExt},
   license='GPL-3.0 License',
