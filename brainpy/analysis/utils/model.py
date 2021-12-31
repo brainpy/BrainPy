@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy import errors
 from brainpy.integrators.ode.base import ODEIntegrator
@@ -90,14 +91,15 @@ class TrajectModel(DynamicalSystem):
 
     # variables
     assert isinstance(initial_vars, dict)
-    initial_vars = {k: bm.Variable(bm.asarray(v)) for k, v in initial_vars.items()}
+    initial_vars = {k: bm.Variable(jnp.asarray(bm.as_device_array(v), dtype=jnp.float_))
+                    for k, v in initial_vars.items()}
     self.register_implicit_vars(initial_vars)
-    # self.all_vars = tuple(self.implicit_vars.values())
 
     # parameters
     pars = dict() if pars is None else pars
     assert isinstance(pars, dict)
-    self.pars = [bm.asarray(v) for k, v in pars.items()]
+    self.pars = [jnp.asarray(bm.as_device_array(v), dtype=jnp.float_)
+                 for k, v in pars.items()]
 
     # integrals
     self.integrals = integrals
