@@ -14,6 +14,8 @@ The ``base`` module for whole BrainPy ecosystem.
   the ability to gather nodes automatically.
 - This module provides ``io`` helper functions to help users save/load
   model states, or share user's customized model with others.
+- This module provides ``naming`` tools to guarantee the unique nameing
+  for each Base object.
 
 Details please see the following.
 """
@@ -22,4 +24,5 @@ from brainpy.base.base import *
 from brainpy.base.collector import *
 from brainpy.base.function import *
 from brainpy.base.io import *
+from brainpy.base.naming import clear_name_cache
 

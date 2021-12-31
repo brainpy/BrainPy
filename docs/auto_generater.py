@@ -91,6 +91,8 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
     for m in classes:
       fout.write(f'   {m}\n')
 
+    fout.write(f'\n\n')
+
     # # write autoclass
     # fout.write('\n')
     # for m in classes:
@@ -98,56 +100,6 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
     #   fout.write(f'   :members:\n\n')
 
   fout.close()
-
-
-def generate_analysis_docs(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.analysis.lowdim',
-               filename=os.path.join(path, 'lowdim.rst'),
-               header='Low-dimensional Analyzers')
-
-  write_module(module_name='brainpy.analysis.highdim',
-               filename=os.path.join(path, 'highdim.rst'),
-               header='High-dimensional Analyzers')
-
-  # write_module(module_name='brainpy.analysis.continuation',
-  #              filename=os.path.join(path, 'continuation.rst'),
-  #              header='Continuation Analysis')
-
-  write_module(module_name='brainpy.analysis.stability',
-               filename=os.path.join(path, 'stability.rst'),
-               header='Stability Analysis')
-
-
-def generate_base_docs(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_submodules(module_name='brainpy.base',
-                   filename=os.path.join(path, 'base.rst'),
-                   header='``brainpy.base`` module',
-                   submodule_names=['base', 'function', 'collector', 'io'],
-                   section_names=['Base Class', 'Function Wrapper', 'Collectors', 'Exporting and Loading'])
-
-
-def generate_integrators_doc(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.integrators.ode.explicit_rk',
-               filename=os.path.join(path, 'ode_explicit_rk.rst'),
-               header='Explicit Runge-Kutta Methods')
-  write_module(module_name='brainpy.integrators.ode.adaptive_rk',
-               filename=os.path.join(path, 'ode_adaptive_rk.rst'),
-               header='Adaptive Runge-Kutta Methods')
-  write_module(module_name='brainpy.integrators.ode.exponential',
-               filename=os.path.join(path, 'ode_exponential.rst'),
-               header='Exponential Integrators')
-  write_module(module_name='brainpy.integrators.joint_eq',
-               filename=os.path.join(path, 'joint_eq.rst'),
-               header='Joint Equation')
 
 
 block_list = ['test', 'register_pytree_node']
@@ -221,6 +173,42 @@ def _section(header, numpy_mod, brainpy_jax, klass=None):
   buf += _generate_comparison_rst(numpy_mod, brainpy_jax, klass, header=header2)
   buf += ['']
   return buf
+
+
+def generate_base_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  module_and_name = [
+    ('base', 'Base Class'),
+    ('function', 'Function Wrapper'),
+    ('collector', 'Collectors'),
+    ('io', 'Exporting and Loading'),
+    ('naming', 'Naming Tools'),
+  ]
+  write_submodules(module_name='brainpy.base',
+                   filename=os.path.join(path, 'base.rst'),
+                   header='``brainpy.base`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+
+
+def generate_integrators_doc(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.integrators.ode.explicit_rk',
+               filename=os.path.join(path, 'ode_explicit_rk.rst'),
+               header='Explicit Runge-Kutta Methods')
+  write_module(module_name='brainpy.integrators.ode.adaptive_rk',
+               filename=os.path.join(path, 'ode_adaptive_rk.rst'),
+               header='Adaptive Runge-Kutta Methods')
+  write_module(module_name='brainpy.integrators.ode.exponential',
+               filename=os.path.join(path, 'ode_exponential.rst'),
+               header='Exponential Integrators')
+  write_module(module_name='brainpy.integrators.joint_eq',
+               filename=os.path.join(path, 'joint_eq.rst'),
+               header='Joint Equation')
 
 
 def generate_math_docs(path):
@@ -356,6 +344,27 @@ def generate_training_docs(path):
                    section_names=[a[1] for a in module_and_name])
 
 
+def generate_analysis_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.analysis.lowdim',
+               filename=os.path.join(path, 'lowdim.rst'),
+               header='Low-dimensional Analyzers')
+
+  write_module(module_name='brainpy.analysis.highdim',
+               filename=os.path.join(path, 'highdim.rst'),
+               header='High-dimensional Analyzers')
+
+  # write_module(module_name='brainpy.analysis.continuation',
+  #              filename=os.path.join(path, 'continuation.rst'),
+  #              header='Continuation Analysis')
+
+  write_module(module_name='brainpy.analysis.stability',
+               filename=os.path.join(path, 'stability.rst'),
+               header='Stability Analysis')
+
+
 def generate_tools_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
@@ -364,7 +373,6 @@ def generate_tools_docs(path):
     ('ast2code', 'AST-to-Code'),
     ('codes', 'Code Tools'),
     ('dicts', 'Dict Tools'),
-    ('namechecking', 'Name Tools'),
     ('numba_tools', 'Numba Tools'),
     ('others', 'Other Tools'),
   ]

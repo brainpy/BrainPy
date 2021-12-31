@@ -4,9 +4,8 @@ import logging
 import os.path
 
 from brainpy import errors
-from brainpy.tools import namechecking
 from brainpy.base.collector import Collector, TensorCollector
-from brainpy.base import io
+from brainpy.base import io, naming
 
 math = Integrator = None
 
@@ -33,7 +32,7 @@ class Base(object):
   def __init__(self, name=None):
     # check whether the object has a unique name.
     self.name = self.unique_name(name=name)
-    namechecking.check_name(name=self.name, obj=self)
+    naming.check_name_uniqueness(name=self.name, obj=self)
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
@@ -199,11 +198,11 @@ class Base(object):
     """
     if name is None:
       if type_ is None:
-        return namechecking.get_name(type_=self.__class__.__name__)
+        return naming.get_unique_name(type_=self.__class__.__name__)
       else:
-        return namechecking.get_name(type_=type_)
+        return naming.get_unique_name(type_=type_)
     else:
-      namechecking.check_name(name=name, obj=self)
+      naming.check_name_uniqueness(name=name, obj=self)
       return name
 
   def load_states(self, filename, verbose=False, check_missing=False):
