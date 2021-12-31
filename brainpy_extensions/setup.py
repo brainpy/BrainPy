@@ -61,7 +61,7 @@ class CMakeBuildExt(build_ext):
     )
 
     # Build all the extensions
-    # super().build_extensions()
+    super().build_extensions()
 
     # Finally run install
     subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
