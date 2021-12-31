@@ -57,11 +57,11 @@ class CMakeBuildExt(build_ext):
 
     os.makedirs(self.build_temp, exist_ok=True)
     subprocess.check_call(
-      ["cmake", HERE] + cmake_args, cwd=self.build_temp
+      ["cmake", ".."], cwd=self.build_temp
     )
 
     # Build all the extensions
-    super().build_extensions()
+    # super().build_extensions()
 
     # Finally run install
     subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
