@@ -305,6 +305,10 @@ class GaussianProb(OneEndConnector):
 
     # connectivity
     conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
+
+    if not self.include_self:
+      np.fill_diagonal(conn_mat, False)
+
     return self.make_returns(structures, mat=conn_mat)
 
 
