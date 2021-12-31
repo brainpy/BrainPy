@@ -29,7 +29,7 @@ namespace brainpy_lib {
                  i<size; i+=blockDim.x * gridDim.x) {
                 if (events[i]) {
                     for (I j=indptr[i]; j<indptr[i + 1]; ++j)
-                        atomicAdd(&result[indices[j]], value)
+                        atomicAdd(&result[indices[j]], value);
                 }
             }
         }
@@ -53,7 +53,7 @@ namespace brainpy_lib {
 
             // call kernel
             const int block_dim = 512;
-            const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            const int grid_dim = std::min<int>(1024, (pre_size + block_dim - 1) / block_dim);
             cudaMemset(result, 0, sizeof(F)*size);
             gpu_event_sum_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(pre_size, events, indices, indptr, value, result);
             ThrowIfError(cudaGetLastError());
@@ -70,7 +70,7 @@ namespace brainpy_lib {
                  i<size; i+=blockDim.x * gridDim.x) {
                 if (events[i]) {
                     for (I j=indptr[i]; j<indptr[i + 1]; ++j)
-                        atomicAdd(&result[indices[j]], values[indices[j]])
+                        atomicAdd(&result[indices[j]], values[indices[j]]);
                 }
             }
         }
@@ -94,7 +94,7 @@ namespace brainpy_lib {
 
             // call kernel
             const int block_dim = 512;
-            const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            const int grid_dim = std::min<int>(1024, (pre_size + block_dim - 1) / block_dim);
             cudaMemset(result, 0, sizeof(F)*size);
             gpu_event_sum_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(pre_size, events, indices, indptr, values, result);
             ThrowIfError(cudaGetLastError());
@@ -113,7 +113,7 @@ namespace brainpy_lib {
             for (std::int32_t i = blockIdx.x * blockDim.x + threadIdx.x;
                  i < size; i += blockDim.x * gridDim.x) {
                 if (events[pre_ids[i]]) {
-                    atomicAdd(&result[post_ids[i]], value)
+                    atomicAdd(&result[post_ids[i]], value);
                 }
             }
         }
@@ -136,7 +136,7 @@ namespace brainpy_lib {
 
             // call kernel
             const int block_dim = 512;
-            const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            const int grid_dim = std::min<int>(1024, (pre_size + block_dim - 1) / block_dim);
             cudaMemset(result, 0, sizeof(F)*size);
             gpu_event_sum2_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(pre_size, events, pre_ids, post_ids, value, result);
             ThrowIfError(cudaGetLastError());
@@ -152,7 +152,7 @@ namespace brainpy_lib {
             for (std::int32_t i = blockIdx.x * blockDim.x + threadIdx.x;
                  i < size; i += blockDim.x * gridDim.x) {
                 if (events[pre_ids[i]]) {
-                    atomicAdd(&result[post_ids[i]], values[i])
+                    atomicAdd(&result[post_ids[i]], values[i]);
                 }
             }
         }
@@ -175,7 +175,7 @@ namespace brainpy_lib {
 
             // call kernel
             const int block_dim = 512;
-            const int grid_dim = std::min<int>(1024, (size + block_dim - 1) / block_dim);
+            const int grid_dim = std::min<int>(1024, (pre_size + block_dim - 1) / block_dim);
             cudaMemset(result, 0, sizeof(F)*size);
             gpu_event_sum2_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(pre_size, events, pre_ids, post_ids, values, result);
             ThrowIfError(cudaGetLastError());

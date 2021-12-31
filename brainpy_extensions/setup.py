@@ -70,7 +70,7 @@ class CMakeBuildExt(build_ext):
   def build_extension(self, ext):
     # target_name = ext.name.split(".")[-1]
     subprocess.check_call(
-      ["cmake ."], cwd=self.build_temp)
+      ["cmake", "."], cwd=self.build_temp)
 
 
 # version control
