@@ -49,7 +49,7 @@ class CMakeBuildExt(build_ext):
       "-DPython_INCLUDE_DIRS={}".format(cmake_python_include_dir),
       "-DCMAKE_BUILD_TYPE={}".format("Debug" if self.debug else "Release"),
       "-DCMAKE_PREFIX_PATH={}".format(pybind11.get_cmake_dir()),
-      "-DCMAKE_CUDA_FLAGS={}".format("-arch=sm_30")
+      # "-DCMAKE_CUDA_FLAGS={}".format("-arch=sm_30")
     ]
     if os.environ.get("BRAINPY_CUDA", "no").lower() == "yes":
       cmake_args.append("-BRAINPY_CUDA=yes")
