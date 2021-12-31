@@ -13,6 +13,7 @@ from setuptools.command.build_ext import build_ext
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
+os.environ['']
 
 # This custom class for building the extensions uses CMake to compile. You
 # don't have to use CMake for this task, but I found it to be the easiest when
@@ -50,6 +51,7 @@ class CMakeBuildExt(build_ext):
       "-DPython_INCLUDE_DIRS={}".format(cmake_python_include_dir),
       "-DCMAKE_BUILD_TYPE={}".format("Debug" if self.debug else "Release"),
       "-DCMAKE_PREFIX_PATH={}".format(pybind11.get_cmake_dir()),
+      "-DCMAKE_CUDA_FLAGS={}".format("-arch=sm_30")
     ]
     if os.environ.get("BRAINPY_CUDA", "no").lower() == "yes":
       cmake_args.append("-BRAINPY_CUDA=yes")

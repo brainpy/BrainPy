@@ -10,23 +10,32 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
 
-# GPU op library
-if (BRAINPY_CUDA)
-  enable_language(CUDA)
+enable_language(CUDA)
   include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
   pybind11_add_module(
     gpu_ops
     ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_gpu.cc.cu
     ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc)
   install(TARGETS gpu_ops DESTINATION brainpylib)
-else()
-  message(STATUS "Building without CUDA")
-  # CPU op library
-  pybind11_add_module(
-    cpu_ops
-    ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_cpu.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_cpu.cc
-    )
-  install(TARGETS cpu_ops DESTINATION brainpylib)
-endif()
+
+# GPU op library
+#if (BRAINPY_CUDA)
+#  enable_language(CUDA)
+#  include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+#  pybind11_add_module(
+#    gpu_ops
+#    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_gpu.cc.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc)
+#  install(TARGETS gpu_ops DESTINATION brainpylib)
+#else()
+#   message(STATUS "Building without CUDA")
+#   # CPU op library
+#  pybind11_add_module(
+#    cpu_ops
+#    ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc
+#    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_cpu.cc
+#    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_cpu.cc
+#    )
+#  install(TARGETS cpu_ops DESTINATION brainpylib)
+### endif()
+
