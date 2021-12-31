@@ -41,35 +41,15 @@
 
 ## Step 1: installation
 
-``BrainPy`` is based on Python (>=3.6), and the following packages are required to be installed to use ``BrainPy``:
+``BrainPy`` is based on Python (>=3.6), and the following packages are required to be installed to use ``BrainPy``: `numpy >= 1.15`, `matplotlib >= 3.4`, and `jax >= 0.2.10` ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax))
 
-- numpy >= 1.15
-- jax >= 0.2.10
-- matplotlib >= 3.4
-
-*For the installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
-
-
-
-**Method 1**: install ``BrainPy`` by using ``pip``:
-
-To install the stable release of BrainPy, please use
+``BrainPy`` can be installed on  Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. Use the following instructions to install ``brainpy``:
 
 ```bash
-> pip install -U brain-py
+pip install brain-py -U
 ```
 
-**Method 2**: install ``BrainPy`` from source:
-
-```bash
-> pip install git+https://github.com/PKU-NIP-Lab/BrainPy
->
-> # or
->
-> git clone https://github.com/PKU-NIP-Lab/BrainPy
-> cd BrainPy
-> python setup.py install
-```
+*For the full installation details please see documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)*
 
 
 
@@ -78,8 +58,8 @@ To install the stable release of BrainPy, please use
 
 - **Documentation:** https://brainpy.readthedocs.io/
 - **Bug reports:** https://github.com/PKU-NIP-Lab/BrainPy/issues
-- **Examples from papers**: https://brainpy-examples.readthedocs.io/en/brainpy-2.x/
-- **Canonical brain models**: https://brainmodels.readthedocs.io/en/latest/
+- **Examples from papers**: https://brainpy-examples.readthedocs.io/
+- **Canonical brain models**: https://brainmodels.readthedocs.io/
 
 
 
@@ -150,16 +130,21 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/brainpy-2.x/api
 
 ### Low-dimensional dynamics analysis
 
-- [1D system bifurcation](https://brain-examples.readthedocs.io/en/latest/dynamics_analysis/1D_system_bifurcation.html)
-- [Codimension 1 bifurcation analysis of FitzHugh Nagumo model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/FitzHugh_Nagumo_analysis.html)
-- [Codimension 2 bifurcation analysis of FitzHugh Nagumo model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/FitzHugh_Nagumo_analysis.html#Codimension-2-bifurcation-analysis)
-- **[Decision Making Model]** [*(Wong & Wang, 2006)* Decision making rate model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/decision_making/Wang_2006_decision_making_rate.html)
+- [[1D] Simple systems](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/1d_simple_systems.html)
+- [[2D] NaK model analysis](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/2d_NaK_model.html)
+- [[3D] Hindmarsh Rose Model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/3d_hindmarsh_rose_model.html)
+- **[Decision Making Model]** [[2D] Decision making rate model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/decision_making/Wang_2006_decision_making_rate.html)
 
 
 
 ### High-dimensional dynamics analysis
 
 - [*(Yang, 2020)*: Dynamical system analysis for RNN](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/recurrent_networks/Yang_2020_RNN_Analysis.html)
+
+- [Continuous-attractor Neural Network](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_CANN.html)
+- [Gap junction-coupled FitzHugh-Nagumo Model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_gj_coupled_fhn.html)
+
+
 
 
 
