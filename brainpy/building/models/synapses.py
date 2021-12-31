@@ -171,7 +171,7 @@ class ExpCUBA(TwoEndConn):
   def update(self, _t, _dt):
     self.pre_spike.push(self.pre.spike)
     delayed_pre_spike = self.pre_spike.pull()
-    post_sp = bm.pre2post_event_sum(delayed_pre_spike, self.conn.pre2post, self.post.num, self.g_max)
+    post_sp = bm.pre2post_event_sum(delayed_pre_spike, self.pre2post, self.post.num, self.g_max)
     self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_sp
     self.post.input += self.g
 
