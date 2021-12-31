@@ -4,7 +4,11 @@ project(brainpylib LANGUAGES CXX)
 message(STATUS "Using CMake version " ${CMAKE_VERSION})
 find_package(CUDA REQUIRED)
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
+
+include_directories(
+    ${PYTHON_INCLUDE_DIRS}
+    ./pybind11/include
+    )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
