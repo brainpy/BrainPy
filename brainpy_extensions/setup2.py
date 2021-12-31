@@ -20,9 +20,16 @@ if cuda_version:
   __version__ += "+cuda" + cuda_version.replace(".", "")
 
 # extension modules
+# ext_modules = [
+#   Pybind11Extension("brainpylib/cpu_ops",
+#                     sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
+#                     cxx_std=11,
+#                     define_macros=[('VERSION_INFO', __version__)]),
+# ]
+#
 ext_modules = [
-  Pybind11Extension("brainpylib/cpu_ops",
-                    sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
+  Pybind11Extension("brainpylib/gpu_ops",
+                    sources=["lib/gpu_ops.cc", "lib/event_sum_gpu.cc.cu"],
                     cxx_std=11,
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
