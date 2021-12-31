@@ -53,8 +53,9 @@ More details please check [1]_ [2]_ [3]_.
        Computers in Physics, 6(2), 188-191.
 """
 
+import brainpy.math as bm
 from brainpy import errors
-from brainpy.integrators import constants, utils
+from brainpy.integrators import constants as C, utils
 from brainpy.integrators.ode import common
 from brainpy.integrators.ode.base import ODEIntegrator
 
@@ -133,14 +134,14 @@ class AdaptiveRKIntegrator(ODEIntegrator):
     # check parameters
     self.adaptive = False if (adaptive is None) else adaptive
     self.tol = 0.1 if tol is None else tol
-    self.var_type = constants.POP_VAR if var_type is None else var_type
-    if self.var_type not in constants.SUPPORTED_VAR_TYPE:
-      raise errors.IntegratorError(f'"var_type" only supports {constants.SUPPORTED_VAR_TYPE}, '
+    self.var_type = C.POP_VAR if var_type is None else var_type
+    if self.var_type not in C.SUPPORTED_VAR_TYPE:
+      raise errors.IntegratorError(f'"var_type" only supports {C.SUPPORTED_VAR_TYPE}, '
                                    f'not {self.var_type}.')
 
     # integrator keywords
-    keywords = {constants.F: 'the derivative function',
-                constants.DT: 'the precision of numerical integration'}
+    keywords = {C.F: 'the derivative function',
+                C.DT: 'the precision of numerical integration'}
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
       for i in range(1, len(self.A) + 1):
@@ -155,6 +156,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
       for v in self.variables:
         keywords[f'{v}_te'] = 'the local truncation error'
       self.code_scope['tol'] = tol
+      self.code_scope['math'] = bm
     utils.check_kws(self.arguments, keywords)
 
     # build the integrator
@@ -162,10 +164,10 @@ class AdaptiveRKIntegrator(ODEIntegrator):
 
   def build(self):
     # step stage
-    common.step(self.variables, constants.DT,
+    common.step(self.variables, C.DT,
                 self.A, self.C, self.code_lines, self.parameters)
     # variable update
-    return_args = common.update(self.variables, constants.DT, self.B1, self.code_lines)
+    return_args = common.update(self.variables, C.DT, self.B1, self.code_lines)
     # error adaptive item
     if self.adaptive:
       errors_ = []
@@ -178,20 +180,17 @@ class AdaptiveRKIntegrator(ODEIntegrator):
             b2 = eval(b2)
           diff = b1 - b2
           if diff != 0.:
-            result.append(f'd{v}_k{i + 1} * {constants.DT} * {diff}')
+            result.append(f'd{v}_k{i + 1} * {C.DT} * {diff}')
         if len(result) > 0:
-          if self.var_type == constants.SCALAR_VAR:
+          if self.var_type == C.SCALAR_VAR:
             self.code_lines.append(f'  {v}_te = abs({" + ".join(result)})')
           else:
             self.code_lines.append(f'  {v}_te = sum(abs({" + ".join(result)}))')
           errors_.append(f'{v}_te')
       if len(errors_) > 0:
         self.code_lines.append(f'  error = {" + ".join(errors_)}')
-        self.code_lines.append(f'  if error > tol:')
-        self.code_lines.append(f'    {constants.DT}_new = 0.9*{constants.DT}*(tol/error)**0.2')
-        self.code_lines.append(f'  else:')
-        self.code_lines.append(f'    {constants.DT}_new = {constants.DT}')
-        return_args.append(f'{constants.DT}_new')
+        self.code_lines.append(f'  {C.DT}_new = math.where(error > tol, 0.9*{C.DT}*(tol/error)**0.2, {C.DT})')
+        return_args.append(f'{C.DT}_new')
     # returns
     self.code_lines.append(f'  return {", ".join(return_args)}')
     # compile

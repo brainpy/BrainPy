@@ -1,8 +1,9 @@
 -r requirements.txt
 
-sympy>=1.5
-numba>=0.52
-jax>=0.2.10
+jaxlib>=0.1.64
+sympy>=1.6
+scipy>=1.1.0
+numba
 
 # test requirements
 pytest

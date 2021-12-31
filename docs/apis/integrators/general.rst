@@ -17,11 +17,3 @@ General Functions
    SDEIntegrator
 
 
-.. autoclass:: ODEIntegrator
-   :members:
-
-
-.. autoclass:: SDEIntegrator
-   :members:
-
-

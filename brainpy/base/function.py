@@ -45,7 +45,7 @@ class Function(Base):
     # ---
     self._f = f
     if name is None:
-      name = self.unique_name(type=f.__name__ if hasattr(f, '__name__') else 'Function')
+      name = self.unique_name(type_=f.__name__ if hasattr(f, '__name__') else 'Function')
     super(Function, self).__init__(name=name)
 
     # nodes 

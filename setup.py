@@ -21,23 +21,26 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
 setup(
   name='brain-py',
   version=version,
-  description='BrainPy: A flexible and extensible framework for brain modeling',
+  description='BrainPy: Brain Dynamics Programming in Python',
   long_description=README,
   long_description_content_type="text/markdown",
-  author='Chaoming Wang',
+  author='BrainPy Team',
   author_email='chao.brain@qq.com',
-  packages=find_packages(exclude=['examples*', 'docs*', 'develop*', 'ode*']),
+  packages=find_packages(),
   python_requires='>=3.6',
   install_requires=[
     'numpy>=1.15',
     'matplotlib>=3.4',
+    'jax>=0.2.10',
   ],
+  extras_require={
+    'cpu': ['jaxlib>=0.1.64', 'brainpylib>=0.02'],
+    'cuda': ['jaxlib>=0.1.64', 'brainpylib>=0.02'],
+  },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
-  keywords='computational neuroscience, '
-           'brain-inspired computation, '
-           'dynamical systems, '
-           'differential equations, '
-           'numerical integration',
+  keywords='computational neuroscience, brain-inspired computation, '
+           'dynamical systems, differential equations, '
+           'brain modeling, brain dynamics programming',
   classifiers=[
     'Natural Language :: English',
     'Operating System :: OS Independent',
@@ -53,5 +56,6 @@ setup(
     'Topic :: Scientific/Engineering :: Mathematics',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'Topic :: Software Development :: Libraries',
-  ]
+  ],
+  license='GPL-3.0 License',
 )

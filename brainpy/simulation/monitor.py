@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import errors, math
+import numpy as np
+
+from brainpy import math
+from brainpy.errors import MonitorError
 
 __all__ = [
   'Monitor'
@@ -64,25 +67,25 @@ class Monitor(object):
     if isinstance(variables, (list, tuple)):
       if intervals is not None:
         if not isinstance(intervals, (list, tuple)):
-          raise errors.BrainPyError(f'"vars" and "intervals" must be the same type. '
-                                    f'While we got type(vars)={type(variables)}, '
-                                    f'type(intervals)={type(intervals)}.')
+          raise MonitorError(f'"vars" and "intervals" must be the same type. '
+                             f'While we got type(vars)={type(variables)}, '
+                             f'type(intervals)={type(intervals)}.')
         if len(variables) != len(intervals):
-          raise errors.BrainPyError(f'The length of "vars" and "every" are not equal.')
+          raise MonitorError(f'The length of "vars" and "every" are not equal.')
 
     elif isinstance(variables, dict):
       if intervals is not None:
         if not isinstance(intervals, dict):
-          raise errors.BrainPyError(f'"vars" and "every" must be the same type. '
-                                    f'While we got type(vars)={type(variables)}, '
-                                    f'type(intervals)={type(intervals)}.')
+          raise MonitorError(f'"vars" and "every" must be the same type. '
+                             f'While we got type(vars)={type(variables)}, '
+                             f'type(intervals)={type(intervals)}.')
         for key in intervals.keys():
           if key not in variables:
-            raise errors.BrainPyError(f'"{key}" is not in "vars": {list(variables.keys())}')
+            raise MonitorError(f'"{key}" is not in "vars": {list(variables.keys())}')
 
     else:
-      raise errors.BrainPyError(f'We only supports a format of list/tuple/dict of '
-                                f'"vars", while we got {type(variables)}.')
+      raise MonitorError(f'We only supports a format of list/tuple/dict of '
+                         f'"vars", while we got {type(variables)}.')
 
     self.has_build = False
     self.ts = None
@@ -94,7 +97,7 @@ class Monitor(object):
     self.item_intervals = []
     self.item_contents = dict()
     self.num_item = len(variables)
-    super(Monitor, self).__init__()
+    self.build()
 
   def build(self):
     if not self.has_build:
@@ -118,7 +121,7 @@ class Monitor(object):
             mon_key = mon_var[0]
             mon_idx = mon_var[1]
           else:
-            raise errors.BrainPyError(f'Unknown monitor item: {str(mon_var)}')
+            raise MonitorError(f'Unknown monitor item: {str(mon_var)}')
 
           # self.check(mon_key)
           item_names.append(mon_key)
@@ -142,7 +145,7 @@ class Monitor(object):
             if self.intervals[mon_key] is not None:
               item_contents[f'{mon_key}.t'] = []
       else:
-        raise errors.BrainPyError(f'Unknown monitors type: {type(self.vars)}')
+        raise MonitorError(f'Unknown monitors type: {type(self.vars)}')
 
       self.item_names = item_names
       self.item_indices = item_indices
@@ -202,3 +205,9 @@ class Monitor(object):
       self.item_contents[key] = value
     else:
       object.__setattr__(self, key, value)
+
+  def numpy(self):
+    for key, val in self.item_contents.items():
+      self.item_contents[key] = np.asarray(val)
+    if self.ts is not None:
+      self.ts = np.asarray(self.ts)

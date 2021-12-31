@@ -1,14 +1,14 @@
 -r requirements.txt
 
-sympy>=1.5
-numba>=0.52
-jax
-jaxlib
+jaxlib>=0.1.64
+sympy>=1.6
+scipy>=1.1.0
+numba
 
 # document requirements
 pandoc
 Jinja2
-sphinx
+sphinx>=3,<4
 myst-nb
 sphinx_rtd_theme>=1.0.0
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints==1.11.1

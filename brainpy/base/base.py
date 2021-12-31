@@ -4,9 +4,8 @@ import logging
 import os.path
 
 from brainpy import errors
-from brainpy.tools import namechecking
 from brainpy.base.collector import Collector, TensorCollector
-from brainpy.base import io
+from brainpy.base import io, naming
 
 math = Integrator = None
 
@@ -23,51 +22,33 @@ class Base(object):
   The subclass of Base includes:
 
   - ``DynamicalSystem`` in *brainpy.simulation.brainobjects.base.py*
+  - ``Integrator`` in *brainpy.integrators.base.py*
   - ``Function`` in *brainpy.base.function.py*
   - ``AutoGrad`` in *brainpy.math.jax.autograd.py*
   - ``Optimizer`` in *brainpy.math.jax.optimizers.py*
   - ``Scheduler`` in *brainpy.math.jax.optimizers.py*
 
   """
-
-  target_backend = None
-  """Used to specify the target backend which the model to run."""
-
-  implicit_vars = None
-  """Used to wrap the implicit variables which cannot be accessed by self.xxx"""
-
-  implicit_nodes = None
-  """Used to wrap the implicit children nodes which cannot be accessed by self.xxx"""
-
   def __init__(self, name=None):
     # check whether the object has a unique name.
     self.name = self.unique_name(name=name)
-    namechecking.check_name(name=self.name, obj=self)
+    naming.check_name_uniqueness(name=self.name, obj=self)
 
-    # target backend
-    if self.target_backend is None:
-      self.target_backend = ('general',)
-    elif isinstance(self.target_backend, str):
-      self.target_backend = (self.target_backend,)
-    elif isinstance(self.target_backend, (tuple, list)):
-      if not isinstance(self.target_backend[0], str):
-        raise errors.BrainPyError('"target_backend" must be a list/tuple of string.')
-      self.target_backend = tuple(self.target_backend)
-    else:
-      raise errors.BrainPyError(f'Unknown setting of "target_backend": {self.target_backend}')
+    # Used to wrap the implicit variables
+    # which cannot be accessed by self.xxx
+    self.implicit_vars = TensorCollector()
 
-    # check target backend
-    global math
-    if math is None: from brainpy import math
-    check1 = self.target_backend[0] != 'general'
-    check2 = math.get_backend_name() not in self.target_backend
-    if check1 and check2:
-      msg = f'ERROR: The model {self.name}: {self} is target to run on {self.target_backend}, ' \
-            f'but currently the selected backend is "{math.get_backend_name()}". \n\n' \
-            f'To switch backend, please use: \n' \
-            f'>>> brainpy.math.use_backend(BACKEND_NAME)'
-      logger.error(msg)
-      raise errors.BrainPyError(msg)
+    # Used to wrap the implicit children nodes
+    # which cannot be accessed by self.xxx
+    self.implicit_nodes = Collector()
+
+  def register_implicit_vars(self, variables):
+    assert isinstance(variables, dict)
+    self.implicit_vars.update(variables)
+
+  def register_implicit_nodes(self, nodes):
+    assert isinstance(nodes, dict)
+    self.implicit_nodes.update(nodes)
 
   def vars(self, method='absolute'):
     """Collect all variables in this node and the children nodes.
@@ -92,8 +73,7 @@ class Base(object):
         v = getattr(node, k)
         if isinstance(v, math.Variable):
           gather[f'{node_path}.{k}' if node_path else k] = v
-      if node.implicit_vars is not None:
-        gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
+      gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather
 
   def train_vars(self, method='absolute'):
@@ -141,14 +121,12 @@ class Base(object):
             _paths.add(path)
             gather[v.name] = v
             nodes.append(v)
-      if self.implicit_nodes is not None:
-        assert isinstance(self.implicit_nodes, dict)
-        for node in self.implicit_nodes.values():
-          path = (id(self), id(node))
-          if path not in _paths:
-            _paths.add(path)
-            gather[node.name] = node
-            nodes.append(node)
+      for node in self.implicit_nodes.values():
+        path = (id(self), id(node))
+        if path not in _paths:
+          _paths.add(path)
+          gather[node.name] = node
+          nodes.append(node)
       for v in nodes:
         gather.update(v.nodes(method=method, _paths=_paths))
       gather[self.name] = self
@@ -163,9 +141,7 @@ class Base(object):
             _paths.add(path)
             gather[k] = v
             nodes.append((k, v))
-      if self.implicit_nodes is not None:
-        assert isinstance(self.implicit_nodes, dict)
-        for key, node in self.implicit_nodes.items():
+      for key, node in self.implicit_nodes.items():
           path = (id(self), id(node))
           if path not in _paths:
             _paths.add(path)
@@ -204,7 +180,7 @@ class Base(object):
           gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 
-  def unique_name(self, name=None, type=None):
+  def unique_name(self, name=None, type_=None):
     """Get the unique name for this object.
 
     Parameters
@@ -212,8 +188,8 @@ class Base(object):
     name : str, optional
       The expected name. If None, the default unique name will be returned.
       Otherwise, the provided name will be checked to guarantee its uniqueness.
-    type : str, optional
-      The type of this class, used for object naming.
+    type_ : str, optional
+      The name of this class, used for object naming.
 
     Returns
     -------
@@ -221,32 +197,34 @@ class Base(object):
       The unique name for this object.
     """
     if name is None:
-      if type is None:
-        return namechecking.get_name(type=self.__class__.__name__)
+      if type_ is None:
+        return naming.get_unique_name(type_=self.__class__.__name__)
       else:
-        return namechecking.get_name(type=type)
+        return naming.get_unique_name(type_=type_)
     else:
-      namechecking.check_name(name=name, obj=self)
+      naming.check_name_uniqueness(name=name, obj=self)
       return name
 
-  def load_states(self, filename, verbose=False, check=False):
+  def load_states(self, filename, verbose=False, check_missing=False):
     """Load the model states.
 
     Parameters
     ----------
     filename : str
       The filename which stores the model states.
+    verbose: bool
+    check_missing: bool
     """
     if not os.path.exists(filename):
       raise errors.BrainPyError(f'Cannot find the file path: {filename}')
     elif filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.load_h5(filename, target=self, verbose=verbose, check=check)
+      io.load_h5(filename, target=self, verbose=verbose, check=check_missing)
     elif filename.endswith('.pkl'):
-      io.load_pkl(filename, target=self, verbose=verbose, check=check)
+      io.load_pkl(filename, target=self, verbose=verbose, check=check_missing)
     elif filename.endswith('.npz'):
-      io.load_npz(filename, target=self, verbose=verbose, check=check)
+      io.load_npz(filename, target=self, verbose=verbose, check=check_missing)
     elif filename.endswith('.mat'):
-      io.load_mat(filename, target=self, verbose=verbose, check=check)
+      io.load_mat(filename, target=self, verbose=verbose, check=check_missing)
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
@@ -257,6 +235,7 @@ class Base(object):
     ----------
     filename : str
       The file name which to store the model states.
+    all_vars: optional, dict, TensorCollector
     """
     if all_vars is None:
       all_vars = self.vars(method='relative').unique()
@@ -272,30 +251,23 @@ class Base(object):
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
-  def to(self, devices):
-    global math
-    if math is None: from brainpy import math
-
-  def cpu(self):
-    global math
-    if math is None: from brainpy import math
-
-    if math.get_backend_name() == 'jax':
-      all_vars = self.vars().unique()
-      for data in all_vars.values():
-        data[:] = math.asarray(data.value)
-        # TODO
-
-  def cuda(self):
-    global math
-    if math is None: from brainpy import math
-    if math.get_backend_name() != 'jax':
-      raise errors.BrainPyError(f'Only support to deploy data into "cuda" device in "jax" backend. '
-                                f'While currently the selected backend is "{math.get_backend_name()}".')
-
-  def tpu(self):
-    global math
-    if math is None: from brainpy import math
-    if math.get_backend_name() != 'jax':
-      raise errors.BrainPyError(f'Only support to deploy data into "tpu" device in "jax" backend. '
-                                f'While currently the selected backend is "{math.get_backend_name()}".')
+  # def to(self, devices):
+  #   global math
+  #   if math is None: from brainpy import math
+  #
+  # def cpu(self):
+  #   global math
+  #   if math is None: from brainpy import math
+  #
+  #   all_vars = self.vars().unique()
+  #   for data in all_vars.values():
+  #     data[:] = math.asarray(data.value)
+  #     # TODO
+  #
+  # def cuda(self):
+  #   global math
+  #   if math is None: from brainpy import math
+  #
+  # def tpu(self):
+  #   global math
+  #   if math is None: from brainpy import math

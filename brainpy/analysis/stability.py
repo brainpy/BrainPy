@@ -105,7 +105,7 @@ def get_3d_stability_types():
 
 
 def stability_analysis(derivatives):
-  """Stability analysis for fixed points.
+  """Stability analysis of fixed points for low-dimensional system.
 
   The analysis is referred to [1]_.
 
@@ -125,15 +125,15 @@ def stability_analysis(derivatives):
   .. [1] http://www.egwald.ca/nonlineardynamics/twodimensionaldynamics.php
 
   """
-  if np.size(derivatives) == 1:
+  if np.size(derivatives) == 1:  # 1D dynamical system
     if derivatives == 0:
       return SADDLE_NODE
     elif derivatives > 0:
-      return STABLE_POINT_1D
-    else:
       return UNSTABLE_POINT_1D
+    else:
+      return STABLE_POINT_1D
 
-  elif np.size(derivatives) == 4:
+  elif np.size(derivatives) == 4:  # 2D dynamical system
     a = derivatives[0][0]
     b = derivatives[0][1]
     c = derivatives[1][0]
@@ -180,7 +180,7 @@ def stability_analysis(derivatives):
           else:
             return STABLE_STAR_2D
 
-  elif np.size(derivatives) == 9:
+  elif np.size(derivatives) == 9:  # 3D dynamical system
     eigenvalues = np.linalg.eigvals(np.array(derivatives))
     is_real = np.isreal(eigenvalues)
     if is_real.all():

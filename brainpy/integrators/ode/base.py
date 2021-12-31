@@ -20,7 +20,8 @@ def f_names(f):
 
 
 class ODEIntegrator(Integrator):
-  """ODE Integrator."""
+  """Numerical Integrator for Ordinary Differential Equations (ODEs).
+  """
 
   def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
     super(ODEIntegrator, self).__init__(name=name)
@@ -32,6 +33,7 @@ class ODEIntegrator(Integrator):
 
     # derivative function
     self.derivative = {constants.F: f}
+    self.f = f
 
     # integration function
     self.integral = None

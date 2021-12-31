@@ -5,11 +5,7 @@ from collections import Counter
 
 from brainpy import errors, tools
 
-try:
-  import sympy
-except (ModuleNotFoundError, ImportError):
-  raise errors.PackageMissingError('Package "sympy" must be installed when the '
-                                   'users want to utilize the sympy analysis.')
+import sympy
 import sympy.functions.elementary.complexes
 import sympy.functions.elementary.exponential
 import sympy.functions.elementary.hyperbolic
@@ -19,6 +15,7 @@ import sympy.functions.elementary.trigonometric
 from sympy.codegen import cfunctions
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
+
 
 __all__ = [
   'CONSTANT_NOISE',
@@ -33,6 +30,7 @@ __all__ = [
   'Expression',
   'SingleDiffEq',
 ]
+
 
 CONSTANT_NOISE = 'CONSTANT'
 FUNCTIONAL_NOISE = 'FUNCTIONAL'

@@ -4,5 +4,6 @@ Dynamics Training
 .. toctree::
    :maxdepth: 1
 
-   build_artificial_network
-   creat_custom_layers
+   building_artificial_network
+   creating_custom_layers
+   initializing_connection_weights
