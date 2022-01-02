@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import os
-import inspect
 import importlib
-from brainpy.math.numpy import function
-from brainpy.math.jax import controls, losses, activations, optimizers
-from brainpy.math.jax import autograd, compilation, operators, parallels
+import inspect
+import os
+
+from brainpy.math import (activations, autograd, controls, function,
+                          jit, losses, operators, optimizers, parallels,
+                          profile, setting)
 
 
 def get_class_funcs(module):
@@ -53,11 +54,11 @@ def write_module(module_name, filename, header=None):
   for m in classes:
     fout.write(f'   {m}\n')
 
-  # write autoclass
-  fout.write('\n')
-  for m in classes:
-    fout.write(f'.. autoclass:: {m}\n')
-    fout.write(f'   :members:\n\n')
+  # # write autoclass
+  # fout.write('\n')
+  # for m in classes:
+  #   fout.write(f'.. autoclass:: {m}\n')
+  #   fout.write(f'   :members:\n\n')
 
   fout.close()
 
@@ -90,69 +91,23 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
     for m in classes:
       fout.write(f'   {m}\n')
 
-    # write autoclass
-    fout.write('\n')
-    for m in classes:
-      fout.write(f'.. autoclass:: {m}\n')
-      fout.write(f'   :members:\n\n')
+    fout.write(f'\n\n')
+
+    # # write autoclass
+    # fout.write('\n')
+    # for m in classes:
+    #   fout.write(f'.. autoclass:: {m}\n')
+    #   fout.write(f'   :members:\n\n')
 
   fout.close()
 
 
-def generate_analysis_docs(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.analysis.symbolic',
-               filename=os.path.join(path, 'symbolic.rst'),
-               header='Dynamics Analysis (Symbolic)')
-
-  write_module(module_name='brainpy.analysis.numeric',
-               filename=os.path.join(path, 'numeric.rst'),
-               header='Dynamics Analysis (Numeric)')
-
-  write_module(module_name='brainpy.analysis.continuation',
-               filename=os.path.join(path, 'continuation.rst'),
-               header='Continuation Analysis')
-
-  write_module(module_name='brainpy.analysis.stability',
-               filename=os.path.join(path, 'stability.rst'),
-               header='Stability Analysis')
-
-
-def generate_base_docs(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_submodules(module_name='brainpy.base',
-                   filename=os.path.join(path, 'base.rst'),
-                   header='``brainpy.base`` module',
-                   submodule_names=['base', 'function', 'collector', 'io'],
-                   section_names=['Base Class', 'Function Wrapper', 'Collectors', 'Exporting and Loading'])
-
-
-def generate_integrators_doc(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.integrators.ode.explicit_rk',
-               filename=os.path.join(path, 'ode_explicit_rk.rst'),
-               header='Explicit Runge-Kutta Methods')
-  write_module(module_name='brainpy.integrators.ode.adaptive_rk',
-               filename=os.path.join(path, 'ode_adaptive_rk.rst'),
-               header='Adaptive Runge-Kutta Methods')
-  write_module(module_name='brainpy.integrators.ode.exponential',
-               filename=os.path.join(path, 'ode_exponential.rst'),
-               header='Exponential Integrators')
-
-
-
-block_list = ['test', 'control_transform', 'register_pytree_node']
-for module in [compilation, autograd, function,
+block_list = ['test', 'register_pytree_node']
+for module in [jit, autograd, function,
                controls, losses, activations, optimizers,
-               operators, parallels]:
+               operators, parallels, setting, profile]:
   for k in dir(module):
-    if (not k.startswith('_') ) and (not inspect.ismodule(getattr(module, k))):
+    if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
 
 
@@ -177,13 +132,11 @@ def _import(mod, klass):
     return obj, ':obj:`{}.{{}}`'.format(mod)
 
 
-def _generate_comparison_rst(numpy_mod, brainpy_np, brainpy_jax, klass, header=', , '):
+def _generate_comparison_rst(numpy_mod, brainpy_jax, klass, header=', , '):
   np_obj, np_fmt = _import(numpy_mod, klass)
   np_funcs = _get_functions(np_obj)
-  brainpy_np_obj, brainpy_np_fmt = _import(brainpy_np, klass)
-  brainpy_np_funcs = _get_functions(brainpy_np_obj)
   brainpy_jax_obj, brainpy_jax_fmt = _import(brainpy_jax, klass)
-  brainpy_jax_funcs = _get_functions(brainpy_jax_obj)
+  brainpy_funcs = _get_functions(brainpy_jax_obj)
 
   buf = []
   buf += [
@@ -193,36 +146,69 @@ def _generate_comparison_rst(numpy_mod, brainpy_np, brainpy_jax, klass, header='
   ]
   for f in sorted(np_funcs):
     np_cell = np_fmt.format(f)
-    brainpy_np_cell = brainpy_np_fmt.format(f) if f in brainpy_np_funcs else r'\-'
-    brainpy_jax_cell = brainpy_jax_fmt.format(f) if f in brainpy_jax_funcs else r'\-'
-    line = '   {}, {}, {}'.format(np_cell, brainpy_np_cell, brainpy_jax_cell)
+    brainpy_cell = brainpy_jax_fmt.format(f) if f in brainpy_funcs else r'\-'
+    line = '   {}, {}'.format(np_cell, brainpy_cell)
     buf.append(line)
 
-  unique_names = brainpy_np_funcs - np_funcs
-  unique_names.update(brainpy_jax_funcs - np_funcs)
+  unique_names = brainpy_funcs - np_funcs
   for f in sorted(unique_names):
     np_cell = r'\-'
-    brainpy_np_cell = brainpy_np_fmt.format(f) if f in brainpy_np_funcs else r'\-'
-    brainpy_jax_cell = brainpy_jax_fmt.format(f) if f in brainpy_jax_funcs else r'\-'
-    line = '   {}, {}, {}'.format(np_cell, brainpy_np_cell, brainpy_jax_cell)
+    brainpy_cell = brainpy_jax_fmt.format(f) if f in brainpy_funcs else r'\-'
+    line = '   {}, {}'.format(np_cell, brainpy_cell)
     buf.append(line)
 
   buf += [
     '',
     '**Summary**\n',
     '- Number of NumPy functions: {}\n'.format(len(np_funcs)),
-    '- Number of functions covered by ``brainpy.math.numpy``: {}\n'.format(len(brainpy_np_funcs & np_funcs)),
-    '- Number of functions covered by ``brainpy.math.jax``: {}\n'.format(len(brainpy_jax_funcs & np_funcs)),
+    '- Number of functions covered by ``brainpy.math``: {}\n'.format(
+      len(brainpy_funcs & np_funcs)),
   ]
   return buf
 
 
-def _section(header, numpy_mod, brainpy_np, brainpy_jax, klass=None):
+def _section(header, numpy_mod, brainpy_jax, klass=None):
   buf = [header, '-' * len(header), '', ]
-  header2 = 'NumPy, brainpy.math.numpy, brainpy.math.jax'
-  buf += _generate_comparison_rst(numpy_mod, brainpy_np, brainpy_jax, klass, header=header2)
+  header2 = 'NumPy, brainpy.math'
+  buf += _generate_comparison_rst(numpy_mod, brainpy_jax, klass, header=header2)
   buf += ['']
   return buf
+
+
+def generate_base_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  module_and_name = [
+    ('base', 'Base Class'),
+    ('function', 'Function Wrapper'),
+    ('collector', 'Collectors'),
+    ('io', 'Exporting and Loading'),
+    ('naming', 'Naming Tools'),
+  ]
+  write_submodules(module_name='brainpy.base',
+                   filename=os.path.join(path, 'base.rst'),
+                   header='``brainpy.base`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+
+
+def generate_integrators_doc(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.integrators.ode.explicit_rk',
+               filename=os.path.join(path, 'ode_explicit_rk.rst'),
+               header='Explicit Runge-Kutta Methods')
+  write_module(module_name='brainpy.integrators.ode.adaptive_rk',
+               filename=os.path.join(path, 'ode_adaptive_rk.rst'),
+               header='Adaptive Runge-Kutta Methods')
+  write_module(module_name='brainpy.integrators.ode.exponential',
+               filename=os.path.join(path, 'ode_exponential.rst'),
+               header='Exponential Integrators')
+  write_module(module_name='brainpy.integrators.joint_eq',
+               filename=os.path.join(path, 'joint_eq.rst'),
+               header='Joint Equation')
 
 
 def generate_math_docs(path):
@@ -231,93 +217,152 @@ def generate_math_docs(path):
   buf = []
   buf += _section(header='Multi-dimensional Array',
                   numpy_mod='numpy',
-                  brainpy_np='brainpy.math.numpy',
-                  brainpy_jax='brainpy.math.jax',
+                  brainpy_jax='brainpy.math',
                   klass='ndarray')
   buf += _section(header='Array Operations',
                   numpy_mod='numpy',
-                  brainpy_np='brainpy.math.numpy',
-                  brainpy_jax='brainpy.math.jax')
+                  brainpy_jax='brainpy.math')
   buf += _section(header='Linear Algebra',
                   numpy_mod='numpy.linalg',
-                  brainpy_np='brainpy.math.numpy.linalg',
-                  brainpy_jax='brainpy.math.jax.linalg')
+                  brainpy_jax='brainpy.math.linalg')
   buf += _section(header='Discrete Fourier Transform',
                   numpy_mod='numpy.fft',
-                  brainpy_np='brainpy.math.numpy.fft',
-                  brainpy_jax='brainpy.math.jax.fft')
+                  brainpy_jax='brainpy.math.fft')
   buf += _section(header='Random Sampling',
                   numpy_mod='numpy.random',
-                  brainpy_np='brainpy.math.numpy.random',
-                  brainpy_jax='brainpy.math.jax.random')
+                  brainpy_jax='brainpy.math.random')
   codes = '\n'.join(buf)
 
+  if not os.path.exists(path): os.makedirs(path)
   with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
     f.write(codes)
 
-  path = os.path.join(path, 'jax_math/')
-  if not os.path.exists(path): os.makedirs(path)
-  write_module(module_name='brainpy.math.jax.optimizers',
+  write_module(module_name='brainpy.math.optimizers',
                filename=os.path.join(path, 'optimizers.rst'),
                header='Optimizers')
-  write_module(module_name='brainpy.math.jax.losses',
+  write_module(module_name='brainpy.math.losses',
                filename=os.path.join(path, 'losses.rst'),
                header='Loss Functions')
-  write_module(module_name='brainpy.math.jax.activations',
+  write_module(module_name='brainpy.math.activations',
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
-  write_module(module_name='brainpy.math.jax.autograd',
+  write_module(module_name='brainpy.math.autograd',
                filename=os.path.join(path, 'autograd.rst'),
                header='Automatic Differentiation')
-  write_module(module_name='brainpy.math.jax.controls',
+  write_module(module_name='brainpy.math.controls',
                filename=os.path.join(path, 'controls.rst'),
                header='Control Flows')
-  write_module(module_name='brainpy.math.jax.operators',
+  write_module(module_name='brainpy.math.operators',
                filename=os.path.join(path, 'operators.rst'),
                header='Operators')
-  write_module(module_name='brainpy.math.jax.parallels',
+  write_module(module_name='brainpy.math.parallels',
                filename=os.path.join(path, 'parallels.rst'),
                header='Parallel Compilation')
+  write_module(module_name='brainpy.math.jit',
+               filename=os.path.join(path, 'jit.rst'),
+               header='JIT Compilation')
+  write_module(module_name='brainpy.math.jaxarray',
+               filename=os.path.join(path, 'variables.rst'),
+               header='Math Variables')
+  write_module(module_name='brainpy.math.setting',
+               filename=os.path.join(path, 'setting.rst'),
+               header='Setting')
+  write_module(module_name='brainpy.math.function',
+               filename=os.path.join(path, 'function.rst'),
+               header='Function')
+  write_module(module_name='brainpy.math.profile',
+               filename=os.path.join(path, 'profile.rst'),
+               header='Profile')
+  write_module(module_name='brainpy.math.numpy',
+               filename=os.path.join(path, 'numpy.rst'),
+               header='JIT for NumPy')
+
+
+def generate_building_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  # submodules in 'simulation' package
+  write_module(module_name='brainpy.building.brainobjects',
+               filename=os.path.join(path, 'brainobjects.rst'),
+               header='Brain Objects')
+  module_and_name = [('neurons', 'Neuron Models'),
+                     ('synapses', 'Synapse Models'), ]
+  write_submodules(module_name='brainpy.building.models',
+                   filename=os.path.join(path, 'models.rst'),
+                   header='Brain Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+  module_and_name = [('base', 'Base Class'),
+                     ('custom_conn', 'Custom Connections'),
+                     ('random_conn', 'Random Connections'),
+                     ('regular_conn', 'Regular Connections'), ]
+  write_submodules(module_name='brainpy.building.connect',
+                   filename=os.path.join(path, 'connect.rst'),
+                   header='Synaptic Connectivity',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  # py-files in 'simulation' package
+  write_module(module_name='brainpy.building.inputs',
+               filename=os.path.join(path, 'inputs.rst'),
+               header='Current Inputs')
+
 
 def generate_simulation_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  # submodules in 'simulation' package
-  write_module(module_name='brainpy.simulation.brainobjects',
-               filename=os.path.join(path, 'brainobjects.rst'),
-               header='Brain Objects')
-  write_module(module_name='brainpy.simulation.layers',
-               filename=os.path.join(path, 'layers.rst'),
-               header='DNN Layers')
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('custom_conn', 'Custom Connections'),
-    ('random_conn', 'Random Connections'),
-    ('regular_conn', 'Regular Connections'),
-    ('formatter', 'Formatter Functions'),
-  ]
-  write_submodules(module_name='brainpy.simulation.connect',
-                   filename=os.path.join(path, 'connect.rst'),
-                   header='Synaptic Connectivity',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-  write_submodules(module_name='brainpy.simulation.initialize',
-                   filename=os.path.join(path, 'initialize.rst'),
-                   header='Weight Initialization',
-                   submodule_names=['base', 'regular_inits', 'random_inits', 'decay_inits'],
-                   section_names=['Base Class', 'Regular Initializers', 'Random Initializers', 'Decay Initializers'])
-
   # py-files in 'simulation' package
-  write_module(module_name='brainpy.simulation.inputs',
-               filename=os.path.join(path, 'inputs.rst'),
-               header='Current Inputs')
   write_module(module_name='brainpy.simulation.measure',
                filename=os.path.join(path, 'measure.rst'),
                header='Measurements')
   write_module(module_name='brainpy.simulation.monitor',
                filename=os.path.join(path, 'monitor.rst'),
                header='Monitors')
+  write_module(module_name='brainpy.simulation.runner',
+               filename=os.path.join(path, 'runner.rst'),
+               header='Runners')
+
+
+def generate_training_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  # submodules in 'training' package
+  write_module(module_name='brainpy.training.layers',
+               filename=os.path.join(path, 'layers.rst'),
+               header='DNN Layers')
+  module_and_name = [('base', 'Base Class'),
+                     ('regular_inits', 'Regular Initializers'),
+                     ('random_inits', 'Random Initializers'),
+                     ('decay_inits', 'Decay Initializers'), ]
+  write_submodules(module_name='brainpy.training.initialize',
+                   filename=os.path.join(path, 'initialize.rst'),
+                   header='Weight Initialization',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+
+def generate_analysis_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.analysis.lowdim',
+               filename=os.path.join(path, 'lowdim.rst'),
+               header='Low-dimensional Analyzers')
+
+  write_module(module_name='brainpy.analysis.highdim',
+               filename=os.path.join(path, 'highdim.rst'),
+               header='High-dimensional Analyzers')
+
+  # write_module(module_name='brainpy.analysis.continuation',
+  #              filename=os.path.join(path, 'continuation.rst'),
+  #              header='Continuation Analysis')
+
+  write_module(module_name='brainpy.analysis.stability',
+               filename=os.path.join(path, 'stability.rst'),
+               header='Stability Analysis')
 
 
 def generate_tools_docs(path):
@@ -325,28 +370,19 @@ def generate_tools_docs(path):
     os.makedirs(path)
 
   module_and_name = [
-      ('ast2code', 'AST-to-Code'),
-      ('codes', 'Code Tools'),
-      ('dicts', 'New Dict'),
-      ('namechecking', 'Name Checking'),
-      ('others', 'Other Tools'),
-    ]
-  modules = [k[0] for k in module_and_name]
-  names = [k[1] for k in module_and_name]
-
+    ('ast2code', 'AST-to-Code'),
+    ('codes', 'Code Tools'),
+    ('dicts', 'Dict Tools'),
+    ('numba_tools', 'Numba Tools'),
+    ('others', 'Other Tools'),
+  ]
   write_submodules(module_name='brainpy.tools',
                    filename=os.path.join(path, 'tools.rst'),
-                   submodule_names=modules,
-                   section_names=names)
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
 
 def generate_visualization_docs(path):
   if not os.path.exists(path): os.makedirs(path)
   write_module(module_name='brainpy.visualization',
                filename=os.path.join(path, 'visualization.rst'))
-
-
-def generate_jaxsetting_docs(path):
-  if not os.path.exists(path): os.makedirs(path)
-  write_module(module_name='brainpy.jaxsetting',
-               filename=os.path.join(path, 'jaxsetting.rst'))

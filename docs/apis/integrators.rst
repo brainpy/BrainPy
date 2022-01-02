@@ -5,9 +5,10 @@
 .. automodule:: brainpy.integrators
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
 
     integrators/general
+    auto/integrators/joint_eq
     integrators/ODE
     integrators/SDE
 

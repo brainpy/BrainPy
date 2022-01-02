@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
+import jax
+import jax.numpy as jnp
 from contextlib import contextmanager
-
-from brainpy import errors
 
 math = None
 
@@ -43,7 +43,7 @@ class Collector(dict):
     gather.update(other)
     return gather
 
-  def subset(self, var_type, judge_func=None):
+  def subset(self, var_type):
     """Get the subset of the (key, value) pair.
 
     ``subset()`` can be used to get a subset of some class:
@@ -65,33 +65,13 @@ class Collector(dict):
 
     Parameters
     ----------
-    var_type : Any
+    var_type : type
       The type/class to match.
-    judge_func : optional, callable
     """
-    global math
-    if math is None:
-      from brainpy import math
-
     gather = type(self)()
-    if type(var_type) == type:
-      judge_func = (lambda v: isinstance(v, var_type)) if judge_func is None else judge_func
-      for key, value in self.items():
-        if judge_func(value):
-          gather[key] = value
-    elif isinstance(var_type, str):
-      judge_func = (lambda v: v.__name__.startswith(var_type)) if judge_func is None else judge_func
-      for key, value in self.items():
-        if judge_func(value):
-          gather[key] = value
-    elif isinstance(var_type, math.Variable):
-      judge_func = (lambda v: var_type.issametype(v)) if judge_func is None else judge_func
-      for key, value in self.items():
-        if judge_func(value):
-          gather[key] = value
-    else:
-      raise errors.UnsupportedError(f'BrainPy do not support to subset {type(var_type)}. '
-                                    f'You should provide a class name, or a str.')
+    for key, value in self.items():
+      if isinstance(value, var_type):
+        gather[key] = value
     return gather
 
   def unique(self):
@@ -165,13 +145,6 @@ class TensorCollector(Collector):
     global math
     if math is None: from brainpy import math
 
-    try:
-      import jax
-      import jax.numpy as jnp
-    except ModuleNotFoundError as e:
-      raise ModuleNotFoundError('"ArrayCollector.replicate()" is only available in '
-                                'JAX backend, while JAX is not installed.') from e
-
     replicated, saved_states = {}, {}
     x = jnp.zeros((jax.local_device_count(), 1), dtype=math.float_)
     sharded_x = jax.pmap(lambda x: x, axis_name='device')(x)
@@ -179,10 +152,10 @@ class TensorCollector(Collector):
     num_device = len(devices)
     for k, d in self.items():
       if isinstance(d, math.random.RandomState):
-        replicated[k] = jax.api.device_put_sharded([shard for shard in d.split(num_device)], devices)
+        replicated[k] = jax.device_put_sharded([shard for shard in d.split(num_device)], devices)
         saved_states[k] = d.value
       else:
-        replicated[k] = jax.api.device_put_replicated(d.value, devices)
+        replicated[k] = jax.device_put_replicated(d.value, devices)
     self.assign(replicated)
     yield
     visited = set()

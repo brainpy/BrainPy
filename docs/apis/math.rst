@@ -7,11 +7,20 @@
 
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
-    math/general
-    math/core_jax
-    math/core_numpy
-    math/special_jax
+    auto/math/profile
+    auto/math/variables
+    auto/math/jit
+    auto/math/parallels
+    auto/math/operators
+    auto/math/controls
+    auto/math/autograd
+    auto/math/activations
+    auto/math/losses
+    auto/math/optimizers
+    auto/math/function
     math/comparison
+    auto/math/setting
+    auto/math/numpy
 

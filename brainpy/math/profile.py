@@ -1,30 +1,74 @@
 # -*- coding: utf-8 -*-
 
-from typing import List
 
-CLASS_KEYWORDS: List[str] = ['self', 'cls']
-SYSTEM_KEYWORDS: List[str] = ['_dt', '_t', '_i']
+import jax.numpy as jnp
+
+__all__ = [
+  'bool_',
+  'int_',
+  'float_',
+  'complex_',
+
+  'set_int_',
+  'set_float_',
+  'set_complex_',
+  'set_dt',
+  'get_dt',
+]
+
+# default dtype
+# --------------------------
 
 
-def set_class_keywords(*args):
-  """Set the keywords for class specification.
+bool_ = jnp.bool_
+int_ = jnp.int32
+float_ = jnp.float32
+complex_ = jnp.complex_
 
-  For example:
 
-  >>> class A(object):
-  >>>    def __init__(cls):
-  >>>        pass
-  >>>    def f(self, ):
-  >>>        pass
+def set_int_(int_type):
+  global int_
+  assert isinstance(int_type, type)
+  int_ = int_type
 
-  In this case, I use "cls" to denote the "self". So, I can set this by
 
-  >>> set_class_keywords('cls', 'self')
+def set_float_(float_type):
+  global float_
+  assert isinstance(float_type, type)
+  float_ = float_type
 
+
+def set_complex_(complex_type):
+  global complex_
+  assert isinstance(complex_type, type)
+  complex_ = complex_type
+
+
+# numerical precision
+# --------------------------
+
+__dt = 0.1
+
+
+def set_dt(dt):
+  """Set the numerical integrator precision.
+
+  Parameters
+  ----------
+  dt : float
+      Numerical integration precision.
   """
-  global CLASS_KEYWORDS
-  CLASS_KEYWORDS = list(args)
+  assert isinstance(dt, float), f'"dt" must a float, but we got {dt}'
+  global __dt
+  __dt = dt
 
 
-def get_class_keywords():
-  return CLASS_KEYWORDS
+def get_dt():
+  """Get the numerical integrator precision.
+
+  Returns
+  -------
+  dt : float
+      Numerical integration precision.
+  """
+  return __dt

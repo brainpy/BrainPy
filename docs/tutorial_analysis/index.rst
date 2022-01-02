@@ -4,5 +4,6 @@ Dynamics Analysis
 .. toctree::
    :maxdepth: 1
 
-   symbolic
-   numeric
+   lowdim_analysis
+   highdim_analysis
+   decision_making_model

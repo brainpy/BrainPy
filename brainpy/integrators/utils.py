@@ -4,7 +4,6 @@ import inspect
 from pprint import pprint
 
 from brainpy import errors
-from brainpy.math import profile
 
 __all__ = [
   'get_args',
@@ -29,7 +28,7 @@ def get_args(f):
 
   >>> def f2(a, b, *args, c=1, **kwargs): pass
   >>> get_args(f2)
-  ValueError: Don not support dict of keyword arguments: **kwargs
+  ValueError: Do not support dict of keyword arguments: **kwargs
 
   >>> def f3(a, b, t, c=1, d=2): pass
   >>> get_args(f4)
@@ -55,9 +54,9 @@ def get_args(f):
       The variable names, the other arguments, and the original args.
   """
 
-  # 1. get the function arguments
+  # get the function arguments
   reduced_args = []
-  original_args = []
+  args = []
 
   for name, par in inspect.signature(f).parameters.items():
     if par.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
@@ -67,37 +66,29 @@ def get_args(f):
       reduced_args.append(f'*{par.name}')
 
     elif par.kind is inspect.Parameter.KEYWORD_ONLY:
-      reduced_args.append(par.name)
-
+      raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support KEYWORD_ONLY '
+                               f'parameters, e.g., * (error in {f}).')
     elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
-      raise errors.DiffEqError('Don not support positional only parameters, e.g., /')
-    elif par.kind is inspect.Parameter.VAR_KEYWORD:
-      raise errors.DiffEqError(f'Don not support dict of keyword arguments: {str(par)}')
+      raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support POSITIONAL_ONLY '
+                               f'parameters, e.g., / (error in {f}).')
+    elif par.kind is inspect.Parameter.VAR_KEYWORD:  # TODO
+      raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support VAR_KEYWORD '
+                               f'arguments: {str(par)} (error in {f}).')
     else:
-      raise errors.DiffEqError(f'Unknown argument type: {par.kind}')
+      raise errors.DiffEqError(f'Unknown argument type: {par.kind} (error in {f}).')
 
-    original_args.append(str(par))
+    args.append(str(par))
 
-  # 2. analyze the function arguments
-  #   2.1 class keywords
-  # class_kw = []
-  # if reduced_args[0] in profile.CLASS_KEYWORDS:
-  #   class_kw.append(reduced_args[0])
-  #   reduced_args = reduced_args[1:]
-  # for a in reduced_args:
-  #   if a in profile.CLASS_KEYWORDS:
-  #     raise errors.DiffEqError(f'Class keywords "{a}" must be defined '
-  #                              f'as the first argument.')
-  #  2.2 variable names
-  var_names = []
+  #  variable names
+  vars = []
   for a in reduced_args:
     if a == 't':
       break
-    var_names.append(a)
+    vars.append(a)
   else:
     raise ValueError('Do not find time variable "t".')
-  other_args = reduced_args[len(var_names):]
-  return var_names, other_args, original_args
+  pars = reduced_args[len(vars):]
+  return vars, pars, args
 
 
 def compile_code(code_lines, code_scope, func_name, show_code=False):

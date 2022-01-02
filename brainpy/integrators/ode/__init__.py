@@ -35,8 +35,9 @@ name2method = {
   'bs': BogackiShampine, 'BogackiShampine': BogackiShampine,
   'heun_euler': HeunEuler, 'HeunEuler': HeunEuler,
 
-  # exponential euler
+  # exponential integrators
   'exponential_euler': ExponentialEuler, 'exp_euler': ExponentialEuler, 'ExponentialEuler': ExponentialEuler,
+  'exp_euler_auto': ExpEulerAuto, 'exp_auto': ExpEulerAuto, 'ExpEulerAuto': ExpEulerAuto,
 }
 
 _DEFAULT_ODE_METHOD = 'euler'

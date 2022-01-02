@@ -3,6 +3,10 @@
 
 from brainpy.base.base import Base
 
+__all__ = [
+  'Integrator',
+]
+
 
 class Integrator(Base):
   """Basic Integrator Class."""
@@ -11,5 +15,7 @@ class Integrator(Base):
   # derivative
   # code_scope
   #
-  pass
+  def build(self, *args, **kwargs):
+    raise NotImplementedError('Implement build method by yourself.')
+
 
