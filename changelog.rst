@@ -104,8 +104,8 @@ Documentation
 - Complete tutorials for API documentation
 
 
-brainpy 1.1.x
-*************
+brainpy 1.x
+***********
 
 Version 1.1.7 (2021.12.13)
 ==========================
@@ -232,10 +232,6 @@ Highlights of core changes:
 - weight initializations
 - refine synaptic connections
 
-
-
-brainpy 1.0.x
-*************
 
 Version 1.0.3 (2021.08.18)
 ==========================
