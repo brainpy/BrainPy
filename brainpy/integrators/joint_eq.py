@@ -96,7 +96,7 @@ class JointEq(object):
   to emerge the above two derivative equations into a joint equation, so that
   they will be numerically solved together. Let's see the difference:
 
-  >>> eq = bp.JointEq(eqs=(dV, du), variables=['V', 'u'])
+  >>> eq = bp.JointEq(eqs=(dV, du))
   >>> bp.odeint(dV, method='rk2', show_code=True)
   def brainpy_itg_of_ode0_joint_eq(V, u, t, Iext, dt=0.1):
     dV_k1, du_k1 = f(V, u, t, Iext)

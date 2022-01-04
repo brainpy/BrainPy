@@ -394,7 +394,8 @@ class StructRunner(BaseRunner):
         self._input_step(_t=_t, _dt=_dt)
         for step in self.target.steps.values():
           step(_t=_t, _dt=_dt)
-        id_tap(lambda *args: self._pbar.update(self.dt), ())
+        # id_tap(lambda *args: self._pbar.update(round(self.dt, 4)), ())
+        id_tap(lambda *args: self._pbar.update(), ())
         return self._monitor_step(_t=_t, _dt=_dt)
     else:
       def _step(t_and_dt):
@@ -559,8 +560,8 @@ class StructRunner(BaseRunner):
     time_steps = math.ones_like(times) * self.dt
     # running
     if self.progress_bar:
-      self._pbar = tqdm.auto.tqdm(total=duration)
-      self._pbar.set_description(f"Running a duration of {round(float(duration), 3)}", refresh=True)
+      self._pbar = tqdm.auto.tqdm(total=times.size)
+      self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)", refresh=True)
     t0 = time.time()
     _, hists = self._step([times.value, time_steps.value])
     running_time = time.time() - t0
