@@ -2,8 +2,14 @@ Release notes
 #############
 
 
-brainpy 2.x
-***********
+brainpy 2.x (LTS)
+*****************
+
+
+Version 2.0.0.1 (2022.01.05)
+============================
+
+- Add progress bar in ``brainpy.StructRunner``
 
 
 Version 2.0.0 (2021.12.31)
@@ -104,8 +110,8 @@ Documentation
 - Complete tutorials for API documentation
 
 
-brainpy 1.x
-***********
+brainpy 1.x (LTS)
+*****************
 
 Version 1.1.7 (2021.12.13)
 ==========================
