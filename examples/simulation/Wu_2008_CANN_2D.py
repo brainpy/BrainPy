@@ -1,3 +1,7 @@
+# Implementation of the paper:
+# - Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and computation
+#   of continuous attractors." Neural computation 20.4 (2008): 994-1025.
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -28,13 +32,13 @@ class CANN2D(bp.NeuGroup):
     self.rho = length / self.z_range  # The neural density
     self.dx = self.z_range / length  # The stimulus density
 
+    # The connections
+    self.conn_mat = self.make_conn()
+
     # variables
     self.r = bm.Variable(bm.zeros((length, length)))
     self.u = bm.Variable(bm.zeros((length, length)))
     self.input = bm.Variable(bm.zeros((length, length)))
-
-    # The connection matrix
-    self.conn_mat = self.make_conn(self.x)
 
   def show_conn(self):
     plt.imshow(np.asarray(self.conn_mat))
@@ -45,8 +49,8 @@ class CANN2D(bp.NeuGroup):
     v_size = bm.asarray([self.z_range, self.z_range])
     return bm.where(d > v_size / 2, v_size - d, d)
 
-  def make_conn(self, x):
-    x1, x2 = bm.meshgrid(x, x)
+  def make_conn(self):
+    x1, x2 = bm.meshgrid(self.x, self.x)
     value = bm.stack([x1.flatten(), x2.flatten()]).T
     d = self.dist(bm.abs(value[0] - value))
     d = bm.linalg.norm(d, axis=1)
@@ -55,7 +59,13 @@ class CANN2D(bp.NeuGroup):
     return Jxx
 
   def get_stimulus_by_pos(self, pos):
-    return self.A * bm.exp(-0.25 * bm.square(self.dist(self.x - pos) / self.a))
+    assert bm.size(pos) == 2
+    x1, x2 = bm.meshgrid(self.x, self.x)
+    value = bm.stack([x1.flatten(), x2.flatten()]).T
+    d = self.dist(bm.abs(bm.asarray(pos) - value))
+    d = bm.linalg.norm(d, axis=1)
+    d = d.reshape((self.length, self.length))
+    return self.A * bm.exp(-0.25 * bm.square(d / self.a))
 
   def update(self, _t, _dt):
     r1 = bm.square(self.u)
@@ -69,10 +79,31 @@ class CANN2D(bp.NeuGroup):
 
 
 cann = CANN2D(length=512, k=0.1)
+cann.show_conn()
 
+# encoding
+Iext, length = bp.inputs.section_input(
+  values=[cann.get_stimulus_by_pos([0., 0.]), 0.],
+  durations=[10., 20.], return_length=True
+)
 runner = bp.StructRunner(cann,
-                         # inputs=['input', Iext, 'iter'],
-                         # monitors=['u'],
+                         inputs=['input', Iext, 'iter'],
+                         monitors=['r'],
                          dyn_vars=cann.vars())
-t = runner.run(1000.)
-print(t)
+runner.run(length)
+
+bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length))
+
+
+# tracking
+length = 20
+positions = bp.inputs.ramp_input(-bm.pi, bm.pi, duration=length, t_start=0)
+positions = bm.stack([positions, positions]).T
+Iext = bm.vmap(cann.get_stimulus_by_pos)(positions)
+runner = bp.StructRunner(cann,
+                         inputs=['input', Iext, 'iter'],
+                         monitors=['r'],
+                         dyn_vars=cann.vars())
+runner.run(length)
+
+bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length))
