@@ -7,11 +7,13 @@ from pprint import pprint
 
 import jax.numpy as jnp
 import numpy as np
+import tqdm.auto
+from jax.experimental.host_callback import id_tap
 
 from brainpy import math, tools
+from brainpy.building.brainobjects import DynamicalSystem
 from brainpy.errors import RunningError, MonitorError
 from brainpy.simulation import utils
-from brainpy.building.brainobjects import DynamicalSystem
 from brainpy.simulation.monitor import Monitor
 
 logger = logging.getLogger('brainpy.simulation.runner')
@@ -361,36 +363,51 @@ class StructRunner(BaseRunner):
   """
 
   def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
-               jit=False, report=0., dt=None, numpy_mon_after_run=True):
+               jit=False, dt=None, numpy_mon_after_run=True, progress_bar=True):
     self._has_iter_array = False  # default do not have iterable input array
+
     super(StructRunner, self).__init__(target=target,
                                        inputs=inputs,
                                        monitors=monitors,
-                                       jit=jit, dt=dt,
+                                       jit=jit,
+                                       dt=dt,
                                        dyn_vars=dyn_vars,
                                        numpy_mon_after_run=numpy_mon_after_run)
+
+    # intrinsic parameters
+    self._i = math.Variable(math.asarray([0]))
+    self._pbar = None  # progress bar
+    self.progress_bar = progress_bar
+
     # JAX does not support iterator in fori_loop, scan, etc.
     #   https://github.com/google/jax/issues/3567
     # We use Variable i to index the current input data.
     if self._has_iter_array:
-      self._i = math.Variable(math.asarray([0]))
       self.dyn_vars.update({'_i': self._i})
     else:
       self._i = None
 
-    # report
-    if report > 0.: logger.warning(f'"report={report}" can not work in {self.__class__.__name__}.')
+    # setup step function
+    if progress_bar:
+      def _step(t_and_dt):
+        _t, _dt = t_and_dt[0], t_and_dt[1]
+        self._input_step(_t=_t, _dt=_dt)
+        for step in self.target.steps.values():
+          step(_t=_t, _dt=_dt)
+        # id_tap(lambda *args: self._pbar.update(round(self.dt, 4)), ())
+        id_tap(lambda *args: self._pbar.update(), ())
+        return self._monitor_step(_t=_t, _dt=_dt)
+    else:
+      def _step(t_and_dt):
+        _t, _dt = t_and_dt[0], t_and_dt[1]
+        self._input_step(_t=_t, _dt=_dt)
+        for step in self.target.steps.values():
+          step(_t=_t, _dt=_dt)
+        return self._monitor_step(_t=_t, _dt=_dt)
 
     # build the update step
-    self._step = math.make_loop(self._step, dyn_vars=self.dyn_vars, has_return=True)
+    self._step = math.make_loop(_step, dyn_vars=self.dyn_vars, has_return=True)
     if jit: self._step = math.jit(self._step, dyn_vars=dyn_vars)
-
-  def _step(self, t_and_dt):  # the step function
-    t, dt = t_and_dt[0], t_and_dt[1]
-    self._input_step(_t=t, _dt=dt)
-    for step in self.target.steps.values():
-      step(_t=t, _dt=dt)
-    return self._monitor_step(_t=t, _dt=dt)
 
   def _post(self, times, returns):  # monitor
     self.mon.ts = times
@@ -536,15 +553,21 @@ class StructRunner(BaseRunner):
       if self._start_t is None:
         start_t = 0.
       else:
-        start_t = self._start_t
-    end_t = start_t + duration
+        start_t = float(self._start_t)
+    end_t = float(start_t + duration)
     # times
     times = math.arange(start_t, end_t, self.dt)
     time_steps = math.ones_like(times) * self.dt
     # running
+    if self.progress_bar:
+      self._pbar = tqdm.auto.tqdm(total=times.size)
+      self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)", refresh=True)
     t0 = time.time()
     _, hists = self._step([times.value, time_steps.value])
     running_time = time.time() - t0
+    if self.progress_bar:
+      self._pbar.close()
+    # post-running
     self._post(times, hists)
     self._start_t = end_t
     if self.numpy_mon_after_run:

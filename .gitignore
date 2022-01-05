@@ -2,6 +2,9 @@ publishment.md
 #experimental/
 .vscode
 
+
+development
+
 examples/analysis/data
 brainpy_extensions/.idea
 brainpy_extensions/wheelhouse

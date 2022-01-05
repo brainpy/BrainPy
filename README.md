@@ -1,10 +1,10 @@
 <p align="center">
-  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://raw.githubusercontent.com/PKU-NIP-Lab/BrainPy/master/images/logo.png"  >
+  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="./images/logo.png"  >
 </p> 
 
 
-
 <p align="center">
+	<a href="https://pypi.org/project/brain-py/"><img alt="Supported Python Version" src="https://img.shields.io/pypi/pyversions/brain-py"></a>
 	<a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="LICENSE" src="https://anaconda.org/brainpy/brainpy/badges/license.svg"></a>
   	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brain-py"><img alt="PyPI version" src="https://badge.fury.io/py/brain-py.svg"></a>
@@ -13,7 +13,7 @@
 
 
 
-:clap::clap: **CHEERS**: A new version of BrainPy (>=2.0.0) has been released! :clap::clap: 
+:clap::clap: **CHEERS**: A new version of BrainPy (>=2.0.0, long term support) has been released! :clap::clap: 
 
 
 
@@ -140,17 +140,16 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/brainpy-2.x/api
 ### High-dimensional dynamics analysis
 
 - [*(Yang, 2020)*: Dynamical system analysis for RNN](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/recurrent_networks/Yang_2020_RNN_Analysis.html)
-
 - [Continuous-attractor Neural Network](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_CANN.html)
 - [Gap junction-coupled FitzHugh-Nagumo Model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_gj_coupled_fhn.html)
+
+
 
 
 # Citing BrainPy
 
 
-A nascent version of BrainPy was described in a [paper that appeared at ICONIP 2021](https://link.springer.com/chapter/10.1007/978-3-030-92238-2_2). 
-We're currently working on covering BrainPy's ideas and capabilities in a more comprehensive 
-and up-to-date paper. 
+A nascent version of BrainPy was described in a [paper that appeared at ICONIP 2021](https://link.springer.com/chapter/10.1007/978-3-030-92238-2_2). We're currently working on covering BrainPy's ideas and capabilities in a more comprehensive and up-to-date paper. 
 
 If you use BrainPy for your published research, you can cite BrainPy with:
 
@@ -172,6 +171,7 @@ or,
 ```
 
 
+
 # BrainPy 1.x
 
 If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and *models* through the following links:
@@ -181,8 +181,4 @@ If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and
 - **Canonical brain models**: https://brainmodels.readthedocs.io/en/brainpy-1.x/
 
 The changes from ``brainpy==1.x`` to ``brainpy==2.x`` can be inspected through [API documentation: release notes](https://brainpy.readthedocs.io/en/latest/apis/auto/changelog.html).
-
-
-
-
 

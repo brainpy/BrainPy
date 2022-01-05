@@ -3,6 +3,7 @@
 import brainpy.math as bm
 from brainpy.errors import ModelBuildError
 from brainpy.integrators.ode import odeint
+from brainpy.integrators.joint_eq import JointEq
 from brainpy.building.brainobjects import NeuGroup
 
 __all__ = [
@@ -207,8 +208,7 @@ class Izhikevich(NeuGroup):
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
-    self.int_V = odeint(method=method, f=self.dV)
-    self.int_u = odeint(method=method, f=self.du)
+    self.integral = odeint(method=method, f=JointEq([self.dV, self.du]))
 
   def dV(self, V, t, u, Iext):
     dVdt = 0.04 * V * V + 5 * V + 140 - u + Iext
@@ -219,8 +219,7 @@ class Izhikevich(NeuGroup):
     return dudt
 
   def update(self, _t, _dt):
-    V = self.int_V(self.V, _t, self.u, self.input, dt=_dt)
-    u = self.int_u(self.u, _t, self.V, dt=_dt)
+    V, u = self.integral(self.V, self.u, _t, self.input, dt=_dt)
     refractory = (_t - self.t_last_spike) <= self.tau_ref
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
@@ -330,8 +329,7 @@ class AdExIF(NeuGroup):
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
-    self.int_V = odeint(method=method, f=self.dV)
-    self.int_w = odeint(method=method, f=self.dw)
+    self.integral = odeint(method=method, f=JointEq([self.dV, self.dw]))
 
   def dV(self, V, t, w, Iext):
     dVdt = (- V + self.V_rest + self.delta_T * bm.exp((V - self.V_T) / self.delta_T) -
@@ -343,8 +341,7 @@ class AdExIF(NeuGroup):
     return dwdt
 
   def update(self, _t, _dt):
-    V = self.int_V(self.V, _t, self.w, self.input, dt=_dt)
-    w = self.int_w(self.w, _t, self.V, dt=_dt)
+    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
     spike = V >= self.V_th
     self.t_last_spike[:] = bm.where(spike, _t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
@@ -373,9 +370,9 @@ class SpikeTimeInput(NeuGroup):
   ----------
   size : int, tuple, list
       The neuron group geometry.
-  indices : int, list, tuple
+  indices : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
       The neuron indices at each time point to emit spikes.
-  times : list, np.ndarray
+  times : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
       The time points which generate the spikes.
   name : str, optional
       The name of the dynamic system.

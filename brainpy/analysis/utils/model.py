@@ -107,7 +107,8 @@ class TrajectModel(DynamicalSystem):
     # runner
     self.runner = StructRunner(self,
                                monitors=list(initial_vars.keys()),
-                               dyn_vars=self.vars().unique(), dt=dt)
+                               dyn_vars=self.vars().unique(), dt=dt,
+                               progress_bar=False)
 
   def update(self, _t, _dt):
     all_vars = list(self.implicit_vars.values())

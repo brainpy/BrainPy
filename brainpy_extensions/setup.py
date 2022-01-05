@@ -24,6 +24,7 @@ ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
                     sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
                     cxx_std=11,
+                    extra_link_args=["-rpath", "/Users/ztqakita/opt/miniconda3/lib/"],
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
 
