@@ -53,10 +53,10 @@ def event_sum(events, pre2post, post_num, values):
     indptr = jnp.repeat(jnp.arange(indptr.shape[0] - 1, dtype=indptr.dtype), jnp.diff(indptr))
 
   # TODO: GPU operator, method 2
-  if xla_bridge.get_backend().platform != 'cpu':
-    indptr = jnp.repeat(jnp.arange(indptr.shape[0] - 1, dtype=indptr.dtype), jnp.diff(indptr))
-    out = out.at[indices].add(events[indptr] * values)
-    return out
+  # if xla_bridge.get_backend().platform != 'cpu':
+  #   indptr = jnp.repeat(jnp.arange(indptr.shape[0] - 1, dtype=indptr.dtype), jnp.diff(indptr))
+  #   out = out.at[indices].add(events[indptr] * values)
+  #   return out
 
   # bind operator
   return _event_sum_prim.bind(events, indices, indptr, values, out)
