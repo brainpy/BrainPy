@@ -43,12 +43,6 @@ def atomic_sum(values, pre_ids, post_ids, post_num):
 
 
 def _atomic_sum_abstract(values, pre_ids, post_ids, out):
-  # dtype1 = dtypes.canonicalize_dtype(pre_ids.dtype)
-  # dtype2 = dtypes.canonicalize_dtype(post_ids.dtype)
-  # assert dtype1 in [np.uint32, np.uint64]
-  # assert dtype2 in [np.uint32, np.uint64]
-  # assert dtype1 == dtype2
-  # assert dtypes.canonicalize_dtype(values.dtype) == dtypes.canonicalize_dtype(out.dtype)
   return out
 
 

@@ -47,19 +47,16 @@ def event_sum(events, pre2post, post_num, values):
     raise ValueError(f'The size of "values" must be 1 (a scalar) or len(pre2post[0]) (a vector), '
                      f'while we got {values.size} != 1 != {indices.size}')
   out = jnp.zeros(post_num, dtype=values.dtype)
-
-  # TODO: GPU operator, method 1
-  if xla_bridge.get_backend().platform == 'gpu':
+  if xla_bridge.get_backend().platform != 'cpu':
     indptr = jnp.repeat(jnp.arange(indptr.shape[0] - 1, dtype=indptr.dtype), jnp.diff(indptr))
-
-  # TODO: GPU operator, method 2
-  # if xla_bridge.get_backend().platform != 'cpu':
-  #   indptr = jnp.repeat(jnp.arange(indptr.shape[0] - 1, dtype=indptr.dtype), jnp.diff(indptr))
-  #   out = out.at[indices].add(events[indptr] * values)
-  #   return out
-
-  # bind operator
-  return _event_sum_prim.bind(events, indices, indptr, values, out)
+    if values.size == 1:
+      out = out.at[indices].add(events[indptr]) * values
+    else:
+      out = out.at[indices].add(events[indptr] * values)
+    return out
+  else:
+    # bind operator
+    return _event_sum_prim.bind(events, indices, indptr, values, out)
 
 
 def _event_sum_abstract(events, indices, indptr, values, out):
@@ -105,14 +102,12 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
     v_type = b'_event_sum_homo' if len(values_dim) == 0 else b'_event_sum_heter'
     return x_ops.CustomCallWithLayout(
       c, platform.encode() + v_type + f_type + i_type,
-      operands=(
-        x_ops.ConstantLiteral(c, pre_size), x_ops.ConstantLiteral(c, post_size),
-        events, indices, indptr, values
-      ),
-      operand_shapes_with_layout=(
-        _pre_shape, _post_shape, c.get_shape(events),
-        c.get_shape(indices), c.get_shape(indptr), c.get_shape(values)
-      ),
+      operands=(x_ops.ConstantLiteral(c, pre_size),
+                x_ops.ConstantLiteral(c, post_size),
+                events, indices, indptr, values),
+      operand_shapes_with_layout=(_pre_shape, _post_shape, c.get_shape(events),
+                                  c.get_shape(indices), c.get_shape(indptr),
+                                  c.get_shape(values)),
       shape_with_layout=c.get_shape(out),
     )
   elif platform == 'gpu':
@@ -136,8 +131,6 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
 
 xla.backend_specific_translations["cpu"][_event_sum_prim] = \
   partial(_event_sum_translation, platform="cpu")
-xla.backend_specific_translations["gpu"][_event_sum_prim] = \
-  partial(_event_sum_translation, platform="gpu")
 
 # ---------------------------
 #
