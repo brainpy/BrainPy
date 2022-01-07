@@ -11,26 +11,35 @@ using namespace brainpy_lib;
 namespace {
     pybind11::dict Registrations() {
       pybind11::dict dict;
+
+      // event_sum for homogeneous value
       dict["cpu_event_sum_homo_f32_i32"] = EncapsulateFunction(cpu_event_sum_homo_f32_i32);
       dict["cpu_event_sum_homo_f32_i64"] = EncapsulateFunction(cpu_event_sum_homo_f32_i64);
       dict["cpu_event_sum_homo_f64_i32"] = EncapsulateFunction(cpu_event_sum_homo_f64_i32);
       dict["cpu_event_sum_homo_f64_i64"] = EncapsulateFunction(cpu_event_sum_homo_f64_i64);
-
+      // event_sum for heterogeneous values
       dict["cpu_event_sum_heter_f32_i32"] = EncapsulateFunction(cpu_event_sum_heter_f32_i32);
       dict["cpu_event_sum_heter_f32_i64"] = EncapsulateFunction(cpu_event_sum_heter_f32_i64);
       dict["cpu_event_sum_heter_f64_i32"] = EncapsulateFunction(cpu_event_sum_heter_f64_i32);
       dict["cpu_event_sum_heter_f64_i64"] = EncapsulateFunction(cpu_event_sum_heter_f64_i64);
 
-      dict["cpu_event_sum2_f32_i32"] = EncapsulateFunction(cpu_event_sum2_f32_i32);
-      dict["cpu_event_sum2_f32_i64"] = EncapsulateFunction(cpu_event_sum2_f32_i64);
-      dict["cpu_event_sum2_f64_i32"] = EncapsulateFunction(cpu_event_sum2_f64_i32);
-      dict["cpu_event_sum2_f64_i64"] = EncapsulateFunction(cpu_event_sum2_f64_i64);
-      
+      // event_sum2 for homogeneous value
+      dict["cpu_event_sum2_homo_f32_i32"] = EncapsulateFunction(cpu_event_sum2_homo_f32_i32);
+      dict["cpu_event_sum2_homo_f32_i64"] = EncapsulateFunction(cpu_event_sum2_homo_f32_i64);
+      dict["cpu_event_sum2_homo_f64_i32"] = EncapsulateFunction(cpu_event_sum2_homo_f64_i32);
+      dict["cpu_event_sum2_homo_f64_i64"] = EncapsulateFunction(cpu_event_sum2_homo_f64_i64);
+      // event_sum2 for heterogeneous values
+      dict["cpu_event_sum2_heter_f32_i32"] = EncapsulateFunction(cpu_event_sum2_heter_f32_i32);
+      dict["cpu_event_sum2_heter_f32_i64"] = EncapsulateFunction(cpu_event_sum2_heter_f32_i64);
+      dict["cpu_event_sum2_heter_f64_i32"] = EncapsulateFunction(cpu_event_sum2_heter_f64_i32);
+      dict["cpu_event_sum2_heter_f64_i64"] = EncapsulateFunction(cpu_event_sum2_heter_f64_i64);
+
+      // atomic_sum for heterogeneous values
       dict["cpu_atomic_sum_heter_f32_i32"] = EncapsulateFunction(cpu_atomic_sum_heter_f32_i32);
       dict["cpu_atomic_sum_heter_f32_i64"] = EncapsulateFunction(cpu_atomic_sum_heter_f32_i64);
       dict["cpu_atomic_sum_heter_f64_i32"] = EncapsulateFunction(cpu_atomic_sum_heter_f64_i32);
       dict["cpu_atomic_sum_heter_f64_i64"] = EncapsulateFunction(cpu_atomic_sum_heter_f64_i64);
-
+      // atomic_sum for homogeneous value
       dict["cpu_atomic_sum_homo_f32_i32"] = EncapsulateFunction(cpu_atomic_sum_homo_f32_i32);
       dict["cpu_atomic_sum_homo_f32_i64"] = EncapsulateFunction(cpu_atomic_sum_homo_f32_i64);
       dict["cpu_atomic_sum_homo_f64_i32"] = EncapsulateFunction(cpu_atomic_sum_homo_f64_i32);

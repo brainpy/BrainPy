@@ -12,15 +12,28 @@ using namespace brainpy_lib;
 namespace {
     pybind11::dict Registrations() {
       pybind11::dict dict;
-//      dict["gpu_event_sum_homo_f32_i32"] = EncapsulateFunction(gpu_event_sum_homo_f32_i32);
-//      dict["gpu_event_sum_homo_f32_i64"] = EncapsulateFunction(gpu_event_sum_homo_f32_i64);
-//      dict["gpu_event_sum_homo_f64_i32"] = EncapsulateFunction(gpu_event_sum_homo_f64_i32);
-//      dict["gpu_event_sum_homo_f64_i64"] = EncapsulateFunction(gpu_event_sum_homo_f64_i64);
+      // homogeneous event_sum
+      dict["gpu_event_sum_homo_f32_i32"] = EncapsulateFunction(gpu_event_sum_homo_f32_i32);
+      dict["gpu_event_sum_homo_f32_i64"] = EncapsulateFunction(gpu_event_sum_homo_f32_i64);
+      dict["gpu_event_sum_homo_f64_i32"] = EncapsulateFunction(gpu_event_sum_homo_f64_i32);
+      dict["gpu_event_sum_homo_f64_i64"] = EncapsulateFunction(gpu_event_sum_homo_f64_i64);
+      // heterogeneous event_sum
+      dict["gpu_event_sum_heter_f32_i32"] = EncapsulateFunction(gpu_event_sum_heter_f32_i32);
+      dict["gpu_event_sum_heter_f32_i64"] = EncapsulateFunction(gpu_event_sum_heter_f32_i64);
+      dict["gpu_event_sum_heter_f64_i32"] = EncapsulateFunction(gpu_event_sum_heter_f64_i32);
+      dict["gpu_event_sum_heter_f64_i64"] = EncapsulateFunction(gpu_event_sum_heter_f64_i64);
 
+      // homogeneous event_sum2
       dict["gpu_event_sum2_homo_f32_i32"] = EncapsulateFunction(gpu_event_sum2_homo_f32_i32);
       dict["gpu_event_sum2_homo_f32_i64"] = EncapsulateFunction(gpu_event_sum2_homo_f32_i64);
       dict["gpu_event_sum2_homo_f64_i32"] = EncapsulateFunction(gpu_event_sum2_homo_f64_i32);
       dict["gpu_event_sum2_homo_f64_i64"] = EncapsulateFunction(gpu_event_sum2_homo_f64_i64);
+      // heterogeneous event_sum2
+      dict["gpu_event_sum2_heter_f32_i32"] = EncapsulateFunction(gpu_event_sum2_heter_f32_i32);
+      dict["gpu_event_sum2_heter_f32_i64"] = EncapsulateFunction(gpu_event_sum2_heter_f32_i64);
+      dict["gpu_event_sum2_heter_f64_i32"] = EncapsulateFunction(gpu_event_sum2_heter_f64_i32);
+      dict["gpu_event_sum2_heter_f64_i64"] = EncapsulateFunction(gpu_event_sum2_heter_f64_i64);
+
       return dict;
     }
 

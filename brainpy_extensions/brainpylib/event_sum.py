@@ -40,23 +40,16 @@ def event_sum(events, pre2post, post_num, values):
     raise ValueError(f'The dtype of pre2post must be uint32 or uint64, while we got {indices.dtype}')
 
   # output value
-  values = jnp.asarray(values)
+  values = jnp.asarray([values])
   if values.dtype not in [jnp.float32, jnp.float64]:
     raise ValueError(f'The dtype of "values" must be float32 or float64, while we got {values.dtype}.')
   if values.size not in [1, indices.size]:
     raise ValueError(f'The size of "values" must be 1 (a scalar) or len(pre2post[0]) (a vector), '
                      f'while we got {values.size} != 1 != {indices.size}')
   out = jnp.zeros(post_num, dtype=values.dtype)
-  if xla_bridge.get_backend().platform != 'cpu':
-    indptr = jnp.repeat(jnp.arange(indptr.shape[0] - 1, dtype=indptr.dtype), jnp.diff(indptr))
-    if values.size == 1:
-      out = out.at[indices].add(events[indptr]) * values
-    else:
-      out = out.at[indices].add(events[indptr] * values)
-    return out
-  else:
-    # bind operator
-    return _event_sum_prim.bind(events, indices, indptr, values, out)
+  values = values.flatten()
+  # bind operator
+  return _event_sum_prim.bind(events, indices, indptr, values, out)
 
 
 def _event_sum_abstract(events, indices, indptr, values, out):
@@ -90,8 +83,6 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
   Ftype = values_shape.element_type()
   assert Ftype in [np.float32, np.float64]
   values_dim = values_shape.dimensions()
-  if len(values_dim) != 0:
-    assert values_dim == indices_shape.dimensions()
 
   # We dispatch a different call depending on the dtype
   f_type = b'_f32' if Ftype == np.float32 else b'_f64'
@@ -113,8 +104,7 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
   elif platform == 'gpu':
     if gpu_ops is None:
       raise ValueError('Cannot find compiled gpu wheels.')
-
-    v_type = b'_event_sum2_homo' if len(values_dim) == 0 else b'_event_sum2_heter'
+    v_type = b'_event_sum_homo' if values_dim[0] == 1 else b'_event_sum_heter'
     opaque = gpu_ops.build_gpu_descriptor(pre_size, post_size)
     return x_ops.CustomCallWithLayout(
       c, platform.encode() + v_type + f_type + i_type,
@@ -129,11 +119,12 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
     raise ValueError("Unsupported platform, we only support 'cpu' or 'gpu'")
 
 
-xla.backend_specific_translations["cpu"][_event_sum_prim] = \
-  partial(_event_sum_translation, platform="cpu")
+xla.backend_specific_translations["cpu"][_event_sum_prim] = partial(_event_sum_translation, platform="cpu")
+xla.backend_specific_translations["gpu"][_event_sum_prim] = partial(_event_sum_translation, platform="gpu")
+
 
 # ---------------------------
-#
+# event sum kernel 2
 # ---------------------------
 
 
@@ -150,12 +141,6 @@ def event_sum2(events, pre_ids, post_ids, post_num, value):
 
 
 def _event_sum2_abstract(events, pre_ids, post_ids, value, out):
-  dtype1 = dtypes.canonicalize_dtype(pre_ids.dtype)
-  dtype2 = dtypes.canonicalize_dtype(post_ids.dtype)
-  assert dtype1 in [np.uint32, np.uint64]
-  assert dtype2 in [np.uint32, np.uint64]
-  assert dtype1 == dtype2
-  assert dtypes.canonicalize_dtype(events.dtype) == np.bool_
   return out
 
 
