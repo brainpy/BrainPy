@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
 from matplotlib.gridspec import GridSpec
 
 from brainpy import math, errors
+
+logger = logging.getLogger('brainpy.visualization')
 
 
 __all__ = [
@@ -279,6 +283,7 @@ def animate_2D(values,
     if show:
       plt.show()
   else:
+    logger.warning(f'Saving the animation into {save_path} ...')
     if save_path[-3:] == 'gif':
       anim.save(save_path, dpi=gif_dpi, writer='imagemagick')
     elif save_path[-3:] == 'mp4':
@@ -487,6 +492,7 @@ def animate_1D(dynamical_vars,
   if save_path is None:
     if show: plt.show()
   else:
+    logger.warning(f'Saving the animation into {save_path} ...')
     if save_path[-3:] == 'gif':
       anim_result.save(save_path, dpi=gif_dpi, writer='imagemagick')
     elif save_path[-3:] == 'mp4':

@@ -1,5 +1,5 @@
-Release notes
-#############
+Release notes of brainpy
+########################
 
 
 brainpy 2.x (LTS)

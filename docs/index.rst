@@ -73,7 +73,8 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    apis/analysis.rst
    apis/auto/visualization.rst
    apis/auto/tools.rst
-   apis/auto/changelog.rst
+   apis/auto/changelog-brainpy.rst
+   apis/auto/changelog-brainpylib.rst
 
 
 Indices and tables
