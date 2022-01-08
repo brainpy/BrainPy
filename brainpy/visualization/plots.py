@@ -30,7 +30,8 @@ def line_plot(ts,
               ylabel=None,
               legend=None,
               title=None,
-              show=False):
+              show=False,
+              **kwargs):
   """Show the specified value in the given object (Neurons or Synapses.)
 
   Parameters
@@ -81,10 +82,10 @@ def line_plot(ts,
   # plot
   if legend:
     for idx in plot_ids:
-      ax.plot(ts, val_matrix[:, idx], label=f'{legend}-{idx}')
+      ax.plot(ts, val_matrix[:, idx], label=f'{legend}-{idx}', **kwargs)
   else:
     for idx in plot_ids:
-      ax.plot(ts, val_matrix[:, idx])
+      ax.plot(ts, val_matrix[:, idx], **kwargs)
 
   # legend
   if legend:
@@ -126,7 +127,8 @@ def raster_plot(ts,
                 xlim=None,
                 ylim=None,
                 title=None,
-                show=False):
+                show=False,
+                **kwargs):
   """Show the rater plot of the spikes.
 
   Parameters
@@ -168,7 +170,7 @@ def raster_plot(ts,
   # plot rater
   if ax is None:
     ax = plt
-  ax.plot(time, index, marker + color, markersize=markersize)
+  ax.plot(time, index, marker + color, markersize=markersize, **kwargs)
 
   # xlable
   if xlabel:
@@ -307,7 +309,8 @@ def animate_1D(dynamical_vars,
                gif_dpi=None,
                video_fps=None,
                save_path=None,
-               show=True):
+               show=True,
+               **kwargs):
   """Animation of one-dimensional data.
 
   Parameters
@@ -464,9 +467,9 @@ def animate_1D(dynamical_vars,
   def frame(t):
     fig.clf()
     for dvar in final_dynamic_vars:
-      plt.plot(dvar['xs'], dvar['ys'][t], label=dvar['legend'])
+      plt.plot(dvar['xs'], dvar['ys'][t], label=dvar['legend'], **kwargs)
     for svar in final_static_vars:
-      plt.plot(svar['xs'], svar['ys'], label=svar['legend'])
+      plt.plot(svar['xs'], svar['ys'], label=svar['legend'], **kwargs)
     if xlim is not None:
       plt.xlim(xlim[0], xlim[1])
     if has_legend:
