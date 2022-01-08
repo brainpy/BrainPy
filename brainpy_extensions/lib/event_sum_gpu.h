@@ -6,9 +6,14 @@
 #include <cstdint>
 
 namespace brainpy_lib {
-    struct SizeDescriptor {
-        std::int32_t pre_size;
-        std::int32_t post_size;
+    struct EventSumDescriptor {
+        std::uint32_t pre_size;
+        std::uint32_t post_size;
+    };
+
+    struct EventSum2Descriptor {
+        std::uint32_t conn_size;
+        std::uint32_t post_size;
     };
 
     // homogeneous
@@ -33,6 +38,9 @@ namespace brainpy_lib {
     void gpu_event_sum2_heter_f64_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
     void gpu_event_sum2_heter_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
 
+    // descriptors
+    EventSumDescriptor build_event_sum_descriptor(std::uint32_t pre_size, std::uint32_t post_size);
+    EventSum2Descriptor build_event_sum2_descriptor(std::uint32_t conn_size, std::uint32_t post_size);
 
 }  // namespace brainpy_lib
 
