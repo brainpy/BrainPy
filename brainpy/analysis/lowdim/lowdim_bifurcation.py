@@ -350,7 +350,7 @@ class Bifurcation2D(Num2DAnalyzer):
 
   def plot_limit_cycle_by_sim(self, duration=100, with_plot=True, with_return=False,
                               plot_style=None, tol=0.001, show=False, dt=None, offset=1.):
-    utils.output('I am plotting limit cycle ...')
+    utils.output('I am plotting the limit cycle ...')
     if self._fixed_points is None:
       utils.output('No fixed points found, you may call "plot_bifurcation(with_plot=True)" first.')
       return
@@ -437,7 +437,7 @@ class FastSlow1D(Bifurcation1D):
 
   def plot_trajectory(self, initials, duration, plot_durations=None,
                       dt=None, show=False, with_plot=True, with_return=False):
-    utils.output('I am plot trajectory ...')
+    utils.output('I am plotting the trajectory ...')
 
     # check the initial values
     initials = utils.check_initials(initials, self.target_var_names + self.target_par_names)
@@ -517,7 +517,7 @@ class FastSlow2D(Bifurcation2D):
 
   def plot_trajectory(self, initials, duration, plot_durations=None,
                       dt=None, show=False, with_plot=True, with_return=False):
-    utils.output('I am plot trajectory ...')
+    utils.output('I am plotting the trajectory ...')
 
     # check the initial values
     initials = utils.check_initials(initials, self.target_var_names + self.target_par_names)
