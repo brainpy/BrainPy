@@ -86,7 +86,8 @@ inline void gpu_atomic_sum_heter(cudaStream_t stream,
 
 
 // Descriptor
-EventSumDescriptor build_atomic_sum_descriptor(std::uint32_t conn_size, std::uint32_t post_size){
+EventSumDescriptor build_atomic_sum_descriptor(std::uint32_t conn_size,
+                                               std::uint32_t post_size){
     return PackDescriptor(AtomicSumDescriptor{conn_size, post_size});
 }
 

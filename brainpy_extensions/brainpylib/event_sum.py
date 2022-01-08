@@ -2,15 +2,16 @@
 
 __all__ = [
   'event_sum',
+  'event_sum2',
 ]
 
 from functools import partial
 
 import jax.numpy as jnp
 import numpy as np
-from jax import core, dtypes
+from jax import core
 from jax.interpreters import xla
-from jax.lib import xla_client, xla_bridge
+from jax.lib import xla_client
 
 try:
   from . import gpu_ops

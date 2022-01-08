@@ -184,12 +184,16 @@ inline void gpu_event_sum2_heter(cudaStream_t stream,
 
 // Descriptor
 
-EventSumDescriptor build_event_sum_descriptor(std::uint32_t pre_size, std::uint32_t post_size){
+EventSumDescriptor build_event_sum_descriptor(std::uint32_t pre_size,
+                                              std::uint32_t post_size){
     return PackDescriptor(EventSumDescriptor{pre_size, post_size});
 }
-EventSum2Descriptor build_event_sum2_descriptor(std::uint32_t conn_size, std::uint32_t post_size){
+
+EventSum2Descriptor build_event_sum2_descriptor(std::uint32_t conn_size,
+                                                std::uint32_t post_size){
     return PackDescriptor(EventSum2Descriptor{conn_size, post_size});
 }
+
 
 // homogenous event sum 1
 void gpu_event_sum_homo_f32_i32(cudaStream_t stream, void **buffers,
