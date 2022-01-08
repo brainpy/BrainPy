@@ -257,4 +257,4 @@ void gpu_event_sum2_heter_f64_i64(cudaStream_t stream, void **buffers, const cha
 }
 
 
-}  // namespace kepler_jax
+}  // namespace brainpylib

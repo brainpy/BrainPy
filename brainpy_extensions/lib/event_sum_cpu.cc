@@ -10,7 +10,8 @@ namespace{
       const bool *events = reinterpret_cast<const bool *>(in[2]);
       const I *indices = reinterpret_cast<const I *>(in[3]);
       const I *indptr = reinterpret_cast<const I *>(in[4]);
-      const F value = *reinterpret_cast<const F *>(in[5]);
+      const F *value = reinterpret_cast<const F *>(in[5]);
+      const F value = value[0];
 
       // The output
       F *result = reinterpret_cast<F *>(out);
@@ -58,7 +59,8 @@ namespace{
       const bool *events = reinterpret_cast<const bool *>(in[2]);
       const    I *pre_ids = reinterpret_cast<const   I *>(in[3]);
       const    I *post_ids = reinterpret_cast<const  I *>(in[4]);
-      const    F value = *reinterpret_cast<const F *>(in[5]);
+      const    F *value = reinterpret_cast<const F *>(in[5]);
+      const    F  value = value[0];
 
       // The output
       F *result = reinterpret_cast<F *>(out);
