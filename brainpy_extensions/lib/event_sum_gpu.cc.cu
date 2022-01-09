@@ -20,8 +20,9 @@ __global__ void gpu_event_sum_homo_kernel(const std::uint32_t size,
     for (std::uint32_t i=blockIdx.x * blockDim.x + threadIdx.x;
          i<size; i+=blockDim.x * gridDim.x) {
         if (events[i]) {
-            for (I j=indptr[i]; j<indptr[i + 1]; ++j)
+            for (I j=indptr[i]; j<indptr[i + 1]; ++j){
                 atomicAdd(&result[indices[j]], value);
+            }
         }
     }
 }

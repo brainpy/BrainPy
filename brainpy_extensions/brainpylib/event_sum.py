@@ -103,9 +103,9 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
     opaque = gpu_ops.build_event_sum_descriptor(pre_size, post_size)
     return x_ops.CustomCallWithLayout(
       c, platform.encode() + v_type + f_type + i_type,
-      operands=(events, indptr, indices, values),
-      operand_shapes_with_layout=(c.get_shape(events), c.get_shape(indptr),
-                                  c.get_shape(indices), c.get_shape(values)),
+      operands=(events, indices, indptr, values),
+      operand_shapes_with_layout=(c.get_shape(events), c.get_shape(indices),
+                                  c.get_shape(indptr), c.get_shape(values)),
       shape_with_layout=c.get_shape(out),
       opaque=opaque,
     )
@@ -187,7 +187,7 @@ def _event_sum2_translation(c, events, pre_ids, post_ids, values, out, *, platfo
 
   # And then the following is what changes between the GPU and CPU
   if platform == "cpu":
-    v_type = b'_event_sum2_homo' if len(values_dim) == 0 else b'_event_sum2_heter'
+    v_type = b'_event_sum2_homo' if values_dim[0] == 1 else b'_event_sum2_heter'
     return x_ops.CustomCallWithLayout(
       c, platform.encode() + v_type + f_type + i_type,
       operands=(x_ops.ConstantLiteral(c, conn_size),
