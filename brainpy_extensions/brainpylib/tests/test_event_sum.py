@@ -14,13 +14,12 @@ import brainpy.math as bm
 
 # from brainpy.building import
 
-bm.set_platform('cpu')
+bm.set_platform('gpu')
 
 class TestEventSum(unittest.TestCase):
   def test_homo_values(self):
     bp.math.random.seed(125)
     size = 200
-    # conn = bp.conn.FixedProb(prob=0.5, seed=123)
     conn = bp.conn.One2One()
     conn(pre_size=size, post_size=size)
     post_ids, indptr = conn.require('pre2post')
@@ -32,7 +31,6 @@ class TestEventSum(unittest.TestCase):
   def test_heter_value(self):
     bp.math.random.seed(12345)
     size = 200
-    # conn = bp.conn.FixedProb(prob=0.5, seed=123)
     conn = bp.conn.One2One()
     conn(pre_size=size, post_size=size)
     post_ids, indptr = conn.require('pre2post')
