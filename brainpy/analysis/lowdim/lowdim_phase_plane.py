@@ -62,7 +62,7 @@ class PhasePlane1D(Num1DAnalyzer):
 
   def plot_vector_field(self, show=False, with_plot=True, with_return=False):
     """Plot the vector filed."""
-    utils.output('I am creating vector fields ...')
+    utils.output('I am creating the vector field ...')
 
     # Nullcline of the x variable
     y_val = self.F_fx(self.resolutions[self.x_var])
@@ -178,7 +178,7 @@ class PhasePlane2D(Num2DAnalyzer):
           "units", "angles", "scale". More settings please check
           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html.
     """
-    utils.output('I am creating vector fields ...')
+    utils.output('I am creating the vector field ...')
 
     # get vector fields
     xs = self.resolutions[self.x_var]
@@ -378,7 +378,7 @@ class PhasePlane2D(Num2DAnalyzer):
         Whether show or not.
     """
 
-    utils.output('I am plot trajectory ...')
+    utils.output('I am plotting the trajectory ...')
 
     if axes not in ['v-v', 't-v']:
       raise errors.AnalyzerError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
@@ -461,7 +461,7 @@ class PhasePlane2D(Num2DAnalyzer):
     show : bool
         Whether show or not.
     """
-    utils.output('I am plotting limit cycle ...')
+    utils.output('I am plotting the limit cycle ...')
 
     # 1. format the initial values
     initials = utils.check_initials(initials, self.target_var_names)
