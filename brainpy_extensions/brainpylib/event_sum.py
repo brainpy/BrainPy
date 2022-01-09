@@ -85,7 +85,7 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
 
   # And then the following is what changes between the GPU and CPU
   if platform == "cpu":
-    v_type = b'_event_sum_homo' if len(values_dim) == 0 else b'_event_sum_heter'
+    v_type = b'_event_sum_homo' if values_dim[0] == 1 else b'_event_sum_heter'
     return x_ops.CustomCallWithLayout(
       c, platform.encode() + v_type + f_type + i_type,
       operands=(x_ops.ConstantLiteral(c, pre_size),
