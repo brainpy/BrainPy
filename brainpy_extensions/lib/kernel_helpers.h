@@ -38,14 +38,6 @@ namespace brainpy_lib {
       }
       return bit_cast<const T*>(opaque);
     }
-
-    // error handling //
-    void ThrowIfError(cudaError_t error) {
-        if (error != cudaSuccess) {
-            throw std::runtime_error(cudaGetErrorString(error));
-    }
-}
-
 }  // namespace brainpy_lib
 
 #endif

@@ -9,7 +9,7 @@ import unittest
 
 
 class TestAtomicSum(unittest.TestCase):
-  def test_heter_value(self):
+  def test_heter_values1(self):
     bp.math.random.seed(12345)
     size = 200
     post_ids = jnp.arange(size, dtype=jnp.uint32)
@@ -19,9 +19,9 @@ class TestAtomicSum(unittest.TestCase):
     a = atomic_sum(sps.value, post_ids, size, pre_ids)
     self.assertTrue(jnp.array_equal(a, sps.value))
 
-  def test_homo_values(self):
+  def test_homo_value1(self):
     size = 200
-    value = 1.
+    value = 2.
     post_ids = jnp.arange(size, dtype=jnp.uint32)
     a = atomic_sum(value, post_ids, size)
-    self.assertTrue(jnp.array_equal(a, value))
+    self.assertTrue(jnp.all(a == value))

@@ -3,6 +3,7 @@
 // it should get the point across.
 
 #include "kernel_helpers.h"
+#include "kernel_helpers_gpu.h"
 #include "atomic_sum_gpu.h"
 
 namespace brainpy_lib {
