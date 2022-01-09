@@ -2,8 +2,6 @@
 // and I make no promises about the quality of the code or the choices made therein, but
 // it should get the point across.
 
-#include "kernel_helpers.h"
-#include "kernel_helpers_gpu.h"
 #include "event_sum_gpu.h"
 
 namespace brainpy_lib {
@@ -92,7 +90,7 @@ inline void gpu_event_sum_heter(cudaStream_t stream,
     const int block_dim = 512;
     const int grid_dim = std::min<int>(1024, (pre_size + block_dim - 1) / block_dim);
     cudaMemset(result, 0, sizeof(F)*post_size);
-    gpu_event_sum_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(pre_size, events, indices, indptr, values, result);
+    gpu_event_sum_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(pre_size, events, indices, indptr, values, result);
     ThrowIfError(cudaGetLastError());
 }
 
@@ -185,12 +183,12 @@ inline void gpu_event_sum2_heter(cudaStream_t stream,
 
 // Descriptor
 
-EventSumDescriptor build_event_sum_descriptor(std::uint32_t pre_size,
+pybind11::bytes build_event_sum_descriptor(std::uint32_t pre_size,
                                               std::uint32_t post_size){
     return PackDescriptor(EventSumDescriptor{pre_size, post_size});
 }
 
-EventSum2Descriptor build_event_sum2_descriptor(std::uint32_t conn_size,
+pybind11::bytes build_event_sum2_descriptor(std::uint32_t conn_size,
                                                 std::uint32_t post_size){
     return PackDescriptor(EventSum2Descriptor{conn_size, post_size});
 }
@@ -260,7 +258,7 @@ void gpu_event_sum2_heter_f32_i64(cudaStream_t stream, void **buffers,
     gpu_event_sum2_heter<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
 }
 void gpu_event_sum2_heter_f64_i32(cudaStream_t stream, void **buffers,
-                                  const char *opaque, std::size_t opaque_len)
+                                  const char *opaque, std::size_t opaque_len){
     gpu_event_sum2_heter<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
 }
 void gpu_event_sum2_heter_f64_i64(cudaStream_t stream, void **buffers,

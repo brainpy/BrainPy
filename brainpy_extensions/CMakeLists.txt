@@ -21,9 +21,17 @@ enable_language(CUDA)
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 pybind11_add_module(
     gpu_ops
+    ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc
     ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_gpu.cc.cu
-    ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc)
+    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_gpu.cc.cu)
 install(TARGETS gpu_ops DESTINATION brainpylib)
+pybind11_add_module(
+    cpu_ops
+    ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc
+    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_cpu.cc
+    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_cpu.cc
+    )
+install(TARGETS cpu_ops DESTINATION brainpylib)
 
 # GPU op library
 #if (BRAINPY_CUDA)

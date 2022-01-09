@@ -1,9 +1,10 @@
 #ifndef _BRAINPY_ATOMIC_SUM_KERNELS_H_
 #define _BRAINPY_ATOMIC_SUM_KERNELS_H_
 
-#include <cuda_runtime_api.h>
 #include <cstddef>
 #include <cstdint>
+#include "pybind11_kernel_helpers.h"
+#include "kernel_helpers_gpu.h"
 
 namespace brainpy_lib {
     struct AtomicSumDescriptor {
@@ -23,7 +24,7 @@ namespace brainpy_lib {
     void gpu_atomic_sum_heter_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
 
     // descriptors
-    AtomicSumDescriptor build_atomic_sum_descriptor(std::uint32_t conn_size, std::uint32_t post_size);
+    pybind11::bytes build_atomic_sum_descriptor(std::uint32_t conn_size, std::uint32_t post_size);
 
 }  // namespace brainpy_lib
 

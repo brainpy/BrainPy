@@ -11,7 +11,7 @@
 
 namespace brainpy_lib {
     // error handling //
-    void ThrowIfError(cudaError_t error) {
+    static void ThrowIfError(cudaError_t error) {
         if (error != cudaSuccess) {
             throw std::runtime_error(cudaGetErrorString(error));
     }

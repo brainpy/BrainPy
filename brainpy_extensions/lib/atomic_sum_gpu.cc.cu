@@ -2,8 +2,6 @@
 // and I make no promises about the quality of the code or the choices made therein, but
 // it should get the point across.
 
-#include "kernel_helpers.h"
-#include "kernel_helpers_gpu.h"
 #include "atomic_sum_gpu.h"
 
 namespace brainpy_lib {
@@ -18,7 +16,7 @@ __global__ void gpu_atomic_sum_homo_kernel(const std::uint32_t size,
                                            F *result) {
     for (std::uint32_t i=blockIdx.x * blockDim.x + threadIdx.x;
          i<size; i+=blockDim.x * gridDim.x) {
-        atomicAdd(&result[post_ids[j]], value);
+        atomicAdd(&result[post_ids[i]], value);
     }
 }
 
@@ -33,7 +31,7 @@ inline void gpu_atomic_sum_homo(cudaStream_t stream,
     const std::uint32_t post_size = d.post_size;
 
     // input and output data
-    const bool *values = reinterpret_cast<const bool *>(buffers[0]);  // scalar as a vector
+    const F *values = reinterpret_cast<const F *>(buffers[0]);  // scalar as a vector
     const I *post_ids = reinterpret_cast<const I *>(buffers[1]);
     F *result = reinterpret_cast<F *>(buffers[2]);
 
@@ -68,7 +66,7 @@ inline void gpu_atomic_sum_heter(cudaStream_t stream,
     const std::uint32_t post_size = d.post_size;
 
     // input and output data
-    const bool *values = reinterpret_cast<const bool *>(buffers[0]);  // scalar as a vector
+    const F *values = reinterpret_cast<const F *>(buffers[0]);  // scalar as a vector
     const I *post_ids = reinterpret_cast<const I *>(buffers[1]);
     const I *pre_ids = reinterpret_cast<const I *>(buffers[2]);
     F *result = reinterpret_cast<F *>(buffers[3]);
@@ -77,7 +75,7 @@ inline void gpu_atomic_sum_heter(cudaStream_t stream,
     const int block_dim = 512;
     const int grid_dim = std::min<int>(1024, (conn_size + block_dim - 1) / block_dim);
     cudaMemset(result, 0, sizeof(F)*post_size);
-    gpu_atomic_sum_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(conn_size, values, post_ids, pre_ids, result);
+    gpu_atomic_sum_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(conn_size, values, post_ids, pre_ids, result);
     ThrowIfError(cudaGetLastError());
 }
 
@@ -87,7 +85,7 @@ inline void gpu_atomic_sum_heter(cudaStream_t stream,
 
 
 // Descriptor
-EventSumDescriptor build_atomic_sum_descriptor(std::uint32_t conn_size,
+pybind11::bytes build_atomic_sum_descriptor(std::uint32_t conn_size,
                                                std::uint32_t post_size){
     return PackDescriptor(AtomicSumDescriptor{conn_size, post_size});
 }

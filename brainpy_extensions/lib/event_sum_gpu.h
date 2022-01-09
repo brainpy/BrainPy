@@ -1,9 +1,10 @@
 #ifndef _BRAINPY_EVENT_SUM_KERNELS_H_
 #define _BRAINPY_EVENT_SUM_KERNELS_H_
 
-#include <cuda_runtime_api.h>
 #include <cstddef>
 #include <cstdint>
+#include "pybind11_kernel_helpers.h"
+#include "kernel_helpers_gpu.h"
 
 namespace brainpy_lib {
     struct EventSumDescriptor {
@@ -39,8 +40,8 @@ namespace brainpy_lib {
     void gpu_event_sum2_heter_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
 
     // descriptors
-    EventSumDescriptor build_event_sum_descriptor(std::uint32_t pre_size, std::uint32_t post_size);
-    EventSum2Descriptor build_event_sum2_descriptor(std::uint32_t conn_size, std::uint32_t post_size);
+    pybind11::bytes build_event_sum_descriptor(std::uint32_t pre_size, std::uint32_t post_size);
+    pybind11::bytes build_event_sum2_descriptor(std::uint32_t conn_size, std::uint32_t post_size);
 
 }  // namespace brainpy_lib
 
