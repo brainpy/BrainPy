@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time
-from collections import Iterable
+from collections.abc import Iterable
 
 from brainpy import math
 from brainpy.errors import RunningError
