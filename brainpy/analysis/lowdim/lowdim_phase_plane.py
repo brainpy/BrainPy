@@ -346,8 +346,8 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_return:
       return fixed_points
 
-  def plot_trajectory(self, initials, duration, plot_durations=None,
-                      axes='v-v', dt=None, show=False, with_plot=True, with_return=False):
+  def plot_trajectory(self, initials, duration, plot_durations=None, axes='v-v',
+                      dt=None, show=False, with_plot=True, with_return=False, **kwargs):
     """Plot trajectories according to the settings.
 
     Parameters
@@ -413,13 +413,14 @@ class PhasePlane2D(Num2DAnalyzer):
         start = int(plot_durations[i][0] / dt)
         end = int(plot_durations[i][1] / dt)
         if axes == 'v-v':
-          lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i], label=legend)
+          lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i],
+                           label=legend, **kwargs)
           utils.add_arrow(lines[0])
         else:
           plt.plot(mon_res.ts[start: end], mon_res[self.x_var][start: end, i],
-                   label=legend + f', {self.x_var}')
+                   label=legend + f', {self.x_var}', **kwargs)
           plt.plot(mon_res.ts[start: end], mon_res[self.y_var][start: end, i],
-                   label=legend + f', {self.y_var}')
+                   label=legend + f', {self.y_var}', **kwargs)
 
       # visualization of others
       if axes == 'v-v':
