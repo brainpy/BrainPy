@@ -28,3 +28,22 @@ class TestAtomicSum(unittest.TestCase):
     a = atomic_sum(value, post_ids, size)
     print(a)
     self.assertTrue(jnp.all(a == value))
+
+  def test_homo_fixedpro(self):
+    size = 10
+    value = 2.
+    conn = bp.conn.FixedProb(prob=1, seed=123)
+    conn(pre_size=size, post_size=size)
+    post_ids = conn.require('post_ids')
+    a = atomic_sum(value, post_ids.value, size)
+    print(a)
+
+  def test_heter_fixedpro(self):
+    size = 10
+    value = jnp.ones(size) * 2.
+    conn = bp.conn.FixedProb(prob=1, seed=123)
+    conn(pre_size=size, post_size=size)
+    pre_ids, post_ids = conn.require('pre_ids', 'post_ids')
+    a = atomic_sum(value, post_ids.value, size, pre_ids.value)
+    print(a)
+
