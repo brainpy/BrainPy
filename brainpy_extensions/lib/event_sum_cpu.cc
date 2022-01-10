@@ -91,8 +91,7 @@ namespace{
       memset(&result[0], 0, sizeof(result[0]) * post_size);
       for (std::uint32_t i=0; i<conn_size; ++i) {
         if (events[pre_ids[i]]){
-          const I post_i = post_ids[i];
-          result[post_i] += values[post_i];
+          result[post_ids[i]] += values[i];
         }
       }
     }

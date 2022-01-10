@@ -63,8 +63,7 @@ __global__ void gpu_event_sum_heter_kernel(const std::uint32_t size,
          i<size; i+=blockDim.x * gridDim.x) {
         if (events[i]) {
             for (I j=indptr[i]; j<indptr[i + 1]; ++j){
-                const I post_i = indices[j];
-                atomicAdd(&result[post_i], values[post_i]);
+                atomicAdd(&result[indices[j]], values[j]);
             }
         }
     }
