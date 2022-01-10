@@ -81,9 +81,9 @@ class LIF(NeuGroup):
   """
 
   def __init__(self, size, V_rest=0., V_reset=-5., V_th=20., tau=10.,
-               tau_ref=1., method='exp_auto', **kwargs):
+               tau_ref=1., method='exp_auto', name=None):
     # initialization
-    super(LIF, self).__init__(size=size, **kwargs)
+    super(LIF, self).__init__(size=size, name=name)
 
     # parameters
     self.V_rest = V_rest
@@ -187,9 +187,9 @@ class Izhikevich(NeuGroup):
   """
 
   def __init__(self, size, a=0.02, b=0.20, c=-65., d=8., tau_ref=0.,
-               V_th=30., method='exp_auto', **kwargs):
+               V_th=30., method='exp_auto', name=None):
     # initialization
-    super(Izhikevich, self).__init__(size=size, **kwargs)
+    super(Izhikevich, self).__init__(size=size, name=name)
 
     # params
     self.a = a
@@ -305,8 +305,8 @@ class AdExIF(NeuGroup):
   """
 
   def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_T=-59.9, delta_T=3.48, a=1.,
-               b=1., tau=10., tau_w=30., R=1., method='exp_auto', **kwargs):
-    super(AdExIF, self).__init__(size=size, **kwargs)
+               b=1., tau=10., tau_w=30., R=1., method='exp_auto', name=None):
+    super(AdExIF, self).__init__(size=size, name=name)
 
     # parameters
     self.V_rest = V_rest
@@ -423,8 +423,8 @@ class PoissonInput(NeuGroup):
       The name of the dynamic system.
   """
 
-  def __init__(self, size, freqs, seed=None, **kwargs):
-    super(PoissonInput, self).__init__(size=size, **kwargs)
+  def __init__(self, size, freqs, seed=None, name=None):
+    super(PoissonInput, self).__init__(size=size, name=name)
 
     self.freqs = freqs
     self.dt = bm.get_dt() / 1000.
