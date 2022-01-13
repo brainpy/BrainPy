@@ -97,7 +97,7 @@ class JointEq(object):
   they will be numerically solved together. Let's see the difference:
 
   >>> eq = bp.JointEq(eqs=(dV, du))
-  >>> bp.odeint(dV, method='rk2', show_code=True)
+  >>> bp.odeint(eq, method='rk2', show_code=True)
   def brainpy_itg_of_ode0_joint_eq(V, u, t, Iext, dt=0.1):
     dV_k1, du_k1 = f(V, u, t, Iext)
     k2_V_arg = V + dt * dV_k1 * 0.6666666666666666
@@ -119,9 +119,6 @@ class JointEq(object):
   ----------
   eqs : sequence of function, sequence of callable
     The elements of derivative function to compose.
-  variables: sequence of str
-    The variables in the derivative functions. This determines
-    the order of variables to call later.
   """
 
   def __init__(self, eqs):
@@ -145,6 +142,7 @@ class JointEq(object):
                                    f'variable name in {eq}. Please change another name.')
       vars_in_eqs.extend(vars)
       self.vars_in_eqs.append(vars)
+
     # arguments in equations
     self.args_in_eqs = []
     all_arg_pars = []
