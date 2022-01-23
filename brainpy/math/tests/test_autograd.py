@@ -10,6 +10,7 @@ import pytest
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy.math.autograd import _jacfwd
 
 
 class TestPureFuncGrad(unittest.TestCase):
@@ -368,7 +369,41 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)[0]
 
 
-class TestPureFuncJacrev(unittest.TestCase):
+class TestPureFuncJacobian(unittest.TestCase):
+  def test1(self):
+    jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 2]), has_aux=True)(3.)
+    self.assertTrue(jax.numpy.allclose(jac, jax.jacfwd(lambda x: x ** 3)(3.)))
+    self.assertTrue(aux[0] == 9.)
+
+  def test_jacfwd_and_aux_nested(self):
+    def f(x):
+      jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 3]), has_aux=True)(x)
+      return aux[0]
+
+    f2 = lambda x: x ** 3
+
+    self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
+    self.assertEqual(bm.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
+    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(4.), _jacfwd(f2)(4.))
+
+    self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(bm.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+
+    def f(x):
+      jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 3]), has_aux=True)(x)
+      return aux[0] * bm.sin(x)
+
+    f2 = lambda x: x ** 3 * bm.sin(x)
+
+    self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
+    self.assertEqual(bm.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
+    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(4.), _jacfwd(f2)(4.))
+
+    self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(bm.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+
   def test_jacrev1(self):
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
@@ -513,7 +548,7 @@ class TestPureFuncJacrev(unittest.TestCase):
     assert (vec == _r).all()
 
 
-class TestClassFuncJacrev(unittest.TestCase):
+class TestClassFuncJacobian(unittest.TestCase):
   def test_jacrev1(self):
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
@@ -539,13 +574,46 @@ class TestClassFuncJacrev(unittest.TestCase):
     _jr = jax.jacrev(f1)(_x, _y)
     t = Test()
     br = bm.jacrev(t, grad_vars=t.x)()
-    assert (br == _jr).all()
+    self.assertTrue((br == _jr).all())
 
     _jr = jax.jacrev(f1, argnums=(0, 1))(_x, _y)
     t = Test()
     br = bm.jacrev(t, grad_vars=[t.x, t.y])()
-    assert (br[0] == _jr[0]).all()
-    assert (br[1] == _jr[1]).all()
+    self.assertTrue((br[0] == _jr[0]).all())
+    self.assertTrue((br[1] == _jr[1]).all())
+
+  def test_jacfwd1(self):
+    def f1(x, y):
+      r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+      return r
+
+    _x = bm.array([1., 2., 3.])
+    _y = bm.array([10., 5.])
+
+    class Test(bp.Base):
+      def __init__(self):
+        super(Test, self).__init__()
+        self.x = bm.array([1., 2., 3.])
+        self.y = bm.array([10., 5.])
+
+      def __call__(self, ):
+        a = self.x[0] * self.y[0]
+        b = 5 * self.x[2] * self.y[1]
+        c = 4 * self.x[1] ** 2 - 2 * self.x[2]
+        d = self.x[2] * jnp.sin(self.x[0])
+        r = jnp.asarray([a, b, c, d])
+        return r
+
+    _jr = jax.jacfwd(f1)(_x, _y)
+    t = Test()
+    br = bm.jacfwd(t, grad_vars=t.x)()
+    self.assertTrue((br == _jr).all())
+
+    _jr = jax.jacfwd(f1, argnums=(0, 1))(_x, _y)
+    t = Test()
+    br = bm.jacfwd(t, grad_vars=[t.x, t.y])()
+    self.assertTrue((br[0] == _jr[0]).all())
+    self.assertTrue((br[1] == _jr[1]).all())
 
   def test_jacrev2(self):
     def f1(x, y):
@@ -571,15 +639,49 @@ class TestClassFuncJacrev(unittest.TestCase):
     _jr = jax.jacrev(f1)(_x, _y)
     t = Test()
     br = bm.jacrev(t, grad_vars=t.x)(_y)
-    assert (br == _jr).all()
+    self.assertTrue((br == _jr).all())
 
     _jr = jax.jacrev(f1, argnums=(0, 1))(_x, _y)
     t = Test()
     var_grads, arg_grads = bm.jacrev(t, grad_vars=t.x, argnums=0)(_y)
     print(var_grads, )
     print(arg_grads, )
-    assert (var_grads == _jr[0]).all()
-    assert (arg_grads == _jr[1]).all()
+    self.assertTrue((var_grads == _jr[0]).all())
+    self.assertTrue((arg_grads == _jr[1]).all())
+
+  def test_jacfwd2(self):
+    def f1(x, y):
+      r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+      return r
+
+    _x = bm.array([1., 2., 3.])
+    _y = bm.array([10., 5.])
+
+    class Test(bp.Base):
+      def __init__(self):
+        super(Test, self).__init__()
+        self.x = bm.array([1., 2., 3.])
+
+      def __call__(self, y):
+        a = self.x[0] * y[0]
+        b = 5 * self.x[2] * y[1]
+        c = 4 * self.x[1] ** 2 - 2 * self.x[2]
+        d = self.x[2] * jnp.sin(self.x[0])
+        r = jnp.asarray([a, b, c, d])
+        return r
+
+    _jr = jax.jacfwd(f1)(_x, _y)
+    t = Test()
+    br = bm.jacfwd(t, grad_vars=t.x)(_y)
+    self.assertTrue((br == _jr).all())
+
+    _jr = jax.jacfwd(f1, argnums=(0, 1))(_x, _y)
+    t = Test()
+    var_grads, arg_grads = bm.jacfwd(t, grad_vars=t.x, argnums=0)(_y)
+    print(var_grads, )
+    print(arg_grads, )
+    self.assertTrue((var_grads == _jr[0]).all())
+    self.assertTrue((arg_grads == _jr[1]).all())
 
   def test_jacrev_aux1(self):
     def f1(x, y):
@@ -605,7 +707,7 @@ class TestClassFuncJacrev(unittest.TestCase):
     _jr = jax.jacrev(f1)(_x, _y)
     t = Test()
     br = bm.jacrev(t, grad_vars=t.x)(_y)
-    assert (br == _jr).all()
+    self.assertTrue((br == _jr).all())
 
     t = Test()
     _jr = jax.jacrev(f1, argnums=(0, 1))(_x, _y)
@@ -613,9 +715,45 @@ class TestClassFuncJacrev(unittest.TestCase):
     (var_grads, arg_grads), aux = bm.jacrev(t, grad_vars=t.x, argnums=0, has_aux=True)(_y)
     print(var_grads, )
     print(arg_grads, )
-    assert (var_grads == _jr[0]).all()
-    assert (arg_grads == _jr[1]).all()
-    assert bm.array_equal(aux, _aux)
+    self.assertTrue((var_grads == _jr[0]).all())
+    self.assertTrue((arg_grads == _jr[1]).all())
+    self.assertTrue(bm.array_equal(aux, _aux))
+
+  def test_jacfwd_aux1(self):
+    def f1(x, y):
+      r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+      return r
+
+    _x = bm.array([1., 2., 3.])
+    _y = bm.array([10., 5.])
+
+    class Test(bp.Base):
+      def __init__(self):
+        super(Test, self).__init__()
+        self.x = bm.array([1., 2., 3.])
+
+      def __call__(self, y):
+        a = self.x[0] * y[0]
+        b = 5 * self.x[2] * y[1]
+        c = 4 * self.x[1] ** 2 - 2 * self.x[2]
+        d = self.x[2] * jnp.sin(self.x[0])
+        r = jnp.asarray([a, b, c, d])
+        return r, (c, d)
+
+    _jr = jax.jacfwd(f1)(_x, _y)
+    t = Test()
+    br = bm.jacfwd(t, grad_vars=t.x)(_y)
+    self.assertTrue((br == _jr).all())
+
+    t = Test()
+    _jr = jax.jacfwd(f1, argnums=(0, 1))(_x, _y)
+    _aux = t(_y)[1]
+    (var_grads, arg_grads), aux = bm.jacfwd(t, grad_vars=t.x, argnums=0, has_aux=True)(_y)
+    print(var_grads, )
+    print(arg_grads, )
+    self.assertTrue((var_grads == _jr[0]).all())
+    self.assertTrue((arg_grads == _jr[1]).all())
+    self.assertTrue(bm.array_equal(aux, _aux))
 
   def test_jacrev_return_aux1(self):
     def f1(x, y):
@@ -641,7 +779,7 @@ class TestClassFuncJacrev(unittest.TestCase):
     _jr = jax.jacrev(f1)(_x, _y)
     t = Test()
     br = bm.jacrev(t, grad_vars=t.x)(_y)
-    assert (br == _jr).all()
+    self.assertTrue((br == _jr).all())
 
     t = Test()
     _jr = jax.jacrev(f1, argnums=(0, 1))(_x, _y)
@@ -654,10 +792,49 @@ class TestClassFuncJacrev(unittest.TestCase):
     self.assertTrue(bm.array_equal(aux, _aux))
     self.assertTrue(bm.array_equal(value, _val))
 
+  def test_jacfwd_return_aux1(self):
+    def f1(x, y):
+      r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+      return r
+
+    _x = bm.array([1., 2., 3.])
+    _y = bm.array([10., 5.])
+
+    class Test(bp.Base):
+      def __init__(self):
+        super(Test, self).__init__()
+        self.x = bm.array([1., 2., 3.])
+
+      def __call__(self, y):
+        a = self.x[0] * y[0]
+        b = 5 * self.x[2] * y[1]
+        c = 4 * self.x[1] ** 2 - 2 * self.x[2]
+        d = self.x[2] * jnp.sin(self.x[0])
+        r = jnp.asarray([a, b, c, d])
+        return r, (c, d)
+
+    _jr = jax.jacfwd(f1)(_x, _y)
+    t = Test()
+    br = bm.jacfwd(t, grad_vars=t.x)(_y)
+    self.assertTrue((br == _jr).all())
+
+    t = Test()
+    _jr = jax.jacfwd(f1, argnums=(0, 1))(_x, _y)
+    _val, _aux = t(_y)
+    (var_grads, arg_grads), value, aux = bm.jacfwd(t, grad_vars=t.x, argnums=0, has_aux=True, return_value=True)(_y)
+    print(_val, )
+    print(_aux, )
+    print(var_grads, )
+    print(arg_grads, )
+    self.assertTrue((var_grads == _jr[0]).all())
+    self.assertTrue((arg_grads == _jr[1]).all())
+    self.assertTrue(bm.array_equal(aux, _aux))
+    self.assertTrue(bm.array_equal(value, _val))
+
 
 class TestPureFuncVectorGrad(unittest.TestCase):
   def test1(self):
-    f = lambda x:  3*x**2
+    f = lambda x: 3 * x ** 2
     _x = bm.ones(10)
     pprint(bm.vector_grad(f, argnums=0)(_x))
 
@@ -673,7 +850,7 @@ class TestPureFuncVectorGrad(unittest.TestCase):
     pprint(g)
     self.assertTrue(bm.array_equal(g, 2 * _x))
 
-    g = bm.vector_grad(f, argnums=(0, ))(_x, _y)
+    g = bm.vector_grad(f, argnums=(0,))(_x, _y)
     self.assertTrue(bm.array_equal(g[0], 2 * _x))
 
     g = bm.vector_grad(f, argnums=(0, 1))(_x, _y)
@@ -712,7 +889,7 @@ class TestPureFuncVectorGrad(unittest.TestCase):
     _y = bm.ones(5)
 
     g, aux = bm.vector_grad(f, has_aux=True)(_x, _y)
-    pprint(g,)
+    pprint(g, )
     pprint(aux)
     self.assertTrue(bm.array_equal(g, 2 * _x))
     self.assertTrue(bm.array_equal(aux, _x ** 3 + _y ** 3 - 10))
@@ -726,7 +903,7 @@ class TestPureFuncVectorGrad(unittest.TestCase):
     _y = bm.ones(5)
 
     g, value = bm.vector_grad(f, return_value=True)(_x, _y)
-    pprint(g,)
+    pprint(g, )
     pprint(value)
     self.assertTrue(bm.array_equal(g, 2 * _x))
     self.assertTrue(bm.array_equal(value, _x ** 2 + _y ** 2 + 10))
@@ -765,10 +942,9 @@ class TestClassFuncVectorGrad(unittest.TestCase):
     g = bm.vector_grad(t, grad_vars=t.x)()
     self.assertTrue(bm.array_equal(g, 2 * t.x))
 
-    g = bm.vector_grad(t, grad_vars=(t.x, ))()
+    g = bm.vector_grad(t, grad_vars=(t.x,))()
     self.assertTrue(bm.array_equal(g[0], 2 * t.x))
 
     g = bm.vector_grad(t, grad_vars=(t.x, t.y))()
     self.assertTrue(bm.array_equal(g[0], 2 * t.x))
     self.assertTrue(bm.array_equal(g[1], 2 * t.y))
-
