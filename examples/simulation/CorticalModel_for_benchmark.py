@@ -59,7 +59,7 @@ class ExpSyn(bp.TwoEndConn):
     self.check_pre_attrs('spike')
     self.check_post_attrs('I')
     assert syn_type in ['e', 'i']
-    assert conn_type in [0, 1]
+    assert conn_type in [0, 1, 2, 3]
     assert 0. < prob < 1.
 
     # parameters
@@ -78,6 +78,14 @@ class ExpSyn(bp.TwoEndConn):
       # number of synapses calculated with equation 5 from the article
       self.pre2post = bp.conn.FixedProb(prob)(pre.size, post.size).require('pre2post')
       self.num = self.pre2post[0].size
+    elif conn_type == 2:
+      self.num = int(prob * pre.num * post.num)
+      self.pre_ids = bm.random.randint(0, pre.num, size=self.num, dtype=bm.uint32)
+      self.post_ids = bm.random.randint(0, post.num, size=self.num, dtype=bm.uint32)
+    elif conn_type == 3:
+      self.pre2post = bp.conn.FixedProb(prob)(pre.size, post.size).require('pre2post')
+      self.num = self.pre2post[0].size
+      self.max_post_conn = bm.diff(self.pre2post[1]).max()
     else:
       raise ValueError
 
@@ -102,7 +110,17 @@ class ExpSyn(bp.TwoEndConn):
   def update(self, _t, _dt):
     self.pre_sps.push(self.pre.spike)
     delayed_sps = self.pre_sps.pull()
-    post_vs = bm.pre2post_event_sum(delayed_sps, self.pre2post, self.post.num, self.weights)
+    if self.conn_type in [0, 1]:
+      post_vs = bm.pre2post_event_sum(delayed_sps, self.pre2post, self.post.num, self.weights)
+    elif self.conn_type == 2:
+      post_vs = bm.pre2post_event_sum2(delayed_sps, self.pre_ids, self.post_ids, self.post.num, self.weights)
+      # post_vs = bm.zeros(self.post.num)
+      # post_vs = post_vs.value.at[self.post_ids.value].add(delayed_sps[self.pre_ids.value])
+    elif self.conn_type == 3:
+      post_vs = bm.pre2post_event_sum3(delayed_sps, self.pre2post, self.post.num, self.weights,
+                                       self.max_post_conn)
+    else:
+      raise ValueError
     self.post.I += post_vs
 
 
@@ -304,7 +322,7 @@ class CorticalMicrocircuit(bp.Network):
 
 
 bm.random.seed()
-net = CorticalMicrocircuit(conn_type=1, poisson_freq=8., stim_type=1, bg_type=0)
+net = CorticalMicrocircuit(conn_type=2, poisson_freq=8., stim_type=1, bg_type=0)
 sps_monitors = [f'{n}.spike' for n in net.layer_name[:-1]]
 runner = bp.StructRunner(net, monitors=sps_monitors)
 runner.run(1000.)
