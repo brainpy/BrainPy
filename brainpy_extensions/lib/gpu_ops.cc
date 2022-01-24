@@ -62,8 +62,7 @@ namespace {
         return dict;
     }
 
-    PYBIND11_MODULE(gpu_ops, m
-    ) {
+    PYBIND11_MODULE(gpu_ops, m) {
     m.def("registrations", &Registrations);
     m.def("build_event_sum_descriptor", &build_event_sum_descriptor);
     m.def("build_event_sum2_descriptor", &build_event_sum2_descriptor);
