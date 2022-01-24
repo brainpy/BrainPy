@@ -246,7 +246,8 @@ namespace brainpy_lib {
             if (id < max_post_num) {
                 const unsigned int num_block = (event_count + blockDim.x - 1) / blockDim.x;
                 for (unsigned int r = 0; r < num_block; r++) {
-                    const unsigned int num_event = (r == num_block - 1) ? ((event_count - 1) % blockDim.x) + 1 : blockDim.x;
+                    const unsigned int num_event = (r == num_block - 1) ? ((event_count - 1) % blockDim.x) + 1
+                                                                        : blockDim.x;
                     __syncthreads();
                     if (threadIdx.x < num_event) {
                         const unsigned int spk = event_ids[(r * 32) + threadIdx.x];
@@ -308,6 +309,102 @@ namespace brainpy_lib {
                                                                              indices,
                                                                              indptr,
                                                                              value,
+                                                                             event_ids,
+                                                                             event_num,
+                                                                             result);
+
+            // free memory
+            cudaFree(event_ids);
+            cudaFree(event_num);
+
+            // check error
+            ThrowIfError(cudaGetLastError());
+        }
+
+        template<typename F, typename I>
+        __global__ void event_sum3_heter_kernel(const std::uint32_t max_post_num,
+                                               const I *indices,
+                                               const I *indptr,
+                                               const F *values,
+                                               const unsigned int *event_ids,
+                                               const unsigned int *event_num,
+                                               F *result) {
+            const unsigned int id = blockDim.x * blockIdx.x + threadIdx.x;
+            __shared__ unsigned int shSpk[blockDim.x];
+            __shared__ I shRowLength[blockDim.x];
+            __shared__ unsigned int event_count;
+
+            if (threadIdx.x == 0) {
+                event_count = event_num[0];
+            }
+            __syncthreads();
+
+            if (id < max_post_num) {
+                const unsigned int num_block = (event_count + blockDim.x - 1) / blockDim.x;
+                for (unsigned int r = 0; r < num_block; r++) {
+                    const unsigned int num_event = (r == num_block - 1) ? ((event_count - 1) % blockDim.x) + 1
+                                                                        : blockDim.x;
+                    __syncthreads();
+                    if (threadIdx.x < num_event) {
+                        const unsigned int spk = event_ids[(r * 32) + threadIdx.x];
+                        shSpk[threadIdx.x] = spk;
+                        shRowLength[threadIdx.x] = indptr[spk + 1] - indptr[spk];
+                    }
+                    __syncthreads();
+                    // loop through all incoming spikes
+                    for (unsigned int j = 0; j < num_event; j++) {
+                        // only work on existing neurons
+                        const I post_num = shRowLength[j];
+                        if (id < post_num) {
+                            const I syn_i = indptr[shSpk[j]] + id;
+                            const I post_i = indices[syn_i];
+                            atomicAdd(&result[post_i], values[syn_i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        template<typename F, typename I>
+        inline void gpu_event_sum3_heter(cudaStream_t stream,
+                                        void **buffers,
+                                        const char *opaque,
+                                        std::size_t opaque_len) {
+            // size information
+            const EventSum3Descriptor &d = *UnpackDescriptor<EventSum3Descriptor>(opaque, opaque_len);
+            const std::uint32_t pre_size = d.pre_size;
+            const std::uint32_t post_size = d.post_size;
+            const std::uint32_t max_post_conn = d.max_post_conn;
+
+            // input and output data //
+            const bool *events = reinterpret_cast<const bool *>(buffers[0]);
+            const I *indices = reinterpret_cast<const I *>(buffers[1]);
+            const I *indptr = reinterpret_cast<const I *>(buffers[2]);
+            const F *values = reinterpret_cast<const F *>(buffers[3]);
+            F *result = reinterpret_cast<F *>(buffers[4]);
+
+            // get spike information //
+            unsigned int *event_ids;
+            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int))
+            // I *spikes[pre_size];
+            // cudaMemset(spikes, 0, sizeof(I)*pre_size);
+            unsigned int *event_num;
+            cudaMalloc(&event_num, 1 * sizeof(unsigned int))
+            const int block_dim = 64;
+            const int grid_dim = (pre_size + block_dim - 1) / block_dim;
+            collect_spike_info<<<grid_dim, block_dim, 0, stream>>>(events,
+                                                                   pre_size,
+                                                                   event_ids,
+                                                                   event_num);
+
+            // event sum kernel //
+            cudaMemset(result, 0, sizeof(F) * post_size);
+            block_dim = 32;
+            grid_dim = (max_post_conn + block_dim - 1) / block_dim;
+            event_sum3_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(max_post_num,
+                                                                             indices,
+                                                                             indptr,
+                                                                             values,
                                                                              event_ids,
                                                                              event_num,
                                                                              result);
@@ -487,6 +584,35 @@ namespace brainpy_lib {
                                      const char *opaque,
                                      std::size_t opaque_len) {
         gpu_event_sum3_homo<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    // heterogeneous event sum 3
+    void gpu_event_sum3_heter_f32_i32(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum3_heter<float, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum3_heter_f32_i64(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum3_heter<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum3_heter_f64_i32(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum3_heter<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum3_heter_f64_i64(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum3_heter<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
     }
 
 

@@ -78,6 +78,15 @@ namespace brainpy_lib {
 
     void gpu_event_sum3_homo_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
 
+    // event_sum3 heterogeneous
+    void gpu_event_sum3_heter_f32_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
+
+    void gpu_event_sum3_heter_f32_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
+
+    void gpu_event_sum3_heter_f64_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
+
+    void gpu_event_sum3_heter_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
+
 
 }  // namespace brainpy_lib
 
