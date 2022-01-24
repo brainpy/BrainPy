@@ -7,6 +7,7 @@ Version 0.0.3
 
 - Support ``event_sum()`` operator on GPU
 - Support ``event_sum2()`` operator on GPU
+- Support ``event_sum3()`` operator on both CPU and GPU
 - Support ``atomic_sum()`` operator on GPU
 
 
