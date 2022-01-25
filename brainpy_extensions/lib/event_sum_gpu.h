@@ -87,7 +87,6 @@ namespace brainpy_lib {
 
     void gpu_event_sum3_heter_f64_i64(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
 
-
     // event_sum4 homogeneous
     void gpu_event_sum4_homo_f32_i32(cudaStream_t stream, void **buffers, const char *opaque, std::size_t opaque_len);
 
