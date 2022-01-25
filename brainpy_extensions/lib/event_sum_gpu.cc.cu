@@ -431,6 +431,160 @@ namespace brainpy_lib {
         }
 
 
+        template<typename F, typename I>
+        __global__ void event_sum4_homo_kernel(const std::uint32_t max_post_conn,
+                                               const std::uint32_t pre_size,
+                                               const bool *events,
+                                               const I *indices,
+                                               const I *indptr,
+                                               const F &values,
+                                               F *result) {
+            __shared__ bool shared_events[32];
+            __shared__ I shRowLength[32];
+            __shared__ I shPreStartID[32];
+            __shared__ F value;
+
+            if (threadIdx.x == 0) {
+                value = values[0];
+            }
+            __syncthreads();
+
+            const I id = blockIdx.x * 32 + threadIdx.x;
+            if (id < max_post_conn) {
+                const unsigned int num_iter = (pre_size + 32 - 1) / 32;
+                for (unsigned int r = 0; r < num_iter; r++) {
+                    const unsigned int num_event = (r == num_iter - 1) ? ((event_count - 1) % 32) + 1 : 32;
+                    // assume "max_post_conn" >= num_event
+                    if (threadIdx.x < num_event) {
+                        const unsigned int pre_i = (r * 32) + threadIdx.x;
+                        shared_events[threadIdx.x] = events[pre_i];
+                        if shared_events[threadIdx.x]
+                        {
+                            shPreStartID[threadIdx.x] = indptr[pre_i];
+                            shRowLength[threadIdx.x] = indptr[pre_i + 1] - shPreStartID[threadIdx.x];
+                        }
+                    }
+                    __syncthreads();
+                    for (unsigned int j = 0; j < num_event; j++) {
+                        if (shared_events[j]) {
+                            if (id < shRowLength[j]) {
+                                const I syn_i = shPreStartID[j] + id;
+                                const I post_i = indices[syn_i];
+                                atomicAdd(&result[post_i], value);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        template<typename F, typename I>
+        inline void gpu_event_sum4_homo(cudaStream_t stream,
+                                        void **buffers,
+                                        const char *opaque,
+                                        std::size_t opaque_len) {
+            // size
+            const EventSumDescriptor &d = *UnpackDescriptor<EventSum3Descriptor>(opaque, opaque_len);
+            const std::uint32_t pre_size = d.pre_size;
+            const std::uint32_t post_size = d.post_size;
+            const std::uint32_t max_post_conn = d.max_post_conn;
+
+            // input and output data
+            const bool *events = reinterpret_cast<const bool *>(buffers[0]);
+            const I *indices = reinterpret_cast<const I *>(buffers[1]);
+            const I *indptr = reinterpret_cast<const I *>(buffers[2]);
+            const F *values = reinterpret_cast<const F *>(buffers[3]); // 1D vector with the size of 1
+            F *result = reinterpret_cast<F *>(buffers[4]);
+
+            // call kernel
+            const int block_dim = 32;
+            const int grid_dim = (max_post_conn + block_dim - 1) / block_dim;
+            cudaMemset(result, 0, sizeof(F) * post_size);
+            event_sum4_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(max_post_conn,
+                                                                             pre_size,
+                                                                             events,
+                                                                             indices,
+                                                                             indptr,
+                                                                             values,
+                                                                             result);
+            ThrowIfError(cudaGetLastError());
+        }
+
+        template<typename F, typename I>
+        __global__ void event_sum4_heter_kernel(const std::uint32_t max_post_conn,
+                                                const std::uint32_t pre_size,
+                                                const bool *events,
+                                                const I *indices,
+                                                const I *indptr,
+                                                const F &values,
+                                                F *result) {
+            __shared__ bool shared_events[32];
+            __shared__ I shRowLength[32];
+            __shared__ I shPreStartID[32];
+
+            const I id = blockIdx.x * 32 + threadIdx.x;
+            if (id < max_post_conn) {
+                const unsigned int num_iter = (pre_size + 32 - 1) / 32;
+                for (unsigned int r = 0; r < num_iter; r++) {
+                    const unsigned int num_event = (r == num_iter - 1) ? ((event_count - 1) % 32) + 1 : 32;
+                    // assume "max_post_conn" >= num_event
+                    // TODO: fix the bug
+                    if (threadIdx.x < num_event) {
+                        const unsigned int pre_i = (r * 32) + threadIdx.x;
+                        shared_events[threadIdx.x] = events[pre_i];
+                        if shared_events[threadIdx.x]
+                        {
+                            shPreStartID[threadIdx.x] = indptr[pre_i];
+                            shRowLength[threadIdx.x] = indptr[pre_i + 1] - shPreStartID[threadIdx.x];
+                        }
+                    }
+                    __syncthreads();
+                    for (unsigned int j = 0; j < num_event; j++) {
+                        if (shared_events[j]) {
+                            if (id < shRowLength[j]) {
+                                const I syn_i = shPreStartID[j] + id;
+                                const I post_i = indices[syn_i];
+                                atomicAdd(&result[post_i], values[syn_i]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        template<typename F, typename I>
+        inline void gpu_event_sum4_heter(cudaStream_t stream,
+                                         void **buffers,
+                                         const char *opaque,
+                                         std::size_t opaque_len) {
+            // size
+            const EventSumDescriptor &d = *UnpackDescriptor<EventSum3Descriptor>(opaque, opaque_len);
+            const std::uint32_t pre_size = d.pre_size;
+            const std::uint32_t post_size = d.post_size;
+            const std::uint32_t max_post_conn = d.max_post_conn;
+
+            // input and output data
+            const bool *events = reinterpret_cast<const bool *>(buffers[0]);
+            const I *indices = reinterpret_cast<const I *>(buffers[1]);
+            const I *indptr = reinterpret_cast<const I *>(buffers[2]);
+            const F *values = reinterpret_cast<const F *>(buffers[3]); // 1D vector with the size of 1
+            F *result = reinterpret_cast<F *>(buffers[4]);
+
+            // call kernel
+            const int block_dim = 32;
+            const int grid_dim = (max_post_conn + block_dim - 1) / block_dim;
+            cudaMemset(result, 0, sizeof(F) * post_size);
+            event_sum4_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(max_post_conn,
+                                                                              pre_size,
+                                                                              events,
+                                                                              indices,
+                                                                              indptr,
+                                                                              values,
+                                                                              result);
+            ThrowIfError(cudaGetLastError());
+        }
+
+
     }  // namespace
 
 
@@ -626,6 +780,65 @@ namespace brainpy_lib {
                                       const char *opaque,
                                       std::size_t opaque_len) {
         gpu_event_sum3_heter<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
+
+
+    // homogenous event sum 3
+    void gpu_event_sum4_homo_f32_i32(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum4_homo<float, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum4_homo_f32_i64(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum4_homo<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum4_homo_f64_i32(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum4_homo<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum4_homo_f64_i64(cudaStream_t stream,
+                                     void **buffers,
+                                     const char *opaque,
+                                     std::size_t opaque_len) {
+        gpu_event_sum4_homo<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    // heterogeneous event sum 3
+    void gpu_event_sum4_heter_f32_i32(cudaStream_t stream,
+                                      void **buffers,
+                                      const char *opaque,
+                                      std::size_t opaque_len) {
+        gpu_event_sum4_heter<float, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum4_heter_f32_i64(cudaStream_t stream,
+                                      void **buffers,
+                                      const char *opaque,
+                                      std::size_t opaque_len) {
+        gpu_event_sum4_heter<float, std::uint64_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum4_heter_f64_i32(cudaStream_t stream,
+                                      void **buffers,
+                                      const char *opaque,
+                                      std::size_t opaque_len) {
+        gpu_event_sum4_heter<double, std::uint32_t>(stream, buffers, opaque, opaque_len);
+    }
+
+    void gpu_event_sum4_heter_f64_i64(cudaStream_t stream,
+                                      void **buffers,
+                                      const char *opaque,
+                                      std::size_t opaque_len) {
+        gpu_event_sum4_heter<double, std::uint64_t>(stream, buffers, opaque, opaque_len);
     }
 
 

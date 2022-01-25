@@ -19,6 +19,7 @@ __all__ = [
   'pre2post_event_sum',
   'pre2post_event_sum2',
   'pre2post_event_sum3',
+  'pre2post_event_sum4',
   'pre2post_sum',
   'pre2post_prod',
   'pre2post_max',
@@ -172,6 +173,16 @@ def pre2post_event_sum3(events, pre2post, post_num, values=1., max_post_conn=Non
   idnptr = as_device_array(idnptr)
   values = as_device_array(values)
   return brainpylib.event_sum3(events, (indices, idnptr), post_num, values, max_post_conn)
+
+
+def pre2post_event_sum4(events, pre2post, post_num, values=1., max_post_conn=None):
+  _check_brainpylib(pre2post_event_sum3.__name__)
+  indices, idnptr = pre2post
+  events = as_device_array(events)
+  indices = as_device_array(indices)
+  idnptr = as_device_array(idnptr)
+  values = as_device_array(values)
+  return brainpylib.event_sum4(events, (indices, idnptr), post_num, values, max_post_conn)
 
 
 # def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values):

@@ -59,7 +59,7 @@ class ExpSyn(bp.TwoEndConn):
     self.check_pre_attrs('spike')
     self.check_post_attrs('I')
     assert syn_type in ['e', 'i']
-    assert conn_type in [0, 1, 2, 3]
+    # assert conn_type in [0, 1, 2, 3]
     assert 0. < prob < 1.
 
     # parameters
@@ -82,7 +82,7 @@ class ExpSyn(bp.TwoEndConn):
       self.num = int(prob * pre.num * post.num)
       self.pre_ids = bm.random.randint(0, pre.num, size=self.num, dtype=bm.uint32)
       self.post_ids = bm.random.randint(0, post.num, size=self.num, dtype=bm.uint32)
-    elif conn_type == 3:
+    elif conn_type in [3, 4]:
       self.pre2post = bp.conn.FixedProb(prob)(pre.size, post.size).require('pre2post')
       self.num = self.pre2post[0].size
       self.max_post_conn = bm.diff(self.pre2post[1]).max()
@@ -118,6 +118,9 @@ class ExpSyn(bp.TwoEndConn):
       # post_vs = post_vs.value.at[self.post_ids.value].add(delayed_sps[self.pre_ids.value])
     elif self.conn_type == 3:
       post_vs = bm.pre2post_event_sum3(delayed_sps, self.pre2post, self.post.num, self.weights,
+                                       self.max_post_conn)
+    elif self.conn_type == 4:
+      post_vs = bm.pre2post_event_sum4(delayed_sps, self.pre2post, self.post.num, self.weights,
                                        self.max_post_conn)
     else:
       raise ValueError
@@ -329,6 +332,7 @@ runner.run(1000.)
 
 spikes = np.hstack([runner.mon[name] for name in sps_monitors])
 bp.visualize.raster_plot(runner.mon.ts, spikes, show=True)
+
 
 # bp.visualize.line_plot(runner.mon.ts, runner.mon['L4e.V'], plot_ids=[0, 1, 2], show=True)
 
