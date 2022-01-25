@@ -170,7 +170,7 @@ namespace brainpy_lib {
             // iput and output data
             const bool *events = reinterpret_cast<const bool *>(buffers[0]);
             const I *pre_ids = reinterpret_cast<const I *>(buffers[1]);
-            const nI *post_ids = reinterpret_cast<const I *>(buffers[2]);
+            const I *post_ids = reinterpret_cast<const I *>(buffers[2]);
             const F *values = reinterpret_cast<const F *>(buffers[3]);
             F *result = reinterpret_cast<F *>(buffers[4]);
 
@@ -293,11 +293,11 @@ namespace brainpy_lib {
 
             // get spike information //
             unsigned int *event_ids;
-            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int))
+            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int));
             // I *spikes[pre_size];
             // cudaMemset(spikes, 0, sizeof(I)*pre_size);
             unsigned int *event_num;
-            cudaMalloc(&event_num, 1 * sizeof(unsigned int))
+            cudaMalloc(&event_num, 1 * sizeof(unsigned int));
             const int block_dim = 64;
             const int grid_dim = (pre_size + block_dim - 1) / block_dim;
             collect_spike_info<<<grid_dim, block_dim, 0, stream>>>(events,
@@ -393,11 +393,11 @@ namespace brainpy_lib {
 
             // get spike information //
             unsigned int *event_ids;
-            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int))
+            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int));
             // I *spikes[pre_size];
             // cudaMemset(spikes, 0, sizeof(I)*pre_size);
             unsigned int *event_num;
-            cudaMalloc(&event_num, 1 * sizeof(unsigned int))
+            cudaMalloc(&event_num, 1 * sizeof(unsigned int));
             const int block_dim = 64;
             const int grid_dim = (pre_size + block_dim - 1) / block_dim;
             collect_spike_info<<<grid_dim, block_dim, 0, stream>>>(events,
