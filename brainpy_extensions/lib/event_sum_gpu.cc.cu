@@ -170,7 +170,7 @@ namespace brainpy_lib {
             // iput and output data
             const bool *events = reinterpret_cast<const bool *>(buffers[0]);
             const I *pre_ids = reinterpret_cast<const I *>(buffers[1]);
-            const nI *post_ids = reinterpret_cast<const I *>(buffers[2]);
+            const I *post_ids = reinterpret_cast<const I *>(buffers[2]);
             const F *values = reinterpret_cast<const F *>(buffers[3]);
             F *result = reinterpret_cast<F *>(buffers[4]);
 
@@ -194,7 +194,8 @@ namespace brainpy_lib {
                                            unsigned int *event_ids,
                                            unsigned int *event_num) {
             const unsigned int id = blockDim.x * blockIdx.x + threadIdx.x;
-            __shared__ unsigned int shSpk[blockDim.x];
+//             __shared__ unsigned int shSpk[blockDim.x];
+            __shared__ unsigned int shSpk[64];
             __shared__ unsigned int shPosSpk;
             __shared__ unsigned int shSpkCount;
             if (threadIdx.x == 0) {
@@ -233,8 +234,10 @@ namespace brainpy_lib {
                                                F *result) {
             const unsigned int id = blockDim.x * blockIdx.x + threadIdx.x;
 //            __shared__ unsigned int shSpk[blockDim.x];
-            __shared__ I shPreStartID[blockDim.x];
-            __shared__ I shRowLength[blockDim.x];
+//             __shared__ I shPreStartID[blockDim.x];
+//             __shared__ I shRowLength[blockDim.x];
+            __shared__ I shPreStartID[32];
+            __shared__ I shRowLength[32];
             __shared__ unsigned int event_count;
             __shared__ F value;
 
@@ -293,13 +296,13 @@ namespace brainpy_lib {
 
             // get spike information //
             unsigned int *event_ids;
-            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int))
+            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int));
             // I *spikes[pre_size];
             // cudaMemset(spikes, 0, sizeof(I)*pre_size);
             unsigned int *event_num;
-            cudaMalloc(&event_num, 1 * sizeof(unsigned int))
-            const int block_dim = 64;
-            const int grid_dim = (pre_size + block_dim - 1) / block_dim;
+            cudaMalloc(&event_num, 1 * sizeof(unsigned int));
+            int block_dim = 64;
+            int grid_dim = (pre_size + block_dim - 1) / block_dim;
             collect_spike_info<<<grid_dim, block_dim, 0, stream>>>(events,
                                                                    pre_size,
                                                                    event_ids,
@@ -309,7 +312,7 @@ namespace brainpy_lib {
             cudaMemset(result, 0, sizeof(F) * post_size);
             block_dim = 32;
             grid_dim = (max_post_conn + block_dim - 1) / block_dim;
-            event_sum3_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(max_post_num,
+            event_sum3_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(max_post_conn,
                                                                              indices,
                                                                              indptr,
                                                                              values,
@@ -335,8 +338,10 @@ namespace brainpy_lib {
                                                 F *result) {
             const unsigned int id = blockDim.x * blockIdx.x + threadIdx.x;
 //            __shared__ unsigned int shSpk[blockDim.x];
-            __shared__ I shPreStartID[blockDim.x];
-            __shared__ I shRowLength[blockDim.x];
+//             __shared__ I shPreStartID[blockDim.x];
+//             __shared__ I shRowLength[blockDim.x];
+            __shared__ I shPreStartID[32];
+            __shared__ I shRowLength[32];
             __shared__ unsigned int event_count;
 
             if (threadIdx.x == 0) {
@@ -354,8 +359,8 @@ namespace brainpy_lib {
                         const unsigned int spk = event_ids[(r * 32) + threadIdx.x];
 //                        shSpk[threadIdx.x] = spk;
 //                        shRowLength[threadIdx.x] = indptr[spk + 1] - indptr[spk];
-                        shPreStartID[threadIdx.x] = indptr[pre_i];
-                        shRowLength[threadIdx.x] = indptr[pre_i + 1] - shPreStartID[threadIdx.x];
+                        shPreStartID[threadIdx.x] = indptr[spk];
+                        shRowLength[threadIdx.x] = indptr[spk + 1] - shPreStartID[threadIdx.x];
                     }
                     __syncthreads();
                     // loop through all incoming spikes
@@ -393,13 +398,13 @@ namespace brainpy_lib {
 
             // get spike information //
             unsigned int *event_ids;
-            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int))
+            cudaMalloc(&event_ids, pre_size * sizeof(unsigned int));
             // I *spikes[pre_size];
             // cudaMemset(spikes, 0, sizeof(I)*pre_size);
             unsigned int *event_num;
-            cudaMalloc(&event_num, 1 * sizeof(unsigned int))
-            const int block_dim = 64;
-            const int grid_dim = (pre_size + block_dim - 1) / block_dim;
+            cudaMalloc(&event_num, 1 * sizeof(unsigned int));
+            int block_dim = 64;
+            int grid_dim = (pre_size + block_dim - 1) / block_dim;
             collect_spike_info<<<grid_dim, block_dim, 0, stream>>>(events,
                                                                    pre_size,
                                                                    event_ids,
@@ -409,7 +414,7 @@ namespace brainpy_lib {
             cudaMemset(result, 0, sizeof(F) * post_size);
             block_dim = 32;
             grid_dim = (max_post_conn + block_dim - 1) / block_dim;
-            event_sum3_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(max_post_num,
+            event_sum3_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(max_post_conn,
                                                                               indices,
                                                                               indptr,
                                                                               values,
@@ -440,10 +445,10 @@ namespace brainpy_lib {
         return PackDescriptor(EventSum2Descriptor{conn_size, post_size});
     }
 
-    pybind11::bytes build_event_sum3_descriptor(std::uint32_t conn_size,
+    pybind11::bytes build_event_sum3_descriptor(std::uint32_t pre_size,
                                                 std::uint32_t post_size,
                                                 std::uint32_t max_post_conn) {
-        return PackDescriptor(EventSum3Descriptor{conn_size, post_size, max_post_conn});
+        return PackDescriptor(EventSum3Descriptor{pre_size, post_size, max_post_conn});
     }
 
 
