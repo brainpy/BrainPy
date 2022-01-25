@@ -437,7 +437,7 @@ namespace brainpy_lib {
                                                const bool *events,
                                                const I *indices,
                                                const I *indptr,
-                                               const F &values,
+                                               const F *values,
                                                F *result) {
             __shared__ bool shared_events[32];
             __shared__ I shRowLength[32];
@@ -453,12 +453,12 @@ namespace brainpy_lib {
             if (id < max_post_conn) {
                 const unsigned int num_iter = (pre_size + 32 - 1) / 32;
                 for (unsigned int r = 0; r < num_iter; r++) {
-                    const unsigned int num_event = (r == num_iter - 1) ? ((event_count - 1) % 32) + 1 : 32;
+                    const unsigned int num_event = (r == num_iter - 1) ? ((pre_size - 1) % 32) + 1 : 32;
                     // assume "max_post_conn" >= num_event
                     if (threadIdx.x < num_event) {
                         const unsigned int pre_i = (r * 32) + threadIdx.x;
                         shared_events[threadIdx.x] = events[pre_i];
-                        if shared_events[threadIdx.x]
+                        if (shared_events[threadIdx.x])
                         {
                             shPreStartID[threadIdx.x] = indptr[pre_i];
                             shRowLength[threadIdx.x] = indptr[pre_i + 1] - shPreStartID[threadIdx.x];
@@ -484,7 +484,7 @@ namespace brainpy_lib {
                                         const char *opaque,
                                         std::size_t opaque_len) {
             // size
-            const EventSumDescriptor &d = *UnpackDescriptor<EventSum3Descriptor>(opaque, opaque_len);
+            const EventSum3Descriptor &d = *UnpackDescriptor<EventSum3Descriptor>(opaque, opaque_len);
             const std::uint32_t pre_size = d.pre_size;
             const std::uint32_t post_size = d.post_size;
             const std::uint32_t max_post_conn = d.max_post_conn;
@@ -516,7 +516,7 @@ namespace brainpy_lib {
                                                 const bool *events,
                                                 const I *indices,
                                                 const I *indptr,
-                                                const F &values,
+                                                const F *values,
                                                 F *result) {
             __shared__ bool shared_events[32];
             __shared__ I shRowLength[32];
@@ -526,13 +526,13 @@ namespace brainpy_lib {
             if (id < max_post_conn) {
                 const unsigned int num_iter = (pre_size + 32 - 1) / 32;
                 for (unsigned int r = 0; r < num_iter; r++) {
-                    const unsigned int num_event = (r == num_iter - 1) ? ((event_count - 1) % 32) + 1 : 32;
+                    const unsigned int num_event = (r == num_iter - 1) ? ((pre_size - 1) % 32) + 1 : 32;
                     // assume "max_post_conn" >= num_event
                     // TODO: fix the bug
                     if (threadIdx.x < num_event) {
                         const unsigned int pre_i = (r * 32) + threadIdx.x;
                         shared_events[threadIdx.x] = events[pre_i];
-                        if shared_events[threadIdx.x]
+                        if (shared_events[threadIdx.x])
                         {
                             shPreStartID[threadIdx.x] = indptr[pre_i];
                             shRowLength[threadIdx.x] = indptr[pre_i + 1] - shPreStartID[threadIdx.x];
@@ -558,7 +558,7 @@ namespace brainpy_lib {
                                          const char *opaque,
                                          std::size_t opaque_len) {
             // size
-            const EventSumDescriptor &d = *UnpackDescriptor<EventSum3Descriptor>(opaque, opaque_len);
+            const EventSum3Descriptor &d = *UnpackDescriptor<EventSum3Descriptor>(opaque, opaque_len);
             const std::uint32_t pre_size = d.pre_size;
             const std::uint32_t post_size = d.post_size;
             const std::uint32_t max_post_conn = d.max_post_conn;
