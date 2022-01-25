@@ -18,6 +18,7 @@ __all__ = [
   # pre-to-post
   'pre2post_event_sum',
   'pre2post_event_sum2',
+  'pre2post_event_sum3',
   'pre2post_sum',
   'pre2post_prod',
   'pre2post_max',

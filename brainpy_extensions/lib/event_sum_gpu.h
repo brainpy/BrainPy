@@ -61,12 +61,12 @@ namespace brainpy_lib {
 
     // event_sum3 descriptor
     struct EventSum3Descriptor {
-        std::uint32_t conn_size;
+        std::uint32_t pre_size;
         std::uint32_t post_size;
         std::uint32_t max_post_conn;
     };
 
-    pybind11::bytes build_event_sum3_descriptor(std::uint32_t conn_size, std::uint32_t post_size,
+    pybind11::bytes build_event_sum3_descriptor(std::uint32_t pre_size, std::uint32_t post_size,
                                                 std::uint32_t max_post_conn);
 
     // event_sum3 homogeneous
