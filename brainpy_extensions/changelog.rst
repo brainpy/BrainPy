@@ -1,5 +1,5 @@
-Release notes of brainpylib
-###########################
+Release notes (brainpylib)
+##########################
 
 
 Version 0.0.3
