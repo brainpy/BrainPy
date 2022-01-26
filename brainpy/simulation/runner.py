@@ -135,17 +135,13 @@ class ReportRunner(BaseRunner):
     Variables to monitor.
   inputs : list, tuple
     The input settings.
-  report : float
-    The percent of progress to report.
   """
 
-  def __init__(self, target, inputs=(), monitors=None, report=0.1, dyn_vars=None,
+  def __init__(self, target, inputs=(), monitors=None, dyn_vars=None,
                jit=False, dt=None, numpy_mon_after_run=True):
     super(ReportRunner, self).__init__(target=target, inputs=inputs, monitors=monitors,
                                        jit=jit, dt=dt, dyn_vars=dyn_vars,
                                        numpy_mon_after_run=numpy_mon_after_run)
-
-    self.report = report
 
     # Build the update function
     self._update_step = lambda _t, _dt: [_step(_t=_t, _dt=_dt)
@@ -314,30 +310,15 @@ class ReportRunner(BaseRunner):
       self.mon.item_contents[key] = []  # reshape the monitor items
 
     # simulations
-    run_length = len(times)
-    if self.report > 0.:
-      t0 = time.time()
-      self._step((times[0], self.dt))
-      compile_time = time.time() - t0
-      print('Compilation used {:.4f} s.'.format(compile_time))
-
-      print("Start running ...")
-      report_gap = int(run_length * self.report)
-      t0 = time.time()
-      for run_idx in range(1, run_length):
-        self._step((times[run_idx], self.dt))
-        if (run_idx + 1) % report_gap == 0:
-          percent = (run_idx + 1) / run_length * 100
-          print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
-      running_time = time.time() - t0
-      print('Simulation is done in {:.3f} s.'.format(running_time))
-      print()
-
-    else:
-      t0 = time.time()
-      for run_idx in range(run_length):
-        self._step((times[run_idx], self.dt))
-      running_time = time.time() - t0
+    t0 = time.time()
+    pbar = tqdm.auto.tqdm(total=times.size)
+    pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)",
+                         refresh=True)
+    for run_idx in range(times.size):
+      self._step((times[run_idx], self.dt))
+      pbar.update()
+    pbar.close()
+    running_time = time.time() - t0
 
     # monitor post steps
     self.mon.ts = times
@@ -561,7 +542,8 @@ class StructRunner(BaseRunner):
     # running
     if self.progress_bar:
       self._pbar = tqdm.auto.tqdm(total=times.size)
-      self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)", refresh=True)
+      self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)",
+                                 refresh=True)
     t0 = time.time()
     _, hists = self._step([times.value, time_steps.value])
     running_time = time.time() - t0
