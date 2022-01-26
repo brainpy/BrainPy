@@ -427,7 +427,7 @@ def syn2post_sum(syn_values, post_ids, post_num: int):
   """
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
-    syn_values = jnp.asarray(syn_values, dtype=jnp.int_)
+    syn_values = jnp.asarray(syn_values, dtype=jnp.int8)
   post_ids = as_device_array(post_ids)
   return _jit_seg_sum(syn_values, post_ids, post_num)
 
@@ -460,7 +460,7 @@ def syn2post_prod(syn_values, post_ids, post_num: int):
   """
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
-    syn_values = jnp.asarray(syn_values, dtype=jnp.int_)
+    syn_values = jnp.asarray(syn_values, dtype=jnp.int8)
   post_ids = as_device_array(post_ids)
   return _jit_seg_prod(syn_values, post_ids, post_num)
 
@@ -493,7 +493,7 @@ def syn2post_max(syn_values, post_ids, post_num: int):
   """
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
-    syn_values = jnp.asarray(syn_values, dtype=jnp.int_)
+    syn_values = jnp.asarray(syn_values, dtype=jnp.int8)
   post_ids = as_device_array(post_ids)
   return _jit_seg_max(syn_values, post_ids, post_num)
 
@@ -526,7 +526,7 @@ def syn2post_min(syn_values, post_ids, post_num: int):
   """
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
-    syn_values = jnp.asarray(syn_values, dtype=jnp.int_)
+    syn_values = jnp.asarray(syn_values, dtype=jnp.int8)
   post_ids = as_device_array(post_ids)
   return _jit_seg_min(syn_values, post_ids, post_num)
 
