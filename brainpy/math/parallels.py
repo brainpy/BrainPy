@@ -55,7 +55,7 @@ def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
     except UnexpectedTracerError as e:
       dyn_vars.assign(dyn_data)
       rand_vars.assign(rand_data)
-      raise errors.JaxTracerError() from e
+      raise errors.JaxTracerError(variables=dyn_vars) from e
     for key, v in dyn_changes.items(): dyn_vars[key] = reduce_func(v)
     for key, v in rand_changes.items(): rand_vars[key] = reduce_func(v)
     return out
