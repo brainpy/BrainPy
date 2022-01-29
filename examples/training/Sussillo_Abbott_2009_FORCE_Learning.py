@@ -50,7 +50,7 @@ class EchoStateNet(bp.DynamicalSystem):
 
     # variables
     self.h = bm.Variable(bm.random.normal(size=num_hidden) * 0.5)  # hidden
-    self.r = bm.tanh(self.h)  # firing rate
+    self.r = bm.Variable(bm.tanh(self.h))  # firing rate
     self.o = bm.Variable(bm.dot(self.r, w_ro))  # output unit
     self.P = bm.Variable(bm.eye(num_hidden) * self.alpha)  # inverse correlation matrix
 
@@ -75,7 +75,7 @@ class EchoStateNet(bp.DynamicalSystem):
     self.w_ro += dw
 
   def simulate(self, xs):
-    f = bm.make_loop(self.update, dyn_vars=[self.h, self.r, self.o], out_vars=[self.r, self.o])
+    f = bm.make_loop(self.update, dyn_vars=self.vars(), out_vars=[self.r, self.o])
     return f(xs)
 
   def train(self, xs, targets):
