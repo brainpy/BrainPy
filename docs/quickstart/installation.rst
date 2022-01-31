@@ -74,10 +74,9 @@ easy, just using ``pip`` or ``conda``:
 Dependency 2: JAX
 -----------------
 
-We highly recommend you to install `JAX`_.
-JAX is a high-performance JIT compiler which enables users run
-Python code on CPU, GPU, or TPU devices. Most functionalities of BrainPy
-is based on JAX.
+BrainPy relies on `JAX`_. JAX is a high-performance JIT compiler which enables
+users run Python code on CPU, GPU, or TPU devices. Core functionalities of
+BrainPy (>=2.0.0) migrate to JAX backend.
 
 Linux & MacOS
 ^^^^^^^^^^^^^
@@ -99,34 +98,38 @@ If you want to install JAX with both CPU and NVidia GPU support, you must first 
 
     pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
-Alternatively, you can download the preferred release ".whl" file, and install it via ``pip``:
+Alternatively, you can download the preferred release ".whl" file for jaxlib, and install it via ``pip``:
 
 .. code-block:: bash
 
     pip install xxxx.whl
+
+    pip install jax
 
 Windows
 ^^^^^^^
 
 For **Windows** users, JAX can be installed by the following methods:
 
-Method 1: For Windows 10+ system, you can `Windows Subsystem for Linux (WSL)`_.
+*Method 1*: For Windows 10+ system, you can use `Windows Subsystem for Linux (WSL)`_.
 The installation guide can be found in `WSL Installation Guide for Windows 10`_.
-Then, you can install JAX in WSL just like the installation step in Linux.
+Then, you can install JAX in WSL just like the installation step in Linux/MacOs.
 
-Method 2: There are several community supported Windows build for jax, please refer
+*Method 2*: There are several community supported Windows build for jax, please refer
 to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
-Simply speaking, you can run:
+Simply speaking, the provided binary releases of JAX for Windows
+are available at https://whls.blob.core.windows.net/unstable/index.html .
+
+You can download the preferred release ".whl" file, and install it via ``pip``:
 
 .. code-block:: bash
 
-    # for only CPU
-    pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
+    pip install xxxx.whl
 
-    # for GPU support
-    pip install <downloaded jaxlib>
+    pip install jax
 
-Method 3: You can also `build JAX from source`_.
+
+*Method 3*: You can also `build JAX from source`_.
 
 
 Other Dependency

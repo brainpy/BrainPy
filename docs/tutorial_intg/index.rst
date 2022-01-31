@@ -6,3 +6,4 @@ Numerical Integrator
 
    ode_numerical_solvers
    sde_numerical_solvers
+   joint_equations

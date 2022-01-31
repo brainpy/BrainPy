@@ -3,6 +3,7 @@
 import brainpy.math as bm
 from brainpy.errors import ModelBuildError
 from brainpy.integrators.ode import odeint
+from brainpy.integrators.joint_eq import JointEq
 from brainpy.building.brainobjects import NeuGroup
 
 __all__ = [
@@ -80,9 +81,9 @@ class LIF(NeuGroup):
   """
 
   def __init__(self, size, V_rest=0., V_reset=-5., V_th=20., tau=10.,
-               tau_ref=1., method='exp_auto', **kwargs):
+               tau_ref=1., method='exp_auto', name=None):
     # initialization
-    super(LIF, self).__init__(size=size, **kwargs)
+    super(LIF, self).__init__(size=size, name=name)
 
     # parameters
     self.V_rest = V_rest
@@ -101,13 +102,13 @@ class LIF(NeuGroup):
     # integral
     self.int_V = odeint(method=method, f=self.dV)
 
-  def dV(self, V, t, Iext):
-    dvdt = (-V + self.V_rest + Iext) / self.tau
+  def dV(self, V, t):
+    dvdt = (-V + self.V_rest + self.input) / self.tau
     return dvdt
 
   def update(self, _t, _dt):
     refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.int_V(self.V, _t, self.input, dt=_dt)
+    V = self.int_V(self.V, _t, dt=_dt)
     V = bm.where(refractory, self.V, V)
     spike = V >= self.V_th
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
@@ -186,9 +187,9 @@ class Izhikevich(NeuGroup):
   """
 
   def __init__(self, size, a=0.02, b=0.20, c=-65., d=8., tau_ref=0.,
-               V_th=30., method='exp_auto', **kwargs):
+               V_th=30., method='exp_auto', name=None):
     # initialization
-    super(Izhikevich, self).__init__(size=size, **kwargs)
+    super(Izhikevich, self).__init__(size=size, name=name)
 
     # params
     self.a = a
@@ -207,11 +208,10 @@ class Izhikevich(NeuGroup):
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
-    self.int_V = odeint(method=method, f=self.dV)
-    self.int_u = odeint(method=method, f=self.du)
+    self.integral = odeint(method=method, f=JointEq([self.dV, self.du]))
 
-  def dV(self, V, t, u, Iext):
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + Iext
+  def dV(self, V, t, u):
+    dVdt = 0.04 * V * V + 5 * V + 140 - u + self.input
     return dVdt
 
   def du(self, u, t, V):
@@ -219,8 +219,7 @@ class Izhikevich(NeuGroup):
     return dudt
 
   def update(self, _t, _dt):
-    V = self.int_V(self.V, _t, self.u, self.input, dt=_dt)
-    u = self.int_u(self.u, _t, self.V, dt=_dt)
+    V, u = self.integral(self.V, self.u, _t, dt=_dt)
     refractory = (_t - self.t_last_spike) <= self.tau_ref
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
@@ -306,8 +305,8 @@ class AdExIF(NeuGroup):
   """
 
   def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_T=-59.9, delta_T=3.48, a=1.,
-               b=1., tau=10., tau_w=30., R=1., method='exp_auto', **kwargs):
-    super(AdExIF, self).__init__(size=size, **kwargs)
+               b=1., tau=10., tau_w=30., R=1., method='exp_auto', name=None):
+    super(AdExIF, self).__init__(size=size, name=name)
 
     # parameters
     self.V_rest = V_rest
@@ -330,12 +329,11 @@ class AdExIF(NeuGroup):
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
-    self.int_V = odeint(method=method, f=self.dV)
-    self.int_w = odeint(method=method, f=self.dw)
+    self.integral = odeint(method=method, f=JointEq([self.dV, self.dw]))
 
-  def dV(self, V, t, w, Iext):
+  def dV(self, V, t, w):
     dVdt = (- V + self.V_rest + self.delta_T * bm.exp((V - self.V_T) / self.delta_T) -
-            self.R * w + self.R * Iext) / self.tau
+            self.R * w + self.R * self.input) / self.tau
     return dVdt
 
   def dw(self, w, t, V):
@@ -343,8 +341,7 @@ class AdExIF(NeuGroup):
     return dwdt
 
   def update(self, _t, _dt):
-    V = self.int_V(self.V, _t, self.w, self.input, dt=_dt)
-    w = self.int_w(self.w, _t, self.V, dt=_dt)
+    V, w = self.integral(self.V, self.w, _t, dt=_dt)
     spike = V >= self.V_th
     self.t_last_spike[:] = bm.where(spike, _t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
@@ -373,9 +370,9 @@ class SpikeTimeInput(NeuGroup):
   ----------
   size : int, tuple, list
       The neuron group geometry.
-  indices : int, list, tuple
+  indices : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
       The neuron indices at each time point to emit spikes.
-  times : list, np.ndarray
+  times : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
       The time points which generate the spikes.
   name : str, optional
       The name of the dynamic system.
@@ -426,8 +423,8 @@ class PoissonInput(NeuGroup):
       The name of the dynamic system.
   """
 
-  def __init__(self, size, freqs, seed=None, **kwargs):
-    super(PoissonInput, self).__init__(size=size, **kwargs)
+  def __init__(self, size, freqs, seed=None, name=None):
+    super(PoissonInput, self).__init__(size=size, name=name)
 
     self.freqs = freqs
     self.dt = bm.get_dt() / 1000.

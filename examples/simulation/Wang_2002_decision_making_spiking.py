@@ -409,7 +409,6 @@ print(f'Used time: {t} s')
 # %%
 fig, gs = bp.visualize.get_figure(4, 1, 3, 10)
 
-runner.mon.numpy()
 t_start = 0.
 fig.add_subplot(gs[0, 0])
 bp.visualize.raster_plot(runner.mon.ts, runner.mon['A.spike'], markersize=1)

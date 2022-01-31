@@ -3,8 +3,8 @@
 </p> 
 
 
-
 <p align="center">
+	<a href="https://pypi.org/project/brain-py/"><img alt="Supported Python Version" src="https://img.shields.io/pypi/pyversions/brain-py"></a>
 	<a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="LICENSE" src="https://anaconda.org/brainpy/brainpy/badges/license.svg"></a>
   	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brain-py"><img alt="PyPI version" src="https://badge.fury.io/py/brain-py.svg"></a>
@@ -13,7 +13,7 @@
 
 
 
-:clap::clap: **CHEERS**: A new version of BrainPy (>=2.0.0) has been released! :clap::clap: 
+:clap::clap: **CHEERS**: A new version of BrainPy (>=2.0.0, long term support) has been released! :clap::clap: 
 
 
 
@@ -140,15 +140,39 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/brainpy-2.x/api
 ### High-dimensional dynamics analysis
 
 - [*(Yang, 2020)*: Dynamical system analysis for RNN](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/recurrent_networks/Yang_2020_RNN_Analysis.html)
-
 - [Continuous-attractor Neural Network](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_CANN.html)
 - [Gap junction-coupled FitzHugh-Nagumo Model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_gj_coupled_fhn.html)
 
 
 
 
+# Citing BrainPy
 
-# BrainPy V1
+
+A nascent version of BrainPy was described in a [paper that appeared at ICONIP 2021](https://link.springer.com/chapter/10.1007/978-3-030-92238-2_2). We're currently working on covering BrainPy's ideas and capabilities in a more comprehensive and up-to-date paper. 
+
+If you use BrainPy for your published research, you can cite BrainPy with:
+
+```latex
+Wang, C., Jiang, Y., Liu, X., Lin, X., Zou, X., Ji, Z., & Wu, S. (2021, December). A Just-In-Time Compilation Approach for Neural Dynamics Simulation. In International Conference on Neural Information Processing (pp. 15-26). Springer, Cham.
+```
+
+or,
+
+```latex
+@inproceedings{wang2021just,
+  title={A Just-In-Time Compilation Approach for Neural Dynamics Simulation},
+  author={Wang, Chaoming and Jiang, Yingqian and Liu, Xinyu and Lin, Xiaohan and Zou, Xiaolong and Ji, Zilong and Wu, Si},
+  booktitle={International Conference on Neural Information Processing},
+  pages={15--26},
+  year={2021},
+  organization={Springer}
+}
+```
+
+
+
+# BrainPy 1.x
 
 If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and *models* through the following links:
 
@@ -156,9 +180,5 @@ If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and
 - **Examples from papers**: https://brainpy-examples.readthedocs.io/en/brainpy-1.x/
 - **Canonical brain models**: https://brainmodels.readthedocs.io/en/brainpy-1.x/
 
-The changes from ``brainpy==1.x`` to ``brainpy==2.x`` can be inspected through [API documentation: release notes](https://brainpy.readthedocs.io/en/latest/apis/changelog.html).
-
-
-
-
+The changes from ``brainpy==1.x`` to ``brainpy==2.x`` can be inspected through [API documentation: release notes](https://brainpy.readthedocs.io/en/latest/apis/auto/changelog.html).
 

@@ -62,7 +62,7 @@ class PhasePlane1D(Num1DAnalyzer):
 
   def plot_vector_field(self, show=False, with_plot=True, with_return=False):
     """Plot the vector filed."""
-    utils.output('I am creating vector fields ...')
+    utils.output('I am creating the vector field ...')
 
     # Nullcline of the x variable
     y_val = self.F_fx(self.resolutions[self.x_var])
@@ -178,7 +178,7 @@ class PhasePlane2D(Num2DAnalyzer):
           "units", "angles", "scale". More settings please check
           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html.
     """
-    utils.output('I am creating vector fields ...')
+    utils.output('I am creating the vector field ...')
 
     # get vector fields
     xs = self.resolutions[self.x_var]
@@ -346,8 +346,8 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_return:
       return fixed_points
 
-  def plot_trajectory(self, initials, duration, plot_durations=None,
-                      axes='v-v', dt=None, show=False, with_plot=True, with_return=False):
+  def plot_trajectory(self, initials, duration, plot_durations=None, axes='v-v',
+                      dt=None, show=False, with_plot=True, with_return=False, **kwargs):
     """Plot trajectories according to the settings.
 
     Parameters
@@ -378,7 +378,7 @@ class PhasePlane2D(Num2DAnalyzer):
         Whether show or not.
     """
 
-    utils.output('I am plot trajectory ...')
+    utils.output('I am plotting the trajectory ...')
 
     if axes not in ['v-v', 't-v']:
       raise errors.AnalyzerError(f'Unknown axes "{axes}", only support "v-v" and "t-v".')
@@ -413,13 +413,14 @@ class PhasePlane2D(Num2DAnalyzer):
         start = int(plot_durations[i][0] / dt)
         end = int(plot_durations[i][1] / dt)
         if axes == 'v-v':
-          lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i], label=legend)
+          lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i],
+                           label=legend, **kwargs)
           utils.add_arrow(lines[0])
         else:
           plt.plot(mon_res.ts[start: end], mon_res[self.x_var][start: end, i],
-                   label=legend + f', {self.x_var}')
+                   label=legend + f', {self.x_var}', **kwargs)
           plt.plot(mon_res.ts[start: end], mon_res[self.y_var][start: end, i],
-                   label=legend + f', {self.y_var}')
+                   label=legend + f', {self.y_var}', **kwargs)
 
       # visualization of others
       if axes == 'v-v':
@@ -461,7 +462,7 @@ class PhasePlane2D(Num2DAnalyzer):
     show : bool
         Whether show or not.
     """
-    utils.output('I am plotting limit cycle ...')
+    utils.output('I am plotting the limit cycle ...')
 
     # 1. format the initial values
     initials = utils.check_initials(initials, self.target_var_names)

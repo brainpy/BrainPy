@@ -77,12 +77,26 @@ class MathError(BrainPyError):
 
 
 class JaxTracerError(MathError):
-  def __init__(self):
-    super(JaxTracerError, self).__init__(
-      'There is an unexpected tracer. \n\n'
-      'In BrainPy, all the dynamically changed variables must be provided '
-      'into the "dyn_vars" when calling the transformation functions, '
-      'like "jit()", "vmap()", "grad()", "make_loop()", etc. \n\n'
-      'We found there are changed variables which are not wrapped into '
-      '"dyn_vars". Please check!'
-    )
+  def __init__(self, variables=None):
+    msg = 'There is an unexpected tracer. \n\n' \
+          'In BrainPy, all the dynamically changed variables must be declared as ' \
+          '"brainpy.math.Variable" and they should be provided ' \
+          'into the "dyn_vars" when calling the transformation functions, ' \
+          'like "jit()", "vmap()", "grad()", "make_loop()", etc. \n\n'
+
+    if variables is None:
+      pass
+    elif isinstance(variables, dict):
+      msg += f'We detect all the provided dynamical variables are: ' \
+             f'{variables.keys()}\n\n'
+    elif isinstance(variables, (list, tuple)):
+      msg += 'We detect all the provided dynamical variables are: \n'
+      for v in variables:
+        msg += f'\t{v.dtype}[{v.shape}]\n'
+      msg += '\n'
+    else:
+      raise ValueError
+
+    msg += 'While there are changed variables which are not wrapped into "dyn_vars". Please check!'
+
+    super(JaxTracerError, self).__init__(msg)

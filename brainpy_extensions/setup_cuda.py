@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import distutils.sysconfig as sysconfig
 import os
 import platform
@@ -42,14 +40,14 @@ class CMakeBuildExt(build_ext):
       # "-DPYTHON_LIBRARY={}".format(os.path.join(sysconfig.get_config_var('LIBDIR'),
       #                                           sysconfig.get_config_var('LDLIBRARY'))),
       # "-DPYTHON_INCLUDE_DIRS={}".format(sysconfig.get_python_inc()),
-      "-DPYTHON_INCLUDE_DIR={}".format(sysconfig.get_python_inc()),
+      #"-DPYTHON_INCLUDE_DIR={}".format(sysconfig.get_python_inc()),
       "-DCMAKE_INSTALL_PREFIX={}".format(install_dir),
-      "-DPython_EXECUTABLE={}".format(sys.executable),
-      "-DPython_LIBRARIES={}".format(cmake_python_library),
-      "-DPython_INCLUDE_DIRS={}".format(cmake_python_include_dir),
-      "-DCMAKE_BUILD_TYPE={}".format("Debug" if self.debug else "Release"),
-      "-DCMAKE_PREFIX_PATH={}".format(pybind11.get_cmake_dir()),
-      "-DCMAKE_CUDA_FLAGS={}".format("-arch=sm_61")
+      #"-DPython_EXECUTABLE={}".format(sys.executable),
+      #"-DPython_LIBRARIES={}".format(cmake_python_library),
+      #"-DPython_INCLUDE_DIRS={}".format(cmake_python_include_dir),
+      # "-DCMAKE_BUILD_TYPE={}".format("Debug" if self.debug else "Release"),
+      # "-DCMAKE_PREFIX_PATH={}".format(pybind11.get_cmake_dir()),
+      # "-DCMAKE_CUDA_FLAGS={}".format('"-arch=sm_61"')
     ]
     if os.environ.get("BRAINPY_CUDA", "no").lower() == "yes":
       cmake_args.append("-BRAINPY_CUDA=yes")
@@ -57,21 +55,22 @@ class CMakeBuildExt(build_ext):
 
     os.makedirs(self.build_temp, exist_ok=True)
     subprocess.check_call(
-      ["cmake", HERE] + cmake_args, cwd=self.build_temp
+      ["cmake", '-DCMAKE_CUDA_FLAGS="-arch=sm_61"', HERE] + cmake_args, cwd=self.build_temp
     )
 
     # Build all the extensions
-    # super().build_extensions()
+    super().build_extensions()
 
     # Finally run install
-    subprocess.check_call(["cmake", "--build", "..", "--target", "install"],
+    subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
                           cwd=self.build_temp)
 
   def build_extension(self, ext):
     # target_name = ext.name.split(".")[-1]
-    subprocess.check_call(
-      ["cmake", "."], cwd=self.build_temp)
-
+    #subprocess.check_call(
+    #  ["cmake", "."], cwd=self.build_temp)
+    subprocess.check_call(["cmake", "--build", ".", "--target", "gpu_ops"],
+                          cwd=self.build_temp)
 
 # version control
 with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
@@ -97,6 +96,7 @@ setup(
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=[
     Extension("gpu_ops", ['lib/gpu_ops.cc'] + glob.glob("lib/*.cu")),
+    Extension("cpu_ops", ['lib/cpu_ops.cc'] + glob.glob("lib/*.cc")),
   ],
   cmdclass={"build_ext": CMakeBuildExt},
   license='GPL-3.0 License',
