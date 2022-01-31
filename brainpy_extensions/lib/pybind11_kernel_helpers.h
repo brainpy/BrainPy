@@ -8,7 +8,6 @@
 #define _BRAINPY_EXTENSION_PYBIND11_KERNEL_HELPERS_H_
 
 #include <pybind11/pybind11.h>
-
 #include "kernel_helpers.h"
 
 namespace brainpy_lib {

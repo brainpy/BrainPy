@@ -38,7 +38,6 @@ namespace brainpy_lib {
       }
       return bit_cast<const T*>(opaque);
     }
-
 }  // namespace brainpy_lib
 
 #endif

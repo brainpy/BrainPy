@@ -41,14 +41,6 @@ class Optimizer(Base):
     self.lr = make_schedule(lr)
     self.vars_to_train = train_vars
 
-  # def register_variables(self, variables: dict):
-  #   for key, var in variables.items():
-  #     if key in self.implicit_vars:
-  #       if id(self.implicit_vars[key]) != id(var):
-  #         raise MathError(f'Name "{key}" conflicts: same name for {var} '
-  #                         f'and {self.implicit_vars[key]}.')
-  #     self.implicit_vars[key] = var
-
   def check_grads(self, grads):
     if len(grads) != len(self.vars_to_train):
       raise MathError(

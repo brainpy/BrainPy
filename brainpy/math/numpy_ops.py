@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import numpy
-import numpy as np
+
 import jax.numpy as jnp
-from jax.tree_util import tree_map
+import numpy as np
+from jax.tree_util import tree_map, tree_flatten, tree_unflatten
 
 from brainpy.math.jaxarray import JaxArray, Variable
 from brainpy.tools import copy_doc
@@ -31,7 +31,7 @@ __all__ = [
   # logic funcs
   'equal', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal',
   'array_equal', 'isclose', 'allclose', 'logical_and', 'logical_not',
-  'logical_or', 'logical_xor', 'all', 'any',
+  'logical_or', 'logical_xor', 'all', 'any', "alltrue", 'sometrue',
 
   # array manipulation
   'shape', 'size', 'reshape', 'ravel', 'moveaxis', 'transpose', 'swapaxes',
@@ -40,7 +40,7 @@ __all__ = [
   'append', 'flip', 'fliplr', 'flipud', 'roll', 'atleast_1d', 'atleast_2d',
   'atleast_3d', 'expand_dims', 'squeeze', 'sort', 'argsort', 'argmax', 'argmin',
   'argwhere', 'nonzero', 'flatnonzero', 'where', 'searchsorted', 'extract',
-  'count_nonzero', 'max', 'min',
+  'count_nonzero', 'max', 'min', 'amax', 'amin',
 
   # array creation
   'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like', 'full',
@@ -71,15 +71,48 @@ __all__ = [
   'float64', 'complex64', 'complex128',
 
   # others
-  'take_along_axis', 'clip_by_norm',
-  'as_device_array', 'as_variable', 'as_jaxarray',
+  'take_along_axis', 'clip_by_norm', 'as_device_array', 'as_variable', 'as_jaxarray',
+  'product', 'row_stack', 'apply_over_axes', 'apply_along_axis', 'array_equiv', 'array_repr', 'array_str', 'block',
+  'broadcast_arrays', 'broadcast_shapes', 'broadcast_to', 'compress', 'cumproduct', 'diag_indices', 'diag_indices_from',
+  'diagflat', 'diagonal', 'einsum', 'einsum_path', 'geomspace', 'gradient', 'histogram2d', 'histogram_bin_edges',
+  'histogramdd', 'i0', 'in1d', 'indices', 'insert', 'intersect1d', 'iscomplex', 'isin', 'ix_', 'lexsort', 'load',
+  'save', 'savez', 'mask_indices', 'msort', 'nan_to_num', 'nanargmax', 'nanargmin', 'pad', 'poly', 'polyadd', 'polyder',
+  'polyfit', 'polyint', 'polymul', 'polysub', 'polyval', 'resize', 'rollaxis', 'roots', 'rot90', 'setdiff1d',
+  'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap',
+
 ]
 
 _min = min
 _max = max
 
+
 # others
 # ------
+
+def as_device_array(tensor):
+  if isinstance(tensor, JaxArray):
+    return tensor.value
+  elif isinstance(tensor, jnp.ndarray):
+    return tensor
+  elif isinstance(tensor, np.ndarray):
+    return jnp.asarray(tensor)
+  else:
+    return jnp.asarray(tensor)
+
+
+def as_variable(tensor):
+  return Variable(asarray(tensor))
+
+
+def as_jaxarray(tensor):
+  return asarray(tensor)
+
+
+def _remove_jaxarray(obj):
+  if isinstance(obj, JaxArray):
+    return obj.value
+  else:
+    return obj
 
 
 @copy_doc(np.take_along_axis)
@@ -94,23 +127,286 @@ def clip_by_norm(t, clip_norm, axis=None):
   return tree_map(f, t)
 
 
-def as_device_array(tensor):
-  if isinstance(tensor, JaxArray):
-    return tensor.value
-  elif isinstance(tensor, jnp.ndarray):
-    return tensor
-  elif isinstance(tensor, numpy.ndarray):
-    return jnp.asarray(tensor)
+def block(arrays):
+  leaves, tree = tree_flatten(arrays, is_leaf=lambda a: isinstance(a, JaxArray))
+  leaves = [(l.value if isinstance(l, JaxArray) else l) for l in leaves]
+  arrays = tree_unflatten(tree, leaves)
+  return JaxArray(jnp.block(arrays))
+
+
+def broadcast_arrays(*args):
+  args = [(a.value if isinstance(a, JaxArray) else a) for a in args]
+  return jnp.broadcast_arrays(args)
+
+
+broadcast_shapes = jnp.broadcast_shapes
+
+
+def broadcast_to(arr, shape):
+  arr = _remove_jaxarray(arr)
+  return JaxArray(jnp.broadcast_to(arr, shape))
+
+
+def compress(condition, a, axis=None, out=None):
+  condition = _remove_jaxarray(condition)
+  a = _remove_jaxarray(a)
+  return JaxArray(jnp.compress(condition, a, axis, out))
+
+
+def diag_indices(n, ndim=2):
+  return JaxArray(jnp.diag_indices(n, ndim))
+
+
+def diag_indices_from(arr):
+  arr = _remove_jaxarray(arr)
+  return JaxArray(jnp.diag_indices_from(arr))
+
+
+def diagflat(v, k=0):
+  v = _remove_jaxarray(v)
+  return JaxArray(jnp.diagflat(v, k))
+
+
+def diagonal(a, offset=0, axis1: int = 0, axis2: int = 1):
+  a = _remove_jaxarray(a)
+  return JaxArray(jnp.diagonal(a, offset, axis1, axis2))
+
+
+def einsum(*operands, out=None, optimize='optimal', precision=None,
+           _use_xeinsum=False):
+  operands = tuple((a.value if isinstance(a, JaxArray) else a) for a in operands)
+  return JaxArray(jnp.einsum(*operands, out, optimize, precision, _use_xeinsum))
+
+
+def einsum_path(subscripts, *operands, optimize='greedy'):
+  operands = tuple((a.value if isinstance(a, JaxArray) else a) for a in operands)
+  return JaxArray(jnp.einsum_path(subscripts, *operands, optimize))
+
+
+def geomspace(start, stop, num=50, endpoint=True, dtype=None, axis: int = 0):
+  return JaxArray(jnp.geomspace(start, stop, num, endpoint, dtype, axis))
+
+
+def gradient(f, *varargs, axis=None, edge_order=None):
+  f = _remove_jaxarray(f)
+  return JaxArray(jnp.gradient(f, *varargs, axis, edge_order))
+
+
+def histogram2d(x, y, bins=10, range=None, weights=None, density=None):
+  x = _remove_jaxarray(x)
+  y = _remove_jaxarray(y)
+  H, xedges, yedges = jnp.histogram2d(x, y, bins, range, weights, density)
+  return JaxArray(H), JaxArray(xedges), JaxArray(yedges)
+
+
+def histogram_bin_edges(a, bins=10, range=None, weights=None):
+  a = _remove_jaxarray(a)
+  return JaxArray(jnp.histogram_bin_edges(a, bins, range, weights))
+
+
+def histogramdd(sample, bins=10, range=None, weights=None, density=None):
+  sample = _remove_jaxarray(sample)
+  return JaxArray(jnp.histogramdd(sample, bins, range, weights, density))
+
+
+def i0(x):
+  x = _remove_jaxarray(x)
+  return JaxArray(jnp.i0(x))
+
+
+def in1d(ar1, ar2, assume_unique=False, invert=False):
+  ar1 = _remove_jaxarray(ar1)
+  ar2 = _remove_jaxarray(ar2)
+  return JaxArray(jnp.in1d(ar1, ar2, assume_unique, invert))
+
+
+def indices(dimensions, dtype=None, sparse=False):
+  dtype = jnp.int32 if dtype is None else dtype
+  return JaxArray(jnp.indices(dimensions, dtype, sparse))
+
+
+def insert(arr, obj, values, axis=None):
+  arr = _remove_jaxarray(arr)
+  values = _remove_jaxarray(values)
+  return JaxArray(jnp.insert(arr, obj, values, axis))
+
+
+def intersect1d(ar1, ar2, assume_unique=False, return_indices=False):
+  ar1 = _remove_jaxarray(ar1)
+  ar2 = _remove_jaxarray(ar2)
+  r = jnp.intersect1d(ar1, ar2, assume_unique, return_indices)
+  if return_indices:
+    return JaxArray(r[0]), JaxArray(r[1]), JaxArray(r[2])
   else:
-    return jnp.asarray(tensor)
+    return JaxArray(r[0])
 
 
-def as_variable(tensor):
-  return Variable(asarray(tensor))
+def iscomplex(x):
+  x = _remove_jaxarray(x)
+  return jnp.iscomplex(x)
 
 
-def as_jaxarray(tensor):
-  return asarray(tensor)
+def isin(element, test_elements, assume_unique=False, invert=False):
+  element = _remove_jaxarray(element)
+  test_elements = _remove_jaxarray(test_elements)
+  return JaxArray(jnp.isin(element, test_elements, assume_unique, invert))
+
+
+def ix_(*args):
+  args = [_remove_jaxarray(a) for a in args]
+  return jnp.ix_(*args)
+
+
+def lexsort(keys, axis=-1):
+  leaves, tree = tree_flatten(keys, is_leaf=lambda x: isinstance(x, JaxArray))
+  leaves = [_remove_jaxarray(l) for l in leaves]
+  keys = tree_unflatten(tree, leaves)
+  return JaxArray(jnp.lexsort(keys, axis))
+
+
+load = jnp.load
+
+
+def save(file, arr, allow_pickle=True, fix_imports=True):
+  arr = _remove_jaxarray(arr)
+  jnp.save(file, arr, allow_pickle, fix_imports)
+
+
+def savez(file, *args, **kwds):
+  args = [_remove_jaxarray(a) for a in args]
+  kwds = {k: _remove_jaxarray(v) for k, v in kwds.items()}
+  jnp.savez(file, *args, **kwds)
+
+
+mask_indices = jnp.mask_indices
+
+
+def msort(a):
+  return JaxArray(jnp.msort(_remove_jaxarray(a)))
+
+
+def nan_to_num(x, copy=True, nan=0.0, posinf=None, neginf=None):
+  x = _remove_jaxarray(x)
+  return JaxArray(jnp.nan_to_num(x, copy, nan=nan, posinf=posinf, neginf=neginf))
+
+
+def nanargmax(a, axis=None):
+  return JaxArray(jnp.nanargmax(_remove_jaxarray(a), axis))
+
+
+def nanargmin(a, axis=None):
+  return JaxArray(jnp.nanargmin(_remove_jaxarray(a), axis))
+
+
+def pad(array, pad_width, mode="constant", **kwargs):
+  array = _remove_jaxarray(array)
+  pad_width = _remove_jaxarray(pad_width)
+  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
+  return JaxArray(jnp.pad(array, pad_width, mode, **kwargs))
+
+
+def poly(seq_of_zeros):
+  seq_of_zeros = _remove_jaxarray(seq_of_zeros)
+  return JaxArray(jnp.poly(seq_of_zeros))
+
+
+def polyadd(a1, a2):
+  a1 = _remove_jaxarray(a1)
+  a2 = _remove_jaxarray(a2)
+  return JaxArray(jnp, polyadd(a1, a2))
+
+
+def polyder(p, m=1):
+  p = _remove_jaxarray(p)
+  return JaxArray(jnp.polyder(p, m))
+
+
+def polyfit(x, y, deg, rcond=None, full=False, w=None, cov=False):
+  x = _remove_jaxarray(x)
+  y = _remove_jaxarray(y)
+  return jnp.polyfit(x, y, deg, rcond=rcond, full=full, w=w, cov=cov)
+
+
+def polyint(p, m=1, k=None):
+  p = _remove_jaxarray(p)
+  return JaxArray(jnp.polyint(p, m, k))
+
+
+def polymul(a1, a2):
+  a1 = _remove_jaxarray(a1)
+  a2 = _remove_jaxarray(a2)
+  return JaxArray(jnp.polymul(a1, a2))
+
+
+def polysub(a1, a2):
+  a1 = _remove_jaxarray(a1)
+  a2 = _remove_jaxarray(a2)
+  return JaxArray(jnp.polysub(a1, a2))
+
+
+def polyval(p, x):
+  p = _remove_jaxarray(p)
+  x = _remove_jaxarray(x)
+  return JaxArray(jnp.polyval(p, x))
+
+
+def resize(a, new_shape):
+  a = _remove_jaxarray(a)
+  return JaxArray(jnp.resize(a, new_shape))
+
+
+def rollaxis(a, axis: int, start=0):
+  a = _remove_jaxarray(a)
+  return JaxArray(jnp.rollaxis(a, axis, start))
+
+
+def roots(p):
+  p = _remove_jaxarray(p)
+  return JaxArray(jnp.roots(p))
+
+
+def rot90(m, k=1, axes=(0, 1)):
+  m = _remove_jaxarray(m)
+  return JaxArray(jnp.rot90(m, k, axes))
+
+
+def setdiff1d(ar1, ar2, assume_unique=False):
+  return JaxArray(jnp.setdiff1d(_remove_jaxarray(ar1),
+                                _remove_jaxarray(ar2),
+                                assume_unique=assume_unique))
+
+
+def setxor1d(ar1, ar2, assume_unique=False):
+  return JaxArray(jnp.setxor1d(_remove_jaxarray(ar1),
+                               _remove_jaxarray(ar2),
+                               assume_unique=assume_unique))
+
+
+def tensordot(a, b, axes=2):
+  a = _remove_jaxarray(a)
+  b = _remove_jaxarray(b)
+  return JaxArray(jnp.tensordot(a, b, axes))
+
+
+def trim_zeros(filt, trim='fb'):
+  return JaxArray(jnp.trim_zeros(_remove_jaxarray(filt), trim))
+
+
+def union1d(ar1, ar2):
+  ar1 = _remove_jaxarray(ar1)
+  ar2 = _remove_jaxarray(ar2)
+  return JaxArray(jnp.union1d(ar1, ar2))
+
+
+def unravel_index(indices, shape):
+  indices = _remove_jaxarray(indices)
+  shape = _remove_jaxarray(shape)
+  return jnp.unravel_index(indices, shape)
+
+
+def unwrap(p, discont=jnp.pi, axis: int = -1):
+  p = _remove_jaxarray(p)
+  return JaxArray(jnp.unwrap(p, discont, axis))
 
 
 # math funcs
@@ -456,6 +752,9 @@ def prod(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
   return r if axis is None else JaxArray(r)
 
 
+product = prod
+
+
 def sum(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
   if isinstance(a, JaxArray): a = a.value
   r = jnp.sum(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
@@ -486,6 +785,9 @@ def nancumsum(a, axis=None, dtype=None):
 def cumprod(a, axis=None, dtype=None):
   if isinstance(a, JaxArray): a = a.value
   return JaxArray(jnp.cumprod(a=a, axis=axis, dtype=dtype))
+
+
+cumproduct = cumprod
 
 
 def cumsum(a, axis=None, dtype=None):
@@ -795,15 +1097,19 @@ def logical_xor(x1, x2):
 # 3. Truth value testing
 
 def all(a, axis=None, keepdims=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.all(a=a, axis=axis, keepdims=keepdims, where=where)
   return r if axis is None else JaxArray(r)
 
 
 def any(a, axis=None, keepdims=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.any(a=a, axis=axis, keepdims=keepdims, where=where)
   return r if axis is None else JaxArray(r)
+
+
+alltrue = all
+sometrue = any
 
 
 # array manipulation
@@ -859,6 +1165,9 @@ def stack(arrays, axis: int = 0):
 def vstack(arrays):
   arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
   return JaxArray(jnp.vstack(arrays))
+
+
+row_stack = vstack
 
 
 def hstack(arrays):
@@ -1033,6 +1342,50 @@ def min(a, axis=None, keepdims=None, initial=None, where=None):
   if isinstance(a, JaxArray): a = a.value
   r = jnp.min(a, axis=axis, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
+
+
+amax = max
+amin = min
+
+
+def apply_along_axis(func1d, axis: int, arr, *args, **kwargs):
+  arr = _remove_jaxarray(arr)
+  return jnp.apply_along_axis(func1d, axis, arr, *args, **kwargs)
+
+
+def apply_over_axes(func, a, axes):
+  a = _remove_jaxarray(a)
+  return jnp.apply_over_axes(func, a, axes)
+
+
+def array_equiv(a1, a2):
+  try:
+    a1, a2 = asarray(a1), asarray(a2)
+  except Exception:
+    return False
+  try:
+    eq = equal(a1, a2)
+  except ValueError:
+    # shapes are not broadcastable
+    return False
+  return all(eq)
+
+
+def array_repr(arr, max_line_width=None, precision=None, suppress_small=None):
+  arr = _remove_jaxarray(arr)
+  return jnp.array_repr(arr, max_line_width=max_line_width, precision=precision, suppress_small=suppress_small)
+
+
+def array_str(a, max_line_width=None, precision=None, suppress_small=None):
+  a = _remove_jaxarray(a)
+  return jnp.array_str(a, max_line_width=max_line_width, precision=precision, suppress_small=suppress_small)
+
+
+def array_split(ary, indices_or_sections, axis: int = 0):
+  ary = _remove_jaxarray(ary)
+  if isinstance(indices_or_sections, JaxArray):
+    indices_or_sections = indices_or_sections.value
+  return jnp.array_split(ary, indices_or_sections, axis)
 
 
 # array creation

@@ -15,16 +15,13 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
   init_py = f.read()
   __version__ = re.search('__version__ = "(.*)"', init_py).groups()[0]
-cuda_version = os.environ.get("JAX_CUDA_VERSION")
-if cuda_version:
-  __version__ += "+cuda" + cuda_version.replace(".", "")
 
 # extension modules
 ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
                     sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
                     cxx_std=11,
-                    extra_link_args=["-rpath", "/Users/ztqakita/opt/miniconda3/lib/"],
+                    # extra_link_args=["-rpath", "/Users/ztqakita/opt/miniconda3/lib/"],
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
 

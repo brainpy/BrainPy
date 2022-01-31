@@ -44,19 +44,18 @@ class TestEventSum(unittest.TestCase):
     print(a)
 
 
-class TestEventSum3(unittest.TestCase):
-  def test_homo_values(self):
-    bp.math.random.seed(1345)
-    size = 200
-    conn = bp.conn.FixedProb(prob=0.5, seed=123)
-    conn(pre_size=size, post_size=size)
-    post_ids, indptr = conn.require('pre2post')
-    sps = bm.random.random(size).value < 0.5
-    # print(sps)
-    value = 3.0233
-    a = event_sum3(sps, (post_ids.value, indptr.value), size, value,
-                   max_post_conn=bm.diff(indptr).max())
-    print(a)
+
+bp.math.random.seed(1345)
+size = 200
+conn = bp.conn.FixedProb(prob=0.5, seed=123)
+conn(pre_size=size, post_size=size)
+post_ids, indptr = conn.require('pre2post')
+sps = bm.random.random(size).value < 0.5
+# print(sps)
+value = 3.0233
+a = event_sum3(sps, (post_ids.value, indptr.value), size, value,
+                max_post_conn=bm.diff(indptr).max())
+print(a)
 
 
 # def test1():

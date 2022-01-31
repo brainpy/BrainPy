@@ -7,6 +7,7 @@ x_ops = xla_client.ops
 
 # Register the CPU XLA custom calls
 from . import cpu_ops
+
 for _name, _value in cpu_ops.registrations().items():
   xla_client.register_custom_call_target(_name, _value, platform="cpu")
 
@@ -16,5 +17,5 @@ try:
 except ImportError:
   gpu_ops = None
 else:
-    for _name, _value in gpu_ops.registrations().items():
-        xla_client.register_custom_call_target(_name, _value, platform="gpu")
+  for _name, _value in gpu_ops.registrations().items():
+    xla_client.register_custom_call_target(_name, _value, platform="gpu")

@@ -5,7 +5,7 @@ bp.math.enable_x64()
 
 
 class WilsonCowanModel(bp.DynamicalSystem):
-  def __init__(self, method='exp_auto'):
+  def __init__(self, num, method='exp_auto'):
     super(WilsonCowanModel, self).__init__()
 
     # Connection weights
@@ -28,9 +28,9 @@ class WilsonCowanModel(bp.DynamicalSystem):
     self.I_theta = 4  # Threshold of inhibitory population
 
     # variables
-    self.i = bm.Variable(bm.ones(1))
-    self.e = bm.Variable(bm.ones(1))
-    self.Iext = bm.Variable(bm.zeros(1))
+    self.i = bm.Variable(bm.ones(num))
+    self.e = bm.Variable(bm.ones(num))
+    self.Iext = bm.Variable(bm.zeros(num))
 
     # functions
     def F(x, a, theta):
@@ -53,10 +53,22 @@ class WilsonCowanModel(bp.DynamicalSystem):
     self.Iext[:] = 0.
 
 
-model = WilsonCowanModel()
+model = WilsonCowanModel(2)
+model.e[:] = [-0.2, 1.]
+model.i[:] = [0.0, 1.]
 
 # simulation
-runner = bp.StructRunner(model, monitors=['e', 'i'], inputs=['Iext', 0.])
+runner = bp.StructRunner(model, monitors=['e', 'i'])
+runner.run(100)
+
+fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+fig.add_subplot(gs[0, 0])
+bp.visualize.line_plot(runner.mon.ts, runner.mon.e, plot_ids=[0], legend='e', linestyle='--')
+bp.visualize.line_plot(runner.mon.ts, runner.mon.i, plot_ids=[0], legend='i', linestyle='--')
+fig.add_subplot(gs[1, 0])
+bp.visualize.line_plot(runner.mon.ts, runner.mon.e, plot_ids=[1], legend='e')
+bp.visualize.line_plot(runner.mon.ts, runner.mon.i, plot_ids=[1], legend='i', show=True)
+
 
 # phase plane analysis
 pp = bp.analysis.PhasePlane2D(

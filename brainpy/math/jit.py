@@ -44,7 +44,7 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
       out, changes = jitted_func(variable_data, *args, **kwargs)
     except UnexpectedTracerError as e:
       vars.assign(variable_data)
-      raise errors.JaxTracerError() from e
+      raise errors.JaxTracerError(variables=vars) from e
     vars.assign(changes)
     return out
 
