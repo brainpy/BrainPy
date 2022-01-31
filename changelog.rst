@@ -6,10 +6,22 @@ brainpy 2.x (LTS)
 *****************
 
 
-Version 2.0.1
-=============
+Version 2.0.1 (2022.01.31)
+==========================
 
+Today we release BrainPy 2.0.1. This release is composed of over
+70 commits since 2.0.0, made by `Chaoming Wang <https://github.com/chaoming0625>`_,
+`Xiaoyu Chen <mailto:c-xy17@tsinghua.org.cn>`_, and
+`Tianqiu Zhang <mailto:tianqiuakita@gmail.com>`_ .
 
+BrainPy 2.0.0 updates are focused on improving documentation and operators.
+Core changes include:
+
+- Improve ``brainpylib`` operators
+- Complete documentation for programming system
+- Add more numpy APIs
+- Add ``jaxfwd`` in autograd module
+- And other changes
 
 
 Version 2.0.0.1 (2022.01.05)
