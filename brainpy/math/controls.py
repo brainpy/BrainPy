@@ -156,7 +156,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
           f=fun2scan, init=init_values, xs=xs, length=length)
       except UnexpectedTracerError as e:
         for v, d in zip(dyn_vars, init_values): v.value = d
-        raise errors.JaxTracerError() from e
+        raise errors.JaxTracerError(variables=dyn_vars) from e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return tree_unflatten(tree, out_values), results
 
@@ -167,7 +167,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
         dyn_values, out_values = lax.scan(f=fun2scan, init=init_values, xs=xs)
       except UnexpectedTracerError as e:
         for v, d in zip(dyn_vars, init_values): v.value = d
-        raise errors.JaxTracerError() from e
+        raise errors.JaxTracerError(variables=dyn_vars) from e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return tree_unflatten(tree, out_values)
 
@@ -243,7 +243,7 @@ def make_while(cond_fun, body_fun, dyn_vars):
                                      init_val=(dyn_init, x))
     except UnexpectedTracerError as e:
       for v, d in zip(dyn_vars, dyn_init): v.value = d
-      raise errors.JaxTracerError() from e
+      raise errors.JaxTracerError(variables=dyn_vars) from e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
 
   return call
@@ -327,7 +327,7 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
                                  operand=(old_values, x))
     except UnexpectedTracerError as e:
       for v, d in zip(dyn_vars, old_values): v.value = d
-      raise errors.JaxTracerError() from e
+      raise errors.JaxTracerError(variables=dyn_vars) from e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
     return res
 
