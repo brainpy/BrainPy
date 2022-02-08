@@ -27,7 +27,6 @@ __all__ = [
   'pre2post_max',
   'pre2post_min',
   'pre2post_mean',
-  'pre2post_softmax',
 
   # pre-to-syn
   'pre2syn',
@@ -40,7 +39,6 @@ __all__ = [
   'syn2post_mean',
   'syn2post_softmax',
 ]
-
 
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
@@ -400,38 +398,6 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
     return syn2post_mean(pre_values, post_ids, post_num)
 
 
-def pre2post_softmax(pre_values, post_num, post_ids, pre_ids=None):
-  """The pre-to-post synaptic softmax computation.
-
-  Parameters
-  ----------
-  pre_values: float, jax.numpy.ndarray, JaxArray, Variable
-    The pre-synaptic values.
-  pre_ids: jax.numpy.ndarray, JaxArray
-    The connected pre-synaptic neuron ids.
-  post_ids: jax.numpy.ndarray, JaxArray
-    The connected post-synaptic neuron ids.
-  post_num: int
-    Output dimension. The number of post-synaptic neurons.
-
-  Returns
-  -------
-  post_val: jax.numpy.ndarray, JaxArray
-    The value with the size of post-synaptic neurons.
-  """
-  out = jnp.zeros(post_num, dtype=profile.float_)
-  pre_values = as_device_array(pre_values)
-  post_ids = as_device_array(post_ids)
-  if jnp.ndim(pre_values) == 0:
-    # return out.at[post_ids].set(pre_values)
-    return out.at[jnp.unique(post_ids)].set(pre_values)
-  else:
-    _raise_pre_ids_is_none(pre_ids)
-    pre_ids = as_device_array(pre_ids)
-    pre_values = pre2syn(pre_values, pre_ids)
-    return syn2post_softmax(pre_values, post_ids, post_num)
-
-
 def pre2syn(pre_values, pre_ids):
   """The pre-to-syn computation.
 
@@ -500,7 +466,6 @@ def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=True):
 
 
 syn2post = syn2post_sum
-
 
 
 def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=True):
@@ -669,10 +634,9 @@ def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=Tru
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
-  maxs = _jit_seg_max(syn_values, post_ids, post_num, indices_are_sorted)
-  syn_values = syn_values - maxs[post_ids]
+  syn_maxs = _jit_seg_max(syn_values, post_ids, post_num, indices_are_sorted)
+  syn_values = syn_values - syn_maxs[post_ids]
   syn_values = jnp.exp(syn_values)
   normalizers = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
   softmax = syn_values / normalizers[post_ids]
   return jnp.nan_to_num(softmax)
-

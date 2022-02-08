@@ -47,7 +47,7 @@ def atomic_sum(values, post_ids, post_num, pre_ids=None):
   #                    f'while we got {values.size} != 1 != {pre_ids.size}')
   if values.size != 1 and values.size <= pre_ids.max():
     raise ValueError(f'The size of "values" must be 1 (a scalar) or longer than pre_size (a vector), '
-                       f'while we got {values.size} != 1 <= {pre_ids.max()}')
+                     f'while we got {values.size} != 1 <= {pre_ids.max()}')
   values = values.flatten()
   out = jnp.zeros(post_num, dtype=values.dtype)
 
