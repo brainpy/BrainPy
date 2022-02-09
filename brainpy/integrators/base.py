@@ -18,4 +18,6 @@ class Integrator(Base):
   def build(self, *args, **kwargs):
     raise NotImplementedError('Implement build method by yourself.')
 
+  def __call__(self, *args, **kwargs):
+    raise NotImplementedError
 
