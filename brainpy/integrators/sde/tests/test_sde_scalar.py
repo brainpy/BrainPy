@@ -30,8 +30,7 @@ def lorenz_system(method, **kwargs):
                                 g=lorenz_g,
                                 show_code=True,
                                 dt=0.005,
-                                **kwargs),
-                         dyn_vars={'_': bp.math.random.DEFAULT})
+                                **kwargs))
 
   times = np.arange(0, 100, 0.01)
   mon1 = []
