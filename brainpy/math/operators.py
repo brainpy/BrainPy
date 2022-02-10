@@ -15,12 +15,6 @@ except ModuleNotFoundError:
   brainpylib = None
 
 __all__ = [
-  # pre-to-post event operator
-  'pre2post_event_sum',
-  'pre2post_event_sum2',
-  'pre2post_event_sum3',
-  'pre2post_event_sum4',
-
   # pre-to-post
   'pre2post_sum',
   'pre2post_prod',
@@ -38,6 +32,10 @@ __all__ = [
   'syn2post_min',
   'syn2post_mean',
   'syn2post_softmax',
+
+  # pre-to-post event operator
+  'pre2post_event_sum',
+  'pre2post_event_prod',
 ]
 
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
@@ -114,8 +112,8 @@ def pre2post_event_sum(events, pre2post, post_num, values=1.):
   return brainpylib.event_sum(events, (indices, idnptr), post_num, values)
 
 
-def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
-  """The pre-to-post synaptic computation with event-driven summation.
+def pre2post_event_prod(events, pre2post, post_num, values=1.):
+  """The pre-to-post synaptic computation with event-driven production.
 
   When ``values`` is a scalar, this function is equivalent to
 
@@ -127,7 +125,7 @@ def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
     for i in range(pre_num):
       if events[i]:
         for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] += values
+          post_val[post_ids[i]] *= values
 
   When ``values`` is a vector (with the length of ``len(post_ids)``),
   this function is equivalent to
@@ -141,7 +139,7 @@ def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
     for i in range(pre_num):
       if events[i]:
         for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] += values[j]
+          post_val[post_ids[i]] *= values[j]
 
 
   Parameters
@@ -160,51 +158,13 @@ def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
   out: JaxArray, jax.numpy.ndarray
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib(pre2post_event_sum2.__name__)
-  events = as_device_array(events)
-  pre_ids = as_device_array(pre_ids)
-  post_ids = as_device_array(post_ids)
-  values = as_device_array(values)
-  return brainpylib.event_sum2(events, pre_ids, post_ids, post_num, values)
-
-
-def pre2post_event_sum3(events, pre2post, post_num, values=1., max_post_conn=None):
-  _check_brainpylib(pre2post_event_sum3.__name__)
+  _check_brainpylib(pre2post_event_prod.__name__)
   indices, idnptr = pre2post
   events = as_device_array(events)
   indices = as_device_array(indices)
   idnptr = as_device_array(idnptr)
   values = as_device_array(values)
-  return brainpylib.event_sum3(events, (indices, idnptr), post_num, values, max_post_conn)
-
-
-def pre2post_event_sum4(events, pre2post, post_num, values=1., max_post_conn=None):
-  _check_brainpylib(pre2post_event_sum3.__name__)
-  indices, idnptr = pre2post
-  events = as_device_array(events)
-  indices = as_device_array(indices)
-  idnptr = as_device_array(idnptr)
-  values = as_device_array(values)
-  return brainpylib.event_sum4(events, (indices, idnptr), post_num, values, max_post_conn)
-
-
-# def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values):
-#   _check_brainpylib(pre2post_event_sum2.__name__)
-#   events = events.value if isinstance(events, JaxArray) else events
-#   pre_ids = pre_ids.value if isinstance(pre_ids, JaxArray) else pre_ids
-#   post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
-#   values = values.value if isinstance(values, JaxArray) else values
-#   return brainpylib.event_sum2(events, pre_ids, post_ids, post_num, values)
-
-
-# def pre2post_sum_old(pre_values, post_num, post_ids, pre_ids=None):
-#   _check_brainpylib(pre2post_sum.__name__)
-#   pre_values = asarray(pre_values, dtype=jnp.float_)
-#   pre_values = pre_values.value if isinstance(pre_values, JaxArray) else pre_values
-#   pre_ids = pre_ids.value if isinstance(pre_ids, JaxArray) else pre_ids
-#   post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
-#   post_num = post_num.value if isinstance(post_num, JaxArray) else post_num
-#   return brainpylib.atomic_sum(pre_values, post_num, post_ids, pre_ids=None)
+  return brainpylib.event_prod(events, (indices, idnptr), post_num, values)
 
 
 def _raise_pre_ids_is_none(pre_ids):
