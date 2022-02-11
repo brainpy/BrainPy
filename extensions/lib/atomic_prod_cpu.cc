@@ -15,7 +15,8 @@ namespace{
       F *result = reinterpret_cast<F *>(out);
 
       // algorithm
-      memset(&result[0], 0, sizeof(result[0]) * out_size);
+      for(std::uint32_t ii = 0; ii < out_size; ++ii)
+        result[ii] = 1.;
       for (std::uint32_t i=0; i<conn_size; ++i) {
         result[post_ids[i]] *= values[pre_ids[i]];
       }
@@ -34,7 +35,8 @@ namespace{
       F *result = reinterpret_cast<F *>(out);
 
       // algorithm
-      memset(&result[0], 0, sizeof(result[0]) * out_size);
+      for(std::uint32_t ii = 0; ii < out_size; ++ii)
+        result[ii] = 1.;
       for (std::uint32_t i=0; i<conn_size; ++i) {
         result[post_ids[i]] *= value;
       }

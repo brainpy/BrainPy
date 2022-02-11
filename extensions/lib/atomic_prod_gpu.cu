@@ -38,7 +38,7 @@ namespace brainpy_lib {
             // call kernel
             const int block_dim = 512;
             const int grid_dim = std::min<int>(1024, (conn_size + block_dim - 1) / block_dim);
-            cudaMemset(result, 0, sizeof(F) * post_size);
+            cudaMemset(result, 1, sizeof(F) * post_size);
             gpu_atomic_prod_homo_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(conn_size, values[0], post_ids,
                                                                                  result);
             ThrowIfError(cudaGetLastError());
@@ -75,7 +75,7 @@ namespace brainpy_lib {
             // call kernel
             const int block_dim = 512;
             const int grid_dim = std::min<int>(1024, (conn_size + block_dim - 1) / block_dim);
-            cudaMemset(result, 0, sizeof(F) * post_size);
+            cudaMemset(result, 1, sizeof(F) * post_size);
             gpu_atomic_prod_heter_kernel<F, I><<<grid_dim, block_dim, 0, stream>>>(conn_size, values, post_ids, pre_ids,
                                                                                   result);
             ThrowIfError(cudaGetLastError());
