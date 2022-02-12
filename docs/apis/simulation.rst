@@ -11,4 +11,5 @@
     auto/simulation/measure
     auto/simulation/monitor
     auto/simulation/runner
+    auto/simulation/parallel
 

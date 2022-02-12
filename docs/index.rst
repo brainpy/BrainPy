@@ -24,6 +24,9 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
     - BrainModels: https://brainmodels.readthedocs.io/
     - BrainPyExamples: https://brainpy-examples.readthedocs.io/
 
+    The source code of BrainPy is open-sourced in GitHub:
+
+    - BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
 
 
 .. toctree::

@@ -7,12 +7,12 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import unittest
-from brainpylib import event_sum, event_sum3
+from brainpylib import event_sum
 import brainpy as bp
 import brainpy.math as bm
 
 
-bm.set_platform('gpu')
+# bm.set_platform('gpu')
 
 
 class TestEventSum(unittest.TestCase):

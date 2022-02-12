@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 
 # "base" module
@@ -34,8 +34,7 @@ conn = connect
 from . import simulation
 from .simulation.monitor import *
 from .simulation.runner import *
-from .simulation import measure
-
+from .simulation import measure, parallel
 
 # "training" module
 from . import training
@@ -52,5 +51,4 @@ from . import visualization as visualize
 
 # other modules
 from . import errors
-from . import running
 from . import tools

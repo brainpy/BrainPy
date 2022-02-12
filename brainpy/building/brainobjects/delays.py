@@ -80,9 +80,6 @@ class ConstantDelay(Delay):
       self.in_idx = bm.Variable(bm.array([self.num_step - 1], dtype=bm.uint32))
       self.data = bm.Variable(bm.zeros((self.num_step,) + self.size, dtype=dtype))
 
-      self.push = self._push_for_uniform_delay
-      self.pull = self._pull_for_uniform_delay
-
     else:  # non-uniform delay
       self.uniform_delay = False
       if not len(self.size) == 1:
@@ -104,26 +101,30 @@ class ConstantDelay(Delay):
       self.out_idx = bm.Variable(bm.zeros(self.num, dtype=bm.uint32))
       self.data = bm.Variable(bm.zeros((self.num_step.max(),) + size, dtype=dtype))
 
-      self.push = self._push_for_nonuniform_delay
-      self.pull = self._pull_for_nonuniform_delay
-
     super(ConstantDelay, self).__init__(**kwargs)
 
-  def _pull_for_uniform_delay(self):
-    """Pull delayed data for variables with the uniform delay."""
-    return self.data[self.out_idx[0]]
+  @property
+  def oldest(self):
+    return self.pull()
 
-  def _push_for_uniform_delay(self, value):
-    """Push the latest data to the delay bottom."""
-    self.data[self.in_idx[0]] = value
+  @property
+  def latest(self):
+    if self.uniform_delay:
+      return self.data[self.in_idx[0]]
+    else:
+      return self.data[self.in_idx, self.diag]
 
-  def _pull_for_nonuniform_delay(self):
-    """Pull delayed data for variables with the non-uniform delay."""
-    return self.data[self.out_idx, self.diag]
+  def pull(self):
+    if self.uniform_delay:
+      return self.data[self.out_idx[0]]
+    else:
+      return self.data[self.out_idx, self.diag]
 
-  def _push_for_nonuniform_delay(self, value):
-    """Push the latest data to the delay bottom."""
-    self.data[self.in_idx, self.diag] = value
+  def push(self, value):
+    if self.uniform_delay:
+      self.data[self.in_idx[0]] = value
+    else:
+      self.data[self.in_idx, self.diag] = value
 
   def update(self, _t, _dt, **kwargs):
     """Update the delay index."""

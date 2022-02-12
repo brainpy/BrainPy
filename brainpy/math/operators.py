@@ -16,33 +16,34 @@ except ModuleNotFoundError:
 
 __all__ = [
   # pre-to-post
-  'pre2post_event_sum',
-  'pre2post_event_sum2',
-  'pre2post_event_sum3',
-  'pre2post_event_sum4',
   'pre2post_sum',
   'pre2post_prod',
   'pre2post_max',
   'pre2post_min',
+  'pre2post_mean',
 
   # pre-to-syn
   'pre2syn',
 
   # syn-to-post
-  'syn2post',
-  'syn2post_sum',
+  'syn2post_sum', 'syn2post',
   'syn2post_prod',
   'syn2post_max',
   'syn2post_min',
+  'syn2post_mean',
+  'syn2post_softmax',
+
+  # pre-to-post event operator
+  'pre2post_event_sum',
+  'pre2post_event_prod',
 ]
 
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
-_syn2post = jit(jops.segment_sum, static_argnums=2)
-_jit_seg_sum = jit(jops.segment_sum, static_argnums=2)
-_jit_seg_prod = jit(jops.segment_prod, static_argnums=2)
-_jit_seg_max = jit(jops.segment_max, static_argnums=2)
-_jit_seg_min = jit(jops.segment_min, static_argnums=2)
+_jit_seg_sum = jit(jops.segment_sum, static_argnums=(2, 3))
+_jit_seg_prod = jit(jops.segment_prod, static_argnums=(2, 3))
+_jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3))
+_jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3))
 
 
 def _check_brainpylib(ops_name):
@@ -111,8 +112,8 @@ def pre2post_event_sum(events, pre2post, post_num, values=1.):
   return brainpylib.event_sum(events, (indices, idnptr), post_num, values)
 
 
-def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
-  """The pre-to-post synaptic computation with event-driven summation.
+def pre2post_event_prod(events, pre2post, post_num, values=1.):
+  """The pre-to-post synaptic computation with event-driven production.
 
   When ``values`` is a scalar, this function is equivalent to
 
@@ -124,7 +125,7 @@ def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
     for i in range(pre_num):
       if events[i]:
         for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] += values
+          post_val[post_ids[i]] *= values
 
   When ``values`` is a vector (with the length of ``len(post_ids)``),
   this function is equivalent to
@@ -138,7 +139,7 @@ def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
     for i in range(pre_num):
       if events[i]:
         for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] += values[j]
+          post_val[post_ids[i]] *= values[j]
 
 
   Parameters
@@ -157,51 +158,20 @@ def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values=1.):
   out: JaxArray, jax.numpy.ndarray
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib(pre2post_event_sum2.__name__)
-  events = as_device_array(events)
-  pre_ids = as_device_array(pre_ids)
-  post_ids = as_device_array(post_ids)
-  values = as_device_array(values)
-  return brainpylib.event_sum2(events, pre_ids, post_ids, post_num, values)
-
-
-def pre2post_event_sum3(events, pre2post, post_num, values=1., max_post_conn=None):
-  _check_brainpylib(pre2post_event_sum3.__name__)
+  _check_brainpylib(pre2post_event_prod.__name__)
   indices, idnptr = pre2post
   events = as_device_array(events)
   indices = as_device_array(indices)
   idnptr = as_device_array(idnptr)
   values = as_device_array(values)
-  return brainpylib.event_sum3(events, (indices, idnptr), post_num, values, max_post_conn)
+  return brainpylib.event_prod(events, (indices, idnptr), post_num, values)
 
 
-def pre2post_event_sum4(events, pre2post, post_num, values=1., max_post_conn=None):
-  _check_brainpylib(pre2post_event_sum3.__name__)
-  indices, idnptr = pre2post
-  events = as_device_array(events)
-  indices = as_device_array(indices)
-  idnptr = as_device_array(idnptr)
-  values = as_device_array(values)
-  return brainpylib.event_sum4(events, (indices, idnptr), post_num, values, max_post_conn)
-
-
-# def pre2post_event_sum2(events, pre_ids, post_ids, post_num, values):
-#   _check_brainpylib(pre2post_event_sum2.__name__)
-#   events = events.value if isinstance(events, JaxArray) else events
-#   pre_ids = pre_ids.value if isinstance(pre_ids, JaxArray) else pre_ids
-#   post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
-#   values = values.value if isinstance(values, JaxArray) else values
-#   return brainpylib.event_sum2(events, pre_ids, post_ids, post_num, values)
-
-
-# def pre2post_sum_old(pre_values, post_num, post_ids, pre_ids=None):
-#   _check_brainpylib(pre2post_sum.__name__)
-#   pre_values = asarray(pre_values, dtype=jnp.float_)
-#   pre_values = pre_values.value if isinstance(pre_values, JaxArray) else pre_values
-#   pre_ids = pre_ids.value if isinstance(pre_ids, JaxArray) else pre_ids
-#   post_ids = post_ids.value if isinstance(post_ids, JaxArray) else post_ids
-#   post_num = post_num.value if isinstance(post_num, JaxArray) else post_num
-#   return brainpylib.atomic_sum(pre_values, post_num, post_ids, pre_ids=None)
+def _raise_pre_ids_is_none(pre_ids):
+  if pre_ids is None:
+    raise MathError(f'pre2post synaptic computation needs "pre_ids" '
+                    f'when providing heterogeneous "pre_values" '
+                    f'(brainpy.math.ndim(pre_values) != 0).')
 
 
 def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
@@ -236,9 +206,7 @@ def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
-    if pre_ids is None:
-      raise MathError('pre2post synaptic computation needs "pre_values" '
-                      'when providing heterogeneous "pre_values"')
+    _raise_pre_ids_is_none(pre_ids)
     pre_ids = as_device_array(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].add(pre_values)
@@ -276,9 +244,7 @@ def pre2post_prod(pre_values, post_num, post_ids, pre_ids=None):
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
-    if pre_ids is None:
-      raise MathError('pre2post synaptic computation needs "pre_values" '
-                      'when providing heterogeneous "pre_values"')
+    _raise_pre_ids_is_none(pre_ids)
     pre_ids = as_device_array(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].multiply(pre_values)
@@ -316,9 +282,7 @@ def pre2post_min(pre_values, post_num, post_ids, pre_ids=None):
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
-    if pre_ids is None:
-      raise MathError('pre2post synaptic computation needs "pre_values" '
-                      'when providing heterogeneous "pre_values"')
+    _raise_pre_ids_is_none(pre_ids)
     pre_ids = as_device_array(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].min(pre_values)
@@ -356,12 +320,42 @@ def pre2post_max(pre_values, post_num, post_ids, pre_ids=None):
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
-    if pre_ids is None:
-      raise MathError('pre2post synaptic computation needs "pre_values" '
-                      'when providing heterogeneous "pre_values"')
+    _raise_pre_ids_is_none(pre_ids)
     pre_ids = as_device_array(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].max(pre_values)
+
+
+def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
+  """The pre-to-post synaptic mean computation.
+
+  Parameters
+  ----------
+  pre_values: float, jax.numpy.ndarray, JaxArray, Variable
+    The pre-synaptic values.
+  pre_ids: jax.numpy.ndarray, JaxArray
+    The connected pre-synaptic neuron ids.
+  post_ids: jax.numpy.ndarray, JaxArray
+    The connected post-synaptic neuron ids.
+  post_num: int
+    Output dimension. The number of post-synaptic neurons.
+
+  Returns
+  -------
+  post_val: jax.numpy.ndarray, JaxArray
+    The value with the size of post-synaptic neurons.
+  """
+  out = jnp.zeros(post_num, dtype=profile.float_)
+  pre_values = as_device_array(pre_values)
+  post_ids = as_device_array(post_ids)
+  if jnp.ndim(pre_values) == 0:
+    # return out.at[post_ids].set(pre_values)
+    return out.at[jnp.unique(post_ids)].set(pre_values)
+  else:
+    _raise_pre_ids_is_none(pre_ids)
+    pre_ids = as_device_array(pre_ids)
+    pre_values = pre2syn(pre_values, pre_ids)
+    return syn2post_mean(pre_values, post_ids, post_num)
 
 
 def pre2syn(pre_values, pre_ids):
@@ -395,11 +389,10 @@ def pre2syn(pre_values, pre_ids):
   if jnp.ndim(pre_values) == 0:
     return jnp.ones(len(pre_ids), dtype=pre_values.dtype) * pre_values
   else:
-    # return pre_values[pre_ids]
     return _pre2syn(pre_ids, pre_values)
 
 
-def syn2post_sum(syn_values, post_ids, post_num: int):
+def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   """The syn-to-post summation computation.
 
   This function is equivalent to:
@@ -425,14 +418,17 @@ def syn2post_sum(syn_values, post_ids, post_num: int):
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
+  post_ids = as_device_array(post_ids)
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
-  post_ids = as_device_array(post_ids)
-  return _jit_seg_sum(syn_values, post_ids, post_num)
+  return _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
 
 
-def syn2post_prod(syn_values, post_ids, post_num: int):
+syn2post = syn2post_sum
+
+
+def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   """The syn-to-post product computation.
 
   This function is equivalent to:
@@ -449,23 +445,27 @@ def syn2post_prod(syn_values, post_ids, post_num: int):
   syn_values: jax.numpy.ndarray, JaxArray, Variable
     The synaptic values.
   post_ids: jax.numpy.ndarray, JaxArray
-    The post-synaptic neuron ids.
+    The post-synaptic neuron ids. If ``post_ids`` is generated by
+    ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
+    Otherwise, this function cannot guarantee indices are sorted.
+    You's better set ``indices_are_sorted=False``.
   post_num: int
     The number of the post-synaptic neurons.
+  indices_are_sorted: whether ``post_ids`` is known to be sorted.
 
   Returns
   -------
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
+  post_ids = as_device_array(post_ids)
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
-  post_ids = as_device_array(post_ids)
-  return _jit_seg_prod(syn_values, post_ids, post_num)
+  return _jit_seg_prod(syn_values, post_ids, post_num, indices_are_sorted)
 
 
-def syn2post_max(syn_values, post_ids, post_num: int):
+def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   """The syn-to-post maximum computation.
 
   This function is equivalent to:
@@ -482,23 +482,27 @@ def syn2post_max(syn_values, post_ids, post_num: int):
   syn_values: jax.numpy.ndarray, JaxArray, Variable
     The synaptic values.
   post_ids: jax.numpy.ndarray, JaxArray
-    The post-synaptic neuron ids.
+    The post-synaptic neuron ids. If ``post_ids`` is generated by
+    ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
+    Otherwise, this function cannot guarantee indices are sorted.
+    You's better set ``indices_are_sorted=False``.
   post_num: int
     The number of the post-synaptic neurons.
+  indices_are_sorted: whether ``post_ids`` is known to be sorted.
 
   Returns
   -------
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
+  post_ids = as_device_array(post_ids)
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
-  post_ids = as_device_array(post_ids)
-  return _jit_seg_max(syn_values, post_ids, post_num)
+  return _jit_seg_max(syn_values, post_ids, post_num, indices_are_sorted)
 
 
-def syn2post_min(syn_values, post_ids, post_num: int):
+def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   """The syn-to-post minimization computation.
 
   This function is equivalent to:
@@ -515,21 +519,84 @@ def syn2post_min(syn_values, post_ids, post_num: int):
   syn_values: jax.numpy.ndarray, JaxArray, Variable
     The synaptic values.
   post_ids: jax.numpy.ndarray, JaxArray
-    The post-synaptic neuron ids.
+    The post-synaptic neuron ids. If ``post_ids`` is generated by
+    ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
+    Otherwise, this function cannot guarantee indices are sorted.
+    You's better set ``indices_are_sorted=False``.
   post_num: int
     The number of the post-synaptic neurons.
+  indices_are_sorted: whether ``post_ids`` is known to be sorted.
 
   Returns
   -------
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
+  post_ids = as_device_array(post_ids)
   syn_values = as_device_array(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
+  return _jit_seg_min(syn_values, post_ids, post_num, indices_are_sorted)
+
+
+def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+  """The syn-to-post mean computation.
+
+  Parameters
+  ----------
+  syn_values: jax.numpy.ndarray, JaxArray, Variable
+    The synaptic values.
+  post_ids: jax.numpy.ndarray, JaxArray
+    The post-synaptic neuron ids. If ``post_ids`` is generated by
+    ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
+    Otherwise, this function cannot guarantee indices are sorted.
+    You's better set ``indices_are_sorted=False``.
+  post_num: int
+    The number of the post-synaptic neurons.
+  indices_are_sorted: whether ``post_ids`` is known to be sorted.
+
+  Returns
+  -------
+  post_val: jax.numpy.ndarray, JaxArray
+    The post-synaptic value.
+  """
   post_ids = as_device_array(post_ids)
-  return _jit_seg_min(syn_values, post_ids, post_num)
+  syn_values = as_device_array(syn_values)
+  if syn_values.dtype == jnp.bool_:
+    syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
+  nominator = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
+  denominator = _jit_seg_sum(jnp.ones_like(syn_values), post_ids, post_num, indices_are_sorted)
+  return jnp.nan_to_num(nominator / denominator)
 
 
-syn2post = syn2post_sum
+def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+  """The syn-to-post softmax computation.
 
+  Parameters
+  ----------
+  syn_values: jax.numpy.ndarray, JaxArray, Variable
+    The synaptic values.
+  post_ids: jax.numpy.ndarray, JaxArray
+    The post-synaptic neuron ids. If ``post_ids`` is generated by
+    ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
+    Otherwise, this function cannot guarantee indices are sorted.
+    You's better set ``indices_are_sorted=False``.
+  post_num: int
+    The number of the post-synaptic neurons.
+  indices_are_sorted: whether ``post_ids`` is known to be sorted.
+
+  Returns
+  -------
+  post_val: jax.numpy.ndarray, JaxArray
+    The post-synaptic value.
+  """
+  post_ids = as_device_array(post_ids)
+  syn_values = as_device_array(syn_values)
+  if syn_values.dtype == jnp.bool_:
+    syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
+  syn_maxs = _jit_seg_max(syn_values, post_ids, post_num, indices_are_sorted)
+  syn_values = syn_values - syn_maxs[post_ids]
+  syn_values = jnp.exp(syn_values)
+  normalizers = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
+  softmax = syn_values / normalizers[post_ids]
+  return jnp.nan_to_num(softmax)

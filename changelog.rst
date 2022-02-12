@@ -6,6 +6,24 @@ brainpy 2.x (LTS)
 *****************
 
 
+Version 2.0.2 (2022.02.11)
+==========================
+
+There are important updates by `Chaoming Wang <https://github.com/chaoming0625>`_
+in BrainPy 2.0.2.
+
+- provide ``pre2post_event_prod`` operator
+- support array creation from a list/tuple of JaxArray in ``brainpy.math.asarray`` and ``brainpy.math.array``
+- update ``brainpy.ConstantDelay``, add ``.latest`` and ``.oldest`` attributes
+- add ``brainpy.IntegratorRunner`` support for efficient simulation of brainpy integrators
+- support auto finding of RandomState when JIT SDE integrators
+- fix bugs in SDE ``exponential_euler`` method
+- move ``parallel`` running APIs into ``brainpy.simulation``
+- add ``brainpy.math.syn2post_mean``, ``brainpy.math.syn2post_softmax``,
+  ``brainpy.math.pre2post_mean`` and ``brainpy.math.pre2post_softmax`` operators
+
+
+
 Version 2.0.1 (2022.01.31)
 ==========================
 

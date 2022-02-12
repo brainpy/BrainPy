@@ -1435,14 +1435,28 @@ def identity(n, dtype=None):
   return JaxArray(jnp.identity(n, dtype=dtype))
 
 
-def array(object, dtype=None, copy=True, order="K", ndmin=0):
-  if isinstance(object, JaxArray): object = object.value
-  return JaxArray(jnp.array(object, dtype=dtype, copy=copy, order=order, ndmin=ndmin))
+def array(a, dtype=None, copy=True, order="K", ndmin=0):
+  a = _remove_jaxarray(a)
+  try:
+    res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
+  except TypeError:
+    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, JaxArray))
+    leaves = [_remove_jaxarray(l) for l in leaves]
+    a = tree_unflatten(tree, leaves)
+    res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
+  return JaxArray(res)
 
 
 def asarray(a, dtype=None, order=None):
   if isinstance(a, JaxArray): a = a.value
-  return JaxArray(jnp.asarray(a=a, dtype=dtype, order=order))
+  try:
+    res = jnp.asarray(a=a, dtype=dtype, order=order)
+  except TypeError:
+    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, JaxArray))
+    leaves = [_remove_jaxarray(l) for l in leaves]
+    arrays = tree_unflatten(tree, leaves)
+    res = jnp.asarray(a=arrays, dtype=dtype, order=order)
+  return JaxArray(res)
 
 
 def arange(*args, **kwargs):

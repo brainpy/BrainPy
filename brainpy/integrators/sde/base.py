@@ -59,8 +59,11 @@ class SDEIntegrator(Integrator):
     self.parameters = parameters  # parameter names, (after 't')
     self.arguments = list(arguments) + [f'{constants.DT}={self.dt}']  # function arguments
 
+    # random seed
+    self.rng = math.random.RandomState()
+
     # code scope
-    self.code_scope = {constants.F: f, constants.G: g, 'math': math}
+    self.code_scope = {constants.F: f, constants.G: g, 'math': math, 'random': self.rng}
 
     # code lines
     self.func_name = f_names(f)
