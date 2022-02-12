@@ -129,7 +129,7 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
   .. highlight:: python
   .. code-block:: python
 
-    post_val = np.zeros(post_num)
+    post_val = np.ones(post_num)
     post_ids, idnptr = pre2post
     for i in range(pre_num):
       if events[i]:
@@ -142,7 +142,7 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
   .. highlight:: python
   .. code-block:: python
 
-    post_val = np.zeros(post_num)
+    post_val = np.ones(post_num)
 
     post_ids, idnptr = pre2post
     for i in range(pre_num):
