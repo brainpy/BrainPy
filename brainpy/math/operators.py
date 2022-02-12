@@ -38,6 +38,8 @@ __all__ = [
   'pre2post_event_prod',
 ]
 
+_BRAINPYLIB_MINIMAL_VERSION = '0.0.3'
+
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
 _jit_seg_sum = jit(jops.segment_sum, static_argnums=(2, 3))
@@ -48,13 +50,20 @@ _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3))
 
 def _check_brainpylib(ops_name):
   if brainpylib is not None:
-    return
-  raise PackageMissingError(
-    f'"brainpylib" must be installed when the user '
-    f'wants to use "{ops_name}" operator. \n'
-    f'Please install "brainpylib" through:\n\n'
-    f'>>> pip install brainpylib'
-  )
+    if brainpylib.__version__ < _BRAINPYLIB_MINIMAL_VERSION:
+      raise PackageMissingError(
+        f'"{ops_name}" operator need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
+        f'Please install it through:\n\n'
+        f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION} -U'
+      )
+  else:
+    raise PackageMissingError(
+      f'"brainpylib" must be installed when the user '
+      f'wants to use "{ops_name}" operator. \n'
+      f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
+      f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}'
+    )
+
 
 
 def pre2post_event_sum(events, pre2post, post_num, values=1.):
