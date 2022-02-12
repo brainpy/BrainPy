@@ -27,20 +27,28 @@ def _check_args(args):
 
 class Module(DynamicalSystem):
   """Basic module class for DNN networks."""
-  target_backend = 'jax'
 
   @staticmethod
   def get_param(param, size):
+    return bm.TrainVar(Module.init_param(param, size))
+
+  @staticmethod
+  def init_param(param, size):
     if param is None:
       return None
     if callable(param):
-      return bm.TrainVar(param(size))
-    if isinstance(param, onp.ndarray):
-      assert param.shape == size
-      return bm.TrainVar(bm.asarray(param))
-    if isinstance(param, (bm.JaxArray, jnp.ndarray)):
-      return bm.TrainVar(param)
-    raise ValueError
+      param = param(size)
+    elif isinstance(param, onp.ndarray):
+      param = bm.asarray(param)
+    elif isinstance(param, (bm.JaxArray, jnp.ndarray)):
+      pass
+    else:
+      raise ValueError(f'Unknown param type {type(param)}: {param}')
+    assert param.shape == size, f'"param.shape" is not the required size {size}'
+    return param
+
+  def update(self, *args, **kwargs):
+    raise NotImplementedError
 
 
 class Sequential(Module):
