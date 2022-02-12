@@ -323,6 +323,9 @@ def generate_simulation_docs(path):
   write_module(module_name='brainpy.simulation.runner',
                filename=os.path.join(path, 'runner.rst'),
                header='Runners')
+  write_module(module_name='brainpy.simulation.parallel',
+               filename=os.path.join(path, 'parallel.rst'),
+               header='Parallel Running')
 
 
 def generate_training_docs(path):

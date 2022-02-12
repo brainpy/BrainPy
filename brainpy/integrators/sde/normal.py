@@ -52,7 +52,7 @@ def noise_terms(code_lines, variables):
   # code_lines.append('  ')
 
   for var in variables:
-    code_lines.append(f'  {var}_dW = math.random.normal(0.000, dt_sqrt, math.shape({var}))')
+    code_lines.append(f'  {var}_dW = random.normal(0.000, dt_sqrt, math.shape({var}))')
   code_lines.append('  ')
 
 
@@ -299,7 +299,8 @@ class ExponentialEuler(SDEIntegrator):
     self.code_scope['math'] = math
 
     # 2. code lines
-    code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
+    code_lines = self.code_lines
+    # code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
     code_lines.append(f'  {constants.DT}_sqrt = {constants.DT} ** 0.5')
 
     # 2.1 dg
@@ -366,7 +367,7 @@ class ExponentialEuler(SDEIntegrator):
         linear = sympy.collect(df_expr, var, evaluate=False)[var]
         code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
         # linear exponential
-        code_lines.append(f'  {s_linear_exp.name} = math.exp({linear.name} * {constants.DT})')
+        code_lines.append(f'  {s_linear_exp.name} = math.exp({analysis_by_sympy.sympy2str(linear)} * {constants.DT})')
         # df part
         df_part = (s_linear_exp - 1) / s_linear * s_df
         code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')

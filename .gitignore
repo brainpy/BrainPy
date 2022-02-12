@@ -6,9 +6,9 @@ publishment.md
 development
 
 examples/analysis/data
-brainpy_extensions/.idea
-brainpy_extensions/wheelhouse
-brainpy_extensions/cmake-build-debug
+extensions/.idea
+extensions/wheelhouse
+extensions/cmake-build-debug
 BrainPyExamples/
 BrainModels/
 book/
