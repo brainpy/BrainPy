@@ -51,13 +51,19 @@ __all__ = [
 def get(activation):
   global_vars = globals()
 
-  if activation not in global_vars:
-    raise ValueError(f'Unknown activation function: {activation}, \nwe only support: '
-                     f'{[k for k, v in global_vars.items() if not k.startswith("_") and callable(v)]}')
+  if isinstance(activation, str):
+    if activation not in global_vars:
+      raise ValueError(f'Unknown activation function: {activation}, \nwe only support: '
+                       f'{[k for k, v in global_vars.items() if not k.startswith("_") and callable(v)]}')
+  elif callable(activation):
+    return activation
+  else:
+    raise ValueError(f'Unknown activation function {activation}. ')
   return global_vars[activation]
 
 
 tanh = _tanh
+identity = lambda x: x
 
 
 def celu(x, alpha=1.0):
