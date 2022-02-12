@@ -155,8 +155,11 @@ class DynamicalSystem(Base):
     """The shortcut to call ``update`` methods."""
     return self.update(*args, **kwargs)
 
-  def update(self, *args, **kwargs):
-    """The function to specify the updating rule."""
+  def update(self, _t, _dt):
+    """The function to specify the updating rule.
+    Assume any dynamical system depends on the time variable ``t`` and
+    the time step ``dt``.
+    """
     raise NotImplementedError('Must implement "update" function by user self.')
 
 
