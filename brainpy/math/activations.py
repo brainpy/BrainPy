@@ -51,6 +51,9 @@ __all__ = [
 def get(activation):
   global_vars = globals()
 
+  if activation is None:
+    return None
+
   if isinstance(activation, str):
     if activation not in global_vars:
       raise ValueError(f'Unknown activation function: {activation}, \nwe only support: '
