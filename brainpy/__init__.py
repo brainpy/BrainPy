@@ -43,9 +43,7 @@ from .integrators.joint_eq import JointEq
 
 # "building" module
 from .building.brainobjects import *
-from .building import inputs, brainobjects, layers
-
-
+from .building import inputs, brainobjects, layers, neurons, synapses
 
 
 # "simulation" module
