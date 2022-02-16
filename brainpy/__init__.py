@@ -7,9 +7,11 @@ try:
   import jaxlib
   del jaxlib
 except ModuleNotFoundError:
-  raise ModuleNotFoundError('Please install jaxlib. See '
-                            'https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax '
-                            'for installation instructions.')
+  raise ModuleNotFoundError(
+    'Please install jaxlib. See '
+    'https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax '
+    'for installation instructions.'
+  )
 
 
 # "base" module
@@ -20,6 +22,10 @@ from .base.collector import Collector, TensorCollector
 
 # "math" module
 from . import math
+from .math import connect, initialize, optimizers
+conn = connect
+init = initialize
+optim = optimizers
 
 
 # "integrators" module
@@ -37,9 +43,9 @@ from .integrators.joint_eq import JointEq
 
 # "building" module
 from .building.brainobjects import *
-from .building import inputs, models, brainobjects, connect, initialize, layers
-conn = connect
-init = initialize
+from .building import inputs, brainobjects, layers
+
+
 
 
 # "simulation" module

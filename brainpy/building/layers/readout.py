@@ -3,7 +3,7 @@
 
 from brainpy import math
 from brainpy.building.brainobjects import NeuGroup
-from brainpy.building.initialize import Initializer, XavierNormal, Uniform, ZeroInit
+from brainpy.math.initialize import Initializer, XavierNormal, Uniform, ZeroInit
 
 __all__ = [
   'LinearReadout'

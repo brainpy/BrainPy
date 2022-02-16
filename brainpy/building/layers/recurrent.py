@@ -3,7 +3,7 @@
 import abc
 
 import brainpy.math as bm
-from brainpy.building.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
+from brainpy.math.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
 from .base import Module
 
 __all__ = [

@@ -11,6 +11,9 @@ This module provides basic mathematical operations, including:
 - discrete fourier transform functions
 - compilations of ``jit``, ``vmap``, ``pmap`` for class objects
 - automatic differentiation of ``grad``, ``jacocian``, ``hessian``, etc. for class objects
+
+
+
 - loss functions
 - activation functions
 - optimization classes

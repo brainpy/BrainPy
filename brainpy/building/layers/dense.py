@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.building.initialize import XavierNormal, ZeroInit
+from brainpy.math.initialize import XavierNormal, ZeroInit
 from .base import Module
 
 __all__ = [
