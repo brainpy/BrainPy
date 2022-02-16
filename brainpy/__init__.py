@@ -3,6 +3,15 @@
 __version__ = "2.0.3"
 
 
+try:
+  import jaxlib
+  del jaxlib
+except ModuleNotFoundError:
+  raise ModuleNotFoundError('Please install jaxlib. See '
+                            'https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax '
+                            'for installation instructions.')
+
+
 # "base" module
 from . import base
 from .base.base import Base
