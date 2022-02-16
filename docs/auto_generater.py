@@ -386,6 +386,8 @@ def generate_tools_docs(path):
 
 
 def generate_visualization_docs(path):
-  if not os.path.exists(path): os.makedirs(path)
+  raise NotImplementedError
+  if not os.path.exists(path):
+    os.makedirs(path)
   write_module(module_name='brainpy.visualization',
                filename=os.path.join(path, 'visualization.rst'))

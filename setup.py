@@ -30,7 +30,6 @@ setup(
   python_requires='>=3.6',
   install_requires=[
     'numpy>=1.15',
-    'matplotlib>=3.4',
     'jax>=0.2.10',
     'tqdm',
   ],

@@ -27,7 +27,7 @@ auto_generater.generate_building_docs('apis/auto/building/')
 auto_generater.generate_simulation_docs('apis/auto/simulation/')
 auto_generater.generate_training_docs('apis/auto/training/')
 auto_generater.generate_analysis_docs('apis/auto/analysis/')
-auto_generater.generate_visualization_docs('apis/auto/')
+# auto_generater.generate_visualization_docs('apis/auto/')
 auto_generater.generate_tools_docs('apis/auto/')
 
 import shutil
