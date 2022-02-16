@@ -10,6 +10,8 @@
 
     auto/building/brainobjects
     auto/building/models
+    auto/building/layers
     auto/building/connect
+    auto/building/initialize
     auto/building/inputs
 

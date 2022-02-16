@@ -303,10 +303,22 @@ def generate_building_docs(path):
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
-  # py-files in 'simulation' package
   write_module(module_name='brainpy.building.inputs',
                filename=os.path.join(path, 'inputs.rst'),
                header='Current Inputs')
+
+  write_module(module_name='brainpy.building.layers',
+               filename=os.path.join(path, 'layers.rst'),
+               header='DNN Layers')
+  module_and_name = [('base', 'Base Class'),
+                     ('regular_inits', 'Regular Initializers'),
+                     ('random_inits', 'Random Initializers'),
+                     ('decay_inits', 'Decay Initializers'), ]
+  write_submodules(module_name='brainpy.building.initialize',
+                   filename=os.path.join(path, 'initialize.rst'),
+                   header='Weight Initialization',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
 
 
 def generate_simulation_docs(path):
@@ -333,18 +345,7 @@ def generate_training_docs(path):
     os.makedirs(path)
 
   # submodules in 'training' package
-  write_module(module_name='brainpy.training.layers',
-               filename=os.path.join(path, 'layers.rst'),
-               header='DNN Layers')
-  module_and_name = [('base', 'Base Class'),
-                     ('regular_inits', 'Regular Initializers'),
-                     ('random_inits', 'Random Initializers'),
-                     ('decay_inits', 'Decay Initializers'), ]
-  write_submodules(module_name='brainpy.training.initialize',
-                   filename=os.path.join(path, 'initialize.rst'),
-                   header='Weight Initialization',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
+
 
 
 def generate_analysis_docs(path):
