@@ -34,10 +34,13 @@ from .integrators.sde import set_default_sdeint
 from .integrators.sde import get_default_sdeint
 from .integrators.joint_eq import JointEq
 
+
 # "building" module
 from .building.brainobjects import *
-from .building import inputs, models, brainobjects, connect
+from .building import inputs, models, brainobjects, connect, initialize, layers
 conn = connect
+init = initialize
+
 
 # "simulation" module
 from . import simulation
@@ -45,17 +48,13 @@ from .simulation.monitor import *
 from .simulation.runner import *
 from .simulation import measure, parallel
 
-# "training" module
-from . import training
-from .training import layers, initialize
-init = initialize
 
 # "analysis" module
 from . import analysis
 
 
-# "visualization" module
-from . import visualization as visualize
+# # "visualization" module
+from .visualization import visualize
 
 
 # other modules
