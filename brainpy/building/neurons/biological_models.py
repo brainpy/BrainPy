@@ -106,9 +106,8 @@ class HH(NeuGroup):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> import brainmodels
-    >>> group = brainmodels.neurons.HH(2)
-    >>> runner = bp.StructRunner(group, monitors=['V'], inputs=('input', 10.))
+    >>> group = bp.neurons.HH(2)
+    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
     >>> runner.run(200.)
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
 
@@ -116,10 +115,9 @@ class HH(NeuGroup):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> import brainmodels
-    >>> group = brainmodels.neurons.HH(2)
-    >>> runner = bp.ReportRunner(group, monitors=bp.Monitor(variables=['V'], intervals=[1.]),
-    >>>                          inputs=('input', 10.), jit=True)
+    >>> group = bp.neurons.HH(2)
+    >>> runner = bp.DSRunner(group, monitors=bp.Monitor(variables=['V'], intervals=[1.]),
+    >>>                      inputs=('input', 10.), jit=True)
     >>> runner.run(200.)
     >>> bp.visualize.line_plot(runner.mon['V.t'], runner.mon.V, show=True)
 
@@ -128,10 +126,9 @@ class HH(NeuGroup):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> import brainmodels
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> group = brainmodels.neurons.HH(2)
+    >>> group = bp.neurons.HH(2)
     >>>
     >>> I1 = bp.inputs.spike_input(sp_times=[500., 550., 1000, 1030, 1060, 1100, 1200], sp_lens=5, sp_sizes=5., duration=2000, )
     >>> I2 = bp.inputs.spike_input(sp_times=[600.,       900, 950, 1500], sp_lens=5, sp_sizes=5., duration=2000, )
@@ -293,9 +290,8 @@ class MorrisLecar(NeuGroup):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> import brainmodels
     >>>
-    >>> group = brainmodels.neurons.MorrisLecar(1)
+    >>> group = bp.neurons.MorrisLecar(1)
     >>> runner = bp.StructRunner(group, monitors=['V', 'W'], inputs=('input', 100.))
     >>> runner.run(1000)
     >>>

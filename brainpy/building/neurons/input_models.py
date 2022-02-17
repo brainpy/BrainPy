@@ -74,13 +74,6 @@ class SpikeTimeInput(NeuGroup):
 
 class PoissonInput(NeuGroup):
   """Poisson Neuron Group.
-
-  Parameters
-  ----------
-  steps : tuple of str, tuple of function, dict of (str, function), optional
-      The callable function, or a list of callable functions.
-  name : str, optional
-      The name of the dynamic system.
   """
 
   def __init__(self, size, freqs, seed=None, name=None):

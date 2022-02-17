@@ -148,6 +148,18 @@ class ExpIF(NeuGroup):
     rate for constant input, and the linear response to fluctuations, even in the presence
     of input noise [4]_.
 
+  **Model Examples**
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> group = bp.neurons.ExpIF(1)
+    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
+    >>> runner.run(300., )
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
+
+
   **Model Parameters**
 
   ============= ============== ======== ===================================================
@@ -234,6 +246,7 @@ class ExpIF(NeuGroup):
     self.refractory.value = bm.logical_or(refractory, spike)
     self.spike.value = spike
     self.input[:] = 0.
+
 
 class AdExIF(NeuGroup):
   r"""Adaptive exponential integrate-and-fire neuron model.
@@ -379,6 +392,17 @@ class QuaIF(NeuGroup):
 
   **Model Examples**
 
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>>
+    >>> group = bp.neurons.QuaIF(1,)
+    >>>
+    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 20.))
+    >>> runner.run(duration=200.)
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
+
 
   **Model Parameters**
 
@@ -476,6 +500,21 @@ class AdQuaIF(NeuGroup):
 
       V \rightarrow V_{reset}, \\
       w \rightarrow w+b.
+
+  **Model Examples**
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> group = bp.neurons.AdQuaIF(1, )
+    >>> runner = bp.DSRunner(group, monitors=['V', 'w'], inputs=('input', 30.))
+    >>> runner.run(300)
+    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    >>> fig.add_subplot(gs[0, 0])
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V')
+    >>> fig.add_subplot(gs[1, 0])
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, ylabel='w', show=True)
 
   **Model Parameters**
 

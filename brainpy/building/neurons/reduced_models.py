@@ -153,7 +153,6 @@ class HindmarshRose(NeuGroup):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> import brainmodels
     >>> import matplotlib.pyplot as plt
     >>>
     >>> bp.math.set_dt(dt=0.01)
@@ -164,7 +163,7 @@ class HindmarshRose(NeuGroup):
     >>> Is = bp.math.array([2.0, 5.0, 3.0, 3.3, 3.7])
     >>>
     >>> # define neuron type
-    >>> group = brainmodels.neurons.HindmarshRose(len(types), b=bs)
+    >>> group = bp.neurons.HindmarshRose(len(types), b=bs)
     >>> runner = bp.StructRunner(group, monitors=['V'], inputs=['input', Is],)
     >>> runner.run(1e3)
     >>>
