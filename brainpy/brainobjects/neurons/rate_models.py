@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.building.brainobjects import NeuGroup
+from brainpy.brainobjects import NeuGroup
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 

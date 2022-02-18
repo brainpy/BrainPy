@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.building.brainobjects import NeuGroup
+from brainpy.brainobjects import NeuGroup
 from brainpy.errors import ModelBuildError
 
 __all__ = [

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.building.brainobjects import TwoEndConn
-from brainpy.building.brainobjects.delays import ConstantDelay
+from brainpy.brainobjects import TwoEndConn, ConstantDelay
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 
