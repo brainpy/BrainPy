@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 
 
 # fundamental modules
-from . import errors
+from . import errors, measure
 from . import tools
 
 
@@ -30,8 +30,9 @@ from . import math
 from .math import optimizers
 optim = optimizers
 
+
 # tool modules
-from . import connect, initialize, datasets
+from . import connect, initialize, datasets, measure
 conn = connect
 init = initialize
 
@@ -49,18 +50,21 @@ from .integrators.sde import get_default_sdeint
 from .integrators.joint_eq import JointEq
 
 
-# "building" module
-from .building import brainobjects
-from .building import inputs
-from .building.brainobjects.base import *
-from .building.brainobjects import neurons, synapses
+# "brainobjects" module
+from . import brainobjects
+from brainpy.brainobjects.base import *
+from .brainobjects import neurons, synapses, inputs
+
+
+# "rnns" module
+from . import rnns
 
 
 # "simulation" module
 from . import simulation
 from .simulation.monitor import *
 from .simulation.runners import *
-from .simulation import measure, parallel
+from .simulation import parallel
 
 
 # "analysis" module
