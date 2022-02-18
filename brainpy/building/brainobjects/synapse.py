@@ -28,7 +28,7 @@ class TwoEndConn(DynamicalSystem):
       The name of the dynamic system.
   """
 
-  def __init__(self, pre, post, conn=None, name=None, steps=('update',)):
+  def __init__(self, pre, post, conn=None, name=None):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
@@ -61,7 +61,7 @@ class TwoEndConn(DynamicalSystem):
 
     # initialize
     # ----------
-    super(TwoEndConn, self).__init__(steps=steps, name=name)
+    super(TwoEndConn, self).__init__(name=name)
 
   def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""

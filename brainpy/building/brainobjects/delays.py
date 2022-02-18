@@ -24,8 +24,8 @@ class Delay(DynamicalSystem):
       The name of the dynamic system.
   """
 
-  def __init__(self, steps=('update',), name=None):
-    super(Delay, self).__init__(steps=steps, name=name)
+  def __init__(self, name=None):
+    super(Delay, self).__init__(name=name)
 
   def update(self, _t, _dt, **kwargs):
     raise NotImplementedError

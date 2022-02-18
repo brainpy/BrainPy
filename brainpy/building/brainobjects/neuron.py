@@ -35,7 +35,7 @@ class NeuGroup(DynamicalSystem):
     The name of the dynamic system.
   """
 
-  def __init__(self, size, name=None, steps=('update',)):
+  def __init__(self, size, name=None):
     # size
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
@@ -51,7 +51,7 @@ class NeuGroup(DynamicalSystem):
     self.num = utils.size2len(size)
 
     # initialize
-    super(NeuGroup, self).__init__(steps=steps, name=name)
+    super(NeuGroup, self).__init__(name=name)
 
   def update(self, _t, _dt):
     """The function to specify the updating rule.

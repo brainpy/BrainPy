@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.errors import ModelBuildError
@@ -34,29 +35,13 @@ class DynamicalSystem(Base):
       The name of the dynamic system.
   """
 
-  def __init__(self, steps=None, name=None):
+  def __init__(self, name=None):
     super(DynamicalSystem, self).__init__(name=name)
 
-    # step functions
-    if steps is None:
-      steps = ('update',)
-    self.steps = Collector()
-    if isinstance(steps, tuple):
-      for step in steps:
-        if isinstance(step, str):
-          self.steps[step] = getattr(self, step)
-        elif callable(step):
-          self.steps[step.__name__] = step
-        else:
-          raise ModelBuildError(_error_msg.format(steps[0].__class__, str(steps[0])))
-    elif isinstance(steps, dict):
-      for key, step in steps.items():
-        if callable(step):
-          self.steps[key] = step
-        else:
-          raise ModelBuildError(_error_msg.format(steps.__class__, str(steps)))
-    else:
-      raise ModelBuildError(_error_msg.format(steps.__class__, str(steps)))
+  @property
+  def steps(self):
+    warnings.warn('.steps has been deprecated since version 2.0.3.', DeprecationWarning)
+    return {}
 
   def child_ds(self, method='absolute', include_self=False):
     """Return the children instance of dynamical systems.
@@ -107,19 +92,6 @@ class DynamicalSystem(Base):
     """Register a constant delay, whose update method will be appended into
     the ``self.steps`` in this host class.
 
-    >>> import brainpy as bp
-    >>> group = bp.NeuGroup(10)
-    >>> group.steps
-    {'update': <bound method NeuGroup.update of <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0xxxx>>}
-    >>> delay1 = group.register_constant_delay('delay1', size=(10,), delay=2)
-    >>> delay1
-    <brainpy.simulation.brainobjects.delays.ConstantDelay at 0x219d5188280>
-    >>> group.steps
-    {'update': <bound method NeuGroup.update of <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0xxxx>>,
-     'delay1_update': <bound method ConstantDelay.update of <brainpy.simulation.brainobjects.delays.ConstantDelay object at 0xxxx>>}
-    >>> delay1.data.shape
-    (20, 10)
-
     Parameters
     ----------
     key : str
@@ -162,6 +134,10 @@ class DynamicalSystem(Base):
     """
     raise NotImplementedError('Must implement "update" function by user self.')
 
+  def run(self, duration, start_t=None, monitors=None, inputs=(),
+          dt=None, jit=False, dyn_vars=None, numpy_mon_after_run=False):
+    pass
+
 
 class Container(DynamicalSystem):
   """Container object which is designed to add other instances of DynamicalSystem.
@@ -180,11 +156,8 @@ class Container(DynamicalSystem):
       The instance of DynamicalSystem with the format of "key=dynamic_system".
   """
 
-  def __init__(self, *ds_tuple, steps=None, name=None, **ds_dict):
-    # integrative step function
-    if steps is None:
-      steps = ('update',)
-    super(Container, self).__init__(steps=steps, name=name)
+  def __init__(self, *ds_tuple, name=None, **ds_dict):
+    super(Container, self).__init__(name=name)
 
     # children dynamical systems
     self.implicit_nodes = Collector()
