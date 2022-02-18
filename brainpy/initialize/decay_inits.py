@@ -3,7 +3,7 @@
 import numpy as np
 
 from .base import IntraLayerInitializer
-from brainpy import tools, math
+from brainpy import tools, math as bm
 
 
 __all__ = [
@@ -132,7 +132,7 @@ class GaussianDecay(IntraLayerInitializer):
     # connectivity weights
     conn_weights = conn_mat * self.max_w
     conn_weights = np.where(conn_weights < self.min_w, 0., conn_weights)
-    return math.asarray(conn_weights, dtype=dtype)
+    return bm.asarray(conn_weights, dtype=dtype)
 
 
 class DOGDecay(IntraLayerInitializer):
@@ -254,4 +254,4 @@ class DOGDecay(IntraLayerInitializer):
 
     # connectivity weights
     conn_weights = np.where(np.abs(conn_weights) < self.min_w, 0., conn_weights)
-    return math.asarray(conn_weights, dtype=dtype)
+    return bm.asarray(conn_weights, dtype=dtype)

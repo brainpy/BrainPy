@@ -6,7 +6,7 @@ from typing import Union, List, Tuple
 
 import numpy as np
 
-from brainpy import tools, math
+from brainpy import tools, math as bm
 from brainpy.errors import ConnectorError
 
 
@@ -164,7 +164,7 @@ class TwoEndConnector(Connector):
   def _return_by_mat(self, structures, mat, all_data: dict):
     assert isinstance(mat, np.ndarray) and np.ndim(mat) == 2
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
-      all_data[CONN_MAT] = math.asarray(mat, dtype=MAT_DTYPE)
+      all_data[CONN_MAT] = bm.asarray(mat, dtype=MAT_DTYPE)
 
     require_other_structs = len([s for s in structures if s != CONN_MAT]) > 0
     if require_other_structs:
@@ -181,34 +181,34 @@ class TwoEndConnector(Connector):
 
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
       conn_mat = csr2mat((indices, indptr), self.pre_num, self.post_num)
-      all_data[CONN_MAT] = math.asarray(conn_mat, dtype=MAT_DTYPE)
+      all_data[CONN_MAT] = bm.asarray(conn_mat, dtype=MAT_DTYPE)
 
     if (PRE_IDS in structures) and (PRE_IDS not in all_data):
       pre_ids = np.repeat(np.arange(self.pre_num), np.diff(indptr))
-      all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
+      all_data[PRE_IDS] = bm.asarray(pre_ids, dtype=IDX_DTYPE)
 
     if (POST_IDS in structures) and (POST_IDS not in all_data):
-      all_data[POST_IDS] = math.asarray(indices, dtype=IDX_DTYPE)
+      all_data[POST_IDS] = bm.asarray(indices, dtype=IDX_DTYPE)
 
     if (PRE2POST in structures) and (PRE2POST not in all_data):
-      all_data[PRE2POST] = (math.asarray(indices, dtype=IDX_DTYPE),
-                            math.asarray(indptr, dtype=IDX_DTYPE))
+      all_data[PRE2POST] = (bm.asarray(indices, dtype=IDX_DTYPE),
+                            bm.asarray(indptr, dtype=IDX_DTYPE))
 
     if (POST2PRE in structures) and (POST2PRE not in all_data):
       indc, indptrc = csr2csc((indices, indptr), self.post_num)
-      all_data[POST2PRE] = (math.asarray(indc, dtype=IDX_DTYPE),
-                            math.asarray(indptrc, dtype=IDX_DTYPE))
+      all_data[POST2PRE] = (bm.asarray(indc, dtype=IDX_DTYPE),
+                            bm.asarray(indptrc, dtype=IDX_DTYPE))
 
     if (PRE2SYN in structures) and (PRE2SYN not in all_data):
       syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
-      all_data[PRE2SYN] = (math.asarray(syn_seq, dtype=IDX_DTYPE),
-                           math.asarray(indptr, dtype=IDX_DTYPE))
+      all_data[PRE2SYN] = (bm.asarray(syn_seq, dtype=IDX_DTYPE),
+                           bm.asarray(indptr, dtype=IDX_DTYPE))
 
     if (POST2SYN in structures) and (POST2SYN not in all_data):
       syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
       _, indptrc, syn_seqc = csr2csc((indices, indptr), self.post_num, syn_seq)
-      all_data[POST2SYN] = (math.asarray(syn_seqc, dtype=IDX_DTYPE),
-                            math.asarray(indptrc, dtype=IDX_DTYPE))
+      all_data[POST2SYN] = (bm.asarray(syn_seqc, dtype=IDX_DTYPE),
+                            bm.asarray(indptrc, dtype=IDX_DTYPE))
 
   def _return_by_ij(self, structures, ij: tuple, all_data: dict):
     pre_ids, post_ids = ij
@@ -216,13 +216,13 @@ class TwoEndConnector(Connector):
     assert isinstance(post_ids, np.ndarray)
 
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
-      all_data[CONN_MAT] = math.asarray(ij2mat(ij, self.pre_num, self.post_num), dtype=MAT_DTYPE)
+      all_data[CONN_MAT] = bm.asarray(ij2mat(ij, self.pre_num, self.post_num), dtype=MAT_DTYPE)
 
     if (PRE_IDS in structures) and (PRE_IDS not in all_data):
-      all_data[PRE_IDS] = math.asarray(pre_ids, dtype=IDX_DTYPE)
+      all_data[PRE_IDS] = bm.asarray(pre_ids, dtype=IDX_DTYPE)
 
     if (POST_IDS in structures) and (POST_IDS not in all_data):
-      all_data[POST_IDS] = math.asarray(post_ids, dtype=IDX_DTYPE)
+      all_data[POST_IDS] = bm.asarray(post_ids, dtype=IDX_DTYPE)
 
     require_other_structs = len([s for s in structures
                                  if s not in [CONN_MAT, PRE_IDS, POST_IDS]]) > 0
@@ -245,23 +245,23 @@ class TwoEndConnector(Connector):
       assert isinstance(csr[0], np.ndarray)
       assert isinstance(csr[1], np.ndarray)
       if (PRE2POST in structures) and (PRE2POST not in all_data):
-        all_data[PRE2POST] = (math.asarray(csr[0], dtype=IDX_DTYPE),
-                              math.asarray(csr[1], dtype=IDX_DTYPE))
+        all_data[PRE2POST] = (bm.asarray(csr[0], dtype=IDX_DTYPE),
+                              bm.asarray(csr[1], dtype=IDX_DTYPE))
       self._return_by_csr(structures, csr=csr, all_data=all_data)
     # "mat" structure
     if mat is not None:
       assert isinstance(mat, np.ndarray) and np.ndim(mat) == 2
       if (CONN_MAT in structures) and (CONN_MAT not in all_data):
-        all_data[CONN_MAT] = math.asarray(mat, dtype=MAT_DTYPE)
+        all_data[CONN_MAT] = bm.asarray(mat, dtype=MAT_DTYPE)
       self._return_by_mat(structures, mat=mat, all_data=all_data)
     # "ij" structure
     if ij is not None:
       assert isinstance(ij[0], np.ndarray)
       assert isinstance(ij[1], np.ndarray)
       if (PRE_IDS in structures) and (PRE_IDS not in structures):
-        all_data[PRE_IDS] = math.asarray(ij[0], dtype=IDX_DTYPE)
+        all_data[PRE_IDS] = bm.asarray(ij[0], dtype=IDX_DTYPE)
       if (POST_IDS in structures) and (POST_IDS not in structures):
-        all_data[POST_IDS] = math.asarray(ij[1], dtype=IDX_DTYPE)
+        all_data[POST_IDS] = bm.asarray(ij[1], dtype=IDX_DTYPE)
       self._return_by_ij(structures, ij=ij, all_data=all_data)
 
     # return

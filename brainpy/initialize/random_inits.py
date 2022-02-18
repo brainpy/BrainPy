@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brainpy import math
+from brainpy import math as bm
 from .base import InterLayerInitializer
 from brainpy.simulation.utils import size2len
 
@@ -41,12 +41,12 @@ class Normal(InterLayerInitializer):
   def __init__(self, scale=1., seed=None):
     super(Normal, self).__init__()
     self.scale = scale
-    self.rng = math.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [size2len(d) for d in shape]
     weights = self.rng.normal(size=shape, scale=self.scale)
-    return math.asarray(weights, dtype=dtype)
+    return bm.asarray(weights, dtype=dtype)
 
 
 class Uniform(InterLayerInitializer):
@@ -65,12 +65,12 @@ class Uniform(InterLayerInitializer):
     super(Uniform, self).__init__()
     self.min_val = min_val
     self.max_val = max_val
-    self.rng = math.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [size2len(d) for d in shape]
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
-    return math.asarray(r, dtype=dtype)
+    return bm.asarray(r, dtype=dtype)
 
 
 class VarianceScaling(InterLayerInitializer):
@@ -80,7 +80,7 @@ class VarianceScaling(InterLayerInitializer):
     self.in_axis = in_axis
     self.out_axis = out_axis
     self.distribution = distribution
-    self.rng = math.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [size2len(d) for d in shape]
@@ -93,18 +93,18 @@ class VarianceScaling(InterLayerInitializer):
       denominator = (fan_in + fan_out) / 2
     else:
       raise ValueError("invalid mode for variance scaling initializer: {}".format(self.mode))
-    variance = math.array(self.scale / denominator, dtype=dtype)
+    variance = bm.array(self.scale / denominator, dtype=dtype)
     if self.distribution == "truncated_normal":
       # constant is stddev of standard normal truncated to (-2, 2)
-      stddev = math.sqrt(variance) / math.array(.87962566103423978, dtype)
+      stddev = bm.sqrt(variance) / bm.array(.87962566103423978, dtype)
       res = self.rng.truncated_normal(-2, 2, shape) * stddev
-      return math.asarray(res, dtype=dtype)
+      return bm.asarray(res, dtype=dtype)
     elif self.distribution == "normal":
-      res = self.rng.normal(size=shape) * math.sqrt(variance)
-      return math.asarray(res, dtype=dtype)
+      res = self.rng.normal(size=shape) * bm.sqrt(variance)
+      return bm.asarray(res, dtype=dtype)
     elif self.distribution == "uniform":
-      res = self.rng.uniform(low=-1, high=1, size=shape) * math.sqrt(3 * variance)
-      return math.asarray(res, dtype=dtype)
+      res = self.rng.uniform(low=-1, high=1, size=shape) * bm.sqrt(3 * variance)
+      return bm.asarray(res, dtype=dtype)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
 
@@ -181,7 +181,7 @@ class Orthogonal(InterLayerInitializer):
     super(Orthogonal, self).__init__()
     self.scale = scale
     self.axis = axis
-    self.rng = math.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [size2len(d) for d in shape]
@@ -196,7 +196,7 @@ class Orthogonal(InterLayerInitializer):
       q_mat = q_mat.T
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
-    return self.scale * math.asarray(q_mat, dtype=dtype)
+    return self.scale * bm.asarray(q_mat, dtype=dtype)
 
 
 class DeltaOrthogonal(InterLayerInitializer):
@@ -219,7 +219,7 @@ class DeltaOrthogonal(InterLayerInitializer):
       raise ValueError("`fan_in` must be less or equal than `fan_out`. ")
     ortho_init = Orthogonal(scale=self.scale, axis=self.axis)
     ortho_matrix = ortho_init(shape[-2:], dtype=dtype)
-    W = math.zeros(shape, dtype=dtype)
+    W = bm.zeros(shape, dtype=dtype)
     if len(shape) == 3:
       k = shape[0]
       W[(k - 1) // 2, ...] = ortho_matrix
