@@ -29,6 +29,10 @@ class Module(Base):
   """Basic module class."""
 
   @staticmethod
+  def get_param(param, size):
+    return bm.TrainVar(Module.init_param(param, size))
+
+  @staticmethod
   def init_param(param, size):
     if param is None:
       return None

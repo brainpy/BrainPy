@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.building.layers.base import Module
+from brainpy.layers.base import Module
 
 __all__ = [
   'Dropout'

@@ -4,7 +4,7 @@ import abc
 
 import brainpy.math as bm
 from brainpy.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
-from brainpy.building.layers.base import Module
+from brainpy.layers.base import Module
 
 __all__ = [
   'RNNCore',

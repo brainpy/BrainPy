@@ -2,7 +2,7 @@
 
 
 from brainpy.initialize import XavierNormal, ZeroInit
-from brainpy.building.layers.base import Module
+from brainpy.layers.base import Module
 
 __all__ = [
   'Dense'

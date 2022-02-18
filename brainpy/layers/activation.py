@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.math import activations
-from brainpy.building.layers.base import Module
+from brainpy.layers.base import Module
 
 __all__ = [
   'Activation'
