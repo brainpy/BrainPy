@@ -79,7 +79,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   Examples
   --------
 
-  >>> import brainpy.math.jax as bm
+  >>> import brainpy.math as bm
   >>>
   >>> a = bm.zeros(1)
   >>> def f(x): a.value += 1.
@@ -185,7 +185,7 @@ def make_while(cond_fun, body_fun, dyn_vars):
 
   Examples
   --------
-  >>> import brainpy.math.jax as bm
+  >>> import brainpy.math as bm
   >>>
   >>> a = bm.zeros(1)
   >>>
@@ -255,7 +255,7 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   Examples
   --------
 
-  >>> import brainpy.math.jax as bm
+  >>> import brainpy.math as bm
   >>> a = bm.zeros(2)
   >>> b = bm.ones(2)
   >>>

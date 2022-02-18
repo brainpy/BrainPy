@@ -10,7 +10,7 @@ class visualize(object):
   @staticmethod
   def get_figure(row_num, col_num, row_len=3, col_len=6):
     from .figures import get_figure
-    get_figure(row_num, col_num, row_len, col_len)
+    return get_figure(row_num, col_num, row_len, col_len)
 
   @staticmethod
   def line_plot(ts, val_matrix, plot_ids=None, ax=None, xlim=None, ylim=None,
@@ -48,10 +48,10 @@ class visualize(object):
                  show=True,
                  **kwargs):
     from .plots import animate_1D
-    animate_1D(dynamical_vars, static_vars=static_vars, dt=dt, xlim=xlim, ylim=ylim,
-               xlabel=xlabel, ylabel=ylabel, frame_delay=frame_delay, frame_step=frame_step,
-               title_size=title_size, figsize=figsize, gif_dpi=gif_dpi, video_fps=video_fps,
-               save_path=save_path, show=show, **kwargs)
+    return animate_1D(dynamical_vars, static_vars=static_vars, dt=dt, xlim=xlim, ylim=ylim,
+                      xlabel=xlabel, ylabel=ylabel, frame_delay=frame_delay, frame_step=frame_step,
+                      title_size=title_size, figsize=figsize, gif_dpi=gif_dpi, video_fps=video_fps,
+                      save_path=save_path, show=show, **kwargs)
 
   @staticmethod
   def animate_2D(values,
@@ -69,10 +69,10 @@ class visualize(object):
                  save_path=None,
                  show=True):
     from .plots import animate_2D
-    animate_2D(values, net_size, dt=dt, val_min=val_min, val_max=val_max, cmap=cmap,
-               frame_delay=frame_delay, frame_step=frame_step, title_size=title_size,
-               figsize=figsize, gif_dpi=gif_dpi, video_fps=video_fps, save_path=save_path,
-               show=show)
+    return animate_2D(values, net_size, dt=dt, val_min=val_min, val_max=val_max, cmap=cmap,
+                      frame_delay=frame_delay, frame_step=frame_step, title_size=title_size,
+                      figsize=figsize, gif_dpi=gif_dpi, video_fps=video_fps, save_path=save_path,
+                      show=show)
 
   @staticmethod
   def plot_style1(fontsize=22, axes_edgecolor='black', figsize='5,4', lw=1):

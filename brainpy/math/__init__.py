@@ -12,11 +12,13 @@ This module provides basic mathematical operations, including:
 - compilations of ``jit``, ``vmap``, ``pmap`` for class objects
 - automatic differentiation of ``grad``, ``jacocian``, ``hessian``, etc. for class objects
 
-
+It also provides fundamental tools to construct brain models, including:
 
 - loss functions
 - activation functions
-- optimization classes
+- optimizers
+- connectivity functions
+- initialization functions
 
 Details in the following.
 """
@@ -35,16 +37,12 @@ Details in the following.
 # data structure
 from .jaxarray import *
 
-# functions/operations
+# numpy operations
 from .numpy_ops import *
 from .operators import *
-from .activations import *
 from . import fft
 from . import linalg
 from . import random
-from . import losses
-from . import optimizers
-from . import activations
 
 # transformations
 from .autograd import *
@@ -52,10 +50,18 @@ from .controls import *
 from .jit import *
 from .parallels import *
 
-# others
+# settings
 from . import profile
 from . import setting
 from .profile import *
 from .setting import *
 from .function import *
 from . import numpy
+
+# functions
+from . import losses
+from . import optimizers
+optim = optimizers
+from .activations import *
+from . import activations
+
