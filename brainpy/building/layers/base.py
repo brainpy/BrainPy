@@ -7,8 +7,8 @@ import numpy as onp
 
 import brainpy.math as bm
 from brainpy import errors
+from brainpy.base.base import Base
 from brainpy.base.collector import Collector
-from brainpy.building.brainobjects import DynamicalSystem
 
 __all__ = [
   'Module',
@@ -25,12 +25,8 @@ def _check_args(args):
     return (args,)
 
 
-class Module(DynamicalSystem):
-  """Basic module class for DNN networks."""
-
-  @staticmethod
-  def get_param(param, size):
-    return bm.TrainVar(Module.init_param(param, size))
+class Module(Base):
+  """Basic module class."""
 
   @staticmethod
   def init_param(param, size):
@@ -47,8 +43,29 @@ class Module(DynamicalSystem):
     assert param.shape == size, f'"param.shape" is not the required size {size}'
     return param
 
-  def update(self, *args, **kwargs):
+  def __init__(self, name=None):  # initialize parameters
+    super(Module, self).__init__(name=name)
+
+  def __call__(self, *args, **kwargs):  # initialize variables
+    return self.call(*args, **kwargs)
+
+  def call(self, *args, **kwargs):
     raise NotImplementedError
+
+
+class FeedForward(Module):
+  """Feedforward motif for the brain modeling."""
+  pass
+
+
+class FeedBack(Module):
+  """Feedback motif for the brain modeling."""
+  pass
+
+
+class Recurrent(Module):
+  """Recurrent motif for the brain modeling."""
+  pass
 
 
 class Sequential(Module):
@@ -70,20 +87,20 @@ class Sequential(Module):
     self.implicit_nodes = Collector()
     # check "args"
     for ds in arg_ds:
-      if not isinstance(ds, DynamicalSystem):
-        raise errors.BrainPyError(f'Only support {DynamicalSystem.__name__}, '
+      if not isinstance(ds, Module):
+        raise errors.BrainPyError(f'Only support {Module.__name__}, '
                                   f'but we got {type(ds)}: {str(ds)}.')
       self.implicit_nodes[ds.name] = ds
 
     # check "kwargs"
     for key, ds in kwarg_ds.items():
-      if not isinstance(ds, DynamicalSystem):
-        raise errors.BrainPyError(f'Only support {DynamicalSystem.__name__}, '
+      if not isinstance(ds, Module):
+        raise errors.BrainPyError(f'Only support {Module.__name__}, '
                                   f'but we got {type(ds)}: {str(ds)}.')
       self.implicit_nodes[key] = ds
 
     # all update functions
-    self._return_kwargs = ['kwargs' in inspect.signature(ds.update).parameters.keys()
+    self._return_kwargs = ['kwargs' in inspect.signature(ds.call).parameters.keys()
                            for ds in self.implicit_nodes.values()]
 
   def _check_kwargs(self, i, kwargs):
@@ -103,10 +120,10 @@ class Sequential(Module):
     """
     ds = list(self.implicit_nodes.values())
     # first layer
-    args = ds[0].update(*args, **self._check_kwargs(0, kwargs))
+    args = ds[0].call(*args, **self._check_kwargs(0, kwargs))
     # other layers
     for i in range(1, len(self.implicit_nodes)):
-      args = ds[i].update(*_check_args(args=args), **self._check_kwargs(i, kwargs))
+      args = ds[i].call(*_check_args(args=args), **self._check_kwargs(i, kwargs))
     return args
 
   def __getitem__(self, key: int):

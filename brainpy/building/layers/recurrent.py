@@ -3,8 +3,8 @@
 import abc
 
 import brainpy.math as bm
-from brainpy.math.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
-from .base import Module
+from brainpy.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
+from brainpy.building.layers.base import Module
 
 __all__ = [
   'RNNCore',
