@@ -292,7 +292,7 @@ class MorrisLecar(NeuGroup):
     >>> import brainpy as bp
     >>>
     >>> group = bp.neurons.MorrisLecar(1)
-    >>> runner = bp.StructRunner(group, monitors=['V', 'W'], inputs=('input', 100.))
+    >>> runner = bp.DSRunner(group, monitors=['V', 'W'], inputs=('input', 100.))
     >>> runner.run(1000)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)

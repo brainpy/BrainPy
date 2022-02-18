@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-from brainpy.math import connect
+from brainpy import connect
 
 
 def test_one2one():

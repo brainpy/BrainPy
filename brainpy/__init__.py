@@ -14,6 +14,11 @@ except ModuleNotFoundError:
   )
 
 
+# fundamental modules
+from . import errors
+from . import tools
+
+
 # "base" module
 from . import base
 from .base.base import Base
@@ -22,10 +27,13 @@ from .base.collector import Collector, TensorCollector
 
 # "math" module
 from . import math
-from .math import connect, initialize, optimizers
+from .math import optimizers
+optim = optimizers
+
+# tool modules
+from . import connect, initialize, datasets
 conn = connect
 init = initialize
-optim = optimizers
 
 
 # "integrators" module
@@ -42,14 +50,16 @@ from .integrators.joint_eq import JointEq
 
 
 # "building" module
-from .building.brainobjects import *
-from .building import inputs, brainobjects, layers, neurons, synapses
+from .building import brainobjects
+from .building import inputs
+from .building.brainobjects.base import *
+from .building.brainobjects import neurons, synapses
 
 
 # "simulation" module
 from . import simulation
 from .simulation.monitor import *
-from .simulation.runner import *
+from .simulation.runners import *
 from .simulation import measure, parallel
 
 
@@ -61,6 +71,3 @@ from . import analysis
 from .visualization import visualize
 
 
-# other modules
-from . import errors
-from . import tools

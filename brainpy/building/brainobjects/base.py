@@ -8,7 +8,7 @@ from brainpy import tools
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.errors import ModelBuildError
-from brainpy.math.connect import TwoEndConnector, MatConn, IJConn
+from brainpy.connect import TwoEndConnector, MatConn, IJConn
 
 __all__ = [
   'DynamicalSystem',
