@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brainpy import math
+from brainpy import math as bm
 from brainpy.errors import MonitorError
 
 __all__ = [
@@ -34,20 +34,20 @@ class Monitor(object):
 
   2. list of strings and string + indices
 
-  >>> Monitor(target=..., variables=['a', ('b', math.array([1,2,3])), 'c'])
+  >>> Monitor(target=..., variables=['a', ('b', bm.array([1,2,3])), 'c'])
 
   2.1. list of string (+ indices) and list of intervals
 
-  >>> Monitor(target=..., variables=['a', ('b', math.array([1,2,3])), 'c'],
+  >>> Monitor(target=..., variables=['a', ('b', bm.array([1,2,3])), 'c'],
   >>>         intervals=[None, 2, 3])
 
   3. a dictionary with the format of {key: indices}
 
-  >>> Monitor(target=..., variables={'a': None, 'b': math.array([1,2,3])})
+  >>> Monitor(target=..., variables={'a': None, 'b': bm.array([1,2,3])})
 
   3.1. a dictionaly of variable and indexes, and a dictionary of time intervals
 
-  >>> Monitor(target=..., variables={'a': None, 'b': math.array([1,2,3])},
+  >>> Monitor(target=..., variables={'a': None, 'b': bm.array([1,2,3])},
   >>>         intervals={'b': 2.})
 
   .. note::
@@ -116,7 +116,7 @@ class Monitor(object):
           if isinstance(mon_var, str):
             mon_key = mon_var
             mon_idx = None
-          # users monitor a variable by a tuple: `('b', math.array([1,2,3]))`
+          # users monitor a variable by a tuple: `('b', bm.array([1,2,3]))`
           elif isinstance(mon_var, (tuple, list)):
             mon_key = mon_var[0]
             mon_idx = mon_var[1]
@@ -132,7 +132,7 @@ class Monitor(object):
 
       elif isinstance(self.vars, dict):
         item_intervals = []
-        # users monitor a variable by a dict: `{'a': None, 'b': math.array([1,2,3])}`
+        # users monitor a variable by a dict: `{'a': None, 'b': bm.array([1,2,3])}`
         for mon_key, mon_idx in self.vars.items():
           item_names.append(mon_key)
           item_indices.append(mon_idx)

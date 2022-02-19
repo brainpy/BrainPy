@@ -4,8 +4,8 @@ import time
 from collections.abc import Iterable
 
 from brainpy import math
-from brainpy.brainobjects import DynamicalSystem
 from brainpy.errors import RunningError
+from brainpy.sim.base import DynamicalSystem
 from brainpy.sim.monitor import Monitor
 
 __all__ = [

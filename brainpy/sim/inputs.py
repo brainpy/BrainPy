@@ -8,7 +8,7 @@ You can access them through ``brainpy.inputs.XXX``.
 
 import numpy as np
 
-from brainpy import math
+from brainpy import math as bm
 
 __all__ = [
   'section_input',
@@ -48,19 +48,19 @@ def section_input(values, durations, dt=None, return_length=False):
   assert len(durations) == len(values), f'"values" and "durations" must be the same length, while ' \
                                         f'we got {len(values)} != {len(durations)}.'
 
-  dt = math.get_dt() if dt is None else dt
+  dt = bm.get_dt() if dt is None else dt
 
   # get input current shape, and duration
   I_duration = sum(durations)
   I_shape = ()
   for val in values:
-    shape = math.shape(val)
+    shape = bm.shape(val)
     if len(shape) > len(I_shape):
       I_shape = shape
 
   # get the current
   start = 0
-  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=math.float_)
+  I_current = bm.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
   for c_size, duration in zip(values, durations):
     length = int(duration / dt)
     I_current[start: start + length] = c_size
@@ -97,20 +97,20 @@ def constant_input(I_and_duration, dt=None):
   current_and_duration : tuple
       (The formatted current, total duration)
   """
-  dt = math.get_dt() if dt is None else dt
+  dt = bm.get_dt() if dt is None else dt
 
   # get input current dimension, shape, and duration
   I_duration = 0.
   I_shape = ()
   for I in I_and_duration:
     I_duration += I[1]
-    shape = math.shape(I[0])
+    shape = bm.shape(I[0])
     if len(shape) > len(I_shape):
       I_shape = shape
 
   # get the current
   start = 0
-  I_current = math.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=math.float_)
+  I_current = bm.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
   for c_size, duration in I_and_duration:
     length = int(duration / dt)
     I_current[start: start + length] = c_size
@@ -150,17 +150,17 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
 
   Returns
   -------
-  current : math.ndarray
+  current : bm.ndarray
       The formatted input current.
   """
-  dt = math.get_dt() if dt is None else dt
+  dt = bm.get_dt() if dt is None else dt
   assert isinstance(sp_times, (list, tuple))
   if isinstance(sp_lens, (float, int)):
     sp_lens = [sp_lens] * len(sp_times)
   if isinstance(sp_sizes, (float, int)):
     sp_sizes = [sp_sizes] * len(sp_times)
 
-  current = math.zeros(int(np.ceil(duration / dt)), dtype=math.float_)
+  current = bm.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
   for time, dur, size in zip(sp_times, sp_lens, sp_sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
@@ -194,13 +194,13 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   current_and_duration : tuple
       (The formatted current, total duration)
   """
-  dt = math.get_dt() if dt is None else dt
+  dt = bm.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
-  current = math.zeros(int(np.ceil(duration / dt)), dtype=math.float_)
+  current = bm.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
   p1 = int(np.ceil(t_start / dt))
   p2 = int(np.ceil(t_end / dt))
-  current[p1: p2] = math.array(math.linspace(c_start, c_end, p2 - p1), dtype=math.float_)
+  current[p1: p2] = bm.array(bm.linspace(c_start, c_end, p2 - p1), dtype=bm.float_)
   return current
 
 

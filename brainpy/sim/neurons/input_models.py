@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.brainobjects import NeuGroup
 from brainpy.errors import ModelBuildError
+from brainpy.sim.base import NeuGroup
 
 __all__ = [
   'SpikeTimeInput',

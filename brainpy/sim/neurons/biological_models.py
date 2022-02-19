@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.brainobjects import NeuGroup
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
+from brainpy.sim.base import NeuGroup
 
 __all__ = [
   'HH',
