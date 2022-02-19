@@ -72,53 +72,26 @@ class HH(bp.NeuGroup):
     self.input[:] = 0.
 
 
-class ExpCOBA(bp.TwoEndConn):
-  def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
-               method='exp_auto'):
-    super(ExpCOBA, self).__init__(pre=pre, post=post, conn=conn)
-    self.check_pre_attrs('spike')
-    self.check_post_attrs('input', 'V')
-
-    # parameters
-    self.E = E
-    self.tau = tau
-    self.delay = delay
-    self.g_max = g_max
-    self.pre2post = self.conn.require('pre2post')
-
-    # variables
-    self.g = bm.Variable(bm.zeros(self.post.num))
-
-    # function
-    self.integral = bp.odeint(lambda g, t: -g / self.tau, method=method)
-
-  def update(self, _t, _dt):
-    self.g.value = self.integral(self.g, _t, dt=_dt)
-    post_sps = bm.pre2post_event_sum(self.pre.spike, self.pre2post, self.post.num, self.g_max)
-    self.g.value += post_sps
-    self.post.input += self.g * (self.E - self.post.V)
-
-
-class COBAHH(bp.Network):
+class COBAHH(bp.sim.Network):
   def __init__(self, scale=1., method='exp_auto'):
     num_exc = int(3200 * scale)
     num_inh = int(800 * scale)
     E = HH(num_exc, method=method)
     I = HH(num_inh, method=method)
-    E2E = ExpCOBA(pre=E, post=E, conn=bp.conn.FixedProb(prob=0.02),
-                  E=Ee, g_max=we / scale, tau=taue, method=method)
-    E2I = ExpCOBA(pre=E, post=I, conn=bp.conn.FixedProb(prob=0.02),
-                  E=Ee, g_max=we / scale, tau=taue, method=method)
-    I2E = ExpCOBA(pre=I, post=E, conn=bp.conn.FixedProb(prob=0.02),
-                  E=Ei, g_max=wi / scale, tau=taui, method=method)
-    I2I = ExpCOBA(pre=I, post=I, conn=bp.conn.FixedProb(prob=0.02),
-                  E=Ei, g_max=wi / scale, tau=taui, method=method)
+    E2E = bp.sim.ExpCOBA(pre=E, post=E, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ee, g_max=we / scale, tau=taue, method=method)
+    E2I = bp.sim.ExpCOBA(pre=E, post=I, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ee, g_max=we / scale, tau=taue, method=method)
+    I2E = bp.sim.ExpCOBA(pre=I, post=E, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ei, g_max=wi / scale, tau=taui, method=method)
+    I2I = bp.sim.ExpCOBA(pre=I, post=I, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ei, g_max=wi / scale, tau=taui, method=method)
 
     super(COBAHH, self).__init__(E2E, E2I, I2I, I2E, E=E, I=I)
 
 
 net = COBAHH(scale=1)
-runner = bp.StructRunner(net, monitors=['E.spike'])
+runner = bp.sim.DSRunner(net, monitors=['E.spike'])
 t = runner.run(100.)
 print(t)
 bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)

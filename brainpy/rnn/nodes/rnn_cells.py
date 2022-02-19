@@ -27,7 +27,7 @@ class RNNCore(RecurrentModule):
     pass
 
 
-class VanillaRNN(Recurrent):
+class VanillaRNN(RNNCore):
   r"""Basic fully-connected RNN core.
 
   Given :math:`x_t` and the previous hidden state :math:`h_{t-1}` the
