@@ -4,7 +4,7 @@ import abc
 
 import brainpy.math as bm
 from brainpy.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
-from brainpy.layers.base import Module
+from brainpy.rnns.base import Module, Recurrent
 
 __all__ = [
   'RNNCore',
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-class RNNCore(Module):
+class RNNCore(Recurrent):
   def __init__(self, num_hidden, num_input, **kwargs):
     super(RNNCore, self).__init__(**kwargs)
     assert isinstance(num_hidden, int)
@@ -27,7 +27,7 @@ class RNNCore(Module):
     pass
 
 
-class VanillaRNN(RNNCore):
+class VanillaRNN(Recurrent):
   r"""Basic fully-connected RNN core.
 
   Given :math:`x_t` and the previous hidden state :math:`h_{t-1}` the
@@ -44,13 +44,13 @@ class VanillaRNN(RNNCore):
     super(VanillaRNN, self).__init__(num_hidden, num_input, **kwargs)
 
     # variables
-    self.h = bm.Variable(self.get_param(h, (num_batch, self.num_hidden)))
+    self.h = bm.Variable(self.init_param(h, (num_batch, self.num_hidden)))
 
     # weights
-    ws = self.get_param(w, (num_input + num_hidden, num_hidden))
+    ws = self.init_param(w, (num_input + num_hidden, num_hidden))
     self.w_ir = bm.TrainVar(ws[:num_input])
     self.w_rr = bm.TrainVar(ws[num_input:])
-    self.b = self.get_param(b, (num_hidden,))
+    self.b = self.init_param(b, (num_hidden,))
 
   def update(self, x):
     h = x @ self.w_ir + self.h @ self.w_rr + self.b
@@ -94,18 +94,18 @@ class GRU(RNNCore):
     self.has_bias = True
 
     # variables
-    self.h = bm.Variable(self.get_param(h, (num_batch, self.num_hidden)))
+    self.h = bm.Variable(self.init_param(h, (num_batch, self.num_hidden)))
 
     # weights
-    wxs = self.get_param(wx, (num_input * 3, num_hidden))
+    wxs = self.init_param(wx, (num_input * 3, num_hidden))
     self.w_iz = bm.TrainVar(wxs[:num_input])
     self.w_ir = bm.TrainVar(wxs[num_input: num_input * 2])
     self.w_ia = bm.TrainVar(wxs[num_input * 2:])
-    whs = self.get_param(wh, (num_hidden * 3, num_hidden))
+    whs = self.init_param(wh, (num_hidden * 3, num_hidden))
     self.w_hz = bm.TrainVar(whs[:num_hidden])
     self.w_hr = bm.TrainVar(whs[num_hidden: num_hidden * 2])
     self.w_ha = bm.TrainVar(whs[num_hidden * 2:])
-    bs = self.get_param(b, (num_hidden * 3,))
+    bs = self.init_param(b, (num_hidden * 3,))
     self.bz = bm.TrainVar(bs[:num_hidden])
     self.br = bm.TrainVar(bs[num_hidden: num_hidden * 2])
     self.ba = bm.TrainVar(bs[num_hidden * 2:])
@@ -171,13 +171,13 @@ class LSTM(RNNCore):
     self.has_bias = True
 
     # variables
-    hc = bm.Variable(self.get_param(hc, (num_batch * 2, self.num_hidden)))
+    hc = bm.Variable(self.init_param(hc, (num_batch * 2, self.num_hidden)))
     self.h = bm.Variable(hc[:num_batch])
     self.c = bm.Variable(hc[num_batch:])
 
     # weights
-    self.w = self.get_param(w, (num_input + num_hidden, num_hidden * 4))
-    self.b = self.get_param(b, (num_hidden * 4,))
+    self.w = bm.TrainVar(self.init_param(w, (num_input + num_hidden, num_hidden * 4)))
+    self.b = self.init_param(b, (num_hidden * 4,))
 
   def update(self, x):
     xh = bm.concatenate([x, self.h], axis=-1)

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import inspect
+import warnings
 
 import jax.numpy as jnp
 import numpy as onp
@@ -48,6 +49,9 @@ class Module(Base):
     return param
 
   def __init__(self, name=None):  # initialize parameters
+    warnings.warn('Please use "brainpy.rnns.Module" instead. '
+                  '"brainpy.layers.Module" will be removed since '
+                  'version 2.1.0.', DeprecationWarning)
     super(Module, self).__init__(name=name)
 
   def __call__(self, *args, **kwargs):  # initialize variables
@@ -55,21 +59,6 @@ class Module(Base):
 
   def call(self, *args, **kwargs):
     raise NotImplementedError
-
-
-class FeedForward(Module):
-  """Feedforward motif for the brain modeling."""
-  pass
-
-
-class FeedBack(Module):
-  """Feedback motif for the brain modeling."""
-  pass
-
-
-class Recurrent(Module):
-  """Recurrent motif for the brain modeling."""
-  pass
 
 
 class Sequential(Module):

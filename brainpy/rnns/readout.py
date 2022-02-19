@@ -2,7 +2,7 @@
 
 
 from brainpy import math
-from brainpy.building.brainobjects import NeuGroup
+from brainpy.rnns.base import Module
 from brainpy.initialize import Initializer, XavierNormal, Uniform, ZeroInit
 
 __all__ = [
@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 
-class LinearReadout(NeuGroup):
+class LinearReadout(Module):
   """Neuron group to readout information linearly.
 
   Parameters
@@ -34,7 +34,7 @@ class LinearReadout(NeuGroup):
   def __init__(self, num_hidden, num_input, num_batch=1,
                w_init=XavierNormal(), b_init=ZeroInit(),
                has_bias=True, s_init=Uniform(), train_mask=None, **kwargs):
-    super(LinearReadout, self).__init__(size=num_hidden, **kwargs)
+    super(LinearReadout, self).__init__(**kwargs)
 
     # parameters
     self.w_init = w_init

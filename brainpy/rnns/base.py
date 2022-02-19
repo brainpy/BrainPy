@@ -12,7 +12,6 @@ from brainpy.base.collector import Collector
 
 __all__ = [
   'Module',
-  'Sequential',
 ]
 
 
@@ -54,15 +53,29 @@ class Module(Base):
 
 
 class FeedForward(Module):
-  """Feedforward motif for the brain modeling."""
+  """Feedforward motif for the RNN modeling."""
   pass
 
 
 class FeedBack(Module):
-  """Feedback motif for the brain modeling."""
+  """Feedback motif for the RNN modeling."""
   pass
 
 
 class Recurrent(Module):
-  """Recurrent motif for the brain modeling."""
+  """Recurrent motif for the RNN modeling."""
+
+  # the output
   pass
+
+  def compute(self, x):
+    return y, state
+
+  def update(self, state):
+    self.state.value = state
+
+
+
+
+
+
