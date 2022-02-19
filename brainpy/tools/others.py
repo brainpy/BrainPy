@@ -9,6 +9,7 @@ from jax.experimental import host_callback
 from tqdm.auto import tqdm
 
 __all__ = [
+  'to_size',
   'size2num',
   'timeout',
   'init_progress_bar',
@@ -25,6 +26,15 @@ def size2num(size):
     return a
   else:
     raise ValueError
+
+def to_size(x):
+  if x is None:
+    return tuple()
+  if isinstance(x, (tuple, list)):
+    return tuple(x)
+  if isinstance(x, int):
+    return (x,)
+  raise ValueError(f'Cannot make a size for {x}')
 
 
 def timeout(s):

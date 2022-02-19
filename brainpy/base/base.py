@@ -21,8 +21,8 @@ class Base(object):
 
   The subclass of Base includes:
 
-  - ``DynamicalSystem`` in *brainpy.simulation.brainobjects.base.py*
-  - ``Integrator`` in *brainpy.integrators.base.py*
+  - ``DynamicalSystem`` in *brainpy.simulation.brainobjects.base_node.py*
+  - ``Integrator`` in *brainpy.integrators.base_node.py*
   - ``Function`` in *brainpy.base.function.py*
   - ``AutoGrad`` in *brainpy.math.autograd.py*
   - ``Optimizer`` in *brainpy.math.optimizers.py*

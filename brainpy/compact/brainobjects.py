@@ -2,7 +2,7 @@
 
 import warnings
 
-from .. import sim
+from brainpy import sim
 
 __all__ = [
   'DynamicalSystem',
