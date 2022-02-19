@@ -60,8 +60,7 @@ from . import numpy
 
 # functions
 from . import losses
-from . import optimizers
-optim = optimizers
 from .activations import *
 from . import activations
+from .compact import *
 

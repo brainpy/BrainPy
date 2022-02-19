@@ -29,5 +29,5 @@ class Activation(Module):
     self._activation = activations.get(activation)
     self._setting = setting
 
-  def update(self, x):
+  def call(self, x):
     return self._activation(x, **self._setting)

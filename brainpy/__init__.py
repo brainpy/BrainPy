@@ -15,8 +15,7 @@ except ModuleNotFoundError:
 
 
 # fundamental modules
-from . import errors, measure
-from . import tools
+from . import errors,tools
 
 
 # "base" module
@@ -27,14 +26,10 @@ from .base.collector import Collector, TensorCollector
 
 # "math" module
 from . import math
-from .math import optimizers
-optim = optimizers
 
 
 # tool modules
-from . import connect, initialize, datasets, measure
-conn = connect
-init = initialize
+from . import connect as conn, initialize as init, optimizers as opt, datasets, measure, losses
 
 
 # "integrators" module

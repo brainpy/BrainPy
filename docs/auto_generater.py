@@ -5,8 +5,9 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, losses, operators, optimizers, parallels,
+                          jit, losses, operators, parallels,
                           profile, setting)
+from brainpy import optimizers
 
 
 def get_class_funcs(module):
