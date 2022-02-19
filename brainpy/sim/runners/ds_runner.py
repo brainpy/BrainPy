@@ -12,10 +12,10 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 from brainpy import math, tools
-from brainpy.building.brainobjects import DynamicalSystem
+from brainpy.sim.base import DynamicalSystem
 from brainpy.errors import RunningError, MonitorError
-from brainpy.simulation import utils
-from brainpy.simulation.monitor import Monitor
+from .. import utils
+from brainpy.sim.monitor import Monitor
 from .base import Runner
 
 logger = logging.getLogger('brainpy.simulation.runner')

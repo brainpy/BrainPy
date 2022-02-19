@@ -51,27 +51,25 @@ from .integrators.joint_eq import JointEq
 
 
 # "brainobjects" module
-from . import brainobjects
-from brainpy.brainobjects.base import *
-from .brainobjects import neurons, synapses, inputs
+from . import sim
+from .sim import inputs
 
 
 # "rnns" module
-from . import rnns
+from . import rnn
 
 
 # "simulation" module
-from . import simulation
-from .simulation.monitor import *
-from .simulation.runners import *
-from .simulation import parallel
+from . import running
 
 
 # "analysis" module
 from . import analysis
 
 
-# # "visualization" module
+# "visualization" module
 from .visualization import visualize
 
+# compatible interface
+from .compact import *  # compact
 

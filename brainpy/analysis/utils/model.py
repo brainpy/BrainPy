@@ -6,7 +6,7 @@ import brainpy.math as bm
 from brainpy import errors
 from brainpy.integrators.ode.base import ODEIntegrator
 from brainpy.brainobjects import DynamicalSystem
-from brainpy.simulation.runners import DSRunner
+from brainpy.sim.runners import DSRunner
 
 __all__ = [
   'model_transform',

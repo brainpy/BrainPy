@@ -11,7 +11,7 @@ from brainpy import math
 from brainpy.base.collector import Collector, TensorCollector
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
-from brainpy.simulation.monitor import Monitor
+from brainpy.sim.monitor import Monitor
 from .base import Runner
 
 logger = logging.getLogger('brainpy.simulation.runner')

@@ -5,3 +5,4 @@
 This module provides APIs for brain simulations.
 """
 
+from .parallel import *

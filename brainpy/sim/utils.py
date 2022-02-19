@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from brainpy import math
 from brainpy.brainobjects import DynamicalSystem
 from brainpy.errors import RunningError
-from brainpy.simulation.monitor import Monitor
+from brainpy.sim.monitor import Monitor
 
 __all__ = [
   'size2len',

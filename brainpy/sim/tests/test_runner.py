@@ -175,7 +175,7 @@ class TestIntegratorRunner(TestCase):
     dw = lambda w, t, V: (V + a - b * w) / tau
     fhn = bp.odeint(bp.JointEq([dV, dw]), method='rk4', dt=0.1)
 
-    Iext, duration = bp.inputs.section_input([0., 1., 0.5], [200, 500, 200], return_length=True)
+    Iext, duration = brainpy.sim.inputs.section_input([0., 1., 0.5], [200, 500, 200], return_length=True)
     runner = bp.IntegratorRunner(fhn, monitors=['V', 'w'], inits=[1., 1.],
                                  dyn_args=dict(Iext=Iext))
     runner.run(duration)

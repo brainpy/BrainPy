@@ -8,9 +8,8 @@ from pprint import pprint
 import numpy as np
 
 from brainpy import tools
-from brainpy.building.brainobjects import DynamicalSystem
 from brainpy.errors import RunningError
-from brainpy.simulation import utils
+from .. import utils
 from .ds_runner import *
 
 logger = logging.getLogger('brainpy.simulation.runner')

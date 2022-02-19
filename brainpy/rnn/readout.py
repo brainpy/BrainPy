@@ -2,7 +2,7 @@
 
 
 from brainpy import math
-from brainpy.rnns.base import Module
+from brainpy.rnn.base import Module
 from brainpy.initialize import Initializer, XavierNormal, Uniform, ZeroInit
 
 __all__ = [

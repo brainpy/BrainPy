@@ -4,7 +4,7 @@ import brainpy.math as bm
 from brainpy.brainobjects import DynamicalSystem, ConstantDelay
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.simulation.runners import DSRunner, IntegratorRunner
+from brainpy.sim.runners import DSRunner, IntegratorRunner
 
 __all__ = [
   'henon_map_series',

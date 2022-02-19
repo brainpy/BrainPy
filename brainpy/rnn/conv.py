@@ -4,7 +4,7 @@
 import jax.lax
 import brainpy.math as bm
 from brainpy.initialize import XavierNormal, ZeroInit
-from brainpy.rnns.base import Module
+from brainpy.rnn.base import Module
 
 
 __all__ = [
