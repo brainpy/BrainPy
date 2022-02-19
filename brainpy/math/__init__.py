@@ -56,7 +56,6 @@ from .setting import *
 from .function import *
 
 # functions
-from . import numpy
 from .activations import *
 from . import activations
 from .compact import *
