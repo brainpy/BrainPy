@@ -123,6 +123,7 @@ class Izhikevich(NeuGroup):
     self.spike.value = spike
     self.input[:] = 0.
 
+
 class HindmarshRose(NeuGroup):
   r"""Hindmarsh-Rose neuron model.
 
@@ -224,7 +225,7 @@ class HindmarshRose(NeuGroup):
   def __init__(self, size, a=1., b=3., c=1., d=5., r=0.01, s=4., V_rest=-1.6,
                V_th=1.0, method='exp_auto', name=None):
     # initialization
-    super(HindmarshRose, self).__init__(size=size,  name=name)
+    super(HindmarshRose, self).__init__(size=size, name=name)
 
     # parameters
     self.a = a

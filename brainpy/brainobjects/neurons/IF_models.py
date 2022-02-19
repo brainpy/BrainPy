@@ -106,7 +106,6 @@ class LIF(NeuGroup):
     self.input[:] = 0.
 
 
-
 class ExpIF(NeuGroup):
   r"""Exponential integrate-and-fire neuron model.
 
@@ -441,7 +440,7 @@ class QuaIF(NeuGroup):
   def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_c=-50.0, c=.07,
                R=1., tau=10., tau_ref=0., method='exp_auto', name=None):
     # initialization
-    super(QuaIF, self).__init__(size=size,name=name)
+    super(QuaIF, self).__init__(size=size, name=name)
 
     # parameters
     self.V_rest = V_rest
@@ -720,7 +719,6 @@ class GIF(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
-
 
   def dI1(self, I1, t):
     return - self.k1 * I1

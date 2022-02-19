@@ -114,7 +114,7 @@ class FHN(NeuGroup):
     self.integral = odeint(method=method, f=self.derivative)
 
   def dV(self, V, t, w):
-    return  V - V * V * V / 3 - w + self.input
+    return V - V * V * V / 3 - w + self.input
 
   def dw(self, w, t, V):
     return (V + self.a - self.b * w) / self.tau
