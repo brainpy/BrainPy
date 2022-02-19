@@ -50,8 +50,8 @@ class Module(Base):
 
   def __init__(self, name=None):  # initialize parameters
     warnings.warn('Please use "brainpy.rnns.Module" instead. '
-                  '"brainpy.layers.Module" will be removed since '
-                  'version 2.1.0.', DeprecationWarning)
+                  '"brainpy.layers.Module" is deprecated since '
+                  'version 2.0.3.', DeprecationWarning)
     super(Module, self).__init__(name=name)
 
   def __call__(self, *args, **kwargs):  # initialize variables

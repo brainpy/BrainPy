@@ -12,5 +12,5 @@ class Monitor(monitor.Monitor):
   def __init__(self, *args, **kwargs):
     super(Monitor, self).__init__(*args, **kwargs)
     warnings.warn('Please use "brainpy.sim.Monitor" instead. '
-                  '"brainpy.Monitor" will be removed since version 2.1.0.',
+                  '"brainpy.Monitor" is deprecated since version 2.0.3.',
                   DeprecationWarning)
