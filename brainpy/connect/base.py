@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import abc
-import logging
 from typing import Union, List, Tuple
 
 import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy.errors import ConnectorError
-
 
 __all__ = [
   # the connection types

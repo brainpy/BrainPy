@@ -9,6 +9,7 @@ from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.errors import ModelBuildError
 from brainpy.connect import TwoEndConnector, MatConn, IJConn
+from brainpy.integrators.base import Integrator
 
 __all__ = [
   'DynamicalSystem',
@@ -47,6 +48,28 @@ class DynamicalSystem(Base):
   def steps(self):
     warnings.warn('.steps has been deprecated since version 2.0.3.', DeprecationWarning)
     return {}
+
+  def ints(self, method='absolute'):
+    """Collect all integrators in this node and the children nodes.
+
+    Parameters
+    ----------
+    method : str
+      The method to access the integrators.
+
+    Returns
+    -------
+    collector : Collector
+      The collection contained (the path, the integrator).
+    """
+    nodes = self.nodes(method=method)
+    gather = Collector()
+    for node_path, node in nodes.items():
+      for k in dir(node):
+        v = getattr(node, k)
+        if isinstance(v, Integrator):
+          gather[f'{node_path}.{k}' if node_path else k] = v
+    return gather
 
   def child_ds(self, method='absolute', include_self=False):
     """Return the children instance of dynamical systems.

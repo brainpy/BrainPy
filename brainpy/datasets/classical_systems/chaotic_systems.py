@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.building.brainobjects import DynamicalSystem, ConstantDelay
+from brainpy.brainobjects import DynamicalSystem, ConstantDelay
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.simulation.runner import DSRunner, IntegratorRunner
+from brainpy.simulation.runners import DSRunner, IntegratorRunner
 
 __all__ = [
   'henon_map_series',
@@ -312,7 +312,8 @@ def lu_chen_chaotic_series(duration, dt=0.001, a=36, c=20, b=3, u=-15.15, method
                                duration=duration, dt=dt, inits=inits)
 
 
-def chua_chaotic_series(duration, dt=0.001, alpha=10, beta=14.514, gamma=0, a=-1.197, b=-0.646, method='rk4', inits=None):
+def chua_chaotic_series(duration, dt=0.001, alpha=10, beta=14.514, gamma=0, a=-1.197, b=-0.646, method='rk4',
+                        inits=None):
   @odeint(method=method)
   def chua_equation(x, y, z, t):
     fx = b * x + 0.5 * (a - b) * (bm.abs(x + 1) - bm.abs(x - 1))

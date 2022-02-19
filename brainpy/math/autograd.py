@@ -21,7 +21,7 @@ from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
   'grad',  # gradient of scalar function
-  'vector_grad',  # gradient of vector/matrix/... return
+  'vector_grad',  # gradient of vector/matrix/...
   'jacobian', 'jacrev', 'jacfwd',  # gradient of jacobian
   'hessian',  # gradient of hessian
 ]

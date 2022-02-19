@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import tools
 import jax.numpy as jnp
 import numpy as np
-from jax import jit, vmap
 
-import brainpy.math as bm
+from brainpy import tools
 
 try:
   from numba import prange

@@ -5,8 +5,8 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy import errors
 from brainpy.integrators.ode.base import ODEIntegrator
-from brainpy.building.brainobjects import DynamicalSystem
-from brainpy.simulation.runner import StructRunner
+from brainpy.brainobjects import DynamicalSystem
+from brainpy.simulation.runners import DSRunner
 
 __all__ = [
   'model_transform',
@@ -105,7 +105,7 @@ class TrajectModel(DynamicalSystem):
     self.integrals = integrals
 
     # runner
-    self.runner = StructRunner(self,
+    self.runner = DSRunner(self,
                                monitors=list(initial_vars.keys()),
                                dyn_vars=self.vars().unique(), dt=dt,
                                progress_bar=False)

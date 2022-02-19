@@ -4,8 +4,8 @@ import time
 from collections.abc import Iterable
 
 from brainpy import math
+from brainpy.brainobjects import DynamicalSystem
 from brainpy.errors import RunningError
-from brainpy.building.brainobjects import DynamicalSystem
 from brainpy.simulation.monitor import Monitor
 
 __all__ = [
@@ -31,8 +31,6 @@ def size2len(size):
     return a
   else:
     raise ValueError
-
-
 
 
 def run_model(run_func, times, report, dt=None, extra_func=None):
@@ -230,7 +228,6 @@ def check_and_format_monitors(host, mon):
   assert isinstance(host, DynamicalSystem)
   assert isinstance(mon, Monitor)
 
-
   formatted_mon_items = []
 
   # master node:
@@ -274,4 +271,3 @@ def check_and_format_monitors(host, mon):
     formatted_mon_items.append((key, target, variable, idx, interval,))
 
   return formatted_mon_items
-

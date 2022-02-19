@@ -7,7 +7,7 @@ from brainpy import errors
 from brainpy.base.collector import Collector, TensorCollector
 from brainpy.base import io, naming
 
-math = Integrator = None
+math = None
 
 __all__ = [
   'Base',
@@ -24,9 +24,9 @@ class Base(object):
   - ``DynamicalSystem`` in *brainpy.simulation.brainobjects.base.py*
   - ``Integrator`` in *brainpy.integrators.base.py*
   - ``Function`` in *brainpy.base.function.py*
-  - ``AutoGrad`` in *brainpy.math.jax.autograd.py*
-  - ``Optimizer`` in *brainpy.math.jax.optimizers.py*
-  - ``Scheduler`` in *brainpy.math.jax.optimizers.py*
+  - ``AutoGrad`` in *brainpy.math.autograd.py*
+  - ``Optimizer`` in *brainpy.math.optimizers.py*
+  - ``Scheduler`` in *brainpy.math.optimizers.py*
 
   """
   def __init__(self, name=None):
@@ -90,8 +90,7 @@ class Base(object):
       The collection contained (the path, the trainable variable).
     """
     global math
-    if math is None:
-      from brainpy import math
+    if math is None: from brainpy import math
     return self.vars(method=method).subset(math.TrainVar)
 
   def nodes(self, method='absolute', _paths=None):
@@ -153,31 +152,6 @@ class Base(object):
 
     else:
       raise ValueError(f'No support for the method of "{method}".')
-    return gather
-
-  def ints(self, method='absolute'):
-    """Collect all integrators in this node and the children nodes.
-
-    Parameters
-    ----------
-    method : str
-      The method to access the integrators.
-
-    Returns
-    -------
-    collector : Collector
-      The collection contained (the path, the integrator).
-    """
-    global Integrator
-    if Integrator is None: from brainpy.integrators.base import Integrator
-
-    nodes = self.nodes(method=method)
-    gather = Collector()
-    for node_path, node in nodes.items():
-      for k in dir(node):
-        v = getattr(node, k)
-        if isinstance(v, Integrator):
-          gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 
   def unique_name(self, name=None, type_=None):
