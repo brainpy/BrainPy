@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 
 
 # fundamental modules
-from . import errors,tools
+from . import errors, tools
 
 
 # "base" module
@@ -29,7 +29,7 @@ from . import math
 
 
 # tool modules
-from . import connect as conn, initialize as init, optimizers as opt, datasets, measure, losses
+from . import connect , initialize, optimizers, datasets, measure, losses
 
 
 # "integrators" module
@@ -45,16 +45,16 @@ from .integrators.sde import get_default_sdeint
 from .integrators.joint_eq import JointEq
 
 
-# "brainobjects" module
+# "simulation" module
 from . import sim
 from .sim import inputs
 
 
-# "rnns" module
+# "rnn" module
 from . import rnn
 
 
-# "simulation" module
+# "running" module
 from . import running
 
 
@@ -68,3 +68,6 @@ from .visualization import visualize
 # compatible interface
 from .compact import *  # compact
 
+conn = connect
+init = initialize
+opt = optimizers

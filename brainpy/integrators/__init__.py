@@ -15,6 +15,7 @@ from .base import *
 from .constants import *
 from .delay_vars import *
 from .joint_eq import *
+from .runners import *
 
 # ODE tools
 from . import ode

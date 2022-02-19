@@ -16,7 +16,6 @@ from brainpy.sim.base import DynamicalSystem
 from brainpy.errors import RunningError, MonitorError
 from .. import utils
 from ..monitor import Monitor
-from .base import Runner
 
 logger = logging.getLogger('brainpy.simulation.runner')
 
@@ -29,7 +28,7 @@ _mon_func_name = 'monitor_step'
 _input_func_name = 'input_step'
 
 
-class BaseRunner(Runner):
+class BaseRunner(object):
   """The base runner class.
 
   Parameters

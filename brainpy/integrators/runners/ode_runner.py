@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import time
 
 import numpy as np
@@ -12,16 +11,13 @@ from brainpy.base.collector import Collector, TensorCollector
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
 from brainpy.sim.monitor import Monitor
-from .base import Runner
-
-logger = logging.getLogger('brainpy.simulation.runner')
 
 __all__ = [
   'IntegratorRunner',
 ]
 
 
-class IntegratorRunner(Runner):
+class IntegratorRunner(object):
   def __init__(self, target, monitors=None, inits=None,
                args=None, dyn_args=None, dyn_vars=None,
                jit=True, dt=None, numpy_mon_after_run=True, progress_bar=True):

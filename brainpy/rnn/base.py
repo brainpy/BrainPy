@@ -31,12 +31,12 @@ class Module(Base):
   def init_param(param, size):
     if param is None:
       return None
-    if callable(param):
+    elif callable(param):
       param = param(size)
     elif isinstance(param, onp.ndarray):
       param = bm.asarray(param)
     elif isinstance(param, (bm.JaxArray, jnp.ndarray)):
-      pass
+      param = bm.asarray(param)
     else:
       raise ValueError(f'Unknown param type {type(param)}: {param}')
     assert param.shape == size, f'"param.shape" is not the required size {size}'
@@ -45,34 +45,51 @@ class Module(Base):
   def __init__(self, name=None):  # initialize parameters
     super(Module, self).__init__(name=name)
 
+  def init(self):
+    pass
+
+  def reset(self, state=None):
+    pass
+
   def __call__(self, *args, **kwargs):  # initialize variables
     return self.call(*args, **kwargs)
 
   def call(self, *args, **kwargs):
     raise NotImplementedError
 
+  def __rshift__(self, other):
+    raise NotImplementedError
 
-class FeedForward(Module):
+  def __rrshift__(self, other):
+    raise NotImplementedError
+
+  def __add__(self, other):
+    raise NotImplementedError
+
+  @property
+  def in_size(self):
+    raise
+
+  @property
+  def out_size(self):
+    raise
+
+
+class FeedForwardModule(Module):
   """Feedforward motif for the RNN modeling."""
   pass
 
 
-class FeedBack(Module):
+class FeedBackModule(Module):
   """Feedback motif for the RNN modeling."""
   pass
 
 
-class Recurrent(Module):
+class RecurrentModule(Module):
   """Recurrent motif for the RNN modeling."""
 
   # the output
   pass
-
-  def compute(self, x):
-    return y, state
-
-  def update(self, state):
-    self.state.value = state
 
 
 
