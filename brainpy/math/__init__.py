@@ -37,29 +37,26 @@ Details in the following.
 # data structure
 from .jaxarray import *
 
-# numpy operations
+# high-level numpy operations
 from .numpy_ops import *
 from .operators import *
 from . import fft
 from . import linalg
 from . import random
 
-# transformations
+# JAX transformations extended on class objects
 from .autograd import *
 from .controls import *
 from .jit import *
 from .parallels import *
 
 # settings
-from . import profile
 from . import setting
-from .profile import *
 from .setting import *
 from .function import *
-from . import numpy
 
 # functions
-from . import losses
+from . import numpy
 from .activations import *
 from . import activations
 from .compact import *

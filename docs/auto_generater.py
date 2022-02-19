@@ -5,8 +5,7 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, losses, operators, parallels,
-                          profile, setting)
+                          jit, losses, operators, parallels, setting)
 from brainpy import optimizers
 
 
@@ -106,7 +105,7 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
 block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, losses, activations, optimizers,
-               operators, parallels, setting, profile]:
+               operators, parallels, setting]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
