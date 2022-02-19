@@ -381,8 +381,7 @@ class StructRunner(BaseRunner):
       def _step(t_and_dt):
         _t, _dt = t_and_dt[0], t_and_dt[1]
         self._input_step(_t=_t, _dt=_dt)
-        for step in self.target.steps.values():
-          step(_t=_t, _dt=_dt)
+        self.target.update(_t=_t, _dt=_dt)
         # id_tap(lambda *args: self._pbar.update(round(self.dt, 4)), ())
         id_tap(lambda *args: self._pbar.update(), ())
         return self._monitor_step(_t=_t, _dt=_dt)
@@ -390,8 +389,7 @@ class StructRunner(BaseRunner):
       def _step(t_and_dt):
         _t, _dt = t_and_dt[0], t_and_dt[1]
         self._input_step(_t=_t, _dt=_dt)
-        for step in self.target.steps.values():
-          step(_t=_t, _dt=_dt)
+        self.target.update(_t=_t, _dt=_dt)
         return self._monitor_step(_t=_t, _dt=_dt)
 
     # build the update step
