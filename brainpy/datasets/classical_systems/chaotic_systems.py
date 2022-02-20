@@ -2,8 +2,7 @@
 
 import brainpy.math as bm
 import brainpy.sim as sim
-from brainpy.integrators.joint_eq import JointEq
-from brainpy.integrators.ode import odeint
+from brainpy.integrators import odeint, JointEq, IntegratorRunner
 
 __all__ = [
   'henon_map_series',
@@ -252,8 +251,8 @@ def _three_variable_model(integrator, duration, default_inits, inits=None, args=
   else:
     raise ValueError
 
-  runner = sim.IntegratorRunner(integrator, monitors=['x', 'y', 'z'], inits=inits,
-                                args=args, dyn_args=dyn_args, dt=dt, progress_bar=False)
+  runner = IntegratorRunner(integrator, monitors=['x', 'y', 'z'], inits=inits,
+                            args=args, dyn_args=dyn_args, dt=dt, progress_bar=False)
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon.x,
@@ -365,8 +364,8 @@ def _two_variable_model(integrator, duration, default_inits, inits=None, args=No
   else:
     raise ValueError
 
-  runner = sim.IntegratorRunner(integrator, monitors=['x', 'y'], inits=inits,
-                                args=args, dyn_args=dyn_args, dt=dt, progress_bar=False)
+  runner = IntegratorRunner(integrator, monitors=['x', 'y'], inits=inits,
+                            args=args, dyn_args=dyn_args, dt=dt, progress_bar=False)
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon.x,

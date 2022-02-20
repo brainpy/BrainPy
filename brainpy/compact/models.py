@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.sim import LIF, AdExIF, Izhikevich, ExpCOBA, ExpCUBA
+from brainpy.sim import LIF, AdExIF, Izhikevich, ExpCOBA, ExpCUBA, DeltaSynapse
 
 __all__ = [
   'LIF',
@@ -8,4 +8,5 @@ __all__ = [
   'Izhikevich',
   'ExpCOBA',
   'ExpCUBA',
+  'DeltaSynapse',
 ]
