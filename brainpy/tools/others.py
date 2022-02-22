@@ -2,6 +2,7 @@
 
 import _thread as thread
 import threading
+from typing import Optional, Tuple
 
 import numpy as np
 from jax import lax
@@ -27,13 +28,14 @@ def size2num(size):
   else:
     raise ValueError
 
-def to_size(x):
-  if x is None:
-    return tuple()
+
+def to_size(x) -> Optional[Tuple[int]]:
   if isinstance(x, (tuple, list)):
     return tuple(x)
   if isinstance(x, int):
-    return (x,)
+    return (x, )
+  if x is None:
+    return x
   raise ValueError(f'Cannot make a size for {x}')
 
 

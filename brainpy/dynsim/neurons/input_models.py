@@ -2,7 +2,7 @@
 
 import brainpy.math as bm
 from brainpy.errors import ModelBuildError
-from brainpy.sim.base import NeuGroup
+from brainpy.dynsim.base import NeuGroup
 
 __all__ = [
   'SpikeTimeInput',

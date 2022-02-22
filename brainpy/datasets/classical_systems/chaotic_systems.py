@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-import brainpy.sim as sim
+import brainpy.dynsim as sim
 from brainpy.integrators import odeint, JointEq, IntegratorRunner
 
 __all__ = [
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-class HenonMap(sim.DynamicalSystem):
+class HenonMap(dynsim.DynamicalSystem):
   """Hénon map."""
 
   def __init__(self, num, a=1.4, b=0.3):
@@ -60,14 +60,14 @@ def henon_map_series(num_step, a=1.4, b=0.3, inits=None):
   else:
     raise ValueError
   map = HenonMap(inits['x'].size, a=a, b=b)
-  runner = sim.DSRunner(map, monitors=['x', 'y'], dt=1, progress_bar=False)
+  runner = dynsim.DSRunner(map, monitors=['x', 'y'], dt=1, progress_bar=False)
   runner.run(num_step)
   return {'ts': runner.mon.ts,
           'x': runner.mon.x,
           'y': runner.mon.y}
 
 
-class LogisticMap(sim.DynamicalSystem):
+class LogisticMap(dynsim.DynamicalSystem):
   def __init__(self, num, mu=3.):
     super(LogisticMap, self).__init__()
 
@@ -84,12 +84,12 @@ def logistic_map_series(num_step, mu=3., inits=None):
     inits = bm.ones(1) * 0.2
   else:
     inits = bm.asarray(inits)
-  runner = sim.DSRunner(LogisticMap(inits.size, mu=mu), monitors=['x'], dt=1, progress_bar=False)
+  runner = dynsim.DSRunner(LogisticMap(inits.size, mu=mu), monitors=['x'], dt=1, progress_bar=False)
   runner.run(num_step)
   return {'ts': runner.mon.ts, 'x': runner.mon.x}
 
 
-class ModifiedLuChenSystem(sim.DynamicalSystem):
+class ModifiedLuChenSystem(dynsim.DynamicalSystem):
   def __init__(self, num, a=35, b=3, c=28, d0=1, d1=1, d2=0., tau=.2, dt=0.1, method='rk4'):
     super(ModifiedLuChenSystem, self).__init__()
 
@@ -103,7 +103,7 @@ class ModifiedLuChenSystem(sim.DynamicalSystem):
     self.tau = tau
 
     # variables
-    self.z_delay = sim.ConstantDelay(num, delay=tau, dt=dt)
+    self.z_delay = dynsim.ConstantDelay(num, delay=tau, dt=dt)
     self.z_delay.data[:] = 14
     self.z = bm.Variable(self.z_delay.latest)
     self.x = bm.Variable(bm.ones(num))
@@ -143,7 +143,7 @@ def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., ta
   eq.x[:] = inits['x']
   eq.y[:] = inits['y']
   eq.z[:] = inits['z']
-  runner = sim.DSRunner(eq, monitors=['x', 'y', 'z'], dt=dt, progress_bar=False)
+  runner = dynsim.DSRunner(eq, monitors=['x', 'y', 'z'], dt=dt, progress_bar=False)
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon['x'],
@@ -151,7 +151,7 @@ def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., ta
           'z': runner.mon['z']}
 
 
-class MackeyGlassEq(sim.DynamicalSystem):
+class MackeyGlassEq(dynsim.DynamicalSystem):
   r"""The Mackey-Glass equation is the nonlinear time delay differential equation.
 
   .. math::
@@ -177,7 +177,7 @@ class MackeyGlassEq(sim.DynamicalSystem):
 
     # variables
     rng = bm.random.RandomState(seed)
-    self.x = sim.ConstantDelay(num, delay=tau)
+    self.x = dynsim.ConstantDelay(num, delay=tau)
     self.x.data[:] = inits + 0.2 * (rng.random(num) - 0.5)
     self.x_latest = bm.Variable(self.x.latest)
     self.x_oldest = bm.Variable(self.x.oldest)
@@ -230,7 +230,7 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
     inits = bm.asarray(inits)
   eq = MackeyGlassEq(num=inits.size, beta=beta, gamma=gamma, tau=tau, n=n,
                      inits=inits, method=method, seed=seed)
-  runner = sim.DSRunner(eq, monitors=['x_latest', 'x_oldest'], dt=dt, progress_bar=False)
+  runner = dynsim.DSRunner(eq, monitors=['x_latest', 'x_oldest'], dt=dt, progress_bar=False)
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon['x_latest'],

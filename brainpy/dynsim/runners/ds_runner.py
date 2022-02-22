@@ -9,9 +9,9 @@ from jax.experimental.host_callback import id_tap
 
 from brainpy import math as bm
 from brainpy.errors import RunningError, MonitorError
-from brainpy.sim import utils
-from brainpy.sim.base import DynamicalSystem
-from brainpy.sim.monitor import Monitor
+from brainpy.dynsim import utils
+from brainpy.dynsim.base import DynamicalSystem
+from brainpy.dynsim.monitor import Monitor
 
 __all__ = [
   'DSRunner', 'ReportRunner', 'StructRunner',
@@ -274,12 +274,12 @@ class StructRunner(DSRunner):
   """The runner with the structural for-loop.
 
   .. deprecated:: 2.0.3
-     Prefer the use of :attr:`brainpy.DSRunner` for dynamical system running.
+     Prefer the use of :py:class:`brainpy.dynsim.DSRunner` for dynamical system running.
      This runner will be removed after 2.1.0.
   """
 
   def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
-               jit=False, dt=None, numpy_mon_after_run=True, progress_bar=True):
+               jit=True, dt=None, numpy_mon_after_run=True, progress_bar=True):
     super(StructRunner, self).__init__(target=target,
                                        inputs=inputs,
                                        monitors=monitors,
@@ -293,10 +293,6 @@ class StructRunner(DSRunner):
 class ReportRunner(DSRunner):
   """The runner provides convenient interface for debugging.
   It is also able to report the running progress.
-
-  .. deprecated:: 2.0.3
-     Prefer the use of :attr:`brainpy.DSRunner` for dynamical system running.
-     This function will remove after 2.1.0
 
   Parameters
   ----------

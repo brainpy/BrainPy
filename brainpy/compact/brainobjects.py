@@ -2,7 +2,7 @@
 
 import warnings
 
-from brainpy import sim
+from brainpy import dynsim
 
 __all__ = [
   'DynamicalSystem',
@@ -14,49 +14,49 @@ __all__ = [
 ]
 
 
-class DynamicalSystem(sim.DynamicalSystem):
+class DynamicalSystem(dynsim.DynamicalSystem):
   def __init__(self, *args, **kwargs):
-    warnings.warn('Please use "bp.sim.DynamicalSystem" instead. '
+    warnings.warn('Please use "bp.dynsim.DynamicalSystem" instead. '
                   '"bp.DynamicalSystem" is deprecated since '
                   'version 2.0.3', DeprecationWarning)
     super(DynamicalSystem, self).__init__(*args, **kwargs)
 
 
-class Container(sim.Container):
+class Container(dynsim.Container):
   def __init__(self, *args, **kwargs):
-    warnings.warn('Please use "bp.sim.Container" instead. '
+    warnings.warn('Please use "bp.dynsim.Container" instead. '
                   '"bp.Container" is deprecated since '
                   'version 2.0.3', DeprecationWarning)
     super(Container, self).__init__(*args, **kwargs)
 
 
-class Network(sim.Network):
+class Network(dynsim.Network):
   def __init__(self, *args, **kwargs):
-    warnings.warn('Please use "bp.sim.Network" instead. '
+    warnings.warn('Please use "bp.dynsim.Network" instead. '
                   '"bp.Network" is deprecated since '
                   'version 2.0.3', DeprecationWarning)
     super(Network, self).__init__(*args, **kwargs)
 
 
-class ConstantDelay(sim.ConstantDelay):
+class ConstantDelay(dynsim.ConstantDelay):
   def __init__(self, *args, **kwargs):
-    warnings.warn('Please use "bp.sim.ConstantDelay" instead. '
+    warnings.warn('Please use "bp.dynsim.ConstantDelay" instead. '
                   '"bp.ConstantDelay" is deprecated since '
                   'version 2.0.3', DeprecationWarning)
     super(ConstantDelay, self).__init__(*args, **kwargs)
 
 
-class NeuGroup(sim.NeuGroup):
+class NeuGroup(dynsim.NeuGroup):
   def __init__(self, *args, **kwargs):
-    warnings.warn('Please use "bp.sim.NeuGroup" instead. '
+    warnings.warn('Please use "bp.dynsim.NeuGroup" instead. '
                   '"bp.NeuGroup" is deprecated since '
                   'version 2.0.3', DeprecationWarning)
     super(NeuGroup, self).__init__(*args, **kwargs)
 
 
-class TwoEndConn(sim.TwoEndConn):
+class TwoEndConn(dynsim.TwoEndConn):
   def __init__(self, *args, **kwargs):
-    warnings.warn('Please use "bp.sim.TwoEndConn" instead. '
+    warnings.warn('Please use "bp.dynsim.TwoEndConn" instead. '
                   '"bp.TwoEndConn" is deprecated since '
                   'version 2.0.3', DeprecationWarning)
     super(TwoEndConn, self).__init__(*args, **kwargs)

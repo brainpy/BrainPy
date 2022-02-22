@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 # - refractory period $\tau_{ref}$ = 2 ms for pyramidal cells and 1 ms for interneurons
 
 # %%
-class LIF(bp.NeuGroup):
+class LIF(bp.dynsim.NeuGroup):
   def __init__(self, size, V_L=-70., V_reset=-55., V_th=-50.,
                Cm=0.5, gL=0.025, t_refractory=2., **kwargs):
     super(LIF, self).__init__(size=size, **kwargs)
@@ -81,7 +81,7 @@ class LIF(bp.NeuGroup):
 
 
 # %%
-class PoissonNoise(bp.NeuGroup):
+class PoissonNoise(bp.dynsim.NeuGroup):
   def __init__(self, size, freq, **kwargs):
     super(PoissonNoise, self).__init__(size=size, **kwargs)
 
@@ -95,7 +95,7 @@ class PoissonNoise(bp.NeuGroup):
 
 
 # %%
-class PoissonStim(bp.NeuGroup):
+class PoissonStim(bp.dynsim.NeuGroup):
   def __init__(self, size, freq_mean, freq_var, t_interval, **kwargs):
     super(PoissonStim, self).__init__(size=size, **kwargs)
 
@@ -164,7 +164,7 @@ class PoissonStim(bp.NeuGroup):
 
 
 # %%
-class AMPA(bp.TwoEndConn):
+class AMPA(bp.dynsim.TwoEndConn):
   def __init__(self, pre, post, delay=0.5, g_max=0.10, E=0., tau=2.0, **kwargs):
     super(AMPA, self).__init__(pre=pre, post=post, **kwargs)
 
@@ -223,7 +223,7 @@ class AMPA_One(AMPA):
 # - the rise time $\tau_{\mathrm{NMDA}, \text { rise }}$ = 2 ms
 
 # %%
-class NMDA(bp.TwoEndConn):
+class NMDA(bp.dynsim.TwoEndConn):
   def __init__(self, pre, post, delay=0.5, tau_decay=100, tau_rise=2.,
                g_max=0.15, E=0., cc_Mg=1., alpha=0.5, **kwargs):
     super(NMDA, self).__init__(pre=pre, post=post, **kwargs)
@@ -284,7 +284,7 @@ class GABAa(AMPA):
 # ## Network model
 
 # %%
-class DecisionMaking(bp.Network):
+class DecisionMaking(bp.dynsim.Network):
   def __init__(self, scale=1., mu0=40., coherence=25.6, **kwargs):
     super(DecisionMaking, self).__init__(**kwargs)
 
@@ -394,8 +394,8 @@ class DecisionMaking(bp.Network):
 net = DecisionMaking(scale=1.)
 
 # %%
-runner = bp.StructRunner(net, monitors=['A.spike', 'B.spike', 'IA.freq', 'IB.freq'],
-                         dyn_vars=net.vars(), jit=True)
+runner = bp.dynsim.StructRunner(net, monitors=['A.spike', 'B.spike', 'IA.freq', 'IB.freq'],
+                                dyn_vars=net.vars(), jit=True)
 pre_stimulus_period = 100.
 stimulus_period = 1000.
 delay_period = 500.

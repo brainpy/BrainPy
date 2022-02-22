@@ -5,8 +5,8 @@ from collections.abc import Iterable
 
 from brainpy import math
 from brainpy.errors import RunningError
-from brainpy.sim.base import DynamicalSystem
-from brainpy.sim.monitor import Monitor
+from brainpy.dynsim.base import DynamicalSystem
+from brainpy.dynsim.monitor import Monitor
 
 __all__ = [
   'size2len',

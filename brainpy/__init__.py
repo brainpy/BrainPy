@@ -46,8 +46,8 @@ from .integrators.joint_eq import JointEq
 
 
 # "simulation" module
-from . import sim
-from .sim import inputs
+from . import dynsim
+from .dynsim import inputs
 
 
 # "rnn" module

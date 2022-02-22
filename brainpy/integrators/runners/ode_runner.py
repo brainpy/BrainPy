@@ -10,7 +10,7 @@ from brainpy import math
 from brainpy.base.collector import Collector, TensorCollector
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
-from brainpy.sim.monitor import Monitor
+from brainpy.dynsim.monitor import Monitor
 
 __all__ = [
   'IntegratorRunner',

@@ -4,8 +4,8 @@ import logging
 import os.path
 
 from brainpy import errors
-from brainpy.base.collector import Collector, TensorCollector
 from brainpy.base import io, naming
+from brainpy.base.collector import Collector, TensorCollector
 
 math = None
 
@@ -21,18 +21,21 @@ class Base(object):
 
   The subclass of Base includes:
 
-  - ``DynamicalSystem`` in *brainpy.simulation.brainobjects.base_node.py*
-  - ``Integrator`` in *brainpy.integrators.base_node.py*
+  - ``DynamicalSystem`` in *brainpy.dynsim.base.py*
+  - ``Module`` in *brainpy.dynsim.base_module.py*
+  - ``Integrator`` in *brainpy.integrators.base.py*
   - ``Function`` in *brainpy.base.function.py*
   - ``AutoGrad`` in *brainpy.math.autograd.py*
-  - ``Optimizer`` in *brainpy.math.optimizers.py*
-  - ``Scheduler`` in *brainpy.math.optimizers.py*
+  - ``Optimizer`` in *brainpy.optimizers.py*
+  - ``Scheduler`` in *brainpy.optimizers.py*
 
   """
+
   def __init__(self, name=None):
     # check whether the object has a unique name.
-    self.name = self.unique_name(name=name)
-    naming.check_name_uniqueness(name=self.name, obj=self)
+    self._name = None
+    self._name = self.unique_name(name=name)
+    naming.check_name_uniqueness(name=self._name, obj=self)
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
@@ -42,6 +45,15 @@ class Base(object):
     # which cannot be accessed by self.xxx
     self.implicit_nodes = Collector()
 
+  @property
+  def name(self):
+    return self._name
+
+  @name.setter
+  def name(self, name: str = None):
+    self._name = self.unique_name(name=name)
+    naming.check_name_uniqueness(name=self._name, obj=self)
+
   def register_implicit_vars(self, variables):
     assert isinstance(variables, dict)
     self.implicit_vars.update(variables)
@@ -50,7 +62,7 @@ class Base(object):
     assert isinstance(nodes, dict)
     self.implicit_nodes.update(nodes)
 
-  def vars(self, method='absolute'):
+  def vars(self, method='absolute', level=-1, include_self=True):
     """Collect all variables in this node and the children nodes.
 
     Parameters
@@ -66,7 +78,7 @@ class Base(object):
     global math
     if math is None: from brainpy import math
 
-    nodes = self.nodes(method=method)
+    nodes = self.nodes(method=method, level=level, include_self=include_self)
     gather = TensorCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
@@ -76,7 +88,7 @@ class Base(object):
       gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather
 
-  def train_vars(self, method='absolute'):
+  def train_vars(self, method='absolute', level=-1, include_self=True):
     """The shortcut for retrieving all trainable variables.
 
     Parameters
@@ -91,26 +103,14 @@ class Base(object):
     """
     global math
     if math is None: from brainpy import math
-    return self.vars(method=method).subset(math.TrainVar)
+    return self.vars(method=method, level=level, include_self=include_self).subset(math.TrainVar)
 
-  def nodes(self, method='absolute', _paths=None):
-    """Collect all children nodes.
-
-    Parameters
-    ----------
-    method : str
-      The method to access the nodes.
-    _paths : set, Optional
-      The data structure to solve the circular reference.
-
-    Returns
-    -------
-    gather : Collector
-      The collection contained (the path, the node).
-    """
+  def _find_nodes(self, method='absolute', level=-1, include_self=True, _lid=0, _paths=None):
     if _paths is None:
       _paths = set()
     gather = Collector()
+    if (level > 0) and (_lid >= level):
+      return gather
     if method == 'absolute':
       nodes = []
       for k, v in self.__dict__.items():
@@ -127,12 +127,13 @@ class Base(object):
           gather[node.name] = node
           nodes.append(node)
       for v in nodes:
-        gather.update(v.nodes(method=method, _paths=_paths))
-      gather[self.name] = self
+        gather.update(v._find_nodes(method=method, level=-1, _lid=_lid + 1, _paths=_paths,
+                                    include_self=include_self))
+      if include_self: gather[self.name] = self
 
     elif method == 'relative':
       nodes = []
-      gather[''] = self
+      if include_self: gather[''] = self
       for k, v in self.__dict__.items():
         if isinstance(v, Base):
           path = (id(self), id(v))
@@ -141,18 +142,36 @@ class Base(object):
             gather[k] = v
             nodes.append((k, v))
       for key, node in self.implicit_nodes.items():
-          path = (id(self), id(node))
-          if path not in _paths:
-            _paths.add(path)
-            gather[key] = node
-            nodes.append((key, node))
+        path = (id(self), id(node))
+        if path not in _paths:
+          _paths.add(path)
+          gather[key] = node
+          nodes.append((key, node))
       for k1, v1 in nodes:
-        for k2, v2 in v1.nodes(method=method, _paths=_paths).items():
+        for k2, v2 in v1._find_nodes(method=method, _paths=_paths, _lid=_lid + 1,
+                                     level=level, include_self=include_self).items():
           if k2: gather[f'{k1}.{k2}'] = v2
 
     else:
       raise ValueError(f'No support for the method of "{method}".')
     return gather
+
+  def nodes(self, method='absolute', level=-1, include_self=True):
+    """Collect all children nodes.
+
+    Parameters
+    ----------
+    method : str
+      The method to access the nodes.
+    _paths : set, Optional
+      The data structure to solve the circular reference.
+
+    Returns
+    -------
+    gather : Collector
+      The collection contained (the path, the node).
+    """
+    return self._find_nodes(method=method, level=level, include_self=include_self)
 
   def unique_name(self, name=None, type_=None):
     """Get the unique name for this object.

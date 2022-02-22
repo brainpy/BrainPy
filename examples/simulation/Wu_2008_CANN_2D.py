@@ -11,7 +11,7 @@ import brainpy.math as bm
 bm.set_platform('cpu')
 
 
-class CANN2D(bp.NeuGroup):
+class CANN2D(bp.dynsim.NeuGroup):
   def __init__(self, length, tau=1., k=8.1, a=0.5, A=10., J0=4.,
                z_min=-bm.pi, z_max=bm.pi, name=None):
     super(CANN2D, self).__init__(size=(length, length), name=name)
@@ -86,24 +86,23 @@ Iext, length = bp.inputs.section_input(
   values=[cann.get_stimulus_by_pos([0., 0.]), 0.],
   durations=[10., 20.], return_length=True
 )
-runner = bp.StructRunner(cann,
-                         inputs=['input', Iext, 'iter'],
-                         monitors=['r'],
-                         dyn_vars=cann.vars())
+runner = bp.dynsim.StructRunner(cann,
+                                inputs=['input', Iext, 'iter'],
+                                monitors=['r'],
+                                dyn_vars=cann.vars())
 runner.run(length)
 
 bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length))
-
 
 # tracking
 length = 20
 positions = bp.inputs.ramp_input(-bm.pi, bm.pi, duration=length, t_start=0)
 positions = bm.stack([positions, positions]).T
 Iext = bm.vmap(cann.get_stimulus_by_pos)(positions)
-runner = bp.StructRunner(cann,
-                         inputs=['input', Iext, 'iter'],
-                         monitors=['r'],
-                         dyn_vars=cann.vars())
+runner = bp.dynsim.StructRunner(cann,
+                                inputs=['input', Iext, 'iter'],
+                                monitors=['r'],
+                                dyn_vars=cann.vars())
 runner.run(length)
 
 bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length))

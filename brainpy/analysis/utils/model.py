@@ -5,8 +5,8 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy import errors
 from brainpy.integrators.ode.base import ODEIntegrator
-from brainpy.sim.base import DynamicalSystem
-from brainpy.sim.runners import DSRunner
+from brainpy.dynsim.base import DynamicalSystem
+from brainpy.dynsim.runners import DSRunner
 
 __all__ = [
   'model_transform',

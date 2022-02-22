@@ -7,7 +7,7 @@ import numpy as np
 bp.math.set_platform('cpu')
 
 
-class LIF(bp.NeuGroup):
+class LIF(bp.dynsim.NeuGroup):
   def __init__(self, size, tau_neu=10., tau_syn=0.5, tau_ref=2.,
                V_reset=-65., V_th=-50., Cm=0.25, ):
     super(LIF, self).__init__(size=size)
@@ -47,7 +47,7 @@ class LIF(bp.NeuGroup):
     self.I.value = I
 
 
-class ExpSyn(bp.TwoEndConn):
+class ExpSyn(bp.dynsim.TwoEndConn):
   # Synapses parameters
   exc_delay = (1.5, 0.75)  # Excitatory/Std. delay [ms]
   inh_delay = (0.80, 0.4)  # Inhibitory/Std. delay [ms]
@@ -146,7 +146,7 @@ class ExpSyn(bp.TwoEndConn):
 #     self.post.I += self.weight * self.rng.random(self.size).sum(axis=1)
 
 
-class PoissonInput(bp.NeuGroup):
+class PoissonInput(bp.dynsim.NeuGroup):
   def __init__(self, post, freq=8.):
     super(PoissonInput, self).__init__(size=(post.num,))
 
@@ -165,7 +165,7 @@ class PoissonInput(bp.NeuGroup):
     self.post.I += self.weight * self.rng.normal(self.loc, self.scale, self.num)
 
 
-class PoissonInput2(bp.NeuGroup):
+class PoissonInput2(bp.dynsim.NeuGroup):
   def __init__(self, pops, freq=8.):
     super(PoissonInput2, self).__init__(size=sum([p.num for p in pops]))
 
@@ -188,7 +188,7 @@ class PoissonInput2(bp.NeuGroup):
       size += p.num
 
 
-class ThalamusInput(bp.TwoEndConn):
+class ThalamusInput(bp.dynsim.TwoEndConn):
   def __init__(self, pre, post, conn_prob=0.1):
     super(ThalamusInput, self).__init__(pre=pre, post=post, conn=bp.conn.FixedProb(conn_prob))
     self.check_pre_attrs('spike')
@@ -211,7 +211,7 @@ class ThalamusInput(bp.TwoEndConn):
     bm.make_cond(true_fn, lambda _: None, dyn_vars=(self.post.I, self.pre.spike))(self.turn_on[0])
 
 
-class CorticalMicrocircuit(bp.Network):
+class CorticalMicrocircuit(bp.dynsim.Network):
   # Names for each layer:
   layer_name = ['L23e', 'L23i', 'L4e', 'L4i', 'L5e', 'L5i', 'L6e', 'L6i', 'Th']
 
@@ -287,7 +287,7 @@ class CorticalMicrocircuit(bp.Network):
 
     # NEURON & SYNAPSE: thalamus inputs
     if has_thalamus:
-      thalamus = bp.models.PoissonInput(self.layer_num[-1], freqs=15.)
+      thalamus = bp.dynsim.PoissonInput(self.layer_num[-1], freqs=15.)
       self.populations[self.layer_name[-1]] = thalamus
       for r in range(0, 8):
         l_name = self.layer_name[r]
@@ -327,7 +327,7 @@ class CorticalMicrocircuit(bp.Network):
 bm.random.seed()
 net = CorticalMicrocircuit(conn_type=2, poisson_freq=8., stim_type=1, bg_type=0)
 sps_monitors = [f'{n}.spike' for n in net.layer_name[:-1]]
-runner = bp.StructRunner(net, monitors=sps_monitors)
+runner = bp.dynsim.StructRunner(net, monitors=sps_monitors)
 runner.run(1000.)
 
 spikes = np.hstack([runner.mon[name] for name in sps_monitors])
