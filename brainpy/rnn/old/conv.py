@@ -4,7 +4,7 @@
 import jax.lax
 import brainpy.math as bm
 from brainpy.initialize import XavierNormal, ZeroInit
-from brainpy.rnn.base_node import Module
+from brainpy.rnn.base import Node
 
 
 __all__ = [
@@ -21,7 +21,7 @@ def _check_tuple(v):
     raise ValueError
 
 
-class Conv2D(Module):
+class Conv2D(Node):
   """Apply a 2D convolution on a 4D-input batch of shape (N,C,H,W).
 
   Parameters

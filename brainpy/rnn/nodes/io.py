@@ -1,41 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import tools
-from ..base_node import FeedForwardModule
+from ..base import Node
 
 __all__ = [
-  'Input', 'Output'
+  'Input',
 ]
 
 
-class Input(FeedForwardModule):
-  def __init__(self, size, name=None):
-    super(Input, self).__init__(name=name)
+class Input(Node):
+  def __init__(self, in_size=None, name=None):
+    super(Input, self).__init__(name=name, in_size=in_size)
 
-    self._size = tools.to_size(size)
+  def ff_init(self):
+    self.set_out_size(self.in_size)
 
-  def init(self, x=None):
-    self.in_size = self._size
-    self.out_size = self._size
-    if x is not None:
-      assert x.shape == self._size
-
-  def call(self, x):
+  def forward(self, x, y=None):
     return x
 
   def reset(self, state=None):
     pass
 
-
-class Output(FeedForwardModule):
-  def __init__(self, name=None):
-    super(Output, self).__init__(name=name)
-
-  def init(self, x=None):
-    pass
-
-  def call(self, x):
-    return x
-
-  def reset(self, state=None):
-    pass

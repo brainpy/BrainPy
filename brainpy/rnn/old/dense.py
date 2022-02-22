@@ -2,14 +2,14 @@
 
 
 from brainpy.initialize import XavierNormal, ZeroInit
-from brainpy.rnn.base_node import Module
+from brainpy.rnn.base import Node
 
 __all__ = [
   'Dense'
 ]
 
 
-class Dense(Module):
+class Dense(Node):
   """A fully connected layer implemented as the dot product of inputs and weights.
 
   Parameters

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.rnn.base_node import Module
+from brainpy.rnn.base import Node
 
 __all__ = [
   'Dropout'
 ]
 
 
-class Dropout(Module):
+class Dropout(Node):
   """A layer that stochastically ignores a subset of inputs each training step.
 
   In training, to compensate for the fraction of input values dropped (`rate`),

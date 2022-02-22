@@ -4,7 +4,7 @@ import abc
 
 import brainpy.math as bm
 from brainpy.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
-from brainpy.rnn.base_node import RecurrentModule
+from brainpy.rnn.base import Node
 
 __all__ = [
   'RNNCore',
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-class RNNCore(RecurrentModule):
+class RNNCore(Node):
   def __init__(self, num_hidden, num_input, **kwargs):
     super(RNNCore, self).__init__(**kwargs)
     assert isinstance(num_hidden, int)

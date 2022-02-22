@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from brainpy.math import activations
-from brainpy.rnn.base_node import FeedForwardModule
+from brainpy.rnn.base import Node
 
 __all__ = [
   'Activation'
 ]
 
 
-class Activation(FeedForwardModule):
+class Activation(Node):
   """Activation Layer.
 
   Parameters
@@ -21,19 +21,18 @@ class Activation(FeedForwardModule):
     The settings for the activation function.
   """
 
-  def __init__(self, activation, name=None, **fun_setting):
+  def __init__(self, activation, in_size=None, name=None, **fun_setting):
     if name is None:
       name = self.unique_name(type_=f'Activation_{activation}')
-    super(Activation, self).__init__(name=name)
+    super(Activation, self).__init__(in_size=in_size, name=name)
 
     self._activation = activations.get(activation)
     self._fun_setting = fun_setting
 
-  def init(self, x):
-    self.in_size = x.shape
-    self.out_size = x.shape
+  def ff_init(self):
+    self.set_out_size(self.in_size)
 
-  def call(self, x):
+  def forward(self, x):
     return self._activation(x, **self._fun_setting)
 
   def reset(self, state=None):
