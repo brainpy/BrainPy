@@ -541,7 +541,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.phi = phi
     >>>
     >>>     # variables
-    >>>     self.V = bm.Variable(bm.ones(size) * -65.)
+    >>>     self.num = bm.Variable(bm.ones(size) * -65.)
     >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
     >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
     >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
@@ -576,18 +576,18 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     return dVdt
     >>>
     >>>   def update(self, _t, _dt):
-    >>>     h = self.int_h(self.h, _t, self.V, dt=_dt)
-    >>>     n = self.int_n(self.n, _t, self.V, dt=_dt)
-    >>>     V = self.int_V(self.V, _t,  self.h, self.n, self.input, dt=_dt)
-    >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    >>>     self.V.value = V
+    >>>     h = self.int_h(self.h, _t, self.num, dt=_dt)
+    >>>     n = self.int_n(self.n, _t, self.num, dt=_dt)
+    >>>     V = self.int_V(self.num, _t,  self.h, self.n, self.input, dt=_dt)
+    >>>     self.spike.value = bm.logical_and(self.num < self.V_th, V >= self.V_th)
+    >>>     self.num.value = V
     >>>     self.h.value = h
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
     >>>
     >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
+    >>> bp.visualize.line_plot(run.mon.ts, run.mon.num, legend='V', show=True)
 
   The above example can also be defined with ``brainpy.JointEq``.
 
@@ -614,7 +614,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.phi = phi
     >>>
     >>>     # variables
-    >>>     self.V = bm.Variable(bm.ones(size) * -65.)
+    >>>     self.num = bm.Variable(bm.ones(size) * -65.)
     >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
     >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
     >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
@@ -648,16 +648,16 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     return dVdt
     >>>
     >>>   def update(self, _t, _dt):
-    >>>     h, n, V = self.integral(self.h, self.n, self.V, _t, self.input, dt=_dt)
-    >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    >>>     self.V.value = V
+    >>>     h, n, V = self.integral(self.h, self.n, self.num, _t, self.input, dt=_dt)
+    >>>     self.spike.value = bm.logical_and(self.num < self.V_th, V >= self.V_th)
+    >>>     self.num.value = V
     >>>     self.h.value = h
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
     >>>
     >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
+    >>> bp.visualize.line_plot(run.mon.ts, run.mon.num, legend='V', show=True)
 
   See Also
   --------

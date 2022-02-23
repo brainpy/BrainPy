@@ -17,5 +17,5 @@ class Reservior(Node):
   def fb_init(self):
     pass
 
-  def forward(self, x, y=None):
+  def call(self, x, y=None):
     pass

@@ -9,16 +9,10 @@ This module provides basic mathematical operations, including:
 - linear algebra functions
 - random sampling functions
 - discrete fourier transform functions
-- compilations of ``jit``, ``vmap``, ``pmap`` for class objects
-- automatic differentiation of ``grad``, ``jacocian``, ``hessian``, etc. for class objects
-
-It also provides fundamental tools to construct brain models, including:
-
-- loss functions
-- activation functions
-- optimizers
-- connectivity functions
-- initialization functions
+- just-in-time compilation for class objects
+- automatic differentiation for class objects
+- dedicated operators for brain dynamics
+- and others, like activation functions, device settings
 
 Details in the following.
 """

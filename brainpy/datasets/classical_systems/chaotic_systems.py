@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import brainpy.math as bm
-import brainpy.dynsim as sim
+from brainpy import math as bm, dynsim
 from brainpy.integrators import odeint, JointEq, IntegratorRunner
 
 __all__ = [

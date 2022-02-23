@@ -171,7 +171,7 @@ class HindmarshRose(NeuGroup):
     >>> fig, gs = bp.visualize.get_figure(row_num=3, col_num=2, row_len=3, col_len=5)
     >>> for i, mode in enumerate(types):
     >>>     fig.add_subplot(gs[i // 2, i % 2])
-    >>>     plt.plot(runner.mon.ts, runner.mon.V[:, i])
+    >>>     plt.plot(runner.mon.ts, runner.mon.num[:, i])
     >>>     plt.title(mode)
     >>>     plt.xlabel('Time [ms]')
     >>> plt.show()

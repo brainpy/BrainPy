@@ -30,10 +30,10 @@ class Activation(Node):
     self._fun_setting = fun_setting
 
   def ff_init(self):
-    self.set_out_size(self.in_size)
+    in_sizes = list(self.in_size.values())
+    assert len(in_sizes) == 1, f'{type(self).__name__} only support receiving one input. '
+    self.set_out_size(in_sizes[0])
 
-  def forward(self, x):
-    return self._activation(x, **self._fun_setting)
-
-  def reset(self, state=None):
-    pass
+  def call(self, ff, fb=None):
+    ff = list(ff.values())[0]
+    return self._activation(ff, **self._fun_setting)

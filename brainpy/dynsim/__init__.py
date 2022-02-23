@@ -11,4 +11,4 @@ from .monitor import *
 from .neurons import *
 from .synapses import *
 
-from . import neurons, synapses, inputs, utils, runners
+from . import neurons, synapses, utils, runners

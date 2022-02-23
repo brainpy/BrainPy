@@ -24,15 +24,15 @@ from .base.base import Base
 from .base.collector import Collector, TensorCollector
 
 
-# "math" module
+# math foundation
 from . import math
 
 
-# tool modules
-from . import connect , initialize, optimizers, datasets, measure, losses
+# toolboxes
+from . import connect, initialize, optimizers, measure, losses, datasets, inputs
 
 
-# "integrators" module
+# numerical integrators
 from . import integrators
 from .integrators import ode
 from .integrators import sde
@@ -45,29 +45,31 @@ from .integrators.sde import get_default_sdeint
 from .integrators.joint_eq import JointEq
 
 
-# "simulation" module
+# dynamics simulation
 from . import dynsim
-from .dynsim import inputs
 
 
-# "rnn" module
+# recurrent neural networks
 from . import rnn
 
 
-# "running" module
+# running
 from . import running
 
 
-# "analysis" module
+# automatic dynamics analysis
 from . import analysis
 
 
-# "visualization" module
+# "visualization" module, will be remove soon
 from .visualization import visualize
+
 
 # compatible interface
 from .compact import *  # compact
 
+
+# convenient access
 conn = connect
 init = initialize
 opt = optimizers

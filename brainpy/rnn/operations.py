@@ -4,38 +4,58 @@
 from itertools import product
 from typing import Union, Sequence
 
-from . import utils
-from .base import Node, Network, FrozenNetwork
-from .nodes import Concat, Select
+from brainpy.rnn import graph_flow
+from brainpy.rnn.base import Node, Network, FrozenNetwork
+from brainpy.rnn.nodes.base_ops import Select
+from brainpy.types import Tensor
 
 __all__ = [
   'ff_connect', 'fb_connect', 'merge', 'select',
 ]
 
 
-def _connect(node1: Node, node2: Node, name=None) -> Network:
-  """Connects two nodes or networks."""
-  # fetch all nodes in two subgraphs, if they are models.
+def _retrieve_nodes_and_edges(senders: Union[Node, Sequence[Node]],
+                              receivers: Union[Node, Sequence[Node]]):
+  # checking
+  if isinstance(senders, Sequence):
+    senders = list(senders)
+  elif isinstance(senders, Node):
+    senders = [senders]
+  else:
+    raise TypeError(f"Impossible to send connection from {senders}: it is not "
+                    f"a Node or a Network instance.")
+  if isinstance(receivers, Sequence):
+    receivers = list(receivers)
+  elif isinstance(receivers, Node):
+    receivers = [receivers]
+  else:
+    raise TypeError(f"Impossible to send connection to {receivers}: it is not "
+                    f"a Node or a Network instance.")
+
+  # fetch all nodes in two subgraphs
   all_nodes = set()
-  for node in (node1, node2):
+  for node in senders + receivers:
     if isinstance(node, FrozenNetwork):
       raise TypeError(f"Cannot connect {FrozenNetwork.__name__} to other Nodes.")
     if isinstance(node, Network):
       all_nodes.update(set(node.lnodes))
-    else:
+    elif isinstance(node, Node):
       all_nodes.add(node)
+    else:
+      raise TypeError(f"Impossible to link nodes: object {node} is neither a "
+                      f"'brainpy.rnn.Node' nor a 'brainpy.rnn.Network'.")
 
-  # fetch all feedforward edges in two subgraphs, if they are models.
+  # fetch all feedforward edges in two subgraphs
   all_ff_edges = set()
-  for node in (node1, node2):
+  for node in senders + receivers:
     if isinstance(node, FrozenNetwork):
       raise TypeError(f"Cannot connect {FrozenNetwork.__name__} to other Nodes.")
     if isinstance(node, Network):
       all_ff_edges.update(set(node.ff_edges))
 
-  # fetch all feedforward edges in two subgraphs, if they are models.
+  # fetch all feedback edges in two subgraphs
   all_fb_edges = set()
-  for node in (node1, node2):
+  for node in senders + receivers:
     if isinstance(node, FrozenNetwork):
       raise TypeError(f"Cannot connect {FrozenNetwork.__name__} to other Nodes.")
     if isinstance(node, Network):
@@ -43,44 +63,127 @@ def _connect(node1: Node, node2: Node, name=None) -> Network:
 
   # create edges between output nodes of the
   # subgraph 1 and input nodes of the subgraph 2.
-  senders = []
-  if isinstance(node1, Network) and not isinstance(node, FrozenNetwork):
-    senders += node1.exit_nodes
+  all_senders = set()
+  for node in senders:
+    if isinstance(node, Network) and not isinstance(node, FrozenNetwork):
+      all_senders.update(node.exit_nodes)
+    else:
+      all_senders.add(node)
+  all_receivers = set()
+  for node in receivers:
+    if isinstance(node, Network) and not isinstance(node, FrozenNetwork):
+      all_receivers.update(node.entry_nodes)
+    else:
+      all_receivers.add(node)
+
+  return all_nodes, all_ff_edges, all_fb_edges, all_senders, all_receivers
+
+
+def merge(
+    node: Node,
+    *other_nodes: Node,
+    inplace: bool = False,
+    name: str = None,
+    need_detect_cycle=True
+) -> Network:
+  """Merge different :py:class:`~.Model` or :py:class:`~.Node`
+  instances into a single :py:class:`~.Model` instance.
+
+  :py:class:`~.Node` instances contained in the models to merge will be
+  gathered in a single model, along with all previously defined connections
+  between them, if they exists.
+
+  You can also perform this operation using the ``&`` operator::
+
+      model = (node1 >> node2) & (node1 >> node3))
+
+  This is equivalent to::
+
+      model = merge((node1 >> node2), (node1 >> node3))
+
+  The inplace operator can also be used::
+
+      model &= other_model
+
+  Parameters
+  ----------
+  node: Model or Node
+      First node or model to merge. The `inplace` parameter takes this
+      instance as reference.
+  *other_nodes : Model or Node
+      All models to merge.
+  inplace: bool, default to False
+      If `True`, then will update Model `model` inplace. If `model` is not
+      a Model instance, this parameter will causes the function to raise
+      a `ValueError`.
+  name: str, optional
+      Name of the resulting Model.
+  need_detect_cycle: bool
+
+
+  Returns
+  -------
+  Model
+      A new :py:class:`~.Model` instance.
+
+  Raises
+  ------
+  ValueError
+      If `inplace` is `True` but `model` is not a Model instance, then the
+      operation is impossible. Inplace merging can only take place on a
+      Model instance.
+  """
+  for n in other_nodes + (node,):
+    if not isinstance(n, Node):
+      raise TypeError(f"Impossible to merge nodes: object {type(n)} is not a Node instance.")
+
+  all_nodes = set()
+  all_ff_edges = set()
+  all_fb_edges = set()
+  for n in other_nodes + (node,):
+    if isinstance(n, FrozenNetwork):
+      raise TypeError(f'{FrozenNetwork.__name__} cannot merge with other nodes.')
+    # fuse models nodes and edges (right side argument)
+    if isinstance(n, Network):
+      all_nodes |= set(n.lnodes)
+      all_ff_edges |= set(n.ff_edges)
+      all_fb_edges |= set(n.fb_edges)
+    elif isinstance(n, Node):
+      all_nodes.add(n)
+
+  # detect cycles in the graph flow
+  all_nodes = tuple(all_nodes)
+  all_ff_edges = tuple(all_ff_edges)
+  all_fb_edges = tuple(all_fb_edges)
+  if need_detect_cycle:
+    if graph_flow.detect_cycle(all_nodes, all_ff_edges):
+      raise ValueError('We detect cycles in feedforward connections. '
+                       'Maybe you should replace some connection with '
+                       'as feedback ones.')
+    if graph_flow.detect_cycle(all_nodes, all_fb_edges):
+      raise ValueError('We detect cycles in feedback connections. ')
+
+  if inplace:
+    if not isinstance(node, Network) or isinstance(node, FrozenNetwork):
+      raise ValueError(f"Impossible to merge nodes inplace: "
+                       f"{node} is not a {Network.__name__} instance.")
+    return node.replace_graph(nodes=all_nodes,
+                              ff_edges=all_ff_edges,
+                              fb_edges=all_fb_edges)
+
   else:
-    senders.append(node1)
-  receivers = []
-  if isinstance(node2, Network) and not isinstance(node, FrozenNetwork):
-    receivers += node2.entry_nodes
-  else:
-    receivers.append(node2)
-  new_ff_edges = set(product(senders, receivers))
-
-  # maybe nodes are already initialized ?
-  # check if connected dimensions are ok
-  for sender, receiver in new_ff_edges:
-    if sender.is_initialized and receiver.is_initialized and (sender.out_size != receiver.in_size):
-      raise ValueError(f"Dimension mismatch between connected nodes: "
-                       f"sender node {sender.name} has output dimension "
-                       f"{sender.out_size} but receiver node "
-                       f"{receiver.name} has input dimension "
-                       f"{receiver.in_size}.")
-
-  # all outputs from subgraph 1 are connected to
-  # all inputs from subgraph 2.
-  all_ff_edges |= new_ff_edges
-
-  # pack everything
-  return Network(nodes=tuple(all_nodes),
-                 ff_edges=tuple(all_ff_edges),
-                 fb_edges=tuple(all_fb_edges),
-                 name=name)
+    return Network(nodes=all_nodes,
+                   ff_edges=all_ff_edges,
+                   fb_edges=all_fb_edges,
+                   name=name)
 
 
 def ff_connect(
-    sender: Union[Node, Sequence[Node]],
-    receiver: Union[Node, Sequence[Node]],
+    senders: Union[Node, Sequence[Node]],
+    receivers: Union[Node, Sequence[Node]],
     inplace: bool = False,
     name: str = None,
+    need_detect_cycle=True
 ) -> Network:
   """Link two :py:class:`~.Node` instances to form a :py:class:`~.Network`
   instance. `node1` output will be used as input for `node2` in the
@@ -121,11 +224,12 @@ def ff_connect(
 
   Parameters
   ----------
-  sender, receiver : Node or sequence of Node
+  senders, receivers : Node or sequence of Node
       Nodes or lists of nodes to link.
   inplace: bool
   name: str, optional
       Name for the chaining Network.
+  need_detect_cycle: bool
 
   Returns
   -------
@@ -149,64 +253,49 @@ def ff_connect(
       model = node1 >> node2 >> node1  # raises! data would flow in
                                        # circles forever...
   """
-  # checking
-  utils.check_all_nodes(sender, receiver)
-  frozen_nets = []
-  if isinstance(sender, Sequence):
-    frozen_nets += [n for n in sender if isinstance(n, FrozenNetwork)]
-  else:
-    if isinstance(sender, FrozenNetwork):
-      frozen_nets.append(sender)
-  if isinstance(receiver, Sequence):
-    frozen_nets += [n for n in receiver if isinstance(n, FrozenNetwork)]
-  else:
-    if isinstance(receiver, FrozenNetwork):
-      frozen_nets.append(receiver)
-  if len(frozen_nets) > 0:
-    raise TypeError(f"Impossible to link {FrozenNetwork.__name__} to other Nodes or "
-                    f"Network. {FrozenNetwork.__name__} found: {frozen_nets}.")
 
-  # get left side
-  if isinstance(sender, Sequence):
-    if inplace:
-      raise ValueError(f'Cannot inplace connect a sequence of node {sender} '
-                       f'with other nodes. Must be a {Network.__name__}.')
-    left_model = Network()
-    if isinstance(receiver, Concat):  # no need to add a Concat node then
-      for n in sender:
-        left_model = merge(left_model, _connect(n, receiver), inplace=True)
-      return left_model
-    else:  # concatenate everything on left side
-      concat = Concat()
-      for n in sender:
-        left_model = merge(left_model, _connect(n, concat), inplace=True)
-  else:
-    left_model = sender
+  all_nodes, all_ff_edges, all_fb_edges, ff_senders, ff_receivers = _retrieve_nodes_and_edges(senders, receivers)
+  new_ff_edges = set(product(ff_senders, ff_receivers))
 
-  # connect left side with right side
-  if isinstance(receiver, Sequence):
-    model = Network(name=name)
-    for n in receiver:
-      model = merge(model, _connect(left_model, n), inplace=True)
+  # all outputs from subgraph 1 are connected to
+  # all inputs from subgraph 2.
+  all_ff_edges |= new_ff_edges
+
+  # detect cycles in the graph flow
+  all_nodes = tuple(all_nodes)
+  all_ff_edges = tuple(all_ff_edges)
+  all_fb_edges = tuple(all_fb_edges)
+  if need_detect_cycle:
+    if graph_flow.detect_cycle(all_nodes, all_ff_edges):
+      raise ValueError('We detect cycles in feedforward connections. '
+                       'Maybe you should replace some connection with '
+                       'as feedback ones.')
+    if graph_flow.detect_cycle(all_nodes, all_fb_edges):
+      raise ValueError('We detect cycles in feedback connections. ')
+
+  # feedforward
+  if inplace:
+    if not isinstance(receivers, Network):
+      raise TypeError(f'Cannot inplace update the feedback connection of a Node instance: {receivers}')
+    if name is not None:
+      raise ValueError('Cannot set name when inplace=True.')
+    receivers.replace_graph(nodes=all_nodes,
+                            ff_edges=all_ff_edges,
+                            fb_edges=all_fb_edges)
+    return receivers
   else:
-    if inplace:
-      if not isinstance(sender, Network):
-        raise ValueError(f'Cannot inplace connect a node {sender} '
-                         f'with other nodes. Must be a {Network.__name__}.')
-      if name is not None:
-        raise ValueError('Cannot set name when inplace=True.')
-      model = merge(left_model, _connect(left_model, receiver), inplace=True)
-    else:
-      model = Network(name=name)
-      model = merge(model, _connect(left_model, receiver), inplace=True)
-  return model
+    return Network(nodes=all_nodes,
+                   ff_edges=all_ff_edges,
+                   fb_edges=all_fb_edges,
+                   name=name)
 
 
 def fb_connect(
-    receiver: Union[Node, Sequence[Node]],
-    sender: Union[Node, Sequence[Node]],
+    receivers: Union[Node, Sequence[Node]],
+    senders: Union[Node, Sequence[Node]],
     inplace: bool = False,
     name: str = None,
+    need_detect_cycle=True
 ) -> Node:
   """Create a feedback connection between the `feedback` node and `node`.
   Feedbacks nodes will be called at runtime using data from the previous
@@ -245,14 +334,15 @@ def fb_connect(
 
   Parameters
   ----------
-  receiver : Node
+  receivers : Node
       Node receiving feedback.
-  sender : GenericNode
+  senders : GenericNode
       Node or Model sending feedback
   inplace : bool, defaults to False
       If `True`, then the function returns a copy of `node`.
   name : str, optional
       Name of the copy of `node` if `inplace` is `True`.
+  need_detect_cycle: bool
 
   Returns
   -------
@@ -269,128 +359,58 @@ def fb_connect(
       instances.
   """
 
-  # checking
-  if isinstance(receiver, Network):
-    raise TypeError(f"{receiver} is not a Node. {Network.__name__} instance can't receive feedback.")
-  if isinstance(sender, Sequence):
-    for fb in sender:
-      if not isinstance(fb, Node):
-        raise TypeError(f"Impossible to receive feedback from {fb}: it is not "
-                        f"a {Node.__name__} or a {Network.__name__} instance.")
-    feedback = ff_connect(sender, Concat())
-  elif isinstance(sender, Node):
-    feedback = sender
-  else:
-    raise TypeError(f"Impossible to receive feedback from {sender}: it is not "
-                    f"a {Node.__name__} or a {Network.__name__} instance.")
+  all_nodes, all_ff_edges, all_fb_edges, fb_senders, fb_receivers = _retrieve_nodes_and_edges(senders, receivers)
+  # detect feedforward cycle
+  all_nodes = tuple(all_nodes)
+  all_ff_edges = tuple(all_ff_edges)
+  if need_detect_cycle:
+    if graph_flow.detect_cycle(all_nodes, all_ff_edges):
+      raise ValueError('We detect cycles in feedforward connections. '
+                       'Maybe you should replace some connection with '
+                       'as feedback ones.')
+  # establish feedback connections
+  new_fb_edges = set(product(fb_senders, fb_receivers))
+  # check whether has a feedforward path for each feedback pair
+  for sender, receiver in new_fb_edges:
+    if not graph_flow.has_path(receiver, sender, all_ff_edges):
+      raise ValueError(f'Cannot build a feedback connection from {sender} to {receiver}, '
+                       f'because there is no feedforward path between them. \n'
+                       f'Maybe you should use "ff_connect" first to establish a '
+                       f'feedforward connection between them. ')
+
+  # all outputs from subgraph 1 are connected to
+  # all inputs from subgraph 2.
+  all_fb_edges |= new_fb_edges
+
+  # detect cycles in the graph flow
+  all_fb_edges = tuple(all_fb_edges)
+  if need_detect_cycle:
+    if graph_flow.detect_cycle(all_nodes, all_fb_edges):
+      raise ValueError('We detect cycles in feedback connections. ')
 
   # feedback
   if inplace:
-    if receiver.has_feedback:
-      receiver.feedback = feedback & receiver.feedback
-    else:
-      receiver.feedback = feedback
-    return receiver
+    if not isinstance(receivers, Network):
+      raise TypeError(f'Cannot inplace update the feedback connection of a Node instance: {receivers}')
+    if name is not None:
+      raise ValueError('Cannot set name when inplace=True.')
+    receivers.replace_graph(nodes=all_nodes,
+                            ff_edges=all_ff_edges,
+                            fb_edges=all_fb_edges)
+    return receivers
   else:
-    # first copy the node, then give it feedback
-    # original node is not connected to any feedback then
-    new_node = receiver.copy(name=name)
-    if new_node.has_feedback:
-      new_node.feedback = feedback & new_node.feedback
-    else:
-      new_node.feedback = feedback
-    return new_node
+    return Network(nodes=all_nodes,
+                   ff_edges=all_ff_edges,
+                   fb_edges=all_fb_edges,
+                   name=name)
 
 
-def merge(
+def select(
     node: Node,
-    *other_nodes: Node,
-    inplace: bool = False,
+    index: Union[int, Sequence[int], Tensor, slice],
     name: str = None
-) -> Network:
-  """Merge different :py:class:`~.Model` or :py:class:`~.Node`
-  instances into a single :py:class:`~.Model` instance.
-
-  :py:class:`~.Node` instances contained in the models to merge will be
-  gathered in a single model, along with all previously defined connections
-  between them, if they exists.
-
-  You can also perform this operation using the ``&`` operator::
-
-      model = (node1 >> node2) & (node1 >> node3))
-
-  This is equivalent to::
-
-      model = merge((node1 >> node2), (node1 >> node3))
-
-  The inplace operator can also be used::
-
-      model &= other_model
-
-  Which is equivalent to::
-
-      model.update_graph(other_model.nodes, other_model.edges)
-
-  Parameters
-  ----------
-  node: Model or Node
-      First node or model to merge. The `inplace` parameter takes this
-      instance as reference.
-  *other_nodes : Model or Node
-      All models to merge.
-  inplace: bool, default to False
-      If `True`, then will update Model `model` inplace. If `model` is not
-      a Model instance, this parameter will causes the function to raise
-      a `ValueError`.
-  name: str, optional
-      Name of the resulting Model.
-
-  Returns
-  -------
-  Model
-      A new :py:class:`~.Model` instance.
-
-  Raises
-  ------
-  ValueError
-      If `inplace` is `True` but `model` is not a Model instance, then the
-      operation is impossible. Inplace merging can only take place on a
-      Model instance.
-  """
-  if not isinstance(node, Node):
-    raise TypeError(f"Impossible to merge nodes: object {type(node)} is not a {Node.__name__} instance.")
-  all_nodes = set()
-  all_edges = set()
-  for m in other_nodes:
-    if isinstance(m, FrozenNetwork):
-      raise TypeError(f'{FrozenNetwork.__name__} cannot merge with other nodes.')
-    # fuse models nodes and edges (right side argument)
-    if isinstance(m, Network):
-      all_nodes |= set(m.lnodes)
-      all_edges |= set(m.ff_edges)
-    elif isinstance(m, Node):
-      all_nodes.add(m)
-
-  if inplace:
-    if not isinstance(node, Network) or isinstance(node, FrozenNetwork):
-      raise ValueError(f"Impossible to merge nodes inplace: "
-                       f"{node} is not a {Network.__name__} instance.")
-    return node.update_graph(tuple(all_nodes), tuple(all_edges))
-
-  else:
-    if isinstance(node, FrozenNetwork):
-      raise TypeError(f'{FrozenNetwork.__name__} cannot merge with other nodes.')
-    # add left side model nodes
-    if isinstance(node, Network):
-      all_nodes |= set(node.lnodes)
-      all_edges |= set(node.ff_edges)
-    elif isinstance(node, Node):
-      all_nodes.add(node)
-    return Network(nodes=tuple(all_nodes), ff_edges=tuple(all_edges), name=name)
-
-
-def select(node: Node, index: slice, name: str = None, ):
+):
   if isinstance(node, Network) and len(node.exit_nodes) != 1:
     raise ValueError(f'Cannot select subsets of states when Network instance '
-                     f'"{node}" has multiple/zero output nodes.')
-  return ff_connect(node, Select(index=index), name=name)
+                     f'"{node}" has multiple output nodes.')
+  return ff_connect(node, Select(index=index), name=name, need_detect_cycle=False)
