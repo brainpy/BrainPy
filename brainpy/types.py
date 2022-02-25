@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import TypeVar
+
 import jax.numpy as jnp
 
 import brainpy.math as bm

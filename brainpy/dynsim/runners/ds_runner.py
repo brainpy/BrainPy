@@ -8,17 +8,17 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 from brainpy import math as bm
-from brainpy.errors import RunningError, MonitorError
 from brainpy.dynsim import utils
 from brainpy.dynsim.base import DynamicalSystem
-from brainpy.dynsim.monitor import Monitor
+from brainpy.errors import RunningError
+from brainpy.running.runner import Runner
 
 __all__ = [
   'DSRunner', 'ReportRunner', 'StructRunner',
 ]
 
 
-class DSRunner(object):
+class DSRunner(Runner):
   """The runner for dynamical systems.
 
   Parameters
@@ -45,6 +45,9 @@ class DSRunner(object):
 
   def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
                jit=True, dt=None, numpy_mon_after_run=True, progress_bar=True):
+    super(DSRunner, self).__init__(target=target, monitors=monitors,
+                                   jit=jit, progress_bar=progress_bar,
+                                   dyn_vars=dyn_vars)
 
     # parameters
     dt = bm.get_dt() if dt is None else dt
@@ -56,34 +59,8 @@ class DSRunner(object):
     if not isinstance(target, DynamicalSystem):
       raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
                          f'but we got {type(target)}: {target}')
-    self.target = target
-    # progress bar
-    self._pbar = None
-    self.progress_bar = progress_bar
 
-    # dynamical changed variables
-    if dyn_vars is None:
-      dyn_vars = self.target.vars().unique()
-    if isinstance(dyn_vars, (list, tuple)):
-      dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
-    if not isinstance(dyn_vars, dict):
-      raise RunningError(f'"dyn_vars" must be a dict, but we got {type(dyn_vars)}')
-    self.dyn_vars = dyn_vars
-
-    # monitors
-    if monitors is None:
-      self.mon = Monitor(target=self, variables=[])
-    elif isinstance(monitors, (list, tuple, dict)):
-      self.mon = Monitor(target=self, variables=monitors)
-    elif isinstance(monitors, Monitor):
-      self.mon = monitors
-      self.mon.target = self
-    else:
-      raise MonitorError(f'"monitors" only supports list/tuple/dict/ '
-                         f'instance of Monitor, not {type(monitors)}.')
-    self.mon.build()  # build the monitor
     # Build the monitor function
-    #   All the monitors are wrapped in a single function.
     self._monitor_step = self.build_monitors()
 
     # whether has iterable input data
@@ -188,8 +165,9 @@ class DSRunner(object):
         return_with_idx[key] = (data, bm.asarray(idx))
 
     def func(_t, _dt):
-      res = {k: v.flatten() for k, v in return_without_idx.items()}
-      res.update({k: v.flatten()[idx] for k, (v, idx) in return_with_idx.items()})
+      res = {k: (v.flatten() if bm.ndim(v) > 1 else v) for k, v in return_without_idx.items()}
+      res.update({k: (v.flatten()[idx] if bm.ndim(v) > 1 else v[idx])
+                  for k, (v, idx) in return_with_idx.items()})
       return res
 
     return func

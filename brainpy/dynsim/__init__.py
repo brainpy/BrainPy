@@ -7,7 +7,6 @@ Dynamics simulation module.
 
 from .base import *
 from .runners import *
-from .monitor import *
 from .neurons import *
 from .synapses import *
 

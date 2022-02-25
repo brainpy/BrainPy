@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
 
-from brainpy.dynsim import monitor
+from brainpy.running import monitor
 
 __all__ = [
   'Monitor'

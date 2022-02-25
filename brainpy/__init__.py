@@ -49,8 +49,8 @@ from .integrators.joint_eq import JointEq
 from . import dynsim
 
 
-# recurrent neural networks
-from . import rnn
+# neural networks
+from . import nn
 
 
 # running
