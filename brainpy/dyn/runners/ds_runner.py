@@ -8,8 +8,8 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 from brainpy import math as bm
-from brainpy.dynsim import utils
-from brainpy.dynsim.base import DynamicalSystem
+from brainpy.dyn import utils
+from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import RunningError
 from brainpy.running.runner import Runner
 
@@ -252,7 +252,7 @@ class StructRunner(DSRunner):
   """The runner with the structural for-loop.
 
   .. deprecated:: 2.0.3
-     Prefer the use of :py:class:`brainpy.dynsim.DSRunner` for dynamical system running.
+     Prefer the use of :py:class:`brainpy.dyn.DSRunner` for dynamical system running.
      This runner will be removed after 2.1.0.
   """
 

@@ -3,7 +3,7 @@
 import brainpy.math as bm
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.dynsim.base import NeuGroup
+from brainpy.dyn.base import NeuGroup
 
 __all__ = [
   'HH',

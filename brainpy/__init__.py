@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.0.3"
+__version__ = "2.1.0"
 
 
 try:
@@ -46,10 +46,10 @@ from .integrators.joint_eq import JointEq
 
 
 # dynamics simulation
-from . import dynsim
+from . import dyn
 
 
-# neural networks
+# neural networks modeling
 from . import nn
 
 

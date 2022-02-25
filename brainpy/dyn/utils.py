@@ -5,7 +5,7 @@ from collections.abc import Iterable
 
 from brainpy import math
 from brainpy.errors import RunningError
-from brainpy.dynsim.base import DynamicalSystem
+from brainpy.dyn.base import DynamicalSystem
 from brainpy.running.monitor import Monitor
 
 __all__ = [
