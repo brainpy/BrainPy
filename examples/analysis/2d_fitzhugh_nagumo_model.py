@@ -7,7 +7,7 @@ import brainpy.math as bm
 bp.math.enable_x64()
 
 
-class FitzHughNagumoModel(bp.sim.DynamicalSystem):
+class FitzHughNagumoModel(bp.dyn.DynamicalSystem):
   def __init__(self, method='exp_auto'):
     super(FitzHughNagumoModel, self).__init__()
 
@@ -42,7 +42,7 @@ class FitzHughNagumoModel(bp.sim.DynamicalSystem):
 model = FitzHughNagumoModel()
 
 # simulation
-runner = bp.sim.DSRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
+runner = bp.dyn.DSRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
 runner.run(100.)
 
 bp.visualize.line_plot(runner.mon.ts, runner.mon.num, legend='V')

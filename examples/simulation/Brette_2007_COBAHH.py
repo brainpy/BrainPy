@@ -22,7 +22,7 @@ we = 6.  # excitatory synaptic conductance [nS]
 wi = 67.  # inhibitory synaptic conductance [nS]
 
 
-class HH(bp.dynsim.NeuGroup):
+class HH(bp.dyn.NeuGroup):
   def __init__(self, size, method='exp_auto'):
     super(HH, self).__init__(size)
 
@@ -72,26 +72,26 @@ class HH(bp.dynsim.NeuGroup):
     self.input[:] = 0.
 
 
-class COBAHH(bp.dynsim.Network):
+class COBAHH(bp.dyn.Network):
   def __init__(self, scale=1., method='exp_auto'):
     num_exc = int(3200 * scale)
     num_inh = int(800 * scale)
     E = HH(num_exc, method=method)
     I = HH(num_inh, method=method)
-    E2E = bp.dynsim.ExpCOBA(pre=E, post=E, conn=bp.conn.FixedProb(prob=0.02),
-                            E=Ee, g_max=we / scale, tau=taue, method=method)
-    E2I = bp.dynsim.ExpCOBA(pre=E, post=I, conn=bp.conn.FixedProb(prob=0.02),
-                            E=Ee, g_max=we / scale, tau=taue, method=method)
-    I2E = bp.dynsim.ExpCOBA(pre=I, post=E, conn=bp.conn.FixedProb(prob=0.02),
-                            E=Ei, g_max=wi / scale, tau=taui, method=method)
-    I2I = bp.dynsim.ExpCOBA(pre=I, post=I, conn=bp.conn.FixedProb(prob=0.02),
-                            E=Ei, g_max=wi / scale, tau=taui, method=method)
+    E2E = bp.dyn.ExpCOBA(pre=E, post=E, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ee, g_max=we / scale, tau=taue, method=method)
+    E2I = bp.dyn.ExpCOBA(pre=E, post=I, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ee, g_max=we / scale, tau=taue, method=method)
+    I2E = bp.dyn.ExpCOBA(pre=I, post=E, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ei, g_max=wi / scale, tau=taui, method=method)
+    I2I = bp.dyn.ExpCOBA(pre=I, post=I, conn=bp.conn.FixedProb(prob=0.02),
+                         E=Ei, g_max=wi / scale, tau=taui, method=method)
 
     super(COBAHH, self).__init__(E2E, E2I, I2I, I2E, E=E, I=I)
 
 
 net = COBAHH(scale=1)
-runner = bp.dynsim.DSRunner(net, monitors=['E.spike'])
+runner = bp.dyn.DSRunner(net, monitors=['E.spike'])
 t = runner.run(100.)
 print(t)
 bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
