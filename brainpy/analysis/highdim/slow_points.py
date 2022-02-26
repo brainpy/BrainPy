@@ -11,6 +11,7 @@ from jax.scipy.optimize import minimize
 import brainpy.math as bm
 from brainpy.analysis import utils
 from brainpy.errors import AnalyzerError
+from brainpy import optimizers as optim
 
 __all__ = [
   'SlowPointFinder',
@@ -107,8 +108,8 @@ class SlowPointFinder(object):
 
     # optimization settings
     if opt_setting is None:
-      opt_method = bm.optimizers.Adam
-      opt_lr = bm.optimizers.ExponentialDecay(0.2, 1, 0.9999)
+      opt_method = optim.Adam
+      opt_lr = optim.ExponentialDecay(0.2, 1, 0.9999)
       opt_setting = {'beta1': 0.9,
                      'beta2': 0.999,
                      'eps': 1e-8,
@@ -119,13 +120,13 @@ class SlowPointFinder(object):
       assert 'lr' in opt_setting
       opt_method = opt_setting.pop('method')
       if isinstance(opt_method, str):
-        assert opt_method in bm.optimizers.__all__
-        opt_method = getattr(bm.optimizers, opt_method)
+        assert opt_method in optim.__dict__
+        opt_method = getattr(optim, opt_method)
       assert isinstance(opt_method, type)
-      if bm.optimizers.Optimizer not in inspect.getmro(opt_method):
+      if optim.Optimizer not in inspect.getmro(opt_method):
         raise ValueError
       opt_lr = opt_setting.pop('lr')
-      assert isinstance(opt_lr, (int, float, bm.optimizers.Scheduler))
+      assert isinstance(opt_lr, (int, float, optim.Scheduler))
       opt_setting = opt_setting
 
     if self.verbose:
