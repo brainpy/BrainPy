@@ -24,30 +24,30 @@ class Monitor(object):
 
   1. list of strings.
 
-  >>> Monitor(target=..., variables=['a', 'b', 'c'])
+  >>> Monitor(variables=['a', 'b', 'c'])
 
   1.1. list of strings and list of intervals
 
-  >>> Monitor(target=..., variables=['a', 'b', 'c'],
+  >>> Monitor(variables=['a', 'b', 'c'],
   >>>         intervals=[None, 1, 2] # ms
   >>>        )
 
   2. list of strings and string + indices
 
-  >>> Monitor(target=..., variables=['a', ('b', bm.array([1,2,3])), 'c'])
+  >>> Monitor(variables=['a', ('b', bm.array([1,2,3])), 'c'])
 
   2.1. list of string (+ indices) and list of intervals
 
-  >>> Monitor(target=..., variables=['a', ('b', bm.array([1,2,3])), 'c'],
+  >>> Monitor(variables=['a', ('b', bm.array([1,2,3])), 'c'],
   >>>         intervals=[None, 2, 3])
 
   3. a dictionary with the format of {key: indices}
 
-  >>> Monitor(target=..., variables={'a': None, 'b': bm.array([1,2,3])})
+  >>> Monitor(variables={'a': None, 'b': bm.array([1,2,3])})
 
-  3.1. a dictionaly of variable and indexes, and a dictionary of time intervals
+  3.1. a dictionary of variable and indexes, and a dictionary of time intervals
 
-  >>> Monitor(target=..., variables={'a': None, 'b': bm.array([1,2,3])},
+  >>> Monitor(variables={'a': None, 'b': bm.array([1,2,3])},
   >>>         intervals={'b': 2.})
 
   .. note::
@@ -63,7 +63,7 @@ class Monitor(object):
                'item_names', 'item_indices', 'item_intervals', 'item_contents',
                'has_build']
 
-  def __init__(self, variables, intervals=None, target=None):
+  def __init__(self, variables, intervals=None):
     if isinstance(variables, (list, tuple)):
       if intervals is not None:
         if not isinstance(intervals, (list, tuple)):
@@ -91,7 +91,6 @@ class Monitor(object):
     self.ts = None
     self.vars = variables
     self.intervals = intervals
-    self.target = target
     self.item_names = []
     self.item_indices = []
     self.item_intervals = []

@@ -2,6 +2,7 @@
 
 from brainpy.errors import MonitorError, RunningError
 from .monitor import Monitor
+from brainpy.base.collector import TensorCollector
 
 __all__ = [
   'Runner'
@@ -9,7 +10,21 @@ __all__ = [
 
 
 class Runner(object):
-  def __init__(self, target, monitors=None, jit=True, progress_bar=True, dyn_vars=None):
+  """Base Runner.
+
+  Parameters
+  ----------
+  target: Any
+    The target model.
+  monitors: None, list of str, tuple of str, Monitor
+    Variables to monitor.
+  jit: bool
+  progress_bar: bool
+  dyn_vars: Optional, dict
+  numpy_mon_after_run : bool
+  """
+  def __init__(self, target, monitors=None, jit=True, progress_bar=True, dyn_vars=None,
+               numpy_mon_after_run=True):
     # target model, while implement __call__ function
     self.target = target
 
@@ -19,9 +34,9 @@ class Runner(object):
 
     # monitors
     if monitors is None:
-      self.mon = Monitor(target=self, variables=[])
+      self.mon = Monitor(variables=[])
     elif isinstance(monitors, (list, tuple, dict)):
-      self.mon = Monitor(target=self, variables=monitors)
+      self.mon = Monitor(variables=monitors)
     elif isinstance(monitors, Monitor):
       self.mon = monitors
       self.mon.target = self
@@ -37,10 +52,13 @@ class Runner(object):
 
     # dynamical changed variables
     if dyn_vars is None:
-      dyn_vars = self.target.vars().unique()
+      dyn_vars = dict()
     if isinstance(dyn_vars, (list, tuple)):
       dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
     if not isinstance(dyn_vars, dict):
       raise RunningError(f'"dyn_vars" must be a dict, but we got {type(dyn_vars)}')
-    self.dyn_vars = dyn_vars
+    self.dyn_vars = TensorCollector(dyn_vars)
+
+    # numpy mon after run
+    self.numpy_mon_after_run = numpy_mon_after_run
 

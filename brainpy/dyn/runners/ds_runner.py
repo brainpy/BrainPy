@@ -25,8 +25,6 @@ class DSRunner(Runner):
   ----------
   target : DynamicalSystem
     The target model to run.
-  monitors : None, list of str, tuple of str, Monitor
-    Variables to monitor.
   inputs : list, tuple
     The inputs for the target DynamicalSystem. It should be the format
     of `[(target, value, [type, operation])]`, where `target` is the
@@ -43,19 +41,14 @@ class DSRunner(Runner):
       for example ``[(target1, value1), (target2, value2)]``.
   """
 
-  def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
-               jit=True, dt=None, numpy_mon_after_run=True, progress_bar=True):
-    super(DSRunner, self).__init__(target=target, monitors=monitors,
-                                   jit=jit, progress_bar=progress_bar,
-                                   dyn_vars=dyn_vars)
+  def __init__(self, target: DynamicalSystem, inputs=(), dt=None, **kwargs):
+    super(DSRunner, self).__init__(target=target, **kwargs)
 
     # parameters
     dt = bm.get_dt() if dt is None else dt
     if not isinstance(dt, (int, float)):
       raise RunningError(f'"dt" must be scalar, but got {dt}')
     self.dt = dt
-    self.jit = jit
-    self.numpy_mon_after_run = numpy_mon_after_run
     if not isinstance(target, DynamicalSystem):
       raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
                          f'but we got {type(target)}: {target}')
@@ -81,6 +74,7 @@ class DSRunner(Runner):
       self.dyn_vars.update({'_i': self._i})
     else:
       self._i = None
+    self.dyn_vars.update(self.target.vars().unique())
 
     # run function
     self._run_func = self.build_run_function()
@@ -256,16 +250,8 @@ class StructRunner(DSRunner):
      This runner will be removed after 2.1.0.
   """
 
-  def __init__(self, target, monitors=None, inputs=(), dyn_vars=None,
-               jit=True, dt=None, numpy_mon_after_run=True, progress_bar=True):
-    super(StructRunner, self).__init__(target=target,
-                                       inputs=inputs,
-                                       monitors=monitors,
-                                       jit=jit,
-                                       dt=dt,
-                                       dyn_vars=dyn_vars,
-                                       numpy_mon_after_run=numpy_mon_after_run,
-                                       progress_bar=progress_bar)
+  def __init__(self, target, *args, **kwargs):
+    super(StructRunner, self).__init__(target, *args, **kwargs)
 
 
 class ReportRunner(DSRunner):
@@ -282,12 +268,8 @@ class ReportRunner(DSRunner):
     The input settings.
   """
 
-  def __init__(self, target, inputs=(), monitors=None, dyn_vars=None,
-               jit=False, dt=None, numpy_mon_after_run=True, progress_bar=True):
-    super(ReportRunner, self).__init__(target=target, inputs=inputs, monitors=monitors,
-                                       dt=dt, dyn_vars=dyn_vars, jit=False,
-                                       numpy_mon_after_run=numpy_mon_after_run,
-                                       progress_bar=progress_bar)
+  def __init__(self, target, inputs=(), jit=False, dt=None, **kwargs):
+    super(ReportRunner, self).__init__(target=target, inputs=inputs, dt=dt, jit=False, **kwargs)
 
     # Build the update function
     if jit:
