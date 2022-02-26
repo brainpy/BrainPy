@@ -37,7 +37,7 @@ class LinearReadout(Dense):
 
   def __force_train__(self, x: Sequence[Tensor], y: Tensor, train_pars: Optional[Dict] = None):
     x = bm.concatenate(x, axis=-1)
-    assert x.ndim == y.ndim == 1
+    assert x.ndim == y.ndim == 1, '"x" and "y" must be a one-dimensional tensors.'
     if self.bias is not None:
       x = bm.concatenate([x, bm.zeros(1)])
     x = bm.expand_dims(x, axis=1)

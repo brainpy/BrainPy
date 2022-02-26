@@ -15,7 +15,21 @@ __all__ = [
   'Dense',
 ]
 
+
 class Dense(Node):
+  """A linear transformation applied over the last dimension of the input.
+
+  Parameters
+  ----------
+  num_unit: init
+    The number of the output features.
+  w_init: optional, Initializer, Tensor
+    The weight initialization.
+  b_init: optional, Initializer, Tensor
+    The bias initialization.
+  trainable: bool
+    Enable training this node or not. (default True)
+  """
   def __init__(self, num_unit: int, w_init=XavierNormal(), b_init=ZeroInit(), trainable=True, **kwargs):
     super(Dense, self).__init__(trainable=trainable, **kwargs)
     self.num_unit = num_unit
@@ -44,22 +58,23 @@ class Dense(Node):
     else:
       return ff @ self.weights + self.bias
 
-  def __ridge_train__(self, xs: Sequence[Tensor], ys: Tensor,
+  def __ridge_train__(self,
+                      ff: Sequence[Tensor], targets: Tensor, fb=None,
                       train_pars: Optional[Dict] = None):
     # parameters
     if train_pars is None: train_pars = dict()
     beta = train_pars.get('beta', 0.)
     # checking
-    xs = bm.concatenate(xs, axis=-1)
-    assert isinstance(ys, (bm.ndarray, jnp.ndarray))
-    assert (xs.ndim == ys.ndim == 2) and (xs.shape[0] == ys.shape[0])
+    ff = bm.concatenate(ff, axis=-1)
+    assert isinstance(targets, (bm.ndarray, jnp.ndarray))
+    assert (ff.ndim == targets.ndim == 2) and (ff.shape[0] == targets.shape[0])
     # solve weights by ridge regression
     if self.bias is not None:
-      xs = bm.concatenate([xs, bm.ones((xs.shape[0], 1))], axis=1)  # (..., num_input+1)
-    temp = xs.T @ xs
+      ff = bm.concatenate([ff, bm.ones((ff.shape[0], 1))], axis=1)  # (..., num_input+1)
+    temp = ff.T @ ff
     if beta > 0.:
-      temp += beta * bm.eye(xs.shape[-1])
-    W = bm.linalg.pinv(temp) @ (xs.T @ ys)
+      temp += beta * bm.eye(ff.shape[-1])
+    W = bm.linalg.pinv(temp) @ (ff.T @ targets)
     # assign trained weights
     if self.bias is None:
       self.weights.value = W

@@ -21,8 +21,10 @@ class Activation(Node):
     The settings for the activation function.
   """
 
-  def __init__(self, activation: str = 'relu', fun_setting=None, **kwargs):
-    super(Activation, self).__init__(**kwargs)
+  def __init__(self, activation: str = 'relu', fun_setting=None, name=None, **kwargs):
+    if name is None:
+      name = self.unique_name(type_=f'{activation}_activation')
+    super(Activation, self).__init__(name=name, **kwargs)
 
     self._activation = activations.get(activation)
     self._fun_setting = dict() if fun_setting is None else fun_setting

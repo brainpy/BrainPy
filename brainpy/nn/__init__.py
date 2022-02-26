@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+"""Neural Networks (nn)"""
 
 from .base import *
 from .constants import *

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""Support the following operations:
+"""This module provides basic operations for constructing node graphs.
+
+It supports the following operations:
 
 1. feedforward connection: ">>", ">>="
 2. feedback connection: "<<", "<<="
@@ -8,9 +10,10 @@
 4. select subsets of one node: "[:]"
 5. concatenate a sequence of nodes: "[node1, node2, ...]", "(node1, node2, ...)"
 
+However, all operations should satisfy the following assumptions:
 
-Requirements:
-
+1. feedback connection of (node1, node2) should have a feedforward path from `node2` to `node1`.
+2. feedforward or feedback connections cannot generate a cycle.
 
 """
 
@@ -191,9 +194,10 @@ def ff_connect(
     name: str = None,
     need_detect_cycle=True
 ) -> Network:
-  """Link two sequences of :py:class:`~.Node` instances to form a :py:class:`~.Network`
-  instance. `senders` output will be used as input for `receivers` in the
-  created network. This is similar to a function composition operation:
+  """Connect two sequences of :py:class:`~.Node` instances to form
+  a :py:class:`~.Network` instance. `senders` output will be used as
+  input for `receivers` in the created network. This is similar to a
+  function composition operation:
 
   .. math::
 
@@ -296,9 +300,8 @@ def fb_connect(
     name: str = None,
     need_detect_cycle=True
 ) -> Node:
-  """Create a feedback connection between the `feedback` node and `node`.
-  Feedbacks nodes will be called at runtime using data from the previous
-  call.
+  """Create a feedback connection from ``sender`` node to ``receiver`` node.
+  Feedbacks nodes will be called at runtime using data from the previous  call.
 
   This is not an inplace operation by default. This function will copy `node`
   and then sets the copy `_feedback` attribute as a reference to `feedback`
@@ -342,20 +345,12 @@ def fb_connect(
   name : str, optional
       Name of the copy of `node` if `inplace` is `True`.
   need_detect_cycle: bool
+      Whether need to detect cycles in the defined network.
 
   Returns
   -------
-  Node
-      A node instance taking feedback from `feedback`.
-
-  Raises
-  ------
-  TypeError
-      - If `node` is a :py:class:`~.Network`.
-      Networks can not receive feedback.
-
-      - If any of the feedback nodes are not :py:class:`~.GenericNode`
-      instances.
+  Network
+      A network with feedback connections.
   """
 
   all_nodes, all_ff_edges, all_fb_edges, fb_senders, fb_receivers = _retrieve_nodes_and_edges(senders, receivers)
@@ -369,14 +364,6 @@ def fb_connect(
                        'as feedback ones.')
   # establish feedback connections
   new_fb_edges = set(product(fb_senders, fb_receivers))
-  # # check whether has a feedforward path for each feedback pair
-  # for sender, receiver in new_fb_edges:
-  #   if not graph_flow.detect_path(receiver, sender, all_ff_edges):
-  #     raise ValueError(f'Cannot build a feedback connection from \n\n{sender} \n\n'
-  #                      f'to \n\n{receiver} \n\n'
-  #                      f'because there is no feedforward path between them. \n'
-  #                      f'Maybe you should use "ff_connect" first to establish a '
-  #                      f'feedforward connection between them. ')
 
   # all outputs from subgraph 1 are connected to
   # all inputs from subgraph 2.

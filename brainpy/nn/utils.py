@@ -18,6 +18,7 @@ __all__ = [
   'check_shape_broadcastable',
   'online_training',
   'offline_training',
+  'check_dict_types',
 ]
 
 
@@ -153,3 +154,12 @@ def offline_training(fun: Callable):
 
   train.train_mode = 'offline'
   return train
+
+
+def check_dict_types(a_dict: Dict, key_type, val_type):
+  assert isinstance(a_dict, dict), f'Must be a dict, while we got {type(a_dict)}'
+  for key, value in a_dict.items():
+    assert isinstance(key, str), (f'Must be a dict of ({key_type}, {val_type}), while we got '
+                                  f'({type(key)}, {type(value)})')
+    assert isinstance(value, val_type), ('Must be a dict of ({key_type}, {val_type}), while we got '
+                                         f'({type(key)}, {type(value)})')
