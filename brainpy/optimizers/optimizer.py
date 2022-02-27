@@ -63,7 +63,7 @@ class SGD(Optimizer):
 
 
 class Momentum(Optimizer):
-  """Momentum optimizer.
+  r"""Momentum optimizer.
 
   Momentum [1]_ is a method that helps accelerate SGD in the relevant direction
   and dampens oscillations. It does this by adding a fraction :math:`\gamma`
@@ -108,7 +108,7 @@ class Momentum(Optimizer):
 
 
 class MomentumNesterov(Optimizer):
-  """Nesterov accelerated gradient optimizer [2]_.
+  r"""Nesterov accelerated gradient optimizer [2]_.
 
   .. math::
 
@@ -146,7 +146,7 @@ class MomentumNesterov(Optimizer):
 
 
 class Adagrad(Optimizer):
-  """Optimizer that implements the Adagrad algorithm.
+  r"""Optimizer that implements the Adagrad algorithm.
 
   Adagrad [3]_ is an optimizer with parameter-specific learning rates, which are
   adapted relative to how frequently a parameter gets updated during training.
@@ -191,7 +191,7 @@ class Adagrad(Optimizer):
 
 
 class Adadelta(Optimizer):
-  """Optimizer that implements the Adadelta algorithm.
+  r"""Optimizer that implements the Adadelta algorithm.
 
   Adadelta [4]_ optimization is a stochastic gradient descent method that is based
   on adaptive learning rate per dimension to address two drawbacks:
@@ -251,7 +251,7 @@ class Adadelta(Optimizer):
 
 
 class RMSProp(Optimizer):
-  """Optimizer that implements the RMSprop algorithm.
+  r"""Optimizer that implements the RMSprop algorithm.
 
   RMSprop [5]_ and Adadelta have both been developed independently around the same time
   stemming from the need to resolve Adagrad's radically diminishing learning rates.
