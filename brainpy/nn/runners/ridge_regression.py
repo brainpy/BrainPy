@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.nn.base import Node, Network
-from brainpy.nn.utils import check_dict_types
+from brainpy.nn.utils import check_dict_data
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
 
@@ -24,6 +24,8 @@ class RidgeTrainer(RNNTrainer):
     kwargs['numpy_mon_after_run'] = False
     super(RidgeTrainer, self).__init__(target=target, **kwargs)
 
+    # get all trainable nodes
+    self.train_nodes = self._get_trainable_nodes()
     # check the required interface in the trainable nodes
     self._check_interface('__ridge_train__')
     # add the monitor items which are needed for the training process
@@ -64,7 +66,7 @@ class RidgeTrainer(RNNTrainer):
       else:
         raise ValueError(f'The network {self.target} has {len(self.train_nodes)} '
                          f'training nodes, while we only got one target data.')
-    check_dict_types(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
 
     # init progress bar
     if self.progress_bar:

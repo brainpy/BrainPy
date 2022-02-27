@@ -16,9 +16,7 @@ __all__ = [
   'check_shape',
   'check_shape_consistency',
   'check_shape_broadcastable',
-  'online_training',
-  'offline_training',
-  'check_dict_types',
+  'check_dict_data',
 ]
 
 
@@ -138,25 +136,7 @@ def check_shape(all_shapes, free_axes: Union[Sequence[int], int] = -1):
   return free_shape, max_fixed_shapes
 
 
-def online_training(fun: Callable):
-  @wraps(fun)
-  def train(self, *args, **kwargs):
-    return fun(self, *args, **kwargs)
-
-  train.train_mode = 'online'
-  return train
-
-
-def offline_training(fun: Callable):
-  @wraps(fun)
-  def train(self, *args, **kwargs):
-    return fun(self, *args, **kwargs)
-
-  train.train_mode = 'offline'
-  return train
-
-
-def check_dict_types(a_dict: Dict, key_type, val_type):
+def check_dict_data(a_dict: Dict, key_type, val_type):
   assert isinstance(a_dict, dict), f'Must be a dict, while we got {type(a_dict)}'
   for key, value in a_dict.items():
     assert isinstance(key, str), (f'Must be a dict of ({key_type}, {val_type}), while we got '

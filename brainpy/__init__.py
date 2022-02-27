@@ -72,4 +72,4 @@ from .compact import *  # compact
 # convenient access
 conn = connect
 init = initialize
-opt = optimizers
+optim = optimizers

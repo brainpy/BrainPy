@@ -15,7 +15,7 @@ from brainpy.nn.graph_flow import (find_senders_and_receivers,
                                    find_entries_and_exits,
                                    detect_cycle,
                                    detect_path)
-from brainpy.nn.utils import check_dict_types
+from brainpy.nn.utils import check_dict_data
 from brainpy.types import Tensor
 
 operations = None
@@ -59,6 +59,8 @@ class Node(Base):
       raise ValueError(f'Unsupported data pass type {self.data_pass_type}. '
                        f'Only support {DATA_PASS_TYPES}')
     self.data_pass_func = DATA_PASS_FUNC[self.data_pass_type]
+
+    self.check_shape_consistency = True
 
   def __repr__(self):
     name = type(self).__name__
@@ -254,6 +256,12 @@ class Node(Base):
   def nodes(self, method='absolute', level=1, include_self=True):
     return super(Node, self).nodes(method=method, level=level, include_self=include_self)
 
+  def vars(self, method='absolute', level=1, include_self=True):
+    return super(Node, self).vars(method=method, level=level, include_self=include_self)
+
+  def train_vars(self, method='absolute', level=1, include_self=True):
+    return super(Node, self).train_vars(method=method, level=level, include_self=include_self)
+
   def copy(self, name: str = None, shallow: bool = False):
     """Returns a copy of the Node.
 
@@ -303,26 +311,30 @@ class Node(Base):
   def initialize(self,
                  ff: Optional[Union[Tensor, Dict[Any, Tensor]]] = None,
                  fb: Optional[Union[Tensor, Dict[Any, Tensor]]] = None):
+
     # feedforward initialization
-    if ff is None:
-      if self._input_shapes is None:
-        raise ValueError('Cannot initialize this node, because we detect '
-                         'both "input_shapes"and "ff" inputs are None. ')
-      in_sizes = self._input_shapes
-    else:
-      if isinstance(ff, (bm.ndarray, jnp.ndarray)):
-        ff = {self.name: ff}
-      assert isinstance(ff, dict), f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}'
-      assert self.name in ff, f'Cannot find input for this node {self} when given "ff" {ff}'
-      in_sizes = {k: v.shape for k, v in ff.items()}
-    if not self.is_initialized:  # initialize feedforward
+    if not self.is_initialized:
+      # feedforward data
+      if ff is None:
+        if self._input_shapes is None:
+          raise ValueError('Cannot initialize this node, because we detect '
+                           'both "input_shapes"and "ff" inputs are None. ')
+        in_sizes = self._input_shapes
+      else:
+        if isinstance(ff, (bm.ndarray, jnp.ndarray)):
+          ff = {self.name: ff}
+        assert isinstance(ff, dict), f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}'
+        assert self.name in ff, f'Cannot find input for this node {self} when given "ff" {ff}'
+        in_sizes = {k: v.shape for k, v in ff.items()}
+
+      # initialize feedforward
       self.set_input_shapes(in_sizes)
       self._ff_init()
 
     # feedback initialization
     if fb is not None:
       if not self.is_fb_initialized:  # initialize feedback
-        assert isinstance(fb, dict), f'"fb" must be a dict, got {type(fb)}: {fb}'
+        assert isinstance(fb, dict), f'"fb" must be a dict, got {type(fb)}'
         fb_sizes = {k: v.shape for k, v in fb.items()}
         self.set_feedback_shapes(fb_sizes)
         self._fb_init()
@@ -333,17 +345,22 @@ class Node(Base):
       ff = {self.name: ff}
     assert isinstance(ff, dict), f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}'
     assert self.name in ff, f'Cannot find input for this node {self} when given "ff" {ff}'
-    # check feedforward consistency
-    for k, size in self._input_shapes.items():
-      assert k in ff, f"The required key {k} is not provided in feedforward inputs."
-      assert size == ff[k].shape, f'Shape does not match the required input size {size} != {ff[k].shape}'
+
+    if self.check_shape_consistency:
+      # check feedforward consistency
+      for k, size in self._input_shapes.items():
+        assert k in ff, f"The required key {k} is not provided in feedforward inputs."
+        assert size == ff[k].shape, (f'Shape does not match the required '
+                                     f'input size {size} != {ff[k].shape}')
     # feedback inputs
     if fb is not None:
       assert isinstance(fb, dict), f'"fb" must be a dict, got {type(fb)}: {fb}'
-      # check feedback consistency
-      for k, size in self._feedback_shapes.items():
-        assert k in fb, f"The required key {k} is not provided in feedback inputs."
-        assert size == fb[k].shape, f'Shape does not match the required feedback size {size} != {fb[k].shape}'
+      if self.check_shape_consistency:
+        # check feedback consistency
+        for k, size in self._feedback_shapes.items():
+          assert k in fb, f"The required key {k} is not provided in feedback inputs."
+          assert size == fb[k].shape, (f'Shape does not match the required '
+                                       f'feedback size {size} != {fb[k].shape}')
     ff = self.data_pass_func(ff)
     fb = self.data_pass_func(fb)
     return ff, fb
@@ -361,7 +378,7 @@ class Node(Base):
     if forced_states is None: forced_states = dict()
     if isinstance(forced_states, (bm.ndarray, jnp.ndarray)):
       forced_states = {self.name: forced_states}
-    check_dict_types(forced_states, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    check_dict_data(forced_states, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     assert forced_feedbacks is None, ('Single instance of brainpy.nn.Node do '
                                       'not support "forced_feedbacks"')
     # monitors
@@ -425,6 +442,7 @@ class Node(Base):
 
 class Network(Node):
   """Basic Network class for neural network building in BrainPy."""
+
   def __init__(self, nodes=None, ff_edges=None, fb_edges=None, **kwargs):
     super(Network, self).__init__(**kwargs)
     # nodes (with tuple/list format)
@@ -646,37 +664,43 @@ class Network(Node):
 
     This function is useful, because it is independent from the __call__ function.
     We can use this function before when we apply JIT to __call__ function."""
-    assert len(self.entry_nodes) > 0, f"We found this network {self} has no input nodes."
-    assert len(self.exit_nodes) > 0, f"We found this network {self} has no output nodes."
-    # check whether has a feedforward path for each feedback pair
-    for sender, receiver in self.fb_edges:
-      if not detect_path(receiver, sender, self.ff_edges):
-        raise ValueError(f'Cannot build a feedback connection from \n\n{sender} \n\n'
-                         f'to \n\n{receiver} \n\n'
-                         f'because there is no feedforward path between them. \n'
-                         f'Maybe you should use "ff_connect" first to establish a '
-                         f'feedforward connection between them. ')
 
-    # feedforward checking
-    if ff is None:
-      in_sizes = dict()
-      for node in self.entry_nodes:
-        if node._input_shapes is None:
-          raise ValueError('Cannot initialize this node, because we detect '
-                           'both "input_shapes"and "ff" inputs are None. ')
-        in_sizes.update(node._input_shapes)
-    else:
-      if isinstance(ff, (bm.ndarray, jnp.ndarray)):
-        ff = {self.entry_nodes[0].name: ff}
-      assert isinstance(ff, dict), f'ff must be a dict or a tensor, got {type(ff)}: {ff}'
-      for n in self.entry_nodes:
-        if n.name not in ff:
-          raise ValueError(f'Cannot find the input of the node {n}')
-      in_sizes = {k: v.shape for k, v in ff.items()}
     # feedforward initialization
-    if not self.is_initialized:  # initialize feedforward
+    if not self.is_initialized:
+      # check input and output nodes
+      assert len(self.entry_nodes) > 0, f"We found this network {self} has no input nodes."
+      assert len(self.exit_nodes) > 0, f"We found this network {self} has no output nodes."
+
+      # check whether has a feedforward path for each feedback pair
+      for sender, receiver in self.fb_edges:
+        if not detect_path(receiver, sender, self.ff_edges):
+          raise ValueError(f'Cannot build a feedback connection from \n\n{sender} \n\n'
+                           f'to \n\n{receiver} \n\n'
+                           f'because there is no feedforward path between them. \n'
+                           f'Maybe you should use "ff_connect" first to establish a '
+                           f'feedforward connection between them. ')
+
+      # feedforward checking
+      if ff is None:
+        in_sizes = dict()
+        for node in self.entry_nodes:
+          if node._input_shapes is None:
+            raise ValueError('Cannot initialize this node, because we detect '
+                             'both "input_shapes"and "ff" inputs are None. ')
+          in_sizes.update(node._input_shapes)
+      else:
+        if isinstance(ff, (bm.ndarray, jnp.ndarray)):
+          ff = {self.entry_nodes[0].name: ff}
+        assert isinstance(ff, dict), f'ff must be a dict or a tensor, got {type(ff)}: {ff}'
+        for n in self.entry_nodes:
+          if n.name not in ff:
+            raise ValueError(f'Cannot find the input of the node {n}')
+        in_sizes = {k: v.shape for k, v in ff.items()}
+
+      # initialize feedforward
       self.set_input_shapes(in_sizes)
       self._ff_init()
+
     # feedback initialization
     if len(self._fb_senders):
       # initialize feedback
@@ -739,9 +763,9 @@ class Network(Node):
     self.initialize(ff, fb)
     # initialize the forced data
     if forced_feedbacks is None: forced_feedbacks = dict()
-    check_dict_types(forced_feedbacks, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    check_dict_data(forced_feedbacks, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     if forced_states is None: forced_states = dict()
-    check_dict_types(forced_states, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    check_dict_data(forced_states, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     # initialize the monitors
     need_return_monitor = True
     if monitors is None:
@@ -890,6 +914,3 @@ class FrozenNetwork(Network):
   def replace_graph(self, nodes, ff_edges, fb_edges=None):
     raise TypeError(f"Cannot update FrozenModel {self}: "
                     f"model is frozen and cannot be modified.")
-
-
-

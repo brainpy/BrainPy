@@ -10,6 +10,7 @@ from brainpy import math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
 from brainpy.running.runner import Runner
+from brainpy.nn.utils import check_dict_data
 from brainpy.types import Tensor
 
 __all__ = [
@@ -49,7 +50,8 @@ class RNNRunner(Runner):
               forced_feedbacks: Dict[str, Tensor] = None,
               initial_states: Dict[str, Tensor] = None,
               initial_feedbacks: Dict[str, Tensor] = None,
-              reset=False):
+              reset=False,
+              progress_bar=True):
     """Predict a series of input data with the given target model.
 
     This function use the JIT compilation to accelerate the model simulation.
@@ -70,6 +72,7 @@ class RNNRunner(Runner):
       The initial values of the feedback nodes.
     reset: bool
       Whether reset the model states.
+    progress_bar: bool
 
     Returns
     -------
@@ -84,9 +87,9 @@ class RNNRunner(Runner):
     for key in self.mon.item_contents.keys():
       self.mon.item_contents[key] = []  # reshape the monitor items
     # init progress bar
-    if self.progress_bar:
+    if self.progress_bar and progress_bar:
       self._pbar = tqdm.auto.tqdm(total=num_step)
-      self._pbar.set_description(f"Running {num_step} steps: ", refresh=True)
+      self._pbar.set_description(f"Predict {num_step} steps: ", refresh=True)
     # reset the model states
     if reset:
       self.target.reset_state()
@@ -102,7 +105,7 @@ class RNNRunner(Runner):
     # rune the model
     outputs, hists = self._predict_func([xs, forced_states, forced_feedbacks])
     # close the progress bar
-    if self.progress_bar:
+    if self.progress_bar and progress_bar:
       self._pbar.close()
     # post-running for monitors
     for key in self.mon.item_names:
@@ -173,11 +176,7 @@ class RNNRunner(Runner):
       raise UnsupportedError(f'Unknown data type {type(xs)}, we only support '
                              f'tensor or dict with <str, tensor>')
     assert len(xs) > 0, 'We got no input data.'
-    for key, tensor in xs.items():
-      assert isinstance(key, str), ('"xs" must a dict of (str, tensor), while we got '
-                                    f'({type(key)}, {type(tensor)})')
-      assert isinstance(tensor, (bm.ndarray, jnp.ndarray)), ('"xs" must a dict of (str, tensor), while we got '
-                                                             f'({type(key)}, {type(tensor)})')
+    check_dict_data(xs, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     num_step = list(xs.values())[0].shape[0]
     return xs, num_step
 

@@ -21,12 +21,6 @@ class RNNTrainer(RNNRunner):
   def __init__(self, target, **kwargs):
     super(RNNTrainer, self).__init__(target=target, **kwargs)
 
-    # get all trainable nodes
-    self.train_nodes = self._get_trainable_nodes()
-
-    # function for training
-    self._fit_func = None
-
   def fit(self,
           xs: Union[Tensor, Dict[str, Tensor]],
           ys: Union[Tensor, Dict[str, Tensor]],
