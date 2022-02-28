@@ -11,6 +11,6 @@ __all__ = [
 class Monitor(monitor.Monitor):
   def __init__(self, *args, **kwargs):
     super(Monitor, self).__init__(*args, **kwargs)
-    warnings.warn('Please use "brainpy.dyn.Monitor" instead. '
+    warnings.warn('Please use "brainpy.running.Monitor" instead. '
                   '"brainpy.Monitor" is deprecated since version 2.0.3.',
                   DeprecationWarning)

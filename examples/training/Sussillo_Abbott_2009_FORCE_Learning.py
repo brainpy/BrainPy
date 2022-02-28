@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 
 # %%
-class EchoStateNet(bp.DynamicalSystem):
+class EchoStateNet(bp.dyn.DynamicalSystem):
   r"""The continuous-time Echo State Network.
 
   .. math::

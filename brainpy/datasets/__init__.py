@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 
-from .classical_systems import *
+from .chaotic_systems import *
 
