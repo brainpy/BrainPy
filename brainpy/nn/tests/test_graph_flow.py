@@ -22,16 +22,16 @@ class TestGraphFlow(unittest.TestCase):
     nodes = (1, 2, 3, 4, 5)
     ff_edges = ((1, 2), (2, 3), (3, 4), (4, 5))
     fb_edges = ((5, 2), (4, 2))
-    inputs, outputs, ll = find_entries_and_exits(nodes, ff_edges, fb_edges)
+    inputs, outputs = find_entries_and_exits(nodes, ff_edges, fb_edges)
     print()
-    print(inputs, outputs, ll)
+    print(inputs, outputs)
 
   def test_fb2(self):
     nodes = (1, 2, 3, 4, 5)
     ff_edges = ((1, 2), (2, 3), (3, 4))
     fb_edges = ((3, 2), (4, 5))
-    with self.assertRaises(ValueError):
-      find_entries_and_exits(nodes, ff_edges, fb_edges)
+    # with self.assertRaises(ValueError):
+    find_entries_and_exits(nodes, ff_edges, fb_edges)
 
   def test_fb3(self):
     nodes = (1, 2, 3, 4, 5)

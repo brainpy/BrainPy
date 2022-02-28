@@ -6,7 +6,7 @@ import brainpy as bp
 bp.integrators.set_default_odeint('rk4')
 
 
-class GABAa(bp.TwoEndConn):
+class GABAa(bp.dyn.TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.1, E=-75.,
                alpha=12., beta=0.1, T=1.0, T_duration=1.0, **kwargs):
     super(GABAa, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
@@ -44,7 +44,7 @@ class GABAa(bp.TwoEndConn):
     self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
 
 
-class HH(bp.NeuGroup):
+class HH(bp.dyn.NeuGroup):
   def __init__(self, size, ENa=55., EK=-90., EL=-65,
                C=1.0, gNa=35., gK=9., gL=0.1, V_th=20.,
                phi=5.0, **kwargs):
@@ -97,9 +97,9 @@ class HH(bp.NeuGroup):
     self.inputs[:] = 0
 
 
-def try1():
+def test1():
     num = 10
-    neu = HH(num, monitors=['spikes', 'V'])
+    neu = HH(num)
     neu.V = -70. + bp.math.random.normal(size=num) * 20
 
     syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
@@ -129,7 +129,3 @@ def try1():
       print('syn.nodes()', list(syn.nodes(method).keys()))
       print('net.nodes()', list(net.nodes(method).keys()))
       print()
-
-
-if __name__ == '__main__':
-    try1()

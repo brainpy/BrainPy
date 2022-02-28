@@ -9,7 +9,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class ExampleDS(bp.DynamicalSystem):
+class ExampleDS(bp.dyn.DynamicalSystem):
   def __init__(self):
     super(ExampleDS, self).__init__()
     self.i = bm.Variable(bm.zeros(1))
@@ -19,114 +19,53 @@ class ExampleDS(bp.DynamicalSystem):
     self.i += 1
 
 
-class TestInputs(TestCase):
-  def test_fix_type(self):
-    duration = 10.
-    dt = 0.1
-    for jit in [True, False]:
-      for run_method in [bp.ReportRunner, bp.StructRunner]:
-        ds = ExampleDS()
-        runner = run_method(ds, inputs=('o', 1.), monitors=['o'], dyn_vars=ds.vars(), jit=jit, dt=dt)
-        runner(duration)
-        length = int(duration / dt)
-        assert bm.array_equal(runner.mon.o,
-                              bm.repeat(bm.arange(length) + 1, 2).reshape((length, 2)))
-
-  def test_iter_type_array(self):
-    duration = 10.
-    dt = 0.1
-    for jit in [True, False]:
-      for run_method in [bp.ReportRunner, bp.StructRunner]:
-        ds = ExampleDS()
-        length = int(duration / dt)
-        runner = run_method(ds, inputs=('o', bm.ones(length), 'iter'), monitors=['o'],
-                            dyn_vars=ds.vars(), jit=jit, dt=dt)
-        runner(duration)
-        assert bm.array_equal(runner.mon.o,
-                              bm.repeat(bm.arange(length) + 1, 2).reshape((length, 2)))
-
-  def test_iter_type_func(self):
-    duration = 10.
-    dt = 0.1
-    for jit in [True, False]:
-      for run_method in [bp.ReportRunner, bp.StructRunner]:
-        ds = ExampleDS()
-
-        def f_int():
-          while True: yield 1.
-
-        runner = run_method(ds, inputs=('o', f_int(), 'iter'), monitors=['o'],
-                            dyn_vars=ds.vars(), jit=jit, dt=dt, )
-        runner(duration)
-        length = int(duration / dt)
-        assert bm.array_equal(runner.mon.o,
-                              bm.repeat(bm.arange(length) + 1, 2).reshape((length, 2)))
-
-  def test_func_type(self):
-    duration = 10.
-    dt = 0.1
-    for jit in [True, False]:
-      for run_method in [bp.ReportRunner, bp.StructRunner]:
-        ds = ExampleDS()
-
-        def f_int(_t, _dt):
-          return 1.
-
-        runner = run_method(ds, inputs=('o', f_int, 'func'), monitors=['o'],
-                            dyn_vars=ds.vars(), jit=jit, dt=dt, )
-        runner(duration)
-        length = int(duration / dt)
-        assert bm.array_equal(runner.mon.o,
-                              bm.repeat(bm.arange(length) + 1, 2).reshape((length, 2)))
-
-
-class TestMonitor(TestCase):
-  def test_1d_array(self):
-    try1 = TryGroup(monitors=['a'])
-    try1.a = np.ones(1)
-    try1.run(100.)
-
-    assert np.ndim(try1.mon.a) == 2 and np.shape(try1.mon.a)[1] == 1
-    assert np.allclose(np.arange(2, 1002).reshape((-1, 1)), try1.mon.a)
-
-  def test_2d_array():
-    set(dt=0.1)
-    try1 = TryGroup(monitors=['a'])
-    try1.a = np.ones((2, 2))
-    try1.run(100.)
-
-    assert np.ndim(try1.mon.a) == 2 and np.shape(try1.mon.a)[1] == 4
-    series = np.arange(2, 1002).reshape((-1, 1))
-    series = np.repeat(series, 4, axis=1)
-    assert np.allclose(series, try1.mon.a)
-
-  def test_monitor_with_every():
-    set(dt=0.1)
-
-    # try1: 2d array
-    try1 = TryGroup(monitors=Monitor(variables=['a'], every=[1.]))
-    try1.run(100.)
-    assert np.ndim(try1.mon.a) == 2 and np.shape(try1.mon.a)[1] == 4
-    series = np.arange(2, 1002, 1. / 0.1).reshape((-1, 1))
-    series = np.repeat(series, 4, axis=1)
-    assert np.allclose(series, try1.mon.a)
-
-    # try2: 1d array
-    try2 = TryGroup(monitors=Monitor(variables=['a'], every=[1.]))
-    try2.a = np.array([1., 1.])
-    try2.run(100.)
-    assert np.ndim(try2.mon.a) == 2 and np.shape(try2.mon.a)[1] == 2
-    series = np.arange(2, 1002, 1. / 0.1).reshape((-1, 1))
-    series = np.repeat(series, 2, axis=1)
-    assert np.allclose(series, try2.mon.a)
-
-    # try2: scalar
-    try3 = TryGroup(monitors=Monitor(variables=['a'], every=[1.]))
-    try3.a = 1.
-    try3.run(100.)
-    assert np.ndim(try3.mon.a) == 2 and np.shape(try3.mon.a)[1] == 1
-    series = np.arange(2, 1002, 1. / 0.1).reshape((-1, 1))
-    assert np.allclose(series, try3.mon.a)
+# class TestMonitor(TestCase):
+#   def test_1d_array(self):
+#     try1 = TryGroup(monitors=['a'])
+#     try1.a = np.ones(1)
+#     try1.run(100.)
+#
+#     assert np.ndim(try1.mon.a) == 2 and np.shape(try1.mon.a)[1] == 1
+#     assert np.allclose(np.arange(2, 1002).reshape((-1, 1)), try1.mon.a)
+#
+#   def test_2d_array():
+#     set(dt=0.1)
+#     try1 = TryGroup(monitors=['a'])
+#     try1.a = np.ones((2, 2))
+#     try1.run(100.)
+#
+#     assert np.ndim(try1.mon.a) == 2 and np.shape(try1.mon.a)[1] == 4
+#     series = np.arange(2, 1002).reshape((-1, 1))
+#     series = np.repeat(series, 4, axis=1)
+#     assert np.allclose(series, try1.mon.a)
+#
+#   def test_monitor_with_every():
+#     set(dt=0.1)
+#
+#     # try1: 2d array
+#     try1 = TryGroup(monitors=Monitor(variables=['a'], every=[1.]))
+#     try1.run(100.)
+#     assert np.ndim(try1.mon.a) == 2 and np.shape(try1.mon.a)[1] == 4
+#     series = np.arange(2, 1002, 1. / 0.1).reshape((-1, 1))
+#     series = np.repeat(series, 4, axis=1)
+#     assert np.allclose(series, try1.mon.a)
+#
+#     # try2: 1d array
+#     try2 = TryGroup(monitors=Monitor(variables=['a'], every=[1.]))
+#     try2.a = np.array([1., 1.])
+#     try2.run(100.)
+#     assert np.ndim(try2.mon.a) == 2 and np.shape(try2.mon.a)[1] == 2
+#     series = np.arange(2, 1002, 1. / 0.1).reshape((-1, 1))
+#     series = np.repeat(series, 2, axis=1)
+#     assert np.allclose(series, try2.mon.a)
+#
+#     # try2: scalar
+#     try3 = TryGroup(monitors=Monitor(variables=['a'], every=[1.]))
+#     try3.a = 1.
+#     try3.run(100.)
+#     assert np.ndim(try3.mon.a) == 2 and np.shape(try3.mon.a)[1] == 1
+#     series = np.arange(2, 1002, 1. / 0.1).reshape((-1, 1))
+#     assert np.allclose(series, try3.mon.a)
 
 
 class TestIntegratorRunner(TestCase):
@@ -159,8 +98,8 @@ class TestIntegratorRunner(TestCase):
       plt.show()
 
   def test_ode2(self):
-    a, b, tau=0.7, 0.8, 12.5
-    dV = lambda V, t, w, Iext:  V - V * V * V / 3 - w + Iext
+    a, b, tau = 0.7, 0.8, 12.5
+    dV = lambda V, t, w, Iext: V - V * V * V / 3 - w + Iext
     dw = lambda w, t, V: (V + a - b * w) / tau
     fhn = bp.odeint(bp.JointEq([dV, dw]), method='rk4', dt=0.1)
 
@@ -170,12 +109,12 @@ class TestIntegratorRunner(TestCase):
     bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=True)
 
   def test_ode3(self):
-    a, b, tau=0.7, 0.8, 12.5
-    dV = lambda V, t, w, Iext:  V - V * V * V / 3 - w + Iext
+    a, b, tau = 0.7, 0.8, 12.5
+    dV = lambda V, t, w, Iext: V - V * V * V / 3 - w + Iext
     dw = lambda w, t, V: (V + a - b * w) / tau
     fhn = bp.odeint(bp.JointEq([dV, dw]), method='rk4', dt=0.1)
 
-    Iext, duration = brainpy.sim.inputs.section_input([0., 1., 0.5], [200, 500, 200], return_length=True)
+    Iext, duration = bp.inputs.section_input([0., 1., 0.5], [200, 500, 200], return_length=True)
     runner = bp.IntegratorRunner(fhn, monitors=['V', 'w'], inits=[1., 1.],
                                  dyn_args=dict(Iext=Iext))
     runner.run(duration)

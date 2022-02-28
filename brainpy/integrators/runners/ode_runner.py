@@ -65,9 +65,9 @@ class IntegratorRunner(object):
 
     # monitors
     if monitors is None:
-      self.mon = Monitor(target=self, variables=[])
+      self.mon = Monitor(variables=[])
     elif isinstance(monitors, (list, tuple, dict)):
-      self.mon = Monitor(target=self, variables=monitors)
+      self.mon = Monitor(variables=monitors)
     elif isinstance(monitors, Monitor):
       self.mon = monitors
       self.mon.target = self
