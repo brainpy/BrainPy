@@ -553,11 +553,33 @@ class Network(Node):
 
   @property
   def feedback_nodes(self) -> Sequence[Node]:
+    """Nodes which project feedback connections."""
     return tuple(self._fb_receivers.keys())
 
   @property
   def nodes_has_feedback(self) -> Sequence[Node]:
+    """Nodes which receive feedback connections."""
     return tuple(self._fb_senders.keys())
+
+  @property
+  def ff_senders(self) -> Dict:
+    """Nodes which project feedforward connections."""
+    return self._ff_senders
+
+  @property
+  def ff_receivers(self) -> Dict:
+    """Nodes which receive feedforward connections."""
+    return self._ff_receivers
+
+  @property
+  def fb_senders(self) -> Dict:
+    """Nodes which project feedback connections."""
+    return self._fb_senders
+
+  @property
+  def fb_receivers(self) -> Dict:
+    """Nodes which receive feedback connections."""
+    return self._fb_receivers
 
   def reset_state(self, to_state: Dict[str, Tensor] = None):
     """Reset the last state saved to zero for all nodes in the network or to other state values.
@@ -643,25 +665,25 @@ class Network(Node):
     # initialize the queue
     children_queue = []
     for node in self._entry_nodes:
-      for child in self._ff_receivers.get(node, []):
+      for child in self.ff_receivers.get(node, []):
         if child not in children_queue:
           children_queue.append(child)
     ff_states = {n: n.output_shape for n in self._entry_nodes}
     while len(children_queue):
       node = children_queue.pop(0)
       # initialize input and output sizes
-      parent_sizes = {p: p.output_shape for p in self._ff_senders.get(node, [])}
+      parent_sizes = {p: p.output_shape for p in self.ff_senders.get(node, [])}
       node.set_input_shapes(parent_sizes)
       node._ff_init()
       # append parent size
       ff_states[node] = node.output_shape
       # append children
-      for child in self._ff_receivers.get(node, []):
+      for child in self.ff_receivers.get(node, []):
         if child not in children_queue:
           children_queue.append(child)
 
   def fb_init(self):
-    for receiver, senders in self._fb_senders.items():
+    for receiver, senders in self.fb_senders.items():
       fb_sizes = {node: node.output_shape for node in senders}
       receiver.set_feedback_shapes(fb_sizes)
       receiver._fb_init()
@@ -709,7 +731,7 @@ class Network(Node):
       self._ff_init()
 
     # feedback initialization
-    if len(self._fb_senders):
+    if len(self.fb_senders):
       # initialize feedback
       if not self.is_fb_initialized:
         self._fb_init()
@@ -851,7 +873,7 @@ class Network(Node):
     parent_outputs = {}
     for i, node in enumerate(self._entry_nodes):
       ff = {node.name: ff[i]}
-      fb = {p: self._fb_states[p.name] for p in self._fb_senders.get(node, [])}
+      fb = {p: self._fb_states[p.name] for p in self.fb_senders.get(node, [])}
       self._call_a_node(node, ff, fb, monitors, forced_states, forced_feedbacks,
                         parent_outputs, children_queue, **kwargs)
 
@@ -859,15 +881,15 @@ class Network(Node):
     while len(children_queue):
       node = children_queue.pop(0)
       # get feedforward and feedback inputs
-      ff = {p: parent_outputs[p] for p in self._ff_senders.get(node, [])}
-      fb = {p: self._fb_states[p.name] for p in self._fb_senders.get(node, [])}
+      ff = {p: parent_outputs[p] for p in self.ff_senders.get(node, [])}
+      fb = {p: self._fb_states[p.name] for p in self.fb_senders.get(node, [])}
       # call the node
       self._call_a_node(node, ff, fb, monitors, forced_states, forced_feedbacks,
                         parent_outputs, children_queue, **kwargs)
       # remove unnecessary parent outputs
       needed_parents = [] + list(self.exit_nodes)
       for child in children_queue:
-        needed_parents += self._ff_senders[child]
+        needed_parents += self.ff_senders[child]
       for parent in list(parent_outputs.keys()):
         if parent not in needed_parents:
           parent_outputs.pop(parent)
@@ -903,7 +925,7 @@ class Network(Node):
     if (node.name in self._fb_states) and (node.name not in forced_feedbacks):
       self._fb_states[node.name].value = parent_outputs[node]
     # append children nodes
-    for child in self._ff_receivers.get(node, []):
+    for child in self.ff_receivers.get(node, []):
       if child not in children_queue:
         children_queue.append(child)
 
