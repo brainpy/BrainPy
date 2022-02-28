@@ -10,7 +10,7 @@ from brainpy import math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
 from brainpy.running.runner import Runner
-from brainpy.nn.utils import check_dict_data
+from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
 
 __all__ = [

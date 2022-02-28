@@ -5,5 +5,5 @@
 
 from .linear_readout import *
 from .nvar import *
-from .reservior import *
+from .reservoir import *
 

@@ -15,7 +15,7 @@ from brainpy.nn.graph_flow import (find_senders_and_receivers,
                                    find_entries_and_exits,
                                    detect_cycle,
                                    detect_path)
-from brainpy.nn.utils import check_dict_data
+from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
 
 operations = None
@@ -39,7 +39,10 @@ class Node(Base):
   """
   data_pass_type = PASS_SEQUENCE
 
-  def __init__(self, name=None, input_shape=None, trainable=False):  # initialize parameters
+  def __init__(self,
+               name: Optional[str] = None,
+               input_shape: Optional[Union[Sequence[int], int]] = None,
+               trainable: bool = False):  # initialize parameters
     super(Node, self).__init__(name=name)
 
     self._input_shapes = None  # input shapes
@@ -231,9 +234,9 @@ class Node(Base):
     else:
       raise TypeError(f"Input dimension of {self.name} is immutable after initialization.")
 
-  def set_output_shape(self, shape: Tuple[int]):
+  def set_output_shape(self, shape: Sequence[int]):
     if not self.is_initialized:
-      self._output_shape = shape
+      self._output_shape = tuple(shape)
     else:
       raise TypeError(f"Output dimension of {self.name} is immutable after initialization.")
 
@@ -443,7 +446,11 @@ class Node(Base):
 class Network(Node):
   """Basic Network class for neural network building in BrainPy."""
 
-  def __init__(self, nodes=None, ff_edges=None, fb_edges=None, **kwargs):
+  def __init__(self,
+               nodes: Optional[Sequence[Node]] = None,
+               ff_edges: Optional[Sequence[Tuple[Node]]] = None,
+               fb_edges: Optional[Sequence[Tuple[Node]]] = None,
+               **kwargs):
     super(Network, self).__init__(**kwargs)
     # nodes (with tuple/list format)
     if nodes is None:
@@ -527,11 +534,11 @@ class Network(Node):
     return self._nodes
 
   @property
-  def ff_edges(self) -> Tuple[Tuple[Node, Node]]:
+  def ff_edges(self) -> Sequence[Tuple[Node]]:
     return self._ff_edges
 
   @property
-  def fb_edges(self) -> Tuple[Tuple[Node, Node]]:
+  def fb_edges(self) -> Sequence[Tuple[Node]]:
     return self._fb_edges
 
   @property

@@ -2,6 +2,7 @@
 
 from brainpy import math as bm, tools
 from brainpy.nn import utils
+from brainpy.tools.checking import check_shape_consistency
 from brainpy.nn.base import Node
 
 __all__ = [
@@ -15,7 +16,7 @@ class Concat(Node):
     self.axis = axis
 
   def ff_init(self):
-    unique_shape, free_shapes = utils.check_shape_consistency(self.input_shapes, self.axis)
+    unique_shape, free_shapes = check_shape_consistency(self.input_shapes, self.axis)
     out_size = list(unique_shape)
     out_size.insert(self.axis, sum(free_shapes))
     self.set_output_shape(out_size)
@@ -25,8 +26,8 @@ class Concat(Node):
 
 
 class Select(Node):
-  def __init__(self, index, name=None, in_size=None):
-    super(Select, self).__init__(name=name, input_shape=in_size)
+  def __init__(self, index, **kwargs):
+    super(Select, self).__init__(**kwargs)
     if isinstance(index, int):
       self.index = bm.asarray([index]).value
 
@@ -41,8 +42,8 @@ class Select(Node):
 
 
 class Reshape(Node):
-  def __init__(self, shape, name=None, in_size=None):
-    super(Reshape, self).__init__(name=name, input_shape=in_size)
+  def __init__(self, shape, **kwargs):
+    super(Reshape, self).__init__(**kwargs)
     self.shape = tools.to_size(shape)
 
   def ff_init(self):
@@ -52,7 +53,7 @@ class Reshape(Node):
       length = bm.prod(in_size)
       out_size = list(self.shape)
       m1_idx = out_size.index(-1)
-      other_shape = out_size[:m1_idx] + out_size[m1_idx+1:]
+      other_shape = out_size[:m1_idx] + out_size[m1_idx + 1:]
       m1_length = int(length / bm.prod(other_shape))
       out_size[m1_idx] = m1_length
     else:

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from typing import Tuple, Union
+
 from brainpy.nn.base import Node
 
 __all__ = [
@@ -8,7 +10,9 @@ __all__ = [
 
 
 class Input(Node):
-  def __init__(self, input_shape=None, name=None):
+  """The input node."""
+
+  def __init__(self, input_shape: Union[Tuple[int], int] = None, name: str = None):
     super(Input, self).__init__(name=name, input_shape=input_shape)
 
   def ff_init(self):

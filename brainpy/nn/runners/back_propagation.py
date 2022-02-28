@@ -12,17 +12,18 @@ import brainpy.math as bm
 import brainpy.optimizers as optim
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
-from brainpy.nn.utils import check_dict_data
+from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
-  'BPTTTrainer'
+  'BPTT',
+  'BPFF',
 ]
 
 
-class BPTTTrainer(RNNTrainer):
-  """Back-propagation trainer."""
+class BPTT(RNNTrainer):
+  """The trainer implementing back propagation through time (BPTT)."""
 
   def __init__(self,
                target: Node,
@@ -173,5 +174,5 @@ class BPTTTrainer(RNNTrainer):
     return xs, ys
 
 
-class BPTrainer(BPTTTrainer):
+class BPFF(BPTTTrainer):
   pass
