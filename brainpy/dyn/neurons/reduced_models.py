@@ -164,8 +164,8 @@ class HindmarshRose(NeuGroup):
     >>> Is = bp.math.array([2.0, 5.0, 3.0, 3.3, 3.7])
     >>>
     >>> # define neuron type
-    >>> group = bp.neurons.HindmarshRose(len(types), b=bs)
-    >>> runner = bp.StructRunner(group, monitors=['V'], inputs=['input', Is],)
+    >>> group = bp.dyn.HindmarshRose(len(types), b=bs)
+    >>> runner = bp.dyn.DSRunner(group, monitors=['V'], inputs=['input', Is],)
     >>> runner.run(1e3)
     >>>
     >>> fig, gs = bp.visualize.get_figure(row_num=3, col_num=2, row_len=3, col_len=5)

@@ -61,12 +61,12 @@ class AMPA(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.HH(1)
-    >>> neu2 = bp.neurons.HH(1)
-    >>> syn1 = bp.synapses.AMPA(neu1, neu2, bp.connect.All2All())
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.HH(1)
+    >>> neu2 = bp.dyn.HH(1)
+    >>> syn1 = bp.dyn.AMPA(neu1, neu2, bp.connect.All2All())
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
@@ -286,12 +286,12 @@ class NMDA(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.HH(1)
-    >>> neu2 = bp.neurons.HH(1)
-    >>> syn1 = bp.synapses.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.HH(1)
+    >>> neu2 = bp.dyn.HH(1)
+    >>> syn1 = bp.dyn.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
