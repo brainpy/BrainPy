@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Dict
+from typing import Union, Sequence, Dict, Callable
 
 import jax.numpy as jnp
 import numpy as onp
 
 import brainpy.initialize as init
 import brainpy.math as bm
-from brainpy.types import Initializer
+from brainpy.types import Tensor
 
 __all__ = [
   'check_shape_consistency',
@@ -132,7 +132,8 @@ def check_dict_data(a_dict: Dict, key_type, val_type):
                                          f'({type(key)}, {type(value)})')
 
 
-def check_initializer(initializer: Initializer, name=None, allow_none=False):
+def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],
+                      name: str = None, allow_none=False):
   """Check the initializer.
   """
   name = '' if name is None else name

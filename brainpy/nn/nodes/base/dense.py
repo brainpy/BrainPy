@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Sequence, Optional, Dict
+from typing import Sequence, Optional, Dict, Callable, Union
 
 import jax.numpy as jnp
 
 from brainpy import math as bm
 from brainpy.errors import UnsupportedError
-from brainpy.initialize import XavierNormal, ZeroInit
+from brainpy.initialize import XavierNormal, ZeroInit, Initializer
 from brainpy.nn import utils
+from brainpy.nn.base import Node
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_initializer)
-from brainpy.nn.base import Node
-from brainpy.types import Tensor, Initializer
+from brainpy.types import Tensor
 
 __all__ = [
   'Dense',
@@ -20,7 +20,13 @@ __all__ = [
 
 
 class Dense(Node):
-  """A linear transformation applied over the last dimension of the input.
+  r"""A linear transformation applied over the last dimension of the input.
+
+  Mathematically, this node can be defined as:
+
+  .. math::
+
+     y = W \cdot x + b
 
   Parameters
   ----------
@@ -37,8 +43,8 @@ class Dense(Node):
   def __init__(
       self,
       num_unit: int,
-      init_weight: Initializer = XavierNormal(),
-      init_bias: Optional[Initializer] = ZeroInit(),
+      init_weight: Union[Initializer, Callable, Tensor] = XavierNormal(),
+      init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       trainable: bool = True,
       **kwargs
   ):

@@ -94,7 +94,7 @@ class RidgeTrainer(RNNTrainer):
 
     # init progress bar
     if self.progress_bar:
-      self._pbar = tqdm.auto.tqdm(total=num_step)
+      self._pbar = tqdm.auto.tqdm(total=len(self.train_nodes))
       self._pbar.set_description(f"Train {len(self.train_nodes)} nodes: ", refresh=True)
 
     # train the network

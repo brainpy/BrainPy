@@ -22,7 +22,11 @@ __all__ = [
 ]
 
 
-class BPTT(RNNTrainer):
+class BPFF(RNNTrainer):
+  pass
+
+
+class BPTT(BPFF):
   """The trainer implementing back propagation through time (BPTT)."""
 
   def __init__(self,
@@ -33,7 +37,7 @@ class BPTT(RNNTrainer):
                shuffle_data=True,
                metrics=('loss',),
                **kwargs):
-    super(BPTTTrainer, self).__init__(target=target, **kwargs)
+    super(BPTT, self).__init__(target=target, **kwargs)
 
     # optimizer
     if optimizer is None:
@@ -116,6 +120,7 @@ class BPTT(RNNTrainer):
       _, targets = tree_flatten(targets, is_leaf=lambda a: isinstance(a, bm.JaxArray))
       all_losses = [self.loss_fun(output, target) for output, target in zip(outputs, targets)]
       return bm.sum(all_losses)
+
     return loss_fun
 
   @property
@@ -172,7 +177,3 @@ class BPTT(RNNTrainer):
     xs = tree_map(lambda data: bm.random.RandomState(seed).shuffle(data, axis=0), xs)
     ys = tree_map(lambda data: bm.random.RandomState(seed).shuffle(data, axis=0), ys)
     return xs, ys
-
-
-class BPFF(BPTTTrainer):
-  pass

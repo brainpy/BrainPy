@@ -3,15 +3,14 @@
 from typing import Optional, Union, Callable
 
 import brainpy.math as bm
-from brainpy.errors import UnsupportedError
-from brainpy.initialize import Normal, ZeroInit
+from brainpy.initialize import Normal, ZeroInit, Initializer
 from brainpy.nn.base import Node
 from brainpy.nn.utils import init_param
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_float,
                                     check_initializer,
                                     check_string)
-from brainpy.types import Initializer
+from brainpy.types import Tensor
 
 __all__ = [
   'Reservoir',
@@ -97,10 +96,10 @@ class Reservoir(Node):
       leaky_rate: float = 0.3,
       activation: Union[str, Callable] = 'tanh',
       activation_type: str = 'internal',
-      init_ff: Initializer = Normal(),
-      init_rec: Initializer = Normal(),
-      init_fb: Optional[Initializer] = Normal(),
-      init_bias: Optional[Initializer] = ZeroInit(),
+      init_ff: Union[Initializer, Callable, Tensor] = Normal(),
+      init_rec: Union[Initializer, Callable, Tensor] = Normal(),
+      init_fb: Optional[Union[Initializer, Callable, Tensor]] = Normal(),
+      init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       ff_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
       fb_connectivity: float = 0.1,
@@ -159,14 +158,14 @@ class Reservoir(Node):
     weight_shape = (sum(free_shapes), self.num_unit)
     self.Wff = init_param(self.init_ff, weight_shape)
     if self.ff_connectivity < 1.:
-      self.Wff[self.rng.uniform(weight_shape) > self.ff_connectivity] = 0.
+      self.Wff[self.rng.random(weight_shape) > self.ff_connectivity] = 0.
     if self.trainable:
       self.Wff = bm.TrainVar(self.Wff)
     # initialize recurrent weights
     recurrent_shape = (self.num_unit, self.num_unit)
     self.Wrec = init_param(self.init_rec, recurrent_shape)
     if self.rec_connectivity < 1.:
-      self.Wrec[self.rng.uniform(recurrent_shape) > self.rec_connectivity] = 0.
+      self.Wrec[self.rng.random(recurrent_shape) > self.rec_connectivity] = 0.
     if self.spectral_radius is not None:
       current_sr = max(abs(bm.linalg.eig(self.Wrec)[0]))
       self.Wrec *= self.spectral_radius / current_sr
@@ -186,7 +185,7 @@ class Reservoir(Node):
       fb_shape = (sum(free_shapes), self.num_unit)
       self.Wfb = init_param(self.init_fb, fb_shape)
       if self.fb_connectivity < 1.:
-        self.Wfb[self.rng.uniform(fb_shape) > self.fb_connectivity] = 0.
+        self.Wfb[self.rng.random(fb_shape) > self.fb_connectivity] = 0.
       if self.trainable:
         self.Wfb = bm.TrainVar(self.Wfb)
 

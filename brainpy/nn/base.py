@@ -679,9 +679,9 @@ class Network(Node):
       assert len(self.exit_nodes) > 0, f"We found this network {self} has no output nodes."
 
       # check whether has a feedforward path for each feedback pair
-      for sender, receiver in self.fb_edges:
-        if not detect_path(receiver, sender, self.ff_edges):
-          raise ValueError(f'Cannot build a feedback connection from \n\n{sender} \n\n'
+      for node, receiver in self.fb_edges:
+        if not detect_path(receiver, node, self.ff_edges):
+          raise ValueError(f'Cannot build a feedback connection from \n\n{node} \n\n'
                            f'to \n\n{receiver} \n\n'
                            f'because there is no feedforward path between them. \n'
                            f'Maybe you should use "ff_connect" first to establish a '
@@ -714,13 +714,13 @@ class Network(Node):
       if not self.is_fb_initialized:
         self._fb_init()
         # initialize feedback states
-        for sender in self._fb_senders.keys():
-          if sender.state is None:
-            fb_state = bm.Variable(bm.zeros(sender.output_shape))
+        for node in self.feedback_nodes:
+          if node.state is None:
+            fb_state = bm.Variable(bm.zeros(node.output_shape))
           else:
-            fb_state = bm.Variable(sender.state)
-          self._fb_states[sender.name] = fb_state
-          self.implicit_vars[sender.name] = fb_state  # import for var() register
+            fb_state = bm.Variable(node.state)
+          self._fb_states[node.name] = fb_state
+          self.implicit_vars[node.name] = fb_state  # import for var() register
 
   def _check_inputs(self, ff, fb=None):
     # feedforward inputs

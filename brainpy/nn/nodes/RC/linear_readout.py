@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Sequence, Optional, Dict
+from typing import Sequence, Optional, Dict, Callable, Union
 
 import brainpy.math as bm
-from brainpy.initialize import XavierNormal, ZeroInit
+from brainpy.initialize import XavierNormal, ZeroInit, Initializer
 from brainpy.nn.nodes.base.dense import Dense
 from brainpy.tools.checking import check_shape_consistency
-from brainpy.types import Tensor, Initializer
+from brainpy.types import Tensor
 
 __all__ = [
   'LinearReadout',
@@ -27,11 +27,13 @@ class LinearReadout(Dense):
     The bias initializer.
   """
 
-  def __init__(self,
-               num_unit: int,
-               init_weight: Initializer = XavierNormal(),
-               init_bias: Optional[Initializer] = ZeroInit(),
-               **kwargs):
+  def __init__(
+      self,
+      num_unit: int,
+      init_weight: Union[Initializer, Callable, Tensor] = XavierNormal(),
+      init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
+      **kwargs
+  ):
     super(LinearReadout, self).__init__(num_unit=num_unit, init_weight=init_weight, init_bias=init_bias, **kwargs)
 
   def ff_init(self):

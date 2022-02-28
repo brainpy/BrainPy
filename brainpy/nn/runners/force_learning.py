@@ -6,15 +6,15 @@ from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
-  'FORCETrainer'
+  'FORCELearning'
 ]
 
 
-class FORCETrainer(RNNTrainer):
+class FORCELearning(RNNTrainer):
   """Force learning."""
 
   def __init__(self, target, alpha=1., **kwargs):
-    super(FORCETrainer, self).__init__(target=target, **kwargs)
+    super(FORCELearning, self).__init__(target=target, **kwargs)
 
     self.train_nodes = self._get_trainable_nodes()
     self._check_interface('__force_init__')
