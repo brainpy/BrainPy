@@ -935,7 +935,7 @@ class Network(Node):
       import matplotlib.pyplot as plt
       from matplotlib.lines import Line2D
     except (ModuleNotFoundError, ImportError):
-      raise PackageMissingError('Package networkx or matplotlib not found, please pre-install these two package before '
+      raise PackageMissingError('Package networkx or matplotlib not found, please pre-install these two packages before '
                                 'calling visualize()')
 
     nodes_trainable = []
