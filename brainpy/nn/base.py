@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 from brainpy import tools, math as bm
 from brainpy.base import Base, Collector
-from brainpy.errors import UnsupportedError
+from brainpy.errors import UnsupportedError, PackageMissingError
 from brainpy.nn.constants import (PASS_SEQUENCE,
                                   DATA_PASS_FUNC,
                                   DATA_PASS_TYPES)
@@ -930,7 +930,65 @@ class Network(Node):
         children_queue.append(child)
 
   def visualize(self):
-    pass
+    try:
+      import networkx as nx
+      import matplotlib.pyplot as plt
+      from matplotlib.lines import Line2D
+    except (ModuleNotFoundError, ImportError):
+      raise PackageMissingError('Package networkx or matplotlib not found, please pre-install these two packages before '
+                                'calling visualize()')
+
+    nodes_trainable = []
+    nodes_untrainable = []
+    for node in self.lnodes:
+      if node.trainable:
+        nodes_trainable.append(node.name)
+      else:
+        nodes_untrainable.append(node.name)
+
+    ff_edges = []
+    fb_edges = []
+    for edge in self.ff_edges:
+      ff_edges.append((edge[0].name, edge[1].name))
+    for edge in self.fb_edges:
+      fb_edges.append((edge[0].name, edge[1].name))
+
+    G = nx.DiGraph()
+    G.add_nodes_from(nodes_trainable)
+    G.add_nodes_from(nodes_untrainable)
+    G.add_edges_from(ff_edges)
+    G.add_edges_from(fb_edges)
+
+    node_num = G.number_of_nodes()
+    pos = nx.kamada_kawai_layout(G)
+    plt.figure(figsize=(node_num / 2 + 5, node_num / 2 + 5))
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_trainable, node_color='orange', node_size=10000 / (node_num + 5))
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_untrainable, node_color='skyblue', node_size=10000 / (node_num + 5))
+
+    nx.draw_networkx_edges(G, pos=pos, edgelist=ff_edges, edge_color='green',
+                           connectionstyle="arc3,rad=-0.3", arrowsize=100 / node_num, node_size=10000 / (node_num + 5))
+    nx.draw_networkx_edges(G, pos=pos, edgelist=fb_edges, edge_color='red',
+                           connectionstyle="arc3,rad=-0.3", arrowsize=100 / node_num, node_size=10000 / (node_num + 5))
+    nx.draw_networkx_labels(G, pos=pos)
+    proxie = []
+    labels = []
+    if len(nodes_trainable):
+      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor="orange"))
+      labels.append('Trainable')
+    if len(nodes_untrainable):
+      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor="skyblue"))
+      labels.append('Untrainable')
+    if len(ff_edges):
+      proxie.append(Line2D([], [], color='green', linewidth=2))
+      labels.append('Feedforward')
+    if len(fb_edges):
+      proxie.append(Line2D([], [], color='red', linewidth=2))
+      labels.append('Feedback')
+
+    plt.legend(proxie, labels, scatterpoints=1, markerscale=2,
+               loc='best')
+    plt.tight_layout()
+    plt.show()
 
 
 class FrozenNetwork(Network):
