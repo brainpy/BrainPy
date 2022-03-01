@@ -983,7 +983,7 @@ class Network(Node):
     if len(fb_edges):
       proxie.append(Line2D([], [], color='red', linewidth=2))
       labels.append('Feedback')
-      
+
     plt.legend(proxie, labels, scatterpoints=1, markerscale=2,
                loc='best')
     plt.tight_layout()
