@@ -153,8 +153,8 @@ class ExpIF(NeuGroup):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> group = bp.neurons.ExpIF(1)
-    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
+    >>> group = bp.dyn.ExpIF(1)
+    >>> runner = bp.dyn.DSRunner(group, monitors=['V'], inputs=('input', 10.))
     >>> runner.run(300., )
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, ylabel='V', show=True)
 
@@ -396,9 +396,9 @@ class QuaIF(NeuGroup):
 
     >>> import brainpy as bp
     >>>
-    >>> group = bp.neurons.QuaIF(1,)
+    >>> group = bp.dyn.QuaIF(1,)
     >>>
-    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 20.))
+    >>> runner = bp.dyn.DSRunner(group, monitors=['V'], inputs=('input', 20.))
     >>> runner.run(duration=200.)
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, show=True)
 
@@ -506,8 +506,8 @@ class AdQuaIF(NeuGroup):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> group = bp.neurons.AdQuaIF(1, )
-    >>> runner = bp.DSRunner(group, monitors=['V', 'w'], inputs=('input', 30.))
+    >>> group = bp.dyn.AdQuaIF(1, )
+    >>> runner = bp.dyn.DSRunner(group, monitors=['V', 'w'], inputs=('input', 30.))
     >>> runner.run(300)
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
     >>> fig.add_subplot(gs[0, 0])

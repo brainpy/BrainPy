@@ -42,12 +42,12 @@ class DeltaSynapse(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.LIF(1)
-    >>> neu2 = bp.neurons.LIF(1)
-    >>> syn1 = bp.synapses.DeltaSynapse(neu1, neu2, bp.connect.All2All(), w=5.)
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.LIF(1)
+    >>> neu2 = bp.dyn.LIF(1)
+    >>> syn1 = bp.dyn.DeltaSynapse(neu1, neu2, bp.connect.All2All(), w=5.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.), ('post.input', 10.)], monitors=['pre.V', 'post.V', 'pre.spike'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.), ('post.input', 10.)], monitors=['pre.V', 'post.V', 'pre.spike'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(1, 1, 3, 8)
@@ -147,12 +147,12 @@ class ExpCUBA(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.LIF(1)
-    >>> neu2 = bp.neurons.LIF(1)
-    >>> syn1 = bp.synapses.ExpCUBA(neu1, neu2, bp.conn.All2All(), g_max=5.)
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.LIF(1)
+    >>> neu2 = bp.dyn.LIF(1)
+    >>> syn1 = bp.dyn.ExpCUBA(neu1, neu2, bp.conn.All2All(), g_max=5.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
@@ -251,12 +251,12 @@ class ExpCOBA(ExpCUBA):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.HH(1)
-    >>> neu2 = bp.neurons.HH(1)
-    >>> syn1 = bp.synapses.ExpCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.HH(1)
+    >>> neu2 = bp.dyn.HH(1)
+    >>> syn1 = bp.dyn.ExpCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
@@ -359,12 +359,12 @@ class DualExpCUBA(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.LIF(1)
-    >>> neu2 = bp.neurons.LIF(1)
-    >>> syn1 = bp.synapses.DualExpCUBA(neu1, neu2, bp.connect.All2All())
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.LIF(1)
+    >>> neu2 = bp.dyn.LIF(1)
+    >>> syn1 = bp.dyn.DualExpCUBA(neu1, neu2, bp.connect.All2All())
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
@@ -473,12 +473,12 @@ class DualExpCOBA(DualExpCUBA):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.HH(1)
-    >>> neu2 = bp.neurons.HH(1)
-    >>> syn1 = bp.synapses.DualExpCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.HH(1)
+    >>> neu2 = bp.dyn.HH(1)
+    >>> syn1 = bp.dyn.DualExpCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
@@ -581,12 +581,12 @@ class AlphaCUBA(DualExpCUBA):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.LIF(1)
-    >>> neu2 = bp.neurons.LIF(1)
-    >>> syn1 = bp.synapses.AlphaCUBA(neu1, neu2, bp.connect.All2All())
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.LIF(1)
+    >>> neu2 = bp.dyn.LIF(1)
+    >>> syn1 = bp.dyn.AlphaCUBA(neu1, neu2, bp.connect.All2All())
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
@@ -663,12 +663,12 @@ class AlphaCOBA(DualExpCOBA):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.neurons.HH(1)
-    >>> neu2 = bp.neurons.HH(1)
-    >>> syn1 = bp.synapses.AlphaCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.dyn.HH(1)
+    >>> neu2 = bp.dyn.HH(1)
+    >>> syn1 = bp.dyn.AlphaCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
     >>> runner.run(150.)
     >>>
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
