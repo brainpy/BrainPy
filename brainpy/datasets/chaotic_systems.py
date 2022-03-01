@@ -22,7 +22,7 @@ __all__ = [
 
 
 def henon_map_series(num_step, a=1.4, b=0.3, inits=None):
-  """The Hénon map time series.
+  r"""The Hénon map time series.
 
   .. math::
 

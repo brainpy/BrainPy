@@ -10,34 +10,34 @@ from brainpy import math
 from brainpy.base.collector import Collector, TensorCollector
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
-from brainpy.running.monitor import Monitor
+from brainpy.running.runner import Runner
 
 __all__ = [
   'IntegratorRunner',
 ]
 
 
-class IntegratorRunner(object):
+class IntegratorRunner(Runner):
   def __init__(self, target, monitors=None, inits=None,
                args=None, dyn_args=None, dyn_vars=None,
                jit=True, dt=None, numpy_mon_after_run=True, progress_bar=True):
-    super(IntegratorRunner, self).__init__()
+    super(IntegratorRunner, self).__init__(target=target,
+                                           monitors=monitors,
+                                           jit=jit,
+                                           progress_bar=progress_bar,
+                                           dyn_vars=dyn_vars,
+                                           numpy_mon_after_run=numpy_mon_after_run)
 
     # parameters
     dt = math.get_dt() if dt is None else dt
     if not isinstance(dt, (int, float)):
       raise RunningError(f'"dt" must be scalar, but got {dt}')
     self.dt = dt
-    self.jit = jit
-    self.numpy_mon_after_run = numpy_mon_after_run
-    self._pbar = None  # progress bar
-    self.progress_bar = progress_bar
 
     # target
-    if not isinstance(target, Integrator):
+    if not isinstance(self.target, Integrator):
       raise RunningError(f'"target" must be an instance of {Integrator.__name__}, '
                          f'but we got {type(target)}: {target}')
-    self.target = target
 
     # arguments of the integral function
     self._static_args = Collector()
@@ -54,33 +54,16 @@ class IntegratorRunner(object):
                            f'{num_size}: {sizes}')
       self._dyn_args.update(dyn_args)
 
-    # dynamical changed variables
-    if dyn_vars is None:
-      dyn_vars = self.target.vars().unique()
-    if isinstance(dyn_vars, (list, tuple)):
-      dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
-    if not isinstance(dyn_vars, dict):
-      raise RunningError(f'"dyn_vars" must be a dict, but we got {type(dyn_vars)}')
-    self.dyn_vars = TensorCollector(dyn_vars)
-
     # monitors
-    if monitors is None:
-      self.mon = Monitor(variables=[])
-    elif isinstance(monitors, (list, tuple, dict)):
-      self.mon = Monitor(variables=monitors)
-    elif isinstance(monitors, Monitor):
-      self.mon = monitors
-      self.mon.target = self
-    else:
-      raise MonitorError(f'"monitors" only supports list/tuple/dict/ '
-                         f'instance of Monitor, not {type(monitors)}.')
-    self.mon.build()  # build the monitor
     for k in self.mon.item_names:
       if k not in self.target.variables:
         raise MonitorError(f'Variable "{k}" to monitor is not defined in the integrator {self.target}.')
 
     # start simulation time
     self._start_t = None
+
+    # dynamical changed variables
+    self.dyn_vars.update(self.target.vars().unique())
 
     # Variables
     if inits is not None:

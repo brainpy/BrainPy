@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from brainpy.base.collector import TensorCollector
 from brainpy.errors import MonitorError, RunningError
 from .monitor import Monitor
-from brainpy.base.collector import TensorCollector
 
 __all__ = [
   'Runner'

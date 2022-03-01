@@ -247,7 +247,7 @@ class StructRunner(DSRunner):
 
   .. deprecated:: 2.0.3
      Prefer the use of :py:class:`brainpy.dyn.DSRunner` for dynamical system running.
-     This runner will be removed after 2.1.0.
+     This runner is deprecated since 2.0.3.
   """
 
   def __init__(self, target, *args, **kwargs):
@@ -257,6 +257,10 @@ class StructRunner(DSRunner):
 class ReportRunner(DSRunner):
   """The runner provides convenient interface for debugging.
   It is also able to report the running progress.
+
+  .. deprecated:: 2.0.3
+     Prefer the use of :py:class:`brainpy.dyn.DSRunner` for dynamical system running.
+     This runner is deprecated since 2.0.3.
 
   Parameters
   ----------
