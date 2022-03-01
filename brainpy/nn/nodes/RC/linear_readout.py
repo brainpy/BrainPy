@@ -25,6 +25,8 @@ class LinearReadout(Dense):
     The weight initializer.
   init_bias: Optional, Initializer
     The bias initializer.
+  trainable: bool
+    Default is true.
   """
 
   def __init__(

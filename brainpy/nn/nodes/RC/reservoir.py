@@ -101,9 +101,9 @@ class Reservoir(Node):
       init_rec: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
       init_fb: Optional[Union[Initializer, Callable, Tensor]] = Normal(scale=0.1),
       init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
-      conn_ff: Union[Connector, Connector, Tensor] = FixedProb(prob=0.1),
-      conn_fb: Union[Connector, Connector, Tensor] = FixedProb(prob=0.1),
-      conn_rec: Union[Connector, Connector, Tensor] = FixedProb(prob=0.1),
+      conn_ff: Union[Connector, Callable, Tensor] = FixedProb(prob=0.1),
+      conn_fb: Union[Connector, Callable, Tensor] = FixedProb(prob=0.1),
+      conn_rec: Union[Connector, Callable, Tensor] = FixedProb(prob=0.1),
       ff_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
       fb_connectivity: float = 0.1,
@@ -200,7 +200,7 @@ class Reservoir(Node):
     hidden = bm.dot(x, self.Wff)
     # feedback
     if self.Wfb is not None:
-      assert fb is not None, 'Do not provide feedback signals'
+      assert fb is not None, 'Should provide feedback signals, while got None.'
       fb = bm.concatenate(fb, axis=-1)
       if self.noise_fb: fb += self.noise_fb * self.rng.uniform(-1, 1, fb.shape)
       hidden += bm.dot(fb, self.Wfb)

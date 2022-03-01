@@ -51,7 +51,7 @@ class Node(Base):
     if input_shape is not None:
       self._input_shapes = {self.name: tools.to_size(input_shape)}
 
-    self._is_initialized = False
+    self._is_ff_initialized = False
     self._is_fb_initialized = False
     self._trainable = trainable
     self._state = None  # the state of the current node
@@ -145,7 +145,7 @@ class Node(Base):
   @property
   def state(self) -> Optional[Tensor]:
     """Node current internal state."""
-    if self.is_initialized:
+    if self.is_ff_initialized:
       return self._state
     return None
 
@@ -164,12 +164,12 @@ class Node(Base):
     return self._trainable
 
   @property
-  def is_initialized(self) -> bool:
-    return self._is_initialized
+  def is_ff_initialized(self) -> bool:
+    return self._is_ff_initialized
 
-  @is_initialized.setter
-  def is_initialized(self, value: bool):
-    self._is_initialized = value
+  @is_ff_initialized.setter
+  def is_ff_initialized(self, value: bool):
+    self._is_ff_initialized = value
 
   @property
   def is_fb_initialized(self) -> bool:
@@ -214,7 +214,7 @@ class Node(Base):
     self.set_feedback_shapes(size)
 
   def set_input_shapes(self, input_shapes: Dict):
-    if not self.is_initialized:
+    if not self.is_ff_initialized:
       if self.input_shapes is not None:
         for key, size in self._input_shapes.items():
           if key not in input_shapes:
@@ -230,7 +230,7 @@ class Node(Base):
       raise TypeError(f"Input dimension of {self.name} is immutable after initialization.")
 
   def set_output_shape(self, shape: Sequence[int]):
-    if not self.is_initialized:
+    if not self.is_ff_initialized:
       self._output_shape = tuple(shape)
     else:
       raise TypeError(f"Output dimension of {self.name} is immutable after initialization.")
@@ -291,9 +291,9 @@ class Node(Base):
       self._state.value = to_state
 
   def _ff_init(self):
-    if not self.is_initialized:
+    if not self.is_ff_initialized:
       self.ff_init()
-      self._is_initialized = True
+      self._is_ff_initialized = True
 
   def _fb_init(self):
     if not self.is_fb_initialized:
@@ -311,7 +311,7 @@ class Node(Base):
                  fb: Optional[Union[Tensor, Dict[Any, Tensor]]] = None):
 
     # feedforward initialization
-    if not self.is_initialized:
+    if not self.is_ff_initialized:
       # feedforward data
       if ff is None:
         if self._input_shapes is None:
@@ -705,7 +705,7 @@ class Network(Node):
     We can use this function before when we apply JIT to __call__ function."""
 
     # feedforward initialization
-    if not self.is_initialized:
+    if not self.is_ff_initialized:
       # check input and output nodes
       assert len(self.entry_nodes) > 0, f"We found this network {self} has no input nodes."
       assert len(self.exit_nodes) > 0, f"We found this network {self} has no output nodes."
