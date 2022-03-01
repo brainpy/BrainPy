@@ -2,11 +2,13 @@
 
 
 import jax.numpy as jnp
+
 import brainpy.math as bm
 from brainpy import errors
-from brainpy.integrators.ode.base import ODEIntegrator
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
+from brainpy.integrators.joint_eq import JointEq
+from brainpy.integrators.ode.base import ODEIntegrator
 
 __all__ = [
   'model_transform',
@@ -42,14 +44,20 @@ def model_transform(model):
                                   f'list/tuple/dict of {ODEIntegrator} or {DynamicalSystem}, '
                                   f'but we got: {type(model)}: {str(model)}')
 
+  new_model = []
+  for intg in model:
+    if isinstance(intg.f, JointEq):
+      new_model.extend([type(intg)(eq, var_type=intg.var_type, dt=intg.dt, dyn_var=intg.dyn_var)
+                        for eq in intg.f.eqs])
+
   # pars to update
   pars_update = set()
-  for intg in model:
+  for intg in new_model:
     pars_update.update(intg.parameters[1:])
 
   all_variables = set()
   all_parameters = set()
-  for integral in model:
+  for integral in new_model:
     if len(integral.variables) != 1:
       raise errors.AnalyzerError(f'Only supports one {ODEIntegrator.__name__} one variable, '
                                  f'but we got {len(integral.variables)} variables in {integral}.')
@@ -62,7 +70,7 @@ def model_transform(model):
     all_parameters.update(integral.parameters[1:])
 
   # form a dynamic model
-  return NumDSWrapper(integrals=model,
+  return NumDSWrapper(integrals=new_model,
                       variables=list(all_variables),
                       parameters=list(all_parameters),
                       pars_update=pars_update)
@@ -106,9 +114,9 @@ class TrajectModel(DynamicalSystem):
 
     # runner
     self.runner = DSRunner(self,
-                               monitors=list(initial_vars.keys()),
-                               dyn_vars=self.vars().unique(), dt=dt,
-                               progress_bar=False)
+                           monitors=list(initial_vars.keys()),
+                           dyn_vars=self.vars().unique(), dt=dt,
+                           progress_bar=False)
 
   def update(self, _t, _dt):
     all_vars = list(self.implicit_vars.values())
@@ -125,4 +133,3 @@ class TrajectModel(DynamicalSystem):
   def run(self, duration):
     self.runner.run(duration)
     return self.runner.mon
-
