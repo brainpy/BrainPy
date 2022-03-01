@@ -21,7 +21,7 @@ class Concat(Node):
     out_size.insert(self.axis, sum(free_shapes))
     self.set_output_shape(out_size)
 
-  def call(self, ff, **kwargs):
+  def forward(self, ff, **kwargs):
     return bm.concatenate(ff, axis=self.axis)
 
 
@@ -36,7 +36,7 @@ class Select(Node):
     out_size = bm.zeros(self.input_shapes[0])[self.index].shape
     self.set_output_shape(out_size)
 
-  def call(self, ff, **kwargs):
+  def forward(self, ff, **kwargs):
     ff = list(ff.values())[0]
     return ff[..., self.index]
 
@@ -61,5 +61,5 @@ class Reshape(Node):
       out_size = self.shape
     self.set_output_shape(out_size)
 
-  def call(self, ff, **kwargs):
+  def forward(self, ff, **kwargs):
     return bm.reshape(ff[0], self.shape)

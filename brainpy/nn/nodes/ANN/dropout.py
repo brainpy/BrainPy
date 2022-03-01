@@ -44,7 +44,7 @@ class Dropout(Node):
     assert len(self.input_shapes) == 1, 'Only support one feedforward input.'
     self.set_output_shape(self.input_shapes[0])
 
-  def call(self, ff, **kwargs):
+  def forward(self, ff, **kwargs):
     ff = list(ff.values())[0]
     if kwargs.get('train', True):
       keep_mask = self.rng.bernoulli(self.prob, ff.shape)

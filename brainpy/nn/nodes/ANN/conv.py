@@ -89,7 +89,7 @@ class Conv2D(Node):
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
 
-  def call(self, ff, **kwargs):
+  def forward(self, ff, **kwargs):
     x = ff[0]
     nin = self.w.value.shape[2] * self.groups
     assert x.shape[1] == nin, (f'Attempting to convolve an input with {x.shape[1]} input channels '

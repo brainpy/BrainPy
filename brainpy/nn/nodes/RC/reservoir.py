@@ -3,6 +3,7 @@
 from typing import Optional, Union, Callable
 
 import brainpy.math as bm
+from brainpy.connect import FixedProb, Connector
 from brainpy.initialize import Normal, ZeroInit, Initializer
 from brainpy.nn.base import Node
 from brainpy.nn.utils import init_param
@@ -96,10 +97,13 @@ class Reservoir(Node):
       leaky_rate: float = 0.3,
       activation: Union[str, Callable] = 'tanh',
       activation_type: str = 'internal',
-      init_ff: Union[Initializer, Callable, Tensor] = Normal(),
-      init_rec: Union[Initializer, Callable, Tensor] = Normal(),
-      init_fb: Optional[Union[Initializer, Callable, Tensor]] = Normal(),
+      init_ff: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
+      init_rec: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
+      init_fb: Optional[Union[Initializer, Callable, Tensor]] = Normal(scale=0.1),
       init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
+      conn_ff: Union[Connector, Connector, Tensor] = FixedProb(prob=0.1),
+      conn_fb: Union[Connector, Connector, Tensor] = FixedProb(prob=0.1),
+      conn_rec: Union[Connector, Connector, Tensor] = FixedProb(prob=0.1),
       ff_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
       fb_connectivity: float = 0.1,
@@ -189,7 +193,7 @@ class Reservoir(Node):
       if self.trainable:
         self.Wfb = bm.TrainVar(self.Wfb)
 
-  def call(self, ff, fb=None, **kwargs):
+  def forward(self, ff, fb=None, **kwargs):
     # inputs
     x = bm.concatenate(ff, axis=-1)
     if self.noise_ff > 0: x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)

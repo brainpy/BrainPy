@@ -53,7 +53,6 @@ class Node(Base):
 
     self._is_initialized = False
     self._is_fb_initialized = False
-    self._fb_states = {}  # used to store the states of feedback nodes
     self._trainable = trainable
     self._state = None  # the state of the current node
 
@@ -158,10 +157,6 @@ class Node(Base):
       self._state = bm.Variable(value) if not isinstance(value, bm.Variable) else value
     else:
       self._state.value = value
-
-  @property
-  def feedback_states(self) -> Dict[str, Tensor]:
-    return self._fb_states
 
   @property
   def trainable(self) -> bool:
@@ -412,7 +407,7 @@ class Node(Base):
       state_monitors['inputs'] = ff
     if 'feedbacks' in state_monitors:
       state_monitors['feedbacks'] = fb
-    output = self.call(ff, fb, **kwargs)
+    output = self.forward(ff, fb, **kwargs)
     if 'output' in state_monitors:
       state_monitors['output'] = output
     if 'state' in state_monitors:
@@ -423,8 +418,8 @@ class Node(Base):
     else:
       return output
 
-  def call(self, ff, fb=None, **kwargs):
-    """The main computation function of a node.
+  def forward(self, ff, fb=None, **kwargs):
+    """The feedforward computation function of a node.
 
     Parameters
     ----------
@@ -441,6 +436,21 @@ class Node(Base):
       A output tensor value.
     """
     raise NotImplementedError
+
+  def feedback(self, **kwargs):
+    """The feedback computation function of a node.
+
+    Parameters
+    ----------
+    **kwargs
+      Other global parameters.
+
+    Returns
+    -------
+    Tensor
+      A feedback output tensor value.
+    """
+    return self.state
 
 
 class Network(Node):
@@ -735,14 +745,6 @@ class Network(Node):
       # initialize feedback
       if not self.is_fb_initialized:
         self._fb_init()
-        # initialize feedback states
-        for node in self.feedback_nodes:
-          if node.state is None:
-            fb_state = bm.Variable(bm.zeros(node.output_shape))
-          else:
-            fb_state = bm.Variable(node.state)
-          self._fb_states[node.name] = fb_state
-          self.implicit_vars[node.name] = fb_state  # import for var() register
 
   def _check_inputs(self, ff, fb=None):
     # feedforward inputs
@@ -825,19 +827,19 @@ class Network(Node):
         state_monitors[key] = None
     # calling the computation core
     ff, fb = self._check_inputs(ff, fb=fb)
-    output, state_monitors = self.call(ff, fb, forced_states, forced_feedbacks, state_monitors, **kwargs)
+    output, state_monitors = self.forward(ff, fb, forced_states, forced_feedbacks, state_monitors, **kwargs)
     if need_return_monitor:
       attr_monitors.update(state_monitors)
       return output, attr_monitors
     else:
       return output
 
-  def call(self,
-           ff, fb=None,
-           forced_states: Dict[str, Tensor] = None,
-           forced_feedbacks: Dict[str, Tensor] = None,
-           monitors: Dict = None,
-           **kwargs):
+  def forward(self,
+              ff, fb=None,
+              forced_states: Dict[str, Tensor] = None,
+              forced_feedbacks: Dict[str, Tensor] = None,
+              monitors: Dict = None,
+              **kwargs):
     """The main computation function of a network.
 
     Parameters
@@ -862,8 +864,6 @@ class Network(Node):
     """
     # initialize the feedback
     if forced_feedbacks is None: forced_feedbacks = dict()
-    for key, tensor in forced_feedbacks.items():
-      self.feedback_states[key].value = tensor
     if monitors is None: monitors = dict()
 
     # initialize the children queue
@@ -873,8 +873,9 @@ class Network(Node):
     parent_outputs = {}
     for i, node in enumerate(self._entry_nodes):
       ff = {node.name: ff[i]}
-      fb = {p: self._fb_states[p.name] for p in self.fb_senders.get(node, [])}
-      self._call_a_node(node, ff, fb, monitors, forced_states, forced_feedbacks,
+      fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.feedback())
+            for p in self.fb_senders.get(node, [])}
+      self._call_a_node(node, ff, fb, monitors, forced_states,
                         parent_outputs, children_queue, **kwargs)
 
     # run the model
@@ -882,9 +883,10 @@ class Network(Node):
       node = children_queue.pop(0)
       # get feedforward and feedback inputs
       ff = {p: parent_outputs[p] for p in self.ff_senders.get(node, [])}
-      fb = {p: self._fb_states[p.name] for p in self.fb_senders.get(node, [])}
+      fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.feedback())
+            for p in self.fb_senders.get(node, [])}
       # call the node
-      self._call_a_node(node, ff, fb, monitors, forced_states, forced_feedbacks,
+      self._call_a_node(node, ff, fb, monitors, forced_states,
                         parent_outputs, children_queue, **kwargs)
       # remove unnecessary parent outputs
       needed_parents = [] + list(self.exit_nodes)
@@ -901,7 +903,7 @@ class Network(Node):
       state = parent_outputs[self.exit_nodes[0]]
     return state, monitors
 
-  def _call_a_node(self, node, ff, fb, monitors, forced_states, forced_feedbacks,
+  def _call_a_node(self, node, ff, fb, monitors, forced_states,
                    parent_outputs, children_queue, **kwargs):
     ff = node.data_pass_func(ff)
     if f'{node.name}.inputs' in monitors:
@@ -911,9 +913,9 @@ class Network(Node):
       fb = node.data_pass_func(fb)
       if f'{node.name}.feedbacks' in monitors:
         monitors[f'{node.name}.feedbacks'] = fb
-      parent_outputs[node] = node.call(ff, fb, **kwargs)
+      parent_outputs[node] = node.forward(ff, fb, **kwargs)
     else:
-      parent_outputs[node] = node.call(ff, **kwargs)
+      parent_outputs[node] = node.forward(ff, **kwargs)
     if node.name in forced_states:  # forced state
       node.state.value = forced_states[node.name]
       parent_outputs[node] = forced_states[node.name]
@@ -921,9 +923,6 @@ class Network(Node):
       monitors[f'{node.name}.state'] = node.state
     if f'{node.name}.output' in monitors:
       monitors[f'{node.name}.output'] = parent_outputs[node]
-    # update feedback with node's output
-    if (node.name in self._fb_states) and (node.name not in forced_feedbacks):
-      self._fb_states[node.name].value = parent_outputs[node]
     # append children nodes
     for child in self.ff_receivers.get(node, []):
       if child not in children_queue:

@@ -38,5 +38,5 @@ class Activation(Node):
     assert len(self.input_shapes) == 1, f'{type(self).__name__} only support receiving one input. '
     self.set_output_shape(self.input_shapes[0])
 
-  def call(self, ff, **kwargs):
+  def forward(self, ff, **kwargs):
     return self._activation(ff[0], **self._fun_setting)

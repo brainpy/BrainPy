@@ -20,5 +20,5 @@ class Input(Node):
                                          f'receiving one feedforward input. ')
     self.set_output_shape(self.input_shapes[0])
 
-  def call(self, ff, **kwargs):
+  def forward(self, ff, **kwargs):
     return ff[0]
