@@ -34,13 +34,36 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    :caption: Quickstart
 
    quickstart/installation
-   quickstart/jit_compilation
-   quickstart/dynamics_intro
+   quickstart/simulation
+   quickstart/training
+   quickstart/analysis
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: BDP Tutorials
+
+   tutorial_basics/math_basics
+   tutorial_simulation/index
+   tutorial_training/index
+   tutorial_analysis/index
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Toolboxes
+
+   tutorial_intg/index
+   tutorial_toolbox/synaptic_connections
+   tutorial_toolbox/synaptic_weights
+   tutorial_toolbox/optimizers
+   tutorial_toolbox/loss
+   tutorial_toolbox/other
 
 
 .. toctree::
    :maxdepth: 1
-   :caption: Math Foundation
+   :caption: Advanced Tutorials
 
    tutorial_math/overview
    tutorial_math/tensors
@@ -49,34 +72,14 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
    tutorial_math/compilation
    tutorial_math/differentiation
    tutorial_math/control_flows
-   tutorial_math/optimizers
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Dynamics Ecosystem
-
-   tutorial_intg/index
-   tutorial_building/index
-   tutorial_simulation/index
-   tutorial_training/index
-   tutorial_analysis/index
-
-
-.. toctree::
-   :maxdepth: 1
    :caption: API Documentation
 
-   apis/auto/base.rst
-   apis/math.rst
-   apis/integrators.rst
-   apis/building.rst
-   apis/simulation.rst
-   apis/training.rst
-   apis/analysis.rst
-   apis/auto/tools.rst
-   apis/auto/changelog-brainpy.rst
-   apis/auto/changelog-brainpylib.rst
+   apis/brainpy_api/index
+   apis/release_api/index
 
 
 Indices and tables
