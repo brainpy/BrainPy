@@ -131,8 +131,8 @@ class AMPA(TwoEndConn):
     assert self.conn is not None
     self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
 
-    # variables
-    self.g = bm.Variable(bm.zeros(self.num))
+    # variables``
+    self.g = bm.Variable(bm.zeros(len(self.pre_ids)))
     self.pre_spike = ConstantDelay(self.pre.num, delay, dtype=pre.spike.dtype)
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
 
@@ -353,7 +353,7 @@ class NMDA(TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.15, E=0., cc_Mg=1.2,
                alpha=0.062, beta=3.57, tau_decay=100., a=0.5, tau_rise=2.,
                method='exp_auto', name=None):
-    super(NMDA, self).__init__(pre=pre, post=post, conn=conn, method=method, name=name)
+    super(NMDA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
 

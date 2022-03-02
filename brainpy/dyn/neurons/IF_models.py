@@ -156,7 +156,7 @@ class ExpIF(NeuGroup):
     >>> group = bp.dyn.ExpIF(1)
     >>> runner = bp.dyn.DSRunner(group, monitors=['V'], inputs=('input', 10.))
     >>> runner.run(300., )
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, ylabel='V', show=True)
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
 
 
   **Model Parameters**
@@ -400,7 +400,7 @@ class QuaIF(NeuGroup):
     >>>
     >>> runner = bp.dyn.DSRunner(group, monitors=['V'], inputs=('input', 20.))
     >>> runner.run(duration=200.)
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, show=True)
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
 
 
   **Model Parameters**
@@ -511,7 +511,7 @@ class AdQuaIF(NeuGroup):
     >>> runner.run(300)
     >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
     >>> fig.add_subplot(gs[0, 0])
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, ylabel='V')
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V')
     >>> fig.add_subplot(gs[1, 0])
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, ylabel='w', show=True)
 

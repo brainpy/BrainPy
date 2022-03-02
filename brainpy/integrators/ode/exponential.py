@@ -541,7 +541,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.phi = phi
     >>>
     >>>     # variables
-    >>>     self.num = bm.Variable(bm.ones(size) * -65.)
+    >>>     self.V = bm.Variable(bm.ones(size) * -65.)
     >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
     >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
     >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
@@ -576,11 +576,11 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     return dVdt
     >>>
     >>>   def update(self, _t, _dt):
-    >>>     h = self.int_h(self.h, _t, self.num, dt=_dt)
-    >>>     n = self.int_n(self.n, _t, self.num, dt=_dt)
-    >>>     V = self.int_V(self.num, _t,  self.h, self.n, self.input, dt=_dt)
-    >>>     self.spike.value = bm.logical_and(self.num < self.V_th, V >= self.V_th)
-    >>>     self.num.value = V
+    >>>     h = self.int_h(self.h, _t, self.V, dt=_dt)
+    >>>     n = self.int_n(self.n, _t, self.V, dt=_dt)
+    >>>     V = self.int_V(self.V, _t,  self.h, self.n, self.input, dt=_dt)
+    >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+    >>>     self.V.value = V
     >>>     self.h.value = h
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
@@ -614,7 +614,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.phi = phi
     >>>
     >>>     # variables
-    >>>     self.num = bm.Variable(bm.ones(size) * -65.)
+    >>>     self.V = bm.Variable(bm.ones(size) * -65.)
     >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
     >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
     >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
@@ -648,9 +648,9 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     return dVdt
     >>>
     >>>   def update(self, _t, _dt):
-    >>>     h, n, V = self.integral(self.h, self.n, self.num, _t, self.input, dt=_dt)
-    >>>     self.spike.value = bm.logical_and(self.num < self.V_th, V >= self.V_th)
-    >>>     self.num.value = V
+    >>>     h, n, V = self.integral(self.h, self.n, self.V, _t, self.input, dt=_dt)
+    >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+    >>>     self.V.value = V
     >>>     self.h.value = h
     >>>     self.n.value = n
     >>>     self.input[:] = 0.

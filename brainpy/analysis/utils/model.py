@@ -23,6 +23,8 @@ def model_transform(model):
     return model
   elif isinstance(model, ODEIntegrator):  #
     model = [model]
+
+  # check model types
   if isinstance(model, (list, tuple)):
     if len(model) == 0:
       raise errors.AnalyzerError(f'Found no integrators: {model}')
@@ -49,6 +51,8 @@ def model_transform(model):
     if isinstance(intg.f, JointEq):
       new_model.extend([type(intg)(eq, var_type=intg.var_type, dt=intg.dt, dyn_var=intg.dyn_var)
                         for eq in intg.f.eqs])
+    else:
+      new_model.append(intg)
 
   # pars to update
   pars_update = set()

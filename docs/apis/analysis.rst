@@ -8,7 +8,7 @@
 .. toctree::
     :maxdepth: 1
 
-    auto/analysis/lowdim.rst
-    auto/analysis/highdim.rst
-    auto/analysis/stability.rst
+    auto/analysis/lowdim
+    auto/analysis/highdim
+    auto/analysis/stability
 
