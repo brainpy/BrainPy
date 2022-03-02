@@ -284,6 +284,9 @@ def generate_dyn_docs(path):
 
 
 def generate_initialize_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
   module_and_name = [('base', 'Base Class'),
                      ('regular_inits', 'Regular Initializers'),
                      ('random_inits', 'Random Initializers'),
@@ -296,6 +299,9 @@ def generate_initialize_docs(path):
 
 
 def generate_inputs_docs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
   write_module(module_name='brainpy.inputs',
                filename=os.path.join(path, 'inputs.rst'),
                header='Current Inputs')
@@ -327,8 +333,10 @@ def generate_losses_docs(path):
                    filename=os.path.join(path, 'losses.rst'),
                    header='``brainpy.losses`` module')
 
+
 def generate_math_docs(path):
-  if not os.path.exists(path): os.makedirs(path)
+  if not os.path.exists(path):
+    os.makedirs(path)
 
   buf = []
   buf += _section(header='Multi-dimensional Array',
@@ -349,7 +357,8 @@ def generate_math_docs(path):
                   brainpy_jax='brainpy.math.random')
   codes = '\n'.join(buf)
 
-  if not os.path.exists(path): os.makedirs(path)
+  if not os.path.exists(path):
+    os.makedirs(path)
   with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
     f.write(codes)
 
@@ -490,74 +499,74 @@ def generate_visualization_docs(path):
                    section_names=[k[1] for k in module_and_name])
 
 
-def generate_building_docs(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  # submodules in 'simulation' package
-  write_module(module_name='brainpy.compact.brainobjects',
-               filename=os.path.join(path, 'brainobjects.rst'),
-               header='Brain Objects')
-
-  module_and_name = [('neurons', 'Neuron Models'),
-                     ('synapses', 'Synapse Models'), ]
-  write_submodules(module_name='brainpy.dyn',
-                   filename=os.path.join(path, 'models.rst'),
-                   header='Brain Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  module_and_name = [('base', 'Base Class'),
-                     ('custom_conn', 'Custom Connections'),
-                     ('random_conn', 'Random Connections'),
-                     ('regular_conn', 'Regular Connections'), ]
-  write_submodules(module_name='brainpy.connect',
-                   filename=os.path.join(path, 'connect.rst'),
-                   header='Synaptic Connectivity',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  write_module(module_name='brainpy.inputs',
-               filename=os.path.join(path, 'inputs.rst'),
-               header='Current Inputs')
-
-  write_module(module_name='brainpy.training.layers',
-               filename=os.path.join(path, 'layers.rst'),
-               header='DNN Layers')
-  module_and_name = [('base', 'Base Class'),
-                     ('regular_inits', 'Regular Initializers'),
-                     ('random_inits', 'Random Initializers'),
-                     ('decay_inits', 'Decay Initializers'), ]
-  write_submodules(module_name='brainpy.initialize',
-                   filename=os.path.join(path, 'initialize.rst'),
-                   header='Weight Initialization',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-
-def generate_simulation_docs(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  # py-files in 'simulation' package
-  write_module(module_name='brainpy.measure',
-               filename=os.path.join(path, 'measure.rst'),
-               header='Measurements')
-  write_module(module_name='brainpy.running.monitor',
-               filename=os.path.join(path, 'monitor.rst'),
-               header='Monitors')
-  write_module(module_name='brainpy.running.runner',
-               filename=os.path.join(path, 'runner.rst'),
-               header='Runners')
-  write_module(module_name='brainpy.running.parallel',
-               filename=os.path.join(path, 'parallel.rst'),
-               header='Parallel Running')
-
-
-def generate_training_docs(path):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  # submodules in 'training' package
+# def generate_building_docs(path):
+#   if not os.path.exists(path):
+#     os.makedirs(path)
+#
+#   # submodules in 'simulation' package
+#   write_module(module_name='brainpy.compact.brainobjects',
+#                filename=os.path.join(path, 'brainobjects.rst'),
+#                header='Brain Objects')
+#
+#   module_and_name = [('neurons', 'Neuron Models'),
+#                      ('synapses', 'Synapse Models'), ]
+#   write_submodules(module_name='brainpy.dyn',
+#                    filename=os.path.join(path, 'models.rst'),
+#                    header='Brain Models',
+#                    submodule_names=[a[0] for a in module_and_name],
+#                    section_names=[a[1] for a in module_and_name])
+#
+#   module_and_name = [('base', 'Base Class'),
+#                      ('custom_conn', 'Custom Connections'),
+#                      ('random_conn', 'Random Connections'),
+#                      ('regular_conn', 'Regular Connections'), ]
+#   write_submodules(module_name='brainpy.connect',
+#                    filename=os.path.join(path, 'connect.rst'),
+#                    header='Synaptic Connectivity',
+#                    submodule_names=[a[0] for a in module_and_name],
+#                    section_names=[a[1] for a in module_and_name])
+#
+#   write_module(module_name='brainpy.inputs',
+#                filename=os.path.join(path, 'inputs.rst'),
+#                header='Current Inputs')
+#
+#   write_module(module_name='brainpy.training.layers',
+#                filename=os.path.join(path, 'layers.rst'),
+#                header='DNN Layers')
+#   module_and_name = [('base', 'Base Class'),
+#                      ('regular_inits', 'Regular Initializers'),
+#                      ('random_inits', 'Random Initializers'),
+#                      ('decay_inits', 'Decay Initializers'), ]
+#   write_submodules(module_name='brainpy.initialize',
+#                    filename=os.path.join(path, 'initialize.rst'),
+#                    header='Weight Initialization',
+#                    submodule_names=[a[0] for a in module_and_name],
+#                    section_names=[a[1] for a in module_and_name])
+#
+#
+# def generate_simulation_docs(path):
+#   if not os.path.exists(path):
+#     os.makedirs(path)
+#
+#   # py-files in 'simulation' package
+#   write_module(module_name='brainpy.measure',
+#                filename=os.path.join(path, 'measure.rst'),
+#                header='Measurements')
+#   write_module(module_name='brainpy.running.monitor',
+#                filename=os.path.join(path, 'monitor.rst'),
+#                header='Monitors')
+#   write_module(module_name='brainpy.running.runner',
+#                filename=os.path.join(path, 'runner.rst'),
+#                header='Runners')
+#   write_module(module_name='brainpy.running.parallel',
+#                filename=os.path.join(path, 'parallel.rst'),
+#                header='Parallel Running')
+#
+#
+# def generate_training_docs(path):
+#   if not os.path.exists(path):
+#     os.makedirs(path)
+#
+#   # submodules in 'training' package
 
 
