@@ -405,18 +405,43 @@ def generate_nn_docs(path):
     os.makedirs(path)
 
   module_and_name = [
-    ('base', 'Base Class'),
-    ('ANN', 'Artificial Neural Network'),
-    ('RC', 'Reservoir Computing'),
+    ('conv', 'Convolution Layers'),
+    ('dropout', 'Dropout Layers'),
+    ('rnn_cells', 'RNN Cells'),
   ]
-  write_submodules(module_name='brainpy.nn.nodes',
-                   filename=os.path.join(path, 'nodes.rst'),
-                   header='``brainpy.nn.nodes`` module',
+  write_submodules(module_name='brainpy.nn.nodes.ANN',
+               filename=os.path.join(path, 'ANN.rst'),
+               header='``brainpy.nn.nodes.ANN`` module',
+               submodule_names=[k[0] for k in module_and_name],
+               section_names=[k[1] for k in module_and_name])
+
+  module_and_name = [
+    ('activation', 'Activations'),
+    ('dense', 'Dense Layers'),
+    ('io', 'Exporting and Loading'),
+    ('ops', 'Operators')
+  ]
+  write_submodules(module_name='brainpy.nn.nodes.base',
+                   filename=os.path.join(path, 'base.rst'),
+                   header='``brainpy.nn.nodes.base`` module',
                    submodule_names=[k[0] for k in module_and_name],
                    section_names=[k[1] for k in module_and_name])
+
+  module_and_name = [
+    ('linear_readout', 'Linear Readout'),
+    ('nvar', 'Nonlinear Vector Autoregression'),
+    ('reservoir', 'Reservoir'),
+  ]
+  write_submodules(module_name='brainpy.nn.nodes.RC',
+                   filename=os.path.join(path, 'RC.rst'),
+                   header='``brainpy.nn.nodes.RC`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+
   write_module(module_name='brainpy.nn.runners',
                filename=os.path.join(path, 'runners.rst'),
                header='``brainpy.nn.runners`` module')
+
   module_and_name = [
     ('base', 'Base Class'),
     ('constants', 'Constants'),
