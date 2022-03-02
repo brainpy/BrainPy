@@ -29,7 +29,7 @@ class AMPA(TwoEndConn):
   is affected by the concentration of neurotransmitters. We denote the concentration
   of neurotransmitters as :math:`[T]` and get the following Markov process.
 
-  .. image:: ../../images/synapse_markov.png
+  .. image:: ../../_static/synapse_markov.png
       :align: center
 
   We obtained the following formula when describing the process by a differential equation.

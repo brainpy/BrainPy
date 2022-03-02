@@ -61,7 +61,7 @@ class HH(NeuGroup):
   However, one must be careful because this is an ad-hoc method of visualizing the
   4-dimensional system. This does not prove the existence of the limit cycle.
 
-  .. image:: ../../images/Hodgkin_Huxley_Limit_Cycle.png
+  .. image:: ../../_static/Hodgkin_Huxley_Limit_Cycle.png
       :align: center
 
   A better projection can be constructed from a careful analysis of the Jacobian of
@@ -88,7 +88,7 @@ class HH(NeuGroup):
   rather there is a sudden "jump" in amplitude. The resulting transition is
   known as a `canard <http://www.scholarpedia.org/article/Canards>`_.
 
-  .. image:: ../../images/Hodgkins_Huxley_bifurcation_by_I.gif
+  .. image:: ../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
      :align: center
 
   The following image shows the bifurcation diagram of the Hodgkin–Huxley model
@@ -97,7 +97,7 @@ class HH(NeuGroup):
   both born from Hopf bifurcations. The solid red line shows the stable fixed point
   and the black line shows the unstable fixed point.
 
-  .. image:: ../../images/Hodgkin_Huxley_bifurcation.png
+  .. image:: ../../_static/Hodgkin_Huxley_bifurcation.png
      :align: center
 
   **Model Examples**
