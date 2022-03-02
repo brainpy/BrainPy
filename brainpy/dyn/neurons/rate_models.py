@@ -57,7 +57,7 @@ class FHN(NeuGroup):
     >>> runner = bp.dyn.DSRunner(fhn, inputs=('input', 1.), monitors=['V', 'w'])
     >>> runner.run(100.)
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, legend='w')
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, legend='V', show=True)
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
 
   **Model Parameters**
 

@@ -125,7 +125,7 @@ class DSRunner(Runner):
           _f_ops(ops, var, data)
       for ops, values in array_inputs.items():
         for var, data in values:
-          _f_ops(ops, var, data[self._i])
+          _f_ops(ops, var, data[self._i[0]])
       for ops, values in func_inputs.items():
         for var, data in values:
           _f_ops(ops, var, data(_t, _dt))

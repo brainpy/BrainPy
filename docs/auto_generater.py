@@ -404,14 +404,18 @@ def generate_nn_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
+  write_module(module_name='brainpy.nn.base',
+               filename=os.path.join(path, 'base.rst'),
+               header='Base Class')
+
   module_and_name = [
     ('conv', 'Convolution Layers'),
     ('dropout', 'Dropout Layers'),
     ('rnn_cells', 'RNN Cells'),
   ]
   write_submodules(module_name='brainpy.nn.nodes.ANN',
-               filename=os.path.join(path, 'ANN.rst'),
-               header='``brainpy.nn.nodes.ANN`` module',
+               filename=os.path.join(path, 'nodes_ANN.rst'),
+               header='Artificial Neural Network Nodes',
                submodule_names=[k[0] for k in module_and_name],
                section_names=[k[1] for k in module_and_name])
 
@@ -422,8 +426,8 @@ def generate_nn_docs(path):
     ('ops', 'Operators')
   ]
   write_submodules(module_name='brainpy.nn.nodes.base',
-                   filename=os.path.join(path, 'base.rst'),
-                   header='``brainpy.nn.nodes.base`` module',
+                   filename=os.path.join(path, 'nodes_base.rst'),
+                   header='Node Basics',
                    submodule_names=[k[0] for k in module_and_name],
                    section_names=[k[1] for k in module_and_name])
 
@@ -433,27 +437,35 @@ def generate_nn_docs(path):
     ('reservoir', 'Reservoir'),
   ]
   write_submodules(module_name='brainpy.nn.nodes.RC',
-                   filename=os.path.join(path, 'RC.rst'),
-                   header='``brainpy.nn.nodes.RC`` module',
+                   filename=os.path.join(path, 'nodes_RC.rst'),
+                   header='Reservoir Computing Nodes',
                    submodule_names=[k[0] for k in module_and_name],
                    section_names=[k[1] for k in module_and_name])
+
+  write_module(module_name='brainpy.nn.operations',
+               filename=os.path.join(path, 'operations.rst'),
+               header='Construction Operations')
 
   write_module(module_name='brainpy.nn.runners',
                filename=os.path.join(path, 'runners.rst'),
-               header='``brainpy.nn.runners`` module')
+               header='Runners')
 
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('constants', 'Constants'),
-    ('graph_flow', 'Graph Flow'),
-    ('operations', 'Operations'),
-    ('utils', 'Utilizations'),
-  ]
-  write_submodules(module_name='brainpy.nn',
-                   filename=os.path.join(path, 'nn.rst'),
-                   header='``brainpy.nn`` module',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
+  write_module(module_name='brainpy.nn.graph_flow',
+               filename=os.path.join(path, 'graph_flow.rst'),
+               header='Graph FLow')
+
+  # module_and_name = [
+  #   ('base', 'Base Class'),
+  #   ('constants', 'Constants'),
+  #   ('graph_flow', 'Graph Flow'),
+  #   ('operations', 'Operations'),
+  #   ('utils', 'Utilizations'),
+  # ]
+  # write_submodules(module_name='brainpy.nn',
+  #                  filename=os.path.join(path, 'nn.rst'),
+  #                  header='``brainpy.nn`` module',
+  #                  submodule_names=[k[0] for k in module_and_name],
+  #                  section_names=[k[1] for k in module_and_name])
 
 
 def generate_optimizers_docs(path):
