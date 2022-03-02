@@ -320,8 +320,12 @@ def generate_integrators_doc(path):
 
 
 def generate_losses_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
 
+  write_submodules(module_name='brainpy.losses',
+                   filename=os.path.join(path, 'losses.rst'),
+                   header='``brainpy.losses`` module')
 
 def generate_math_docs(path):
   if not os.path.exists(path): os.makedirs(path)
@@ -349,12 +353,6 @@ def generate_math_docs(path):
   with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
     f.write(codes)
 
-  write_module(module_name='brainpy.optimizers',
-               filename=os.path.join(path, 'optimizers.rst'),
-               header='Optimizers')
-  write_module(module_name='brainpy.losses',
-               filename=os.path.join(path, 'losses.rst'),
-               header='Loss Functions')
   write_module(module_name='brainpy.math.activations',
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
@@ -385,19 +383,74 @@ def generate_math_docs(path):
 
 
 def generate_measure_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_submodules(module_name='brainpy.measure',
+                   filename=os.path.join(path, 'measure.rst'),
+                   header='``brainpy.measure`` module')
 
 
 def generate_nn_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  module_and_name = [
+    ('base', 'Base Class'),
+    ('ANN', 'Artificial Neural Network'),
+    ('RC', 'Reservoir Computing'),
+  ]
+  write_submodules(module_name='brainpy.nn.nodes',
+                   filename=os.path.join(path, 'nodes.rst'),
+                   header='``brainpy.nn.nodes`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+  write_module(module_name='brainpy.nn.runners',
+               filename=os.path.join(path, 'runners.rst'),
+               header='``brainpy.nn.runners`` module')
+  module_and_name = [
+    ('base', 'Base Class'),
+    ('constants', 'Constants'),
+    ('graph_flow', 'Graph Flow'),
+    ('operations', 'Operations'),
+    ('utils', 'Utilizations'),
+  ]
+  write_submodules(module_name='brainpy.nn',
+                   filename=os.path.join(path, 'nn.rst'),
+                   header='``brainpy.nn`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
 
 def generate_optimizers_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  module_and_name = [
+    ('optimizer', 'Optimizers'),
+    ('scheduler', 'Schedulers'),
+  ]
+  write_submodules(module_name='brainpy.optimizers',
+                   filename=os.path.join(path, 'optimizers.rst'),
+                   header='``brainpy.optimizers`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
 
 def generate_running_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  module_and_name = [
+    ('monitor', 'Monitors'),
+    ('parallel', 'Parallel Pool'),
+    ('runner', 'Runners')
+  ]
+  write_submodules(module_name='brainpy.running',
+                   filename=os.path.join(path, 'running.rst'),
+                   header='``brainpy.running`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
 
 def generate_tools_docs(path):
@@ -406,6 +459,7 @@ def generate_tools_docs(path):
 
   module_and_name = [
     ('ast2code', 'AST-to-Code'),
+    ('checking', 'Check Tools'),
     ('codes', 'Code Tools'),
     ('dicts', 'Dict Tools'),
     ('numba_tools', 'Numba Tools'),
@@ -413,6 +467,7 @@ def generate_tools_docs(path):
   ]
   write_submodules(module_name='brainpy.tools',
                    filename=os.path.join(path, 'tools.rst'),
+                   header='``brainpy.tools`` module',
                    submodule_names=[k[0] for k in module_and_name],
                    section_names=[k[1] for k in module_and_name])
 
@@ -421,8 +476,18 @@ def generate_visualization_docs(path):
   # raise NotImplementedError
   if not os.path.exists(path):
     os.makedirs(path)
-  write_module(module_name='brainpy.visualization',
-               filename=os.path.join(path, 'visualization.rst'))
+
+  module_and_name = [
+    ('base', 'Base Class'),
+    ('figures', 'Figures'),
+    ('plots', 'Plots'),
+    ('styles', 'Styles')
+  ]
+  write_submodules(module_name='brainpy.visualization',
+                   filename=os.path.join(path, 'tools.visualization'),
+                   header='``brainpy.visualization`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
 
 def generate_building_docs(path):
