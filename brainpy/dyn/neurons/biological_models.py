@@ -109,18 +109,7 @@ class HH(NeuGroup):
     >>> group = bp.dyn.HH(2)
     >>> runner = bp.dyn.DSRunner(group, monitors=['V'], inputs=('input', 10.))
     >>> runner.run(200.)
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, show=True)
-
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> group = bp.dyn.HH(2)
-    >>> runner = bp.dyn.DSRunner(group, monitors=bp.Monitor(variables=['V'], intervals=[1.]),
-    >>>                      inputs=('input', 10.), jit=True)
-    >>> runner.run(200.)
-    >>> bp.visualize.line_plot(runner.mon['V.t'], runner.mon.num, show=True)
-
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
 
   .. plot::
     :include-source: True
@@ -141,8 +130,8 @@ class HH(NeuGroup):
     >>>
     >>> fig, gs = bp.visualize.get_figure(1, 1, 3, 8)
     >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon.num[:, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon.num[:, 1] + 130)
+    >>> plt.plot(runner.mon.ts, runner.mon.V[:, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon.V[:, 1] + 130)
     >>> plt.xlim(10, 2000)
     >>> plt.xticks([])
     >>> plt.yticks([])
@@ -299,7 +288,7 @@ class MorrisLecar(NeuGroup):
     >>> fig.add_subplot(gs[0, 0])
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.W, ylabel='W')
     >>> fig.add_subplot(gs[1, 0])
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.num, ylabel='V', show=True)
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
 
 
   **Model Parameters**
