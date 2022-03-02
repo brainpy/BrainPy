@@ -179,21 +179,31 @@ def generate_analysis_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_module(module_name='brainpy.analysis.lowdim',
-               filename=os.path.join(path, 'lowdim.rst'),
-               header='Low-dimensional Analyzers')
+  module_and_name = [
+    ('lowdim', 'Low-Dimensional Analyzers'),
+    ('highdim', 'High-Dimensional Analyzers'),
+    ('stability', 'Stability Analysis'), ]
+  write_submodules(module_name='brainpy.analysis',
+                   filename=os.path.join(path, 'analysis.rst'),
+                   header='``brainpy.analysis`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
-  write_module(module_name='brainpy.analysis.highdim',
-               filename=os.path.join(path, 'highdim.rst'),
-               header='High-dimensional Analyzers')
-
-  # write_module(module_name='brainpy.analysis.continuation',
-  #              filename=os.path.join(path, 'continuation.rst'),
-  #              header='Continuation Analysis')
-
-  write_module(module_name='brainpy.analysis.stability',
-               filename=os.path.join(path, 'stability.rst'),
-               header='Stability Analysis')
+  # write_module(module_name='brainpy.analysis.lowdim',
+  #              filename=os.path.join(path, 'lowdim.rst'),
+  #              header='Low-dimensional Analyzers')
+  #
+  # write_module(module_name='brainpy.analysis.highdim',
+  #              filename=os.path.join(path, 'highdim.rst'),
+  #              header='High-dimensional Analyzers')
+  #
+  # # write_module(module_name='brainpy.analysis.continuation',
+  # #              filename=os.path.join(path, 'continuation.rst'),
+  # #              header='Continuation Analysis')
+  #
+  # write_module(module_name='brainpy.analysis.stability',
+  #              filename=os.path.join(path, 'stability.rst'),
+  #              header='Stability Analysis')
 
 
 def generate_base_docs(path):
@@ -205,8 +215,7 @@ def generate_base_docs(path):
     ('function', 'Function Wrapper'),
     ('collector', 'Collectors'),
     ('io', 'Exporting and Loading'),
-    ('naming', 'Naming Tools'),
-  ]
+    ('naming', 'Naming Tools'), ]
   write_submodules(module_name='brainpy.base',
                    filename=os.path.join(path, 'base.rst'),
                    header='``brainpy.base`` module',
@@ -215,23 +224,81 @@ def generate_base_docs(path):
 
 
 def generate_connect_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  module_and_name = [('base', 'Base Class'),
+                     ('custom_conn', 'Custom Connections'),
+                     ('random_conn', 'Random Connections'),
+                     ('regular_conn', 'Regular Connections'), ]
+  write_submodules(module_name='brainpy.connect',
+                   filename=os.path.join(path, 'connect.rst'),
+                   header='Synaptic Connection',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
 
 
 def generate_datasets_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  module_and_name = [('chaotic_system', 'Chaotic Systems'), ]
+  write_submodules(module_name='brainpy.datasets',
+                   filename=os.path.join(path, 'datasets.rst'),
+                   header='Datasets',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
 
 
 def generate_dyn_docs(path):
-    pass
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.dyn.base',
+               filename=os.path.join(path, 'base.rst'),
+               header='Base Class')
+
+  module_and_name = [('biological_models', 'Biological Models'),
+                     ('IF_models', 'Integrate-and-Fire Models'),
+                     ('input_models', 'Input Models'),
+                     ('rate_models', 'Rate Models'),
+                     ('reduced_models', 'Reduced Models'), ]
+  write_submodules(module_name='brainpy.dyn.neurons',
+                   filename=os.path.join(path, 'neurons.rst'),
+                   header='Neuron Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  module_and_name = [('biological_models', 'Biological Models'),
+                     ('abstract_models', 'Abstract Models'),
+                     ('learning_rules', 'Learning Rules'), ]
+  write_submodules(module_name='brainpy.dyn.synapses',
+                   filename=os.path.join(path, 'synapses.rst'),
+                   header='Synapse Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  write_module(module_name='brainpy.dyn.runners',
+               filename=os.path.join(path, 'runners.rst'),
+               header='Runners')
 
 
 def generate_initialize_docs(path):
-    pass
+  module_and_name = [('base', 'Base Class'),
+                     ('regular_inits', 'Regular Initializers'),
+                     ('random_inits', 'Random Initializers'),
+                     ('decay_inits', 'Decay Initializers'), ]
+  write_submodules(module_name='brainpy.initialize',
+                   filename=os.path.join(path, 'initialize.rst'),
+                   header='Weight Initialization',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
 
 
 def generate_inputs_docs(path):
-    pass
+  write_module(module_name='brainpy.inputs',
+               filename=os.path.join(path, 'inputs.rst'),
+               header='Current Inputs')
 
 
 def generate_integrators_doc(path):
@@ -366,6 +433,7 @@ def generate_building_docs(path):
   write_module(module_name='brainpy.compact.brainobjects',
                filename=os.path.join(path, 'brainobjects.rst'),
                header='Brain Objects')
+
   module_and_name = [('neurons', 'Neuron Models'),
                      ('synapses', 'Synapse Models'), ]
   write_submodules(module_name='brainpy.dyn',
@@ -373,6 +441,7 @@ def generate_building_docs(path):
                    header='Brain Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
+
   module_and_name = [('base', 'Base Class'),
                      ('custom_conn', 'Custom Connections'),
                      ('random_conn', 'Random Connections'),
