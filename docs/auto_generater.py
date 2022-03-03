@@ -215,7 +215,7 @@ def generate_base_docs(path):
     ('function', 'Function Wrapper'),
     ('collector', 'Collectors'),
     ('io', 'Exporting and Loading'),
-    ('naming', 'Naming Tools'), ]
+    ('naming', 'Naming Tools')]
   write_submodules(module_name='brainpy.base',
                    filename=os.path.join(path, 'base.rst'),
                    header='``brainpy.base`` module',
@@ -446,9 +446,22 @@ def generate_nn_docs(path):
                filename=os.path.join(path, 'operations.rst'),
                header='Construction Operations')
 
-  write_module(module_name='brainpy.nn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners')
+  # write_module(module_name='brainpy.nn.runners',
+  #              filename=os.path.join(path, 'runners.rst'),
+  #              header='Runners')
+
+  module_and_name = [
+    ('back_propagation', 'Back Propagation'),
+    ('force_learning', 'Force Learning'),
+    ('ridge_regression', 'Ridge Regression'),
+    ('rnn_runner', 'Rnn Runner'),
+    ('rnn_trainer', 'RNN Trainer'),
+  ]
+  write_submodules(module_name='brainpy.nn.runners',
+                   filename=os.path.join(path, 'runners.rst'),
+                   header='Runners',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
   write_module(module_name='brainpy.nn.graph_flow',
                filename=os.path.join(path, 'graph_flow.rst'),

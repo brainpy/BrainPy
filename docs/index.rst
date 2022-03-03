@@ -75,7 +75,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: API Documentation
 
    apis/auto/base.rst
