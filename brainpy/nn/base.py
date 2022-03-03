@@ -952,6 +952,10 @@ class Network(Node):
     for edge in self.fb_edges:
       fb_edges.append((edge[0].name, edge[1].name))
 
+    trainable_color = 'orange'
+    untrainable_color = 'skyblue'
+    ff_color = 'green'
+    fb_color = 'red'
     G = nx.DiGraph()
     G.add_nodes_from(nodes_trainable)
     G.add_nodes_from(nodes_untrainable)
@@ -961,27 +965,27 @@ class Network(Node):
     node_num = G.number_of_nodes()
     pos = nx.kamada_kawai_layout(G)
     plt.figure(figsize=(node_num / 2 + 5, node_num / 2 + 5))
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_trainable, node_color='orange', node_size=10000 / (node_num + 5))
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_untrainable, node_color='skyblue', node_size=10000 / (node_num + 5))
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_trainable, node_color=trainable_color, node_size=10000 / (node_num + 5))
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_untrainable, node_color=untrainable_color, node_size=10000 / (node_num + 5))
 
-    nx.draw_networkx_edges(G, pos=pos, edgelist=ff_edges, edge_color='green',
+    nx.draw_networkx_edges(G, pos=pos, edgelist=ff_edges, edge_color=ff_color,
                            connectionstyle="arc3,rad=-0.3", arrowsize=100 / node_num, node_size=10000 / (node_num + 5))
-    nx.draw_networkx_edges(G, pos=pos, edgelist=fb_edges, edge_color='red',
+    nx.draw_networkx_edges(G, pos=pos, edgelist=fb_edges, edge_color=fb_color,
                            connectionstyle="arc3,rad=-0.3", arrowsize=100 / node_num, node_size=10000 / (node_num + 5))
     nx.draw_networkx_labels(G, pos=pos)
     proxie = []
     labels = []
     if len(nodes_trainable):
-      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor="orange"))
+      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor=trainable_color))
       labels.append('Trainable')
     if len(nodes_untrainable):
-      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor="skyblue"))
+      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor=untrainable_color))
       labels.append('Untrainable')
     if len(ff_edges):
-      proxie.append(Line2D([], [], color='green', linewidth=2))
+      proxie.append(Line2D([], [], color=ff_color, linewidth=2))
       labels.append('Feedforward')
     if len(fb_edges):
-      proxie.append(Line2D([], [], color='red', linewidth=2))
+      proxie.append(Line2D([], [], color=fb_color, linewidth=2))
       labels.append('Feedback')
 
     plt.legend(proxie, labels, scatterpoints=1, markerscale=2,

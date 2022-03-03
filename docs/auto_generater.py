@@ -215,7 +215,7 @@ def generate_base_docs(path):
     ('function', 'Function Wrapper'),
     ('collector', 'Collectors'),
     ('io', 'Exporting and Loading'),
-    ('naming', 'Naming Tools'), ]
+    ('naming', 'Naming Tools')]
   write_submodules(module_name='brainpy.base',
                    filename=os.path.join(path, 'base.rst'),
                    header='``brainpy.base`` module',
@@ -233,7 +233,7 @@ def generate_connect_docs(path):
                      ('regular_conn', 'Regular Connections'), ]
   write_submodules(module_name='brainpy.connect',
                    filename=os.path.join(path, 'connect.rst'),
-                   header='Synaptic Connection',
+                   header='``brainpy.connect`` module',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -245,7 +245,7 @@ def generate_datasets_docs(path):
   module_and_name = [('chaotic_system', 'Chaotic Systems'), ]
   write_submodules(module_name='brainpy.datasets',
                    filename=os.path.join(path, 'datasets.rst'),
-                   header='Datasets',
+                   header='``brainpy.datasets`` module',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -293,7 +293,7 @@ def generate_initialize_docs(path):
                      ('decay_inits', 'Decay Initializers'), ]
   write_submodules(module_name='brainpy.initialize',
                    filename=os.path.join(path, 'initialize.rst'),
-                   header='Weight Initialization',
+                   header='``brainpy.initialize`` module',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -304,7 +304,7 @@ def generate_inputs_docs(path):
 
   write_module(module_name='brainpy.inputs',
                filename=os.path.join(path, 'inputs.rst'),
-               header='Current Inputs')
+               header='``brainpy.input`` module')
 
 
 def generate_integrators_doc(path):
@@ -329,9 +329,9 @@ def generate_losses_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_submodules(module_name='brainpy.losses',
-                   filename=os.path.join(path, 'losses.rst'),
-                   header='``brainpy.losses`` module')
+  write_module(module_name='brainpy.losses',
+               filename=os.path.join(path, 'losses.rst'),
+               header='``brainpy.losses`` module')
 
 
 def generate_math_docs(path):
@@ -395,9 +395,9 @@ def generate_measure_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_submodules(module_name='brainpy.measure',
-                   filename=os.path.join(path, 'measure.rst'),
-                   header='``brainpy.measure`` module')
+  write_module(module_name='brainpy.measure',
+               filename=os.path.join(path, 'measure.rst'),
+               header='``brainpy.measure`` module')
 
 
 def generate_nn_docs(path):
@@ -446,9 +446,22 @@ def generate_nn_docs(path):
                filename=os.path.join(path, 'operations.rst'),
                header='Construction Operations')
 
-  write_module(module_name='brainpy.nn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners')
+  # write_module(module_name='brainpy.nn.runners',
+  #              filename=os.path.join(path, 'runners.rst'),
+  #              header='Runners')
+
+  module_and_name = [
+    ('back_propagation', 'Back Propagation'),
+    ('force_learning', 'Force Learning'),
+    ('ridge_regression', 'Ridge Regression'),
+    ('rnn_runner', 'Rnn Runner'),
+    ('rnn_trainer', 'RNN Trainer'),
+  ]
+  write_submodules(module_name='brainpy.nn.runners',
+                   filename=os.path.join(path, 'runners.rst'),
+                   header='Runners',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
   write_module(module_name='brainpy.nn.graph_flow',
                filename=os.path.join(path, 'graph_flow.rst'),

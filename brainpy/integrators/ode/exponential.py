@@ -587,7 +587,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>
     >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.num, legend='V', show=True)
+    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
   The above example can also be defined with ``brainpy.JointEq``.
 
@@ -657,7 +657,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>
     >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.num, legend='V', show=True)
+    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
   See Also
   --------
