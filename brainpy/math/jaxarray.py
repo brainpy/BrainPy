@@ -718,7 +718,7 @@ class JaxArray(object):
     """
     return [JaxArray(a) for a in self.value.split(indices_or_sections, axis=axis)]
 
-  def take(self, indices, axis=None, mode='raise'):
+  def take(self, indices, axis=None, mode=None):
     """Return an array formed from the elements of a at the given indices."""
     indices = indices.value if isinstance(indices, JaxArray) else indices
     return JaxArray(self.value.take(indices=indices, axis=axis, mode=mode))

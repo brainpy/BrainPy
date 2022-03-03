@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Tuple, Union, Sequence
 
 import jax.numpy as jnp
 from jax import jit, vmap
@@ -7,7 +8,8 @@ from jax import ops as jops
 
 from brainpy.errors import PackageMissingError, MathError
 from brainpy.math import setting
-from brainpy.math.numpy_ops import as_device_array
+from brainpy.math.jaxarray import JaxArray
+from brainpy.math.numpy_ops import as_device_array, _remove_jaxarray
 
 try:
   import brainpylib
@@ -36,6 +38,9 @@ __all__ = [
   # pre-to-post event operator
   'pre2post_event_sum',
   'pre2post_event_prod',
+
+  # others
+  'sparse_matmul',
 ]
 
 _BRAINPYLIB_MINIMAL_VERSION = '0.0.3'
@@ -63,7 +68,6 @@ def _check_brainpylib(ops_name):
       f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
       f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}'
     )
-
 
 
 def pre2post_event_sum(events, pre2post, post_num, values=1.):
@@ -609,3 +613,115 @@ def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=Tru
   normalizers = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
   softmax = syn_values / normalizers[post_ids]
   return jnp.nan_to_num(softmax)
+
+
+def _matmul_with_left_sparse(sparse: Sequence,
+                             dense: Union[JaxArray, jnp.ndarray],
+                             shape: int):
+  r"""Matrix multiplication with sparse matrix on the left.
+
+  .. math::
+
+    Y = M_{\mathrm{sparse}} @ M_{\mathrm{dense}}
+
+  Parameters
+  ----------
+  sparse: tuple, list
+    The sparse matrix with shape of :math:`(N, M)`.
+  dense: JaxArray, jnp.ndarray
+    The dense matrix with the shape of :math:`(M, K)`.
+  shape: int
+    The dimension of :math:`N`.
+
+  Returns
+  -------
+  matrix
+    A tensor the the shape of :math:`(N, K)`.
+  """
+  assert dense.ndim in [1, 2], 'Dense matrix must be a one- or two-dimensional matrix.'
+  values, (rows, cols) = sparse
+  values = _remove_jaxarray(values)
+  rows = _remove_jaxarray(rows)
+  cols = _remove_jaxarray(cols)
+  dense = _remove_jaxarray(dense)
+  B = dense.take(cols, axis=0)
+  if B.ndim == 2:
+    prod = B * jnp.reshape(values, (-1, 1))
+  else:
+    prod = B * values
+  res = jops.segment_sum(prod, rows, shape)
+  return JaxArray(res)
+
+
+def _matmul_with_right_sparse(dense, sparse, shape):
+  r"""Matrix multiplication with sparse matrix on the left.
+
+  .. math::
+
+    Y = M_{\mathrm{dense}} @ M_{\mathrm{sparse}}
+
+  Parameters
+  ----------
+  dense: JaxArray, jnp.ndarray
+    The dense matrix with the shape of :math:`(N, M)`.
+  sparse: tuple, list
+    The sparse matrix with shape of :math:`(M, K)`.
+  shape: int
+    The dimension of :math:`K`.
+
+  Returns
+  -------
+  matrix
+    A tensor the the shape of :math:`(N, K)`.
+  """
+  assert dense.ndim in [1, 2], 'Dense matrix must be a one- or two-dimensional matrix.'
+  values, (rows, cols) = sparse
+  values = _remove_jaxarray(values)
+  rows = _remove_jaxarray(rows)
+  cols = _remove_jaxarray(cols)
+  dense = _remove_jaxarray(dense)
+  if dense.ndim == 2:
+    A = dense[:, rows]
+    prod = (A * values).T
+    res = jops.segment_sum(prod, cols, shape).T
+  else:
+    prod = dense[rows] * values
+    res = jops.segment_sum(prod, cols, shape)
+  return JaxArray(res)
+
+
+def sparse_matmul(A, B, shape: Union[int, Tuple[int]]):
+  r"""Sparse matrix multiplication.
+
+  .. math::
+
+     y = A @ B
+
+  where :math:`A` or :math:`B` is a sparse matrix.
+  :math:`A` and :math:`B` cannot be both sparse.
+
+  Parameters
+  ----------
+  A: tensor, sequence
+    The dense or sparse matrix with the shape of :math:`(N, M)`.
+  B: tensor, sequence
+    The dense or sparse matrix with the shape of :math:`(M, K)`.
+  shape: int
+    The dimension of :math:`N` when ``A`` is sparse, or
+    the dimension of :math:`K` when ``B`` is sparse.
+
+  Returns
+  -------
+  results: JaxArray, jnp.ndarray
+    The tensor with the shape of :math:`(N, K)`.
+  """
+  if isinstance(A, (tuple, list)):
+    assert isinstance(B, (JaxArray, jnp.ndarray)), ('A and B cannot be both sparse. \n'
+                                                    f'A:\n{A}\n'
+                                                    f'B:\n{B}')
+    return _matmul_with_left_sparse(A, B, shape)
+  else:
+    assert isinstance(B, (tuple, list)), ('A and B cannot be both dense. \n'
+                                          f'A:\n{A}\n'
+                                          f'B:\n{B}')
+    return _matmul_with_right_sparse(A, B, shape)
