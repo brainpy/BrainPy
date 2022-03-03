@@ -102,8 +102,8 @@ def merge(
     name: str = None,
     need_detect_cycle=True
 ) -> Network:
-  """Merge different :py:class:`~.Node` or :py:class:`~.Network`
-  instances into a single :py:class:`~.Network` instance.
+  """Merge different :py:class:`~.Node` or :py:class:`brainpy.nn.base.Network`
+  instances into a single :py:class:`brainpy.nn.base.Network` instance.
 
   :py:class:`~.Node` instances contained in the network to merge will be
   gathered in a single network, along with all previously defined connections
@@ -138,7 +138,7 @@ def merge(
   Returns
   -------
   Network
-      A new :py:class:`~.Network` instance.
+      A new :py:class:`brainpy.nn.base.Network` instance.
   """
   # checking
   for n in other_nodes + (node,):
@@ -195,7 +195,7 @@ def ff_connect(
     need_detect_cycle=True
 ) -> Network:
   """Connect two sequences of :py:class:`~.Node` instances to form
-  a :py:class:`~.Network` instance. `senders` output will be used as
+  a :py:class:`brainpy.nn.base.Network` instance. `senders` output will be used as
   input for `receivers` in the created network. This is similar to a
   function composition operation:
 
@@ -211,8 +211,8 @@ def ff_connect(
 
       network = ff_connect(sender, receiver)
 
-  - `sender` and `receiver` can also be :py:class:`~.Network` instances. In this
-  case, the new :py:class:`~.Network` created will contain all nodes previously
+  - `sender` and `receiver` can also be :py:class:`brainpy.nn.base.Network` instances. In this
+  case, the new :py:class:`brainpy.nn.base.Network` created will contain all nodes previously
   contained in all the networks, and link all `node1` outputs to all `node2`
   inputs. This allows to chain the  ``>>`` operator::
 
@@ -244,7 +244,7 @@ def ff_connect(
   Returns
   -------
   Network
-      A :py:class:`~.Network` instance chaining the nodes.
+      A :py:class:`brainpy.nn.base.Network` instance chaining the nodes.
 
   Notes
   -----
