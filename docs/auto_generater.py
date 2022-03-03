@@ -233,7 +233,7 @@ def generate_connect_docs(path):
                      ('regular_conn', 'Regular Connections'), ]
   write_submodules(module_name='brainpy.connect',
                    filename=os.path.join(path, 'connect.rst'),
-                   header='Synaptic Connection',
+                   header='``brainpy.connect`` module',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -245,7 +245,7 @@ def generate_datasets_docs(path):
   module_and_name = [('chaotic_system', 'Chaotic Systems'), ]
   write_submodules(module_name='brainpy.datasets',
                    filename=os.path.join(path, 'datasets.rst'),
-                   header='Datasets',
+                   header='``brainpy.datasets`` module',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -293,7 +293,7 @@ def generate_initialize_docs(path):
                      ('decay_inits', 'Decay Initializers'), ]
   write_submodules(module_name='brainpy.initialize',
                    filename=os.path.join(path, 'initialize.rst'),
-                   header='Weight Initialization',
+                   header='``brainpy.initialize`` module',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -304,7 +304,7 @@ def generate_inputs_docs(path):
 
   write_module(module_name='brainpy.inputs',
                filename=os.path.join(path, 'inputs.rst'),
-               header='Current Inputs')
+               header='``brainpy.input`` module')
 
 
 def generate_integrators_doc(path):
