@@ -62,7 +62,7 @@ high-performance brain modeling. Among its key ingredients, BrainPy supports:
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Advanced Tutorials
 
    tutorial_math/overview

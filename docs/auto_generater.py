@@ -329,9 +329,9 @@ def generate_losses_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_submodules(module_name='brainpy.losses',
-                   filename=os.path.join(path, 'losses.rst'),
-                   header='``brainpy.losses`` module')
+  write_module(module_name='brainpy.losses',
+               filename=os.path.join(path, 'losses.rst'),
+               header='``brainpy.losses`` module')
 
 
 def generate_math_docs(path):
@@ -395,9 +395,9 @@ def generate_measure_docs(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_submodules(module_name='brainpy.measure',
-                   filename=os.path.join(path, 'measure.rst'),
-                   header='``brainpy.measure`` module')
+  write_module(module_name='brainpy.measure',
+               filename=os.path.join(path, 'measure.rst'),
+               header='``brainpy.measure`` module')
 
 
 def generate_nn_docs(path):
