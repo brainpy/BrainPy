@@ -6,7 +6,7 @@ from typing import Sequence, Optional, Dict, Callable, Union
 import jax.numpy as jnp
 
 from brainpy import math as bm
-from brainpy.errors import UnsupportedError
+from brainpy.errors import UnsupportedError, MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer
 from brainpy.nn import utils
 from brainpy.nn.base import Node
@@ -84,16 +84,29 @@ class Dense(Node):
                       ffs: Sequence[Tensor],
                       targets: Tensor,
                       train_pars: Optional[Dict] = None):
+    r"""The ridge training interface for the Dense node.
+
+    This function support the batch training.
+
+    ``targets`` should be a tensor of shape :math:`(num\_time, num\_unit)`.
+    Also, the element in ``ffs`` should have the same shape.
+
+    """
+
     # parameters
     if train_pars is None: train_pars = dict()
     beta = train_pars.get('beta', 0.)
     # checking
     ffs = bm.concatenate(ffs, axis=-1)
-    assert isinstance(targets, (bm.ndarray, jnp.ndarray))
-    assert (ffs.ndim == targets.ndim == 2) and (ffs.shape[0] == targets.shape[0])
+    if not isinstance(targets, (bm.ndarray, jnp.ndarray)):
+      raise MathError(f'"targets" must be a tensor, but got {type(targets)}')
+    if ffs.shape[0] != targets.shape[0]:
+      raise MathError(f'The time dimension of input and target data should be '
+                      f'the same, while we got {ffs.shape[0]} != {targets.shape[0]}')
+    assert (ffs.ndim == targets.ndim == 2)
     # solve weights by ridge regression
     if self.bias is not None:
-      ffs = bm.concatenate([ffs, bm.ones((ffs.shape[0], 1))], axis=1)  # (..., num_input+1)
+      ffs = bm.concatenate([ffs, bm.ones(ffs.shape[:-1] + (1,))], axis=-1)  # (..., num_input+1)
     temp = ffs.T @ ffs
     if beta > 0.:
       temp += beta * bm.eye(ffs.shape[-1])

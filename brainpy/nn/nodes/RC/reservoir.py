@@ -3,7 +3,6 @@
 from typing import Optional, Union, Callable
 
 import brainpy.math as bm
-from brainpy.connect import FixedProb, Connector
 from brainpy.initialize import Normal, ZeroInit, Initializer
 from brainpy.nn.base import Node
 from brainpy.nn.utils import init_param
@@ -70,6 +69,8 @@ class Reservoir(Node):
   fb_connectivity : float, optional
     Connectivity of feedback neurons, i.e. ratio of feedabck neurons
     connected to reservoir neurons. Must be in [0, 1], by default 0.1
+  conn_type: str
+    The connectivity type, can be "dense" or "sparse".
   spectral_radius : float, optional
     Spectral radius of recurrent weight matrix, by default None
   noise_rec : float, optional
@@ -101,12 +102,10 @@ class Reservoir(Node):
       init_rec: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
       init_fb: Optional[Union[Initializer, Callable, Tensor]] = Normal(scale=0.1),
       init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
-      conn_ff: Union[Connector, Callable, Tensor] = FixedProb(prob=0.1),
-      conn_fb: Union[Connector, Callable, Tensor] = FixedProb(prob=0.1),
-      conn_rec: Union[Connector, Callable, Tensor] = FixedProb(prob=0.1),
       ff_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
       fb_connectivity: float = 0.1,
+      conn_type='dense',
       spectral_radius: Optional[float] = None,
       noise_ff: float = 0.,
       noise_rec: float = 0.,
@@ -126,6 +125,8 @@ class Reservoir(Node):
     self.activation_type = activation_type
     check_string(activation_type, 'activation_type', ['internal', 'external'])
     self.rng = bm.random.RandomState(seed)
+    check_float(spectral_radius, 'spectral_radius', allow_none=True)
+    self.spectral_radius = spectral_radius
 
     # initializations
     check_initializer(init_ff, 'init_ff', allow_none=False)
@@ -136,14 +137,16 @@ class Reservoir(Node):
     self.init_fb = init_fb
     self.init_rec = init_rec
     self.init_bias = init_bias
+
+    # connectivity
     check_float(ff_connectivity, 'ff_connectivity', 0., 1.)
     check_float(rec_connectivity, 'rec_connectivity', 0., 1.)
     check_float(fb_connectivity, 'fb_connectivity', 0., 1.)
     self.ff_connectivity = ff_connectivity
     self.rec_connectivity = rec_connectivity
     self.fb_connectivity = fb_connectivity
-    check_float(spectral_radius, 'spectral_radius', allow_none=True)
-    self.spectral_radius = spectral_radius
+    check_string(conn_type, 'conn_type', ['dense', 'sparse'])
+    self.conn_type = conn_type
 
     # noises
     check_float(noise_ff, 'noise_ff')
@@ -158,27 +161,39 @@ class Reservoir(Node):
   def ff_init(self):
     unique_shape, free_shapes = check_shape_consistency(self.input_shapes, -1, True)
     self.set_output_shape(unique_shape + (self.num_unit,))
+
     # initialize feedforward weights
     weight_shape = (sum(free_shapes), self.num_unit)
     self.Wff = init_param(self.init_ff, weight_shape)
     if self.ff_connectivity < 1.:
-      self.Wff[self.rng.random(weight_shape) > self.ff_connectivity] = 0.
+      conn_mat = self.rng.random(weight_shape) > self.ff_connectivity
+      self.Wff[conn_mat] = 0.
+    if self.conn_type == 'sparse' and self.ff_connectivity < 1.:
+      self.ff_pres, self.ff_posts = bm.where(bm.logical_not(conn_mat))
+      self.Wff = self.Wff[self.ff_pres, self.ff_posts]
     if self.trainable:
       self.Wff = bm.TrainVar(self.Wff)
+
     # initialize recurrent weights
     recurrent_shape = (self.num_unit, self.num_unit)
     self.Wrec = init_param(self.init_rec, recurrent_shape)
     if self.rec_connectivity < 1.:
-      self.Wrec[self.rng.random(recurrent_shape) > self.rec_connectivity] = 0.
+      conn_mat = self.rng.random(recurrent_shape) > self.rec_connectivity
+      self.Wrec[conn_mat] = 0.
     if self.spectral_radius is not None:
       current_sr = max(abs(bm.linalg.eig(self.Wrec)[0]))
       self.Wrec *= self.spectral_radius / current_sr
+    if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
+      self.rec_pres, self.rec_posts = bm.where(bm.logical_not(conn_mat))
+      self.Wrec = self.Wrec[self.rec_pres, self.rec_posts]
     self.bias = init_param(self.init_bias, (self.num_unit,))
     if self.trainable:
       self.Wrec = bm.TrainVar(self.Wrec)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
+
     # initialize feedback weights
     self.Wfb = None
+
     # initialize internal state
     self.state = bm.Variable(bm.zeros((self.num_unit,), dtype=bm.float_))
 
@@ -189,7 +204,11 @@ class Reservoir(Node):
       fb_shape = (sum(free_shapes), self.num_unit)
       self.Wfb = init_param(self.init_fb, fb_shape)
       if self.fb_connectivity < 1.:
-        self.Wfb[self.rng.random(fb_shape) > self.fb_connectivity] = 0.
+        conn_mat = self.rng.random(fb_shape) > self.fb_connectivity
+        self.Wfb[conn_mat] = 0.
+      if self.conn_type == 'sparse' and self.fb_connectivity < 1.:
+        self.fb_pres, self.fb_posts = bm.where(bm.logical_not(conn_mat))
+        self.Wfb = self.Wfb[self.fb_pres, self.fb_posts]
       if self.trainable:
         self.Wfb = bm.TrainVar(self.Wfb)
 
@@ -197,15 +216,24 @@ class Reservoir(Node):
     # inputs
     x = bm.concatenate(ff, axis=-1)
     if self.noise_ff > 0: x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)
-    hidden = bm.dot(x, self.Wff)
+    if self.conn_type == 'sparse' and self.ff_connectivity < 1.:
+      hidden = bm.sparse_matmul(x, [self.Wff, (self.ff_pres, self.ff_posts)], self.num_unit)
+    else:
+      hidden = bm.dot(x, self.Wff)
     # feedback
     if self.Wfb is not None:
       assert fb is not None, 'Should provide feedback signals, while got None.'
       fb = bm.concatenate(fb, axis=-1)
       if self.noise_fb: fb += self.noise_fb * self.rng.uniform(-1, 1, fb.shape)
-      hidden += bm.dot(fb, self.Wfb)
+      if self.conn_type == 'sparse' and self.fb_connectivity < 1.:
+        hidden += bm.sparse_matmul(fb, [self.Wfb, (self.fb_pres, self.fb_posts)], self.num_unit)
+      else:
+        hidden += bm.dot(fb, self.Wfb)
     # recurrent
-    hidden += bm.dot(self.state, self.Wrec)
+    if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
+      hidden += bm.sparse_matmul(self.state, [self.Wrec, (self.rec_pres, self.rec_posts)], self.num_unit)
+    else:
+      hidden += bm.dot(self.state, self.Wrec)
     if self.activation_type == 'internal':
       hidden = self.activation(hidden)
     if self.noise_rec > 0.: hidden += self.noise_rec * self.rng.uniform(-1, -1, self.state.shape)
@@ -215,3 +243,4 @@ class Reservoir(Node):
       state = self.activation(state)
     self.state.value = state
     return state
+
