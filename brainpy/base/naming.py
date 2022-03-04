@@ -27,8 +27,8 @@ def check_name_uniqueness(name, obj):
     if _name2id[name] != id(obj):
       raise errors.UniqueNameError(f'In BrainPy, each object should have a unique name. '
                                    f'However, we detect that {obj} has a used name "{name}". \n\n'
-                                   f'If you try ti run multiple trials, you may need '
-                                   f'"brainpy.clear_name_cache()" '
+                                   f'If you try t0 run multiple trials, you may need '
+                                   f'"brainpy.base.clear_name_cache()" '
                                    f'to clear all used names. ')
   else:
     _name2id[name] = id(obj)

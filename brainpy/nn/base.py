@@ -42,26 +42,28 @@ class Node(Base):
   def __init__(self,
                name: Optional[str] = None,
                input_shape: Optional[Union[Sequence[int], int]] = None,
-               trainable: bool = False):  # initialize parameters
-    super(Node, self).__init__(name=name)
+               trainable: bool = False):
 
+    # initialize parameters
     self._input_shapes = None  # input shapes
     self._output_shape = None  # output size
     self._feedback_shapes = None  # feedback shapes
-    if input_shape is not None:
-      self._input_shapes = {self.name: tools.to_size(input_shape)}
-
     self._is_ff_initialized = False
     self._is_fb_initialized = False
     self._trainable = trainable
     self._state = None  # the state of the current node
-
     # data pass function
     if self.data_pass_type not in DATA_PASS_FUNC:
       raise ValueError(f'Unsupported data pass type {self.data_pass_type}. '
                        f'Only support {DATA_PASS_TYPES}')
     self.data_pass_func = DATA_PASS_FUNC[self.data_pass_type]
 
+    # super initialization
+    super(Node, self).__init__(name=name)
+
+    # parameters
+    if input_shape is not None:
+      self._input_shapes = {self.name: tools.to_size(input_shape)}
     self.check_shape_consistency = True
 
   def __repr__(self):

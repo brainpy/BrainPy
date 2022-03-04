@@ -241,13 +241,14 @@ class ConstantDelay(DynamicalSystem):
   This class automatically supports batch size on the last axis. For example, if
   you run batch with the size of (10, 100), where `100` are batch size, then this
   class can automatically support your batched data.
-
-  For examples:
+  For examples,
 
   >>> import brainpy as bp
-  >>>
-  >>> bp.ConstantDelay(size=10, delay=10.)
-  >>> bp.ConstantDelay(size=100, delay=bp.math.random.random(100) * 4 + 10)
+  >>> bp.dyn.ConstantDelay(size=(10, 100), delay=10.)
+
+  This class also support nonuniform delays.
+
+  >>> bp.dyn.ConstantDelay(size=100, delay=bp.math.random.random(100) * 4 + 10)
 
   Parameters
   ----------
@@ -255,10 +256,8 @@ class ConstantDelay(DynamicalSystem):
     The delay data size.
   delay : int, float, function, ndarray
     The delay time. With the unit of `dt`.
-  num_batch : optional, int
-    The batch size.
-  steps : optional, tuple of str, tuple of function, dict of (str, function)
-    The callable function, or a list of callable functions.
+  dt: float, optional
+    The time precision.
   name : optional, str
     The name of the dynamic system.
   """
@@ -330,7 +329,7 @@ class ConstantDelay(DynamicalSystem):
     else:
       self.data[self.in_idx, self.diag] = value
 
-  def update(self, _t, _dt, **kwargs):
+  def update(self, _t=None, _dt=None, **kwargs):
     """Update the delay index."""
     self.in_idx[:] = (self.in_idx + 1) % self.num_step
     self.out_idx[:] = (self.out_idx + 1) % self.num_step

@@ -5,6 +5,7 @@ from typing import Union, Sequence, Dict, Callable
 import jax.numpy as jnp
 import numpy as onp
 
+import brainpy.connect as conn
 import brainpy.initialize as init
 import brainpy.math as bm
 from brainpy.types import Tensor
@@ -15,6 +16,7 @@ __all__ = [
   'check_shape',
   'check_dict_data',
   'check_initializer',
+  'check_connector',
   'check_float',
   'check_string',
 ]
@@ -151,6 +153,27 @@ def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],
   else:
     raise ValueError(f'{name} should be an instance of brainpy.init.Initializer, '
                      f'tensor or callable function. While we got {type(initializer)}')
+
+
+def check_connector(connector: Union[Callable, conn.Connector, Tensor],
+                    name: str = None, allow_none=False):
+  """Check the connector.
+  """
+  name = '' if name is None else name
+  if connector is None:
+    if allow_none:
+      return
+    else:
+      raise ValueError(f'{name} must be an initializer, but we got None.')
+  if isinstance(connector, conn.Connector):
+    return
+  elif isinstance(connector, (bm.ndarray, jnp.ndarray)):
+    return
+  elif callable(connector):
+    return
+  else:
+    raise ValueError(f'{name} should be an instance of brainpy.conn.Connector, '
+                     f'tensor or callable function. While we got {type(connector)}')
 
 
 def check_float(value: float, name=None, min_bound=None, max_bound=None, allow_none=False):

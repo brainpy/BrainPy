@@ -337,6 +337,8 @@ def csr2csc(csr, post_num, data=None):
 
 def mat2csr(dense):
   """convert a dense matrix to (indices, indptr)."""
+  if isinstance(dense, bm.ndarray):
+    dense = np.asarray(dense)
   pre_ids, post_ids = np.where(dense > 0)
   pre_num = dense.shape[0]
 
