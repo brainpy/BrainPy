@@ -6,6 +6,7 @@ from typing import Union, Callable, Tuple
 import jax.numpy as jnp
 from jax import vmap
 from jax.lax import cond
+from jax.experimental.host_callback import id_tap
 
 from brainpy import math as bm
 from brainpy.base.base import Base
@@ -151,17 +152,20 @@ class FixedLenDelay(AbstractDelay):
   def current_time(self):
     return self._current_time[0]
 
+  def _check_time(self, prev_time, transforms):
+    if prev_time > self.current_time:
+      raise ValueError(f'\nThe request time should be less than the '
+                       f'current time {self.current_time}. But we '
+                       f'got {prev_time} > {self.current_time}')
+
+    if prev_time < (self.current_time - self.delay_len):
+      raise ValueError(f'\nThe request time of the variable should be in '
+                       f'[{self.current_time - self.delay_len}, '
+                       f'{self.current_time}], but we got {prev_time}')
+
   def __call__(self, prev_time):
-    # ## Cannot check ##
-    # -----------------#
-    # if prev_time > self.current_time:
-    #   raise ValueError(f'The request time should be less than the '
-    #                    f'current time {self.current_time}. But we '
-    #                    f'got {prev_time} > {self.current_time}')
-    # if prev_time < (self.current_time - self.delay_len):
-    #   raise ValueError(f'The request time of the variable should be in '
-    #                    f'[{self.current_time - self.delay_len}, '
-    #                    f'{self.current_time}], but we got {prev_time}')
+    # check
+    id_tap(self._check_time, prev_time)
     if self._before_type == _FUNC_BEFORE:
       return cond(prev_time < self.t0,
                   self._before_t0,
@@ -193,7 +197,6 @@ class FixedLenDelay(AbstractDelay):
 
   def update(self, time, value):
     self._data[self._idx[0]] = value
-    # ## Cannot check due to XLA's error
     # check_float(time, 'time', allow_none=False, allow_int=True)
     self._current_time[0] = time
     self._idx.value = (self._idx + 1) % self.num_delay_steps

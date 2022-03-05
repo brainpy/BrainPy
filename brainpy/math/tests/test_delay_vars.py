@@ -50,3 +50,9 @@ class TestFixedLenDelay(unittest.TestCase):
     before_t0 = bm.repeat(before_t0.reshape((10, 10, 1)), 5, axis=2)
     delay = bm.FixedLenDelay((10, 5), delay_len=1., dt=0.1, before_t0=before_t0)
     print(delay(0.))
+
+  def test_prev_time_beyond_boundary(self):
+    with self.assertRaises(ValueError):
+      delay = bm.FixedLenDelay(3, delay_len=1., dt=0.1, before_t0=lambda t: t)
+      delay(-1.1)
+
