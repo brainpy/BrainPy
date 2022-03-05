@@ -55,11 +55,11 @@ class Base(object):
     naming.check_name_uniqueness(name=self._name, obj=self)
 
   def register_implicit_vars(self, variables):
-    assert isinstance(variables, dict)
+    assert isinstance(variables, dict), f'Must be a dict, but we got {type(variables)}'
     self.implicit_vars.update(variables)
 
   def register_implicit_nodes(self, nodes):
-    assert isinstance(nodes, dict)
+    assert isinstance(nodes, dict), f'Must be a dict, but we got {type(nodes)}'
     self.implicit_nodes.update(nodes)
 
   def vars(self, method='absolute', level=-1, include_self=True):

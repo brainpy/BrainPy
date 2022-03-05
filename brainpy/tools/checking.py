@@ -7,7 +7,6 @@ import numpy as onp
 
 import brainpy.connect as conn
 import brainpy.initialize as init
-import brainpy.math as bm
 from brainpy.types import Tensor
 
 __all__ = [
@@ -18,6 +17,7 @@ __all__ = [
   'check_initializer',
   'check_connector',
   'check_float',
+  'check_integer',
   'check_string',
 ]
 
@@ -138,6 +138,8 @@ def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],
                       name: str = None, allow_none=False):
   """Check the initializer.
   """
+  import brainpy.math as bm
+
   name = '' if name is None else name
   if initializer is None:
     if allow_none:
@@ -159,6 +161,8 @@ def check_connector(connector: Union[Callable, conn.Connector, Tensor],
                     name: str = None, allow_none=False):
   """Check the connector.
   """
+  import brainpy.math as bm
+
   name = '' if name is None else name
   if connector is None:
     if allow_none:
@@ -176,7 +180,8 @@ def check_connector(connector: Union[Callable, conn.Connector, Tensor],
                      f'tensor or callable function. While we got {type(connector)}')
 
 
-def check_float(value: float, name=None, min_bound=None, max_bound=None, allow_none=False):
+def check_float(value: float, name=None, min_bound=None, max_bound=None,
+                allow_none=False, allow_int=True):
   """Check float type.
 
   Parameters
@@ -189,6 +194,8 @@ def check_float(value: float, name=None, min_bound=None, max_bound=None, allow_n
     The allowed maximum value.
   allow_none: bool
     Whether allow the value is None.
+  allow_int: bool
+    Whether allow the value be an integer.
   """
   if name is None: name = ''
   if value is None:
@@ -196,8 +203,12 @@ def check_float(value: float, name=None, min_bound=None, max_bound=None, allow_n
       return
     else:
       raise ValueError(f'{name} must be a float, but got None')
-  if not isinstance(value, float):
-    raise ValueError(f'{name} must be a float, but got {type(value)}')
+  if allow_int:
+    if not isinstance(value, (float, int)):
+      raise ValueError(f'{name} must be a float, but got {type(value)}')
+  else:
+    if not isinstance(value, float):
+      raise ValueError(f'{name} must be a float, but got {type(value)}')
   if min_bound is not None:
     if value < min_bound:
       raise ValueError(f"{name} must be a float bigger than {min_bound}, "
@@ -205,6 +216,38 @@ def check_float(value: float, name=None, min_bound=None, max_bound=None, allow_n
   if max_bound is not None:
     if value > max_bound:
       raise ValueError(f"{name} must be a float smaller than {max_bound}, "
+                       f"while we got {value}")
+
+
+def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none=False):
+  """Check integer type.
+
+  Parameters
+  ----------
+  value: int, optional
+  name: optional, str
+  min_bound: optional, int
+    The allowed minimum value.
+  max_bound: optional, int
+    The allowed maximum value.
+  allow_none: bool
+    Whether allow the value is None.
+  """
+  if name is None: name = ''
+  if value is None:
+    if allow_none:
+      return
+    else:
+      raise ValueError(f'{name} must be an int, but got None')
+  if not isinstance(value, int):
+    raise ValueError(f'{name} must be an int, but got {type(value)}')
+  if min_bound is not None:
+    if value < min_bound:
+      raise ValueError(f"{name} must be an int bigger than {min_bound}, "
+                       f"while we got {value}")
+  if max_bound is not None:
+    if value > max_bound:
+      raise ValueError(f"{name} must be an int smaller than {max_bound}, "
                        f"while we got {value}")
 
 
