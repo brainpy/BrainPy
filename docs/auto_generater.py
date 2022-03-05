@@ -305,7 +305,7 @@ def generate_inputs_docs(path):
 
   write_module(module_name='brainpy.inputs',
                filename=os.path.join(path, 'inputs.rst'),
-               header='``brainpy.input`` module')
+               header='``brainpy.inputs`` module')
 
 
 def generate_integrators_doc(path):

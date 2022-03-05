@@ -34,7 +34,7 @@ class IntegratorRunner(Runner):
     >>> import brainpy as bp
     >>> import brainpy.math as bm
     >>> a=0.7; b=0.8; tau=12.5
-    >>> dV = lambda V, w, t, I: V - V * V * V / 3 - w + I
+    >>> dV = lambda V, t, w, I: V - V * V * V / 3 - w + I
     >>> dw = lambda w, t, V, a, b: (V + a - b * w) / tau
     >>> integral = bp.odeint(bp.JointEq([dV, dw]), method='exp_auto')
     >>>
@@ -87,6 +87,7 @@ class IntegratorRunner(Runner):
 
     >>> import brainpy as bp
     >>> import brainpy.math as bm
+    >>> import matplotlib.pyplot as plt
     >>>
     >>> # Mackey-Glass equation
     >>> dt = 0.01; beta=2.; gamma=1.; tau=2.; n=9.65
@@ -101,7 +102,9 @@ class IntegratorRunner(Runner):
     >>>       inits=[1.2],  # initialize all variable to 1.
     >>>       args={'xdelay': xdelay}, dt=dt,
     >>> )
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.x, show=True)
+    >>> runner.run(100.)
+    >>> plt.plot(runner.mon['x'].flatten(), runner.mon['x(tau)'].flatten())
+    >>> plt.show()
 
   """
 
