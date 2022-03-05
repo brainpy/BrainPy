@@ -16,6 +16,8 @@ __all__ = [
   'rand', 'randint', 'randn', 'random', 'random_sample', 'ranf', 'sample', 'choice', 'permutation', 'shuffle',
   'beta', 'exponential', 'gamma', 'gumbel', 'laplace', 'logistic', 'normal', 'pareto', 'poisson', 'standard_cauchy',
   'standard_exponential', 'standard_gamma', 'standard_normal', 'standard_t', 'uniform', 'truncated_normal', 'bernoulli',
+
+  'lognormal',
 ]
 
 
@@ -192,6 +194,13 @@ class RandomState(Variable):
   def bernoulli(self, p, size=None):
     return JaxArray(jr.bernoulli(self.split_key(), p=p, shape=_size2shape(size)))
 
+  def lognormallognormal(self, mean=0.0, sigma=1.0, size=None):
+    samples = jr.normal(self.split_key(), shape=_size2shape(size))
+    samples = samples * sigma + mean
+    samples = jnp.exp(samples)
+    return JaxArray(samples)
+
+
 
 register_pytree_node(RandomState,
                      lambda t: ((t.value,), None),
@@ -364,3 +373,11 @@ def bernoulli(p, size=None):
     is not None, or else ``p.shape``.
   """
   return JaxArray(jr.bernoulli(DEFAULT.split_key(), p=p, shape=_size2shape(size)))
+
+
+def lognormal(mean=0.0, sigma=1.0, size=None):
+  samples = jr.normal(DEFAULT.split_key(), shape=_size2shape(size))
+  samples = samples * sigma + mean
+  samples = jnp.exp(samples)
+  return JaxArray(samples)
+
