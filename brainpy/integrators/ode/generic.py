@@ -81,7 +81,7 @@ def odeint(f=None, method='euler', **kwargs):
 
   Returns
   -------
-  integral : callable
+  integral : ODEIntegrator
       The numerical solver of `f`.
   """
   method = _DEFAULT_DDE_METHOD if method is None else method

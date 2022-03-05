@@ -38,7 +38,7 @@ def sdeint(f=None, g=None, method='euler', **kwargs):
 
   Returns
   -------
-  integral : callable
+  integral : SDEIntegrator
       The numerical solver of `f`.
   """
   method = _DEFAULT_SDE_METHOD if method is None else method

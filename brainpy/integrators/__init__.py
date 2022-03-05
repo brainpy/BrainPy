@@ -15,7 +15,7 @@ Details please see the following.
 from .base import *
 from .constants import *
 from .joint_eq import *
-from .runners import *
+from .runner import *
 
 # ODE tools
 from . import ode

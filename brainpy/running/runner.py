@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import types
+
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MonitorError, RunningError
+from brainpy.tools.checking import check_dict_data
 from .monitor import Monitor
 
 __all__ = [
@@ -24,7 +27,7 @@ class Runner(object):
   numpy_mon_after_run : bool
   """
   def __init__(self, target, monitors=None, jit=True, progress_bar=True, dyn_vars=None,
-               numpy_mon_after_run=True):
+               numpy_mon_after_run=True, fun_monitors=None):
     # target model, while implement __call__ function
     self.target = target
 
@@ -44,6 +47,12 @@ class Runner(object):
       raise MonitorError(f'"monitors" only supports list/tuple/dict/ '
                          f'instance of Monitor, not {type(monitors)}.')
     self.mon.build()  # build the monitor
+
+    # extra monitors
+    if fun_monitors is None:
+      fun_monitors = dict()
+    check_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
+    self.fun_monitors = fun_monitors
 
     # progress bar
     assert isinstance(progress_bar, bool), 'Must be a boolean variable.'

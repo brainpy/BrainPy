@@ -5,7 +5,7 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, operators, parallels, setting)
+                          jit, operators, parallels, setting, delay_vars)
 from brainpy import optimizers
 
 
@@ -105,7 +105,8 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
 block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, activations, optimizers,
-               operators, parallels, setting]:
+               operators, parallels, setting,
+               delay_vars]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -311,6 +312,13 @@ def generate_integrators_doc(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
+  # ODE
+  write_module(module_name='brainpy.integrators.ode.base',
+               filename=os.path.join(path, 'ode_base.rst'),
+               header='Base Integrator')
+  write_module(module_name='brainpy.integrators.ode.generic',
+               filename=os.path.join(path, 'ode_generic.rst'),
+               header='Generic Functions')
   write_module(module_name='brainpy.integrators.ode.explicit_rk',
                filename=os.path.join(path, 'ode_explicit_rk.rst'),
                header='Explicit Runge-Kutta Methods')
@@ -320,9 +328,39 @@ def generate_integrators_doc(path):
   write_module(module_name='brainpy.integrators.ode.exponential',
                filename=os.path.join(path, 'ode_exponential.rst'),
                header='Exponential Integrators')
+
+  # SDE
+  write_module(module_name='brainpy.integrators.sde.base',
+               filename=os.path.join(path, 'sde_base.rst'),
+               header='Base Integrator')
+  write_module(module_name='brainpy.integrators.sde.generic',
+               filename=os.path.join(path, 'sde_generic.rst'),
+               header='Generic Functions')
+  write_module(module_name='brainpy.integrators.sde.normal',
+               filename=os.path.join(path, 'sde_normal.rst'),
+               header='Normal Methods')
+  write_module(module_name='brainpy.integrators.sde.srk_scalar',
+               filename=os.path.join(path, 'sde_srk_scalar.rst'),
+               header='SRK methods for scalar Wiener process')
+
+  # DDE
+  write_module(module_name='brainpy.integrators.dde.base',
+               filename=os.path.join(path, 'dde_base.rst'),
+               header='Base Integrator')
+  write_module(module_name='brainpy.integrators.dde.generic',
+               filename=os.path.join(path, 'dde_generic.rst'),
+               header='Generic Functions')
+  write_module(module_name='brainpy.integrators.dde.explicit_rk',
+               filename=os.path.join(path, 'dde_explicit_rk.rst'),
+               header='Explicit Runge-Kutta Methods')
+
+  # Others
   write_module(module_name='brainpy.integrators.joint_eq',
                filename=os.path.join(path, 'joint_eq.rst'),
                header='Joint Equation')
+  write_module(module_name='brainpy.integrators.runner',
+               filename=os.path.join(path, 'runner.rst'),
+               header='Integrator Runner')
 
 
 def generate_losses_docs(path):
@@ -389,6 +427,9 @@ def generate_math_docs(path):
   write_module(module_name='brainpy.math.function',
                filename=os.path.join(path, 'function.rst'),
                header='Function')
+  write_module(module_name='brainpy.math.delay_vars',
+               filename=os.path.join(path, 'delay_vars.rst'),
+               header='Delay Variables')
 
 
 def generate_measure_docs(path):

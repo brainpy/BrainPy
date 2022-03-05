@@ -10,6 +10,7 @@
     :maxdepth: 1
 
     auto/math/variables
+    auto/math/delay_vars
     auto/math/jit
     auto/math/parallels
     auto/math/operators

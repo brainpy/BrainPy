@@ -27,9 +27,8 @@ class ExplicitRKIntegrator(DDEIntegrator):
   B = []  # The B vector in the Butcher tableau.
   C = []  # The C vector in the Butcher tableau.
 
-  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
-    super(ExplicitRKIntegrator, self).__init__(f=f, var_type=var_type, dt=dt,
-                                               name=name, show_code=show_code)
+  def __init__(self, f, **kwargs):
+    super(ExplicitRKIntegrator, self).__init__(f=f, **kwargs)
 
     # integrator keywords
     keywords = {

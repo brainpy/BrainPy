@@ -191,8 +191,8 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
 
   Returns
   -------
-  current_and_duration : tuple
-      (The formatted current, total duration)
+  current : bm.ndarray
+    The formatted current
   """
   dt = bm.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end

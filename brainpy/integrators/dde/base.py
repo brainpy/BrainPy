@@ -74,6 +74,12 @@ class DDEIntegrator(Integrator):
         self._neutral_delays[key] = delay
     self.register_implicit_nodes(self._neutral_delays)
 
+    if (len(self.neutral_delays) + len(self.state_delays)) == 0:
+      raise DiffEqError('There is no delay variable, it should not be '
+                        'a delay differential equation, please use "brainpy.odeint()". '
+                        'Or, if you forget add delay variables, please set them with '
+                        '"state_delays" and "neutral_delays" arguments.')
+
   @property
   def state_delays(self):
     return self._state_delays

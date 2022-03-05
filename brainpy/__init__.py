@@ -36,12 +36,10 @@ from . import connect, initialize, optimizers, measure, losses, datasets, inputs
 from . import integrators
 from .integrators import ode
 from .integrators import sde
+from .integrators import dde
 from .integrators.ode import odeint
-from .integrators.ode import set_default_odeint
-from .integrators.ode import get_default_odeint
 from .integrators.sde import sdeint
-from .integrators.sde import set_default_sdeint
-from .integrators.sde import get_default_sdeint
+from .integrators.dde import ddeint
 from .integrators.joint_eq import JointEq
 
 

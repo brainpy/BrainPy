@@ -5,8 +5,8 @@ from typing import Union, Callable, Tuple
 
 import jax.numpy as jnp
 from jax import vmap
-from jax.lax import cond
 from jax.experimental.host_callback import id_tap
+from jax.lax import cond
 
 from brainpy import math as bm
 from brainpy.base.base import Base
@@ -107,7 +107,7 @@ class FixedLenDelay(AbstractDelay):
 
     # other variables
     self._idx = bm.Variable(bm.asarray([0]))
-    check_float(t0, 't0', allow_none=False, allow_int=True,)
+    check_float(t0, 't0', allow_none=False, allow_int=True, )
     self._current_time = bm.Variable(bm.asarray([t0]))
 
     # delay data
@@ -152,20 +152,24 @@ class FixedLenDelay(AbstractDelay):
   def current_time(self):
     return self._current_time[0]
 
-  def _check_time(self, prev_time, transforms):
-    if prev_time > self.current_time:
-      raise ValueError(f'\nThe request time should be less than the '
-                       f'current time {self.current_time}. But we '
-                       f'got {prev_time} > {self.current_time}')
-
-    if prev_time < (self.current_time - self.delay_len):
-      raise ValueError(f'\nThe request time of the variable should be in '
-                       f'[{self.current_time - self.delay_len}, '
-                       f'{self.current_time}], but we got {prev_time}')
+  def _check_time(self, times, transforms):
+    prev_time, current_time = times
+    if prev_time > current_time:
+      raise ValueError(f'\n'
+                       f'!!! Error in {self.__class__.__name__}: \n'
+                       f'The request time should be less than the '
+                       f'current time {current_time}. But we '
+                       f'got {prev_time} > {current_time}')
+    if prev_time < (current_time - self.delay_len):
+      raise ValueError(f'\n'
+                       f'!!! Error in {self.__class__.__name__}: \n'
+                       f'The request time of the variable should be in '
+                       f'[{current_time - self.delay_len}, '
+                       f'{current_time}], but we got {prev_time}')
 
   def __call__(self, prev_time):
     # check
-    id_tap(self._check_time, prev_time)
+    id_tap(self._check_time, (prev_time, self.current_time))
     if self._before_type == _FUNC_BEFORE:
       return cond(prev_time < self.t0,
                   self._before_t0,
