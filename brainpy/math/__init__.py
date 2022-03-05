@@ -30,6 +30,7 @@ Details in the following.
 
 # data structure
 from .jaxarray import *
+from .delay_vars import *
 
 # high-level numpy operations
 from .numpy_ops import *
@@ -53,4 +54,5 @@ from .function import *
 from .activations import *
 from . import activations
 from .compact import *
+from . import special
 

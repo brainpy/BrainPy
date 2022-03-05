@@ -311,7 +311,7 @@ def poly(seq_of_zeros):
 def polyadd(a1, a2):
   a1 = _remove_jaxarray(a1)
   a2 = _remove_jaxarray(a2)
-  return JaxArray(jnp, polyadd(a1, a2))
+  return JaxArray(jnp.polyadd(a1, a2))
 
 
 def polyder(p, m=1):
