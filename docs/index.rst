@@ -2,31 +2,33 @@ BrainPy documentation
 =====================
 
 `BrainPy`_ is a highly flexible and extensible framework targeting on the
-high-performance brain modeling. Among its key ingredients, BrainPy supports:
+high-performance Brain Dynamics Programming (BDP). Among its key ingredients, BrainPy supports:
 
-1. **JIT compilation** for class objects.
-2. **Numerical solvers** for ODEs, SDEs and others.
-3. **Dynamics simulation tools** for various brain objects, like
-   neurons, synapses, networks, soma, dendrites, channels, and even more.
-4. **Dynamics analysis tools** for differential equations, including
-   phase plane analysis, bifurcation analysis, linearization analysis,
-   and fixed/slow point finding.
-5. **Seamless integration with deep learning models**.
-6. And more ......
+- **JIT compilation** and **automatic differentiation** for class objects.
+- **Numerical methods** for ordinary differential equations (ODEs),
+  stochastic differential equations (SDEs),
+  delay differential equations (DDEs), etc.
+- **Dynamics simulation** tools for various brain objects, like
+  neurons, synapses, networks, soma, dendrites, channels, and even more.
+- **Dynamics training** tools with various machine learning algorithms,
+  like FORCE learning, ridge regression, back-propagation, etc.
+- **Dynamics analysis** tools for differential equations, including
+  phase plane analysis, bifurcation analysis, linearization analysis,
+  and fixed/slow point finding.
+- And more others ......
 
 
 .. _BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
 
-.. note::
 
-    Comprehensive examples of BrainPy please see:
+Comprehensive examples of BrainPy please see:
 
-    - BrainModels: https://brainmodels.readthedocs.io/
-    - BrainPyExamples: https://brainpy-examples.readthedocs.io/
+- BrainPyExamples: https://brainpy-examples.readthedocs.io/
 
-    The source code of BrainPy is open-sourced in GitHub:
+The code of BrainPy is open-sourced at GitHub:
 
-    - BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
+- BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
+
 
 
 .. toctree::
