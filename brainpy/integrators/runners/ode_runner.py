@@ -90,6 +90,7 @@ class IntegratorRunner(Runner):
         self._step,
         dyn_vars=self.dyn_vars,
         out_vars={k: self.variables[k] for k in self.mon.item_names}
+        # out_vars={k: eval(k, self.variables) for k in self.mon.item_names}
       )
     else:
       def _loop_func(t_and_dt):
