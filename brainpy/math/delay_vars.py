@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Union, Callable
+from typing import Union, Callable, Tuple
 
 import jax.numpy as jnp
 from jax import vmap
@@ -10,6 +10,7 @@ from jax.lax import cond
 from brainpy import math as bm
 from brainpy.base.base import Base
 from brainpy.tools.checking import check_float
+from brainpy.tools.others import to_size
 
 __all__ = [
   'AbstractDelay',
@@ -40,19 +41,19 @@ class FixedLenDelay(AbstractDelay):
   This function supports multiple dimensions of the tensor. For example,
 
   1. the one-dimensional delay data
-  >>> delay = bm.FixedLenDelay(bm.zeros(3), delay_len=1., dt=0.1, before_t0=lambda t: t)
+  >>> delay = bm.FixedLenDelay(3, delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.2)
   [-0.2 -0.2 -0.2]
 
   2. the two-dimensional delay data
-  >>> delay = bm.FixedLenDelay(bm.zeros([3, 2]), delay_len=1., dt=0.1, before_t0=lambda t: t)
+  >>> delay = bm.FixedLenDelay((3, 2), delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.6)
   [[-0.6 -0.6]
    [-0.6 -0.6]
    [-0.6 -0.6]]
 
   3. the three-dimensional delay data
-  >>> delay = bm.FixedLenDelay(bm.zeros([3, 2, 1]), delay_len=1., dt=0.1, before_t0=lambda t: t)
+  >>> delay = bm.FixedLenDelay((3, 2, 1), delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.6)
   [[[-0.8]
     [-0.8]]
@@ -63,8 +64,8 @@ class FixedLenDelay(AbstractDelay):
 
   Parameters
   ----------
-  v0: bm.ndarray, jnp.ndarray, float, int
-    The current state at the zero time :math:`t_0`.
+  shape: int, sequence of int
+    The delay data shape.
   t0: float, int
     The zero time.
   delay_len: float, int
@@ -82,39 +83,39 @@ class FixedLenDelay(AbstractDelay):
 
   def __init__(
       self,
-      v0: Union[bm.ndarray, jnp.ndarray, float, int],
+      shape: Union[int, Tuple[int, ...]],
       delay_len: Union[float, int],
       before_t0: Union[Callable, bm.ndarray, jnp.ndarray] = None,
       t0: Union[float, int] = 0.,
       dt: Union[float, int] = None,
       name: str = None,
+      dtype=None,
   ):
     super(FixedLenDelay, self).__init__(name=name)
 
-    v0 = bm.asarray(v0)
     # shape
-    self.shape = v0.shape
-    self.dtype = v0.dtype
+    self.shape = to_size(shape)
+    self.dtype = dtype
 
     # delay_len
     self.t0 = t0
     self.delay_len = delay_len
+    check_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
     self._dt = bm.get_dt() if dt is None else dt
     self.num_delay_steps = int(bm.ceil(delay_len / self._dt).value)
 
     # other variables
-    self._id_in = bm.Variable(bm.asarray([self.num_delay_steps]))
-    self._id_out = bm.Variable(bm.asarray([0]))
-    check_float(t0, 't0', allow_none=False)
+    self._idx = bm.Variable(bm.asarray([0]))
+    check_float(t0, 't0', allow_none=False, allow_int=True,)
     self._current_time = bm.Variable(bm.asarray([t0]))
 
     # delay data
-    self._data = bm.Variable(bm.zeros((self.num_delay_steps + 1,) + self.shape, dtype=v0.dtype))
-    self._data[self._id_in[0]] = v0
+    self._data = bm.Variable(bm.zeros((self.num_delay_steps,) + self.shape, dtype=dtype))
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
     elif callable(before_t0):
-      self._before_t0 = lambda t: jnp.asarray(bm.broadcast_to(before_t0(t), self.shape).value, dtype=self.dtype)
+      self._before_t0 = lambda t: jnp.asarray(bm.broadcast_to(before_t0(t), self.shape).value,
+                                              dtype=self.dtype)
       self._before_type = _FUNC_BEFORE
     elif isinstance(before_t0, (bm.ndarray, jnp.ndarray)):
       self._before_type = _DATA_BEFORE
@@ -122,25 +123,17 @@ class FixedLenDelay(AbstractDelay):
         raise ValueError(f'"before_t0" should be a tensor with the shape of '
                          f'{((self.num_delay_steps,) + self.shape)}, while '
                          f'we got {before_t0.shape}')
-      self._data[:-1] = before_t0
+      self._data[:] = before_t0
     else:
       raise ValueError(f'"before_t0" does not support {type(before_t0)}: before_t0')
 
   @property
-  def idx_in(self):
-    return self._id_in
+  def idx(self):
+    return self._idx
 
-  @idx_in.setter
-  def idx_in(self, value):
-    raise ValueError('Cannot set "idx_in" by users.')
-
-  @property
-  def idx_out(self):
-    return self._id_out
-
-  @idx_out.setter
-  def idx_out(self, value):
-    raise ValueError('Cannot set "idx_out" by users.')
+  @idx.setter
+  def idx(self, value):
+    raise ValueError('Cannot set "idx" by users.')
 
   @property
   def dt(self):
@@ -159,12 +152,16 @@ class FixedLenDelay(AbstractDelay):
     return self._current_time[0]
 
   def __call__(self, prev_time):
-    assert prev_time <= self.current_time, (f'The request time should be less than the '
-                                            f'current time {self.current_time}. But we '
-                                            f'got {prev_time} > {self.current_time}')
-    assert prev_time >= (self.current_time - self.delay_len), (f'The request time of the variable should be in '
-                                                               f'[{self.current_time - self.delay_len}, '
-                                                               f'{self.current_time}], but we got {prev_time}')
+    # ## Cannot check ##
+    # -----------------#
+    # if prev_time > self.current_time:
+    #   raise ValueError(f'The request time should be less than the '
+    #                    f'current time {self.current_time}. But we '
+    #                    f'got {prev_time} > {self.current_time}')
+    # if prev_time < (self.current_time - self.delay_len):
+    #   raise ValueError(f'The request time of the variable should be in '
+    #                    f'[{self.current_time - self.delay_len}, '
+    #                    f'{self.current_time}], but we got {prev_time}')
     if self._before_type == _FUNC_BEFORE:
       return cond(prev_time < self.t0,
                   self._before_t0,
@@ -176,30 +173,33 @@ class FixedLenDelay(AbstractDelay):
   def _fn1(self, prev_time):
     diff = self.delay_len - (self.current_time - prev_time)
     if isinstance(diff, bm.ndarray): diff = diff.value
-    req_num_step, extra = jnp.divmod(diff, self._dt)
-    req_num_step = req_num_step.astype(dtype=bm.int_)
+    req_num_step = jnp.asarray(diff / self._dt, dtype=bm.int_)
+    extra = diff - req_num_step * self._dt
     return cond(extra == 0., self._true_fn, self._false_fn, (req_num_step, extra))
 
   def _true_fn(self, div_mod):
     req_num_step, extra = div_mod
-    return self._data[self._id_out[0] + req_num_step]
+    return self._data[self.idx[0] + req_num_step]
 
   def _false_fn(self, div_mod):
     req_num_step, extra = div_mod
     f = jnp.interp
     for dim in range(1, len(self.shape) + 1, 1):
       f = vmap(f, in_axes=(None, None, dim), out_axes=dim - 1)
-    idx = jnp.asarray([self._id_out[0] + req_num_step,
-                       self._id_out[0] + req_num_step + 1])
+    idx = jnp.asarray([self.idx[0] + req_num_step,
+                       self.idx[0] + req_num_step + 1])
     idx %= self.num_delay_steps
     return f(extra, jnp.asarray([0., self._dt]), self._data[idx])
 
   def update(self, time, value):
-    self._data[self._id_in[0]] = value
-    check_float(time, 'time', allow_none=False, allow_int=True)
+    self._data[self._idx[0]] = value
+    # ## Cannot check due to XLA's error
+    # check_float(time, 'time', allow_none=False, allow_int=True)
     self._current_time[0] = time
-    self._id_in.value = (self._id_in + 1) % (self.num_delay_steps + 1)
-    self._id_out.value = (self._id_out + 1) % (self.num_delay_steps + 1)
+    self._idx.value = (self._idx + 1) % self.num_delay_steps
+
+  def __add__(self, other):
+    return self.data[self.idx[0]] + other
 
 
 class VariedLenDelay(AbstractDelay):
