@@ -9,6 +9,7 @@ __all__ = [
   'set_default_sdeint',
   'get_default_sdeint',
   'register_sde_integrator',
+  'get_supported_methods',
 ]
 
 name2method = {
@@ -100,3 +101,8 @@ def register_sde_integrator(name, integrator):
   if SDEIntegrator not in integrator.__bases__:
     raise ValueError(f'"integrator" must be an instance of {SDEIntegrator.__name__}')
   name2method[name] = integrator
+
+
+def get_supported_methods():
+  """Get all supported numerical methods for DDEs."""
+  return list(name2method.keys())

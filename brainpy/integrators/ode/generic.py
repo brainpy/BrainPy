@@ -10,6 +10,7 @@ __all__ = [
   'set_default_odeint',
   'get_default_odeint',
   'register_ode_integrator',
+  'get_supported_methods',
 ]
 
 name2method = {
@@ -136,3 +137,9 @@ def register_ode_integrator(name, integrator):
   if ODEIntegrator not in integrator.__bases__:
     raise ValueError(f'"integrator" must be an instance of {ODEIntegrator.__name__}')
   name2method[name] = integrator
+
+
+def get_supported_methods():
+  """Get all supported numerical methods for DDEs."""
+  return list(name2method.keys())
+
