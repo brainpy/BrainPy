@@ -4,7 +4,7 @@ import brainpy.math as bm
 a, b = 0.02, 0.20
 
 
-class IzhiJoint(bp.NeuGroup):
+class IzhiJoint(bp.dyn.NeuGroup):
 	def dV(self, V, t, u, Iext):
 		return 0.04 * V * V + 5 * V + 140 - u + Iext
 

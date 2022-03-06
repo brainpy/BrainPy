@@ -52,10 +52,12 @@ The code of BrainPy is open-sourced at GitHub:
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Toolboxes
 
-   tutorial_intg/index
+   tutorial_toolbox/ode_numerical_solvers
+   tutorial_toolbox/sde_numerical_solvers
+   tutorial_toolbox/joint_equations
    tutorial_toolbox/synaptic_connections
    tutorial_toolbox/synaptic_weights
    tutorial_toolbox/optimizers
@@ -64,7 +66,7 @@ The code of BrainPy is open-sourced at GitHub:
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Advanced Tutorials
 
    tutorial_math/overview
