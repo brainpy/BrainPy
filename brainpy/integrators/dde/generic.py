@@ -59,13 +59,20 @@ def ddeint(f=None, method='euler', **kwargs):
     >>> plt.plot(bp.math.arange(0, 100, integral.dt), hist_V)
     >>> plt.show()
 
-
   Parameters
   ----------
   f : callable, function
     The derivative function.
   method : str
     The shortcut name of the numerical integrator.
+  var_type: str
+    Variable type in the defined function.
+  dt: float, int
+    The time precission for integration.
+  name: str
+    The name.
+  show_code: bool
+    Whether show the formartted codes.
 
   Returns
   -------

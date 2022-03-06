@@ -12,7 +12,6 @@
     auto/math/variables
     auto/math/delay_vars
     auto/math/jit
-    auto/math/parallels
     auto/math/operators
     auto/math/controls
     auto/math/autograd

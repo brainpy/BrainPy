@@ -42,11 +42,13 @@ class FixedLenDelay(AbstractDelay):
   This function supports multiple dimensions of the tensor. For example,
 
   1. the one-dimensional delay data
+
   >>> delay = bm.FixedLenDelay(3, delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.2)
   [-0.2 -0.2 -0.2]
 
   2. the two-dimensional delay data
+
   >>> delay = bm.FixedLenDelay((3, 2), delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.6)
   [[-0.6 -0.6]
@@ -54,6 +56,7 @@ class FixedLenDelay(AbstractDelay):
    [-0.6 -0.6]]
 
   3. the three-dimensional delay data
+
   >>> delay = bm.FixedLenDelay((3, 2, 1), delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.6)
   [[[-0.8]
