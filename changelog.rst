@@ -146,20 +146,18 @@ Documentation
 - Complete tutorials for API documentation
 
 
-brainpy 1.x
-*****************
+brainpy 1.1.x (LTS)
+*******************
 
-1.1.x (LTS)
-===========
 
 Version 1.1.7 (2021.12.13)
---------------------------
+==========================
 
 - fix bugs on ``numpy_array()`` conversion in `brainpy.math.utils` module
 
 
 Version 1.1.5 (2021.11.17)
---------------------------
+==========================
 
 **API changes:**
 
@@ -173,7 +171,7 @@ Version 1.1.5 (2021.11.17)
 
 
 Version 1.1.4
--------------
+=============
 
 **API changes:**
 
@@ -198,7 +196,7 @@ Version 1.1.4
 
 
 Version 1.1.3
--------------
+=============
 
 - fix bugs of JAX parallel API imports
 - fix bugs of `post_slice` structure construction
@@ -206,7 +204,7 @@ Version 1.1.3
 
 
 Version 1.1.2
--------------
+=============
 
 - add ``pre2syn`` and ``syn2post`` operators
 - add `verbose` and `check` option to ``Base.load_states()``
@@ -214,7 +212,7 @@ Version 1.1.2
 
 
 Version 1.1.1
--------------
+=============
 
 - fix bugs on symbolic analysis: model trajectory
 - change `absolute` access in the variable saving and loading to the `relative` access
@@ -222,7 +220,7 @@ Version 1.1.1
 
 
 Version 1.1.0 (2021.11.08)
---------------------------
+==========================
 
 This package releases a new version of BrainPy.
 
@@ -278,11 +276,11 @@ Highlights of core changes:
 - refine synaptic connections
 
 
-1.0.x
-=====
+brainpy 1.0.x
+*************
 
 Version 1.0.3 (2021.08.18)
---------------------------
+==========================
 
 Fix bugs on
 
@@ -291,7 +289,7 @@ Fix bugs on
 
 
 Version 1.0.2
--------------
+=============
 
 This release continues to improve the user-friendliness.
 
@@ -315,13 +313,13 @@ Highlights of core changes:
 
 
 Version 1.0.1
--------------
+=============
 
 - Fix bugs
 
 
 Version 1.0.0
--------------
+=============
 
 - **NEW VERSION OF BRAINPY**
 - Change the coding style into the object-oriented programming
