@@ -18,9 +18,6 @@ __all__ = [
   'complex_',
 
   # change default data types
-  'set_int_',
-  'set_float_',
-  'set_complex_',
   'set_dt',
   'get_dt',
 ]
@@ -28,29 +25,10 @@ __all__ = [
 # default dtype
 # --------------------------
 
-
 bool_ = jnp.bool_
 int_ = jnp.int32
 float_ = jnp.float32
 complex_ = jnp.complex_
-
-
-def set_int_(int_type):
-  global int_
-  assert isinstance(int_type, type)
-  int_ = int_type
-
-
-def set_float_(float_type):
-  global float_
-  assert isinstance(float_type, type)
-  float_ = float_type
-
-
-def set_complex_(complex_type):
-  global complex_
-  assert isinstance(complex_type, type)
-  complex_ = complex_type
 
 
 # numerical precision
