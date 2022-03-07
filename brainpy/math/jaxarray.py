@@ -89,14 +89,30 @@ class JaxArray(object):
   # ----------------------- #
 
   def __repr__(self) -> str:
-    lines = repr(self.value).split("\n")
-    prefix = self.__class__.__name__ + "("
-    lines[0] = prefix + lines[0]
-    prefix = " " * len(prefix)
-    for i in range(1, len(lines)):
-      lines[i] = prefix + lines[i]
-    lines[-1] = lines[-1] + ")"
-    return "\n".join(lines)
+    print_code = repr(self.value)
+    name = self.__class__.__name__
+    if 'DeviceArray' in print_code:
+      print_code = print_code.replace('DeviceArray', name)
+      lines = print_code.split("\n")
+      if len(name) > len('DeviceArray'):
+        num_len = len(name) - len('DeviceArray')
+        for i in range(1, len(lines)):
+          lines[i] = " " * num_len + lines[i]
+      else:
+        num_len = len('DeviceArray') - len(name)
+        for i in range(1, len(lines)):
+          lines[i] = lines[i][num_len:]
+      print_code = "\n".join(lines)
+    else:
+      lines = print_code.split("\n")
+      prefix = name + "("
+      lines[0] = prefix + lines[0]
+      prefix = " " * len(prefix)
+      for i in range(1, len(lines)):
+        lines[i] = prefix + lines[i]
+      lines[-1] = lines[-1] + ")"
+      print_code = "\n".join(lines)
+    return print_code
 
   def __format__(self, format_spec: str) -> str:
     return format(self.value)
