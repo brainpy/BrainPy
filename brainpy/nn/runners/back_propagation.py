@@ -26,7 +26,7 @@ class BPFF(RNNTrainer):
   pass
 
 
-class BPTT(BPFF):
+class BPTT(RNNTrainer):
   """The trainer implementing back propagation through time (BPTT)."""
 
   def __init__(self,
@@ -104,8 +104,7 @@ class BPTT(BPFF):
         loss = self._f_train(inputs, targets)
         train_losses.append(loss)
       self._pbar.update()
-      self._pbar.set_postfix(train_loss={round(float(bm.mean(train_losses)), 4)},
-                             )
+      self._pbar.set_postfix(train_loss={round(float(bm.mean(train_losses)), 4)})
 
     # close the progress bar
     if self.progress_bar:
@@ -163,13 +162,8 @@ class BPTT(BPFF):
 
   def _init_target(self, xs):
     # we need to initialize the node or the network
-    x = dict()
-    for key, tensor in xs.items():
-      assert isinstance(key, str), ('"xs" must a dict of (str, tensor), while we got '
-                                    f'({type(key)}, {type(tensor)})')
-      assert isinstance(tensor, (bm.ndarray, jnp.ndarray)), ('"xs" must a dict of (str, tensor), while we got '
-                                                             f'({type(key)}, {type(tensor)})')
-      x[key] = tensor[0]
+    check_dict_data(xs, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    x = {key: tensor[0] for key, tensor in xs.items()}
     self.target.initialize(x)
 
   def _shuffle_xy(self, xs, ys):

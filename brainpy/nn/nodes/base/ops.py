@@ -6,7 +6,7 @@ from brainpy.tools.checking import check_shape_consistency
 from brainpy.nn.base import Node
 
 __all__ = [
-  'Concat', 'Select', 'Reshape'
+  'Concat', 'Select', 'Reshape', 'Summation',
 ]
 
 
@@ -63,3 +63,18 @@ class Reshape(Node):
 
   def forward(self, ff, **kwargs):
     return bm.reshape(ff[0], self.shape)
+
+
+class Summation(Node):
+  def __init__(self, **kwargs):
+    super(Summation, self).__init__(**kwargs)
+
+  def ff_init(self):
+    unique_shape, _ = check_shape_consistency(self.input_shapes, None, True)
+    self.set_output_shape(list(unique_shape))
+
+  def forward(self, ff, **kwargs):
+    res = ff[0]
+    for v in ff[1:]:
+      res = res + v
+    return res

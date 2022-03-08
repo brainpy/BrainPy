@@ -667,31 +667,34 @@ class Network(Node):
 
   def ff_init(self):
     # input shapes of entry nodes
-    for node in self._entry_nodes:
+    for node in self.entry_nodes:
       if node.input_shapes is None:
         if self.input_shapes is None:
           raise ValueError('Cannot find the input size. Cannot initialize the network.')
         else:
           node.set_input_shapes({node.name: self._input_shapes[node.name]})
       node._ff_init()
-    # initialize the queue
+
+    # initialize the data
     children_queue = []
+    ff_senders, _ = find_senders_and_receivers(self.ff_edges)
+
+    # init shapes of other nodes
     for node in self._entry_nodes:
       for child in self.ff_receivers.get(node, []):
-        if child not in children_queue:
+        ff_senders[child].remove(node)
+        if len(ff_senders.get(child, [])) == 0:
           children_queue.append(child)
-    ff_states = {n: n.output_shape for n in self._entry_nodes}
     while len(children_queue):
       node = children_queue.pop(0)
       # initialize input and output sizes
       parent_sizes = {p: p.output_shape for p in self.ff_senders.get(node, [])}
       node.set_input_shapes(parent_sizes)
       node._ff_init()
-      # append parent size
-      ff_states[node] = node.output_shape
       # append children
       for child in self.ff_receivers.get(node, []):
-        if child not in children_queue:
+        ff_senders[child].remove(node)
+        if len(ff_senders.get(child, [])) == 0:
           children_queue.append(child)
 
   def fb_init(self):
@@ -864,12 +867,17 @@ class Network(Node):
     Tensor
       A output tensor value, or a dict of output tensors.
     """
+    all_nodes = set([n.name for n in self.lnodes])
+    runned_nodes = set()
+    output_nodes = set([n.name for n in self.exit_nodes])
+
     # initialize the feedback
     if forced_feedbacks is None: forced_feedbacks = dict()
     if monitors is None: monitors = dict()
 
-    # initialize the children queue
+    # initialize the data
     children_queue = []
+    ff_senders, _ = find_senders_and_receivers(self.ff_edges)
 
     # initialize the parent output data
     parent_outputs = {}
@@ -878,7 +886,8 @@ class Network(Node):
       fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.feedback())
             for p in self.fb_senders.get(node, [])}
       self._call_a_node(node, ff, fb, monitors, forced_states,
-                        parent_outputs, children_queue, **kwargs)
+                        parent_outputs, children_queue, ff_senders, **kwargs)
+      runned_nodes.add(node.name)
 
     # run the model
     while len(children_queue):
@@ -889,13 +898,18 @@ class Network(Node):
             for p in self.fb_senders.get(node, [])}
       # call the node
       self._call_a_node(node, ff, fb, monitors, forced_states,
-                        parent_outputs, children_queue, **kwargs)
+                        parent_outputs, children_queue, ff_senders,
+                        **kwargs)
+
       # remove unnecessary parent outputs
-      needed_parents = [] + list(self.exit_nodes)
-      for child in children_queue:
-        needed_parents += self.ff_senders[child]
+      needed_parents = []
+      runned_nodes.add(node.name)
+      for child in (all_nodes - runned_nodes):
+        for parent in self.ff_senders[self.implicit_nodes[child]]:
+          needed_parents.append(parent.name)
       for parent in list(parent_outputs.keys()):
-        if parent not in needed_parents:
+        _name = parent.name
+        if _name not in needed_parents and _name not in output_nodes:
           parent_outputs.pop(parent)
 
     # returns
@@ -906,7 +920,7 @@ class Network(Node):
     return state, monitors
 
   def _call_a_node(self, node, ff, fb, monitors, forced_states,
-                   parent_outputs, children_queue, **kwargs):
+                   parent_outputs, children_queue, ff_senders, **kwargs):
     ff = node.data_pass_func(ff)
     if f'{node.name}.inputs' in monitors:
       monitors[f'{node.name}.inputs'] = ff
@@ -927,7 +941,8 @@ class Network(Node):
       monitors[f'{node.name}.output'] = parent_outputs[node]
     # append children nodes
     for child in self.ff_receivers.get(node, []):
-      if child not in children_queue:
+      ff_senders[child].remove(node)
+      if len(ff_senders.get(child, [])) == 0:
         children_queue.append(child)
 
   def visualize(self):

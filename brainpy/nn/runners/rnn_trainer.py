@@ -15,8 +15,8 @@ __all__ = [
 class RNNTrainer(RNNRunner):
   """Structural Trainer for Recurrent Neural Networks."""
 
-  train_nodes: Sequence[Node]
-  train_pars: Dict[str, Any]
+  train_nodes: Sequence[Node]  # need to be initialized by subclass
+  train_pars: Dict[str, Any]  # need to be initialized by subclass
 
   def __init__(self, target, **kwargs):
     super(RNNTrainer, self).__init__(target=target, **kwargs)
@@ -28,7 +28,7 @@ class RNNTrainer(RNNRunner):
           forced_feedbacks: Dict[str, Tensor] = None,
           initial_states: Dict[str, Tensor] = None,
           initial_feedbacks: Dict[str, Tensor] = None,
-          reset=False, ):
+          reset=False, ):  # need to be implemented by subclass
     raise NotImplementedError('Must implement the fit function. ')
 
   def _get_trainable_nodes(self):
