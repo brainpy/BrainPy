@@ -945,7 +945,26 @@ class Network(Node):
       if len(ff_senders.get(child, [])) == 0:
         children_queue.append(child)
 
-  def visualize(self):
+  def plot_node_graph(self, node_layout: str = 'kamada_kawai_layout', fig_size: tuple = (60, 60), node_size: int = 5000,
+                      arrow_size: int = 20):
+    '''Plot the node graph based on NetworkX package
+
+    Parameters
+    ----------
+    node_layout: string, defalut to 'kamada_kawai_layout'
+      The layout of nodes in node graph, include ['circular_layout', 'kamada_kawai_layout', 'planar_layout',
+      'random_layout', 'shell_layout', 'spring_layout']"
+    fig_size: tuple, default to (60, 60)
+      The size of the figure
+    node_size: int, default to 5000
+      The size of the node
+    arrow_size:int, default to 20
+      The size of the arrow
+
+    Returns
+    -------
+
+    '''
     try:
       import networkx as nx
       import matplotlib.pyplot as plt
@@ -953,6 +972,19 @@ class Network(Node):
     except (ModuleNotFoundError, ImportError):
       raise PackageMissingError('Package networkx or matplotlib not found, please pre-install these two packages before '
                                 'calling visualize()')
+
+    layout = {
+      'circular_layout': nx.circular_layout,
+      'kamada_kawai_layout': nx.kamada_kawai_layout,
+      'planar_layout': nx.planar_layout,
+      'random_layout': nx.random_layout,
+      'shell_layout': nx.shell_layout,
+      'spring_layout': nx.spring_layout
+    }
+
+    assert node_layout in layout, f"{node_layout} is not included in node layout, please using [" \
+                                  f"'circular_layout', 'kamada_kawai_layout', 'planar_layout', 'random_layout', " \
+                                  f"'shell_layout', 'spring_layout']"
 
     nodes_trainable = []
     nodes_untrainable = []
@@ -980,15 +1012,15 @@ class Network(Node):
     G.add_edges_from(fb_edges)
 
     node_num = G.number_of_nodes()
-    pos = nx.kamada_kawai_layout(G)
-    plt.figure(figsize=(node_num / 2 + 5, node_num / 2 + 5))
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_trainable, node_color=trainable_color, node_size=10000 / (node_num + 5))
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_untrainable, node_color=untrainable_color, node_size=10000 / (node_num + 5))
+    pos = layout[node_layout](G)
+    plt.figure(figsize=fig_size)
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_trainable, node_color=trainable_color, node_size=node_size)
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_untrainable, node_color=untrainable_color, node_size=node_size)
 
     nx.draw_networkx_edges(G, pos=pos, edgelist=ff_edges, edge_color=ff_color,
-                           connectionstyle="arc3,rad=-0.3", arrowsize=100 / node_num, node_size=10000 / (node_num + 5))
+                           connectionstyle="arc3,rad=-0.3", arrowsize=arrow_size, node_size=node_size)
     nx.draw_networkx_edges(G, pos=pos, edgelist=fb_edges, edge_color=fb_color,
-                           connectionstyle="arc3,rad=-0.3", arrowsize=100 / node_num, node_size=10000 / (node_num + 5))
+                           connectionstyle="arc3,rad=-0.3", arrowsize=arrow_size, node_size=node_size)
     nx.draw_networkx_labels(G, pos=pos)
     proxie = []
     labels = []
