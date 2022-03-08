@@ -113,8 +113,8 @@ class FHN(NeuGroup):
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
-  def dV(self, V, t, w):
-    return V - V * V * V / 3 - w + self.input
+  def dV(self, V, t, w, I_ext):
+    return V - V * V * V / 3 - w + I_ext
 
   def dw(self, w, t, V):
     return (V + self.a - self.b * w) / self.tau
@@ -124,7 +124,7 @@ class FHN(NeuGroup):
     return JointEq([self.dV, self.dw])
 
   def update(self, _t, _dt):
-    V, w = self.integral(self.V, self.w, _t, dt=_dt)
+    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
     self.spike.value = bm.logical_and(V >= self.Vth, self.V < self.Vth)
     self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
     self.V.value = V

@@ -90,13 +90,13 @@ class LIF(NeuGroup):
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
-  def derivative(self, V, t):
-    dvdt = (-V + self.V_rest + self.input) / self.tau
+  def derivative(self, V, t, I_ext):
+    dvdt = (-V + self.V_rest + I_ext) / self.tau
     return dvdt
 
   def update(self, _t, _dt):
     refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, _t, dt=_dt)
+    V = self.integral(self.V, _t, self.input, dt=_dt)
     V = bm.where(refractory, self.V, V)
     spike = V >= self.V_th
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
@@ -230,14 +230,14 @@ class ExpIF(NeuGroup):
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
-  def derivative(self, V, t):
+  def derivative(self, V, t, I_ext):
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
-    dvdt = (- (V - self.V_rest) + exp_v + self.R * self.input) / self.tau
+    dvdt = (- (V - self.V_rest) + exp_v + self.R * I_ext) / self.tau
     return dvdt
 
   def update(self, _t, _dt):
     refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, _t, dt=_dt)
+    V = self.integral(self.V, _t, self.input, dt=_dt)
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
@@ -347,9 +347,9 @@ class AdExIF(NeuGroup):
     # functions
     self.integral = odeint(method=method, f=self.derivative)
 
-  def dV(self, V, t, w):
+  def dV(self, V, t, w, I_ext):
     dVdt = (- V + self.V_rest + self.delta_T * bm.exp((V - self.V_T) / self.delta_T) -
-            self.R * w + self.R * self.input) / self.tau
+            self.R * w + self.R * I_ext) / self.tau
     return dVdt
 
   def dw(self, w, t, V):
@@ -361,7 +361,7 @@ class AdExIF(NeuGroup):
     return JointEq([self.dV, self.dw])
 
   def update(self, _t, _dt):
-    V, w = self.integral(self.V, self.w, _t, dt=_dt)
+    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
     spike = V >= self.V_th
     self.t_last_spike[:] = bm.where(spike, _t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
@@ -463,13 +463,13 @@ class QuaIF(NeuGroup):
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
-  def derivative(self, V, t):
-    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * self.input) / self.tau
+  def derivative(self, V, t, I_ext):
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I_ext) / self.tau
     return dVdt
 
   def update(self, _t, _dt, **kwargs):
     refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, _t, dt=_dt)
+    V = self.integral(self.V, _t, self.input, dt=_dt)
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
@@ -582,8 +582,8 @@ class AdQuaIF(NeuGroup):
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
-  def dV(self, V, t, w):
-    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + self.input) / self.tau
+  def dV(self, V, t, w, I_ext):
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I_ext) / self.tau
     return dVdt
 
   def dw(self, w, t, V):
@@ -595,7 +595,7 @@ class AdQuaIF(NeuGroup):
     return JointEq([self.dV, self.dw])
 
   def update(self, _t, _dt):
-    V, w = self.integral(self.V, self.w, _t, dt=_dt)
+    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
     spike = self.V_th <= V
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
@@ -729,15 +729,15 @@ class GIF(NeuGroup):
   def dVth(self, V_th, t, V):
     return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
 
-  def dV(self, V, t, I1, I2):
-    return (- (V - self.V_rest) + self.R * self.input + self.R * I1 + self.R * I2) / self.tau
+  def dV(self, V, t, I1, I2, I_ext):
+    return (- (V - self.V_rest) + self.R * I_ext + self.R * I1 + self.R * I2) / self.tau
 
   @property
   def derivative(self):
     return JointEq([self.dI1, self.dI2, self.dVth, self.dV])
 
   def update(self, _t, _dt):
-    I1, I2, V_th, V = self.integral(self.I1, self.I2, self.V_th, self.V, _t, dt=_dt)
+    I1, I2, V_th, V = self.integral(self.I1, self.I2, self.V_th, self.V, _t, self.input, dt=_dt)
     spike = self.V_th <= V
     V = bm.where(spike, self.V_reset, V)
     I1 = bm.where(spike, self.R1 * I1 + self.A1, I1)
