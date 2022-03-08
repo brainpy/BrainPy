@@ -151,6 +151,10 @@ class FixedLenDelay(AbstractDelay):
   def data(self):
     return self._data
 
+  @data.setter
+  def data(self, value):
+    self._data[:] = value
+
   @property
   def current_time(self):
     return self._current_time[0]
@@ -184,7 +188,7 @@ class FixedLenDelay(AbstractDelay):
   def _fn1(self, prev_time):
     diff = self.delay_len - (self.current_time - prev_time)
     if isinstance(diff, bm.ndarray): diff = diff.value
-    req_num_step = jnp.asarray(diff / self._dt, dtype=bm.int_)
+    req_num_step = jnp.asarray(diff / self._dt, dtype=bm.get_dint())
     extra = diff - req_num_step * self._dt
     return cond(extra == 0., self._true_fn, self._false_fn, (req_num_step, extra))
 
@@ -207,9 +211,6 @@ class FixedLenDelay(AbstractDelay):
     # check_float(time, 'time', allow_none=False, allow_int=True)
     self._current_time[0] = time
     self._idx.value = (self._idx + 1) % self.num_delay_steps
-
-  def __add__(self, other):
-    return self.data[self.idx[0]] + other
 
 
 class VariedLenDelay(AbstractDelay):

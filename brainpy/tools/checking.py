@@ -56,12 +56,12 @@ def check_shape_consistency(shapes, free_axes=None, return_format_shapes=False):
       raise ValueError(f'The provided shape are not consistent.')
   if return_format_shapes:
     if type_ == 'int':
-      free_shapes = [shape[free_axes[0]] for shape in shapes]
+      free_shapes = tuple([shape[free_axes[0]] for shape in shapes])
     elif type_ == 'seq':
-      free_shapes = [tuple([shape[axis] for axis in free_axes]) for shape in shapes]
+      free_shapes = tuple([tuple([shape[axis] for axis in free_axes]) for shape in shapes])
     else:
       free_shapes = None
-    return unique_shape[0], tuple(free_shapes)
+    return unique_shape[0], free_shapes
 
 
 def check_shape_broadcastable(shapes, free_axes=(), return_format_shapes=False):

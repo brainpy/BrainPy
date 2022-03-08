@@ -26,8 +26,9 @@ class Runner(object):
   dyn_vars: Optional, dict
   numpy_mon_after_run : bool
   """
-  def __init__(self, target, monitors=None, jit=True, progress_bar=True, dyn_vars=None,
-               numpy_mon_after_run=True, fun_monitors=None):
+  def __init__(self, target, monitors=None, fun_monitors=None,
+               jit=True, progress_bar=True, dyn_vars=None,
+               numpy_mon_after_run=True):
     # target model, while implement __call__ function
     self.target = target
 
