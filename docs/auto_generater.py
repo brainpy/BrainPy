@@ -223,16 +223,13 @@ def generate_connect_docs(path='apis/auto/'):
                    section_names=[a[1] for a in module_and_name])
 
 
-def generate_datasets_docs(path):
+def generate_datasets_docs(path='apis/auto/datasets/'):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  module_and_name = [('chaotic_system', 'Chaotic Systems'), ]
-  write_submodules(module_name='brainpy.datasets',
-                   filename=os.path.join(path, 'datasets.rst'),
-                   header='``brainpy.datasets`` module',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
+  write_module(module_name='brainpy.datasets.chaotic_systems',
+               filename=os.path.join(path, 'chaotic_systems.rst'),
+               header='Chaotic Systems')
 
 
 def generate_dyn_docs(path='apis/auto/dyn/'):
