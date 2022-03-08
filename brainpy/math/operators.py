@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Tuple, Union, Sequence
+from typing import Union, Sequence
 
 import jax.numpy as jnp
 from jax import jit, vmap
@@ -10,6 +10,7 @@ from brainpy.errors import PackageMissingError, MathError
 from brainpy.math import setting
 from brainpy.math.jaxarray import JaxArray
 from brainpy.math.numpy_ops import as_device_array, _remove_jaxarray
+from brainpy.types import Shape
 
 try:
   import brainpylib
@@ -690,7 +691,7 @@ def _matmul_with_right_sparse(dense, sparse, shape):
   return JaxArray(res)
 
 
-def sparse_matmul(A, B, shape: Union[int, Tuple[int]]):
+def sparse_matmul(A, B, shape: Shape):
   r"""Sparse matrix multiplication.
 
   .. math::
@@ -699,6 +700,42 @@ def sparse_matmul(A, B, shape: Union[int, Tuple[int]]):
 
   where :math:`A` or :math:`B` is a sparse matrix.
   :math:`A` and :math:`B` cannot be both sparse.
+
+  Examples
+  --------
+
+  >>> import brainpy.math as bm
+
+  1. when the left matrix :math:`A` is a sparse matrix with the shape of :math:`(N, M)`,
+     we should provide :math:`N` as the ``shape`` in the ``brainpy.math.sparse_matmul``
+     function.
+
+  >>> # A is a sparse matrix (3, 4):
+  >>> #   [[0, 2, 0, 4],
+  >>> #    [1, 0, 0, 0],
+  >>> #    [0, 3, 0, 2]]
+  >>> values = bm.asarray([2, 4, 1, 3, 2])
+  >>> rows = bm.asarray([0, 0, 1, 2, 2])
+  >>> cols = bm.asarray([1, 3, 0, 1, 3])
+  >>> B = bm.arange(4)
+  >>> bm.sparse_matmul([values, (rows, cols)], B, 3)
+  JaxArray([14,  0,  9], dtype=int32)
+  >>> B = bm.random.rand(4, 3)
+  >>> bm.sparse_matmul([values, (rows, cols)], B, 3)
+  JaxArray([[3.8331761 , 1.3708692 , 4.510223  ],
+            [0.9960836 , 0.37550318, 0.7370341 ],
+            [2.3700516 , 0.7574289 , 4.1124535 ]], dtype=float32)
+
+  2. when the right matrix :math:`B` is a sparse matrix with the shape of :math:`(M, K)`,
+     we should provide :math:`K` as the ``shape`` in the ``brainpy.math.sparse_matmul``
+     function.
+
+  >>> A = bm.arange(3)
+  >>> bm.sparse_matmul(A, [values, (rows, cols)], 4)
+  JaxArray([1, 6, 0, 4], dtype=int32)
+  >>> A = bm.random.rand(2, 3)
+  JaxArray([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
+            [0.9171978 , 1.1214957 , 0.        , 0.90534496]],  dtype=float32)
 
   Parameters
   ----------

@@ -41,7 +41,7 @@ class Reservoir(Node):
     - If a callable, should be an element-wise operator on tensor.
   activation_type : str
     - If "internal" (default), then leaky integration happens on states transformed
-    by the activation function:
+      by the activation function:
 
     .. math::
 
@@ -49,16 +49,16 @@ class Reservoir(Node):
         \alpha \cdot f(W_{ff} \cdot u[n] + W_{fb} \cdot b[n] + W_{rec} \cdot r[t])
 
     - If "external", then leaky integration happens on internal states of
-    each neuron, stored in an ``internal_state`` parameter (:math:`x` in
-    the equation below).
-    A neuron internal state is the value of its state before applying
-    the activation function :math:`f`:
+      each neuron, stored in an ``internal_state`` parameter (:math:`x` in
+      the equation below).
+      A neuron internal state is the value of its state before applying
+      the activation function :math:`f`:
 
-    .. math::
+      .. math::
 
-        x[n+1] &= (1 - \alpha) \cdot x[t] +
-        \alpha \cdot f(W_{ff} \cdot u[n] + W_{rec} \cdot r[t] + W_{fb} \cdot b[n]) \\
-        r[n+1] &= f(x[n+1])
+          x[n+1] &= (1 - \alpha) \cdot x[t] +
+          \alpha \cdot f(W_{ff} \cdot u[n] + W_{rec} \cdot r[t] + W_{fb} \cdot b[n]) \\
+          r[n+1] &= f(x[n+1])
   ff_connectivity : float, optional
     Connectivity of input neurons, i.e. ratio of input neurons connected
     to reservoir neurons. Must be in [0, 1], by default 0.1
@@ -222,7 +222,7 @@ class Reservoir(Node):
       hidden = bm.dot(x, self.Wff)
     # feedback
     if self.Wfb is not None:
-      assert fb is not None, 'Should provide feedback signals, while got None.'
+      assert fb is not None, 'Should provide feedback signals, but we got None.'
       fb = bm.concatenate(fb, axis=-1)
       if self.noise_fb: fb += self.noise_fb * self.rng.uniform(-1, 1, fb.shape)
       if self.conn_type == 'sparse' and self.fb_connectivity < 1.:
@@ -243,4 +243,3 @@ class Reservoir(Node):
       state = self.activation(state)
     self.state.value = state
     return state
-

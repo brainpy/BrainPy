@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import jax.numpy as jnp
+
 from brainpy import math as bm, dyn
-from brainpy.integrators import odeint, JointEq, IntegratorRunner
+from brainpy.integrators import odeint, ddeint, JointEq, IntegratorRunner
 
 __all__ = [
   'henon_map_series',
@@ -16,17 +18,31 @@ __all__ = [
   'modified_chua_series',
   'lorenz_series',
   'modified_Lorenz_series',
+  'double_scroll_series',
 
   'PWL_duffing_series',
 ]
 
 
-def henon_map_series(num_step, a=1.4, b=0.3, inits=None):
+def henon_map_series(num_step, a=1.4, b=0.3, inits=None, numpy_mon=False):
   r"""The Hénon map time series.
+
+  The Hénon map is a discrete-time dynamical system. It is one of the
+  most studied examples of dynamical systems that exhibit chaotic behavior.
 
   .. math::
 
     \begin{split}\begin{cases}x_{n+1} = 1-a x_n^2 + y_n\\y_{n+1} = b x_n.\end{cases}\end{split}
+
+  The map depends on two parameters, a and b, which for the classical
+  Hénon map have values of a = 1.4 and b = 0.3. For the classical values
+  the Hénon map is chaotic.
+
+  References
+  ----------
+
+  .. [1] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/henon_map.html
+  .. [1] https://en.wikipedia.org/wiki/H%C3%A9non_map
   """
   if inits is None:
     inits = {'x': bm.zeros(1), 'y': bm.zeros(1)}
@@ -36,27 +52,50 @@ def henon_map_series(num_step, a=1.4, b=0.3, inits=None):
     inits = {'x': bm.asarray(inits['x']), 'y': bm.asarray(inits['y'])}
     assert inits['x'].shape == inits['y'].shape
   else:
-    raise ValueError
+    raise ValueError(f'Please provide dict, and do not support {type(inits)}: {inits}')
   map = _HenonMap(inits['x'].size, a=a, b=b)
-  runner = dyn.DSRunner(map, monitors=['x', 'y'], dt=1, progress_bar=False)
+  runner = dyn.DSRunner(map, monitors=['x', 'y'], dt=1, progress_bar=False,
+                        numpy_mon_after_run=numpy_mon)
   runner.run(num_step)
   return {'ts': runner.mon.ts,
           'x': runner.mon.x,
           'y': runner.mon.y}
 
 
-def logistic_map_series(num_step, mu=3., inits=None):
-  """The logistic map time series."""
+def logistic_map_series(num_step, mu=3., inits=None, numpy_mon=False):
+  r"""The logistic map time series.
+
+  The logistic map is defined by the following equation:
+
+  .. math::
+
+     x_{n+1}=\lambda x_{n}\left(1-x_{n}\right) \quad \text { with } \quad n=0,1,2,3 \ldots
+
+  References
+  ----------
+  .. [3] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/logistic_map.html
+  .. [4] https://en.wikipedia.org/wiki/Logistic_map
+
+  """
   if inits is None:
     inits = bm.ones(1) * 0.2
   else:
     inits = bm.asarray(inits)
-  runner = dyn.DSRunner(_LogisticMap(inits.size, mu=mu), monitors=['x'], dt=1, progress_bar=False)
+  runner = dyn.DSRunner(_LogisticMap(inits.size, mu=mu),
+                        monitors=['x'], dt=1, progress_bar=False,
+                        numpy_mon_after_run=numpy_mon)
   runner.run(num_step)
   return {'ts': runner.mon.ts, 'x': runner.mon.x}
 
 
-def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., tau=.2, method='rk4', inits=None):
+def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., tau=.2,
+                            method='rk4', inits=None, numpy_mon=False):
+  """Modified Lu Chen attractor.
+
+  References
+  ----------
+  .. [4] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Modified-Lu-Chen-attractor
+  """
   if inits is None:
     inits = {'x': bm.ones(1), 'y': bm.ones(1), 'z': bm.ones(1) * 14}
   elif isinstance(inits, dict):
@@ -73,7 +112,8 @@ def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., ta
   eq.x[:] = inits['x']
   eq.y[:] = inits['y']
   eq.z[:] = inits['z']
-  runner = dyn.DSRunner(eq, monitors=['x', 'y', 'z'], dt=dt, progress_bar=False)
+  runner = dyn.DSRunner(eq, monitors=['x', 'y', 'z'], dt=dt, progress_bar=False,
+                        numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon['x'],
@@ -82,7 +122,8 @@ def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., ta
 
 
 def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
-                        inits=None, method='rk4', seed=None):
+                        inits=None, method='rk4', seed=None,
+                        progress_bar=False, numpy_mon=False):
   """The Mackey-Glass time series.
 
   Its dynamics is governed by
@@ -106,26 +147,58 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
   inits: optional, float, JaxArray
   method: str
   seed: optional, int
+  progress_bar: bool
 
   Returns
   -------
   result: dict
+    The time series data which contain
 
+  References
+  ----------
+
+  .. [5] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/mackey_glass_eq.html
   """
   if inits is None:
     inits = bm.ones(1) * 1.2
+  elif isinstance(inits, (float, int)):
+    inits = bm.asarray([inits], dtype=bm.float_)
   else:
-    inits = bm.asarray(inits)
-  eq = _MackeyGlassEq(num=inits.size, beta=beta, gamma=gamma, tau=tau, n=n,
-                      inits=inits, method=method, seed=seed)
-  runner = dyn.DSRunner(eq, monitors=['x_latest', 'x_oldest'], dt=dt, progress_bar=False)
+    assert isinstance(inits, (bm.ndarray, jnp.ndarray))
+
+  rng = bm.random.RandomState(seed)
+  xdelay = bm.FixedLenDelay(inits.shape, tau, dt=dt)
+  xdelay.data = inits + 0.2 * (rng.random((xdelay.num_delay_steps,) + inits.shape) - 0.5)
+
+  @ddeint(method=method, state_delays={'x': xdelay})
+  def mg_eq(x, t):
+    return beta * xdelay(t - tau) / (1 + xdelay(t - tau) ** n) - gamma * x
+
+  runner = IntegratorRunner(mg_eq,
+                            inits={'x': inits},
+                            monitors=['x'],
+                            fun_monitors={'x(tau)': lambda t, dt: xdelay(t - tau)},
+                            progress_bar=progress_bar,
+                            dt=dt,
+                            numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
-          'x': runner.mon['x_latest'],
-          'x_tau': runner.mon['x_oldest']}
+          'x': runner.mon['x'],
+          'x_tau': runner.mon['x(tau)']}
 
 
-def lorenz_series(duration, dt=0.001, sigma=10, beta=8 / 3, rho=28, method='rk4', inits=None):
+def lorenz_series(duration, dt=0.001, sigma=10, beta=8 / 3, rho=28, method='rk4', inits=None,
+                  numpy_mon=False):
+  """The Lorenz system.
+
+  The Lorenz system is a system of ordinary differential equations first
+  studied by mathematician and meteorologist Edward Lorenz.
+
+  References
+  ----------
+  .. [6] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/lorenz_system.html
+
+  """
   dx = lambda x, t, y: sigma * (y - x)
   dy = lambda y, t, x, z: x * (rho - z) - y
   dz = lambda z, t, x, y: x * y - beta * z
@@ -133,10 +206,24 @@ def lorenz_series(duration, dt=0.001, sigma=10, beta=8 / 3, rho=28, method='rk4'
 
   return _three_variable_model(integral,
                                default_inits={'x': 8, 'y': 1, 'z': 1},
-                               duration=duration, dt=dt, inits=inits)
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
 
 
-def rabinovich_fabrikant_series(duration, dt=0.001, alpha=1.1, gamma=0.803, method='rk4', inits=None):
+def rabinovich_fabrikant_series(duration, dt=0.001, alpha=1.1, gamma=0.803,
+                                method='rk4', inits=None, numpy_mon=False):
+  """Rabinovich-Fabrikant equations.
+
+  The Rabinovich–Fabrikant equations are a set of three coupled ordinary
+  differential equations exhibiting chaotic behaviour for certain values
+  of the parameters. They are named after Mikhail Rabinovich and Anatoly
+  Fabrikant, who described them in 1979.
+
+  References
+  ----------
+  .. [7] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Rabinovich_Fabrikant_eq.html
+
+  """
   @odeint(method=method)
   def rf_eqs(x, y, z, t):
     dx = y * (z - 1 + x * x) + gamma * x
@@ -146,10 +233,19 @@ def rabinovich_fabrikant_series(duration, dt=0.001, alpha=1.1, gamma=0.803, meth
 
   return _three_variable_model(rf_eqs,
                                default_inits={'x': -1, 'y': 0, 'z': 0.5},
-                               duration=duration, dt=dt, inits=inits)
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
 
 
-def chen_chaotic_series(duration, dt=0.001, a=40, b=3, c=28, method='euler', inits=None):
+def chen_chaotic_series(duration, dt=0.001, a=40, b=3, c=28,
+                        method='euler', inits=None, numpy_mon=False):
+  """Chen attractor.
+
+  References
+  ----------
+  .. [7] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Chen-attractor
+  """
+
   @odeint(method=method)
   def chen_system(x, y, z, t):
     dx = a * (y - x)
@@ -159,10 +255,18 @@ def chen_chaotic_series(duration, dt=0.001, a=40, b=3, c=28, method='euler', ini
 
   return _three_variable_model(chen_system,
                                default_inits=dict(x=-0.1, y=0.5, z=-0.6),
-                               duration=duration, dt=dt, inits=inits)
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
 
 
-def lu_chen_chaotic_series(duration, dt=0.001, a=36, c=20, b=3, u=-15.15, method='rk4', inits=None):
+def lu_chen_chaotic_series(duration, dt=0.001, a=36, c=20, b=3, u=-15.15,
+                           method='rk4', inits=None, numpy_mon=False):
+  """Lu Chen attractor.
+
+  References
+  ----------
+  .. [8] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Lu-Chen-attractor
+  """
   @odeint(method=method)
   def lu_chen_system(x, y, z, t):
     dx = a * (y - x)
@@ -172,11 +276,18 @@ def lu_chen_chaotic_series(duration, dt=0.001, a=36, c=20, b=3, u=-15.15, method
 
   return _three_variable_model(lu_chen_system,
                                default_inits=dict(x=0.1, y=0.3, z=-0.6),
-                               duration=duration, dt=dt, inits=inits)
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
 
 
 def chua_chaotic_series(duration, dt=0.001, alpha=10, beta=14.514, gamma=0, a=-1.197, b=-0.646, method='rk4',
-                        inits=None):
+                        inits=None, numpy_mon=False):
+  """Chua’s system.
+
+  References
+  ----------
+  .. [9] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Chua%E2%80%99s-system
+  """
   @odeint(method=method)
   def chua_equation(x, y, z, t):
     fx = b * x + 0.5 * (a - b) * (bm.abs(x + 1) - bm.abs(x - 1))
@@ -187,10 +298,20 @@ def chua_chaotic_series(duration, dt=0.001, alpha=10, beta=14.514, gamma=0, a=-1
 
   return _three_variable_model(chua_equation,
                                default_inits=dict(x=0.001, y=0, z=0.),
-                               duration=duration, dt=dt, inits=inits)
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
 
 
-def modified_chua_series(duration, dt=0.001, alpha=10.82, beta=14.286, a=1.3, b=.11, d=0, method='rk4', inits=None):
+def modified_chua_series(duration, dt=0.001, alpha=10.82, beta=14.286, a=1.3, b=.11, d=0,
+                         method='rk4', inits=None, numpy_mon=False):
+  """Modified Chua chaotic attractor.
+
+  References
+  ----------
+  .. [10] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Modified-Chua-chaotic-attractor
+
+  """
+
   @odeint(method=method)
   def modified_chua_system(x, y, z, t):
     dx = alpha * (y + b * bm.sin(bm.pi * x / 2 / a + d))
@@ -200,10 +321,19 @@ def modified_chua_series(duration, dt=0.001, alpha=10.82, beta=14.286, a=1.3, b=
 
   return _three_variable_model(modified_chua_system,
                                default_inits=dict(x=1, y=1, z=0.),
-                               duration=duration, dt=dt, inits=inits)
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
 
 
-def modified_Lorenz_series(duration, dt=0.001, a=10, b=8 / 3, c=137 / 5, method='rk4', inits=None):
+def modified_Lorenz_series(duration, dt=0.001, a=10, b=8 / 3, c=137 / 5,
+                           method='rk4', inits=None, numpy_mon=False):
+  """Modified Lorenz chaotic system.
+
+  References
+  ----------
+  .. [11] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Modified-Lorenz-chaotic-system
+  """
+
   @odeint(method=method)
   def modified_Lorenz(x, y, z, t):
     temp = 3 * bm.sqrt(x * x + y * y)
@@ -214,10 +344,21 @@ def modified_Lorenz_series(duration, dt=0.001, a=10, b=8 / 3, c=137 / 5, method=
 
   return _three_variable_model(modified_Lorenz,
                                default_inits=dict(x=-8, y=4, z=10),
-                               duration=duration, dt=dt, inits=inits)
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
 
 
-def PWL_duffing_series(duration, dt=0.001, e=0.25, m0=-0.0845, m1=0.66, omega=1, i=-14, method='rk4', inits=None):
+
+
+def PWL_duffing_series(duration, dt=0.001, e=0.25, m0=-0.0845, m1=0.66, omega=1, i=-14,
+                       method='rk4', inits=None, numpy_mon=False):
+  """PWL Duffing chaotic attractor.
+
+  References
+  ----------
+  .. [12] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#PWL-Duffing-chaotic-attractor
+  """
+
   gamma = 0.14 + i / 20
 
   @odeint(method=method)
@@ -228,45 +369,86 @@ def PWL_duffing_series(duration, dt=0.001, e=0.25, m0=-0.0845, m1=0.66, omega=1,
 
   return _two_variable_model(PWL_duffing_eq,
                              default_inits=dict(x=0, y=0.),
-                             duration=duration, dt=dt, inits=inits)
+                             duration=duration, dt=dt, inits=inits,
+                             numpy_mon=numpy_mon)
 
 
-def _two_variable_model(integrator, duration, default_inits, inits=None, args=None, dyn_args=None, dt=0.001):
+def double_scroll_series(duration, dt=0.01,
+                         R1=1.2, R2=3.44, R4=0.193, beta=11.6, Ir=2 * 2.25e-5,
+                         method='rk4', inits=None, numpy_mon=False):
+  r"""Double-scroll electronic circuit attractor.
+
+  Its behavior is governed by
+
+  .. math::
+
+     {\dot{V}}_{1} ={V}_{1}/{R}_{1}-\varDelta V/{R}_{2}\,-\,2{I}_{r}\,\sinh (\beta \varDelta V),\\
+     \dot{{V}_{2}} =\varDelta V/{R}_{2}+2{I}_{r}\,\sinh (\beta \varDelta V)-I,\\
+     \dot{I} ={V}_{2}-{R}_{4}I
+
+  in dimensionless form.
+
+  References
+  ----------
+  .. [1] Chang, A., Bienfang, J. C., Hall, G. M., Gardner, J. R. &
+         Gauthier, D. J. Stabilizing unstable steady states using
+         extended time-delay autosynchronization. Chaos 8, 782–790 (1998).
+  """
+
+  @odeint(method=method)
+  def double_scroll(x, y, z, t):
+    delta = x - y
+    dV1 = x / R1 - delta / R2 - 2 * Ir * bm.sinh(beta * delta)
+    dV2 = delta / R2 + 2 * Ir * bm.sinh(beta * delta) - z
+    dI = y - R4 * z
+    return dV1, dV2, dI
+
+  return _three_variable_model(double_scroll,
+                               default_inits=dict(x=0.37926545, y=0.058339, z=-0.08167691),
+                               duration=duration, dt=dt, inits=inits,
+                               numpy_mon=numpy_mon)
+
+
+def _two_variable_model(integrator, duration, default_inits, inits=None,
+                        args=None, dyn_args=None, dt=0.001, numpy_mon=False):
   if inits is None:
     inits = default_inits
   elif isinstance(inits, dict):
     assert 'x' in inits
     assert 'y' in inits
-    inits = {'x': bm.asarray(inits['x']),
-             'y': bm.asarray(inits['y'])}
+    inits = {'x': bm.asarray(inits['x']).flatten(),
+             'y': bm.asarray(inits['y']).flatten()}
     assert inits['x'].shape == inits['y'].shape
   else:
     raise ValueError
 
   runner = IntegratorRunner(integrator, monitors=['x', 'y'], inits=inits,
-                            args=args, dyn_args=dyn_args, dt=dt, progress_bar=False)
+                            args=args, dyn_args=dyn_args, dt=dt, progress_bar=False,
+                            numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon.x,
           'y': runner.mon.y}
 
 
-def _three_variable_model(integrator, duration, default_inits, inits=None, args=None, dyn_args=None, dt=0.001):
+def _three_variable_model(integrator, duration, default_inits, inits=None, args=None,
+                          dyn_args=None, dt=0.001, numpy_mon=False):
   if inits is None:
     inits = default_inits  # {'x': -1, 'y': 0, 'z': 0.5}
   elif isinstance(inits, dict):
     assert 'x' in inits
     assert 'y' in inits
     assert 'z' in inits
-    inits = {'x': bm.asarray(inits['x']),
-             'y': bm.asarray(inits['y']),
-             'z': bm.asarray(inits['z'])}
+    inits = {'x': bm.asarray(inits['x']).flatten(),
+             'y': bm.asarray(inits['y']).flatten(),
+             'z': bm.asarray(inits['z']).flatten()}
     assert inits['x'].shape == inits['y'].shape == inits['z'].shape
   else:
     raise ValueError
 
   runner = IntegratorRunner(integrator, monitors=['x', 'y', 'z'], inits=inits,
-                            args=args, dyn_args=dyn_args, dt=dt, progress_bar=False)
+                            args=args, dyn_args=dyn_args, dt=dt, progress_bar=False,
+                            numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon.x,
@@ -341,45 +523,3 @@ class _ModifiedLuChenSystem(dyn.DynamicalSystem):
       self.x, self.y, self.z, _t, _dt)
     self.z_delay.push(self.z)
     self.z_delay.update(_t, _dt)
-
-
-class _MackeyGlassEq(dyn.DynamicalSystem):
-  r"""The Mackey-Glass equation is the nonlinear time delay differential equation.
-
-  .. math::
-
-     \frac{dP(t)}{dt} = \frac{\beta P(t - \tau)}{1 + P(t - \tau)^n} - \gamma P(t)
-
-  where $\beta = 0.2$, $\gamma = 0.1$, $n = 10$, and the time delay $\tau = 17$. $\tau$
-  controls the chaotic behaviour of the equations (the higher it is, the more chaotic
-  the timeserie becomes.)
-
-  - Copied from https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/mackey_glass_eq.html
-
-  """
-
-  def __init__(self, num, inits, beta=2., gamma=1., tau=2., n=9.65, method='rk4', seed=None):
-    super(_MackeyGlassEq, self).__init__()
-
-    # parameters
-    self.beta = beta
-    self.gamma = gamma
-    self.tau = tau
-    self.n = n
-
-    # variables
-    rng = bm.random.RandomState(seed)
-    self.x = dyn.ConstantDelay(num, delay=tau)
-    self.x.data[:] = inits + 0.2 * (rng.random(num) - 0.5)
-    self.x_latest = bm.Variable(self.x.latest)
-    self.x_oldest = bm.Variable(self.x.oldest)
-
-    # functions
-    self.derivative = lambda x, t, x_tau: self.beta * x_tau / (1 + x_tau ** self.n) - self.gamma * x
-    self.integral = odeint(self.derivative, method=method)
-
-  def update(self, _t, _dt):
-    self.x_oldest.value = self.x.pull()
-    self.x_latest.value = self.integral(self.x_latest, _t, self.x_oldest, _dt)
-    self.x.push(self.x_latest)
-    self.x.update(_t, _dt)

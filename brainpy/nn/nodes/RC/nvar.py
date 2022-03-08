@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from itertools import combinations_with_replacement
+from typing import Union
 
 import numpy as np
 
 import brainpy.math as bm
 from brainpy.dyn.base import ConstantDelay
 from brainpy.nn.base import Node
-from brainpy.tools.checking import check_shape_consistency
+from brainpy.tools.checking import (check_shape_consistency,
+                                    check_float)
 
 __all__ = [
   'NVAR'
@@ -43,9 +45,13 @@ class NVAR(Node):
   Parameters
   ----------
   delay: int
+    The number of delay step.
   order: int
+    The nonlinear order.
   stride: int
+    The stride to sample linear part vector in the delays.
   constant: optional, float
+    The constant value.
 
   References
   ----------
@@ -55,13 +61,19 @@ class NVAR(Node):
 
   """
 
-  def __init__(self, delay: int, order: int, stride: int = 1, constant=None, **kwargs):
+  def __init__(self,
+               delay: int,
+               order: int,
+               stride: int = 1,
+               constant: Union[float, int] = None,
+               **kwargs):
     super(NVAR, self).__init__(**kwargs)
 
     self.delay = delay
     self.order = order
     self.stride = stride
     self.constant = constant
+    check_float(constant, 'constant', allow_none=True, allow_int=True)
 
   def ff_init(self):
     # input dimension
@@ -88,18 +100,13 @@ class NVAR(Node):
     self.set_output_shape(unique_size + (output_dim,))
 
     # to store the k*s last inputs, k being the delay and s the strides
-    # self.delay_store = bm.Variable(bm.zeros((self.delay * self.stride,) +
-    #                                         unique_size + (input_dim, )))
-    self.store = ConstantDelay(unique_size + (input_dim,),
-                               self.delay * self.stride, dt=1)
+    self.store = ConstantDelay(unique_size + (input_dim,), self.delay * self.stride, dt=1)
 
   def forward(self, ff, fb=None, **kwargs):
     # 1. store the current input
     ff = bm.concatenate(ff, axis=-1)
     self.store.push(ff)
     self.store.update()
-    # self.delay_store.value = bm.roll(self.delay_store, 1, axis=0)
-    # self.delay_store[0] = ff
     # 2. Linear part:
     # select all previous inputs, including the current, with strides
     select_ids = (self.store.out_idx + bm.arange(self.store.num_step - 1)[::self.stride]) % self.store.num_step
@@ -117,5 +124,8 @@ class NVAR(Node):
     if self.constant is None:
       return bm.concatenate([linear_parts, nonlinear_parts], axis=-1)
     else:
-      return bm.concatenate([bm.ones(linear_parts.shape[:-1]) * self.constant,
-                             linear_parts, nonlinear_parts], axis=-1)
+      constant = bm.broadcast_to(self.constant, linear_parts.shape[:-1] + (1,))
+      return bm.concatenate([constant, linear_parts, nonlinear_parts], axis=-1)
+
+  def reset_state(self, to_state=None):
+    self.store.data[:] = 0.

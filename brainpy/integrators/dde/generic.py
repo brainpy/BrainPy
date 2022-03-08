@@ -73,6 +73,10 @@ def ddeint(f=None, method='euler', **kwargs):
     The name.
   show_code: bool
     Whether show the formartted codes.
+  state_delays: dict
+    The state delay variables.
+  neutral_delays: dict
+    The neutral delay variable.
 
   Returns
   -------

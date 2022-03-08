@@ -36,4 +36,4 @@ class TestVisualize(unittest.TestCase):
     # print(model.trainable)
     print()
 
-    model.visualize()
+    model.plot_node_graph('spring_layout', fig_size=(70, 70))
