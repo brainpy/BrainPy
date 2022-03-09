@@ -156,4 +156,4 @@ If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and
 The changes from ``brainpy==1.x`` to ``brainpy==2.x`` can be inspected through [API documentation: release notes](https://brainpy.readthedocs.io/en/latest/apis/auto/changelog.html).
 
 
-### Contributors
+# Contributors
