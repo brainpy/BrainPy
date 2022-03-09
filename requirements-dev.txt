@@ -4,6 +4,7 @@ matplotlib>=3.4
 jaxlib>=0.1.64
 sympy>=1.6
 scipy>=1.1.0
+numba<=0.54.1
 networkx
 brainpylib>=0.0.3
 
