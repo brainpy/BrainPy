@@ -145,6 +145,62 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/brainpy-2.x/api
 
 ### Contributors
 
+<table>
+<tr>
+    <td align="center" style="word-wrap: break-word; width: 150.0; height: 150.0">
+        <a href=https://github.com/chaoming0625>
+            <img src=https://avatars.githubusercontent.com/u/14275596?v=4 width="100;"  style="border-radius:50%;align-items:center;justify-content:center;overflow:hidden;padding-top:10px" alt=Chaoming Wang/>
+            <br />
+            <sub style="font-size:14px"><b>Chaoming Wang</b></sub>
+        </a>
+    </td>
+    <td align="center" style="word-wrap: break-word; width: 150.0; height: 150.0">
+        <a href=https://github.com/ztqakita>
+            <img src=https://avatars.githubusercontent.com/u/58379435?v=4 width="100;"  style="border-radius:50%;align-items:center;justify-content:center;overflow:hidden;padding-top:10px" alt=Brandon Zhang/>
+            <br />
+            <sub style="font-size:14px"><b>Brandon Zhang</b></sub>
+        </a>
+    </td>
+    <td align="center" style="word-wrap: break-word; width: 150.0; height: 150.0">
+        <a href=https://github.com/c-xy17>
+            <img src=https://avatars.githubusercontent.com/u/55552143?v=4 width="100;"  style="border-radius:50%;align-items:center;justify-content:center;overflow:hidden;padding-top:10px" alt=Xiaoyu Chen/>
+            <br />
+            <sub style="font-size:14px"><b>Xiaoyu Chen</b></sub>
+        </a>
+    </td>
+    <td align="center" style="word-wrap: break-word; width: 150.0; height: 150.0">
+        <a href=https://github.com/yqianjiang>
+            <img src=https://avatars.githubusercontent.com/u/48210973?v=4 width="100;"  style="border-radius:50%;align-items:center;justify-content:center;overflow:hidden;padding-top:10px" alt=Yingqian Jiang/>
+            <br />
+            <sub style="font-size:14px"><b>Yingqian Jiang</b></sub>
+        </a>
+    </td>
+    <td align="center" style="word-wrap: break-word; width: 150.0; height: 150.0">
+        <a href=https://github.com/adaliuBC>
+            <img src=https://avatars.githubusercontent.com/u/37221510?v=4 width="100;"  style="border-radius:50%;align-items:center;justify-content:center;overflow:hidden;padding-top:10px" alt=Xinyu Liu/>
+            <br />
+            <sub style="font-size:14px"><b>Xinyu Liu</b></sub>
+        </a>
+    </td>
+    <td align="center" style="word-wrap: break-word; width: 150.0; height: 150.0">
+        <a href=https://github.com/charlielam0615>
+            <img src=https://avatars.githubusercontent.com/u/20623744?v=4 width="100;"  style="border-radius:50%;align-items:center;justify-content:center;overflow:hidden;padding-top:10px" alt=charlielam0615/>
+            <br />
+            <sub style="font-size:14px"><b>charlielam0615</b></sub>
+        </a>
+    </td>
+</tr>
+<tr>
+    <td align="center" style="word-wrap: break-word; width: 150.0; height: 150.0">
+        <a href=https://github.com/terrypang>
+            <img src=https://avatars.githubusercontent.com/u/531563?v=4 width="100;"  style="border-radius:50%;align-items:center;justify-content:center;overflow:hidden;padding-top:10px" alt=Terry Pang/>
+            <br />
+            <sub style="font-size:14px"><b>Terry Pang</b></sub>
+        </a>
+    </td>
+</tr>
+</table>
+
 
 # BrainPy 1.x
 
