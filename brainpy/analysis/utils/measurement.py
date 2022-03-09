@@ -51,7 +51,7 @@ def euclidean_distance(points: np.ndarray):
   num_point = points.shape[0]
   indices = np.triu_indices(num_point)
   dist_mat = np.zeros((num_point, num_point))
-  for idx in prange(len(indices[0])):
+  for idx in range(len(indices[0])):
     i = indices[0][idx]
     j = indices[1][idx]
     dist_mat[i, j] = np.linalg.norm(points[i] - points[j])
