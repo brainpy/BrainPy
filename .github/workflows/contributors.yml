@@ -2,16 +2,13 @@ name: Add contributors
 on:
   schedule:
     - cron:  '20 20 * * *'
-  push:
-    branches:
-      - V2.1.0
 
 jobs:
   add-contributors:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: BobAnkh/add-contributors@master
+    - uses: BobAnkh/add-contributors@V2.1.0
       with:
         CONTRIBUTOR: '### Contributors'
         COLUMN_PER_ROW: '6'
