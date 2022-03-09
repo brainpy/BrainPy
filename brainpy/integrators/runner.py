@@ -253,7 +253,7 @@ class IntegratorRunner(Runner):
     self.step_func = _loop_func
 
   def _post(self, times, returns: dict):  # monitor
-    self.mon.ts = times
+    self.mon.ts = times + self.dt
     for key in returns.keys():
       self.mon.item_contents[key] = bm.asarray(returns[key])
 
@@ -309,8 +309,11 @@ class IntegratorRunner(Runner):
         start_t = float(self._start_t)
     end_t = float(start_t + duration)
     # times
-    times = bm.arange(start_t, end_t, self.dt)
-    time_steps = bm.ones_like(times) * self.dt
+    times = bm.asarray(np.arange(start_t, end_t, self.dt))
+    time_steps = bm.asarray(np.ones_like(times) * self.dt)
+    # times = bm.arange(start_t, end_t, self.dt)
+    # time_steps = bm.ones_like(times) * self.dt
+
     # running
     if self.progress_bar:
       self._pbar = tqdm.auto.tqdm(total=times.size)
