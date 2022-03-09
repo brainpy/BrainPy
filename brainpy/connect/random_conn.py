@@ -312,7 +312,7 @@ class GaussianProb(OneEndConnector):
     return self.make_returns(structures, mat=conn_mat)
 
 
-@tools.numba_jit
+# @tools.numba_jit
 def _smallworld_rewire(prob, i, all_j, include_self):
   if np.random.random(1) < prob:
     non_connected = np.where(all_j == False)[0]

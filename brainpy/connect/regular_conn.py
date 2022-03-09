@@ -63,7 +63,7 @@ class All2All(TwoEndConnector):
 all2all = All2All(include_self=True)
 
 
-@tools.numba_jit
+# @tools.numba_jit
 def _grid_four(height, width, row, include_self):
   conn_i = []
   conn_j = []
@@ -124,7 +124,7 @@ class GridFour(OneEndConnector):
 grid_four = GridFour()
 
 
-@tools.numba_jit
+# @tools.numba_jit
 def _grid_n(height, width, row, n, include_self):
   conn_i = []
   conn_j = []

@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-@tools.numba_jit
+# @tools.numba_jit
 def _cc(states, i, j):
   sqrt_ij = np.sqrt(np.sum(states[i]) * np.sum(states[j]))
   k = 0. if sqrt_ij == 0. else np.sum(states[i] * states[j]) / sqrt_ij
@@ -82,7 +82,7 @@ def cross_correlation(spikes, bin, dt=None):
   return np.mean(all_k)
 
 
-@tools.numba_jit
+# @tools.numba_jit
 def _var(neu_signal):
   return np.mean(neu_signal * neu_signal) - np.mean(neu_signal) ** 2
 

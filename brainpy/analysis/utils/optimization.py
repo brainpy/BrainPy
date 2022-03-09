@@ -414,7 +414,7 @@ def roots_of_1d_by_xy(f, starts, ends, args):
   return xs, ys
 
 
-@tools.numba_jit
+# @tools.numba_jit
 def numpy_brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(float).eps):
   """
   Find a root of a function in a bracketing interval using Brent's method
@@ -541,7 +541,7 @@ def numpy_brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(fl
   return root, funcalls, itr
 
 
-@tools.numba_jit
+# @tools.numba_jit
 def find_root_of_1d_numpy(f, f_points, args=(), tol=1e-8):
   """Find the roots of the given function by numerical methods.
 
