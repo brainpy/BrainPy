@@ -117,12 +117,12 @@ class ExpSyn(bp.dyn.TwoEndConn):
       post_vs = bm.pre2post_event_sum2(delayed_sps, self.pre_ids, self.post_ids, self.post.num, self.weights)
       # post_vs = bm.zeros(self.post.num)
       # post_vs = post_vs.value.at[self.post_ids.value].add(delayed_sps[self.pre_ids.value])
-    elif self.conn_type == 3:
-      post_vs = bm.pre2post_event_sum3(delayed_sps, self.pre2post, self.post.num, self.weights,
-                                       self.max_post_conn)
-    elif self.conn_type == 4:
-      post_vs = bm.pre2post_event_sum4(delayed_sps, self.pre2post, self.post.num, self.weights,
-                                       self.max_post_conn)
+    # elif self.conn_type == 3:
+    #   post_vs = bm.pre2post_event_sum3(delayed_sps, self.pre2post, self.post.num, self.weights,
+    #                                    self.max_post_conn)
+    # elif self.conn_type == 4:
+    #   post_vs = bm.pre2post_event_sum4(delayed_sps, self.pre2post, self.post.num, self.weights,
+    #                                    self.max_post_conn)
     else:
       raise ValueError
     self.post.I += post_vs

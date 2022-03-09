@@ -101,21 +101,21 @@ class DDEIntegrator(Integrator):
     else:
       dict_vars = {k: new_vars[i] for i, k in enumerate(self.variables)}
 
+    dt = kwargs.pop(DT, self.dt)
     # update neutral delay variables
     if len(self.neutral_delays):
       kwargs.update(dict_vars)
-      kwargs.pop(DT, None)
       new_dvars = self.f(**kwargs)
       if len(self.variables) == 1:
         new_dvars = {self.variables[0]: new_dvars}
       else:
         new_dvars = {k: new_dvars[i] for i, k in enumerate(self.variables)}
       for key, delay in self.neutral_delays.items():
-        delay.update(kwargs['t'], new_dvars[key])
+        delay.update(kwargs['t'] + dt, new_dvars[key])
 
     # update state delay variables
     for key, delay in self.state_delays.items():
-      delay.update(kwargs['t'], dict_vars[key])
+      delay.update(kwargs['t'] + dt, dict_vars[key])
 
     return new_vars
 

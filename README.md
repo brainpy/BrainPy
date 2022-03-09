@@ -145,33 +145,6 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/brainpy-2.x/api
 
 
 
-
-# Citing BrainPy
-
-
-A nascent version of BrainPy was described in a [paper that appeared at ICONIP 2021](https://link.springer.com/chapter/10.1007/978-3-030-92238-2_2). We're currently working on covering BrainPy's ideas and capabilities in a more comprehensive and up-to-date paper. 
-
-If you use BrainPy for your published research, you can cite BrainPy with:
-
-```latex
-Wang, C., Jiang, Y., Liu, X., Lin, X., Zou, X., Ji, Z., & Wu, S. (2021, December). A Just-In-Time Compilation Approach for Neural Dynamics Simulation. In International Conference on Neural Information Processing (pp. 15-26). Springer, Cham.
-```
-
-or,
-
-```latex
-@inproceedings{wang2021just,
-  title={A Just-In-Time Compilation Approach for Neural Dynamics Simulation},
-  author={Wang, Chaoming and Jiang, Yingqian and Liu, Xinyu and Lin, Xiaohan and Zou, Xiaolong and Ji, Zilong and Wu, Si},
-  booktitle={International Conference on Neural Information Processing},
-  pages={15--26},
-  year={2021},
-  organization={Springer}
-}
-```
-
-
-
 # BrainPy 1.x
 
 If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and *models* through the following links:
@@ -182,3 +155,5 @@ If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and
 
 The changes from ``brainpy==1.x`` to ``brainpy==2.x`` can be inspected through [API documentation: release notes](https://brainpy.readthedocs.io/en/latest/apis/auto/changelog.html).
 
+
+### Contributors

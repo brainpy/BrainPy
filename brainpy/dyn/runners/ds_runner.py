@@ -229,11 +229,11 @@ class DSRunner(Runner):
       self._pbar.close()
     # post-running
     if self.jit:
-      self.mon.ts = times
+      self.mon.ts = times + self.dt
       for key in self.mon.item_names:
         self.mon.item_contents[key] = bm.asarray(hists[key])
     else:
-      self.mon.ts = times
+      self.mon.ts = times + self.dt
       for key in self.mon.item_names:
         self.mon.item_contents[key] = bm.asarray(self.mon.item_contents[key])
     self._start_t = end_t

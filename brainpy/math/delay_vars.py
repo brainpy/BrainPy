@@ -76,10 +76,10 @@ class FixedLenDelay(AbstractDelay):
     The maximum delay length.
   dt: float, int
     The time precesion.
-  before_t0: callable, bm.ndarray, jnp.ndarray
+  before_t0: callable, bm.ndarray, jnp.ndarray, float, int
     The delay data before ::math`t_0`.
     - when `before_t0` is a function, it should receive an time argument `t`
-    - when `before_to` is an array, it should be a tensor with shape
+    - when `before_to` is a tensor, it should be a tensor with shape
       of :math:`(num_delay, ...)`, where the longest delay data is aranged in
       the first index.
   name: str
@@ -89,7 +89,7 @@ class FixedLenDelay(AbstractDelay):
       self,
       shape: Union[int, Tuple[int, ...]],
       delay_len: Union[float, int],
-      before_t0: Union[Callable, bm.ndarray, jnp.ndarray] = None,
+      before_t0: Union[Callable, bm.ndarray, jnp.ndarray, float, int] = None,
       t0: Union[float, int] = 0.,
       dt: Union[float, int] = None,
       name: str = None,
@@ -103,10 +103,11 @@ class FixedLenDelay(AbstractDelay):
 
     # delay_len
     self.t0 = t0
-    self.delay_len = delay_len
-    check_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
     self._dt = bm.get_dt() if dt is None else dt
-    self.num_delay_steps = int(bm.ceil(delay_len / self._dt).value)
+    check_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
+    self._delay_len = delay_len
+    self.delay_len = delay_len + self._dt
+    self.num_delay_steps = int(bm.ceil(self.delay_len / self._dt).value)
 
     # other variables
     self._idx = bm.Variable(bm.asarray([0]))
@@ -121,13 +122,18 @@ class FixedLenDelay(AbstractDelay):
       self._before_t0 = lambda t: jnp.asarray(bm.broadcast_to(before_t0(t), self.shape).value,
                                               dtype=self.dtype)
       self._before_type = _FUNC_BEFORE
-    elif isinstance(before_t0, (bm.ndarray, jnp.ndarray)):
+    elif isinstance(before_t0, (bm.ndarray, jnp.ndarray, float, int)):
       self._before_type = _DATA_BEFORE
-      if before_t0.shape != ((self.num_delay_steps,) + self.shape):
-        raise ValueError(f'"before_t0" should be a tensor with the shape of '
+      try:
+        self._data[:] = before_t0
+      except:
+        raise ValueError(f'Cannot set delay data by using "before_t0". '
+                         f'The delay data has the shape of '
                          f'{((self.num_delay_steps,) + self.shape)}, while '
-                         f'we got {before_t0.shape}')
-      self._data[:] = before_t0
+                         f'we got "before_t0" of {bm.asarray(before_t0).shape}. '
+                         f'They are not compatible. Note that the delay length '
+                         f'{self._delay_len} will automatically add a dt {self.dt} '
+                         f'to {self.delay_len}.')
     else:
       raise ValueError(f'"before_t0" does not support {type(before_t0)}: before_t0')
 
@@ -161,18 +167,20 @@ class FixedLenDelay(AbstractDelay):
 
   def _check_time(self, times, transforms):
     prev_time, current_time = times
+    current_time = bm.as_device_array(current_time)
+    prev_time = bm.as_device_array(prev_time)
     if prev_time > current_time:
       raise ValueError(f'\n'
                        f'!!! Error in {self.__class__.__name__}: \n'
                        f'The request time should be less than the '
                        f'current time {current_time}. But we '
                        f'got {prev_time} > {current_time}')
-    if prev_time < (current_time - self.delay_len):
+    lower_time = jnp.asarray(current_time - self.delay_len)
+    if prev_time < lower_time:
       raise ValueError(f'\n'
                        f'!!! Error in {self.__class__.__name__}: \n'
                        f'The request time of the variable should be in '
-                       f'[{current_time - self.delay_len}, '
-                       f'{current_time}], but we got {prev_time}')
+                       f'[{lower_time}, {current_time}], but we got {prev_time}')
 
   def __call__(self, prev_time):
     # check

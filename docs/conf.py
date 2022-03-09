@@ -33,6 +33,7 @@ auto_generater.generate_initialize_docs()
 auto_generater.generate_losses_docs()
 auto_generater.generate_optimizers_docs()
 auto_generater.generate_measure_docs()
+auto_generater.generate_datasets_docs()
 auto_generater.generate_tools_docs()
 
 import shutil
