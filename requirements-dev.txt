@@ -4,9 +4,9 @@ matplotlib>=3.4
 jaxlib>=0.1.64
 sympy>=1.6
 scipy>=1.1.0
-numba
+numba==0.52.0
 networkx
-brainpylib
+brainpylib>=0.0.3
 
 # test requirements
 pytest
