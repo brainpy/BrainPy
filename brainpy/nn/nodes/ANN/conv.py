@@ -55,12 +55,13 @@ class Conv2D(Node):
   name : str, optional
       The name of the dynamic system.
   """
-
-  def __init__(self, num_output, kernel_size, strides=1, dilations=1,
+  # todo: ztq rudely adds num_input as a parameter, but this is not offcial implementation.
+  def __init__(self, num_input, num_output, kernel_size, strides=1, dilations=1,
                groups=1, padding='SAME', w_init=XavierNormal(), b_init=ZeroInit(), **kwargs):
     super(Conv2D, self).__init__(**kwargs)
 
     # parameters
+    self.num_input = num_input
     self.num_output = num_output
     self.groups = groups
     self.kernel_size = kernel_size
@@ -81,8 +82,8 @@ class Conv2D(Node):
     self.groups = groups
 
   def ff_init(self):
-    assert num_input % self.groups == 0, '"nin" should be divisible by groups'
-    size = _check_tuple(self.kernel_size) + (num_input // self.groups, self.num_output)
+    assert self.num_input % self.groups == 0, '"nin" should be divisible by groups'
+    size = _check_tuple(self.kernel_size) + (self.num_input // self.groups, self.num_output)
     self.w = init_param(self.w_init, size)
     self.b = init_param(self.b_init, (self.num_output, 1, 1))
     if self.trainable:
