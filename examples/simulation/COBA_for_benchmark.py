@@ -6,7 +6,7 @@ import brainpy.math as bm
 bp.math.set_platform('gpu')
 
 
-class ExpCOBA(bp.TwoEndConn):
+class ExpCOBA(bp.dyn.TwoEndConn):
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
                method='exp_auto'):
     super(ExpCOBA, self).__init__(pre=pre, post=post, conn=conn)
@@ -32,7 +32,7 @@ class ExpCOBA(bp.TwoEndConn):
     self.post.input += self.g * (self.E - self.post.V)
 
 
-class EINet(bp.Network):
+class EINet(bp.dyn.Network):
   def __init__(self, scale=1.0, method='exp_auto'):
     # network size
     num_exc = int(3200 * scale)
@@ -58,7 +58,7 @@ class EINet(bp.Network):
 
 net = EINet(scale=10., method='euler')
 # simulation
-runner = bp.StructRunner(net,
+runner = bp.dyn.DSRunner(net,
                          # monitors=['E.spike'],
                          inputs=[('E.input', 20.), ('I.input', 20.)])
 t = runner.run(10000.)

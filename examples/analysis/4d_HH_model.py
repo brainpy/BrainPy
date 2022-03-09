@@ -7,7 +7,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class HH(bp.NeuGroup):
+class HH(bp.dyn.NeuGroup):
   def __init__(self, size, ENa=50., gNa=120., EK=-77., gK=36., EL=-54.387, gL=0.03,
                V_th=20., C=1.0, name=None):
     super(HH, self).__init__(size=size, name=name)
@@ -84,7 +84,7 @@ class HH(bp.NeuGroup):
 
 model = HH(1)
 I = 5.
-run = bp.StructRunner(model, inputs=('input', I), monitors=['V'])
+run = bp.dyn.StructRunner(model, inputs=('input', I), monitors=['V'])
 run(100)
 bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
@@ -115,6 +115,6 @@ for i, fp in enumerate(finder.fixed_points):
   model.m[:] = fp[1]
   model.h[:] = fp[2]
   model.n[:] = fp[3]
-  run = bp.StructRunner(model, inputs=('input', I), monitors=['V'])
+  run = bp.dyn.StructRunner(model, inputs=('input', I), monitors=['V'])
   run(100)
   bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', title=f'FP {i}', show=True)

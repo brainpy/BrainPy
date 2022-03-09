@@ -20,15 +20,21 @@ import brainpy
 
 from docs import auto_generater
 
-auto_generater.generate_base_docs('apis/auto/')
-auto_generater.generate_math_docs('apis/auto/math/')
-auto_generater.generate_integrators_doc('apis/auto/integrators/')
-auto_generater.generate_building_docs('apis/auto/building/')
-auto_generater.generate_simulation_docs('apis/auto/simulation/')
-auto_generater.generate_training_docs('apis/auto/training/')
-auto_generater.generate_analysis_docs('apis/auto/analysis/')
-auto_generater.generate_visualization_docs('apis/auto/')
-auto_generater.generate_tools_docs('apis/auto/')
+auto_generater.generate_base_docs()
+auto_generater.generate_math_docs()
+auto_generater.generate_dyn_docs()
+auto_generater.generate_nn_docs()
+auto_generater.generate_analysis_docs()
+auto_generater.generate_integrators_doc()
+auto_generater.generate_inputs_docs()
+auto_generater.generate_running_docs()
+auto_generater.generate_connect_docs()
+auto_generater.generate_initialize_docs()
+auto_generater.generate_losses_docs()
+auto_generater.generate_optimizers_docs()
+auto_generater.generate_measure_docs()
+auto_generater.generate_datasets_docs()
+auto_generater.generate_tools_docs()
 
 import shutil
 
@@ -43,7 +49,7 @@ for source, dest in changelogs:
 # -- Project information -----------------------------------------------------
 
 project = 'BrainPy'
-copyright = '2021, BrainPy'
+copyright = '2022, BrainPy'
 author = 'BrainPy Team'
 
 # The full version, including alpha/beta/rc tags

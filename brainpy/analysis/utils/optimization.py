@@ -55,10 +55,13 @@ def _where(p, a, b):
 
 def jax_brentq(fun):
   f = f_without_jaxarray_return(fun)
-  if jax.config.read('jax_enable_x64'):
-    rtol = 4 * jnp.finfo(jnp.float64).eps
-  else:
-    rtol = 2 * jnp.finfo(jnp.float32).eps
+  assert jax.config.read('jax_enable_x64'), ('Brentq optimization need x64 support. '
+                                             'Please enable x64 with "brainpy.math.enable_x64()"')
+  rtol = 4 * jnp.finfo(jnp.float64).eps
+  # if jax.config.read('jax_enable_x64'):
+  #   rtol = 4 * jnp.finfo(jnp.float64).eps
+  # else:
+  #   rtol = 1.5 * jnp.finfo(jnp.float32).eps
 
   def x(a, b, args=(), xtol=2e-14, maxiter=200):
     # Convert to float

@@ -1,6 +1,21 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.0.2"
+__version__ = "2.1.0"
+
+
+try:
+  import jaxlib
+  del jaxlib
+except ModuleNotFoundError:
+  raise ModuleNotFoundError(
+    'Please install jaxlib. See '
+    'https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax '
+    'for installation instructions.'
+  )
+
+
+# fundamental modules
+from . import errors, tools
 
 
 # "base" module
@@ -9,46 +24,50 @@ from .base.base import Base
 from .base.collector import Collector, TensorCollector
 
 
-# "math" module
+# math foundation
 from . import math
 
 
-# "integrators" module
+# toolboxes
+from . import connect, initialize, optimizers, measure, losses, datasets, inputs
+
+
+# numerical integrators
 from . import integrators
 from .integrators import ode
 from .integrators import sde
+from .integrators import dde
 from .integrators.ode import odeint
-from .integrators.ode import set_default_odeint
-from .integrators.ode import get_default_odeint
 from .integrators.sde import sdeint
-from .integrators.sde import set_default_sdeint
-from .integrators.sde import get_default_sdeint
+from .integrators.dde import ddeint
 from .integrators.joint_eq import JointEq
 
-# "building" module
-from .building.brainobjects import *
-from .building import inputs, models, brainobjects, connect
-conn = connect
 
-# "simulation" module
-from . import simulation
-from .simulation.monitor import *
-from .simulation.runner import *
-from .simulation import measure, parallel
+# dynamics simulation
+from . import dyn
 
-# "training" module
-from . import training
-from .training import layers, initialize
-init = initialize
 
-# "analysis" module
+# neural networks modeling
+from . import nn
+
+
+# running
+from . import running
+
+
+# automatic dynamics analysis
 from . import analysis
 
 
-# "visualization" module
-from . import visualization as visualize
+# "visualization" module, will be remove soon
+from .visualization import visualize
 
 
-# other modules
-from . import errors
-from . import tools
+# compatible interface
+from .compact import *  # compact
+
+
+# convenient access
+conn = connect
+init = initialize
+optim = optimizers

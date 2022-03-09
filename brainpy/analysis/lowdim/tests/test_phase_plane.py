@@ -4,11 +4,11 @@ import unittest
 
 import brainpy as bp
 
+bp.math.enable_x64()
+
 
 class TestPhasePlane(unittest.TestCase):
   def test_1d(self):
-    bp.math.enable_x64()
-
     @bp.odeint
     def int_x(x, t, Iext):
       dx = x ** 3 - x + Iext
@@ -23,8 +23,6 @@ class TestPhasePlane(unittest.TestCase):
     analyzer.plot_fixed_point(show=True)
 
   def test_2d_decision_making_model(self):
-    bp.math.enable_x64()
-
     gamma = 0.641  # Saturation factor for gating variable
     tau = 0.06  # Synaptic time constant [sec]
     tau0 = 0.002  # Noise time constant [sec]
@@ -60,7 +58,6 @@ class TestPhasePlane(unittest.TestCase):
     analyzer = bp.analysis.PhasePlane2D(
       model=[int_s1, int_s2],
       target_vars={'s1': [0, 1], 's2': [0, 1]},
-      escape_sympy_solver=True,
       resolutions=0.0005
     )
     analyzer.plot_vector_field()

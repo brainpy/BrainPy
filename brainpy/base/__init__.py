@@ -24,5 +24,5 @@ from brainpy.base.base import *
 from brainpy.base.collector import *
 from brainpy.base.function import *
 from brainpy.base.io import *
-from brainpy.base.naming import clear_name_cache
+from brainpy.base.naming import *
 

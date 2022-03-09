@@ -9,7 +9,7 @@ import brainpy.math as bm
 bp.math.enable_x64()
 
 
-class GJCoupledFHN(bp.DynamicalSystem):
+class GJCoupledFHN(bp.dyn.DynamicalSystem):
   def __init__(self, num=2, method='exp_auto'):
     super(GJCoupledFHN, self).__init__()
 
@@ -51,7 +51,7 @@ def d4_system():
   Iext = bm.asarray([0., 0.6])
 
   # simulation
-  runner = bp.StructRunner(model, monitors=['V'], inputs=['Iext', Iext])
+  runner = bp.dyn.StructRunner(model, monitors=['V'], inputs=['Iext', Iext])
   runner.run(300.)
   bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V',
                          plot_ids=list(range(model.num)), show=True)
@@ -96,7 +96,7 @@ def d8_system():
   Iext = bm.asarray([0., 0., 0., 0.6])
 
   # simulation
-  runner = bp.StructRunner(model, monitors=['V'], inputs=['Iext', Iext])
+  runner = bp.dyn.StructRunner(model, monitors=['V'], inputs=['Iext', Iext])
   runner.run(300.)
 
   bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V',

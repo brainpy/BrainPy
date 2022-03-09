@@ -4,43 +4,12 @@ Numerical Methods for SDEs
 .. currentmodule:: brainpy.integrators.sde
 .. automodule:: brainpy.integrators.sde
 
-.. autosummary::
-    :toctree: generated/
 
-    Euler
-    Heun
-    Milstein
-    ExponentialEuler
-    SRK1W1
-    SRK2W1
-    KlPl
+.. toctree::
+    :maxdepth: 2
 
+    ../auto/integrators/sde_base
+    ../auto/integrators/sde_generic
+    ../auto/integrators/sde_normal
+    ../auto/integrators/sde_srk_scalar
 
-
-.. autoclass:: Euler
-   :members:
-
-
-
-.. autoclass:: Heun
-   :members:
-
-
-.. autoclass:: Milstein
-   :members:
-
-
-.. autoclass:: ExponentialEuler
-   :members:
-
-
-.. autoclass:: SRK1W1
-   :members:
-
-
-.. autoclass:: SRK2W1
-   :members:
-
-
-.. autoclass:: KlPl
-   :members:

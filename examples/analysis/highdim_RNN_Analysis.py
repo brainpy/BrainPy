@@ -69,7 +69,7 @@ batch_size = dataset.batch_size
 # \end{align}
 
 # %%
-class RNN(bp.layers.Module):
+class RNN(bp.dyn.DynamicalSystem):
   def __init__(self, num_input, num_hidden, num_output, num_batch, dt=None, seed=None,
                w_ir=bp.init.KaimingNormal(scale=1.),
                w_rr=bp.init.KaimingNormal(scale=1.),
@@ -89,15 +89,15 @@ class RNN(bp.layers.Module):
     self.rng = bm.random.RandomState(seed=seed)
 
     # input weight
-    self.w_ir = self.get_param(w_ir, (num_input, num_hidden))
+    self.w_ir = bm.TrainVar(bp.nn.init_param(w_ir, (num_input, num_hidden)))
 
     # recurrent weight
     bound = 1 / num_hidden ** 0.5
-    self.w_rr = self.get_param(w_rr, (num_hidden, num_hidden))
+    self.w_rr = bm.TrainVar(bp.nn.init_param(w_rr, (num_hidden, num_hidden)))
     self.b_rr = bm.TrainVar(self.rng.uniform(-bound, bound, num_hidden))
 
     # readout weight
-    self.w_ro = self.get_param(w_ro, (num_hidden, num_output))
+    self.w_ro = bm.TrainVar(bp.nn.init_param(w_ro, (num_hidden, num_output)))
     self.b_ro = bm.TrainVar(self.rng.uniform(-bound, bound, num_output))
 
     # variables
@@ -129,7 +129,7 @@ class RNN(bp.layers.Module):
   def loss(self, xs, ys):
     hs, os = self.predict(xs)
     os = os.reshape((-1, os.shape[-1]))
-    loss = bm.losses.cross_entropy_loss(os, ys.flatten())
+    loss = bp.losses.cross_entropy_loss(os, ys.flatten())
     return loss, os
 
 

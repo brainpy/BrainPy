@@ -59,6 +59,10 @@ class UnsupportedError(BrainPyError):
   pass
 
 
+class NoImplementationError(BrainPyError):
+  pass
+
+
 class NoLongerSupportError(BrainPyError):
   pass
 

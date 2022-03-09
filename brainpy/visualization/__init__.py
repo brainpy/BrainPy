@@ -4,6 +4,4 @@
 Visualization toolkit.
 """
 
-from .figures import *
-from .plots import *
-from .styles import *
+from .base import *

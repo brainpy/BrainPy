@@ -6,7 +6,7 @@ from pprint import pprint
 import brainpy as bp
 
 
-class GABAa_without_Variable(bp.TwoEndConn):
+class GABAa_without_Variable(bp.dyn.TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.1, E=-75.,
                alpha=12., beta=0.1, T=1.0, T_duration=1.0, **kwargs):
     super(GABAa_without_Variable, self).__init__(pre=pre, post=post, **kwargs)
@@ -44,7 +44,7 @@ class GABAa_without_Variable(bp.TwoEndConn):
     self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
 
 
-class HH_without_Variable(bp.NeuGroup):
+class HH_without_Variable(bp.dyn.NeuGroup):
   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0,
                gNa=35., gK=9., gL=0.1, V_th=20., phi=5.0, **kwargs):
     super(HH_without_Variable, self).__init__(size=size, **kwargs)
@@ -97,7 +97,7 @@ class HH_without_Variable(bp.NeuGroup):
 
 
 def test_subset_integrator():
-  neu = HH_without_Variable(10, monitors=['spikes', 'V'])
+  neu = HH_without_Variable(10)
   syn = GABAa_without_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   syn.g_max = 0.1 / neu.num
   net = bp.Network(neu, syn)
@@ -106,13 +106,13 @@ def test_subset_integrator():
   print()
   print(ints)
 
-  ode_ints = ints.subset(bp.integrators.ODE_INT)
+  ode_ints = ints.subset(bp.integrators.ODEIntegrator)
   print(ode_ints)
   assert len(ode_ints) == 2
 
 
 def test_neu_vars_1():
-  neu = HH_without_Variable(10, monitors=['spikes', 'V'])
+  neu = HH_without_Variable(10)
   vars = neu.vars()
 
   print()
@@ -120,7 +120,7 @@ def test_neu_vars_1():
   assert len(vars) == 0
 
 
-class HH_with_Variable(bp.NeuGroup):
+class HH_with_Variable(bp.dyn.NeuGroup):
   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0,
                gNa=35., gK=9., gL=0.1, V_th=20., phi=5.0, **kwargs):
     super(HH_with_Variable, self).__init__(size=size, **kwargs)
@@ -173,7 +173,7 @@ class HH_with_Variable(bp.NeuGroup):
 
 
 def test_neu_vars_2():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
+  neu = HH_with_Variable(10)
   vars = neu.vars()
   print()
   print(vars.keys())
@@ -184,7 +184,7 @@ def test_neu_vars_2():
 
 
 def test_neu_nodes_1():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
+  neu = HH_with_Variable(10)
   print()
   print(neu.nodes().keys())
   assert len(neu.nodes()) == 1
@@ -195,7 +195,7 @@ def test_neu_nodes_1():
 
 
 def test_neu_ints_1():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
+  neu = HH_with_Variable(10)
   print()
   print(neu.ints().keys())
   assert len(neu.ints()) == 1
@@ -205,7 +205,7 @@ def test_neu_ints_1():
   assert len(neu.ints(method='relative')) == 1
 
 
-class GABAa_with_Variable(bp.TwoEndConn):
+class GABAa_with_Variable(bp.dyn.TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.1, E=-75.,
                alpha=12., beta=0.1, T=1.0, T_duration=1.0, **kwargs):
     super(GABAa_with_Variable, self).__init__(pre=pre, post=post, **kwargs)
@@ -244,7 +244,7 @@ class GABAa_with_Variable(bp.TwoEndConn):
 
 
 def test_net_1():
-  neu = HH_without_Variable(10, monitors=['spikes', 'V'])
+  neu = HH_without_Variable(10)
   syn = GABAa_without_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   net = bp.Network(neu=neu, syn=syn)
 
@@ -277,7 +277,7 @@ def test_net_1():
 
 
 def test_net_vars_2():
-  neu = HH_with_Variable(10, monitors=['spikes', 'V'])
+  neu = HH_with_Variable(10)
   syn = GABAa_with_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   net = bp.Network(neu=neu, syn=syn)
 

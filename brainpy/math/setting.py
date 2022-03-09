@@ -2,14 +2,63 @@
 
 import os
 import re
-import jax.config
 
+import jax.config
+import jax.numpy as jnp
 
 __all__ = [
   'enable_x64',
   'set_platform',
   'set_host_device_count',
+
+  # data types
+  'bool_',
+  'int_',
+  'float_',
+  'complex_',
+
+  # change default data types
+  'set_dt',
+  'get_dt',
 ]
+
+# default dtype
+# --------------------------
+
+bool_ = jnp.bool_
+int_ = jnp.int32
+float_ = jnp.float32
+complex_ = jnp.complex_
+
+
+# numerical precision
+# --------------------------
+
+__dt = 0.1
+
+
+def set_dt(dt):
+  """Set the numerical integrator precision.
+
+  Parameters
+  ----------
+  dt : float
+      Numerical integration precision.
+  """
+  assert isinstance(dt, float), f'"dt" must a float, but we got {dt}'
+  global __dt
+  __dt = dt
+
+
+def get_dt():
+  """Get the numerical integrator precision.
+
+  Returns
+  -------
+  dt : float
+      Numerical integration precision.
+  """
+  return __dt
 
 
 def enable_x64(mode=True):
@@ -48,4 +97,3 @@ def set_host_device_count(n):
   xla_flags = os.getenv("XLA_FLAGS", "")
   xla_flags = re.sub(r"--xla_force_host_platform_device_count=\S+", "", xla_flags).split()
   os.environ["XLA_FLAGS"] = " ".join(["--xla_force_host_platform_device_count={}".format(n)] + xla_flags)
-
