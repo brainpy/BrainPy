@@ -143,6 +143,7 @@ See [brainmodels.synapses](https://brainmodels.readthedocs.io/en/brainpy-2.x/api
 - [Continuous-attractor Neural Network](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_CANN.html)
 - [Gap junction-coupled FitzHugh-Nagumo Model](https://brainpy-examples.readthedocs.io/en/brainpy-2.x/dynamics_analysis/highdim_gj_coupled_fhn.html)
 
+### Contributors
 
 
 # BrainPy 1.x
