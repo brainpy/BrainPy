@@ -12,7 +12,10 @@ This module provides basic mathematical operations, including:
 - just-in-time compilation for class objects
 - automatic differentiation for class objects
 - dedicated operators for brain dynamics
-- and others, like activation functions, device settings
+- activation functions
+- device switching
+- default type switching
+- and others
 
 Details in the following.
 """
