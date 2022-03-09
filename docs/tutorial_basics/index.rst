@@ -1,4 +1,4 @@
-Dynamics Analysis
+Math Basics
 =================
 
 .. toctree::
