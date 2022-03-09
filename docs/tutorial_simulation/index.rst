@@ -8,6 +8,3 @@ Dynamics Simulation
    synapse_models
    network_models
    dynamical_systems
-   runner
-   monitors_and_inputs
-   saving_and_loading
