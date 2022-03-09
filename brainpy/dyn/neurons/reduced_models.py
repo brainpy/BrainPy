@@ -103,8 +103,8 @@ class Izhikevich(NeuGroup):
     # functions
     self.integral = odeint(method=method, f=JointEq([self.dV, self.du]))
 
-  def dV(self, V, t, u):
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + self.input
+  def dV(self, V, t, u, I_ext):
+    dVdt = 0.04 * V * V + 5 * V + 140 - u + I_ext
     return dVdt
 
   def du(self, u, t, V):
@@ -112,7 +112,7 @@ class Izhikevich(NeuGroup):
     return dudt
 
   def update(self, _t, _dt):
-    V, u = self.integral(self.V, self.u, _t, dt=_dt)
+    V, u = self.integral(self.V, self.u, _t, self.input, dt=_dt)
     refractory = (_t - self.t_last_spike) <= self.tau_ref
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
@@ -248,8 +248,8 @@ class HindmarshRose(NeuGroup):
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
-  def dV(self, V, t, y, z):
-    return y - self.a * V * V * V + self.b * V * V - z + self.input
+  def dV(self, V, t, y, z, I_ext):
+    return y - self.a * V * V * V + self.b * V * V - z + I_ext
 
   def dy(self, y, t, V):
     return self.c - self.d * V * V - y
@@ -262,7 +262,7 @@ class HindmarshRose(NeuGroup):
     return JointEq([self.dV, self.dy, self.dz])
 
   def update(self, _t, _dt):
-    V, y, z = self.integral(self.V, self.y, self.z, _t, dt=_dt)
+    V, y, z = self.integral(self.V, self.y, self.z, _t, self.input, dt=_dt)
     self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
     self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
     self.V.value = V

@@ -61,7 +61,7 @@ class HH(NeuGroup):
   However, one must be careful because this is an ad-hoc method of visualizing the
   4-dimensional system. This does not prove the existence of the limit cycle.
 
-  .. image:: ../../_static/Hodgkin_Huxley_Limit_Cycle.png
+  .. image:: ../../../../_static/Hodgkin_Huxley_Limit_Cycle.png
       :align: center
 
   A better projection can be constructed from a careful analysis of the Jacobian of
@@ -88,7 +88,7 @@ class HH(NeuGroup):
   rather there is a sudden "jump" in amplitude. The resulting transition is
   known as a `canard <http://www.scholarpedia.org/article/Canards>`_.
 
-  .. image:: ../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
+  .. image:: ../../../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
      :align: center
 
   The following image shows the bifurcation diagram of the Hodgkin–Huxley model
@@ -97,7 +97,7 @@ class HH(NeuGroup):
   both born from Hopf bifurcations. The solid red line shows the stable fixed point
   and the black line shows the unstable fixed point.
 
-  .. image:: ../../_static/Hodgkin_Huxley_bifurcation.png
+  .. image:: ../../../../_static/Hodgkin_Huxley_bifurcation.png
      :align: center
 
   **Model Examples**
@@ -223,11 +223,11 @@ class HH(NeuGroup):
     dndt = alpha * (1 - n) - beta * n
     return dndt
 
-  def dV(self, V, t, m, h, n):
+  def dV(self, V, t, m, h, n, I_ext):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
     I_K = (self.gK * n ** 4.0) * (V - self.EK)
     I_leak = self.gL * (V - self.EL)
-    dVdt = (- I_Na - I_K - I_leak + self.input) / self.C
+    dVdt = (- I_Na - I_K - I_leak + I_ext) / self.C
     return dVdt
 
   @property
@@ -235,7 +235,7 @@ class HH(NeuGroup):
     return JointEq([self.dV, self.dm, self.dh, self.dn])
 
   def update(self, _t, _dt):
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, dt=_dt)
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input, dt=_dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
     self.V.value = V
@@ -365,12 +365,12 @@ class MorrisLecar(NeuGroup):
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
-  def dV(self, V, t, W):
+  def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
     I_Ca = self.g_Ca * M_inf * (V - self.V_Ca)
     I_K = self.g_K * W * (V - self.V_K)
     I_Leak = self.g_leak * (V - self.V_leak)
-    dVdt = (- I_Ca - I_K - I_Leak + self.input) / self.C
+    dVdt = (- I_Ca - I_K - I_Leak + I_ext) / self.C
     return dVdt
 
   def dW(self, W, t, V):
@@ -384,7 +384,7 @@ class MorrisLecar(NeuGroup):
     return JointEq([self.dV, self.dW])
 
   def update(self, _t, _dt):
-    V, self.W.value = self.integral(self.V, self.W, _t, dt=_dt)
+    V, self.W.value = self.integral(self.V, self.W, _t, self.input, dt=_dt)
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
     self.V.value = V

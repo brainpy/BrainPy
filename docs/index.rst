@@ -45,7 +45,7 @@ The code of BrainPy is open-sourced at GitHub:
    :maxdepth: 2
    :caption: BDP Tutorials
 
-   tutorial_basics/math_basics
+   tutorial_basics/index
    tutorial_simulation/index
    tutorial_training/index
    tutorial_analysis/index
