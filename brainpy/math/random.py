@@ -127,7 +127,7 @@ class RandomState(Variable):
 
   def shuffle(self, x, axis=0):
     x = x.value if isinstance(x, JaxArray) else x
-    return JaxArray(jr.shuffle(self.split_key(), x, axis=axis))
+    return JaxArray(jr.permutation(self.split_key(), x, axis=axis, independent=True))
 
   def beta(self, a, b, size=None):
     a = a.value if isinstance(a, JaxArray) else a
@@ -249,9 +249,9 @@ def permutation(x):
   return JaxArray(jr.permutation(DEFAULT.split_key(), x))
 
 
-def shuffle(x):
+def shuffle(x, axis=0):
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jr.permutation(DEFAULT.split_key(), x))
+  return JaxArray(jr.permutation(DEFAULT.split_key(), x, axis=axis, independent=True))
 
 
 def beta(a, b, size=None):
