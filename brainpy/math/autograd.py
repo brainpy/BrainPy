@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Callable, Dict, Sequence
 
 from functools import partial
 
@@ -16,7 +17,6 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose
 from jax.util import safe_map
 
 from brainpy import errors
-from brainpy.base.collector import TensorCollector
 from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
@@ -49,7 +49,7 @@ def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
     if len(grad_vars) == 0:
       grads = grads[1] if isinstance(argnums, int) else grads[1:]
     else:
-      var_grads = tree_unflatten(grad_tree, grads[0])
+      var_grads = grad_tree.unflatten(grads[0])
       if argnums is None:
         grads = var_grads
       else:
@@ -73,66 +73,49 @@ def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
   return call_func
 
 
-def _check_vars(variables, prefix=''):
+def _check_vars(variables):
   if variables is None:
-    _, tree = tree_flatten(variables)
-    return TensorCollector(), tree
-  if isinstance(variables, JaxArray):
-    _, tree = tree_flatten(variables)
-    variables = TensorCollector({f'_{prefix}_v{0}': variables})
-  elif isinstance(variables, dict):
-    _, tree = tree_flatten(dict(variables))
-    variables = TensorCollector(variables)
+    vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, JaxArray))
+    return vars, tree
+  if isinstance(variables, dict):
+    variables = dict(variables)
   elif isinstance(variables, (list, tuple)):
-    _, tree = tree_flatten(variables)
-    variables = TensorCollector({f'_{prefix}_v{i}': v for i, v in enumerate(variables)})
+    variables = tuple(variables)
+  elif isinstance(variables, JaxArray):
+    pass
   else:
     raise ValueError
-  for v in variables.values():
+  vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, JaxArray))
+  for v in vars:
     if not isinstance(v, JaxArray):
       raise ValueError(f'"dyn_vars" and "grad_vars" only supports dict '
                        f'of JaxArray, but got {type(v)}: {v}')
-  return variables, tree
+  return vars, tree
 
 
-def _separate_vars_and_grad_vars(dyn_vars, grad_vars):
-  if len(dyn_vars) == 0:
-    if grad_vars is None:
-      _, grad_tree = tree_flatten(None)
-      return None, (None, grad_tree)
-    else:
-      return TensorCollector(), _check_vars(grad_vars, prefix='grad_var')
-  else:
-    # if grad_vars is None:
-    #   grad_vars = dyn_vars.subset(TrainVar).unique()
-    #   _, grad_tree = tree_flatten(dict(grad_vars))
-    # else:
-    grad_vars, grad_tree = _check_vars(grad_vars, prefix='grad_var')
-    grad_var_ids = [id(v) for v in grad_vars.values()] if (len(grad_vars) > 0) else []
-    dyn_vars = TensorCollector()
-    for key, var in dyn_vars.items():
-      if id(var) not in grad_var_ids:
-        dyn_vars[key] = var
-    return dyn_vars.unique(), (grad_vars, grad_tree)
-
-
-def _grad_checking(func, dyn_vars, grad_vars):
+def _grad_checking(func: Callable,
+                   dyn_vars: Union[Dict, Sequence],
+                   grad_vars: Union[Dict, Sequence]):
   # check function
   if not callable(func):
     raise ValueError(f'Must be a callable object. But we got {func}')
 
   # check "vars", make sure it is an instance of TensorCollector
-  dyn_vars, _ = _check_vars(dyn_vars, prefix='dyn_var')
-  grad_vars, grad_tree = _check_vars(grad_vars, prefix='grad_var')
+  dyn_vars, _ = _check_vars(dyn_vars)
+  grad_vars, grad_tree = _check_vars(grad_vars)
 
-  # check the duplicate in "vars" and "grad_vars"
-  grad_var_ids = [id(v) for v in grad_vars.values()]
-  _dyn_vars = TensorCollector()
-  for key, var in dyn_vars.items():
-    if id(var) not in grad_var_ids:
-      _dyn_vars[key] = var
-  dyn_vars = _dyn_vars.unique()
-  return dyn_vars, grad_vars, grad_tree
+  # check the duplicate in "dyn_vars" and "grad_vars"
+  new_dyn_vars = []
+  _dyn_var_ids = set()
+  for v in dyn_vars:
+    if id(v) not in _dyn_var_ids:
+      new_dyn_vars.append(v)
+      _dyn_var_ids.add(id(v))
+  for v in grad_vars:
+    if id(v) not in _dyn_var_ids:
+      new_dyn_vars.append(v)
+      _dyn_var_ids.add(id(v))
+  return new_dyn_vars, grad_vars, grad_tree
 
 
 def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
@@ -160,7 +143,8 @@ def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
       output = outputs[0].value if isinstance(outputs[0], JaxArray) else outputs[0]
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
   else:
-    @partial(jax.grad, argnums=argnums, has_aux=True, holomorphic=holomorphic,
+    @partial(jax.grad,
+             argnums=argnums, has_aux=True, holomorphic=holomorphic,
              allow_int=allow_int, reduce_axes=reduce_axes)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
       for v, d in zip(dyn_vars, dyn_values): v.value = d
@@ -333,9 +317,6 @@ def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
                            allow_int=allow_int,
                            reduce_axes=reduce_axes)
   else:
-    # variables
-    dyn_vars = list(dyn_vars.values())
-    grad_vars = list(grad_vars.values())
     # argnums
     _argnums, _ = tree_flatten(argnums)
     _argnums = tuple(a + 2 for a in _argnums)
@@ -504,8 +485,6 @@ def jacrev(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
                    has_aux=has_aux,
                    return_value=return_value)
   else:
-    dyn_vars = list(dyn_vars.values())
-    grad_vars = list(grad_vars.values())
     _argnums, _ = tree_flatten(argnums)
     _argnums = tuple(a + 2 for a in _argnums)
     if argnums is None and len(grad_vars) == 0:
@@ -569,7 +548,8 @@ def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=F
 
   # final functions
   if has_aux:
-    @partial(_jacfwd, argnums=argnums, holomorphic=holomorphic, has_aux=True)
+    @partial(_jacfwd,
+             argnums=argnums, holomorphic=holomorphic, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       for v, d in zip(grad_vars, grad_values): v.value = d
@@ -580,7 +560,8 @@ def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=F
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   else:
-    @partial(_jacfwd, argnums=argnums, holomorphic=holomorphic, has_aux=True)
+    @partial(_jacfwd,
+             argnums=argnums, holomorphic=holomorphic, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       for v, d in zip(grad_vars, grad_values): v.value = d
@@ -647,8 +628,6 @@ def jacfwd(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
                    has_aux=has_aux,
                    return_value=return_value)
   else:
-    dyn_vars = list(dyn_vars.values())
-    grad_vars = list(grad_vars.values())
     _argnums, _ = tree_flatten(argnums)
     _argnums = tuple(a + 2 for a in _argnums)
     if argnums is None and len(grad_vars) == 0:
@@ -821,8 +800,6 @@ def vector_grad(func, dyn_vars=None, grad_vars=None, argnums=None, return_value=
                              has_aux=has_aux)
 
   else:
-    dyn_vars = list(dyn_vars.values())
-    grad_vars = list(grad_vars.values())
     _argnums, _ = tree_flatten(argnums)
     _argnums = tuple(a + 2 for a in _argnums)
     if argnums is None and len(grad_vars) == 0:
