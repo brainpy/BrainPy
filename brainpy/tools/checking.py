@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Dict, Callable
+from typing import Union, Sequence, Dict, Callable, Tuple, Type
 
 import jax.numpy as jnp
 import numpy as onp
@@ -12,6 +12,7 @@ from brainpy.types import Tensor
 __all__ = [
   'check_shape_consistency',
   'check_shape_broadcastable',
+  'check_batch_shape',
   'check_shape',
   'check_dict_data',
   'check_initializer',
@@ -85,6 +86,29 @@ def check_shape_broadcastable(shapes, free_axes=(), return_format_shapes=False):
   return check_shape_consistency(shapes, free_axes, return_format_shapes)
 
 
+def check_batch_shape(shape1, shape2, batch_idx=0, mode='raise'):
+  """Check whether two shapes are compatible except the batch size axis."""
+  assert mode in ['raise', 'bool']
+  if len(shape2) != len(shape1):
+    if mode == 'raise':
+      raise ValueError(f'Dimension mismatch between two shapes. '
+                       f'{shape1} != {shape2}')
+    else:
+      return False
+  new_shape1 = list(shape1)
+  new_shape2 = list(shape2)
+  new_shape1.pop(batch_idx)
+  new_shape2.pop(batch_idx)
+  if new_shape1 != new_shape2:
+    if mode == 'raise':
+      raise ValueError(f'Two shapes {shape1} and {shape2} are not '
+                       f'consistent when excluding the batch axis '
+                       f'{batch_idx}')
+    else:
+      return False
+  return True
+
+
 def check_shape(all_shapes, free_axes: Union[Sequence[int], int] = -1):
   # check "all_shapes"
   if isinstance(all_shapes, dict):
@@ -123,19 +147,24 @@ def check_shape(all_shapes, free_axes: Union[Sequence[int], int] = -1):
   return free_shape, max_fixed_shapes
 
 
-def check_dict_data(a_dict: Dict, key_type, val_type):
+def check_dict_data(a_dict: Dict,
+                    key_type: Union[Type, Tuple[Type, ...]],
+                    val_type: Union[Type, Tuple[Type, ...]],
+                    name: str = None):
   """Check the dictionary data.
   """
-  assert isinstance(a_dict, dict), f'Must be a dict, while we got {type(a_dict)}'
+  name = '' if (name is None) else f'"{name}"'
+  assert isinstance(a_dict, dict), f'{name} must be a dict, while we got {type(a_dict)}'
   for key, value in a_dict.items():
-    assert isinstance(key, str), (f'Must be a dict of ({key_type}, {val_type}), while we got '
-                                  f'({type(key)}, {type(value)})')
-    assert isinstance(value, val_type), (f'Must be a dict of ({key_type}, {val_type}), while we got '
-                                         f'({type(key)}, {type(value)})')
+    assert isinstance(key, key_type), (f'{name} must be a dict of ({key_type}, {val_type}), '
+                                       f'while we got ({type(key)}, {type(value)})')
+    assert isinstance(value, val_type), (f'{name} must be a dict of ({key_type}, {val_type}), '
+                                         f'while we got ({type(key)}, {type(value)})')
 
 
 def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],
-                      name: str = None, allow_none=False):
+                      name: str = None,
+                      allow_none=False):
   """Check the initializer.
   """
   import brainpy.math as bm
