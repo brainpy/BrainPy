@@ -3,6 +3,7 @@
 import unittest
 
 import brainpy as bp
+import matplotlib.pyplot as plt
 
 bp.math.enable_x64()
 
@@ -19,6 +20,7 @@ class TestPhasePlane(unittest.TestCase):
                                         pars_update={'Iext': 0.},
                                         resolutions=0.001)
 
+    plt.ion()
     analyzer.plot_vector_field()
     analyzer.plot_fixed_point(show=True)
 
@@ -60,6 +62,7 @@ class TestPhasePlane(unittest.TestCase):
       target_vars={'s1': [0, 1], 's2': [0, 1]},
       resolutions=0.0005
     )
+    plt.ion()
     analyzer.plot_vector_field()
     analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
     analyzer.plot_fixed_point(show=True)

@@ -105,7 +105,7 @@ def test1():
     syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
     syn.g_max = 0.1 / num
 
-    net = bp.Network(neu=neu, syn=syn)
+    net = bp.dyn.Network(neu=neu, syn=syn)
 
     for method in ['relative', 'absolute']:
       print(f'Method: {method}\n')

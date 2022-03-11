@@ -100,7 +100,7 @@ def test_subset_integrator():
   neu = HH_without_Variable(10)
   syn = GABAa_without_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
   syn.g_max = 0.1 / neu.num
-  net = bp.Network(neu, syn)
+  net = bp.dyn.Network(neu, syn)
 
   ints = net.ints()
   print()
@@ -246,7 +246,7 @@ class GABAa_with_Variable(bp.dyn.TwoEndConn):
 def test_net_1():
   neu = HH_without_Variable(10)
   syn = GABAa_without_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
-  net = bp.Network(neu=neu, syn=syn)
+  net = bp.dyn.Network(neu=neu, syn=syn)
 
   # variables
   print()
@@ -279,7 +279,7 @@ def test_net_1():
 def test_net_vars_2():
   neu = HH_with_Variable(10)
   syn = GABAa_with_Variable(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
-  net = bp.Network(neu=neu, syn=syn)
+  net = bp.dyn.Network(neu=neu, syn=syn)
 
   # variables
   print()

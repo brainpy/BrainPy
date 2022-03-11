@@ -65,7 +65,7 @@ def test_nodes():
   A.pre = B
   B.pre = A
 
-  net = bp.Network(A, B)
+  net = bp.dyn.Network(A, B)
   abs_nodes = net.nodes(method='absolute')
   rel_nodes = net.nodes(method='relative')
   print()
@@ -82,7 +82,7 @@ def test_ints():
   A.pre = B
   B.pre = A
 
-  net = bp.Network(A, B)
+  net = bp.dyn.Network(A, B)
   abs_ints = net.ints(method='absolute')
   rel_ints = net.ints(method='relative')
   print()
