@@ -13,7 +13,7 @@ import logging
 import jax
 
 try:
-  from jax.errors import UnexpectedTracerError
+  from jax.errors import UnexpectedTracerError, ConcretizationTypeError
 except ImportError:
   from jax.core import UnexpectedTracerError
 
@@ -45,6 +45,9 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
     except UnexpectedTracerError as e:
       vars.assign(variable_data)
       raise errors.JaxTracerError(variables=vars) from e
+    except ConcretizationTypeError as e:
+      vars.assign(variable_data)
+      raise errors.ConcretizationTypeError() from e
     vars.assign(changes)
     return out
 
