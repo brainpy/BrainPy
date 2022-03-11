@@ -23,7 +23,9 @@ def get_subset(data, start, end):
          'y': data['y'][start: end],
          'z': data['z'][start: end]}
   X = bm.hstack([res['x'], res['y']])
+  X = X.reshape((1,) + X.shape)
   Y = res['z']
+  Y = Y.reshape((1, ) + Y.shape)
   return X, Y
 
 
@@ -151,7 +153,8 @@ o = bp.nn.LinearReadout(1, trainable=True)
 # then feed into the node "o". This is not the connection
 # we want.
 model = i >> r >> o
-# model.visualize()
+model.plot_node_graph()
+model.initialize(num_batch=1)
 
 
 # Training #
@@ -172,4 +175,4 @@ print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
 plot_lorenz(x=lorenz_series['x'].flatten().numpy(),
             y=lorenz_series['y'].flatten().numpy(),
             true_z=lorenz_series['z'].flatten().numpy(),
-            predict_z=outputs.numpy())
+            predict_z=outputs.numpy().flatten())

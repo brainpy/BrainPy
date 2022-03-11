@@ -23,7 +23,7 @@ def get_subset(data, start, end):
          'y': data['y'][start: end],
          'z': data['z'][start: end]}
   res = bm.hstack([res['x'], res['y'], res['z']])
-  return res
+  return res.reshape((1, ) + res.shape)
 
 
 def plot_weights(weights, bias, ids):
@@ -121,7 +121,8 @@ o = bp.nn.Summation()
 # then feed into the node "o". This is not the connection
 # we want.
 model = (i >> r >> di >> o) & (i >> o)
-# model.visualize()
+model.plot_node_graph()
+model.initialize(num_batch=1)
 
 
 # Training #
@@ -138,9 +139,9 @@ plot_weights(di.weights.numpy(), di.bias.numpy(), r.comb_ids.numpy())
 
 # prediction
 model = bm.jit(model)
-outputs = [model(X_test[0])]
-for i in range(1, X_test.shape[0]):
+outputs = [model(X_test[:, 0])]
+for i in range(1, X_test.shape[1]):
   outputs.append(model(outputs[i - 1]))
 outputs = bm.asarray(outputs)
 print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
-plot_lorenz(Y_test.numpy(), outputs.numpy())
+plot_lorenz(Y_test.numpy().squeeze(), outputs.numpy().squeeze())
