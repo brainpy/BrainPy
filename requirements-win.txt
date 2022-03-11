@@ -5,7 +5,6 @@ networkx
 brainpylib>=0.0.3
 numpy>=1.15
 tqdm
-jax[cpu] -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
 # test requirements
 pytest
