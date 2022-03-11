@@ -9,6 +9,7 @@ It supports the following operations:
 3. merge two nodes: "&", "&="
 4. select subsets of one node: "[:]"
 5. concatenate a sequence of nodes: "[node1, node2, ...]", "(node1, node2, ...)"
+6. wrap a set of nodes: "{node1, node2, ...}"
 
 However, all operations should satisfy the following assumptions:
 
@@ -32,15 +33,22 @@ __all__ = [
 
 def _retrieve_nodes_and_edges(senders: Union[Node, Sequence[Node]],
                               receivers: Union[Node, Sequence[Node]]):
-  # checking
-  if isinstance(senders, Sequence):
+  # check senders
+  if isinstance(senders, (tuple, list)):
     senders = [concatenate(senders)]
+  elif isinstance(senders, set):
+    senders = list(senders)
   elif isinstance(senders, Node):
     senders = [senders]
   else:
     raise TypeError(f"Impossible to send connection from {senders}: it is not "
                     f"a Node or a Network instance.")
-  if isinstance(receivers, Sequence):
+
+  # check receivers
+  if isinstance(receivers, (tuple, list)):
+    raise ValueError('Cannot concatenate a list/tuple of receivers. '
+                     'Please use set to wrap multiple receivers instead.')
+  elif isinstance(receivers, set):
     receivers = list(receivers)
   elif isinstance(receivers, Node):
     receivers = [receivers]
