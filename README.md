@@ -8,9 +8,8 @@
 	<a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="LICENSE" src="https://anaconda.org/brainpy/brainpy/badges/license.svg"></a>
   	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brain-py"><img alt="PyPI version" src="https://badge.fury.io/py/brain-py.svg"></a>
-  	<a href="https://travis-ci.com/PKU-NIP-Lab/BrainPy"><img alt="Build Status" src="https://travis-ci.com/PKU-NIP-Lab/BrainPy.svg?branch=master"></a>
+    <a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="Linux CI" src="https://github.com/PKU-NIP-Lab/BrainPy/actions/workflows/Linux_CI.yml/badge.svg"></a>
 </p>
-
 
 
 :clap::clap: **CHEERS**: A new version of BrainPy (>=2.0.0, long term support) has been released! :clap::clap: 

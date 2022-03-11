@@ -8,6 +8,9 @@ development
 examples/analysis/data
 extensions/.idea
 extensions/wheelhouse
+extensions/dist
+extensions/fixed_wheels
+extensions/build
 extensions/cmake-build-debug
 BrainPyExamples/
 BrainModels/
