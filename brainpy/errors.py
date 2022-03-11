@@ -104,3 +104,15 @@ class JaxTracerError(MathError):
     msg += 'While there are changed variables which are not wrapped into "dyn_vars". Please check!'
 
     super(JaxTracerError, self).__init__(msg)
+
+
+class ConcretizationTypeError(Exception):
+  def __init__(self):
+    super(ConcretizationTypeError, self).__init__(
+      'This problem may be caused by two ways:\n'
+      '1. You did not set the "static_argnames" for your jitted function. '
+      'More details please see https://jax.readthedocs.io/en/latest/errors.html#jax.errors.ConcretizationTypeError\n'
+      '2. The static variables which set in the "static_argnames" are not provided '
+      'as keyword arguments, like "jit_fun(static_key1=v1, static_key2=v2)".'
+    )
+

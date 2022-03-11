@@ -26,7 +26,7 @@ def size2num(size):
       a *= b
     return a
   else:
-    raise ValueError
+    raise ValueError(f'Do not support type {type(size)}: {size}')
 
 
 def to_size(x) -> Optional[Tuple[int]]:
