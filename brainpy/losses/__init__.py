@@ -2,13 +2,10 @@
 
 """
 This module implements several loss functions.
-
-More commonly used loss functions please check the following references:
-
-- https://github.com/deepmind/optax/blob/master/optax/_src/loss.py
-- https://github.com/google/jaxopt/blob/main/jaxopt/_src/loss.py
-
 """
+
+# - https://github.com/deepmind/optax/blob/master/optax/_src/loss.py
+# - https://github.com/google/jaxopt/blob/main/jaxopt/_src/loss.py
 
 import jax.numpy as jn
 import jax.scipy

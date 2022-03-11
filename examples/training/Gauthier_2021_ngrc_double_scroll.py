@@ -113,10 +113,12 @@ o = bp.nn.Summation()
 # Cannot express the model as
 #
 #     [i >> r >> di, i] >> o
+#     (i >> r >> di, i) >> o
 # because it will concatenate the outputs of "i" and "di",
 # then feed into the node "o". This is not the connection
 # we want.
-model = (i >> r >> di >> o) & (i >> o)
+model = {i >> r >> di, i} >> o
+# model = (i >> r >> di >> o) & (i >> o)
 model.plot_node_graph()
 model.initialize(num_batch=1)
 
