@@ -3,6 +3,8 @@
 from typing import Tuple, Union
 
 from brainpy.nn.base import Node
+from brainpy.nn.constants import PASS_ONLY_ONE
+from brainpy.tools.others import to_size
 
 __all__ = [
   'Input',
@@ -12,13 +14,17 @@ __all__ = [
 class Input(Node):
   """The input node."""
 
-  def __init__(self, input_shape: Union[Tuple[int], int] = None, name: str = None):
-    super(Input, self).__init__(name=name, input_shape=input_shape)
+  data_pass_type = PASS_ONLY_ONE
 
-  def ff_init(self):
-    assert len(self.input_shapes) == 1, (f'{type(self).__name__} only support '
-                                         f'receiving one feedforward input. ')
-    self.set_output_shape(self.input_shapes[0])
+  def __init__(self,
+               shape: Union[Tuple[int], int],
+               name: str = None):
+    super(Input, self).__init__(name=name, input_shape=shape)
+    self.set_input_shapes({self.name: (None,) + to_size(shape)})
+    self._ff_init()
+
+  def init_ff(self):
+    self.set_output_shape(self.input_shapes)
 
   def forward(self, ff, **kwargs):
-    return ff[0]
+    return ff

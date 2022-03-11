@@ -25,13 +25,13 @@ class Reservoir(Node):
   ----------
   num_unit: int
     The number of reservoir nodes.
-  init_ff: Initializer
+  ff_initializer: Initializer
     The initialization method for the feedforward connections.
-  init_rec: Initializer
+  rec_initializer: Initializer
     The initialization method for the recurrent connections.
-  init_fb: optional, Tensor, Initializer
+  fb_initializer: optional, Tensor, Initializer
     The initialization method for the feedback connections.
-  init_bias: optional, Tensor, Initializer
+  bias_initializer: optional, Tensor, Initializer
     The initialization method for the bias.
   leaky_rate: float
     A float between 0 and 1.
@@ -98,10 +98,10 @@ class Reservoir(Node):
       leaky_rate: float = 0.3,
       activation: Union[str, Callable] = 'tanh',
       activation_type: str = 'internal',
-      init_ff: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
-      init_rec: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
-      init_fb: Optional[Union[Initializer, Callable, Tensor]] = Normal(scale=0.1),
-      init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
+      ff_initializer: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
+      rec_initializer: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
+      fb_initializer: Optional[Union[Initializer, Callable, Tensor]] = Normal(scale=0.1),
+      bias_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       ff_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
       fb_connectivity: float = 0.1,
@@ -129,14 +129,14 @@ class Reservoir(Node):
     self.spectral_radius = spectral_radius
 
     # initializations
-    check_initializer(init_ff, 'init_ff', allow_none=False)
-    check_initializer(init_rec, 'init_rec', allow_none=False)
-    check_initializer(init_fb, 'init_fb', allow_none=True)
-    check_initializer(init_bias, 'init_bias', allow_none=True)
-    self.init_ff = init_ff
-    self.init_fb = init_fb
-    self.init_rec = init_rec
-    self.init_bias = init_bias
+    check_initializer(ff_initializer, 'ff_initializer', allow_none=False)
+    check_initializer(rec_initializer, 'rec_initializer', allow_none=False)
+    check_initializer(fb_initializer, 'fb_initializer', allow_none=True)
+    check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
+    self.ff_initializer = ff_initializer
+    self.fb_initializer = fb_initializer
+    self.rec_initializer = rec_initializer
+    self.bias_initializer = bias_initializer
 
     # connectivity
     check_float(ff_connectivity, 'ff_connectivity', 0., 1.)
@@ -158,13 +158,14 @@ class Reservoir(Node):
     self.noise_type = noise_type
     check_string(noise_type, 'noise_type', ['normal', 'uniform'])
 
-  def ff_init(self):
+  def init_ff(self):
+    """Initialize feedforward connections, weights, and variables."""
     unique_shape, free_shapes = check_shape_consistency(self.input_shapes, -1, True)
     self.set_output_shape(unique_shape + (self.num_unit,))
 
     # initialize feedforward weights
     weight_shape = (sum(free_shapes), self.num_unit)
-    self.Wff = init_param(self.init_ff, weight_shape)
+    self.Wff = init_param(self.ff_initializer, weight_shape)
     if self.ff_connectivity < 1.:
       conn_mat = self.rng.random(weight_shape) > self.ff_connectivity
       self.Wff[conn_mat] = 0.
@@ -176,7 +177,7 @@ class Reservoir(Node):
 
     # initialize recurrent weights
     recurrent_shape = (self.num_unit, self.num_unit)
-    self.Wrec = init_param(self.init_rec, recurrent_shape)
+    self.Wrec = init_param(self.rec_initializer, recurrent_shape)
     if self.rec_connectivity < 1.:
       conn_mat = self.rng.random(recurrent_shape) > self.rec_connectivity
       self.Wrec[conn_mat] = 0.
@@ -186,7 +187,7 @@ class Reservoir(Node):
     if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
       self.rec_pres, self.rec_posts = bm.where(bm.logical_not(conn_mat))
       self.Wrec = self.Wrec[self.rec_pres, self.rec_posts]
-    self.bias = init_param(self.init_bias, (self.num_unit,))
+    self.bias = init_param(self.bias_initializer, (self.num_unit,))
     if self.trainable:
       self.Wrec = bm.TrainVar(self.Wrec)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
@@ -194,15 +195,17 @@ class Reservoir(Node):
     # initialize feedback weights
     self.Wfb = None
 
+  def init_state(self, num_batch=1):
     # initialize internal state
-    self.state = bm.Variable(bm.zeros((self.num_unit,), dtype=bm.float_))
+    state = bm.Variable(bm.zeros((num_batch, self.num_unit), dtype=bm.float_))
+    self.set_state(state)
 
-  def fb_init(self):
+  def init_fb(self):
+    """Initialize feedback connections, weights, and variables."""
     if self.feedback_shapes is not None:
-      check_initializer(self.init_fb, 'init_fb', allow_none=False)
       unique_shape, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
       fb_shape = (sum(free_shapes), self.num_unit)
-      self.Wfb = init_param(self.init_fb, fb_shape)
+      self.Wfb = init_param(self.fb_initializer, fb_shape)
       if self.fb_connectivity < 1.:
         conn_mat = self.rng.random(fb_shape) > self.fb_connectivity
         self.Wfb[conn_mat] = 0.
@@ -213,6 +216,7 @@ class Reservoir(Node):
         self.Wfb = bm.TrainVar(self.Wfb)
 
   def forward(self, ff, fb=None, **kwargs):
+    """Feedforward output."""
     # inputs
     x = bm.concatenate(ff, axis=-1)
     if self.noise_ff > 0: x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)

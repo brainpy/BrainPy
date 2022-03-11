@@ -21,9 +21,9 @@ class LinearReadout(Dense):
   ----------
   num_unit: int
     The number of output features. A positive integer.
-  init_weight: Initializer
+  weight_initializer: Initializer
     The weight initializer.
-  init_bias: Optional, Initializer
+  bias_initializer: Optional, Initializer
     The bias initializer.
   trainable: bool
     Default is true.
@@ -32,15 +32,15 @@ class LinearReadout(Dense):
   def __init__(
       self,
       num_unit: int,
-      init_weight: Union[Initializer, Callable, Tensor] = XavierNormal(),
-      init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
+      weight_initializer: Union[Initializer, Callable, Tensor] = XavierNormal(),
+      bias_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       **kwargs
   ):
-    super(LinearReadout, self).__init__(num_unit=num_unit, init_weight=init_weight, init_bias=init_bias, **kwargs)
+    super(LinearReadout, self).__init__(num_unit=num_unit, weight_initializer=weight_initializer, bias_initializer=bias_initializer, **kwargs)
 
-  def ff_init(self):
-    super(LinearReadout, self).ff_init()
-    self.state = bm.Variable(bm.zeros(self.output_shape, dtype=bm.float_))
+  def init_state(self, num_batch=1):
+    state = bm.Variable(bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_))
+    self.set_state(state)
 
   def forward(self, ff, fb=None, **kwargs):
     self.state.value = super(LinearReadout, self).forward(ff, fb=fb, **kwargs)
@@ -49,7 +49,8 @@ class LinearReadout(Dense):
   def __force_init__(self, train_pars: Optional[Dict] = None):
     if train_pars is None: train_pars = dict()
     alpha = train_pars.get('alpha')
-    _, free_shapes = check_shape_consistency(self.input_shapes, -1, True)
+    batch_size, free_shapes = check_shape_consistency(self.input_shapes, -1, True)
+    assert batch_size == (1,), f'{self.name} only supports batch size is 1. But got {batch_size}'
     num_input = sum(free_shapes)
     if self.bias is not None:
       num_input += 1
@@ -59,6 +60,9 @@ class LinearReadout(Dense):
                       ffs: Sequence[Tensor],
                       target: Tensor,
                       train_pars: Optional[Dict] = None):
+    for ff in ffs:
+      assert ff.ndim == 3
+    # note each "ff" has a batch size = 1
     ffs = bm.concatenate(ffs, axis=-1)
     assert ffs.ndim == target.ndim == 1, '"x" and "y" must be a one-dimensional tensors.'
     if self.bias is not None:

@@ -32,9 +32,9 @@ class Dense(Node):
   ----------
   num_unit: int
     The number of the output features. A positive integer.
-  init_weight: optional, Initializer
+  weight_initializer: optional, Initializer
     The weight initialization.
-  init_bias: optional, Initializer
+  bias_initializer: optional, Initializer
     The bias initialization.
   trainable: bool
     Enable training this node or not. (default True)
@@ -43,8 +43,8 @@ class Dense(Node):
   def __init__(
       self,
       num_unit: int,
-      init_weight: Union[Initializer, Callable, Tensor] = XavierNormal(),
-      init_bias: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
+      weight_initializer: Union[Initializer, Callable, Tensor] = XavierNormal(),
+      bias_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       trainable: bool = True,
       **kwargs
   ):
@@ -53,21 +53,22 @@ class Dense(Node):
     if num_unit < 0:
       raise ValueError(f'Received an invalid value for `num_unit`, expected '
                        f'a positive integer. Received: num_unit={num_unit}')
-    self.init_weight = init_weight
-    self.init_bias = init_bias
-    check_initializer(init_weight, 'init_weight')
-    check_initializer(init_bias, 'init_bias', allow_none=True)
+    self.weight_initializer = weight_initializer
+    self.bias_initializer = bias_initializer
+    check_initializer(weight_initializer, 'weight_initializer')
+    check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
 
-  def ff_init(self):
+  def init_ff(self):
     # shapes
-    unique_shape, free_shapes = check_shape_consistency(self.input_shapes, -1, True)
+    in_sizes = [size[1:] for size in self.input_shapes]  # remove batch size
+    unique_shape, free_shapes = check_shape_consistency(in_sizes, -1, True)
     weight_shape = (sum(free_shapes), self.num_unit)
     bias_shape = (self.num_unit,)
     # set output size
-    self.set_output_shape(unique_shape + (self.num_unit,))
+    self.set_output_shape((None, ) + unique_shape + (self.num_unit,))
     # initialize feedforward weights
-    self.weights = utils.init_param(self.init_weight, weight_shape)
-    self.bias = utils.init_param(self.init_bias, bias_shape)
+    self.weights = utils.init_param(self.weight_initializer, weight_shape)
+    self.bias = utils.init_param(self.bias_initializer, bias_shape)
     if self.trainable:
       self.weights = bm.TrainVar(self.weights)
       if self.bias is not None:
@@ -100,10 +101,15 @@ class Dense(Node):
     ffs = bm.concatenate(ffs, axis=-1)
     if not isinstance(targets, (bm.ndarray, jnp.ndarray)):
       raise MathError(f'"targets" must be a tensor, but got {type(targets)}')
+    assert ffs.ndim == 3, 'Must be a 3D tensor with shape of (num_sample, num_time, num_feature)'
+    assert targets.ndim == 3, 'Must be a 3D tensor with shape of (num_sample, num_time, num_feature)'
+    assert ffs.shape[0] == targets.shape[0] == 1, (f'Only support training one batch size, '
+                                                   f'but got {ffs.shape[0]} (for inputs) and '
+                                                   f'{targets.shape[0]} (for targets)')
+    ffs, targets = ffs[0], targets[0]
     if ffs.shape[0] != targets.shape[0]:
       raise MathError(f'The time dimension of input and target data should be '
                       f'the same, while we got {ffs.shape[0]} != {targets.shape[0]}')
-    assert (ffs.ndim == targets.ndim == 2)
     # solve weights by ridge regression
     if self.bias is not None:
       ffs = bm.concatenate([ffs, bm.ones(ffs.shape[:-1] + (1,))], axis=-1)  # (..., num_input+1)

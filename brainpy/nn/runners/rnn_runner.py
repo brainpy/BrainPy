@@ -5,10 +5,13 @@ from typing import Dict, Union
 import jax.numpy as jnp
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
+from jax.tree_util import tree_map
 
 from brainpy import math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
+from brainpy.nn.utils import (check_rnn_data_time_step,
+                              check_rnn_data_batch_size)
 from brainpy.running.runner import Runner
 from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
@@ -61,15 +64,22 @@ class RNNRunner(Runner):
     Parameters
     ----------
     xs: Tensor, dict
-      The feedforward input data.
+      The feedforward input data. It must be a 3-dimensional data
+      which has the shape of `(num_sample, num_time, num_feature)`.
     forced_states: dict
-      The fixed node states.
+      The fixed node states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`.
     forced_feedbacks: dict
-      The fixed feedback states.
+      The fixed feedback states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`.
     initial_states: dict
-      The initial states for the target nodes.
+      The initial states for the target nodes. Each tensor must
+      has the shape of `(num_sample, num_feature)`.
     initial_feedbacks: dict
-      The initial values of the feedback nodes.
+      The initial values of the feedback nodes. Each tensor must
+      has the shape of `(num_sample, num_feature)`.
     reset: bool
       Whether reset the model states.
     progress_bar: bool
@@ -80,38 +90,85 @@ class RNNRunner(Runner):
       The model output.
     """
     # format input data
-    xs, num_step = self._format_xs(xs)
-    # init the target model
-    self._init_target(xs)
+    xs, num_step, num_batch = self._check_xs(xs)
+    # get forced data
+    iter_forced_states, fixed_forced_states = self._check_forced_states(forced_states, num_step, num_batch)
+    iter_forced_feedbacks, fixed_forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_step, num_batch)
+    # reset the model states
+    if reset:
+      self.target.init_state(num_batch)
+    # prediction
+    return self._predict(xs=xs,
+                         num_step=num_step,
+                         initial_states=initial_states,
+                         initial_feedbacks=initial_feedbacks,
+                         iter_forced_states=iter_forced_states,
+                         fixed_forced_states=fixed_forced_states,
+                         iter_forced_feedbacks=iter_forced_feedbacks,
+                         fixed_forced_feedbacks=fixed_forced_feedbacks,
+                         progress_bar=progress_bar)
+
+  def _predict(
+      self,
+      xs: Dict[str, Tensor],
+      num_step: int = None,
+      initial_states: Dict[str, Tensor] = None,
+      initial_feedbacks: Dict[str, Tensor] = None,
+      iter_forced_states: Dict[str, Tensor] = None,
+      fixed_forced_states: Dict[str, Tensor] = None,
+      iter_forced_feedbacks: Dict[str, Tensor] = None,
+      fixed_forced_feedbacks: Dict[str, Tensor] = None,
+      progress_bar=True
+  ):
+    """
+
+    Parameters
+    ----------
+    xs: dict
+      Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
+    num_step: int
+    initial_states: dict
+    initial_feedbacks: dict
+    iter_forced_states: dict
+    fixed_forced_states: dict
+    iter_forced_feedbacks: dict
+    fixed_forced_feedbacks: dict
+    progress_bar: bool
+
+    Returns
+    -------
+
+    """
     # init monitor
     for key in self.mon.item_contents.keys():
       self.mon.item_contents[key] = []  # reshape the monitor items
     # init progress bar
     if self.progress_bar and progress_bar:
+      if num_step is None:
+        num_step = check_rnn_data_time_step(xs)
       self._pbar = tqdm.auto.tqdm(total=num_step)
       self._pbar.set_description(f"Predict {num_step} steps: ", refresh=True)
-    # reset the model states
-    if reset:
-      self.target.reset_state()
     # set initial states/feedbacks
     self._set_initial_states(initial_states)
     self._set_initial_feedbacks(initial_feedbacks)
-    # get forced data
-    forced_states = self._check_forced_states(forced_states, num_step)
-    forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_step)
     # check run function
-    if self._predict_func is None:
-      self._predict_func = self._make_run_func()
+    if self._predict_func is None: self._predict_func = self._make_run_func()
     # rune the model
-    outputs, hists = self._predict_func([xs, forced_states, forced_feedbacks])
+    iter_forced_states = dict() if iter_forced_states is None else iter_forced_states
+    fixed_forced_states = dict() if fixed_forced_states is None else fixed_forced_states
+    iter_forced_feedbacks = dict() if iter_forced_feedbacks is None else iter_forced_feedbacks
+    fixed_forced_feedbacks = dict() if fixed_forced_feedbacks is None else fixed_forced_feedbacks
+    outputs, hists = self._predict_func([xs, iter_forced_states, iter_forced_feedbacks])  # TODO: fixed?
     # close the progress bar
     if self.progress_bar and progress_bar:
       self._pbar.close()
     # post-running for monitors
     for key in self.mon.item_names:
-      self.mon.item_contents[key] = bm.asarray(hists[key])
+      self.mon.item_contents[key] = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists[key],
+                                             is_leaf=lambda x: isinstance(x, bm.JaxArray))
     if self.numpy_mon_after_run: self.mon.numpy()
-    return outputs
+    return tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs,
+                    is_leaf=lambda x: isinstance(x, bm.JaxArray))
 
   def _step_func(self, a_input):
     xs, forced_states, forced_feedbacks = a_input
@@ -120,7 +177,7 @@ class RNNRunner(Runner):
                        forced_states=forced_states,
                        forced_feedbacks=forced_feedbacks,
                        monitors=monitors)
-    if self.progress_bar:
+    if self.progress_bar and (self._pbar is not None):
       id_tap(lambda *args: self._pbar.update(), ())
     return outs
 
@@ -135,12 +192,12 @@ class RNNRunner(Runner):
         xs, forced_states, forced_feedbacks = all_inputs
         if isinstance(self.target, Network) and len(self.target.exit_nodes) > 1:
           outputs = {node.name: [] for node in self.target.exit_nodes}
-          output_type = 1
+          output_type = 'network'
         else:
           outputs = []
-          output_type = 2
+          output_type = 'node'
         monitors = {key: [] for key in self.mon.item_contents.keys()}
-        num_step = list(xs.values())[0].shape[0]
+        num_step = check_rnn_data_batch_size(xs)
         for i in range(num_step):
           one_xs = {key: tensor[i] for key, tensor in xs.items()}
           one_forced_states = {key: tensor[i] for key, tensor in forced_states.items()}
@@ -148,12 +205,12 @@ class RNNRunner(Runner):
           output, mon = self._step_func([one_xs, one_forced_states, one_forced_feedbacks])
           for key, value in mon.items():
             monitors[key].append(value)
-          if output_type == 2:
+          if output_type == 'node':
             outputs.append(output)
           else:
             for key, out in output.items():
               outputs[key].append(out)
-        if output_type == 2:
+        if output_type == 'node':
           outputs = bm.asarray(outputs)
         else:
           for key, out in outputs.items():
@@ -162,23 +219,6 @@ class RNNRunner(Runner):
           monitors[key] = bm.asarray(value)
         return outputs, monitors
     return run_func
-
-  def _format_xs(self, xs):
-    if isinstance(xs, (bm.ndarray, jnp.ndarray)):
-      if isinstance(self.target, Network):
-        assert len(self.target.entry_nodes) == 1, (f'The network {self.target} has {len(self.target.entry_nodes)} '
-                                                   f'input nodes, while we only got one input data.')
-        xs = {self.target.entry_nodes[0].name: xs}
-      else:
-        xs = {self.target.name: xs}
-
-    if not isinstance(xs, dict):
-      raise UnsupportedError(f'Unknown data type {type(xs)}, we only support '
-                             f'tensor or dict with <str, tensor>')
-    assert len(xs) > 0, 'We got no input data.'
-    check_dict_data(xs, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
-    num_step = list(xs.values())[0].shape[0]
-    return xs, num_step
 
   def _init_target(self, xs):
     # we need to initialize the node or the network
@@ -212,7 +252,7 @@ class RNNRunner(Runner):
         assert isinstance(initial_states, (jnp.ndarray, bm.ndarray)), ('"initial_states" must be a tensor, '
                                                                        f'but we got a {type(initial_states)}')
 
-  def _set_initial_feedbacks(self, initial_feedbacks):
+  def _set_initial_feedbacks(self, initial_feedbacks):  # TODO
     # initial feedback states
     if initial_feedbacks is not None:
       if isinstance(self.target, Network):
@@ -229,10 +269,11 @@ class RNNRunner(Runner):
       elif isinstance(self.target, Node):
         raise UnsupportedError('Do not support feedback in a single instance of brainpy.nn.Node.')
 
-  def _check_forced_states(self, forced_states, num_step):
+  def _check_forced_states(self, forced_states, num_step, num_batch):
+    iter_forced_states = dict()
+    fixed_forced_states = dict()
     if forced_states is not None:
       if isinstance(self.target, Network):
-        iter_forced_states = dict()
         assert isinstance(forced_states, dict), '"forced_states" must be a dict of (str, Tensor)'
         for key, tensor in forced_states.items():
           assert isinstance(key, str), (f'"forced_states" must be a dict of (str, tensor). '
@@ -240,29 +281,33 @@ class RNNRunner(Runner):
           assert key not in self.target, f'{self.target} does no have node {key}.'
           assert isinstance(tensor, (bm.ndarray, jnp.ndarray)), ('"forced_states" must a dict of (str, tensor), '
                                                                  'while we got ({type(key)}, {type(tensor)})')
-          if self.target[key].output_shape == tensor.shape:
-            iter_forced_states[key] = bm.repeat(bm.reshape(tensor, (-1,) + tensor.shape),
-                                                num_step, axis=0)
-          elif self.target[key].output_shape == tensor.shape[1:]:
-            iter_forced_states[key] = tensor
-            assert tensor.shape[0] == num_step, (f'The number of the iteration step ({tensor.shape[0]}) '
+          assert tensor.shape[0] == num_batch, (f'The number of the batch size ({tensor.shape[0]}) '
+                                                f'of the forced state of {key} does not '
+                                                f'match with the batch size in inputs {num_batch}.')
+          if bm.ndim(tensor) == 2 and self.target[key].output_shape[1:] == tensor.shape[1:]:
+            fixed_forced_states[key] = tensor
+          elif bm.ndim(tensor) == 3 and self.target[key].output_shape[1:] == tensor.shape[2:]:
+            assert tensor.shape[1] == num_step, (f'The number of the time step ({tensor.shape[1]}) '
                                                  f'of the forced state of {key} does not '
-                                                 f'match with the input data ({num_step}).')
+                                                 f'match with the time step in inputs {num_step}.')
+            iter_forced_states[key] = tensor  # shape of (num_time, num_sample, num_feature)
           else:
             raise UnsupportedError(f'The forced state of {key} has the shape of '
                                    f'{tensor.shape}, which is not consistent with '
-                                   f'its output shape {self.target[key].output_shape}.')
-        return iter_forced_states
+                                   f'its output shape {self.target[key].output_shape}. '
+                                   f'Each tensor in forced state should have the shape '
+                                   f'of (num_sample, num_time, num_feature) or '
+                                   f'(num_sample, num_feature).')
       else:
         raise UnsupportedError('We do not support forced feedback state '
                                'for a single brainpy.nn.Node instance')
-    else:
-      return dict()
+    return iter_forced_states, fixed_forced_states
 
-  def _check_forced_feedbacks(self, forced_feedbacks, num_step):
+  def _check_forced_feedbacks(self, forced_feedbacks, num_step, num_batch):
+    iter_forced_feedbacks = dict()
+    fixed_forced_feedbacks = dict()
     if forced_feedbacks is not None:
       if isinstance(self.target, Network):
-        iter_forced_feedbacks = dict()
         assert isinstance(forced_feedbacks, dict), '"forced_feedbacks" must be a dict of (str, Tensor)'
         feedback_node_names = [node.name for node in self.target.feedback_nodes]
         for key, tensor in forced_feedbacks.items():
@@ -272,21 +317,58 @@ class RNNRunner(Runner):
                                                   f'it only has {feedback_node_names}')
           assert isinstance(tensor, (bm.ndarray, jnp.ndarray)), ('"forced_feedbacks" must a dict of (str, tensor), '
                                                                  'while we got ({type(key)}, {type(tensor)})')
-          if self.target[key].output_shape == tensor.shape:
-            iter_forced_feedbacks[key] = bm.repeat(bm.reshape(tensor, (-1,) + tensor.shape),
-                                                   num_step, axis=0)
-          elif self.target[key].output_shape == tensor.shape[1:]:
-            iter_forced_feedbacks[key] = tensor
-            assert tensor.shape[0] == num_step, (f'The number of the iteration step ({tensor.shape[0]}) '
+          assert tensor.shape[0] == num_batch, (f'The number of the batch size ({tensor.shape[0]}) '
+                                                f'of the forced feedback of {key} does not '
+                                                f'match with the batch size in inputs {num_batch}.')
+          if bm.ndim(tensor) == 2 and self.target[key].output_shape[1:] == tensor.shape[1:]:
+            fixed_forced_feedbacks[key] = tensor
+          elif bm.ndim(tensor) == 3 and self.target[key].output_shape[1:] == tensor.shape[2:]:
+            assert tensor.shape[1] == num_step, (f'The number of the time step ({tensor.shape[1]}) '
                                                  f'of the forced feedback of {key} does not '
-                                                 f'match with the input data ({num_step}).')
+                                                 f'match with the time step in inputs {num_step}.')
+            iter_forced_feedbacks[key] = bm.moveaxis(tensor, 0, 1)  # shape of (num_time, num_sample, num_feature)
           else:
-            raise UnsupportedError(f'The forced state of {key} has the shape of '
+            raise UnsupportedError(f'The forced feedback of {key} has the shape of '
                                    f'{tensor.shape}, which is not consistent with '
-                                   f'its output shape {self.target[key].output_shape}.')
-        return iter_forced_feedbacks
+                                   f'its output shape {self.target[key].output_shape}. '
+                                   f'Each tensor in forced feedback should have the shape '
+                                   f'of (num_sample, num_time, num_feature) or '
+                                   f'(num_sample, num_feature).')
       else:
         raise UnsupportedError('We do not support forced states for '
                                'a single brainpy.nn.Node instance')
-    else:
-      return dict()
+    return iter_forced_feedbacks, fixed_forced_feedbacks
+
+  def _check_xs(self, xs: Union[Dict, Tensor], move_axis=True):
+    if isinstance(xs, (bm.ndarray, jnp.ndarray)):
+      if isinstance(self.target, Network):
+        assert len(self.target.entry_nodes) == 1, (f'The network {self.target} has {len(self.target.entry_nodes)} '
+                                                   f'input nodes, while we only got one input data.')
+        xs = {self.target.entry_nodes[0].name: xs}
+      else:
+        xs = {self.target.name: xs}
+
+    if not isinstance(xs, dict):
+      raise UnsupportedError(f'Unknown data type {type(xs)}, we only support '
+                             f'tensor or dict with <str, tensor>')
+    assert len(xs) > 0, 'We got no input data.'
+    check_dict_data(xs, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    num_times, num_batch_sizes = [], []
+    for key, val in xs.items():
+      if bm.ndim(val) != 3:
+        raise ValueError(f'Each tensor in "xs" must be a tensor of shape '
+                         f'(num_sample, num_time, num_feature). But we got {val.shape}.')
+      num_times.append(val.shape[1])
+      num_batch_sizes.append(val.shape[0])
+    if len(set(num_times)) != 1:
+      raise ValueError(f'Number of time step is different across tensors in '
+                       f'the provided "xs". We got {set(num_times)}.')
+    if len(set(num_batch_sizes)) != 1:
+      raise ValueError(f'Number of batch size is different across tensors in '
+                       f'the provided "xs". We got {set(num_batch_sizes)}.')
+    num_step = num_times[0]
+    num_batch = num_batch_sizes[0]
+    if move_axis:
+      # change shape to (num_time, num_sample, num_feature)
+      xs = {k: bm.moveaxis(v, 0, 1) for k, v in xs.items()}
+    return xs, num_step, num_batch

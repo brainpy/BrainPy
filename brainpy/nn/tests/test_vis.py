@@ -21,13 +21,13 @@ class TestVisualize(unittest.TestCase):
         >>
         bp.nn.Reservoir(100, name='l1')
         >>
-        bp.nn.LinearReadout(3, init_weight=bp.init.Normal())
+        bp.nn.LinearReadout(3, weight_initializer=bp.init.Normal())
         >>
         bp.nn.Reservoir(100)
         >>
         bp.nn.Reservoir(100)
         >>
-        bp.nn.LinearReadout(3, init_weight=bp.init.Normal(), name='output')
+        bp.nn.LinearReadout(3, weight_initializer=bp.init.Normal(), name='output')
     )
     model &= (model['l1'] << model['output'])
     model &= (model['I'] << model['output'])

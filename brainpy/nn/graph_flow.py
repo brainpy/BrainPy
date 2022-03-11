@@ -11,6 +11,7 @@ __all__ = [
 
 
 def find_senders_and_receivers(edges):
+  """Find all senders and receivers in the given graph."""
   senders = dict()  # find parents according to the child
   receivers = dict()  # find children according to the parent
   for edge in edges:
@@ -94,7 +95,8 @@ def _detect_cycle(v, visited, stacks, graph):
 
 
 def detect_cycle(nodes, edges):
-  """https://blog.csdn.net/anlian523/article/details/81806384"""
+  """Detect whether a cycle exists in the defined graph.
+  """
   node2id = {node: i for i, node in enumerate(nodes)}
   graph = defaultdict(list)
   for s, r in edges:
@@ -158,12 +160,14 @@ def _has_path_by_bfs(from_node, to_node, graph):
 
 
 def detect_path(from_node, to_node, edges, method='dfs'):
+  """Detect whether there is a path exist in the defined graph
+  from ``from_node`` to ``to_node``. """
   graph = defaultdict(list)
   for s, r in edges:
-    graph[s.name].append(r.name)
+    graph[s].append(r)
   if method == 'dfs':
-    return _has_path_by_dfs(from_node.name, to_node.name, graph)
+    return _has_path_by_dfs(from_node, to_node, graph)
   elif method == 'bfs':
-    return _has_path_by_bfs(from_node.name, to_node.name, graph)
+    return _has_path_by_bfs(from_node, to_node, graph)
   else:
     raise ValueError(f'Unknown method {method}')

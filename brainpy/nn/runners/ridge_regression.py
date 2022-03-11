@@ -18,7 +18,8 @@ __all__ = [
 
 
 class RidgeTrainer(RNNTrainer):
-  """Trainer of ridge regression, also known as regression with Tikhonov regularization.
+  """
+  Trainer of ridge regression, also known as regression with Tikhonov regularization.
 
   ``RidgeTrainer`` requires that the trainable node implements its training interface
   ``__ridge_train__()`` function. Otherwise an error will raise.
@@ -28,8 +29,10 @@ class RidgeTrainer(RNNTrainer):
   - `__ridge_train__(ffs, targets, train_pars)` if the model only has feedforward connections,
   - `__ridge_train__(ffs, targets, fbs, train_pars)` if the model has the feedback signaling.
 
-  where ``ffs`` means the feedforward inputs, ``targets`` the ground truth,
-  ``fbs`` the feedback signals, and ``train_pars`` the training related parameters.
+  where ``ffs`` means the feedforward inputs with the shape of `(num_sample, num_time, num_feature)`,
+  ``targets`` the ground truth with the shape of `(num_sample, num_time, num_feature)`,
+  ``fbs`` the feedback signals with the shape of `(num_sample, num_time, num_feature)`,
+  and ``train_pars`` the training related parameters.
 
   Parameters
   ----------
@@ -37,6 +40,8 @@ class RidgeTrainer(RNNTrainer):
     The target model.
   beta: float
     The regularization coefficient.
+  **kwargs: dict
+    Other common parameters for :py:class:`brainpy.nn.RNNTrainer``.
   """
 
   def __init__(self, target, beta=1e-7, **kwargs):
@@ -65,12 +70,15 @@ class RidgeTrainer(RNNTrainer):
           reset=False):
 
     # prediction, get all needed data
-    _ = self.predict(xs=xs, reset=reset,
-                     forced_states=forced_states, forced_feedbacks=forced_feedbacks,
-                     initial_states=initial_states, initial_feedbacks=initial_feedbacks)
+    _ = self.predict(xs=xs,
+                     reset=reset,
+                     forced_states=forced_states,
+                     forced_feedbacks=forced_feedbacks,
+                     initial_states=initial_states,
+                     initial_feedbacks=initial_feedbacks)
 
     # get all input data
-    xs, num_step = self._format_xs(xs)
+    xs, num_step, num_batch = self._check_xs(xs, move_axis=False)
     if isinstance(self.target, Network):
       for node in self.target.entry_nodes:
         if node in self.train_nodes:
@@ -91,6 +99,17 @@ class RidgeTrainer(RNNTrainer):
         raise ValueError(f'The network {self.target} has {len(self.train_nodes)} '
                          f'training nodes, while we only got one target data.')
     check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    for key, val in ys.items():
+      if val.ndim != 3:
+        raise ValueError("Targets must be a tensor with shape of "
+                         "(num_sample, num_time, num_feature), "
+                         f"but we got {val.shape}")
+      if val.shape[0] != num_batch:
+        raise ValueError(f'Batch size of the target {key} does not match '
+                         f'with the input data {val.shape[0]} != {num_batch}')
+      if val.shape[1] != num_step:
+        raise ValueError(f'The time step of the target {key} does not match '
+                         f'with the input data {val.shape[1]} != {num_step})')
 
     # init progress bar
     if self.progress_bar:
@@ -142,7 +161,7 @@ class RidgeTrainer(RNNTrainer):
             self.mon.item_names.append(f'{node.name}.inputs')
             self.mon.item_contents[f'{node.name}.inputs'] = []
             added_items.add(f'{node.name}.inputs')
-        if node in self.target._fb_senders:
+        if node in self.target.fb_senders:
           if f'{node.name}.feedbacks' not in self.mon.item_names:
             self.mon.item_names.append(f'{node.name}.feedbacks')
             self.mon.item_contents[f'{node.name}.feedbacks'] = []

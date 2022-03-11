@@ -81,7 +81,7 @@ class Conv2D(Node):
     self.padding = padding
     self.groups = groups
 
-  def ff_init(self):
+  def init_ff(self):
     assert self.num_input % self.groups == 0, '"nin" should be divisible by groups'
     size = _check_tuple(self.kernel_size) + (self.num_input // self.groups, self.num_output)
     self.w = init_param(self.w_init, size)

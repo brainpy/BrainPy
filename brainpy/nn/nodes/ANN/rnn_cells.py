@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import abc
 
 import brainpy.math as bm
-from brainpy.initialize import XavierNormal, ZeroInit, Uniform, Orthogonal
+from brainpy.initialize import (XavierNormal, ZeroInit,
+                                Uniform, Orthogonal)
 from brainpy.nn.base import Node
+from brainpy.nn.utils import init_param
+from brainpy.tools.checking import (check_integer,
+                                    check_initializer,
+                                    check_shape_consistency)
 
 __all__ = [
   'RNNCore',
@@ -15,16 +19,20 @@ __all__ = [
 
 
 class RNNCore(Node):
-  def __init__(self, num_hidden, num_input, **kwargs):
-    super(RNNCore, self).__init__(**kwargs)
-    assert isinstance(num_hidden, int)
-    assert isinstance(num_input, int)
-    self.num_hidden = num_hidden
-    self.num_input = num_input
+  """
+  Base class for RNN cores.
 
-  @abc.abstractmethod
-  def update(self, x):
-    pass
+  This class defines the basic functionality that every core should
+  implement: :meth:`init_state`, used to construct an example of the
+  core state; and :meth:`forward` which applies the core parameterized
+  by a previous state to an input.
+  """
+
+  def init_state(self, num_batch):
+    raise NotImplementedError('Should implement the "init_state()" by user self.')
+
+  def forward(self, ff, fb=None, **kwargs):
+    raise NotImplementedError('Should implement the "forward()" by user self.')
 
 
 class VanillaRNN(RNNCore):
@@ -40,26 +48,59 @@ class VanillaRNN(RNNCore):
   The output is equal to the new state, :math:`h_t`.
   """
 
-  def __init__(self, num_hidden, num_input, num_batch, h=Uniform(), w=XavierNormal(), b=ZeroInit(), **kwargs):
-    super(VanillaRNN, self).__init__(num_hidden, num_input, **kwargs)
+  def __init__(
+      self,
+      num_unit: int,
+      state_initializer=Uniform(),
+      weight_initializer=XavierNormal(),
+      bias_initializer=ZeroInit(),
+      activation='relu',
+      trainable=True,
+      **kwargs
+  ):
+    super(VanillaRNN, self).__init__(trainable=trainable, **kwargs)
 
-    # variables
-    self.h = bm.Variable(self.init_param(h, (num_batch, self.num_hidden)))
+    self.num_unit = num_unit
+    check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
 
+    self._state_initializer = state_initializer
+    self._weight_initializer = weight_initializer
+    self._bias_initializer = bias_initializer
+    check_initializer(weight_initializer, 'weight_initializer', allow_none=False)
+    check_initializer(state_initializer, 'state_initializer', allow_none=False)
+    check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
+
+    self.activation = bm.activations.get(activation)
+
+  def init_ff(self):
+    unique_size, free_sizes = check_shape_consistency(self.input_shapes, -1, True)
+    assert len(unique_size) == 1, 'Only support data with or without batch size.'
+    num_input = sum(free_sizes)
+    self.set_output_shape(unique_size + (self.num_unit,))
     # weights
-    ws = self.init_param(w, (num_input + num_hidden, num_hidden))
-    self.w_ir = bm.TrainVar(ws[:num_input])
-    self.w_rr = bm.TrainVar(ws[num_input:])
-    self.b = self.init_param(b, (num_hidden,))
+    self.weight = init_param(self._weight_initializer, (num_input + self.num_unit, self.num_unit))
+    self.bias = init_param(self._bias_initializer, (self.num_unit,))
+    if self.trainable:
+      self.weight = bm.TrainVar(self.weight)
+      self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
+    # states
 
-  def update(self, x):
-    h = x @ self.w_ir + self.h @ self.w_rr + self.b
-    self.h.value = bm.relu(h)
-    return self.h
+  def init_state(self, num_batch):
+    state = init_param(self._state_initializer, (num_batch, self.num_unit))
+    self.set_state(state)
+
+  def forward(self, ff, fb=None, **kwargs):
+    ff = bm.concatenate(tuple(ff) + (self.state.value,), axis=-1)
+    h = ff @ self.weight
+    if self.bias is not None:
+      h = h + self.bias
+    self.state.value = self.activation(h)
+    return self.state.value
 
 
 class GRU(RNNCore):
-  r"""Gated Recurrent Unit.
+  r"""
+  Gated Recurrent Unit.
 
   The implementation is based on (Chung, et al., 2014) [1]_ with biases.
 
@@ -87,42 +128,69 @@ class GRU(RNNCore):
          arXiv preprint arXiv:1412.3555.
   """
 
-  def __init__(self, num_hidden, num_input, num_batch, wx=Orthogonal(),
-               wh=Orthogonal(), b=ZeroInit(), h=ZeroInit(), **kwargs):
-    super(GRU, self).__init__(num_hidden, num_input, **kwargs)
+  def __init__(
+      self,
+      num_unit: int,
+      wi_initializer=Orthogonal(),
+      wh_initializer=Orthogonal(),
+      bias_initializer=ZeroInit(),
+      state_initializer=ZeroInit(),
+      trainable=True,
+      **kwargs
+  ):
+    super(GRU, self).__init__(trainable=trainable, **kwargs)
 
-    self.has_bias = True
+    self.num_unit = num_unit
+    check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
 
-    # variables
-    self.h = bm.Variable(self.init_param(h, (num_batch, self.num_hidden)))
+    self._wi_initializer = wi_initializer
+    self._wh_initializer = wh_initializer
+    self._bias_initializer = bias_initializer
+    self._state_initializer = state_initializer
+    check_initializer(wi_initializer, 'wi_initializer', allow_none=False)
+    check_initializer(wh_initializer, 'wh_initializer', allow_none=False)
+    check_initializer(state_initializer, 'state_initializer', allow_none=False)
+    check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
 
+  def init_ff(self):
+    # data shape
+    unique_size, free_sizes = check_shape_consistency(self.input_shapes, -1, True)
+    assert len(unique_size) == 1, 'Only support data with or without batch size.'
+    num_input = sum(free_sizes)
+    self.set_output_shape(unique_size + (self.num_unit,))
     # weights
-    wxs = self.init_param(wx, (num_input * 3, num_hidden))
-    self.w_iz = bm.TrainVar(wxs[:num_input])
-    self.w_ir = bm.TrainVar(wxs[num_input: num_input * 2])
-    self.w_ia = bm.TrainVar(wxs[num_input * 2:])
-    whs = self.init_param(wh, (num_hidden * 3, num_hidden))
-    self.w_hz = bm.TrainVar(whs[:num_hidden])
-    self.w_hr = bm.TrainVar(whs[num_hidden: num_hidden * 2])
-    self.w_ha = bm.TrainVar(whs[num_hidden * 2:])
-    bs = self.init_param(b, (num_hidden * 3,))
-    self.bz = bm.TrainVar(bs[:num_hidden])
-    self.br = bm.TrainVar(bs[num_hidden: num_hidden * 2])
-    self.ba = bm.TrainVar(bs[num_hidden * 2:])
+    self.i_weight = init_param(self._wi_initializer, (num_input, self.num_unit * 3))
+    self.h_weight = init_param(self._wh_initializer, (self.num_unit, self.num_unit * 3))
+    self.bias = init_param(self._bias_initializer, (self.num_unit * 3,))
+    if self.trainable:
+      self.i_weight = bm.TrainVar(self.i_weight)
+      self.h_weight = bm.TrainVar(self.h_weight)
+      self.bias = bm.TrainVar(self.bias) if (self.bias is not None) else None
 
-  def update(self, x):
-    if self.bz is None:
-      z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz)
-      r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr)
-      a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha)
-      self.h.value = (1 - z) * self.h + z * a
-      return self.h.value
+  def init_state(self, num_batch):
+    state = init_param(self._state_initializer, (num_batch, self.num_unit))
+    self.set_state(state)
+
+  def forward(self, ff, fb=None, **kwargs):
+    ff = bm.concatenate(ff, axis=-1)
+    gates_x = bm.matmul(ff, self.i_weight)
+    zr_x, a_x = bm.split(gates_x, indices_or_sections=[2 * self.num_unit], axis=-1)
+    w_h_z, w_h_a = bm.split(self.h_weight, indices_or_sections=[2 * self.num_unit], axis=-1)
+    zr_h = bm.matmul(self.state, w_h_z)
+    zr = zr_x + zr_h
+    has_bias = (self.bias is not None)
+    if has_bias:
+      b_z, b_a = bm.split(self.bias, indices_or_sections=[2 * self.num_unit], axis=0)
+      zr += bm.broadcast_to(b_z, zr_h.shape)
+    z, r = bm.split(bm.sigmoid(zr), indices_or_sections=2, axis=-1)
+    a_h = bm.matmul(r * self.state, w_h_a)
+    if has_bias:
+      a = bm.tanh(a_x + a_h + bm.broadcast_to(b_a, a_h.shape))
     else:
-      z = bm.sigmoid(x @ self.w_iz + self.h @ self.w_hz + self.bz)
-      r = bm.sigmoid(x @ self.w_ir + self.h @ self.w_hr + self.br)
-      a = bm.tanh(x @ self.w_ia + (r * self.h) @ self.w_ha + self.ba)
-      self.h.value = (1 - z) * self.h + z * a
-      return self.h.value
+      a = bm.tanh(a_x + a_h)
+    next_state = (1 - z) * self.state + z * a
+    self.state.value = next_state
+    return next_state
 
 
 class LSTM(RNNCore):
@@ -165,29 +233,91 @@ class LSTM(RNNCore):
          on machine learning, pp. 2342-2350. PMLR, 2015.
   """
 
-  def __init__(self, num_hidden, num_input, num_batch, w=Orthogonal(), b=ZeroInit(), hc=ZeroInit(), **kwargs):
-    super(LSTM, self).__init__(num_hidden, num_input, **kwargs)
+  def __init__(
+      self,
+      num_unit: int,
+      weight_initializer=Orthogonal(),
+      bias_initializer=ZeroInit(),
+      state_initializer=ZeroInit(),
+      trainable=True,
+      **kwargs
+  ):
+    super(LSTM, self).__init__(trainable=trainable, **kwargs)
 
-    self.has_bias = True
+    self.num_unit = num_unit
+    check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
 
-    # variables
-    hc = bm.Variable(self.init_param(hc, (num_batch * 2, self.num_hidden)))
-    self.h = bm.Variable(hc[:num_batch])
-    self.c = bm.Variable(hc[num_batch:])
+    self._state_initializer = state_initializer
+    self._weight_initializer = weight_initializer
+    self._bias_initializer = bias_initializer
+    check_initializer(weight_initializer, 'weight_initializer', allow_none=False)
+    check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
+    check_initializer(state_initializer, 'state_initializer', allow_none=False)
 
+  def init_ff(self):
+    # data shape
+    unique_size, free_sizes = check_shape_consistency(self.input_shapes, -1, True)
+    assert len(unique_size) == 1, 'Only support data with or without batch size.'
+    num_input = sum(free_sizes)
+    self.set_output_shape(unique_size + (self.num_unit,))
     # weights
-    self.w = bm.TrainVar(self.init_param(w, (num_input + num_hidden, num_hidden * 4)))
-    self.b = self.init_param(b, (num_hidden * 4,))
+    self.weight = init_param(self._weight_initializer, (num_input + self.num_unit, self.num_unit * 4))
+    self.bias = init_param(self._bias_initializer, (self.num_unit * 4,))
+    if self.trainable:
+      self.weight = bm.TrainVar(self.weight)
+      self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
-  def update(self, x):
-    xh = bm.concatenate([x, self.h], axis=-1)
-    if self.b is None:
-      gated = xh @ self.w
+  def init_state(self, num_batch):
+    hc = init_param(self._state_initializer, (num_batch * 2, self.num_unit))
+    self.set_state(hc)
+
+  def forward(self, ff, fb=None, **kwargs):
+    h, c = bm.split(self.state, 2)
+    xh = bm.concatenate(tuple(ff) + (h,), axis=-1)
+    if self.bias is None:
+      gated = xh @ self.weight
     else:
-      gated = xh @ self.w + self.b
+      gated = xh @ self.weight + self.bias
     i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
-    c = bm.sigmoid(f + 1.) * self.c + bm.sigmoid(i) * bm.tanh(g)
+    c = bm.sigmoid(f + 1.) * c + bm.sigmoid(i) * bm.tanh(g)
     h = bm.sigmoid(o) * bm.tanh(c)
-    self.h.value = h
-    self.c.value = c
-    return self.h.value
+    self.state.value = bm.vstack([h, c])
+    return h
+
+  @property
+  def h(self):
+    """Hidden state."""
+    return bm.split(self.state, 2)[0]
+
+  @h.setter
+  def h(self, value):
+    if self.state is None:
+      raise ValueError('Cannot set "h" state. Because it is not initialized.')
+    self.state[:self.state.shape[0] // 2, :] = value
+
+  @property
+  def c(self):
+    """Memory cell."""
+    return bm.split(self.state, 2)[1]
+
+  @c.setter
+  def c(self, value):
+    if self.state is None:
+      raise ValueError('Cannot set "c" state. Because it is not initialized.')
+    self.state[self.state.shape[0] // 2:, :] = value
+
+
+class ConvNDLSTM(RNNCore):
+  pass
+
+
+class Conv1DLSTM(RNNCore):
+  pass
+
+
+class Conv2DLSTM(RNNCore):
+  pass
+
+
+class Conv3DLSTM(RNNCore):
+  pass

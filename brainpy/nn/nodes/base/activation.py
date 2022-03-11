@@ -4,6 +4,7 @@ from typing import Dict, Optional, Any
 
 from brainpy.math import activations
 from brainpy.nn.base import Node
+from brainpy.nn.constants import PASS_ONLY_ONE
 
 __all__ = [
   'Activation'
@@ -21,6 +22,8 @@ class Activation(Node):
     The settings for the activation function.
   """
 
+  data_pass_type = PASS_ONLY_ONE
+
   def __init__(self,
                activation: str = 'relu',
                fun_setting: Optional[Dict[str, Any]] = None,
@@ -31,12 +34,11 @@ class Activation(Node):
     super(Activation, self).__init__(name=name, **kwargs)
 
     self._activation = activations.get(activation)
-    self._fun_setting = dict() if fun_setting is None else fun_setting
+    self._fun_setting = dict() if (fun_setting is None) else fun_setting
     assert isinstance(self._fun_setting, dict), '"fun_setting" must be a dict.'
 
-  def ff_init(self):
-    assert len(self.input_shapes) == 1, f'{type(self).__name__} only support receiving one input. '
-    self.set_output_shape(self.input_shapes[0])
+  def init_ff(self):
+    self.set_output_shape(self.input_shapes)
 
   def forward(self, ff, **kwargs):
-    return self._activation(ff[0], **self._fun_setting)
+    return self._activation(ff, **self._fun_setting)
