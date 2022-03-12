@@ -71,8 +71,6 @@ The code of BrainPy is open-sourced at GitHub:
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   tutorial_math/overview
-   tutorial_math/tensors
    tutorial_math/variables
    tutorial_math/base
    tutorial_math/compilation
