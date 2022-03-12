@@ -39,7 +39,7 @@ def esn(num_in=100, num_out=30):
 
   # training
   trainer = bp.nn.RidgeTrainer(model)
-  trainer.fit(X, Y)
+  trainer.fit([X, Y])
 
   # prediction
   runner = bp.nn.RNNRunner(model, monitors=['l1.state', 'l2.state'], jit=True)

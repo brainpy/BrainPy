@@ -7,6 +7,7 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
+from brainpy.base import TensorCollector
 from brainpy import math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
@@ -51,8 +52,6 @@ class RNNRunner(Runner):
               xs: Union[Tensor, Dict[str, Tensor]],
               forced_states: Dict[str, Tensor] = None,
               forced_feedbacks: Dict[str, Tensor] = None,
-              initial_states: Dict[str, Tensor] = None,
-              initial_feedbacks: Dict[str, Tensor] = None,
               reset=False,
               progress_bar=True):
     """Predict a series of input data with the given target model.
@@ -74,12 +73,6 @@ class RNNRunner(Runner):
       The fixed feedback states. Similar with ``xs``, each tensor in
       ``forced_states`` must be a tensor with the shape of
       `(num_sample, num_time, num_feature)`.
-    initial_states: dict
-      The initial states for the target nodes. Each tensor must
-      has the shape of `(num_sample, num_feature)`.
-    initial_feedbacks: dict
-      The initial values of the feedback nodes. Each tensor must
-      has the shape of `(num_sample, num_feature)`.
     reset: bool
       Whether reset the model states.
     progress_bar: bool
@@ -97,28 +90,38 @@ class RNNRunner(Runner):
     # reset the model states
     if reset:
       self.target.init_state(num_batch)
+    # init monitor
+    for key in self.mon.item_contents.keys():
+      self.mon.item_contents[key] = []  # reshape the monitor items
+    # init progress bar
+    if self.progress_bar and progress_bar:
+      if num_step is None:
+        num_step = check_rnn_data_time_step(xs)
+      self._pbar = tqdm.auto.tqdm(total=num_step)
+      self._pbar.set_description(f"Predict {num_step} steps: ", refresh=True)
     # prediction
-    return self._predict(xs=xs,
-                         num_step=num_step,
-                         initial_states=initial_states,
-                         initial_feedbacks=initial_feedbacks,
-                         iter_forced_states=iter_forced_states,
-                         fixed_forced_states=fixed_forced_states,
-                         iter_forced_feedbacks=iter_forced_feedbacks,
-                         fixed_forced_feedbacks=fixed_forced_feedbacks,
-                         progress_bar=progress_bar)
+    outputs, hists = self._predict(xs=xs,
+                                   iter_forced_states=iter_forced_states,
+                                   fixed_forced_states=fixed_forced_states,
+                                   iter_forced_feedbacks=iter_forced_feedbacks,
+                                   fixed_forced_feedbacks=fixed_forced_feedbacks)
+    # close the progress bar
+    if self.progress_bar and progress_bar:
+      self._pbar.close()
+    # post-running for monitors
+    for key in self.mon.item_names:
+      self.mon.item_contents[key] = hists[key]
+    if self.numpy_mon_after_run:
+      self.mon.numpy()
+    return outputs
 
   def _predict(
       self,
       xs: Dict[str, Tensor],
-      num_step: int = None,
-      initial_states: Dict[str, Tensor] = None,
-      initial_feedbacks: Dict[str, Tensor] = None,
       iter_forced_states: Dict[str, Tensor] = None,
       fixed_forced_states: Dict[str, Tensor] = None,
       iter_forced_feedbacks: Dict[str, Tensor] = None,
       fixed_forced_feedbacks: Dict[str, Tensor] = None,
-      progress_bar=True
   ):
     """
 
@@ -126,7 +129,6 @@ class RNNRunner(Runner):
     ----------
     xs: dict
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
-    num_step: int
     initial_states: dict
     initial_feedbacks: dict
     iter_forced_states: dict
@@ -139,36 +141,20 @@ class RNNRunner(Runner):
     -------
 
     """
-    # init monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
-    # init progress bar
-    if self.progress_bar and progress_bar:
-      if num_step is None:
-        num_step = check_rnn_data_time_step(xs)
-      self._pbar = tqdm.auto.tqdm(total=num_step)
-      self._pbar.set_description(f"Predict {num_step} steps: ", refresh=True)
-    # set initial states/feedbacks
-    self._set_initial_states(initial_states)
-    self._set_initial_feedbacks(initial_feedbacks)
     # check run function
-    if self._predict_func is None: self._predict_func = self._make_run_func()
+    if self._predict_func is None:
+      self._predict_func = self._make_run_func()
     # rune the model
     iter_forced_states = dict() if iter_forced_states is None else iter_forced_states
     fixed_forced_states = dict() if fixed_forced_states is None else fixed_forced_states
     iter_forced_feedbacks = dict() if iter_forced_feedbacks is None else iter_forced_feedbacks
     fixed_forced_feedbacks = dict() if fixed_forced_feedbacks is None else fixed_forced_feedbacks
     outputs, hists = self._predict_func([xs, iter_forced_states, iter_forced_feedbacks])  # TODO: fixed?
-    # close the progress bar
-    if self.progress_bar and progress_bar:
-      self._pbar.close()
-    # post-running for monitors
-    for key in self.mon.item_names:
-      self.mon.item_contents[key] = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists[key],
-                                             is_leaf=lambda x: isinstance(x, bm.JaxArray))
-    if self.numpy_mon_after_run: self.mon.numpy()
-    return tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs,
-                    is_leaf=lambda x: isinstance(x, bm.JaxArray))
+    f1 = lambda x: bm.moveaxis(x, 0, 1)
+    f2 = lambda x: isinstance(x, bm.JaxArray)
+    outputs = tree_map(f1, outputs, is_leaf=f2)
+    hists = tree_map(f1, hists, is_leaf=f2)
+    return outputs, hists
 
   def _step_func(self, a_input):
     xs, forced_states, forced_feedbacks = a_input
@@ -183,8 +169,9 @@ class RNNRunner(Runner):
 
   def _make_run_func(self):
     if self.jit:
-      self.dyn_vars.update(self.target.vars().unique())
-      f = bm.make_loop(self._step_func, dyn_vars=self.dyn_vars, has_return=True)
+      dyn_vars = self.target.vars()
+      dyn_vars.update(self.dyn_vars)
+      f = bm.make_loop(self._step_func, dyn_vars=dyn_vars.unique(), has_return=True)
       return lambda all_inputs: f(all_inputs)[1]
 
     else:

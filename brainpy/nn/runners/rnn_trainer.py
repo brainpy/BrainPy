@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict, Sequence, Any
+from typing import Dict, Sequence, Any
 
 from brainpy.errors import UnsupportedError, NoImplementationError
 from brainpy.nn.base import Node, Network
@@ -22,13 +22,11 @@ class RNNTrainer(RNNRunner):
     super(RNNTrainer, self).__init__(target=target, **kwargs)
 
   def fit(self,
-          xs: Union[Tensor, Dict[str, Tensor]],
-          ys: Union[Tensor, Dict[str, Tensor]],
+          train_data: Any,
+          test_data: Any,
           forced_states: Dict[str, Tensor] = None,
           forced_feedbacks: Dict[str, Tensor] = None,
-          initial_states: Dict[str, Tensor] = None,
-          initial_feedbacks: Dict[str, Tensor] = None,
-          reset=False, ):  # need to be implemented by subclass
+          reset: bool = False):  # need to be implemented by subclass
     raise NotImplementedError('Must implement the fit function. ')
 
   def _get_trainable_nodes(self):

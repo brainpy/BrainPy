@@ -145,13 +145,6 @@ X_test, Y_test = get_subset(lorenz_series, 0, num_warmup + num_train + num_test)
 i = bp.nn.Input(2)
 r = bp.nn.NVAR(delay=4, order=2, stride=5)
 o = bp.nn.LinearReadout(1, trainable=True)
-#
-# Cannot express the model as
-#
-#     [i >> r >> di, i] >> o
-# because it will concatenate the outputs of "i" and "di",
-# then feed into the node "o". This is not the connection
-# we want.
 model = i >> r >> o
 model.plot_node_graph()
 model.initialize(num_batch=1)
@@ -160,13 +153,14 @@ model.initialize(num_batch=1)
 # Training #
 # -------- #
 
-# warm-up
 trainer = bp.nn.RidgeTrainer(model, beta=0.05)
 
-# training
+# warm-up
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
-trainer.fit(X_train, Y_train)
+
+# training
+trainer.fit([X_train, Y_train])
 
 # prediction
 outputs = trainer.predict(X_test, reset=True)

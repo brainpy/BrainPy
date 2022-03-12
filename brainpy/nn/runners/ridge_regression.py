@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict
+from typing import Dict, Sequence
 
 import jax.numpy as jnp
 import tqdm.auto
@@ -58,24 +58,34 @@ class RidgeTrainer(RNNTrainer):
     # train parameters
     self.train_pars = dict(beta=beta)
     # training function
-    self._fit_func = None
+    self._f_train = None
 
-  def fit(self,
-          xs: Union[Tensor, Dict[str, Tensor]],
-          ys: Union[Tensor, Dict[str, Tensor]],
-          forced_states: Dict[str, Tensor] = None,
-          forced_feedbacks: Dict[str, Tensor] = None,
-          initial_states: Dict[str, Tensor] = None,
-          initial_feedbacks: Dict[str, Tensor] = None,
-          reset=False):
+  def fit(
+      self,
+      train_data: Sequence,
+      test_data=None,
+      forced_states: Dict[str, Tensor] = None,
+      forced_feedbacks: Dict[str, Tensor] = None,
+      reset=False
+  ):
+    # checking training and testing data
+    if not isinstance(train_data, (list, tuple)):
+      raise ValueError(f"{self.__class__.__name__} only support "
+                       f"training data with the format of (X, Y) pair, "
+                       f"but we got a {type(train_data)}.")
+    if len(train_data) != 2:
+      raise ValueError(f"{self.__class__.__name__} only support "
+                       f"training data with the format of (X, Y) pair, "
+                       f"but we got a sequence with length {len(train_data)}")
+    if test_data is not None:
+      raise ValueError(f'{self.__class__.__name__} does not support testing data.')
+    xs, ys = train_data
 
     # prediction, get all needed data
     _ = self.predict(xs=xs,
                      reset=reset,
                      forced_states=forced_states,
-                     forced_feedbacks=forced_feedbacks,
-                     initial_states=initial_states,
-                     initial_feedbacks=initial_feedbacks)
+                     forced_feedbacks=forced_feedbacks)
 
     # get all input data
     xs, num_step, num_batch = self._check_xs(xs, move_axis=False)
@@ -116,14 +126,12 @@ class RidgeTrainer(RNNTrainer):
       self._pbar = tqdm.auto.tqdm(total=len(self.train_nodes))
       self._pbar.set_description(f"Train {len(self.train_nodes)} nodes: ", refresh=True)
 
-    # train the network
-    if self._fit_func is None:
-      self._fit_func = self._make_fit_func()
+    # training
     monitor_data = dict()
     for node in self.train_nodes:
       monitor_data[f'{node.name}.inputs'] = self.mon.item_contents.get(f'{node.name}.inputs', None)
       monitor_data[f'{node.name}.feedbacks'] = self.mon.item_contents.get(f'{node.name}.feedbacks', None)
-    self._fit_func(monitor_data, ys)
+    self.f_train(monitor_data, ys)
 
     # close the progress bar
     if self.progress_bar:
@@ -132,7 +140,14 @@ class RidgeTrainer(RNNTrainer):
     # final things
     for key in self._added_items:
       self.mon.item_contents.pop(key)
-    if self.true_numpy_mon_after_run: self.mon.numpy()
+    if self.true_numpy_mon_after_run:
+      self.mon.numpy()
+
+  @property
+  def f_train(self):
+    if self._f_train is None:
+      self._f_train = self._make_fit_func()
+    return self._f_train
 
   def _make_fit_func(self):
     def train_func(monitor_data: Dict[str, Tensor], target_data: Dict[str, Tensor]):
@@ -148,8 +163,9 @@ class RidgeTrainer(RNNTrainer):
           id_tap(lambda *args: self._pbar.update(), ())
 
     if self.jit:
-      # self.dyn_vars.update(self.target.vars().unique())
-      train_func = bm.jit(train_func, dyn_vars=self.dyn_vars.unique())
+      dyn_vars = self.target.vars()
+      dyn_vars.update(self.dyn_vars)
+      train_func = bm.jit(train_func, dyn_vars=dyn_vars.unique())
     return train_func
 
   def _add_monitor_items(self):
