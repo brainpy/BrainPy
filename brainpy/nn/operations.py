@@ -13,8 +13,10 @@ It supports the following operations:
 
 However, all operations should satisfy the following assumptions:
 
-1. feedback connection of (node1, node2) should have a feedforward path from `node2` to `node1`.
-2. feedforward or feedback connections cannot generate a cycle.
+1. Feedback connection of `(node1, node2)` should have a feedforward path from `node2` to `node1`.
+2. Feedforward or feedback connections cannot generate a cycle.
+3. Cannot concatenate multiple receiver nodes, e.g., `a >> [b, c]` is forbidden, but `a >> {b, c}`
+   is allowed.
 
 """
 
