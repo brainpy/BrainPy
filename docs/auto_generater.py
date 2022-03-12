@@ -429,25 +429,28 @@ def generate_nn_docs(path='apis/auto/nn/'):
   write_module(module_name='brainpy.nn.base',
                filename=os.path.join(path, 'base.rst'),
                header='Base Classes')
-  write_module(module_name='brainpy.nn.nodes.ANN',
-               filename=os.path.join(path, 'nodes_ANN.rst'),
-               header='Artificial Neural Network Nodes')
-  write_module(module_name='brainpy.nn.nodes.base',
-               filename=os.path.join(path, 'nodes_base.rst'),
-               header='Basic Nodes')
-  write_module(module_name='brainpy.nn.nodes.RC',
-               filename=os.path.join(path, 'nodes_RC.rst'),
-               header='Reservoir Computing Nodes')
   write_module(module_name='brainpy.nn.operations',
                filename=os.path.join(path, 'operations.rst'),
                header='Node Operations')
-  write_module(module_name='brainpy.nn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Network Runners')
-
   write_module(module_name='brainpy.nn.graph_flow',
                filename=os.path.join(path, 'graph_flow.rst'),
-               header='Graph Flow')
+               header='Node Graph Tools')
+
+  write_module(module_name='brainpy.nn.runners',
+               filename=os.path.join(path, 'runners.rst'),
+               header='Runners and Trainers')
+
+  write_module(module_name='brainpy.nn.nodes.base',
+               filename=os.path.join(path, 'nodes_base.rst'),
+               header='Common and Basic Nodes')
+  write_module(module_name='brainpy.nn.nodes.ANN',
+               filename=os.path.join(path, 'nodes_ANN.rst'),
+               header='Nodes: artificial neural network ')
+  write_module(module_name='brainpy.nn.nodes.RC',
+               filename=os.path.join(path, 'nodes_RC.rst'),
+               header='Nodes: reservoir computing')
+
+
 
 
 def generate_optimizers_docs(path='apis/auto/'):
