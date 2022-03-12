@@ -17,10 +17,10 @@ class Input(Node):
   data_pass_type = PASS_ONLY_ONE
 
   def __init__(self,
-               shape: Union[Tuple[int], int],
+               input_shape: Union[Tuple[int], int],
                name: str = None):
-    super(Input, self).__init__(name=name, input_shape=shape)
-    self.set_input_shapes({self.name: (None,) + to_size(shape)})
+    super(Input, self).__init__(name=name, input_shape=input_shape)
+    self.set_input_shapes({self.name: (None,) + to_size(input_shape)})
     self._ff_init()
 
   def init_ff(self):

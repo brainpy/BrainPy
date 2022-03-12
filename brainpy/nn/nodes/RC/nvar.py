@@ -6,7 +6,7 @@ from typing import Union
 import numpy as np
 
 import brainpy.math as bm
-from brainpy.nn.base import Node
+from brainpy.nn.base import RecurrentNode
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_float,
                                     check_integer)
@@ -35,7 +35,7 @@ def _comb(N, k):
     return 0
 
 
-class NVAR(Node):
+class NVAR(RecurrentNode):
   """Nonlinear vector auto-regression (NVAR) node.
 
   This class has the following features:

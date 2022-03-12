@@ -4,38 +4,20 @@
 import brainpy.math as bm
 from brainpy.initialize import (XavierNormal, ZeroInit,
                                 Uniform, Orthogonal)
-from brainpy.nn.base import Node
+from brainpy.nn.base import RecurrentNode
 from brainpy.nn.utils import init_param
 from brainpy.tools.checking import (check_integer,
                                     check_initializer,
                                     check_shape_consistency)
 
 __all__ = [
-  'RNNCore',
   'VanillaRNN',
   'GRU',
   'LSTM',
 ]
 
 
-class RNNCore(Node):
-  """
-  Base class for RNN cores.
-
-  This class defines the basic functionality that every core should
-  implement: :meth:`init_state`, used to construct an example of the
-  core state; and :meth:`forward` which applies the core parameterized
-  by a previous state to an input.
-  """
-
-  def init_state(self, num_batch):
-    raise NotImplementedError('Should implement the "init_state()" by user self.')
-
-  def forward(self, ff, fb=None, **kwargs):
-    raise NotImplementedError('Should implement the "forward()" by user self.')
-
-
-class VanillaRNN(RNNCore):
+class VanillaRNN(RecurrentNode):
   r"""Basic fully-connected RNN core.
 
   Given :math:`x_t` and the previous hidden state :math:`h_{t-1}` the
@@ -98,7 +80,7 @@ class VanillaRNN(RNNCore):
     return self.state.value
 
 
-class GRU(RNNCore):
+class GRU(RecurrentNode):
   r"""
   Gated Recurrent Unit.
 
@@ -193,7 +175,7 @@ class GRU(RNNCore):
     return next_state
 
 
-class LSTM(RNNCore):
+class LSTM(RecurrentNode):
   r"""Long short-term memory (LSTM) RNN core.
 
   The implementation is based on (zaremba, et al., 2014) [1]_. Given
@@ -307,17 +289,17 @@ class LSTM(RNNCore):
     self.state[self.state.shape[0] // 2:, :] = value
 
 
-class ConvNDLSTM(RNNCore):
+class ConvNDLSTM(RecurrentNode):
   pass
 
 
-class Conv1DLSTM(RNNCore):
+class Conv1DLSTM(ConvNDLSTM):
   pass
 
 
-class Conv2DLSTM(RNNCore):
+class Conv2DLSTM(ConvNDLSTM):
   pass
 
 
-class Conv3DLSTM(RNNCore):
+class Conv3DLSTM(ConvNDLSTM):
   pass

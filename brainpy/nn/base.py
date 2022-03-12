@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from copy import copy, deepcopy
-from typing import Dict, Sequence, Tuple, Union, Optional, Any
+from typing import (Dict, Sequence, Tuple,
+                    Union, Optional, Any)
 
 import jax.numpy as jnp
 
@@ -26,7 +27,9 @@ from brainpy.types import Tensor
 operations = None
 
 __all__ = [
-  'Node', 'Network', 'FrozenNetwork',
+  'Node', 'Network',
+  'RecurrentNode',  # a marker for recurrent node
+  'FrozenNetwork',  # a marker for frozen network
 ]
 
 NODE_STATES = ['inputs', 'feedbacks', 'state', 'output']
@@ -74,8 +77,8 @@ class Node(Base):
   def __repr__(self):
     name = type(self).__name__
     prefix = ' ' * (len(name) + 1)
-    return (f"{name}(name={self.name}, output={self.output_shape}, inputs={self.input_shapes}, \n"
-            f"{prefix}feedbacks={self.feedback_shapes}, data_pass_type={self.data_pass_type})")
+    return (f"{name}(name={self.name}, trainable={self.trainable}, inputs={self.input_shapes}, feedbacks={self.feedback_shapes}, \n"
+            f"{prefix}output={self.output_shape}, data_pass_type={self.data_pass_type})")
 
   def __call__(self, *args, **kwargs) -> Tensor:
     """The main computation function of a Node.
@@ -508,6 +511,68 @@ class Node(Base):
       A feedback output tensor value.
     """
     return self.state
+
+
+class RecurrentNode(Node):
+  """
+  Basic class for recurrent node.
+  """
+
+  def __init__(self,
+               name: Optional[str] = None,
+               input_shape: Optional[Union[Sequence[int], int]] = None,
+               trainable: bool = False,
+               state_trainable: bool = False):
+    self._state_trainable = state_trainable
+    self._train_state = None
+    super(RecurrentNode, self).__init__(name=name,
+                                        input_shape=input_shape,
+                                        trainable=trainable)
+
+  @property
+  def state_trainable(self) -> bool:
+    """Returns if the Node can be trained."""
+    return self._state_trainable
+
+  @property
+  def train_state(self):
+    return self._train_state
+
+  def set_state(self, state):
+    """Safely set the state of the node.
+
+    This method allows the maximum flexibility to change the
+    node state. It can set a new data (same shape, same dtype)
+    to the state. It can also set the data with another batch size.
+
+    We highly recommend the user to use this function.
+    """
+    if self.state is None:
+      if self.output_shape is not None:
+        check_batch_shape(self.output_shape, state.shape)
+      self._state = bm.Variable(state) if not isinstance(state, bm.Variable) else state
+      if self.state_trainable:
+        self._train_state = bm.TrainVar(self._state[0])  # get the first elements as the initial state
+        self._state[:] = self._train_state  # set all batch states the same
+    else:
+      check_batch_shape(self.state.shape, state.shape)
+      if self.state.dtype != state.dtype:
+        raise MathError('Cannot set the state, because the dtype is not consistent: '
+                        f'{self.state.dtype} != {state.dtype}')
+      if self.state_trainable:
+        # get the batch size information
+        state = bm.repeat(bm.expand_dims(self.train_state, axis=0), state.shape[0], axis=0)
+        # set the state
+        self.state._value = bm.as_device_array(state)
+      else:
+        self.state._value = bm.as_device_array(state)
+
+  def __repr__(self):
+    name = type(self).__name__
+    prefix = ' ' * (len(name) + 1)
+    return (f"{name}(name={self.name}, recurrent=True, trainable={self.trainable}, state_trainable={self.state_trainable}"
+            f"{prefix}inputs={self.input_shapes}, feedbacks={self.feedback_shapes}, \n"
+            f"{prefix}output={self.output_shape}, data_pass_type={self.data_pass_type})")
 
 
 class Network(Node):
