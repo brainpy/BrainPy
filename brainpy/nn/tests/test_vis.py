@@ -4,10 +4,6 @@
 import unittest
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.nn.base import Network
-import networkx as nx
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 
 
 class TestVisualize(unittest.TestCase):
@@ -36,4 +32,4 @@ class TestVisualize(unittest.TestCase):
     # print(model.trainable)
     print()
 
-    model.plot_node_graph('spring_layout', fig_size=(70, 70))
+    model.plot_node_graph('spring_layout', fig_size=(15, 5), node_size=1000, seed=2022)
