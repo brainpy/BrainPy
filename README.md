@@ -76,13 +76,11 @@ class EINet(bp.dyn.Network):
 **2\. Echo state network**
 
 ```python
-net = (
-    bp.nn.Input(3)
-    >>
-    bp.nn.Reservoir(100)
-    >> 
-    bp.nn.LinearReadout(3)
-)
+i = bp.nn.Input(3)
+r = bp.nn.Reservoir(100)
+o = bp.nn.LinearReadout(3)
+
+net = i >> r >> o
 
 # Ridge Regression
 trainer = bp.nn.RidgeTrainer(net, beta=1e-5)
@@ -96,13 +94,11 @@ trainer = bp.nn.FORCELearning(net, alpha=1.)
 **3. Next generation reservoir computing**
 
 ```python
-net = (
-    bp.nn.Input(3)
-    >>
-    bp.nn.NVAR(delay=2, order=2)
-    >> 
-    bp.nn.LinearReadout(3)
-)
+i = bp.nn.Input(3)
+r = bp.nn.NVAR(delay=2, order=2)
+o = bp.nn.LinearReadout(3)
+
+net = i >> r >> o
 
 trainer = bp.nn.RidgeTrainer(net, beta=1e-5)
 ```
@@ -112,15 +108,12 @@ trainer = bp.nn.RidgeTrainer(net, beta=1e-5)
 **4. Recurrent neural network**
 
 ```python
-net = (
-    bp.nn.Input(10)
-    >>
-    bp.nn.VanillaRNN(100)
-    >> 
-    bp.nn.VanillaRNN(200)
-    >>
-    bp.nn.Dense(10)
-)
+i = bp.nn.Input(3)
+l1 = bp.nn.VanillaRNN(100)
+l2 = bp.nn.VanillaRNN(200)
+o = bp.nn.Dense(10)
+
+net = i >> l1 >> l2 >> o
 
 trainer = bp.nn.BPTT(net, 
                      loss='cross_entropy_loss',
