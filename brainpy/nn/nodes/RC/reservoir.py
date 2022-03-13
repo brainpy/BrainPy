@@ -160,7 +160,7 @@ class Reservoir(RecurrentNode):
 
   def init_ff(self):
     """Initialize feedforward connections, weights, and variables."""
-    unique_shape, free_shapes = check_shape_consistency(self.input_shapes, -1, True)
+    unique_shape, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
     self.set_output_shape(unique_shape + (self.num_unit,))
 
     # initialize feedforward weights

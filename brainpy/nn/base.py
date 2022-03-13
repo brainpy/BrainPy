@@ -15,7 +15,6 @@ This module provide basic Node class for whole ``brainpy.nn`` system.
   elementary node when composing a larger network. TODO
 """
 
-
 from copy import copy, deepcopy
 from typing import (Dict, Sequence, Tuple,
                     Union, Optional, Any)
@@ -69,7 +68,7 @@ class Node(Base):
                trainable: bool = False):
 
     # initialize parameters
-    self._input_shapes = None  # input shapes
+    self._feedforward_shapes = None  # input shapes
     self._output_shape = None  # output size
     self._feedback_shapes = None  # feedback shapes
     self._is_ff_initialized = False
@@ -88,12 +87,13 @@ class Node(Base):
 
     # parameters
     if input_shape is not None:
-      self._input_shapes = {self.name: tools.to_size(input_shape)}
+      self._feedforward_shapes = {self.name: (None,) + tools.to_size(input_shape)}
 
   def __repr__(self):
     name = type(self).__name__
     prefix = ' ' * (len(name) + 1)
-    return (f"{name}(name={self.name}, trainable={self.trainable}, inputs={self.input_shapes}, feedbacks={self.feedback_shapes}, \n"
+    return (f"{name}(name={self.name}, trainable={self.trainable}, "
+            f"forwards={self.feedforward_shapes}, feedbacks={self.feedback_shapes}, \n"
             f"{prefix}output={self.output_shape}, data_pass_type={self.data_pass_type})")
 
   def __call__(self, *args, **kwargs) -> Tensor:
@@ -225,7 +225,7 @@ class Node(Base):
     self._is_fb_initialized = value
 
   @property
-  def is_state_initialize(self):
+  def is_state_initialized(self):
     return self._is_state_initialized
 
   @trainable.setter
@@ -236,22 +236,32 @@ class Node(Base):
     self._trainable = value
 
   @property
-  def input_shapes(self):
+  def feedforward_shapes(self):
     """Input data size."""
-    return self.data_pass_func(self._input_shapes)
+    return self.data_pass_func(self._feedforward_shapes)
 
-  @input_shapes.setter
-  def input_shapes(self, size):
-    self.set_input_shapes(size)
+  @feedforward_shapes.setter
+  def feedforward_shapes(self, size):
+    self.set_feedforward_shapes(size)
 
-  @property
-  def output_shape(self) -> Optional[Tuple[int]]:
-    """Output data size."""
-    return self._output_shape
-
-  @output_shape.setter
-  def output_shape(self, size):
-    self.set_output_shape(size)
+  def set_feedforward_shapes(self, feedforward_shapes: Dict):
+    if not self.is_ff_initialized:
+      check_dict_data(feedforward_shapes,
+                      key_type=(Node, str),
+                      val_type=(list, tuple),
+                      name='feedforward_shapes')
+      self._feedforward_shapes = feedforward_shapes
+    else:
+      if self.feedforward_shapes is not None:
+        for key, size in self._feedforward_shapes.items():
+          if key not in feedforward_shapes:
+            raise ValueError(f"Impossible to reset the input data of {self.name}. "
+                             f"Because this Node has the input dimension {size} from {key}. "
+                             f"While we do not find it in the given feedforward_shapes")
+          if not check_batch_shape(size, feedforward_shapes[key], mode='bool'):
+            raise ValueError(f"Impossible to reset the input data of {self.name}. "
+                             f"Because this Node has the input dimension {size} from {key}. "
+                             f"While the give shape is {feedforward_shapes[key]}")
 
   @property
   def feedback_shapes(self):
@@ -262,37 +272,13 @@ class Node(Base):
   def feedback_shapes(self, size):
     self.set_feedback_shapes(size)
 
-  def set_input_shapes(self, input_shapes: Dict):
-    if not self.is_ff_initialized:
-      check_dict_data(input_shapes, key_type=(Node, str), val_type=(list, tuple), name='input_shapes')
-      self._input_shapes = input_shapes
-    else:
-      if self.input_shapes is not None:
-        for key, size in self._input_shapes.items():
-          if key not in input_shapes:
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
-                             f"Because this Node has the input dimension {size} from {key}. "
-                             f"While we do not find it in the given input_shapes")
-          if not check_batch_shape(size, input_shapes[key], mode='bool'):
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
-                             f"Because this Node has the input dimension {size} from {key}. "
-                             f"While the give shape is {input_shapes[key]}")
-
-  def set_output_shape(self, shape: Sequence[int]):
-    if not self.is_ff_initialized:
-      if not isinstance(shape, (tuple, list)):
-        raise ValueError(f'Must be a sequence of int, but got {shape}')
-      self._output_shape = tuple(shape)
-    else:
-      check_batch_shape(shape, self.output_shape)
-
   def set_feedback_shapes(self, fb_shapes: Dict):
     if not self.is_fb_initialized:
       check_dict_data(fb_shapes, key_type=(Node, str), val_type=(tuple, list), name='fb_shapes')
       self._feedback_shapes = fb_shapes
     else:
       if self.feedback_shapes is not None:
-        for key, size in self._input_shapes.items():
+        for key, size in self._feedforward_shapes.items():
           if key not in fb_shapes:
             raise ValueError(f"Impossible to reset the input data of {self.name}. "
                              f"Because this Node has the input dimension {size} from {key}. "
@@ -301,6 +287,23 @@ class Node(Base):
             raise ValueError(f"Impossible to reset the input data of {self.name}. "
                              f"Because this Node has the input dimension {size} from {key}. "
                              f"While the give shape is {fb_shapes[key]}")
+
+  @property
+  def output_shape(self) -> Optional[Tuple[int]]:
+    """Output data size."""
+    return self._output_shape
+
+  @output_shape.setter
+  def output_shape(self, size):
+    self.set_output_shape(size)
+
+  def set_output_shape(self, shape: Sequence[int]):
+    if not self.is_ff_initialized:
+      if not isinstance(shape, (tuple, list)):
+        raise ValueError(f'Must be a sequence of int, but got {shape}')
+      self._output_shape = tuple(shape)
+    else:
+      check_batch_shape(shape, self.output_shape)
 
   def nodes(self, method='absolute', level=1, include_self=True):
     return super(Node, self).nodes(method=method, level=level, include_self=include_self)
@@ -375,10 +378,10 @@ class Node(Base):
     if not self.is_ff_initialized:
       # feedforward data
       if ff is None:
-        if self._input_shapes is None:
+        if self._feedforward_shapes is None:
           raise ValueError('Cannot initialize this node, because we detect '
-                           'both "input_shapes"and "ff" inputs are None. ')
-        in_sizes = self._input_shapes
+                           'both "feedforward_shapes"and "ff" inputs are None. ')
+        in_sizes = self._feedforward_shapes
         if num_batch is None:
           raise ValueError('"num_batch" cannot be None when "ff" is not provided.')
         check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
@@ -398,7 +401,7 @@ class Node(Base):
                            f'batch size of the provided data {batch_sizes[0]}')
 
       # initialize feedforward
-      self.set_input_shapes(in_sizes)
+      self.set_feedforward_shapes(in_sizes)
       self._ff_init()
       self.init_state(num_batch)
       self._is_state_initialized = True
@@ -411,7 +414,7 @@ class Node(Base):
         self.set_feedback_shapes(fb_sizes)
         self._fb_init()
     else:
-      self.is_fb_initialized = True
+      self._is_fb_initialized = True
 
   def _check_inputs(self, ff, fb=None):
     # check feedforward inputs
@@ -419,7 +422,7 @@ class Node(Base):
       ff = {self.name: ff}
     assert isinstance(ff, dict), f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}'
     assert self.name in ff, f'Cannot find input for this node {self} when given "ff" {ff}'
-    for k, size in self._input_shapes.items():
+    for k, size in self._feedforward_shapes.items():
       assert k in ff, f"The required key {k} is not provided in feedforward inputs."
       check_batch_shape(size, ff[k].shape)
 
@@ -445,7 +448,7 @@ class Node(Base):
             **kwargs) -> Union[Tensor, Tuple[Tensor, Dict]]:
     # # initialization
     # self.initialize(ff, fb)
-    if not (self.is_ff_initialized and self.is_fb_initialized and self.is_state_initialize):
+    if not (self.is_ff_initialized and self.is_fb_initialized and self.is_state_initialized):
       raise ValueError('Please initialize the Node first by calling "initialize()" function.')
 
     # initialize the forced data
@@ -586,8 +589,9 @@ class RecurrentNode(Node):
   def __repr__(self):
     name = type(self).__name__
     prefix = ' ' * (len(name) + 1)
-    return (f"{name}(name={self.name}, recurrent=True, trainable={self.trainable}, state_trainable={self.state_trainable}"
-            f"{prefix}inputs={self.input_shapes}, feedbacks={self.feedback_shapes}, \n"
+    return (f"{name}(name={self.name}, recurrent=True, "
+            f"trainable={self.trainable}, state_trainable={self.state_trainable}"
+            f"{prefix}forwards={self.feedforward_shapes}, feedbacks={self.feedback_shapes}, \n"
             f"{prefix}output={self.output_shape}, data_pass_type={self.data_pass_type})")
 
 
@@ -780,12 +784,12 @@ class Network(Node):
   def init_ff(self):
     # input shapes of entry nodes
     for node in self.entry_nodes:
-      if node.input_shapes is None:
-        if self.input_shapes is None:
+      if node.feedforward_shapes is None:
+        if self.feedforward_shapes is None:
           raise ValueError('Cannot find the input size. '
                            'Cannot initialize the network.')
         else:
-          node.set_input_shapes({node.name: self._input_shapes[node.name]})
+          node.set_feedforward_shapes({node.name: self._feedforward_shapes[node.name]})
       node._ff_init()
 
     # initialize the data
@@ -802,7 +806,7 @@ class Network(Node):
       node = children_queue.pop(0)
       # initialize input and output sizes
       parent_sizes = {p: p.output_shape for p in self.ff_senders.get(node, [])}
-      node.set_input_shapes(parent_sizes)
+      node.set_feedforward_shapes(parent_sizes)
       node._ff_init()
       # append children
       for child in self.ff_receivers.get(node, []):
@@ -858,12 +862,12 @@ class Network(Node):
       if ff is None:
         in_sizes = dict()
         for node in self.entry_nodes:
-          if node._input_shapes is None:
+          if node._feedforward_shapes is None:
             raise ValueError('Cannot initialize this node, because we detect '
-                             'both "input_shapes" and "ff" inputs are None. '
+                             'both "feedforward_shapes" and "ff" inputs are None. '
                              'Maybe you need a brainpy.nn.Input instance '
                              'to instruct the input size.')
-          in_sizes.update(node._input_shapes)
+          in_sizes.update(node._feedforward_shapes)
         if num_batch is None:
           raise ValueError('"num_batch" cannot be None when "ff" is not provided.')
         check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
@@ -886,7 +890,7 @@ class Network(Node):
                            f'batch size of the provided data {batch_sizes[0]}')
 
       # initialize feedforward
-      self.set_input_shapes(in_sizes)
+      self.set_feedforward_shapes(in_sizes)
       self._ff_init()
       self.init_state(num_batch)
       self._is_state_initialized = True
@@ -910,7 +914,7 @@ class Network(Node):
     for n in self.entry_nodes:
       if n.name not in ff:
         raise ValueError(f'Cannot find the input of the node: \n{n}')
-    for k, size in self._input_shapes.items():
+    for k, size in self._feedforward_shapes.items():
       assert k in ff, f"The required key {k} is not provided in feedforward inputs."
       if not check_batch_shape(size, ff[k].shape, mode='bool'):
         raise ValueError(f'Input size {ff[k].shape} is not consistent with '
@@ -947,7 +951,7 @@ class Network(Node):
             **kwargs):
     # initialization
     # self.initialize(ff, fb)
-    if not (self.is_ff_initialized and self.is_fb_initialized and self.is_state_initialize):
+    if not (self.is_ff_initialized and self.is_fb_initialized and self.is_state_initialized):
       raise ValueError('Please initialize the Network first by calling "initialize()" function.')
 
     # initialize the forced data
@@ -1207,3 +1211,7 @@ class FrozenNetwork(Network):
   def replace_graph(self, nodes, ff_edges, fb_edges=None):
     raise TypeError(f"Cannot update FrozenModel {self}: "
                     f"model is frozen and cannot be modified.")
+
+
+class Sequential(Network):
+  pass

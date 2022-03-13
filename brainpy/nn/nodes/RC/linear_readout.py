@@ -49,7 +49,7 @@ class LinearReadout(Dense):
   def __force_init__(self, train_pars: Optional[Dict] = None):
     if train_pars is None: train_pars = dict()
     alpha = train_pars.get('alpha')
-    batch_size, free_shapes = check_shape_consistency(self.input_shapes, -1, True)
+    batch_size, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
     assert batch_size == (1,), f'{self.name} only supports batch size is 1. But got {batch_size}'
     num_input = sum(free_shapes)
     if self.bias is not None:
