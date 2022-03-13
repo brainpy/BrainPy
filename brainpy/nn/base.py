@@ -1083,20 +1083,16 @@ class Network(Node):
         children_queue.append(child)
 
   def plot_node_graph(self,
-                      node_layout: str = 'kamada_kawai_layout',
                       fig_size: tuple = (10, 10),
-                      node_size: int = 5000,
+                      node_size: int = 2000,
                       arrow_size: int = 20):
     """Plot the node graph based on NetworkX package
 
     Parameters
     ----------
-    node_layout: string, defalut to 'kamada_kawai_layout'
-      The layout of nodes in node graph, include ['circular_layout', 'kamada_kawai_layout', 'planar_layout',
-      'random_layout', 'shell_layout', 'spring_layout']"
-    fig_size: tuple, default to (60, 60)
+    fig_size: tuple, default to (10, 10)
       The size of the figure
-    node_size: int, default to 5000
+    node_size: int, default to 2000
       The size of the node
     arrow_size:int, default to 20
       The size of the arrow
@@ -1110,19 +1106,19 @@ class Network(Node):
                                 'please pre-install these two packages before '
                                 'calling "plot_node_graph()" function.')
 
-    layout = {
-      'circular_layout': nx.circular_layout,
-      'kamada_kawai_layout': nx.kamada_kawai_layout,
-      'planar_layout': nx.planar_layout,
-      'random_layout': nx.random_layout,
-      'shell_layout': nx.shell_layout,
-      'spring_layout': nx.spring_layout
-    }
+    # layout = {
+    #   'circular_layout': nx.circular_layout,
+    #   'kamada_kawai_layout': nx.kamada_kawai_layout,
+    #   'planar_layout': nx.planar_layout,
+    #   'random_layout': nx.random_layout,
+    #   'shell_layout': nx.shell_layout,
+    #   'spring_layout': nx.spring_layout
+    # }
 
-    assert node_layout in layout, (f"{node_layout} is not included in node layout, "
-                                   f"please using ['circular_layout', 'kamada_kawai_layout', "
-                                   f"'planar_layout', 'random_layout', 'shell_layout', "
-                                   f"'spring_layout']")
+    # assert node_layout in layout, (f"{node_layout} is not included in node layout, "
+    #                                f"please using ['circular_layout', 'kamada_kawai_layout', "
+    #                                f"'planar_layout', 'random_layout', 'shell_layout', "
+    #                                f"'spring_layout']")
 
     nodes_trainable = []
     nodes_untrainable = []
@@ -1134,23 +1130,35 @@ class Network(Node):
 
     ff_edges = []
     fb_edges = []
+    rec_edges = []
     for edge in self.ff_edges:
       ff_edges.append((edge[0].name, edge[1].name))
     for edge in self.fb_edges:
       fb_edges.append((edge[0].name, edge[1].name))
+    for node in self.lnodes:
+      if RecurrentNode == node.__class__.__base__:
+        rec_edges.append((node.name, node.name))
 
     trainable_color = 'orange'
     untrainable_color = 'skyblue'
     ff_color = 'green'
     fb_color = 'red'
+    rec_color = 'purple'
     G = nx.DiGraph()
-    G.add_nodes_from(nodes_trainable)
-    G.add_nodes_from(nodes_untrainable)
+    # G.add_nodes_from(nodes_trainable)
+    # G.add_nodes_from(nodes_untrainable)
+    i = 0
+    for node in self.lnodes:
+      i = i + 1
+      G.add_node(node.name, subset=i)
     G.add_edges_from(ff_edges)
     G.add_edges_from(fb_edges)
+    G.add_edges_from(rec_edges)
 
+    print(G.nodes)
     node_num = G.number_of_nodes()
-    pos = layout[node_layout](G)
+    # pos = layout[node_layout](G)
+    pos = nx.multipartite_layout(G)
     plt.figure(figsize=fig_size)
     nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_trainable, node_color=trainable_color, node_size=node_size)
     nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_untrainable, node_color=untrainable_color, node_size=node_size)
@@ -1159,6 +1167,9 @@ class Network(Node):
                            connectionstyle="arc3,rad=-0.3", arrowsize=arrow_size, node_size=node_size)
     nx.draw_networkx_edges(G, pos=pos, edgelist=fb_edges, edge_color=fb_color,
                            connectionstyle="arc3,rad=-0.3", arrowsize=arrow_size, node_size=node_size)
+    nx.draw_networkx_edges(G, pos=pos, edgelist=rec_edges, edge_color=rec_color,
+                           connectionstyle="angle3, angleA=45, angleB=45", arrowsize=arrow_size)
+
     nx.draw_networkx_labels(G, pos=pos)
     proxie = []
     labels = []
@@ -1174,6 +1185,9 @@ class Network(Node):
     if len(fb_edges):
       proxie.append(Line2D([], [], color=fb_color, linewidth=2))
       labels.append('Feedback')
+    if len(rec_edges):
+      proxie.append(Line2D([], [], color=rec_color, linewidth=2))
+      labels.append('Recurrent')
 
     plt.legend(proxie, labels, scatterpoints=1, markerscale=2,
                loc='best')
