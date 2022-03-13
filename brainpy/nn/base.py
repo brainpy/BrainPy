@@ -16,8 +16,7 @@ This module provide basic Node class for whole ``brainpy.nn`` system.
 """
 
 from copy import copy, deepcopy
-from typing import (Dict, Sequence, Tuple,
-                    Union, Optional, Any)
+from typing import (Dict, Sequence, Tuple, Union, Optional, Any, Callable)
 
 import jax.numpy as jnp
 
@@ -48,6 +47,25 @@ __all__ = [
 ]
 
 NODE_STATES = ['inputs', 'feedbacks', 'state', 'output']
+
+
+def not_implemented(fun: Callable) -> Callable:
+  """Marks the given module method is not implemented.
+
+  Methods wrapped in @not_implemented can define submodules directly within the method.
+
+  For instance::
+
+    @not_implemented
+    init_fb(self):
+      ...
+
+    @not_implemented
+    def feedback(self):
+      ...
+  """
+  fun.not_implemented = True
+  return fun
 
 
 class Node(Base):
@@ -92,9 +110,14 @@ class Node(Base):
   def __repr__(self):
     name = type(self).__name__
     prefix = ' ' * (len(name) + 1)
-    return (f"{name}(name={self.name}, trainable={self.trainable}, "
-            f"forwards={self.feedforward_shapes}, feedbacks={self.feedback_shapes}, \n"
-            f"{prefix}output={self.output_shape}, data_pass_type={self.data_pass_type})")
+    line1 = (f"{name}(name={self.name}, "
+             f"trainable={self.trainable}, "
+             f"forwards={self.feedforward_shapes}, "
+             f"feedbacks={self.feedback_shapes}, \n")
+    line2 = (f"{prefix}output={self.output_shape}, "
+             f"support_feedback={self.support_feedback}, "
+             f"data_pass_type={self.data_pass_type})")
+    return line1 + line2
 
   def __call__(self, *args, **kwargs) -> Tensor:
     """The main computation function of a Node.
@@ -297,6 +320,13 @@ class Node(Base):
   def output_shape(self, size):
     self.set_output_shape(size)
 
+  @property
+  def support_feedback(self):
+    if hasattr(self.init_fb, 'not_implemented'):
+      if self.init_fb.not_implemented:
+        return False
+    return True
+
   def set_output_shape(self, shape: Sequence[int]):
     if not self.is_ff_initialized:
       if not isinstance(shape, (tuple, list)):
@@ -354,6 +384,7 @@ class Node(Base):
         raise ModelBuildError(f"{self.name} initialization failed.") from e
       self._is_fb_initialized = True
 
+  @not_implemented
   def init_fb(self):
     raise ValueError(f'This node \n\n{self} \n\ndoes not support feedback connection.')
 
@@ -589,10 +620,15 @@ class RecurrentNode(Node):
   def __repr__(self):
     name = type(self).__name__
     prefix = ' ' * (len(name) + 1)
-    return (f"{name}(name={self.name}, recurrent=True, "
-            f"trainable={self.trainable}, state_trainable={self.state_trainable}"
-            f"{prefix}forwards={self.feedforward_shapes}, feedbacks={self.feedback_shapes}, \n"
-            f"{prefix}output={self.output_shape}, data_pass_type={self.data_pass_type})")
+
+    line1 = (f"{name}(name={self.name}, recurrent=True, "
+             f"trainable={self.trainable}, \n")
+    line2 = (f"{prefix}forwards={self.feedforward_shapes}, "
+             f"feedbacks={self.feedback_shapes}, \n")
+    line3 = (f"{prefix}output={self.output_shape}, "
+             f"support_feedback={self.support_feedback}, "
+             f"data_pass_type={self.data_pass_type})")
+    return line1 + line2 + line3
 
 
 class Network(Node):
@@ -997,7 +1033,8 @@ class Network(Node):
       return output
 
   def forward(self,
-              ff, fb=None,
+              ff,
+              fb=None,
               forced_states: Dict[str, Tensor] = None,
               forced_feedbacks: Dict[str, Tensor] = None,
               monitors: Dict = None,
@@ -1039,10 +1076,10 @@ class Network(Node):
     # initialize the parent output data
     parent_outputs = {}
     for i, node in enumerate(self._entry_nodes):
-      ff = {node.name: ff[i]}
-      fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.feedback())
-            for p in self.fb_senders.get(node, [])}
-      self._call_a_node(node, ff, fb, monitors, forced_states,
+      ff_ = {node.name: ff[i]}
+      fb_ = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.feedback())
+             for p in self.fb_senders.get(node, [])}
+      self._call_a_node(node, ff_, fb_, monitors, forced_states,
                         parent_outputs, children_queue, ff_senders, **kwargs)
       runned_nodes.add(node.name)
 

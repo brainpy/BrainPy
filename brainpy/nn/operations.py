@@ -364,6 +364,15 @@ def fb_connect(
   """
 
   all_nodes, all_ff_edges, all_fb_edges, fb_senders, fb_receivers = _retrieve_nodes_and_edges(senders, receivers)
+
+  # detect whether the node implement its own "init_fb()" function
+  for node in fb_receivers:
+    if node.support_feedback:
+      raise ValueError(f'Establish a feedback connection to \n'
+                       f'{node}\n'
+                       f'is not allowed. Because this node does not '
+                       f'support feedback connections.')
+
   # detect feedforward cycle
   all_nodes = tuple(all_nodes)
   all_ff_edges = tuple(all_ff_edges)
