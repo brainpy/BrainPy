@@ -31,6 +31,7 @@ jobs:
         python -m pip install jax[cpu] -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
         python -m pip install -r requirements-win.txt
         python -m pip install tqdm brainpylib
+        python setup.py install
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -39,4 +40,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest
+        pytest brainpy/
