@@ -1,5 +1,17 @@
 # -*- coding: utf-8 -*-
 
+
+"""
+This module provides basic tool for graphs, including
+
+- detect the senders and receivers in the network graph,
+- find input and output nodes in a given graph,
+- detect the cycle in the graph,
+- detect the path between two nodes.
+
+"""
+
+
 from collections import deque, defaultdict
 
 __all__ = [

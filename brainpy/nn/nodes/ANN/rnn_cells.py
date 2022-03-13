@@ -65,7 +65,6 @@ class VanillaRNN(RecurrentNode):
     if self.trainable:
       self.weight = bm.TrainVar(self.weight)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
-    # states
 
   def init_state(self, num_batch):
     state = init_param(self._state_initializer, (num_batch, self.num_unit))

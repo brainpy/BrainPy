@@ -1,5 +1,21 @@
 # -*- coding: utf-8 -*-
 
+
+"""
+This module provide basic Node class for whole ``brainpy.nn`` system.
+
+- ``brainpy.nn.Node``: The fundamental class representing the node or the element.
+- ``brainpy.nn.RecurrentNode``: The recurrent node which has a self-connection.
+- ``brainpy.nn.Network``: The network model which is composed of multiple node elements.
+  Once the Network instance receives a node operation, the wrapped elements, the new
+  elements, and their connection edges will be formed as another Network instance.
+  This means ``brainpy.nn.Network`` is only used to pack element nodes. It will be
+  never be an element node.
+- ``brainpy.nn.FrozenNetwork``: The whole network which can be represented as a basic
+  elementary node when composing a larger network. TODO
+"""
+
+
 from copy import copy, deepcopy
 from typing import (Dict, Sequence, Tuple,
                     Union, Optional, Any)
@@ -893,7 +909,7 @@ class Network(Node):
                                               f'data are given.')
     for n in self.entry_nodes:
       if n.name not in ff:
-        raise ValueError(f'Cannot find the input of the node {n}')
+        raise ValueError(f'Cannot find the input of the node: \n{n}')
     for k, size in self._input_shapes.items():
       assert k in ff, f"The required key {k} is not provided in feedforward inputs."
       if not check_batch_shape(size, ff[k].shape, mode='bool'):
