@@ -1083,26 +1083,19 @@ class Network(Node):
         children_queue.append(child)
 
   def plot_node_graph(self,
-                      node_layout: str = 'kamada_kawai_layout',
                       fig_size: tuple = (10, 10),
                       node_size: int = 2000,
-                      arrow_size: int = 20,
-                      seed: int = 2022):
+                      arrow_size: int = 20):
     """Plot the node graph based on NetworkX package
 
     Parameters
     ----------
-    node_layout: string, defalut to 'kamada_kawai_layout'
-      The layout of nodes in node graph, include ['circular_layout', 'kamada_kawai_layout', 'planar_layout',
-      'random_layout', 'shell_layout', 'spring_layout']"
     fig_size: tuple, default to (10, 10)
       The size of the figure
     node_size: int, default to 2000
       The size of the node
     arrow_size:int, default to 20
       The size of the arrow
-    seed:int, default to 2022
-      Seed for generate layout position
     """
     try:
       import networkx as nx
@@ -1113,19 +1106,19 @@ class Network(Node):
                                 'please pre-install these two packages before '
                                 'calling "plot_node_graph()" function.')
 
-    layout = {
-      'circular_layout': nx.circular_layout,
-      'kamada_kawai_layout': nx.kamada_kawai_layout,
-      'planar_layout': nx.planar_layout,
-      'random_layout': nx.random_layout,
-      'shell_layout': nx.shell_layout,
-      'spring_layout': nx.spring_layout
-    }
+    # layout = {
+    #   'circular_layout': nx.circular_layout,
+    #   'kamada_kawai_layout': nx.kamada_kawai_layout,
+    #   'planar_layout': nx.planar_layout,
+    #   'random_layout': nx.random_layout,
+    #   'shell_layout': nx.shell_layout,
+    #   'spring_layout': nx.spring_layout
+    # }
 
-    assert node_layout in layout, (f"{node_layout} is not included in node layout, "
-                                   f"please using ['circular_layout', 'kamada_kawai_layout', "
-                                   f"'planar_layout', 'random_layout', 'shell_layout', "
-                                   f"'spring_layout']")
+    # assert node_layout in layout, (f"{node_layout} is not included in node layout, "
+    #                                f"please using ['circular_layout', 'kamada_kawai_layout', "
+    #                                f"'planar_layout', 'random_layout', 'shell_layout', "
+    #                                f"'spring_layout']")
 
     nodes_trainable = []
     nodes_untrainable = []
