@@ -14,7 +14,7 @@ from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
 from brainpy.nn.utils import check_rnn_data_batch_size
 from brainpy.running.runner import Runner
-from brainpy.tools.checking import check_dict_data
+from brainpy.tools.checking import check_dict_data, check_float
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
 
@@ -93,16 +93,44 @@ class BPTT(RNNTrainer):
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
       reset=True,
-      progress_bar=True
+      **kwargs
   ):
+    """Predict a series of input data with the given target model.
+
+    This function use the JIT compilation to accelerate the model simulation.
+    Moreover, it can automatically monitor the node variables, states, inputs,
+    feedbacks and its output, if users want.
+
+    Parameters
+    ----------
+    xs: Tensor, dict
+      The feedforward input data. It must be a 3-dimensional data
+      which has the shape of `(num_sample, num_time, num_feature)`.
+    forced_states: dict
+      The fixed node states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`. Default None.
+    forced_feedbacks: dict
+      The fixed feedback states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`. Default None.
+    reset: bool
+      Whether reset the model states. Default True.
+
+    Returns
+    -------
+    output: Tensor, dict
+      The model output.
+    """
     # check forced states/feedbacks
     assert forced_states is None, (f'Currently {self.__class__.__name__} does '
                                    f'not support "forced_states"')
     assert forced_feedbacks is None, (f'Currently {self.__class__.__name__} does '
                                       f'not support "forced_feedbacks"')
-    return super(BPTT, self).predict(xs=xs, forced_states=forced_states,
+    return super(BPTT, self).predict(xs=xs,
+                                     forced_states=forced_states,
                                      forced_feedbacks=forced_feedbacks,
-                                     reset=reset, progress_bar=progress_bar)
+                                     reset=reset)
 
   def fit(
       self,
@@ -112,37 +140,43 @@ class BPTT(RNNTrainer):
       num_train: int = 100,
       num_report: int = 100,
       reset: bool = True,
-
-      # unsupported features
+      # currently unsupported features
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None
   ):
     """
-    Fit the target model according to the given data ``xs`` and ``ys``.
+    Fit the target model according to the given training and testing data.
 
     Parameters
     ----------
     train_data: callable, sequence of data
-      It can be a callable function, or a tuple/list representing XY data.
-      - Callable. This function should return a pair of (X, Y) data
-      - Sequence. It should be a pair of (X, Y) train set.
-        - X: should be a tensor or a dict of tensors with the shape of
-          ``(num_sample, num_time, num_feature)``, where `num_sample` is
+      It can be a callable function, or a tuple/list representing `(X, Y)` data.
+      - Callable. This function should return a pair of `(X, Y)` data
+      - Sequence. It should be a pair of `(X, Y)` train set.
+        - ``X``: should be a tensor or a dict of tensors with the shape of
+          `(num_sample, num_time, num_feature)`, where `num_sample` is
           the number of samples, `num_time` is the number of the time step,
           and `num_feature` is the number of features.
-        - Y: Target values. A tensor or a dict of tensors.
-          - If the shape of each tensor is ``(num_sample, num_feature)``,
+        - ``Y``: Target values. A tensor or a dict of tensors.
+          - If the shape of each tensor is `(num_sample, num_feature)`,
             then we will only fit the model with the only last output.
-          - If the shape of each tensor is ``(num_sample, num_time, num_feature)``,
+          - If the shape of each tensor is `(num_sample, num_time, num_feature)`,
             then the fitting happens on the whole data series.
     test_data: callable, sequence of data
-      Same as the ``train_data``.
+      Same as the ``train_data``. It can be a callable function,
+      or a tuple/list representing `(X, Y)` data.
     num_batch: int
+      The batch size. Default 32.
     num_train: int
+      The number of training epoch. Default 100.
     num_report: int
+      The number of step to report the progress. Default 100 training steps.
     reset: bool
-    forced_states: optional,dict
-    forced_feedbacks: optional,dict
+      Whether reset the initial states of the target model.
+    forced_states: optional, dict
+      The forced node states.
+    forced_feedbacks: optional, dict
+      The forced node feedbacks.
     """
     # check forced states/feedbacks
     assert forced_states is None, (f'Currently {self.__class__.__name__} does '
@@ -164,21 +198,18 @@ class BPTT(RNNTrainer):
         batch_size = check_rnn_data_batch_size(x)
         if batch_size != num_batch:
           raise ValueError(f'"num_batch" is set to {num_batch}, but we got {batch_size}.')
-        if reset:
-          self.target.init_state(batch_size)
+        if reset: self.target.init_state(batch_size)
         loss = self.f_train(x, y)
-        loss = round(float(loss), 5)
         all_train_losses.append(loss)
         train_i += 1
         if train_i % num_report == 0:
           t1 = time.time()
-          print(f'Train {train_i} steps, use {t1 - t0:.4f} s, train loss {loss}')
+          print(f'Train {train_i} steps, use {t1 - t0:.4f} s, train loss {round(float(loss), 5)}')
           t0 = t1
 
       # testing set
       test_data_ = self._get_test_data(test_data, num_batch)
       if test_data_ is not None:
-        test_losses = []
         for x, y in test_data_:
           self._check_mapping_type(y)
           batch_size = check_rnn_data_batch_size(x)
@@ -188,9 +219,7 @@ class BPTT(RNNTrainer):
           if reset:
             self.target.init_state(batch_size)
           loss = self.f_loss(x, y)
-          test_losses.append(loss)
-        loss = round(float(bm.mean(bm.asarray(test_losses))), 5)
-        all_test_losses.append(loss)
+          all_test_losses.append(loss)
 
     self._train_losses = bm.asarray(all_train_losses)
     self._test_losses = bm.asarray(all_test_losses)
@@ -232,18 +261,10 @@ class BPTT(RNNTrainer):
     """Mapping type for the output and the target."""
     return self._mapping_type
 
-  def _get_f_grad(self):
-    _f_loss_internal = self._get_f_loss()
-    dyn_vars = self.target.vars()
-    dyn_vars.update(self.dyn_vars)
-    tran_vars = dyn_vars.subset(bm.TrainVar)
-    return bm.grad(_f_loss_internal,
-                   dyn_vars=dyn_vars.unique(),
-                   grad_vars=tran_vars.unique(),
-                   return_value=True)
-
   def _get_f_loss(self):
     def loss_fun(inputs, targets):
+      inputs = self._format_xs(inputs)
+      targets = self._format_ys(targets)
       inputs = {k: bm.moveaxis(v, 0, 1) for k, v in inputs.items()}
       outputs, _ = self._predict(xs=inputs)
       outputs = self._format_ys(outputs)
@@ -256,10 +277,23 @@ class BPTT(RNNTrainer):
 
     return loss_fun
 
+  def _get_f_grad(self):
+    _f_loss_internal = self._get_f_loss()
+    dyn_vars = self.target.vars()
+    dyn_vars.update(self.dyn_vars)
+    tran_vars = dyn_vars.subset(bm.TrainVar)
+    return bm.grad(_f_loss_internal,
+                   dyn_vars=dyn_vars.unique(),
+                   grad_vars=tran_vars.unique(),
+                   return_value=True)
+
   def _get_f_train(self):
     def train_func(inputs, targets):
+      inputs = self._format_xs(inputs)
+      targets = self._format_ys(targets)
       grads, loss = self.f_grad(inputs, targets)
-      if (self.max_grad_norm is not None) and (self.max_grad_norm > 0.):
+      if self.max_grad_norm is not None:
+        check_float(self.max_grad_norm, 'max_grad_norm', min_bound=0.)
         grads = bm.clip_by_norm(grads, self.max_grad_norm)
       self.optimizer.update(grads)
       return loss
@@ -335,7 +369,7 @@ class BPTT(RNNTrainer):
 
   def _get_data_by_method1(self, dataset, num_batch):
     for xs, ys in dataset():
-      xs, _, _ = self._check_xs(xs, move_axis=False)
+      xs = self._format_xs(xs)
       ys = self._format_ys(ys)
       yield xs, ys
 

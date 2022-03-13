@@ -129,13 +129,10 @@ class RNNRunner(Runner):
     ----------
     xs: dict
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
-    initial_states: dict
-    initial_feedbacks: dict
     iter_forced_states: dict
     fixed_forced_states: dict
     iter_forced_feedbacks: dict
     fixed_forced_feedbacks: dict
-    progress_bar: bool
 
     Returns
     -------
@@ -326,7 +323,7 @@ class RNNRunner(Runner):
                                'a single brainpy.nn.Node instance')
     return iter_forced_feedbacks, fixed_forced_feedbacks
 
-  def _check_xs(self, xs: Union[Dict, Tensor], move_axis=True):
+  def _format_xs(self, xs):
     if isinstance(xs, (bm.ndarray, jnp.ndarray)):
       if isinstance(self.target, Network):
         assert len(self.target.entry_nodes) == 1, (f'The network {self.target} has {len(self.target.entry_nodes)} '
@@ -340,6 +337,10 @@ class RNNRunner(Runner):
                              f'tensor or dict with <str, tensor>')
     assert len(xs) > 0, 'We got no input data.'
     check_dict_data(xs, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
+    return xs
+
+  def _check_xs(self, xs: Union[Dict, Tensor], move_axis=True):
+    xs = self._format_xs(xs)
     num_times, num_batch_sizes = [], []
     for key, val in xs.items():
       if bm.ndim(val) != 3:
