@@ -20,7 +20,7 @@ for module in [jit, autograd, function,
 
 
 def get_class_funcs(module):
-  classes, functions = [], []
+  classes, functions, others = [], [], []
   # Solution from: https://stackoverflow.com/questions/43059267/how-to-do-from-module-import-using-importlib
   if "__all__" in module.__dict__:
     names = module.__dict__["__all__"]
@@ -33,17 +33,15 @@ def get_class_funcs(module):
         functions.append(k)
       elif isinstance(data, type):
         classes.append(k)
+      else:
+        others.append(k)
 
-  return classes, functions
+  return classes, functions, others
 
 
 def write_module(module_name, filename, header=None):
   module = importlib.import_module(module_name)
-  classes, functions = get_class_funcs(module)
-
-  # if '__all__' not in module.__dict__:
-  #   raise ValueError(f'Only support auto generate APIs in a module has __all__ '
-  #                    f'specification, while __all__ is not specified in {module_name}')
+  classes, functions, others = get_class_funcs(module)
 
   fout = open(filename, 'w')
   # write header
@@ -63,12 +61,8 @@ def write_module(module_name, filename, header=None):
     fout.write(f'   {m}\n')
   for m in classes:
     fout.write(f'   {m}\n')
-
-  # # write autoclass
-  # fout.write('\n')
-  # for m in classes:
-  #   fout.write(f'.. autoclass:: {m}\n')
-  #   fout.write(f'   :members:\n\n')
+  for m in others:
+    fout.write(f'   {m}\n')
 
   fout.close()
 
@@ -88,7 +82,7 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
   # whole module
   for i, name in enumerate(submodule_names):
     module = importlib.import_module(module_name + '.' + name)
-    classes, functions = get_class_funcs(module)
+    classes, functions, others = get_class_funcs(module)
 
     fout.write(section_names[i] + '\n')
     fout.write('-' * len(section_names[i]) + '\n\n')
@@ -100,14 +94,10 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
       fout.write(f'   {m}\n')
     for m in classes:
       fout.write(f'   {m}\n')
+    for m in others:
+      fout.write(f'   {m}\n')
 
     fout.write(f'\n\n')
-
-    # # write autoclass
-    # fout.write('\n')
-    # for m in classes:
-    #   fout.write(f'.. autoclass:: {m}\n')
-    #   fout.write(f'   :members:\n\n')
 
   fout.close()
 

@@ -83,7 +83,7 @@ class BPTT(RNNTrainer):
     # initialize the optimizer
     if not (self.target.is_ff_initialized and
             self.target.is_fb_initialized and
-            self.target.is_state_initialize):
+            self.target.is_state_initialized):
       raise ValueError('Please initialize the target model first by calling "initialize()" function.')
     self.optimizer.register_vars(self.target.vars().subset(bm.TrainVar).unique())
 
@@ -93,6 +93,7 @@ class BPTT(RNNTrainer):
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
       reset=True,
+      shared_pars: Dict = None,
       **kwargs
   ):
     """Predict a series of input data with the given target model.
@@ -140,9 +141,10 @@ class BPTT(RNNTrainer):
       num_train: int = 100,
       num_report: int = 100,
       reset: bool = True,
+      shared_args: Dict = None,
       # currently unsupported features
       forced_states: Dict[str, Tensor] = None,
-      forced_feedbacks: Dict[str, Tensor] = None
+      forced_feedbacks: Dict[str, Tensor] = None,
   ):
     """
     Fit the target model according to the given training and testing data.
@@ -393,4 +395,3 @@ class BPTT(RNNTrainer):
         inputs = {k: v[data_idx: data_idx + num_batch] for k, v in xs.items()}
         targets = {k: v[data_idx: data_idx + num_batch] for k, v in ys.items()}
       yield inputs, targets
-

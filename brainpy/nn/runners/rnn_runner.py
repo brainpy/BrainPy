@@ -7,7 +7,6 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
-from brainpy.base import TensorCollector
 from brainpy import math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
@@ -53,6 +52,7 @@ class RNNRunner(Runner):
               forced_states: Dict[str, Tensor] = None,
               forced_feedbacks: Dict[str, Tensor] = None,
               reset=False,
+              shared_args: Dict = None,
               progress_bar=True):
     """Predict a series of input data with the given target model.
 
@@ -76,6 +76,8 @@ class RNNRunner(Runner):
     reset: bool
       Whether reset the model states.
     progress_bar: bool
+    shared_args: optional, dict
+      The shared arguments across different layers.
 
     Returns
     -------
@@ -122,6 +124,7 @@ class RNNRunner(Runner):
       fixed_forced_states: Dict[str, Tensor] = None,
       iter_forced_feedbacks: Dict[str, Tensor] = None,
       fixed_forced_feedbacks: Dict[str, Tensor] = None,
+      shared_args: Dict = None,
   ):
     """
 
@@ -133,6 +136,7 @@ class RNNRunner(Runner):
     fixed_forced_states: dict
     iter_forced_feedbacks: dict
     fixed_forced_feedbacks: dict
+    shared_args: dict
 
     Returns
     -------
@@ -153,22 +157,27 @@ class RNNRunner(Runner):
     hists = tree_map(f1, hists, is_leaf=f2)
     return outputs, hists
 
-  def _step_func(self, a_input):
-    xs, forced_states, forced_feedbacks = a_input
-    monitors = self.mon.item_contents.keys()
-    outs = self.target(xs,
-                       forced_states=forced_states,
-                       forced_feedbacks=forced_feedbacks,
-                       monitors=monitors)
-    if self.progress_bar and (self._pbar is not None):
-      id_tap(lambda *args: self._pbar.update(), ())
-    return outs
+  def _make_run_func(self, shared_args=None):
+    if shared_args is None:
+      shared_args = dict()
+    assert isinstance(shared_args, dict), f'"shared_args" must be a dict, but got {type(shared_args)}'
 
-  def _make_run_func(self):
+    def _step_func(a_input):
+      xs, forced_states, forced_feedbacks = a_input
+      monitors = self.mon.item_contents.keys()
+      outs = self.target(xs,
+                         forced_states=forced_states,
+                         forced_feedbacks=forced_feedbacks,
+                         monitors=monitors,
+                         **shared_args)
+      if self.progress_bar and (self._pbar is not None):
+        id_tap(lambda *args: self._pbar.update(), ())
+      return outs
+
     if self.jit:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
-      f = bm.make_loop(self._step_func, dyn_vars=dyn_vars.unique(), has_return=True)
+      f = bm.make_loop(_step_func, dyn_vars=dyn_vars.unique(), has_return=True)
       return lambda all_inputs: f(all_inputs)[1]
 
     else:
@@ -186,7 +195,7 @@ class RNNRunner(Runner):
           one_xs = {key: tensor[i] for key, tensor in xs.items()}
           one_forced_states = {key: tensor[i] for key, tensor in forced_states.items()}
           one_forced_feedbacks = {key: tensor[i] for key, tensor in forced_feedbacks.items()}
-          output, mon = self._step_func([one_xs, one_forced_states, one_forced_feedbacks])
+          output, mon = _step_func([one_xs, one_forced_states, one_forced_feedbacks])
           for key, value in mon.items():
             monitors[key].append(value)
           if output_type == 'node':
