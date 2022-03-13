@@ -59,7 +59,7 @@ import brainpy as bp
 class EINet(bp.dyn.Network):
   def __init__(self):
     E = bp.dyn.LIF(3200, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.)
-	I = bp.dyn.LIF(800, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.)
+    I = bp.dyn.LIF(800, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.)
     E.V[:] = bp.math.random.randn(3200) * 2 - 60.
     I.V[:] = bp.math.random.randn(800) * 2 - 60.
         
@@ -69,6 +69,11 @@ class EINet(bp.dyn.Network):
     I2I = bp.dyn.ExpCOBA(I, I, bp.conn.FixedProb(prob=0.02), E=-80., g_max=6.7, tau=10.)
         
     super(EINet, self).__init__(E2E, E2I, I2E, I2I, E=E, I=I)
+    
+
+net = EINet()
+runner = bp.dyn.DSRunner(net)
+runner(100.)
 ```
 
 
@@ -141,6 +146,10 @@ analyzer.show_figure()
 
 <p align="center"><img src="./docs/_static/fhn_ppa.png" width="60%">
 </p> 
+
+
+For **more others** please see [documentation](https://brainpy.readthedocs.io/) and [examples](https://brainpy-examples.readthedocs.io/).
+
 
 
 
