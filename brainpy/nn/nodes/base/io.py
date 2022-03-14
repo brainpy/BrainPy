@@ -20,11 +20,11 @@ class Input(Node):
                input_shape: Union[Tuple[int], int],
                name: str = None):
     super(Input, self).__init__(name=name, input_shape=input_shape)
-    self.set_input_shapes({self.name: (None,) + to_size(input_shape)})
+    self.set_feedforward_shapes({self.name: (None,) + to_size(input_shape)})
     self._ff_init()
 
   def init_ff(self):
-    self.set_output_shape(self.input_shapes)
+    self.set_output_shape(self.feedforward_shapes)
 
   def forward(self, ff, **kwargs):
     return ff

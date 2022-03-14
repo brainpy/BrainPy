@@ -80,7 +80,7 @@ class NVAR(RecurrentNode):
 
   def init_ff(self):
     # input dimension
-    batch_size, free_size = check_shape_consistency(self.input_shapes, -1, True)
+    batch_size, free_size = check_shape_consistency(self.feedforward_shapes, -1, True)
     self.input_dim = sum(free_size)
     assert batch_size == (None,), f'batch_size must be None, but got {batch_size}'
 

@@ -55,7 +55,7 @@ class VanillaRNN(RecurrentNode):
     self.activation = bm.activations.get(activation)
 
   def init_ff(self):
-    unique_size, free_sizes = check_shape_consistency(self.input_shapes, -1, True)
+    unique_size, free_sizes = check_shape_consistency(self.feedforward_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_input = sum(free_sizes)
     self.set_output_shape(unique_size + (self.num_unit,))
@@ -65,7 +65,6 @@ class VanillaRNN(RecurrentNode):
     if self.trainable:
       self.weight = bm.TrainVar(self.weight)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
-    # states
 
   def init_state(self, num_batch):
     state = init_param(self._state_initializer, (num_batch, self.num_unit))
@@ -136,7 +135,7 @@ class GRU(RecurrentNode):
 
   def init_ff(self):
     # data shape
-    unique_size, free_sizes = check_shape_consistency(self.input_shapes, -1, True)
+    unique_size, free_sizes = check_shape_consistency(self.feedforward_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_input = sum(free_sizes)
     self.set_output_shape(unique_size + (self.num_unit,))
@@ -238,7 +237,7 @@ class LSTM(RecurrentNode):
 
   def init_ff(self):
     # data shape
-    unique_size, free_sizes = check_shape_consistency(self.input_shapes, -1, True)
+    unique_size, free_sizes = check_shape_consistency(self.feedforward_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_input = sum(free_sizes)
     self.set_output_shape(unique_size + (self.num_unit,))

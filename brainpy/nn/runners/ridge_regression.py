@@ -66,7 +66,8 @@ class RidgeTrainer(RNNTrainer):
       test_data=None,
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
-      reset=False
+      reset=False,
+      shared_args: Dict = None,
   ):
     # checking training and testing data
     if not isinstance(train_data, (list, tuple)):

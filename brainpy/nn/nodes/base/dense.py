@@ -60,7 +60,7 @@ class Dense(Node):
 
   def init_ff(self):
     # shapes
-    in_sizes = [size[1:] for size in self.input_shapes]  # remove batch size
+    in_sizes = [size[1:] for size in self.feedforward_shapes]  # remove batch size
     unique_shape, free_shapes = check_shape_consistency(in_sizes, -1, True)
     weight_shape = (sum(free_shapes), self.num_unit)
     bias_shape = (self.num_unit,)

@@ -38,7 +38,7 @@ class Activation(Node):
     assert isinstance(self._fun_setting, dict), '"fun_setting" must be a dict.'
 
   def init_ff(self):
-    self.set_output_shape(self.input_shapes)
+    self.set_output_shape(self.feedforward_shapes)
 
   def forward(self, ff, **kwargs):
     return self._activation(ff, **self._fun_setting)

@@ -69,16 +69,17 @@ __all__ = [
   'int8', 'int16', 'int32', 'int64', 'float16', 'float32',
   'float64', 'complex64', 'complex128',
 
-  # others
-  'take_along_axis', 'clip_by_norm', 'as_device_array', 'as_variable', 'as_jaxarray',
+  # more
   'product', 'row_stack', 'apply_over_axes', 'apply_along_axis', 'array_equiv', 'array_repr', 'array_str', 'block',
   'broadcast_arrays', 'broadcast_shapes', 'broadcast_to', 'compress', 'cumproduct', 'diag_indices', 'diag_indices_from',
   'diagflat', 'diagonal', 'einsum', 'einsum_path', 'geomspace', 'gradient', 'histogram2d', 'histogram_bin_edges',
   'histogramdd', 'i0', 'in1d', 'indices', 'insert', 'intersect1d', 'iscomplex', 'isin', 'ix_', 'lexsort', 'load',
   'save', 'savez', 'mask_indices', 'msort', 'nan_to_num', 'nanargmax', 'nanargmin', 'pad', 'poly', 'polyadd', 'polyder',
   'polyfit', 'polyint', 'polymul', 'polysub', 'polyval', 'resize', 'rollaxis', 'roots', 'rot90', 'setdiff1d',
-  'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap',
+  'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap', 'take_along_axis',
 
+  # others
+  'clip_by_norm', 'as_device_array', 'as_variable', 'as_jaxarray', 'as_numpy',
 ]
 
 _min = min
@@ -97,6 +98,13 @@ def as_device_array(tensor):
     return jnp.asarray(tensor)
   else:
     return jnp.asarray(tensor)
+
+
+def as_numpy(tensor):
+  if isinstance(tensor, JaxArray):
+    return tensor.numpy()
+  else:
+    return np.asarray(tensor)
 
 
 def as_variable(tensor):
