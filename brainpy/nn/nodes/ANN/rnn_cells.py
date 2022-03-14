@@ -34,7 +34,8 @@ class VanillaRNN(RecurrentNode):
       self,
       num_unit: int,
       state_initializer=Uniform(),
-      weight_initializer=XavierNormal(),
+      wi_initializer=XavierNormal(),
+      wh_initializer=XavierNormal(),
       bias_initializer=ZeroInit(),
       activation='relu',
       trainable=True,
@@ -46,9 +47,11 @@ class VanillaRNN(RecurrentNode):
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
 
     self._state_initializer = state_initializer
-    self._weight_initializer = weight_initializer
+    self._wi_initializer = wi_initializer
+    self._wh_initializer = wh_initializer
     self._bias_initializer = bias_initializer
-    check_initializer(weight_initializer, 'weight_initializer', allow_none=False)
+    check_initializer(wi_initializer, 'wi_initializer', allow_none=False)
+    check_initializer(wh_initializer, 'wh_initializer', allow_none=False)
     check_initializer(state_initializer, 'state_initializer', allow_none=False)
     check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
 
@@ -60,21 +63,36 @@ class VanillaRNN(RecurrentNode):
     num_input = sum(free_sizes)
     self.set_output_shape(unique_size + (self.num_unit,))
     # weights
-    self.weight = init_param(self._weight_initializer, (num_input + self.num_unit, self.num_unit))
-    self.bias = init_param(self._bias_initializer, (self.num_unit,))
+    self.Wff = init_param(self._wi_initializer, (num_input, self.num_unit))
+    self.Wrec = init_param(self._wh_initializer, (self.num_unit, self.num_unit))
+    self.bff = init_param(self._bias_initializer, (self.num_unit,))
     if self.trainable:
-      self.weight = bm.TrainVar(self.weight)
-      self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
+      self.Wff = bm.TrainVar(self.Wff)
+      self.Wrec = bm.TrainVar(self.Wrec)
+      self.bff = None if (self.bff is None) else bm.TrainVar(self.bff)
+
+  def init_fb(self):
+    unique_size, free_sizes = check_shape_consistency(self.feedback_shapes, -1, True)
+    assert len(unique_size) == 1, 'Only support data with or without batch size.'
+    num_feedback = sum(free_sizes)
+    # weights
+    self.Wfb = init_param(self._wi_initializer, (num_feedback, self.num_unit))
+    if self.trainable:
+      self.Wfb = bm.TrainVar(self.Wfb)
 
   def init_state(self, num_batch):
     state = init_param(self._state_initializer, (num_batch, self.num_unit))
     self.set_state(state)
 
   def forward(self, ff, fb=None, **kwargs):
-    ff = bm.concatenate(tuple(ff) + (self.state.value,), axis=-1)
-    h = ff @ self.weight
-    if self.bias is not None:
-      h = h + self.bias
+    ff = bm.concatenate(ff, axis=-1)
+    h = ff @ self.Wff
+    h += self.state.value @ self.Wrec
+    if self.bff is not None:
+      h += self.bff
+    if fb is not None:
+      fb = bm.concatenate(fb, axis=-1)
+      h += fb @ self.Wfb
     self.state.value = self.activation(h)
     return self.state.value
 
