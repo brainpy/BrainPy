@@ -33,6 +33,3 @@ class TestVisualize(unittest.TestCase):
     print()
 
     model.plot_node_graph(fig_size=(10, 5), node_size=100, rec_size=1000)
-
-
-    bp.dyn.neurons.LIF
