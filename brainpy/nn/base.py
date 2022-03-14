@@ -1143,7 +1143,7 @@ class Network(Node):
                       fig_size: tuple = (10, 10),
                       node_size: int = 2000,
                       arrow_size: int = 20,
-                      rec_size: int = 50 ):
+                      layout='spectral_layout'):
     """Plot the node graph based on NetworkX package
 
     Parameters
@@ -1154,15 +1154,20 @@ class Network(Node):
       The size of the node
     arrow_size:int, default to 20
       The size of the arrow
+    layout: str
+      The graph layout. More please see networkx Graph Layout.
     """
     try:
       import networkx as nx
+    except (ModuleNotFoundError, ImportError):
+      raise PackageMissingError('The node graph plotting currently need package "networkx". '
+                                'But it can not be imported. ')
+    try:
       import matplotlib.pyplot as plt
       from matplotlib.lines import Line2D
     except (ModuleNotFoundError, ImportError):
-      raise PackageMissingError('Package "networkx" or "matplotlib" not found, '
-                                'please pre-install these two packages before '
-                                'calling "plot_node_graph()" function.')
+      raise PackageMissingError('The node graph plotting currently need package "matplotlib". '
+                                'But it can not be imported. ')
 
     nodes_trainable = []
     nodes_untrainable = []
@@ -1199,19 +1204,51 @@ class Network(Node):
     G.add_edges_from(fb_edges)
     G.add_edges_from(rec_edges)
 
-    pos = nx.multipartite_layout(G)
+    assert layout in ['shell_layout',
+                      'multipartite_layout',
+                      'spring_layout',
+                      'spiral_layout',
+                      'spectral_layout',
+                      'random_layout',
+                      'planar_layout',
+                      'kamada_kawai_layout',
+                      'circular_layout']
+    layout = getattr(nx, layout)(G)
+
     plt.figure(figsize=fig_size)
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_trainable, node_color=trainable_color, node_size=node_size)
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_untrainable, node_color=untrainable_color, node_size=node_size)
+    nx.draw_networkx_nodes(G, pos=layout,
+                           nodelist=nodes_trainable,
+                           node_color=trainable_color,
+                           node_size=node_size)
+    nx.draw_networkx_nodes(G, pos=layout,
+                           nodelist=nodes_untrainable,
+                           node_color=untrainable_color,
+                           node_size=node_size)
 
-    nx.draw_networkx_edges(G, pos=pos, edgelist=ff_edges, edge_color=ff_color,
-                           connectionstyle="arc3,rad=-0.3", arrowsize=arrow_size, node_size=node_size)
-    nx.draw_networkx_edges(G, pos=pos, edgelist=fb_edges, edge_color=fb_color,
-                           connectionstyle="arc3,rad=-0.3", arrowsize=arrow_size, node_size=node_size)
-    nx.draw_networkx_edges(G, pos=pos, edgelist=rec_edges, edge_color=rec_color, arrowsize=arrow_size,
-                           node_size=rec_size, node_shape='s')
+    ff_conn_style = "arc3,rad=0."
+    nx.draw_networkx_edges(G, pos=layout,
+                           edgelist=ff_edges,
+                           edge_color=ff_color,
+                           connectionstyle=ff_conn_style,
+                           arrowsize=arrow_size,
+                           node_size=node_size)
+    fb_conn_style = "arc3,rad=0.3"
+    nx.draw_networkx_edges(G, pos=layout,
+                           edgelist=fb_edges,
+                           edge_color=fb_color,
+                           connectionstyle=fb_conn_style,
+                           arrowsize=arrow_size,
+                           node_size=node_size)
+    rec_conn_style = "arc3,rad=-0.3"
+    nx.draw_networkx_edges(G, pos=layout,
+                           edgelist=rec_edges,
+                           edge_color=rec_color,
+                           arrowsize=arrow_size,
+                           connectionstyle=rec_conn_style,
+                           node_size=node_size,
+                           node_shape='s')
 
-    nx.draw_networkx_labels(G, pos=pos)
+    nx.draw_networkx_labels(G, pos=layout)
     proxie = []
     labels = []
     if len(nodes_trainable):
@@ -1250,3 +1287,106 @@ class FrozenNetwork(Network):
 
 class Sequential(Network):
   pass
+
+# def _process_params(G, center, dim):
+#     # Some boilerplate code.
+#     import numpy as np
+#
+#     if not isinstance(G, nx.Graph):
+#         empty_graph = nx.Graph()
+#         empty_graph.add_nodes_from(G)
+#         G = empty_graph
+#
+#     if center is None:
+#         center = np.zeros(dim)
+#     else:
+#         center = np.asarray(center)
+#
+#     if len(center) != dim:
+#         msg = "length of center coordinates must match dimension of layout"
+#         raise ValueError(msg)
+#
+#     return G, center
+#
+#
+# def multipartite_layout(G, subset_key="subset", align="vertical", scale=1, center=None):
+#     import numpy as np
+#
+#     if align not in ("vertical", "horizontal"):
+#       msg = "align must be either vertical or horizontal."
+#       raise ValueError(msg)
+#
+#     G, center = _process_params(G, center=center, dim=2)
+#     if len(G) == 0:
+#       return {}
+#
+#     layers = {}
+#     for v, data in G.nodes(data=True):
+#       try:
+#         layer = data[subset_key]
+#       except KeyError:
+#         msg = "all nodes must have subset_key (default='subset') as data"
+#         raise ValueError(msg)
+#       layers[layer] = [v] + layers.get(layer, [])
+#
+#     pos = None
+#     nodes = []
+#
+#     width = len(layers)
+#     for i, layer in layers.items():
+#       height = len(layer)
+#       xs = np.repeat(i, height)
+#       ys = np.arange(0, height, dtype=float)
+#       offset = ((width - 1) / 2, (height - 1) / 2)
+#       layer_pos = np.column_stack([xs, ys]) - offset
+#       if pos is None:
+#         pos = layer_pos
+#       else:
+#         pos = np.concatenate([pos, layer_pos])
+#       nodes.extend(layer)
+#     pos = rescale_layout(pos, scale=scale) + center
+#     if align == "horizontal":
+#       pos = np.flip(pos, 1)
+#     pos = dict(zip(nodes, pos))
+#     return pos
+#
+#
+# def rescale_layout(pos, scale=1):
+#     """Returns scaled position array to (-scale, scale) in all axes.
+#
+#     The function acts on NumPy arrays which hold position information.
+#     Each position is one row of the array. The dimension of the space
+#     equals the number of columns. Each coordinate in one column.
+#
+#     To rescale, the mean (center) is subtracted from each axis separately.
+#     Then all values are scaled so that the largest magnitude value
+#     from all axes equals `scale` (thus, the aspect ratio is preserved).
+#     The resulting NumPy Array is returned (order of rows unchanged).
+#
+#     Parameters
+#     ----------
+#     pos : numpy array
+#         positions to be scaled. Each row is a position.
+#
+#     scale : number (default: 1)
+#         The size of the resulting extent in all directions.
+#
+#     Returns
+#     -------
+#     pos : numpy array
+#         scaled positions. Each row is a position.
+#
+#     See Also
+#     --------
+#     rescale_layout_dict
+#     """
+#     # Find max length over all dimensions
+#     lim = 0  # max coordinate for all axes
+#     for i in range(pos.shape[1]):
+#         pos[:, i] -= pos[:, i].mean()
+#         lim = max(abs(pos[:, i]).max(), lim)
+#     # rescale to (-scale, scale) in all directions, preserves aspect
+#     if lim > 0:
+#         for i in range(pos.shape[1]):
+#             pos[:, i] *= scale / lim
+#     return pos
