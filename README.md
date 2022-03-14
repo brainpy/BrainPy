@@ -148,7 +148,7 @@ analyzer.show_figure()
 </p> 
 
 
-For **more others** please see [documentation](https://brainpy.readthedocs.io/) and [examples](https://brainpy-examples.readthedocs.io/).
+For **more functions and examples**, please refer to the [documentation](https://brainpy.readthedocs.io/) and [examples](https://brainpy-examples.readthedocs.io/).
 
 
 
