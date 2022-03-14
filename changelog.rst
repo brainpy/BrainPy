@@ -218,6 +218,13 @@ brainpy 1.1.x (LTS)
 *******************
 
 
+If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and *models* through the following links:
+
+- **Documentation:** https://brainpy.readthedocs.io/en/brainpy-1.x/
+- **Examples from papers**: https://brainpy-examples.readthedocs.io/en/brainpy-1.x/
+- **Canonical brain models**: https://brainmodels.readthedocs.io/en/brainpy-1.x/
+
+
 Version 1.1.7 (2021.12.13)
 ==========================
 
