@@ -4,10 +4,11 @@
 
 import brainpy as bp
 import brainpy.math as bm
+
 bm.set_platform('cpu')
 
 
-class CANN1D(bp.NeuGroup):
+class CANN1D(bp.dyn.NeuGroup):
   def __init__(self, num, tau=1., k=8.1, a=0.5, A=10., J0=4.,
                z_min=-bm.pi, z_max=bm.pi, **kwargs):
     super(CANN1D, self).__init__(size=num, **kwargs)
@@ -61,7 +62,6 @@ class CANN1D(bp.NeuGroup):
 
 cann = CANN1D(num=512, k=0.1)
 
-
 # Population coding
 
 # %%
@@ -69,7 +69,7 @@ I1 = cann.get_stimulus_by_pos(0.)
 Iext, duration = bp.inputs.section_input(values=[0., I1, 0.],
                                          durations=[1., 8., 8.],
                                          return_length=True)
-runner = bp.StructRunner(cann,
+runner = bp.dyn.DSRunner(cann,
                          inputs=['input', Iext, 'iter'],
                          monitors=['u'],
                          dyn_vars=cann.vars())
@@ -97,7 +97,7 @@ Iext[:num1] = cann.get_stimulus_by_pos(0.5)
 Iext[num1:num1 + num2] = cann.get_stimulus_by_pos(0.)
 Iext[num1:num1 + num2] += 0.1 * cann.A * bm.random.randn(num2, *cann.size)
 
-runner = bp.StructRunner(cann,
+runner = bp.dyn.DSRunner(cann,
                          inputs=('input', Iext, 'iter'),
                          monitors=['u'],
                          dyn_vars=cann.vars())
@@ -120,7 +120,7 @@ position[num1: num1 + num2] = bm.linspace(0., 20., num2)
 position[num1 + num2:] = 20.
 position = position.reshape((-1, 1))
 Iext = cann.get_stimulus_by_pos(position)
-runner = bp.StructRunner(cann,
+runner = bp.dyn.DSRunner(cann,
                          inputs=('input', Iext, 'iter'),
                          monitors=['u'],
                          dyn_vars=cann.vars())

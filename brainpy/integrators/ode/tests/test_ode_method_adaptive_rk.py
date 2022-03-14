@@ -62,4 +62,4 @@ class TestAdaptiveRK(unittest.TestCase):
                    adaptive_rk.CashKarp,
                    adaptive_rk.BogackiShampine,
                    adaptive_rk.HeunEuler]:
-      run_integrator(method, show=True)
+      run_integrator(method, show=False)

@@ -3,7 +3,7 @@ import brainpy.math as bm
 bp.math.enable_x64()
 
 
-class MeanFieldQIF(bp.DynamicalSystem):
+class MeanFieldQIF(bp.dyn.DynamicalSystem):
   """A mean-field model of a quadratic integrate-and-fire neuron population.
 
   References
@@ -48,7 +48,7 @@ qif = MeanFieldQIF()
 
 
 # simulation
-runner = bp.StructRunner(qif, inputs=['Iext', 1.], monitors=['r', 'v'])
+runner = bp.dyn.DSRunner(qif, inputs=['Iext', 1.], monitors=['r', 'v'])
 runner.run(100.)
 bp.visualize.line_plot(runner.mon.ts, runner.mon.r, legend='r')
 bp.visualize.line_plot(runner.mon.ts, runner.mon.v, legend='v', show=True)

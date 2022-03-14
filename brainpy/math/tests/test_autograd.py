@@ -706,7 +706,7 @@ class TestClassFuncJacobian(unittest.TestCase):
 
     _jr = jax.jacrev(f1)(_x, _y)
     t = Test()
-    br = bm.jacrev(t, grad_vars=t.x)(_y)
+    br, _ = bm.jacrev(t, grad_vars=t.x, has_aux=True)(_y)
     self.assertTrue((br == _jr).all())
 
     t = Test()
@@ -742,8 +742,11 @@ class TestClassFuncJacobian(unittest.TestCase):
 
     _jr = jax.jacfwd(f1)(_x, _y)
     t = Test()
-    br = bm.jacfwd(t, grad_vars=t.x)(_y)
-    self.assertTrue((br == _jr).all())
+    br, (c, d) = bm.jacfwd(t, grad_vars=t.x, has_aux=True)(_y)
+    # print(_jr)
+    # print(br)
+    a = (br == _jr)
+    self.assertTrue(a.all())
 
     t = Test()
     _jr = jax.jacfwd(f1, argnums=(0, 1))(_x, _y)
@@ -778,7 +781,7 @@ class TestClassFuncJacobian(unittest.TestCase):
 
     _jr = jax.jacrev(f1)(_x, _y)
     t = Test()
-    br = bm.jacrev(t, grad_vars=t.x)(_y)
+    br, _ = bm.jacrev(t, grad_vars=t.x, has_aux=True)(_y)
     self.assertTrue((br == _jr).all())
 
     t = Test()
@@ -815,7 +818,7 @@ class TestClassFuncJacobian(unittest.TestCase):
 
     _jr = jax.jacfwd(f1)(_x, _y)
     t = Test()
-    br = bm.jacfwd(t, grad_vars=t.x)(_y)
+    br, _ = bm.jacfwd(t, grad_vars=t.x, has_aux=True)(_y)
     self.assertTrue((br == _jr).all())
 
     t = Test()

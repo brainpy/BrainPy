@@ -6,8 +6,8 @@ Installation
     :depth: 2
 
 
-``BrainPy`` is designed to run on across-platforms, including Windows,
-GNU/Linux and OSX. It only relies on Python libraries.
+``BrainPy`` is designed to run cross platforms, including Windows,
+GNU/Linux, and OSX. It only relies on Python libraries.
 
 
 Installation with pip
@@ -20,7 +20,7 @@ To do so, use:
 
     pip install brain-py
 
-If you try to update the BrainPy version, you can use
+To update the BrainPy version, you can use
 
 .. code-block:: bash
 
@@ -53,30 +53,29 @@ To do so, use:
     pip install git+https://git.openi.org.cn/OpenI/BrainPy
 
 
-Dependency 1: NumPy & Matplotlib
+Dependency 1: NumPy
 --------------------------------
 
 In order to make BrainPy work normally, users should install
 several dependent Python packages.
 
-The basic function of ``BrainPy`` only relies on `NumPy`_
-and `Matplotlib`_. Install these two packages is very
-easy, just using ``pip`` or ``conda``:
+The basic function of ``BrainPy`` only relies on `NumPy`_, which is very
+easy to install through ``pip`` or ``conda``:
 
 .. code-block:: bash
 
-    pip install numpy matplotlib
+    pip install numpy
 
     # or
 
-    conda install numpy matplotlib
+    conda install numpy
 
 Dependency 2: JAX
 -----------------
 
 BrainPy relies on `JAX`_. JAX is a high-performance JIT compiler which enables
-users run Python code on CPU, GPU, or TPU devices. Core functionalities of
-BrainPy (>=2.0.0) migrate to JAX backend.
+users to run Python code on CPU, GPU, and TPU devices. Core functionalities of
+BrainPy (>=2.0.0) have been migrated to the JAX backend.
 
 Linux & MacOS
 ^^^^^^^^^^^^^
@@ -159,6 +158,33 @@ packages:
 
     conda install numba
 
+- BrainPyLib: needed in some synaptic compuatation
+
+.. code-block:: bash
+
+    pip install brainpylib
+    
+ 
+- `MatPlotLib`_: required in some visualization functions, but now it is recommended that users explicitly import matplotlib for visualization
+
+.. code-block:: bash
+
+    pip install matplotlib
+
+    # or
+
+    conda install matplotlib
+
+- `NetworkX`_: needed in the visualization of network training
+
+.. code-block:: bash
+
+    pip install networkx
+
+    # or
+
+    conda install networkx
+
 .. _NumPy: https://numpy.org/
 .. _Matplotlib: https://matplotlib.org/
 .. _JAX: https://github.com/google/jax
@@ -169,3 +195,4 @@ packages:
 .. _Numba: https://numba.pydata.org/
 .. _CUDA: https://developer.nvidia.com/cuda-downloads
 .. _CuDNN: https://developer.nvidia.com/CUDNN
+.. _NetworkX: https://networkx.org/

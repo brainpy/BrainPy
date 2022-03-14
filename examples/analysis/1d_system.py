@@ -59,7 +59,7 @@ def sin_1d():
 
   pp = bp.analysis.PhasePlane1D(model=int_x,
                                 target_vars={'x': [-5, 5]},
-                                pars_update={'Iext': 1.},
+                                pars_update={'Iext': 0.9},
                                 resolutions=0.001)
   pp.plot_vector_field()
   pp.plot_fixed_point(show=True)
@@ -76,13 +76,13 @@ def sincos_1d():
   def int_x(x, t, a=1., b=1.):
     return bp.math.sin(a * x) + bp.math.cos(b * x)
 
-  # pp = bp.analysis.PhasePlane1D(
-  #   model=int_x,
-  #   target_vars={'x': [-bp.math.pi, bp.math.pi]},
-  #   resolutions=0.001
-  # )
-  # pp.plot_vector_field()
-  # pp.plot_fixed_point(show=True)
+  pp = bp.analysis.PhasePlane1D(
+    model=int_x,
+    target_vars={'x': [-bp.math.pi, bp.math.pi]},
+    resolutions=0.001
+  )
+  pp.plot_vector_field()
+  pp.plot_fixed_point(show=True)
 
   bf = bp.analysis.Bifurcation1D(
     model=int_x,
@@ -91,3 +91,7 @@ def sincos_1d():
     resolutions={'a': 0.01, 'b': 0.01}
   )
   bf.plot_bifurcation(show=True)
+
+
+if __name__ == '__main__':
+    sin_1d()

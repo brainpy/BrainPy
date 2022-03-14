@@ -7,6 +7,7 @@ from brainpy import errors
 
 __all__ = [
   'f_without_jaxarray_return',
+  'remove_return_shape',
   'get_args',
   'std_derivative',
   'std_func',
@@ -18,6 +19,14 @@ def f_without_jaxarray_return(f):
     r = f(*args, **kwargs)
     return r.value if isinstance(r, bm.JaxArray) else r
 
+  return f2
+
+
+def remove_return_shape(f):
+  def f2(*args, **kwargs):
+    r = f(*args, **kwargs)
+    if r.shape == (1,):r = r[0]
+    return r
   return f2
 
 

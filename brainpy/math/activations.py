@@ -19,6 +19,8 @@ import jax.numpy as jnp
 import jax.scipy
 
 from brainpy.math.jaxarray import JaxArray
+from brainpy.math.numpy_ops import tanh as _tanh
+
 
 __all__ = [
   'celu',
@@ -49,10 +51,22 @@ __all__ = [
 def get(activation):
   global_vars = globals()
 
-  if activation not in global_vars:
-    raise ValueError(f'Unknown activation function: {activation}, \nwe only support: '
-                     f'{[k for k, v in global_vars.items() if not k.startswith("_") and callable(v)]}')
+  if activation is None:
+    return None
+
+  if isinstance(activation, str):
+    if activation not in global_vars:
+      raise ValueError(f'Unknown activation function: {activation}, \nwe only support: '
+                       f'{[k for k, v in global_vars.items() if not k.startswith("_") and callable(v)]}')
+  elif callable(activation):
+    return activation
+  else:
+    raise ValueError(f'Unknown activation function {activation}. ')
   return global_vars[activation]
+
+
+tanh = _tanh
+identity = lambda x: x
 
 
 def celu(x, alpha=1.0):
@@ -495,3 +509,4 @@ def selu(x):
   x = x.value if isinstance(x, JaxArray) else x
   safe_x = jnp.where(x > 0, 0., x)
   return JaxArray(scale * jnp.where(x > 0, x, alpha * jnp.expm1(safe_x)))
+

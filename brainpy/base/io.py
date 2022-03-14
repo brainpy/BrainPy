@@ -71,7 +71,7 @@ def load_h5(filename, target, verbose=False, check=False):
   assert isinstance(target, Base)
   _check(h5py, module_name='h5py', ext=os.path.splitext(filename))
 
-  all_vars = target.vars(method='relative')
+  all_vars = target.vars(method='absolute')
   f = h5py.File(filename, "r")
   for key in f.keys():
     if verbose: print(f'Loading {key} ...')
@@ -97,7 +97,7 @@ def load_npz(filename, target, verbose=False, check=False):
   if math is None: from brainpy import math
   assert isinstance(target, Base)
 
-  all_vars = target.vars(method='relative')
+  all_vars = target.vars(method='absolute')
   all_data = np.load(filename)
   for key in all_data.files:
     if verbose: print(f'Loading {key} ...')
@@ -124,7 +124,7 @@ def load_pkl(filename, target, verbose=False, check=False):
   all_data = pickle.load(f)
   f.close()
 
-  all_vars = target.vars(method='relative')
+  all_vars = target.vars(method='absolute')
   for key, data in all_data.items():
     if verbose: print(f'Loading {key} ...')
     var = all_vars.pop(key)
@@ -147,7 +147,7 @@ def load_mat(filename, target, verbose=False, check=False):
   assert isinstance(target, Base)
 
   all_data = sio.loadmat(filename)
-  all_vars = target.vars(method='relative')
+  all_vars = target.vars(method='absolute')
   for key, data in all_data.items():
     if verbose: print(f'Loading {key} ...')
     var = all_vars.pop(key)

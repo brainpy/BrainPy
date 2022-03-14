@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Sequence
 
 import jax.numpy as jnp
 from jax import jit, vmap
 from jax import ops as jops
 
 from brainpy.errors import PackageMissingError, MathError
-from brainpy.math import profile
-from brainpy.math.numpy_ops import as_device_array
+from brainpy.math import setting
+from brainpy.math.jaxarray import JaxArray
+from brainpy.math.numpy_ops import as_device_array, _remove_jaxarray
+from brainpy.types import Shape
 
 try:
   import brainpylib
@@ -36,7 +39,12 @@ __all__ = [
   # pre-to-post event operator
   'pre2post_event_sum',
   'pre2post_event_prod',
+
+  # others
+  'sparse_matmul',
 ]
+
+_BRAINPYLIB_MINIMAL_VERSION = '0.0.3'
 
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
@@ -48,13 +56,19 @@ _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3))
 
 def _check_brainpylib(ops_name):
   if brainpylib is not None:
-    return
-  raise PackageMissingError(
-    f'"brainpylib" must be installed when the user '
-    f'wants to use "{ops_name}" operator. \n'
-    f'Please install "brainpylib" through:\n\n'
-    f'>>> pip install brainpylib'
-  )
+    if brainpylib.__version__ < _BRAINPYLIB_MINIMAL_VERSION:
+      raise PackageMissingError(
+        f'"{ops_name}" operator need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
+        f'Please install it through:\n\n'
+        f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION} -U'
+      )
+  else:
+    raise PackageMissingError(
+      f'"brainpylib" must be installed when the user '
+      f'wants to use "{ops_name}" operator. \n'
+      f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
+      f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}'
+    )
 
 
 def pre2post_event_sum(events, pre2post, post_num, values=1.):
@@ -120,7 +134,7 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
   .. highlight:: python
   .. code-block:: python
 
-    post_val = np.zeros(post_num)
+    post_val = np.ones(post_num)
     post_ids, idnptr = pre2post
     for i in range(pre_num):
       if events[i]:
@@ -133,7 +147,7 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
   .. highlight:: python
   .. code-block:: python
 
-    post_val = np.zeros(post_num)
+    post_val = np.ones(post_num)
 
     post_ids, idnptr = pre2post
     for i in range(pre_num):
@@ -202,7 +216,7 @@ def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=profile.float_)
+  out = jnp.zeros(post_num, dtype=setting.float_)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -240,7 +254,7 @@ def pre2post_prod(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=profile.float_)
+  out = jnp.zeros(post_num, dtype=setting.float_)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -278,7 +292,7 @@ def pre2post_min(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=profile.float_)
+  out = jnp.zeros(post_num, dtype=setting.float_)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -316,7 +330,7 @@ def pre2post_max(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=profile.float_)
+  out = jnp.zeros(post_num, dtype=setting.float_)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -345,7 +359,7 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=profile.float_)
+  out = jnp.zeros(post_num, dtype=setting.float_)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) == 0:
@@ -600,3 +614,151 @@ def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=Tru
   normalizers = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
   softmax = syn_values / normalizers[post_ids]
   return jnp.nan_to_num(softmax)
+
+
+def _matmul_with_left_sparse(sparse: Sequence,
+                             dense: Union[JaxArray, jnp.ndarray],
+                             shape: int):
+  r"""Matrix multiplication with sparse matrix on the left.
+
+  .. math::
+
+    Y = M_{\mathrm{sparse}} @ M_{\mathrm{dense}}
+
+  Parameters
+  ----------
+  sparse: tuple, list
+    The sparse matrix with shape of :math:`(N, M)`.
+  dense: JaxArray, jnp.ndarray
+    The dense matrix with the shape of :math:`(M, K)`.
+  shape: int
+    The dimension of :math:`N`.
+
+  Returns
+  -------
+  matrix
+    A tensor the the shape of :math:`(N, K)`.
+  """
+  assert dense.ndim in [1, 2], 'Dense matrix must be a one- or two-dimensional matrix.'
+  values, (rows, cols) = sparse
+  values = _remove_jaxarray(values)
+  rows = _remove_jaxarray(rows)
+  cols = _remove_jaxarray(cols)
+  dense = _remove_jaxarray(dense)
+  B = dense.take(cols, axis=0)
+  if B.ndim == 2:
+    prod = B * jnp.reshape(values, (-1, 1))
+  else:
+    prod = B * values
+  res = jops.segment_sum(prod, rows, shape)
+  return JaxArray(res)
+
+
+def _matmul_with_right_sparse(dense, sparse, shape):
+  r"""Matrix multiplication with sparse matrix on the left.
+
+  .. math::
+
+    Y = M_{\mathrm{dense}} @ M_{\mathrm{sparse}}
+
+  Parameters
+  ----------
+  dense: JaxArray, jnp.ndarray
+    The dense matrix with the shape of :math:`(N, M)`.
+  sparse: tuple, list
+    The sparse matrix with shape of :math:`(M, K)`.
+  shape: int
+    The dimension of :math:`K`.
+
+  Returns
+  -------
+  matrix
+    A tensor the the shape of :math:`(N, K)`.
+  """
+  assert dense.ndim in [1, 2], 'Dense matrix must be a one- or two-dimensional matrix.'
+  values, (rows, cols) = sparse
+  values = _remove_jaxarray(values)
+  rows = _remove_jaxarray(rows)
+  cols = _remove_jaxarray(cols)
+  dense = _remove_jaxarray(dense)
+  if dense.ndim == 2:
+    A = dense[:, rows]
+    prod = (A * values).T
+    res = jops.segment_sum(prod, cols, shape).T
+  else:
+    prod = dense[rows] * values
+    res = jops.segment_sum(prod, cols, shape)
+  return JaxArray(res)
+
+
+def sparse_matmul(A, B, shape: Shape):
+  r"""Sparse matrix multiplication.
+
+  .. math::
+
+     y = A @ B
+
+  where :math:`A` or :math:`B` is a sparse matrix.
+  :math:`A` and :math:`B` cannot be both sparse.
+
+  Examples
+  --------
+
+  >>> import brainpy.math as bm
+
+  1. when the left matrix :math:`A` is a sparse matrix with the shape of :math:`(N, M)`,
+     we should provide :math:`N` as the ``shape`` in the ``brainpy.math.sparse_matmul``
+     function.
+
+  >>> # A is a sparse matrix (3, 4):
+  >>> #   [[0, 2, 0, 4],
+  >>> #    [1, 0, 0, 0],
+  >>> #    [0, 3, 0, 2]]
+  >>> values = bm.asarray([2, 4, 1, 3, 2])
+  >>> rows = bm.asarray([0, 0, 1, 2, 2])
+  >>> cols = bm.asarray([1, 3, 0, 1, 3])
+  >>> B = bm.arange(4)
+  >>> bm.sparse_matmul([values, (rows, cols)], B, 3)
+  JaxArray([14,  0,  9], dtype=int32)
+  >>> B = bm.random.rand(4, 3)
+  >>> bm.sparse_matmul([values, (rows, cols)], B, 3)
+  JaxArray([[3.8331761 , 1.3708692 , 4.510223  ],
+            [0.9960836 , 0.37550318, 0.7370341 ],
+            [2.3700516 , 0.7574289 , 4.1124535 ]], dtype=float32)
+
+  2. when the right matrix :math:`B` is a sparse matrix with the shape of :math:`(M, K)`,
+     we should provide :math:`K` as the ``shape`` in the ``brainpy.math.sparse_matmul``
+     function.
+
+  >>> A = bm.arange(3)
+  >>> bm.sparse_matmul(A, [values, (rows, cols)], 4)
+  JaxArray([1, 6, 0, 4], dtype=int32)
+  >>> A = bm.random.rand(2, 3)
+  JaxArray([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
+            [0.9171978 , 1.1214957 , 0.        , 0.90534496]],  dtype=float32)
+
+  Parameters
+  ----------
+  A: tensor, sequence
+    The dense or sparse matrix with the shape of :math:`(N, M)`.
+  B: tensor, sequence
+    The dense or sparse matrix with the shape of :math:`(M, K)`.
+  shape: int
+    The dimension of :math:`N` when ``A`` is sparse, or
+    the dimension of :math:`K` when ``B`` is sparse.
+
+  Returns
+  -------
+  results: JaxArray, jnp.ndarray
+    The tensor with the shape of :math:`(N, K)`.
+  """
+  if isinstance(A, (tuple, list)):
+    assert isinstance(B, (JaxArray, jnp.ndarray)), ('A and B cannot be both sparse. \n'
+                                                    f'A:\n{A}\n'
+                                                    f'B:\n{B}')
+    return _matmul_with_left_sparse(A, B, shape)
+  else:
+    assert isinstance(B, (tuple, list)), ('A and B cannot be both dense. \n'
+                                          f'A:\n{A}\n'
+                                          f'B:\n{B}')
+    return _matmul_with_right_sparse(A, B, shape)

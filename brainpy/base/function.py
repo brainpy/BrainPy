@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional, Callable
 from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base import collector
@@ -40,7 +41,7 @@ class Function(Base):
     The function name.
   """
 
-  def __init__(self, f, nodes=None, dyn_vars=None, name=None):
+  def __init__(self, f: Optional[Callable], nodes=None, dyn_vars=None, name=None):
     # initialize 
     # ---
     self._f = f
