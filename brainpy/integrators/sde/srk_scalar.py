@@ -176,7 +176,7 @@ class SRK1W1(SDEIntegrator):
 
 
 class SRK2W1(SDEIntegrator):
-  r"""Order 1.5 Strong SRK Methods for SDEs witdt Scalar Noise.
+  r"""Order 1.5 Strong SRK Methods for SDEs with Scalar Noise.
 
   This method has have strong orders :math:`(p_d, p_s) = (3.0,1.5)`.
 

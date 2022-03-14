@@ -9,11 +9,13 @@ This module provides basic mathematical operations, including:
 - linear algebra functions
 - random sampling functions
 - discrete fourier transform functions
-- compilations of ``jit``, ``vmap``, ``pmap`` for class objects
-- automatic differentiation of ``grad``, ``jacocian``, ``hessian``, etc. for class objects
-- loss functions
+- just-in-time compilation for class objects
+- automatic differentiation for class objects
+- dedicated operators for brain dynamics
 - activation functions
-- optimization classes
+- device switching
+- default type switching
+- and others
 
 Details in the following.
 """
@@ -31,28 +33,65 @@ Details in the following.
 
 # data structure
 from .jaxarray import *
+from .delay_vars import *
 
-# functions/operations
+# high-level numpy operations
 from .numpy_ops import *
 from .operators import *
-from .activations import *
 from . import fft
 from . import linalg
 from . import random
-from . import losses
-from . import optimizers
-from . import activations
 
-# transformations
+# JAX transformations extended on class objects
 from .autograd import *
 from .controls import *
 from .jit import *
 from .parallels import *
 
-# others
-from . import profile
+# settings
 from . import setting
-from .profile import *
 from .setting import *
 from .function import *
-from . import numpy
+
+# functions
+from .activations import *
+from . import activations
+from .compact import *
+from . import special
+
+
+def get_dint():
+  """Get default int type."""
+  return int_
+
+
+def get_dfloat():
+  """Get default float type."""
+  return float_
+
+
+def get_dcomplex():
+  """Get default complex type."""
+  return complex_
+
+
+def set_dint(int_type):
+  """Set default int type."""
+  global int_
+  assert isinstance(int_type, type)
+  int_ = int_type
+
+
+def set_dfloat(float_type):
+  """Set default float type."""
+  global float_
+  assert isinstance(float_type, type)
+  float_ = float_type
+
+
+def set_dcomplex(complex_type):
+  """Set default complex type."""
+  global complex_
+  assert isinstance(complex_type, type)
+  complex_ = complex_type
+

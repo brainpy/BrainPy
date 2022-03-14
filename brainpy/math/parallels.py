@@ -120,77 +120,75 @@ def vmap(func, dyn_vars=None, batched_vars=None,
     with extra array axes at positions indicated by ``out_axes``.
 
   """
-  from brainpy.building.brainobjects import DynamicalSystem
-
-  if isinstance(func, DynamicalSystem):
-    if len(func.steps):  # DynamicalSystem has step functions
-
-      # dynamical variables
-      dyn_vars = (dyn_vars or func.vars().unique())
-      dyn_vars, rand_vars = TensorCollector(), TensorCollector()
-      for key, val in dyn_vars.items():
-        if isinstance(val, RandomState):
-          rand_vars[key] = val
-        else:
-          dyn_vars[key] = val
-
-      # in axes
-      if in_axes is None:
-        in_axes = {key: (None, 0) for key in func.steps.keys()}
-      elif isinstance(in_axes, int):
-        in_axes = {key: (None, 0, in_axes) for key in func.steps.keys()}
-      elif isinstance(in_axes, (tuple, list)):
-        in_axes = {key: (None, 0) + tuple(in_axes) for key in func.steps.keys()}
-      elif isinstance(in_axes, dict):
-        keys = list(func.steps.keys())
-        if keys[0] not in in_axes:
-          in_axes = {key: (None, 0, in_axes) for key in keys}
-        else:
-          in_axes = {key: (None, 0) + tuple(in_axes[key]) for key in keys}
-      assert isinstance(in_axes, dict)
-
-      # batch size index
-      batch_idx = {}
-      for key, axes in in_axes.items():
-        for i, axis in enumerate(axes[2:]):
-          if axis is not None:
-            batch_idx[key] = (i, axis)
-            break
-        else:
-          raise ValueError(f'Found no batch axis: {axes}.')
-
-      # out axes
-      if out_axes is None:
-        out_axes = {key: 0 for key in func.steps.keys()}
-      elif isinstance(out_axes, int):
-        out_axes = {key: out_axes for key in func.steps.keys()}
-      elif isinstance(out_axes, (tuple, list)):
-        out_axes = {key: tuple(out_axes) + (0, 0) for key in func.steps.keys()}
-      elif isinstance(out_axes, dict):
-        keys = list(func.steps.keys())
-        if keys[0] not in out_axes:
-          out_axes = {key: (out_axes, 0, 0) for key in keys}
-        else:
-          out_axes = {key: tuple(out_axes[key]) + (0, 0) for key in keys}
-      assert isinstance(out_axes, dict)
-
-      # reduce_func
-      if reduce_func is None:
-        reduce_func = lambda x: x.mean(axis=0)
-
-      # vectorized map functions
-      for key in func.steps.keys():
-        func.steps[key] = _make_vmap(func=func.steps[key],
-                                     dyn_vars=dyn_vars,
-                                     rand_vars=rand_vars,
-                                     in_axes=in_axes[key],
-                                     out_axes=out_axes[key],
-                                     axis_name=axis_name,
-                                     batch_idx=batch_idx[key],
-                                     reduce_func=reduce_func,
-                                     f_name=key)
-
-      return func
+  # if isinstance(func, DynamicalSystem):
+  #   if len(func.steps):  # DynamicalSystem has step functions
+  #
+  #     # dynamical variables
+  #     dyn_vars = (dyn_vars or func.vars().unique())
+  #     dyn_vars, rand_vars = TensorCollector(), TensorCollector()
+  #     for key, val in dyn_vars.items():
+  #       if isinstance(val, RandomState):
+  #         rand_vars[key] = val
+  #       else:
+  #         dyn_vars[key] = val
+  #
+  #     # in axes
+  #     if in_axes is None:
+  #       in_axes = {key: (None, 0) for key in func.steps.keys()}
+  #     elif isinstance(in_axes, int):
+  #       in_axes = {key: (None, 0, in_axes) for key in func.steps.keys()}
+  #     elif isinstance(in_axes, (tuple, list)):
+  #       in_axes = {key: (None, 0) + tuple(in_axes) for key in func.steps.keys()}
+  #     elif isinstance(in_axes, dict):
+  #       keys = list(func.steps.keys())
+  #       if keys[0] not in in_axes:
+  #         in_axes = {key: (None, 0, in_axes) for key in keys}
+  #       else:
+  #         in_axes = {key: (None, 0) + tuple(in_axes[key]) for key in keys}
+  #     assert isinstance(in_axes, dict)
+  #
+  #     # batch size index
+  #     batch_idx = {}
+  #     for key, axes in in_axes.items():
+  #       for i, axis in enumerate(axes[2:]):
+  #         if axis is not None:
+  #           batch_idx[key] = (i, axis)
+  #           break
+  #       else:
+  #         raise ValueError(f'Found no batch axis: {axes}.')
+  #
+  #     # out axes
+  #     if out_axes is None:
+  #       out_axes = {key: 0 for key in func.steps.keys()}
+  #     elif isinstance(out_axes, int):
+  #       out_axes = {key: out_axes for key in func.steps.keys()}
+  #     elif isinstance(out_axes, (tuple, list)):
+  #       out_axes = {key: tuple(out_axes) + (0, 0) for key in func.steps.keys()}
+  #     elif isinstance(out_axes, dict):
+  #       keys = list(func.steps.keys())
+  #       if keys[0] not in out_axes:
+  #         out_axes = {key: (out_axes, 0, 0) for key in keys}
+  #       else:
+  #         out_axes = {key: tuple(out_axes[key]) + (0, 0) for key in keys}
+  #     assert isinstance(out_axes, dict)
+  #
+  #     # reduce_func
+  #     if reduce_func is None:
+  #       reduce_func = lambda x: x.mean(axis=0)
+  #
+  #     # vectorized map functions
+  #     for key in func.steps.keys():
+  #       func.steps[key] = _make_vmap(func=func.steps[key],
+  #                                    dyn_vars=dyn_vars,
+  #                                    rand_vars=rand_vars,
+  #                                    in_axes=in_axes[key],
+  #                                    out_axes=out_axes[key],
+  #                                    axis_name=axis_name,
+  #                                    batch_idx=batch_idx[key],
+  #                                    reduce_func=reduce_func,
+  #                                    f_name=key)
+  #
+  #     return func
 
   if callable(func):
     if auto_infer:
@@ -345,52 +343,51 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
 
 
   """
-  from brainpy.building.brainobjects import DynamicalSystem
 
-  if isinstance(func, DynamicalSystem):
-    if len(func.steps):  # DynamicalSystem has step functions
-
-      # dynamical variables
-      all_vars = (dyn_vars or func.vars().unique())
-      dyn_vars = TensorCollector()
-      rand_vars = TensorCollector()
-      for key, val in all_vars.items():
-        if isinstance(val, RandomState):
-          rand_vars[key] = val
-        else:
-          dyn_vars[key] = val
-
-      # reduce function
-      if reduce_func is None:
-        reduce_func = jnp.concatenate
-
-      # static broadcast-ed arguments
-      if static_broadcasted_argnums is None:
-        static_broadcasted_argnums = ()
-      elif isinstance(static_broadcasted_argnums, int):
-        static_broadcasted_argnums = (static_broadcasted_argnums + 2,)
-      elif isinstance(static_broadcasted_argnums, (tuple, list)):
-        static_broadcasted_argnums = tuple(argnum + 2 for argnum in static_broadcasted_argnums)
-      assert isinstance(static_broadcasted_argnums, (tuple, list))
-
-      # jit functions
-      for key in func.steps.keys():
-        step = func.steps[key]
-        func.steps[key] = _make_pmap(dyn_vars=dyn_vars,
-                                     rand_vars=rand_vars,
-                                     func=step,
-                                     axis_name=axis_name,
-                                     in_axes=in_axes,
-                                     out_axes=out_axes,
-                                     static_broadcasted_argnums=static_broadcasted_argnums,
-                                     devices=devices,
-                                     backend=backend,
-                                     axis_size=axis_size,
-                                     donate_argnums=donate_argnums,
-                                     global_arg_shapes=global_arg_shapes,
-                                     reduce_func=reduce_func,
-                                     f_name=key)
-      return func
+  # if isinstance(func, DynamicalSystem):
+  #   if len(func.steps):  # DynamicalSystem has step functions
+  #
+  #     # dynamical variables
+  #     all_vars = (dyn_vars or func.vars().unique())
+  #     dyn_vars = TensorCollector()
+  #     rand_vars = TensorCollector()
+  #     for key, val in all_vars.items():
+  #       if isinstance(val, RandomState):
+  #         rand_vars[key] = val
+  #       else:
+  #         dyn_vars[key] = val
+  #
+  #     # reduce function
+  #     if reduce_func is None:
+  #       reduce_func = jnp.concatenate
+  #
+  #     # static broadcast-ed arguments
+  #     if static_broadcasted_argnums is None:
+  #       static_broadcasted_argnums = ()
+  #     elif isinstance(static_broadcasted_argnums, int):
+  #       static_broadcasted_argnums = (static_broadcasted_argnums + 2,)
+  #     elif isinstance(static_broadcasted_argnums, (tuple, list)):
+  #       static_broadcasted_argnums = tuple(argnum + 2 for argnum in static_broadcasted_argnums)
+  #     assert isinstance(static_broadcasted_argnums, (tuple, list))
+  #
+  #     # jit functions
+  #     for key in func.steps.keys():
+  #       step = func.steps[key]
+  #       func.steps[key] = _make_pmap(dyn_vars=dyn_vars,
+  #                                    rand_vars=rand_vars,
+  #                                    func=step,
+  #                                    axis_name=axis_name,
+  #                                    in_axes=in_axes,
+  #                                    out_axes=out_axes,
+  #                                    static_broadcasted_argnums=static_broadcasted_argnums,
+  #                                    devices=devices,
+  #                                    backend=backend,
+  #                                    axis_size=axis_size,
+  #                                    donate_argnums=donate_argnums,
+  #                                    global_arg_shapes=global_arg_shapes,
+  #                                    reduce_func=reduce_func,
+  #                                    f_name=key)
+  #     return func
 
   if callable(func):
     if dyn_vars is not None:

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
 from pprint import pprint
 
+import brainpy as bp
 
-class HH(bp.NeuGroup):
+
+class HH(bp.dyn.NeuGroup):
   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0,
                gNa=35., gK=9., gL=0.1, V_th=20., phi=5.0, **kwargs):
     super(HH, self).__init__(size=size, **kwargs)
@@ -64,7 +65,7 @@ def test_nodes():
   A.pre = B
   B.pre = A
 
-  net = bp.Network(A, B)
+  net = bp.dyn.Network(A, B)
   abs_nodes = net.nodes(method='absolute')
   rel_nodes = net.nodes(method='relative')
   print()
@@ -81,10 +82,9 @@ def test_ints():
   A.pre = B
   B.pre = A
 
-  net = bp.Network(A, B)
+  net = bp.dyn.Network(A, B)
   abs_ints = net.ints(method='absolute')
   rel_ints = net.ints(method='relative')
   print()
   pprint(abs_ints.keys())
   pprint(rel_ints.keys())
-

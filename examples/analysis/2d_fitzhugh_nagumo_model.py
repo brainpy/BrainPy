@@ -7,7 +7,7 @@ import brainpy.math as bm
 bp.math.enable_x64()
 
 
-class FitzHughNagumoModel(bp.DynamicalSystem):
+class FitzHughNagumoModel(bp.dyn.DynamicalSystem):
   def __init__(self, method='exp_auto'):
     super(FitzHughNagumoModel, self).__init__()
 
@@ -42,10 +42,10 @@ class FitzHughNagumoModel(bp.DynamicalSystem):
 model = FitzHughNagumoModel()
 
 # simulation
-runner = bp.StructRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
+runner = bp.dyn.DSRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
 runner.run(100.)
 
-bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V')
+bp.visualize.line_plot(runner.mon.ts, runner.mon.num, legend='V')
 bp.visualize.line_plot(runner.mon.ts, runner.mon.w, legend='w', show=True)
 
 # phase plane analysis

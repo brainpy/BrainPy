@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import unittest
-from brainpylib import event_sum, event_sum3
+from brainpylib import event_sum
 import brainpy as bp
 import brainpy.math as bm
 
@@ -43,19 +43,19 @@ class TestEventSum(unittest.TestCase):
     a = event_sum(sps, (post_ids.value, indptr.value), size, values.value)
     print(a)
 
-
-
-bp.math.random.seed(1345)
-size = 200
-conn = bp.conn.FixedProb(prob=0.5, seed=123)
-conn(pre_size=size, post_size=size)
-post_ids, indptr = conn.require('pre2post')
-sps = bm.random.random(size).value < 0.5
-# print(sps)
-value = 3.0233
-a = event_sum3(sps, (post_ids.value, indptr.value), size, value,
-                max_post_conn=bm.diff(indptr).max())
-print(a)
+#
+#
+# bp.math.random.seed(1345)
+# size = 200
+# conn = bp.conn.FixedProb(prob=0.5, seed=123)
+# conn(pre_size=size, post_size=size)
+# post_ids, indptr = conn.require('pre2post')
+# sps = bm.random.random(size).value < 0.5
+# # print(sps)
+# value = 3.0233
+# a = event_sum3(sps, (post_ids.value, indptr.value), size, value,
+#                 max_post_conn=bm.diff(indptr).max())
+# print(a)
 
 
 # def test1():

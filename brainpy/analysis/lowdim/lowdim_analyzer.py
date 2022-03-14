@@ -251,6 +251,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
       f = wrapper(self.model.F[self.x_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
+      f = utils.remove_return_shape(f)
       self.analyzed_results[C.F_fx] = bm.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fx]
 
@@ -411,6 +412,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
       f = wrapper(self.model.F[self.y_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
+      f = utils.remove_return_shape(f)
       self.analyzed_results[C.F_fy] = bm.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fy]
 

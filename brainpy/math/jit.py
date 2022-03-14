@@ -13,7 +13,7 @@ import logging
 import jax
 
 try:
-  from jax.errors import UnexpectedTracerError
+  from jax.errors import UnexpectedTracerError, ConcretizationTypeError
 except ImportError:
   from jax.core import UnexpectedTracerError
 
@@ -45,6 +45,9 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
     except UnexpectedTracerError as e:
       vars.assign(variable_data)
       raise errors.JaxTracerError(variables=vars) from e
+    except ConcretizationTypeError as e:
+      vars.assign(variable_data)
+      raise errors.ConcretizationTypeError() from e
     vars.assign(changes)
     return out
 
@@ -165,45 +168,6 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
   func : Any
     A wrapped version of Base object or function, set up for just-in-time compilation.
   """
-  from brainpy.building.brainobjects import DynamicalSystem
-
-  if isinstance(func, DynamicalSystem):
-    if len(func.steps):  # DynamicalSystem has step functions
-
-      # dynamical variables
-      if dyn_vars is None:
-        if auto_infer:
-          dyn_vars = func.vars().unique()
-        else:
-          dyn_vars = TensorCollector()
-      if isinstance(dyn_vars, JaxArray):
-        dyn_vars = TensorCollector({'_': dyn_vars})
-      elif isinstance(dyn_vars, dict):
-        dyn_vars = TensorCollector(dyn_vars)
-      elif isinstance(dyn_vars, (tuple, list)):
-        dyn_vars = TensorCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
-      else:
-        raise ValueError
-
-      # static arguments by name
-      if static_argnames is None:
-        static_argnames = {key: None for key in func.steps.keys()}
-      elif isinstance(static_argnames, str):
-        static_argnames = {key: (static_argnames,) for key in func.steps.keys()}
-      elif isinstance(static_argnames, (tuple, list)) and isinstance(static_argnames[0], str):
-        static_argnames = {key: static_argnames for key in func.steps.keys()}
-      assert isinstance(static_argnames, dict)
-
-      # jit functions
-      for key in list(func.steps.keys()):
-        jitted_func = _make_jit(vars=dyn_vars,
-                                func=func.steps[key],
-                                static_argnames=static_argnames[key],
-                                device=device,
-                                f_name=key)
-        func.steps.replace(key, jitted_func)
-      return func
-
   if callable(func):
     if dyn_vars is not None:
       if isinstance(dyn_vars, JaxArray):

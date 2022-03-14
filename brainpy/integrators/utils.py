@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 import inspect
 from pprint import pprint
 
@@ -8,6 +9,7 @@ from brainpy import errors
 __all__ = [
   'get_args',
   'check_kws',
+  'compile_code',
 ]
 
 
