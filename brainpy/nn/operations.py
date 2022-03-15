@@ -367,7 +367,7 @@ def fb_connect(
 
   # detect whether the node implement its own "init_fb()" function
   for node in fb_receivers:
-    if not node.support_feedback:
+    if not node.is_feedback_input_supported:
       raise ValueError(f'Establish a feedback connection to \n'
                        f'{node}\n'
                        f'is not allowed. Because this node does not '
