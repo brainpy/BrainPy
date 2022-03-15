@@ -125,7 +125,7 @@ class Node(Base):
     line1 = (f"{name}(name={self.name}, "
              f"forwards={self.feedforward_shapes}, "
              f"feedbacks={self.feedback_shapes}, \n")
-    line2 = (f"{prefix}output={self.output_shape}")
+    line2 = f"{prefix}output={self.output_shape}"
     return line1 + line2
 
   def __call__(self, *args, **kwargs) -> Tensor:
@@ -203,7 +203,7 @@ class Node(Base):
   @property
   def state(self) -> Optional[Tensor]:
     """Node current internal state."""
-    if self.is_ff_initialized:
+    if self._is_ff_initialized:
       return self._state
     return None
 
@@ -277,7 +277,7 @@ class Node(Base):
         else:
           return False
       else:
-        return False
+        return True
     else:
       return False
 
@@ -441,7 +441,7 @@ class Node(Base):
     pass
 
   def init_fb_state(self, num_batch=1):
-    """Initialize the node feedback state.
+    """Initialize the node state for feedback.
 
     This function can be called multiple times. However,
     it is only triggered when the node has feedback connections.
@@ -465,7 +465,10 @@ class Node(Base):
     # feedforward initialization
     if self.feedforward_shapes is None:
       raise ValueError('Cannot initialize this node, because we detect '
-                       'both "feedforward_shapes" is None. ')
+                       'both "feedforward_shapes" is None. '
+                       'Two ways can solve this problem:\n\n'
+                       '1. Connecting an instance of "brainpy.nn.Input()" to this node. \n'
+                       '2. Providing the "input_shape" when initialize the node.')
     check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
     self._init_ff()
 
@@ -561,7 +564,7 @@ class Node(Base):
     else:
       return output
 
-  def forward(self, ff, fb=None, **kwargs):
+  def forward(self, ff, fb=None, **shared_kwargs):
     """The feedforward computation function of a node.
 
     Parameters
@@ -570,7 +573,7 @@ class Node(Base):
       The feedforward inputs.
     fb: optional, tensor, dict, sequence
       The feedback inputs.
-    **kwargs
+    **shared_kwargs
       Other parameters.
 
     Returns
@@ -580,12 +583,12 @@ class Node(Base):
     """
     raise NotImplementedError
 
-  def feedback(self, ff_output, **kwargs):
+  def feedback(self, ff_output, **shared_kwargs):
     """The feedback computation function of a node.
 
     Parameters
     ----------
-    **kwargs
+    **shared_kwargs
       Other global parameters.
 
     Returns
@@ -831,8 +834,8 @@ class Network(Node):
 
   def replace_graph(self,
                     nodes: Sequence[Node],
-                    ff_edges: Sequence[Tuple[Node, Node]],
-                    fb_edges: Sequence[Tuple[Node, Node]] = None) -> "Network":
+                    ff_edges: Sequence[Tuple[Node, ...]],
+                    fb_edges: Sequence[Tuple[Node, ...]] = None) -> "Network":
     if fb_edges is None: fb_edges = tuple()
 
     # assign nodes and edges
@@ -841,6 +844,26 @@ class Network(Node):
     self._fb_edges = tuple(fb_edges)
     self._network_init()
     return self
+
+  def set_output_shape(self, shape: Dict[str, Sequence[int]]):
+    # check shape
+    if not isinstance(shape, dict):
+      raise ValueError(f'Must be a dict of <node name, shape>, but got {type(shape)}: {shape}')
+    for key, val in shape.items():
+      if not isinstance(val, (tuple, list)):
+        raise ValueError(f'Must be a sequence of int, but got {val} for key "{key}"')
+      # for s in val:
+      #   if not (isinstance(s, int) or (s is None)):
+      #     raise ValueError(f'Must be a sequence of int, but got {val}')
+
+    if not self._is_ff_initialized:
+      if len(self.exit_nodes) == 1:
+        self._output_shape = tuple(shape.values())[0]
+      else:
+        self._output_shape = shape
+    else:
+      for val in shape.values():
+        check_batch_shape(val, self.output_shape)
 
   def init_ff(self):
     """Initialize the feedforward connections of the network.
@@ -876,6 +899,10 @@ class Network(Node):
         ff_senders[child].remove(node)
         if len(ff_senders.get(child, [])) == 0:
           children_queue.append(child)
+
+    # set output shape
+    out_sizes = {node: node.output_shape for node in self.exit_nodes}
+    self.set_output_shape(out_sizes)
 
   def init_fb(self):
     """Initialize the feedback connections of the network.
@@ -1159,8 +1186,8 @@ class Network(Node):
     else:
       parent_outputs[node] = node.forward(ff, **shared_kwargs)
     # get the feedback state
-    if node in self.ff_receivers:
-      node.set_fb_state(node.ff_output(parent_outputs[node], **shared_kwargs))
+    if node in self.fb_receivers:
+      node.set_fb_state(node.feedback(parent_outputs[node], **shared_kwargs))
     # forced state
     if node.name in forced_states:
       node.state.value = forced_states[node.name]

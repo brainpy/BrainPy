@@ -114,7 +114,7 @@ class NVAR(RecurrentNode):
     else:
       self.store.value = state
 
-  def forward(self, ff, fb=None, **kwargs):
+  def forward(self, ff, fb=None, **shared_kwargs):
     # 1. store the current input
     ff = bm.concatenate(ff, axis=-1)
     self.store[self.idx[0]] = ff
