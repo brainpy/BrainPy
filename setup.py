@@ -32,10 +32,11 @@ setup(
     'numpy>=1.15',
     'jax>=0.2.10',
     'tqdm',
+    'matplotlib',
   ],
   extras_require={
-    'cpu': ['jaxlib>=0.1.64', 'brainpylib>=0.02'],
-    'cuda': ['jaxlib>=0.1.64', 'brainpylib>=0.02'],
+    'cpu': ['jaxlib>=0.1.64', 'brainpylib>=0.03'],
+    'cuda': ['jaxlib>=0.1.64', 'brainpylib>=0.03'],
   },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   keywords='computational neuroscience, brain-inspired computation, '
