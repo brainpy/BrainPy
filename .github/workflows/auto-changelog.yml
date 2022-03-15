@@ -1,8 +1,8 @@
 name: Generate changelog
 on:
-  release:
-    types: [created, edited]
-
+  pull_request:
+    branches: [master]
+    
 jobs:
   generate-changelog:
     runs-on: ubuntu-latest
