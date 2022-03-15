@@ -82,7 +82,8 @@ def line_plot(ts,
   # plot
   if legend:
     for idx in plot_ids:
-      ax.plot(ts, val_matrix[:, idx], label=f'{legend}-{idx}', **kwargs)
+      label = legend if len(plot_ids) == 1 else f'{legend}-{idx}'
+      ax.plot(ts, val_matrix[:, idx], label=label, **kwargs)
   else:
     for idx in plot_ids:
       ax.plot(ts, val_matrix[:, idx], **kwargs)

@@ -16,6 +16,8 @@ __all__ = [
   'rand', 'randint', 'randn', 'random', 'random_sample', 'ranf', 'sample', 'choice', 'permutation', 'shuffle',
   'beta', 'exponential', 'gamma', 'gumbel', 'laplace', 'logistic', 'normal', 'pareto', 'poisson', 'standard_cauchy',
   'standard_exponential', 'standard_gamma', 'standard_normal', 'standard_t', 'uniform', 'truncated_normal', 'bernoulli',
+
+  'lognormal',
 ]
 
 
@@ -125,7 +127,7 @@ class RandomState(Variable):
 
   def shuffle(self, x, axis=0):
     x = x.value if isinstance(x, JaxArray) else x
-    return JaxArray(jr.shuffle(self.split_key(), x, axis=axis))
+    return JaxArray(jr.permutation(self.split_key(), x, axis=axis, independent=True))
 
   def beta(self, a, b, size=None):
     a = a.value if isinstance(a, JaxArray) else a
@@ -192,6 +194,13 @@ class RandomState(Variable):
   def bernoulli(self, p, size=None):
     return JaxArray(jr.bernoulli(self.split_key(), p=p, shape=_size2shape(size)))
 
+  def lognormallognormal(self, mean=0.0, sigma=1.0, size=None):
+    samples = jr.normal(self.split_key(), shape=_size2shape(size))
+    samples = samples * sigma + mean
+    samples = jnp.exp(samples)
+    return JaxArray(samples)
+
+
 
 register_pytree_node(RandomState,
                      lambda t: ((t.value,), None),
@@ -240,9 +249,9 @@ def permutation(x):
   return JaxArray(jr.permutation(DEFAULT.split_key(), x))
 
 
-def shuffle(x):
+def shuffle(x, axis=0):
   x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jr.permutation(DEFAULT.split_key(), x))
+  return JaxArray(jr.permutation(DEFAULT.split_key(), x, axis=axis, independent=True))
 
 
 def beta(a, b, size=None):
@@ -364,3 +373,11 @@ def bernoulli(p, size=None):
     is not None, or else ``p.shape``.
   """
   return JaxArray(jr.bernoulli(DEFAULT.split_key(), p=p, shape=_size2shape(size)))
+
+
+def lognormal(mean=0.0, sigma=1.0, size=None):
+  samples = jr.normal(DEFAULT.split_key(), shape=_size2shape(size))
+  samples = samples * sigma + mean
+  samples = jnp.exp(samples)
+  return JaxArray(samples)
+

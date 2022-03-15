@@ -8,13 +8,15 @@ development
 examples/analysis/data
 extensions/.idea
 extensions/wheelhouse
+extensions/dist
+extensions/fixed_wheels
+extensions/build
 extensions/cmake-build-debug
 BrainPyExamples/
 BrainModels/
 book/
 docs/examples
 docs/apis/jaxsetting.rst
-others
 examples/recurrent_neural_network/neurogym
 develop/iconip_paper
 develop/benchmark/COBA/results

@@ -12,7 +12,7 @@ Please:
 ```python
 import brainpy.math as bm
 print(bm.asarray([1, 2, 3]))
-# JaxArray(DeviceArray([1, 2, 3], dtype=int32))
+# JaxArray([1, 2, 3], dtype=int32)
 ```
 
 - [ ] If applicable, include full error messages/tracebacks.

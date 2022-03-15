@@ -24,26 +24,27 @@ class ODEIntegrator(Integrator):
   """
 
   def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
-    super(ODEIntegrator, self).__init__(name=name)
+
+    dt = math.get_dt() if dt is None else dt
+    parses = utils.get_args(f)
+    variables = parses[0]  # variable names, (before 't')
+    parameters = parses[1]  # parameter names, (after 't')
+    arguments = parses[2]   # function arguments
+
+    # super initialization
+    super(ODEIntegrator, self).__init__(name=name,
+                                        variables=variables,
+                                        parameters=parameters,
+                                        arguments=arguments,
+                                        dt=dt)
 
     # others
-    self.dt = math.get_dt() if dt is None else dt
-    assert isinstance(self.dt, (int, float)), f'"dt" must be a float, but got {self.dt}'
     self.show_code = show_code
+    self.var_type = var_type  # variable type
 
     # derivative function
     self.derivative = {constants.F: f}
     self.f = f
-
-    # integration function
-    self.integral = None
-
-    # parse function arguments
-    variables, parameters, arguments = utils.get_args(f)
-    self.variables = variables  # variable names, (before 't')
-    self.parameters = parameters  # parameter names, (after 't')
-    self.arguments = list(arguments) + [f'{constants.DT}={self.dt}']  # function arguments
-    self.var_type = var_type  # variable type
 
     # code scope
     self.code_scope = {constants.F: f}
@@ -55,7 +56,3 @@ class ODEIntegrator(Integrator):
   @abc.abstractmethod
   def build(self):
     raise NotImplementedError('Must implement how to build your step function.')
-
-  def __call__(self, *args, **kwargs):
-    assert self.integral is not None, 'Please build the integrator first.'
-    return self.integral(*args, **kwargs)

@@ -7,8 +7,9 @@
 .. toctree::
     :maxdepth: 1
 
-    integrators/general
+    auto/integrators/runner
     auto/integrators/joint_eq
     integrators/ODE
     integrators/SDE
+    integrators/DDE
 

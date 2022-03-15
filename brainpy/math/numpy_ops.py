@@ -5,7 +5,6 @@ import numpy as np
 from jax.tree_util import tree_map, tree_flatten, tree_unflatten
 
 from brainpy.math.jaxarray import JaxArray, Variable
-from brainpy.tools import copy_doc
 
 __all__ = [
   # math funcs
@@ -70,16 +69,17 @@ __all__ = [
   'int8', 'int16', 'int32', 'int64', 'float16', 'float32',
   'float64', 'complex64', 'complex128',
 
-  # others
-  'take_along_axis', 'clip_by_norm', 'as_device_array', 'as_variable', 'as_jaxarray',
+  # more
   'product', 'row_stack', 'apply_over_axes', 'apply_along_axis', 'array_equiv', 'array_repr', 'array_str', 'block',
   'broadcast_arrays', 'broadcast_shapes', 'broadcast_to', 'compress', 'cumproduct', 'diag_indices', 'diag_indices_from',
   'diagflat', 'diagonal', 'einsum', 'einsum_path', 'geomspace', 'gradient', 'histogram2d', 'histogram_bin_edges',
   'histogramdd', 'i0', 'in1d', 'indices', 'insert', 'intersect1d', 'iscomplex', 'isin', 'ix_', 'lexsort', 'load',
   'save', 'savez', 'mask_indices', 'msort', 'nan_to_num', 'nanargmax', 'nanargmin', 'pad', 'poly', 'polyadd', 'polyder',
   'polyfit', 'polyint', 'polymul', 'polysub', 'polyval', 'resize', 'rollaxis', 'roots', 'rot90', 'setdiff1d',
-  'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap',
+  'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap', 'take_along_axis',
 
+  # others
+  'clip_by_norm', 'as_device_array', 'as_variable', 'as_jaxarray', 'as_numpy',
 ]
 
 _min = min
@@ -100,6 +100,13 @@ def as_device_array(tensor):
     return jnp.asarray(tensor)
 
 
+def as_numpy(tensor):
+  if isinstance(tensor, JaxArray):
+    return tensor.numpy()
+  else:
+    return np.asarray(tensor)
+
+
 def as_variable(tensor):
   return Variable(asarray(tensor))
 
@@ -115,9 +122,8 @@ def _remove_jaxarray(obj):
     return obj
 
 
-@copy_doc(np.take_along_axis)
 def take_along_axis(a, indices, axis):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   if isinstance(indices, JaxArray): indices = indices.value
   return JaxArray(jnp.take_along_axis(a, indices, axis))
 
@@ -135,7 +141,7 @@ def block(arrays):
 
 
 def broadcast_arrays(*args):
-  args = [(a.value if isinstance(a, JaxArray) else a) for a in args]
+  args = [(_remove_jaxarray(a)) for a in args]
   return jnp.broadcast_arrays(args)
 
 
@@ -174,12 +180,12 @@ def diagonal(a, offset=0, axis1: int = 0, axis2: int = 1):
 
 def einsum(*operands, out=None, optimize='optimal', precision=None,
            _use_xeinsum=False):
-  operands = tuple((a.value if isinstance(a, JaxArray) else a) for a in operands)
+  operands = tuple((_remove_jaxarray(a)) for a in operands)
   return JaxArray(jnp.einsum(*operands, out, optimize, precision, _use_xeinsum))
 
 
 def einsum_path(subscripts, *operands, optimize='greedy'):
-  operands = tuple((a.value if isinstance(a, JaxArray) else a) for a in operands)
+  operands = tuple((_remove_jaxarray(a)) for a in operands)
   return JaxArray(jnp.einsum_path(subscripts, *operands, optimize))
 
 
@@ -313,7 +319,7 @@ def poly(seq_of_zeros):
 def polyadd(a1, a2):
   a1 = _remove_jaxarray(a1)
   a2 = _remove_jaxarray(a2)
-  return JaxArray(jnp, polyadd(a1, a2))
+  return JaxArray(jnp.polyadd(a1, a2))
 
 
 def polyder(p, m=1):
@@ -415,12 +421,12 @@ def unwrap(p, discont=jnp.pi, axis: int = -1):
 # 1. Basics
 
 def isreal(x):
-  x = x.value if isinstance(x, JaxArray) else x
+  x = _remove_jaxarray(x)
   return jnp.isreal(x)
 
 
 def isscalar(x):
-  x = x.value if isinstance(x, JaxArray) else x
+  x = _remove_jaxarray(x)
   return jnp.isscalar(x)
 
 
@@ -441,7 +447,7 @@ def conjugate(x):
 
 
 def ndim(x):
-  x = x.value if isinstance(x, JaxArray) else x
+  x = _remove_jaxarray(x)
   return jnp.ndim(x)
 
 
@@ -452,257 +458,257 @@ def add(x, y):
 
 
 def reciprocal(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.reciprocal(x))
 
 
 def negative(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.negative(x))
 
 
 def positive(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.positive(x.value))
 
 
 def multiply(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.multiply(x1, x2))
 
 
 def divide(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.divide(x1, x2))
 
 
 def power(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.power(x1, x2))
 
 
 def subtract(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.subtract(x1, x2))
 
 
 def true_divide(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.true_divide(x1, x2))
 
 
 def floor_divide(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.floor_divide(x1, x2))
 
 
 def float_power(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.float_power(x1, x2))
 
 
 def fmod(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.fmod(x1, x2))
 
 
 def mod(x1, x2):
   if isinstance(x1, JaxArray):  x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.mod(x1, x2))
 
 
 def divmod(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.divmod(x1, x2))
 
 
 def remainder(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.remainder(x1, x2))
 
 
 def modf(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.modf(x))
 
 
 def abs(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.absolute(x))
 
 
 def absolute(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.absolute(x))
 
 
 # 3. Exponents and logarithms
 def exp(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.exp(x))
 
 
 def exp2(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.exp2(x))
 
 
 def expm1(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.expm1(x))
 
 
 def log(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.log(x))
 
 
 def log10(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.log10(x))
 
 
 def log1p(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.log1p(x))
 
 
 def log2(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.log2(x))
 
 
 def logaddexp(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.logaddexp(x1, x2))
 
 
 def logaddexp2(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.logaddexp2(x1, x2))
 
 
 # 4. Rational routines
 def lcm(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.lcm(x1, x2))
 
 
 def gcd(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.gcd(x1, x2))
 
 
 # 5. trigonometric functions
 
 def arccos(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.arccos(x))
 
 
 def arccosh(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.arccosh(x))
 
 
 def arcsin(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.arcsin(x))
 
 
 def arcsinh(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.arcsinh(x))
 
 
 def arctan(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.arctan(x))
 
 
 def arctan2(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.arctan2(x))
 
 
 def arctanh(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.arctanh(x))
 
 
 def cos(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.cos(x))
 
 
 def cosh(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.cosh(x))
 
 
 def sin(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.sin(x))
 
 
 def sinc(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.sinc(x))
 
 
 def sinh(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.sinh(x))
 
 
 def tan(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.tan(x))
 
 
 def tanh(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.tanh(x))
 
 
 def deg2rad(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.deg2rad(x))
 
 
 def rad2deg(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.rad2deg(x))
 
 
 def degrees(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.degrees(x))
 
 
 def radians(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.radians(x))
 
 
 def hypot(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.hypot(x1, x2))
 
 
@@ -719,27 +725,27 @@ round_ = round
 
 
 def rint(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.rint(x))
 
 
 def floor(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.floor(x))
 
 
 def ceil(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.ceil(x))
 
 
 def trunc(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.trunc(x))
 
 
 def fix(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.fix(x))
 
 
@@ -747,7 +753,7 @@ def fix(x):
 
 
 def prod(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.prod(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
@@ -756,34 +762,34 @@ product = prod
 
 
 def sum(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.sum(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
 
 def diff(a, n=1, axis: int = -1, prepend=None, append=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.diff(a, n=n, axis=axis, prepend=prepend, append=append))
 
 
 def median(a, axis=None, keepdims=False):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.median(a, axis=axis, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def nancumprod(a, axis=None, dtype=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.nancumprod(a=a, axis=axis, dtype=dtype))
 
 
 def nancumsum(a, axis=None, dtype=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.nancumsum(a=a, axis=axis, dtype=dtype))
 
 
 def cumprod(a, axis=None, dtype=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.cumprod(a=a, axis=axis, dtype=dtype))
 
 
@@ -791,38 +797,38 @@ cumproduct = cumprod
 
 
 def cumsum(a, axis=None, dtype=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.cumsum(a=a, axis=axis, dtype=dtype))
 
 
 def nanprod(a, axis=None, dtype=None, keepdims=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.nanprod(a=a, axis=axis, dtype=dtype, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def nansum(a, axis=None, dtype=None, keepdims=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.nansum(a=a, axis=axis, dtype=dtype, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def ediff1d(a, to_end=None, to_begin=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   if isinstance(to_end, JaxArray): to_end = to_end.value
   if isinstance(to_begin, JaxArray): to_begin = to_begin.value
   return JaxArray(jnp.ediff1d(a, to_end=to_end, to_begin=to_begin))
 
 
 def cross(a, b, axisa=-1, axisb=-1, axisc=-1, axis=None):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(b, JaxArray): b = b.value
+  a = _remove_jaxarray(a)
+  b = _remove_jaxarray(b)
   return JaxArray(jnp.cross(a, b, axisa=axisa, axisb=axisb, axisc=axisc, axis=axis))
 
 
 def trapz(y, x=None, dx=1.0, axis: int = -1):
-  if isinstance(y, JaxArray): y = y.value
-  if isinstance(x, JaxArray): x = x.value
+  y = _remove_jaxarray(y)
+  x = _remove_jaxarray(x)
   return jnp.trapz(y, x=x, dx=dx, axis=axis)
 
 
@@ -857,25 +863,25 @@ def signbit(x):
 
 
 def nextafter(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.nextafter(x1, x2))
 
 
 def copysign(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.copysign(x1, x2))
 
 
 def ldexp(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.ldexp(x1, x2))
 
 
 def frexp(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   mantissa, exponent = jnp.frexp(x)
   return JaxArray(mantissa), JaxArray(exponent)
 
@@ -883,84 +889,82 @@ def frexp(x):
 # 9. Miscellaneous
 
 def convolve(a, v, mode='full'):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(v, JaxArray): v = v.value
+  a = _remove_jaxarray(a)
+  v = _remove_jaxarray(v)
   return JaxArray(jnp.convolve(a, v, mode))
 
 
 def sqrt(x):
-  if isinstance(x, JaxArray):
-    return JaxArray(jnp.sqrt(x.value))
-  else:
-    return jnp.sqrt(x)
+  x = _remove_jaxarray(x)
+  return JaxArray(jnp.sqrt(x))
 
 
 def cbrt(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.cbrt(x))
 
 
 def square(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.square(x))
 
 
 def fabs(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.fabs(x))
 
 
 def sign(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.sign(x))
 
 
 def heaviside(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.heaviside(x1, x2))
 
 
 def maximum(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.maximum(x1, x2))
 
 
 def minimum(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.minimum(x1, x2))
 
 
 def fmax(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.fmax(x1, x2))
 
 
 def fmin(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.fmin(x1, x2))
 
 
 def interp(x, xp, fp, left=None, right=None, period=None):
-  if isinstance(x, JaxArray): x = x.value
-  if isinstance(xp, JaxArray): xp = xp.value
-  if isinstance(fp, JaxArray): fp = fp.value
+  x = _remove_jaxarray(x)
+  xp = _remove_jaxarray(xp)
+  fp = _remove_jaxarray(fp)
   return JaxArray(jnp.interp(x, xp, fp, left=left, right=right, period=period))
 
 
 def clip(a, a_min=None, a_max=None):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(a_min, JaxArray): a_min = a_min.value
-  if isinstance(a_max, JaxArray): a_max = a_max.value
+  a = _remove_jaxarray(a)
+  a_min = _remove_jaxarray(a_min)
+  a_max = _remove_jaxarray(a_max)
   return JaxArray(jnp.clip(a, a_min, a_max))
 
 
 def angle(z, deg=False):
-  if isinstance(z, JaxArray): z = z.value
+  z = _remove_jaxarray(z)
   a = jnp.angle(z)
   if deg:
     a *= 180 / pi
@@ -972,42 +976,42 @@ def angle(z, deg=False):
 
 
 def bitwise_not(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.bitwise_not(x))
 
 
 def invert(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.invert(x))
 
 
 def bitwise_and(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.bitwise_and(x1, x2))
 
 
 def bitwise_or(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.bitwise_or(x1, x2))
 
 
 def bitwise_xor(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.bitwise_xor(x1, x2))
 
 
 def left_shift(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.left_shift(x1, x2))
 
 
 def right_shift(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.right_shift(x1, x2))
 
 
@@ -1017,80 +1021,80 @@ def right_shift(x1, x2):
 # 1. Comparison
 
 def equal(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.equal(x1, x2))
 
 
 def not_equal(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.not_equal(x1, x2))
 
 
 def greater(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.greater(x1, x2))
 
 
 def greater_equal(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.greater_equal(x1, x2))
 
 
 def less(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.less(x1, x2))
 
 
 def less_equal(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.less_equal(x1, x2))
 
 
 def array_equal(a, b, equal_nan=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(b, JaxArray): b = b.value
+  a = _remove_jaxarray(a)
+  b = _remove_jaxarray(b)
   return jnp.array_equal(a, b, equal_nan=equal_nan)
 
 
 def isclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(b, JaxArray): b = b.value
+  a = _remove_jaxarray(a)
+  b = _remove_jaxarray(b)
   return JaxArray(jnp.isclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan))
 
 
 def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(b, JaxArray): b = b.value
+  a = _remove_jaxarray(a)
+  b = _remove_jaxarray(b)
   return jnp.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
 
 
 # 2. Logical operations
 def logical_not(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.logical_not(x))
 
 
 def logical_and(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.logical_and(x1, x2))
 
 
 def logical_or(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.logical_or(x1, x2))
 
 
 def logical_xor(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.logical_xor(x1, x2))
 
 
@@ -1117,53 +1121,53 @@ sometrue = any
 
 
 def shape(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return jnp.shape(x)
 
 
 def size(x, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   r = jnp.size(x, axis=axis)
   return r if axis is None else JaxArray(r)
 
 
 def reshape(x, newshape, order="C"):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.reshape(x, newshape, order=order))
 
 
 def ravel(x, order="C"):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.ravel(x, order=order))
 
 
 def moveaxis(x, source, destination):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.moveaxis(x, source, destination))
 
 
 def transpose(x, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.transpose(x, axes=axis))
 
 
 def swapaxes(x, axis1, axis2):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.swapaxes(x, axis1, axis2))
 
 
 def concatenate(arrays, axis: int = 0):
-  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  arrays = [_remove_jaxarray(a) for a in arrays]
   return JaxArray(jnp.concatenate(arrays, axis))
 
 
 def stack(arrays, axis: int = 0):
-  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  arrays = [_remove_jaxarray(a) for a in arrays]
   return JaxArray(jnp.stack(arrays, axis))
 
 
 def vstack(arrays):
-  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  arrays = [_remove_jaxarray(a) for a in arrays]
   return JaxArray(jnp.vstack(arrays))
 
 
@@ -1171,17 +1175,17 @@ row_stack = vstack
 
 
 def hstack(arrays):
-  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  arrays = [_remove_jaxarray(a) for a in arrays]
   return JaxArray(jnp.hstack(arrays))
 
 
 def dstack(arrays):
-  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  arrays = [_remove_jaxarray(a) for a in arrays]
   return JaxArray(jnp.dstack(arrays))
 
 
 def column_stack(arrays):
-  arrays = [a.value if isinstance(a, JaxArray) else a for a in arrays]
+  arrays = [_remove_jaxarray(a) for a in arrays]
   return JaxArray(jnp.column_stack(arrays))
 
 
@@ -1204,18 +1208,18 @@ def vsplit(ary, indices_or_sections):
 
 
 def tile(A, reps):
-  if isinstance(A, JaxArray): A = A.value
+  A = _remove_jaxarray(A)
   return JaxArray(jnp.tile(A, reps))
 
 
 def repeat(x, repeats, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.repeat(x, repeats=repeats, axis=axis))
 
 
 def unique(x, return_index=False, return_inverse=False,
            return_counts=False, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.unique(x,
                              return_index=return_index,
                              return_inverse=return_inverse,
@@ -1224,122 +1228,123 @@ def unique(x, return_index=False, return_inverse=False,
 
 
 def append(arr, values, axis=None):
-  if isinstance(arr, JaxArray): arr = arr.value
-  if isinstance(values, JaxArray): values = values.value
+  arr = _remove_jaxarray(arr)
+  values = _remove_jaxarray(values)
   return JaxArray(jnp.append(arr, values, axis=axis))
 
 
 def flip(x, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.flip(x, axis=axis))
 
 
 def fliplr(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.fliplr(x))
 
 
 def flipud(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.flipud(x))
 
 
 def roll(x, shift, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.roll(x, shift, axis=axis))
 
 
 def atleast_1d(*arys):
-  return jnp.atleast_1d(*[a.value if isinstance(a, JaxArray) else a for a in arys])
+  return jnp.atleast_1d(*[_remove_jaxarray(a) for a in arys])
 
 
 def atleast_2d(*arys):
-  return jnp.atleast_2d(*[a.value if isinstance(a, JaxArray) else a for a in arys])
+  return jnp.atleast_2d(*[_remove_jaxarray(a) for a in arys])
 
 
 def atleast_3d(*arys):
-  return jnp.atleast_3d(*[a.value if isinstance(a, JaxArray) else a for a in arys])
+  return jnp.atleast_3d(*[_remove_jaxarray(a) for a in arys])
 
 
 def expand_dims(x, axis):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.expand_dims(x, axis=axis))
 
 
 def squeeze(x, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.squeeze(x, axis=axis))
 
 
 def sort(x, axis=-1, kind='quicksort', order=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.sort(x, axis=axis, kind=kind, order=order))
 
 
 def argsort(x, axis=-1, kind='stable', order=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.argsort(x, axis=axis, kind=kind, order=order))
 
 
 def argmax(x, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   r = jnp.argmax(x, axis=axis)
   return r if axis is None else JaxArray(r)
 
 
 def argmin(x, axis=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   r = jnp.argmin(x, axis=axis)
   return r if axis is None else JaxArray(r)
 
 
 def argwhere(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.argwhere(x))
 
 
 def nonzero(x):
-  if isinstance(x, JaxArray): x = x.value
-  return jnp.nonzero(x)
+  x = _remove_jaxarray(x)
+  res = jnp.nonzero(x)
+  return tuple([JaxArray(r) for r in res]) if isinstance(res, tuple) else JaxArray(res)
 
 
 def flatnonzero(x):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.flatnonzero(x))
 
 
 def where(condition, x=None, y=None):
-  if isinstance(condition, JaxArray): condition = condition.value
-  if isinstance(x, JaxArray): x = x.value
-  if isinstance(y, JaxArray): y = y.value
-  return jnp.where(condition, x=x, y=y)
+  condition = _remove_jaxarray(condition)
+  x = _remove_jaxarray(x)
+  y = _remove_jaxarray(y)
+  return JaxArray(jnp.where(condition, x=x, y=y))
 
 
 def searchsorted(a, v, side='left', sorter=None):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(v, JaxArray): v = v.value
+  a = _remove_jaxarray(a)
+  v = _remove_jaxarray(v)
   return JaxArray(jnp.searchsorted(a, v, side=side, sorter=sorter))
 
 
 def extract(condition, arr):
-  if isinstance(condition, JaxArray): condition = condition.value
-  if isinstance(arr, JaxArray): arr = arr.value
+  condition = _remove_jaxarray(condition)
+  arr = _remove_jaxarray(arr)
   return JaxArray(jnp.extract(condition, arr))
 
 
 def count_nonzero(a, axis=None, keepdims=False):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return jnp.count_nonzero(a, axis=axis, keepdims=keepdims)
 
 
 def max(a, axis=None, keepdims=None, initial=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.max(a, axis=axis, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
 
 def min(a, axis=None, keepdims=None, initial=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.min(a, axis=axis, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
@@ -1385,7 +1390,7 @@ def array_split(ary, indices_or_sections, axis: int = 0):
   ary = _remove_jaxarray(ary)
   if isinstance(indices_or_sections, JaxArray):
     indices_or_sections = indices_or_sections.value
-  return jnp.array_split(ary, indices_or_sections, axis)
+  return tuple([JaxArray(a) for a in jnp.array_split(ary, indices_or_sections, axis)])
 
 
 # array creation
@@ -1408,22 +1413,22 @@ def empty(shape, dtype=None):
 
 
 def zeros_like(a, dtype=None, shape=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def ones_like(a, dtype=None, shape=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.ones_like(a, dtype=dtype, shape=shape))
 
 
 def empty_like(a, dtype=None, shape=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def full_like(a, fill_value, dtype=None, shape=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.full_like(a, fill_value, dtype=dtype, shape=shape))
 
 
@@ -1448,7 +1453,7 @@ def array(a, dtype=None, copy=True, order="K", ndmin=0):
 
 
 def asarray(a, dtype=None, order=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   try:
     res = jnp.asarray(a=a, dtype=dtype, order=order)
   except TypeError:
@@ -1472,13 +1477,13 @@ def logspace(*args, **kwargs):
 
 
 def meshgrid(*xi, copy=True, sparse=False, indexing='xy'):
-  xi = [x.value if isinstance(x, JaxArray) else x for x in xi]
+  xi = [_remove_jaxarray(x) for x in xi]
   rr = jnp.meshgrid(*xi, copy=copy, sparse=sparse, indexing=indexing)
   return tuple(JaxArray(r) for r in rr)
 
 
 def diag(a, k=0):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.diag(a, k))
 
 
@@ -1487,22 +1492,22 @@ def tri(N, M=None, k=0, dtype=None):
 
 
 def tril(a, k=0):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.tril(a, k))
 
 
 def triu(a, k=0):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   return JaxArray(jnp.triu(a, k))
 
 
 def vander(x, N=None, increasing=False):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.vander(x, N=N, increasing=increasing))
 
 
 def fill_diagonal(a, val):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   assert a.ndim >= 2
   i, j = jnp.diag_indices(_min(a.shape[-2:]))
   return JaxArray(a.at[..., i, j].set(val))
@@ -1516,24 +1521,24 @@ triu_indices = jnp.triu_indices
 
 
 def tril_indices_from(x, k=0):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return jnp.tril_indices_from(x, k=k)
 
 
 def triu_indices_from(x, k=0):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return jnp.triu_indices_from(x, k=k)
 
 
 def take(x, indices, axis=None, mode=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   if isinstance(indices, JaxArray): indices = indices.value
   return JaxArray(jnp.take(x, indices=indices, axis=axis, mode=mode))
 
 
 def select(condlist, choicelist, default=0):
-  condlist = [c.value if isinstance(c, JaxArray) else c for c in condlist]
-  choicelist = [c.value if isinstance(c, JaxArray) else c for c in choicelist]
+  condlist = [_remove_jaxarray(c) for c in condlist]
+  choicelist = [_remove_jaxarray(c) for c in choicelist]
   return JaxArray(jnp.select(condlist, choicelist, default=default))
 
 
@@ -1541,72 +1546,72 @@ def select(condlist, choicelist, default=0):
 # ---------------
 
 def nanmin(x, axis=None, keepdims=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   r = jnp.nanmin(x, axis=axis, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def nanmax(x, axis=None, keepdims=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   r = jnp.nanmax(x, axis=axis, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def ptp(x, axis=None, keepdims=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   r = jnp.ptp(x, axis=axis, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def percentile(a, q, axis=None, interpolation='linear', keepdims=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(q, JaxArray): q = q.value
+  a = _remove_jaxarray(a)
+  q = _remove_jaxarray(q)
   r = jnp.percentile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def nanpercentile(a, q, axis=None, interpolation='linear', keepdims=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(q, JaxArray): q = q.value
+  a = _remove_jaxarray(a)
+  q = _remove_jaxarray(q)
   r = jnp.nanpercentile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def quantile(a, q, axis=None, interpolation='linear', keepdims=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(q, JaxArray): q = q.value
+  a = _remove_jaxarray(a)
+  q = _remove_jaxarray(q)
   r = jnp.quantile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def nanquantile(a, q, axis=None, interpolation='linear', keepdims=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(q, JaxArray): q = q.value
+  a = _remove_jaxarray(a)
+  q = _remove_jaxarray(q)
   r = jnp.nanquantile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def average(a, axis=None, weights=None, returned=False):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(weights, JaxArray): weights = weights.value
+  a = _remove_jaxarray(a)
+  weights = _remove_jaxarray(weights)
   r = jnp.average(a, axis=axis, weights=weights, returned=returned)
   return r if axis is None else JaxArray(r)
 
 
 def mean(a, axis=None, dtype=None, keepdims=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.mean(a, axis=axis, dtype=dtype, keepdims=keepdims, where=where)
   return r if axis is None else JaxArray(r)
 
 
 def std(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.std(a=a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else JaxArray(r)
 
 
 def var(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.var(a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else JaxArray(r)
 
@@ -1616,38 +1621,38 @@ def nanmedian(a, axis=None, keepdims=False):
 
 
 def nanmean(a, axis=None, dtype=None, keepdims=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.nanmean(a, axis=axis, dtype=dtype, keepdims=keepdims)
   return r if axis is None else JaxArray(r)
 
 
 def nanstd(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.nanstd(a=a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else JaxArray(r)
 
 
 def nanvar(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  if isinstance(a, JaxArray): a = a.value
+  a = _remove_jaxarray(a)
   r = jnp.nanvar(a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else JaxArray(r)
 
 
 def corrcoef(x, y=None, rowvar=True):
-  if isinstance(x, JaxArray): x = x.value
-  if isinstance(y, JaxArray): y = y.value
+  x = _remove_jaxarray(x)
+  y = _remove_jaxarray(y)
   return JaxArray(jnp.corrcoef(x, y, rowvar))
 
 
 def correlate(a, v, mode='valid'):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(v, JaxArray): v = v.value
+  a = _remove_jaxarray(a)
+  v = _remove_jaxarray(v)
   return JaxArray(jnp.correlate(a, v, mode))
 
 
 def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=None):
-  if isinstance(m, JaxArray): m = m.value
-  if isinstance(y, JaxArray): y = y.value
+  m = _remove_jaxarray(m)
+  y = _remove_jaxarray(y)
   if isinstance(fweights, JaxArray): fweights = fweights.value
   if isinstance(aweights, JaxArray): aweights = aweights.value
   return JaxArray(jnp.cov(m, y=y, rowvar=rowvar, bias=bias, ddof=ddof,
@@ -1655,20 +1660,20 @@ def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=N
 
 
 def histogram(a, bins=10, range=None, weights=None, density=None):
-  if isinstance(a, JaxArray): a = a.value
-  if isinstance(weights, JaxArray): weights = weights.value
+  a = _remove_jaxarray(a)
+  weights = _remove_jaxarray(weights)
   hist, bin_edges = jnp.histogram(a=a, bins=bins, range=range, weights=weights, density=density)
   return JaxArray(hist), JaxArray(bin_edges)
 
 
 def bincount(x, weights=None, minlength=None):
-  if isinstance(x, JaxArray): x = x.value
-  if isinstance(weights, JaxArray): weights = weights.value
+  x = _remove_jaxarray(x)
+  weights = _remove_jaxarray(weights)
   return JaxArray(jnp.bincount(x, weights=weights, minlength=minlength))
 
 
 def digitize(x, bins, right=False):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   if isinstance(bins, JaxArray): bins = bins.value
   return JaxArray(jnp.digitize(x, bins=bins, right=right))
 
@@ -1706,43 +1711,43 @@ inf = jnp.inf
 
 
 def dot(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.dot(x1, x2))
 
 
 def vdot(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.vdot(x1, x2))
 
 
 def inner(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.inner(x1, x2))
 
 
 def outer(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.outer(x1, x2))
 
 
 def kron(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.kron(x1, x2))
 
 
 def matmul(x1, x2):
-  if isinstance(x1, JaxArray): x1 = x1.value
-  if isinstance(x2, JaxArray): x2 = x2.value
+  x1 = _remove_jaxarray(x1)
+  x2 = _remove_jaxarray(x2)
   return JaxArray(jnp.matmul(x1, x2))
 
 
 def trace(x, offset=0, axis1=0, axis2=1, dtype=None):
-  if isinstance(x, JaxArray): x = x.value
+  x = _remove_jaxarray(x)
   return JaxArray(jnp.trace(x, offset=offset, axis1=axis1, axis2=axis2, dtype=dtype))
 
 

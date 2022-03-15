@@ -8,7 +8,7 @@ import brainpy as bp
 bp.math.enable_x64()
 
 
-class HindmarshRose(bp.DynamicalSystem):
+class HindmarshRose(bp.dyn.DynamicalSystem):
   def __init__(self, method='exp_auto'):
     super(HindmarshRose, self).__init__()
 
@@ -51,7 +51,7 @@ class HindmarshRose(bp.DynamicalSystem):
 def simulation():
   model = HindmarshRose()
   # model.b = 2.5
-  runner = bp.StructRunner(
+  runner = bp.dyn.DSRunner(
     model, monitors=['x', 'y', 'z'],
     inputs=['I', 1.5],
   )

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.0.3"
+__version__ = "0.0.3.1"
 
 # IMPORTANT, must import first
 from . import register_custom_calls

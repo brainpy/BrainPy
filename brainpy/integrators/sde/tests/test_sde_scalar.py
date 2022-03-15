@@ -32,7 +32,7 @@ def lorenz_system(method, **kwargs):
                                 dt=0.005,
                                 **kwargs))
 
-  times = np.arange(0, 100, 0.01)
+  times = np.arange(0, 10, 0.01)
   mon1 = []
   mon2 = []
   mon3 = []

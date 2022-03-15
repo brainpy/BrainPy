@@ -58,3 +58,57 @@ class TestSyn2Post(unittest.TestCase):
     data = bm.arange(5)
     segment_ids = bm.array([0, 0, 1, 1, 2])
     print(bm.syn2post_softmax(data, segment_ids, 4))
+
+
+class TestSparseMatmul(unittest.TestCase):
+  def test_left_sparse_matmul1(self):
+    A = jnp.asarray([[0, 2, 0, 4],
+                     [1, 0, 0, 0],
+                     [0, 3, 0, 2]])
+    values = jnp.asarray([2, 4, 1, 3, 2])
+    rows = jnp.asarray([0, 0, 1, 2, 2])
+    columns = jnp.asarray([1, 3, 0, 1, 3])
+    # B = jnp.arange(8).reshape((4, 2))
+    B = jnp.arange(4)
+
+    self.assertTrue(bm.array_equal(bm.sparse_matmul([values, (rows, columns)], B, 3),
+                                   jnp.dot(A, B)))
+
+  def test_left_sparse_matmul2(self):
+    A = jnp.asarray([[0, 2, 0, 4],
+                     [1, 0, 0, 0],
+                     [0, 3, 0, 2]])
+    values = jnp.asarray([2, 4, 1, 3, 2])
+    rows = jnp.asarray([0, 0, 1, 2, 2])
+    columns = jnp.asarray([1, 3, 0, 1, 3])
+    B = jnp.arange(8).reshape((4, 2))
+
+    self.assertTrue(bm.array_equal(bm.sparse_matmul([values, (rows, columns)], B, 3),
+                                   jnp.dot(A, B)))
+
+  def test_right_sparse_matmul1(self):
+    B = jnp.asarray([[0, 2, 0, 4],
+                     [1, 0, 0, 0],
+                     [0, 3, 0, 2]])
+    values = jnp.asarray([2, 4, 1, 3, 2])
+    rows = jnp.asarray([0, 0, 1, 2, 2])
+    cols = jnp.asarray([1, 3, 0, 1, 3])
+    A = jnp.arange(6).reshape((2, 3))
+
+    self.assertTrue(bm.array_equal(bm.sparse_matmul(A, [values, (rows, cols)], 4),
+                                   jnp.dot(A, B)))
+
+  def test_right_sparse_matmul2(self):
+    B = jnp.asarray([[0, 2, 0, 4],
+                     [1, 0, 0, 0],
+                     [0, 3, 0, 2]])
+    values = jnp.asarray([2, 4, 1, 3, 2])
+    rows = jnp.asarray([0, 0, 1, 2, 2])
+    cols = jnp.asarray([1, 3, 0, 1, 3])
+    A = jnp.arange(3)
+
+    print(bm.sparse_matmul(A, [values, (rows, cols)], 4))
+    print(jnp.dot(A, B))
+
+    self.assertTrue(bm.array_equal(bm.sparse_matmul(A, [values, (rows, cols)], 4),
+                                   jnp.dot(A, B)))
