@@ -6,14 +6,14 @@ import os
 
 from brainpy.math import (activations, autograd, controls, function,
                           jit, operators, parallels, setting, delay_vars,
-                          compact)
+                          compat)
 
 
 block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, activations,
                operators, parallels, setting,
-               delay_vars, compact]:
+               delay_vars, compat]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -490,4 +490,41 @@ def generate_tools_docs(path='apis/auto/tools/'):
   write_module(module_name='brainpy.tools.others',
                filename=os.path.join(path, 'others.rst'),
                header='Other Tools')
+
+
+def generate_compact_docs(path='apis/auto/compat/'):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.compat.brainobjects',
+               filename=os.path.join(path, 'brainobjects.rst'),
+               header='Brain Objects')
+  write_module(module_name='brainpy.compat.integrators',
+               filename=os.path.join(path, 'integrators.rst'),
+               header='Integrators')
+  write_module(module_name='brainpy.compat.layers',
+               filename=os.path.join(path, 'layers.rst'),
+               header='Layers')
+  write_module(module_name='brainpy.compat.models',
+               filename=os.path.join(path, 'models.rst'),
+               header='Models')
+  write_module(module_name='brainpy.compat.monitor',
+               filename=os.path.join(path, 'monitor.rst'),
+               header='Monitor')
+  write_module(module_name='brainpy.compat.runners',
+               filename=os.path.join(path, 'runners.rst'),
+               header='Runners')
+
+
+def generate_math_compact_docs(path='apis/auto/math_compat/'):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.math.compat.optimizers',
+               filename=os.path.join(path, 'optimizers.rst'),
+               header='Optimizers')
+
+  write_module(module_name='brainpy.math.compat.losses',
+               filename=os.path.join(path, 'losses.rst'),
+               header='Losses')
 

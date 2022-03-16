@@ -9,8 +9,13 @@ __all__ = [
 
 
 class Monitor(monitor.Monitor):
+  """Monitor class.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.running.Monitor" instead.
+  """
   def __init__(self, *args, **kwargs):
-    super(Monitor, self).__init__(*args, **kwargs)
     warnings.warn('Please use "brainpy.running.Monitor" instead. '
-                  '"brainpy.Monitor" is deprecated since version 2.0.3.',
+                  '"brainpy.Monitor" is deprecated since version 2.1.0.',
                   DeprecationWarning)
+    super(Monitor, self).__init__(*args, **kwargs)

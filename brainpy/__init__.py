@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.1.0"
+__version__ = "2.1.0.1"
 
 
 try:
@@ -59,12 +59,12 @@ from . import running
 from . import analysis
 
 
-# "visualization" module, will be remove soon
+# "visualization" module, will be removed soon
 from .visualization import visualize
 
 
 # compatible interface
-from .compact import *  # compact
+from .compat import *  # compat
 
 
 # convenient access
