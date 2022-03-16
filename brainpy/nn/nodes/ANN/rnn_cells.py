@@ -96,9 +96,9 @@ class VanillaRNN(RecurrentNode):
     self.state.value = self.activation(h)
     return self.state.value
 
-  def init_fb_state(self, num_batch=1):
+  def init_fb_output(self, num_batch=1):
     state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_fb_state(state)
+    self.set_fb_output(state)
 
 
 class GRU(RecurrentNode):
@@ -205,9 +205,9 @@ class GRU(RecurrentNode):
     self.state.value = next_state
     return next_state
 
-  def init_fb_state(self, num_batch=1):
+  def init_fb_output(self, num_batch=1):
     state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_fb_state(state)
+    self.set_fb_output(state)
 
 
 class LSTM(RecurrentNode):
@@ -316,9 +316,9 @@ class LSTM(RecurrentNode):
     self.state.value = bm.vstack([h, c])
     return h
 
-  def init_fb_state(self, num_batch=1):
+  def init_fb_output(self, num_batch=1):
     state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_fb_state(state)
+    self.set_fb_output(state)
 
   @property
   def h(self):
