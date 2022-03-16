@@ -7,12 +7,21 @@ import brainpy.math as bm
 
 class TestFixedLenDelay(unittest.TestCase):
   def test_dim1(self):
+
+    # linear interp
     t0 = 0.
     before_t0 = bm.repeat(bm.arange(11).reshape((-1, 1)), 10, axis=1)
     delay = bm.FixedLenDelay(10, delay_len=1., t0=t0, dt=0.1, before_t0=before_t0)
     self.assertTrue(bm.array_equal(delay(t0 - 0.1), bm.ones(10) * 10))
     self.assertTrue(bm.array_equal(delay(t0 - 0.15), bm.ones(10) * 9.5))
-    # self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones(10) * 8.7))
+    self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones(10) * 8.7))
+
+    # round interp
+    delay = bm.FixedLenDelay(10, delay_len=1., t0=t0, dt=0.1, before_t0=before_t0,
+                             interp_method='round')
+    self.assertTrue(bm.array_equal(delay(t0 - 0.1), bm.ones(10) * 10))
+    self.assertTrue(bm.array_equal(delay(t0 - 0.15), bm.ones(10) * 10))
+    self.assertTrue(bm.array_equal(delay(t0 - 0.2), bm.ones(10) * 9))
 
   def test_dim2(self):
     t0 = 0.
