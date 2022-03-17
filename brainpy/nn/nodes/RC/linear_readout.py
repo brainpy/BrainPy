@@ -43,7 +43,7 @@ class LinearReadout(Dense):
     self.set_state(state)
 
   def forward(self, ff, fb=None, **shared_kwargs):
-    self.state.value = super(LinearReadout, self).forward(ff, fb=fb, **kwargs)
+    self.state.value = super(LinearReadout, self).forward(ff, fb=fb, **shared_kwargs)
     return self.state
 
   def __force_init__(self, train_pars: Optional[Dict] = None):
