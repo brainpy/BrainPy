@@ -74,7 +74,7 @@ class Dense(Node):
       if self.bias is not None:
         self.bias = bm.TrainVar(self.bias)
 
-  def forward(self, ff: Sequence[Tensor], **kwargs):
+  def forward(self, ff: Sequence[Tensor], **shared_kwargs):
     ff = bm.concatenate(ff, axis=-1)
     if self.bias is None:
       return ff @ self.weights

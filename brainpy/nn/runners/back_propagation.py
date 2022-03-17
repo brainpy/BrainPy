@@ -12,7 +12,7 @@ import brainpy.math as bm
 import brainpy.optimizers as optim
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
-from brainpy.nn.utils import check_rnn_data_batch_size
+from brainpy.nn.utils import check_rnn_data_batch_size, serialize_kwargs
 from brainpy.running.runner import Runner
 from brainpy.tools.checking import check_dict_data, check_float
 from brainpy.types import Tensor
@@ -70,10 +70,14 @@ class BPTT(RNNTrainer):
     self.loss_fun = loss
     self._train_losses = None
     self._test_losses = None
-    self._f_loss_public = None
-    self._f_train = None
-    self._f_grad = None
-    self._mapping_type = None  # target/output mapping types
+
+    # target/output mapping types
+    self._mapping_type = None
+
+    # functions
+    self._f_loss = dict()
+    self._f_train = dict()
+    self._f_grad = dict()
 
     # training parameters
     self.max_grad_norm = max_grad_norm  # gradient clipping
@@ -81,9 +85,7 @@ class BPTT(RNNTrainer):
     self.metrics = metrics
 
     # initialize the optimizer
-    if not (self.target.is_ff_initialized and
-            self.target.is_fb_initialized and
-            self.target.is_state_initialized):
+    if not self.target.is_initialized:
       raise ValueError('Please initialize the target model first by calling "initialize()" function.')
     self.optimizer.register_vars(self.target.vars().subset(bm.TrainVar).unique())
 
@@ -93,7 +95,7 @@ class BPTT(RNNTrainer):
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
       reset=True,
-      shared_pars: Dict = None,
+      shared_kwargs: Dict = None,
       **kwargs
   ):
     """Predict a series of input data with the given target model.
@@ -115,6 +117,8 @@ class BPTT(RNNTrainer):
       The fixed feedback states. Similar with ``xs``, each tensor in
       ``forced_states`` must be a tensor with the shape of
       `(num_sample, num_time, num_feature)`. Default None.
+    shared_kwargs: dict
+      Shared keyword arguments for the given target model.
     reset: bool
       Whether reset the model states. Default True.
 
@@ -141,8 +145,8 @@ class BPTT(RNNTrainer):
       num_train: int = 100,
       num_report: int = 100,
       reset: bool = True,
-      shared_args: Dict = None,
-      # currently unsupported features
+      shared_kwargs: Dict = None,
+      # current unsupported features
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
   ):
@@ -179,6 +183,8 @@ class BPTT(RNNTrainer):
       The forced node states.
     forced_feedbacks: optional, dict
       The forced node feedbacks.
+    shared_kwargs: dict
+      The shared keyword arguments for the target models.
     """
     # check forced states/feedbacks
     assert forced_states is None, (f'Currently {self.__class__.__name__} does '
@@ -200,8 +206,9 @@ class BPTT(RNNTrainer):
         batch_size = check_rnn_data_batch_size(x)
         if batch_size != num_batch:
           raise ValueError(f'"num_batch" is set to {num_batch}, but we got {batch_size}.')
-        if reset: self.target.init_state(batch_size)
-        loss = self.f_train(x, y)
+        if reset:
+          self.target.initialize(batch_size)
+        loss = self.f_train(shared_kwargs)(x, y)
         all_train_losses.append(loss)
         train_i += 1
         if train_i % num_report == 0:
@@ -219,34 +226,35 @@ class BPTT(RNNTrainer):
             raise ValueError(f'"num_batch" is set to {num_batch}, '
                              f'but we got {batch_size}.')
           if reset:
-            self.target.init_state(batch_size)
-          loss = self.f_loss(x, y)
+            self.target.initialize(batch_size)
+          loss = self.f_loss(shared_kwargs)(x, y)
           all_test_losses.append(loss)
 
     self._train_losses = bm.asarray(all_train_losses)
     self._test_losses = bm.asarray(all_test_losses)
 
-  @property
-  def f_grad(self):
-    if self._f_grad is None:
-      self._f_grad = self._get_f_grad()
-    return self._f_grad
+  def f_grad(self, shared_kwargs=None) -> Callable:
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._f_grad:
+      self._f_grad[shared_kwargs_str] = self._make_f_grad(shared_kwargs)
+    return self._f_grad[shared_kwargs_str]
 
-  @property
-  def f_loss(self):
-    if self._f_loss_public is None:
-      self._f_loss_public = self._get_f_loss()
-    if self.jit:
-      dyn_vars = self.target.vars()
-      dyn_vars.update(self.dyn_vars)
-      self._f_loss_public = bm.jit(self._f_loss_public, dyn_vars=dyn_vars)
-    return self._f_loss_public
+  def f_loss(self, shared_kwargs=None) -> Callable:
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._f_loss:
+      self._f_loss[shared_kwargs_str] = self._make_f_loss(shared_kwargs)
+      if self.jit:
+        dyn_vars = self.target.vars()
+        dyn_vars.update(self.dyn_vars)
+        self._f_loss[shared_kwargs_str] = bm.jit(self._f_loss[shared_kwargs_str],
+                                                 dyn_vars=dyn_vars)
+    return self._f_loss[shared_kwargs_str]
 
-  @property
-  def f_train(self):
-    if self._f_train is None:
-      self._f_train = self._get_f_train()
-    return self._f_train
+  def f_train(self, shared_kwargs=None) -> Callable:
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._f_train:
+      self._f_train[shared_kwargs_str] = self._make_f_train(shared_kwargs)
+    return self._f_train[shared_kwargs_str]
 
   @property
   def train_losses(self):
@@ -263,12 +271,17 @@ class BPTT(RNNTrainer):
     """Mapping type for the output and the target."""
     return self._mapping_type
 
-  def _get_f_loss(self):
+  def _make_f_loss(self, shared_kwargs: Dict = None):
+    if shared_kwargs is None:
+      shared_kwargs = dict()
+    assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
+                                             f'But got {type(shared_kwargs)}: {shared_kwargs}')
+
     def loss_fun(inputs, targets):
       inputs = self._format_xs(inputs)
       targets = self._format_ys(targets)
       inputs = {k: bm.moveaxis(v, 0, 1) for k, v in inputs.items()}
-      outputs, _ = self._predict(xs=inputs)
+      outputs, _ = self._predict(xs=inputs, shared_kwargs=shared_kwargs)
       outputs = self._format_ys(outputs)
       loss = 0.
       for key, output in outputs.items():
@@ -279,8 +292,8 @@ class BPTT(RNNTrainer):
 
     return loss_fun
 
-  def _get_f_grad(self):
-    _f_loss_internal = self._get_f_loss()
+  def _make_f_grad(self, shared_kwargs: Dict = None):
+    _f_loss_internal = self._make_f_loss(shared_kwargs)
     dyn_vars = self.target.vars()
     dyn_vars.update(self.dyn_vars)
     tran_vars = dyn_vars.subset(bm.TrainVar)
@@ -289,11 +302,16 @@ class BPTT(RNNTrainer):
                    grad_vars=tran_vars.unique(),
                    return_value=True)
 
-  def _get_f_train(self):
+  def _make_f_train(self, shared_kwargs: Dict = None):
+    if shared_kwargs is None:
+      shared_kwargs = dict()
+    assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
+                                             f'But got {type(shared_kwargs)}: {shared_kwargs}')
+
     def train_func(inputs, targets):
       inputs = self._format_xs(inputs)
       targets = self._format_ys(targets)
-      grads, loss = self.f_grad(inputs, targets)
+      grads, loss = self.f_grad(shared_kwargs)(inputs, targets)
       if self.max_grad_norm is not None:
         check_float(self.max_grad_norm, 'max_grad_norm', min_bound=0.)
         grads = bm.clip_by_norm(grads, self.max_grad_norm)

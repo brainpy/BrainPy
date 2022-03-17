@@ -11,7 +11,8 @@ from brainpy import math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
 from brainpy.nn.utils import (check_rnn_data_time_step,
-                              check_rnn_data_batch_size)
+                              check_rnn_data_batch_size,
+                              serialize_kwargs)
 from brainpy.running.runner import Runner
 from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
@@ -45,14 +46,14 @@ class RNNRunner(Runner):
     assert isinstance(self.target, Node), '"target" must be an instance of brainpy.nn.Node.'
 
     # function for prediction
-    self._predict_func = None
+    self._predict_func = dict()
 
   def predict(self,
               xs: Union[Tensor, Dict[str, Tensor]],
               forced_states: Dict[str, Tensor] = None,
               forced_feedbacks: Dict[str, Tensor] = None,
               reset=False,
-              shared_args: Dict = None,
+              shared_kwargs: Dict = None,
               progress_bar=True):
     """Predict a series of input data with the given target model.
 
@@ -76,7 +77,7 @@ class RNNRunner(Runner):
     reset: bool
       Whether reset the model states.
     progress_bar: bool
-    shared_args: optional, dict
+    shared_kwargs: optional, dict
       The shared arguments across different layers.
 
     Returns
@@ -87,11 +88,13 @@ class RNNRunner(Runner):
     # format input data
     xs, num_step, num_batch = self._check_xs(xs)
     # get forced data
-    iter_forced_states, fixed_forced_states = self._check_forced_states(forced_states, num_step, num_batch)
-    iter_forced_feedbacks, fixed_forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_step, num_batch)
+    iter_forced_states, fixed_forced_states = \
+      self._check_forced_states(forced_states, num_step, num_batch)
+    iter_forced_feedbacks, fixed_forced_feedbacks = \
+      self._check_forced_feedbacks(forced_feedbacks, num_step, num_batch)
     # reset the model states
     if reset:
-      self.target.init_state(num_batch)
+      self.target.initialize(num_batch)
     # init monitor
     for key in self.mon.item_contents.keys():
       self.mon.item_contents[key] = []  # reshape the monitor items
@@ -104,9 +107,8 @@ class RNNRunner(Runner):
     # prediction
     outputs, hists = self._predict(xs=xs,
                                    iter_forced_states=iter_forced_states,
-                                   fixed_forced_states=fixed_forced_states,
                                    iter_forced_feedbacks=iter_forced_feedbacks,
-                                   fixed_forced_feedbacks=fixed_forced_feedbacks)
+                                   shared_kwargs=shared_kwargs)
     # close the progress bar
     if self.progress_bar and progress_bar:
       self._pbar.close()
@@ -121,46 +123,46 @@ class RNNRunner(Runner):
       self,
       xs: Dict[str, Tensor],
       iter_forced_states: Dict[str, Tensor] = None,
-      fixed_forced_states: Dict[str, Tensor] = None,
       iter_forced_feedbacks: Dict[str, Tensor] = None,
-      fixed_forced_feedbacks: Dict[str, Tensor] = None,
-      shared_args: Dict = None,
+      shared_kwargs: Dict = None,
   ):
-    """
+    """Predict the output according to the inputs.
 
     Parameters
     ----------
     xs: dict
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
     iter_forced_states: dict
-    fixed_forced_states: dict
     iter_forced_feedbacks: dict
-    fixed_forced_feedbacks: dict
-    shared_args: dict
+    shared_kwargs: dict
 
     Returns
     -------
-
+    outputs, hists
+      A tuple of pair of (outputs, hists).
     """
-    # check run function
-    if self._predict_func is None:
-      self._predict_func = self._make_run_func()
+    _predict_func = self._get_predict_func(shared_kwargs)
     # rune the model
     iter_forced_states = dict() if iter_forced_states is None else iter_forced_states
-    fixed_forced_states = dict() if fixed_forced_states is None else fixed_forced_states
     iter_forced_feedbacks = dict() if iter_forced_feedbacks is None else iter_forced_feedbacks
-    fixed_forced_feedbacks = dict() if fixed_forced_feedbacks is None else fixed_forced_feedbacks
-    outputs, hists = self._predict_func([xs, iter_forced_states, iter_forced_feedbacks])  # TODO: fixed?
+    outputs, hists = _predict_func([xs, iter_forced_states, iter_forced_feedbacks])  # TODO: fixed?
     f1 = lambda x: bm.moveaxis(x, 0, 1)
     f2 = lambda x: isinstance(x, bm.JaxArray)
     outputs = tree_map(f1, outputs, is_leaf=f2)
     hists = tree_map(f1, hists, is_leaf=f2)
     return outputs, hists
 
-  def _make_run_func(self, shared_args=None):
-    if shared_args is None:
-      shared_args = dict()
-    assert isinstance(shared_args, dict), f'"shared_args" must be a dict, but got {type(shared_args)}'
+  def _get_predict_func(self, shared_kwargs: Dict = None):
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._predict_func:
+      self._predict_func[shared_kwargs_str] = self._make_run_func(shared_kwargs)
+    return self._predict_func[shared_kwargs_str]
+
+  def _make_run_func(self, shared_kwargs: Dict = None):
+    if shared_kwargs is None:
+      shared_kwargs = dict()
+    assert isinstance(shared_kwargs, dict), (f'"shared_kwargs" must be a dict, '
+                                             f'but got {type(shared_kwargs)}')
 
     def _step_func(a_input):
       xs, forced_states, forced_feedbacks = a_input
@@ -169,7 +171,7 @@ class RNNRunner(Runner):
                          forced_states=forced_states,
                          forced_feedbacks=forced_feedbacks,
                          monitors=monitors,
-                         **shared_args)
+                         **shared_kwargs)
       if self.progress_bar and (self._pbar is not None):
         id_tap(lambda *args: self._pbar.update(), ())
       return outs

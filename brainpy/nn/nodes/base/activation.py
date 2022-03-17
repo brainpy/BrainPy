@@ -40,5 +40,5 @@ class Activation(Node):
   def init_ff(self):
     self.set_output_shape(self.feedforward_shapes)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return self._activation(ff, **self._fun_setting)

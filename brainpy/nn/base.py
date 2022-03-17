@@ -105,7 +105,7 @@ class Node(Base):
     self._is_fb_state_initialized = False
     self._trainable = trainable
     self._state = None  # the state of the current node
-    self._fb_state = None  # the feedback state of the current node
+    self._fb_output = None  # the feedback output of the current node
     # data pass function
     if self.data_pass_type not in DATA_PASS_FUNC:
       raise ValueError(f'Unsupported data pass type {self.data_pass_type}. '
@@ -125,7 +125,7 @@ class Node(Base):
     line1 = (f"{name}(name={self.name}, "
              f"forwards={self.feedforward_shapes}, "
              f"feedbacks={self.feedback_shapes}, \n")
-    line2 = (f"{prefix}output={self.output_shape}")
+    line2 = f"{prefix}output={self.output_shape}"
     return line1 + line2
 
   def __call__(self, *args, **kwargs) -> Tensor:
@@ -203,7 +203,7 @@ class Node(Base):
   @property
   def state(self) -> Optional[Tensor]:
     """Node current internal state."""
-    if self.is_ff_initialized:
+    if self._is_ff_initialized:
       return self._state
     return None
 
@@ -234,15 +234,15 @@ class Node(Base):
       self.state._value = bm.as_device_array(state)
 
   @property
-  def fb_state(self) -> Optional[Tensor]:
-    return self._fb_state
+  def fb_output(self) -> Optional[Tensor]:
+    return self._fb_output
 
-  @fb_state.setter
-  def fb_state(self, value: Tensor):
-    raise NotImplementedError('Please use "set_fb_state()" to reset the node feedback state, '
-                              'or use "self.fb_state.value" to change the state content.')
+  @fb_output.setter
+  def fb_output(self, value: Tensor):
+    raise NotImplementedError('Please use "set_fb_output()" to reset the node feedback state, '
+                              'or use "self.fb_output.value" to change the state content.')
 
-  def set_fb_state(self, state: Tensor):
+  def set_fb_output(self, state: Tensor):
     """
     Safely set the feedback state of the node.
 
@@ -250,18 +250,18 @@ class Node(Base):
     node state. It can set a new data (same shape, same dtype)
     to the state. It can also set a new data with the different
     shape. We highly recommend the user to use this function.
-    instead of using ``self.fb_state.value``.
+    instead of using ``self.fb_output.value``.
     """
-    if self.fb_state is None:
+    if self.fb_output is None:
       if self.output_shape is not None:
         check_batch_shape(self.output_shape, state.shape)
-      self._fb_state = bm.Variable(state) if not isinstance(state, bm.Variable) else state
+      self._fb_output = bm.Variable(state) if not isinstance(state, bm.Variable) else state
     else:
-      check_batch_shape(self.fb_state.shape, state.shape)
-      if self.fb_state.dtype != state.dtype:
+      check_batch_shape(self.fb_output.shape, state.shape)
+      if self.fb_output.dtype != state.dtype:
         raise MathError('Cannot set the feedback state, because the dtype is '
-                        f'not consistent: {self.fb_state.dtype} != {state.dtype}')
-      self.fb_state._value = bm.as_device_array(state)
+                        f'not consistent: {self.fb_output.dtype} != {state.dtype}')
+      self.fb_output._value = bm.as_device_array(state)
 
   @property
   def trainable(self) -> bool:
@@ -277,7 +277,7 @@ class Node(Base):
         else:
           return False
       else:
-        return False
+        return True
     else:
       return False
 
@@ -359,7 +359,7 @@ class Node(Base):
 
   @property
   def is_feedback_supported(self):
-    if self.fb_state is None:
+    if self.fb_output is None:
       return False
     else:
       return True
@@ -440,8 +440,8 @@ class Node(Base):
     This function can be called multiple times."""
     pass
 
-  def init_fb_state(self, num_batch=1):
-    """Initialize the node feedback state.
+  def init_fb_output(self, num_batch=1):
+    """Initialize the node state for feedback.
 
     This function can be called multiple times. However,
     it is only triggered when the node has feedback connections.
@@ -452,7 +452,7 @@ class Node(Base):
       The batch size.
     """
     state = bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_)
-    self.set_fb_state(state)
+    self.set_fb_output(state)
 
   def initialize(self, num_batch: int):
     """
@@ -465,7 +465,10 @@ class Node(Base):
     # feedforward initialization
     if self.feedforward_shapes is None:
       raise ValueError('Cannot initialize this node, because we detect '
-                       'both "feedforward_shapes" is None. ')
+                       'both "feedforward_shapes" is None. '
+                       'Two ways can solve this problem:\n\n'
+                       '1. Connecting an instance of "brainpy.nn.Input()" to this node. \n'
+                       '2. Providing the "input_shape" when initialize the node.')
     check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
     self._init_ff()
 
@@ -477,7 +480,7 @@ class Node(Base):
       # feedback initialization
       self._init_fb()
       # initialize feedback state
-      self.init_fb_state(num_batch)
+      self.init_fb_output(num_batch)
       self._is_fb_state_initialized = True
 
   def _check_inputs(self, ff, fb=None):
@@ -561,7 +564,7 @@ class Node(Base):
     else:
       return output
 
-  def forward(self, ff, fb=None, **kwargs):
+  def forward(self, ff, fb=None, **shared_kwargs):
     """The feedforward computation function of a node.
 
     Parameters
@@ -570,7 +573,7 @@ class Node(Base):
       The feedforward inputs.
     fb: optional, tensor, dict, sequence
       The feedback inputs.
-    **kwargs
+    **shared_kwargs
       Other parameters.
 
     Returns
@@ -580,12 +583,12 @@ class Node(Base):
     """
     raise NotImplementedError
 
-  def feedback(self, ff_output, **kwargs):
+  def feedback(self, ff_output, **shared_kwargs):
     """The feedback computation function of a node.
 
     Parameters
     ----------
-    **kwargs
+    **shared_kwargs
       Other global parameters.
 
     Returns
@@ -831,8 +834,8 @@ class Network(Node):
 
   def replace_graph(self,
                     nodes: Sequence[Node],
-                    ff_edges: Sequence[Tuple[Node, Node]],
-                    fb_edges: Sequence[Tuple[Node, Node]] = None) -> "Network":
+                    ff_edges: Sequence[Tuple[Node, ...]],
+                    fb_edges: Sequence[Tuple[Node, ...]] = None) -> "Network":
     if fb_edges is None: fb_edges = tuple()
 
     # assign nodes and edges
@@ -841,6 +844,26 @@ class Network(Node):
     self._fb_edges = tuple(fb_edges)
     self._network_init()
     return self
+
+  def set_output_shape(self, shape: Dict[str, Sequence[int]]):
+    # check shape
+    if not isinstance(shape, dict):
+      raise ValueError(f'Must be a dict of <node name, shape>, but got {type(shape)}: {shape}')
+    for key, val in shape.items():
+      if not isinstance(val, (tuple, list)):
+        raise ValueError(f'Must be a sequence of int, but got {val} for key "{key}"')
+      # for s in val:
+      #   if not (isinstance(s, int) or (s is None)):
+      #     raise ValueError(f'Must be a sequence of int, but got {val}')
+
+    if not self._is_ff_initialized:
+      if len(self.exit_nodes) == 1:
+        self._output_shape = tuple(shape.values())[0]
+      else:
+        self._output_shape = shape
+    else:
+      for val in shape.values():
+        check_batch_shape(val, self.output_shape)
 
   def init_ff(self):
     """Initialize the feedforward connections of the network.
@@ -877,6 +900,10 @@ class Network(Node):
         if len(ff_senders.get(child, [])) == 0:
           children_queue.append(child)
 
+    # set output shape
+    out_sizes = {node: node.output_shape for node in self.exit_nodes}
+    self.set_output_shape(out_sizes)
+
   def init_fb(self):
     """Initialize the feedback connections of the network.
     This function will be called only once."""
@@ -891,14 +918,14 @@ class Network(Node):
     for node in self.lnodes:
       node.init_state(num_batch)
 
-  def init_fb_state(self, num_batch=1):
+  def init_fb_output(self, num_batch=1):
     """Initialize the node feedback state.
 
     This function can be called multiple times. However,
     it is only triggered when the node has feedback connections.
     """
     for node in self.feedback_nodes:
-      node.init_fb_state(num_batch)
+      node.init_fb_output(num_batch)
 
   def initialize(self, num_batch: int):
     """
@@ -967,7 +994,7 @@ class Network(Node):
       self._init_fb()
 
     # initialize feedback state
-    self.init_fb_state(num_batch)
+    self.init_fb_output(num_batch)
     self._is_fb_state_initialized = True
 
   def _check_inputs(self, ff, fb=None):
@@ -1107,7 +1134,7 @@ class Network(Node):
     parent_outputs = {}
     for i, node in enumerate(self._entry_nodes):
       ff_ = {node.name: ff[i]}
-      fb_ = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.fb_state)
+      fb_ = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.fb_output)
              for p in self.fb_senders.get(node, [])}
       self._call_a_node(node, ff_, fb_, monitors, forced_states,
                         parent_outputs, children_queue, ff_senders,
@@ -1119,7 +1146,7 @@ class Network(Node):
       node = children_queue.pop(0)
       # get feedforward and feedback inputs
       ff = {p: parent_outputs[p] for p in self.ff_senders.get(node, [])}
-      fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.fb_state)
+      fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.fb_output)
             for p in self.fb_senders.get(node, [])}
       # call the node
       self._call_a_node(node, ff, fb, monitors, forced_states,
@@ -1159,8 +1186,8 @@ class Network(Node):
     else:
       parent_outputs[node] = node.forward(ff, **shared_kwargs)
     # get the feedback state
-    if node in self.ff_receivers:
-      node.set_fb_state(node.ff_output(parent_outputs[node], **shared_kwargs))
+    if node in self.fb_receivers:
+      node.set_fb_output(node.feedback(parent_outputs[node], **shared_kwargs))
     # forced state
     if node.name in forced_states:
       node.state.value = forced_states[node.name]

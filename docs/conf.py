@@ -35,6 +35,9 @@ auto_generater.generate_optimizers_docs()
 auto_generater.generate_measure_docs()
 auto_generater.generate_datasets_docs()
 auto_generater.generate_tools_docs()
+auto_generater.generate_compact_docs()
+auto_generater.generate_math_compact_docs()
+
 
 import shutil
 

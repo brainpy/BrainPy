@@ -4,12 +4,17 @@
 import inspect
 from pprint import pprint
 
+import brainpy.math as bm
+from brainpy.errors import UnsupportedError
+
 from brainpy import errors
 
 __all__ = [
   'get_args',
   'check_kws',
   'compile_code',
+  'check_inits',
+  'format_args',
 ]
 
 
@@ -103,3 +108,35 @@ def compile_code(code_lines, code_scope, func_name, show_code=False):
   exec(compile(code, '', 'exec'), code_scope)
   new_f = code_scope[func_name]
   return new_f
+
+
+def check_inits(inits, variables):
+  if isinstance(inits, (tuple, list)):
+    assert len(inits) == len(variables), (f'Then number of variables is {len(variables)}, '
+                                          f'however we only got {len(inits)} initial values.')
+    inits = {v: inits[i] for i, v in enumerate(variables)}
+  elif isinstance(inits, dict):
+    assert len(inits) == len(variables), (f'Then number of variables is {len(variables)}, '
+                                          f'however we only got {len(inits)} initial values.')
+  else:
+    raise UnsupportedError('Only supports dict/sequence of data for initial values. '
+                           f'But we got {type(inits)}: {inits}')
+  for key in list(inits.keys()):
+    if key not in variables:
+      raise ValueError(f'"{key}" is not defined in variables: {variables}')
+    val = inits[key]
+    if isinstance(val, (float, int)):
+      inits[key] = bm.asarray([val], dtype=bm.float_)
+  return inits
+
+
+def format_args(args, kwargs, arguments):
+  all_args = dict()
+  for i, arg in enumerate(args):
+    all_args[arguments[i]] = arg
+  for key, arg in kwargs.items():
+    if key in all_args:
+      raise ValueError(f'{key} has been provided in *args, '
+                       f'but we detect it again in **kwargs.')
+    all_args[key] = arg
+  return all_args

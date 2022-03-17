@@ -56,7 +56,7 @@ from .function import *
 # functions
 from .activations import *
 from . import activations
-from .compact import *
+from .compat import *
 from . import special
 
 

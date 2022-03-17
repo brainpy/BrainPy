@@ -97,6 +97,8 @@ The code of BrainPy is open-sourced at GitHub:
    apis/auto/measure.rst
    apis/auto/running.rst
    apis/tools.rst
+   apis/compat.rst
+   apis/math_compat.rst
    apis/auto/changelog-brainpy.rst
    apis/auto/changelog-brainpylib.rst
 
