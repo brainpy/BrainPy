@@ -10,6 +10,11 @@ from brainpy.integrators.utils import get_args
 from brainpy.errors import UnsupportedError
 
 
+__all__ = [
+  'FDEIntegrator'
+]
+
+
 class FDEIntegrator(Integrator):
   """Numerical integrator for fractional differential equations (FEDs).
 
