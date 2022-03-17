@@ -146,10 +146,14 @@ class GLShortMemory(FDEIntegrator):
     # binomial coefficients
     bc = (1 - (1 + self.alpha.reshape((-1, 1))) / jnp.arange(1, num_memory + 1))
     bc = jnp.cumprod(jnp.vstack([jnp.ones_like(self.alpha), bc.T]), axis=0)
-    self.binomial_coef = jnp.flip(bc[1:], axis=0)
+    self._binomial_coef = jnp.flip(bc[1:], axis=0)
 
     # integral function
     self.set_integral(self._integral_func)
+
+  @property
+  def binomial_coef(self):
+    return bm.as_numpy(jnp.flip(self._binomial_coef, axis=0))
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
@@ -173,7 +177,7 @@ class GLShortMemory(FDEIntegrator):
     integrals = []
     idx = (self._idx + bm.arange(self.num_memory)) % self.num_memory
     for i, var in enumerate(self.variables):
-      summation = self.binomial_coef[:, i] @ self.delays[var][idx]
+      summation = self._binomial_coef[:, i] @ self.delays[var][idx]
       integral = (dt ** self.alpha[i]) * devs[var] - summation
       self.delays[var][self._idx[0]] = integral
       integrals.append(integral)
