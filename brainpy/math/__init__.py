@@ -57,7 +57,6 @@ from .function import *
 from .activations import *
 from . import activations
 from .compat import *
-from . import special
 
 
 def get_dint():
