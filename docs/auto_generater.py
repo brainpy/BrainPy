@@ -231,7 +231,6 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                header='Base Class')
 
   module_and_name = [('biological_models', 'Biological Models'),
-                     ('IF_models', 'Integrate-and-Fire Models'),
                      ('input_models', 'Input Models'),
                      ('rate_models', 'Rate Models'),
                      ('reduced_models', 'Reduced Models'), ]
@@ -324,6 +323,20 @@ def generate_integrators_doc(path='apis/auto/integrators/'):
   write_module(module_name='brainpy.integrators.dde.explicit_rk',
                filename=os.path.join(path, 'dde_explicit_rk.rst'),
                header='Explicit Runge-Kutta Methods')
+
+  # FDE
+  write_module(module_name='brainpy.integrators.fde.base',
+               filename=os.path.join(path, 'fde_base.rst'),
+               header='Base Integrator')
+  write_module(module_name='brainpy.integrators.fde.generic',
+               filename=os.path.join(path, 'fde_generic.rst'),
+               header='Generic Functions')
+  write_module(module_name='brainpy.integrators.fde.Caputo',
+               filename=os.path.join(path, 'fde_Caputo.rst'),
+               header='Methods for Caputo Fractional Derivative')
+  write_module(module_name='brainpy.integrators.fde.GL',
+               filename=os.path.join(path, 'fde_GL.rst'),
+               header='Methods for Riemann-Liouville Fractional Derivative')
 
   # Others
   write_module(module_name='brainpy.integrators.joint_eq',
