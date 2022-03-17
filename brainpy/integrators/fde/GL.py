@@ -59,7 +59,7 @@ class GLShortMemory(FDEIntegrator):
 
   .. math::
 
-     v=\begin{cases} k, & k\leq M,\\ L_{m}, & k > M. \end{cases} \tag{5}
+     v=\begin{cases} k, & k\leq M,\\ L_{m}, & k > M. \end{cases}
 
   This is known as the short-memory principle, where :math:`M`
   is the memory window with a width defined by :math:`M=\frac{L_{m}}{h}`.

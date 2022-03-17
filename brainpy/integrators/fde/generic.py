@@ -28,7 +28,7 @@ def fdeint(f=None, method='CaputoL1', **kwargs):
 
   Returns
   -------
-  integral : ODEIntegrator
+  integral : FDEIntegrator
       The numerical solver of `f`.
   """
   method = _DEFAULT_DDE_METHOD if method is None else method
@@ -76,7 +76,9 @@ def register_fde_integrator(name, integrator):
   Parameters
   ----------
   name: ste
+    The integrator name.
   integrator: type
+    The integrator.
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in ODE integrators.')

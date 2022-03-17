@@ -34,12 +34,13 @@ class Integrator(AbstractIntegrator):
     self._dt = dt
     check_float(dt, 'dt', allow_none=False, allow_int=True)
     self._variables = variables  # variables
-    self._parameters = parameters # parameters
-    self._arguments = list(arguments) + [f'{DT}={self.dt}'] # arguments
+    self._parameters = parameters  # parameters
+    self._arguments = list(arguments) + [f'{DT}={self.dt}']  # arguments
     self._integral = None  # integral function
 
   @property
   def dt(self):
+    """The numerical integration precision."""
     return self._dt
 
   @dt.setter
@@ -48,6 +49,7 @@ class Integrator(AbstractIntegrator):
 
   @property
   def variables(self):
+    """The variables defined in the differential equation."""
     return self._variables
 
   @variables.setter
@@ -56,6 +58,7 @@ class Integrator(AbstractIntegrator):
 
   @property
   def parameters(self):
+    """The parameters defined in the differential equation."""
     return self._parameters
 
   @parameters.setter
@@ -64,6 +67,7 @@ class Integrator(AbstractIntegrator):
 
   @property
   def arguments(self):
+    """All arguments when calling the numer integrator of the differential equation."""
     return self._arguments
 
   @arguments.setter
@@ -72,6 +76,7 @@ class Integrator(AbstractIntegrator):
 
   @property
   def integral(self):
+    """The integral function."""
     return self._integral
 
   @integral.setter
@@ -79,6 +84,7 @@ class Integrator(AbstractIntegrator):
     self.set_integral(f)
 
   def set_integral(self, f):
+    """Set the integral function."""
     if not callable(f):
       raise ValueError(f'integral function must be a callable function, '
                        f'but we got {type(f)}: {f}')
