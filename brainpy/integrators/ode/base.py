@@ -21,6 +21,17 @@ def f_names(f):
 
 class ODEIntegrator(Integrator):
   """Numerical Integrator for Ordinary Differential Equations (ODEs).
+
+  Parameters
+  ----------
+  f : callable
+    The derivative function.
+  var_type: str
+    The type for each variable.
+  dt: float, int
+    The numerical precision.
+  name: str
+    The integrator name.
   """
 
   def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
@@ -29,7 +40,7 @@ class ODEIntegrator(Integrator):
     parses = utils.get_args(f)
     variables = parses[0]  # variable names, (before 't')
     parameters = parses[1]  # parameter names, (after 't')
-    arguments = parses[2]   # function arguments
+    arguments = parses[2]  # function arguments
 
     # super initialization
     super(ODEIntegrator, self).__init__(name=name,
