@@ -6,14 +6,14 @@ import os
 
 from brainpy.math import (activations, autograd, controls, function,
                           jit, operators, parallels, setting, delay_vars,
-                          compact)
+                          compat)
 
 
 block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, activations,
                operators, parallels, setting,
-               delay_vars, compact]:
+               delay_vars, compat]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -231,7 +231,6 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                header='Base Class')
 
   module_and_name = [('biological_models', 'Biological Models'),
-                     ('IF_models', 'Integrate-and-Fire Models'),
                      ('input_models', 'Input Models'),
                      ('rate_models', 'Rate Models'),
                      ('reduced_models', 'Reduced Models'), ]
@@ -324,6 +323,20 @@ def generate_integrators_doc(path='apis/auto/integrators/'):
   write_module(module_name='brainpy.integrators.dde.explicit_rk',
                filename=os.path.join(path, 'dde_explicit_rk.rst'),
                header='Explicit Runge-Kutta Methods')
+
+  # FDE
+  write_module(module_name='brainpy.integrators.fde.base',
+               filename=os.path.join(path, 'fde_base.rst'),
+               header='Base Integrator')
+  write_module(module_name='brainpy.integrators.fde.generic',
+               filename=os.path.join(path, 'fde_generic.rst'),
+               header='Generic Functions')
+  write_module(module_name='brainpy.integrators.fde.Caputo',
+               filename=os.path.join(path, 'fde_Caputo.rst'),
+               header='Methods for Caputo Fractional Derivative')
+  write_module(module_name='brainpy.integrators.fde.GL',
+               filename=os.path.join(path, 'fde_GL.rst'),
+               header='Methods for Riemann-Liouville Fractional Derivative')
 
   # Others
   write_module(module_name='brainpy.integrators.joint_eq',
@@ -490,4 +503,41 @@ def generate_tools_docs(path='apis/auto/tools/'):
   write_module(module_name='brainpy.tools.others',
                filename=os.path.join(path, 'others.rst'),
                header='Other Tools')
+
+
+def generate_compact_docs(path='apis/auto/compat/'):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.compat.brainobjects',
+               filename=os.path.join(path, 'brainobjects.rst'),
+               header='Brain Objects')
+  write_module(module_name='brainpy.compat.integrators',
+               filename=os.path.join(path, 'integrators.rst'),
+               header='Integrators')
+  write_module(module_name='brainpy.compat.layers',
+               filename=os.path.join(path, 'layers.rst'),
+               header='Layers')
+  write_module(module_name='brainpy.compat.models',
+               filename=os.path.join(path, 'models.rst'),
+               header='Models')
+  write_module(module_name='brainpy.compat.monitor',
+               filename=os.path.join(path, 'monitor.rst'),
+               header='Monitor')
+  write_module(module_name='brainpy.compat.runners',
+               filename=os.path.join(path, 'runners.rst'),
+               header='Runners')
+
+
+def generate_math_compact_docs(path='apis/auto/math_compat/'):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.math.compat.optimizers',
+               filename=os.path.join(path, 'optimizers.rst'),
+               header='Optimizers')
+
+  write_module(module_name='brainpy.math.compat.losses',
+               filename=os.path.join(path, 'losses.rst'),
+               header='Losses')
 

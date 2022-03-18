@@ -473,3 +473,20 @@ class DOP853(AdaptiveRKIntegrator):
   .. [2] http://www.unige.ch/~hairer/software.html
   """
   pass
+
+
+class BoSh3(AdaptiveRKIntegrator):
+  """
+  Bogacki--Shampine's 3/2 method.
+
+  3rd order explicit Runge--Kutta method. Has an embedded 2nd order method for
+  adaptive step sizing.
+
+  """
+  A = [(),
+       (0.5, ),
+       (0.0, 0.75),
+       ('2/9', '1/3', '4/9')]
+  B1 = ['2/9', '1/3', '4/9', 0.0]
+  B2 = ['-5/72', 1/12, '1/9', '-1/8']
+  C = [0., 0.5, 0.75, 1.0]

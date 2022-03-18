@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Dict, Any, Callable
+from typing import Union, Sequence, Dict, Any, Callable, Optional
 
 import jax.numpy as jnp
 import numpy as onp
 
 import brainpy.math as bm
 from brainpy.initialize import Initializer
+from brainpy.tools.checking import check_dict_data
 from brainpy.tools.others import to_size
 from brainpy.types import Tensor, Shape
+
 
 __all__ = [
   'tensor_sum',
   'init_param',
   'check_rnn_data_batch_size',
   'check_rnn_data_time_step',
+  'serialize_kwargs',
 ]
 
 
@@ -93,3 +96,14 @@ def check_rnn_data_time_step(data: Dict, num_step=None):
   if (num_step is not None) and time_step != num_step:
     raise ValueError(f'Time step is not consistent with the expected {time_step} != {num_step}')
   return time_step
+
+
+def serialize_kwargs(shared_kwargs: Optional[Dict]):
+  """Serialize kwargs."""
+  shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
+  check_dict_data(shared_kwargs,
+                  key_type=str,
+                  val_type=(bool, float, int, complex),
+                  name='shared_kwargs')
+  shared_kwargs = {key: shared_kwargs[key] for key in sorted(shared_kwargs.keys())}
+  return str(shared_kwargs)

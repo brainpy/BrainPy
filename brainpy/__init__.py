@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 
 try:
@@ -37,9 +37,11 @@ from . import integrators
 from .integrators import ode
 from .integrators import sde
 from .integrators import dde
+from .integrators import fde
 from .integrators.ode import odeint
 from .integrators.sde import sdeint
 from .integrators.dde import ddeint
+from .integrators.fde import fdeint
 from .integrators.joint_eq import JointEq
 
 
@@ -59,12 +61,12 @@ from . import running
 from . import analysis
 
 
-# "visualization" module, will be remove soon
+# "visualization" module, will be removed soon
 from .visualization import visualize
 
 
 # compatible interface
-from .compact import *  # compact
+from .compat import *  # compat
 
 
 # convenient access

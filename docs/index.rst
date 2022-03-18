@@ -7,7 +7,8 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
 - **JIT compilation** and **automatic differentiation** for class objects.
 - **Numerical methods** for ordinary differential equations (ODEs),
   stochastic differential equations (SDEs),
-  delay differential equations (DDEs), etc.
+  delay differential equations (DDEs),
+  fractional differential equations (FDEs), etc.
 - **Dynamics simulation** tools for various brain objects, like
   neurons, synapses, networks, soma, dendrites, channels, and even more.
 - **Dynamics training** tools with various machine learning algorithms,
@@ -58,11 +59,13 @@ The code of BrainPy is open-sourced at GitHub:
    tutorial_toolbox/ode_numerical_solvers
    tutorial_toolbox/sde_numerical_solvers
    tutorial_toolbox/dde_numerical_solvers
+   tutorial_toolbox/fde_numerical_solvers
    tutorial_toolbox/joint_equations
    tutorial_toolbox/synaptic_connections
    tutorial_toolbox/synaptic_weights
    tutorial_toolbox/optimizers
    tutorial_toolbox/runners
+   tutorial_toolbox/inputs
    tutorial_toolbox/monitors
    tutorial_toolbox/saving_and_loading
 
@@ -97,6 +100,8 @@ The code of BrainPy is open-sourced at GitHub:
    apis/auto/measure.rst
    apis/auto/running.rst
    apis/tools.rst
+   apis/compat.rst
+   apis/math_compat.rst
    apis/auto/changelog-brainpy.rst
    apis/auto/changelog-brainpylib.rst
 

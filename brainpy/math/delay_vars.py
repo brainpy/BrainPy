@@ -12,6 +12,7 @@ from brainpy import math as bm
 from brainpy.base.base import Base
 from brainpy.tools.checking import check_float
 from brainpy.tools.others import to_size
+from brainpy.errors import UnsupportedError
 
 __all__ = [
   'AbstractDelay',
@@ -27,6 +28,8 @@ class AbstractDelay(Base):
 
 _FUNC_BEFORE = 'function'
 _DATA_BEFORE = 'data'
+_INTERP_LINEAR = 'linear_interp'
+_INTERP_ROUND = 'round'
 
 
 class FixedLenDelay(AbstractDelay):
@@ -83,6 +86,20 @@ class FixedLenDelay(AbstractDelay):
       of :math:`(num_delay, ...)`, where the longest delay data is aranged in
       the first index.
   name: str
+    The delay instance name.
+  interp_method: str
+    The way to deal with the delay at the time which is not integer times of the time step.
+    For exameple, if the time step ``dt=0.1``, the time delay length ``delay_len=1.``,
+    when users require the delay data at ``t-0.53``, we can deal this situation with
+    the following methods:
+
+    - ``"linear_interp"``: using linear interpolation to get the delay value
+      at the required time (default).
+    - ``"round"``: round the time to make it is the integer times of the time step. For
+      the above situation, we will use the time at ``t-0.5`` to approximate the delay data
+      at ``t-0.53``.
+
+    .. versionadded:: 2.1.1
   """
 
   def __init__(
@@ -94,6 +111,7 @@ class FixedLenDelay(AbstractDelay):
       dt: Union[float, int] = None,
       name: str = None,
       dtype=None,
+      interp_method='linear_interp',
   ):
     super(FixedLenDelay, self).__init__(name=name)
 
@@ -107,15 +125,21 @@ class FixedLenDelay(AbstractDelay):
     check_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
     self._delay_len = delay_len
     self.delay_len = delay_len + self._dt
-    self.num_delay_steps = int(bm.ceil(self.delay_len / self._dt).value)
+    self.num_delay_step = int(bm.ceil(self.delay_len / self._dt).value)
 
-    # other variables
+    # interp method
+    if interp_method not in [_INTERP_LINEAR, _INTERP_ROUND]:
+      raise UnsupportedError(f'Un-supported interpolation method {interp_method}, '
+                             f'we only support: {[_INTERP_LINEAR, _INTERP_ROUND]}')
+    self.interp_method = interp_method
+
+    # time variables
     self._idx = bm.Variable(bm.asarray([0]))
     check_float(t0, 't0', allow_none=False, allow_int=True, )
     self._current_time = bm.Variable(bm.asarray([t0]))
 
     # delay data
-    self._data = bm.Variable(bm.zeros((self.num_delay_steps,) + self.shape, dtype=dtype))
+    self._data = bm.Variable(bm.zeros((self.num_delay_step,) + self.shape, dtype=dtype))
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
     elif callable(before_t0):
@@ -129,7 +153,7 @@ class FixedLenDelay(AbstractDelay):
       except:
         raise ValueError(f'Cannot set delay data by using "before_t0". '
                          f'The delay data has the shape of '
-                         f'{((self.num_delay_steps,) + self.shape)}, while '
+                         f'{((self.num_delay_step,) + self.shape)}, while '
                          f'we got "before_t0" of {bm.asarray(before_t0).shape}. '
                          f'They are not compatible. Note that the delay length '
                          f'{self._delay_len} will automatically add a dt {self.dt} '
@@ -188,17 +212,25 @@ class FixedLenDelay(AbstractDelay):
     if self._before_type == _FUNC_BEFORE:
       return cond(prev_time < self.t0,
                   self._before_t0,
-                  self._fn1,
+                  self._after_t0,
                   prev_time)
     else:
-      return self._fn1(prev_time)
+      return self._after_t0(prev_time)
 
-  def _fn1(self, prev_time):
+  def _after_t0(self, prev_time):
     diff = self.delay_len - (self.current_time - prev_time)
     if isinstance(diff, bm.ndarray): diff = diff.value
-    req_num_step = jnp.asarray(diff / self._dt, dtype=bm.get_dint())
-    extra = diff - req_num_step * self._dt
-    return cond(extra == 0., self._true_fn, self._false_fn, (req_num_step, extra))
+
+    if self.interp_method == _INTERP_LINEAR:
+      req_num_step = jnp.asarray(diff / self._dt, dtype=bm.get_dint())
+      extra = diff - req_num_step * self._dt
+      return cond(extra == 0., self._true_fn, self._false_fn, (req_num_step, extra))
+    elif self.interp_method == _INTERP_ROUND:
+      req_num_step = jnp.asarray(jnp.round(diff / self._dt), dtype=bm.get_dint())
+      return self._true_fn([req_num_step, 0.])
+    else:
+      raise UnsupportedError(f'Un-supported interpolation method {self.interp_method}, '
+                             f'we only support: {[_INTERP_LINEAR, _INTERP_ROUND]}')
 
   def _true_fn(self, div_mod):
     req_num_step, extra = div_mod
@@ -211,14 +243,13 @@ class FixedLenDelay(AbstractDelay):
       f = vmap(f, in_axes=(None, None, dim), out_axes=dim - 1)
     idx = jnp.asarray([self.idx[0] + req_num_step,
                        self.idx[0] + req_num_step + 1])
-    idx %= self.num_delay_steps
+    idx %= self.num_delay_step
     return f(extra, jnp.asarray([0., self._dt]), self._data[idx])
 
   def update(self, time, value):
     self._data[self._idx[0]] = value
-    # check_float(time, 'time', allow_none=False, allow_int=True)
     self._current_time[0] = time
-    self._idx.value = (self._idx + 1) % self.num_delay_steps
+    self._idx.value = (self._idx + 1) % self.num_delay_step
 
 
 class VariedLenDelay(AbstractDelay):

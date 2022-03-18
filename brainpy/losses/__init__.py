@@ -41,7 +41,7 @@ def _return(outputs, reduction):
 
 
 def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
-  """This criterion combines ``LogSoftmax`` and `NLLLoss`` in one single class.
+  r"""This criterion combines ``LogSoftmax`` and `NLLLoss`` in one single class.
 
   It is useful when training a classification problem with `C` classes.
   If provided, the optional argument :attr:`weight` should be a 1D `Tensor`
@@ -120,7 +120,7 @@ def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
 
 
 def cross_entropy_sparse(logits, labels):
-  """Computes the softmax cross-entropy loss.
+  r"""Computes the softmax cross-entropy loss.
 
   Args:
       logits: (batch, ..., #class) tensor of logits.
@@ -155,7 +155,7 @@ def cross_entropy_sigmoid(logits, labels):
 
 
 def l1_loos(logits, targets, reduction='sum'):
-  """Creates a criterion that measures the mean absolute error (MAE) between each element in
+  r"""Creates a criterion that measures the mean absolute error (MAE) between each element in
   the logits :math:`x` and targets :math:`y`. It is useful in regression problems.
 
   The unreduced (i.e. with :attr:`reduction` set to ``'none'``) loss can be described as:
@@ -207,7 +207,7 @@ def l1_loos(logits, targets, reduction='sum'):
 
 
 def l2_loss(predicts, targets):
-  """Computes the L2 loss.
+  r"""Computes the L2 loss.
 
   The 0.5 term is standard in "Pattern Recognition and Machine Learning"
   by Bishop [1]_, but not "The Elements of Statistical Learning" by Tibshirani.
@@ -246,7 +246,7 @@ def l2_norm(x):
 
 
 def mean_absolute_error(x, y, axis=None):
-  """Computes the mean absolute error between x and y.
+  r"""Computes the mean absolute error between x and y.
 
   Args:
       x: a tensor of shape (d0, .. dN-1).
@@ -261,7 +261,7 @@ def mean_absolute_error(x, y, axis=None):
 
 
 def mean_squared_error(predicts, targets, axis=None):
-  """Computes the mean squared error between x and y.
+  r"""Computes the mean squared error between x and y.
 
   Args:
       predicts: a tensor of shape (d0, .. dN-1).
@@ -276,7 +276,7 @@ def mean_squared_error(predicts, targets, axis=None):
 
 
 def mean_squared_log_error(y_true, y_pred, axis=None):
-  """Computes the mean squared logarithmic error between y_true and y_pred.
+  r"""Computes the mean squared logarithmic error between y_true and y_pred.
 
   Args:
       y_true: a tensor of shape (d0, .. dN-1).
@@ -291,7 +291,7 @@ def mean_squared_log_error(y_true, y_pred, axis=None):
 
 
 def huber_loss(predicts, targets, delta: float = 1.0):
-  """Huber loss.
+  r"""Huber loss.
 
   Huber loss is similar to L2 loss close to zero, L1 loss away from zero.
   If gradient descent is applied to the `huber loss`, it is equivalent to
@@ -353,7 +353,7 @@ def multiclass_logistic_loss(label: int, logits: jn.ndarray) -> float:
 
 
 def smooth_labels(labels, alpha: float) -> jn.ndarray:
-  """Apply label smoothing.
+  r"""Apply label smoothing.
   Label smoothing is often used in combination with a cross-entropy loss.
   Smoothed labels favour small logit gaps, and it has been shown that this can
   provide better model calibration by preventing overconfident predictions.
@@ -411,7 +411,7 @@ def softmax_cross_entropy(logits, labels):
 
 
 def log_cosh(predicts, targets=None, ):
-  """Calculates the log-cosh loss for a set of predictions.
+  r"""Calculates the log-cosh loss for a set of predictions.
 
   log(cosh(x)) is approximately `(x**2) / 2` for small x and `abs(x) - log(2)`
   for large x.  It is a twice differentiable alternative to the Huber loss.

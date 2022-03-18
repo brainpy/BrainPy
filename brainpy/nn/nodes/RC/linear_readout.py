@@ -42,8 +42,8 @@ class LinearReadout(Dense):
     state = bm.Variable(bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_))
     self.set_state(state)
 
-  def forward(self, ff, fb=None, **kwargs):
-    self.state.value = super(LinearReadout, self).forward(ff, fb=fb, **kwargs)
+  def forward(self, ff, fb=None, **shared_kwargs):
+    self.state.value = super(LinearReadout, self).forward(ff, fb=fb, **shared_kwargs)
     return self.state
 
   def __force_init__(self, train_pars: Optional[Dict] = None):

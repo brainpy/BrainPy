@@ -15,6 +15,11 @@ __all__ = [
 
 
 class DynamicalSystem(dyn.DynamicalSystem):
+  """Dynamical System.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.DynamicalSystem" instead.
+  """
   def __init__(self, *args, **kwargs):
     warnings.warn('Please use "brainpy.dyn.DynamicalSystem" instead. '
                   '"brainpy.DynamicalSystem" is deprecated since '
@@ -23,6 +28,11 @@ class DynamicalSystem(dyn.DynamicalSystem):
 
 
 class Container(dyn.Container):
+  """Container.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.Container" instead.
+  """
   def __init__(self, *args, **kwargs):
     warnings.warn('Please use "brainpy.dyn.Container" instead. '
                   '"brainpy.Container" is deprecated since '
@@ -31,6 +41,11 @@ class Container(dyn.Container):
 
 
 class Network(dyn.Network):
+  """Network.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.Network" instead.
+  """
   def __init__(self, *args, **kwargs):
     warnings.warn('Please use "brainpy.dyn.Network" instead. '
                   '"brainpy.Network" is deprecated since '
@@ -39,6 +54,11 @@ class Network(dyn.Network):
 
 
 class ConstantDelay(dyn.ConstantDelay):
+  """Constant Delay.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.ConstantDelay" instead.
+  """
   def __init__(self, *args, **kwargs):
     warnings.warn('Please use "brainpy.dyn.ConstantDelay" instead. '
                   '"brainpy.ConstantDelay" is deprecated since '
@@ -47,6 +67,11 @@ class ConstantDelay(dyn.ConstantDelay):
 
 
 class NeuGroup(dyn.NeuGroup):
+  """Neuron group.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.NeuGroup" instead.
+  """
   def __init__(self, *args, **kwargs):
     warnings.warn('Please use "brainpy.dyn.NeuGroup" instead. '
                   '"brainpy.NeuGroup" is deprecated since '
@@ -55,6 +80,11 @@ class NeuGroup(dyn.NeuGroup):
 
 
 class TwoEndConn(dyn.TwoEndConn):
+  """Two-end synaptic connection.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.TwoEndConn" instead.
+  """
   def __init__(self, *args, **kwargs):
     warnings.warn('Please use "brainpy.dyn.TwoEndConn" instead. '
                   '"brainpy.TwoEndConn" is deprecated since '

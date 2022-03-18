@@ -215,7 +215,7 @@ class Reservoir(RecurrentNode):
       if self.trainable:
         self.Wfb = bm.TrainVar(self.Wfb)
 
-  def forward(self, ff, fb=None, **kwargs):
+  def forward(self, ff, fb=None, **shared_kwargs):
     """Feedforward output."""
     # inputs
     x = bm.concatenate(ff, axis=-1)

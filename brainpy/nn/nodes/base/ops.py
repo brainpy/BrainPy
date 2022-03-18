@@ -29,7 +29,7 @@ class Concat(Node):
     out_size.insert(self.axis, sum(free_shapes))
     self.set_output_shape(out_size)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return bm.concatenate(ff, axis=self.axis)
 
 
@@ -49,7 +49,7 @@ class Select(Node):
     out_size = bm.zeros(self.feedforward_shapes[1:])[self.index].shape
     self.set_output_shape((None, ) + out_size)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return ff[..., self.index]
 
 
@@ -84,7 +84,7 @@ class Reshape(Node):
       out_size = self.shape
     self.set_output_shape((None, ) + out_size)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return bm.reshape(ff, self.shape)
 
 
@@ -101,7 +101,7 @@ class Summation(Node):
     unique_shape, _ = check_shape_consistency(self.feedforward_shapes, None, True)
     self.set_output_shape(list(unique_shape))
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     res = ff[0]
     for v in ff[1:]:
       res = res + v

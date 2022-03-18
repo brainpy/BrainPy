@@ -2,7 +2,6 @@
 
 from functools import partial
 
-import matplotlib.pyplot as plt
 import numpy as np
 from jax import numpy as jnp
 from jax.scipy.optimize import minimize
@@ -11,6 +10,8 @@ import brainpy.math as bm
 from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
 from brainpy.base.collector import Collector
+
+pyplot = None
 
 __all__ = [
   'LowDimAnalyzer',
@@ -207,7 +208,10 @@ class LowDimAnalyzer(object):
     self.analyzed_results = tools.DictPlus()
 
   def show_figure(self):
-    plt.show()
+    global pyplot
+    if pyplot is None:
+      from matplotlib import pyplot
+    pyplot.show()
 
 
 class Num1DAnalyzer(LowDimAnalyzer):

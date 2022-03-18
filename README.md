@@ -263,11 +263,10 @@ analyzer.show_figure()
 </p> 
 
 
+
 ### 6. More others
 
 For **more functions and examples**, please refer to the [documentation](https://brainpy.readthedocs.io/) and [examples](https://brainpy-examples.readthedocs.io/).
-
-
 
 
 ## License
