@@ -5,9 +5,9 @@ name: Windows CI
 
 on:
   push:
-    branches: [ master, brainpy-2.x ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, brainpy-2.x ]
+    branches: [ master ]
 
 
 jobs:
