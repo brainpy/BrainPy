@@ -714,7 +714,7 @@ class GIF(NeuGroup):
     self.I1 = bm.Variable(bm.zeros(self.num))
     self.I2 = bm.Variable(bm.zeros(self.num))
     self.V_th = bm.Variable(bm.ones(self.num) * -50.)
-    self.V = bm.Variable(bm.zeros(self.num))
+    self.V = bm.Variable(bm.zeros(self.num) - 70.)
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
