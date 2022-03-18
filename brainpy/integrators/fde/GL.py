@@ -123,7 +123,7 @@ class GLShortMemory(FDEIntegrator):
     super(GLShortMemory, self).__init__(f=f, alpha=alpha, dt=dt, name=name)
 
     # fractional order
-    if not jnp.all(jnp.logical_and(self.alpha < 1, self.alpha > 0)):
+    if not jnp.all(jnp.logical_and(self.alpha <= 1, self.alpha > 0)):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
 
@@ -132,11 +132,11 @@ class GLShortMemory(FDEIntegrator):
     self.num_memory = num_memory
 
     # initial values
-    inits = check_inits(inits, self.variables)
+    self.inits = check_inits(inits, self.variables)
 
     # delays
     self.delays = {}
-    for key, val in inits.items():
+    for key, val in self.inits.items():
       delay = bm.Variable(bm.zeros((self.num_memory,) + val.shape, dtype=bm.float_))
       delay[0] = val
       self.delays[key] = delay

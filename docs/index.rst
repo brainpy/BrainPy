@@ -7,7 +7,8 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
 - **JIT compilation** and **automatic differentiation** for class objects.
 - **Numerical methods** for ordinary differential equations (ODEs),
   stochastic differential equations (SDEs),
-  delay differential equations (DDEs), etc.
+  delay differential equations (DDEs),
+  fractional differential equations (FDEs), etc.
 - **Dynamics simulation** tools for various brain objects, like
   neurons, synapses, networks, soma, dendrites, channels, and even more.
 - **Dynamics training** tools with various machine learning algorithms,
