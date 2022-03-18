@@ -32,7 +32,6 @@ setup(
     'numpy>=1.15',
     'jax>=0.2.10',
     'tqdm',
-    'matplotlib',
   ],
   extras_require={
     'cpu': ['jaxlib>=0.1.64', 'brainpylib>=0.03'],
