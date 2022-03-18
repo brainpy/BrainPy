@@ -64,6 +64,7 @@ The code of BrainPy is open-sourced at GitHub:
    tutorial_toolbox/synaptic_weights
    tutorial_toolbox/optimizers
    tutorial_toolbox/runners
+   tutorial_toolbox/inputs
    tutorial_toolbox/monitors
    tutorial_toolbox/saving_and_loading
 
