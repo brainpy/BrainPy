@@ -875,12 +875,19 @@ class Network(Node):
     This function will be called only once."""
     # input shapes of entry nodes
     for node in self.entry_nodes:
+      # set ff shapes
       if node.feedforward_shapes is None:
         if self.feedforward_shapes is None:
           raise ValueError('Cannot find the input size. '
                            'Cannot initialize the network.')
         else:
           node.set_feedforward_shapes({node.name: self._feedforward_shapes[node.name]})
+      # set fb shapes
+      if node in self.fb_senders:
+        fb_shapes = {node: node.output_shape for node in self.fb_senders.get(node, [])}
+        if None not in fb_shapes.values():
+          node.set_feedback_shapes(fb_shapes)
+      # init ff conn
       node._init_ff_conn()
 
     # initialize the data
@@ -895,9 +902,15 @@ class Network(Node):
           children_queue.append(child)
     while len(children_queue):
       node = children_queue.pop(0)
-      # initialize input and output sizes
+      # set ff shapes
       parent_sizes = {p: p.output_shape for p in self.ff_senders.get(node, [])}
       node.set_feedforward_shapes(parent_sizes)
+      if node in self.fb_senders:
+        # set fb shapes
+        fb_shapes = {node: node.output_shape for node in self.fb_senders.get(node, [])}
+        if None not in fb_shapes.values():
+          node.set_feedback_shapes(fb_shapes)
+      # init ff conn
       node._init_ff_conn()
       # append children
       for child in self.ff_receivers.get(node, []):
@@ -914,6 +927,15 @@ class Network(Node):
     This function will be called only once."""
     for receiver, senders in self.fb_senders.items():
       fb_sizes = {node: node.output_shape for node in senders}
+      if None in fb_sizes.values():
+        none_size_nodes = [repr(n) for n, v in fb_sizes.items() if v is None]
+        none_size_nodes = "\n".join(none_size_nodes)
+        raise ValueError(f'Output shapes of nodes \n\n'
+                         f'{none_size_nodes}\n\n'
+                         f'have not been initialized, '
+                         f'leading us cannot initialize the '
+                         f'feedback connection of node \n\n'
+                         f'{receiver}')
       receiver.set_feedback_shapes(fb_sizes)
       receiver._init_fb_conn()
 
