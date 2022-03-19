@@ -352,8 +352,8 @@ class Node(Base):
 
   @property
   def is_feedback_input_supported(self):
-    if hasattr(self.init_fb, 'not_implemented'):
-      if self.init_fb.not_implemented:
+    if hasattr(self.init_fb_conn, 'not_implemented'):
+      if self.init_fb_conn.not_implemented:
         return False
     return True
 
@@ -405,10 +405,10 @@ class Node(Base):
     new_obj.name = self.unique_name(name or (self.name + '_copy'))
     return new_obj
 
-  def _init_ff(self):
+  def _init_ff_conn(self):
     if not self._is_ff_initialized:
       try:
-        self.init_ff()
+        self.init_ff_conn()
       except Exception as e:
         raise ModelBuildError(f'{self.name} initialization failed.') from e
       self._is_ff_initialized = True
@@ -416,43 +416,48 @@ class Node(Base):
         raise ValueError(f'Please set the output shape when implementing '
                          f'"init_ff()" of the node {self.name}')
 
-  def _init_fb(self):
+  def _init_fb_conn(self):
     if not self._is_fb_initialized:
       try:
-        self.init_fb()
+        self.init_fb_conn()
       except Exception as e:
         raise ModelBuildError(f"{self.name} initialization failed.") from e
       self._is_fb_initialized = True
 
   @not_implemented
-  def init_fb(self):
+  def init_fb_conn(self):
     """Initialize the feedback connections.
     This function will be called only once."""
     raise ValueError(f'This node \n\n{self} \n\ndoes not support feedback connection.')
 
-  def init_ff(self):
+  def init_ff_conn(self):
     """Initialize the feedforward connections.
     This function will be called only once."""
     raise NotImplementedError('Please implement the feedforward initialization.')
 
-  def init_state(self, num_batch=1):
-    """Initialize the node state.
+  def _init_state(self, num_batch=1):
+    state = self.init_state(num_batch)
+    if state is not None:
+      self.set_state(state)
+
+  def _init_fb_output(self, num_batch=1):
+    output = self.init_fb_output(num_batch)
+    if output is not None:
+      self.set_fb_output(output)
+
+  def init_state(self, num_batch=1) -> Optional[Tensor]:
+    """Set the initial node state.
+
     This function can be called multiple times."""
     pass
 
-  def init_fb_output(self, num_batch=1):
-    """Initialize the node state for feedback.
+  def init_fb_output(self, num_batch=1) -> Optional[Tensor]:
+    """Set the initial node feedback state.
 
     This function can be called multiple times. However,
     it is only triggered when the node has feedback connections.
-
-    Parameters
-    ----------
-    num_batch: int
-      The batch size.
     """
-    state = bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_)
-    self.set_fb_output(state)
+    return bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_)
 
   def initialize(self, num_batch: int):
     """
@@ -470,17 +475,17 @@ class Node(Base):
                        '1. Connecting an instance of "brainpy.nn.Input()" to this node. \n'
                        '2. Providing the "input_shape" when initialize the node.')
     check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
-    self._init_ff()
+    self._init_ff_conn()
 
     # initialize state
-    self.init_state(num_batch)
+    self._init_state(num_batch)
     self._is_state_initialized = True
 
     if self.feedback_shapes is not None:
       # feedback initialization
-      self._init_fb()
+      self._init_fb_conn()
       # initialize feedback state
-      self.init_fb_output(num_batch)
+      self._init_fb_output(num_batch)
       self._is_fb_state_initialized = True
 
   def _check_inputs(self, ff, fb=None):
@@ -865,7 +870,7 @@ class Network(Node):
       for val in shape.values():
         check_batch_shape(val, self.output_shape)
 
-  def init_ff(self):
+  def init_ff_conn(self):
     """Initialize the feedforward connections of the network.
     This function will be called only once."""
     # input shapes of entry nodes
@@ -876,7 +881,7 @@ class Network(Node):
                            'Cannot initialize the network.')
         else:
           node.set_feedforward_shapes({node.name: self._feedforward_shapes[node.name]})
-      node._init_ff()
+      node._init_ff_conn()
 
     # initialize the data
     children_queue = []
@@ -893,7 +898,7 @@ class Network(Node):
       # initialize input and output sizes
       parent_sizes = {p: p.output_shape for p in self.ff_senders.get(node, [])}
       node.set_feedforward_shapes(parent_sizes)
-      node._init_ff()
+      node._init_ff_conn()
       # append children
       for child in self.ff_receivers.get(node, []):
         ff_senders[child].remove(node)
@@ -904,28 +909,28 @@ class Network(Node):
     out_sizes = {node: node.output_shape for node in self.exit_nodes}
     self.set_output_shape(out_sizes)
 
-  def init_fb(self):
+  def init_fb_conn(self):
     """Initialize the feedback connections of the network.
     This function will be called only once."""
     for receiver, senders in self.fb_senders.items():
       fb_sizes = {node: node.output_shape for node in senders}
       receiver.set_feedback_shapes(fb_sizes)
-      receiver._init_fb()
+      receiver._init_fb_conn()
 
-  def init_state(self, num_batch=1):
+  def _init_state(self, num_batch=1):
     """Initialize the states of all children nodes.
     This function can be called multiple times."""
     for node in self.lnodes:
-      node.init_state(num_batch)
+      node._init_state(num_batch)
 
-  def init_fb_output(self, num_batch=1):
+  def _init_fb_output(self, num_batch=1):
     """Initialize the node feedback state.
 
     This function can be called multiple times. However,
     it is only triggered when the node has feedback connections.
     """
     for node in self.feedback_nodes:
-      node.init_fb_output(num_batch)
+      node._init_fb_output(num_batch)
 
   def initialize(self, num_batch: int):
     """
@@ -974,11 +979,11 @@ class Network(Node):
     if self.feedforward_shapes is None:
       raise ValueError('Cannot initialize this node, because we detect '
                        'both "feedforward_shapes" is None. ')
-    check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
-    self._init_ff()
+    check_integer(num_batch, 'num_batch', min_bound=1, allow_none=False)
+    self._init_ff_conn()
 
     # initialize state
-    self.init_state(num_batch)
+    self._init_state(num_batch)
     self._is_state_initialized = True
 
     # set feedback shapes
@@ -991,10 +996,10 @@ class Network(Node):
 
     # feedback initialization
     if self.feedback_shapes is not None:
-      self._init_fb()
+      self._init_fb_conn()
 
     # initialize feedback state
-    self.init_fb_output(num_batch)
+    self._init_fb_output(num_batch)
     self._is_fb_state_initialized = True
 
   def _check_inputs(self, ff, fb=None):
