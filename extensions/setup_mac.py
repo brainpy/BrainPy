@@ -37,7 +37,7 @@ setup(
   include_package_data=True,
   install_requires=["jax", "jaxlib", "pybind11>=2.6, <2.8"],
   extras_require={"test": "pytest"},
-  python_requires='>=3.6',
+  python_requires='>=3.7',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=ext_modules,
   cmdclass={"build_ext": build_ext},
