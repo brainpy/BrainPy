@@ -16,3 +16,8 @@ conda activate py39
 mkdir "build/lib.win-amd64-3.9/brainpylib"
 cp build/win_dll/*  build/lib.win-amd64-3.9/brainpylib
 python setup.py bdist_wheel
+
+conda activate py310
+mkdir "build/lib.win-amd64-3.10/brainpylib"
+cp build/win_dll/*  build/lib.win-amd64-3.10/brainpylib
+python setup.py bdist_wheel

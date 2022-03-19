@@ -92,7 +92,7 @@ setup(
   include_package_data=True,
   install_requires=["jax", "jaxlib"],
   extras_require={"test": "pytest"},
-  python_requires='>=3.6',
+  python_requires='>=3.7',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=[
     Extension("gpu_ops", ['lib/gpu_ops.cc'] + glob.glob("lib/*.cu")),
