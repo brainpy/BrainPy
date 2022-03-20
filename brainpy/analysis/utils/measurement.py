@@ -19,7 +19,8 @@ def _f1(arr, grad, tol):
     length = np.max(data) - np.min(data)
     a = arr[indexes[-2]]
     b = arr[indexes[-1]]
-    if np.abs(a - b) <= tol * length:
+    # TODO: how to choose length threshold, 1e-3?
+    if length > 1e-3 and np.abs(a - b) <= tol * length:
       return indexes[-2:]
   return np.array([-1, -1])
 
