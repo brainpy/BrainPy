@@ -113,6 +113,7 @@ from brainpy.base.collector import Collector
 from brainpy.integrators import constants as C, utils, joint_eq
 from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.ode.base import ODEIntegrator
+from .generic import register_ode_integrator
 
 try:
   import sympy
@@ -506,6 +507,10 @@ class ExponentialEuler(ODEIntegrator):
     return s_df_part
 
 
+register_ode_integrator('exponential_euler', ExponentialEuler)
+register_ode_integrator('exp_euler', ExponentialEuler)
+
+
 class ExpEulerAuto(ODEIntegrator):
   """Exponential Euler method using automatic differentiation.
 
@@ -762,3 +767,7 @@ class ExpEulerAuto(ODEIntegrator):
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]
+
+
+register_ode_integrator('exp_euler_auto', ExpEulerAuto)
+register_ode_integrator('exp_auto', ExpEulerAuto)

@@ -2,6 +2,7 @@
 
 from brainpy.integrators import constants, utils
 from brainpy.integrators.sde.base import SDEIntegrator
+from .generic import register_sde_integrator
 
 __all__ = [
   'SRK1W1',
@@ -175,6 +176,9 @@ class SRK1W1(SDEIntegrator):
       func_name=self.func_name)
 
 
+register_sde_integrator('srk1w1', SRK1W1)
+
+
 class SRK2W1(SDEIntegrator):
   r"""Order 1.5 Strong SRK Methods for SDEs with Scalar Noise.
 
@@ -315,6 +319,9 @@ class SRK2W1(SDEIntegrator):
       func_name=self.func_name)
 
 
+register_sde_integrator('srk2w1', SRK2W1)
+
+
 class KlPl(SDEIntegrator):
   def __init__(self, f, g, dt=None, name=None, show_code=False,
                var_type=None, intg_type=None, wiener_type=None):
@@ -354,7 +361,7 @@ class KlPl(SDEIntegrator):
       self.code_lines.append(f'  {var}_g1 = -{var}_I1 + {var}_I11/dt_sqrt + {var}_I10/{constants.DT}')
       self.code_lines.append(f'  {var}_g2 = {var}_I11 / dt_sqrt')
       self.code_lines.append(f'  {var}_new = {var} + {constants.DT} * {var}_f_H0s1 + '
-                        f'{var}_g1 * {var}_g_H1s1 + {var}_g2 * {var}_g_H1s2')
+                             f'{var}_g1 * {var}_g_H1s1 + {var}_g2 * {var}_g_H1s2')
       self.code_lines.append('  ')
 
     # returns
@@ -367,3 +374,6 @@ class KlPl(SDEIntegrator):
       code_lines=self.code_lines,
       show_code=self.show_code,
       func_name=self.func_name)
+
+
+register_sde_integrator('klpl', KlPl)

@@ -58,6 +58,7 @@ from brainpy import errors
 from brainpy.integrators import constants as C, utils
 from brainpy.integrators.ode import common
 from brainpy.integrators.ode.base import ODEIntegrator
+from .generic import register_ode_integrator
 
 __all__ = [
   'AdaptiveRKIntegrator',
@@ -239,6 +240,9 @@ class RKF12(AdaptiveRKIntegrator):
   C = [0, 0.5, 1]
 
 
+register_ode_integrator('rkf12', RKF12)
+
+
 class RKF45(AdaptiveRKIntegrator):
   r"""The Runge–Kutta–Fehlberg method for ODEs.
 
@@ -283,6 +287,9 @@ class RKF45(AdaptiveRKIntegrator):
   B1 = ['16/135', 0, '6656/12825', '28561/56430', -0.18, '2/55']
   B2 = ['25/216', 0, '1408/2565', '2197/4104', -0.2, 0]
   C = [0, 0.25, 0.375, '12/13', 1, '1/3']
+
+
+register_ode_integrator('rkf45', RKF45)
 
 
 class DormandPrince(AdaptiveRKIntegrator):
@@ -336,6 +343,9 @@ class DormandPrince(AdaptiveRKIntegrator):
   C = [0, 0.2, 0.3, 0.8, '8/9', 1, 1]
 
 
+register_ode_integrator('rkdp', DormandPrince)
+
+
 class CashKarp(AdaptiveRKIntegrator):
   r"""The Cash–Karp method  for ODEs.
 
@@ -384,6 +394,9 @@ class CashKarp(AdaptiveRKIntegrator):
   C = [0, 0.2, 0.3, 0.6, 1, 0.875]
 
 
+register_ode_integrator('ck', CashKarp)
+
+
 class BogackiShampine(AdaptiveRKIntegrator):
   r"""The Bogacki–Shampine method for ODEs.
 
@@ -427,6 +440,9 @@ class BogackiShampine(AdaptiveRKIntegrator):
   C = [0, 0.5, 0.75, 1]
 
 
+register_ode_integrator('bs', BogackiShampine)
+
+
 class HeunEuler(AdaptiveRKIntegrator):
   r"""The Heun–Euler method for ODEs.
 
@@ -457,6 +473,9 @@ class HeunEuler(AdaptiveRKIntegrator):
   C = [0, 1]
 
 
+register_ode_integrator('heun_euler', HeunEuler)
+
+
 class DOP853(AdaptiveRKIntegrator):
   # def DOP853(f=None, tol=None, adaptive=None, dt=None, show_code=None, each_var_is_scalar=None):
   r"""The DOP853 method for ODEs.
@@ -484,9 +503,12 @@ class BoSh3(AdaptiveRKIntegrator):
 
   """
   A = [(),
-       (0.5, ),
+       (0.5,),
        (0.0, 0.75),
        ('2/9', '1/3', '4/9')]
   B1 = ['2/9', '1/3', '4/9', 0.0]
-  B2 = ['-5/72', 1/12, '1/9', '-1/8']
+  B2 = ['-5/72', 1 / 12, '1/9', '-1/8']
   C = [0., 0.5, 0.75, 1.0]
+
+
+register_ode_integrator('BoSh3', BoSh3)
