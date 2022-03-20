@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .base import SDEIntegrator
-from .normal import *
-from .srk_scalar import *
 
 __all__ = [
   'sdeint',

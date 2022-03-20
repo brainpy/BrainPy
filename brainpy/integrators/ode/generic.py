@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .base import ODEIntegrator
-from .adaptive_rk import *
-from .explicit_rk import *
-from .exponential import *
 
 __all__ = [
   'odeint',
