@@ -2,6 +2,7 @@
 
 import jax.numpy as jnp
 import numpy as np
+from brainpy.tools.others import numba_jit
 
 
 __all__ = [
@@ -10,7 +11,7 @@ __all__ = [
 ]
 
 
-# @tools.numba_jit
+@numba_jit
 def _f1(arr, grad, tol):
   condition = np.logical_and(grad[:-1] * grad[1:] <= 0, grad[:-1] >= 0)
   indexes = np.where(condition)[0]
