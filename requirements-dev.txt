@@ -1,5 +1,6 @@
 -r requirements.txt
 
+numba
 matplotlib>=3.4
 jaxlib>=0.1.64
 sympy>=1.6

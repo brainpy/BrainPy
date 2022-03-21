@@ -44,7 +44,7 @@ class Dropout(Node):
     self.prob = prob
     self.rng = bm.random.RandomState(seed=seed)
 
-  def init_ff(self):
+  def init_ff_conn(self):
     self.set_output_shape(self.feedforward_shapes)
 
   def forward(self, ff, **shared_kwargs):

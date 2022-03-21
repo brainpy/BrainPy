@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .base import ODEIntegrator
-from .adaptive_rk import *
-from .explicit_rk import *
-from .exponential import *
 
 __all__ = [
   'odeint',
@@ -14,31 +11,6 @@ __all__ = [
 ]
 
 name2method = {
-  # explicit RK
-  'euler': Euler, 'Euler': Euler,
-  'midpoint': MidPoint, 'MidPoint': MidPoint,
-  'heun2': Heun2, 'Heun2': Heun2,
-  'ralston2': Ralston2, 'Ralston2': Ralston2,
-  'rk2': RK2, 'RK2': RK2,
-  'rk3': RK3, 'RK3': RK3,
-  'heun3': Heun3, 'Heun3': Heun3,
-  'ralston3': Ralston3, 'Ralston3': Ralston3,
-  'ssprk3': SSPRK3, 'SSPRK3': SSPRK3,
-  'rk4': RK4, 'RK4': RK4,
-  'ralston4': Ralston4, 'Ralston4': Ralston4,
-  'rk4_38rule': RK4Rule38, 'RK4Rule38': RK4Rule38,
-
-  # adaptive RK
-  'rkf12': RKF12, 'RKF12': RKF12,
-  'rkf45': RKF45, 'RKF45': RKF45,
-  'rkdp': DormandPrince, 'dp': DormandPrince, 'DormandPrince': DormandPrince,
-  'ck': CashKarp, 'CashKarp': CashKarp,
-  'bs': BogackiShampine, 'BogackiShampine': BogackiShampine,
-  'heun_euler': HeunEuler, 'HeunEuler': HeunEuler,
-
-  # exponential integrators
-  'exponential_euler': ExponentialEuler, 'exp_euler': ExponentialEuler, 'ExponentialEuler': ExponentialEuler,
-  'exp_euler_auto': ExpEulerAuto, 'exp_auto': ExpEulerAuto, 'ExpEulerAuto': ExpEulerAuto,
 }
 
 _DEFAULT_DDE_METHOD = 'euler'
@@ -134,7 +106,7 @@ def register_ode_integrator(name, integrator):
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in ODE integrators.')
-  if ODEIntegrator not in integrator.__bases__:
+  if not issubclass(integrator, ODEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {ODEIntegrator.__name__}')
   name2method[name] = integrator
 

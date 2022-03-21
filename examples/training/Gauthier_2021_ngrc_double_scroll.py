@@ -132,7 +132,7 @@ trainer = bp.nn.RidgeTrainer(model, beta=1e-5)
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 trainer.fit([X_train, {'readout': dX_train}])
-plot_weights(di.weights.numpy(), di.bias.numpy(), r.comb_ids.numpy())
+plot_weights(di.Wff.numpy(), di.bias.numpy(), r.comb_ids.numpy())
 
 # prediction
 model = bm.jit(model)

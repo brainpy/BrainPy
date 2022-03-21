@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .base import SDEIntegrator
-from .normal import *
-from .srk_scalar import *
 
 __all__ = [
   'sdeint',
@@ -13,15 +11,6 @@ __all__ = [
 ]
 
 name2method = {
-  'euler': Euler, 'Euler': Euler,
-  'heun': Heun, 'Heun': Heun,
-  'milstein': Milstein, 'Milstein': Milstein,
-  'exponential_euler': ExponentialEuler, 'exp_euler': ExponentialEuler, 'ExponentialEuler': ExponentialEuler,
-
-  # RK methods
-  'srk1w1': SRK1W1, 'SRK1W1': SRK1W1,
-  'srk2w1': SRK2W1, 'SRK2W1': SRK2W1,
-  'klpl': KlPl, 'KlPl': KlPl,
 }
 
 _DEFAULT_SDE_METHOD = 'euler'
@@ -98,7 +87,7 @@ def register_sde_integrator(name, integrator):
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in SDE integrators.')
-  if SDEIntegrator not in integrator.__bases__:
+  if not issubclass(integrator, SDEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {SDEIntegrator.__name__}')
   name2method[name] = integrator
 

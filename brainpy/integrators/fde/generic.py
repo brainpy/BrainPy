@@ -82,7 +82,7 @@ def register_fde_integrator(name, integrator):
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in ODE integrators.')
-  if FDEIntegrator not in integrator.__bases__:
+  if not issubclass(integrator, FDEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {FDEIntegrator.__name__}')
   name2method[name] = integrator
 
