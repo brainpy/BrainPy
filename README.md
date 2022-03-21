@@ -147,16 +147,18 @@ runner.run(100.)
 
 
 
-Numerical methods for delay differential equations (SDEs). 
+Numerical methods for delay differential equations (SDEs).
 
 ```python
-xdelay = bm.FixedLenDelay(1, delay_len=1., before_t0=1., dt=0.01)
+xdelay = bm.TimeDelay(1, delay_len=1., before_t0=1., dt=0.01)
+
 
 @bp.ddeint(method='rk4', state_delays={'x': xdelay})
 def second_order_eq(x, y, t):
-    dx = y
-    dy = -y - 2*x - 0.5*xdelay(t-1)
-    return dx, dy
+  dx = y
+  dy = -y - 2 * x - 0.5 * xdelay(t - 1)
+  return dx, dy
+
 
 runner = bp.integrators.IntegratorRunner(second_order_eq, dt=0.01)
 runner.run(100.)

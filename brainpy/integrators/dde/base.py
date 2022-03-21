@@ -25,7 +25,7 @@ class DDEIntegrator(Integrator):
       dt: Union[float, int] = None,
       name: str = None,
       show_code: bool = False,
-      state_delays: Dict[str, bm.FixedLenDelay] = None,
+      state_delays: Dict[str, bm.TimeDelay] = None,
       neutral_delays: Dict[str, bm.NeutralDelay] = None,
   ):
     dt = bm.get_dt() if dt is None else dt
@@ -59,7 +59,7 @@ class DDEIntegrator(Integrator):
     # delays
     self._state_delays = dict()
     if state_delays is not None:
-      check_dict_data(state_delays, key_type=str, val_type=bm.FixedLenDelay)
+      check_dict_data(state_delays, key_type=str, val_type=bm.TimeDelay)
       for key, delay in state_delays.items():
         if key not in self.variables:
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')

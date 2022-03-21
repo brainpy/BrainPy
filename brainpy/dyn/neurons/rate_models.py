@@ -211,7 +211,7 @@ class FeedbackFHN(NeuGroup):
     # variables
     self.w = bm.Variable(bm.zeros(self.num))
     self.V = bm.Variable(bm.zeros(self.num))
-    self.Vdelay = bm.FixedLenDelay(self.num, self.delay, interp_method='round')
+    self.Vdelay = bm.TimeDelay(self.num, self.delay, interp_method='round')
     self.input = bm.Variable(bm.zeros(self.num))
 
     # integral
