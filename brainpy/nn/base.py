@@ -1012,7 +1012,7 @@ class Network(Node):
     if not self._is_fb_initialized:
       if len(self.fb_senders) > 0:
         fb_sizes = dict()
-        for sender, _ in self.fb_senders:
+        for sender in self.fb_senders.keys():
           fb_sizes[sender] = sender.output_shape
         self.set_feedforward_shapes(fb_sizes)
 
