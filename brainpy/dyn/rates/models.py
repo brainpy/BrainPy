@@ -6,7 +6,6 @@ from brainpy.types import Parameter, Shape
 from .base import RateModel
 
 __all__ = [
-  ''
 ]
 
 class JansenRitModel(RateModel):
