@@ -1507,10 +1507,10 @@ def vander(x, N=None, increasing=False):
 
 
 def fill_diagonal(a, val):
-  a = _remove_jaxarray(a)
-  assert a.ndim >= 2
+  assert isinstance(a, JaxArray), f'Must be a JaxArray, but got {type(a)}'
+  assert a.ndim >= 2, f'Only support tensor has dimension >= 2, but got {a.shape}'
   i, j = jnp.diag_indices(_min(a.shape[-2:]))
-  return JaxArray(a.at[..., i, j].set(val))
+  a.value = a.value.at[..., i, j].set(val)
 
 
 # indexing funcs
