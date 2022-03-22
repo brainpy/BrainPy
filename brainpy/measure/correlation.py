@@ -146,15 +146,14 @@ def voltage_fluctuation(potentials):
   potentials = bm.as_device_array(potentials)
   num_hist, num_neu = potentials.shape
   var_mean = jnp.mean(_var(potentials, jnp.arange(num_neu)))
-  avg = bm.mean(potentials, axis=1)
-  avg_var = bm.mean(avg * avg) - bm.mean(avg) ** 2
+  avg = jnp.mean(potentials, axis=1)
+  avg_var = jnp.mean(avg * avg) - jnp.mean(avg) ** 2
   return lax.cond(var_mean != 0.,
                   lambda _: avg_var / var_mean,
                   lambda _: 1.,
                   ())
 
 
-@jit
 def matrix_correlation(x, y):
   """Pearson correlation of the lower triagonal of two matrices.
 
@@ -172,17 +171,17 @@ def matrix_correlation(x, y):
   coef: tensor
     Correlation coefficient
   """
-  x = bm.asarray(x)
-  y = bm.asarray(y)
+  x = bm.as_numpy(x)
+  y = bm.as_numpy(y)
   if x.ndim != 2:
     raise ValueError(f'Only support 2d tensor, but we got a tensor '
                      f'with the shape of {x.shape}')
   if y.ndim != 2:
     raise ValueError(f'Only support 2d tensor, but we got a tensor '
                      f'with the shape of {y.shape}')
-  x = x[bm.triu_indices_from(x, k=1)]
-  y = y[bm.triu_indices_from(y, k=1)]
-  cc = bm.corrcoef(x, y)[0, 1]
+  x = x[np.triu_indices_from(x, k=1)]
+  y = y[np.triu_indices_from(y, k=1)]
+  cc = np.corrcoef(x, y)[0, 1]
   return cc
 
 
