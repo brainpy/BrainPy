@@ -3,12 +3,17 @@
 import numpy as np
 
 from brainpy import math as bm
+from brainpy.tools.checking import check_float, check_integer
 
 __all__ = [
   'section_input',
   'constant_input', 'constant_current',
   'spike_input', 'spike_current',
   'ramp_input', 'ramp_current',
+  'wiener_process',
+  'ou_process',
+  'sinusoidal_input',
+  'square_input',
 ]
 
 
@@ -199,4 +204,183 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
 
 
 ramp_current = ramp_input
+
+
+def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
+  """Stimulus sampled from a Wiener process, i.e.
+  drawn from standard normal distribution N(0, sqrt(dt)).
+
+  Parameters
+  ----------
+  duration: float
+    The input duration.
+  dt: float
+    The numerical precision.
+  n: int
+    The variable number.
+  t_start: float
+    The start time.
+  t_end: float
+    The end time.
+  seed: int
+    The noise seed.
+  """
+  dt = bm.get_dt() if dt is None else dt
+  check_float(dt, 'dt', allow_none=False, min_bound=0.)
+  check_integer(n, 'n', allow_none=False, min_bound=0)
+  rng = bm.random.RandomState(seed)
+  t_end = duration if t_end is None else t_end
+  i_start = int(t_start / dt)
+  i_end = int(t_end / dt)
+  noises = rng.standard_normal((i_end - i_start, n)) * bm.sqrt(dt)
+  currents = bm.zeros((int(duration / dt), n))
+  currents[i_start: i_end] = noises
+  return currents
+
+
+def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
+  r"""Ornstein–Uhlenbeck input.
+
+  .. math::
+
+     dX = (mu - X)/\tau * dt + \sigma*dW
+
+  Parameters
+  ----------
+  mean: float
+    Drift of the OU process.
+  sigma: float
+    Standard deviation of the Wiener process, i.e. strength of the noise.
+  tau: float
+    Timescale of the OU process, in ms.
+  duration: float
+    The input duration.
+  dt: float
+    The numerical precision.
+  n: int
+    The variable number.
+  t_start: float
+    The start time.
+  t_end: float
+    The end time.
+
+  """
+  dt = bm.get_dt() if dt is None else dt
+  dt_sqrt = bm.sqrt(dt)
+  check_float(dt, 'dt', allow_none=False, min_bound=0.)
+  check_integer(n, 'n', allow_none=False, min_bound=0)
+  rng = bm.random.RandomState(seed)
+  x = bm.Variable(bm.ones(n) * mean)
+
+  def _f(t):
+    x.value = x + dt * ((mean - x) / tau) + sigma * dt_sqrt * rng.standard_normal(n)
+
+  f = bm.make_loop(_f, dyn_vars=[x, rng], out_vars=x)
+  noises = f(bm.arange(t_start, t_end, dt))
+
+  t_end = duration if t_end is None else t_end
+  i_start = int(t_start / dt)
+  i_end = int(t_end / dt)
+  currents = bm.zeros((int(duration / dt), n))
+  currents[i_start: i_end] = noises
+  return currents
+
+
+def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=None, dc_bias=False):
+  """Sinusoidal input.
+
+  Parameters
+  ----------
+  amplitude: float
+    Amplitude of the sinusoid.
+  frequency: float
+    Frequency of the sinus oscillation, in Hz
+  duration: float
+    The input duration.
+  t_start: float
+    The start time.
+  t_end: float
+    The end time.
+  dt: float
+    The numerical precision.
+  dc_bias: bool
+    Whether the sinusoid oscillates around 0 (False), or
+    has a positive DC bias, thus non-negative (True).
+  """
+  dt = bm.get_dt() if dt is None else dt
+  check_float(dt, 'dt', allow_none=False, min_bound=0.)
+  if t_end is None:
+    t_end = duration
+  times = bm.arange(0, t_end-t_start, dt)
+  start_i = int(t_start/dt)
+  end_i = int(t_end/dt)
+  sin_inputs = amplitude * bm.sin(2 * bm.pi * times * (frequency / 1000.0))
+  if dc_bias:
+    sin_inputs += amplitude
+  currents = bm.zeros(int(duration / dt))
+  currents[start_i:end_i] = sin_inputs
+  return currents
+
+
+def _square(t, duty=0.5):
+  t, w = np.asarray(t), np.asarray(duty)
+  w = np.asarray(w + (t - t))
+  t = np.asarray(t + (w - w))
+  if t.dtype.char in ['fFdD']:
+    ytype = t.dtype.char
+  else:
+    ytype = 'd'
+
+  y = np.zeros(t.shape, ytype)
+
+  # width must be between 0 and 1 inclusive
+  mask1 = (w > 1) | (w < 0)
+  np.place(y, mask1, np.nan)
+
+  # on the interval 0 to duty*2*pi function is 1
+  tmod = np.mod(t, 2 * np.pi)
+  mask2 = (1 - mask1) & (tmod < w * 2 * np.pi)
+  np.place(y, mask2, 1)
+
+  # on the interval duty*2*pi to 2*pi function is
+  #  (pi*(w+1)-tmod) / (pi*(1-w))
+  mask3 = (1 - mask1) & (1 - mask2)
+  np.place(y, mask3, -1)
+  return y
+
+
+def square_input(amplitude, frequency, duration, dt=None, dc_bias=False, t_start=None, t_end=None):
+  """Oscillatory square input.
+
+  Parameters
+  ----------
+  amplitude: float
+    Amplitude of the square oscillation.
+  frequency: float
+    Frequency of the square oscillation, in Hz.
+  duration: float
+    The input duration.
+  t_start: float
+    The start time.
+  t_end: float
+    The end time.
+  dt: float
+    The numerical precision.
+  dc_bias: bool
+    Whether the sinusoid oscillates around 0 (False), or
+    has a positive DC bias, thus non-negative (True).
+  """
+  dt = bm.get_dt() if dt is None else dt
+  check_float(dt, 'dt', allow_none=False, min_bound=0.)
+  if t_end is None:
+    t_end = duration
+  times = bm.arange(0, t_end - t_start, dt)
+  currents = bm.zeros(int(duration / dt))
+  start_i = int(t_start/dt)
+  end_i = int(t_end/dt)
+  sin_inputs = amplitude * _square(2 * bm.pi * times * (frequency / 1000.0))
+  if dc_bias:
+    sin_inputs += amplitude
+  currents[start_i:end_i] = sin_inputs
+  return currents
 
