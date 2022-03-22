@@ -393,25 +393,27 @@ class Bifurcation2D(Num2DAnalyzer):
     # visualization
     if with_plot:
       if plot_style is None: plot_style = dict()
-      fmt = plot_style.pop('fmt', '.')
+      fmt = plot_style.pop('fmt', '*')
 
       if len(self.target_par_names) == 2:
-        for i, var in enumerate(self.target_var_names):
-          pyplot.figure(var)
-          pyplot.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['max'],
-                      **plot_style, label='limit cycle (max)')
-          pyplot.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['min'],
-                      **plot_style, label='limit cycle (min)')
-          pyplot.legend()
+        if len(ps_limit_cycle[0]):
+          for i, var in enumerate(self.target_var_names):
+            pyplot.figure(var)
+            pyplot.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['max'],
+                        **plot_style, label='limit cycle (max)')
+            pyplot.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['min'],
+                        **plot_style, label='limit cycle (min)')
+            pyplot.legend()
 
       elif len(self.target_par_names) == 1:
-        for i, var in enumerate(self.target_var_names):
-          pyplot.figure(var)
-          pyplot.plot(ps_limit_cycle[0], vs_limit_cycle[i]['max'], fmt,
-                      **plot_style, label='limit cycle (max)')
-          pyplot.plot(ps_limit_cycle[0], vs_limit_cycle[i]['min'], fmt,
-                      **plot_style, label='limit cycle (min)')
-          pyplot.legend()
+        if len(ps_limit_cycle[0]):
+          for i, var in enumerate(self.target_var_names):
+            pyplot.figure(var)
+            pyplot.plot(ps_limit_cycle[0], vs_limit_cycle[i]['max'], fmt,
+                        **plot_style, label='limit cycle (max)')
+            pyplot.plot(ps_limit_cycle[0], vs_limit_cycle[i]['min'], fmt,
+                        **plot_style, label='limit cycle (min)')
+            pyplot.legend()
 
       else:
         raise errors.AnalyzerError
