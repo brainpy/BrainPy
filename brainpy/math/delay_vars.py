@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import warnings
-from typing import Union, Callable, Tuple
+from typing import Union, Callable
 
 import jax.numpy as jnp
 import numpy as np
@@ -10,16 +9,16 @@ from jax.experimental.host_callback import id_tap
 from jax.lax import cond
 
 from brainpy import check
-from brainpy import math as bm
 from brainpy.base.base import Base
 from brainpy.errors import UnsupportedError
+from brainpy.math import numpy_ops as ops
+from brainpy.math.jaxarray import ndarray, Variable
+from brainpy.math.setting import get_dt
 from brainpy.tools.checking import check_float, check_integer
-from brainpy.tools.others import to_size
 
 __all__ = [
   'AbstractDelay',
   'TimeDelay',
-  'FixedLenDelay',
   'NeutralDelay',
   'LengthDelay',
 ]
@@ -76,7 +75,7 @@ class TimeDelay(AbstractDelay):
   Parameters
   ----------
   inits: int, sequence of int
-    The delay data shape.
+    The initial delay data.
   t0: float, int
     The zero time.
   delay_len: float, int
@@ -104,35 +103,35 @@ class TimeDelay(AbstractDelay):
       at ``t-0.53``.
 
     .. versionadded:: 2.1.1
+
+  See Also
+  --------
+  LengthDelay
   """
 
   def __init__(
       self,
-      inits: Union[bm.ndarray, jnp.ndarray],
+      inits: Union[ndarray, jnp.ndarray],
       delay_len: Union[float, int],
-      before_t0: Union[Callable, bm.ndarray, jnp.ndarray, float, int] = None,
+      before_t0: Union[Callable, ndarray, jnp.ndarray, float, int] = None,
       t0: Union[float, int] = 0.,
       dt: Union[float, int] = None,
       name: str = None,
-      dtype=None,
       interp_method='linear_interp',
   ):
     super(TimeDelay, self).__init__(name=name)
 
-    # dtype
-    self.dtype = dtype
-
     # shape
-    assert isinstance(inits, (bm.ndarray, np.ndarray)), (f'Must be an instance of brainpy.math.ndarray '
-                                                         f'or jax.numpy.ndarray. But we got {type(inits)}')
-    self.shape = bm.asarray(inits).shape
+    assert isinstance(inits, (ndarray, np.ndarray)), (f'Must be an instance of brainpy.math.ndarray '
+                                                      f'or jax.numpy.ndarray. But we got {type(inits)}')
+    self.shape = inits.shape
 
     # delay_len
     self.t0 = t0
-    self._dt = bm.get_dt() if dt is None else dt
+    self.dt = get_dt() if dt is None else dt
     check_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
     self.delay_len = delay_len
-    self.num_delay_step = int(bm.ceil(self.delay_len / self._dt).value) + 1
+    self.num_delay_step = int(ops.ceil(self.delay_len / self.dt).value) + 1
 
     # interp method
     if interp_method not in [_INTERP_LINEAR, _INTERP_ROUND]:
@@ -141,81 +140,42 @@ class TimeDelay(AbstractDelay):
     self.interp_method = interp_method
 
     # time variables
-    self._idx = bm.Variable(bm.asarray([0]))
+    self.idx = ops.Variable(ops.asarray([0]))
     check_float(t0, 't0', allow_none=False, allow_int=True, )
-    self._current_time = bm.Variable(bm.asarray([t0]))
+    self.current_time = Variable(ops.asarray([t0]))
 
     # delay data
-    self._data = bm.Variable(bm.zeros((self.num_delay_step,) + self.shape, dtype=dtype))
+    self.data = Variable(ops.zeros((self.num_delay_step,) + self.shape,
+                                   dtype=inits.dtype))
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
     elif callable(before_t0):
-      self._before_t0 = lambda t: jnp.asarray(bm.broadcast_to(before_t0(t), self.shape).value,
-                                              dtype=self.dtype)
+      self._before_t0 = lambda t: jnp.asarray(ops.broadcast_to(before_t0(t), self.shape).value,
+                                              dtype=inits.dtype)
       self._before_type = _FUNC_BEFORE
-    elif isinstance(before_t0, (bm.ndarray, jnp.ndarray, float, int)):
+    elif isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
       self._before_type = _DATA_BEFORE
-      self._data[:-1] = before_t0
-      # try:
-      #   pass
-      # except:
-      #   raise ValueError(f'Cannot set delay data by using "before_t0". '
-      #                    f'The delay data has the shape of '
-      #                    f'{((self.num_delay_step,) + self.shape)}, while '
-      #                    f'we got "before_t0" of {bm.asarray(before_t0).shape}. '
-      #                    f'They are not compatible. Note that the delay length '
-      #                    f'{self._delay_len} will automatically add a dt {self.dt} '
-      #                    f'to {self.delay_len}.')
+      self.data[:-1] = before_t0
     else:
       raise ValueError(f'"before_t0" does not support {type(before_t0)}')
     # set initial data
-    self._data[-1] = inits
+    self.data[-1] = inits
 
     # interpolation function
     self.f = jnp.interp
     for dim in range(1, len(self.shape) + 1, 1):
       self.f = vmap(self.f, in_axes=(None, None, dim), out_axes=dim - 1)
 
-  @property
-  def idx(self):
-    return self._idx
-
-  @idx.setter
-  def idx(self, value):
-    raise ValueError('Cannot set "idx" by users.')
-
-  @property
-  def dt(self):
-    return self._dt
-
-  @dt.setter
-  def dt(self, value):
-    raise ValueError('Cannot set "dt" by users.')
-
-  @property
-  def data(self):
-    return self._data
-
-  @data.setter
-  def data(self, value):
-    self._data[:] = value
-
-  @property
-  def current_time(self):
-    return self._current_time[0]
-
   def _check_time(self, times, transforms):
     prev_time, current_time = times
-    current_time = np.asarray(current_time, dtype=bm.float_)
-    prev_time = np.asarray(prev_time, dtype=bm.float_)
-    if prev_time > current_time:
+    if prev_time > current_time + 1e-6:
       raise ValueError(f'\n'
                        f'!!! Error in {self.__class__.__name__}: \n'
                        f'The request time should be less than the '
                        f'current time {current_time}. But we '
                        f'got {prev_time} > {current_time}')
-    lower_time = np.asarray(current_time - self.delay_len)
-    if prev_time < lower_time:
+    lower_time = current_time - self.delay_len
+    if prev_time < lower_time - self.dt:
       raise ValueError(f'\n'
                        f'!!! Error in {self.__class__.__name__}: \n'
                        f'The request time of the variable should be in '
@@ -235,14 +195,14 @@ class TimeDelay(AbstractDelay):
 
   def _after_t0(self, prev_time):
     diff = self.delay_len - (self.current_time - prev_time)
-    if isinstance(diff, bm.ndarray):
+    if isinstance(diff, ndarray):
       diff = diff.value
     if self.interp_method == _INTERP_LINEAR:
-      req_num_step = jnp.asarray(diff / self._dt, dtype=bm.get_dint())
-      extra = diff - req_num_step * self._dt
+      req_num_step = jnp.asarray(diff / self.dt, dtype=ops.int32)
+      extra = diff - req_num_step * self.dt
       return cond(extra == 0., self._true_fn, self._false_fn, (req_num_step, extra))
     elif self.interp_method == _INTERP_ROUND:
-      req_num_step = jnp.asarray(jnp.round(diff / self._dt), dtype=bm.get_dint())
+      req_num_step = jnp.asarray(jnp.round(diff / self.dt), dtype=ops.int32)
       return self._true_fn([req_num_step, 0.])
     else:
       raise UnsupportedError(f'Un-supported interpolation method {self.interp_method}, '
@@ -250,40 +210,19 @@ class TimeDelay(AbstractDelay):
 
   def _true_fn(self, div_mod):
     req_num_step, extra = div_mod
-    return self._data[self.idx[0] + req_num_step]
+    return self.data[self.idx[0] + req_num_step]
 
   def _false_fn(self, div_mod):
     req_num_step, extra = div_mod
     idx = jnp.asarray([self.idx[0] + req_num_step,
                        self.idx[0] + req_num_step + 1])
     idx %= self.num_delay_step
-    return self.f(extra, jnp.asarray([0., self._dt]), self._data[idx])
+    return self.f(extra, jnp.asarray([0., self.dt]), self.data[idx])
 
   def update(self, time, value):
-    self._data[self._idx[0]] = value
-    self._current_time[0] = time
-    self._idx.value = (self._idx + 1) % self.num_delay_step
-
-
-def FixedLenDelay(inits: Union[bm.ndarray, jnp.ndarray],
-                  delay_len: Union[float, int],
-                  before_t0: Union[Callable, bm.ndarray, jnp.ndarray, float, int] = None,
-                  t0: Union[float, int] = 0.,
-                  dt: Union[float, int] = None,
-                  name: str = None,
-                  dtype=None,
-                  interp_method='linear_interp', ):
-  warnings.warn('Please use "brainpy.math.TimeDelay" instead. '
-                '"brainpy.math.FixedLenDelay" is deprecated since version 2.1.2. ',
-                DeprecationWarning)
-  return TimeDelay(inits=inits,
-                   delay_len=delay_len,
-                   before_t0=before_t0,
-                   t0=t0,
-                   dt=dt,
-                   name=name,
-                   dtype=dtype,
-                   interp_method=interp_method)
+    self.data[self.idx[0]] = value
+    self.current_time[0] = time
+    self.idx.value = (self.idx + 1) % self.num_delay_step
 
 
 class NeutralDelay(TimeDelay):
@@ -292,22 +231,37 @@ class NeutralDelay(TimeDelay):
 
 class LengthDelay(AbstractDelay):
   """Delay variable which has a fixed delay length.
+
+  Parameters
+  ----------
+  inits: int, sequence of int
+    The initial delay data.
+  delay_len: int
+    The maximum delay length.
+  delay_data: Tensor
+    The delay data.
+  name: str
+    The delay object name.
+
+  See Also
+  --------
+  TimeDelay
   """
+
   def __init__(
       self,
-      inits: Union[bm.ndarray, jnp.ndarray],
+      inits: Union[ndarray, jnp.ndarray],
       delay_len: int,
-      delay_data: Union[bm.ndarray, jnp.ndarray, float, int] = None,
+      delay_data: Union[ndarray, jnp.ndarray, float, int] = None,
       name: str = None,
-      dtype=None,
   ):
     super(LengthDelay, self).__init__(name=name)
+    self.init(inits, delay_len, delay_data)
 
-    # shape and dtype
-    assert isinstance(inits, (bm.ndarray, np.ndarray)), (f'Must be an instance of brainpy.math.ndarray '
-                                                         f'or jax.numpy.ndarray. But we got {type(inits)}')
+  def init(self, inits, delay_len, delay_data):
+    assert isinstance(inits, (ndarray, np.ndarray)), (f'Must be an instance of brainpy.math.ndarray '
+                                                      f'or jax.numpy.ndarray. But we got {type(inits)}')
     self.shape = inits.shape
-    self.dtype = dtype
 
     # delay_len
     check_integer(delay_len, 'delay_len', allow_none=False, min_bound=0)
@@ -315,35 +269,20 @@ class LengthDelay(AbstractDelay):
     self.num_delay_step = delay_len + 1
 
     # time variables
-    self._idx = bm.Variable(bm.asarray([0], dtype=bm.int_))
+    self.idx = Variable(ops.asarray([0], dtype=ops.int32))
 
     # delay data
-    self._data = bm.Variable(bm.zeros((self.num_delay_step,) + self.shape, dtype=dtype))
+    self.data = Variable(ops.zeros((self.num_delay_step,) + self.shape,
+                                   dtype=inits.dtype))
     if delay_data is None:
       pass
-    elif isinstance(delay_data, (bm.ndarray, jnp.ndarray, float, int)):
-      self._data[:-1] = delay_data
+    elif isinstance(delay_data, (ndarray, jnp.ndarray, float, int)):
+      self.data[:-1] = delay_data
     else:
       raise ValueError(f'"delay_data" does not support {type(delay_data)}')
 
-  @property
-  def idx(self):
-    return self._idx
-
-  @idx.setter
-  def idx(self, value):
-    raise ValueError('Cannot set "idx" by users.')
-
-  @property
-  def data(self):
-    return self._data
-
-  @data.setter
-  def data(self, value):
-    self._data[:-1] = value
-
   def _check_delay(self, delay_len, transforms):
-    if isinstance(delay_len, bm.ndarray):
+    if isinstance(delay_len, ndarray):
       delay_len = delay_len.value
     if np.any(delay_len >= self.num_delay_step):
       raise ValueError(f'\n'
@@ -358,7 +297,7 @@ class LengthDelay(AbstractDelay):
       id_tap(self._check_delay, delay_len)
     # the delay length
     delay_idx = (self.idx[0] - delay_len - 1) % self.num_delay_step
-    if delay_idx.dtype not in [bm.int32, bm.int64]:
+    if delay_idx.dtype not in [ops.int32, ops.int64]:
       raise ValueError(f'"delay_len" must be integer, but we got {delay_len}')
     # the delay data
     if indices is None:
@@ -367,8 +306,7 @@ class LengthDelay(AbstractDelay):
       return self.data[delay_idx, indices]
 
   def update(self, value):
-    if bm.shape(value) != self.shape:
-      raise ValueError(f'value shape should be {self.shape}, but we got {bm.shape(value)}')
-    self._data[self.idx[0]] = value
-    self._idx.value = (self._idx + 1) % self.num_delay_step
-
+    if ops.shape(value) != self.shape:
+      raise ValueError(f'value shape should be {self.shape}, but we got {ops.shape(value)}')
+    self.data[self.idx[0]] = value
+    self.idx.value = (self.idx + 1) % self.num_delay_step
