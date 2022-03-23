@@ -23,13 +23,13 @@ class Concat(Node):
     super(Concat, self).__init__(**kwargs)
     self.axis = axis
 
-  def init_ff(self):
+  def init_ff_conn(self):
     unique_shape, free_shapes = check_shape_consistency(self.feedforward_shapes, self.axis)
     out_size = list(unique_shape)
     out_size.insert(self.axis, sum(free_shapes))
     self.set_output_shape(out_size)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return bm.concatenate(ff, axis=self.axis)
 
 
@@ -45,11 +45,11 @@ class Select(Node):
     if isinstance(index, int):
       self.index = bm.asarray([index]).value
 
-  def init_ff(self):
+  def init_ff_conn(self):
     out_size = bm.zeros(self.feedforward_shapes[1:])[self.index].shape
     self.set_output_shape((None, ) + out_size)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return ff[..., self.index]
 
 
@@ -69,7 +69,7 @@ class Reshape(Node):
     self.shape = tools.to_size(shape)
     assert (None not in self.shape), 'Batch size can not be defined in the reshaped size.'
 
-  def init_ff(self):
+  def init_ff_conn(self):
     in_size = self.feedforward_shapes[1:]
     if -1 in self.shape:
       assert self.shape.count(-1) == 1, f'Cannot set shape with multiple -1. But got {self.shape}'
@@ -84,7 +84,7 @@ class Reshape(Node):
       out_size = self.shape
     self.set_output_shape((None, ) + out_size)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return bm.reshape(ff, self.shape)
 
 
@@ -97,11 +97,11 @@ class Summation(Node):
   def __init__(self, **kwargs):
     super(Summation, self).__init__(**kwargs)
 
-  def init_ff(self):
+  def init_ff_conn(self):
     unique_shape, _ = check_shape_consistency(self.feedforward_shapes, None, True)
     self.set_output_shape(list(unique_shape))
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     res = ff[0]
     for v in ff[1:]:
       res = res + v

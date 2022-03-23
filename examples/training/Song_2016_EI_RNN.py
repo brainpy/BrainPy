@@ -128,17 +128,17 @@ class RNN(bp.dyn.DynamicalSystem):
     self.mask = bm.asarray(mask, dtype=bm.float_)
 
     # input weight
-    self.w_ir = bm.TrainVar(bp.nn.init_param(w_ir, (num_input, num_hidden)))
+    self.w_ir = bm.TrainVar(bp.init.init_param(w_ir, (num_input, num_hidden)))
 
     # recurrent weight
     bound = 1 / num_hidden ** 0.5
-    self.w_rr = bm.TrainVar(bp.nn.init_param(w_rr, (num_hidden, num_hidden)))
+    self.w_rr = bm.TrainVar(bp.init.init_param(w_rr, (num_hidden, num_hidden)))
     self.w_rr[:, :self.e_size] /= (self.e_size / self.i_size)
     self.b_rr = bm.TrainVar(self.rng.uniform(-bound, bound, num_hidden))
 
     # readout weight
     bound = 1 / self.e_size ** 0.5
-    self.w_ro = bm.TrainVar(bp.nn.init_param(w_ro, (self.e_size, num_output)))
+    self.w_ro = bm.TrainVar(bp.init.init_param(w_ro, (self.e_size, num_output)))
     self.b_ro = bm.TrainVar(self.rng.uniform(-bound, bound, num_output))
 
     # variables

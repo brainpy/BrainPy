@@ -25,7 +25,7 @@ class DDEIntegrator(Integrator):
       dt: Union[float, int] = None,
       name: str = None,
       show_code: bool = False,
-      state_delays: Dict[str, bm.FixedLenDelay] = None,
+      state_delays: Dict[str, bm.TimeDelay] = None,
       neutral_delays: Dict[str, bm.NeutralDelay] = None,
   ):
     dt = bm.get_dt() if dt is None else dt
@@ -59,7 +59,9 @@ class DDEIntegrator(Integrator):
     # delays
     self._state_delays = dict()
     if state_delays is not None:
-      check_dict_data(state_delays, key_type=str, val_type=bm.FixedLenDelay)
+      check_dict_data(state_delays,
+                      key_type=str,
+                      val_type=(bm.TimeDelay, bm.LengthDelay))
       for key, delay in state_delays.items():
         if key not in self.variables:
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')
@@ -67,7 +69,9 @@ class DDEIntegrator(Integrator):
     self.register_implicit_nodes(self._state_delays)
     self._neutral_delays = dict()
     if neutral_delays is not None:
-      check_dict_data(neutral_delays, key_type=str, val_type=bm.NeutralDelay)
+      check_dict_data(neutral_delays,
+                      key_type=str,
+                      val_type=bm.NeutralDelay)
       for key, delay in neutral_delays.items():
         if key not in self.variables:
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')
@@ -111,11 +115,19 @@ class DDEIntegrator(Integrator):
       else:
         new_dvars = {k: new_dvars[i] for i, k in enumerate(self.variables)}
       for key, delay in self.neutral_delays.items():
-        delay.update(kwargs['t'] + dt, new_dvars[key])
+        if isinstance(delay, bm.LengthDelay):
+          delay.update(new_dvars[key])
+        elif isinstance(delay, bm.TimeDelay):
+          delay.update(kwargs['t'] + dt, new_dvars[key])
+        raise ValueError('Unknown delay variable.')
 
     # update state delay variables
     for key, delay in self.state_delays.items():
-      delay.update(kwargs['t'] + dt, dict_vars[key])
+      if isinstance(delay, bm.LengthDelay):
+        delay.update(dict_vars[key])
+      elif isinstance(delay, bm.TimeDelay):
+        delay.update(kwargs['t'] + dt, dict_vars[key])
+      raise ValueError('Unknown delay variable.')
 
     return new_vars
 

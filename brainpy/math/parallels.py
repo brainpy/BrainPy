@@ -27,6 +27,7 @@ from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.math.random import RandomState
+from brainpy.math.jaxarray import JaxArray
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -35,29 +36,31 @@ __all__ = [
 ]
 
 
-def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
-               batch_idx, axis_name, reduce_func, f_name=None):
+def _make_vmap(func, nonbatched_vars, batched_vars, in_axes, out_axes,
+               batch_idx, axis_name, f_name=None):
   @functools.partial(jax.vmap, in_axes=in_axes, out_axes=out_axes, axis_name=axis_name)
-  def vmapped_func(dyn_data, rand_data, *args, **kwargs):
-    dyn_vars.assign(dyn_data)
-    rand_vars.assign(rand_data)
+  def vmapped_func(nonbatched_data, batched_data, *args, **kwargs):
+    nonbatched_vars.assign(nonbatched_data)
+    batched_vars.assign(batched_data)
     out = func(*args, **kwargs)
-    dyn_changes = dyn_vars.dict()
-    rand_changes = rand_vars.dict()
-    return out, dyn_changes, rand_changes
+    nonbatched_changes = nonbatched_vars.dict()
+    batched_changes = batched_vars.dict()
+    return nonbatched_changes, batched_changes, out
 
   def call(*args, **kwargs):
-    dyn_data = dyn_vars.dict()
     n = args[batch_idx[0]].shape[batch_idx[1]]
-    rand_data = {key: val.split_keys(n) for key, val in rand_vars.items()}
+    nonbatched_data = nonbatched_vars.dict()
+    batched_data = {key: val.split_keys(n) for key, val in batched_vars.items()}
     try:
-      out, dyn_changes, rand_changes = vmapped_func(dyn_data, rand_data, *args, **kwargs)
+      out, dyn_changes, rand_changes = vmapped_func(nonbatched_data, batched_data, *args, **kwargs)
     except UnexpectedTracerError as e:
-      dyn_vars.assign(dyn_data)
-      rand_vars.assign(rand_data)
-      raise errors.JaxTracerError(variables=dyn_vars) from e
-    for key, v in dyn_changes.items(): dyn_vars[key] = reduce_func(v)
-    for key, v in rand_changes.items(): rand_vars[key] = reduce_func(v)
+      nonbatched_vars.assign(nonbatched_data)
+      batched_vars.assign(batched_data)
+      raise errors.JaxTracerError() from e
+    # for key, v in dyn_changes.items():
+    #   dyn_vars[key] = reduce_func(v)
+    # for key, v in rand_changes.items():
+    #   rand_vars[key] = reduce_func(v)
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
@@ -77,7 +80,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
   ----------
   func : Base, function, callable
     The function or the module to compile.
-  dyn_vars : dict
+  dyn_vars : dict, sequence
   batched_vars : dict
   in_axes : optional, int, sequence of int
     Specify which input array axes to map over. If each positional argument to
@@ -207,13 +210,19 @@ def vmap(func, dyn_vars=None, batched_vars=None,
                       axis_name=axis_name)
 
     else:
+      if isinstance(dyn_vars, JaxArray):
+        dyn_vars = [dyn_vars]
+      if isinstance(dyn_vars, (tuple, list)):
+        dyn_vars = {f'_vmap_v{i}': v for i, v in enumerate(dyn_vars)}
+      assert isinstance(dyn_vars, dict)
+
       # dynamical variables
-      dyn_vars, rand_vars = TensorCollector(), TensorCollector()
+      _dyn_vars, _rand_vars = TensorCollector(), TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
-          rand_vars[key] = val
+          _rand_vars[key] = val
         else:
-          dyn_vars[key] = val
+          _dyn_vars[key] = val
 
       # in axes
       if in_axes is None:
@@ -249,13 +258,12 @@ def vmap(func, dyn_vars=None, batched_vars=None,
 
       # jit function
       return _make_vmap(func=func,
-                        dyn_vars=dyn_vars,
-                        rand_vars=rand_vars,
+                        nonbatched_vars=_dyn_vars,
+                        batched_vars=_rand_vars,
                         in_axes=in_axes,
                         out_axes=out_axes,
                         axis_name=axis_name,
-                        batch_idx=batch_idx,
-                        reduce_func=reduce_func)
+                        batch_idx=batch_idx)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '

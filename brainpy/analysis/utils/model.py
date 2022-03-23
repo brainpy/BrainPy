@@ -49,8 +49,7 @@ def model_transform(model):
   new_model = []
   for intg in model:
     if isinstance(intg.f, JointEq):
-      new_model.extend([type(intg)(eq, var_type=intg.var_type, dt=intg.dt, dyn_var=intg.dyn_var)
-                        for eq in intg.f.eqs])
+      new_model.extend([type(intg)(eq, var_type=intg.var_type, dt=intg.dt) for eq in intg.f.eqs])
     else:
       new_model.append(intg)
 

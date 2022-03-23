@@ -12,7 +12,6 @@ from brainpy.math.jaxarray import Variable
 from .scheduler import make_schedule, Scheduler
 
 __all__ = [
-  # optimizers
   'Optimizer',
   'SGD',
   'Momentum',
@@ -21,6 +20,7 @@ __all__ = [
   'Adadelta',
   'RMSProp',
   'Adam',
+  'LARS',
 ]
 
 
@@ -393,3 +393,57 @@ class Adam(Optimizer):
       # Bias correction.
       p.value -= lr * m.value / (jnp.sqrt(v.value) + self.eps)
     self.lr.update()
+
+
+class LARS(Optimizer):
+  """Layer-wise adaptive rate scaling (LARS) optimizer.
+
+  Parameters
+  ----------
+  momentum: float
+    coefficient used for the moving average of the gradient.
+  weight_decay: float
+    weight decay coefficient.
+  tc: float
+    trust coefficient eta ( < 1) for trust ratio computation.
+  eps: float
+    epsilon used for trust ratio computation.
+  """
+  def __init__(self,
+               lr: Union[float, int, Scheduler],
+               train_vars: Dict[str, Variable]=None,
+               momentum: float = 0.9,
+               weight_decay: float = 1e-4,
+               tc: float = 1e-3,
+               eps: float = 1e-5,
+               name:str=None):
+    super(LARS, self).__init__(lr=lr, train_vars=train_vars, name=name)
+
+    self.momentum = momentum
+    self.weight_decay = weight_decay
+    self.tc = tc
+    self.eps = eps
+
+  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+    train_vars = dict() if train_vars is None else train_vars
+    if not isinstance(train_vars, dict):
+      raise MathError('"train_vars" must be a dict of Variable.')
+    self.vars_to_train.update(train_vars)
+    ms = dict((k + '_m', Variable(ops.zeros_like(x))) for k, x in train_vars.items())
+    self.register_implicit_vars(ms)
+
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    lr = self.lr()
+    for k, p in self.vars_to_train.items():
+      g = grads[k]
+      m = self.implicit_vars[k + '_m']
+      p_norm = jnp.linalg.norm(ops.as_device_array(p))
+      g_norm = jnp.linalg.norm(ops.as_device_array(g))
+      trust_ratio = self.tc * p_norm / (g_norm + self.weight_decay * p_norm + self.eps)
+      local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
+      m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)
+      p.value -= m.value
+    self.lr.update()
+
+

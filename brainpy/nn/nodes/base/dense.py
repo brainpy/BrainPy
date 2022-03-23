@@ -7,8 +7,7 @@ import jax.numpy as jnp
 
 from brainpy import math as bm
 from brainpy.errors import UnsupportedError, MathError
-from brainpy.initialize import XavierNormal, ZeroInit, Initializer
-from brainpy.nn import utils
+from brainpy.initialize import XavierNormal, ZeroInit, Initializer, init_param
 from brainpy.nn.base import Node
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_initializer)
@@ -49,37 +48,60 @@ class Dense(Node):
       **kwargs
   ):
     super(Dense, self).__init__(trainable=trainable, **kwargs)
+
+    # shape
     self.num_unit = num_unit
     if num_unit < 0:
       raise ValueError(f'Received an invalid value for `num_unit`, expected '
                        f'a positive integer. Received: num_unit={num_unit}')
+
+    # weight initializer
     self.weight_initializer = weight_initializer
     self.bias_initializer = bias_initializer
     check_initializer(weight_initializer, 'weight_initializer')
     check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
 
-  def init_ff(self):
-    # shapes
-    in_sizes = [size[1:] for size in self.feedforward_shapes]  # remove batch size
-    unique_shape, free_shapes = check_shape_consistency(in_sizes, -1, True)
-    weight_shape = (sum(free_shapes), self.num_unit)
-    bias_shape = (self.num_unit,)
-    # set output size
-    self.set_output_shape((None, ) + unique_shape + (self.num_unit,))
-    # initialize feedforward weights
-    self.weights = utils.init_param(self.weight_initializer, weight_shape)
-    self.bias = utils.init_param(self.bias_initializer, bias_shape)
-    if self.trainable:
-      self.weights = bm.TrainVar(self.weights)
-      if self.bias is not None:
-        self.bias = bm.TrainVar(self.bias)
+    # weights
+    self.Wff = None
+    self.bias = None
+    self.Wfb = None
 
-  def forward(self, ff: Sequence[Tensor], **kwargs):
-    ff = bm.concatenate(ff, axis=-1)
-    if self.bias is None:
-      return ff @ self.weights
+  def init_ff_conn(self):
+    # shapes
+    other_size, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
+    self._other_size = other_size
+    # set output size  # TODO
+    self.set_output_shape(other_size + (self.num_unit,))
+
+    # initialize feedforward weights
+    self.Wff = init_param(self.weight_initializer, (sum(free_shapes), self.num_unit))
+    self.bias = init_param(self.bias_initializer, (self.num_unit,))
+    if self.trainable:
+      self.Wff = bm.TrainVar(self.Wff)
+      self.bias = bm.TrainVar(self.bias) if (self.bias is not None) else None
+
+  def init_fb_conn(self):
+    other_size, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
+    if self._other_size != other_size:
+      raise ValueError(f'The feedback shape {other_size} is not consistent '
+                       f'with the feedforward shape {self._other_size}')
+
+    # initialize feedforward weights
+    weight_shapes = (sum(free_shapes), self.num_unit)
+    if self.trainable:
+      self.Wfb = bm.TrainVar(init_param(self.weight_initializer, weight_shapes))
     else:
-      return ff @ self.weights + self.bias
+      self.Wfb = init_param(self.weight_initializer, weight_shapes)
+
+  def forward(self, ff: Sequence[Tensor], fb=None, **shared_kwargs):
+    ff = bm.concatenate(ff, axis=-1)
+    res = ff @ self.Wff
+    if fb is not None:
+      fb = bm.concatenate(fb, axis=-1)
+      res += fb @ self.Wfb
+    if self.bias is not None:
+      res += self.bias
+    return res
 
   def __ridge_train__(self,
                       ffs: Sequence[Tensor],
@@ -93,6 +115,7 @@ class Dense(Node):
     Also, the element in ``ffs`` should have the same shape.
 
     """
+    assert self.Wfb is None, 'Currently ridge learning do not support feedback connections.'
 
     # parameters
     if train_pars is None: train_pars = dict()
@@ -119,9 +142,9 @@ class Dense(Node):
     W = bm.linalg.pinv(temp) @ (ffs.T @ targets)
     # assign trained weights
     if self.bias is None:
-      self.weights.value = W
+      self.Wff.value = W
     else:
-      self.weights.value = W[:-1]
+      self.Wff.value = W[:-1]
       self.bias.value = W[-1]
 
   def __force_init__(self, *args, **kwargs):

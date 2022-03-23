@@ -4,9 +4,8 @@
 import jax.lax
 
 import brainpy.math as bm
-from brainpy.initialize import XavierNormal, ZeroInit
+from brainpy.initialize import XavierNormal, ZeroInit, init_param
 from brainpy.nn.base import Node
-from brainpy.nn.utils import init_param
 
 __all__ = [
   'Conv2D',
@@ -81,7 +80,7 @@ class Conv2D(Node):
     self.padding = padding
     self.groups = groups
 
-  def init_ff(self):
+  def init_ff_conn(self):
     assert self.num_input % self.groups == 0, '"nin" should be divisible by groups'
     size = _check_tuple(self.kernel_size) + (self.num_input // self.groups, self.num_output)
     self.w = init_param(self.w_init, size)
@@ -90,7 +89,7 @@ class Conv2D(Node):
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     x = ff[0]
     nin = self.w.value.shape[2] * self.groups
     assert x.shape[1] == nin, (f'Attempting to convolve an input with {x.shape[1]} input channels '

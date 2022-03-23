@@ -21,10 +21,10 @@ class Input(Node):
                name: str = None):
     super(Input, self).__init__(name=name, input_shape=input_shape)
     self.set_feedforward_shapes({self.name: (None,) + to_size(input_shape)})
-    self._ff_init()
+    self._init_ff_conn()
 
-  def init_ff(self):
+  def init_ff_conn(self):
     self.set_output_shape(self.feedforward_shapes)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return ff

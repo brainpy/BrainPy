@@ -93,7 +93,7 @@ class IntegratorRunner(Runner):
     >>> dt = 0.01; beta=2.; gamma=1.; tau=2.; n=9.65
     >>> mg_eq = lambda x, t, xdelay: (beta * xdelay(t - tau) / (1 + xdelay(t - tau) ** n)
     >>>                               - gamma * x)
-    >>> xdelay = bm.FixedLenDelay(1, delay_len=tau, dt=dt, before_t0=lambda t: 1.2)
+    >>> xdelay = bm.TimeDelay(bm.asarray([1.2]), delay_len=tau, dt=dt, before_t0=lambda t: 1.2)
     >>> integral = bp.ddeint(mg_eq, method='rk4', state_delays={'x': xdelay})
     >>> runner = bp.integrators.IntegratorRunner(
     >>>       integral,

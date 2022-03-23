@@ -4,7 +4,7 @@
 import jax.lax
 import jax.numpy as jnp
 import numpy as np
-from jax import grad, jit
+from jax import grad, jit, vmap
 from jax.flatten_util import ravel_pytree
 
 import brainpy.math as bm
@@ -197,7 +197,7 @@ def brentq_candidates(vmap_f, *values, args=()):
 
 def brentq_roots(f, starts, ends, *vmap_args, args=()):
   in_axes = (0, 0, tuple([0] * len(vmap_args)) + tuple([None] * len(args)))
-  vmap_f_opt = bm.jit(bm.vmap(jax_brentq(f), in_axes=in_axes))
+  vmap_f_opt = bm.jit(vmap(jax_brentq(f), in_axes=in_axes))
   all_args = vmap_args + args
   if len(all_args):
     res = vmap_f_opt(starts, ends, all_args)
@@ -397,7 +397,7 @@ def roots_of_1d_by_x(f, candidates, args=()):
     return fps
   starts = candidates[candidate_ids]
   ends = candidates[candidate_ids + 1]
-  f_opt = bm.jit(bm.vmap(jax_brentq(f), in_axes=(0, 0, None)))
+  f_opt = bm.jit(vmap(jax_brentq(f), in_axes=(0, 0, None)))
   res = f_opt(starts, ends, args)
   valid_idx = jnp.where(res['status'] == ECONVERGED)[0]
   fps2 = res['root'][valid_idx]
@@ -406,7 +406,7 @@ def roots_of_1d_by_x(f, candidates, args=()):
 
 def roots_of_1d_by_xy(f, starts, ends, args):
   f = f_without_jaxarray_return(f)
-  f_opt = bm.jit(bm.vmap(jax_brentq(f)))
+  f_opt = bm.jit(vmap(jax_brentq(f)))
   res = f_opt(starts, ends, (args,))
   valid_idx = jnp.where(res['status'] == ECONVERGED)[0]
   xs = res['root'][valid_idx]

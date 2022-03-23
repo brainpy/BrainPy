@@ -8,6 +8,7 @@ from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
 from brainpy.nn.base import Node, Network
+from brainpy.nn.utils import serialize_kwargs
 from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
@@ -40,7 +41,7 @@ class RidgeTrainer(RNNTrainer):
     The target model.
   beta: float
     The regularization coefficient.
-  **kwargs: dict
+  **kwarg
     Other common parameters for :py:class:`brainpy.nn.RNNTrainer``.
   """
 
@@ -58,7 +59,7 @@ class RidgeTrainer(RNNTrainer):
     # train parameters
     self.train_pars = dict(beta=beta)
     # training function
-    self._f_train = None
+    self._f_train = dict()
 
   def fit(
       self,
@@ -67,7 +68,7 @@ class RidgeTrainer(RNNTrainer):
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
       reset=False,
-      shared_args: Dict = None,
+      shared_kwargs: Dict = None,
   ):
     # checking training and testing data
     if not isinstance(train_data, (list, tuple)):
@@ -132,7 +133,7 @@ class RidgeTrainer(RNNTrainer):
     for node in self.train_nodes:
       monitor_data[f'{node.name}.inputs'] = self.mon.item_contents.get(f'{node.name}.inputs', None)
       monitor_data[f'{node.name}.feedbacks'] = self.mon.item_contents.get(f'{node.name}.feedbacks', None)
-    self.f_train(monitor_data, ys)
+    self.f_train(shared_kwargs)(monitor_data, ys)
 
     # close the progress bar
     if self.progress_bar:
@@ -144,22 +145,24 @@ class RidgeTrainer(RNNTrainer):
     if self.true_numpy_mon_after_run:
       self.mon.numpy()
 
-  @property
-  def f_train(self):
-    if self._f_train is None:
-      self._f_train = self._make_fit_func()
-    return self._f_train
+  def f_train(self, shared_kwargs: Dict = None):
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._f_train:
+      self._f_train[shared_kwargs_str] = self._make_fit_func(shared_kwargs)
+    return self._f_train[shared_kwargs_str]
 
-  def _make_fit_func(self):
+  def _make_fit_func(self, shared_kwargs):
+    shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
+
     def train_func(monitor_data: Dict[str, Tensor], target_data: Dict[str, Tensor]):
       for node in self.train_nodes:
         ff = monitor_data[f'{node.name}.inputs']
         fb = monitor_data.get(f'{node.name}.feedbacks', None)
         targets = target_data[node.name]
         if fb is None:
-          node.__ridge_train__(ff, targets, train_pars=self.train_pars)
+          node.__ridge_train__(ff, targets, train_pars=self.train_pars, **shared_kwargs)
         else:
-          node.__ridge_train__(ff, targets, fb, train_pars=self.train_pars)
+          node.__ridge_train__(ff, targets, fb, train_pars=self.train_pars, **shared_kwargs)
         if self.progress_bar:
           id_tap(lambda *args: self._pbar.update(), ())
 

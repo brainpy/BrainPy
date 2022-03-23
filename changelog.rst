@@ -6,6 +6,28 @@ brainpy 2.x (LTS)
 *****************
 
 
+Version 2.1.1 (2022.03.18)
+==========================
+
+This release continues to update the functionality of BrainPy. Core changes include
+
+- numerical solvers for fractional differential equations
+- more standard ``brainpy.nn`` interfaces
+
+
+New Features
+~~~~~~~~~~~~
+
+- Numerical solvers for fractional differential equations
+    - ``brainpy.fde.CaputoEuler``
+    - ``brainpy.fde.CaputoL1Schema``
+    - ``brainpy.fde.GLShortMemory``
+- Fractional neuron models
+    - ``brainpy.dyn.FractionalFHR``
+    - ``brainpy.dyn.FractionalIzhikevich``
+- support ``shared_kwargs`` in `RNNTrainer` and `RNNRunner`
+
+
 Version 2.1.0 (2022.03.14)
 ==========================
 

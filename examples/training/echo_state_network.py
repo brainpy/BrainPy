@@ -66,38 +66,38 @@ def ngrc(num_in=10, num_out=30):
   outputs = trainer.predict(X)
   print(outputs.shape)
   print(bp.losses.mean_absolute_error(outputs, Y))
-  trainer.fit(X, Y)
+  trainer.fit([X, Y])
   outputs = trainer.predict(X)
   print(bp.losses.mean_absolute_error(outputs, Y))
 
 
-def ngrc_bacth(num_in=10, num_out=30):
-  bp.base.clear_name_cache()
-  model = (
-      bp.nn.Input(num_in)
-      >>
-      bp.nn.NVAR(delay=2, order=2, name='l1')
-      >>
-      bp.nn.Dense(num_out, weight_initializer=bp.init.Normal(0.1), trainable=True)
-  )
-  batch_size = 10
-  model.initialize(num_batch=batch_size)
-
-  X = bm.random.random((batch_size, 200, num_in))
-  Y = bm.random.random((batch_size, 200, num_out))
-  trainer = bp.nn.RidgeTrainer(model, beta=1e-6)
-  outputs = trainer.predict(X)
-  # print()
-  # print(trainer.mon['l1.output'].shape)
-  print(bp.losses.mean_absolute_error(outputs, Y))
-  trainer.fit(X, Y)
-  outputs = trainer.predict(X)
-  print(bp.losses.mean_absolute_error(outputs, Y))
+# def ngrc_bacth(num_in=10, num_out=30):
+#   bp.base.clear_name_cache()
+#   model = (
+#       bp.nn.Input(num_in)
+#       >>
+#       bp.nn.NVAR(delay=2, order=2, name='l1')
+#       >>
+#       bp.nn.Dense(num_out, weight_initializer=bp.init.Normal(0.1), trainable=True)
+#   )
+#   batch_size = 10
+#   model.initialize(num_batch=batch_size)
+#
+#   X = bm.random.random((batch_size, 200, num_in))
+#   Y = bm.random.random((batch_size, 200, num_out))
+#   trainer = bp.nn.RidgeTrainer(model, beta=1e-6)
+#   outputs = trainer.predict(X)
+#   # print()
+#   # print(trainer.mon['l1.output'].shape)
+#   print(bp.losses.mean_absolute_error(outputs, Y))
+#   trainer.fit([X, Y])
+#   outputs = trainer.predict(X)
+#   print(bp.losses.mean_absolute_error(outputs, Y))
 
 
 if __name__ == '__main__':
-  # print('ESN')
-  # esn(10, 30)
+  print('ESN')
+  esn(10, 30)
   print('NGRC')
   ngrc(10, 30)
-  ngrc_bacth()
+  # ngrc_bacth()

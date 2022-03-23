@@ -9,4 +9,6 @@ and how to customize your nodes or networks.
 
    node_specification
    node_operations
+   network_training
    node_customization
+   training_customization

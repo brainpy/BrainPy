@@ -65,7 +65,7 @@ trainer.fit(train_data,
 plt.plot(trainer.train_losses.numpy())
 plt.show()
 
-model.init_state(1)
+model.initialize(1)
 x, y = build_inputs_and_targets(batch_size=1)
 predicts = trainer.predict(x)
 

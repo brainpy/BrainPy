@@ -44,11 +44,11 @@ class Dropout(Node):
     self.prob = prob
     self.rng = bm.random.RandomState(seed=seed)
 
-  def init_ff(self):
+  def init_ff_conn(self):
     self.set_output_shape(self.feedforward_shapes)
 
-  def forward(self, ff, **kwargs):
-    if kwargs.get('train', True):
+  def forward(self, ff, **shared_kwargs):
+    if shared_kwargs.get('train', True):
       keep_mask = self.rng.bernoulli(self.prob, ff.shape)
       return bm.where(keep_mask, ff / self.prob, 0.)
     else:

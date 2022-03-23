@@ -23,7 +23,10 @@ def _check_args(args):
 
 
 class Module(Base):
-  """Basic module class."""
+  """Basic module class.
+
+  .. deprecated:: 2.1.0
+  """
 
   @staticmethod
   def get_param(param, size):
@@ -47,7 +50,7 @@ class Module(Base):
   def __init__(self, name=None):  # initialize parameters
     warnings.warn('Please use "brainpy.rnns.Module" instead. '
                   '"brainpy.layers.Module" is deprecated since '
-                  'version 2.0.3.', DeprecationWarning)
+                  'version 2.1.0.', DeprecationWarning)
     super(Module, self).__init__(name=name)
 
   def __call__(self, *args, **kwargs):  # initialize variables

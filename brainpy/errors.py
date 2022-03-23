@@ -101,7 +101,8 @@ class JaxTracerError(MathError):
     else:
       raise ValueError
 
-    msg += 'While there are changed variables which are not wrapped into "dyn_vars". Please check!'
+    # msg += 'While there are changed variables which are not wrapped into "dyn_vars". Please check!'
+    msg = 'While there are changed variables which are not wrapped into "dyn_vars". Please check!'
 
     super(JaxTracerError, self).__init__(msg)
 

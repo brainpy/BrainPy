@@ -3,9 +3,8 @@
 from typing import Optional, Union, Callable
 
 import brainpy.math as bm
-from brainpy.initialize import Normal, ZeroInit, Initializer
+from brainpy.initialize import Normal, ZeroInit, Initializer, init_param
 from brainpy.nn.base import RecurrentNode
-from brainpy.nn.utils import init_param
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_float,
                                     check_initializer,
@@ -158,7 +157,7 @@ class Reservoir(RecurrentNode):
     self.noise_type = noise_type
     check_string(noise_type, 'noise_type', ['normal', 'uniform'])
 
-  def init_ff(self):
+  def init_ff_conn(self):
     """Initialize feedforward connections, weights, and variables."""
     unique_shape, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
     self.set_output_shape(unique_shape + (self.num_unit,))
@@ -197,10 +196,9 @@ class Reservoir(RecurrentNode):
 
   def init_state(self, num_batch=1):
     # initialize internal state
-    state = bm.Variable(bm.zeros((num_batch, self.num_unit), dtype=bm.float_))
-    self.set_state(state)
+    return bm.zeros((num_batch, self.num_unit), dtype=bm.float_)
 
-  def init_fb(self):
+  def init_fb_conn(self):
     """Initialize feedback connections, weights, and variables."""
     if self.feedback_shapes is not None:
       unique_shape, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
@@ -215,7 +213,7 @@ class Reservoir(RecurrentNode):
       if self.trainable:
         self.Wfb = bm.TrainVar(self.Wfb)
 
-  def forward(self, ff, fb=None, **kwargs):
+  def forward(self, ff, fb=None, **shared_kwargs):
     """Feedforward output."""
     # inputs
     x = bm.concatenate(ff, axis=-1)

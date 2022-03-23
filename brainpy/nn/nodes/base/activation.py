@@ -37,8 +37,8 @@ class Activation(Node):
     self._fun_setting = dict() if (fun_setting is None) else fun_setting
     assert isinstance(self._fun_setting, dict), '"fun_setting" must be a dict.'
 
-  def init_ff(self):
+  def init_ff_conn(self):
     self.set_output_shape(self.feedforward_shapes)
 
-  def forward(self, ff, **kwargs):
+  def forward(self, ff, **shared_kwargs):
     return self._activation(ff, **self._fun_setting)

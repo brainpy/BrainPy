@@ -79,7 +79,7 @@ __all__ = [
   'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap', 'take_along_axis',
 
   # others
-  'clip_by_norm', 'as_device_array', 'as_variable', 'as_jaxarray', 'as_numpy',
+  'clip_by_norm', 'as_device_array', 'as_variable', 'as_numpy',
 ]
 
 _min = min
@@ -88,6 +88,10 @@ _max = max
 
 # others
 # ------
+
+# def as_jax_array(tensor):
+#   return asarray(tensor)
+
 
 def as_device_array(tensor):
   if isinstance(tensor, JaxArray):
@@ -109,10 +113,6 @@ def as_numpy(tensor):
 
 def as_variable(tensor):
   return Variable(asarray(tensor))
-
-
-def as_jaxarray(tensor):
-  return asarray(tensor)
 
 
 def _remove_jaxarray(obj):
@@ -1507,10 +1507,10 @@ def vander(x, N=None, increasing=False):
 
 
 def fill_diagonal(a, val):
-  a = _remove_jaxarray(a)
-  assert a.ndim >= 2
+  assert isinstance(a, JaxArray), f'Must be a JaxArray, but got {type(a)}'
+  assert a.ndim >= 2, f'Only support tensor has dimension >= 2, but got {a.shape}'
   i, j = jnp.diag_indices(_min(a.shape[-2:]))
-  return JaxArray(a.at[..., i, j].set(val))
+  a._value = a.value.at[..., i, j].set(val)
 
 
 # indexing funcs

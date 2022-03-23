@@ -167,8 +167,8 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
     assert isinstance(inits, (bm.ndarray, jnp.ndarray))
 
   rng = bm.random.RandomState(seed)
-  xdelay = bm.FixedLenDelay(inits.shape, tau, dt=dt)
-  xdelay.data = inits + 0.2 * (rng.random((xdelay.num_delay_steps,) + inits.shape) - 0.5)
+  xdelay = bm.TimeDelay(inits, tau, dt=dt)
+  xdelay.data = inits + 0.2 * (rng.random((xdelay.num_delay_step,) + inits.shape) - 0.5)
 
   @ddeint(method=method, state_delays={'x': xdelay})
   def mg_eq(x, t):

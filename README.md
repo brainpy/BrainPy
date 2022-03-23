@@ -28,9 +28,9 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 
 
 
-## Install
+## Installation
 
-BrainPy is based on Python (>=3.6) and can be installed on  Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. Install the latest version of BrainPy:
+BrainPy is based on Python (>=3.7) and can be installed on  Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. Install the latest version of BrainPy:
 
 ```bash
 $ pip install brain-py -U
@@ -54,7 +54,121 @@ import brainpy as bp
 
 
 
-**1\. E-I balance network**
+### 1. Operator level
+
+Mathematical operators in BrainPy are the same as those in NumPy. 
+
+```python
+>>> import numpy as np
+>>> import brainpy.math as bm
+
+# array creation
+>>> np_arr = np.zeros((2, 4));  np_arr  
+array([[0., 0., 0., 0.],
+       [0., 0., 0., 0.]])
+>>> bm_arr = bm.zeros((2, 4));  bm_arr
+JaxArray([[0., 0., 0., 0.],
+          [0., 0., 0., 0.]], dtype=float32)
+
+# in-place updating
+>>> np_arr[0] += 1.;  np_arr
+array([[1., 1., 1., 1.],
+       [0., 0., 0., 0.]])
+>>> bm_arr[0] += 1.;  bm_arr
+JaxArray([[1., 1., 1., 1.],
+          [0., 0., 0., 0.]], dtype=float32)
+
+# mathematical functions
+>>> np.sin(np_arr)
+array([[0.84147098, 0.84147098, 0.84147098, 0.84147098],
+       [0.        , 0.        , 0.        , 0.        ]])
+>>> bm.sin(bm_arr)
+JaxArray([[0.84147096, 0.84147096, 0.84147096, 0.84147096],
+          [0.        , 0.        , 0.        , 0.        ]],  dtype=float32)
+
+# linear algebra
+>>> np.dot(np_arr, np.ones((4, 2)))
+array([[4., 4.],
+       [0., 0.]])
+>>> bm.dot(bm_arr, bm.ones((4, 2)))
+JaxArray([[4., 4.],
+          [0., 0.]], dtype=float32)
+
+# random number generation
+>>> np.random.uniform(-0.1, 0.1, (2, 3))
+array([[-0.02773637,  0.03766689, -0.01363128],
+       [-0.01946991, -0.06669802,  0.09426067]])
+>>> bm.random.uniform(-0.1, 0.1, (2, 3))
+JaxArray([[-0.03044081, -0.07787752,  0.04346445],
+          [-0.01366713, -0.0522548 ,  0.04372055]], dtype=float32)
+```
+
+
+
+### 2. Integrator level
+
+Numerical methods for ordinary differential equations (ODEs). 
+
+```python
+sigma = 10; beta = 8/3; rho = 28
+
+@bp.odeint(method='rk4')
+def lorenz_system(x, y, z, t):
+    dx = sigma * (y - x)
+    dy = x * (rho - z) - y
+    dz = x * y - beta * z
+    return dx, dy, dz
+
+runner = bp.integrators.IntegratorRunner(lorenz_system, dt=0.01)
+runner.run(100.)
+```
+
+
+
+Numerical methods for stochastic differential equations (SDEs). 
+
+```python
+sigma = 10; beta = 8/3; rho = 28
+p=0.1
+
+def lorenz_noise(x, y, z, t):
+    return p*x, p*y, p*z
+
+@bp.odeint(method='milstein', g=lorenz_noise)
+def lorenz_system(x, y, z, t):
+    dx = sigma * (y - x)
+    dy = x * (rho - z) - y
+    dz = x * y - beta * z
+    return dx, dy, dz
+
+runner = bp.integrators.IntegratorRunner(lorenz_system, dt=0.01)
+runner.run(100.)
+```
+
+
+
+Numerical methods for delay differential equations (SDEs).
+
+```python
+xdelay = bm.TimeDelay(bm.zeros(1), delay_len=1., before_t0=1., dt=0.01)
+
+
+@bp.ddeint(method='rk4', state_delays={'x': xdelay})
+def second_order_eq(x, y, t):
+  dx = y
+  dy = -y - 2 * x - 0.5 * xdelay(t - 1)
+  return dx, dy
+
+
+runner = bp.integrators.IntegratorRunner(second_order_eq, dt=0.01)
+runner.run(100.)
+```
+
+
+
+### 3. Dynamics simulation level
+
+Building an E-I balance network.
 
 ```python
 class EINet(bp.dyn.Network):
@@ -77,9 +191,36 @@ runner = bp.dyn.DSRunner(net)
 runner(100.)
 ```
 
+Simulating a whole brain network by using rate models.
+
+```python
+import numpy as np
+
+class WholeBrainNet(bp.dyn.Network):
+  def __init__(self, signal_speed=20.):
+    super(WholeBrainNet, self).__init__()
+
+    self.fhn = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+    self.syn = bp.dyn.DiffusiveDelayCoupling(self.fhn, self.fhn,
+                                             'x->input',
+                                             conn_mat=conn_mat,
+                                             delay_mat=delay_mat)
+
+  def update(self, _t, _dt):
+    self.syn.update(_t, _dt)
+    self.fhn.update(_t, _dt)
 
 
-**2\. Echo state network**
+net = WholeBrainNet()
+runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72])
+runner.run(6e3)
+```
+
+
+
+### 4. Dynamics training level
+
+Training an  echo state network.
 
 ```python
 i = bp.nn.Input(3)
@@ -88,16 +229,14 @@ o = bp.nn.LinearReadout(3)
 
 net = i >> r >> o
 
-# Ridge Regression
-trainer = bp.nn.RidgeTrainer(net, beta=1e-5)
+trainer = bp.nn.RidgeTrainer(net, beta=1e-5) # Ridge Regression
 
-# FORCE Learning
-trainer = bp.nn.FORCELearning(net, alpha=1.)
+trainer = bp.nn.FORCELearning(net, alpha=1.) # FORCE Learning
 ```
 
 
 
-**3. Next generation reservoir computing**
+Training a next-generation reservoir computing model.
 
 ```python
 i = bp.nn.Input(3)
@@ -111,7 +250,7 @@ trainer = bp.nn.RidgeTrainer(net, beta=1e-5)
 
 
 
-**4. Recurrent neural network**
+Training an artificial recurrent neural network. 
 
 ```python
 i = bp.nn.Input(3)
@@ -128,7 +267,9 @@ trainer = bp.nn.BPTT(net,
 
 
 
-**5\. Analyzing a low-dimensional FitzHugh–Nagumo neuron model**
+### 5. Dynamics analysis level
+
+Analyzing a low-dimensional FitzHugh–Nagumo neuron model.
 
 ```python
 bp.math.enable_x64()
@@ -149,9 +290,10 @@ analyzer.show_figure()
 </p> 
 
 
+
+### 6. More others
+
 For **more functions and examples**, please refer to the [documentation](https://brainpy.readthedocs.io/) and [examples](https://brainpy-examples.readthedocs.io/).
-
-
 
 
 ## License
