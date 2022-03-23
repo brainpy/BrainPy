@@ -3,6 +3,7 @@
 from functools import partial
 
 import jax.numpy as jnp
+from jax import vmap
 import numpy as np
 
 import brainpy.math as bm
@@ -42,7 +43,7 @@ class Bifurcation1D(Num1DAnalyzer):
   @property
   def F_vmap_dfxdx(self):
     if C.F_vmap_dfxdx not in self.analyzed_results:
-      f = bm.jit(bm.vmap(bm.vector_grad(self.F_fx, argnums=0)), device=self.jit_device)
+      f = bm.jit(vmap(bm.vector_grad(self.F_fx, argnums=0)), device=self.jit_device)
       self.analyzed_results[C.F_vmap_dfxdx] = f
     return self.analyzed_results[C.F_vmap_dfxdx]
 
@@ -159,7 +160,7 @@ class Bifurcation2D(Num2DAnalyzer):
     if C.F_vmap_jacobian not in self.analyzed_results:
       f1 = lambda xy, *args: jnp.array([self.F_fx(xy[0], xy[1], *args),
                                         self.F_fy(xy[0], xy[1], *args)])
-      f2 = bm.jit(bm.vmap(bm.jacobian(f1)), device=self.jit_device)
+      f2 = bm.jit(vmap(bm.jacobian(f1)), device=self.jit_device)
       self.analyzed_results[C.F_vmap_jacobian] = f2
     return self.analyzed_results[C.F_vmap_jacobian]
 

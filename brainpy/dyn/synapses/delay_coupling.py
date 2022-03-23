@@ -193,7 +193,7 @@ class AdditiveDelayCoupling(DelayCoupling):
       variable = getattr(self.pre, var)
 
       # delay function
-      f = bm.vmap(lambda i: delay_var(self.delay_mat[i], bm.arange(self.pre.num)))  # (pre.num,)
+      f = vmap(lambda i: delay_var(self.delay_mat[i], bm.arange(self.pre.num)))  # (pre.num,)
       delays = f(bm.arange(self.post.num))  # (post.num, pre.num)
       additive = (self.conn_mat * delays).sum(axis=1)
 

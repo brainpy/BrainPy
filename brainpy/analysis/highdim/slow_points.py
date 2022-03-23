@@ -4,6 +4,7 @@ import time
 import warnings
 from functools import partial
 
+from jax import vmap
 import jax.numpy
 import numpy as np
 from jax.scipy.optimize import minimize
@@ -56,15 +57,15 @@ class SlowPointFinder(object):
     if f_loss_batch is None:
       if f_type == 'discrete':
         self.f_loss = bm.jit(lambda h: bm.mean((h - f_cell(h)) ** 2))
-        self.f_loss_batch = bm.jit(lambda h: bm.mean((h - bm.vmap(f_cell, auto_infer=False)(h)) ** 2, axis=1))
+        self.f_loss_batch = bm.jit(lambda h: bm.mean((h - vmap(f_cell)(h)) ** 2, axis=1))
       if f_type == 'continuous':
         self.f_loss = bm.jit(lambda h: bm.mean(f_cell(h) ** 2))
-        self.f_loss_batch = bm.jit(lambda h: bm.mean((bm.vmap(f_cell, auto_infer=False)(h)) ** 2, axis=1))
+        self.f_loss_batch = bm.jit(lambda h: bm.mean((vmap(f_cell)(h)) ** 2, axis=1))
 
     else:
       self.f_loss_batch = f_loss_batch
       self.f_loss = bm.jit(lambda h: bm.mean(f_cell(h) ** 2))
-    self.f_jacob_batch = bm.jit(bm.vmap(bm.jacobian(f_cell)))
+    self.f_jacob_batch = bm.jit(vmap(bm.jacobian(f_cell)))
 
     # essential variables
     self._losses = None
@@ -208,7 +209,7 @@ class SlowPointFinder(object):
       opt_method = lambda f, x0: minimize(f, x0, method='BFGS')
     if self.verbose:
       print(f"Optimizing to find fixed points:")
-    f_opt = bm.jit(bm.vmap(lambda x0: opt_method(self.f_loss, x0)))
+    f_opt = bm.jit(vmap(lambda x0: opt_method(self.f_loss, x0)))
     res = f_opt(bm.as_device_array(candidates))
     valid_ids = jax.numpy.where(res.success)[0]
     self._fixed_points = np.asarray(res.x[valid_ids])

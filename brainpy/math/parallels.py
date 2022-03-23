@@ -36,29 +36,31 @@ __all__ = [
 ]
 
 
-def _make_vmap(func, dyn_vars, rand_vars, in_axes, out_axes,
-               batch_idx, axis_name, reduce_func, f_name=None):
+def _make_vmap(func, nonbatched_vars, batched_vars, in_axes, out_axes,
+               batch_idx, axis_name, f_name=None):
   @functools.partial(jax.vmap, in_axes=in_axes, out_axes=out_axes, axis_name=axis_name)
-  def vmapped_func(dyn_data, rand_data, *args, **kwargs):
-    dyn_vars.assign(dyn_data)
-    rand_vars.assign(rand_data)
+  def vmapped_func(nonbatched_data, batched_data, *args, **kwargs):
+    nonbatched_vars.assign(nonbatched_data)
+    batched_vars.assign(batched_data)
     out = func(*args, **kwargs)
-    dyn_changes = dyn_vars.dict()
-    rand_changes = rand_vars.dict()
-    return out, dyn_changes, rand_changes
+    nonbatched_changes = nonbatched_vars.dict()
+    batched_changes = batched_vars.dict()
+    return nonbatched_changes, batched_changes, out
 
   def call(*args, **kwargs):
-    dyn_data = dyn_vars.dict()
     n = args[batch_idx[0]].shape[batch_idx[1]]
-    rand_data = {key: val.split_keys(n) for key, val in rand_vars.items()}
+    nonbatched_data = nonbatched_vars.dict()
+    batched_data = {key: val.split_keys(n) for key, val in batched_vars.items()}
     try:
-      out, dyn_changes, rand_changes = vmapped_func(dyn_data, rand_data, *args, **kwargs)
+      out, dyn_changes, rand_changes = vmapped_func(nonbatched_data, batched_data, *args, **kwargs)
     except UnexpectedTracerError as e:
-      dyn_vars.assign(dyn_data)
-      rand_vars.assign(rand_data)
-      raise errors.JaxTracerError(variables=dyn_vars) from e
-    for key, v in dyn_changes.items(): dyn_vars[key] = reduce_func(v)
-    for key, v in rand_changes.items(): rand_vars[key] = reduce_func(v)
+      nonbatched_vars.assign(nonbatched_data)
+      batched_vars.assign(batched_data)
+      raise errors.JaxTracerError() from e
+    # for key, v in dyn_changes.items():
+    #   dyn_vars[key] = reduce_func(v)
+    # for key, v in rand_changes.items():
+    #   rand_vars[key] = reduce_func(v)
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
@@ -256,13 +258,12 @@ def vmap(func, dyn_vars=None, batched_vars=None,
 
       # jit function
       return _make_vmap(func=func,
-                        dyn_vars=_dyn_vars,
-                        rand_vars=_rand_vars,
+                        nonbatched_vars=_dyn_vars,
+                        batched_vars=_rand_vars,
                         in_axes=in_axes,
                         out_axes=out_axes,
                         axis_name=axis_name,
-                        batch_idx=batch_idx,
-                        reduce_func=reduce_func)
+                        batch_idx=batch_idx)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
