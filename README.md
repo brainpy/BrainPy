@@ -150,7 +150,7 @@ runner.run(100.)
 Numerical methods for delay differential equations (SDEs).
 
 ```python
-xdelay = bm.TimeDelay(1, delay_len=1., before_t0=1., dt=0.01)
+xdelay = bm.TimeDelay(bm.zeros(1), delay_len=1., before_t0=1., dt=0.01)
 
 
 @bp.ddeint(method='rk4', state_delays={'x': xdelay})
@@ -189,6 +189,31 @@ class EINet(bp.dyn.Network):
 net = EINet()
 runner = bp.dyn.DSRunner(net)
 runner(100.)
+```
+
+Simulating a whole brain network by using rate models.
+
+```python
+import numpy as np
+
+class WholeBrainNet(bp.dyn.Network):
+  def __init__(self, signal_speed=20.):
+    super(WholeBrainNet, self).__init__()
+
+    self.fhn = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+    self.syn = bp.dyn.DiffusiveDelayCoupling(self.fhn, self.fhn,
+                                             'x->input',
+                                             conn_mat=conn_mat,
+                                             delay_mat=delay_mat)
+
+  def update(self, _t, _dt):
+    self.syn.update(_t, _dt)
+    self.fhn.update(_t, _dt)
+
+
+net = WholeBrainNet()
+runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72])
+runner.run(6e3)
 ```
 
 
