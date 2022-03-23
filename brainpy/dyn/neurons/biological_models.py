@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Callable
+
 import brainpy.math as bm
+from brainpy.dyn.base import NeuGroup
+from brainpy.initialize import OneInit, Uniform, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.dyn.base import NeuGroup
+from brainpy.tools.checking import check_initializer
+from brainpy.types import Shape, Parameter, Tensor
 
 __all__ = [
   'HH',
@@ -178,8 +183,24 @@ class HH(NeuGroup):
          The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
   """
 
-  def __init__(self, size, ENa=50., gNa=120., EK=-77., gK=36., EL=-54.387, gL=0.03,
-               V_th=20., C=1.0, method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      ENa: Parameter = 50.,
+      gNa: Parameter = 120.,
+      EK: Parameter = -77.,
+      gK: Parameter = 36.,
+      EL: Parameter = -54.387,
+      gL: Parameter = 0.03,
+      V_th: Parameter = 20.,
+      C: Parameter = 1.0,
+      V_initializer: Union[Initializer, Callable, Tensor] = Uniform(-70, -60.),
+      m_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.5),
+      h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
+      n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(HH, self).__init__(size=size, name=name)
 
@@ -194,10 +215,14 @@ class HH(NeuGroup):
     self.V_th = V_th
 
     # variables
-    self.m = bm.Variable(0.5 * bm.ones(self.num))
-    self.h = bm.Variable(0.6 * bm.ones(self.num))
-    self.n = bm.Variable(0.32 * bm.ones(self.num))
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(m_initializer, 'm_initializer', allow_none=False)
+    check_initializer(h_initializer, 'h_initializer', allow_none=False)
+    check_initializer(n_initializer, 'n_initializer', allow_none=False)
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    self.m = bm.Variable(init_param(m_initializer, (self.num,)))
+    self.h = bm.Variable(init_param(h_initializer, (self.num,)))
+    self.n = bm.Variable(init_param(n_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -334,11 +359,29 @@ class MorrisLecar(NeuGroup):
   .. [3] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
   """
 
-  def __init__(self, size, V_Ca=130., g_Ca=4.4, V_K=-84., g_K=8., V_leak=-60.,
-               g_leak=2., C=20., V1=-1.2, V2=18., V3=2., V4=30., phi=0.04,
-               V_th=10., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_Ca: Parameter = 130.,
+      g_Ca: Parameter = 4.4,
+      V_K: Parameter = -84.,
+      g_K: Parameter = 8.,
+      V_leak: Parameter = -60.,
+      g_leak: Parameter = 2.,
+      C: Parameter = 20.,
+      V1: Parameter = -1.2,
+      V2: Parameter = 18.,
+      V3: Parameter = 2.,
+      V4: Parameter = 30.,
+      phi: Parameter = 0.04,
+      V_th: Parameter = 10.,
+      W_initializer: Union[Callable, Initializer, Tensor] = OneInit(0.02),
+      V_initializer: Union[Callable, Initializer, Tensor] = Uniform(-70., -60.),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
-    super(MorrisLecar, self).__init__(size=size,  name=name)
+    super(MorrisLecar, self).__init__(size=size, name=name)
 
     # params
     self.V_Ca = V_Ca
@@ -356,8 +399,10 @@ class MorrisLecar(NeuGroup):
     self.V_th = V_th
 
     # vars
-    self.W = bm.Variable(bm.ones(self.num) * 0.02)
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check_initializer(W_initializer, 'W_initializer', allow_none=False)
+    self.W = bm.Variable(init_param(W_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)

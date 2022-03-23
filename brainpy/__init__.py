@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.1.1"
+__version__ = "2.1.2"
 
 
 try:
@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 
 
 # fundamental modules
-from . import errors, tools
+from . import errors, tools, check
 
 
 # "base" module

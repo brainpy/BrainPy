@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import jax.numpy as jnp
+from jax import vmap
 import numpy as np
 
 import brainpy.math as bm
@@ -76,7 +77,7 @@ def get_sign(f, xs, ys):
 
 def get_sign2(f, *xyz, args=()):
   in_axes = tuple(range(len(xyz))) + tuple([None] * len(args))
-  f = bm.jit(bm.vmap(f_without_jaxarray_return(f), in_axes=in_axes))
+  f = bm.jit(vmap(f_without_jaxarray_return(f), in_axes=in_axes))
   xyz = tuple((v.value if isinstance(v, bm.JaxArray) else v) for v in xyz)
   XYZ = jnp.meshgrid(*xyz)
   XYZ = tuple(jnp.moveaxis(v, 1, 0).flatten() for v in XYZ)

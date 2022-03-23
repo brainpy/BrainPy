@@ -3,9 +3,8 @@
 from typing import Optional, Union, Callable
 
 import brainpy.math as bm
-from brainpy.initialize import Normal, ZeroInit, Initializer
+from brainpy.initialize import Normal, ZeroInit, Initializer, init_param
 from brainpy.nn.base import RecurrentNode
-from brainpy.nn.utils import init_param
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_float,
                                     check_initializer,

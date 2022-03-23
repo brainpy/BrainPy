@@ -8,7 +8,6 @@ from brainpy.math import (activations, autograd, controls, function,
                           jit, operators, parallels, setting, delay_vars,
                           compat)
 
-
 block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, activations,
@@ -230,19 +229,26 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                filename=os.path.join(path, 'base.rst'),
                header='Base Class')
 
-  module_and_name = [('biological_models', 'Biological Models'),
-                     ('input_models', 'Input Models'),
-                     ('rate_models', 'Rate Models'),
-                     ('reduced_models', 'Reduced Models'), ]
+  module_and_name = [
+    ('biological_models', 'Biological Models'),
+    ('fractional_models', 'Fractional-order Models'),
+    ('input_models', 'Input Models'),
+    ('noise_models', 'Noise Models'),
+    ('rate_models', 'Rate Models'),
+    ('reduced_models', 'Reduced Models'),
+  ]
   write_submodules(module_name='brainpy.dyn.neurons',
                    filename=os.path.join(path, 'neurons.rst'),
                    header='Neuron Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
-  module_and_name = [('biological_models', 'Biological Models'),
-                     ('abstract_models', 'Abstract Models'),
-                     ('learning_rules', 'Learning Rules'), ]
+  module_and_name = [
+    ('biological_models', 'Biological Models'),
+    ('abstract_models', 'Abstract Models'),
+    ('delay_coupling', 'Delay Coupling Models'),
+    ('learning_rules', 'Learning Rule Models'),
+  ]
   write_submodules(module_name='brainpy.dyn.synapses',
                    filename=os.path.join(path, 'synapses.rst'),
                    header='Synapse Models',
@@ -457,8 +463,6 @@ def generate_nn_docs(path='apis/auto/nn/'):
                header='Nodes: reservoir computing')
 
 
-
-
 def generate_optimizers_docs(path='apis/auto/'):
   if not os.path.exists(path):
     os.makedirs(path)
@@ -540,4 +544,3 @@ def generate_math_compact_docs(path='apis/auto/math_compat/'):
   write_module(module_name='brainpy.math.compat.losses',
                filename=os.path.join(path, 'losses.rst'),
                header='Losses')
-

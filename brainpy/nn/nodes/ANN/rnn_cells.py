@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 
 
+from typing import Union, Callable
+
 import brainpy.math as bm
-from brainpy.initialize import (XavierNormal, ZeroInit,
-                                Uniform, Orthogonal)
+from brainpy.initialize import (XavierNormal,
+                                ZeroInit,
+                                Uniform,
+                                Orthogonal,
+                                init_param,
+                                Initializer)
 from brainpy.nn.base import RecurrentNode
-from brainpy.nn.utils import init_param
 from brainpy.tools.checking import (check_integer,
                                     check_initializer,
                                     check_shape_consistency)
+from brainpy.types import Tensor
 
 __all__ = [
   'VanillaRNN',
@@ -33,12 +39,12 @@ class VanillaRNN(RecurrentNode):
   def __init__(
       self,
       num_unit: int,
-      state_initializer=Uniform(),
-      wi_initializer=XavierNormal(),
-      wh_initializer=XavierNormal(),
-      bias_initializer=ZeroInit(),
-      activation='relu',
-      trainable=True,
+      state_initializer: Union[Tensor, Callable, Initializer] = Uniform(),
+      wi_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
+      wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
+      bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      activation: str = 'relu',
+      trainable: bool = True,
       **kwargs
   ):
     super(VanillaRNN, self).__init__(trainable=trainable, **kwargs)
@@ -130,11 +136,11 @@ class GRU(RecurrentNode):
   def __init__(
       self,
       num_unit: int,
-      wi_initializer=Orthogonal(),
-      wh_initializer=Orthogonal(),
-      bias_initializer=ZeroInit(),
-      state_initializer=ZeroInit(),
-      trainable=True,
+      wi_initializer: Union[Tensor, Callable, Initializer] = Orthogonal(),
+      wh_initializer: Union[Tensor, Callable, Initializer] = Orthogonal(),
+      bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      trainable: bool = True,
       **kwargs
   ):
     super(GRU, self).__init__(trainable=trainable, **kwargs)
@@ -245,11 +251,11 @@ class LSTM(RecurrentNode):
   def __init__(
       self,
       num_unit: int,
-      wi_initializer=XavierNormal(),
-      wh_initializer=XavierNormal(),
-      bias_initializer=ZeroInit(),
-      state_initializer=ZeroInit(),
-      trainable=True,
+      wi_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
+      wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
+      bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      trainable: bool = True,
       **kwargs
   ):
     super(LSTM, self).__init__(trainable=trainable, **kwargs)

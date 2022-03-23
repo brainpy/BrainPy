@@ -7,6 +7,7 @@ import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
+from brainpy.base.base import TensorCollector
 from brainpy import math as bm
 from brainpy.dyn import utils
 from brainpy.dyn.base import DynamicalSystem
@@ -74,7 +75,6 @@ class DSRunner(Runner):
       self.dyn_vars.update({'_i': self._i})
     else:
       self._i = None
-    self.dyn_vars.update(self.target.vars().unique())
 
     # run function
     self._run_func = self.build_run_function()
@@ -159,29 +159,33 @@ class DSRunner(Runner):
         return_with_idx[key] = (data, bm.asarray(idx))
 
     def func(_t, _dt):
-      res = {k: (v.flatten() if bm.ndim(v) > 1 else v) for k, v in return_without_idx.items()}
+      res = {k: (v.flatten() if bm.ndim(v) > 1 else v.value)
+             for k, v in return_without_idx.items()}
       res.update({k: (v.flatten()[idx] if bm.ndim(v) > 1 else v[idx])
                   for k, (v, idx) in return_with_idx.items()})
       return res
 
     return func
 
-  def _run_one_step(self, t_and_dt):
-    _t, _dt = t_and_dt[0], t_and_dt[1]
-    self._input_step(_t=_t, _dt=_dt)
-    self.target.update(_t=_t, _dt=_dt)
+  def _run_one_step(self, _t):
+    self._input_step(_t=_t, _dt=self.dt)
+    self.target.update(_t=_t, _dt=self.dt)
     if self.progress_bar:
       id_tap(lambda *args: self._pbar.update(), ())
-    return self._monitor_step(_t=_t, _dt=_dt)
+    return self._monitor_step(_t=_t, _dt=self.dt)
 
   def build_run_function(self):
     if self.jit:
-      f_run = bm.make_loop(self._run_one_step, dyn_vars=self.dyn_vars, has_return=True)
+      dyn_vars = TensorCollector()
+      dyn_vars.update(self.dyn_vars)
+      dyn_vars.update(self.target.vars().unique())
+      f_run = bm.make_loop(self._run_one_step,
+                           dyn_vars=dyn_vars,
+                           has_return=True)
     else:
-      def f_run(t_and_dt):
-        all_t, all_dt = t_and_dt
+      def f_run(all_t):
         for i in range(all_t.shape[0]):
-          mon = self._run_one_step((all_t[i], all_dt[i]))
+          mon = self._run_one_step(all_t[i])
           for k, v in mon.items():
             self.mon.item_contents[k].append(v)
         return None, {}
@@ -212,8 +216,7 @@ class DSRunner(Runner):
         start_t = float(self._start_t)
     end_t = float(start_t + duration)
     # times
-    times = bm.arange(start_t, end_t, self.dt)
-    time_steps = bm.ones_like(times) * self.dt
+    times = np.arange(start_t, end_t, self.dt)
     # build monitor
     for key in self.mon.item_contents.keys():
       self.mon.item_contents[key] = []  # reshape the monitor items
@@ -223,7 +226,7 @@ class DSRunner(Runner):
       self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)",
                                  refresh=True)
     t0 = time.time()
-    _, hists = self._run_func([times.value, time_steps.value])
+    _, hists = self._run_func(times)
     running_time = time.time() - t0
     if self.progress_bar:
       self._pbar.close()
@@ -277,23 +280,24 @@ class ReportRunner(DSRunner):
 
     # Build the update function
     if jit:
-      self._update_step = bm.jit(self.target.update, dyn_vars=self.dyn_vars)
+      dyn_vars = TensorCollector()
+      dyn_vars.update(self.dyn_vars)
+      dyn_vars.update(self.target.vars().unique())
+      self._update_step = bm.jit(self.target.update, dyn_vars=dyn_vars)
     else:
       self._update_step = self.target.update
 
-  def _run_one_step(self, t_and_dt):
-    _t, _dt = t_and_dt[0], t_and_dt[1]
-    self._input_step(_t=_t, _dt=_dt)
-    self._update_step(_t=_t, _dt=_dt)
+  def _run_one_step(self, _t):
+    self._input_step(_t, self.dt)
+    self._update_step(_t, self.dt)
     if self.progress_bar:
       self._pbar.update()
-    return self._monitor_step(_t=_t, _dt=_dt)
+    return self._monitor_step(_t, self.dt)
 
   def build_run_function(self):
-    def f_run(t_and_dt):
-      all_t, all_dt = t_and_dt
+    def f_run(all_t):
       for i in range(all_t.shape[0]):
-        mon = self._run_one_step((all_t[i], all_dt[i]))
+        mon = self._run_one_step(all_t[i])
         for k, v in mon.items():
           self.mon.item_contents[k].append(v)
       return None, {}

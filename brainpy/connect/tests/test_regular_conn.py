@@ -14,7 +14,7 @@ def test_one2one():
     num = bp.tools.size2num(size)
 
     actual_mat = bp.math.zeros((num, num), dtype=bp.math.bool_)
-    actual_mat = bp.math.fill_diagonal(actual_mat, True)
+    bp.math.fill_diagonal(actual_mat, True)
 
     assert bp.math.array_equal(actual_mat, conn_mat)
     assert bp.math.array_equal(pre_ids, bp.math.arange(num))
@@ -42,7 +42,7 @@ def test_all2all():
       print(mat)
       actual_mat = bp.math.ones((num, num), dtype=bp.math.bool_)
       if not has_self:
-        actual_mat = bp.math.fill_diagonal(actual_mat, False)
+        bp.math.fill_diagonal(actual_mat, False)
 
       assert bp.math.array_equal(actual_mat, mat)
 

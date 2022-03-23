@@ -2,6 +2,7 @@
 # - Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and computation
 #   of continuous attractors." Neural computation 20.4 (2008): 994-1025.
 
+import jax
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -98,7 +99,7 @@ bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length)
 length = 20
 positions = bp.inputs.ramp_input(-bm.pi, bm.pi, duration=length, t_start=0)
 positions = bm.stack([positions, positions]).T
-Iext = bm.vmap(cann.get_stimulus_by_pos)(positions)
+Iext = jax.vmap(cann.get_stimulus_by_pos)(positions)
 runner = bp.dyn.DSRunner(cann,
                          inputs=['input', Iext, 'iter'],
                          monitors=['r'],
