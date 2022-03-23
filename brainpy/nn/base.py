@@ -308,11 +308,11 @@ class Node(Base):
       if self.feedforward_shapes is not None:
         for key, size in self._feedforward_shapes.items():
           if key not in feedforward_shapes:
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
+            raise ValueError(f"Impossible to reset the input shape of {self.name}. "
                              f"Because this Node has the input dimension {size} from {key}. "
                              f"While we do not find it in the given feedforward_shapes")
           if not check_batch_shape(size, feedforward_shapes[key], mode='bool'):
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
+            raise ValueError(f"Impossible to reset the input shape of {self.name}. "
                              f"Because this Node has the input dimension {size} from {key}. "
                              f"While the give shape is {feedforward_shapes[key]}")
 
@@ -1014,7 +1014,7 @@ class Network(Node):
         fb_sizes = dict()
         for sender in self.fb_senders.keys():
           fb_sizes[sender] = sender.output_shape
-        self.set_feedforward_shapes(fb_sizes)
+        self.set_feedback_shapes(fb_sizes)
 
     # feedback initialization
     if self.feedback_shapes is not None:
@@ -1234,7 +1234,7 @@ class Network(Node):
                       fig_size: tuple = (10, 10),
                       node_size: int = 2000,
                       arrow_size: int = 20,
-                      layout='spectral_layout'):
+                      layout='shell_layout'):
     """Plot the node graph based on NetworkX package
 
     Parameters
@@ -1346,10 +1346,12 @@ class Network(Node):
     proxie = []
     labels = []
     if len(nodes_trainable):
-      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor=trainable_color))
+      proxie.append(Line2D([], [], color='white', marker='o',
+                           markerfacecolor=trainable_color))
       labels.append('Trainable')
     if len(nodes_untrainable):
-      proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor=untrainable_color))
+      proxie.append(Line2D([], [], color='white', marker='o',
+                           markerfacecolor=untrainable_color))
       labels.append('Untrainable')
     if len(ff_edges):
       proxie.append(Line2D([], [], color=ff_color, linewidth=2))
@@ -1361,8 +1363,7 @@ class Network(Node):
       proxie.append(Line2D([], [], color=rec_color, linewidth=2))
       labels.append('Recurrent')
 
-    plt.legend(proxie, labels, scatterpoints=1, markerscale=2,
-               loc='best')
+    plt.legend(proxie, labels, scatterpoints=1, markerscale=2, loc='best')
     plt.tight_layout()
     plt.show()
 

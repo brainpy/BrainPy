@@ -100,7 +100,7 @@ class NVAR(RecurrentNode):
     # monomials. Precompute them to improve efficiency.
     for order in self.order:
       idx = np.array(list(combinations_with_replacement(np.arange(linear_dim), order)))
-      self.comb_ids = bm.asarray(idx)
+      self.comb_ids.append(bm.asarray(idx))
     # number of non-linear components is (d + n - 1)! / (d - 1)! n!
     # i.e. number of all unique monomials of order n made from the
     # linear components.
