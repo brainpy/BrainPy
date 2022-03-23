@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import inspect
 import time
+import warnings
 from functools import partial
 
 import jax.numpy
@@ -9,9 +9,9 @@ import numpy as np
 from jax.scipy.optimize import minimize
 
 import brainpy.math as bm
+from brainpy import optimizers as optim
 from brainpy.analysis import utils
 from brainpy.errors import AnalyzerError
-from brainpy import optimizers as optim
 
 __all__ = [
   'SlowPointFinder',
@@ -87,8 +87,13 @@ class SlowPointFinder(object):
     """The selected ids of candidate points."""
     return self._selected_ids
 
-  def find_fps_with_gd_method(self, candidates, tolerance=1e-5, num_batch=100,
-                              num_opt=10000, opt_setting=None):
+  def find_fps_with_gd_method(self,
+                              candidates,
+                              tolerance=1e-5,
+                              num_batch=100,
+                              num_opt=10000,
+                              optimizer=None,
+                              opt_setting=None):
     """Optimize fixed points with gradient descent methods.
 
     Parameters
@@ -104,17 +109,30 @@ class SlowPointFinder(object):
       Print training information during optimization every so often.
     opt_setting: optional, dict
       The optimization settings.
+
+      .. deprecated:: 2.1.2
+         Use "optimizer" to set optimization method instead.
+
+    optimizer: optim.Optimizer
+      The optimizer instance.
+
+      .. versionadded:: 2.1.2
     """
 
     # optimization settings
     if opt_setting is None:
-      opt_method = optim.Adam
-      opt_lr = optim.ExponentialDecay(0.2, 1, 0.9999)
-      opt_setting = {'beta1': 0.9,
-                     'beta2': 0.999,
-                     'eps': 1e-8,
-                     'name': None}
+      if optimizer is None:
+        optimizer = optim.Adam(lr=optim.ExponentialDecay(0.2, 1, 0.9999),
+                               beta1=0.9, beta2=0.999, eps=1e-8)
+      else:
+        assert isinstance(optimizer, optim.Optimizer), (f'Must be an instance of '
+                                                        f'{optim.Optimizer.__name__}, '
+                                                        f'while we got {type(optimizer)}')
     else:
+      warnings.warn('Please use "optimizer" to set optimization method. '
+                    '"opt_setting" is deprecated since version 2.1.2. ',
+                    DeprecationWarning)
+
       assert isinstance(opt_setting, dict)
       assert 'method' in opt_setting
       assert 'lr' in opt_setting
@@ -122,26 +140,25 @@ class SlowPointFinder(object):
       if isinstance(opt_method, str):
         assert opt_method in optim.__dict__
         opt_method = getattr(optim, opt_method)
-      assert isinstance(opt_method, type)
-      if optim.Optimizer not in inspect.getmro(opt_method):
-        raise ValueError
+      assert issubclass(opt_method, optim.Optimizer)
       opt_lr = opt_setting.pop('lr')
       assert isinstance(opt_lr, (int, float, optim.Scheduler))
       opt_setting = opt_setting
+      optimizer = opt_method(lr=opt_lr, **opt_setting)
 
     if self.verbose:
-      print(f"Optimizing with {opt_method.__name__} to find fixed points:")
+      print(f"Optimizing with {optimizer.__name__} to find fixed points:")
 
     # set up optimization
     fixed_points = bm.Variable(bm.asarray(candidates))
     grad_f = bm.grad(lambda: self.f_loss_batch(fixed_points.value).mean(),
                      grad_vars={'a': fixed_points}, return_value=True)
-    opt = opt_method(train_vars={'a': fixed_points}, lr=opt_lr, **opt_setting)
-    dyn_vars = opt.vars() + {'_a': fixed_points}
+    optimizer.register_vars({'a': fixed_points})
+    dyn_vars = optimizer.vars() + {'_a': fixed_points}
 
     def train(idx):
       gradients, loss = grad_f()
-      opt.update(gradients)
+      optimizer.update(gradients)
       return loss
 
     @partial(bm.jit, dyn_vars=dyn_vars, static_argnames=('start_i', 'num_batch'))
