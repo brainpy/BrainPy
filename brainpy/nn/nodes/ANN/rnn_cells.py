@@ -3,9 +3,8 @@
 
 import brainpy.math as bm
 from brainpy.initialize import (XavierNormal, ZeroInit,
-                                Uniform, Orthogonal)
+                                Uniform, Orthogonal, init_param)
 from brainpy.nn.base import RecurrentNode
-from brainpy.nn.utils import init_param
 from brainpy.tools.checking import (check_integer,
                                     check_initializer,
                                     check_shape_consistency)
