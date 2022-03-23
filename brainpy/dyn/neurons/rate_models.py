@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
+
+from typing import Union, Callable
+
 import numpy as np
 from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
 from brainpy import check
 from brainpy.dyn.base import NeuGroup
+from brainpy.initialize import Initializer, Uniform
+from brainpy.initialize import init_param
 from brainpy.integrators.dde import ddeint
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.tools.checking import check_float
-from brainpy.types import Parameter, Shape
+from brainpy.tools.checking import check_float, check_initializer
+from brainpy.types import Parameter, Shape, Tensor
 from .noise_models import OUProcess
 
 __all__ = [
@@ -39,17 +44,17 @@ class RateFHN(NeuGroup):
   ----------
   size: Shape
     The model size.
-  x_ou_mean
+  x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
-  y_ou_mean
+  y_ou_mean: Parameter
     The noise mean of the :math:`y` variable, [mV/ms].
-  x_ou_sigma
+  x_ou_sigma: Parameter
     The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-  y_ou_sigma
+  y_ou_sigma: Parameter
     The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-  x_ou_tau
+  x_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-  y_ou_tau
+  y_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
@@ -83,6 +88,8 @@ class RateFHN(NeuGroup):
       y_ou_tau: Parameter = 5.0,
 
       # other parameters
+      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = None,
       sde_method: str = None,
       name: str = None,
@@ -106,8 +113,10 @@ class RateFHN(NeuGroup):
     self.y_ou_tau = y_ou_tau  # ms, timescale of the Ornstein-Uhlenbeck noise process
 
     # variables
-    self.x = bm.Variable(bm.random.random(self.num) * 0.05)
-    self.y = bm.Variable(bm.random.random(self.num) * 0.05)
+    check_initializer(x_initializer, 'x_initializer')
+    check_initializer(y_initializer, 'y_initializer')
+    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -184,17 +193,17 @@ class FeedbackFHN(NeuGroup):
 
   Parameters
   ----------
-    x_ou_mean
+  x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
-  y_ou_mean
+  y_ou_mean: Parameter
     The noise mean of the :math:`y` variable, [mV/ms].
-  x_ou_sigma
+  x_ou_sigma: Parameter
     The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-  y_ou_sigma
+  y_ou_sigma: Parameter
     The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-  x_ou_tau
+  x_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-  y_ou_tau
+  y_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
@@ -228,6 +237,8 @@ class FeedbackFHN(NeuGroup):
       y_ou_tau: Parameter = 5.0,
 
       # other parameters
+      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'rk4',
       sde_method: str = None,
       name: str = None,
@@ -256,8 +267,10 @@ class FeedbackFHN(NeuGroup):
     self.y_ou_tau = y_ou_tau
 
     # variables
-    self.x = bm.Variable(bm.zeros(self.num))
-    self.y = bm.Variable(bm.zeros(self.num))
+    check_initializer(x_initializer, 'x_initializer')
+    check_initializer(y_initializer, 'y_initializer')
+    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
     self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
     self.input = bm.Variable(bm.zeros(self.num))
 
@@ -346,17 +359,17 @@ class RateQIF(NeuGroup):
 
   Parameters
   ----------
-    x_ou_mean
+  x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
-  y_ou_mean
+  y_ou_mean: Parameter
     The noise mean of the :math:`y` variable, [mV/ms].
-  x_ou_sigma
+  x_ou_sigma: Parameter
     The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-  y_ou_sigma
+  y_ou_sigma: Parameter
     The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-  x_ou_tau
+  x_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-  y_ou_tau
+  y_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
@@ -390,6 +403,8 @@ class RateQIF(NeuGroup):
       y_ou_tau: Parameter = 5.0,
 
       # other parameters
+      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
       sde_method: str = None,
@@ -411,8 +426,10 @@ class RateQIF(NeuGroup):
     self.y_ou_tau = y_ou_tau
 
     # variables
-    self.y = bm.Variable(bm.ones(self.num))
-    self.x = bm.Variable(bm.ones(self.num))
+    check_initializer(x_initializer, 'x_initializer')
+    check_initializer(y_initializer, 'y_initializer')
+    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -461,17 +478,17 @@ class StuartLandauOscillator(RateGroup):
 
   Parameters
   ----------
-    x_ou_mean
+  x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
-  y_ou_mean
+  y_ou_mean: Parameter
     The noise mean of the :math:`y` variable, [mV/ms].
-  x_ou_sigma
+  x_ou_sigma: Parameter
     The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-  y_ou_sigma
+  y_ou_sigma: Parameter
     The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-  x_ou_tau
+  x_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-  y_ou_tau
+  y_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
   """
@@ -493,6 +510,8 @@ class StuartLandauOscillator(RateGroup):
       y_ou_tau: Parameter = 5.0,
 
       # other parameters
+      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
+      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       method: str = None,
       sde_method: str = None,
       name: str = None,
@@ -513,8 +532,10 @@ class StuartLandauOscillator(RateGroup):
     self.y_ou_tau = y_ou_tau
 
     # variables
-    self.x = bm.Variable(bm.random.random(self.num) * 0.5)
-    self.y = bm.Variable(bm.random.random(self.num) * 0.5)
+    check_initializer(x_initializer, 'x_initializer')
+    check_initializer(y_initializer, 'y_initializer')
+    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -558,17 +579,17 @@ class WilsonCowanModel(RateGroup):
 
   Parameters
   ----------
-    x_ou_mean
+  x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
-  y_ou_mean
+  y_ou_mean: Parameter
     The noise mean of the :math:`y` variable, [mV/ms].
-  x_ou_sigma
+  x_ou_sigma: Parameter
     The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-  y_ou_sigma
+  y_ou_sigma: Parameter
     The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-  x_ou_tau
+  x_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-  y_ou_tau
+  y_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
@@ -579,23 +600,27 @@ class WilsonCowanModel(RateGroup):
       size: Shape,
 
       # Excitatory parameters
-      E_tau=2.5,  # excitatory time constant
-      E_a=1.5,  # excitatory gain
-      E_theta=3.0,  # excitatory firing threshold
+      E_tau=1.,  # excitatory time constant
+      E_a=1.2,  # excitatory gain
+      E_theta=2.8,  # excitatory firing threshold
 
       # Inhibitory parameters
-      I_tau=3.75,  # inhibitory time constant
-      I_a=1.5,  # inhibitory gain
-      I_theta=3.0,  # inhibitory firing threshold
+      I_tau=1.,  # inhibitory time constant
+      I_a=1.,  # inhibitory gain
+      I_theta=4.0,  # inhibitory firing threshold
 
       # connection parameters
-      wEE=16.,  # local E-E coupling
-      wIE=15.,  # local E-I coupling
-      wEI=12.,  # local I-E coupling
-      wII=3.,  # local I-I coupling
+      wEE=12.,  # local E-E coupling
+      wIE=4.,  # local E-I coupling
+      wEI=13.,  # local I-E coupling
+      wII=11.,  # local I-I coupling
 
       # Refractory parameter
       r=1,
+
+      # state initializer
+      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(max_val=0.05),
+      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(max_val=0.05),
 
       # noise parameters
       x_ou_mean: Parameter = 0.0,
@@ -607,7 +632,7 @@ class WilsonCowanModel(RateGroup):
 
       # other parameters
       sde_method: str = None,
-      method: str = None,
+      method: str = 'exp_euler_auto',
       name: str = None,
   ):
     super(WilsonCowanModel, self).__init__(size=size, name=name)
@@ -634,8 +659,10 @@ class WilsonCowanModel(RateGroup):
     self.y_ou_tau = y_ou_tau
 
     # variables
-    self.x = bm.Variable(bm.random.random(self.num) * 0.05)
-    self.y = bm.Variable(bm.random.random(self.num) * 0.05)
+    check_initializer(x_initializer, 'x_initializer')
+    check_initializer(y_initializer, 'y_initializer')
+    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -654,7 +681,7 @@ class WilsonCowanModel(RateGroup):
 
   # functions
   def F(self, x, a, theta):
-    return 1 / (1 + bm.exp(-a * (x - theta)))
+    return 1 / (1 + bm.exp(-a * (x - theta))) - 1 / (1 + bm.exp(a * theta))
 
   def dx(self, x, t, y, x_ext):
     x = self.wEE * x - self.wIE * y + x_ext

@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Callable
+
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
+from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.types import Shape, Parameter
+from brainpy.tools.checking import check_initializer
+from brainpy.types import Shape, Parameter, Tensor
 
 __all__ = [
   'LIF',
@@ -72,15 +76,18 @@ class LIF(NeuGroup):
          neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
   """
 
-  def __init__(self,
-               size: Shape,
-               V_rest: Parameter = 0.,
-               V_reset: Parameter = -5.,
-               V_th: Parameter = 20.,
-               tau: Parameter = 10.,
-               tau_ref: Parameter = 1.,
-               method: str = 'exp_auto',
-               name: str = None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = 0.,
+      V_reset: Parameter = -5.,
+      V_th: Parameter = 20.,
+      tau: Parameter = 10.,
+      tau_ref: Parameter = 1.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(LIF, self).__init__(size=size, name=name)
 
@@ -92,7 +99,8 @@ class LIF(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -215,18 +223,21 @@ class ExpIF(NeuGroup):
   .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
   """
 
-  def __init__(self,
-               size: Shape,
-               V_rest: Parameter = -65.,
-               V_reset: Parameter = -68.,
-               V_th: Parameter = -30.,
-               V_T: Parameter = -59.9,
-               delta_T: Parameter = 3.48,
-               R: Parameter = 1.,
-               tau: Parameter = 10.,
-               tau_ref: Parameter = 1.7,
-               method: str = 'exp_auto',
-               name: str = None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_T: Parameter = -59.9,
+      delta_T: Parameter = 3.48,
+      R: Parameter = 1.,
+      tau: Parameter = 10.,
+      tau_ref: Parameter = 1.7,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialize
     super(ExpIF, self).__init__(size=size, name=name)
 
@@ -241,11 +252,11 @@ class ExpIF(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    # variables
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
@@ -302,7 +313,7 @@ class AdExIF(NeuGroup):
 
   **Model Examples**
 
-  - `Examples for different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/AdExIF_model.html>`_
+  - `Examples for different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/Gerstner_2005_AdExIF_model.html>`_
 
   **Model Parameters**
 
@@ -341,8 +352,24 @@ class AdExIF(NeuGroup):
   .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
   """
 
-  def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_T=-59.9, delta_T=3.48, a=1.,
-               b=1., tau=10., tau_w=30., R=1., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_T: Parameter = -59.9,
+      delta_T: Parameter = 3.48,
+      a: Parameter = 1.,
+      b: Parameter = 1.,
+      tau: Parameter = 10.,
+      tau_w: Parameter = 30.,
+      R: Parameter = 1.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     super(AdExIF, self).__init__(size=size, name=name)
 
     # parameters
@@ -358,9 +385,11 @@ class AdExIF(NeuGroup):
     self.R = R
 
     # variables
-    self.w = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(w_initializer, 'w_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.V = bm.Variable(bm.zeros(self.num))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -458,8 +487,21 @@ class QuaIF(NeuGroup):
           J. Neurophysiology 83, pp. 808–827.
   """
 
-  def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_c=-50.0, c=.07,
-               R=1., tau=10., tau_ref=0., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_c: Parameter = -50.0,
+      c: Parameter = .07,
+      R: Parameter = 1.,
+      tau: Parameter = 10.,
+      tau_ref: Parameter = 0.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(QuaIF, self).__init__(size=size, name=name)
 
@@ -474,11 +516,10 @@ class QuaIF(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    # variables
-    self.V = bm.Variable(bm.zeros(self.num))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
@@ -577,8 +618,23 @@ class AdQuaIF(NeuGroup):
          Mathematics 68, no. 4 (2008): 1045-1079.
   """
 
-  def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_c=-50.0, a=1., b=.1,
-               c=.07, tau=10., tau_w=10., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_c: Parameter = -50.0,
+      a: Parameter = 1.,
+      b: Parameter = .1,
+      c: Parameter = .07,
+      tau: Parameter = 10.,
+      tau_w: Parameter = 10.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     super(AdQuaIF, self).__init__(size=size, name=name)
 
     # parameters
@@ -593,8 +649,10 @@ class AdQuaIF(NeuGroup):
     self.tau_w = tau_w
 
     # variables
-    self.V = bm.Variable(bm.zeros(self.num))
-    self.w = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(w_initializer, 'w_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -707,9 +765,30 @@ class GIF(NeuGroup):
          Nature communications 9, no. 1 (2018): 1-15.
   """
 
-  def __init__(self, size, V_rest=-70., V_reset=-70., V_th_inf=-50., V_th_reset=-60.,
-               R=20., tau=20., a=0., b=0.01, k1=0.2, k2=0.02, R1=0., R2=1., A1=0.,
-               A2=0., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -70.,
+      V_reset: Parameter = -70.,
+      V_th_inf: Parameter = -50.,
+      V_th_reset: Parameter = -60.,
+      R: Parameter = 20.,
+      tau: Parameter = 20.,
+      a: Parameter = 0.,
+      b: Parameter = 0.01,
+      k1: Parameter = 0.2,
+      k2: Parameter = 0.02,
+      R1: Parameter = 0.,
+      R2: Parameter = 1.,
+      A1: Parameter = 0.,
+      A2: Parameter = 0.,
+      V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-70.),
+      I1_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      I2_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      Vth_initializer: Union[Initializer, Callable, Tensor] = OneInit(-50.),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(GIF, self).__init__(size=size, name=name)
 
@@ -730,10 +809,14 @@ class GIF(NeuGroup):
     self.A2 = A2
 
     # variables
-    self.I1 = bm.Variable(bm.zeros(self.num))
-    self.I2 = bm.Variable(bm.zeros(self.num))
-    self.V_th = bm.Variable(bm.ones(self.num) * -50.)
-    self.V = bm.Variable(bm.zeros(self.num) - 70.)
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(I1_initializer, 'I1_initializer')
+    check_initializer(I2_initializer, 'I2_initializer')
+    check_initializer(Vth_initializer, 'Vth_initializer')
+    self.I1 = bm.Variable(init_param(I1_initializer, (self.num,)))
+    self.I2 = bm.Variable(init_param(I2_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.V_th = bm.Variable(init_param(Vth_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -841,8 +924,20 @@ class Izhikevich(NeuGroup):
          IEEE transactions on neural networks 15.5 (2004): 1063-1070.
   """
 
-  def __init__(self, size, a=0.02, b=0.20, c=-65., d=8., tau_ref=0.,
-               V_th=30., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      a: Parameter = 0.02,
+      b: Parameter = 0.20,
+      c: Parameter = -65.,
+      d: Parameter = 8.,
+      tau_ref: Parameter = 0.,
+      V_th: Parameter = 30.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      u_initializer: Union[Initializer, Callable, Tensor] = OneInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(Izhikevich, self).__init__(size=size, name=name)
 
@@ -855,11 +950,13 @@ class Izhikevich(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.u = bm.Variable(bm.ones(self.num))
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(u_initializer, 'u_initializer')
+    self.u = bm.Variable(init_param(u_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
@@ -984,8 +1081,23 @@ class HindmarshRose(NeuGroup):
         033128.
   """
 
-  def __init__(self, size, a=1., b=3., c=1., d=5., r=0.01, s=4., V_rest=-1.6,
-               V_th=1.0, method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      a: Parameter = 1.,
+      b: Parameter = 3.,
+      c: Parameter = 1.,
+      d: Parameter = 5.,
+      r: Parameter = 0.01,
+      s: Parameter = 4.,
+      V_rest: Parameter = -1.6,
+      V_th: Parameter = 1.0,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      y_initializer: Union[Initializer, Callable, Tensor] = OneInit(-10.),
+      z_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(HindmarshRose, self).__init__(size=size, name=name)
 
@@ -1000,9 +1112,12 @@ class HindmarshRose(NeuGroup):
     self.V_rest = V_rest
 
     # variables
-    self.z = bm.Variable(bm.zeros(self.num))
-    self.y = bm.Variable(bm.ones(self.num) * -10.)
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(y_initializer, 'y_initializer')
+    check_initializer(z_initializer, 'z_initializer')
+    self.z = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(z_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -1116,14 +1231,18 @@ class FHN(NeuGroup):
 
   """
 
-  def __init__(self,
-               size: Shape,
-               a: Parameter = 0.7,
-               b: Parameter = 0.8,
-               tau: Parameter = 12.5,
-               Vth: Parameter = 1.8,
-               method: str = 'exp_auto',
-               name: str = None):
+  def __init__(
+      self,
+      size: Shape,
+      a: Parameter = 0.7,
+      b: Parameter = 0.8,
+      tau: Parameter = 12.5,
+      Vth: Parameter = 1.8,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(FHN, self).__init__(size=size, name=name)
 
@@ -1134,8 +1253,10 @@ class FHN(NeuGroup):
     self.Vth = Vth
 
     # variables
-    self.w = bm.Variable(bm.zeros(self.num))
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(w_initializer, 'w_initializer')
+    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)

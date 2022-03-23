@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional, Union, Sequence, Dict, List
+
 from jax import vmap
+
 import brainpy.math as bm
 from brainpy.dyn.base import TwoEndConn
 from brainpy.initialize import Initializer, ZeroInit
@@ -37,20 +39,21 @@ class DelayCoupling(TwoEndConn):
 
   """
 
-
   """Global delay variables. Useful when the same target
   variable is used in multiple mappings."""
   global_delay_vars: Dict[str, bm.LengthDelay] = dict()
 
-  def __init__(self,
-               pre,
-               post,
-               from_to: Union[str, Sequence[str]],
-               conn_mat: Tensor,
-               delay_mat: Optional[Tensor] = None,
-               delay_initializer: Initializer = ZeroInit(),
-               domain: str = 'local',
-               name: str = None):
+  def __init__(
+      self,
+      pre,
+      post,
+      from_to: Union[str, Sequence[str]],
+      conn_mat: Tensor,
+      delay_mat: Optional[Tensor] = None,
+      delay_initializer: Initializer = ZeroInit(),
+      domain: str = 'local',
+      name: str = None
+  ):
     super(DelayCoupling, self).__init__(pre, post, name=name)
 
     # local delay variables
