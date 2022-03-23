@@ -38,6 +38,7 @@ The code of BrainPy is open-sourced at GitHub:
 
    quickstart/installation
    quickstart/simulation
+   quickstart/rate_model
    quickstart/training
    quickstart/analysis
 
