@@ -78,22 +78,6 @@ array([[1., 1., 1., 1.],
 JaxArray([[1., 1., 1., 1.],
           [0., 0., 0., 0.]], dtype=float32)
 
-# mathematical functions
->>> np.sin(np_arr)
-array([[0.84147098, 0.84147098, 0.84147098, 0.84147098],
-       [0.        , 0.        , 0.        , 0.        ]])
->>> bm.sin(bm_arr)
-JaxArray([[0.84147096, 0.84147096, 0.84147096, 0.84147096],
-          [0.        , 0.        , 0.        , 0.        ]],  dtype=float32)
-
-# linear algebra
->>> np.dot(np_arr, np.ones((4, 2)))
-array([[4., 4.],
-       [0., 0.]])
->>> bm.dot(bm_arr, bm.ones((4, 2)))
-JaxArray([[4., 4.],
-          [0., 0.]], dtype=float32)
-
 # random number generation
 >>> np.random.uniform(-0.1, 0.1, (2, 3))
 array([[-0.02773637,  0.03766689, -0.01363128],
@@ -118,9 +102,6 @@ def lorenz_system(x, y, z, t):
     dy = x * (rho - z) - y
     dz = x * y - beta * z
     return dx, dy, dz
-
-runner = bp.integrators.IntegratorRunner(lorenz_system, dt=0.01)
-runner.run(100.)
 ```
 
 
@@ -129,10 +110,9 @@ Numerical methods for stochastic differential equations (SDEs).
 
 ```python
 sigma = 10; beta = 8/3; rho = 28
-p=0.1
 
 def lorenz_noise(x, y, z, t):
-    return p*x, p*y, p*z
+    return 0.1*x, 0.1*y, 0.1*z
 
 @bp.odeint(method='milstein', g=lorenz_noise)
 def lorenz_system(x, y, z, t):
@@ -140,30 +120,35 @@ def lorenz_system(x, y, z, t):
     dy = x * (rho - z) - y
     dz = x * y - beta * z
     return dx, dy, dz
-
-runner = bp.integrators.IntegratorRunner(lorenz_system, dt=0.01)
-runner.run(100.)
 ```
 
 
 
-Numerical methods for delay differential equations (SDEs).
+Numerical methods for delay differential equations (DDEs).
 
 ```python
 xdelay = bm.TimeDelay(bm.zeros(1), delay_len=1., before_t0=1., dt=0.01)
-
 
 @bp.ddeint(method='rk4', state_delays={'x': xdelay})
 def second_order_eq(x, y, t):
   dx = y
   dy = -y - 2 * x - 0.5 * xdelay(t - 1)
   return dx, dy
-
-
-runner = bp.integrators.IntegratorRunner(second_order_eq, dt=0.01)
-runner.run(100.)
 ```
 
+
+Numerical methods for fractional differential equations (FDEs).
+
+```python
+sigma = 10; beta = 8/3; rho = 28
+
+@bp.fdeint(method='GLShortMemory', alpha=0.97)
+def fractional_lorenz(x, y, z, t):
+    dx = sigma * (y - x)
+    dy = x * (rho - z) - y
+    dz = x * y - beta * z
+    return dx, dy, dz
+```
 
 
 ### 3. Dynamics simulation level
@@ -184,36 +169,23 @@ class EINet(bp.dyn.Network):
     I2I = bp.dyn.ExpCOBA(I, I, bp.conn.FixedProb(prob=0.02), E=-80., g_max=6.7, tau=10.)
         
     super(EINet, self).__init__(E2E, E2I, I2E, I2I, E=E, I=I)
-    
-
-net = EINet()
-runner = bp.dyn.DSRunner(net)
-runner(100.)
 ```
 
-Simulating a whole brain network by using rate models.
+Simulating a whole-brain network by using rate models.
 
 ```python
-import numpy as np
-
 class WholeBrainNet(bp.dyn.Network):
-  def __init__(self, signal_speed=20.):
+  def __init__(self):
     super(WholeBrainNet, self).__init__()
 
-    self.fhn = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
-    self.syn = bp.dyn.DiffusiveDelayCoupling(self.fhn, self.fhn,
-                                             'x->input',
-                                             conn_mat=conn_mat,
-                                             delay_mat=delay_mat)
+    self.areas = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+    self.conns = bp.dyn.DiffusiveDelayCoupling(self.areas, self.areas, 'x->input',
+                                               conn_mat=conn_mat, 
+                                               delay_mat=delay_mat)
 
   def update(self, _t, _dt):
-    self.syn.update(_t, _dt)
-    self.fhn.update(_t, _dt)
-
-
-net = WholeBrainNet()
-runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72])
-runner.run(6e3)
+    self.conns.update(_t, _dt)
+    self.areas.update(_t, _dt)
 ```
 
 
@@ -272,23 +244,31 @@ trainer = bp.nn.BPTT(net,
 Analyzing a low-dimensional FitzHugh–Nagumo neuron model.
 
 ```python
-bp.math.enable_x64()
-
 model = bp.dyn.FHN(1)
-analyzer = bp.analysis.PhasePlane2D(model,
-                                    target_vars={'V': [-3, 3], 'w': [-3., 3.]},
-                                    pars_update={'I_ext': 0.8}, 
-                                    resolutions=0.01)
+
+analyzer = bp.analysis.PhasePlane2D(
+   model,
+   target_vars={'V': [-3, 3], 'w': [-3., 3.]},
+   pars_update={'I_ext': 0.8}, 
+   resolutions=0.01
+)
 analyzer.plot_nullcline()
 analyzer.plot_vector_field()
 analyzer.plot_fixed_point()
-analyzer.plot_trajectory({'V': [-2.8], 'w': [-1.8]}, duration=100.)
 analyzer.show_figure()
 ```
 
-<p align="center"><img src="./docs/_static/fhn_ppa.png" width="60%">
-</p> 
+Analyzing a high-dimensional continuous-attractor neural network (CANN).
 
+```python
+cann_model = CANN(100) # your high-dimensional CANN network
+
+finder = bp.analysis.SlowPointFinder(f_cell=cann_model)
+finder.find_fps_with_gd_method(candidates=bm.random.random((1000, 100)))
+finder.filter_loss(tolerance=1e-5)
+finder.keep_unique(tolerance=0.03)
+finder.exclude_outliers(0.1)
+```
 
 
 ### 6. More others
