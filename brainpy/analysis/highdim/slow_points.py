@@ -148,7 +148,7 @@ class SlowPointFinder(object):
       optimizer = opt_method(lr=opt_lr, **opt_setting)
 
     if self.verbose:
-      print(f"Optimizing with {optimizer.__name__} to find fixed points:")
+      print(f"Optimizing with {optimizer} to find fixed points:")
 
     # set up optimization
     fixed_points = bm.Variable(bm.asarray(candidates))
