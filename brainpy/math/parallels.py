@@ -27,6 +27,7 @@ from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.math.random import RandomState
+from brainpy.math.jaxarray import JaxArray
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -77,7 +78,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
   ----------
   func : Base, function, callable
     The function or the module to compile.
-  dyn_vars : dict
+  dyn_vars : dict, sequence
   batched_vars : dict
   in_axes : optional, int, sequence of int
     Specify which input array axes to map over. If each positional argument to
@@ -207,13 +208,19 @@ def vmap(func, dyn_vars=None, batched_vars=None,
                       axis_name=axis_name)
 
     else:
+      if isinstance(dyn_vars, JaxArray):
+        dyn_vars = [dyn_vars]
+      if isinstance(dyn_vars, (tuple, list)):
+        dyn_vars = {f'_vmap_v{i}': v for i, v in enumerate(dyn_vars)}
+      assert isinstance(dyn_vars, dict)
+
       # dynamical variables
-      dyn_vars, rand_vars = TensorCollector(), TensorCollector()
+      _dyn_vars, _rand_vars = TensorCollector(), TensorCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
-          rand_vars[key] = val
+          _rand_vars[key] = val
         else:
-          dyn_vars[key] = val
+          _dyn_vars[key] = val
 
       # in axes
       if in_axes is None:
@@ -249,8 +256,8 @@ def vmap(func, dyn_vars=None, batched_vars=None,
 
       # jit function
       return _make_vmap(func=func,
-                        dyn_vars=dyn_vars,
-                        rand_vars=rand_vars,
+                        dyn_vars=_dyn_vars,
+                        rand_vars=_rand_vars,
                         in_axes=in_axes,
                         out_axes=out_axes,
                         axis_name=axis_name,

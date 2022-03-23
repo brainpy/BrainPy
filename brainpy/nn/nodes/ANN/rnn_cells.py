@@ -45,7 +45,9 @@ class VanillaRNN(RecurrentNode):
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
+    self.set_output_shape((None, self.num_unit))
 
+    # initializers
     self._state_initializer = state_initializer
     self._wi_initializer = wi_initializer
     self._wh_initializer = wh_initializer
@@ -55,23 +57,23 @@ class VanillaRNN(RecurrentNode):
     check_initializer(state_initializer, 'state_initializer', allow_none=False)
     check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
 
+    # activation function
     self.activation = bm.activations.get(activation)
 
-  def init_ff(self):
+  def init_ff_conn(self):
     unique_size, free_sizes = check_shape_consistency(self.feedforward_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
-    num_input = sum(free_sizes)
-    self.set_output_shape(unique_size + (self.num_unit,))
     # weights
+    num_input = sum(free_sizes)
     self.Wff = init_param(self._wi_initializer, (num_input, self.num_unit))
     self.Wrec = init_param(self._wh_initializer, (self.num_unit, self.num_unit))
-    self.bff = init_param(self._bias_initializer, (self.num_unit,))
+    self.bias = init_param(self._bias_initializer, (self.num_unit,))
     if self.trainable:
       self.Wff = bm.TrainVar(self.Wff)
       self.Wrec = bm.TrainVar(self.Wrec)
-      self.bff = None if (self.bff is None) else bm.TrainVar(self.bff)
+      self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
-  def init_fb(self):
+  def init_fb_conn(self):
     unique_size, free_sizes = check_shape_consistency(self.feedback_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_feedback = sum(free_sizes)
@@ -81,29 +83,23 @@ class VanillaRNN(RecurrentNode):
       self.Wfb = bm.TrainVar(self.Wfb)
 
   def init_state(self, num_batch=1):
-    state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_state(state)
+    return init_param(self._state_initializer, (num_batch, self.num_unit))
 
   def forward(self, ff, fb=None, **shared_kwargs):
     ff = bm.concatenate(ff, axis=-1)
     h = ff @ self.Wff
     h += self.state.value @ self.Wrec
-    if self.bff is not None:
-      h += self.bff
+    if self.bias is not None:
+      h += self.bias
     if fb is not None:
       fb = bm.concatenate(fb, axis=-1)
       h += fb @ self.Wfb
     self.state.value = self.activation(h)
     return self.state.value
 
-  def init_fb_output(self, num_batch=1):
-    state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_fb_output(state)
-
 
 class GRU(RecurrentNode):
-  r"""
-  Gated Recurrent Unit.
+  r"""Gated Recurrent Unit.
 
   The implementation is based on (Chung, et al., 2014) [1]_ with biases.
 
@@ -145,6 +141,7 @@ class GRU(RecurrentNode):
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
+    self.set_output_shape((None, self.num_unit))
 
     self._wi_initializer = wi_initializer
     self._wh_initializer = wh_initializer
@@ -155,13 +152,13 @@ class GRU(RecurrentNode):
     check_initializer(state_initializer, 'state_initializer', allow_none=False)
     check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
 
-  def init_ff(self):
+  def init_ff_conn(self):
     # data shape
     unique_size, free_sizes = check_shape_consistency(self.feedforward_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
-    num_input = sum(free_sizes)
-    self.set_output_shape(unique_size + (self.num_unit,))
+
     # weights
+    num_input = sum(free_sizes)
     self.Wi_ff = init_param(self._wi_initializer, (num_input, self.num_unit * 3))
     self.Wh = init_param(self._wh_initializer, (self.num_unit, self.num_unit * 3))
     self.bias = init_param(self._bias_initializer, (self.num_unit * 3,))
@@ -170,7 +167,7 @@ class GRU(RecurrentNode):
       self.Wh = bm.TrainVar(self.Wh)
       self.bias = bm.TrainVar(self.bias) if (self.bias is not None) else None
 
-  def init_fb(self):
+  def init_fb_conn(self):
     unique_size, free_sizes = check_shape_consistency(self.feedback_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_feedback = sum(free_sizes)
@@ -180,8 +177,7 @@ class GRU(RecurrentNode):
       self.Wi_fb = bm.TrainVar(self.Wi_fb)
 
   def init_state(self, num_batch=1):
-    state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_state(state)
+    return init_param(self._state_initializer, (num_batch, self.num_unit))
 
   def forward(self, ff, fb=None, **shared_kwargs):
     gates_x = bm.matmul(bm.concatenate(ff, axis=-1), self.Wi_ff)
@@ -204,10 +200,6 @@ class GRU(RecurrentNode):
     next_state = (1 - z) * self.state + z * a
     self.state.value = next_state
     return next_state
-
-  def init_fb_output(self, num_batch=1):
-    state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_fb_output(state)
 
 
 class LSTM(RecurrentNode):
@@ -264,6 +256,7 @@ class LSTM(RecurrentNode):
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
+    self.set_output_shape((None, self.num_unit,))
 
     self._state_initializer = state_initializer
     self._wi_initializer = wi_initializer
@@ -274,13 +267,12 @@ class LSTM(RecurrentNode):
     check_initializer(bias_initializer, 'bias_initializer', allow_none=True)
     check_initializer(state_initializer, 'state_initializer', allow_none=False)
 
-  def init_ff(self):
+  def init_ff_conn(self):
     # data shape
     unique_size, free_sizes = check_shape_consistency(self.feedforward_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
-    num_input = sum(free_sizes)
-    self.set_output_shape(unique_size + (self.num_unit,))
     # weights
+    num_input = sum(free_sizes)
     self.Wi_ff = init_param(self._wi_initializer, (num_input, self.num_unit * 4))
     self.Wh = init_param(self._wh_initializer, (self.num_unit, self.num_unit * 4))
     self.bias = init_param(self._bias_initializer, (self.num_unit * 4,))
@@ -289,7 +281,7 @@ class LSTM(RecurrentNode):
       self.Wh = bm.TrainVar(self.Wh)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
-  def init_fb(self):
+  def init_fb_conn(self):
     unique_size, free_sizes = check_shape_consistency(self.feedback_shapes, -1, True)
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_feedback = sum(free_sizes)
@@ -299,8 +291,7 @@ class LSTM(RecurrentNode):
       self.Wi_fb = bm.TrainVar(self.Wi_fb)
 
   def init_state(self, num_batch=1):
-    hc = init_param(self._state_initializer, (num_batch * 2, self.num_unit))
-    self.set_state(hc)
+    return init_param(self._state_initializer, (num_batch * 2, self.num_unit))
 
   def forward(self, ff, fb=None, **shared_kwargs):
     h, c = bm.split(self.state, 2)
@@ -315,10 +306,6 @@ class LSTM(RecurrentNode):
     h = bm.sigmoid(o) * bm.tanh(c)
     self.state.value = bm.vstack([h, c])
     return h
-
-  def init_fb_output(self, num_batch=1):
-    state = init_param(self._state_initializer, (num_batch, self.num_unit))
-    self.set_fb_output(state)
 
   @property
   def h(self):

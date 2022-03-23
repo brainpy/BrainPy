@@ -186,7 +186,6 @@ def matrix_correlation(x, y):
   return cc
 
 
-@jit
 def functional_connectivity(activities):
   """Functional connectivity matrix of timeseries activities.
 
@@ -200,12 +199,12 @@ def functional_connectivity(activities):
   connectivity_matrix: tensor
     ``num_sample x num_sample`` functional connectivity matrix.
   """
-  activities = bm.asarray(activities)
+  activities = bm.as_numpy(activities)
   if activities.ndim != 2:
     raise ValueError('Only support 2d tensor with shape of "(num_time, num_sample)". '
                      f'But we got a tensor with the shape of {activities.shape}')
-  fc = bm.corrcoef(activities.T)
-  return bm.nan_to_num(fc)
+  fc = np.corrcoef(activities.T)
+  return np.nan_to_num(fc)
 
 
 @jit

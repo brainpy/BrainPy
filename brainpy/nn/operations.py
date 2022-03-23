@@ -365,7 +365,7 @@ def fb_connect(
 
   all_nodes, all_ff_edges, all_fb_edges, fb_senders, fb_receivers = _retrieve_nodes_and_edges(senders, receivers)
 
-  # detect whether the node implement its own "init_fb()" function
+  # detect whether the node implement its own "init_fb_conn()" function
   for node in fb_receivers:
     if not node.is_feedback_input_supported:
       raise ValueError(f'Establish a feedback connection to \n'

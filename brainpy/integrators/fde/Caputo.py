@@ -8,6 +8,7 @@ This module provides numerical methods for integrating Caputo fractional derivat
 import jax.numpy as jnp
 from jax.experimental.host_callback import id_tap
 
+from brainpy import check
 import brainpy.math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.constants import DT
@@ -150,7 +151,8 @@ class CaputoEuler(FDEIntegrator):
     # format arguments
     all_args = format_args(args, kwargs, self.arguments)
     dt = all_args.pop(DT, self.dt)
-    id_tap(self._check_step, (dt, all_args['t']))
+    if check.is_checking():
+      id_tap(self._check_step, (dt, all_args['t']))
 
     # derivative values
     devs = self.f(**all_args)
@@ -360,7 +362,8 @@ class CaputoL1Schema(FDEIntegrator):
     # format arguments
     all_args = format_args(args, kwargs, self.arguments)
     dt = all_args.pop(DT, self.dt)
-    id_tap(self._check_step, (dt, all_args['t']))
+    if check.is_checking():
+      id_tap(self._check_step, (dt, all_args['t']))
 
     # derivative values
     devs = self.f(**all_args)

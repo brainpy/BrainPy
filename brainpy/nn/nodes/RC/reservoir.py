@@ -158,7 +158,7 @@ class Reservoir(RecurrentNode):
     self.noise_type = noise_type
     check_string(noise_type, 'noise_type', ['normal', 'uniform'])
 
-  def init_ff(self):
+  def init_ff_conn(self):
     """Initialize feedforward connections, weights, and variables."""
     unique_shape, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
     self.set_output_shape(unique_shape + (self.num_unit,))
@@ -197,10 +197,9 @@ class Reservoir(RecurrentNode):
 
   def init_state(self, num_batch=1):
     # initialize internal state
-    state = bm.Variable(bm.zeros((num_batch, self.num_unit), dtype=bm.float_))
-    self.set_state(state)
+    return bm.zeros((num_batch, self.num_unit), dtype=bm.float_)
 
-  def init_fb(self):
+  def init_fb_conn(self):
     """Initialize feedback connections, weights, and variables."""
     if self.feedback_shapes is not None:
       unique_shape, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)

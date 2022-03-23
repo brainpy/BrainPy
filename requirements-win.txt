@@ -1,5 +1,6 @@
 numpy>=1.15
 tqdm
+numba
 matplotlib>=3.4
 sympy>=1.6
 scipy>=1.1.0

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .base import DDEIntegrator
-from .explicit_rk import *
 
 __all__ = [
   'ddeint',
@@ -12,19 +11,6 @@ __all__ = [
 ]
 
 name2method = {
-  # explicit RK
-  'euler': Euler, 'Euler': Euler,
-  'midpoint': MidPoint, 'MidPoint': MidPoint,
-  'heun2': Heun2, 'Heun2': Heun2,
-  'ralston2': Ralston2, 'Ralston2': Ralston2,
-  'rk2': RK2, 'RK2': RK2,
-  'rk3': RK3, 'RK3': RK3,
-  'heun3': Heun3, 'Heun3': Heun3,
-  'ralston3': Ralston3, 'Ralston3': Ralston3,
-  'ssprk3': SSPRK3, 'SSPRK3': SSPRK3,
-  'rk4': RK4, 'RK4': RK4,
-  'ralston4': Ralston4, 'Ralston4': Ralston4,
-  'rk4_38rule': RK4Rule38, 'RK4Rule38': RK4Rule38,
 }
 
 
@@ -132,7 +118,7 @@ def register_dde_integrator(name, integrator):
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in DDE integrators.')
-  if DDEIntegrator not in integrator.__bases__:
+  if not issubclass(integrator, DDEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {DDEIntegrator.__name__}')
   name2method[name] = integrator
 

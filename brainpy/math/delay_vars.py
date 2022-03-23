@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 
-
+import warnings
 from typing import Union, Callable, Tuple
 
 import jax.numpy as jnp
+import numpy as np
 from jax import vmap
 from jax.experimental.host_callback import id_tap
 from jax.lax import cond
 
+from brainpy import check
 from brainpy import math as bm
 from brainpy.base.base import Base
+from brainpy.errors import UnsupportedError
 from brainpy.tools.checking import check_float
 from brainpy.tools.others import to_size
-from brainpy.errors import UnsupportedError
 
 __all__ = [
   'AbstractDelay',
+  'TimeDelay',
   'FixedLenDelay',
   'NeutralDelay',
 ]
@@ -32,13 +35,13 @@ _INTERP_LINEAR = 'linear_interp'
 _INTERP_ROUND = 'round'
 
 
-class FixedLenDelay(AbstractDelay):
-  """Delay variable which has a fixed delay length.
+class TimeDelay(AbstractDelay):
+  """Delay variable which has a fixed delay time length.
 
   For example, we create a delay variable which has a maximum delay length of 1 ms
 
   >>> import brainpy.math as bm
-  >>> delay = bm.FixedLenDelay(bm.zeros(3), delay_len=1., dt=0.1)
+  >>> delay = bm.TimeDelay(bm.zeros(3), delay_len=1., dt=0.1)
   >>> delay(-0.5)
   [-0. -0. -0.]
 
@@ -46,13 +49,13 @@ class FixedLenDelay(AbstractDelay):
 
   1. the one-dimensional delay data
 
-  >>> delay = bm.FixedLenDelay(3, delay_len=1., dt=0.1, before_t0=lambda t: t)
+  >>> delay = bm.TimeDelay(3, delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.2)
   [-0.2 -0.2 -0.2]
 
   2. the two-dimensional delay data
 
-  >>> delay = bm.FixedLenDelay((3, 2), delay_len=1., dt=0.1, before_t0=lambda t: t)
+  >>> delay = bm.TimeDelay((3, 2), delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.6)
   [[-0.6 -0.6]
    [-0.6 -0.6]
@@ -60,7 +63,7 @@ class FixedLenDelay(AbstractDelay):
 
   3. the three-dimensional delay data
 
-  >>> delay = bm.FixedLenDelay((3, 2, 1), delay_len=1., dt=0.1, before_t0=lambda t: t)
+  >>> delay = bm.TimeDelay((3, 2, 1), delay_len=1., dt=0.1, before_t0=lambda t: t)
   >>> delay(-0.6)
   [[[-0.8]
     [-0.8]]
@@ -113,7 +116,7 @@ class FixedLenDelay(AbstractDelay):
       dtype=None,
       interp_method='linear_interp',
   ):
-    super(FixedLenDelay, self).__init__(name=name)
+    super(TimeDelay, self).__init__(name=name)
 
     # shape
     self.shape = to_size(shape)
@@ -161,6 +164,10 @@ class FixedLenDelay(AbstractDelay):
     else:
       raise ValueError(f'"before_t0" does not support {type(before_t0)}: before_t0')
 
+    self.f = jnp.interp
+    for dim in range(1, len(self.shape) + 1, 1):
+      self.f = vmap(self.f, in_axes=(None, None, dim), out_axes=dim - 1)
+
   @property
   def idx(self):
     return self._idx
@@ -191,36 +198,37 @@ class FixedLenDelay(AbstractDelay):
 
   def _check_time(self, times, transforms):
     prev_time, current_time = times
-    current_time = bm.as_device_array(current_time)
-    prev_time = bm.as_device_array(prev_time)
+    current_time = np.asarray(current_time, dtype=bm.float_)
+    prev_time = np.asarray(prev_time, dtype=bm.float_)
     if prev_time > current_time:
       raise ValueError(f'\n'
                        f'!!! Error in {self.__class__.__name__}: \n'
                        f'The request time should be less than the '
                        f'current time {current_time}. But we '
                        f'got {prev_time} > {current_time}')
-    lower_time = jnp.asarray(current_time - self.delay_len)
+    lower_time = np.asarray(current_time - self.delay_len)
     if prev_time < lower_time:
       raise ValueError(f'\n'
                        f'!!! Error in {self.__class__.__name__}: \n'
                        f'The request time of the variable should be in '
                        f'[{lower_time}, {current_time}], but we got {prev_time}')
 
-  def __call__(self, prev_time):
+  def __call__(self, time, indices=None):
     # check
-    id_tap(self._check_time, (prev_time, self.current_time))
+    if check.is_checking():
+      id_tap(self._check_time, (time, self.current_time))
     if self._before_type == _FUNC_BEFORE:
-      return cond(prev_time < self.t0,
+      return cond(time < self.t0,
                   self._before_t0,
                   self._after_t0,
-                  prev_time)
+                  time)
     else:
-      return self._after_t0(prev_time)
+      return self._after_t0(time)
 
   def _after_t0(self, prev_time):
     diff = self.delay_len - (self.current_time - prev_time)
-    if isinstance(diff, bm.ndarray): diff = diff.value
-
+    if isinstance(diff, bm.ndarray):
+      diff = diff.value
     if self.interp_method == _INTERP_LINEAR:
       req_num_step = jnp.asarray(diff / self._dt, dtype=bm.get_dint())
       extra = diff - req_num_step * self._dt
@@ -238,13 +246,10 @@ class FixedLenDelay(AbstractDelay):
 
   def _false_fn(self, div_mod):
     req_num_step, extra = div_mod
-    f = jnp.interp
-    for dim in range(1, len(self.shape) + 1, 1):
-      f = vmap(f, in_axes=(None, None, dim), out_axes=dim - 1)
     idx = jnp.asarray([self.idx[0] + req_num_step,
                        self.idx[0] + req_num_step + 1])
     idx %= self.num_delay_step
-    return f(extra, jnp.asarray([0., self._dt]), self._data[idx])
+    return self.f(extra, jnp.asarray([0., self._dt]), self._data[idx])
 
   def update(self, time, value):
     self._data[self._idx[0]] = value
@@ -252,17 +257,32 @@ class FixedLenDelay(AbstractDelay):
     self._idx.value = (self._idx + 1) % self.num_delay_step
 
 
-class VariedLenDelay(AbstractDelay):
-  """Delay variable which has a functional delay
+def FixedLenDelay(shape: Union[int, Tuple[int, ...]],
+                  delay_len: Union[float, int],
+                  before_t0: Union[Callable, bm.ndarray, jnp.ndarray, float, int] = None,
+                  t0: Union[float, int] = 0.,
+                  dt: Union[float, int] = None,
+                  name: str = None,
+                  dtype=None,
+                  interp_method='linear_interp', ):
+  warnings.warn('Please use "brainpy.math.TimeDelay" instead. '
+                '"brainpy.math.FixedLenDelay" is deprecated since version 2.1.2. ',
+                DeprecationWarning)
+  return TimeDelay(shape=shape,
+                   delay_len=delay_len,
+                   before_t0=before_t0,
+                   t0=t0,
+                   dt=dt,
+                   name=name,
+                   dtype=dtype,
+                   interp_method=interp_method)
 
-  """
 
-  def update(self, time, value):
-    pass
-
-  def __init__(self):
-    super(VariedLenDelay, self).__init__()
-
-
-class NeutralDelay(FixedLenDelay):
+class NeutralDelay(TimeDelay):
   pass
+
+
+class LengthDelay(AbstractDelay):
+  pass
+
+

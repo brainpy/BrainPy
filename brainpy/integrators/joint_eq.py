@@ -153,7 +153,7 @@ class JointEq(object):
       for par in args[len(vars) + 1:]:
         if (par not in vars_in_eqs) and (par not in all_arg_pars) and (par not in all_kwarg_pars):
           all_arg_pars.append(par)
-      for key, value in kwargs.values():
+      for key, value in kwargs.items():
         if key in all_kwarg_pars and value != all_kwarg_pars[key]:
           raise errors.DiffEqError(f'We got two different default value of "{key}": '
                                    f'{all_kwarg_pars[key]} != {value}')

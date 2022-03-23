@@ -20,6 +20,7 @@ __all__ = [
   'check_float',
   'check_integer',
   'check_string',
+  'check_sequence',
 ]
 
 
@@ -207,6 +208,25 @@ def check_connector(connector: Union[Callable, conn.Connector, Tensor],
   else:
     raise ValueError(f'{name} should be an instance of brainpy.conn.Connector, '
                      f'tensor or callable function. While we got {type(connector)}')
+
+
+def check_sequence(value: Sequence,
+                   name=None,
+                   elem_type=None,
+                   allow_none=True):
+  if name is None: name = ''
+  if value is None:
+    if allow_none:
+      return
+    else:
+      raise ValueError(f'{name} must be a sequence, but got None')
+  if not isinstance(value, (tuple, list)):
+    raise ValueError(f'{name} should be a sequence, but we got a {type(value)}')
+  if elem_type is not None:
+    for v in value:
+      if not isinstance(v, elem_type):
+        raise ValueError(f'Elements in {name} should be {elem_type}, '
+                         f'but we got {type(elem_type)}: {v}')
 
 
 def check_float(value: float, name=None, min_bound=None, max_bound=None,

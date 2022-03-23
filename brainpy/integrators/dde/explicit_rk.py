@@ -4,6 +4,7 @@ from brainpy.integrators.constants import F, DT
 from brainpy.integrators.dde.base import DDEIntegrator
 from brainpy.integrators.ode import common
 from brainpy.integrators.utils import compile_code, check_kws
+from brainpy.integrators.dde.generic import register_dde_integrator
 
 __all__ = [
   'ExplicitRKIntegrator',
@@ -47,8 +48,6 @@ class ExplicitRKIntegrator(DDEIntegrator):
     def integral(*vars, **kwargs):
       pass
 
-
-
     self.build()
 
   def build(self):
@@ -72,10 +71,16 @@ class Euler(ExplicitRKIntegrator):
   C = [0]
 
 
+register_dde_integrator('euler', Euler)
+
+
 class MidPoint(ExplicitRKIntegrator):
   A = [(), (0.5,)]
   B = [0, 1]
   C = [0, 0.5]
+
+
+register_dde_integrator('midpoint', MidPoint)
 
 
 class Heun2(ExplicitRKIntegrator):
@@ -84,10 +89,16 @@ class Heun2(ExplicitRKIntegrator):
   C = [0, 1]
 
 
+register_dde_integrator('heun2', Heun2)
+
+
 class Ralston2(ExplicitRKIntegrator):
   A = [(), ('2/3',)]
   B = [0.25, 0.75]
   C = [0, '2/3']
+
+
+register_dde_integrator('ralston2', Ralston2)
 
 
 class RK2(ExplicitRKIntegrator):
@@ -98,10 +109,16 @@ class RK2(ExplicitRKIntegrator):
     super(RK2, self).__init__(f=f, var_type=var_type, dt=dt, name=name, show_code=show_code)
 
 
+register_dde_integrator('rk2', RK2)
+
+
 class RK3(ExplicitRKIntegrator):
   A = [(), (0.5,), (-1, 2)]
   B = ['1/6', '2/3', '1/6']
   C = [0, 0.5, 1]
+
+
+register_dde_integrator('rk3', RK3)
 
 
 class Heun3(ExplicitRKIntegrator):
@@ -110,10 +127,16 @@ class Heun3(ExplicitRKIntegrator):
   C = [0, '1/3', '2/3']
 
 
+register_dde_integrator('heun3', Heun3)
+
+
 class Ralston3(ExplicitRKIntegrator):
   A = [(), (0.5,), (0, 0.75)]
   B = ['2/9', '1/3', '4/9']
   C = [0, 0.5, 0.75]
+
+
+register_dde_integrator('ralston3', Ralston3)
 
 
 class SSPRK3(ExplicitRKIntegrator):
@@ -122,10 +145,16 @@ class SSPRK3(ExplicitRKIntegrator):
   C = [0, 1, 0.5]
 
 
+register_dde_integrator('ssprk3', SSPRK3)
+
+
 class RK4(ExplicitRKIntegrator):
   A = [(), (0.5,), (0., 0.5), (0., 0., 1)]
   B = ['1/6', '1/3', '1/3', '1/6']
   C = [0, 0.5, 0.5, 1]
+
+
+register_dde_integrator('rk4', RK4)
 
 
 class Ralston4(ExplicitRKIntegrator):
@@ -134,7 +163,13 @@ class Ralston4(ExplicitRKIntegrator):
   C = [0, .4, .45573725, 1]
 
 
+register_dde_integrator('ralston4', Ralston4)
+
+
 class RK4Rule38(ExplicitRKIntegrator):
   A = [(), ('1/3',), ('-1/3', '1'), (1, -1, 1)]
   B = [0.125, 0.375, 0.375, 0.125]
   C = [0, '1/3', '2/3', 1]
+
+
+register_dde_integrator('rk4_38rule', RK4Rule38)

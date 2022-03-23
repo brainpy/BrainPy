@@ -39,12 +39,12 @@ class LinearReadout(Dense):
     super(LinearReadout, self).__init__(num_unit=num_unit, weight_initializer=weight_initializer, bias_initializer=bias_initializer, **kwargs)
 
   def init_state(self, num_batch=1):
-    state = bm.Variable(bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_))
-    self.set_state(state)
+    return bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_)
 
   def forward(self, ff, fb=None, **shared_kwargs):
-    self.state.value = super(LinearReadout, self).forward(ff, fb=fb, **shared_kwargs)
-    return self.state
+    h = super(LinearReadout, self).forward(ff, fb=fb, **shared_kwargs)
+    self.state.value = h
+    return h
 
   def __force_init__(self, train_pars: Optional[Dict] = None):
     if train_pars is None: train_pars = dict()
@@ -76,4 +76,4 @@ class LinearReadout(Dense):
     # update the weights
     e = bm.atleast_2d(self.state - target)  # (1, num_output)
     dw = bm.dot(-c * k, e)  # (num_hidden, num_output)
-    self.weights += dw
+    self.Wff += dw
