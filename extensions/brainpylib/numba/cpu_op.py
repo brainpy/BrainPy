@@ -84,12 +84,12 @@ def create_numba_api_wrapper(func,
   n_out = len(output_shapes)
   if n_in > 6:
     raise NotImplementedError(
-      "n_in ∈ [0,4] inputs are supported ({n_in} detected)."
+      "n_in ∈ [0, 6] inputs are supported ({n_in} detected)."
       "Please open a bug report."
     )
   if n_out > 5 or n_out == 0:
     raise NotImplementedError(
-      "n_out ∈ [1,4] outputs are supported ({n_out} detected)."
+      "n_out ∈ [1, 5] outputs are supported ({n_out} detected)."
       "Please open a bug report."
     )
 
@@ -218,7 +218,7 @@ def _func_translation(func, abs_eval_fn, c, *args):
   )
 
 
-def register_op(func, abs_eval):
+def register_op_cpu(func, abs_eval):
   _func_prim = core.Primitive(func.__name__)
   _func_prim.multiple_results = True
 
