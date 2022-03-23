@@ -168,6 +168,7 @@ class TimeDelay(AbstractDelay):
 
   def _check_time(self, times, transforms):
     prev_time, current_time = times
+    current_time = current_time[0]
     if prev_time > current_time + 1e-6:
       raise ValueError(f'\n'
                        f'!!! Error in {self.__class__.__name__}: \n'
@@ -194,7 +195,7 @@ class TimeDelay(AbstractDelay):
       return self._after_t0(time)
 
   def _after_t0(self, prev_time):
-    diff = self.delay_len - (self.current_time - prev_time)
+    diff = self.delay_len - (self.current_time[0] - prev_time)
     if isinstance(diff, ndarray):
       diff = diff.value
     if self.interp_method == _INTERP_LINEAR:
