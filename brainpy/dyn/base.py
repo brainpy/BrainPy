@@ -71,37 +71,6 @@ class DynamicalSystem(Base):
           gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 
-  def register_constant_delay(self, key, size, delay, dtype=None):
-    """Register a constant delay, whose update method will be appended into
-    the ``self.steps`` in this host class.
-
-    Parameters
-    ----------
-    key : str
-      The delay name.
-    size : int, list of int, tuple of int
-      The delay data size.
-    delay : int, float, ndarray
-      The delay time, with the unit same with `brainpy.math.get_dt()`.
-    dtype : optional
-      The data type.
-
-    Returns
-    -------
-    delay : ConstantDelay
-        An instance of ConstantDelay.
-    """
-    if not hasattr(self, 'steps'):
-      raise ModelBuildError('Please initialize the super class first before '
-                            'registering constant_delay. \n\n'
-                            'super(YourClassName, self).__init__(**kwargs)')
-    if not key.isidentifier(): raise ValueError(f'{key} is not a valid identifier.')
-    cdelay = ConstantDelay(size=size,
-                           delay=delay,
-                           name=f'{self.name}_delay_{key}',
-                           dtype=dtype)
-    return cdelay
-
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
     return self.update(*args, **kwargs)
@@ -157,7 +126,8 @@ class Container(DynamicalSystem):
     In this update function, the update functions in children systems are
     iteratively called.
     """
-    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique():
+    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
+    for node in nodes.values():
       node.update(_t, _dt)
 
   def __getattr__(self, item):
