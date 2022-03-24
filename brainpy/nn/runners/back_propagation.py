@@ -172,7 +172,9 @@ class BPTT(RNNTrainer):
       Same as the ``train_data``. It can be a callable function,
       or a tuple/list representing `(X, Y)` data.
     num_batch: int
-      The batch size. Default 32.
+      The batch size. Default 32. This setting is used when users provide
+      the ``train_data`` and ``test_data`` as a pair of `(X, Y)` data, rather
+      than a function.
     num_train: int
       The number of training epoch. Default 100.
     num_report: int
@@ -204,8 +206,6 @@ class BPTT(RNNTrainer):
       for x, y in train_data_:
         self._check_mapping_type(y)
         batch_size = check_rnn_data_batch_size(x)
-        if batch_size != num_batch:
-          raise ValueError(f'"num_batch" is set to {num_batch}, but we got {batch_size}.')
         if reset:
           self.target.initialize(batch_size)
         loss = self.f_train(shared_kwargs)(x, y)
@@ -222,9 +222,6 @@ class BPTT(RNNTrainer):
         for x, y in test_data_:
           self._check_mapping_type(y)
           batch_size = check_rnn_data_batch_size(x)
-          if batch_size != num_batch:
-            raise ValueError(f'"num_batch" is set to {num_batch}, '
-                             f'but we got {batch_size}.')
           if reset:
             self.target.initialize(batch_size)
           loss = self.f_loss(shared_kwargs)(x, y)

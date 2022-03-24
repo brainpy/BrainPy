@@ -48,13 +48,15 @@ class RNNRunner(Runner):
     # function for prediction
     self._predict_func = dict()
 
-  def predict(self,
-              xs: Union[Tensor, Dict[str, Tensor]],
-              forced_states: Dict[str, Tensor] = None,
-              forced_feedbacks: Dict[str, Tensor] = None,
-              reset=False,
-              shared_kwargs: Dict = None,
-              progress_bar=True):
+  def predict(
+      self,
+      xs: Union[Tensor, Dict[str, Tensor]],
+      forced_states: Dict[str, Tensor] = None,
+      forced_feedbacks: Dict[str, Tensor] = None,
+      reset=False,
+      shared_kwargs: Dict = None,
+      progress_bar=True
+  ):
     """Predict a series of input data with the given target model.
 
     This function use the JIT compilation to accelerate the model simulation.
@@ -76,9 +78,10 @@ class RNNRunner(Runner):
       `(num_sample, num_time, num_feature)`.
     reset: bool
       Whether reset the model states.
-    progress_bar: bool
     shared_kwargs: optional, dict
       The shared arguments across different layers.
+    progress_bar: bool
+      Whether report the progress of the simulation using progress bar.
 
     Returns
     -------
@@ -133,8 +136,11 @@ class RNNRunner(Runner):
     xs: dict
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
     iter_forced_states: dict
+      The forced state values.
     iter_forced_feedbacks: dict
-    shared_kwargs: dict
+      The forced feedback output values.
+    shared_kwargs: optional, dict
+      The shared keyword arguments.
 
     Returns
     -------
