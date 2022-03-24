@@ -56,7 +56,7 @@ def eval_rule(call_fn, abs_eval, *args, **kwargs):
   # convert inputs to a tuple
   inputs = tuple(np.asarray(arg) for arg in args)
   # call the kernel
-  call_fn(outputs + inputs, **kwargs)
+  call_fn(outputs, inputs, **kwargs)
   # Return the outputs
   return tuple(outputs)
 
@@ -168,7 +168,7 @@ def create_numba_api_wrapper(func,
         numba.carray(input_ptrs[4], input_shapes[4], dtype=input_dtypes[4]),
         numba.carray(input_ptrs[5], input_shapes[5], dtype=input_dtypes[5]),
       )
-    func(args_out + args_in)
+    func(args_out, args_in)
 
   return xla_cpu_custom_call_target
 
@@ -218,7 +218,7 @@ def _func_translation(func, abs_eval_fn, c, *args):
   )
 
 
-def register_op_cpu(func, abs_eval):
+def register_cpu_op(func, abs_eval):
   _func_prim = core.Primitive(func.__name__)
   _func_prim.multiple_results = True
 
@@ -230,7 +230,7 @@ def register_op_cpu(func, abs_eval):
   _func_abstract = partial(abs_eval_rule, abs_eval_fn)
   bind_primitive_fn = partial(bind_primitive, _func_prim, abs_eval_fn)
 
-  func = numba.jit(func)
+  func = numba.njit(func)
   _func_prim.def_abstract_eval(_func_abstract)
   _func_prim.def_impl(partial(eval_rule, func, _func_abstract))
 
@@ -238,3 +238,19 @@ def register_op_cpu(func, abs_eval):
 
   return jax.jit(bind_primitive_fn)
 
+
+def abs_eval(*ins):
+  return ShapedArray((1, 2), dtype=jnp.float_), ShapedArray((1, 2), dtype=jnp.float_)
+
+
+def custom_op(outs, ins):
+  y, y1 = outs
+  x, x2 = ins
+  y[:] = x + 1
+  y1[:] = x2 + 2
+
+
+z = jnp.ones((1, 2), dtype=jnp.float_)
+jit_op = register_cpu_op(custom_op, abs_eval)
+
+print(jit_op(z, z))

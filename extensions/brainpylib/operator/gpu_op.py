@@ -84,6 +84,15 @@ def pycapsule_new(ptr, name, destructor=None) -> ctypes.py_object:
 def create_numba_api_wrapper(func,
                              input_dtypes, input_shapes,
                              output_dtypes, output_shapes):
+  from _cuda import (
+    cuMemcpy,
+    cuMemcpyAsync,
+    cuStreamSynchronize,
+    memcpyHostToHost,
+    memcpyHostToDevice,
+    memcpyDeviceToHost,
+    memcpyDeviceToDevice,
+  )
   n_in = len(input_shapes)
   n_out = len(output_shapes)
   if n_in > 6:
@@ -136,11 +145,11 @@ def create_numba_api_wrapper(func,
     # allocate input cpu buffers and
     if n_in == 1:
       args_in = (np.empty(input_shapes[0], dtype=input_dtypes[0]),)
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[0].ctypes.data,
         inout_gpu_ptrs[0],
         input_byte_size[0],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
     elif n_in == 2:
@@ -148,18 +157,18 @@ def create_numba_api_wrapper(func,
         np.empty(input_shapes[0], dtype=input_dtypes[0]),
         np.empty(input_shapes[1], dtype=input_dtypes[1]),
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[0].ctypes.data,
         inout_gpu_ptrs[0],
         input_byte_size[0],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[1].ctypes.data,
         inout_gpu_ptrs[1],
         input_byte_size[1],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
     elif n_in == 3:
@@ -168,25 +177,25 @@ def create_numba_api_wrapper(func,
         np.empty(input_shapes[1], dtype=input_dtypes[1]),
         np.empty(input_shapes[2], dtype=input_dtypes[2]),
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[0].ctypes.data,
         inout_gpu_ptrs[0],
         input_byte_size[0],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[1].ctypes.data,
         inout_gpu_ptrs[1],
         input_byte_size[1],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[2].ctypes.data,
         inout_gpu_ptrs[2],
         input_byte_size[2],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
     elif n_in == 4:
@@ -196,32 +205,32 @@ def create_numba_api_wrapper(func,
         np.empty(input_shapes[2], dtype=input_dtypes[2]),
         np.empty(input_shapes[3], dtype=input_dtypes[3]),
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[0].ctypes.data,
         inout_gpu_ptrs[0],
         input_byte_size[0],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[1].ctypes.data,
         inout_gpu_ptrs[1],
         input_byte_size[1],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[2].ctypes.data,
         inout_gpu_ptrs[2],
         input_byte_size[2],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[3].ctypes.data,
         inout_gpu_ptrs[3],
         input_byte_size[3],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
     elif n_in == 5:
@@ -232,39 +241,39 @@ def create_numba_api_wrapper(func,
         np.empty(input_shapes[3], dtype=input_dtypes[3]),
         np.empty(input_shapes[4], dtype=input_dtypes[4]),
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[0].ctypes.data,
         inout_gpu_ptrs[0],
         input_byte_size[0],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[1].ctypes.data,
         inout_gpu_ptrs[1],
         input_byte_size[1],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[2].ctypes.data,
         inout_gpu_ptrs[2],
         input_byte_size[2],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[3].ctypes.data,
         inout_gpu_ptrs[3],
         input_byte_size[3],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[4].ctypes.data,
         inout_gpu_ptrs[4],
         input_byte_size[4],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
     elif n_in == 6:
@@ -276,127 +285,128 @@ def create_numba_api_wrapper(func,
         np.empty(input_shapes[4], dtype=input_dtypes[4]),
         np.empty(input_shapes[5], dtype=input_dtypes[5]),
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[0].ctypes.data,
         inout_gpu_ptrs[0],
         input_byte_size[0],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[1].ctypes.data,
         inout_gpu_ptrs[1],
         input_byte_size[1],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[2].ctypes.data,
         inout_gpu_ptrs[2],
         input_byte_size[2],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[3].ctypes.data,
         inout_gpu_ptrs[3],
         input_byte_size[3],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[4].ctypes.data,
         inout_gpu_ptrs[4],
         input_byte_size[4],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         args_in[5].ctypes.data,
         inout_gpu_ptrs[5],
         input_byte_size[5],
-        _cuda.memcpyDeviceToHost,
+        memcpyDeviceToHost,
         stream,
       )
-    _cuda.cuStreamSynchronize(stream)
+    cuStreamSynchronize(stream)
+    
     func(args_out + args_in)
 
     if n_out == 1:
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 0],
         args_out[0].ctypes.data,
         output_byte_size[0],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
     elif n_out == 2:
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 0],
         args_out[0].ctypes.data,
         output_byte_size[0],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 1],
         args_out[1].ctypes.data,
         output_byte_size[1],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
     elif n_out == 3:
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 0],
         args_out[0].ctypes.data,
         output_byte_size[0],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 1],
         args_out[1].ctypes.data,
         output_byte_size[1],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 2],
         args_out[2].ctypes.data,
         output_byte_size[2],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
     elif n_out == 4:
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 0],
         args_out[0].ctypes.data,
         output_byte_size[0],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 1],
         args_out[1].ctypes.data,
         output_byte_size[1],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 2],
         args_out[2].ctypes.data,
         output_byte_size[2],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
-      _cuda.cuMemcpyAsync(
+      cuMemcpyAsync(
         inout_gpu_ptrs[n_in + 3],
         args_out[3].ctypes.data,
         output_byte_size[3],
-        _cuda.memcpyHostToDevice,
+        memcpyHostToDevice,
         stream,
       )
 
-    _cuda.cuStreamSynchronize(stream)
+    cuStreamSynchronize(stream)
 
   return xla_gpu_custom_call_target
 
@@ -461,7 +471,7 @@ def register_op_gpu(func, abs_eval):
   _func_abstract = partial(abs_eval_rule, abs_eval_fn)
   bind_primitive_fn = partial(bind_primitive, _func_prim, abs_eval_fn)
 
-  func = cuda.jit(func)
+  func = numba.jit(func)
   _func_prim.def_abstract_eval(_func_abstract)
   _func_prim.def_impl(partial(eval_rule, func, _func_abstract))
 
