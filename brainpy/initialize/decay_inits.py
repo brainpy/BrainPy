@@ -134,6 +134,14 @@ class GaussianDecay(IntraLayerInitializer):
     conn_weights = np.where(conn_weights < self.min_w, 0., conn_weights)
     return bm.asarray(conn_weights, dtype=dtype)
 
+  def __repr__(self):
+    name = self.__class__.__name__
+    bank = ' ' * len(name)
+    return (f'{name}(sigma={self.sigma}, max_w={self.max_w}, min_w={self.min_w}, \n'
+            f'{bank}periodic_boundary={self.periodic_boundary}, '
+            f'include_self={self.include_self}, '
+            f'normalize={self.normalize})')
+
 
 class DOGDecay(IntraLayerInitializer):
   r"""Builds a Difference-Of-Gaussian (dog) connectivity pattern within a population of neurons.
@@ -255,3 +263,12 @@ class DOGDecay(IntraLayerInitializer):
     # connectivity weights
     conn_weights = np.where(np.abs(conn_weights) < self.min_w, 0., conn_weights)
     return bm.asarray(conn_weights, dtype=dtype)
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    bank = ' ' * len(name)
+    return (f'{name}(sigmas={(self.sigma_p, self.sigma_n)}, '
+            f'max_ws={(self.max_w_p, self.max_w_n)}, min_w={self.min_w}, \n'
+            f'{bank}periodic_boundary={self.periodic_boundary}, '
+            f'include_self={self.include_self}, '
+            f'normalize={self.normalize})')
