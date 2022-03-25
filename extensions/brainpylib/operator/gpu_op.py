@@ -3,6 +3,7 @@
 import collections.abc
 import ctypes
 from functools import partial
+from types import LambdaType
 from typing import Callable, Union, Sequence
 
 import jax.numpy as jnp
@@ -14,8 +15,10 @@ from jax.interpreters import xla
 from jax.lib import xla_client
 from numba import types
 from numba.core.dispatcher import Dispatcher
+
 import _cuda
 
+_lambda_no = 0
 ctypes.pythonapi.PyCapsule_New.argtypes = [
   ctypes.c_void_p,  # void* pointer
   ctypes.c_char_p,  # const char *name
@@ -26,24 +29,6 @@ ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object
 
 def _compile_gpu_signature(func, input_dtypes, input_shapes,
                            output_dtypes, output_shapes):
-  from _cuda import (
-    cuMemcpyAsync,
-    cuStreamSynchronize,
-    memcpyHostToHost,
-    memcpyHostToDevice,
-    memcpyDeviceToHost,
-    memcpyDeviceToDevice,
-  )
-
-  code_scope = dict(
-    func_to_call=func,
-    input_shapes=input_shapes,
-    input_dtypes=input_dtypes,
-    output_shapes=output_shapes,
-    output_dtypes=output_dtypes,
-    carray=numba.carray,
-  )
-
   input_byte_size = tuple(
     np.prod(shape) * dtype.itemsize
     for (shape, dtype) in zip(input_shapes, input_dtypes)
@@ -53,8 +38,26 @@ def _compile_gpu_signature(func, input_dtypes, input_shapes,
     for (shape, dtype) in zip(output_shapes, output_dtypes)
   )
 
+  code_scope = dict(
+    func_to_call=func,
+    input_shapes=input_shapes,
+    input_dtypes=input_dtypes,
+    output_shapes=output_shapes,
+    output_dtypes=output_dtypes,
+    empty=np.empty,
+    input_byte_size=input_byte_size,
+    output_byte_size=output_byte_size,
+    cuMemcpyAsync=_cuda.cuMemcpyAsync,
+    cuStreamSynchronize=_cuda.cuStreamSynchronize,
+    memcpyHostToHost=_cuda.memcpyHostToHost,
+    memcpyHostToDevice=_cuda.memcpyHostToDevice,
+    memcpyDeviceToHost=_cuda.memcpyDeviceToHost,
+    memcpyDeviceToDevice=_cuda.memcpyDeviceToDevice,
+    n_in=len(input_shapes),
+  )
+
   args_in = [
-    f'carray(input_ptrs[{i}], input_shapes[{i}], dtype=input_dtypes[{i}])'
+    f'empty(input_shapes[{i}], dtype=input_dtypes[{i}])'
     for i in range(len(input_shapes))
   ]
   cuMemcpyAsync_in = [
@@ -62,7 +65,7 @@ def _compile_gpu_signature(func, input_dtypes, input_shapes,
     for i in range(len(input_shapes))
   ]
   args_out = [
-    f'carray(output_ptrs[{i}], output_shapes[{i}], dtype=output_dtypes[{i}])'
+    f'empty(output_shapes[{i}], dtype=output_dtypes[{i}])'
     for i in range(len(output_shapes))
   ]
   cuMemcpyAsync_out = [
@@ -83,11 +86,11 @@ def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
   cuStreamSynchronize(stream)
   func_to_call(args_out, args_in)
   {cuMemcpyAsync_out}
-    '''.format(args_in=",\n\t".join(args_in),
-               args_out=",\n\t".join(args_out),
-               cuMemcpyAsync_in=",\n\t".join(cuMemcpyAsync_in),
-               cuMemcpyAsync_out=",\n\t".join(cuMemcpyAsync_out))
-  print(code_string)
+    '''.format(args_in=",\n    ".join(args_in),
+               args_out=",\n    ".join(args_out),
+               cuMemcpyAsync_in="\n  ".join(cuMemcpyAsync_in),
+               cuMemcpyAsync_out="\n  ".join(cuMemcpyAsync_out))
+  # print(code_string)
   exec(compile(code_string.strip(), '', 'exec'), code_scope)
 
   new_f = code_scope['xla_gpu_custom_call_target']
@@ -138,7 +141,7 @@ def register_gpu_op(
   if not _cuda.numba_cffi_loaded:
     raise RuntimeError("Numba cffi could not be loaded.")
   # primitive
-  prim = core.Primitive(func.__name__)
+  prim = core.Primitive(f'_lambda_func{_lambda_no}' if isinstance(func, LambdaType) else func.__name__)
   prim.multiple_results = True
 
   # user defined function
@@ -207,6 +210,10 @@ if __name__ == '__main__':
 
 
   z = jnp.ones((1, 2), dtype=jnp.float32)
-  jit_op = register_gpu_op(custom_op, abs_eval)
+  op = register_gpu_op(custom_op, abs_eval)
+
+  from jax import jit
+
+  jit_op = jit(op)
 
   print(jit_op(z, z))
