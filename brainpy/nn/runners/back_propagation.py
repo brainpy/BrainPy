@@ -47,11 +47,25 @@ class BPTT(RNNTrainer):
       max_grad_norm=None,
       shuffle_data=True,
       metrics=('loss',),
+      jit=True,
 
       # common arguments for RNNTrainer
       **kwargs
   ):
     super(BPTT, self).__init__(target=target, **kwargs)
+
+    # jit settings
+    if isinstance(jit, bool):
+      self.jit = {'fit': jit, 'predict': jit, 'loss': jit}
+    elif isinstance(jit, dict):
+      jit = {key: val for key, val in jit.items()}
+      self.jit = {'fit': jit.pop('fit', True),
+                  'predict': jit.pop('predict', True),
+                  'loss': jit.pop('loss', True)}
+      if len(jit):
+        raise ValueError(f'Unknown jit setting for {jit.keys()}')
+    else:
+      raise ValueError(f'Unknown "jit" setting: {jit}')
 
     # optimizer
     if optimizer is None:
@@ -240,7 +254,7 @@ class BPTT(RNNTrainer):
     shared_kwargs_str = serialize_kwargs(shared_kwargs)
     if shared_kwargs_str not in self._f_loss:
       self._f_loss[shared_kwargs_str] = self._make_f_loss(shared_kwargs)
-      if self.jit:
+      if self.jit['loss']:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
         self._f_loss[shared_kwargs_str] = bm.jit(self._f_loss[shared_kwargs_str],
@@ -269,8 +283,7 @@ class BPTT(RNNTrainer):
     return self._mapping_type
 
   def _make_f_loss(self, shared_kwargs: Dict = None):
-    if shared_kwargs is None:
-      shared_kwargs = dict()
+    if shared_kwargs is None: shared_kwargs = dict()
     assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
                                              f'But got {type(shared_kwargs)}: {shared_kwargs}')
 
@@ -300,8 +313,7 @@ class BPTT(RNNTrainer):
                    return_value=True)
 
   def _make_f_train(self, shared_kwargs: Dict = None):
-    if shared_kwargs is None:
-      shared_kwargs = dict()
+    if shared_kwargs is None: shared_kwargs = dict()
     assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
                                              f'But got {type(shared_kwargs)}: {shared_kwargs}')
 
@@ -315,7 +327,7 @@ class BPTT(RNNTrainer):
       self.optimizer.update(grads)
       return loss
 
-    if self.jit:
+    if self.jit['fit']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
       dyn_vars.update(self.optimizer.vars())
