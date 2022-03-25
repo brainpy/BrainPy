@@ -41,7 +41,7 @@ class RidgeTrainer(RNNTrainer):
     The target model.
   beta: float
     The regularization coefficient.
-  **kwargs: dict
+  **kwarg
     Other common parameters for :py:class:`brainpy.nn.RNNTrainer``.
   """
 
@@ -152,6 +152,8 @@ class RidgeTrainer(RNNTrainer):
     return self._f_train[shared_kwargs_str]
 
   def _make_fit_func(self, shared_kwargs):
+    shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
+
     def train_func(monitor_data: Dict[str, Tensor], target_data: Dict[str, Tensor]):
       for node in self.train_nodes:
         ff = monitor_data[f'{node.name}.inputs']

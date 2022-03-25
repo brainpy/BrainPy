@@ -40,7 +40,7 @@ class Normal(InterLayerInitializer):
   def __init__(self, scale=1., seed=None):
     super(Normal, self).__init__()
     self.scale = scale
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
@@ -64,7 +64,7 @@ class Uniform(InterLayerInitializer):
     super(Uniform, self).__init__()
     self.min_val = min_val
     self.max_val = max_val
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
@@ -79,7 +79,7 @@ class VarianceScaling(InterLayerInitializer):
     self.in_axis = in_axis
     self.out_axis = out_axis
     self.distribution = distribution
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
@@ -94,18 +94,17 @@ class VarianceScaling(InterLayerInitializer):
       raise ValueError("invalid mode for variance scaling initializer: {}".format(self.mode))
     variance = bm.array(self.scale / denominator, dtype=dtype)
     if self.distribution == "truncated_normal":
+      from scipy.stats import truncnorm
       # constant is stddev of standard normal truncated to (-2, 2)
       stddev = bm.sqrt(variance) / bm.array(.87962566103423978, dtype)
-      res = self.rng.truncated_normal(-2, 2, shape) * stddev
-      return bm.asarray(res, dtype=dtype)
+      res = truncnorm(-2, 2).rvs(shape) * stddev
     elif self.distribution == "normal":
       res = self.rng.normal(size=shape) * bm.sqrt(variance)
-      return bm.asarray(res, dtype=dtype)
     elif self.distribution == "uniform":
       res = self.rng.uniform(low=-1, high=1, size=shape) * bm.sqrt(3 * variance)
-      return bm.asarray(res, dtype=dtype)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
+    return bm.asarray(res, dtype=dtype)
 
 
 class KaimingUniform(VarianceScaling):
@@ -180,7 +179,7 @@ class Orthogonal(InterLayerInitializer):
     super(Orthogonal, self).__init__()
     self.scale = scale
     self.axis = axis
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]

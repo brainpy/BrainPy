@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence
+from typing import Union, Sequence, Callable
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
+from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
 from brainpy.integrators.fde import CaputoL1Schema
 from brainpy.integrators.fde import GLShortMemory
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.tools.checking import check_float, check_integer
-from brainpy.types import Parameter, Shape
+from brainpy.tools.checking import check_initializer
+from brainpy.types import Parameter, Shape, Tensor
 
 __all__ = [
+  'FractionalNeuron',
   'FractionalFHR',
   'FractionalIzhikevich',
 ]
@@ -75,18 +78,23 @@ class FractionalFHR(FractionalNeuron):
   .. [1] Mondal, A., Sharma, S.K., Upadhyay, R.K. *et al.* Firing activities of a fractional-order FitzHugh-Rinzel bursting neuron model and its coupled dynamics. *Sci Rep* **9,** 15721 (2019). https://doi.org/10.1038/s41598-019-52061-4
   """
 
-  def __init__(self,
-               size: Shape,
-               alpha: Union[float, Sequence[float]],
-               num_memory: int = 1000,
-               a: Parameter = 0.7,
-               b: Parameter = 0.8,
-               c: Parameter = -0.775,
-               d: Parameter = 1.,
-               delta: Parameter = 0.08,
-               mu: Parameter = 0.0001,
-               Vth: Parameter = 1.8,
-               name: str = None):
+  def __init__(
+      self,
+      size: Shape,
+      alpha: Union[float, Sequence[float]],
+      num_memory: int = 1000,
+      a: Parameter = 0.7,
+      b: Parameter = 0.8,
+      c: Parameter = -0.775,
+      d: Parameter = 1.,
+      delta: Parameter = 0.08,
+      mu: Parameter = 0.0001,
+      Vth: Parameter = 1.8,
+      V_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.5),
+      w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      y_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      name: str = None
+  ):
     super(FractionalFHR, self).__init__(size, name=name)
 
     # fractional order
@@ -103,10 +111,13 @@ class FractionalFHR(FractionalNeuron):
     self.Vth = Vth
 
     # variables
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check_initializer(w_initializer, 'w_initializer', allow_none=False)
+    check_initializer(y_initializer, 'y_initializer', allow_none=False)
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
-    self.V = bm.Variable(bm.ones(self.num) * 2.5)
-    self.w = bm.Variable(bm.zeros(self.num))
-    self.y = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
@@ -201,21 +212,25 @@ class FractionalIzhikevich(FractionalNeuron):
 
   """
 
-  def __init__(self,
-               size: Shape,
-               alpha: Union[float, Sequence[float]],
-               num_step: int,
-               a: Parameter = 0.02,
-               b: Parameter = 0.20,
-               c: Parameter = -65.,
-               d: Parameter = 8.,
-               f: Parameter = 0.04,
-               g: Parameter = 5.,
-               h: Parameter = 140.,
-               tau: Parameter = 1.,
-               R: Parameter = 1.,
-               V_th: Parameter = 30.,
-               name: str = None):
+  def __init__(
+      self,
+      size: Shape,
+      alpha: Union[float, Sequence[float]],
+      num_step: int,
+      a: Parameter = 0.02,
+      b: Parameter = 0.20,
+      c: Parameter = -65.,
+      d: Parameter = 8.,
+      f: Parameter = 0.04,
+      g: Parameter = 5.,
+      h: Parameter = 140.,
+      tau: Parameter = 1.,
+      R: Parameter = 1.,
+      V_th: Parameter = 30.,
+      V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-65.),
+      u_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.20 * -65.),
+      name: str = None
+  ):
     # initialization
     super(FractionalIzhikevich, self).__init__(size=size, name=name)
 
@@ -234,8 +249,10 @@ class FractionalIzhikevich(FractionalNeuron):
     self.V_th = V_th
 
     # variables
-    self.V = bm.Variable(bm.ones(self.num) * c)
-    self.u = bm.Variable(b * self.V)
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check_initializer(u_initializer, 'u_initializer', allow_none=False)
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.u = bm.Variable(init_param(u_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)

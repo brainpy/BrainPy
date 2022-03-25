@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable, Dict, Sequence
-
 from functools import partial
+from typing import Union, Callable, Dict, Sequence
 
 import jax
 import numpy as np
@@ -41,7 +40,7 @@ def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
     except UnexpectedTracerError as e:
       for v, d in zip(grad_vars, old_grad_vs): v.value = d
       for v, d in zip(dyn_vars, old_dyn_vs): v.value = d
-      raise errors.JaxTracerError(variables=dyn_vars+grad_vars) from e
+      raise errors.JaxTracerError(variables=dyn_vars + grad_vars) from e
     for v, d in zip(grad_vars, new_grad_vs): v.value = d
     for v, d in zip(dyn_vars, new_dyn_vs): v.value = d
 

@@ -3,7 +3,7 @@
 import brainpy as bp
 import brainpy.math as bm
 
-bp.math.set_platform('gpu')
+bp.math.set_platform('cpu')
 
 
 class ExpCOBA(bp.dyn.TwoEndConn):

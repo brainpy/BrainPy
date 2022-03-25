@@ -89,15 +89,15 @@ class RNN(bp.dyn.DynamicalSystem):
     self.rng = bm.random.RandomState(seed=seed)
 
     # input weight
-    self.w_ir = bm.TrainVar(bp.nn.init_param(w_ir, (num_input, num_hidden)))
+    self.w_ir = bm.TrainVar(bp.init.init_param(w_ir, (num_input, num_hidden)))
 
     # recurrent weight
     bound = 1 / num_hidden ** 0.5
-    self.w_rr = bm.TrainVar(bp.nn.init_param(w_rr, (num_hidden, num_hidden)))
+    self.w_rr = bm.TrainVar(bp.init.init_param(w_rr, (num_hidden, num_hidden)))
     self.b_rr = bm.TrainVar(self.rng.uniform(-bound, bound, num_hidden))
 
     # readout weight
-    self.w_ro = bm.TrainVar(bp.nn.init_param(w_ro, (num_hidden, num_output)))
+    self.w_ro = bm.TrainVar(bp.init.init_param(w_ro, (num_hidden, num_output)))
     self.b_ro = bm.TrainVar(self.rng.uniform(-bound, bound, num_output))
 
     # variables
@@ -150,7 +150,7 @@ net = RNN(num_input=input_size,
 predict = bm.jit(net.predict, dyn_vars=net.vars())
 
 # Adam optimizer
-opt = bm.optimizers.Adam(lr=0.001, train_vars=net.train_vars().unique())
+opt = bp.optimizers.Adam(lr=0.001, train_vars=net.train_vars().unique())
 
 # gradient function
 grad_f = bm.grad(net.loss,
@@ -264,8 +264,7 @@ finder = bp.analysis.SlowPointFinder(f_cell=f_cell, f_type='discrete')
 finder.find_fps_with_gd_method(
   candidates=fp_candidates,
   tolerance=1e-5, num_batch=200,
-  opt_setting=dict(method=bm.optimizers.Adam,
-                   lr=bm.optimizers.ExponentialDecay(0.01, 1, 0.9999))
+  optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.01, 1, 0.9999)),
 )
 finder.filter_loss(tolerance=1e-5)
 finder.keep_unique(tolerance=0.03)

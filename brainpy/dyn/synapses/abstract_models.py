@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
+from brainpy.dyn.base import NeuGroup
+from brainpy.dyn.base import TwoEndConn, ConstantDelay
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.dyn.base import TwoEndConn, ConstantDelay
 
 __all__ = [
   'DeltaSynapse',
@@ -67,8 +68,17 @@ class DeltaSynapse(TwoEndConn):
 
   """
 
-  def __init__(self, pre, post, conn, delay=0., post_has_ref=False, w=1.,
-               post_key='V', name=None):
+  def __init__(
+      self,
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn,
+      delay=0.,
+      post_has_ref=False,
+      w=1.,
+      post_key='V',
+      name=None
+  ):
     super(DeltaSynapse, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs(post_key)
@@ -193,8 +203,17 @@ class ExpCUBA(TwoEndConn):
           Cambridge: Cambridge UP, 2011. 172-95. Print.
   """
 
-  def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0,
-               method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn,
+      g_max=1.,
+      delay=0.,
+      tau=8.0,
+      method='exp_auto',
+      name=None
+  ):
     super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')

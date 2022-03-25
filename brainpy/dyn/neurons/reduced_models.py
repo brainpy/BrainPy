@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Callable
+
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
+from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
+from brainpy.tools.checking import check_initializer
+from brainpy.types import Shape, Parameter, Tensor
 
 __all__ = [
   'LIF',
@@ -14,6 +19,7 @@ __all__ = [
   'GIF',
   'Izhikevich',
   'HindmarshRose',
+  'FHN',
 ]
 
 
@@ -70,8 +76,18 @@ class LIF(NeuGroup):
          neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
   """
 
-  def __init__(self, size, V_rest=0., V_reset=-5., V_th=20., tau=10.,
-               tau_ref=1., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = 0.,
+      V_reset: Parameter = -5.,
+      V_th: Parameter = 20.,
+      tau: Parameter = 10.,
+      tau_ref: Parameter = 1.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(LIF, self).__init__(size=size, name=name)
 
@@ -83,7 +99,8 @@ class LIF(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -206,8 +223,21 @@ class ExpIF(NeuGroup):
   .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
   """
 
-  def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_T=-59.9, delta_T=3.48,
-               R=1., tau=10., tau_ref=1.7, method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_T: Parameter = -59.9,
+      delta_T: Parameter = 3.48,
+      R: Parameter = 1.,
+      tau: Parameter = 10.,
+      tau_ref: Parameter = 1.7,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialize
     super(ExpIF, self).__init__(size=size, name=name)
 
@@ -222,11 +252,11 @@ class ExpIF(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    # variables
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
@@ -283,7 +313,7 @@ class AdExIF(NeuGroup):
 
   **Model Examples**
 
-  - `Examples for different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/AdExIF_model.html>`_
+  - `Examples for different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/Gerstner_2005_AdExIF_model.html>`_
 
   **Model Parameters**
 
@@ -322,8 +352,24 @@ class AdExIF(NeuGroup):
   .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
   """
 
-  def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_T=-59.9, delta_T=3.48, a=1.,
-               b=1., tau=10., tau_w=30., R=1., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_T: Parameter = -59.9,
+      delta_T: Parameter = 3.48,
+      a: Parameter = 1.,
+      b: Parameter = 1.,
+      tau: Parameter = 10.,
+      tau_w: Parameter = 30.,
+      R: Parameter = 1.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     super(AdExIF, self).__init__(size=size, name=name)
 
     # parameters
@@ -339,9 +385,11 @@ class AdExIF(NeuGroup):
     self.R = R
 
     # variables
-    self.w = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(w_initializer, 'w_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.V = bm.Variable(bm.zeros(self.num))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -439,8 +487,21 @@ class QuaIF(NeuGroup):
           J. Neurophysiology 83, pp. 808–827.
   """
 
-  def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_c=-50.0, c=.07,
-               R=1., tau=10., tau_ref=0., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_c: Parameter = -50.0,
+      c: Parameter = .07,
+      R: Parameter = 1.,
+      tau: Parameter = 10.,
+      tau_ref: Parameter = 0.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(QuaIF, self).__init__(size=size, name=name)
 
@@ -455,11 +516,10 @@ class QuaIF(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    # variables
-    self.V = bm.Variable(bm.zeros(self.num))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
@@ -558,8 +618,23 @@ class AdQuaIF(NeuGroup):
          Mathematics 68, no. 4 (2008): 1045-1079.
   """
 
-  def __init__(self, size, V_rest=-65., V_reset=-68., V_th=-30., V_c=-50.0, a=1., b=.1,
-               c=.07, tau=10., tau_w=10., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -65.,
+      V_reset: Parameter = -68.,
+      V_th: Parameter = -30.,
+      V_c: Parameter = -50.0,
+      a: Parameter = 1.,
+      b: Parameter = .1,
+      c: Parameter = .07,
+      tau: Parameter = 10.,
+      tau_w: Parameter = 10.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     super(AdQuaIF, self).__init__(size=size, name=name)
 
     # parameters
@@ -574,8 +649,10 @@ class AdQuaIF(NeuGroup):
     self.tau_w = tau_w
 
     # variables
-    self.V = bm.Variable(bm.zeros(self.num))
-    self.w = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(w_initializer, 'w_initializer')
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -688,9 +765,30 @@ class GIF(NeuGroup):
          Nature communications 9, no. 1 (2018): 1-15.
   """
 
-  def __init__(self, size, V_rest=-70., V_reset=-70., V_th_inf=-50., V_th_reset=-60.,
-               R=20., tau=20., a=0., b=0.01, k1=0.2, k2=0.02, R1=0., R2=1., A1=0.,
-               A2=0., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      V_rest: Parameter = -70.,
+      V_reset: Parameter = -70.,
+      V_th_inf: Parameter = -50.,
+      V_th_reset: Parameter = -60.,
+      R: Parameter = 20.,
+      tau: Parameter = 20.,
+      a: Parameter = 0.,
+      b: Parameter = 0.01,
+      k1: Parameter = 0.2,
+      k2: Parameter = 0.02,
+      R1: Parameter = 0.,
+      R2: Parameter = 1.,
+      A1: Parameter = 0.,
+      A2: Parameter = 0.,
+      V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-70.),
+      I1_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      I2_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      Vth_initializer: Union[Initializer, Callable, Tensor] = OneInit(-50.),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(GIF, self).__init__(size=size, name=name)
 
@@ -711,10 +809,14 @@ class GIF(NeuGroup):
     self.A2 = A2
 
     # variables
-    self.I1 = bm.Variable(bm.zeros(self.num))
-    self.I2 = bm.Variable(bm.zeros(self.num))
-    self.V_th = bm.Variable(bm.ones(self.num) * -50.)
-    self.V = bm.Variable(bm.zeros(self.num) - 70.)
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(I1_initializer, 'I1_initializer')
+    check_initializer(I2_initializer, 'I2_initializer')
+    check_initializer(Vth_initializer, 'Vth_initializer')
+    self.I1 = bm.Variable(init_param(I1_initializer, (self.num,)))
+    self.I2 = bm.Variable(init_param(I2_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.V_th = bm.Variable(init_param(Vth_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -822,8 +924,20 @@ class Izhikevich(NeuGroup):
          IEEE transactions on neural networks 15.5 (2004): 1063-1070.
   """
 
-  def __init__(self, size, a=0.02, b=0.20, c=-65., d=8., tau_ref=0.,
-               V_th=30., method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      a: Parameter = 0.02,
+      b: Parameter = 0.20,
+      c: Parameter = -65.,
+      d: Parameter = 8.,
+      tau_ref: Parameter = 0.,
+      V_th: Parameter = 30.,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      u_initializer: Union[Initializer, Callable, Tensor] = OneInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(Izhikevich, self).__init__(size=size, name=name)
 
@@ -836,11 +950,13 @@ class Izhikevich(NeuGroup):
     self.tau_ref = tau_ref
 
     # variables
-    self.u = bm.Variable(bm.ones(self.num))
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(u_initializer, 'u_initializer')
+    self.u = bm.Variable(init_param(u_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
@@ -965,8 +1081,23 @@ class HindmarshRose(NeuGroup):
         033128.
   """
 
-  def __init__(self, size, a=1., b=3., c=1., d=5., r=0.01, s=4., V_rest=-1.6,
-               V_th=1.0, method='exp_auto', name=None):
+  def __init__(
+      self,
+      size: Shape,
+      a: Parameter = 1.,
+      b: Parameter = 3.,
+      c: Parameter = 1.,
+      d: Parameter = 5.,
+      r: Parameter = 0.01,
+      s: Parameter = 4.,
+      V_rest: Parameter = -1.6,
+      V_th: Parameter = 1.0,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      y_initializer: Union[Initializer, Callable, Tensor] = OneInit(-10.),
+      z_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     # initialization
     super(HindmarshRose, self).__init__(size=size, name=name)
 
@@ -981,9 +1112,12 @@ class HindmarshRose(NeuGroup):
     self.V_rest = V_rest
 
     # variables
-    self.z = bm.Variable(bm.zeros(self.num))
-    self.y = bm.Variable(bm.ones(self.num) * -10.)
-    self.V = bm.Variable(bm.zeros(self.num))
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(y_initializer, 'y_initializer')
+    check_initializer(z_initializer, 'z_initializer')
+    self.z = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(z_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
@@ -1011,4 +1145,139 @@ class HindmarshRose(NeuGroup):
     self.V.value = V
     self.y.value = y
     self.z.value = z
+    self.input[:] = 0.
+
+
+class FHN(NeuGroup):
+  r"""FitzHugh-Nagumo neuron model.
+
+  **Model Descriptions**
+
+  The FitzHugh–Nagumo model (FHN), named after Richard FitzHugh (1922–2007)
+  who suggested the system in 1961 [1]_ and J. Nagumo et al. who created the
+  equivalent circuit the following year, describes a prototype of an excitable
+  system (e.g., a neuron).
+
+  The motivation for the FitzHugh-Nagumo model was to isolate conceptually
+  the essentially mathematical properties of excitation and propagation from
+  the electrochemical properties of sodium and potassium ion flow. The model
+  consists of
+
+  - a *voltage-like variable* having cubic nonlinearity that allows regenerative
+    self-excitation via a positive feedback, and
+  - a *recovery variable* having a linear dynamics that provides a slower negative feedback.
+
+  .. math::
+
+     \begin{aligned}
+     {\dot {v}} &=v-{\frac {v^{3}}{3}}-w+RI_{\rm {ext}},  \\
+     \tau {\dot  {w}}&=v+a-bw.
+     \end{aligned}
+
+  The FHN Model is an example of a relaxation oscillator
+  because, if the external stimulus :math:`I_{\text{ext}}`
+  exceeds a certain threshold value, the system will exhibit
+  a characteristic excursion in phase space, before the
+  variables :math:`v` and :math:`w` relax back to their rest values.
+  This behaviour is typical for spike generations (a short,
+  nonlinear elevation of membrane voltage :math:`v`,
+  diminished over time by a slower, linear recovery variable
+  :math:`w`) in a neuron after stimulation by an external
+  input current.
+
+  **Model Examples**
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> fhn = bp.dyn.FHN(1)
+    >>> runner = bp.dyn.DSRunner(fhn, inputs=('input', 1.), monitors=['V', 'w'])
+    >>> runner.run(100.)
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, legend='w')
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
+
+  **Model Parameters**
+
+  ============= ============== ======== ========================
+  **Parameter** **Init Value** **Unit** **Explanation**
+  ------------- -------------- -------- ------------------------
+  a             1              \        Positive constant
+  b             1              \        Positive constant
+  tau           10             ms       Membrane time constant.
+  V_th          1.8            mV       Threshold potential of spike.
+  ============= ============== ======== ========================
+
+  **Model Variables**
+
+  ================== ================= =========================================================
+  **Variables name** **Initial Value** **Explanation**
+  ------------------ ----------------- ---------------------------------------------------------
+  V                   0                 Membrane potential.
+  w                   0                 A recovery variable which represents
+                                        the combined effects of sodium channel
+                                        de-inactivation and potassium channel
+                                        deactivation.
+  input               0                 External and synaptic input current.
+  spike               False             Flag to mark whether the neuron is spiking.
+  t_last_spike       -1e7               Last spike time stamp.
+  ================== ================= =========================================================
+
+  **References**
+
+  .. [1] FitzHugh, Richard. "Impulses and physiological states in theoretical models of nerve membrane." Biophysical journal 1.6 (1961): 445-466.
+  .. [2] https://en.wikipedia.org/wiki/FitzHugh%E2%80%93Nagumo_model
+  .. [3] http://www.scholarpedia.org/article/FitzHugh-Nagumo_model
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      a: Parameter = 0.7,
+      b: Parameter = 0.8,
+      tau: Parameter = 12.5,
+      Vth: Parameter = 1.8,
+      V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      method: str = 'exp_auto',
+      name: str = None
+  ):
+    # initialization
+    super(FHN, self).__init__(size=size, name=name)
+
+    # parameters
+    self.a = a
+    self.b = b
+    self.tau = tau
+    self.Vth = Vth
+
+    # variables
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(w_initializer, 'w_initializer')
+    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self.input = bm.Variable(bm.zeros(self.num))
+    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+  def dV(self, V, t, w, I_ext):
+    return V - V * V * V / 3 - w + I_ext
+
+  def dw(self, w, t, V):
+    return (V + self.a - self.b * w) / self.tau
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dw])
+
+  def update(self, _t, _dt):
+    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
+    self.spike.value = bm.logical_and(V >= self.Vth, self.V < self.Vth)
+    self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
+    self.V.value = V
+    self.w.value = w
     self.input[:] = 0.

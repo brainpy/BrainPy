@@ -90,9 +90,7 @@ def find_fixed_points():
   # finder.find_fps_with_gd_method(
   #   candidates=candidates,
   #   tolerance=1e-6,
-  #   opt_setting=dict(method=bm.optimizers.Adam,
-  #                    # lr=bm.optimizers.ExponentialDecay(0.05, 1, 0.9999)),
-  #                    lr=bm.optimizers.ExponentialDecay(0.1, 2, 0.999)),
+  #     optimizer = bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.1, , 0.999)),
   #   num_batch=200
   # )
   finder.find_fps_with_opt_solver(candidates)

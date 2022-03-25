@@ -4,9 +4,8 @@
 import jax.lax
 
 import brainpy.math as bm
-from brainpy.initialize import XavierNormal, ZeroInit
+from brainpy.initialize import XavierNormal, ZeroInit, init_param
 from brainpy.nn.base import Node
-from brainpy.nn.utils import init_param
 
 __all__ = [
   'Conv2D',

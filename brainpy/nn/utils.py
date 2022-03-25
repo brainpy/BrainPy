@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 from typing import Union, Sequence, Dict, Any, Callable, Optional
 
 import jax.numpy as jnp
-import numpy as onp
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer
+from brainpy.initialize import Initializer, init_param as true_init_param
 from brainpy.tools.checking import check_dict_data
-from brainpy.tools.others import to_size
 from brainpy.types import Tensor, Shape
-
 
 __all__ = [
   'tensor_sum',
@@ -40,6 +38,9 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
                size: Shape):
   """Initialize parameters.
 
+  .. deprecated:: 2.1.2
+     Please use "brainpy.init.init_param" instead.
+
   Parameters
   ----------
   param: callable, Initializer, bm.ndarray, jnp.ndarray
@@ -51,19 +52,10 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
   size: int, sequence of int
     The shape of the parameter.
   """
-  size = to_size(size)
-  if param is None:
-    return None
-  elif callable(param):
-    param = param(size)
-  elif isinstance(param, (onp.ndarray, jnp.ndarray)):
-    param = bm.asarray(param)
-  elif isinstance(param, (bm.JaxArray,)):
-    param = param
-  else:
-    raise ValueError(f'Unknown param type {type(param)}: {param}')
-  assert param.shape == size, f'"param.shape" is not the required size {size}'
-  return param
+  warnings.warn('Please use "brainpy.init.init_param" instead. '
+                '"brainpy.nn.init_param" is deprecated since version 2.1.2. ',
+                DeprecationWarning)
+  return true_init_param(param, size)
 
 
 def check_rnn_data_batch_size(data: Dict, num_batch=None):

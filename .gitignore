@@ -17,6 +17,7 @@ BrainModels/
 book/
 docs/examples
 docs/apis/jaxsetting.rst
+docs/quickstart/data
 examples/recurrent_neural_network/neurogym
 develop/iconip_paper
 develop/benchmark/COBA/results

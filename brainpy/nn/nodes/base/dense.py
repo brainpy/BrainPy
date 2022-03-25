@@ -7,9 +7,8 @@ import jax.numpy as jnp
 
 from brainpy import math as bm
 from brainpy.errors import UnsupportedError, MathError
-from brainpy.initialize import XavierNormal, ZeroInit, Initializer
+from brainpy.initialize import XavierNormal, ZeroInit, Initializer, init_param
 from brainpy.nn.base import Node
-from brainpy.nn.utils import init_param
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_initializer)
 from brainpy.types import Tensor
