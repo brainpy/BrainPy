@@ -141,7 +141,9 @@ def register_gpu_op(
   if not _cuda.numba_cffi_loaded:
     raise RuntimeError("Numba cffi could not be loaded.")
   # primitive
-  prim = core.Primitive(f'_lambda_func{_lambda_no}' if isinstance(func, LambdaType) else func.__name__)
+  prim = core.Primitive(f'_lambda_func{_lambda_no}'
+                        if (isinstance(func, LambdaType) and func.__name__ == "<lambda>")
+                        else func.__name__)
   prim.multiple_results = True
 
   # user defined function

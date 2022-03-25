@@ -3,6 +3,7 @@
 import collections.abc
 import ctypes
 from functools import partial
+from types import LambdaType
 from typing import Callable, Union, Sequence
 
 import jax.numpy as jnp
@@ -15,6 +16,7 @@ from jax.lib import xla_client
 from numba import types
 from numba.core.dispatcher import Dispatcher
 
+_lambda_no = 0
 ctypes.pythonapi.PyCapsule_New.argtypes = [
   ctypes.c_void_p,  # void* pointer
   ctypes.c_char_p,  # const char *name
@@ -52,9 +54,9 @@ def xla_cpu_custom_call_target(output_ptrs, input_ptrs):
     {args_in}
   )
   func_to_call(args_out, args_in)
-    '''.format(args_in=",\n\t".join(args_in),
-               args_out=",\n\t".join(args_out))
-  print(code_string)
+    '''.format(args_in=",\n    ".join(args_in),
+               args_out=",\n    ".join(args_out))
+  # print(code_string)
   exec(compile(code_string.strip(), '', 'exec'), code_scope)
 
   new_f = code_scope['xla_cpu_custom_call_target']
@@ -101,7 +103,9 @@ def register_cpu_op(
     out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]]
 ):
   # primitive
-  prim = core.Primitive(func.__name__)
+  prim = core.Primitive(f'_lambda_func{_lambda_no}'
+                        if (isinstance(func, LambdaType) and func.__name__ == "<lambda>")
+                        else func.__name__)
   prim.multiple_results = True
 
   # user defined function
@@ -161,6 +165,8 @@ if __name__ == '__main__':
   def abs_eval(*ins):
     return ins
 
+  import brainpy as bp
+  bp.math.set_platform('cpu')
 
   def custom_op(outs, ins):
     y, y1 = outs
@@ -170,6 +176,9 @@ if __name__ == '__main__':
 
 
   z = jnp.ones((1, 2), dtype=jnp.float32)
-  jit_op = register_cpu_op(custom_op, abs_eval)
+  op = register_cpu_op(custom_op, abs_eval)
+
+  from jax import jit
+  jit_op = jit(op)
 
   print(jit_op(z, z))
