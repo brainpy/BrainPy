@@ -1,256 +1,175 @@
+# -*- coding: utf-8 -*-
+
+import collections.abc
+import ctypes
 from functools import partial
-import jax
+from typing import Callable, Union, Sequence
+
 import jax.numpy as jnp
+import numba
 import numpy as np
 from jax import core
+from jax.abstract_arrays import ShapedArray
 from jax.interpreters import xla
 from jax.lib import xla_client
-from jax.abstract_arrays import ShapedArray
-import collections
-import numba
 from numba import types
-import ctypes
-
-x_shape = xla_client.Shape.array_shape
-x_ops = xla_client.ops
+from numba.core.dispatcher import Dispatcher
 
 ctypes.pythonapi.PyCapsule_New.argtypes = [
-    ctypes.c_void_p,  # void* pointer
-    ctypes.c_char_p,  # const char *name
-    ctypes.c_void_p,  # PyCapsule_Destructor destructor
+  ctypes.c_void_p,  # void* pointer
+  ctypes.c_char_p,  # const char *name
+  ctypes.c_void_p,  # PyCapsule_Destructor destructor
 ]
 ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object
 
-xla_call_sig = types.void(
-  types.CPointer(types.voidptr),  # output_ptrs
-  types.CPointer(types.voidptr),  # input_ptrs
-)
 
-
-def bind_primitive(primitive, abs_eval_fn, *args):
-  result = primitive.bind(*args)
-
-  output_shapes = abs_eval_fn(*args)
-  # Special-casing when only a single tensor is returned.
-  if not isinstance(output_shapes, collections.abc.Collection):
-    assert len(result) == 1
-    return result[0]
-  else:
-    return result
-
-
-def abs_eval_rule(abs_eval, *args, **kwargs):
-  # Special-casing when only a single tensor is returned.
-  shapes = abs_eval(*args, **kwargs)
-  if not isinstance(shapes, collections.abc.Collection):
-    return [shapes]
-  else:
-    return shapes
-
-
-def eval_rule(call_fn, abs_eval, *args, **kwargs):
-  # compute the output shapes
-  output_shapes = abs_eval(*args)
-  # Preallocate the outputs
-  outputs = tuple(np.zeros(shape.shape, dtype=shape.dtype) for shape in output_shapes)
-  # convert inputs to a tuple
-  inputs = tuple(np.asarray(arg) for arg in args)
-  # call the kernel
-  call_fn(outputs, inputs, **kwargs)
-  # Return the outputs
-  return tuple(outputs)
-
-
-def pycapsule_new(ptr, name, destructor=None) -> ctypes.py_object:
-  """
-  Wraps a C function pointer into an XLA-compatible PyCapsule.
-
-  Args:
-      ptr: A CFFI pointer to a function
-      name: A binary string
-      destructor: Optional PyCapsule object run at destruction
-
-  Returns
-      a PyCapsule (ctypes.py_object)
-  """
-  return ctypes.pythonapi.PyCapsule_New(ptr, name, None)
-
-
-# todo: How to decode inputs and outputs?
-def create_numba_api_wrapper(func,
-                             input_dtypes, input_shapes,
-                             output_dtypes, output_shapes):
-  n_in = len(input_shapes)
-  n_out = len(output_shapes)
-  if n_in > 6:
-    raise NotImplementedError(
-      "n_in ∈ [0, 6] inputs are supported ({n_in} detected)."
-      "Please open a bug report."
-    )
-  if n_out > 5 or n_out == 0:
-    raise NotImplementedError(
-      "n_out ∈ [1, 5] outputs are supported ({n_out} detected)."
-      "Please open a bug report."
-    )
-
-  @numba.cfunc(xla_call_sig)
-  def xla_cpu_custom_call_target(output_ptrs, input_ptrs):
-    # pass
-    if n_out == 1:
-      args_out = (
-        numba.carray(output_ptrs[0], output_shapes[0], dtype=output_dtypes[0]),
-      )
-    elif n_out == 2:
-      args_out = (
-        numba.carray(output_ptrs[0], output_shapes[0], dtype=output_dtypes[0]),
-        numba.carray(output_ptrs[1], output_shapes[1], dtype=output_dtypes[1]),
-      )
-    elif n_out == 3:
-      args_out = (
-        numba.carray(output_ptrs[0], output_shapes[0], dtype=output_dtypes[0]),
-        numba.carray(output_ptrs[1], output_shapes[1], dtype=output_dtypes[1]),
-        numba.carray(output_ptrs[2], output_shapes[2], dtype=output_dtypes[2]),
-      )
-    elif n_out == 4:
-      args_out = (
-        numba.carray(output_ptrs[0], output_shapes[0], dtype=output_dtypes[0]),
-        numba.carray(output_ptrs[1], output_shapes[1], dtype=output_dtypes[1]),
-        numba.carray(output_ptrs[2], output_shapes[2], dtype=output_dtypes[2]),
-        numba.carray(output_ptrs[3], output_shapes[3], dtype=output_dtypes[3]),
-      )
-    elif n_out == 5:
-      args_out = (
-        numba.carray(output_ptrs[0], output_shapes[0], dtype=output_dtypes[0]),
-        numba.carray(output_ptrs[1], output_shapes[1], dtype=output_dtypes[1]),
-        numba.carray(output_ptrs[2], output_shapes[2], dtype=output_dtypes[2]),
-        numba.carray(output_ptrs[3], output_shapes[3], dtype=output_dtypes[3]),
-        numba.carray(output_ptrs[4], output_shapes[4], dtype=output_dtypes[4]),
-      )
-
-    if n_in == 0:
-      args_in = ()
-    if n_in == 1:
-      args_in = (
-        numba.carray(input_ptrs[0], input_shapes[0], dtype=input_dtypes[0]),
-      )
-    elif n_in == 2:
-      args_in = (
-        numba.carray(input_ptrs[0], input_shapes[0], dtype=input_dtypes[0]),
-        numba.carray(input_ptrs[1], input_shapes[1], dtype=input_dtypes[1]),
-      )
-    elif n_in == 3:
-      args_in = (
-        numba.carray(input_ptrs[0], input_shapes[0], dtype=input_dtypes[0]),
-        numba.carray(input_ptrs[1], input_shapes[1], dtype=input_dtypes[1]),
-        numba.carray(input_ptrs[2], input_shapes[2], dtype=input_dtypes[2]),
-      )
-    elif n_in == 4:
-      args_in = (
-        numba.carray(input_ptrs[0], input_shapes[0], dtype=input_dtypes[0]),
-        numba.carray(input_ptrs[1], input_shapes[1], dtype=input_dtypes[1]),
-        numba.carray(input_ptrs[2], input_shapes[2], dtype=input_dtypes[2]),
-        numba.carray(input_ptrs[3], input_shapes[3], dtype=input_dtypes[3]),
-      )
-    elif n_in == 5:
-      args_in = (
-        numba.carray(input_ptrs[0], input_shapes[0], dtype=input_dtypes[0]),
-        numba.carray(input_ptrs[1], input_shapes[1], dtype=input_dtypes[1]),
-        numba.carray(input_ptrs[2], input_shapes[2], dtype=input_dtypes[2]),
-        numba.carray(input_ptrs[3], input_shapes[3], dtype=input_dtypes[3]),
-        numba.carray(input_ptrs[4], input_shapes[4], dtype=input_dtypes[4]),
-      )
-    elif n_in == 6:
-      args_in = (
-        numba.carray(input_ptrs[0], input_shapes[0], dtype=input_dtypes[0]),
-        numba.carray(input_ptrs[1], input_shapes[1], dtype=input_dtypes[1]),
-        numba.carray(input_ptrs[2], input_shapes[2], dtype=input_dtypes[2]),
-        numba.carray(input_ptrs[3], input_shapes[3], dtype=input_dtypes[3]),
-        numba.carray(input_ptrs[4], input_shapes[4], dtype=input_dtypes[4]),
-        numba.carray(input_ptrs[5], input_shapes[5], dtype=input_dtypes[5]),
-      )
-    func(args_out, args_in)
-
-  return xla_cpu_custom_call_target
-
-
-def compile_cpu_signature(func,
-                          input_dtypes, input_shapes,
-                          output_dtypes, output_shapes):
-  xla_c_rule = create_numba_api_wrapper(
-    func,
-    input_dtypes, input_shapes,
-    output_dtypes, output_shapes
+def _compile_cpu_signature(func, input_dtypes, input_shapes,
+                           output_dtypes, output_shapes):
+  code_scope = dict(
+    func_to_call=func,
+    input_shapes=input_shapes,
+    input_dtypes=input_dtypes,
+    output_shapes=output_shapes,
+    output_dtypes=output_dtypes,
+    carray=numba.carray,
   )
+
+  args_in = [
+    f'carray(input_ptrs[{i}], input_shapes[{i}], dtype=input_dtypes[{i}])'
+    for i in range(len(input_shapes))
+  ]
+  args_out = [
+    f'carray(output_ptrs[{i}], output_shapes[{i}], dtype=output_dtypes[{i}])'
+    for i in range(len(output_shapes))
+  ]
+
+  code_string = '''
+def xla_cpu_custom_call_target(output_ptrs, input_ptrs):
+  args_out = (
+    {args_out}
+  )
+  args_in = (
+    {args_in}
+  )
+  func_to_call(args_out, args_in)
+    '''.format(args_in=",\n\t".join(args_in),
+               args_out=",\n\t".join(args_out))
+  print(code_string)
+  exec(compile(code_string.strip(), '', 'exec'), code_scope)
+
+  new_f = code_scope['xla_cpu_custom_call_target']
+  wrapper = numba.cfunc(types.void(types.CPointer(types.voidptr),
+                                   types.CPointer(types.voidptr)))
+  xla_c_rule = wrapper(new_f)
   target_name = xla_c_rule.native_name.encode("ascii")
-  capsule = pycapsule_new(xla_c_rule.address, b"xla._CUSTOM_CALL_TARGET")
+  capsule = ctypes.pythonapi.PyCapsule_New(
+    xla_c_rule.address,  # A CFFI pointer to a function
+    b"xla._CUSTOM_CALL_TARGET",  # A binary string
+    None  # PyCapsule object run at destruction
+  )
   xla_client.register_custom_call_target(target_name, capsule, "cpu")
   return target_name
 
 
-def _func_translation(func, abs_eval_fn, c, *args):
-  input_shapes = [c.get_shape(arg) for arg in args]
+def _func_translation(func, abs_eval_fn, c, *inputs):
+  input_shapes = [c.get_shape(arg) for arg in inputs]
   input_dtypes = tuple(shape.element_type() for shape in input_shapes)
   input_dimensions = tuple(shape.dimensions() for shape in input_shapes)
-
-  output_abstract_arrays = abs_eval_fn(
-    *tuple(ShapedArray(shape.dimensions(), shape.element_type()) for shape in input_shapes)
-  )
-
+  output_abstract_arrays = abs_eval_fn(*tuple(ShapedArray(shape.dimensions(), shape.element_type())
+                                              for shape in input_shapes))
   output_shapes = tuple(array.shape for array in output_abstract_arrays)
   output_dtypes = tuple(array.dtype for array in output_abstract_arrays)
-
   output_layouts = map(lambda shape: range(len(shape) - 1, -1, -1), output_shapes)
-  xla_output_shapes = [
-    x_shape(*arg) for arg in zip(output_dtypes, output_shapes, output_layouts)
-  ]
+  xla_output_shapes = [xla_client.Shape.array_shape(*arg)
+                       for arg in zip(output_dtypes, output_shapes, output_layouts)]
   xla_output_shape = xla_client.Shape.tuple_shape(xla_output_shapes)
+  target_name = _compile_cpu_signature(func,
+                                       input_dtypes, input_dimensions,
+                                       output_dtypes, output_shapes)
 
-  target_name = compile_cpu_signature(func,
-                                      input_dtypes, input_dimensions,
-                                      output_dtypes, output_shapes)
-
-  return x_ops.CustomCallWithLayout(
+  return xla_client.ops.CustomCallWithLayout(
     c,
     target_name,
-    operands=args,
+    operands=inputs,
     operand_shapes_with_layout=input_shapes,
     shape_with_layout=xla_output_shape,
   )
 
 
-def register_cpu_op(func, abs_eval):
-  _func_prim = core.Primitive(func.__name__)
-  _func_prim.multiple_results = True
+def register_cpu_op(
+    func: Callable,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]]
+):
+  # primitive
+  prim = core.Primitive(func.__name__)
+  prim.multiple_results = True
 
-  if callable(abs_eval):
-    abs_eval_fn = abs_eval
-  else:
-    abs_eval_fn = lambda *args: abs_eval
+  # user defined function
+  if not isinstance(func, Dispatcher):
+    func = numba.jit(fastmath=True, nopython=True)(func)
 
-  _func_abstract = partial(abs_eval_rule, abs_eval_fn)
-  bind_primitive_fn = partial(bind_primitive, _func_prim, abs_eval_fn)
+  # output shape evaluation function
+  def abs_eval_rule(*input_shapes):
+    if callable(out_shapes):
+      shapes = out_shapes(*input_shapes)
+    elif isinstance(out_shapes, ShapedArray):
+      shapes = [out_shapes]
+    elif isinstance(out_shapes, (tuple, list)):
+      shapes = out_shapes
+      for elem in out_shapes:
+        if not isinstance(elem, ShapedArray):
+          raise ValueError(f'Elements in "out_shapes" must be instances of '
+                           f'jax.abstract_arrays.ShapedArray, but we got '
+                           f'{type(elem)}: {elem}')
+    else:
+      raise ValueError(f'Unknown type {type(out_shapes)}, only '
+                       f'supports function, ShapedArray or '
+                       f'list/tuple of ShapedArray.')
 
-  func = numba.njit(func)
-  _func_prim.def_abstract_eval(_func_abstract)
-  _func_prim.def_impl(partial(eval_rule, func, _func_abstract))
+    # output shapes
+    if not isinstance(shapes, collections.abc.Collection):
+      return [shapes]
+    else:
+      return shapes
 
-  xla.backend_specific_translations['cpu'][_func_prim] = partial(_func_translation, func, _func_abstract)
+  # output evaluation function
+  def eval_rule(*inputs):
+    # compute the output shapes
+    output_shapes = abs_eval_rule(*inputs)
+    # Preallocate the outputs
+    outputs = tuple(np.zeros(shape.shape, dtype=shape.dtype) for shape in output_shapes)
+    # convert inputs to a tuple
+    inputs = tuple(np.asarray(arg) for arg in inputs)
+    # call the kernel
+    func(outputs, inputs)
+    # Return the outputs
+    return tuple(outputs)
 
-  return jax.jit(bind_primitive_fn)
+  def bind_primitive(*inputs):
+    result = prim.bind(*inputs)
+    return result[0] if len(result) == 1 else result
+
+  # binding
+  prim.def_abstract_eval(abs_eval_rule)
+  prim.def_impl(eval_rule)
+  # registering
+  xla.backend_specific_translations['cpu'][prim] = partial(_func_translation, func, abs_eval_rule)
+  return bind_primitive
 
 
-def abs_eval(*ins):
-  return ShapedArray((1, 2), dtype=jnp.float_), ShapedArray((1, 2), dtype=jnp.float_)
+if __name__ == '__main__':
+  def abs_eval(*ins):
+    return ins
 
 
-def custom_op(outs, ins):
-  y, y1 = outs
-  x, x2 = ins
-  y[:] = x + 1
-  y1[:] = x2 + 2
+  def custom_op(outs, ins):
+    y, y1 = outs
+    x, x2 = ins
+    y[:] = x + 1
+    y1[:] = x2 + 2
 
 
-z = jnp.ones((1, 2), dtype=jnp.float_)
-jit_op = register_cpu_op(custom_op, abs_eval)
+  z = jnp.ones((1, 2), dtype=jnp.float32)
+  jit_op = register_cpu_op(custom_op, abs_eval)
 
-print(jit_op(z, z))
+  print(jit_op(z, z))
