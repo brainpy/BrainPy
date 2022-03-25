@@ -1,20 +1,20 @@
+# -*- coding: utf-8 -*-
+
+import collections.abc
+import ctypes
 from functools import partial
-import jax
+from typing import Callable, Union, Sequence
+
 import jax.numpy as jnp
+import numba
 import numpy as np
 from jax import core
+from jax.abstract_arrays import ShapedArray
 from jax.interpreters import xla
 from jax.lib import xla_client
-from jax.abstract_arrays import ShapedArray
-import collections
-import numba
 from numba import types
-from numba import cuda
-import ctypes
+from numba.core.dispatcher import Dispatcher
 import _cuda
-
-x_shape = xla_client.Shape.array_shape
-x_ops = xla_client.ops
 
 ctypes.pythonapi.PyCapsule_New.argtypes = [
   ctypes.c_void_p,  # void* pointer
@@ -23,69 +23,10 @@ ctypes.pythonapi.PyCapsule_New.argtypes = [
 ]
 ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object
 
-xla_call_sig = types.void(
-  types.voidptr,  # cudaStream_t* stream
-  types.CPointer(types.voidptr),  # void** buffers
-  types.voidptr,  # const char* opaque
-  types.uint64,  # size_t opaque_len
-)
 
-
-def bind_primitive(primitive, abs_eval_fn, *args):
-  result = primitive.bind(*args)
-
-  output_shapes = abs_eval_fn(*args)
-  # Special-casing when only a single tensor is returned.
-  if not isinstance(output_shapes, collections.abc.Collection):
-    assert len(result) == 1
-    return result[0]
-  else:
-    return result
-
-
-def abs_eval_rule(abs_eval, *args, **kwargs):
-  # Special-casing when only a single tensor is returned.
-  shapes = abs_eval(*args, **kwargs)
-  if not isinstance(shapes, collections.abc.Collection):
-    return [shapes]
-  else:
-    return shapes
-
-
-def eval_rule(call_fn, abs_eval, *args, **kwargs):
-  # compute the output shapes
-  output_shapes = abs_eval(*args)
-  # Preallocate the outputs
-  outputs = tuple(np.zeros(shape.shape, dtype=shape.dtype) for shape in output_shapes)
-  # convert inputs to a tuple
-  inputs = tuple(np.asarray(arg) for arg in args)
-  # call the kernel
-  call_fn(outputs + inputs, **kwargs)
-  # Return the outputs
-  return tuple(outputs)
-
-
-def pycapsule_new(ptr, name, destructor=None) -> ctypes.py_object:
-  """
-  Wraps a C function pointer into an XLA-compatible PyCapsule.
-
-  Args:
-      ptr: A CFFI pointer to a function
-      name: A binary string
-      destructor: Optional PyCapsule object run at destruction
-
-  Returns
-      a PyCapsule (ctypes.py_object)
-  """
-  return ctypes.pythonapi.PyCapsule_New(ptr, name, None)
-
-
-# todo: How to decode inputs and outputs?
-def create_numba_api_wrapper(func,
-                             input_dtypes, input_shapes,
-                             output_dtypes, output_shapes):
+def _compile_gpu_signature(func, input_dtypes, input_shapes,
+                           output_dtypes, output_shapes):
   from _cuda import (
-    cuMemcpy,
     cuMemcpyAsync,
     cuStreamSynchronize,
     memcpyHostToHost,
@@ -93,18 +34,15 @@ def create_numba_api_wrapper(func,
     memcpyDeviceToHost,
     memcpyDeviceToDevice,
   )
-  n_in = len(input_shapes)
-  n_out = len(output_shapes)
-  if n_in > 6:
-    raise NotImplementedError(
-      "n_in ∈ [0, 6] inputs are supported ({n_in} detected)."
-      "Please open a bug report."
-    )
-  if n_out > 4 or n_out == 0:
-    raise NotImplementedError(
-      "n_out ∈ [1, 4] outputs are supported ({n_out} detected)."
-      "Please open a bug report."
-    )
+
+  code_scope = dict(
+    func_to_call=func,
+    input_shapes=input_shapes,
+    input_dtypes=input_dtypes,
+    output_shapes=output_shapes,
+    output_dtypes=output_dtypes,
+    carray=numba.carray,
+  )
 
   input_byte_size = tuple(
     np.prod(shape) * dtype.itemsize
@@ -115,380 +53,160 @@ def create_numba_api_wrapper(func,
     for (shape, dtype) in zip(output_shapes, output_dtypes)
   )
 
-  @numba.cfunc(xla_call_sig)
-  def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
-    # manually unroll input and output args because numba is
-    # relatively dummb and cannot always infer getitem on inhomogeneous tuples
+  args_in = [
+    f'carray(input_ptrs[{i}], input_shapes[{i}], dtype=input_dtypes[{i}])'
+    for i in range(len(input_shapes))
+  ]
+  cuMemcpyAsync_in = [
+    f'cuMemcpyAsync(args_in[{i}].ctypes.data, inout_gpu_ptrs[{i}], input_byte_size[{i}], memcpyDeviceToHost, stream)'
+    for i in range(len(input_shapes))
+  ]
+  args_out = [
+    f'carray(output_ptrs[{i}], output_shapes[{i}], dtype=output_dtypes[{i}])'
+    for i in range(len(output_shapes))
+  ]
+  cuMemcpyAsync_out = [
+    f'cuMemcpyAsync(inout_gpu_ptrs[n_in + {i}], args_out[{i}].ctypes.data, output_byte_size[{i}], ' \
+    f'memcpyHostToDevice, stream)'
+    for i in range(len(output_shapes))
+  ]
 
-    # allocate output cpu bufferess
-    if n_out == 1:
-      args_out = (np.empty(output_shapes[0], dtype=output_dtypes[0]),)
-    elif n_out == 2:
-      args_out = (
-        np.empty(output_shapes[0], dtype=output_dtypes[0]),
-        np.empty(output_shapes[1], dtype=output_dtypes[1]),
-      )
-    elif n_out == 3:
-      args_out = (
-        np.empty(output_shapes[0], dtype=output_dtypes[0]),
-        np.empty(output_shapes[1], dtype=output_dtypes[1]),
-        np.empty(output_shapes[2], dtype=output_dtypes[2]),
-      )
-    elif n_out == 4:
-      args_out = (
-        np.empty(output_shapes[0], dtype=output_dtypes[0]),
-        np.empty(output_shapes[1], dtype=output_dtypes[1]),
-        np.empty(output_shapes[2], dtype=output_dtypes[2]),
-        np.empty(output_shapes[3], dtype=output_dtypes[3]),
-      )
-
-    # allocate input cpu buffers and
-    if n_in == 1:
-      args_in = (np.empty(input_shapes[0], dtype=input_dtypes[0]),)
-      cuMemcpyAsync(
-        args_in[0].ctypes.data,
-        inout_gpu_ptrs[0],
-        input_byte_size[0],
-        memcpyDeviceToHost,
-        stream,
-      )
-    elif n_in == 2:
-      args_in = (
-        np.empty(input_shapes[0], dtype=input_dtypes[0]),
-        np.empty(input_shapes[1], dtype=input_dtypes[1]),
-      )
-      cuMemcpyAsync(
-        args_in[0].ctypes.data,
-        inout_gpu_ptrs[0],
-        input_byte_size[0],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[1].ctypes.data,
-        inout_gpu_ptrs[1],
-        input_byte_size[1],
-        memcpyDeviceToHost,
-        stream,
-      )
-    elif n_in == 3:
-      args_in = (
-        np.empty(input_shapes[0], dtype=input_dtypes[0]),
-        np.empty(input_shapes[1], dtype=input_dtypes[1]),
-        np.empty(input_shapes[2], dtype=input_dtypes[2]),
-      )
-      cuMemcpyAsync(
-        args_in[0].ctypes.data,
-        inout_gpu_ptrs[0],
-        input_byte_size[0],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[1].ctypes.data,
-        inout_gpu_ptrs[1],
-        input_byte_size[1],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[2].ctypes.data,
-        inout_gpu_ptrs[2],
-        input_byte_size[2],
-        memcpyDeviceToHost,
-        stream,
-      )
-    elif n_in == 4:
-      args_in = (
-        np.empty(input_shapes[0], dtype=input_dtypes[0]),
-        np.empty(input_shapes[1], dtype=input_dtypes[1]),
-        np.empty(input_shapes[2], dtype=input_dtypes[2]),
-        np.empty(input_shapes[3], dtype=input_dtypes[3]),
-      )
-      cuMemcpyAsync(
-        args_in[0].ctypes.data,
-        inout_gpu_ptrs[0],
-        input_byte_size[0],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[1].ctypes.data,
-        inout_gpu_ptrs[1],
-        input_byte_size[1],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[2].ctypes.data,
-        inout_gpu_ptrs[2],
-        input_byte_size[2],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[3].ctypes.data,
-        inout_gpu_ptrs[3],
-        input_byte_size[3],
-        memcpyDeviceToHost,
-        stream,
-      )
-    elif n_in == 5:
-      args_in = (
-        np.empty(input_shapes[0], dtype=input_dtypes[0]),
-        np.empty(input_shapes[1], dtype=input_dtypes[1]),
-        np.empty(input_shapes[2], dtype=input_dtypes[2]),
-        np.empty(input_shapes[3], dtype=input_dtypes[3]),
-        np.empty(input_shapes[4], dtype=input_dtypes[4]),
-      )
-      cuMemcpyAsync(
-        args_in[0].ctypes.data,
-        inout_gpu_ptrs[0],
-        input_byte_size[0],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[1].ctypes.data,
-        inout_gpu_ptrs[1],
-        input_byte_size[1],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[2].ctypes.data,
-        inout_gpu_ptrs[2],
-        input_byte_size[2],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[3].ctypes.data,
-        inout_gpu_ptrs[3],
-        input_byte_size[3],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[4].ctypes.data,
-        inout_gpu_ptrs[4],
-        input_byte_size[4],
-        memcpyDeviceToHost,
-        stream,
-      )
-    elif n_in == 6:
-      args_in = (
-        np.empty(input_shapes[0], dtype=input_dtypes[0]),
-        np.empty(input_shapes[1], dtype=input_dtypes[1]),
-        np.empty(input_shapes[2], dtype=input_dtypes[2]),
-        np.empty(input_shapes[3], dtype=input_dtypes[3]),
-        np.empty(input_shapes[4], dtype=input_dtypes[4]),
-        np.empty(input_shapes[5], dtype=input_dtypes[5]),
-      )
-      cuMemcpyAsync(
-        args_in[0].ctypes.data,
-        inout_gpu_ptrs[0],
-        input_byte_size[0],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[1].ctypes.data,
-        inout_gpu_ptrs[1],
-        input_byte_size[1],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[2].ctypes.data,
-        inout_gpu_ptrs[2],
-        input_byte_size[2],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[3].ctypes.data,
-        inout_gpu_ptrs[3],
-        input_byte_size[3],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[4].ctypes.data,
-        inout_gpu_ptrs[4],
-        input_byte_size[4],
-        memcpyDeviceToHost,
-        stream,
-      )
-      cuMemcpyAsync(
-        args_in[5].ctypes.data,
-        inout_gpu_ptrs[5],
-        input_byte_size[5],
-        memcpyDeviceToHost,
-        stream,
-      )
-    cuStreamSynchronize(stream)
-    
-    func(args_out + args_in)
-
-    if n_out == 1:
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 0],
-        args_out[0].ctypes.data,
-        output_byte_size[0],
-        memcpyHostToDevice,
-        stream,
-      )
-    elif n_out == 2:
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 0],
-        args_out[0].ctypes.data,
-        output_byte_size[0],
-        memcpyHostToDevice,
-        stream,
-      )
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 1],
-        args_out[1].ctypes.data,
-        output_byte_size[1],
-        memcpyHostToDevice,
-        stream,
-      )
-    elif n_out == 3:
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 0],
-        args_out[0].ctypes.data,
-        output_byte_size[0],
-        memcpyHostToDevice,
-        stream,
-      )
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 1],
-        args_out[1].ctypes.data,
-        output_byte_size[1],
-        memcpyHostToDevice,
-        stream,
-      )
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 2],
-        args_out[2].ctypes.data,
-        output_byte_size[2],
-        memcpyHostToDevice,
-        stream,
-      )
-    elif n_out == 4:
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 0],
-        args_out[0].ctypes.data,
-        output_byte_size[0],
-        memcpyHostToDevice,
-        stream,
-      )
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 1],
-        args_out[1].ctypes.data,
-        output_byte_size[1],
-        memcpyHostToDevice,
-        stream,
-      )
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 2],
-        args_out[2].ctypes.data,
-        output_byte_size[2],
-        memcpyHostToDevice,
-        stream,
-      )
-      cuMemcpyAsync(
-        inout_gpu_ptrs[n_in + 3],
-        args_out[3].ctypes.data,
-        output_byte_size[3],
-        memcpyHostToDevice,
-        stream,
-      )
-
-    cuStreamSynchronize(stream)
-
-  return xla_gpu_custom_call_target
-
-
-def compile_gpu_signature(func,
-                          input_dtypes, input_shapes,
-                          output_dtypes, output_shapes):
-  xla_c_rule = create_numba_api_wrapper(
-    func,
-    input_dtypes, input_shapes,
-    output_dtypes, output_shapes
+  code_string = '''
+def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
+  args_out = (
+    {args_out}
   )
+  args_in = (
+    {args_in}
+  )
+  {cuMemcpyAsync_in}
+  cuStreamSynchronize(stream)
+  func_to_call(args_out, args_in)
+  {cuMemcpyAsync_out}
+    '''.format(args_in=",\n\t".join(args_in),
+               args_out=",\n\t".join(args_out),
+               cuMemcpyAsync_in=",\n\t".join(cuMemcpyAsync_in),
+               cuMemcpyAsync_out=",\n\t".join(cuMemcpyAsync_out))
+  print(code_string)
+  exec(compile(code_string.strip(), '', 'exec'), code_scope)
+
+  new_f = code_scope['xla_gpu_custom_call_target']
+  wrapper = numba.cfunc(types.void(
+    types.voidptr,
+    types.CPointer(types.voidptr),
+    types.voidptr, types.uint64))
+  xla_c_rule = wrapper(new_f)
   target_name = xla_c_rule.native_name.encode("ascii")
-  capsule = pycapsule_new(xla_c_rule.address, b"xla._CUSTOM_CALL_TARGET")
+  capsule = ctypes.pythonapi.PyCapsule_New(
+    xla_c_rule.address,  # A CFFI pointer to a function
+    b"xla._CUSTOM_CALL_TARGET",  # A binary string
+    None  # PyCapsule object run at destruction
+  )
   xla_client.register_custom_call_target(target_name, capsule, "gpu")
   return target_name
 
 
-def _func_translation(func, abs_eval_fn, c, *args):
-  input_shapes = [c.get_shape(arg) for arg in args]
+def _func_translation(func, abs_eval_fn, c, *inputs):
+  input_shapes = [c.get_shape(arg) for arg in inputs]
   input_dtypes = tuple(shape.element_type() for shape in input_shapes)
   input_dimensions = tuple(shape.dimensions() for shape in input_shapes)
-
-  output_abstract_arrays = abs_eval_fn(
-    *tuple(ShapedArray(shape.dimensions(), shape.element_type()) for shape in input_shapes)
-  )
-
+  output_abstract_arrays = abs_eval_fn(*tuple(ShapedArray(shape.dimensions(), shape.element_type())
+                                              for shape in input_shapes))
   output_shapes = tuple(array.shape for array in output_abstract_arrays)
   output_dtypes = tuple(array.dtype for array in output_abstract_arrays)
-
   output_layouts = map(lambda shape: range(len(shape) - 1, -1, -1), output_shapes)
-  xla_output_shapes = [
-    x_shape(*arg) for arg in zip(output_dtypes, output_shapes, output_layouts)
-  ]
+  xla_output_shapes = [xla_client.Shape.array_shape(*arg)
+                       for arg in zip(output_dtypes, output_shapes, output_layouts)]
   xla_output_shape = xla_client.Shape.tuple_shape(xla_output_shapes)
+  target_name = _compile_gpu_signature(func,
+                                       input_dtypes, input_dimensions,
+                                       output_dtypes, output_shapes)
 
-  target_name = compile_gpu_signature(func,
-                                      input_dtypes, input_dimensions,
-                                      output_dtypes, output_shapes)
-
-  return x_ops.CustomCallWithLayout(
+  return xla_client.ops.CustomCallWithLayout(
     c,
     target_name,
-    operands=args,
+    operands=inputs,
     operand_shapes_with_layout=input_shapes,
     shape_with_layout=xla_output_shape,
   )
 
 
-def register_op_gpu(func, abs_eval):
+def register_gpu_op(
+    func: Callable,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]]
+):
   if not _cuda.numba_cffi_loaded:
     raise RuntimeError("Numba cffi could not be loaded.")
+  # primitive
+  prim = core.Primitive(func.__name__)
+  prim.multiple_results = True
 
-  _func_prim = core.Primitive(func.__name__)
-  _func_prim.multiple_results = True
+  # user defined function
+  if not isinstance(func, Dispatcher):
+    func = numba.jit(fastmath=True, nopython=True)(func)
 
-  if callable(abs_eval):
-    abs_eval_fn = abs_eval
-  else:
-    abs_eval_fn = lambda *args: abs_eval
+  # output shape evaluation function
+  def abs_eval_rule(*input_shapes):
+    if callable(out_shapes):
+      shapes = out_shapes(*input_shapes)
+    elif isinstance(out_shapes, ShapedArray):
+      shapes = [out_shapes]
+    elif isinstance(out_shapes, (tuple, list)):
+      shapes = out_shapes
+      for elem in out_shapes:
+        if not isinstance(elem, ShapedArray):
+          raise ValueError(f'Elements in "out_shapes" must be instances of '
+                           f'jax.abstract_arrays.ShapedArray, but we got '
+                           f'{type(elem)}: {elem}')
+    else:
+      raise ValueError(f'Unknown type {type(out_shapes)}, only '
+                       f'supports function, ShapedArray or '
+                       f'list/tuple of ShapedArray.')
 
-  _func_abstract = partial(abs_eval_rule, abs_eval_fn)
-  bind_primitive_fn = partial(bind_primitive, _func_prim, abs_eval_fn)
+    # output shapes
+    if not isinstance(shapes, collections.abc.Collection):
+      return [shapes]
+    else:
+      return shapes
 
-  func = numba.jit(func)
-  _func_prim.def_abstract_eval(_func_abstract)
-  _func_prim.def_impl(partial(eval_rule, func, _func_abstract))
+  # output evaluation function
+  def eval_rule(*inputs):
+    # compute the output shapes
+    output_shapes = abs_eval_rule(*inputs)
+    # Preallocate the outputs
+    outputs = tuple(np.zeros(shape.shape, dtype=shape.dtype) for shape in output_shapes)
+    # convert inputs to a tuple
+    inputs = tuple(np.asarray(arg) for arg in inputs)
+    # call the kernel
+    func(outputs, inputs)
+    # Return the outputs
+    return tuple(outputs)
 
-  xla.backend_specific_translations['gpu'][_func_prim] = partial(_func_translation, func, _func_abstract)
+  def bind_primitive(*inputs):
+    result = prim.bind(*inputs)
+    return result[0] if len(result) == 1 else result
 
-  return jax.jit(bind_primitive_fn)
-
-
-def abs_eval(*x):
-  return x[0]
-
-
-def custom_op(args):
-  y, x, x2 = args
-  y[:] = x[:] + 1
+  # binding
+  prim.def_abstract_eval(abs_eval_rule)
+  prim.def_impl(eval_rule)
+  # registering
+  xla.backend_specific_translations['gpu'][prim] = partial(_func_translation, func, abs_eval_rule)
+  return bind_primitive
 
 
-z = jnp.ones((1, 2), dtype=float)
-jit_op = register_op_gpu(custom_op, abs_eval)
-print(jit_op(z, z))
+if __name__ == '__main__':
+  def abs_eval(*ins):
+    return ins
+
+
+  def custom_op(outs, ins):
+    y, y1 = outs
+    x, x2 = ins
+    y[:] = x + 1
+    y1[:] = x2 + 2
+
+
+  z = jnp.ones((1, 2), dtype=jnp.float32)
+  jit_op = register_gpu_op(custom_op, abs_eval)
+
+  print(jit_op(z, z))
