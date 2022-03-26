@@ -18,7 +18,7 @@ class TestPhasePlane(unittest.TestCase):
     analyzer = bp.analysis.PhasePlane1D(model=int_x,
                                         target_vars={'x': [-2, 2]},
                                         pars_update={'Iext': 0.},
-                                        resolutions=0.001)
+                                        resolutions=0.01)
 
     plt.ion()
     analyzer.plot_vector_field()
@@ -60,7 +60,7 @@ class TestPhasePlane(unittest.TestCase):
     analyzer = bp.analysis.PhasePlane2D(
       model=[int_s1, int_s2],
       target_vars={'s1': [0, 1], 's2': [0, 1]},
-      resolutions=0.0005
+      resolutions=0.001
     )
     plt.ion()
     analyzer.plot_vector_field()

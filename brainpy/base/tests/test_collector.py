@@ -28,7 +28,7 @@ class GABAa_without_Variable(bp.dyn.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.ones(self.size) * -1e7
     self.s = bp.math.zeros(self.size)
-    self.g = self.register_constant_delay('g', size=self.size, delay=delay)
+    self.g = bp.dyn.ConstantDelay(size=self.size, delay=delay)
 
   @bp.odeint
   def int_s(self, s, t, TT):
@@ -227,7 +227,7 @@ class GABAa_with_Variable(bp.dyn.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.Variable(bp.math.ones(self.size) * -1e7)
     self.s = bp.math.Variable(bp.math.zeros(self.size))
-    self.g = self.register_constant_delay('g', size=self.size, delay=delay)
+    self.g = bp.dyn.ConstantDelay(size=self.size, delay=delay)
 
   @bp.odeint
   def int_s(self, s, t, TT):
