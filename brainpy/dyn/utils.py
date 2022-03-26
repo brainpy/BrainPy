@@ -98,7 +98,7 @@ def run_model(run_func, times, report, dt=None, extra_func=None):
 
   # numerical integration step
   if dt is None:
-    dt = math.get_dt()
+    dt = bm.get_dt()
   assert isinstance(dt, (int, float))
 
   # running function
@@ -308,7 +308,7 @@ def check_and_format_monitors(host, mon):
         variable = splits[-1]
 
     # idx
-    if isinstance(idx, int): idx = math.array([idx])
+    if isinstance(idx, int): idx = bm.array([idx])
 
     # interval
     if interval is not None:
