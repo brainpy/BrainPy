@@ -2,10 +2,18 @@
 import unittest
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 import brainpy as bp
 
 PI = bp.math.pi
+
+
+# visualization
+def mat_visualize(matrix, cmap=plt.cm.get_cmap('coolwarm')):
+  im = plt.matshow(matrix, cmap=cmap)
+  plt.colorbar(mappable=im, shrink=0.8, aspect=15)
+  plt.show()
 
 
 def _size2len(size):
@@ -61,3 +69,18 @@ class TestDOGDecayInit(unittest.TestCase):
     shape = _size2len(size)
     assert weights.shape == (shape, shape)
     assert isinstance(weights, bp.math.ndarray)
+
+  def test_dog_decay3(self):
+    size = (10, 12)
+    dog_init = bp.init.DOGDecay(sigmas=(1., 3.),
+                                max_ws=(10., 5.),
+                                min_w=0.1,
+                                include_self=True)
+    weights = dog_init(size)
+    print('shape of weights: {}'.format(weights.shape))
+    # out: shape of weights: (120, 120)
+    self.assertTrue(weights.shape == (np.prod(size), np.prod(size)))
+
+    # visualize neuron(3, 4)
+    mat_visualize(weights[:, 3 * 12 + 4].reshape((10, 12)), cmap=plt.cm.get_cmap('Reds'))
+

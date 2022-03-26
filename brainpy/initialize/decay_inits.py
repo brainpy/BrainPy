@@ -2,8 +2,9 @@
 
 import numpy as np
 
+from brainpy import math as bm
+from brainpy.tools.others import to_size, size2num
 from .base import IntraLayerInitializer
-from brainpy import tools, math as bm
 
 
 __all__ = [
@@ -70,9 +71,8 @@ class GaussianDecay(IntraLayerInitializer):
     shape : tuple of int, list of int, int
       The network shape. Note, this is not the weight shape.
     """
-    if isinstance(shape, int):
-      shape = (shape,)
-    net_size = tools.size2num(shape)
+    shape = to_size(shape)
+    net_size = size2num(shape)
 
     # value ranges to encode
     if self.encoding_values is None:
@@ -165,7 +165,7 @@ class DOGDecay(IntraLayerInitializer):
   min_w : float, None
       The minimum weight value below which synapses are not created (default: :math:`0.005 * min(max\_ws)`).
   include_self : bool
-    Whether create the conn at the same position.
+    Whether create the connections at the same position (self-connections).
   normalize : bool
     Whether normalize the connection probability .
   encoding_values : optional, list, tuple, int, float
@@ -202,9 +202,7 @@ class DOGDecay(IntraLayerInitializer):
     shape : tuple of int, list of int, int
       The network shape. Note, this is not the weight shape.
     """
-    if isinstance(shape, int):
-      shape = (shape,)
-    net_size = tools.size2num(shape)
+    shape = to_size(shape)
 
     # value ranges to encode
     if self.encoding_values is None:
@@ -236,17 +234,19 @@ class DOGDecay(IntraLayerInitializer):
     value_sizes = np.array([v[1] - v[0] for v in value_ranges])
     if value_sizes.ndim < post_values.ndim:
       value_sizes = np.expand_dims(value_sizes, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
+    voxel_ids = np.meshgrid(*[np.arange(s) for s in shape])
+    if np.ndim(voxel_ids[0]) > 1:
+      voxel_ids = tuple(np.moveaxis(m, 0, 1).flatten() for m in voxel_ids)
 
     # connectivity matrix
+    ndim = len(voxel_ids)
     conn_weights = []
-    for i in range(net_size):
-      # values for node i
-      i_coordinate = tuple()
-      for s in shape[:-1]:
-        i, pos = divmod(i, s)
-        i_coordinate += (pos,)
-      i_coordinate += (i,)
-      i_value = np.array([values[i][c] for i, c in enumerate(i_coordinate)])
+    for v_id in range(voxel_ids[0].shape[0]):
+      i_value = []
+      for i in range(ndim):
+        p_id = voxel_ids[i][v_id]  # position id
+        i_value.append(values[i][p_id])
+      i_value = np.array(i_value)
       if i_value.ndim < post_values.ndim:
         i_value = np.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
       # distances
