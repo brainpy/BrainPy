@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from typing import Dict
+import brainpy.math as bm
+
 from brainpy.integrators.constants import F, DT
 from brainpy.integrators.dde.base import DDEIntegrator
 from brainpy.integrators.ode import common
@@ -102,11 +105,14 @@ register_dde_integrator('ralston2', Ralston2)
 
 
 class RK2(ExplicitRKIntegrator):
-  def __init__(self, f, beta=2 / 3, var_type=None, dt=None, name=None, show_code=False):
+  def __init__(self, f, beta=2 / 3, var_type=None, dt=None, name=None,
+               state_delays: Dict[str, bm.TimeDelay] = None,
+               neutral_delays: Dict[str, bm.NeutralDelay] = None):
     self.A = [(), (beta,)]
     self.B = [1 - 1 / (2 * beta), 1 / (2 * beta)]
     self.C = [0, beta]
-    super(RK2, self).__init__(f=f, var_type=var_type, dt=dt, name=name, show_code=show_code)
+    super(RK2, self).__init__(f=f, var_type=var_type, dt=dt, name=name,
+                              state_delays=state_delays, neutral_delays=neutral_delays)
 
 
 register_dde_integrator('rk2', RK2)

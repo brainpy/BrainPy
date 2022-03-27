@@ -112,7 +112,9 @@ def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., ta
   eq.x[:] = inits['x']
   eq.y[:] = inits['y']
   eq.z[:] = inits['z']
-  runner = dyn.DSRunner(eq, monitors=['x', 'y', 'z'], dt=dt, progress_bar=False,
+  runner = dyn.DSRunner(eq,
+                        monitors=['x', 'y', 'z'],
+                        dt=dt, progress_bar=False,
                         numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
@@ -167,19 +169,20 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
     assert isinstance(inits, (bm.ndarray, jnp.ndarray))
 
   rng = bm.random.RandomState(seed)
-  xdelay = bm.TimeDelay(inits, tau, dt=dt)
-  xdelay.data = inits + 0.2 * (rng.random((xdelay.num_delay_step,) + inits.shape) - 0.5)
+  xdelay = bm.TimeDelay(inits, tau, dt=dt, interp_method='round')
+  xdelay.data.value = inits + 0.2 * (rng.random((xdelay.num_delay_step,) + inits.shape) - 0.5)
 
-  @ddeint(method=method, state_delays={'x': xdelay})
+  @ddeint(method=method,
+          state_delays={'x': xdelay})
   def mg_eq(x, t):
-    return beta * xdelay(t - tau) / (1 + xdelay(t - tau) ** n) - gamma * x
+    xtau = xdelay(t - tau)
+    return beta * xtau / (1 + xtau ** n) - gamma * x
 
   runner = IntegratorRunner(mg_eq,
                             inits={'x': inits},
                             monitors=['x'],
-                            fun_monitors={'x(tau)': lambda t, dt: xdelay(t - tau)},
-                            progress_bar=progress_bar,
-                            dt=dt,
+                            fun_monitors={'x(tau)': lambda t, _: xdelay(t - tau)},
+                            progress_bar=progress_bar, dt=dt,
                             numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
