@@ -71,82 +71,6 @@ class DynamicalSystem(Base):
           gather[f'{node_path}.{k}' if node_path else k] = v
     return gather
 
-  def child_ds(self, method='absolute', include_self=False):
-    """Return the children instance of dynamical systems.
-
-    This is a shortcut function to get all children dynamical system
-    in this object. For example:
-
-    >>> import brainpy as bp
-    >>>
-    >>> class Net(bp.DynamicalSystem):
-    >>>   def __init__(self, **kwargs):
-    >>>     super(Net, self).__init__(**kwargs)
-    >>>     self.A = bp.NeuGroup(10)
-    >>>     self.B = bp.NeuGroup(20)
-    >>>
-    >>>   def update(self, _t, _dt):
-    >>>     for node in self.child_ds().values():
-    >>>        node.update(_t, _dt)
-    >>>
-    >>> net = Net()
-    >>> net.child_ds()
-    {'NeuGroup0': <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0x000001ABD4FF02B0>,
-    'NeuGroup1': <brainpy.simulation.brainobjects.neuron.NeuGroup object at 0x000001ABD74E5670>}
-
-    Parameters
-    ----------
-    method : str
-      The method to access the children nodes.
-    include_self : bool
-      Whether include the self dynamical system.
-
-    Returns
-    -------
-    collector: Collector
-      A Collector includes all children systems.
-    """
-    nodes = self.nodes(method=method).subset(DynamicalSystem).unique()
-    if not include_self:
-      if method == 'absolute':
-        nodes.pop(self.name)
-      elif method == 'relative':
-        nodes.pop('')
-      else:
-        raise ValueError(f'Unknown access method: {method}')
-    return nodes
-
-  def register_constant_delay(self, key, size, delay, dtype=None):
-    """Register a constant delay, whose update method will be appended into
-    the ``self.steps`` in this host class.
-
-    Parameters
-    ----------
-    key : str
-      The delay name.
-    size : int, list of int, tuple of int
-      The delay data size.
-    delay : int, float, ndarray
-      The delay time, with the unit same with `brainpy.math.get_dt()`.
-    dtype : optional
-      The data type.
-
-    Returns
-    -------
-    delay : ConstantDelay
-        An instance of ConstantDelay.
-    """
-    if not hasattr(self, 'steps'):
-      raise ModelBuildError('Please initialize the super class first before '
-                            'registering constant_delay. \n\n'
-                            'super(YourClassName, self).__init__(**kwargs)')
-    if not key.isidentifier(): raise ValueError(f'{key} is not a valid identifier.')
-    cdelay = ConstantDelay(size=size,
-                           delay=delay,
-                           name=f'{self.name}_delay_{key}',
-                           dtype=dtype)
-    return cdelay
-
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
     return self.update(*args, **kwargs)
@@ -202,7 +126,8 @@ class Container(DynamicalSystem):
     In this update function, the update functions in children systems are
     iteratively called.
     """
-    for node in self.child_ds().values():
+    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
+    for node in nodes.values():
       node.update(_t, _dt)
 
   def __getattr__(self, item):

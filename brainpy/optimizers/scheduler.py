@@ -47,6 +47,9 @@ class Scheduler(Base):
   def __call__(self, i=None):
     raise NotImplementedError
 
+  def __repr__(self):
+    return f'{self.__class__.__name__}({self.lr})'
+
 
 class Constant(Scheduler):
   def __call__(self, i=None):
@@ -63,6 +66,11 @@ class ExponentialDecay(Scheduler):
     i = self.step[0] if i is None else i
     return self.lr * self.decay_rate ** (i / self.decay_steps)
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}({self.lr}, '
+            f'decay_steps={self.decay_steps}), '
+            f'decay_rate={self.decay_rate}')
+
 
 class InverseTimeDecay(ExponentialDecay):
   def __init__(self, lr, decay_steps, decay_rate, staircase=False):
@@ -75,6 +83,9 @@ class InverseTimeDecay(ExponentialDecay):
       return self.lr / (1 + self.decay_rate * ops.floor(i / self.decay_steps).value)
     else:
       return self.lr / (1 + self.decay_rate * i / self.decay_steps)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}({self.lr}, staircase={self.staircase})'
 
 
 class PolynomialDecay(Scheduler):
@@ -89,6 +100,12 @@ class PolynomialDecay(Scheduler):
     i = ops.minimum(i, self.decay_steps).value
     step_mult = (1 - i / self.decay_steps) ** self.power
     return step_mult * (self.lr - self.final_lr) + self.final_lr
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}({self.lr}, '
+            f'decay_steps={self.decay_steps}, '
+            f'final_lr={self.final_lr}, '
+            f'power={self.power})')
 
 
 class PiecewiseConstant(Scheduler):

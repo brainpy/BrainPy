@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .base import InterLayerInitializer
 from brainpy import math as bm, tools
+from .base import InterLayerInitializer
 
 __all__ = [
   'ZeroInit',
@@ -19,6 +19,9 @@ class ZeroInit(InterLayerInitializer):
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
     return bm.zeros(shape, dtype=dtype)
+
+  def __repr__(self):
+    return self.__class__.__name__
 
 
 class OneInit(InterLayerInitializer):
@@ -39,6 +42,9 @@ class OneInit(InterLayerInitializer):
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
     return bm.ones(shape, dtype=dtype) * self.value
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(value={self.value})'
 
 
 class Identity(InterLayerInitializer):
@@ -69,7 +75,7 @@ class Identity(InterLayerInitializer):
 
   def __call__(self, shape, dtype=None):
     if isinstance(shape, int):
-      shape = (shape, )
+      shape = (shape,)
     elif isinstance(shape, (tuple, list)):
       if len(shape) > 2:
         raise ValueError(f'Only support initialize 2D weights for {self.__class__.__name__}.')
@@ -78,3 +84,6 @@ class Identity(InterLayerInitializer):
                        f'in {self.__class__.__name__}, but we got {shape}.')
     shape = [tools.size2num(d) for d in shape]
     return bm.eye(*shape, dtype=dtype) * self.value
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(value={self.value})'

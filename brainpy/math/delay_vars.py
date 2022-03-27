@@ -266,7 +266,6 @@ class LengthDelay(AbstractDelay):
 
     # delay_len
     check_integer(delay_len, 'delay_len', allow_none=False, min_bound=0)
-    self.delay_len = delay_len
     self.num_delay_step = delay_len + 1
 
     # time variables

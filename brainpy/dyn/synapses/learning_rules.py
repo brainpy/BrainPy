@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.integrators.joint_eq import JointEq
-from brainpy.integrators.ode import odeint
-from brainpy.dyn.base import TwoEndConn, ConstantDelay
+from brainpy.dyn.base import TwoEndConn
+from brainpy.dyn.utils import init_delay
+from brainpy.integrators import odeint, JointEq
 
 __all__ = [
   'STP'
@@ -168,8 +168,20 @@ class STP(TwoEndConn):
 
   """
 
-  def __init__(self, pre, post, conn, U=0.15, tau_f=1500., tau_d=200.,
-               tau=8., A=1., delay=0., method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      U=0.15,
+      tau_f=1500.,
+      tau_d=200.,
+      tau=8.,
+      A=1.,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
     super(STP, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_post_attrs('input')
     self.check_pre_attrs('spike')
@@ -180,7 +192,6 @@ class STP(TwoEndConn):
     self.tau = tau
     self.U = U
     self.A = A
-    self.delay = delay
 
     # connections
     self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
@@ -190,7 +201,7 @@ class STP(TwoEndConn):
     self.x = bm.Variable(bm.ones(num, dtype=bm.float_))
     self.u = bm.Variable(bm.zeros(num, dtype=bm.float_))
     self.I = bm.Variable(bm.zeros(num, dtype=bm.float_))
-    self.delayed_I = ConstantDelay(num, delay=delay)
+    self.delay_type, self.delay_step, self.delay_I = init_delay(delay_step, self.I)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -203,7 +214,12 @@ class STP(TwoEndConn):
     return JointEq([dI, du, dx])
 
   def update(self, _t, _dt):
-    delayed_I = self.delayed_I.pull()
+    if self.delay_type == 'homo':
+      delayed_I = self.delay_I(self.delay_step)
+    elif self.delay_type == 'heter':
+      delayed_I = self.delay_I(self.delay_step, bm.arange())
+    else:
+      delayed_I = self.I
     self.post.input += bm.syn2post(delayed_I, self.post_ids, self.post.num)
     self.I.value, u, x = self.integral(self.I, self.u, self.x, _t, dt=_dt)
     syn_sps = bm.pre2syn(self.pre.spike, self.pre_ids)
@@ -212,4 +228,7 @@ class STP(TwoEndConn):
     self.I.value = bm.where(syn_sps, self.I, self.I + self.A * u * self.x)
     self.u.value = u
     self.x.value = x
-    self.delayed_I.push(self.I)
+    if self.delay_type == 'homo':
+      self.delay_I.update(self.I)
+    elif self.delay_type == 'heter':
+      self.delay_I.update(self.I)

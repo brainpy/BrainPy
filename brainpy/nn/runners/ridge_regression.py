@@ -67,7 +67,7 @@ class RidgeTrainer(RNNTrainer):
       test_data=None,
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
-      reset=False,
+      reset: bool = False,
       shared_kwargs: Dict = None,
   ):
     # checking training and testing data
@@ -166,7 +166,7 @@ class RidgeTrainer(RNNTrainer):
         if self.progress_bar:
           id_tap(lambda *args: self._pbar.update(), ())
 
-    if self.jit:
+    if self.jit['fit']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
       train_func = bm.jit(train_func, dyn_vars=dyn_vars.unique())

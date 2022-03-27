@@ -69,6 +69,10 @@ class Base(object):
     ----------
     method : str
       The method to access the variables.
+    level: int
+      The hierarchy level to find variables.
+    include_self: bool
+      Whether include the variables in the self.
 
     Returns
     -------
@@ -95,6 +99,10 @@ class Base(object):
     ----------
     method : str
       The method to access the variables. Support 'absolute' and 'relative'.
+    level: int
+      The hierarchy level to find TrainVar instances.
+    include_self: bool
+      Whether include the TrainVar instances in the self.
 
     Returns
     -------
@@ -109,7 +117,7 @@ class Base(object):
     if _paths is None:
       _paths = set()
     gather = Collector()
-    if (level > 0) and (_lid >= level):
+    if (level > -1) and (_lid >= level):
       return gather
     if method == 'absolute':
       nodes = []
@@ -127,7 +135,7 @@ class Base(object):
           gather[node.name] = node
           nodes.append(node)
       for v in nodes:
-        gather.update(v._find_nodes(method=method, level=-1, _lid=_lid + 1, _paths=_paths,
+        gather.update(v._find_nodes(method=method, level=level, _lid=_lid + 1, _paths=_paths,
                                     include_self=include_self))
       if include_self: gather[self.name] = self
 
@@ -163,8 +171,10 @@ class Base(object):
     ----------
     method : str
       The method to access the nodes.
-    _paths : set, Optional
-      The data structure to solve the circular reference.
+    level: int
+      The hierarchy level to find nodes.
+    include_self: bool
+      Whether include the self.
 
     Returns
     -------

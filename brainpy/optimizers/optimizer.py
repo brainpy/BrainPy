@@ -28,10 +28,12 @@ class Optimizer(Base):
   """Base Optimizer Class.
   """
 
-  def __init__(self,
-               lr: Union[float, int, Scheduler],
-               train_vars: Union[Sequence[Variable], Dict[str, Variable]] = None,
-               name: str = None):
+  def __init__(
+      self,
+      lr: Union[float, int, Scheduler],
+      train_vars: Union[Sequence[Variable], Dict[str, Variable]] = None,
+      name: str = None
+  ):
     super(Optimizer, self).__init__(name=name)
     self.lr = make_schedule(lr)
     self.vars_to_train = TensorCollector()
@@ -45,6 +47,9 @@ class Optimizer(Base):
       raise MathError(
         f'The length of "grads" must be equal to "self.vars_to_train", '
         f'while we got {len(grads)} != {len(self.vars_to_train)}!')
+
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr})"
 
 
 class SGD(Optimizer):
@@ -124,6 +129,9 @@ class Momentum(Optimizer):
       p.value += v.value
     self.lr.update()
 
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
+
 
 class MomentumNesterov(Optimizer):
   r"""Nesterov accelerated gradient optimizer [2]_.
@@ -166,6 +174,9 @@ class MomentumNesterov(Optimizer):
       v.value = self.momentum * v.value - lr * g
       p.value += (self.momentum * v.value - lr * g)
     self.lr.update()
+
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
 
 
 class Adagrad(Optimizer):
@@ -215,6 +226,9 @@ class Adagrad(Optimizer):
       c.value += g ** 2
       p.value -= lr * g / ops.sqrt(c + self.epsilon)
     self.lr.update()
+
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr}, epsilon={self.epsilon})"
 
 
 class Adadelta(Optimizer):
@@ -282,6 +296,10 @@ class Adadelta(Optimizer):
       p.value -= update
       d.value = self.rho * d.value + (1 - self.rho) * update ** 2
 
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"epsilon={self.epsilon}, rho={self.rho})")
+
 
 class RMSProp(Optimizer):
   r"""Optimizer that implements the RMSprop algorithm.
@@ -333,6 +351,10 @@ class RMSProp(Optimizer):
       p.value -= (lr * g / jnp.sqrt(c.value + self.epsilon))
     self.lr.update()
 
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"epsilon={self.epsilon}, rho={self.rho})")
+
 
 class Adam(Optimizer):
   """Optimizer that implements the Adam algorithm.
@@ -366,6 +388,10 @@ class Adam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.eps = eps
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"beta1={self.beta1}, beta2={self.beta2}, eps={self.eps})")
 
   def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
@@ -409,20 +435,26 @@ class LARS(Optimizer):
   eps: float
     epsilon used for trust ratio computation.
   """
+
   def __init__(self,
                lr: Union[float, int, Scheduler],
-               train_vars: Dict[str, Variable]=None,
+               train_vars: Dict[str, Variable] = None,
                momentum: float = 0.9,
                weight_decay: float = 1e-4,
                tc: float = 1e-3,
                eps: float = 1e-5,
-               name:str=None):
+               name: str = None):
     super(LARS, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
     self.weight_decay = weight_decay
     self.tc = tc
     self.eps = eps
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"momentum={self.momentum}, weight_decay={self.weight_decay}, "
+            f"tc={self.tc}, eps={self.eps})")
 
   def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
@@ -445,5 +477,3 @@ class LARS(Optimizer):
       m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)
       p.value -= m.value
     self.lr.update()
-
-
