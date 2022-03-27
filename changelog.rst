@@ -6,6 +6,55 @@ brainpy 2.x (LTS)
 *****************
 
 
+Version 2.1.3 (2022.03.27)
+==========================
+
+This release improves the functionality and usability of BrainPy. Core changes include
+
+* support customization of low-level operators by using Numba
+* fix bugs
+
+What's Changed
+--------------
+
+* Provide custom operators written in numba for jax jit by `@ztqakita <https://github.com/ztqakita>`_ in `#122 <https://github.com/PKU-NIP-Lab/BrainPy/pull/122>`_
+* fix DOGDecay bugs, add more features by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#124 <https://github.com/PKU-NIP-Lab/BrainPy/pull/124>`_
+* fix bugs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#126 <https://github.com/PKU-NIP-Lab/BrainPy/pull/126>`_
+
+**Full Changelog** : `V2.1.2...V2.1.3 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.2...V2.1.3>`_
+
+
+
+
+Version 2.1.2 (2022.03.23)
+==========================
+
+This release improves the functionality and usability of BrainPy. Core changes include
+
+- support rate-based whole-brain modeling
+- add more neuron models, including rate neurons/synapses
+- support Python 3.10
+- improve delays etc. APIs
+
+
+What's Changed
+~~~~~~~~~~~~~~
+
+* fix matplotlib dependency on "brainpy.analysis" module by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#110 <https://github.com/PKU-NIP-Lab/BrainPy/pull/110>`_
+* Sync master to brainpy-2.x branch by `@ztqakita <https://github.com/ztqakita>`_ in `#111 <https://github.com/PKU-NIP-Lab/BrainPy/pull/111>`_
+* add py3.6 test & delete multiple macos env by `@ztqakita <https://github.com/ztqakita>`_ in `#112 <https://github.com/PKU-NIP-Lab/BrainPy/pull/112>`_
+* Modify ci by `@ztqakita <https://github.com/ztqakita>`_ in `#113 <https://github.com/PKU-NIP-Lab/BrainPy/pull/113>`_
+* Add py3.10 test by `@ztqakita <https://github.com/ztqakita>`_ in `#115 <https://github.com/PKU-NIP-Lab/BrainPy/pull/115>`_
+* update python version by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#114 <https://github.com/PKU-NIP-Lab/BrainPy/pull/114>`_
+* add brainpylib mac py3.10 by `@ztqakita <https://github.com/ztqakita>`_ in `#116 <https://github.com/PKU-NIP-Lab/BrainPy/pull/116>`_
+* Enhance measure/input/brainpylib by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#117 <https://github.com/PKU-NIP-Lab/BrainPy/pull/117>`_
+* fix `#105 <https://github.com/PKU-NIP-Lab/BrainPy/issues/105>`_\ : Add customize connections docs by `@ztqakita <https://github.com/ztqakita>`_ in `#118 <https://github.com/PKU-NIP-Lab/BrainPy/pull/118>`_
+* fix bugs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#119 <https://github.com/PKU-NIP-Lab/BrainPy/pull/119>`_
+* Whole brain modeling by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#121 <https://github.com/PKU-NIP-Lab/BrainPy/pull/121>`_
+
+**Full Changelog**: `V2.1.1...V2.1.2 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.1...V2.1.2>`_
+
+
 Version 2.1.1 (2022.03.18)
 ==========================
 
