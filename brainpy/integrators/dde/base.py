@@ -119,7 +119,11 @@ class DDEIntegrator(Integrator):
           delay.update(new_dvars[key])
         elif isinstance(delay, bm.TimeDelay):
           delay.update(kwargs['t'] + dt, new_dvars[key])
-        raise ValueError('Unknown delay variable.')
+        else:
+          raise ValueError('Unknown delay variable. We only supports '
+                           'brainpy.math.LengthDelay, brainpy.math.TimeDelay, '
+                           'brainpy.math.NeutralDelay. '
+                           f'While we got {delay}')
 
     # update state delay variables
     for key, delay in self.state_delays.items():
@@ -127,7 +131,11 @@ class DDEIntegrator(Integrator):
         delay.update(dict_vars[key])
       elif isinstance(delay, bm.TimeDelay):
         delay.update(kwargs['t'] + dt, dict_vars[key])
-      raise ValueError('Unknown delay variable.')
+      else:
+        raise ValueError('Unknown delay variable. We only supports '
+                         'brainpy.math.LengthDelay, brainpy.math.TimeDelay, '
+                         'brainpy.math.NeutralDelay. '
+                         f'While we got {delay}')
 
     return new_vars
 

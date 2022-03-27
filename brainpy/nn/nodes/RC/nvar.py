@@ -133,7 +133,7 @@ class NVAR(RecurrentNode):
     if self.store is None:
       self.store = bm.Variable(state)
     else:
-      self.store._value = state
+      self.store._value = state.value
 
   def forward(self, ff, fb=None, **shared_kwargs):
     all_parts = []
