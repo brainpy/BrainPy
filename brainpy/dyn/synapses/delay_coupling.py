@@ -5,7 +5,7 @@ from typing import Optional, Union, Sequence, Dict, List
 from jax import vmap
 
 import brainpy.math as bm
-from brainpy.dyn.base import TwoEndConn
+from brainpy.dyn.base import TwoEndConn, NeuGroup
 from brainpy.initialize import Initializer, ZeroInit
 from brainpy.tools.checking import check_sequence
 from brainpy.types import Tensor
@@ -21,7 +21,9 @@ class DelayCoupling(TwoEndConn):
   """
   Delay coupling base class.
 
-    coupling: str
+  Parameters
+  ----------
+  coupling: str
     The way of coupling.
   gc: float
     The global coupling strength.
@@ -36,7 +38,6 @@ class DelayCoupling(TwoEndConn):
     delay matrix together with the signal transmission
     speed parameter `signal_speed`. Default None.
 
-
   """
 
   """Global delay variables. Useful when the same target
@@ -45,8 +46,8 @@ class DelayCoupling(TwoEndConn):
 
   def __init__(
       self,
-      pre,
-      post,
+      pre: NeuGroup,
+      post: NeuGroup,
       from_to: Union[str, Sequence[str]],
       conn_mat: Tensor,
       delay_mat: Optional[Tensor] = None,

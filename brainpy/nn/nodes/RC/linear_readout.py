@@ -36,7 +36,10 @@ class LinearReadout(Dense):
       bias_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       **kwargs
   ):
-    super(LinearReadout, self).__init__(num_unit=num_unit, weight_initializer=weight_initializer, bias_initializer=bias_initializer, **kwargs)
+    super(LinearReadout, self).__init__(num_unit=num_unit,
+                                        weight_initializer=weight_initializer,
+                                        bias_initializer=bias_initializer,
+                                        **kwargs)
 
   def init_state(self, num_batch=1):
     return bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_)
@@ -56,10 +59,12 @@ class LinearReadout(Dense):
       num_input += 1
     self.P = bm.Variable(bm.eye(num_input) * alpha)  # inverse correlation matrix
 
-  def __force_train__(self,
-                      ffs: Sequence[Tensor],
-                      target: Tensor,
-                      train_pars: Optional[Dict] = None):
+  def __force_train__(
+      self,
+      ffs: Sequence[Tensor],
+      target: Tensor,
+      train_pars: Optional[Dict] = None
+  ):
     for ff in ffs:
       assert ff.ndim == 3
     # note each "ff" has a batch size = 1

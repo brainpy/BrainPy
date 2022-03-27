@@ -222,34 +222,56 @@ def ff_connect(
       network = ff_connect(sender, receiver)
 
   - `sender` and `receiver` can also be :py:class:`brainpy.nn.base.Network` instances. In this
-  case, the new :py:class:`brainpy.nn.base.Network` created will contain all nodes previously
-  contained in all the networks, and link all `node1` outputs to all `node2`
-  inputs. This allows to chain the  ``>>`` operator::
+    case, the new :py:class:`brainpy.nn.base.Network` created will contain all nodes previously
+    contained in all the networks, and link all `node1` outputs to all `node2`
+    inputs. This allows to chain the  ``>>`` operator::
 
       step1 = node0 >> node1  # this is a network
       step2 = step1 >> node2  # this is another
 
-  -`node1` and `node2` can finally be lists or tuples of nodes. In this
-  case, all `node1` outputs will be linked to a :py:class:`~.Concat` node to
-  concatenate them, and the :py:class:`~.Concat` node will be linked to all
-  `node2` inputs. You can still use the ``>>`` operator in this situation,
-  except for many-to-many nodes connections::
+  - `node1` can finally be lists or tuples of nodes. In this
+    case, all `node1` outputs will be linked to a :py:class:`~.Concat` node to
+    concatenate them, and the :py:class:`~.Concat` node will be linked to all
+    `node2` inputs::
+
+      # many-concat-to-one
+      network = [node1, node2, ..., node] >> node_out
+
+  - If you do not want to concatenate all input nodes, you can use `set` to
+    wrap all input nodes at once. Then, `node2` will receive multiple inputs
+    defined in `node1`::
 
       # many-to-one
-      network = [node1, node2, ..., node] >> node_out
-      # one-to-many
-      network = node_in >> [node1, node2, ..., node]
-      # ! many-to-many requires to use the `link` method explicitely !
-      network = link([node1, node2, ..., node], [node1, node2, ..., node])
+      network = {node1, node2, ..., node_N} >> node_out
+
+  - In the case of "one-to-many" feedforward connection, `node2` only support
+    a set of node. Using list or tuple to wrap multiple receivers will concatenate
+    all nodes in the receiver end. This will cause errors.
+
+      # wrong operation of one-to-many
+      network = node_in >> {node1, node2, ..., node_N}
+
+      # correct operation of one-to-many
+      network = node_in >> {node1, node2, ..., node_N}
+
+  - "many-to-many" connection is also allowed.
+
+    You can still use the ``>>`` operator in this situation,
+    except for many-to-many nodes connections::
+
+      # many-to-many
+      {node1, node2, ..., node} >> {node1, node2, ..., node}
 
   Parameters
   ----------
-  senders, receivers : Node or sequence of Node
-      Nodes or lists of nodes to connect feedforward connections.
+  senders, receivers : Node, sequence of Node
+    Nodes or sequence of nodes to connect feedforward connections.
   inplace: bool
+    Whether inplace update the node.
   name: str, optional
-      Name for the chaining Network.
+    Name for the chaining Network.
   need_detect_cycle: bool
+    Whether we need to detect cycles exit in the final network.
 
   Returns
   -------
@@ -311,25 +333,9 @@ def fb_connect(
     need_detect_cycle=True
 ) -> Node:
   """Create a feedback connection from ``sender`` node to ``receiver`` node.
-  Feedbacks nodes will be called at runtime using data from the previous  call.
+  Feedbacks nodes will be called at runtime using data from the previous call.
 
-  This is not an inplace operation by default. This function will copy `node`
-  and then sets the copy `_feedback` attribute as a reference to `feedback`
-  node. If `inplace` is set to `True`, then `node` is not copied and the
-  feedback is directly connected to `node`. If `feedback` is a list of nodes
-  or networks, then all nodes in the list are first connected to a
-  :py:class:`~.Concat` node to create a network gathering all data from all nodes
-  in a single feedback vector.
-
-   You can also perform this operation using the ``<<`` operator::
-
-      node1 = node1 << node2
-      # with feedback from a Network
-      node1 = node1 << (fbnode1 >> fbnode2)
-      # with feedback from a list of nodes or networks
-      node1 = node1 << [fbnode1, fbnode2, ...]
-      # with feedback from a list of nodes or networks
-      node1 = [node1, ...] << [fbnode1, fbnode2, ...]
+  You can also perform this operation using the ``<<`` operator.
 
   Which means that a feedback connection is now created between `node1` and
   `node2`. In other words, the forward function of `node1` depends on the
@@ -340,9 +346,9 @@ def fb_connect(
 
   You can also use this function to define feedback::
 
-      node1 = link_feedback(node1, node2)
+      node1 = fb_connect(node1, node2)
       # without copy (node1 is the same object throughout)
-      node1 = link_feedback(node1, node2, inplace=True, name="n1_copy")
+      node1 = fb_connect(node1, node2, inplace=True, name="n1_copy")
 
   Parameters
   ----------
@@ -355,7 +361,7 @@ def fb_connect(
   name : str, optional
       Name of the copy of `node` if `inplace` is `True`.
   need_detect_cycle: bool
-      Whether need to detect cycles in the defined network.
+      Whether we need to detect cycles in the defined network.
 
   Returns
   -------

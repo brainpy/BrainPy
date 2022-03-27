@@ -34,6 +34,26 @@ class VanillaRNN(RecurrentNode):
      h_t = \mathrm{ReLU}(w_i x_t + b_i + w_h h_{t-1} + b_h)
 
   The output is equal to the new state, :math:`h_t`.
+
+
+  Parameters
+  ----------
+  num_unit: int
+    The number of hidden unit in the node.
+  state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The state initializer.
+  wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The input weight initializer.
+  wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The hidden weight initializer.
+  bias_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The bias weight initializer.
+  activation: str, callable
+    The activation function. It can be a string or a callable function.
+    See ``brainpy.math.activations`` for more details.
+  trainable: bool
+    Whether set the node is trainable.
+
   """
 
   def __init__(
@@ -125,6 +145,24 @@ class GRU(RecurrentNode):
   The output is equal to the new hidden state, :math:`h_t`.
 
   Warning: Backwards compatibility of GRU weights is currently unsupported.
+
+  Parameters
+  ----------
+  num_unit: int
+    The number of hidden unit in the node.
+  state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The state initializer.
+  wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The input weight initializer.
+  wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The hidden weight initializer.
+  bias_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The bias weight initializer.
+  activation: str, callable
+    The activation function. It can be a string or a callable function.
+    See ``brainpy.math.activations`` for more details.
+  trainable: bool
+    Whether set the node is trainable.
 
   References
   ----------
@@ -237,6 +275,25 @@ class LSTM(RecurrentNode):
   Forget gate initialization: Following (Jozefowicz, et al., 2015) [2]_ we add 1.0
   to :math:`b_f` after initialization in order to reduce the scale of forgetting in
   the beginning of the training.
+
+
+  Parameters
+  ----------
+  num_unit: int
+    The number of hidden unit in the node.
+  state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The state initializer.
+  wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The input weight initializer.
+  wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The hidden weight initializer.
+  bias_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The bias weight initializer.
+  activation: str, callable
+    The activation function. It can be a string or a callable function.
+    See ``brainpy.math.activations`` for more details.
+  trainable: bool
+    Whether set the node is trainable.
 
   References
   ----------

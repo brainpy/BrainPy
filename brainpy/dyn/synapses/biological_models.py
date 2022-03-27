@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.integrators.joint_eq import JointEq
-from brainpy.integrators.ode import odeint
-from brainpy.dyn.base import TwoEndConn, ConstantDelay
+from brainpy.dyn.base import TwoEndConn
+from brainpy.dyn.utils import init_delay
+from brainpy.integrators import odeint, JointEq
 
 __all__ = [
   'AMPA',
@@ -112,14 +112,26 @@ class AMPA(TwoEndConn):
          National Academy of Sciences, 2012, 109(45): 18553-18558.
   """
 
-  def __init__(self, pre, post, conn, delay=0., g_max=0.42, E=0., alpha=0.98,
-               beta=0.18, T=0.5, T_duration=0.5, method='exp_auto', **kwargs):
-    super(AMPA, self).__init__(pre=pre, post=post, conn=conn, **kwargs)
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=0.42,
+      E=0.,
+      alpha=0.98,
+      beta=0.18,
+      T=0.5,
+      T_duration=0.5,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
+    super(AMPA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
 
     # parameters
-    self.delay = delay
     self.g_max = g_max
     self.E = E
     self.alpha = alpha
@@ -133,8 +145,8 @@ class AMPA(TwoEndConn):
 
     # variables``
     self.g = bm.Variable(bm.zeros(len(self.pre_ids)))
-    self.pre_spike = ConstantDelay(self.pre.num, delay, dtype=pre.spike.dtype)
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
+    self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
     # functions
     self.integral = odeint(method=method, f=self.derivative)
@@ -144,8 +156,15 @@ class AMPA(TwoEndConn):
     return dg
 
   def update(self, _t, _dt):
-    self.pre_spike.push(self.pre.spike)
-    self.spike_arrival_time.value = bm.where(self.pre_spike.pull(), _t, self.spike_arrival_time)
+    if self.delay_type == 'homo':
+      pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      self.pre_spike.update(self.pre.spike)
+    else:
+      pre_spike = self.pre.spike
+    self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)
     syn_sp_times = bm.pre2syn(self.spike_arrival_time, self.pre_ids)
     TT = ((_t - syn_sp_times) < self.T_duration) * self.T
     self.g.value = self.integral(self.g, _t, TT, dt=_dt)
@@ -208,18 +227,27 @@ class GABAa(AMPA):
          in vivo." Journal of neurophysiology 81.4 (1999): 1531-1547.
   """
 
-  def __init__(self, pre, post, conn, delay=0., g_max=0.04, E=-80., alpha=0.53,
-               beta=0.18, T=1., T_duration=1., method='exp_auto', **kwargs):
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=0.04,
+      E=-80.,
+      alpha=0.53,
+      beta=0.18,
+      T=1.,
+      T_duration=1.,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
     super(GABAa, self).__init__(pre, post, conn,
-                                delay=delay,
-                                g_max=g_max,
-                                E=E,
-                                alpha=alpha,
-                                beta=beta,
-                                T=T,
+                                delay_step=delay_step, g_max=g_max, E=E,
+                                alpha=alpha, beta=beta, T=T,
                                 T_duration=T_duration,
                                 method=method,
-                                **kwargs)
+                                name=name)
 
 
 class NMDA(TwoEndConn):
@@ -350,9 +378,23 @@ class NMDA(TwoEndConn):
 
   """
 
-  def __init__(self, pre, post, conn, delay=0., g_max=0.15, E=0., cc_Mg=1.2,
-               alpha=0.062, beta=3.57, tau_decay=100., a=0.5, tau_rise=2.,
-               method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=0.15,
+      E=0.,
+      cc_Mg=1.2,
+      alpha=0.062,
+      beta=3.57,
+      tau_decay=100.,
+      a=0.5,
+      tau_rise=2.,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
     super(NMDA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
@@ -366,16 +408,15 @@ class NMDA(TwoEndConn):
     self.tau_decay = tau_decay
     self.tau_rise = tau_rise
     self.a = a
-    self.delay = delay
 
     # connections
     self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
 
     # variables
     num = len(self.pre_ids)
-    self.pre_spike = ConstantDelay(self.pre.num, delay, pre.spike.dtype)
     self.g = bm.Variable(bm.zeros(num, dtype=bm.float_))
     self.x = bm.Variable(bm.zeros(num, dtype=bm.float_))
+    self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -387,8 +428,14 @@ class NMDA(TwoEndConn):
     return JointEq([dg, dx])
 
   def update(self, _t, _dt):
-    self.pre_spike.push(self.pre.spike)
-    delayed_pre_spike = self.pre_spike.pull()
+    if self.delay_type == 'homo':
+      delayed_pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_pre_spike = self.pre.spike
     self.g.value, self.x.value = self.integral(self.g, self.x, _t, dt=_dt)
     self.x += bm.pre2syn(delayed_pre_spike, self.pre_ids)
     post_g = bm.syn2post(self.g, self.post_ids, self.post.num)

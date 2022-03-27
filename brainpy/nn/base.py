@@ -439,11 +439,13 @@ class Node(Base):
     state = self.init_state(num_batch)
     if state is not None:
       self.set_state(state)
+    self._is_state_initialized = True
 
   def _init_fb_output(self, num_batch=1):
     output = self.init_fb_output(num_batch)
     if output is not None:
       self.set_fb_output(output)
+    self._is_fb_state_initialized = True
 
   def init_state(self, num_batch=1) -> Optional[Tensor]:
     """Set the initial node state.
@@ -479,14 +481,12 @@ class Node(Base):
 
     # initialize state
     self._init_state(num_batch)
-    self._is_state_initialized = True
 
     if self.feedback_shapes is not None:
       # feedback initialization
       self._init_fb_conn()
       # initialize feedback state
       self._init_fb_output(num_batch)
-      self._is_fb_state_initialized = True
 
   def _check_inputs(self, ff, fb=None):
     # check feedforward inputs
@@ -944,6 +944,7 @@ class Network(Node):
     This function can be called multiple times."""
     for node in self.lnodes:
       node._init_state(num_batch)
+    self._is_state_initialized = True
 
   def _init_fb_output(self, num_batch=1):
     """Initialize the node feedback state.
@@ -953,6 +954,7 @@ class Network(Node):
     """
     for node in self.feedback_nodes:
       node._init_fb_output(num_batch)
+    self._is_fb_state_initialized = True
 
   def initialize(self, num_batch: int):
     """
@@ -1006,7 +1008,6 @@ class Network(Node):
 
     # initialize state
     self._init_state(num_batch)
-    self._is_state_initialized = True
 
     # set feedback shapes
     if not self._is_fb_initialized:
@@ -1022,7 +1023,6 @@ class Network(Node):
 
     # initialize feedback state
     self._init_fb_output(num_batch)
-    self._is_fb_state_initialized = True
 
   def _check_inputs(self, ff, fb=None):
     # feedforward inputs

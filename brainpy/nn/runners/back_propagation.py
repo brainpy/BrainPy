@@ -47,11 +47,25 @@ class BPTT(RNNTrainer):
       max_grad_norm=None,
       shuffle_data=True,
       metrics=('loss',),
+      jit=True,
 
       # common arguments for RNNTrainer
       **kwargs
   ):
     super(BPTT, self).__init__(target=target, **kwargs)
+
+    # jit settings
+    if isinstance(jit, bool):
+      self.jit = {'fit': jit, 'predict': jit, 'loss': jit}
+    elif isinstance(jit, dict):
+      jit = {key: val for key, val in jit.items()}
+      self.jit = {'fit': jit.pop('fit', True),
+                  'predict': jit.pop('predict', True),
+                  'loss': jit.pop('loss', True)}
+      if len(jit):
+        raise ValueError(f'Unknown jit setting for {jit.keys()}')
+    else:
+      raise ValueError(f'Unknown "jit" setting: {jit}')
 
     # optimizer
     if optimizer is None:
@@ -172,7 +186,9 @@ class BPTT(RNNTrainer):
       Same as the ``train_data``. It can be a callable function,
       or a tuple/list representing `(X, Y)` data.
     num_batch: int
-      The batch size. Default 32.
+      The batch size. Default 32. This setting is used when users provide
+      the ``train_data`` and ``test_data`` as a pair of `(X, Y)` data, rather
+      than a function.
     num_train: int
       The number of training epoch. Default 100.
     num_report: int
@@ -204,8 +220,6 @@ class BPTT(RNNTrainer):
       for x, y in train_data_:
         self._check_mapping_type(y)
         batch_size = check_rnn_data_batch_size(x)
-        if batch_size != num_batch:
-          raise ValueError(f'"num_batch" is set to {num_batch}, but we got {batch_size}.')
         if reset:
           self.target.initialize(batch_size)
         loss = self.f_train(shared_kwargs)(x, y)
@@ -222,9 +236,6 @@ class BPTT(RNNTrainer):
         for x, y in test_data_:
           self._check_mapping_type(y)
           batch_size = check_rnn_data_batch_size(x)
-          if batch_size != num_batch:
-            raise ValueError(f'"num_batch" is set to {num_batch}, '
-                             f'but we got {batch_size}.')
           if reset:
             self.target.initialize(batch_size)
           loss = self.f_loss(shared_kwargs)(x, y)
@@ -243,7 +254,7 @@ class BPTT(RNNTrainer):
     shared_kwargs_str = serialize_kwargs(shared_kwargs)
     if shared_kwargs_str not in self._f_loss:
       self._f_loss[shared_kwargs_str] = self._make_f_loss(shared_kwargs)
-      if self.jit:
+      if self.jit['loss']:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
         self._f_loss[shared_kwargs_str] = bm.jit(self._f_loss[shared_kwargs_str],
@@ -272,8 +283,7 @@ class BPTT(RNNTrainer):
     return self._mapping_type
 
   def _make_f_loss(self, shared_kwargs: Dict = None):
-    if shared_kwargs is None:
-      shared_kwargs = dict()
+    if shared_kwargs is None: shared_kwargs = dict()
     assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
                                              f'But got {type(shared_kwargs)}: {shared_kwargs}')
 
@@ -303,8 +313,7 @@ class BPTT(RNNTrainer):
                    return_value=True)
 
   def _make_f_train(self, shared_kwargs: Dict = None):
-    if shared_kwargs is None:
-      shared_kwargs = dict()
+    if shared_kwargs is None: shared_kwargs = dict()
     assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
                                              f'But got {type(shared_kwargs)}: {shared_kwargs}')
 
@@ -318,7 +327,7 @@ class BPTT(RNNTrainer):
       self.optimizer.update(grads)
       return loss
 
-    if self.jit:
+    if self.jit['fit']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
       dyn_vars.update(self.optimizer.vars())

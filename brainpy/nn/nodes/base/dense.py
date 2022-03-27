@@ -6,7 +6,7 @@ from typing import Sequence, Optional, Dict, Callable, Union
 import jax.numpy as jnp
 
 from brainpy import math as bm
-from brainpy.errors import UnsupportedError, MathError
+from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, init_param
 from brainpy.nn.base import Node
 from brainpy.tools.checking import (check_shape_consistency,
@@ -14,18 +14,19 @@ from brainpy.tools.checking import (check_shape_consistency,
 from brainpy.types import Tensor
 
 __all__ = [
+  'GeneralDense',
   'Dense',
 ]
 
 
-class Dense(Node):
+class GeneralDense(Node):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
 
   .. math::
 
-     y = W \cdot x + b
+     y = x  \cdot W + b
 
   Parameters
   ----------
@@ -47,7 +48,7 @@ class Dense(Node):
       trainable: bool = True,
       **kwargs
   ):
-    super(Dense, self).__init__(trainable=trainable, **kwargs)
+    super(GeneralDense, self).__init__(trainable=trainable, **kwargs)
 
     # shape
     self.num_unit = num_unit
@@ -69,8 +70,7 @@ class Dense(Node):
   def init_ff_conn(self):
     # shapes
     other_size, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
-    self._other_size = other_size
-    # set output size  # TODO
+    # set output size
     self.set_output_shape(other_size + (self.num_unit,))
 
     # initialize feedforward weights
@@ -82,9 +82,6 @@ class Dense(Node):
 
   def init_fb_conn(self):
     other_size, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
-    if self._other_size != other_size:
-      raise ValueError(f'The feedback shape {other_size} is not consistent '
-                       f'with the feedforward shape {self._other_size}')
 
     # initialize feedforward weights
     weight_shapes = (sum(free_shapes), self.num_unit)
@@ -102,6 +99,59 @@ class Dense(Node):
     if self.bias is not None:
       res += self.bias
     return res
+
+
+class Dense(GeneralDense):
+  r"""A linear transformation.
+
+  Different from :py:class:`GeneralDense`, this class only supports 2D input data.
+
+  Mathematically, this node can be defined as:
+
+  .. math::
+
+     y = x \cdot W+ b
+
+  Parameters
+  ----------
+  num_unit: int
+    The number of the output features. A positive integer.
+  weight_initializer: optional, Initializer
+    The weight initialization.
+  bias_initializer: optional, Initializer
+    The bias initialization.
+  trainable: bool
+    Enable training this node or not. (default True)
+  """
+
+  def __init__(
+      self,
+      num_unit: int,
+      weight_initializer: Union[Initializer, Callable, Tensor] = XavierNormal(),
+      bias_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
+      trainable: bool = True,
+      **kwargs
+  ):
+    super(Dense, self).__init__(num_unit=num_unit,
+                                weight_initializer=weight_initializer,
+                                bias_initializer=bias_initializer,
+                                trainable=trainable, **kwargs)
+
+    # set output shape
+    self.set_output_shape((None, self.num_unit))
+
+  def init_ff_conn(self):
+    # shapes
+    other_size, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
+    assert other_size == (None,), (f'Only support 2D inputs, while we got '
+                                   f'{len(other_size) + 1}-D shapes.')
+    super(Dense, self).init_ff_conn()
+
+  def init_fb_conn(self):
+    other_size, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
+    assert other_size == (None,), (f'Only support 2D inputs, while we got '
+                                   f'{len(other_size) + 1}-D shapes.')
+    super(Dense, self).init_fb_conn()
 
   def __ridge_train__(self,
                       ffs: Sequence[Tensor],
@@ -146,11 +196,3 @@ class Dense(Node):
     else:
       self.Wff.value = W[:-1]
       self.bias.value = W[-1]
-
-  def __force_init__(self, *args, **kwargs):
-    raise UnsupportedError(f'{self.__class__.__name__} node does not support force '
-                           f'learning. Please use brainpy.nn.LinearReadout.')
-
-  def __force_train__(self, *args, **kwargs):
-    raise UnsupportedError(f'{self.__class__.__name__} node does not support force '
-                           f'learning. Please use brainpy.nn.LinearReadout.')

@@ -3,7 +3,9 @@
 import time
 from collections.abc import Iterable
 
-from brainpy import math
+import numpy as np
+import jax.numpy as jnp
+from brainpy import math as bm
 from brainpy.errors import RunningError
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.running.monitor import Monitor
@@ -11,6 +13,7 @@ from brainpy.running.monitor import Monitor
 __all__ = [
   'size2len',
   'run_model',
+  'init_delay',
   'check_and_format_inputs',
   'check_and_format_monitors',
 ]
@@ -19,6 +22,51 @@ NORMAL_RUN = None
 STRUCT_RUN = 'struct_run'
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
+
+
+def init_delay(delay_step, delay_target, delay_data=None):
+  """Initialize delay variable.
+
+  Parameters
+  ----------
+  delay_step: int, ndarray
+    The number of delay steps. It can an integer of an array of integers.
+  delay_target: ndarray
+    The target variable to delay.
+  delay_data: ndarrat
+    The initial delay data.
+
+  Returns
+  -------
+  info: tuple
+    The triple of delay type, delay steps, and delay variable.
+  """
+  # check delay type
+  if delay_step is None:
+    delay_type = 'none'
+  elif isinstance(delay_step, int):
+    delay_type = 'homo'
+  elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
+    delay_type = 'heter'
+    delay_step = bm.asarray(delay_step)
+    if delay_step.dtype not in [bm.int32, bm.int64]:
+      raise ValueError('Only support delay steps. If your provide delay time length, '
+                       'please divide the "dt" then provide us the number of delay steps.')
+  else:
+    raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
+                     f'integer or an array of integers.')
+
+  # init delay data
+  if delay_type == 'homo':
+    delays = bm.LengthDelay(delay_target, delay_step, delay_data=delay_data)
+  elif delay_type == 'heter':
+    assert delay_step.size == delay_target.size, ('Heterogeneous delay must have a length '
+                                                  f'of the delay target {delay_target.shape}, '
+                                                  f'while we got {delay_step.shape}')
+    delays = bm.LengthDelay(delay_target, int(delay_step.max()))
+  else:
+    delays = None
+  return delay_type, delay_step, delays
 
 
 def size2len(size):
@@ -50,7 +98,7 @@ def run_model(run_func, times, report, dt=None, extra_func=None):
 
   # numerical integration step
   if dt is None:
-    dt = math.get_dt()
+    dt = bm.get_dt()
   assert isinstance(dt, (int, float))
 
   # running function
@@ -260,7 +308,7 @@ def check_and_format_monitors(host, mon):
         variable = splits[-1]
 
     # idx
-    if isinstance(idx, int): idx = math.array([idx])
+    if isinstance(idx, int): idx = bm.array([idx])
 
     # interval
     if interval is not None:

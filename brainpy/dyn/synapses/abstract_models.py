@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.dyn.base import NeuGroup
-from brainpy.dyn.base import TwoEndConn, ConstantDelay
-from brainpy.integrators.joint_eq import JointEq
-from brainpy.integrators.ode import odeint
+from brainpy.dyn.base import NeuGroup, TwoEndConn
+from brainpy.dyn.utils import init_delay
+from brainpy.integrators import odeint, JointEq
+from brainpy.tools.checking import check_float
 
 __all__ = [
   'DeltaSynapse',
@@ -66,6 +66,16 @@ class DeltaSynapse(TwoEndConn):
   w             1              mV       The synaptic strength.
   ============= ============== ======== ===========================================
 
+  Parameters
+  ----------
+  pre: NeuGroup
+    The pre-synaptic neuron group.
+  post: NeuGroup
+    The post-synaptic neuron group.
+  conn: optional, math.ndarray, dict of (str, math.ndarray), TwoEndConnector
+    The synaptic connections.
+  delay_step: int, bm.ndarray, jnp.ndarray, np.ndarray
+    The delay length.
   """
 
   def __init__(
@@ -73,35 +83,42 @@ class DeltaSynapse(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn,
-      delay=0.,
       post_has_ref=False,
       w=1.,
       post_key='V',
-      name=None
+      delay_step=None,
+      name=None,
+      dt=None,
   ):
     super(DeltaSynapse, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs(post_key)
 
     # parameters
-    self.delay = delay
+    self.dt = bm.get_dt() if dt is None else dt
+    check_float(self.dt, 'dt', min_bound=0., allow_none=False)
     self.post_key = post_key
     self.post_has_ref = post_has_ref
     if post_has_ref:  # checking
       self.check_post_attrs('refractory')
+    self.w = w
 
     # connections
     assert self.conn is not None
     self.pre2post = self.conn.require('pre2post')
 
     # variables
-    self.w = w
-    # assert bm.size(w) == 1 or bm.size(w) ==
-    self.pre_spike = ConstantDelay(self.pre.num, delay, dtype=pre.spike.dtype)
+    self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
   def update(self, _t, _dt):
-    self.pre_spike.push(self.pre.spike)
-    delayed_pre_spike = self.pre_spike.pull()
+    if self.delay_type == 'homo':
+      delayed_pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_pre_spike = self.pre.spike
     post_vs = bm.pre2post_event_sum(delayed_pre_spike, self.pre2post, self.post.num, self.w)
     target = getattr(self.post, self.post_key)
     if self.post_has_ref:
@@ -209,9 +226,9 @@ class ExpCUBA(TwoEndConn):
       post: NeuGroup,
       conn,
       g_max=1.,
-      delay=0.,
       tau=8.0,
       method='exp_auto',
+      delay_step=None,
       name=None
   ):
     super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, name=name)
@@ -220,7 +237,6 @@ class ExpCUBA(TwoEndConn):
 
     # parameters
     self.tau = tau
-    self.delay = delay
     self.g_max = g_max
 
     # connection
@@ -229,14 +245,20 @@ class ExpCUBA(TwoEndConn):
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))
-    self.pre_spike = ConstantDelay(self.pre.num, delay=delay, dtype=pre.spike.dtype)
+    self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
   def update(self, _t, _dt):
-    self.pre_spike.push(self.pre.spike)
-    delayed_pre_spike = self.pre_spike.pull()
+    if self.delay_type == 'homo':
+      delayed_pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_pre_spike = self.pre.spike
     post_sp = bm.pre2post_event_sum(delayed_pre_spike, self.pre2post, self.post.num, self.g_max)
     self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_sp
     self.post.input += self.g
@@ -316,18 +338,34 @@ class ExpCOBA(ExpCUBA):
           Cambridge: Cambridge UP, 2011. 172-95. Print.
   """
 
-  def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
-               method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=1.,
+      tau=8.0,
+      E=0.,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
     super(ExpCOBA, self).__init__(pre=pre, post=post, conn=conn,
-                                  g_max=g_max, delay=delay, tau=tau,
-                                  method=method, name=name)
+                                  g_max=g_max, delay_step=delay_step,
+                                  tau=tau, method=method, name=name)
 
     # parameter
     self.E = E
 
   def update(self, _t, _dt):
-    self.pre_spike.push(self.pre.spike)
-    delayed_spike = self.pre_spike.pull()
+    if self.delay_type == 'homo':
+      delayed_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_spike = self.pre_spike(self.delay_step, bm.arange())
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_spike = self.pre.spike
     post_sp = bm.pre2post_event_sum(delayed_spike, self.pre2post, self.post.num, self.g_max)
     self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_sp
     self.post.input += self.g * (self.E - self.post.V)
@@ -431,8 +469,18 @@ class DualExpCUBA(TwoEndConn):
 
   """
 
-  def __init__(self, pre, post, conn, delay=0., g_max=1., tau_decay=10.0, tau_rise=1.,
-               method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=1.,
+      tau_decay=10.0,
+      tau_rise=1.,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
     super(DualExpCUBA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input')
@@ -440,7 +488,6 @@ class DualExpCUBA(TwoEndConn):
     # parameters
     self.tau_rise = tau_rise
     self.tau_decay = tau_decay
-    self.delay = delay
     self.g_max = g_max
 
     # connections
@@ -449,7 +496,7 @@ class DualExpCUBA(TwoEndConn):
     # variables
     self.g = bm.Variable(bm.zeros(len(self.pre_ids)))
     self.h = bm.Variable(bm.zeros(len(self.pre_ids)))
-    self.pre_spike = ConstantDelay(self.pre.num, delay, dtype=pre.spike.dtype)
+    self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -461,10 +508,16 @@ class DualExpCUBA(TwoEndConn):
     return JointEq([dg, dh])
 
   def update(self, _t, _dt):
-    self.pre_spike.push(self.pre.spike)
-    delayed_pre_spikes = self.pre_spike.pull()
+    if self.delay_type == 'homo':
+      delayed_pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_pre_spike = self.pre.spike
     self.g.value, self.h.value = self.integral(self.g, self.h, _t, dt=_dt)
-    self.h.value += bm.pre2syn(delayed_pre_spikes, self.pre_ids)
+    self.h.value += bm.pre2syn(delayed_pre_spike, self.pre_ids)
     self.post.input += self.g_max * bm.syn2post(self.g, self.post_ids, self.post.num)
 
 
@@ -544,9 +597,20 @@ class DualExpCOBA(DualExpCUBA):
 
   """
 
-  def __init__(self, pre, post, conn, delay=0., g_max=1., tau_decay=10.0, tau_rise=1.,
-               E=0., method='exp_auto', name=None):
-    super(DualExpCOBA, self).__init__(pre, post, conn, delay=delay, g_max=g_max,
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=1.,
+      tau_decay=10.0,
+      tau_rise=1.,
+      E=0.,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
+    super(DualExpCOBA, self).__init__(pre, post, conn, delay_step=delay_step, g_max=g_max,
                                       tau_decay=tau_decay, tau_rise=tau_rise,
                                       method=method, name=name)
     self.check_post_attrs('V')
@@ -555,10 +619,16 @@ class DualExpCOBA(DualExpCUBA):
     self.E = E
 
   def update(self, _t, _dt):
-    self.pre_spike.push(self.pre.spike)
-    delayed_pre_spikes = self.pre_spike.pull()
+    if self.delay_type == 'homo':
+      delayed_pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_pre_spike = self.pre.spike
     self.g.value, self.h.value = self.integral(self.g, self.h, _t, dt=_dt)
-    self.h.value += bm.pre2syn(delayed_pre_spikes, self.pre_ids)
+    self.h.value += bm.pre2syn(delayed_pre_spike, self.pre_ids)
     post_g = bm.syn2post(self.g, self.post_ids, self.post.num)
     self.post.input += self.g_max * post_g * (self.E - self.post.V)
 
@@ -646,10 +716,19 @@ class AlphaCUBA(DualExpCUBA):
           Cambridge: Cambridge UP, 2011. 172-95. Print.
   """
 
-  def __init__(self, pre, post, conn, delay=0., g_max=1., tau_decay=10.0,
-               method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=1.,
+      tau_decay=10.0,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
     super(AlphaCUBA, self).__init__(pre=pre, post=post, conn=conn,
-                                    delay=delay,
+                                    delay_step=delay_step,
                                     g_max=g_max,
                                     tau_decay=tau_decay,
                                     tau_rise=tau_decay,
@@ -732,12 +811,21 @@ class AlphaCOBA(DualExpCOBA):
 
   """
 
-  def __init__(self, pre, post, conn, delay=0., g_max=1., tau_decay=10.0,
-               E=0., method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre,
+      post,
+      conn,
+      g_max=1.,
+      tau_decay=10.0,
+      E=0.,
+      delay_step=None,
+      method='exp_auto',
+      name=None
+  ):
     super(AlphaCOBA, self).__init__(pre=pre, post=post, conn=conn,
-                                    delay=delay,
-                                    g_max=g_max,
-                                    E=E,
+                                    delay_step=delay_step,
+                                    g_max=g_max, E=E,
                                     tau_decay=tau_decay,
                                     tau_rise=tau_decay,
                                     method=method,

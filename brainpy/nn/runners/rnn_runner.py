@@ -41,20 +41,35 @@ class RNNRunner(Runner):
     Change the monitored iterm into NumPy arrays.
   """
 
-  def __init__(self, target: Node, **kwargs):
+  def __init__(self, target: Node, jit=True, **kwargs):
     super(RNNRunner, self).__init__(target=target, **kwargs)
     assert isinstance(self.target, Node), '"target" must be an instance of brainpy.nn.Node.'
+
+    # jit settings
+    if isinstance(jit, bool):
+      self.jit = {'fit': jit, 'predict': jit}
+    elif isinstance(jit, dict):
+      jit = {key: val for key, val in jit.items()}
+      self.jit = {'fit': jit.pop('fit', True),
+                  'predict': jit.pop('predict', True)}
+      if len(jit):
+        raise ValueError(f'Unknown jit setting for {jit.keys()}')
+    else:
+      raise ValueError(f'Unknown "jit" setting: {jit}')
 
     # function for prediction
     self._predict_func = dict()
 
-  def predict(self,
-              xs: Union[Tensor, Dict[str, Tensor]],
-              forced_states: Dict[str, Tensor] = None,
-              forced_feedbacks: Dict[str, Tensor] = None,
-              reset=False,
-              shared_kwargs: Dict = None,
-              progress_bar=True):
+  def predict(
+      self,
+      xs: Union[Tensor, Dict[str, Tensor]],
+      forced_states: Dict[str, Tensor] = None,
+      forced_feedbacks: Dict[str, Tensor] = None,
+      reset: bool = False,
+      shared_kwargs: Dict = None,
+      progress_bar: bool = True,
+      jit: bool = True,
+  ):
     """Predict a series of input data with the given target model.
 
     This function use the JIT compilation to accelerate the model simulation.
@@ -76,9 +91,10 @@ class RNNRunner(Runner):
       `(num_sample, num_time, num_feature)`.
     reset: bool
       Whether reset the model states.
-    progress_bar: bool
     shared_kwargs: optional, dict
       The shared arguments across different layers.
+    progress_bar: bool
+      Whether report the progress of the simulation using progress bar.
 
     Returns
     -------
@@ -133,8 +149,11 @@ class RNNRunner(Runner):
     xs: dict
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
     iter_forced_states: dict
+      The forced state values.
     iter_forced_feedbacks: dict
-    shared_kwargs: dict
+      The forced feedback output values.
+    shared_kwargs: optional, dict
+      The shared keyword arguments.
 
     Returns
     -------
@@ -153,14 +172,15 @@ class RNNRunner(Runner):
     return outputs, hists
 
   def _get_predict_func(self, shared_kwargs: Dict = None):
-    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs is None: shared_kwargs = dict()
+    shared_kwargs_str = dict()
+    shared_kwargs_str.update(shared_kwargs)
+    shared_kwargs_str = serialize_kwargs(shared_kwargs_str)
     if shared_kwargs_str not in self._predict_func:
       self._predict_func[shared_kwargs_str] = self._make_run_func(shared_kwargs)
     return self._predict_func[shared_kwargs_str]
 
-  def _make_run_func(self, shared_kwargs: Dict = None):
-    if shared_kwargs is None:
-      shared_kwargs = dict()
+  def _make_run_func(self, shared_kwargs: Dict):
     assert isinstance(shared_kwargs, dict), (f'"shared_kwargs" must be a dict, '
                                              f'but got {type(shared_kwargs)}')
 
@@ -176,7 +196,7 @@ class RNNRunner(Runner):
         id_tap(lambda *args: self._pbar.update(), ())
       return outs
 
-    if self.jit:
+    if self.jit['predict']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
       f = bm.make_loop(_step_func, dyn_vars=dyn_vars.unique(), has_return=True)

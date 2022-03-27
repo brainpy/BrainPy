@@ -40,12 +40,16 @@ class Normal(InterLayerInitializer):
   def __init__(self, scale=1., seed=None):
     super(Normal, self).__init__()
     self.scale = scale
+    self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
     weights = self.rng.normal(size=shape, scale=self.scale)
     return bm.asarray(weights, dtype=dtype)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(scale={self.scale}, seed={self.seed})'
 
 
 class Uniform(InterLayerInitializer):
@@ -64,12 +68,17 @@ class Uniform(InterLayerInitializer):
     super(Uniform, self).__init__()
     self.min_val = min_val
     self.max_val = max_val
+    self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
     return bm.asarray(r, dtype=dtype)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(min_val={self.min_val}, '
+            f'max_val={self.max_val}, seed={self.seed})')
 
 
 class VarianceScaling(InterLayerInitializer):
@@ -79,6 +88,7 @@ class VarianceScaling(InterLayerInitializer):
     self.in_axis = in_axis
     self.out_axis = out_axis
     self.distribution = distribution
+    self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
@@ -105,6 +115,12 @@ class VarianceScaling(InterLayerInitializer):
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
     return bm.asarray(res, dtype=dtype)
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    blank = ' ' * len(name)
+    return (f'{name}(scale={self.scale}, mode={self.mode}, in_axis={self.in_axis}, \n'
+            f'{blank}out_axis={self.out_axis}, distribution={self.distribution}, seed={self.seed})')
 
 
 class KaimingUniform(VarianceScaling):
@@ -179,6 +195,7 @@ class Orthogonal(InterLayerInitializer):
     super(Orthogonal, self).__init__()
     self.scale = scale
     self.axis = axis
+    self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
@@ -195,6 +212,9 @@ class Orthogonal(InterLayerInitializer):
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
     return self.scale * bm.asarray(q_mat, dtype=dtype)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, seed={self.seed})'
 
 
 class DeltaOrthogonal(InterLayerInitializer):
@@ -228,3 +248,6 @@ class DeltaOrthogonal(InterLayerInitializer):
       k1, k2, k3 = shape[:3]
       W[(k1 - 1) // 2, (k2 - 1) // 2, (k3 - 1) // 2, ...] = ortho_matrix
     return W
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis})'
