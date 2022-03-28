@@ -15,7 +15,7 @@ This release improves the functionality and usability of BrainPy. Core changes i
 * fix bugs
 
 What's Changed
---------------
+~~~~~~~~~~~~~~
 
 * Provide custom operators written in numba for jax jit by `@ztqakita <https://github.com/ztqakita>`_ in `#122 <https://github.com/PKU-NIP-Lab/BrainPy/pull/122>`_
 * fix DOGDecay bugs, add more features by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#124 <https://github.com/PKU-NIP-Lab/BrainPy/pull/124>`_

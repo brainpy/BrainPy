@@ -68,8 +68,8 @@ class ExponentialDecay(Scheduler):
 
   def __repr__(self):
     return (f'{self.__class__.__name__}({self.lr}, '
-            f'decay_steps={self.decay_steps}), '
-            f'decay_rate={self.decay_rate}')
+            f'decay_steps={self.decay_steps}, '
+            f'decay_rate={self.decay_rate})')
 
 
 class InverseTimeDecay(ExponentialDecay):
