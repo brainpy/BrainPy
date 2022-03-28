@@ -27,12 +27,16 @@ def register_op(
   Converting the numba-jitted function in a Jax/XLA compatible primitive.
   Parameters
   ----------
-  func:
-  out_shapes
+  func: Callble
+    A callable numba-jitted function or pure function (can be numba.jit)
+  out_shapes: Callable, ShapedArray, Sequence[ShapedArray]
+    Outputs shapes of target function. `out_shapes` can be a `jax.abstract_arrays.ShapedArray` or
+    a sequence of `jax.abstract_arrays.ShapedArray`. If it is a function, it takes as input the argument
+    shapes and dtypes and should return correct output shapes of `jax.abstract_arrays.ShapedArray`.
 
   Returns
   -------
-
+  A jitable JAX function.
   """
   # primitive
   prim = core.Primitive(f'_lambda_func{_lambda_no}'

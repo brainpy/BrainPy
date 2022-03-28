@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence
+from typing import Union, Sequence, Callable
 
 import jax.numpy as jnp
 from jax import jit, vmap
 from jax import ops as jops
+from jax.abstract_arrays import ShapedArray
 
 from brainpy.errors import PackageMissingError, MathError
 from brainpy.math import setting
@@ -42,6 +43,9 @@ __all__ = [
 
   # others
   'sparse_matmul',
+
+  # numba operators
+  'registor_op'
 ]
 
 _BRAINPYLIB_MINIMAL_VERSION = '0.0.3'
@@ -69,6 +73,29 @@ def _check_brainpylib(ops_name):
       f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
       f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}'
     )
+
+
+def registor_op(
+    func: Callable,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]]
+):
+  """
+    Converting the numba-jitted function in a Jax/XLA compatible primitive.
+    Parameters
+    ----------
+    func: Callble
+      A callable numba-jitted function or pure function (can be numba.jit)
+    out_shapes: Callable, ShapedArray, Sequence[ShapedArray]
+      Outputs shapes of target function. `out_shapes` can be a `jax.abstract_arrays.ShapedArray` or
+      a sequence of `jax.abstract_arrays.ShapedArray`. If it is a function, it takes as input the argument
+      shapes and dtypes and should return correct output shapes of `jax.abstract_arrays.ShapedArray`.
+
+    Returns
+    -------
+    A jitable JAX function.
+  """
+  _check_brainpylib(registor_op.__name__)
+  return brainpylib.register_op(func, out_shapes)
 
 
 def pre2post_event_sum(events, pre2post, post_num, values=1.):
