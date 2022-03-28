@@ -10,6 +10,4 @@ from .event_sum import *
 from .event_prod import *
 from .atomic_sum import *
 from .atomic_prod import *
-from .operator.cpu_op import register_op_cpu
-from .operator.gpu_op import register_op_gpu
-
+from custom_op import register_op
