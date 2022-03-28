@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import collections.abc
-import ctypes
 from functools import partial
 from types import LambdaType
 from typing import Callable, Union, Sequence
@@ -13,40 +12,63 @@ from jax import core
 from jax.abstract_arrays import ShapedArray
 from jax.interpreters import xla
 from numba.core.dispatcher import Dispatcher
+from numba import cuda
 
 from cpu import _func_cpu_translation
 from gpu import _func_gpu_translation
 
 _lambda_no = 0
 
+
 def register_op(
-    func: Callable,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]]
+    cpu_func: Callable,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
+    gpu_func: Callable = None,
+    is_cuda_jit: bool = False,
 ):
   """
   Converting the numba-jitted function in a Jax/XLA compatible primitive.
   Parameters
   ----------
-  func: Callble
-    A callable numba-jitted function or pure function (can be numba.jit)
+  cpu_func: Callble
+    A callable numba-jitted function or pure function (can be lambda function) running on CPU.
   out_shapes: Callable, ShapedArray, Sequence[ShapedArray]
     Outputs shapes of target function. `out_shapes` can be a `jax.abstract_arrays.ShapedArray` or
     a sequence of `jax.abstract_arrays.ShapedArray`. If it is a function, it takes as input the argument
     shapes and dtypes and should return correct output shapes of `jax.abstract_arrays.ShapedArray`.
+  gpu_func: Callable, default = None
+    A callable cuda-jitted kernel running on GPU.
+  is_cuda_jit: bool, default = False
+    If is_cuda_jit is true, gpu_func will be a cuda-jit kernel running on GPU. Otherwise,
+    gpu_func will be implemented on CPU and other logics(data transfer) will be implemented on GPU.
 
   Returns
   -------
   A jitable JAX function.
   """
-  # primitive
-  prim = core.Primitive(f'_lambda_func{_lambda_no}'
-                        if (isinstance(func, LambdaType) and func.__name__ == "<lambda>")
-                        else func.__name__)
+  if gpu_func is not None and is_cuda_jit:
+    raise RuntimeError('Currently cuda.jit function is not supported to convert into a Jax/XLA compatible primitive. '
+                       'Please use is_cuda_jit=False instead.')
+  if gpu_func is None and is_cuda_jit:
+    raise RuntimeError('gpu_func is None, please offer a cuda.jit kernel, numba.jit function or a pure function.')
+
+  if isinstance(cpu_func, LambdaType) and cpu_func.__name__ == "<lambda>":
+    func_name = f'_lambda_func{_lambda_no}'
+  else:
+    func_name = cpu_func.__name__
+
+  if gpu_func is not None and is_cuda_jit:
+    func_name += '_' + gpu_func.__name__
+
+  prim = core.Primitive(func_name)
   prim.multiple_results = True
 
   # user defined function
-  if not isinstance(func, Dispatcher):
-    func = numba.jit(fastmath=True, nopython=True)(func)
+  if not isinstance(cpu_func, Dispatcher):
+    cpu_func = numba.jit(fastmath=True, nopython=True)(cpu_func)
+
+  if (not isinstance(gpu_func, Dispatcher)) and is_cuda_jit:
+    gpu_func = cuda.jit(gpu_func)
 
   # output shape evaluation function
   def abs_eval_rule(*input_shapes):
@@ -81,7 +103,7 @@ def register_op(
     # convert inputs to a tuple
     inputs = tuple(np.asarray(arg) for arg in inputs)
     # call the kernel
-    func(outputs, inputs)
+    cpu_func(outputs, inputs)
     # Return the outputs
     return tuple(outputs)
 
@@ -93,8 +115,11 @@ def register_op(
   prim.def_abstract_eval(abs_eval_rule)
   prim.def_impl(eval_rule)
   # registering
-  xla.backend_specific_translations['cpu'][prim] = partial(_func_cpu_translation, func, abs_eval_rule)
-  xla.backend_specific_translations['gpu'][prim] = partial(_func_gpu_translation, func, abs_eval_rule)
+  xla.backend_specific_translations['cpu'][prim] = partial(_func_cpu_translation, cpu_func, abs_eval_rule)
+  if is_cuda_jit:
+    xla.backend_specific_translations['gpu'][prim] = partial(_func_gpu_translation, gpu_func, abs_eval_rule)
+  else:
+    xla.backend_specific_translations['gpu'][prim] = partial(_func_gpu_translation, cpu_func, abs_eval_rule)
 
   return bind_primitive
 
@@ -103,8 +128,11 @@ if __name__ == '__main__':
   def abs_eval(*ins):
     return ins
 
+
   import brainpy as bp
+
   bp.math.set_platform('cpu')
+
 
   def custom_op(outs, ins):
     y, y1 = outs
@@ -114,9 +142,10 @@ if __name__ == '__main__':
 
 
   z = jnp.ones((1, 2), dtype=jnp.float32)
-  op = register_op(custom_op, abs_eval)
+  op = register_op(custom_op, abs_eval, is_cuda_jit=True)
 
   from jax import jit
+
   jit_op = jit(op)
 
   print(jit_op(z, z))
