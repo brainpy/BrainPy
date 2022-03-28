@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import collections.abc
 import ctypes
-from functools import partial
-from types import LambdaType
-from typing import Callable, Union, Sequence
 
-import jax.numpy as jnp
 import numba
 import numpy as np
-from jax import core
 from jax.abstract_arrays import ShapedArray
-from jax.interpreters import xla
 from jax.lib import xla_client
 from numba import types
-from numba.core.dispatcher import Dispatcher
 
 import _cuda
 
