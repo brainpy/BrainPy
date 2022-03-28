@@ -45,10 +45,10 @@ __all__ = [
   'sparse_matmul',
 
   # numba operators
-  'registor_op'
+  'register_op'
 ]
 
-_BRAINPYLIB_MINIMAL_VERSION = '0.0.3'
+_BRAINPYLIB_MINIMAL_VERSION = '0.0.4'
 
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
@@ -75,27 +75,43 @@ def _check_brainpylib(ops_name):
     )
 
 
-def registor_op(
-    func: Callable,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]]
+def register_op(
+    cpu_func: Callable,
+    op_name: str,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
+    gpu_func: Callable = None,
+    apply_cpu_func_to_gpu: bool = True,
 ):
   """
-    Converting the numba-jitted function in a Jax/XLA compatible primitive.
-    Parameters
-    ----------
-    func: Callble
-      A callable numba-jitted function or pure function (can be numba.jit)
-    out_shapes: Callable, ShapedArray, Sequence[ShapedArray]
-      Outputs shapes of target function. `out_shapes` can be a `jax.abstract_arrays.ShapedArray` or
-      a sequence of `jax.abstract_arrays.ShapedArray`. If it is a function, it takes as input the argument
-      shapes and dtypes and should return correct output shapes of `jax.abstract_arrays.ShapedArray`.
+  Converting the numba-jitted function in a Jax/XLA compatible primitive.
+  Parameters
+  ----------
+  cpu_func: Callble
+    A callable numba-jitted function or pure function (can be lambda function) running on CPU.
+  op_name: str
+    Name of the operators.
+  out_shapes: Callable, ShapedArray, Sequence[ShapedArray]
+    Outputs shapes of target function. `out_shapes` can be a `jax.abstract_arrays.ShapedArray` or
+    a sequence of `jax.abstract_arrays.ShapedArray`. If it is a function, it takes as input the argument
+    shapes and dtypes and should return correct output shapes of `jax.abstract_arrays.ShapedArray`.
+  gpu_func: Callable, default = None
+    A callable cuda-jitted kernel running on GPU.
+  apply_gpu_func_in_cpu: bool, default = True
+    True when gpu_func is implemented on CPU and other logics(data transfer) is implemented on GPU.
 
-    Returns
-    -------
-    A jitable JAX function.
+  Returns
+  -------
+  A jitable JAX function.
   """
-  _check_brainpylib(registor_op.__name__)
-  return brainpylib.register_op(func, out_shapes)
+  _check_brainpylib(register_op.__name__)
+  f = brainpylib.register_op(cpu_func, op_name, out_shapes, gpu_func, apply_cpu_func_to_gpu)
+
+  def fixed_op(*inputs):
+    inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
+    return f(*inputs)
+
+  return fixed_op
+
 
 
 def pre2post_event_sum(events, pre2post, post_num, values=1.):
