@@ -77,9 +77,10 @@ def _check_brainpylib(ops_name):
 
 def register_op(
     cpu_func: Callable,
+    op_name: str,
     out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
     gpu_func: Callable = None,
-    is_cuda_jit: bool = False,
+    apply_cpu_func_to_gpu: bool = True,
 ):
   """
   Converting the numba-jitted function in a Jax/XLA compatible primitive.
@@ -87,22 +88,23 @@ def register_op(
   ----------
   cpu_func: Callble
     A callable numba-jitted function or pure function (can be lambda function) running on CPU.
+  op_name: str
+    Name of the operators.
   out_shapes: Callable, ShapedArray, Sequence[ShapedArray]
     Outputs shapes of target function. `out_shapes` can be a `jax.abstract_arrays.ShapedArray` or
     a sequence of `jax.abstract_arrays.ShapedArray`. If it is a function, it takes as input the argument
     shapes and dtypes and should return correct output shapes of `jax.abstract_arrays.ShapedArray`.
   gpu_func: Callable, default = None
     A callable cuda-jitted kernel running on GPU.
-  is_cuda_jit: bool, default = False
-    If is_cuda_jit is true, gpu_func will be a cuda-jit kernel running on GPU. Otherwise,
-    gpu_func will be implemented on CPU and other logics(data transfer) will be implemented on GPU.
+  apply_gpu_func_in_cpu: bool, default = True
+    True when gpu_func is implemented on CPU and other logics(data transfer) is implemented on GPU.
 
   Returns
   -------
   A jitable JAX function.
   """
   _check_brainpylib(register_op.__name__)
-  f = brainpylib.register_op(cpu_func, out_shapes, gpu_func, is_cuda_jit)
+  f = brainpylib.register_op(cpu_func, op_name, out_shapes, gpu_func, apply_cpu_func_to_gpu)
 
   def fixed_op(*inputs):
     inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
