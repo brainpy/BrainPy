@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Union, Callable
 
 import jax.numpy as jnp
 import tqdm.auto
@@ -11,53 +11,48 @@ from brainpy.nn.base import Node, Network
 from brainpy.nn.utils import serialize_kwargs
 from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
+from .offline_algorithms import get, RidgeRegression, OfflineAlgorithm
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
-  'RidgeTrainer'
+  'OfflineTrainer',
+  'RidgeTrainer',
 ]
 
 
-class RidgeTrainer(RNNTrainer):
-  """
-  Trainer of ridge regression, also known as regression with Tikhonov regularization.
+class OfflineTrainer(RNNTrainer):
+  """Offline trainer for models with recurrent dynamics."""
 
-  ``RidgeTrainer`` requires that the trainable node implements its training interface
-  ``__ridge_train__()`` function. Otherwise an error will raise.
-
-  ``__ridge_train__()`` function has two variants:
-
-  - `__ridge_train__(ffs, targets, train_pars)` if the model only has feedforward connections,
-  - `__ridge_train__(ffs, targets, fbs, train_pars)` if the model has the feedback signaling.
-
-  where ``ffs`` means the feedforward inputs with the shape of `(num_sample, num_time, num_feature)`,
-  ``targets`` the ground truth with the shape of `(num_sample, num_time, num_feature)`,
-  ``fbs`` the feedback signals with the shape of `(num_sample, num_time, num_feature)`,
-  and ``train_pars`` the training related parameters.
-
-  Parameters
-  ----------
-  target: Node
-    The target model.
-  beta: float
-    The regularization coefficient.
-  **kwarg
-    Other common parameters for :py:class:`brainpy.nn.RNNTrainer``.
-  """
-
-  def __init__(self, target, beta=1e-7, **kwargs):
+  def __init__(
+      self,
+      target: Node,
+      fit_method: Union[OfflineAlgorithm, Callable, Dict] = None,
+      **kwargs
+  ):
     self.true_numpy_mon_after_run = kwargs.get('numpy_mon_after_run', True)
     kwargs['numpy_mon_after_run'] = False
-    super(RidgeTrainer, self).__init__(target=target, **kwargs)
+    super(OfflineTrainer, self).__init__(target=target, **kwargs)
+
+    # training method
+    if fit_method is None:
+      fit_method = RidgeRegression(beta=1e-7)
+    elif isinstance(fit_method, dict):
+      name = fit_method.pop('name')
+      fit_method = get(name)(**fit_method)
+    if not callable(fit_method):
+      raise ValueError(f'"train_method" must be an instance of callable function, '
+                       f'but we got {type(fit_method)}.')
 
     # get all trainable nodes
     self.train_nodes = self._get_trainable_nodes()
     # check the required interface in the trainable nodes
-    self._check_interface('__ridge_train__')
+    self._check_interface('offline_fit')
+    # set the training method
+    for node in self.train_nodes:
+      node.offline_fit_by = fit_method
+
     # add the monitor items which are needed for the training process
     self._added_items = self._add_monitor_items()
-    # train parameters
-    self.train_pars = dict(beta=beta)
     # training function
     self._f_train = dict()
 
@@ -160,9 +155,9 @@ class RidgeTrainer(RNNTrainer):
         fb = monitor_data.get(f'{node.name}.feedbacks', None)
         targets = target_data[node.name]
         if fb is None:
-          node.__ridge_train__(ff, targets, train_pars=self.train_pars, **shared_kwargs)
+          node.offline_fit(targets, ff, **shared_kwargs)
         else:
-          node.__ridge_train__(ff, targets, fb, train_pars=self.train_pars, **shared_kwargs)
+          node.offline_fit(targets, ff, fb, **shared_kwargs)
         if self.progress_bar:
           id_tap(lambda *args: self._pbar.update(), ())
 
@@ -190,3 +185,36 @@ class RidgeTrainer(RNNTrainer):
       # brainpy.nn.Node instance does not need to monitor its inputs
       pass
     return added_items
+
+
+class RidgeTrainer(OfflineTrainer):
+  """
+  Trainer of ridge regression, also known as regression with Tikhonov regularization.
+
+  ``RidgeTrainer`` requires that the trainable node implements its training interface
+  ``__ridge_train__()`` function. Otherwise an error will raise.
+
+  ``__ridge_train__()`` function has two variants:
+
+  - `__ridge_train__(ffs, targets, train_pars)` if the model only has feedforward connections,
+  - `__ridge_train__(ffs, targets, fbs, train_pars)` if the model has the feedback signaling.
+
+  where ``ffs`` means the feedforward inputs with the shape of `(num_sample, num_time, num_feature)`,
+  ``targets`` the ground truth with the shape of `(num_sample, num_time, num_feature)`,
+  ``fbs`` the feedback signals with the shape of `(num_sample, num_time, num_feature)`,
+  and ``train_pars`` the training related parameters.
+
+  Parameters
+  ----------
+  target: Node
+    The target model.
+  beta: float
+    The regularization coefficient.
+  **kwarg
+    Other common parameters for :py:class:`brainpy.nn.RNNTrainer``.
+  """
+
+  def __init__(self, target, beta=1e-7, **kwargs):
+    super(RidgeTrainer, self).__init__(target=target,
+                                       fit_method=dict(name='ridge', beta=beta),
+                                       **kwargs)

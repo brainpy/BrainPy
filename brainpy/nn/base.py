@@ -90,6 +90,10 @@ class Node(Base):
   """
   data_pass_type = PASS_SEQUENCE
 
+  offline_fit_by: Callable
+
+  online_fit_by: Callable
+
   def __init__(self,
                name: Optional[str] = None,
                input_shape: Optional[Union[Sequence[int], int]] = None,
@@ -411,10 +415,10 @@ class Node(Base):
         self.init_ff_conn()
       except Exception as e:
         raise ModelBuildError(f'{self.name} initialization failed.') from e
-      self._is_ff_initialized = True
       if self.output_shape is None:
         raise ValueError(f'Please set the output shape when implementing '
-                         f'"init_ff()" of the node {self.name}')
+                         f'"init_ff_conn()" of the node {self.name}')
+      self._is_ff_initialized = True
 
   def _init_fb_conn(self):
     if not self._is_fb_initialized:
@@ -593,6 +597,8 @@ class Node(Base):
 
     Parameters
     ----------
+    ff_output: JaxArray
+      The feedforward output when calling ``forward()`` function.
     **shared_kwargs
       Other global parameters.
 
@@ -602,6 +608,16 @@ class Node(Base):
       A feedback output tensor value.
     """
     return ff_output
+
+  @not_implemented
+  def offline_fit(self, targets, ffs, fbs=None):
+    """Offline training interface."""
+    raise ValueError(f'This node \n\n{self} \n\ndoes not support offline training.')
+
+  @not_implemented
+  def online_fit(self, target, ff, fb=None):
+    """Online training interface."""
+    raise ValueError(f'This node \n\n{self} \n\ndoes not support online training.')
 
 
 class RecurrentNode(Node):
@@ -1382,6 +1398,7 @@ class FrozenNetwork(Network):
 
 class Sequential(Network):
   pass
+
 
 # def _process_params(G, center, dim):
 #     # Some boilerplate code.

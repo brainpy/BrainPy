@@ -196,7 +196,7 @@ class NVAR(RecurrentNode):
       raise ValueError('Please initialize the node first.')
     linear_names = [f'x{i}_t' for i in range(self.input_dim)]
     for di in range(1, self.delay):
-      linear_names.extend([(f'x{i}_' + r'{t-%d}' % di * self.stride)
+      linear_names.extend([(f'x{i}_' + r'{t-%d}' % (di * self.stride))
                            for i in range(self.input_dim)])
     nonlinear_names = []
     for ids in self.comb_ids:
