@@ -24,7 +24,7 @@ class TestRegisterOP(unittest.TestCase):
       y1[:] = x2 + 2
 
     z = jnp.ones((1, 2), dtype=jnp.float32)
-    op = bm.register_op(cpu_func=custom_op, op_name='add', out_shapes=abs_eval, apply_cpu_func_to_gpu=True)
+    op = bm.register_op(op_name='add', cpu_func=custom_op, out_shapes=abs_eval, apply_cpu_func_to_gpu=True)
     jit_op = jit(op)
     print(jit_op(z, z))
 
