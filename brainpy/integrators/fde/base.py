@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import abc
-from typing import Union, Callable
+from typing import Union, Callable, Dict
 
 import jax.numpy as jnp
+
 import brainpy.math as bm
+from brainpy.errors import UnsupportedError
 from brainpy.integrators.base import Integrator
 from brainpy.integrators.utils import get_args
-from brainpy.errors import UnsupportedError
-
 
 __all__ = [
   'FDEIntegrator'
@@ -39,7 +38,14 @@ class FDEIntegrator(Integrator):
   """The fraction derivative function."""
   f: Callable
 
-  def __init__(self, f, alpha, dt=None, name=None):
+  def __init__(
+      self,
+      f: Callable,
+      alpha,
+      dt: float = None,
+      name: str = None,
+      state_delays: Dict[str, bm.AbstractDelay] = None,
+  ):
     dt = bm.get_dt() if dt is None else dt
     parses = get_args(f)
     variables = parses[0]  # variable names, (before 't')
@@ -51,7 +57,8 @@ class FDEIntegrator(Integrator):
                                         variables=variables,
                                         parameters=parameters,
                                         arguments=arguments,
-                                        dt=dt)
+                                        dt=dt,
+                                        state_delays=state_delays)
 
     # derivative function
     self.f = f
@@ -74,9 +81,4 @@ class FDEIntegrator(Integrator):
                        f'while we only got {len(alpha)} fractional-order '
                        f'settings: {alpha}')
     self.alpha = alpha
-
-  @abc.abstractmethod
-  def build(self):
-    raise NotImplementedError('Must implement how to build your step function.')
-
 

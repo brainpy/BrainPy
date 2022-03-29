@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Sequence, Optional, Dict, Callable, Union
+from typing import Sequence, Optional, Callable, Union
 
 import jax.numpy as jnp
 
@@ -78,7 +78,7 @@ class GeneralDense(Node):
     self.bias = init_param(self.bias_initializer, (self.num_unit,))
     if self.trainable:
       self.Wff = bm.TrainVar(self.Wff)
-      self.bias = bm.TrainVar(self.bias) if (self.bias is not None) else None
+      self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
   def init_fb_conn(self):
     other_size, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
@@ -135,8 +135,8 @@ class Dense(GeneralDense):
     super(Dense, self).__init__(num_unit=num_unit,
                                 weight_initializer=weight_initializer,
                                 bias_initializer=bias_initializer,
-                                trainable=trainable, **kwargs)
-
+                                trainable=trainable,
+                                **kwargs)
     # set output shape
     self.set_output_shape((None, self.num_unit))
 
@@ -153,46 +153,62 @@ class Dense(GeneralDense):
                                    f'{len(other_size) + 1}-D shapes.')
     super(Dense, self).init_fb_conn()
 
-  def __ridge_train__(self,
-                      ffs: Sequence[Tensor],
-                      targets: Tensor,
-                      train_pars: Optional[Dict] = None):
-    r"""The ridge training interface for the Dense node.
-
-    This function support the batch training.
-
-    ``targets`` should be a tensor of shape :math:`(num\_time, num\_unit)`.
-    Also, the element in ``ffs`` should have the same shape.
-
-    """
-    assert self.Wfb is None, 'Currently ridge learning do not support feedback connections.'
-
-    # parameters
-    if train_pars is None: train_pars = dict()
-    beta = train_pars.get('beta', 0.)
-    # checking
+  def offline_fit(
+      self,
+      targets: Tensor,
+      ffs: Sequence[Tensor],
+      fbs: Optional[Sequence[Tensor]] = None,
+  ):
+    """The offline training interface for the Dense node."""
+    # data checking
     ffs = bm.concatenate(ffs, axis=-1)
     if not isinstance(targets, (bm.ndarray, jnp.ndarray)):
       raise MathError(f'"targets" must be a tensor, but got {type(targets)}')
-    assert ffs.ndim == 3, 'Must be a 3D tensor with shape of (num_sample, num_time, num_feature)'
-    assert targets.ndim == 3, 'Must be a 3D tensor with shape of (num_sample, num_time, num_feature)'
-    assert ffs.shape[0] == targets.shape[0] == 1, (f'Only support training one batch size, '
-                                                   f'but got {ffs.shape[0]} (for inputs) and '
-                                                   f'{targets.shape[0]} (for targets)')
-    ffs, targets = ffs[0], targets[0]
-    if ffs.shape[0] != targets.shape[0]:
+    if ffs.ndim != 3:
+      raise ValueError(f'"ffs" must be a 3D tensor with shape of (num_sample, num_time, '
+                       f'num_feature), but we got {ffs.shape}')
+    if targets.ndim != 3:
+      raise ValueError(f'"targets" must be a 3D tensor with shape of (num_sample, num_time, '
+                       f'num_feature), but we got {targets.shape}')
+    if (ffs.shape[0] != 1) or (targets.shape[0] != 1):
+      raise ValueError(f'Only support training one batch size, but got {ffs.shape[0]} '
+                       f'(for inputs) and {targets.shape[0]} (for targets)')
+    if ffs.shape[1] != targets.shape[1]:
       raise MathError(f'The time dimension of input and target data should be '
-                      f'the same, while we got {ffs.shape[0]} != {targets.shape[0]}')
-    # solve weights by ridge regression
+                      f'the same, while we got {ffs.shape[1]} != {targets.shape[1]}')
+    if fbs is not None:
+      fbs = bm.concatenate(fbs, axis=-1)
+      if fbs.ndim != 3:
+        raise ValueError(f'"fbs" must be a 3D tensor with shape of (num_sample, num_time, '
+                         f'num_feature), but we got {fbs.shape}')
+      if fbs.shape[0] != 1:
+        raise ValueError(f'Only support training one batch size, but got {fbs.shape[0]} '
+                         f'for feedback inputs "fbs".')
+      if ffs.shape[1] != fbs.shape[1]:
+        raise MathError(f'The time dimension of feedforward and feedback inputs should be '
+                        f'the same, while we got {ffs.shape[1]} != {fbs.shape[1]}')
+      fbs = fbs[0]
+
+    # get input and target training data
+    inputs = ffs[0]
+    num_ff_input = inputs.shape[1]
+    targets = targets[0]
     if self.bias is not None:
-      ffs = bm.concatenate([ffs, bm.ones(ffs.shape[:-1] + (1,))], axis=-1)  # (..., num_input+1)
-    temp = ffs.T @ ffs
-    if beta > 0.:
-      temp += beta * bm.eye(ffs.shape[-1])
-    W = bm.linalg.pinv(temp) @ (ffs.T @ targets)
+      inputs = bm.concatenate([bm.ones((ffs.shape[0], 1)), inputs], axis=-1)  # (..., 1 + num_ff_input)
+    if fbs is not None:
+      inputs = bm.concatenate([inputs, fbs[0]], axis=-1)  # (..., 1 + num_ff_input + num_fb_input)
+
+    # solve weights by offline training methods
+    weights = self.offline_fit_by(inputs, targets)
+
     # assign trained weights
     if self.bias is None:
-      self.Wff.value = W
+      if fbs is None:
+        self.Wff.value = weights
+      else:
+        self.Wff.value, self.Wfb.value = bm.split(weights, [num_ff_input])
     else:
-      self.Wff.value = W[:-1]
-      self.bias.value = W[-1]
+      if fbs is None:
+        self.bias.value, self.Wff.value = bm.split(weights, [1])
+      else:
+        self.bias.value, self.Wff.value, self.Wfb.value = bm.split(weights, [1, 1 + num_ff_input])

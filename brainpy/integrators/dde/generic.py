@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Dict
+
+import brainpy.math as bm
 from .base import DDEIntegrator
 
 __all__ = [
@@ -13,11 +16,18 @@ __all__ = [
 name2method = {
 }
 
-
 _DEFAULT_DDE_METHOD = 'euler'
 
 
-def ddeint(f=None, method='euler', **kwargs):
+def ddeint(f=None,
+           method='euler',
+           var_type: str = None,
+           dt: Union[float, int] = None,
+           name: str = None,
+           show_code: bool = False,
+           state_delays: Dict[str, bm.TimeDelay] = None,
+           neutral_delays: Dict[str, bm.NeutralDelay] = None,
+           **kwargs):
   """Numerical integration for ODEs.
 
   Examples
@@ -75,9 +85,21 @@ def ddeint(f=None, method='euler', **kwargs):
                      f'BrainPy only support: {list(name2method.keys())}')
 
   if f is None:
-    return lambda f: name2method[method](f, **kwargs)
+    return lambda f: name2method[method](f,
+                                         var_type=var_type,
+                                         dt=dt,
+                                         name=name,
+                                         state_delays=state_delays,
+                                         neutral_delays=neutral_delays,
+                                         **kwargs)
   else:
-    return name2method[method](f, **kwargs)
+    return name2method[method](f,
+                               var_type=var_type,
+                               dt=dt,
+                               name=name,
+                               state_delays=state_delays,
+                               neutral_delays=neutral_delays,
+                               **kwargs)
 
 
 def set_default_ddeint(method):

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from typing import Dict
+
+import brainpy.math as bm
 from .base import SDEIntegrator
 
 __all__ = [
@@ -16,7 +19,16 @@ name2method = {
 _DEFAULT_SDE_METHOD = 'euler'
 
 
-def sdeint(f=None, g=None, method='euler', **kwargs):
+def sdeint(f=None,
+           g=None,
+           method='euler',
+           dt: float = None,
+           name: str = None,
+           show_code: bool = False,
+           var_type: str = None,
+           intg_type: str = None,
+           wiener_type: str = None,
+           state_delays: Dict[str, bm.AbstractDelay] = None):
   """Numerical integration for SDEs.
 
   Parameters
@@ -37,13 +49,37 @@ def sdeint(f=None, g=None, method='euler', **kwargs):
                      f'BrainPy only support: {list(name2method.keys())}')
 
   if f is not None and g is not None:
-    return name2method[method](f=f, g=g, **kwargs)
+    return name2method[method](f=f,
+                               g=g,
+                               dt=dt,
+                               name=name,
+                               show_code=show_code,
+                               var_type=var_type,
+                               intg_type=intg_type,
+                               wiener_type=wiener_type,
+                               state_delays=state_delays)
 
   elif f is not None:
-    return lambda g: name2method[method](f=f, g=g, **kwargs)
+    return lambda g: name2method[method](f=f,
+                                         g=g,
+                                         dt=dt,
+                                         name=name,
+                                         show_code=show_code,
+                                         var_type=var_type,
+                                         intg_type=intg_type,
+                                         wiener_type=wiener_type,
+                                         state_delays=state_delays)
 
   elif g is not None:
-    return lambda f: name2method[method](f=f, g=g, **kwargs)
+    return lambda f: name2method[method](f=f,
+                                         g=g,
+                                         dt=dt,
+                                         name=name,
+                                         show_code=show_code,
+                                         var_type=var_type,
+                                         intg_type=intg_type,
+                                         wiener_type=wiener_type,
+                                         state_delays=state_delays)
 
   else:
     raise ValueError('Must provide "f" or "g".')

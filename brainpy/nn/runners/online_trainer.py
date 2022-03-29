@@ -1,16 +1,30 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict
+from typing import Dict, Sequence, Any, Union
 
+import jax.numpy as jnp
+import tqdm.auto
+from jax.experimental.host_callback import id_tap
+
+import brainpy.math as bm
+from brainpy.errors import UnsupportedError, NoImplementationError
+from brainpy.nn.base import Node, Network
+from brainpy.nn.utils import serialize_kwargs
+from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
-  'FORCELearning'
+  'OnlineTrainer',
+  'FORCELearning',
 ]
 
 
-class FORCELearning(RNNTrainer):
+class OnlineTrainer(RNNTrainer):
+  pass
+
+
+class FORCELearning(OnlineTrainer):
   """Force learning."""
 
   def __init__(self, target, alpha=1., **kwargs):

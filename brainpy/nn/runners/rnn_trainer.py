@@ -13,7 +13,7 @@ __all__ = [
 
 
 class RNNTrainer(RNNRunner):
-  """Structural Trainer for Recurrent Neural Networks."""
+  """Structural Trainer for Models with Recurrent Dynamics."""
 
   train_nodes: Sequence[Node]  # need to be initialized by subclass
   train_pars: Dict[str, Any]  # need to be initialized by subclass
@@ -21,13 +21,15 @@ class RNNTrainer(RNNRunner):
   def __init__(self, target, **kwargs):
     super(RNNTrainer, self).__init__(target=target, **kwargs)
 
-  def fit(self,
-          train_data: Any,
-          test_data: Any,
-          forced_states: Dict[str, Tensor] = None,
-          forced_feedbacks: Dict[str, Tensor] = None,
-          reset: bool = False,
-          shared_kwargs: Dict = None):  # need to be implemented by subclass
+  def fit(
+      self,
+      train_data: Any,
+      test_data: Any,
+      forced_states: Dict[str, Tensor] = None,
+      forced_feedbacks: Dict[str, Tensor] = None,
+      reset: bool = False,
+      shared_kwargs: Dict = None
+  ):  # need to be implemented by subclass
     raise NotImplementedError('Must implement the fit function. ')
 
   def _get_trainable_nodes(self):
@@ -53,3 +55,5 @@ class RNNTrainer(RNNRunner):
                                     f'is set to be trainable with {self.__class__.__name__} method. '
                                     f'However, the required training interface "{name}" is not a '
                                     f'callable function.')
+
+
