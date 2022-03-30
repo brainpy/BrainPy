@@ -10,11 +10,11 @@ __all__ = [
   'RidgeRegression',
   'LinearRegression',
 
-  'LassoRegression',
-  'elastic_net_regression',
-  'logistic_regression',
-  'polynomial_regression',
-  'stepwise_regression',
+  # 'LassoRegression',
+  # 'elastic_net_regression',
+  # 'logistic_regression',
+  # 'polynomial_regression',
+  # 'stepwise_regression',
 
   'get_supported_offline_methods',
   'register_offline_method',
@@ -170,7 +170,8 @@ def register_offline_method(name, method):
   if name in name2func:
     raise ValueError(f'"{name}" has been registered in offline training methods.')
   if not callable(method):
-    raise ValueError(f'"method" must be an instance of callable function, but we got {type(method)}')
+    raise ValueError(f'"method" must be an instance of callable '
+                     f'function, but we got {type(method)}')
   name2func[name] = method
 
 

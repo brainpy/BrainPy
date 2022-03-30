@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
 
+"""
+This module provides various running and training algorithm
+for neural networks.
+"""
+
+
 from .rnn_runner import *
 from .rnn_trainer import *
 from .online_trainer import *
