@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import ctypes
-
 import numba
 import numpy as np
 from jax.abstract_arrays import ShapedArray
 from jax.lib import xla_client
-from numba import types
 
-import _cuda
+from .cuda import *
 
 _lambda_no = 0
 ctypes.pythonapi.PyCapsule_New.argtypes = [
@@ -39,12 +36,12 @@ def _compile_gpu_signature(func, input_dtypes, input_shapes,
     empty=np.empty,
     input_byte_size=input_byte_size,
     output_byte_size=output_byte_size,
-    cuMemcpyAsync=_cuda.cuMemcpyAsync,
-    cuStreamSynchronize=_cuda.cuStreamSynchronize,
-    memcpyHostToHost=_cuda.memcpyHostToHost,
-    memcpyHostToDevice=_cuda.memcpyHostToDevice,
-    memcpyDeviceToHost=_cuda.memcpyDeviceToHost,
-    memcpyDeviceToDevice=_cuda.memcpyDeviceToDevice,
+    cuMemcpyAsync=cuMemcpyAsync,
+    cuStreamSynchronize=cuStreamSynchronize,
+    memcpyHostToHost=memcpyHostToHost,
+    memcpyHostToDevice=memcpyHostToDevice,
+    memcpyDeviceToHost=memcpyDeviceToHost,
+    memcpyDeviceToDevice=memcpyDeviceToDevice,
     n_in=len(input_shapes),
   )
 
@@ -101,8 +98,8 @@ def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
   return target_name
 
 
-def _func_gpu_translation(func, abs_eval_fn, c, *inputs):
-  if not _cuda.numba_cffi_loaded:
+def func_gpu_translation(func, abs_eval_fn, c, *inputs):
+  if not numba_cffi_loaded:
     raise RuntimeError("Numba cffi could not be loaded.")
 
   input_shapes = [c.get_shape(arg) for arg in inputs]

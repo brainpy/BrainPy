@@ -2,7 +2,6 @@
 
 import collections.abc
 from functools import partial
-from types import LambdaType
 from typing import Callable, Union, Sequence
 
 import jax.numpy as jnp
@@ -11,37 +10,38 @@ import numpy as np
 from jax import core
 from jax.abstract_arrays import ShapedArray
 from jax.interpreters import xla
-from numba.core.dispatcher import Dispatcher
 from numba import cuda
+from numba.core.dispatcher import Dispatcher
 
-from cpu import _func_cpu_translation
-from gpu import _func_gpu_translation
+from .cpu import func_cpu_translation
+from .gpu import func_gpu_translation
 
 _lambda_no = 0
 
 
 def register_op(
-    cpu_func: Callable,
     op_name: str,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
+    cpu_func: Callable,
     gpu_func: Callable = None,
-    apply_cpu_func_to_gpu: bool = True,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]] = None,
+    apply_cpu_func_to_gpu: bool = False
 ):
   """
   Converting the numba-jitted function in a Jax/XLA compatible primitive.
+
   Parameters
   ----------
-  cpu_func: Callble
-    A callable numba-jitted function or pure function (can be lambda function) running on CPU.
   op_name: str
     Name of the operators.
-  out_shapes: Callable, ShapedArray, Sequence[ShapedArray]
-    Outputs shapes of target function. `out_shapes` can be a `jax.abstract_arrays.ShapedArray` or
-    a sequence of `jax.abstract_arrays.ShapedArray`. If it is a function, it takes as input the argument
-    shapes and dtypes and should return correct output shapes of `jax.abstract_arrays.ShapedArray`.
+  cpu_func: Callble
+    A callable numba-jitted function or pure function (can be lambda function) running on CPU.
   gpu_func: Callable, default = None
     A callable cuda-jitted kernel running on GPU.
-  apply_gpu_func_in_cpu: bool, default = True
+  out_shapes: Callable, ShapedArray, Sequence[ShapedArray], default = None
+    Outputs shapes of target function. `out_shapes` can be a `ShapedArray` or
+    a sequence of `ShapedArray`. If it is a function, it takes as input the argument
+    shapes and dtypes and should return correct output shapes of `ShapedArray`.
+  apply_cpu_func_to_gpu: bool, default = True
     True when gpu_func is implemented on CPU and other logics(data transfer) is implemented on GPU.
 
   Returns
@@ -49,9 +49,14 @@ def register_op(
   A jitable JAX function.
   """
   if gpu_func is not None:
-    raise RuntimeError('Currently cuda.jit function is not supported to convert into a Jax/XLA compatible primitive.' \
-                     ' Please wait for future version to use gpu_func. Now we support to set apply_cpu_func_to_gpu = True' \
-                     ' for a alternative method to run on GPU.')
+    raise RuntimeError('Currently cuda.jit function is not supported to convert into a Jax/XLA compatible primitive.'
+                       ' Please wait for future version to use gpu_func. Now we support to set '
+                       'apply_cpu_func_to_gpu = True for a alternative method to run on GPU.')
+
+  if out_shapes is None:
+    raise RuntimeError('out_shapes cannot be None. It can be a `ShapedArray` or '
+                       'a sequence of `ShapedArray`. If it is a function, it takes as input the argument '
+                       'shapes and dtypes and should return correct output shapes of `ShapedArray`.')
 
   if (gpu_func is not None) and apply_cpu_func_to_gpu:
     raise RuntimeError("apply_cpu_func_to_gpu cannot be true if gpu_func is not None.")
@@ -108,41 +113,13 @@ def register_op(
   prim.def_abstract_eval(abs_eval_rule)
   prim.def_impl(eval_rule)
   # registering
-  xla.backend_specific_translations['cpu'][prim] = partial(_func_cpu_translation, cpu_func, abs_eval_rule)
+  xla.backend_specific_translations['cpu'][prim] = partial(func_cpu_translation, cpu_func, abs_eval_rule)
   if apply_cpu_func_to_gpu:
-    xla.backend_specific_translations['gpu'][prim] = partial(_func_gpu_translation, cpu_func, abs_eval_rule)
-    return bind_primitive
+    xla.backend_specific_translations['gpu'][prim] = partial(func_gpu_translation, cpu_func, abs_eval_rule)
 
   if gpu_func is not None:
     if not isinstance(gpu_func, Dispatcher):
       gpu_func = cuda.jit(gpu_func)
-    xla.backend_specific_translations['gpu'][prim] = partial(_func_gpu_translation, gpu_func, abs_eval_rule)
+    xla.backend_specific_translations['gpu'][prim] = partial(func_gpu_translation, gpu_func, abs_eval_rule)
 
   return bind_primitive
-
-
-if __name__ == '__main__':
-  def abs_eval(*ins):
-    return ins
-
-
-  import brainpy as bp
-
-  bp.math.set_platform('cpu')
-
-
-  def custom_op(outs, ins):
-    y, y1 = outs
-    x, x2 = ins
-    y[:] = x + 1
-    y1[:] = x2 + 2
-
-
-  z = jnp.ones((1, 2), dtype=jnp.float32)
-  op = register_op(cpu_func=custom_op, op_name='add', out_shapes=abs_eval, apply_cpu_func_to_gpu=True)
-
-  from jax import jit
-
-  jit_op = jit(op)
-
-  print(jit_op(z, z))
