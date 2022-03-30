@@ -8,6 +8,27 @@ import jax.numpy as jnp
 import brainpy.math as bm
 
 
+# class TestRegisterOP(unittest.TestCase):
+#   def test_register_op(self):
+#     from jax import jit
+#     import brainpy as bp
+#     bp.math.set_platform('cpu')
+#
+#     def abs_eval(*ins):
+#       return ins
+#
+#     def custom_op(outs, ins):
+#       y, y1 = outs
+#       x, x2 = ins
+#       y[:] = x + 1
+#       y1[:] = x2 + 2
+#
+#     z = jnp.ones((1, 2), dtype=jnp.float32)
+#     op = bm.register_op(op_name='add', cpu_func=custom_op, out_shapes=abs_eval, apply_cpu_func_to_gpu=True)
+#     jit_op = jit(op)
+#     print(jit_op(z, z))
+
+
 class TestSyn2Post(unittest.TestCase):
   def test_syn2post_sum(self):
     data = bm.arange(5)
