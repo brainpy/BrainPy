@@ -45,9 +45,8 @@ class BPTT(RNNTrainer):
       loss: Union[str, Callable],  # loss function
       optimizer: optim.Optimizer = None,  # optimizer
       max_grad_norm=None,
-      shuffle_data=True,
-      metrics=('loss',),
-      jit=True,
+      shuffle_data: bool = True,
+      jit: bool = True,
 
       # common arguments for RNNTrainer
       **kwargs
@@ -96,7 +95,6 @@ class BPTT(RNNTrainer):
     # training parameters
     self.max_grad_norm = max_grad_norm  # gradient clipping
     self.shuffle_data = shuffle_data
-    self.metrics = metrics
 
     # initialize the optimizer
     if not self.target.is_initialized:
@@ -108,7 +106,9 @@ class BPTT(RNNTrainer):
       xs: Union[Tensor, Dict[str, Tensor]],
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
-      reset=True,
+      initial_states: Union[Tensor, Dict[str, Tensor]] = None,
+      initial_feedbacks: Dict[str, Tensor] = None,
+      reset: bool = True,
       shared_kwargs: Dict = None,
       **kwargs
   ):
@@ -123,18 +123,37 @@ class BPTT(RNNTrainer):
     xs: Tensor, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
-    forced_states: dict
-      The fixed node states. Similar with ``xs``, each tensor in
-      ``forced_states`` must be a tensor with the shape of
-      `(num_sample, num_time, num_feature)`. Default None.
-    forced_feedbacks: dict
-      The fixed feedback states. Similar with ``xs``, each tensor in
-      ``forced_states`` must be a tensor with the shape of
-      `(num_sample, num_time, num_feature)`. Default None.
     shared_kwargs: dict
       Shared keyword arguments for the given target model.
     reset: bool
       Whether reset the model states. Default True.
+
+    forced_states: dict
+      The fixed node states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`. Default None.
+
+      .. versionadded:: 2.1.4
+
+    forced_feedbacks: dict
+      The fixed feedback states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`. Default None.
+
+      .. versionadded:: 2.1.4
+
+    initial_states: JaxArray, ndarray, dict
+      The initial states. Each tensor in ``initial_states`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    initial_feedbacks: dict
+      The initial feedbacks for the node in the network model.
+      Each tensor in ``initial_feedbacks`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
 
     Returns
     -------
@@ -142,14 +161,13 @@ class BPTT(RNNTrainer):
       The model output.
     """
     # check forced states/feedbacks
-    assert forced_states is None, (f'Currently {self.__class__.__name__} does '
-                                   f'not support "forced_states"')
-    assert forced_feedbacks is None, (f'Currently {self.__class__.__name__} does '
-                                      f'not support "forced_feedbacks"')
     return super(BPTT, self).predict(xs=xs,
                                      forced_states=forced_states,
                                      forced_feedbacks=forced_feedbacks,
-                                     reset=reset)
+                                     initial_states=initial_states,
+                                     initial_feedbacks=initial_feedbacks,
+                                     reset=reset,
+                                     shared_kwargs=shared_kwargs)
 
   def fit(
       self,
@@ -160,9 +178,10 @@ class BPTT(RNNTrainer):
       num_report: int = 100,
       reset: bool = True,
       shared_kwargs: Dict = None,
-      # current unsupported features
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
+      initial_states: Union[Tensor, Dict[str, Tensor]] = None,
+      initial_feedbacks: Dict[str, Tensor] = None,
   ):
     """
     Fit the target model according to the given training and testing data.
@@ -195,19 +214,36 @@ class BPTT(RNNTrainer):
       The number of step to report the progress. Default 100 training steps.
     reset: bool
       Whether reset the initial states of the target model.
-    forced_states: optional, dict
-      The forced node states.
-    forced_feedbacks: optional, dict
-      The forced node feedbacks.
     shared_kwargs: dict
       The shared keyword arguments for the target models.
-    """
-    # check forced states/feedbacks
-    assert forced_states is None, (f'Currently {self.__class__.__name__} does '
-                                   f'not support "forced_states"')
-    assert forced_feedbacks is None, (f'Currently {self.__class__.__name__} does '
-                                      f'not support "forced_feedbacks"')
+    forced_states: dict
+      The fixed node states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`.
 
+      .. versionadded:: 2.1.4
+
+    forced_feedbacks: dict
+      The fixed feedback states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    initial_states: JaxArray, ndarray, dict
+      The initial states. Each tensor in ``initial_states`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    initial_feedbacks: dict
+      The initial feedbacks for the node in the network model.
+      Each tensor in ``initial_feedbacks`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    """
     # training the model
     all_train_losses = []
     all_test_losses = []
@@ -218,11 +254,15 @@ class BPTT(RNNTrainer):
 
       # training set
       for x, y in train_data_:
+        self._set_initial_states(initial_states)
+        self._set_initial_feedbacks(initial_feedbacks)
         self._check_mapping_type(y)
         batch_size = check_rnn_data_batch_size(x)
         if reset:
           self.target.initialize(batch_size)
-        loss = self.f_train(shared_kwargs)(x, y)
+        loss = self.f_train(shared_kwargs)(x, y,
+                                           forced_states=forced_states,
+                                           forced_feedbacks=forced_feedbacks)
         all_train_losses.append(loss)
         train_i += 1
         if train_i % num_report == 0:
@@ -238,19 +278,23 @@ class BPTT(RNNTrainer):
           batch_size = check_rnn_data_batch_size(x)
           if reset:
             self.target.initialize(batch_size)
-          loss = self.f_loss(shared_kwargs)(x, y)
+          loss = self.f_loss(shared_kwargs)(x, y,
+                                            forced_states=forced_states,
+                                            forced_feedbacks=forced_feedbacks)
           all_test_losses.append(loss)
 
     self._train_losses = bm.asarray(all_train_losses)
     self._test_losses = bm.asarray(all_test_losses)
 
   def f_grad(self, shared_kwargs=None) -> Callable:
+    """Get gradient function."""
     shared_kwargs_str = serialize_kwargs(shared_kwargs)
     if shared_kwargs_str not in self._f_grad:
       self._f_grad[shared_kwargs_str] = self._make_f_grad(shared_kwargs)
     return self._f_grad[shared_kwargs_str]
 
   def f_loss(self, shared_kwargs=None) -> Callable:
+    """Get loss function."""
     shared_kwargs_str = serialize_kwargs(shared_kwargs)
     if shared_kwargs_str not in self._f_loss:
       self._f_loss[shared_kwargs_str] = self._make_f_loss(shared_kwargs)
@@ -262,6 +306,7 @@ class BPTT(RNNTrainer):
     return self._f_loss[shared_kwargs_str]
 
   def f_train(self, shared_kwargs=None) -> Callable:
+    """Get training function."""
     shared_kwargs_str = serialize_kwargs(shared_kwargs)
     if shared_kwargs_str not in self._f_train:
       self._f_train[shared_kwargs_str] = self._make_f_train(shared_kwargs)
@@ -284,14 +329,21 @@ class BPTT(RNNTrainer):
 
   def _make_f_loss(self, shared_kwargs: Dict = None):
     if shared_kwargs is None: shared_kwargs = dict()
-    assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
-                                             f'But got {type(shared_kwargs)}: {shared_kwargs}')
+    if not isinstance(shared_kwargs, dict):
+      raise ValueError(f'Only supports dict for "shared_kwargs". '
+                       f'But got {type(shared_kwargs)}: {shared_kwargs}')
 
-    def loss_fun(inputs, targets):
+    def loss_fun(inputs, targets, forced_states=None, forced_feedbacks=None):
       inputs = self._format_xs(inputs)
       targets = self._format_ys(targets)
+      num_batch, num_step = list(inputs.values())[0].shape[:2]
+      forced_states = self._check_forced_states(forced_states, num_batch, num_step)
+      forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_batch, num_step)
       inputs = {k: bm.moveaxis(v, 0, 1) for k, v in inputs.items()}
-      outputs, _ = self._predict(xs=inputs, shared_kwargs=shared_kwargs)
+      outputs, _ = self._predict(xs=inputs,
+                                 shared_kwargs=shared_kwargs,
+                                 forced_states=forced_states,
+                                 forced_feedbacks=forced_feedbacks)
       outputs = self._format_ys(outputs)
       loss = 0.
       for key, output in outputs.items():
@@ -313,14 +365,19 @@ class BPTT(RNNTrainer):
                    return_value=True)
 
   def _make_f_train(self, shared_kwargs: Dict = None):
-    if shared_kwargs is None: shared_kwargs = dict()
-    assert isinstance(shared_kwargs, dict), (f'Only supports dict for "shared_kwargs". '
-                                             f'But got {type(shared_kwargs)}: {shared_kwargs}')
+    if shared_kwargs is None:
+      shared_kwargs = dict()
+    elif not isinstance(shared_kwargs, dict):
+      raise ValueError(f'Only supports dict for "shared_kwargs". '
+                       f'But got {type(shared_kwargs)}: {shared_kwargs}')
 
-    def train_func(inputs, targets):
+    def train_func(inputs, targets, forced_states=None, forced_feedbacks=None):
       inputs = self._format_xs(inputs)
       targets = self._format_ys(targets)
-      grads, loss = self.f_grad(shared_kwargs)(inputs, targets)
+      grads, loss = self.f_grad(shared_kwargs)(inputs,
+                                               targets,
+                                               forced_states=forced_states,
+                                               forced_feedbacks=forced_feedbacks)
       if self.max_grad_norm is not None:
         check_float(self.max_grad_norm, 'max_grad_norm', min_bound=0.)
         grads = bm.clip_by_norm(grads, self.max_grad_norm)
@@ -337,10 +394,11 @@ class BPTT(RNNTrainer):
   def _format_ys(self, ys):
     if isinstance(ys, (bm.ndarray, jnp.ndarray)):
       if isinstance(self.target, Network):
-        assert len(self.target.exit_nodes) == 1, (f'The network {self.target} has '
-                                                  f'{len(self.target.exit_nodes)} '
-                                                  f'output nodes, while we only got '
-                                                  f'one output data.')
+        if len(self.target.exit_nodes) != 1:
+          raise ValueError(f'The network {self.target} has '
+                           f'{len(self.target.exit_nodes)} '
+                           f'output nodes, while we only got '
+                           f'one output data.')
         ys = {self.target.exit_nodes[0].name: ys}
       else:
         ys = {self.target.name: ys}
@@ -357,10 +415,11 @@ class BPTT(RNNTrainer):
     if self.mapping_type is None:
       self._mapping_type = dict()
     for (key, y) in ys.items():
-      assert y.ndim in [2, 3], ('Each tensor in "ys" must have the shape of '
-                                '(num_sample, num_time, num_feature) or '
-                                '(num_sample, num_feature), but we '
-                                f'got {y.shape}')
+      if y.ndim not in [2, 3]:
+        raise ValueError('Each tensor in "ys" must have the shape of '
+                         '(num_sample, num_time, num_feature) or '
+                         '(num_sample, num_feature), but we '
+                         f'got {y.shape}')
       if key not in self._mapping_type:
         self._mapping_type[key] = MANY2MANY if y.ndim == 3 else MANY2ONE
       else:
@@ -373,7 +432,9 @@ class BPTT(RNNTrainer):
     if callable(train_data):
       train_data = self._get_data_by_method1(train_data, num_batch)
     elif isinstance(train_data, (tuple, list)):
-      assert len(train_data) == 2, f"Must be (X, Y) pair, but got a sequence with length {len(train_data)}"
+      if len(train_data) != 2:
+        raise ValueError(f"Must be (X, Y) pair, but got a sequence with "
+                         f"length {len(train_data)}")
       train_data = self._get_data_by_method2(train_data,
                                              num_batch=num_batch,
                                              shuffle=self.shuffle_data)
