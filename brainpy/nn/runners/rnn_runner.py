@@ -116,7 +116,7 @@ class RNNRunner(Runner):
     self._set_initial_feedbacks(initial_feedbacks)
     # get forced data
     forced_states = self._check_forced_states(forced_states, num_batch, num_step)
-    forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_batch,  num_step)
+    forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_batch, num_step)
     # reset the model states
     if reset:
       self.target.initialize(num_batch)
@@ -325,9 +325,10 @@ class RNNRunner(Runner):
           if not isinstance(tensor, (bm.ndarray, jnp.ndarray)):
             raise ValueError(f'"forced_states" must a dict of (str, tensor), '
                              f'while we got ({type(key)}, {type(tensor)})')
-          if bm.ndim(tensor) != 3:
+          if bm.ndim(tensor) != self.target[key].state.ndim + 1:
             raise ValueError(f'Must be a 3d tensor with shape of (num_batch, num_time, '
-                             f'num_feature), but we got {tensor.shape}')
+                             f'{str(self.target[key].state.shape)[1:-1]}), '
+                             f'but we got {tensor.shape}')
           if tensor.shape[0] != num_batch:
             raise ValueError(f'The number of the batch size ({tensor.shape[0]}) '
                              f'of the forced state of {key} does not '
@@ -366,9 +367,10 @@ class RNNRunner(Runner):
           if not isinstance(tensor, (bm.ndarray, jnp.ndarray)):
             raise ValueError('"forced_feedbacks" must a dict of (str, tensor), '
                              'while we got ({type(key)}, {type(tensor)})')
-          if bm.ndim(tensor) != 3:
+          if bm.ndim(tensor) != self.target[key].fb_output.ndim + 1:
             raise ValueError(f'Must be a 3d tensor with shape of (num_batch, num_time, '
-                             f'num_feature), but we got {tensor.shape}')
+                             f'{str(self.target[key].fb_output.shape)[1:-1]}), '
+                             f'but we got {tensor.shape}')
           if tensor.shape[0] != num_batch:
             raise ValueError(f'The number of the batch size ({tensor.shape[0]}) '
                              f'of the forced feedback of {key} does not '
@@ -393,12 +395,12 @@ class RNNRunner(Runner):
   def _format_xs(self, xs):
     if isinstance(xs, (bm.ndarray, jnp.ndarray)):
       if isinstance(self.target, Network):
-        assert len(self.target.entry_nodes) == 1, (f'The network {self.target} has {len(self.target.entry_nodes)} '
-                                                   f'input nodes, while we only got one input data.')
+        if len(self.target.entry_nodes) != 1:
+          raise ValueError(f'The network {self.target} has {len(self.target.entry_nodes)} '
+                           f'input nodes, while we only got one input data.')
         xs = {self.target.entry_nodes[0].name: xs}
       else:
         xs = {self.target.name: xs}
-
     if not isinstance(xs, dict):
       raise UnsupportedError(f'Unknown data type {type(xs)}, we only support '
                              f'tensor or dict with <str, tensor>')
@@ -408,12 +410,25 @@ class RNNRunner(Runner):
     return xs
 
   def _check_xs(self, xs: Union[Dict, Tensor], move_axis=True):
+    input_shapes = {}
+    if isinstance(self.target, Network):
+      for node in self.target.entry_nodes:
+        name = self.target.entry_nodes[0].name
+        input_shapes[name] = node._feedforward_shapes[name]
+    else:
+      name = self.target.entry_nodes[0].name
+      input_shapes[name] = self.target._feedforward_shapes[name]
+
     xs = self._format_xs(xs)
     num_times, num_batch_sizes = [], []
     for key, val in xs.items():
-      if bm.ndim(val) != 3:
+      if key not in input_shapes:
+        raise ValueError(f'Cannot find {key} in the required inputs. Please check!')
+      shape = input_shapes[key]
+      if bm.ndim(val) != len(shape) + 1:
         raise ValueError(f'Each tensor in "xs" must be a tensor of shape '
-                         f'(num_sample, num_time, num_feature). But we got {val.shape}.')
+                         f'(num_sample, num_time, {str(shape[1:])[1:-1]}). '
+                         f'But we got {val.shape}.')
       num_times.append(val.shape[1])
       num_batch_sizes.append(val.shape[0])
     if len(set(num_times)) != 1:
