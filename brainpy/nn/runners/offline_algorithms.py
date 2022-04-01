@@ -10,11 +10,11 @@ __all__ = [
   'RidgeRegression',
   'LinearRegression',
 
-  'LassoRegression',
-  'elastic_net_regression',
-  'logistic_regression',
-  'polynomial_regression',
-  'stepwise_regression',
+  # 'LassoRegression',
+  # 'elastic_net_regression',
+  # 'logistic_regression',
+  # 'polynomial_regression',
+  # 'stepwise_regression',
 
   'get_supported_offline_methods',
   'register_offline_method',
@@ -65,12 +65,8 @@ class RidgeRegression(OfflineAlgorithm):
 
   def __call__(self, x, y):
     # checking
-    x = bm.asarray(x)
-    y = bm.asarray(y)
-    assert x.ndim == 2, f'"x" must be a 2d tensor, but got the shape of {x.shape}.'
-    assert y.ndim == 2, f'"y" must be a 2d tensor, but got the shape of {y.shape}.'
-    assert x.shape[0] == y.shape[0], (f'The first axis (num_time) of "x" and "y" must be the '
-                                      f'same, but we got {x.shape[0]} != {y.shape[0]}')
+    x = bm.asarray(x).reshape((-1, x.shape[2]))
+    y = bm.asarray(y).reshape((-1, y.shape[2]))
     # solving
     temp = x.T @ x
     if self.beta > 0.:
@@ -93,12 +89,8 @@ class LinearRegression(OfflineAlgorithm):
 
   def __call__(self, x, y):
     # checking
-    x = bm.asarray(x)
-    y = bm.asarray(y)
-    assert x.ndim == 2, f'"x" must be a 2d tensor, but got the shape of {x.shape}.'
-    assert y.ndim == 2, f'"y" must be a 2d tensor, but got the shape of {y.shape}.'
-    assert x.shape[0] == y.shape[0], (f'The first axis (num_time) of "x" and "y" must be the '
-                                      f'same, but we got {x.shape[0]} != {y.shape[0]}')
+    x = bm.asarray(x).reshape((-1, x.shape[2]))
+    y = bm.asarray(y).reshape((-1, y.shape[2]))
     # solving
     weights = bm.linalg.lstsq(x, y)
     return weights[0]
@@ -119,6 +111,7 @@ class LassoRegression(OfflineAlgorithm):
   max_iter: int
     The maximum number of iterations.
   """
+
   def __init__(self, alpha=1.0, max_iter=1000, name=None):
     super(LassoRegression, self).__init__(name=name)
     self.alpha = alpha
@@ -128,35 +121,35 @@ class LassoRegression(OfflineAlgorithm):
     pass
 
 
-name2func['lasso'] = LassoRegression
+# name2func['lasso'] = LassoRegression
 
 
 def elastic_net_regression(x, y, train_pars):
   pass
 
 
-name2func['elastic_net'] = elastic_net_regression
+# name2func['elastic_net'] = elastic_net_regression
 
 
 def logistic_regression(x, y, train_pars):
   pass
 
 
-name2func['logistic'] = logistic_regression
+# name2func['logistic'] = logistic_regression
 
 
 def polynomial_regression(x, y, train_pars):
   pass
 
 
-name2func['polynomial'] = polynomial_regression
+# name2func['polynomial'] = polynomial_regression
 
 
 def stepwise_regression(x, y, train_pars):
   pass
 
 
-name2func['stepwise'] = stepwise_regression
+# name2func['stepwise'] = stepwise_regression
 
 
 def get_supported_offline_methods():
@@ -177,7 +170,8 @@ def register_offline_method(name, method):
   if name in name2func:
     raise ValueError(f'"{name}" has been registered in offline training methods.')
   if not callable(method):
-    raise ValueError(f'"method" must be an instance of callable function, but we got {type(method)}')
+    raise ValueError(f'"method" must be an instance of callable '
+                     f'function, but we got {type(method)}')
   name2func[name] = method
 
 

@@ -170,9 +170,9 @@ class Dense(GeneralDense):
     if targets.ndim != 3:
       raise ValueError(f'"targets" must be a 3D tensor with shape of (num_sample, num_time, '
                        f'num_feature), but we got {targets.shape}')
-    if (ffs.shape[0] != 1) or (targets.shape[0] != 1):
-      raise ValueError(f'Only support training one batch size, but got {ffs.shape[0]} '
-                       f'(for inputs) and {targets.shape[0]} (for targets)')
+    if ffs.shape[0] != targets.shape[0]:
+      raise ValueError(f'Batch size of the input and target data should be '
+                       f'the same, while we got {ffs.shape[0]} != {targets.shape[0]}.')
     if ffs.shape[1] != targets.shape[1]:
       raise MathError(f'The time dimension of input and target data should be '
                       f'the same, while we got {ffs.shape[1]} != {targets.shape[1]}')
@@ -181,22 +181,20 @@ class Dense(GeneralDense):
       if fbs.ndim != 3:
         raise ValueError(f'"fbs" must be a 3D tensor with shape of (num_sample, num_time, '
                          f'num_feature), but we got {fbs.shape}')
-      if fbs.shape[0] != 1:
-        raise ValueError(f'Only support training one batch size, but got {fbs.shape[0]} '
-                         f'for feedback inputs "fbs".')
+      if ffs.shape[0] != fbs.shape[0]:
+        raise ValueError(f'Batch size of the feedforward and the feedback inputs should be '
+                         f'the same, while we got {ffs.shape[0]} != {fbs.shape[0]}.')
       if ffs.shape[1] != fbs.shape[1]:
         raise MathError(f'The time dimension of feedforward and feedback inputs should be '
                         f'the same, while we got {ffs.shape[1]} != {fbs.shape[1]}')
-      fbs = fbs[0]
 
     # get input and target training data
-    inputs = ffs[0]
-    num_ff_input = inputs.shape[1]
-    targets = targets[0]
+    inputs = ffs
+    num_ff_input = inputs.shape[2]
     if self.bias is not None:
-      inputs = bm.concatenate([bm.ones((ffs.shape[0], 1)), inputs], axis=-1)  # (..., 1 + num_ff_input)
+      inputs = bm.concatenate([bm.ones(ffs.shape[:2] + (1,)), inputs], axis=-1)  # (..., 1 + num_ff_input)
     if fbs is not None:
-      inputs = bm.concatenate([inputs, fbs[0]], axis=-1)  # (..., 1 + num_ff_input + num_fb_input)
+      inputs = bm.concatenate([inputs, fbs], axis=-1)  # (..., 1 + num_ff_input + num_fb_input)
 
     # solve weights by offline training methods
     weights = self.offline_fit_by(inputs, targets)
