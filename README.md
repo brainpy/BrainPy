@@ -201,9 +201,9 @@ o = bp.nn.LinearReadout(3)
 
 net = i >> r >> o
 
-trainer = bp.nn.RidgeTrainer(net, beta=1e-5) # Ridge Regression
+trainer = bp.nn.RidgeTrainer(net, beta=1e-5)  # Ridge Regression
 
-trainer = bp.nn.FORCELearning(net, alpha=1.) # FORCE Learning
+trainer = bp.nn.ForceTrainer(net, alpha=1.)  # FORCE Learning
 ```
 
 

@@ -182,14 +182,12 @@ class RNNRunner(Runner):
 
   def _get_predict_func(self, shared_kwargs: Dict = None):
     if shared_kwargs is None: shared_kwargs = dict()
-    shared_kwargs_str = dict()
-    shared_kwargs_str.update(shared_kwargs)
-    shared_kwargs_str = serialize_kwargs(shared_kwargs_str)
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
     if shared_kwargs_str not in self._predict_func:
-      self._predict_func[shared_kwargs_str] = self._make_run_func(shared_kwargs)
+      self._predict_func[shared_kwargs_str] = self._make_predict_func(shared_kwargs)
     return self._predict_func[shared_kwargs_str]
 
-  def _make_run_func(self, shared_kwargs: Dict):
+  def _make_predict_func(self, shared_kwargs: Dict):
     if not isinstance(shared_kwargs, dict):
       raise ValueError(f'"shared_kwargs" must be a dict, '
                        f'but got {type(shared_kwargs)}')
@@ -404,7 +402,8 @@ class RNNRunner(Runner):
     if not isinstance(xs, dict):
       raise UnsupportedError(f'Unknown data type {type(xs)}, we only support '
                              f'tensor or dict with <str, tensor>')
-    assert len(xs) > 0, 'We got no input data.'
+    if len(xs) == 0:
+      raise ValueError('We got no input data.')
     check_dict_data(xs, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     return xs
 

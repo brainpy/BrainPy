@@ -8,5 +8,5 @@
 .. toctree::
     :maxdepth: 1
 
-    auto/math_compat/optimizers
-    auto/math_compat/losses
+    auto/math/optimizers
+    auto/math/losses
