@@ -143,14 +143,18 @@ class Dense(GeneralDense):
   def init_ff_conn(self):
     # shapes
     other_size, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
-    assert other_size == (None,), (f'Only support 2D inputs, while we got '
-                                   f'{len(other_size) + 1}-D shapes.')
+    if other_size != (None,):
+      raise ValueError(f'{self.__class__.__name__} only support 2D inputs, while '
+                       f'we got {len(other_size) + 1}-D shapes. For >2D inputs, '
+                       f'you should use brainpy.nn.{GeneralDense.__name__} instead. ')
     super(Dense, self).init_ff_conn()
 
   def init_fb_conn(self):
     other_size, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
-    assert other_size == (None,), (f'Only support 2D inputs, while we got '
-                                   f'{len(other_size) + 1}-D shapes.')
+    if other_size != (None,):
+      raise ValueError(f'{self.__class__.__name__} only support 2D inputs, while '
+                       f'we got {len(other_size) + 1}-D shapes. For >2D inputs, '
+                       f'you should use brainpy.nn.{GeneralDense.__name__} instead. ')
     super(Dense, self).init_fb_conn()
 
   def offline_fit(
@@ -197,7 +201,7 @@ class Dense(GeneralDense):
       inputs = bm.concatenate([inputs, fbs], axis=-1)  # (..., 1 + num_ff_input + num_fb_input)
 
     # solve weights by offline training methods
-    weights = self.offline_fit_by(inputs, targets)
+    weights = self.offline_fit_by(targets, inputs)
 
     # assign trained weights
     if self.bias is None:
@@ -207,6 +211,11 @@ class Dense(GeneralDense):
         self.Wff.value, self.Wfb.value = bm.split(weights, [num_ff_input])
     else:
       if fbs is None:
-        self.bias.value, self.Wff.value = bm.split(weights, [1])
+        bias, Wff = bm.split(weights, [1])
+        self.bias.value = bias[0]
+        self.Wff.value = Wff
       else:
-        self.bias.value, self.Wff.value, self.Wfb.value = bm.split(weights, [1, 1 + num_ff_input])
+        bias, Wff, Wfb = bm.split(weights, [1, 1 + num_ff_input])
+        self.bias.value = bias[0]
+        self.Wff.value = Wff
+        self.Wfb.value = Wfb

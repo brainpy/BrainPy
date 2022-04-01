@@ -9,6 +9,6 @@ from .nodes import *
 from .graph_flow import *
 from .operations import *
 from .utils import *
-from . import runners
-from .runners import (BPTT, OfflineTrainer, OnlineTrainer, RNNRunner, RNNTrainer)
+from .runners import *
+from . import algorithms
 

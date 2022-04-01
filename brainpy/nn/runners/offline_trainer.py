@@ -2,7 +2,6 @@
 
 from typing import Dict, Sequence, Union, Callable
 
-import jax.numpy as jnp
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
@@ -10,9 +9,8 @@ import brainpy.math as bm
 from brainpy.errors import NoImplementationError
 from brainpy.nn.base import Node, Network
 from brainpy.nn.utils import serialize_kwargs
-from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor
-from .offline_algorithms import get, RidgeRegression, OfflineAlgorithm
+from brainpy.nn.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
@@ -39,8 +37,8 @@ class OfflineTrainer(RNNTrainer):
       For example, ``fit_method={'name': 'ridge', 'beta': 1e-4}``.
     - It can be an instance of :py:class:`brainpy.nn.runners.OfflineAlgorithm`.
       For example, ``fit_meth=bp.nn.runners.RidgeRegression(beta=1e-5)``.
-    - It can also be a callable function, which receives two arguments "x" and "y".
-      For example, ``fit_method=lambda x, y: numpy.linalg.lstsq(x, y)[0]``.
+    - It can also be a callable function, which receives three arguments "targets", "x" and "y".
+      For example, ``fit_method=lambda targets, x, y: numpy.linalg.lstsq(x, targets)[0]``.
   **kwargs
     The other general parameters for RNN running initialization.
   """
@@ -66,17 +64,16 @@ class OfflineTrainer(RNNTrainer):
     if not callable(fit_method):
       raise ValueError(f'"train_method" must be an instance of callable function, '
                        f'but we got {type(fit_method)}.')
-
-    # get all trainable nodes
-    self.train_nodes = self._get_trainable_nodes()
     # check the required interface in the trainable nodes
     self._check_interface()
+
     # set the training method
     for node in self.train_nodes:
       node.offline_fit_by = fit_method
 
     # add the monitor items which are needed for the training process
     self._added_items = self._add_monitor_items()
+
     # training function
     self._f_train = dict()
 
@@ -84,12 +81,12 @@ class OfflineTrainer(RNNTrainer):
       self,
       train_data: Sequence,
       test_data=None,
+      reset: bool = False,
+      shared_kwargs: Dict = None,
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
       initial_states: Union[Tensor, Dict[str, Tensor]] = None,
       initial_feedbacks: Dict[str, Tensor] = None,
-      reset: bool = False,
-      shared_kwargs: Dict = None,
   ):
     """
     Fit the target model according to the given training and testing data.
@@ -109,7 +106,8 @@ class OfflineTrainer(RNNTrainer):
           then the fitting happens on the whole data series.
     test_data: callable, sequence of data
       Same as the ``train_data``. It can be a callable function,
-      or a tuple/list representing `(X, Y)` data.
+      or a tuple/list representing `(X, Y)` data. But this argument
+      is supported in offline trainers.
     reset: bool
       Whether reset the initial states of the target model.
     shared_kwargs: dict
@@ -179,25 +177,8 @@ class OfflineTrainer(RNNTrainer):
         self.mon.item_contents[f'{self.target.name}.inputs'] = inputs
         self._added_items.add(f'{self.target.name}.inputs')
 
-    # format all target data
-    if isinstance(ys, (bm.ndarray, jnp.ndarray)):
-      if len(self.train_nodes) == 1:
-        ys = {self.train_nodes[0].name: ys}
-      else:
-        raise ValueError(f'The network {self.target} has {len(self.train_nodes)} '
-                         f'training nodes, while we only got one target data.')
-    check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
-    for key, val in ys.items():
-      if val.ndim != 3:
-        raise ValueError("Targets must be a tensor with shape of "
-                         "(num_sample, num_time, num_feature), "
-                         f"but we got {val.shape}")
-      if val.shape[0] != num_batch:
-        raise ValueError(f'Batch size of the target {key} does not match '
-                         f'with the input data {val.shape[0]} != {num_batch}')
-      if val.shape[1] != num_step:
-        raise ValueError(f'The time step of the target {key} does not match '
-                         f'with the input data {val.shape[1]} != {num_step})')
+    # format target data
+    ys = self._check_ys(ys, num_batch=num_batch, num_step=num_step, move_axis=False)
 
     # init progress bar
     if self.progress_bar:
@@ -283,19 +264,6 @@ class OfflineTrainer(RNNTrainer):
 class RidgeTrainer(OfflineTrainer):
   """
   Trainer of ridge regression, also known as regression with Tikhonov regularization.
-
-  ``RidgeTrainer`` requires that the trainable node implements its training interface
-  ``__ridge_train__()`` function. Otherwise an error will raise.
-
-  ``__ridge_train__()`` function has two variants:
-
-  - `__ridge_train__(ffs, targets, train_pars)` if the model only has feedforward connections,
-  - `__ridge_train__(ffs, targets, fbs, train_pars)` if the model has the feedback signaling.
-
-  where ``ffs`` means the feedforward inputs with the shape of `(num_sample, num_time, num_feature)`,
-  ``targets`` the ground truth with the shape of `(num_sample, num_time, num_feature)`,
-  ``fbs`` the feedback signals with the shape of `(num_sample, num_time, num_feature)`,
-  and ``train_pars`` the training related parameters.
 
   Parameters
   ----------
