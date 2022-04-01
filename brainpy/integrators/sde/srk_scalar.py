@@ -95,10 +95,10 @@ class SRK1W1(SDEIntegrator):
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(SRK1W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
-                                 wiener_type=wiener_type)
+                                 wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
@@ -214,10 +214,10 @@ class SRK2W1(SDEIntegrator):
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(SRK2W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
-                                 wiener_type=wiener_type)
+                                 wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
@@ -324,10 +324,10 @@ register_sde_integrator('srk2w1', SRK2W1)
 
 class KlPl(SDEIntegrator):
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(KlPl, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                var_type=var_type, intg_type=intg_type,
-                               wiener_type=wiener_type)
+                               wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
