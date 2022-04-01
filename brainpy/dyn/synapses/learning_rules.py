@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Dict
+
 import brainpy.math as bm
-from brainpy.dyn.base import TwoEndConn
+from brainpy.connect import TwoEndConnector
+from brainpy.dyn.base import NeuGroup, TwoEndConn
 from brainpy.dyn.utils import init_delay
 from brainpy.integrators import odeint, JointEq
+from brainpy.types import Tensor, Parameter
 
 __all__ = [
   'STP'
@@ -170,17 +174,17 @@ class STP(TwoEndConn):
 
   def __init__(
       self,
-      pre,
-      post,
-      conn,
-      U=0.15,
-      tau_f=1500.,
-      tau_d=200.,
-      tau=8.,
-      A=1.,
-      delay_step=None,
-      method='exp_auto',
-      name=None
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      U: Parameter = 0.15,
+      tau_f: Parameter = 1500.,
+      tau_d: Parameter = 200.,
+      tau: Parameter = 8.,
+      A: Parameter = 1.,
+      delay_step: Parameter = None,
+      method: str = 'exp_auto',
+      name: str = None
   ):
     super(STP, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_post_attrs('input')
@@ -214,10 +218,11 @@ class STP(TwoEndConn):
     return JointEq([dI, du, dx])
 
   def update(self, _t, _dt):
+    # delayed pre-synaptic spikes
     if self.delay_type == 'homo':
       delayed_I = self.delay_I(self.delay_step)
     elif self.delay_type == 'heter':
-      delayed_I = self.delay_I(self.delay_step, bm.arange())
+      delayed_I = self.delay_I(self.delay_step, bm.arange(self.pre.num))
     else:
       delayed_I = self.I
     self.post.input += bm.syn2post(delayed_I, self.post_ids, self.post.num)
@@ -228,7 +233,5 @@ class STP(TwoEndConn):
     self.I.value = bm.where(syn_sps, self.I, self.I + self.A * u * self.x)
     self.u.value = u
     self.x.value = x
-    if self.delay_type == 'homo':
-      self.delay_I.update(self.I)
-    elif self.delay_type == 'heter':
+    if self.delay_type in ['homo', 'heter']:
       self.delay_I.update(self.I)

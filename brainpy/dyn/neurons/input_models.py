@@ -53,7 +53,7 @@ class SpikeTimeInput(NeuGroup):
     self.indices = bm.Variable(bm.asarray(indices, dtype=bm.int_))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     if need_sort:
-      sort_idx = bm.argsort(times)
+      sort_idx = bm.argsort(self.times)
       self.indices.value = self.indices[sort_idx]
       self.times.value = self.times[sort_idx]
 
