@@ -416,10 +416,7 @@ class Node(Base):
 
   def _init_ff_conn(self):
     if not self._is_ff_initialized:
-      try:
-        self.init_ff_conn()
-      except Exception as e:
-        raise ModelBuildError(f'{self.name} initialization failed.') from e
+      self.init_ff_conn()
       if self.output_shape is None:
         raise ValueError(f'Please set the output shape when implementing '
                          f'"init_ff_conn()" of the node {self.name}')
