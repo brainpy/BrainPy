@@ -11,14 +11,18 @@ from typing import Sequence, Optional, Dict, Callable, Union
 import jax.nn
 import jax.numpy as jnp
 
+import brainpy.math as bm
 import brainpy
-from brainpy.initialize import ZeroInit, OneInit
+from brainpy.initialize import ZeroInit, OneInit, Initializer
 from brainpy.nn.base import Node
 from brainpy.nn.constants import PASS_ONLY_ONE
 
 
 __all__ = [
   'BatchNorm',
+  'BatchNorm1d',
+  'BatchNorm2d',
+  'BatchNorm3d',
 ]
 
 
@@ -43,8 +47,8 @@ class BatchNorm(Node):
                epsilon: float = 1e-5,
                translate: bool = True,
                scale: bool = True,
-               beta_init: brainpy.init.Initializer = ZeroInit(),
-               gamma_init: brainpy.init.Initializer = OneInit(),
+               beta_init: Initializer = ZeroInit(),
+               gamma_init: Initializer = OneInit(),
                **kwargs):
     super(BatchNorm, self).__init__(**kwargs)
     self.center = translate
@@ -54,24 +58,23 @@ class BatchNorm(Node):
     self.axis = (axis,) if jnp.isscalar(axis) else axis
     self.epsilon = epsilon
 
-  def _check_input_dim(self, input):
+  def _check_input_dim(self):
     pass
 
   def init_ff_conn(self):
+    self._check_input_dim()
+
+    input_shape = tuple(d for i, d in enumerate(self.feedforward_shapes) if i not in self.axis)
+    self.beta = bm.TrainVar(self.beta_init(input_shape))
+    self.gamma = bm.TrainVar(self.gamma_init(input_shape))
     self.set_output_shape(self.feedforward_shapes)
 
   def forward(self, ff, **shared_kwargs):
-    self._check_input_dim(ff)
-
-    input_shape = tuple(d for i, d in enumerate(ff.shape) if i not in self.axis)
-    beta = self.beta_init(input_shape)
-    gamma = self.gamma_init(input_shape)
-
     ed = tuple(None if i in self.axis else slice(None) for i in range(jnp.ndim(ff)))
-    output = jax.nn.normalize(ff, self.axis, epsilon=self.epsilon)
-    if self.center and self.scale: return gamma[ed] * output + beta[ed]
-    if self.center: return output + beta[ed]
-    if self.scale: return gamma[ed] * output
+    output = jax.nn.normalize(bm.as_device_array(ff), self.axis, epsilon=self.epsilon)
+    if self.center and self.scale: return self.gamma[ed] * output + self.beta[ed]
+    if self.center: return output + self.beta[ed]
+    if self.scale: return self.gamma[ed] * output
     return output
 
 
@@ -92,15 +95,16 @@ class BatchNorm1d(BatchNorm):
   beta_init: an initializer generating the original translation matrix
   gamma_init: an initializer generating the original scaling matrix
   """
-  def __init__(self, axis=(0, 1)):
-    super(BatchNorm1d, self).__init__(axis=axis)
+  def __init__(self, axis=(0, 1), **kwargs):
+    super(BatchNorm1d, self).__init__(axis=axis, **kwargs)
 
-  def _check_input_dim(self, input):
-    if input.ndim != 2 and input.ndim != 3:
+  def _check_input_dim(self):
+    ndim = len(self.feedforward_shapes)
+    if ndim != 2 and ndim != 3:
       raise ValueError(
-        "expected 2D or 3D input (got {}D input)".format(input.ndim())
+        "expected 2D or 3D input (got {}D input)".format(ndim)
       )
-    if input.ndim == 2 and len(self.axis) == 2:
+    if ndim == 2 and len(self.axis) == 2:
       self.axis = (0,)
 
 
@@ -116,18 +120,23 @@ class BatchNorm2d(BatchNorm):
       axes where the data will be normalized. The axis of channels should be excluded.
     epsilon: float
       a value added to the denominator for numerical stability. Default: 1e-5
-    translate: whether to translate data in refactoring
-    scale: whether to scale data in refactoring
-    beta_init: an initializer generating the original translation matrix
-    gamma_init: an initializer generating the original scaling matrix
+    translate: bool
+      whether to translate data in refactoring
+    scale: bool
+      whether to scale data in refactoring
+    beta_init: brainpy.init.Initializer
+      an initializer generating the original translation matrix
+    gamma_init: brainpy.init.Initializer
+      an initializer generating the original scaling matrix
     """
-  def __init__(self, axis=(0, 1, 2)):
-    super(BatchNorm2d, self).__init__(axis=axis)
+  def __init__(self, axis=(0, 1, 2), **kwargs):
+    super(BatchNorm2d, self).__init__(axis=axis, **kwargs)
 
-  def _check_input_dim(self, input):
-    if input.ndim != 4:
+  def _check_input_dim(self):
+    ndim = len(self.feedforward_shapes)
+    if ndim != 4:
       raise ValueError(
-        "expected 4D input (got {}D input)".format(input.ndim())
+        "expected 4D input (got {}D input)".format(ndim)
       )
 
 
@@ -148,11 +157,12 @@ class BatchNorm3d(BatchNorm):
       beta_init: an initializer generating the original translation matrix
       gamma_init: an initializer generating the original scaling matrix
       """
-  def __init__(self, axis=(0, 1, 2, 3)):
-    super(BatchNorm3d, self).__init__(axis=axis)
+  def __init__(self, axis=(0, 1, 2, 3), **kwargs):
+    super(BatchNorm3d, self).__init__(axis=axis, **kwargs)
 
-  def _check_input_dim(self, input):
-    if input.ndim != 5:
+  def _check_input_dim(self):
+    ndim = len(self.feedforward_shapes)
+    if ndim != 5:
       raise ValueError(
-        "expected 5D input (got {}D input)".format(input.ndim())
+        "expected 5D input (got {}D input)".format(ndim)
       )
