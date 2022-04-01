@@ -262,7 +262,7 @@ analyzer.show_figure()
 <p align="center"><img src="./docs/_static/fhn_ppa.png" width="60%">
 </p> 
 
-
+### Contributors
 
 ### 6. More others
 
