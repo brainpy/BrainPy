@@ -2,14 +2,19 @@
 
 import math as pm
 import warnings
+from typing import Union, Dict
+
+import jax.numpy as jnp
+import numpy as np
 
 import brainpy.math as bm
 from brainpy import tools
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
-from brainpy.errors import ModelBuildError
 from brainpy.connect import TwoEndConnector, MatConn, IJConn
+from brainpy.errors import ModelBuildError
 from brainpy.integrators.base import Integrator
+from brainpy.types import Tensor
 
 __all__ = [
   'DynamicalSystem',
@@ -326,13 +331,19 @@ class TwoEndConn(DynamicalSystem):
       Pre-synaptic neuron group.
   post : NeuGroup
       Post-synaptic neuron group.
-  conn : optional, math.ndarray, dict of (str, math.ndarray), TwoEndConnector
+  conn : optional, ndarray, JaxArray, dict, TwoEndConnector
       The connection method between pre- and post-synaptic groups.
   name : str, optional
       The name of the dynamic system.
   """
 
-  def __init__(self, pre, post, conn=None, name=None):
+  def __init__(
+      self,
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
+      name: str = None
+  ):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
@@ -346,7 +357,7 @@ class TwoEndConn(DynamicalSystem):
     # ------------
     if isinstance(conn, TwoEndConnector):
       self.conn = conn(pre.size, post.size)
-    elif isinstance(conn, bm.ndarray):
+    elif isinstance(conn, (bm.ndarray, np.ndarray, jnp.ndarray)):
       if (pre.num, post.num) != conn.shape:
         raise ModelBuildError(f'"conn" is provided as a matrix, and it is expected '
                               f'to be an array with shape of (pre.num, post.num) = '
@@ -358,8 +369,10 @@ class TwoEndConn(DynamicalSystem):
                               f'be a dictionary with "i" and "j" specification, '
                               f'however we got {conn}')
       self.conn = IJConn(i=conn['i'], j=conn['j'])
-    elif conn is None:
+    elif isinstance(conn, str):
       self.conn = conn
+    elif conn is None:
+      self.conn = None
     else:
       raise ModelBuildError(f'Unknown "conn" type: {conn}')
 
