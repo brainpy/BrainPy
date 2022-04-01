@@ -17,7 +17,7 @@ class Input(Node):
   data_pass_type = PASS_ONLY_ONE
 
   def __init__(self,
-               input_shape: Union[Tuple[int], int],
+               input_shape: Union[Tuple[int, ...], int],
                name: str = None):
     super(Input, self).__init__(name=name, input_shape=input_shape)
     self.set_feedforward_shapes({self.name: (None,) + to_size(input_shape)})
