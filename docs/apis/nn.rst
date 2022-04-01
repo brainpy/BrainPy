@@ -12,6 +12,7 @@
     auto/nn/operations
     auto/nn/graph_flow
     auto/nn/runners
+    auto/nn/algorithms
     auto/nn/constants
     auto/nn/nodes_base
     auto/nn/nodes_ANN
