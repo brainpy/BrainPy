@@ -33,6 +33,8 @@ from brainpy.nn.graph_flow import (find_senders_and_receivers,
                                    find_entries_and_exits,
                                    detect_cycle,
                                    detect_path)
+from brainpy.nn.algorithms.offline import OfflineAlgorithm
+from brainpy.nn.algorithms.online import OnlineAlgorithm
 from brainpy.tools.checking import (check_dict_data,
                                     check_batch_shape,
                                     check_integer)
@@ -49,14 +51,14 @@ __all__ = [
 NODE_STATES = ['inputs', 'feedbacks', 'state', 'output']
 
 SUPPORTED_LAYOUTS = ['shell_layout',
-                      'multipartite_layout',
-                      'spring_layout',
-                      'spiral_layout',
-                      'spectral_layout',
-                      'random_layout',
-                      'planar_layout',
-                      'kamada_kawai_layout',
-                      'circular_layout']
+                     'multipartite_layout',
+                     'spring_layout',
+                     'spiral_layout',
+                     'spectral_layout',
+                     'random_layout',
+                     'planar_layout',
+                     'kamada_kawai_layout',
+                     'circular_layout']
 
 
 def not_implemented(fun: Callable) -> Callable:
@@ -90,9 +92,11 @@ class Node(Base):
   """
   data_pass_type = PASS_SEQUENCE
 
-  offline_fit_by: Callable
+  """Offline fitting method."""
+  offline_fit_by: Union[Callable, OfflineAlgorithm]
 
-  online_fit_by: Callable
+  """Online fitting method."""
+  online_fit_by: OnlineAlgorithm
 
   def __init__(self,
                name: Optional[str] = None,
@@ -126,10 +130,8 @@ class Node(Base):
   def __repr__(self):
     name = type(self).__name__
     prefix = ' ' * (len(name) + 1)
-    line1 = (f"{name}(name={self.name}, "
-             f"forwards={self.feedforward_shapes}, "
-             f"feedbacks={self.feedback_shapes}, \n")
-    line2 = f"{prefix}output={self.output_shape}"
+    line1 = f"{name}(name={self.name}, forwards={self.feedforward_shapes}, \n"
+    line2 = f"{prefix}feedbacks={self.feedback_shapes}, output={self.output_shape})"
     return line1 + line2
 
   def __call__(self, *args, **kwargs) -> Tensor:
@@ -137,9 +139,9 @@ class Node(Base):
 
     Parameters
     ----------
-    ff: dict, sequence, tensor
+    ff: dict, sequence, JaxArray, ndarray
       The feedforward inputs.
-    fb: optional, dict, sequence, tensor
+    fb: optional, dict, sequence, JaxArray, ndarray
       The feedback inputs.
     forced_states: optional, dict
       The fixed state for the nodes in the network.
@@ -196,7 +198,7 @@ class Node(Base):
   def __iand__(self, other):
     raise ValueError('Only Network objects support inplace merging.')
 
-  def __getitem__(self, item):  # "[:10]"
+  def __getitem__(self, item):  # like "[:10]"
     if isinstance(item, str):
       raise ValueError('Node only supports slice, not retrieve by the name.')
     else:
@@ -331,7 +333,10 @@ class Node(Base):
 
   def set_feedback_shapes(self, fb_shapes: Dict):
     if not self._is_fb_initialized:
-      check_dict_data(fb_shapes, key_type=(Node, str), val_type=(tuple, list), name='fb_shapes')
+      check_dict_data(fb_shapes,
+                      key_type=(Node, str),
+                      val_type=(tuple, list),
+                      name='fb_shapes')
       self._feedback_shapes = fb_shapes
     else:
       if self.feedback_shapes is not None:
@@ -496,18 +501,23 @@ class Node(Base):
     # check feedforward inputs
     if isinstance(ff, (bm.ndarray, jnp.ndarray)):
       ff = {self.name: ff}
-    assert isinstance(ff, dict), f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}'
-    assert self.name in ff, f'Cannot find input for this node {self} when given "ff" {ff}'
+    if not isinstance(ff, dict):
+      raise ValueError(f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}')
+    if self.name not in ff:
+      raise ValueError(f'Cannot find input for this node {self} when given "ff" {ff}')
     for k, size in self._feedforward_shapes.items():
-      assert k in ff, f"The required key {k} is not provided in feedforward inputs."
+      if k not in ff:
+        raise ValueError(f"The required key {k} is not provided in feedforward inputs.")
       check_batch_shape(size, ff[k].shape)
 
     # check feedback inputs
     if fb is not None:
-      assert isinstance(fb, dict), f'"fb" must be a dict, got {type(fb)}: {fb}'
+      if not isinstance(fb, dict):
+        raise ValueError(f'"fb" must be a dict, got {type(fb)}: {fb}')
       # check feedback consistency
       for k, size in self._feedback_shapes.items():
-        assert k in fb, f"The required key {k} is not provided in feedback inputs."
+        if k not in fb:
+          raise ValueError(f"The required key {k} is not provided in feedback inputs.")
         check_batch_shape(size, fb[k].shape)
 
     # data
@@ -522,17 +532,18 @@ class Node(Base):
             forced_feedbacks: Dict[str, Tensor] = None,
             monitors=None,
             **kwargs) -> Union[Tensor, Tuple[Tensor, Dict]]:
-    # checking
     if not self.is_initialized:
       raise ValueError('Please initialize the Node first by calling "initialize()" function.')
 
     # initialize the forced data
-    if forced_states is None: forced_states = dict()
+    if forced_states is None:
+      forced_states = dict()
     if isinstance(forced_states, (bm.ndarray, jnp.ndarray)):
       forced_states = {self.name: forced_states}
     check_dict_data(forced_states, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
-    assert forced_feedbacks is None, ('Single instance of brainpy.nn.Node do '
-                                      'not support "forced_feedbacks"')
+    if forced_feedbacks is not None:
+      raise ValueError('Single instance of brainpy.nn.Node do '
+                       'not support "forced_feedbacks"')
     # monitors
     need_return_monitor = True
     if monitors is None:
@@ -541,9 +552,41 @@ class Node(Base):
     attr_monitors: Dict[str, Tensor] = {}
     state_monitors: Dict[str, Tensor] = {}
     for key in monitors:
-      assert isinstance(key, str), (f'"extra_returns" must be a sequence of string, '
-                                    f'while we got {type(key)}')
-      if key not in NODE_STATES:  # monitor attributes
+
+      splits = key.split('.')
+      if len(splits) != 2:
+        raise ValueError(f'Every term in "monitors" must be (node.item), '
+                         f'while we got {key}')
+      if splits[0] not in self.implicit_nodes:
+        raise ValueError(f'Cannot found the node {splits[0]}, this network '
+                         f'only has {list(self.implicit_nodes.keys())}.')
+
+      if splits[1] not in NODE_STATES:  # attribute monitor
+        if not hasattr(self.implicit_nodes[splits[0]], splits[1]):
+          raise UnsupportedError(f'Each node can monitor its states (including {NODE_STATES}), '
+                                 f'or its attribute. While {splits[1]} is neither the state nor '
+                                 f'the attribute of node {splits[0]}.')
+        else:
+          attr_monitors[key] = getattr(self.implicit_nodes[splits[0]], splits[1])
+      else:  # state monitor
+        if splits[1] == 'state':
+          assert self.implicit_nodes[splits[0]].state is not None, (f'{splits[0]} has no state, while '
+                                                                    f'the user try to monitor it.')
+        state_monitors[key] = None
+
+
+
+      if not isinstance(key, str):
+        raise ValueError(f'"extra_returns" must be a sequence of string, '
+                         f'while we got {type(key)}')
+      splits = key.split('.')
+      if len(splits) != 2:
+        raise ValueError(f'Every term in "monitors" must be (node.item), '
+                         f'while we got {key}')
+      if splits[0] != self.name:
+        raise ValueError(f"Cannot found the node {splits[0]}, this name of "
+                         f"this node is {self.name}.")
+      if splits[1] not in NODE_STATES:  # monitor attributes
         if not hasattr(self, key):
           raise UnsupportedError(f'Each node can monitor its states (including {NODE_STATES}), '
                                  f'or its attribute. While {key} is neither the state nor '
@@ -551,23 +594,32 @@ class Node(Base):
         else:
           attr_monitors[key] = getattr(self, key)
       else:  # monitor states
-        if key == 'state':
-          assert self.state is not None, (f'{self} \n\nhas no state, while '
-                                          f'the user try to monitor its state.')
+        if splits[1] == 'state':
+          if self.state is None:
+            raise ValueError(f'{self} \n\nhas no state, while '
+                             f'the user try to monitor its state.')
         state_monitors[key] = None
 
-    # calling
+    # checking
     ff, fb = self._check_inputs(ff, fb=fb)
-    if 'inputs' in state_monitors:
-      state_monitors['inputs'] = ff
-    if 'feedbacks' in state_monitors:
-      state_monitors['feedbacks'] = fb
+
+    # monitoring
+    if f'{self.name}.inputs' in state_monitors:
+      state_monitors[f'{self.name}.inputs'] = ff
+    if f'{self.name}.feedbacks' in state_monitors:
+      state_monitors[f'{self.name}.feedbacks'] = fb
+
+    # forward pass
     output = self.forward(ff, fb, **kwargs)
-    if 'output' in state_monitors:
-      state_monitors['output'] = output
-    if 'state' in state_monitors:
-      state_monitors['state'] = self.state
+
+    # monitoring
+    if f'{self.name}.output' in state_monitors:
+      state_monitors[f'{self.name}.output'] = output
+    if f'{self.name}.state' in state_monitors:
+      state_monitors[f'{self.name}.state'] = self.state
     attr_monitors.update(state_monitors)
+
+    # outputs
     if need_return_monitor:
       return output, attr_monitors
     else:
@@ -615,8 +667,13 @@ class Node(Base):
     raise ValueError(f'This node \n\n{self} \n\ndoes not support offline training.')
 
   @not_implemented
+  def online_init(self):
+    """Online training initialization interface."""
+    raise ValueError(f'This node \n\n{self} \n\ndoes not support online training.')
+
+  @not_implemented
   def online_fit(self, target, ff, fb=None):
-    """Online training interface."""
+    """Online training fitting interface."""
     raise ValueError(f'This node \n\n{self} \n\ndoes not support online training.')
 
 
@@ -1103,13 +1160,16 @@ class Network(Node):
     attr_monitors: Dict[str, Tensor] = {}
     state_monitors: Dict[str, Tensor] = {}
     for key in monitors:
-      assert isinstance(key, str), (f'"extra_returns" must be a sequence of string, '
-                                    f'while we got {type(key)}')
+      if not isinstance(key, str):
+        raise ValueError(f'"extra_returns" must be a sequence of string, '
+                         f'while we got {type(key)}')
       splits = key.split('.')
-      assert len(splits) == 2, (f'Every term in "extra_returns" must be (node.item), '
-                                f'while we got {key}')
-      assert splits[0] in self.implicit_nodes, (f'Cannot found the node {splits[0]}, this network '
-                                                f'only has {list(self.implicit_nodes.keys())}.')
+      if len(splits) != 2:
+        raise ValueError(f'Every term in "extra_returns" must be (node.item), '
+                         f'while we got {key}')
+      if splits[0] not in self.implicit_nodes:
+        raise ValueError(f'Cannot found the node {splits[0]}, this network '
+                         f'only has {list(self.implicit_nodes.keys())}.')
 
       if splits[1] not in NODE_STATES:  # attribute monitor
         if not hasattr(self.implicit_nodes[splits[0]], splits[1]):
@@ -1131,6 +1191,37 @@ class Network(Node):
       return output, attr_monitors
     else:
       return output
+
+  def _call_a_node(self, node, ff, fb, monitors, forced_states,
+                   parent_outputs, children_queue, ff_senders,
+                   **shared_kwargs):
+    ff = node.data_pass_func(ff)
+    if f'{node.name}.inputs' in monitors:
+      monitors[f'{node.name}.inputs'] = ff
+    # get the output results
+    if len(fb):
+      fb = node.data_pass_func(fb)
+      if f'{node.name}.feedbacks' in monitors:
+        monitors[f'{node.name}.feedbacks'] = fb
+      parent_outputs[node] = node.forward(ff, fb, **shared_kwargs)
+    else:
+      parent_outputs[node] = node.forward(ff, **shared_kwargs)
+    # get the feedback state
+    if node in self.fb_receivers:
+      node.set_fb_output(node.feedback(parent_outputs[node], **shared_kwargs))
+    # forced state
+    if node.name in forced_states:
+      node.state.value = forced_states[node.name]
+    # monitor the values
+    if f'{node.name}.state' in monitors:
+      monitors[f'{node.name}.state'] = node.state.value
+    if f'{node.name}.output' in monitors:
+      monitors[f'{node.name}.output'] = parent_outputs[node]
+    # append children nodes
+    for child in self.ff_receivers.get(node, []):
+      ff_senders[child].remove(node)
+      if len(ff_senders.get(child, [])) == 0:
+        children_queue.append(child)
 
   def forward(self,
               ff,
@@ -1213,38 +1304,6 @@ class Network(Node):
     else:
       state = parent_outputs[self.exit_nodes[0]]
     return state, monitors
-
-  def _call_a_node(self, node, ff, fb, monitors, forced_states,
-                   parent_outputs, children_queue, ff_senders,
-                   **shared_kwargs):
-    ff = node.data_pass_func(ff)
-    if f'{node.name}.inputs' in monitors:
-      monitors[f'{node.name}.inputs'] = ff
-    # get the output results
-    if len(fb):
-      fb = node.data_pass_func(fb)
-      if f'{node.name}.feedbacks' in monitors:
-        monitors[f'{node.name}.feedbacks'] = fb
-      parent_outputs[node] = node.forward(ff, fb, **shared_kwargs)
-    else:
-      parent_outputs[node] = node.forward(ff, **shared_kwargs)
-    # get the feedback state
-    if node in self.fb_receivers:
-      node.set_fb_output(node.feedback(parent_outputs[node], **shared_kwargs))
-    # forced state
-    if node.name in forced_states:
-      node.state.value = forced_states[node.name]
-      # parent_outputs[node] = forced_states[node.name]
-    # monitor the values
-    if f'{node.name}.state' in monitors:
-      monitors[f'{node.name}.state'] = node.state.value
-    if f'{node.name}.output' in monitors:
-      monitors[f'{node.name}.output'] = parent_outputs[node]
-    # append children nodes
-    for child in self.ff_receivers.get(node, []):
-      ff_senders[child].remove(node)
-      if len(ff_senders.get(child, [])) == 0:
-        children_queue.append(child)
 
   def plot_node_graph(self,
                       fig_size: tuple = (10, 10),
@@ -1398,7 +1457,6 @@ class FrozenNetwork(Network):
 
 class Sequential(Network):
   pass
-
 
 # def _process_params(G, center, dim):
 #     # Some boilerplate code.

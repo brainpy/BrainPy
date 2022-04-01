@@ -7,15 +7,11 @@ __all__ = [
   # base class for offline training algorithm
   'OfflineAlgorithm',
 
+  # training methods
   'RidgeRegression',
   'LinearRegression',
 
-  # 'LassoRegression',
-  # 'elastic_net_regression',
-  # 'logistic_regression',
-  # 'polynomial_regression',
-  # 'stepwise_regression',
-
+  # general supports
   'get_supported_offline_methods',
   'register_offline_method',
 ]
@@ -29,15 +25,22 @@ class OfflineAlgorithm(Base):
   def __init__(self, name=None):
     super(OfflineAlgorithm, self).__init__(name=name)
 
-  def __call__(self, x, y):
+  def __call__(self, targets, inputs, outputs):
     """The training procedure.
 
     Parameters
     ----------
-    x: JaxArray, jax.numpy.ndarray, numpy.ndarray
-      The input data with the shape of `(num_time, num_feature)`.
-    y: JaxArray, jax.numpy.ndarray, numpy.ndarray
-      The target data with the shape of `(num_time, num_feature)`.
+    inputs: JaxArray, jax.numpy.ndarray, numpy.ndarray
+      The 3d input data with the shape of `(num_batch, num_time, num_input)`,
+      or, the 2d input data with the shape of `(num_time, num_input)`.
+
+    targets: JaxArray, jax.numpy.ndarray, numpy.ndarray
+      The 3d target data with the shape of `(num_batch, num_time, num_output)`,
+      or the 2d target data with the shape of `(num_time, num_output)`.
+
+    outputs: JaxArray, jax.numpy.ndarray, numpy.ndarray
+      The 3d output data with the shape of `(num_batch, num_time, num_output)`,
+      or the 2d output data with the shape of `(num_time, num_output)`.
 
     Returns
     -------
@@ -63,15 +66,15 @@ class RidgeRegression(OfflineAlgorithm):
     super(RidgeRegression, self).__init__(name=name)
     self.beta = beta
 
-  def __call__(self, x, y):
+  def __call__(self, targets, inputs, outputs=None):
     # checking
-    x = bm.asarray(x).reshape((-1, x.shape[2]))
-    y = bm.asarray(y).reshape((-1, y.shape[2]))
+    inputs = bm.asarray(inputs).reshape((-1, inputs.shape[2]))
+    targets = bm.asarray(targets).reshape((-1, targets.shape[2]))
     # solving
-    temp = x.T @ x
+    temp = inputs.T @ inputs
     if self.beta > 0.:
-      temp += self.beta * bm.eye(x.shape[-1])
-    weights = bm.linalg.pinv(temp) @ (x.T @ y)
+      temp += self.beta * bm.eye(inputs.shape[-1])
+    weights = bm.linalg.pinv(temp) @ (inputs.T @ targets)
     return weights
 
   def __repr__(self):
@@ -87,12 +90,10 @@ class LinearRegression(OfflineAlgorithm):
   def __init__(self, name=None):
     super(LinearRegression, self).__init__(name=name)
 
-  def __call__(self, x, y):
-    # checking
-    x = bm.asarray(x).reshape((-1, x.shape[2]))
-    y = bm.asarray(y).reshape((-1, y.shape[2]))
-    # solving
-    weights = bm.linalg.lstsq(x, y)
+  def __call__(self, targets, inputs, outputs=None):
+    inputs = bm.asarray(inputs).reshape((-1, inputs.shape[2]))
+    targets = bm.asarray(targets).reshape((-1, targets.shape[2]))
+    weights = bm.linalg.lstsq(inputs, targets)
     return weights[0]
 
 
@@ -158,7 +159,7 @@ def get_supported_offline_methods():
 
 
 def register_offline_method(name, method):
-  """Register a new ODE integrator.
+  """Register a new offline learning method.
 
   Parameters
   ----------

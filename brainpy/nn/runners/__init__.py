@@ -2,8 +2,20 @@
 
 
 """
-This module provides various running and training algorithm
-for neural networks.
+This module provides various running and training algorithms
+for various neural networks.
+
+The supported training algorithms include
+- offline training methods, like ridge regression, linear regression, etc.
+- online training methods, like recursive least squares (RLS, or Force Learning),
+  least mean squares (LMS), etc.
+- back-propagation learning method
+- and others
+
+The supported neural networks include
+- reservoir computing networks,
+- artificial recurrent neural networks,
+- and others.
 """
 
 
@@ -13,5 +25,3 @@ from .online_trainer import *
 from .offline_trainer import *
 from .back_propagation import *
 
-from .offline_algorithms import *
-from .online_algorithms import *

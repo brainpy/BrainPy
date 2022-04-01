@@ -448,13 +448,32 @@ def generate_nn_docs(path='apis/auto/nn/'):
                filename=os.path.join(path, 'constants.rst'),
                header='Constants')
 
-  write_module(module_name='brainpy.nn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners and Trainers')
+  module_and_name = [
+    ('rnn_runner', 'Base RNN Runner'),
+    ('rnn_trainer', 'Base RNN Trainer'),
+    ('online_trainer', 'Online RNN Trainer'),
+    ('offline_trainer', 'Offline RNN Trainer'),
+    ('back_propagation', 'Back-propagation Trainer'),
+  ]
+  write_submodules(module_name='brainpy.nn.runners',
+                   filename=os.path.join(path, 'runners.rst'),
+                   header='Runners and Trainers',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+
+  module_and_name = [
+    ('online', 'Online Training Algorithms'),
+    ('offline', 'Offline Training Algorithms'),
+  ]
+  write_submodules(module_name='brainpy.nn.algorithms',
+                   filename=os.path.join(path, 'algorithms.rst'),
+                   header='Training Algorithms',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
   write_module(module_name='brainpy.nn.nodes.base',
                filename=os.path.join(path, 'nodes_base.rst'),
-               header='Common and Basic Nodes')
+               header='Nodes: basic')
   write_module(module_name='brainpy.nn.nodes.ANN',
                filename=os.path.join(path, 'nodes_ANN.rst'),
                header='Nodes: artificial neural network ')
@@ -533,7 +552,7 @@ def generate_compact_docs(path='apis/auto/compat/'):
                header='Runners')
 
 
-def generate_math_compact_docs(path='apis/auto/math_compat/'):
+def generate_math_compact_docs(path='apis/auto/math/'):
   if not os.path.exists(path):
     os.makedirs(path)
 
