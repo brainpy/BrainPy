@@ -53,6 +53,11 @@ class RNNTrainer(RNNRunner):
     return train_nodes
 
   def _check_ys(self, ys, num_batch, num_step, move_axis=False):
+    # output_shapes = {}
+    # for node in self.train_nodes:
+    #   name = self.target.entry_nodes[0].name
+    #   output_shapes[name] = node.output_shape
+
     if isinstance(ys, (bm.ndarray, jnp.ndarray)):
       if len(self.train_nodes) == 1:
         ys = {self.train_nodes[0].name: ys}
@@ -61,9 +66,9 @@ class RNNTrainer(RNNRunner):
                          f'training nodes, while we only got one target data.')
     check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     for key, val in ys.items():
-      if val.ndim != 3:
+      if val.ndim >= 3:
         raise ValueError("Targets must be a tensor with shape of "
-                         "(num_sample, num_time, num_feature), "
+                         "(num_sample, num_time, num_feature1, ...), "
                          f"but we got {val.shape}")
       if val.shape[0] != num_batch:
         raise ValueError(f'Batch size of the target {key} does not match '
