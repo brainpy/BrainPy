@@ -11,7 +11,7 @@ from brainpy import math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
 from brainpy.nn.utils import (check_rnn_data_time_step,
-                              check_rnn_data_batch_size,
+                              check_data_batch_size,
                               serialize_kwargs)
 from brainpy.running.runner import Runner
 from brainpy.tools.checking import check_dict_data
@@ -59,6 +59,12 @@ class RNNRunner(Runner):
 
     # function for prediction
     self._predict_func = dict()
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    prefix = ' ' * len(name)
+    return (f'{name}(target={self.target}, \n\t'
+            f'{prefix}jit={self.jit})')
 
   def predict(
       self,
@@ -220,7 +226,7 @@ class RNNRunner(Runner):
           outputs = []
           output_type = 'node'
         monitors = {key: [] for key in self.mon.item_contents.keys()}
-        num_step = check_rnn_data_batch_size(xs)
+        num_step = check_data_batch_size(xs)
         for i in range(num_step):
           one_xs = {key: tensor[i] for key, tensor in xs.items()}
           one_forced_states = {key: tensor[i] for key, tensor in forced_states.items()}
@@ -326,7 +332,7 @@ class RNNRunner(Runner):
             raise ValueError(f'"forced_states" must a dict of (str, tensor), '
                              f'while we got ({type(key)}, {type(tensor)})')
           if bm.ndim(tensor) != self.target[key].state.ndim + 1:
-            raise ValueError(f'Must be a 3d tensor with shape of (num_batch, num_time, '
+            raise ValueError(f'Must be a tensor with shape of (num_batch, num_time, '
                              f'{str(self.target[key].state.shape)[1:-1]}), '
                              f'but we got {tensor.shape}')
           if tensor.shape[0] != num_batch:
@@ -368,7 +374,7 @@ class RNNRunner(Runner):
             raise ValueError('"forced_feedbacks" must a dict of (str, tensor), '
                              'while we got ({type(key)}, {type(tensor)})')
           if bm.ndim(tensor) != self.target[key].fb_output.ndim + 1:
-            raise ValueError(f'Must be a 3d tensor with shape of (num_batch, num_time, '
+            raise ValueError(f'Must be a tensor with shape of (num_batch, num_time, '
                              f'{str(self.target[key].fb_output.shape)[1:-1]}), '
                              f'but we got {tensor.shape}')
           if tensor.shape[0] != num_batch:
@@ -416,7 +422,7 @@ class RNNRunner(Runner):
         name = self.target.entry_nodes[0].name
         input_shapes[name] = node._feedforward_shapes[name]
     else:
-      name = self.target.entry_nodes[0].name
+      name = self.target.name
       input_shapes[name] = self.target._feedforward_shapes[name]
 
     xs = self._format_xs(xs)
@@ -443,3 +449,4 @@ class RNNRunner(Runner):
       # change shape to (num_time, num_sample, num_feature)
       xs = {k: bm.moveaxis(v, 0, 1) for k, v in xs.items()}
     return xs, num_step, num_batch
+

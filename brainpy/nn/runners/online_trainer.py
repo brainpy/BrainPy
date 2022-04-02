@@ -6,14 +6,15 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
+from brainpy.base import Base
 import brainpy.math as bm
 from brainpy.errors import NoImplementationError
+from brainpy.nn.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.nn.base import Node
 from brainpy.nn.utils import (serialize_kwargs,
-                              check_rnn_data_batch_size,
+                              check_data_batch_size,
                               check_rnn_data_time_step)
 from brainpy.types import Tensor
-from brainpy.nn.algorithms.online import get, OnlineAlgorithm, RLS
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
@@ -34,7 +35,7 @@ class OnlineTrainer(RNNTrainer):
     - It can be a string, which specify the shortcut name of the training algorithm.
       Like, ``fit_method='ridge'`` means using the RLS method.
       All supported fitting methods can be obtained through
-      :py:function:`brainpy.nn.runners.get_supported_online_methods`
+      :py:func:`brainpy.nn.runners.get_supported_online_methods`
     - It can be a dict, whose "name" item specifies the name of the training algorithm,
       and the others parameters specify the initialization parameters of the algorithm.
       For example, ``fit_method={'name': 'ridge', 'beta': 1e-4}``.
@@ -61,6 +62,7 @@ class OnlineTrainer(RNNTrainer):
     elif isinstance(fit_method, dict):
       name = fit_method.pop('name')
       fit_method = get(name)(**fit_method)
+    self.fit_method = fit_method
     if not callable(fit_method):
       raise ValueError(f'"train_method" must be an instance of callable function, '
                        f'but we got {type(fit_method)}.')
@@ -76,8 +78,19 @@ class OnlineTrainer(RNNTrainer):
     for node in self.train_nodes:
       node.online_init()
 
+    # update dynamical variables
+    if isinstance(self.fit_method, Base):
+      self.dyn_vars.update(self.fit_method.vars().unique())
+
     # training function
     self._f_train = dict()
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    prefix = ' ' * len(name)
+    return (f'{name}(target={self.target}, \n\t'
+            f'{prefix}jit={self.jit}, \n\t'
+            f'{prefix}fit_method={self.fit_method})')
 
   def fit(
       self,
@@ -231,7 +244,7 @@ class OnlineTrainer(RNNTrainer):
       def run_func(all_inputs):
         xs, ys, forced_states, forced_feedbacks = all_inputs
         monitors = {key: [] for key in self.mon.item_contents.keys()}
-        num_step = check_rnn_data_batch_size(xs)
+        num_step = check_data_batch_size(xs)
         for i in range(num_step):
           one_xs = {key: tensor[i] for key, tensor in xs.items()}
           one_ys = {key: tensor[i] for key, tensor in ys.items()}
