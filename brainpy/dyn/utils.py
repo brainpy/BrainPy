@@ -3,11 +3,12 @@
 import time
 from collections.abc import Iterable
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
+
 from brainpy import math as bm
-from brainpy.errors import RunningError
 from brainpy.dyn.base import DynamicalSystem
+from brainpy.errors import RunningError
 from brainpy.running.monitor import Monitor
 
 __all__ = [
@@ -52,6 +53,8 @@ def init_delay(delay_step, delay_target, delay_data=None):
     if delay_step.dtype not in [bm.int32, bm.int64]:
       raise ValueError('Only support delay steps. If your provide delay time length, '
                        'please divide the "dt" then provide us the number of delay steps.')
+    if delay_target.shape[0] != delay_step.shape[0]:
+      raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
   else:
     raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
                      f'integer or an array of integers.')

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Dict
+
 import brainpy.math as bm
-from brainpy.dyn.base import TwoEndConn
+from brainpy.connect import TwoEndConnector, All2All, One2One
+from brainpy.dyn.base import NeuGroup, TwoEndConn
 from brainpy.dyn.utils import init_delay
-from brainpy.integrators import odeint, JointEq
+from brainpy.integrators import odeint
+from brainpy.types import Tensor, Parameter
 
 __all__ = [
   'AMPA',
@@ -114,18 +118,18 @@ class AMPA(TwoEndConn):
 
   def __init__(
       self,
-      pre,
-      post,
-      conn,
-      g_max=0.42,
-      E=0.,
-      alpha=0.98,
-      beta=0.18,
-      T=0.5,
-      T_duration=0.5,
-      delay_step=None,
-      method='exp_auto',
-      name=None
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      g_max: Parameter = 0.42,
+      E: Parameter = 0.,
+      alpha: Parameter = 0.98,
+      beta: Parameter = 0.18,
+      T: Parameter = 0.5,
+      T_duration: Parameter = 0.5,
+      delay_step: Parameter = None,
+      method: str = 'exp_auto',
+      name: str = None
   ):
     super(AMPA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
@@ -141,10 +145,16 @@ class AMPA(TwoEndConn):
 
     # connection
     assert self.conn is not None
-    self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+    if not isinstance(self.conn, (All2All, One2One)):
+      self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
 
-    # variables``
-    self.g = bm.Variable(bm.zeros(len(self.pre_ids)))
+    # variables
+    if isinstance(self.conn, All2All):
+      self.g = bm.Variable(bm.zeros(self.pre.num))
+    elif isinstance(self.conn, One2One):
+      self.g = bm.Variable(bm.zeros(self.post.num))
+    else:
+      self.g = bm.Variable(bm.zeros(len(self.pre_ids)))
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
     self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
@@ -156,19 +166,37 @@ class AMPA(TwoEndConn):
     return dg
 
   def update(self, _t, _dt):
+    # delay pre-synaptic spikes
     if self.delay_type == 'homo':
       pre_spike = self.pre_spike(self.delay_step)
       self.pre_spike.update(self.pre.spike)
     elif self.delay_type == 'heter':
-      pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      pre_spike = self.pre_spike(self.delay_step, bm.arange(self.pre.num))
       self.pre_spike.update(self.pre.spike)
     else:
       pre_spike = self.pre.spike
+
+    # spike arrival time
     self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)
-    syn_sp_times = bm.pre2syn(self.spike_arrival_time, self.pre_ids)
-    TT = ((_t - syn_sp_times) < self.T_duration) * self.T
-    self.g.value = self.integral(self.g, _t, TT, dt=_dt)
-    g_post = bm.syn2post(self.g, self.post_ids, self.post.num)
+
+    # post-synaptic values
+    if isinstance(self.conn, One2One):
+      TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
+      self.g.value = self.integral(self.g, _t, TT, dt=_dt)
+      g_post = self.g
+    elif isinstance(self.conn, All2All):
+      TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
+      self.g.value = self.integral(self.g, _t, TT, dt=_dt)
+      g_post = self.g.sum()
+      if not self.conn.include_self:
+        g_post = g_post - self.g
+    else:
+      syn_sp_times = bm.pre2syn(self.spike_arrival_time, self.pre_ids)
+      TT = ((_t - syn_sp_times) < self.T_duration) * self.T
+      self.g.value = self.integral(self.g, _t, TT, dt=_dt)
+      g_post = bm.syn2post(self.g, self.post_ids, self.post.num)
+
+    # output
     self.post.input -= self.g_max * g_post * (self.post.V - self.E)
 
 
@@ -229,18 +257,18 @@ class GABAa(AMPA):
 
   def __init__(
       self,
-      pre,
-      post,
-      conn,
-      g_max=0.04,
-      E=-80.,
-      alpha=0.53,
-      beta=0.18,
-      T=1.,
-      T_duration=1.,
-      delay_step=None,
-      method='exp_auto',
-      name=None
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      g_max: Parameter = 0.04,
+      E: Parameter = -80.,
+      alpha: Parameter = 0.53,
+      beta: Parameter = 0.18,
+      T: Parameter = 1.,
+      T_duration: Parameter = 1.,
+      delay_step: Parameter = None,
+      method: str = 'exp_auto',
+      name: str = None
   ):
     super(GABAa, self).__init__(pre, post, conn,
                                 delay_step=delay_step, g_max=g_max, E=E,
@@ -334,8 +362,6 @@ class NMDA(TwoEndConn):
     >>> plt.legend()
     >>> plt.show()
 
-
-
   **Model Parameters**
 
   ============= ============== =============== ================================================
@@ -380,20 +406,20 @@ class NMDA(TwoEndConn):
 
   def __init__(
       self,
-      pre,
-      post,
-      conn,
-      g_max=0.15,
-      E=0.,
-      cc_Mg=1.2,
-      alpha=0.062,
-      beta=3.57,
-      tau_decay=100.,
-      a=0.5,
-      tau_rise=2.,
-      delay_step=None,
-      method='exp_auto',
-      name=None
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      g_max: Parameter = 0.15,
+      E: Parameter = 0.,
+      cc_Mg: Parameter = 1.2,
+      alpha: Parameter = 0.062,
+      beta: Parameter = 3.57,
+      tau_decay: Parameter = 100.,
+      a: Parameter = 0.5,
+      tau_rise: Parameter = 2.,
+      delay_step: Parameter = None,
+      method: str = 'exp_auto',
+      name: str = None,
   ):
     super(NMDA, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_pre_attrs('spike')
@@ -410,34 +436,55 @@ class NMDA(TwoEndConn):
     self.a = a
 
     # connections
-    self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+    if not isinstance(self.conn, (All2All, One2One)):
+      self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
 
     # variables
-    num = len(self.pre_ids)
-    self.g = bm.Variable(bm.zeros(num, dtype=bm.float_))
-    self.x = bm.Variable(bm.zeros(num, dtype=bm.float_))
+    if isinstance(self.conn, All2All):
+      self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
+      self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
+    elif isinstance(self.conn, One2One):
+      self.g = bm.Variable(bm.zeros(self.post.num, dtype=bm.float_))
+      self.x = bm.Variable(bm.zeros(self.post.num, dtype=bm.float_))
+    else:
+      self.g = bm.Variable(bm.zeros(self.pre_ids.size, dtype=bm.float_))
+      self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
     self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
-
-  @property
-  def derivative(self):
-    dg = lambda g, t, x: -g / self.tau_decay + self.a * x * (1 - g)
-    dx = lambda x, t: -x / self.tau_rise
-    return JointEq([dg, dx])
+    self.int_g = odeint(method=method, f=lambda g, t, x: -g / self.tau_decay + self.a * x * (1 - g))
+    self.int_x = odeint(method=method, f=lambda x, t: -x / self.tau_rise)
 
   def update(self, _t, _dt):
+    # delayed pre-synaptic spikes
     if self.delay_type == 'homo':
       delayed_pre_spike = self.pre_spike(self.delay_step)
       self.pre_spike.update(self.pre.spike)
     elif self.delay_type == 'heter':
-      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange())
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange(self.pre.num))
       self.pre_spike.update(self.pre.spike)
     else:
       delayed_pre_spike = self.pre.spike
-    self.g.value, self.x.value = self.integral(self.g, self.x, _t, dt=_dt)
-    self.x += bm.pre2syn(delayed_pre_spike, self.pre_ids)
-    post_g = bm.syn2post(self.g, self.post_ids, self.post.num)
+
+    # post-synaptic value
+    if isinstance(self.conn, All2All):
+      x = self.int_x(self.x, _t, dt=_dt)
+      self.g.value = self.int_g(self.g, _t, self.x, dt=_dt)
+      self.x.value = x + delayed_pre_spike
+      post_g = self.g.sum()
+      if not self.conn.include_self:
+        post_g = post_g - self.g
+    elif isinstance(self.conn, One2One):
+      x = self.int_x(self.x, _t, dt=_dt)
+      self.g.value = self.int_g(self.g, _t, self.x, dt=_dt)
+      self.x.value = x + delayed_pre_spike.sum()
+      post_g = self.g
+    else:
+      x = bm.pre2syn(self.x, self.pre_ids)
+      self.g.value = self.int_g(self.g, _t, x, dt=_dt)
+      self.x.value = self.int_x(self.x, _t, dt=_dt) + delayed_pre_spike
+      post_g = bm.syn2post(self.g, self.post_ids, self.post.num)
+
+    # output
     g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)
     self.post.input -= self.g_max * post_g * (self.post.V - self.E) / g_inf

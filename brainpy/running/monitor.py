@@ -98,6 +98,10 @@ class Monitor(object):
     self.num_item = len(variables)
     self.build()
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(items={tuple(self.item_names)}, '
+            f'indices={self.item_indices})')
+
   def build(self):
     if not self.has_build:
       item_names = []
