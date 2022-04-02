@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+
+import numpy as np
+
 from brainpy import math as bm, tools
 from brainpy.nn.base import Node
 from brainpy.nn.constants import PASS_ONLY_ONE
@@ -74,14 +77,14 @@ class Reshape(Node):
     in_size = self.feedforward_shapes[1:]
     if -1 in self.shape:
       assert self.shape.count(-1) == 1, f'Cannot set shape with multiple -1. But got {self.shape}'
-      length = bm.prod(in_size)
+      length = np.prod(in_size)
       out_size = list(self.shape)
       m1_idx = out_size.index(-1)
       other_shape = out_size[:m1_idx] + out_size[m1_idx + 1:]
-      m1_length = int(length / bm.prod(other_shape))
+      m1_length = int(length / np.prod(other_shape))
       out_size[m1_idx] = m1_length
     else:
-      assert bm.prod(in_size) == bm.prod(self.shape)
+      assert np.prod(in_size) == np.prod(self.shape)
       out_size = self.shape
     self.set_output_shape((None,) + out_size)
 
