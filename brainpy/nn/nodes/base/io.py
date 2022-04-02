@@ -18,7 +18,7 @@ class Input(Node):
 
   def __init__(
       self,
-      input_shape: Union[Tuple[int], int],
+      input_shape: Union[Tuple[int, ...], int],
       trainable: bool = False,
       name: str = None,
   ):

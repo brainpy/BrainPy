@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math as bm, tools
+from brainpy.nn.base import Node
 from brainpy.nn.constants import PASS_ONLY_ONE
 from brainpy.tools.checking import check_shape_consistency
-from brainpy.nn.base import Node
 
 __all__ = [
   'Concat', 'Select', 'Reshape', 'Summation',
@@ -19,6 +19,7 @@ class Concat(Node):
   axis : int
     The axis of concatenation to perform.
   """
+
   def __init__(self, axis=-1, trainable=False, **kwargs):
     super(Concat, self).__init__(trainable=trainable, **kwargs)
     self.axis = axis
@@ -47,7 +48,7 @@ class Select(Node):
 
   def init_ff_conn(self):
     out_size = bm.zeros(self.feedforward_shapes[1:])[self.index].shape
-    self.set_output_shape((None, ) + out_size)
+    self.set_output_shape((None,) + out_size)
 
   def forward(self, ff, **shared_kwargs):
     return ff[..., self.index]
@@ -82,7 +83,7 @@ class Reshape(Node):
     else:
       assert bm.prod(in_size) == bm.prod(self.shape)
       out_size = self.shape
-    self.set_output_shape((None, ) + out_size)
+    self.set_output_shape((None,) + out_size)
 
   def forward(self, ff, **shared_kwargs):
     return bm.reshape(ff, self.shape)
@@ -94,6 +95,7 @@ class Summation(Node):
 
   All inputs should be broadcast compatible.
   """
+
   def __init__(self, trainable=False, **kwargs):
     super(Summation, self).__init__(trainable=trainable, **kwargs)
 
