@@ -111,9 +111,10 @@ class Reservoir(RecurrentNode):
       noise_fb: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
+      trainable: bool = False,
       **kwargs
   ):
-    super(Reservoir, self).__init__(**kwargs)
+    super(Reservoir, self).__init__(trainable=trainable, **kwargs)
 
     # parameters
     self.num_unit = num_unit
