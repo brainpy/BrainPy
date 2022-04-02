@@ -27,11 +27,12 @@ class Activation(Node):
   def __init__(self,
                activation: str = 'relu',
                fun_setting: Optional[Dict[str, Any]] = None,
+               trainable: bool = False,
                name: str = None,
                **kwargs):
     if name is None:
       name = self.unique_name(type_=f'{activation}_activation')
-    super(Activation, self).__init__(name=name, **kwargs)
+    super(Activation, self).__init__(name=name, trainable=trainable, **kwargs)
 
     self._activation = activations.get(activation)
     self._fun_setting = dict() if (fun_setting is None) else fun_setting

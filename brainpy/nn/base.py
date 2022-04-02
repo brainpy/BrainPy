@@ -26,6 +26,8 @@ from brainpy.errors import (UnsupportedError,
                             PackageMissingError,
                             ModelBuildError,
                             MathError)
+from brainpy.nn.algorithms.offline import OfflineAlgorithm
+from brainpy.nn.algorithms.online import OnlineAlgorithm
 from brainpy.nn.constants import (PASS_SEQUENCE,
                                   DATA_PASS_FUNC,
                                   DATA_PASS_TYPES)
@@ -33,8 +35,6 @@ from brainpy.nn.graph_flow import (find_senders_and_receivers,
                                    find_entries_and_exits,
                                    detect_cycle,
                                    detect_path)
-from brainpy.nn.algorithms.offline import OfflineAlgorithm
-from brainpy.nn.algorithms.online import OnlineAlgorithm
 from brainpy.tools.checking import (check_dict_data,
                                     check_batch_shape,
                                     check_integer)
@@ -83,25 +83,26 @@ def not_implemented(fun: Callable) -> Callable:
 class Node(Base):
   """Basic Node class for neural network building in BrainPy."""
 
-  """Support multiple types of data pass, including "PASS_SEQUENCE" (by default), 
+  '''Support multiple types of data pass, including "PASS_SEQUENCE" (by default), 
   "PASS_NAME_DICT", "PASS_NODE_DICT" and user-customized type which registered 
   by ``brainpy.nn.register_data_pass_type()`` function. 
   
   This setting will change the feedforward/feedback input data which pass into 
-  the "call()" function and the sizes of the feedforward/feedback input data.
-  """
+  the "call()" function and the sizes of the feedforward/feedback input data.'''
   data_pass_type = PASS_SEQUENCE
 
-  """Offline fitting method."""
+  '''Offline fitting method.'''
   offline_fit_by: Union[Callable, OfflineAlgorithm]
 
-  """Online fitting method."""
+  '''Online fitting method.'''
   online_fit_by: OnlineAlgorithm
 
-  def __init__(self,
-               name: Optional[str] = None,
-               input_shape: Optional[Union[Sequence[int], int]] = None,
-               trainable: bool = False):
+  def __init__(
+      self,
+      name: Optional[str] = None,
+      input_shape: Optional[Union[Sequence[int], int]] = None,
+      trainable: bool = True
+  ):
 
     # initialize parameters
     self._feedforward_shapes = None  # input shapes
@@ -570,8 +571,6 @@ class Node(Base):
           assert self.implicit_nodes[splits[0]].state is not None, (f'{splits[0]} has no state, while '
                                                                     f'the user try to monitor it.')
         state_monitors[key] = None
-
-
 
       if not isinstance(key, str):
         raise ValueError(f'"extra_returns" must be a sequence of string, '

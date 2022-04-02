@@ -129,13 +129,11 @@ class Dense(GeneralDense):
       num_unit: int,
       weight_initializer: Union[Initializer, Callable, Tensor] = XavierNormal(),
       bias_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
-      trainable: bool = True,
       **kwargs
   ):
     super(Dense, self).__init__(num_unit=num_unit,
                                 weight_initializer=weight_initializer,
                                 bias_initializer=bias_initializer,
-                                trainable=trainable,
                                 **kwargs)
     # set output shape
     self.set_output_shape((None, self.num_unit))
