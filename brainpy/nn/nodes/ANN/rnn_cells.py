@@ -64,10 +64,9 @@ class VanillaRNN(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
-      trainable: bool = True,
       **kwargs
   ):
-    super(VanillaRNN, self).__init__(trainable=trainable, **kwargs)
+    super(VanillaRNN, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -178,10 +177,9 @@ class GRU(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = Orthogonal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      trainable: bool = True,
       **kwargs
   ):
-    super(GRU, self).__init__(trainable=trainable, **kwargs)
+    super(GRU, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -312,10 +310,9 @@ class LSTM(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      trainable: bool = True,
       **kwargs
   ):
-    super(LSTM, self).__init__(trainable=trainable, **kwargs)
+    super(LSTM, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)

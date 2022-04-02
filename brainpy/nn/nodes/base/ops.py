@@ -19,8 +19,8 @@ class Concat(Node):
   axis : int
     The axis of concatenation to perform.
   """
-  def __init__(self, axis=-1, **kwargs):
-    super(Concat, self).__init__(**kwargs)
+  def __init__(self, axis=-1, trainable=False, **kwargs):
+    super(Concat, self).__init__(trainable=trainable, **kwargs)
     self.axis = axis
 
   def init_ff_conn(self):
@@ -40,8 +40,8 @@ class Select(Node):
 
   data_pass_type = PASS_ONLY_ONE
 
-  def __init__(self, index, **kwargs):
-    super(Select, self).__init__(**kwargs)
+  def __init__(self, index, trainable=False, **kwargs):
+    super(Select, self).__init__(trainable=trainable, **kwargs)
     if isinstance(index, int):
       self.index = bm.asarray([index]).value
 
@@ -64,8 +64,8 @@ class Reshape(Node):
   """
   data_pass_type = PASS_ONLY_ONE
 
-  def __init__(self, shape, **kwargs):
-    super(Reshape, self).__init__(**kwargs)
+  def __init__(self, shape, trainable=False, **kwargs):
+    super(Reshape, self).__init__(trainable=trainable, **kwargs)
     self.shape = tools.to_size(shape)
     assert (None not in self.shape), 'Batch size can not be defined in the reshaped size.'
 
@@ -94,8 +94,8 @@ class Summation(Node):
 
   All inputs should be broadcast compatible.
   """
-  def __init__(self, **kwargs):
-    super(Summation, self).__init__(**kwargs)
+  def __init__(self, trainable=False, **kwargs):
+    super(Summation, self).__init__(trainable=trainable, **kwargs)
 
   def init_ff_conn(self):
     unique_shape, _ = check_shape_consistency(self.feedforward_shapes, None, True)

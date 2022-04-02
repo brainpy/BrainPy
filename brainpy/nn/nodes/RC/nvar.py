@@ -68,9 +68,10 @@ class NVAR(RecurrentNode):
       order: Union[int, Sequence[int]] = None,
       stride: int = 1,
       constant: bool = False,
+      trainable: bool = False,
       **kwargs
   ):
-    super(NVAR, self).__init__(**kwargs)
+    super(NVAR, self).__init__(trainable=trainable, **kwargs)
 
     # parameters
     order = tuple() if order is None else order
