@@ -197,6 +197,14 @@ def lorenz_series(duration, dt=0.001, sigma=10, beta=8 / 3, rho=28, method='rk4'
   The Lorenz system is a system of ordinary differential equations first
   studied by mathematician and meteorologist Edward Lorenz.
 
+
+  Returns
+  -------
+  data: dict
+    A dict data with the keys of ``ts``, ``x``, ``y``, and ``z``,
+    where ``ts`` is the history time value, ``x, y, z`` are history
+    values of the variable in the Lorenz system.
+
   References
   ----------
   .. [6] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/lorenz_system.html
