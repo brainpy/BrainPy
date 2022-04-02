@@ -256,7 +256,6 @@ class BPTT(RNNTrainer):
       for x, y in train_data_:
         self._set_initial_states(initial_states)
         self._set_initial_feedbacks(initial_feedbacks)
-        self._check_mapping_type(y)
         batch_size = check_rnn_data_batch_size(x)
         if reset:
           self.target.initialize(batch_size)
@@ -274,7 +273,6 @@ class BPTT(RNNTrainer):
       test_data_ = self._get_test_data(test_data, num_batch)
       if test_data_ is not None:
         for x, y in test_data_:
-          self._check_mapping_type(y)
           batch_size = check_rnn_data_batch_size(x)
           if reset:
             self.target.initialize(batch_size)
@@ -347,8 +345,6 @@ class BPTT(RNNTrainer):
       outputs = self._format_ys(outputs)
       loss = 0.
       for key, output in outputs.items():
-        if self.mapping_type[key] == MANY2ONE:
-          output = output[:, -1]
         loss += self.loss_fun(output, targets[key])
       return loss
 
@@ -410,22 +406,6 @@ class BPTT(RNNTrainer):
                            f'output targets.')
     check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     return ys
-
-  def _check_mapping_type(self, ys):
-    if self.mapping_type is None:
-      self._mapping_type = dict()
-    for (key, y) in ys.items():
-      if y.ndim not in [2, 3]:
-        raise ValueError('Each tensor in "ys" must have the shape of '
-                         '(num_sample, num_time, num_feature) or '
-                         '(num_sample, num_feature), but we '
-                         f'got {y.shape}')
-      if key not in self._mapping_type:
-        self._mapping_type[key] = MANY2MANY if y.ndim == 3 else MANY2ONE
-      else:
-        if self._mapping_type[key] != (MANY2MANY if y.ndim == 3 else MANY2ONE):
-          raise ValueError(f'Mapping type of {key} is {self.mapping_type[key]}, '
-                           f'it cannot be changed.')
 
   def _get_train_data(self, train_data, num_batch):
     # training dataset
