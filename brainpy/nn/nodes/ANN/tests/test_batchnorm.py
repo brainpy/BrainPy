@@ -76,26 +76,26 @@ class TestBatchNorm(TestCase):
 
 		print(model(inputs))
 
-	# def test_batchnorm2(self):
-	# 	i = bp.nn.Input((3, 4))
-	# 	b = bp.nn.BatchNorm(axis=(0, 2))  # channel axis: 1
-	# 	f = bp.nn.Reshape((-1, 12))
-	# 	o = bp.nn.GeneralDense(2)
-	# 	model = i >> b >>f >> o
-	# 	model.initialize(num_batch=2)
-	#
-	# 	inputs = bp.math.ones((2, 3, 4))
-	# 	inputs[0, 0, :] = 2.
-	# 	inputs[0, 1, 0] = 5.
-	# 	# print(inputs)
-	# 	print(model(inputs))
-	#
-	#
-	# 	X = bp.math.random.random((1000, 10, 3, 4))
-	# 	Y = bp.math.random.randint(0, 2, (1000, 10,  2))
-	# 	trainer = bp.nn.BPTT(model,
-	# 	                     loss=bp.losses.cross_entropy_loss,
-	# 	                     optimizer=bp.optim.Adam(lr=1e-3))
-	# 	trainer.fit([X, Y])
+	def test_batchnorm2(self):
+		i = bp.nn.Input((3, 4))
+		b = bp.nn.BatchNorm(axis=(0, 2))  # channel axis: 1
+		f = bp.nn.Reshape((-1, 12))
+		o = bp.nn.GeneralDense(2)
+		model = i >> b >>f >> o
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		# print(inputs)
+		print(model(inputs))
+
+
+		X = bp.math.random.random((1000, 10, 3, 4))
+		Y = bp.math.random.randint(0, 2, (1000, 10,  2))
+		trainer = bp.nn.BPTT(model,
+		                     loss=bp.losses.cross_entropy_loss,
+		                     optimizer=bp.optim.Adam(lr=1e-3))
+		trainer.fit([X, Y])
 
 
