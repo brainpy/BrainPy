@@ -7,8 +7,8 @@ and how to customize your nodes or networks.
 .. toctree::
    :maxdepth: 1
 
-   node_specification
-   node_operations
-   network_training
-   node_customization
-   training_customization
+   node_specification.ipynb
+   node_operations.ipynb
+   network_run_and_train.ipynb
+   node_customization.ipynb
+   training_customization.ipynb
