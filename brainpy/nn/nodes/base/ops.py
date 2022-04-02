@@ -86,7 +86,7 @@ class Reshape(Node):
     else:
       assert np.prod(in_size) == np.prod(self.shape)
       out_size = self.shape
-    self.set_output_shape((None,) + out_size)
+    self.set_output_shape((None,) + tuple(out_size))
 
   def forward(self, ff, **shared_kwargs):
     return bm.reshape(ff, self.shape)
