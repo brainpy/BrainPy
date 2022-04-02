@@ -83,7 +83,7 @@ class GeneralDense(Node):
   def init_fb_conn(self):
     other_size, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
 
-    # initialize feedforward weights
+    # initialize feedback weights
     weight_shapes = (sum(free_shapes), self.num_unit)
     if self.trainable:
       self.Wfb = bm.TrainVar(init_param(self.weight_initializer, weight_shapes))
