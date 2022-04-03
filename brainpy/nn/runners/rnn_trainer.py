@@ -66,9 +66,9 @@ class RNNTrainer(RNNRunner):
                          f'training nodes, while we only got one target data.')
     check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     for key, val in ys.items():
-      if val.ndim >= 3:
+      if val.ndim < 3:
         raise ValueError("Targets must be a tensor with shape of "
-                         "(num_sample, num_time, num_feature1, ...), "
+                         "(num_sample, num_time, feature_dim, ...), "
                          f"but we got {val.shape}")
       if val.shape[0] != num_batch:
         raise ValueError(f'Batch size of the target {key} does not match '

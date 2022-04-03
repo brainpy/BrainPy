@@ -5,12 +5,13 @@ from typing import Dict, Sequence, Union, Callable
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
+from brainpy.base import Base
 import brainpy.math as bm
 from brainpy.errors import NoImplementationError
+from brainpy.nn.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.nn.base import Node, Network
 from brainpy.nn.utils import serialize_kwargs
 from brainpy.types import Tensor
-from brainpy.nn.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
@@ -31,7 +32,7 @@ class OfflineTrainer(RNNTrainer):
     - It can be a string, which specify the shortcut name of the training algorithm.
       Like, ``fit_method='ridge'`` means using the Ridge regression method.
       All supported fitting methods can be obtained through
-      :py:function:`brainpy.nn.runners.get_supported_offline_methods`
+      :py:func:`brainpy.nn.runners.get_supported_offline_methods`
     - It can be a dict, whose "name" item specifies the name of the training algorithm,
       and the others parameters specify the initialization parameters of the algorithm.
       For example, ``fit_method={'name': 'ridge', 'beta': 1e-4}``.
@@ -64,6 +65,7 @@ class OfflineTrainer(RNNTrainer):
     if not callable(fit_method):
       raise ValueError(f'"train_method" must be an instance of callable function, '
                        f'but we got {type(fit_method)}.')
+    self.fit_method = fit_method
     # check the required interface in the trainable nodes
     self._check_interface()
 
@@ -71,11 +73,22 @@ class OfflineTrainer(RNNTrainer):
     for node in self.train_nodes:
       node.offline_fit_by = fit_method
 
+    # update dynamical variables
+    if isinstance(self.fit_method, Base):
+      self.dyn_vars.update(self.fit_method.vars().unique())
+
     # add the monitor items which are needed for the training process
     self._added_items = self._add_monitor_items()
 
     # training function
     self._f_train = dict()
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    prefix = ' ' * len(name)
+    return (f'{name}(target={self.target}, \n\t'
+            f'{prefix}jit={self.jit}, \n\t'
+            f'{prefix}fit_method={self.fit_method})')
 
   def fit(
       self,
