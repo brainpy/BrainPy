@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
 
-"""
-adapted from jax.example_libraries.stax.BatchNorm
-https://jax.readthedocs.io/en/latest/_modules/jax/example_libraries/stax.html#BatchNorm
-"""
-
-
 from typing import Union
 
 import jax.nn
@@ -29,14 +23,23 @@ class BatchNorm(Node):
   Most commonly, the first axis of the data is the batch, and the last is
   the channel. However, users can specify the axes to be normalized.
 
+  adapted from jax.example_libraries.stax.BatchNorm
+  https://jax.readthedocs.io/en/latest/_modules/jax/example_libraries/stax.html#BatchNorm
+
   Parameters
   ----------
-  axis: axes where the data will be normalized. The axis of channels should be excluded.
-  epsilon: a value added to the denominator for numerical stability. Default: 1e-5
-  translate: whether to translate data in refactoring
-  scale: whether to scale data in refactoring
-  beta_init: an initializer generating the original translation matrix
-  gamma_init: an initializer generating the original scaling matrix
+  axis: int, tuple, list
+    axes where the data will be normalized. The axis of channels should be excluded.
+  epsilon: float
+    a value added to the denominator for numerical stability. Default: 1e-5
+  translate: bool
+    whether to translate data in refactoring
+  scale: bool
+    whether to scale data in refactoring
+  beta_init: brainpy.init.Initializer
+    an initializer generating the original translation matrix
+  gamma_init: brainpy.init.Initializer
+    an initializer generating the original scaling matrix
   """
   def __init__(self,
                axis: Union[int, tuple, list],
@@ -86,10 +89,14 @@ class BatchNorm1d(BatchNorm):
     axes where the data will be normalized. The axis of channels should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  translate: whether to translate data in refactoring
-  scale: whether to scale data in refactoring
-  beta_init: an initializer generating the original translation matrix
-  gamma_init: an initializer generating the original scaling matrix
+  translate: bool
+    whether to translate data in refactoring
+  scale: bool
+    whether to scale data in refactoring
+  beta_init: brainpy.init.Initializer
+    an initializer generating the original translation matrix
+  gamma_init: brainpy.init.Initializer
+    an initializer generating the original scaling matrix
   """
   def __init__(self, axis=(0, 1), **kwargs):
     super(BatchNorm1d, self).__init__(axis=axis, **kwargs)
@@ -138,20 +145,24 @@ class BatchNorm2d(BatchNorm):
 
 class BatchNorm3d(BatchNorm):
   """3-D batch normalization.
-      The data should be of `(b, h, w, d, c)`, where `b` is the batch dimension,
-      `h` is the height dimension, `w` is the width dimension, `d` is the depth
-      dimension, and `c` is the channel dimension.
+    The data should be of `(b, h, w, d, c)`, where `b` is the batch dimension,
+    `h` is the height dimension, `w` is the width dimension, `d` is the depth
+    dimension, and `c` is the channel dimension.
 
-      Parameters
-      ----------
-      axis: int, tuple, list
-        axes where the data will be normalized. The axis of channels should be excluded.
-      epsilon: float
-        a value added to the denominator for numerical stability. Default: 1e-5
-      translate: whether to translate data in refactoring
-      scale: whether to scale data in refactoring
-      beta_init: an initializer generating the original translation matrix
-      gamma_init: an initializer generating the original scaling matrix
+    Parameters
+    ----------
+    axis: int, tuple, list
+      axes where the data will be normalized. The axis of channels should be excluded.
+    epsilon: float
+      a value added to the denominator for numerical stability. Default: 1e-5
+    translate: bool
+      whether to translate data in refactoring
+    scale: bool
+      whether to scale data in refactoring
+    beta_init: brainpy.init.Initializer
+      an initializer generating the original translation matrix
+    gamma_init: brainpy.init.Initializer
+      an initializer generating the original scaling matrix
       """
   def __init__(self, axis=(0, 1, 2, 3), **kwargs):
     super(BatchNorm3d, self).__init__(axis=axis, **kwargs)
