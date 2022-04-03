@@ -22,7 +22,7 @@ ext_modules = [
                     sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
                     cxx_std=11,
                     # extra_link_args=["-rpath", "/Users/ztqakita/miniforge3/lib"], # m1
-                    extra_link_args=["-rpath", "/Users/ztqakita/miniforge3/lib"], # intel
+                    extra_link_args=["-rpath", "/Users/ztqakita/opt/miniconda3/lib"], # intel
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
 
@@ -36,7 +36,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=find_packages(exclude=['lib*']),
   include_package_data=True,
-  install_requires=["jax", "jaxlib", "pybind11>=2.6, <2.8"],
+  install_requires=["jax", "jaxlib", "pybind11>=2.6, <2.8", "cffi", "numba"],
   extras_require={"test": "pytest"},
   python_requires='>=3.7',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
