@@ -5,7 +5,7 @@ import numpy as np
 
 from brainpy import math as bm, tools
 from brainpy.nn.base import Node
-from brainpy.nn.constants import PASS_ONLY_ONE
+from brainpy.nn.datatypes import MultipleData
 from brainpy.tools.checking import check_shape_consistency
 
 __all__ = [
@@ -22,6 +22,8 @@ class Concat(Node):
   axis : int
     The axis of concatenation to perform.
   """
+
+  data_pass = MultipleData('sequence')
 
   def __init__(self, axis=-1, trainable=False, **kwargs):
     super(Concat, self).__init__(trainable=trainable, **kwargs)
@@ -41,8 +43,6 @@ class Select(Node):
   """
   Select a subset of the given input.
   """
-
-  data_pass_type = PASS_ONLY_ONE
 
   def __init__(self, index, trainable=False, **kwargs):
     super(Select, self).__init__(trainable=trainable, **kwargs)
@@ -66,7 +66,6 @@ class Reshape(Node):
   shape: int, sequence of int
     The reshaped size. This shape does not contain the batch size.
   """
-  data_pass_type = PASS_ONLY_ONE
 
   def __init__(self, shape, trainable=False, **kwargs):
     super(Reshape, self).__init__(trainable=trainable, **kwargs)
@@ -98,6 +97,7 @@ class Summation(Node):
 
   All inputs should be broadcast compatible.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(self, trainable=False, **kwargs):
     super(Summation, self).__init__(trainable=trainable, **kwargs)

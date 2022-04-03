@@ -28,9 +28,7 @@ from brainpy.errors import (UnsupportedError,
                             MathError)
 from brainpy.nn.algorithms.offline import OfflineAlgorithm
 from brainpy.nn.algorithms.online import OnlineAlgorithm
-from brainpy.nn.constants import (PASS_SEQUENCE,
-                                  DATA_PASS_FUNC,
-                                  DATA_PASS_TYPES)
+from brainpy.nn.datatypes import (DataType, SingleData, MultipleData)
 from brainpy.nn.graph_flow import (find_senders_and_receivers,
                                    find_entries_and_exits,
                                    detect_cycle,
@@ -83,13 +81,13 @@ def not_implemented(fun: Callable) -> Callable:
 class Node(Base):
   """Basic Node class for neural network building in BrainPy."""
 
-  '''Support multiple types of data pass, including "PASS_SEQUENCE" (by default), 
-  "PASS_NAME_DICT", "PASS_NODE_DICT" and user-customized type which registered 
-  by ``brainpy.nn.register_data_pass_type()`` function. 
+  '''Support multiple types of data pass, including "PassOnlyOne" (by default), 
+  "PassSequence", "PassNameDict", etc. and user-customized type which inherits 
+  from basic "SingleData" or "MultipleData". 
   
   This setting will change the feedforward/feedback input data which pass into 
   the "call()" function and the sizes of the feedforward/feedback input data.'''
-  data_pass_type = PASS_SEQUENCE
+  data_pass = SingleData()
 
   '''Offline fitting method.'''
   offline_fit_by: Union[Callable, OfflineAlgorithm]
@@ -115,11 +113,10 @@ class Node(Base):
     self._trainable = trainable
     self._state = None  # the state of the current node
     self._fb_output = None  # the feedback output of the current node
-    # data pass function
-    if self.data_pass_type not in DATA_PASS_FUNC:
-      raise ValueError(f'Unsupported data pass type {self.data_pass_type}. '
-                       f'Only support {DATA_PASS_TYPES}')
-    self.data_pass_func = DATA_PASS_FUNC[self.data_pass_type]
+    # data pass
+    if not isinstance(self.data_pass, DataType):
+      raise ValueError(f'Unsupported data pass type {type(self.data_pass)}. '
+                       f'Only support {DataType.__class__}')
 
     # super initialization
     super(Node, self).__init__(name=name)
@@ -129,11 +126,10 @@ class Node(Base):
       self._feedforward_shapes = {self.name: (None,) + tools.to_size(input_shape)}
 
   def __repr__(self):
-    name = type(self).__name__
-    prefix = ' ' * (len(name) + 1)
-    line1 = f"{name}(name={self.name}, forwards={self.feedforward_shapes}, \n"
-    line2 = f"{prefix}feedbacks={self.feedback_shapes}, output={self.output_shape})"
-    return line1 + line2
+    return (f"{type(self).__name__}(name={self.name}, "
+            f"forwards={self.feedforward_shapes}, "
+            f"feedbacks={self.feedback_shapes}, "
+            f"output={self.output_shape})")
 
   def __call__(self, *args, **kwargs) -> Tensor:
     """The main computation function of a Node.
@@ -298,7 +294,7 @@ class Node(Base):
   @property
   def feedforward_shapes(self):
     """Input data size."""
-    return self.data_pass_func(self._feedforward_shapes)
+    return self.data_pass.filter(self._feedforward_shapes)
 
   @feedforward_shapes.setter
   def feedforward_shapes(self, size):
@@ -324,7 +320,7 @@ class Node(Base):
   @property
   def feedback_shapes(self):
     """Output data size."""
-    return self.data_pass_func(self._feedback_shapes)
+    return self.data_pass.filter(self._feedback_shapes)
 
   @feedback_shapes.setter
   def feedback_shapes(self, size):
@@ -530,8 +526,8 @@ class Node(Base):
                              f'batch size by ".initialize(num_batch)", or change the data '
                              f'consistent with the data batch size {self.state.shape[0]}.')
     # data
-    ff = self.data_pass_func(ff)
-    fb = self.data_pass_func(fb)
+    ff = self.data_pass.filter(ff)
+    fb = self.data_pass.filter(fb)
     return ff, fb
 
   def _call(self,
@@ -746,6 +742,8 @@ class RecurrentNode(Node):
 
 class Network(Node):
   """Basic Network class for neural network building in BrainPy."""
+
+  data_pass = MultipleData('sequence')
 
   def __init__(self,
                nodes: Optional[Sequence[Node]] = None,
@@ -1145,8 +1143,8 @@ class Network(Node):
         check_shape_except_batch(size, fb[k].shape)
 
     # data transformation
-    ff = self.data_pass_func(ff)
-    fb = self.data_pass_func(fb)
+    ff = self.data_pass.filter(ff)
+    fb = self.data_pass.filter(fb)
     return ff, fb
 
   def _call(self,
@@ -1208,12 +1206,12 @@ class Network(Node):
   def _call_a_node(self, node, ff, fb, monitors, forced_states,
                    parent_outputs, children_queue, ff_senders,
                    **shared_kwargs):
-    ff = node.data_pass_func(ff)
+    ff = node.data_pass.filter(ff)
     if f'{node.name}.inputs' in monitors:
       monitors[f'{node.name}.inputs'] = ff
     # get the output results
     if len(fb):
-      fb = node.data_pass_func(fb)
+      fb = node.data_pass.filter(fb)
       if f'{node.name}.feedbacks' in monitors:
         monitors[f'{node.name}.feedbacks'] = fb
       parent_outputs[node] = node.forward(ff, fb, **shared_kwargs)
@@ -1440,7 +1438,7 @@ class Network(Node):
     if len(nodes_untrainable):
       proxie.append(Line2D([], [], color='white', marker='o',
                            markerfacecolor=untrainable_color))
-      labels.append('Untrainable')
+      labels.append('Nontrainable')
     if len(ff_edges):
       proxie.append(Line2D([], [], color=ff_color, linewidth=2))
       labels.append('Feedforward')
