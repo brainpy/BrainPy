@@ -1,10 +1,10 @@
 -r requirements.txt
 
 matplotlib>=3.4
-jaxlib>=0.1.64
+jaxlib>=0.3.0
 sympy>=1.6
 scipy>=1.1.0
-brainpylib
+brainpylib>=0.0.4
 numba
 
 # document requirements
