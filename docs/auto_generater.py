@@ -5,7 +5,7 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, operators, parallels, setting, delay_vars,
+                          jit, operators, parallels, setting, delayvars,
                           compat)
 
 block_list = ['test', 'register_pytree_node']
@@ -417,7 +417,7 @@ def generate_math_docs(path='apis/auto/math/'):
   write_module(module_name='brainpy.math.function',
                filename=os.path.join(path, 'function.rst'),
                header='Function')
-  write_module(module_name='brainpy.math.delay_vars',
+  write_module(module_name='brainpy.math.delayvars',
                filename=os.path.join(path, 'delay_vars.rst'),
                header='Delay Variables')
 
