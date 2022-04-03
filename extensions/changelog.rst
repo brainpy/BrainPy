@@ -1,6 +1,17 @@
 Release notes (brainpylib)
 ##########################
 
+Version 0.0.5
+=============
+
+- Support operator customization on GPU by ``numba``
+
+
+Version 0.0.4
+=============
+
+- Support operator customization on CPU by ``numba``
+
 
 Version 0.0.3
 =============
