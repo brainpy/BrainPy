@@ -11,6 +11,7 @@ from brainpy.initialize import (XavierNormal,
                                 init_param,
                                 Initializer)
 from brainpy.nn.base import RecurrentNode
+from brainpy.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_integer,
                                     check_initializer,
                                     check_shape_consistency)
@@ -55,6 +56,7 @@ class VanillaRNN(RecurrentNode):
     Whether set the node is trainable.
 
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -169,6 +171,7 @@ class GRU(RecurrentNode):
          evaluation of gated recurrent neural networks on sequence modeling.
          arXiv preprint arXiv:1412.3555.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -302,6 +305,7 @@ class LSTM(RecurrentNode):
          exploration of recurrent network architectures." In International conference
          on machine learning, pp. 2342-2350. PMLR, 2015.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -391,16 +395,16 @@ class LSTM(RecurrentNode):
 
 
 class ConvNDLSTM(RecurrentNode):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv1DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv2DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv3DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')

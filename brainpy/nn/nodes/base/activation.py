@@ -4,7 +4,6 @@ from typing import Dict, Optional, Any
 
 from brainpy.math import activations
 from brainpy.nn.base import Node
-from brainpy.nn.constants import PASS_ONLY_ONE
 
 __all__ = [
   'Activation'
@@ -21,8 +20,6 @@ class Activation(Node):
   fun_setting : optional, dict
     The settings for the activation function.
   """
-
-  data_pass_type = PASS_ONLY_ONE
 
   def __init__(self,
                activation: str = 'relu',

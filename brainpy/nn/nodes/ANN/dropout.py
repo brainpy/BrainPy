@@ -2,7 +2,6 @@
 
 import brainpy.math as bm
 from brainpy.nn.base import Node
-from brainpy.nn.constants import PASS_ONLY_ONE
 
 __all__ = [
   'Dropout'
@@ -37,8 +36,6 @@ class Dropout(Node):
          neural networks from overfitting." The journal of machine learning
          research 15.1 (2014): 1929-1958.
   """
-  data_pass_type = PASS_ONLY_ONE
-
   def __init__(self, prob, seed=None, **kwargs):
     super(Dropout, self).__init__(**kwargs)
     self.prob = prob
