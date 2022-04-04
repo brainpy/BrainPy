@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from typing import Sequence, Optional, Dict, Callable, Union
+from typing import Union
 
 import jax.nn
 import jax.numpy as jnp
 
-import brainpy.math as bm
 import brainpy
+import brainpy.math as bm
 from brainpy.initialize import ZeroInit, OneInit, Initializer
 from brainpy.nn.base import Node
-from brainpy.nn.constants import PASS_ONLY_ONE
-
 
 __all__ = [
   'BatchNorm',
@@ -43,8 +41,6 @@ class BatchNorm(Node):
   gamma_init: brainpy.init.Initializer
     an initializer generating the original scaling matrix
   """
-  data_pass_type = PASS_ONLY_ONE
-
   def __init__(self,
                axis: Union[int, tuple, list],
                epsilon: float = 1e-5,

@@ -3,7 +3,6 @@
 from typing import Tuple, Union
 
 from brainpy.nn.base import Node
-from brainpy.nn.constants import PASS_ONLY_ONE
 from brainpy.tools.others import to_size
 
 __all__ = [
@@ -13,8 +12,6 @@ __all__ = [
 
 class Input(Node):
   """The input node."""
-
-  data_pass_type = PASS_ONLY_ONE
 
   def __init__(
       self,

@@ -444,9 +444,9 @@ def generate_nn_docs(path='apis/auto/nn/'):
   write_module(module_name='brainpy.nn.graph_flow',
                filename=os.path.join(path, 'graph_flow.rst'),
                header='Node Graph Tools')
-  write_module(module_name='brainpy.nn.constants',
-               filename=os.path.join(path, 'constants.rst'),
-               header='Constants')
+  write_module(module_name='brainpy.nn.datatypes',
+               filename=os.path.join(path, 'data_types.rst'),
+               header='Data Types')
 
   module_and_name = [
     ('rnn_runner', 'Base RNN Runner'),

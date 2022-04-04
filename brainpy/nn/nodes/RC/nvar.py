@@ -7,6 +7,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.nn.base import RecurrentNode
+from brainpy.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_integer,
                                     check_sequence)
@@ -61,6 +62,7 @@ class NVAR(RecurrentNode):
          https://doi.org/10.1038/s41467-021-25801-2
 
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
