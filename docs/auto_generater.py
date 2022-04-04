@@ -12,7 +12,7 @@ block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, activations,
                operators, parallels, setting,
-               delay_vars, compat]:
+               delayvars, compat]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
