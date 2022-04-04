@@ -105,6 +105,12 @@ Alternatively, you can download the preferred release ".whl" file for jaxlib, an
 
     pip install jax
 
+
+.. warning::
+    For m1 macOS users, you should run your python environment on ``Apple`` silicon instead of ``intel``
+    silicon since ``rosetta2`` cannot translate ``jaxlib``. One suggestion is uninstall miniconda3 and install
+    miniforge3 for managing your python environment.
+
 Windows
 ^^^^^^^
 
