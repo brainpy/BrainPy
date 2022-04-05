@@ -848,6 +848,9 @@ class JaxArray(object):
     """Support ``numpy.array()`` and ``numpy.asarray()`` functions."""
     return np.asarray(self.value)
 
+  def __jax_array__(self):
+    return self.value
+
 
 ndarray = JaxArray
 
@@ -865,7 +868,6 @@ class Variable(JaxArray):
   def __init__(self, value):
     if isinstance(value, JaxArray):
       value = value.value
-    # assert jnp.ndim(value) >= 1, 'Must be an array, not scalar.'
     super(Variable, self).__init__(value)
 
 
@@ -875,7 +877,8 @@ class TrainVar(Variable):
   __slots__ = ()
 
   def __init__(self, value):
-    if isinstance(value, JaxArray): value = value.value
+    if isinstance(value, JaxArray):
+      value = value.value
     super(TrainVar, self).__init__(value)
 
 
