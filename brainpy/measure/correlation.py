@@ -68,17 +68,17 @@ def cross_correlation(spikes, bin, dt=None):
          inhibition in a hippocampal interneuronal network model." Journal of
          neuroscience 16.20 (1996): 6402-6413.
   """
-  spikes = bm.asarray(spikes)
+  spikes = bm.as_device_array(spikes)
   dt = bm.get_dt() if dt is None else dt
   bin_size = int(bin / dt)
   num_hist, num_neu = spikes.shape
   num_bin = int(np.ceil(num_hist / bin_size))
   if num_bin * bin_size != num_hist:
-    spikes = bm.append(spikes, bm.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
+    spikes = jnp.append(spikes, jnp.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
   states = spikes.T.reshape((num_neu, num_bin, bin_size))
-  states = bm.asarray(bm.sum(states, axis=2) > 0., dtype=jnp.float_)
+  states = jnp.asarray(jnp.sum(states, axis=2) > 0., dtype=jnp.float_)
   indices = jnp.tril_indices(4, k=-1)
-  return jnp.mean(_cc(states.value, *indices))
+  return jnp.mean(_cc(states, *indices))
 
 
 @partial(vmap, in_axes=(None, 0))

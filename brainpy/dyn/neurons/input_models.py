@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import jax.numpy as jnp
+
 import brainpy.math as bm
-from brainpy.errors import ModelBuildError
 from brainpy.dyn.base import NeuGroup
+from brainpy.errors import ModelBuildError
 
 __all__ = [
   'SpikeTimeInput',
   'PoissonInput',
+  'SpikeTimeGroup',
+  'PoissonGroup',
 ]
 
 
-class SpikeTimeInput(NeuGroup):
+class SpikeTimeGroup(NeuGroup):
   """The input neuron group characterized by spikes emitting at given times.
 
   >>> # Get 2 neurons, firing spikes at 10 ms and 20 ms.
@@ -39,7 +43,7 @@ class SpikeTimeInput(NeuGroup):
   """
 
   def __init__(self, size, times, indices, need_sort=True, name=None):
-    super(SpikeTimeInput, self).__init__(size=size, name=name)
+    super(SpikeTimeGroup, self).__init__(size=size, name=name)
 
     # parameters
     if len(indices) != len(times):
@@ -48,10 +52,10 @@ class SpikeTimeInput(NeuGroup):
     self.num_times = len(times)
 
     # data about times and indices
-    self.i = bm.Variable(bm.zeros(1, dtype=bm.int_))
-    self.times = bm.Variable(bm.asarray(times, dtype=bm.float_))
-    self.indices = bm.Variable(bm.asarray(indices, dtype=bm.int_))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.i = bm.Variable(jnp.zeros(1, dtype=bm.int_))
+    self.times = bm.Variable(jnp.asarray(times, dtype=bm.float_))
+    self.indices = bm.Variable(jnp.asarray(indices, dtype=bm.int_))
+    self.spike = bm.Variable(jnp.zeros(self.num, dtype=bool))
     if need_sort:
       sort_idx = bm.argsort(self.times)
       self.indices.value = self.indices[sort_idx]
@@ -72,20 +76,28 @@ class SpikeTimeInput(NeuGroup):
     self._run(_t)
 
 
-class PoissonInput(NeuGroup):
+class SpikeTimeInput(SpikeTimeGroup):
+  pass
+
+
+class PoissonGroup(NeuGroup):
   """Poisson Neuron Group.
   """
 
   def __init__(self, size, freqs, seed=None, name=None):
-    super(PoissonInput, self).__init__(size=size, name=name)
+    super(PoissonGroup, self).__init__(size=size, name=name)
 
     self.freqs = freqs
     self.dt = bm.get_dt() / 1000.
     self.size = (size,) if isinstance(size, int) else tuple(size)
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
+    self.spike = bm.Variable(jnp.zeros(self.num, dtype=bool))
+    self.t_last_spike = bm.Variable(jnp.ones(self.num) * -1e7)
     self.rng = bm.random.RandomState(seed=seed)
 
   def update(self, _t, _i):
     self.spike.update(self.rng.random(self.num) <= self.freqs * self.dt)
     self.t_last_spike.update(bm.where(self.spike, _t, self.t_last_spike))
+
+
+class PoissonInput(PoissonGroup):
+  pass

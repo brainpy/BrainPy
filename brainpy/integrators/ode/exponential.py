@@ -403,7 +403,7 @@ class ExponentialEuler(ODEIntegrator):
     # keyword checking
     keywords = {
       C.F: 'the derivative function',
-      C.DT: 'the precision of numerical integration',
+      # C.DT: 'the precision of numerical integration',
       'exp': 'the exponential function',
       'math': 'the math module',
     }
@@ -716,7 +716,7 @@ class ExpEulerAuto(ODEIntegrator):
     # keyword checking
     keywords = {
       C.F: 'the derivative function',
-      C.DT: 'the precision of numerical integration',
+      # C.DT: 'the precision of numerical integration',
     }
     utils.check_kws(self.arguments, keywords)
 

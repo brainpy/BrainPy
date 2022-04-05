@@ -53,7 +53,7 @@ def noise_terms(code_lines, variables):
   # code_lines.append('  ')
 
   for var in variables:
-    code_lines.append(f'  {var}_dW = random.normal(0.000, dt_sqrt, math.shape({var}))')
+    code_lines.append(f'  {var}_dW = random.normal(0.000, dt_sqrt, math.shape({var})).value')
   code_lines.append('  ')
 
 
