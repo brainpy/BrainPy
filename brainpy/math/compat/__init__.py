@@ -6,5 +6,5 @@ __all__ = [
 ]
 
 from . import optimizers, losses
-from .delay_vars import *
+from .delayvars import *
 

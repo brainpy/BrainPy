@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 from brainpy.math.jaxarray import ndarray
 from brainpy.math.numpy_ops import zeros
-from brainpy.math.delay_vars import TimeDelay
+from brainpy.math.delayvars import TimeDelay
 
 
 __all__ = [
