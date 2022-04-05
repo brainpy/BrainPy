@@ -42,8 +42,7 @@ def section_input(values, durations, dt=None, return_length=False):
 
   Returns
   -------
-  current_and_duration : tuple
-      (The formatted current, total duration)
+  current_and_duration
   """
   if len(durations) != len(values):
     raise ValueError(f'"values" and "durations" must be the same length, while '
@@ -55,22 +54,22 @@ def section_input(values, durations, dt=None, return_length=False):
   I_duration = sum(durations)
   I_shape = ()
   for val in values:
-    shape = val.shape
+    shape = jnp.shape(val)
     if len(shape) > len(I_shape):
       I_shape = shape
 
   # get the current
   start = 0
-  I_current = jnp.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
+  I_current = bm.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
   for c_size, duration in zip(values, durations):
     length = int(duration / dt)
-    I_current = I_current.at[start: start + length].set(c_size)
+    I_current[start: start + length] = c_size
     start += length
 
   if return_length:
-    return I_current, I_duration
+    return I_current.value, I_duration
   else:
-    return I_current
+    return I_current.value
 
 
 def constant_input(I_and_duration, dt=None):
@@ -105,7 +104,7 @@ def constant_input(I_and_duration, dt=None):
   I_shape = ()
   for I in I_and_duration:
     I_duration += I[1]
-    shape = I[0].shape
+    shape = jnp.shape(I[0])
     if len(shape) > len(I_shape):
       I_shape = shape
 
@@ -284,7 +283,7 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
   t_end = duration if t_end is None else t_end
   i_start = int(t_start / dt)
   i_end = int(t_end / dt)
-  currents = jnp.zeros((int(duration / dt), n))
+  currents = bm.zeros((int(duration / dt), n))
   currents[i_start: i_end] = noises
   return currents.value
 
