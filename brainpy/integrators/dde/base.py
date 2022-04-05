@@ -55,7 +55,10 @@ class DDEIntegrator(Integrator):
 
     # code lines
     self.func_name = _f_names(f)
-    self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
+    arguments = self.arguments.copy()
+    assert arguments[-1] == DT
+    arguments[-1] = f'{DT}={self.dt}'
+    self.code_lines = [f'def {self.func_name}({", ".join(arguments)}):']
 
     # delays
     self._neutral_delays = dict()

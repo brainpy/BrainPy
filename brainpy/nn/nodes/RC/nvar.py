@@ -4,6 +4,7 @@ from itertools import combinations_with_replacement
 from typing import Union, Sequence
 
 import numpy as np
+import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.nn.base import RecurrentNode
@@ -99,7 +100,7 @@ class NVAR(RecurrentNode):
     self.nonlinear_dim = None
 
     # delay variables
-    self.idx = bm.Variable(bm.asarray([0], dtype=bm.int_))
+    self.idx = bm.Variable(jnp.asarray([0], dtype=bm.int_))
     self.store = None
 
   def init_ff_conn(self):
@@ -116,7 +117,7 @@ class NVAR(RecurrentNode):
     for order in self.order:
       assert order >= 2, f'"order" must be a integer >= 2, while we got {order}.'
       idx = np.array(list(combinations_with_replacement(np.arange(self.linear_dim), order)))
-      self.comb_ids.append(bm.asarray(idx))
+      self.comb_ids.append(jnp.asarray(idx))
     # number of non-linear components is (d + n - 1)! / (d - 1)! n!
     # i.e. number of all unique monomials of order n made from the
     # linear components.
@@ -132,11 +133,11 @@ class NVAR(RecurrentNode):
     # To store the last inputs.
     # Note, the batch axis is not in the first dimension, so we
     # manually handle the state of NVAR, rather return it.
-    state = bm.zeros((self.num_delay, num_batch, self.input_dim), dtype=bm.float_)
+    state = jnp.zeros((self.num_delay, num_batch, self.input_dim), dtype=bm.float_)
     if self.store is None:
       self.store = bm.Variable(state)
     else:
-      self.store._value = state.value
+      self.store._value = state
 
   def forward(self, ff, fb=None, **shared_kwargs):
     all_parts = []
@@ -145,21 +146,21 @@ class NVAR(RecurrentNode):
     self.store[self.idx[0]] = ff
     # 2. Linear part:
     # select all previous inputs, including the current, with strides
-    select_ids = (self.idx[0] - bm.arange(0, self.num_delay, self.stride)) % self.num_delay
-    linear_parts = bm.moveaxis(self.store[select_ids], 0, 1)  # (num_batch, num_time, num_feature)
-    linear_parts = bm.reshape(linear_parts, (linear_parts.shape[0], -1))
+    select_ids = (self.idx[0] - jnp.arange(0, self.num_delay, self.stride)) % self.num_delay
+    linear_parts = jnp.moveaxis(self.store[select_ids], 0, 1)  # (num_batch, num_time, num_feature)
+    linear_parts = jnp.reshape(linear_parts, (linear_parts.shape[0], -1))
     # 3. constant
     if self.constant:
-      constant = bm.ones((linear_parts.shape[0], 1), dtype=ff.dtype)
+      constant = jnp.ones((linear_parts.shape[0], 1), dtype=ff.dtype)
       all_parts.append(constant)
     all_parts.append(linear_parts)
     # 3. Nonlinear part:
     # select monomial terms and compute them
     for ids in self.comb_ids:
-      all_parts.append(bm.prod(linear_parts[:, ids], axis=2))
+      all_parts.append(jnp.prod(linear_parts[:, ids], axis=2))
     # 4. Finally
     self.idx.value = (self.idx + 1) % self.num_delay
-    return bm.concatenate(all_parts, axis=-1)
+    return jnp.concatenate(all_parts, axis=-1)
 
   def get_feature_names(self):
     """Get output feature names for transformation.

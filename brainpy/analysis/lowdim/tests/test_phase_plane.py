@@ -6,6 +6,7 @@ import brainpy as bp
 import matplotlib.pyplot as plt
 
 bp.math.enable_x64()
+block = False
 
 
 class TestPhasePlane(unittest.TestCase):
@@ -22,7 +23,8 @@ class TestPhasePlane(unittest.TestCase):
 
     plt.ion()
     analyzer.plot_vector_field()
-    analyzer.plot_fixed_point(show=True)
+    analyzer.plot_fixed_point()
+    plt.show(block=block)
 
   def test_2d_decision_making_model(self):
     gamma = 0.641  # Saturation factor for gating variable
@@ -65,4 +67,5 @@ class TestPhasePlane(unittest.TestCase):
     plt.ion()
     analyzer.plot_vector_field()
     analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
-    analyzer.plot_fixed_point(show=True)
+    analyzer.plot_fixed_point()
+    plt.show(block=block)

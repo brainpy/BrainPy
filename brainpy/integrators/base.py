@@ -37,7 +37,6 @@ class Integrator(AbstractIntegrator):
       dt: float,
       name: str = None,
       state_delays: Dict[str, bm.AbstractDelay] = None,
-      neutral_delays: Dict[str, bm.NeutralDelay] = None
   ):
     super(Integrator, self).__init__(name=name)
 
@@ -45,7 +44,7 @@ class Integrator(AbstractIntegrator):
     check_float(dt, 'dt', allow_none=False, allow_int=True)
     self._variables = variables  # variables
     self._parameters = parameters  # parameters
-    self._arguments = list(arguments) + [f'{DT}={self.dt}']  # arguments
+    self._arguments = list(arguments) + [DT]  # arguments
     self._integral = None  # integral function
 
     # state delays

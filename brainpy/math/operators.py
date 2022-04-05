@@ -693,8 +693,7 @@ def _matmul_with_left_sparse(sparse: Sequence,
     prod = B * jnp.reshape(values, (-1, 1))
   else:
     prod = B * values
-  res = jops.segment_sum(prod, rows, shape)
-  return JaxArray(res)
+  return jops.segment_sum(prod, rows, shape)
 
 
 def _matmul_with_right_sparse(dense, sparse, shape):
@@ -731,7 +730,7 @@ def _matmul_with_right_sparse(dense, sparse, shape):
   else:
     prod = dense[rows] * values
     res = jops.segment_sum(prod, cols, shape)
-  return JaxArray(res)
+  return res
 
 
 def sparse_matmul(A, B, shape: Shape):

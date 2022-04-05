@@ -5,8 +5,6 @@ from typing import Union, Callable
 
 import jax.numpy as jnp
 
-from brainpy.math.jaxarray import ndarray
-from brainpy.math.numpy_ops import zeros
 from brainpy.math.delayvars import TimeDelay
 
 
@@ -17,7 +15,7 @@ __all__ = [
 
 def FixedLenDelay(shape,
                   delay_len: Union[float, int],
-                  before_t0: Union[Callable, ndarray, jnp.ndarray, float, int] = None,
+                  before_t0: Union[Callable, jnp.ndarray, float, int] = None,
                   t0: Union[float, int] = 0.,
                   dt: Union[float, int] = None,
                   name: str = None,
@@ -35,7 +33,7 @@ def FixedLenDelay(shape,
   warnings.warn('Please use "brainpy.math.TimeDelay" instead. '
                 '"brainpy.math.FixedLenDelay" is deprecated since version 2.1.2. ',
                 DeprecationWarning)
-  return TimeDelay(inits=zeros(shape),
+  return TimeDelay(inits=jnp.zeros(shape),
                    delay_len=delay_len,
                    before_t0=before_t0,
                    t0=t0,

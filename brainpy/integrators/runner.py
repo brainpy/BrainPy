@@ -263,7 +263,7 @@ class IntegratorRunner(Runner):
     kwargs.update({'t': t, 'dt': self.dt})
     kwargs.update(self._static_args)
     if len(self._dyn_args) > 0:
-      kwargs.update({k: v[self.idx] for k, v in self._dyn_args.items()})
+      kwargs.update({k: v[self.idx.value] for k, v in self._dyn_args.items()})
       self.idx += 1
     # return of function monitors
     returns = dict()

@@ -37,7 +37,7 @@ class ExplicitRKIntegrator(DDEIntegrator):
     # integrator keywords
     keywords = {
       F: 'the derivative function',
-      DT: 'the precision of numerical integration'
+      # DT: 'the precision of numerical integration'
     }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'

@@ -469,7 +469,7 @@ def negative(x):
 
 def positive(x):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.positive(x.value))
+  return JaxArray(jnp.positive(x))
 
 
 def multiply(x1, x2):
