@@ -149,7 +149,7 @@ class CaputoEuler(FDEIntegrator):
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
-    all_args = format_args(args, kwargs, self.arguments)
+    all_args = format_args(args, kwargs, self.arg_names)
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
       id_tap(self._check_step, (dt, all_args['t']))
@@ -360,7 +360,7 @@ class CaputoL1Schema(FDEIntegrator):
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
-    all_args = format_args(args, kwargs, self.arguments)
+    all_args = format_args(args, kwargs, self.arg_names)
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
       id_tap(self._check_step, (dt, all_args['t']))

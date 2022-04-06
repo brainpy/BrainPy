@@ -80,10 +80,7 @@ class SDEIntegrator(Integrator):
 
     # code lines
     self.func_name = f_names(f)
-    arguments = self.arguments.copy()
-    assert arguments[-1] == DT
-    arguments[-1] = f'{DT}={self.dt}'
-    self.code_lines = [f'def {self.func_name}({", ".join(arguments)}):']
+    self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
 
     # others
     self.show_code = show_code

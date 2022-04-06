@@ -82,10 +82,7 @@ class ODEIntegrator(Integrator):
 
     # code lines
     self.func_name = f_names(f)
-    arguments = self.arguments.copy()
-    assert arguments[-1] == DT
-    arguments[-1] = f'{DT}={self.dt}'
-    self.code_lines = [f'def {self.func_name}({", ".join(arguments)}):']
+    self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
 
     # neutral delays
     self._neutral_delays = dict()
@@ -111,7 +108,7 @@ class ODEIntegrator(Integrator):
 
     # check arguments
     for i, arg in enumerate(args):
-      kwargs[self.arguments[i]] = arg
+      kwargs[self.arg_names[i]] = arg
 
     # integral
     new_vars = self.integral(**kwargs)
