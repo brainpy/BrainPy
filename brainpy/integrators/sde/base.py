@@ -5,6 +5,7 @@ from typing import Dict, Callable
 from brainpy import math as bm, errors
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
+from brainpy.integrators.constants import DT
 
 __all__ = [
   'SDEIntegrator',
@@ -79,7 +80,10 @@ class SDEIntegrator(Integrator):
 
     # code lines
     self.func_name = f_names(f)
-    self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
+    arguments = self.arguments.copy()
+    assert arguments[-1] == DT
+    arguments[-1] = f'{DT}={self.dt}'
+    self.code_lines = [f'def {self.func_name}({", ".join(arguments)}):']
 
     # others
     self.show_code = show_code

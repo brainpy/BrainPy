@@ -290,7 +290,9 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   # iterable variables
   if dyn_vars is None:
     dyn_vars = []
-  if isinstance(dyn_vars, dict):
+  if isinstance(dyn_vars, JaxArray):
+    dyn_vars = (dyn_vars, )
+  elif isinstance(dyn_vars, dict):
     dyn_vars = tuple(dyn_vars.values())
   elif isinstance(dyn_vars, (tuple, list)):
     dyn_vars = tuple(dyn_vars)

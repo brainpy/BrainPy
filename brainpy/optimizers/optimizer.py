@@ -4,10 +4,10 @@ from typing import Union, Sequence, Dict, Optional
 
 import jax.numpy as jnp
 
+import brainpy.math as bm
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MathError
-from brainpy.math import numpy_ops as ops
 from brainpy.math.jaxarray import Variable
 from .scheduler import make_schedule, Scheduler
 
@@ -116,7 +116,8 @@ class Momentum(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    vs = dict((key + '_v', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    vs = dict((key + '_v', Variable(bm.zeros_like(x)))
+              for key, x in train_vars.items())
     self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
@@ -162,7 +163,8 @@ class MomentumNesterov(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    vs = dict((key + '_v', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    vs = dict((key + '_v', Variable(bm.zeros_like(x)))
+              for key, x in train_vars.items())
     self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
@@ -214,7 +216,8 @@ class Adagrad(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
     self.register_implicit_vars(caches)
 
   def update(self, grads: dict):
@@ -224,7 +227,7 @@ class Adagrad(Optimizer):
       g = grads[key]
       c = self.implicit_vars[key + '_cache']
       c.value += g ** 2
-      p.value -= lr * g / ops.sqrt(c + self.epsilon)
+      p.value -= lr * g / bm.sqrt(c + self.epsilon)
     self.lr.update()
 
   def __repr__(self):
@@ -280,8 +283,10 @@ class Adadelta(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
-    deltas = dict((key + '_delta', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
+    deltas = dict((key + '_delta', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
     self.register_implicit_vars(caches)
     self.register_implicit_vars(deltas)
 
@@ -338,7 +343,8 @@ class RMSProp(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
     self.register_implicit_vars(caches)
 
   def update(self, grads: dict):
@@ -398,9 +404,11 @@ class Adam(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    ms = dict((k + '_m', Variable(ops.zeros_like(x))) for k, x in train_vars.items())
+    ms = dict((k + '_m', Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
     self.register_implicit_vars(ms)
-    vs = dict((k + '_v', Variable(ops.zeros_like(x))) for k, x in train_vars.items())
+    vs = dict((k + '_v', Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
     self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
@@ -461,7 +469,8 @@ class LARS(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    ms = dict((k + '_m', Variable(ops.zeros_like(x))) for k, x in train_vars.items())
+    ms = dict((k + '_m', Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
     self.register_implicit_vars(ms)
 
   def update(self, grads: dict):
@@ -470,8 +479,8 @@ class LARS(Optimizer):
     for k, p in self.vars_to_train.items():
       g = grads[k]
       m = self.implicit_vars[k + '_m']
-      p_norm = jnp.linalg.norm(ops.as_device_array(p))
-      g_norm = jnp.linalg.norm(ops.as_device_array(g))
+      p_norm = jnp.linalg.norm(bm.as_device_array(p))
+      g_norm = jnp.linalg.norm(bm.as_device_array(g))
       trust_ratio = self.tc * p_norm / (g_norm + self.weight_decay * p_norm + self.eps)
       local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
       m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)

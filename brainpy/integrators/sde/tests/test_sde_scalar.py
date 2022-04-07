@@ -39,9 +39,9 @@ def lorenz_system(method, **kwargs):
   x, y, z = 1, 1, 1
   for t in times:
     x, y, z = integral(x, y, z, t)
-    mon1.append(x.value)
-    mon2.append(y.value)
-    mon3.append(z.value)
+    mon1.append(x)
+    mon2.append(y)
+    mon3.append(z)
   mon1 = bp.math.array(mon1)
   mon2 = bp.math.array(mon2)
   mon3 = bp.math.array(mon3)

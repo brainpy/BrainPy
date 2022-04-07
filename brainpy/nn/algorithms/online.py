@@ -79,7 +79,7 @@ class OnlineAlgorithm(Base):
 class RLS(OnlineAlgorithm):
   """The recursive least squares (RLS)."""
 
-  postfix = '.force.P'
+  postfix = '.rls.P'
 
   def __init__(self, alpha=0.1, name=None):
     super(RLS, self).__init__(name=name)
@@ -107,7 +107,7 @@ name2func['rls'] = RLS
 
 
 class ForceLearning(RLS):
-  pass
+  postfix = '.force.P'
 
 
 name2func['force'] = ForceLearning

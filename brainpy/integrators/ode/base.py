@@ -4,7 +4,7 @@
 from typing import Dict
 
 from brainpy import math as bm
-from brainpy.errors import DiffEqError
+from brainpy.errors import DiffEqError, CodeError
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
 from brainpy.integrators.constants import DT
@@ -54,6 +54,13 @@ class ODEIntegrator(Integrator):
     parameters = parses[1]  # parameter names, (after 't')
     arguments = parses[2]  # function arguments
 
+    for p in tuple(variables) + tuple(parameters):
+      if p == DT:
+        raise CodeError(f'{DT} is a system keyword denotes the '
+                        f'precision of numerical integration. '
+                        f'It cannot be used as a variable or parameter, '
+                        f'please change an another name.')
+
     # super initialization
     super(ODEIntegrator, self).__init__(name=name,
                                         variables=variables,
@@ -75,7 +82,10 @@ class ODEIntegrator(Integrator):
 
     # code lines
     self.func_name = f_names(f)
-    self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
+    arguments = self.arguments.copy()
+    assert arguments[-1] == DT
+    arguments[-1] = f'{DT}={self.dt}'
+    self.code_lines = [f'def {self.func_name}({", ".join(arguments)}):']
 
     # neutral delays
     self._neutral_delays = dict()

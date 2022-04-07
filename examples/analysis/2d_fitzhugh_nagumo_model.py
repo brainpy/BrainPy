@@ -45,7 +45,7 @@ model = FitzHughNagumoModel()
 runner = bp.dyn.DSRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
 runner.run(100.)
 
-bp.visualize.line_plot(runner.mon.ts, runner.mon.num, legend='V')
+bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V')
 bp.visualize.line_plot(runner.mon.ts, runner.mon.w, legend='w', show=True)
 
 # phase plane analysis

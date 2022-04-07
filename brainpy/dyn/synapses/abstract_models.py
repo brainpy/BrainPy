@@ -17,6 +17,7 @@ __all__ = [
   'DualExpCOBA',
   'AlphaCUBA',
   'AlphaCOBA',
+  'NMDA',
 ]
 
 
@@ -139,6 +140,162 @@ class DeltaSynapse(TwoEndConn):
       target += post_vs * (1. - self.post.refractory)
     else:
       target += post_vs
+
+
+class Exponential(TwoEndConn):
+  r"""Current-based exponential decay synapse model.
+
+  **Model Descriptions**
+
+  The single exponential decay synapse model assumes the release of neurotransmitter,
+  its diffusion across the cleft, the receptor binding, and channel opening all happen
+  very quickly, so that the channels instantaneously jump from the closed to the open state.
+  Therefore, its expression is given by
+
+  .. math::
+
+      g_{\mathrm{syn}}(t)=g_{\mathrm{max}} e^{-\left(t-t_{0}\right) / \tau}
+
+  where :math:`\tau_{delay}` is the time constant of the synaptic state decay,
+  :math:`t_0` is the time of the pre-synaptic spike,
+  :math:`g_{\mathrm{max}}` is the maximal conductance.
+
+  Accordingly, the differential form of the exponential synapse is given by
+
+  .. math::
+
+      \begin{aligned}
+       & g_{\mathrm{syn}}(t) = g_{max} g \\
+       & \frac{d g}{d t} = -\frac{g}{\tau_{decay}}+\sum_{k} \delta(t-t_{j}^{k}).
+       \end{aligned}
+
+  For the current output onto the post-synaptic neuron, its expression is given by
+
+  .. math::
+
+      I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
+
+
+  **Model Examples**
+
+  - `(Brunel & Hakim, 1999) Fast Global Oscillation <https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Brunel_Hakim_1999_fast_oscillation.html>`_
+  - `(Vreeswijk & Sompolinsky, 1996) E/I balanced network <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Vreeswijk_1996_EI_net.html>`_
+  - `(Brette, et, al., 2007) CUBA <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Brette_2007_CUBA.html>`_
+  - `(Tian, et al., 2020) E/I Net for fast response <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Tian_2020_EI_net_for_fast_response.html>`_
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> neu1 = bp.dyn.LIF(1)
+    >>> neu2 = bp.dyn.LIF(1)
+    >>> syn1 = bp.dyn.ExpCUBA(neu1, neu2, bp.conn.All2All(), g_max=5.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
+    >>>
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g'])
+    >>> runner.run(150.)
+    >>>
+    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    >>> fig.add_subplot(gs[0, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+    >>> plt.legend()
+    >>>
+    >>> fig.add_subplot(gs[1, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+    >>> plt.legend()
+    >>> plt.show()
+
+
+  **Model Parameters**
+
+  ============= ============== ======== ===================================================================================
+  **Parameter** **Init Value** **Unit** **Explanation**
+  ------------- -------------- -------- -----------------------------------------------------------------------------------
+  delay         0              ms       The decay length of the pre-synaptic spikes.
+  tau_decay     8              ms       The time constant of decay.
+  g_max         1              µmho(µS) The maximum conductance.
+  ============= ============== ======== ===================================================================================
+
+  **Model Variables**
+
+  ================ ================== =========================================================
+  **Member name**  **Initial values** **Explanation**
+  ---------------- ------------------ ---------------------------------------------------------
+  g                 0                 Gating variable.
+  pre_spike         False             The history spiking states of the pre-synaptic neurons.
+  ================ ================== =========================================================
+
+  **References**
+
+  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
+          "The Synapse." Principles of Computational Modelling in Neuroscience.
+          Cambridge: Cambridge UP, 2011. 172-95. Print.
+  """
+  def __init__(
+      self,
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      g_max: Parameter = 1.,
+      tau: Parameter = 8.0,
+      method: str = 'exp_auto',
+      out_type='coba',
+      delay_step=None,
+      name: str = None
+  ):
+    super(Exponential, self).__init__(pre=pre, post=post, conn=conn, name=name)
+    self.check_pre_attrs('spike')
+    self.check_post_attrs('input', 'V')
+
+    # parameters
+    self.tau = tau
+    self.g_max = g_max
+    self.out_type = out_type
+    if out_type not in ['coba', 'cuba']:
+      raise ValueError
+
+    # connection
+    assert self.conn is not None
+    if not isinstance(self.conn, (All2All, One2One)):
+      self.pre2post = self.conn.require('pre2post')
+
+    # variables
+    self.g = bm.Variable(bm.zeros(self.post.num))
+    delay_type, delay_step, delay_value = init_delay(delay_step, self.pre.spike)
+    self.delay_type = delay_type
+    self.delay_step = delay_step
+    self.pre_spike = delay_value
+
+    # function
+    self.integral = odeint(lambda g, t: -g / self.tau, method=method)
+
+  def update(self, _t, _dt):
+    if self.delay_type == 'homo':
+      delayed_pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange(self.pre.num))
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_pre_spike = self.pre.spike
+
+    # post values
+    if isinstance(self.conn, All2All):
+      post_vs = bm.sum(delayed_pre_spike)
+      if not self.conn.include_self:
+        post_vs = post_vs - delayed_pre_spike
+      post_vs *= self.g_max
+    elif isinstance(self.conn, One2One):
+      post_vs = delayed_pre_spike * self.g_max
+    else:
+      post_vs = bm.pre2post_event_sum(delayed_pre_spike, self.pre2post, self.post.num, self.g_max)
+
+    # updates
+    self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_vs
+    self.post.input += self.g
 
 
 class ExpCUBA(TwoEndConn):
@@ -409,7 +566,7 @@ class ExpCOBA(ExpCUBA):
       post_vs = bm.pre2post_event_sum(delayed_spike, self.pre2post, self.post.num, self.g_max)
 
     # updates
-    self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_vs
+    self.g.value = self.integral(self.g, _t, dt=_dt) + post_vs
     self.post.input += self.g * (self.E - self.post.V)
 
 
@@ -889,3 +1046,216 @@ class AlphaCOBA(DualExpCOBA):
                                     tau_rise=tau_decay,
                                     method=method,
                                     name=name)
+
+
+class NMDA(TwoEndConn):
+  r"""Conductance-based NMDA synapse model.
+
+  **Model Descriptions**
+
+  The NMDA receptor is a glutamate receptor and ion channel found in neurons.
+  The NMDA receptor is one of three types of ionotropic glutamate receptors,
+  the other two being AMPA and kainate receptors.
+
+  The NMDA receptor mediated conductance depends on the postsynaptic voltage.
+  The voltage dependence is due to the blocking of the pore of the NMDA receptor
+  from the outside by a positively charged magnesium ion. The channel is
+  nearly completely blocked at resting potential, but the magnesium block is
+  relieved if the cell is depolarized. The fraction of channels :math:`g_{\infty}`
+  that are not blocked by magnesium can be fitted to
+
+  .. math::
+
+      g_{\infty}(V,[{Mg}^{2+}]_{o}) = (1+{e}^{-\alpha V}
+      \frac{[{Mg}^{2+}]_{o}} {\beta})^{-1}
+
+  Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration,
+  usually 1 mM. Thus, the channel acts as a
+  "coincidence detector" and only once both of these conditions are met, the
+  channel opens and it allows positively charged ions (cations) to flow through
+  the cell membrane [2]_.
+
+  If we make the approximation that the magnesium block changes
+  instantaneously with voltage and is independent of the gating of the channel,
+  the net NMDA receptor-mediated synaptic current is given by
+
+  .. math::
+
+      I_{syn} = g_{NMDA}(t) (V(t)-E) \cdot g_{\infty}
+
+  where :math:`V(t)` is the post-synaptic neuron potential, :math:`E` is the
+  reversal potential.
+
+  Simultaneously, the kinetics of synaptic state :math:`g` is given by
+
+  .. math::
+
+      & g_{NMDA} (t) = g_{max} g \\
+      & \frac{d g}{dt} = -\frac{g} {\tau_{decay}}+a x(1-g) \\
+      & \frac{d x}{dt} = -\frac{x}{\tau_{rise}}+ \sum_{k} \delta(t-t_{j}^{k})
+
+  where the decay time of NMDA currents is usually taken to be
+  :math:`\tau_{decay}` =100 ms, :math:`a= 0.5 ms^{-1}`, and :math:`\tau_{rise}` =2 ms.
+
+  The NMDA receptor has been thought to be very important for controlling
+  synaptic plasticity and mediating learning and memory functions [3]_.
+
+
+  **Model Examples**
+
+  - `(Wang, 2002) Decision making spiking model <https://brainpy-examples.readthedocs.io/en/latest/decision_making/Wang_2002_decision_making_spiking.html>`_
+
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> neu1 = bp.dyn.HH(1)
+    >>> neu2 = bp.dyn.HH(1)
+    >>> syn1 = bp.dyn.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
+    >>>
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
+    >>> runner.run(150.)
+    >>>
+    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    >>> fig.add_subplot(gs[0, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+    >>> plt.legend()
+    >>>
+    >>> fig.add_subplot(gs[1, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+    >>> plt.plot(runner.mon.ts, runner.mon['syn.x'], label='x')
+    >>> plt.legend()
+    >>> plt.show()
+
+  **Model Parameters**
+
+  ============= ============== =============== ================================================
+  **Parameter** **Init Value** **Unit**        **Explanation**
+  ------------- -------------- --------------- ------------------------------------------------
+  delay         0              ms              The decay length of the pre-synaptic spikes.
+  g_max         .15            µmho(µS)        The synaptic maximum conductance.
+  E             0              mV              The reversal potential for the synaptic current.
+  alpha         .062           \               Binding constant.
+  beta          3.57           \               Unbinding constant.
+  cc_Mg         1.2            mM              Concentration of Magnesium ion.
+  tau_decay     100            ms              The time constant of the synaptic decay phase.
+  tau_rise      2              ms              The time constant of the synaptic rise phase.
+  a             .5             1/ms
+  ============= ============== =============== ================================================
+
+
+  **Model Variables**
+
+  =============== ================== =========================================================
+  **Member name** **Initial values** **Explanation**
+  --------------- ------------------ ---------------------------------------------------------
+  g               0                  Synaptic conductance.
+  x               0                  Synaptic gating variable.
+  pre_spike       False              The history spiking states of the pre-synaptic neurons.
+  =============== ================== =========================================================
+
+  **References**
+
+  .. [1] Brunel N, Wang X J. Effects of neuromodulation in a
+         cortical network model of object working memory dominated
+         by recurrent inhibition[J].
+         Journal of computational neuroscience, 2001, 11(1): 63-85.
+  .. [2] Furukawa, Hiroyasu, Satinder K. Singh, Romina Mancusso, and
+         Eric Gouaux. "Subunit arrangement and function in NMDA receptors."
+         Nature 438, no. 7065 (2005): 185-192.
+  .. [3] Li, F. and Tsien, J.Z., 2009. Memory and the NMDA receptors. The New
+         England journal of medicine, 361(3), p.302.
+  .. [4] https://en.wikipedia.org/wiki/NMDA_receptor
+
+  """
+
+  def __init__(
+      self,
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      g_max: Parameter = 0.15,
+      E: Parameter = 0.,
+      cc_Mg: Parameter = 1.2,
+      alpha: Parameter = 0.062,
+      beta: Parameter = 3.57,
+      tau_decay: Parameter = 100.,
+      a: Parameter = 0.5,
+      tau_rise: Parameter = 2.,
+      delay_step: Parameter = None,
+      method: str = 'exp_auto',
+      name: str = None,
+  ):
+    super(NMDA, self).__init__(pre=pre, post=post, conn=conn, name=name)
+    self.check_pre_attrs('spike')
+    self.check_post_attrs('input', 'V')
+
+    # parameters
+    self.g_max = g_max
+    self.E = E
+    self.alpha = alpha
+    self.beta = beta
+    self.cc_Mg = cc_Mg
+    self.tau_decay = tau_decay
+    self.tau_rise = tau_rise
+    self.a = a
+
+    # connections
+    if not isinstance(self.conn, (All2All, One2One)):
+      self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+
+    # variables
+    if isinstance(self.conn, All2All):
+      self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
+      self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
+    elif isinstance(self.conn, One2One):
+      self.g = bm.Variable(bm.zeros(self.post.num, dtype=bm.float_))
+      self.x = bm.Variable(bm.zeros(self.post.num, dtype=bm.float_))
+    else:
+      self.g = bm.Variable(bm.zeros(self.pre_ids.size, dtype=bm.float_))
+      self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
+    self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
+
+    # integral
+    self.int_g = odeint(method=method, f=lambda g, t, x: -g / self.tau_decay + self.a * x * (1 - g))
+    self.int_x = odeint(method=method, f=lambda x, t: -x / self.tau_rise)
+
+  def update(self, _t, _dt):
+    # delayed pre-synaptic spikes
+    if self.delay_type == 'homo':
+      delayed_pre_spike = self.pre_spike(self.delay_step)
+      self.pre_spike.update(self.pre.spike)
+    elif self.delay_type == 'heter':
+      delayed_pre_spike = self.pre_spike(self.delay_step, bm.arange(self.pre.num))
+      self.pre_spike.update(self.pre.spike)
+    else:
+      delayed_pre_spike = self.pre.spike
+
+    # post-synaptic value
+    if isinstance(self.conn, All2All):
+      x = self.int_x(self.x, _t, dt=_dt)
+      self.g.value = self.int_g(self.g, _t, self.x, dt=_dt)
+      self.x.value = x + delayed_pre_spike
+      post_g = self.g.sum()
+      if not self.conn.include_self:
+        post_g = post_g - self.g
+    elif isinstance(self.conn, One2One):
+      x = self.int_x(self.x, _t, dt=_dt)
+      self.g.value = self.int_g(self.g, _t, self.x, dt=_dt)
+      self.x.value = x + delayed_pre_spike.sum()
+      post_g = self.g
+    else:
+      x = bm.pre2syn(self.x, self.pre_ids)
+      self.g.value = self.int_g(self.g, _t, x, dt=_dt)
+      self.x.value = self.int_x(self.x, _t, dt=_dt) + delayed_pre_spike
+      post_g = bm.syn2post(self.g, self.post_ids, self.post.num)
+
+    # output
+    g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)
+    self.post.input -= self.g_max * post_g * (self.post.V - self.E) / g_inf
+
