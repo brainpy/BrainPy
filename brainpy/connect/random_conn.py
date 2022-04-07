@@ -2,7 +2,6 @@
 
 import numpy as np
 
-from brainpy import tools
 from brainpy.errors import ConnectorError
 
 from .base import *
