@@ -1,8 +1,15 @@
 #docker run -ti -v $(pwd):/io quay.io/pypa/manylinux2010_x86_64 /bin/bash
 #cd /io/
 
-version=0.0.3.1
+#docker run -ti -v $(pwd):/io quay.io/pypa/manylinux2014_x86_64 /bin/bash
+#cd /io/
+
+
+version=0.0.5
 linux_version=manylinux2010_x86_64
+
+linux_version=manylinux2014_x86_64
+
 
 # py36
 /opt/python/cp36-cp36m/bin/python -m pip install pybind11 numpy  jax jaxlib
@@ -23,11 +30,6 @@ auditwheel repair --plat $linux_version dist/brainpylib-$version-cp38-cp38-linux
 /opt/python/cp39-cp39/bin/python -m pip install pybind11 numpy  jax jaxlib scipy==1.7.1
 /opt/python/cp39-cp39/bin/python setup.py bdist_wheel
 auditwheel repair --plat $linux_version dist/brainpylib-$version-cp39-cp39-linux_x86_64.whl
-
-#docker run -ti -v $(pwd):/io quay.io/pypa/manylinux2014_x86_64 /bin/bash
-#cd /io/
-
-linux_version=manylinux2014_x86_64
 
 
 # py310
