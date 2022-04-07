@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import warnings
+from typing import Union
+
 import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.errors import ModelBuildError
+from brainpy.initialize import Initializer, init_param
+from brainpy.types import Shape
 
 __all__ = [
   'SpikeTimeInput',
@@ -18,17 +23,17 @@ class SpikeTimeGroup(NeuGroup):
   """The input neuron group characterized by spikes emitting at given times.
 
   >>> # Get 2 neurons, firing spikes at 10 ms and 20 ms.
-  >>> SpikeTimeInput(2, times=[10, 20])
+  >>> SpikeTimeGroup(2, times=[10, 20])
   >>> # or
   >>> # Get 2 neurons, the neuron 0 fires spikes at 10 ms and 20 ms.
-  >>> SpikeTimeInput(2, times=[10, 20], indices=[0, 0])
+  >>> SpikeTimeGroup(2, times=[10, 20], indices=[0, 0])
   >>> # or
   >>> # Get 2 neurons, neuron 0 fires at 10 ms and 30 ms, neuron 1 fires at 20 ms.
-  >>> SpikeTimeInput(2, times=[10, 20, 30], indices=[0, 1, 0])
+  >>> SpikeTimeGroup(2, times=[10, 20, 30], indices=[0, 1, 0])
   >>> # or
   >>> # Get 2 neurons; at 10 ms, neuron 0 fires; at 20 ms, neuron 0 and 1 fire;
   >>> # at 30 ms, neuron 1 fires.
-  >>> SpikeTimeInput(2, times=[10, 20, 20, 30], indices=[0, 0, 1, 1])
+  >>> SpikeTimeGroup(2, times=[10, 20, 20, 30], indices=[0, 0, 1, 1])
 
   Parameters
   ----------
@@ -42,7 +47,14 @@ class SpikeTimeGroup(NeuGroup):
       The name of the dynamic system.
   """
 
-  def __init__(self, size, times, indices, need_sort=True, name=None):
+  def __init__(
+      self,
+      size: Shape,
+      times,
+      indices,
+      need_sort: bool = True,
+      name: str = None
+  ):
     super(SpikeTimeGroup, self).__init__(size=size, name=name)
 
     # parameters
@@ -76,18 +88,37 @@ class SpikeTimeGroup(NeuGroup):
     self._run(_t)
 
 
-class SpikeTimeInput(SpikeTimeGroup):
-  pass
+def SpikeTimeInput(*args, **kwargs):
+  """Spike Time Input.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.SpikeTimeGroup" instead.
+
+  Returns
+  -------
+  group: NeuGroup
+    The neural group.
+  """
+  warnings.warn('Please use "brainpy.dyn.SpikeTimeGroup" instead. '
+                '"brainpy.dyn.SpikeTimeInput" is deprecated since '
+                'version 2.1.5', DeprecationWarning)
+  return SpikeTimeGroup(*args, **kwargs)
 
 
 class PoissonGroup(NeuGroup):
   """Poisson Neuron Group.
   """
 
-  def __init__(self, size, freqs, seed=None, name=None):
+  def __init__(
+      self,
+      size: Shape,
+      freqs: Union[float, jnp.ndarray, bm.JaxArray, Initializer],
+      seed: int = None,
+      name: str = None
+  ):
     super(PoissonGroup, self).__init__(size=size, name=name)
 
-    self.freqs = freqs
+    self.freqs = init_param(freqs, self.num, allow_none=False)
     self.dt = bm.get_dt() / 1000.
     self.size = (size,) if isinstance(size, int) else tuple(size)
     self.spike = bm.Variable(jnp.zeros(self.num, dtype=bool))
@@ -99,5 +130,18 @@ class PoissonGroup(NeuGroup):
     self.t_last_spike.update(bm.where(self.spike, _t, self.t_last_spike))
 
 
-class PoissonInput(PoissonGroup):
-  pass
+def PoissonInput(*args, **kwargs):
+  """Poisson Group Input.
+
+  .. deprecated:: 2.1.0
+     Please use "brainpy.dyn.PoissonGroup" instead.
+
+  Returns
+  -------
+  poisson_group: NeuGroup
+    The poisson neural group.
+  """
+  warnings.warn('Please use "brainpy.dyn.PoissonGroup" instead. '
+                '"brainpy.dyn.PoissonInput" is deprecated since '
+                'version 2.1.5', DeprecationWarning)
+  return PoissonGroup(*args, **kwargs)

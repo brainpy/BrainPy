@@ -23,7 +23,6 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Source**: https://github.com/PKU-NIP-Lab/BrainPy
 - **Bug reports**: https://github.com/PKU-NIP-Lab/BrainPy/issues
 - **Source on OpenI**: https://git.openi.org.cn/OpenI/BrainPy
-- **Canonical brain models**: https://brainmodels.readthedocs.io/
 - **Examples from literature**: https://brainpy-examples.readthedocs.io/
 
 
@@ -38,7 +37,7 @@ $ pip install brain-py -U
 
 The following packages are required for ``BrainPy``: 
 
-`numpy >= 1.15` and `jax >= 0.2.10` ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax))
+`numpy >= 1.15` and `jax >= 0.3.0` ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax))
 
 For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
 

@@ -5,10 +5,11 @@ from typing import Union
 import jax.nn
 import jax.numpy as jnp
 
-import brainpy
 import brainpy.math as bm
+import brainpy
 from brainpy.initialize import ZeroInit, OneInit, Initializer
 from brainpy.nn.base import Node
+
 
 __all__ = [
   'BatchNorm',
@@ -41,6 +42,7 @@ class BatchNorm(Node):
   gamma_init: brainpy.init.Initializer
     an initializer generating the original scaling matrix
   """
+
   def __init__(self,
                axis: Union[int, tuple, list],
                epsilon: float = 1e-5,
