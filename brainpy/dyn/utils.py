@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import time
+
 from collections.abc import Iterable
 
 import jax.numpy as jnp
@@ -13,7 +13,6 @@ from brainpy.running.monitor import Monitor
 
 __all__ = [
   'size2len',
-  'run_model',
   'init_delay',
   'check_and_format_inputs',
   'check_and_format_monitors',
@@ -30,11 +29,11 @@ def init_delay(delay_step, delay_target, delay_data=None):
 
   Parameters
   ----------
-  delay_step: int, ndarray
+  delay_step: int, ndarray, JaxArray
     The number of delay steps. It can an integer of an array of integers.
-  delay_target: ndarray
+  delay_target: ndarray, JaxArray
     The target variable to delay.
-  delay_data: ndarrat
+  delay_data: optional, ndarray, JaxArray
     The initial delay data.
 
   Returns
@@ -82,63 +81,6 @@ def size2len(size):
     return a
   else:
     raise ValueError
-
-
-def run_model(run_func, times, report, dt=None, extra_func=None):
-  """Run the model.
-
-  The "run_func" can be the step run function of a dynamical system.
-
-  Parameters
-  ----------
-  run_func : callable
-      The step run function.
-  times : iterable
-      The model running times.
-  report : float
-      The percent of the total running length for each report.
-  """
-
-  # numerical integration step
-  if dt is None:
-    dt = bm.get_dt()
-  assert isinstance(dt, (int, float))
-
-  # running function
-  if extra_func is None:
-    running_func = run_func
-  else:
-    def running_func(t_and_dt):
-      extra_func(*t_and_dt)
-      run_func(t_and_dt)
-
-  # simulations
-  run_length = len(times)
-  if report:
-    t0 = time.time()
-    running_func((times[0], dt))
-    compile_time = time.time() - t0
-    print('Compilation used {:.4f} s.'.format(compile_time))
-
-    print("Start running ...")
-    report_gap = int(run_length * report)
-    t0 = time.time()
-    for run_idx in range(1, run_length):
-      running_func((times[run_idx], dt))
-      if (run_idx + 1) % report_gap == 0:
-        percent = (run_idx + 1) / run_length * 100
-        print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
-    running_time = time.time() - t0
-    print('Simulation is done in {:.3f} s.'.format(running_time))
-    print()
-
-  else:
-    t0 = time.time()
-    for run_idx in range(run_length):
-      running_func((times[run_idx], dt))
-    running_time = time.time() - t0
-
-  return running_time
 
 
 def check_and_format_inputs(host, inputs):

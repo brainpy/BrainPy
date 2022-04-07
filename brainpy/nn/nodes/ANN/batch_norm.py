@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Sequence, Optional, Dict, Callable, Union
+from typing import Union
 
 import jax.nn
 import jax.numpy as jnp

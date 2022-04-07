@@ -15,8 +15,11 @@ __all__ = [
 ]
 
 
-def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
-               size: Shape):
+def init_param(
+    param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray, float],
+    size: Shape,
+    allow_none: bool = True
+):
   """Initialize parameters.
 
   Parameters
@@ -29,18 +32,31 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
     - If it is a tensor, then this function check whether ``tensor.shape`` is equal to the given ``size``.
   size: int, sequence of int
     The shape of the parameter.
+  allow_none: bool
+    Whether allow the parameter is None.
+
+  Returns
+  -------
+  param: JaxArray, float, None
+    The initialized parameter.
   """
   size = to_size(size)
   if param is None:
-    return None
+    if allow_none:
+      return None
+    else:
+      raise ValueError(f'Expect a parameter with type of float, JaxArray, Initializer, or '
+                       f'Callable function, but we got None. ')
+  elif isinstance(param, float):
+    return param
   elif callable(param):
-    param = param(size)
+    param = bm.asarray(param(size))
   elif isinstance(param, (onp.ndarray, jnp.ndarray)):
     param = bm.asarray(param)
   elif isinstance(param, (bm.JaxArray,)):
     param = param
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
-  assert param.shape == size, f'"param.shape" is not the required size {size}'
+  if param.shape != size:
+    raise ValueError(f'"param.shape" is not consistent with the required size {size}')
   return param
-
