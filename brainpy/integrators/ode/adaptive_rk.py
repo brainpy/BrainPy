@@ -173,7 +173,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
         keywords[f'{v}_te'] = 'the local truncation error'
       self.code_scope['tol'] = tol
       self.code_scope['math'] = bm
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
 
     # build the integrator
     self.build()

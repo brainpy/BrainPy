@@ -42,9 +42,9 @@ class Integrator(AbstractIntegrator):
 
     self._dt = dt
     check_float(dt, 'dt', allow_none=False, allow_int=True)
-    self._variables = variables  # variables
-    self._parameters = parameters  # parameters
-    self._arguments = list(arguments) + [DT]  # arguments
+    self._variables = list(variables)  # variables
+    self._parameters = list(parameters)  # parameters
+    self._arguments = list(arguments) + [f'{DT}={self._dt}', ]  # arguments
     self._integral = None  # integral function
 
     # state delays
@@ -74,6 +74,10 @@ class Integrator(AbstractIntegrator):
   @variables.setter
   def variables(self, values):
     raise ValueError('Cannot set "variables" by users.')
+
+  @property
+  def arg_names(self):
+    return self._variables + self._parameters + [DT]
 
   @property
   def parameters(self):
@@ -123,7 +127,7 @@ class Integrator(AbstractIntegrator):
 
     # check arguments
     for i, arg in enumerate(args):
-      kwargs[self.arguments[i]] = arg
+      kwargs[self.arg_names[i]] = arg
 
     # integral
     new_vars = self.integral(**kwargs)

@@ -409,7 +409,7 @@ class ExponentialEuler(ODEIntegrator):
     }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
 
     # build the integrator
     self.build()
@@ -718,7 +718,7 @@ class ExpEulerAuto(ODEIntegrator):
       C.F: 'the derivative function',
       # C.DT: 'the precision of numerical integration',
     }
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
 
     # build the integrator
     self.code_lines = []

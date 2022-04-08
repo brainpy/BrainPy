@@ -4,7 +4,6 @@ import logging
 
 import numpy as np
 
-from brainpy import tools, math
 from brainpy.errors import ConnectorError
 
 from .base import *
@@ -27,13 +26,17 @@ class One2One(TwoEndConnector):
   def __init__(self):
     super(One2One, self).__init__()
 
-  def require(self, *structures):
-    self.check(structures)
+  def __call__(self, pre_size, post_size):
+    super(One2One, self).__call__(pre_size, post_size)
     try:
       assert self.pre_num == self.post_num
     except AssertionError:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
                            f'same size, but {self.pre_num} != {self.post_num}.')
+    return self
+
+  def require(self, *structures):
+    self.check(structures)
     ind = np.arange(self.pre_num)
     indptr = np.arange(self.pre_num + 1)
     return self.make_returns(structures, csr=(ind, indptr))

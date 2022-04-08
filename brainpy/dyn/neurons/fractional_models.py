@@ -2,6 +2,8 @@
 
 from typing import Union, Sequence, Callable
 
+import jax.numpy as jnp
+
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
@@ -83,13 +85,13 @@ class FractionalFHR(FractionalNeuron):
       size: Shape,
       alpha: Union[float, Sequence[float]],
       num_memory: int = 1000,
-      a: Parameter = 0.7,
-      b: Parameter = 0.8,
-      c: Parameter = -0.775,
-      d: Parameter = 1.,
-      delta: Parameter = 0.08,
-      mu: Parameter = 0.0001,
-      Vth: Parameter = 1.8,
+      a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.7,
+      b: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.8,
+      c: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -0.775,
+      d: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
+      delta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.08,
+      mu: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0001,
+      Vth: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.8,
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.5),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       y_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
@@ -102,13 +104,13 @@ class FractionalFHR(FractionalNeuron):
     check_integer(num_memory, 'num_memory', allow_none=False)
 
     # parameters
-    self.a = a
-    self.b = b
-    self.c = c
-    self.d = d
-    self.delta = delta
-    self.mu = mu
-    self.Vth = Vth
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.c = init_param(c, self.num, allow_none=False)
+    self.d = init_param(d, self.num, allow_none=False)
+    self.mu = init_param(mu, self.num, allow_none=False)
+    self.Vth = init_param(Vth, self.num, allow_none=False)
+    self.delta = init_param(delta, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -217,16 +219,16 @@ class FractionalIzhikevich(FractionalNeuron):
       size: Shape,
       alpha: Union[float, Sequence[float]],
       num_step: int,
-      a: Parameter = 0.02,
-      b: Parameter = 0.20,
-      c: Parameter = -65.,
-      d: Parameter = 8.,
-      f: Parameter = 0.04,
-      g: Parameter = 5.,
-      h: Parameter = 140.,
-      tau: Parameter = 1.,
-      R: Parameter = 1.,
-      V_th: Parameter = 30.,
+      a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.02,
+      b: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.20,
+      c: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -65.,
+      d: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 8.,
+      f: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.04,
+      g: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.,
+      h: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 140.,
+      tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
+      R: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
+      V_th: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 30.,
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-65.),
       u_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.20 * -65.),
       name: str = None
@@ -237,16 +239,16 @@ class FractionalIzhikevich(FractionalNeuron):
     # params
     self.alpha = alpha
     check_float(alpha, 'alpha', min_bound=0., max_bound=1., allow_none=False, allow_int=True)
-    self.a = a
-    self.b = b
-    self.c = c
-    self.d = d
-    self.f = f
-    self.g = g
-    self.h = h
-    self.tau = tau
-    self.R = R
-    self.V_th = V_th
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.c = init_param(c, self.num, allow_none=False)
+    self.d = init_param(d, self.num, allow_none=False)
+    self.f = init_param(f, self.num, allow_none=False)
+    self.g = init_param(g, self.num, allow_none=False)
+    self.h = init_param(h, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.R = init_param(R, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
