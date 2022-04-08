@@ -2,7 +2,6 @@
 
 from typing import Union, Callable
 
-import jax.numpy as jnp
 import numpy as np
 from jax.experimental.host_callback import id_tap
 
@@ -72,20 +71,20 @@ class RateFHN(NeuGroup):
       size: Shape,
 
       # fhn parameters
-      alpha: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 3.0,
-      beta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 4.0,
-      gamma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -1.5,
-      delta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      epsilon: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.5,
-      tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 20.0,
+      alpha: Union[float, Tensor, Initializer, Callable] = 3.0,
+      beta: Union[float, Tensor, Initializer, Callable] = 4.0,
+      gamma: Union[float, Tensor, Initializer, Callable] = -1.5,
+      delta: Union[float, Tensor, Initializer, Callable] = 0.0,
+      epsilon: Union[float, Tensor, Initializer, Callable] = 0.5,
+      tau: Union[float, Tensor, Initializer, Callable] = 20.0,
 
       # noise parameters
-      x_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
-      y_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
@@ -223,20 +222,20 @@ class FeedbackFHN(NeuGroup):
       size: Shape,
 
       # model parameters
-      a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.7,
-      b: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.8,
-      delay: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 10.,
-      tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 12.5,
-      mu: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.6886,
-      v0: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -1,
+      a: Union[float, Tensor, Initializer, Callable] = 0.7,
+      b: Union[float, Tensor, Initializer, Callable] = 0.8,
+      delay: Union[float, Tensor, Initializer, Callable] = 10.,
+      tau: Union[float, Tensor, Initializer, Callable] = 12.5,
+      mu: Union[float, Tensor, Initializer, Callable] = 1.6886,
+      v0: Union[float, Tensor, Initializer, Callable] = -1,
 
       # noise parameters
-      x_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
-      y_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
@@ -391,18 +390,18 @@ class RateQIF(NeuGroup):
       size: Shape,
 
       # model parameters
-      tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
-      eta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -5.0,
-      delta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.0,
-      J: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 15.,
+      tau: Union[float, Tensor, Initializer, Callable] = 1.,
+      eta: Union[float, Tensor, Initializer, Callable] = -5.0,
+      delta: Union[float, Tensor, Initializer, Callable] = 1.0,
+      J: Union[float, Tensor, Initializer, Callable] = 15.,
 
       # noise parameters
-      x_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
-      y_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
@@ -503,16 +502,16 @@ class StuartLandauOscillator(RateGroup):
       size: Shape,
 
       # model parameters
-      a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.25,
-      w: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.2,
+      a: Union[float, Tensor, Initializer, Callable] = 0.25,
+      w: Union[float, Tensor, Initializer, Callable] = 0.2,
 
       # noise parameters
-      x_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
-      y_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
@@ -605,31 +604,31 @@ class WilsonCowanModel(RateGroup):
       size: Shape,
 
       # Excitatory parameters
-      E_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,  # excitatory time constant
-      E_a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.2,  # excitatory gain
-      E_theta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 2.8,  # excitatory firing threshold
+      E_tau: Union[float, Tensor, Initializer, Callable] = 1.,  # excitatory time constant
+      E_a: Union[float, Tensor, Initializer, Callable] = 1.2,  # excitatory gain
+      E_theta: Union[float, Tensor, Initializer, Callable] = 2.8,  # excitatory firing threshold
 
       # Inhibitory parameters
-      I_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,  # inhibitory time constant
-      I_a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,  # inhibitory gain
-      I_theta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 4.0,  # inhibitory firing threshold
+      I_tau: Union[float, Tensor, Initializer, Callable] = 1.,  # inhibitory time constant
+      I_a: Union[float, Tensor, Initializer, Callable] = 1.,  # inhibitory gain
+      I_theta: Union[float, Tensor, Initializer, Callable] = 4.0,  # inhibitory firing threshold
 
       # connection parameters
-      wEE: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 12.,  # local E-E coupling
-      wIE: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 4.,  # local E-I coupling
-      wEI: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 13.,  # local I-E coupling
-      wII: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 11.,  # local I-I coupling
+      wEE: Union[float, Tensor, Initializer, Callable] = 12.,  # local E-E coupling
+      wIE: Union[float, Tensor, Initializer, Callable] = 4.,  # local E-I coupling
+      wEI: Union[float, Tensor, Initializer, Callable] = 13.,  # local I-E coupling
+      wII: Union[float, Tensor, Initializer, Callable] = 11.,  # local I-I coupling
 
       # Refractory parameter
-      r: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1,
+      r: Union[float, Tensor, Initializer, Callable] = 1,
 
       # noise parameters
-      x_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      x_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
-      y_ou_mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0,
-      y_ou_tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # state initializer
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(max_val=0.05),
