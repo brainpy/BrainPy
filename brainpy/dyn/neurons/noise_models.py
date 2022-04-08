@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union
-
-import jax.numpy as jnp
+from typing import Union, Callable
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import init_param, Initializer
 from brainpy.integrators.sde import sdeint
-from brainpy.types import Parameter, Shape
+from brainpy.types import Tensor, Shape
 
 __all__ = [
   'OUProcess',
@@ -47,9 +45,9 @@ class OUProcess(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      mean: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.,
-      sigma: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
-      tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 10.,
+      mean: Union[float, Tensor, Initializer, Callable] = 0.,
+      sigma: Union[float, Tensor, Initializer, Callable] = 1.,
+      tau: Union[float, Tensor, Initializer, Callable] = 10.,
       method: str = 'euler',
       name: str = None
   ):

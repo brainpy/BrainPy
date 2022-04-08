@@ -2,15 +2,13 @@
 
 from typing import Union, Callable
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import OneInit, Uniform, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_initializer
-from brainpy.types import Shape, Parameter, Tensor
+from brainpy.types import Shape, Tensor
 
 __all__ = [
   'HH',
@@ -188,14 +186,14 @@ class HH(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      ENa: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 50.,
-      gNa: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 120.,
-      EK: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -77.,
-      gK: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 36.,
-      EL: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -54.387,
-      gL: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.03,
-      V_th: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 20.,
-      C: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.0,
+      ENa: Union[float, Tensor, Initializer, Callable] = 50.,
+      gNa: Union[float, Tensor, Initializer, Callable] = 120.,
+      EK: Union[float, Tensor, Initializer, Callable] = -77.,
+      gK: Union[float, Tensor, Initializer, Callable] = 36.,
+      EL: Union[float, Tensor, Initializer, Callable] = -54.387,
+      gL: Union[float, Tensor, Initializer, Callable] = 0.03,
+      V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      C: Union[float, Tensor, Initializer, Callable] = 1.0,
       V_initializer: Union[Initializer, Callable, Tensor] = Uniform(-70, -60.),
       m_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.5),
       h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
@@ -364,19 +362,19 @@ class MorrisLecar(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_Ca: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 130.,
-      g_Ca: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 4.4,
-      V_K: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -84.,
-      g_K: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 8.,
-      V_leak: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -60.,
-      g_leak: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 2.,
-      C: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 20.,
-      V1: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -1.2,
-      V2: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 18.,
-      V3: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 2.,
-      V4: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 30.,
-      phi: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.04,
-      V_th: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 10.,
+      V_Ca: Union[float, Tensor, Initializer, Callable] = 130.,
+      g_Ca: Union[float, Tensor, Initializer, Callable] = 4.4,
+      V_K: Union[float, Tensor, Initializer, Callable] = -84.,
+      g_K: Union[float, Tensor, Initializer, Callable] = 8.,
+      V_leak: Union[float, Tensor, Initializer, Callable] = -60.,
+      g_leak: Union[float, Tensor, Initializer, Callable] = 2.,
+      C: Union[float, Tensor, Initializer, Callable] = 20.,
+      V1: Union[float, Tensor, Initializer, Callable] = -1.2,
+      V2: Union[float, Tensor, Initializer, Callable] = 18.,
+      V3: Union[float, Tensor, Initializer, Callable] = 2.,
+      V4: Union[float, Tensor, Initializer, Callable] = 30.,
+      phi: Union[float, Tensor, Initializer, Callable] = 0.04,
+      V_th: Union[float, Tensor, Initializer, Callable] = 10.,
       W_initializer: Union[Callable, Initializer, Tensor] = OneInit(0.02),
       V_initializer: Union[Callable, Initializer, Tensor] = Uniform(-70., -60.),
       method: str = 'exp_auto',
