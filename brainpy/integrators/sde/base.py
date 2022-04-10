@@ -5,6 +5,7 @@ from typing import Dict, Callable
 from brainpy import math as bm, errors
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
+from brainpy.integrators.constants import DT
 
 __all__ = [
   'SDEIntegrator',

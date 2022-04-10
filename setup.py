@@ -7,6 +7,21 @@ import re
 from setuptools import find_packages
 from setuptools import setup
 
+try:
+  import pkg_resources
+  installed_packages = pkg_resources.working_set
+  for i in installed_packages:
+    if i.key == 'brainpy-simulator':
+      raise SystemError('Please uninstall the older version of '
+                        'brainpy package "brainpy-simulator" first. \n'
+                        '>>> pip uninstall brainpy-simulator')
+    if i.key == 'brain-py':
+      raise SystemError('Please uninstall the older version of '
+                        'brainpy package "brain-py" first. \n'
+                        '>>> pip uninstall brain-py')
+except ModuleNotFoundError:
+  pass
+
 # version
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
@@ -19,7 +34,7 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
 
 # setup
 setup(
-  name='brain-py',
+  name='brainpy',
   version=version,
   description='BrainPy: Brain Dynamics Programming in Python',
   long_description=README,
@@ -30,17 +45,20 @@ setup(
   python_requires='>=3.7',
   install_requires=[
     'numpy>=1.15',
-    'jax>=0.2.10',
+    'jax>=0.3.0',
     'tqdm',
   ],
   extras_require={
-    'cpu': ['jaxlib>=0.1.64', 'brainpylib>=0.03'],
-    'cuda': ['jaxlib>=0.1.64', 'brainpylib>=0.03'],
+    'cpu': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
+    'cuda': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
   },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
-  keywords='computational neuroscience, brain-inspired computation, '
-           'dynamical systems, differential equations, '
-           'brain modeling, brain dynamics programming',
+  keywords='computational neuroscience, '
+           'brain-inspired computation, '
+           'dynamical systems, '
+           'differential equations, '
+           'brain modeling, '
+           'brain dynamics programming',
   classifiers=[
     'Natural Language :: English',
     'Operating System :: OS Independent',

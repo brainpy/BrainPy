@@ -21,13 +21,13 @@ class EINet(bp.dyn.Network):
     # synapses
     we = 0.6 / scale  # excitatory synaptic weight (voltage)
     wi = 6.7 / scale  # inhibitory synaptic weight
-    E2E = bp.dyn.ExpCOBA(E, E, bp.conn.FixedProb(prob=0.02),
+    E2E = bp.dyn.ExpCOBA(E, E, bp.conn.FixedProb(0.02),
                          E=0., g_max=we, tau=5., method=method)
-    E2I = bp.dyn.ExpCOBA(E, I, bp.conn.FixedProb(prob=0.02),
+    E2I = bp.dyn.ExpCOBA(E, I, bp.conn.FixedProb(0.02),
                          E=0., g_max=we, tau=5., method=method)
-    I2E = bp.dyn.ExpCOBA(I, E, bp.conn.FixedProb(prob=0.02),
+    I2E = bp.dyn.ExpCOBA(I, E, bp.conn.FixedProb(0.02),
                          E=-80., g_max=wi, tau=10., method=method)
-    I2I = bp.dyn.ExpCOBA(I, I, bp.conn.FixedProb(prob=0.02),
+    I2I = bp.dyn.ExpCOBA(I, I, bp.conn.FixedProb(0.02),
                          E=-80., g_max=wi, tau=10., method=method)
 
     super(EINet, self).__init__(E2E, E2I, I2E, I2I, E=E, I=I)

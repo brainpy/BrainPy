@@ -154,8 +154,10 @@ class AdaptiveRKIntegrator(ODEIntegrator):
                                    f'not {self.var_type}.')
 
     # integrator keywords
-    keywords = {C.F: 'the derivative function',
-                C.DT: 'the precision of numerical integration'}
+    keywords = {
+      C.F: 'the derivative function',
+      # C.DT: 'the precision of numerical integration'
+    }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
       for i in range(1, len(self.A) + 1):
@@ -171,7 +173,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
         keywords[f'{v}_te'] = 'the local truncation error'
       self.code_scope['tol'] = tol
       self.code_scope['math'] = bm
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
 
     # build the integrator
     self.build()

@@ -11,6 +11,7 @@ from brainpy.initialize import (XavierNormal,
                                 init_param,
                                 Initializer)
 from brainpy.nn.base import RecurrentNode
+from brainpy.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_integer,
                                     check_initializer,
                                     check_shape_consistency)
@@ -55,6 +56,7 @@ class VanillaRNN(RecurrentNode):
     Whether set the node is trainable.
 
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -64,10 +66,9 @@ class VanillaRNN(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
-      trainable: bool = True,
       **kwargs
   ):
-    super(VanillaRNN, self).__init__(trainable=trainable, **kwargs)
+    super(VanillaRNN, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -170,6 +171,7 @@ class GRU(RecurrentNode):
          evaluation of gated recurrent neural networks on sequence modeling.
          arXiv preprint arXiv:1412.3555.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -178,10 +180,9 @@ class GRU(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = Orthogonal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      trainable: bool = True,
       **kwargs
   ):
-    super(GRU, self).__init__(trainable=trainable, **kwargs)
+    super(GRU, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -304,6 +305,7 @@ class LSTM(RecurrentNode):
          exploration of recurrent network architectures." In International conference
          on machine learning, pp. 2342-2350. PMLR, 2015.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -312,10 +314,9 @@ class LSTM(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      trainable: bool = True,
       **kwargs
   ):
-    super(LSTM, self).__init__(trainable=trainable, **kwargs)
+    super(LSTM, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -394,16 +395,16 @@ class LSTM(RecurrentNode):
 
 
 class ConvNDLSTM(RecurrentNode):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv1DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv2DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv3DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')

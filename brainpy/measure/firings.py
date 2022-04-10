@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import jax.numpy as jnp
 from jax import jit
 
 from brainpy import math as bm
@@ -27,7 +28,7 @@ def raster_plot(sp_matrix, times):
   raster_plot : tuple
       Include (neuron index, spike time).
   """
-  sp_matrix = np.asarray(sp_matrix)
+  sp_matrix = bm.as_numpy(sp_matrix)
   times = np.asarray(times)
   elements = np.where(sp_matrix > 0.)
   index = elements[1]
@@ -37,9 +38,9 @@ def raster_plot(sp_matrix, times):
 
 @jit
 def _firing_rate(sp_matrix, window):
-  sp_matrix = bm.asarray(sp_matrix)
-  rate = bm.sum(sp_matrix, axis=1) / sp_matrix.shape[1]
-  return bm.convolve(rate, window, mode='same')
+  sp_matrix = bm.as_device_array(sp_matrix)
+  rate = jnp.sum(sp_matrix, axis=1) / sp_matrix.shape[1]
+  return jnp.convolve(rate, window, mode='same')
 
 
 def firing_rate(sp_matrix, width, dt=None, numpy=True):
@@ -70,7 +71,7 @@ def firing_rate(sp_matrix, width, dt=None, numpy=True):
   """
   dt = bm.get_dt() if (dt is None) else dt
   width1 = int(width / 2 / dt) * 2 + 1
-  window = bm.ones(width1) * 1000 / width
+  window = jnp.ones(width1) * 1000 / width
   fr = _firing_rate(sp_matrix, window)
-  return fr.numpy() if numpy else fr
+  return bm.as_numpy(fr) if numpy else fr
 

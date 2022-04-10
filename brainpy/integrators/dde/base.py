@@ -86,7 +86,7 @@ class DDEIntegrator(Integrator):
     assert self.integral is not None, 'Please build the integrator first.'
     # check arguments
     for i, arg in enumerate(args):
-      kwargs[self.arguments[i]] = arg
+      kwargs[self.arg_names[i]] = arg
 
     # integral
     new_vars = self.integral(**kwargs)

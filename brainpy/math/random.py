@@ -33,9 +33,7 @@ def _size2shape(size):
 
 
 class RandomState(Variable):
-  """RandomState are variables that track the
-  random generator state. They are meant to be used internally.
-  Currently only the random.Generator module uses them."""
+  """RandomState that track the random generator state. """
   __slots__ = ()
 
   def __init__(self, seed=None):
@@ -126,8 +124,8 @@ class RandomState(Variable):
     return JaxArray(jr.permutation(self.split_key(), x))
 
   def shuffle(self, x, axis=0):
-    x = x.value if isinstance(x, JaxArray) else x
-    return JaxArray(jr.permutation(self.split_key(), x, axis=axis, independent=True))
+    assert isinstance(x, JaxArray), f'Must be a JaxArray, but got {type(x)}'
+    x.value = jr.permutation(self.split_key(), x.value, axis=axis)
 
   def beta(self, a, b, size=None):
     a = a.value if isinstance(a, JaxArray) else a
@@ -250,8 +248,8 @@ def permutation(x):
 
 
 def shuffle(x, axis=0):
-  x = x.value if isinstance(x, JaxArray) else x
-  return JaxArray(jr.permutation(DEFAULT.split_key(), x, axis=axis, independent=True))
+  assert isinstance(x, JaxArray), f'Must be a JaxArray, but got {type(x)}'
+  x.value = jr.permutation(DEFAULT.split_key(), x.value, axis=axis)
 
 
 def beta(a, b, size=None):

@@ -8,7 +8,7 @@ from brainpy.initialize import OneInit, Uniform, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_initializer
-from brainpy.types import Shape, Parameter, Tensor
+from brainpy.types import Shape, Tensor
 
 __all__ = [
   'HH',
@@ -186,14 +186,14 @@ class HH(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      ENa: Parameter = 50.,
-      gNa: Parameter = 120.,
-      EK: Parameter = -77.,
-      gK: Parameter = 36.,
-      EL: Parameter = -54.387,
-      gL: Parameter = 0.03,
-      V_th: Parameter = 20.,
-      C: Parameter = 1.0,
+      ENa: Union[float, Tensor, Initializer, Callable] = 50.,
+      gNa: Union[float, Tensor, Initializer, Callable] = 120.,
+      EK: Union[float, Tensor, Initializer, Callable] = -77.,
+      gK: Union[float, Tensor, Initializer, Callable] = 36.,
+      EL: Union[float, Tensor, Initializer, Callable] = -54.387,
+      gL: Union[float, Tensor, Initializer, Callable] = 0.03,
+      V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      C: Union[float, Tensor, Initializer, Callable] = 1.0,
       V_initializer: Union[Initializer, Callable, Tensor] = Uniform(-70, -60.),
       m_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.5),
       h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
@@ -205,14 +205,14 @@ class HH(NeuGroup):
     super(HH, self).__init__(size=size, name=name)
 
     # parameters
-    self.ENa = ENa
-    self.EK = EK
-    self.EL = EL
-    self.gNa = gNa
-    self.gK = gK
-    self.gL = gL
-    self.C = C
-    self.V_th = V_th
+    self.ENa = init_param(ENa, self.num, allow_none=False)
+    self.EK = init_param(EK, self.num, allow_none=False)
+    self.EL = init_param(EL, self.num, allow_none=False)
+    self.gNa = init_param(gNa, self.num, allow_none=False)
+    self.gK = init_param(gK, self.num, allow_none=False)
+    self.gL = init_param(gL, self.num, allow_none=False)
+    self.C = init_param(C, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
 
     # variables
     check_initializer(m_initializer, 'm_initializer', allow_none=False)
@@ -362,19 +362,19 @@ class MorrisLecar(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_Ca: Parameter = 130.,
-      g_Ca: Parameter = 4.4,
-      V_K: Parameter = -84.,
-      g_K: Parameter = 8.,
-      V_leak: Parameter = -60.,
-      g_leak: Parameter = 2.,
-      C: Parameter = 20.,
-      V1: Parameter = -1.2,
-      V2: Parameter = 18.,
-      V3: Parameter = 2.,
-      V4: Parameter = 30.,
-      phi: Parameter = 0.04,
-      V_th: Parameter = 10.,
+      V_Ca: Union[float, Tensor, Initializer, Callable] = 130.,
+      g_Ca: Union[float, Tensor, Initializer, Callable] = 4.4,
+      V_K: Union[float, Tensor, Initializer, Callable] = -84.,
+      g_K: Union[float, Tensor, Initializer, Callable] = 8.,
+      V_leak: Union[float, Tensor, Initializer, Callable] = -60.,
+      g_leak: Union[float, Tensor, Initializer, Callable] = 2.,
+      C: Union[float, Tensor, Initializer, Callable] = 20.,
+      V1: Union[float, Tensor, Initializer, Callable] = -1.2,
+      V2: Union[float, Tensor, Initializer, Callable] = 18.,
+      V3: Union[float, Tensor, Initializer, Callable] = 2.,
+      V4: Union[float, Tensor, Initializer, Callable] = 30.,
+      phi: Union[float, Tensor, Initializer, Callable] = 0.04,
+      V_th: Union[float, Tensor, Initializer, Callable] = 10.,
       W_initializer: Union[Callable, Initializer, Tensor] = OneInit(0.02),
       V_initializer: Union[Callable, Initializer, Tensor] = Uniform(-70., -60.),
       method: str = 'exp_auto',
@@ -384,19 +384,19 @@ class MorrisLecar(NeuGroup):
     super(MorrisLecar, self).__init__(size=size, name=name)
 
     # params
-    self.V_Ca = V_Ca
-    self.g_Ca = g_Ca
-    self.V_K = V_K
-    self.g_K = g_K
-    self.V_leak = V_leak
-    self.g_leak = g_leak
-    self.C = C
-    self.V1 = V1
-    self.V2 = V2
-    self.V3 = V3
-    self.V4 = V4
-    self.phi = phi
-    self.V_th = V_th
+    self.V_Ca = init_param(V_Ca, self.num, allow_none=False)
+    self.g_Ca = init_param(g_Ca, self.num, allow_none=False)
+    self.V_K = init_param(V_K, self.num, allow_none=False)
+    self.g_K = init_param(g_K, self.num, allow_none=False)
+    self.V_leak = init_param(V_leak, self.num, allow_none=False)
+    self.g_leak = init_param(g_leak, self.num, allow_none=False)
+    self.C = init_param(C, self.num, allow_none=False)
+    self.V1 = init_param(V1, self.num, allow_none=False)
+    self.V2 = init_param(V2, self.num, allow_none=False)
+    self.V3 = init_param(V3, self.num, allow_none=False)
+    self.V4 = init_param(V4, self.num, allow_none=False)
+    self.phi = init_param(phi, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
 
     # vars
     check_initializer(V_initializer, 'V_initializer', allow_none=False)

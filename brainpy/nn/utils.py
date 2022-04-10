@@ -13,7 +13,7 @@ from brainpy.types import Tensor, Shape
 __all__ = [
   'tensor_sum',
   'init_param',
-  'check_rnn_data_batch_size',
+  'check_data_batch_size',
   'check_rnn_data_time_step',
   'serialize_kwargs',
 ]
@@ -58,7 +58,7 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
   return true_init_param(param, size)
 
 
-def check_rnn_data_batch_size(data: Dict, num_batch=None):
+def check_data_batch_size(data: Dict, num_batch=None):
   if len(data) == 1:
     batch_size = list(data.values())[0].shape[0]
   else:

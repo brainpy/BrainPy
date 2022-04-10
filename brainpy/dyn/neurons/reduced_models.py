@@ -8,7 +8,7 @@ from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_initializer
-from brainpy.types import Shape, Parameter, Tensor
+from brainpy.types import Shape, Tensor
 
 __all__ = [
   'LIF',
@@ -79,11 +79,11 @@ class LIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Parameter = 0.,
-      V_reset: Parameter = -5.,
-      V_th: Parameter = 20.,
-      tau: Parameter = 10.,
-      tau_ref: Parameter = 1.,
+      V_rest: Union[float, Tensor, Initializer, Callable] = 0.,
+      V_reset: Union[float, Tensor, Initializer, Callable] = -5.,
+      V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      tau: Union[float, Tensor, Initializer, Callable] = 10.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
       name: str = None
@@ -92,11 +92,11 @@ class LIF(NeuGroup):
     super(LIF, self).__init__(size=size, name=name)
 
     # parameters
-    self.V_rest = V_rest
-    self.V_reset = V_reset
-    self.V_th = V_th
-    self.tau = tau
-    self.tau_ref = tau_ref
+    self.V_rest = init_param(V_rest, self.num, allow_none=False)
+    self.V_reset = init_param(V_reset, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')
@@ -226,14 +226,14 @@ class ExpIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Parameter = -65.,
-      V_reset: Parameter = -68.,
-      V_th: Parameter = -30.,
-      V_T: Parameter = -59.9,
-      delta_T: Parameter = 3.48,
-      R: Parameter = 1.,
-      tau: Parameter = 10.,
-      tau_ref: Parameter = 1.7,
+      V_rest: Union[float, Tensor, Initializer, Callable] = -65.,
+      V_reset: Union[float, Tensor, Initializer, Callable] = -68.,
+      V_th: Union[float, Tensor, Initializer, Callable] = -30.,
+      V_T: Union[float, Tensor, Initializer, Callable] = -59.9,
+      delta_T: Union[float, Tensor, Initializer, Callable] = 3.48,
+      R: Union[float, Tensor, Initializer, Callable] = 1.,
+      tau: Union[float, Tensor, Initializer, Callable] = 10.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = 1.7,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
       name: str = None
@@ -242,14 +242,14 @@ class ExpIF(NeuGroup):
     super(ExpIF, self).__init__(size=size, name=name)
 
     # parameters
-    self.V_rest = V_rest
-    self.V_reset = V_reset
-    self.V_th = V_th
-    self.V_T = V_T
-    self.delta_T = delta_T
-    self.R = R
-    self.tau = tau
-    self.tau_ref = tau_ref
+    self.V_rest = init_param(V_rest, self.num, allow_none=False)
+    self.V_reset = init_param(V_reset, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.V_T = init_param(V_T, self.num, allow_none=False)
+    self.delta_T = init_param(delta_T, self.num, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.R = init_param(R, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')
@@ -355,16 +355,16 @@ class AdExIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Parameter = -65.,
-      V_reset: Parameter = -68.,
-      V_th: Parameter = -30.,
-      V_T: Parameter = -59.9,
-      delta_T: Parameter = 3.48,
-      a: Parameter = 1.,
-      b: Parameter = 1.,
-      tau: Parameter = 10.,
-      tau_w: Parameter = 30.,
-      R: Parameter = 1.,
+      V_rest: Union[float, Tensor, Initializer, Callable] = -65.,
+      V_reset: Union[float, Tensor, Initializer, Callable] = -68.,
+      V_th: Union[float, Tensor, Initializer, Callable] = -30.,
+      V_T: Union[float, Tensor, Initializer, Callable] = -59.9,
+      delta_T: Union[float, Tensor, Initializer, Callable] = 3.48,
+      a: Union[float, Tensor, Initializer, Callable] = 1.,
+      b: Union[float, Tensor, Initializer, Callable] = 1.,
+      tau: Union[float, Tensor, Initializer, Callable] = 10.,
+      tau_w: Union[float, Tensor, Initializer, Callable] = 30.,
+      R: Union[float, Tensor, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
@@ -373,16 +373,16 @@ class AdExIF(NeuGroup):
     super(AdExIF, self).__init__(size=size, name=name)
 
     # parameters
-    self.V_rest = V_rest
-    self.V_reset = V_reset
-    self.V_th = V_th
-    self.V_T = V_T
-    self.delta_T = delta_T
-    self.a = a
-    self.b = b
-    self.tau = tau
-    self.tau_w = tau_w
-    self.R = R
+    self.V_rest = init_param(V_rest, self.num, allow_none=False)
+    self.V_reset = init_param(V_reset, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.V_T = init_param(V_T, self.num, allow_none=False)
+    self.delta_T = init_param(delta_T, self.num, allow_none=False)
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.tau_w = init_param(tau_w, self.num, allow_none=False)
+    self.R = init_param(R, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')
@@ -490,14 +490,14 @@ class QuaIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Parameter = -65.,
-      V_reset: Parameter = -68.,
-      V_th: Parameter = -30.,
-      V_c: Parameter = -50.0,
-      c: Parameter = .07,
-      R: Parameter = 1.,
-      tau: Parameter = 10.,
-      tau_ref: Parameter = 0.,
+      V_rest: Union[float, Tensor, Initializer, Callable] = -65.,
+      V_reset: Union[float, Tensor, Initializer, Callable] = -68.,
+      V_th: Union[float, Tensor, Initializer, Callable] = -30.,
+      V_c: Union[float, Tensor, Initializer, Callable] = -50.0,
+      c: Union[float, Tensor, Initializer, Callable] = .07,
+      R: Union[float, Tensor, Initializer, Callable] = 1.,
+      tau: Union[float, Tensor, Initializer, Callable] = 10.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = 0.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
       name: str = None
@@ -506,14 +506,14 @@ class QuaIF(NeuGroup):
     super(QuaIF, self).__init__(size=size, name=name)
 
     # parameters
-    self.V_rest = V_rest
-    self.V_reset = V_reset
-    self.V_th = V_th
-    self.V_c = V_c
-    self.c = c
-    self.R = R
-    self.tau = tau
-    self.tau_ref = tau_ref
+    self.V_rest = init_param(V_rest, self.num, allow_none=False)
+    self.V_reset = init_param(V_reset, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.V_c = init_param(V_c, self.num, allow_none=False)
+    self.c = init_param(c, self.num, allow_none=False)
+    self.R = init_param(R, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
 
     # variables
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
@@ -621,15 +621,15 @@ class AdQuaIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Parameter = -65.,
-      V_reset: Parameter = -68.,
-      V_th: Parameter = -30.,
-      V_c: Parameter = -50.0,
-      a: Parameter = 1.,
-      b: Parameter = .1,
-      c: Parameter = .07,
-      tau: Parameter = 10.,
-      tau_w: Parameter = 10.,
+      V_rest: Union[float, Tensor, Initializer, Callable] = -65.,
+      V_reset: Union[float, Tensor, Initializer, Callable] = -68.,
+      V_th: Union[float, Tensor, Initializer, Callable] = -30.,
+      V_c: Union[float, Tensor, Initializer, Callable] = -50.0,
+      a: Union[float, Tensor, Initializer, Callable] = 1.,
+      b: Union[float, Tensor, Initializer, Callable] = .1,
+      c: Union[float, Tensor, Initializer, Callable] = .07,
+      tau: Union[float, Tensor, Initializer, Callable] = 10.,
+      tau_w: Union[float, Tensor, Initializer, Callable] = 10.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
@@ -638,15 +638,15 @@ class AdQuaIF(NeuGroup):
     super(AdQuaIF, self).__init__(size=size, name=name)
 
     # parameters
-    self.V_rest = V_rest
-    self.V_reset = V_reset
-    self.V_th = V_th
-    self.V_c = V_c
-    self.c = c
-    self.a = a
-    self.b = b
-    self.tau = tau
-    self.tau_w = tau_w
+    self.V_rest = init_param(V_rest, self.num, allow_none=False)
+    self.V_reset = init_param(V_reset, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.V_c = init_param(V_c, self.num, allow_none=False)
+    self.c = init_param(c, self.num, allow_none=False)
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.tau_w = init_param(tau_w, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')
@@ -768,20 +768,20 @@ class GIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Parameter = -70.,
-      V_reset: Parameter = -70.,
-      V_th_inf: Parameter = -50.,
-      V_th_reset: Parameter = -60.,
-      R: Parameter = 20.,
-      tau: Parameter = 20.,
-      a: Parameter = 0.,
-      b: Parameter = 0.01,
-      k1: Parameter = 0.2,
-      k2: Parameter = 0.02,
-      R1: Parameter = 0.,
-      R2: Parameter = 1.,
-      A1: Parameter = 0.,
-      A2: Parameter = 0.,
+      V_rest: Union[float, Tensor, Initializer, Callable] = -70.,
+      V_reset: Union[float, Tensor, Initializer, Callable] = -70.,
+      V_th_inf: Union[float, Tensor, Initializer, Callable] = -50.,
+      V_th_reset: Union[float, Tensor, Initializer, Callable] = -60.,
+      R: Union[float, Tensor, Initializer, Callable] = 20.,
+      tau: Union[float, Tensor, Initializer, Callable] = 20.,
+      a: Union[float, Tensor, Initializer, Callable] = 0.,
+      b: Union[float, Tensor, Initializer, Callable] = 0.01,
+      k1: Union[float, Tensor, Initializer, Callable] = 0.2,
+      k2: Union[float, Tensor, Initializer, Callable] = 0.02,
+      R1: Union[float, Tensor, Initializer, Callable] = 0.,
+      R2: Union[float, Tensor, Initializer, Callable] = 1.,
+      A1: Union[float, Tensor, Initializer, Callable] = 0.,
+      A2: Union[float, Tensor, Initializer, Callable] = 0.,
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-70.),
       I1_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       I2_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
@@ -793,20 +793,20 @@ class GIF(NeuGroup):
     super(GIF, self).__init__(size=size, name=name)
 
     # params
-    self.V_rest = V_rest
-    self.V_reset = V_reset
-    self.V_th_inf = V_th_inf
-    self.V_th_reset = V_th_reset
-    self.R = R
-    self.tau = tau
-    self.a = a
-    self.b = b
-    self.k1 = k1
-    self.k2 = k2
-    self.R1 = R1
-    self.R2 = R2
-    self.A1 = A1
-    self.A2 = A2
+    self.V_rest = init_param(V_rest, self.num, allow_none=False)
+    self.V_reset = init_param(V_reset, self.num, allow_none=False)
+    self.V_th_inf = init_param(V_th_inf, self.num, allow_none=False)
+    self.V_th_reset = init_param(V_th_reset, self.num, allow_none=False)
+    self.R = init_param(R, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.k1 = init_param(k1, self.num, allow_none=False)
+    self.k2 = init_param(k2, self.num, allow_none=False)
+    self.R1 = init_param(R1, self.num, allow_none=False)
+    self.R2 = init_param(R2, self.num, allow_none=False)
+    self.A1 = init_param(A1, self.num, allow_none=False)
+    self.A2 = init_param(A2, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')
@@ -927,12 +927,12 @@ class Izhikevich(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      a: Parameter = 0.02,
-      b: Parameter = 0.20,
-      c: Parameter = -65.,
-      d: Parameter = 8.,
-      tau_ref: Parameter = 0.,
-      V_th: Parameter = 30.,
+      a: Union[float, Tensor, Initializer, Callable] = 0.02,
+      b: Union[float, Tensor, Initializer, Callable] = 0.20,
+      c: Union[float, Tensor, Initializer, Callable] = -65.,
+      d: Union[float, Tensor, Initializer, Callable] = 8.,
+      V_th: Union[float, Tensor, Initializer, Callable] = 30.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = 0.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       u_initializer: Union[Initializer, Callable, Tensor] = OneInit(),
       method: str = 'exp_auto',
@@ -942,12 +942,12 @@ class Izhikevich(NeuGroup):
     super(Izhikevich, self).__init__(size=size, name=name)
 
     # params
-    self.a = a
-    self.b = b
-    self.c = c
-    self.d = d
-    self.V_th = V_th
-    self.tau_ref = tau_ref
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.c = init_param(c, self.num, allow_none=False)
+    self.d = init_param(d, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')
@@ -1084,14 +1084,14 @@ class HindmarshRose(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      a: Parameter = 1.,
-      b: Parameter = 3.,
-      c: Parameter = 1.,
-      d: Parameter = 5.,
-      r: Parameter = 0.01,
-      s: Parameter = 4.,
-      V_rest: Parameter = -1.6,
-      V_th: Parameter = 1.0,
+      a: Union[float, Tensor, Initializer, Callable] = 1.,
+      b: Union[float, Tensor, Initializer, Callable] = 3.,
+      c: Union[float, Tensor, Initializer, Callable] = 1.,
+      d: Union[float, Tensor, Initializer, Callable] = 5.,
+      r: Union[float, Tensor, Initializer, Callable] = 0.01,
+      s: Union[float, Tensor, Initializer, Callable] = 4.,
+      V_rest: Union[float, Tensor, Initializer, Callable] = -1.6,
+      V_th: Union[float, Tensor, Initializer, Callable] = 1.0,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       y_initializer: Union[Initializer, Callable, Tensor] = OneInit(-10.),
       z_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
@@ -1102,14 +1102,14 @@ class HindmarshRose(NeuGroup):
     super(HindmarshRose, self).__init__(size=size, name=name)
 
     # parameters
-    self.a = a
-    self.b = b
-    self.c = c
-    self.d = d
-    self.r = r
-    self.s = s
-    self.V_th = V_th
-    self.V_rest = V_rest
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.c = init_param(c, self.num, allow_none=False)
+    self.d = init_param(d, self.num, allow_none=False)
+    self.r = init_param(r, self.num, allow_none=False)
+    self.s = init_param(s, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.V_rest = init_param(V_rest, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')
@@ -1234,10 +1234,10 @@ class FHN(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      a: Parameter = 0.7,
-      b: Parameter = 0.8,
-      tau: Parameter = 12.5,
-      Vth: Parameter = 1.8,
+      a: Union[float, Tensor, Initializer, Callable] = 0.7,
+      b: Union[float, Tensor, Initializer, Callable] = 0.8,
+      tau: Union[float, Tensor, Initializer, Callable] = 12.5,
+      Vth: Union[float, Tensor, Initializer, Callable] = 1.8,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
@@ -1247,10 +1247,10 @@ class FHN(NeuGroup):
     super(FHN, self).__init__(size=size, name=name)
 
     # parameters
-    self.a = a
-    self.b = b
-    self.tau = tau
-    self.Vth = Vth
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.Vth = init_param(Vth, self.num, allow_none=False)
 
     # variables
     check_initializer(V_initializer, 'V_initializer')

@@ -33,7 +33,7 @@ Details in the following.
 
 # data structure
 from .jaxarray import *
-from .delay_vars import *
+from .delayvars import *
 
 # high-level numpy operations
 from .numpy_ops import *

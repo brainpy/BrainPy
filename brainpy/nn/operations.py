@@ -21,10 +21,11 @@ However, all operations should satisfy the following assumptions:
 """
 
 from itertools import product
-from typing import Union, Sequence
+from typing import Union, Sequence, Set
 
 from brainpy.nn import graph_flow
 from brainpy.nn.base import Node, Network, FrozenNetwork
+from brainpy.nn.datatypes import SingleData
 from brainpy.nn.nodes.base import Select, Concat
 from brainpy.types import Tensor
 
@@ -48,8 +49,8 @@ def _retrieve_nodes_and_edges(senders: Union[Node, Sequence[Node]],
 
   # check receivers
   if isinstance(receivers, (tuple, list)):
-    raise ValueError('Cannot concatenate a list/tuple of receivers. '
-                     'Please use set to wrap multiple receivers instead.')
+    raise TypeError('Cannot concatenate a list/tuple of receivers. '
+                    'Please use set to wrap multiple receivers instead.')
   elif isinstance(receivers, set):
     receivers = list(receivers)
   elif isinstance(receivers, Node):
@@ -103,6 +104,74 @@ def _retrieve_nodes_and_edges(senders: Union[Node, Sequence[Node]],
       all_receivers.add(node)
 
   return all_nodes, all_ff_edges, all_fb_edges, all_senders, all_receivers
+
+
+def _reorganize_many2one(ff_edges, fb_edges):
+  """Reorganize the many-to-one connections.
+
+  If some node whose "data_type" is :py:class:`brainpy.nn.datatypes.SingleData` receives
+  multiple feedforward or feedback connections, we should concatenate all feedforward
+  inputs (or feedback inputs) into one instance of :py:class:`brainpy.nn.Concat`, then
+  the new Concat instance feeds into this node.
+
+  """
+  from brainpy.nn.nodes.base import Concat
+
+  new_nodes = []
+
+  # find parents according to the child
+  ff_senders = dict()
+  for edge in ff_edges:
+    sender, receiver = edge
+    if receiver not in ff_senders:
+      ff_senders[receiver] = [sender]
+    else:
+      ff_senders[receiver].append(sender)
+  for receiver, senders in ff_senders.items():
+    if isinstance(receiver.data_pass, SingleData):
+      if len(senders) > 1:
+        concat_nodes = [node for node in senders if isinstance(node, Concat)]
+        if len(concat_nodes) == 1:
+          concat = concat_nodes[0]
+          for sender in senders:
+            if sender != concat:
+              ff_edges.remove((sender, receiver))
+              ff_edges.add((sender, concat))
+        else:
+          concat = Concat()
+          for sender in senders:
+            ff_edges.remove((sender, receiver))
+            ff_edges.add((sender, concat))
+          ff_edges.add((concat, receiver))
+          new_nodes.append(concat)
+
+  # find parents according to the child
+  fb_senders = dict()
+  for edge in fb_edges:
+    sender, receiver = edge
+    if receiver not in fb_senders:
+      fb_senders[receiver] = [sender]
+    else:
+      fb_senders[receiver].append(sender)
+  for receiver, senders in fb_senders.items():
+    if isinstance(receiver.data_pass, SingleData):
+      if len(senders) > 1:
+        concat_nodes = [node for node in senders if isinstance(node, Concat)]
+        if len(concat_nodes) == 1:
+          concat = concat_nodes[0]
+          for sender in senders:
+            if sender != concat:
+              fb_edges.remove((sender, receiver))
+              ff_edges.add((sender, concat))
+        else:
+          concat = Concat()
+          for sender in senders:
+            fb_edges.remove((sender, receiver))
+            ff_edges.add((sender, concat))
+          fb_edges.add((concat, receiver))
+          new_nodes.append(concat)
+
+  return new_nodes, ff_edges, fb_edges
 
 
 def merge(
@@ -170,6 +239,10 @@ def merge(
     elif isinstance(n, Node):
       all_nodes.add(n)
 
+  # reorganize
+  new_nodes, all_ff_edges, all_fb_edges = _reorganize_many2one(all_ff_edges, all_fb_edges)
+  all_nodes.update(new_nodes)
+
   # detect cycles in the graph flow
   all_nodes = tuple(all_nodes)
   all_ff_edges = tuple(all_ff_edges)
@@ -198,8 +271,8 @@ def merge(
 
 
 def ff_connect(
-    senders: Union[Node, Sequence[Node]],
-    receivers: Union[Node, Sequence[Node]],
+    senders: Union[Node, Sequence[Node], Set[Node]],
+    receivers: Union[Node, Set[Node]],
     inplace: bool = False,
     name: str = None,
     need_detect_cycle=True
@@ -246,7 +319,7 @@ def ff_connect(
 
   - In the case of "one-to-many" feedforward connection, `node2` only support
     a set of node. Using list or tuple to wrap multiple receivers will concatenate
-    all nodes in the receiver end. This will cause errors.
+    all nodes in the receiver end. This will cause errors::
 
       # wrong operation of one-to-many
       network = node_in >> {node1, node2, ..., node_N}
@@ -296,6 +369,10 @@ def ff_connect(
   # all inputs from subgraph 2.
   all_ff_edges |= new_ff_edges
 
+  # reorganize
+  new_nodes, all_ff_edges, all_fb_edges = _reorganize_many2one(all_ff_edges, all_fb_edges)
+  all_nodes.update(new_nodes)
+
   # detect cycles in the graph flow
   all_nodes = tuple(all_nodes)
   all_ff_edges = tuple(all_ff_edges)
@@ -326,8 +403,8 @@ def ff_connect(
 
 
 def fb_connect(
-    senders: Union[Node, Sequence[Node]],
-    receivers: Union[Node, Sequence[Node]],
+    senders: Union[Node, Sequence[Node], Set[Node]],
+    receivers: Union[Node, Set[Node]],
     inplace: bool = False,
     name: str = None,
     need_detect_cycle=True
@@ -380,10 +457,10 @@ def fb_connect(
                        f'support feedback connections.')
 
   # detect feedforward cycle
-  all_nodes = tuple(all_nodes)
-  all_ff_edges = tuple(all_ff_edges)
   if need_detect_cycle:
-    if graph_flow.detect_cycle(all_nodes, all_ff_edges):
+    all_nodes1 = list(all_nodes)
+    all_ff_edges1 = tuple(all_ff_edges)
+    if graph_flow.detect_cycle(all_nodes1, all_ff_edges1):
       raise ValueError('We detect cycles in feedforward connections. '
                        'Maybe you should replace some connection with '
                        'as feedback ones.')
@@ -394,7 +471,13 @@ def fb_connect(
   # all inputs from subgraph 2.
   all_fb_edges |= new_fb_edges
 
+  # reorganize
+  new_nodes, all_ff_edges, all_fb_edges = _reorganize_many2one(all_ff_edges, all_fb_edges)
+  all_nodes.update(new_nodes)
+
   # detect cycles in the graph flow
+  all_nodes = tuple(all_nodes)
+  all_ff_edges = tuple(all_ff_edges)
   all_fb_edges = tuple(all_fb_edges)
   if need_detect_cycle:
     if graph_flow.detect_cycle(all_nodes, all_fb_edges):

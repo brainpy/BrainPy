@@ -8,13 +8,12 @@ from jax.experimental.host_callback import id_tap
 import brainpy.math as bm
 from brainpy import check
 from brainpy.dyn.base import NeuGroup
-from brainpy.initialize import Initializer, Uniform
-from brainpy.initialize import init_param
+from brainpy.initialize import Initializer, Uniform, init_param
 from brainpy.integrators.dde import ddeint
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_float, check_initializer
-from brainpy.types import Parameter, Shape, Tensor
+from brainpy.types import Shape, Tensor
 from .noise_models import OUProcess
 
 __all__ = [
@@ -72,20 +71,20 @@ class RateFHN(NeuGroup):
       size: Shape,
 
       # fhn parameters
-      alpha: Parameter = 3.0,
-      beta: Parameter = 4.0,
-      gamma: Parameter = -1.5,
-      delta: Parameter = 0.0,
-      epsilon: Parameter = 0.5,
-      tau: Parameter = 20.0,
+      alpha: Union[float, Tensor, Initializer, Callable] = 3.0,
+      beta: Union[float, Tensor, Initializer, Callable] = 4.0,
+      gamma: Union[float, Tensor, Initializer, Callable] = -1.5,
+      delta: Union[float, Tensor, Initializer, Callable] = 0.0,
+      epsilon: Union[float, Tensor, Initializer, Callable] = 0.5,
+      tau: Union[float, Tensor, Initializer, Callable] = 20.0,
 
       # noise parameters
-      x_ou_mean: Parameter = 0.0,
-      x_ou_sigma: Parameter = 0.0,
-      x_ou_tau: Parameter = 5.0,
-      y_ou_mean: Parameter = 0.0,
-      y_ou_sigma: Parameter = 0.0,
-      y_ou_tau: Parameter = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
@@ -97,20 +96,22 @@ class RateFHN(NeuGroup):
     super(RateFHN, self).__init__(size=size, name=name)
 
     # model parameters
-    self.alpha = alpha
-    self.beta = beta
-    self.gamma = gamma
-    self.delta = delta
-    self.epsilon = epsilon
-    self.tau = tau
+    self.alpha = init_param(alpha, self.num, allow_none=False)
+    self.beta = init_param(beta, self.num, allow_none=False)
+    self.gamma = init_param(gamma, self.num, allow_none=False)
+    self.delta = init_param(delta, self.num, allow_none=False)
+    self.epsilon = init_param(epsilon, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = x_ou_mean  # mV/ms, OU process
-    self.y_ou_mean = y_ou_mean  # mV/ms, OU process
-    self.x_ou_sigma = x_ou_sigma  # mV/ms/sqrt(ms), noise intensity
-    self.y_ou_sigma = y_ou_sigma  # mV/ms/sqrt(ms), noise intensity
-    self.x_ou_tau = x_ou_tau  # ms, timescale of the Ornstein-Uhlenbeck noise process
-    self.y_ou_tau = y_ou_tau  # ms, timescale of the Ornstein-Uhlenbeck noise process
+    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)  # mV/ms, OU process
+    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)  # mV/ms, OU process
+    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)  # mV/ms/sqrt(ms), noise intensity
+    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)  # mV/ms/sqrt(ms), noise intensity
+    self.x_ou_tau = init_param(x_ou_tau, self.num,
+                               allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
+    self.y_ou_tau = init_param(y_ou_tau, self.num,
+                               allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
 
     # variables
     check_initializer(x_initializer, 'x_initializer')
@@ -221,20 +222,20 @@ class FeedbackFHN(NeuGroup):
       size: Shape,
 
       # model parameters
-      a: Parameter = 0.7,
-      b: Parameter = 0.8,
-      delay: Parameter = 10.,
-      tau: Parameter = 12.5,
-      mu: Parameter = 1.6886,
-      x0: Parameter = -1,
+      a: Union[float, Tensor, Initializer, Callable] = 0.7,
+      b: Union[float, Tensor, Initializer, Callable] = 0.8,
+      delay: Union[float, Tensor, Initializer, Callable] = 10.,
+      tau: Union[float, Tensor, Initializer, Callable] = 12.5,
+      mu: Union[float, Tensor, Initializer, Callable] = 1.6886,
+      v0: Union[float, Tensor, Initializer, Callable] = -1,
 
       # noise parameters
-      x_ou_mean: Parameter = 0.0,
-      x_ou_sigma: Parameter = 0.0,
-      x_ou_tau: Parameter = 5.0,
-      y_ou_mean: Parameter = 0.0,
-      y_ou_sigma: Parameter = 0.0,
-      y_ou_tau: Parameter = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
@@ -251,20 +252,20 @@ class FeedbackFHN(NeuGroup):
     check_float(self.dt, 'dt', allow_none=False, min_bound=0., allow_int=False)
 
     # parameters
-    self.a = a
-    self.b = b
-    self.delay = delay
-    self.tau = tau
-    self.mu = mu  # feedback strength
-    self.v0 = x0  # resting potential
+    self.a = init_param(a, self.num, allow_none=False)
+    self.b = init_param(b, self.num, allow_none=False)
+    self.delay = init_param(delay, self.num, allow_none=False)
+    self.tau = init_param(tau, self.num, allow_none=False)
+    self.mu = init_param(mu, self.num, allow_none=False)  # feedback strength
+    self.v0 = init_param(v0, self.num, allow_none=False)  # resting potential
 
     # noise parameters
-    self.x_ou_mean = x_ou_mean
-    self.y_ou_mean = y_ou_mean
-    self.x_ou_sigma = x_ou_sigma
-    self.y_ou_sigma = y_ou_sigma
-    self.x_ou_tau = x_ou_tau
-    self.y_ou_tau = y_ou_tau
+    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
     # variables
     check_initializer(x_initializer, 'x_initializer')
@@ -389,18 +390,18 @@ class RateQIF(NeuGroup):
       size: Shape,
 
       # model parameters
-      tau: Parameter = 1.,
-      eta: Parameter = -5.0,
-      delta: Parameter = 1.0,
-      J: Parameter = 15.,
+      tau: Union[float, Tensor, Initializer, Callable] = 1.,
+      eta: Union[float, Tensor, Initializer, Callable] = -5.0,
+      delta: Union[float, Tensor, Initializer, Callable] = 1.0,
+      J: Union[float, Tensor, Initializer, Callable] = 15.,
 
       # noise parameters
-      x_ou_mean: Parameter = 0.0,
-      x_ou_sigma: Parameter = 0.0,
-      x_ou_tau: Parameter = 5.0,
-      y_ou_mean: Parameter = 0.0,
-      y_ou_sigma: Parameter = 0.0,
-      y_ou_tau: Parameter = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
@@ -412,18 +413,21 @@ class RateQIF(NeuGroup):
     super(RateQIF, self).__init__(size=size, name=name)
 
     # parameters
-    self.tau = tau  #
-    self.eta = eta  # the mean of a Lorenzian distribution over the neural excitability in the population
-    self.delta = delta  # the half-width at half maximum of the Lorenzian distribution over the neural excitability
-    self.J = J  # the strength of the recurrent coupling inside the population
+    self.tau = init_param(tau, self.num, allow_none=False)
+    # the mean of a Lorenzian distribution over the neural excitability in the population
+    self.eta = init_param(eta, self.num, allow_none=False)
+    # the half-width at half maximum of the Lorenzian distribution over the neural excitability
+    self.delta = init_param(delta, self.num, allow_none=False)
+    # the strength of the recurrent coupling inside the population
+    self.J = init_param(J, self.num, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = x_ou_mean
-    self.y_ou_mean = y_ou_mean
-    self.x_ou_sigma = x_ou_sigma
-    self.y_ou_sigma = y_ou_sigma
-    self.x_ou_tau = x_ou_tau
-    self.y_ou_tau = y_ou_tau
+    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
     # variables
     check_initializer(x_initializer, 'x_initializer')
@@ -498,16 +502,16 @@ class StuartLandauOscillator(RateGroup):
       size: Shape,
 
       # model parameters
-      a=0.25,
-      w=0.2,
+      a: Union[float, Tensor, Initializer, Callable] = 0.25,
+      w: Union[float, Tensor, Initializer, Callable] = 0.2,
 
       # noise parameters
-      x_ou_mean: Parameter = 0.0,
-      x_ou_sigma: Parameter = 0.0,
-      x_ou_tau: Parameter = 5.0,
-      y_ou_mean: Parameter = 0.0,
-      y_ou_sigma: Parameter = 0.0,
-      y_ou_tau: Parameter = 5.0,
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
@@ -520,16 +524,16 @@ class StuartLandauOscillator(RateGroup):
                                                  name=name)
 
     # model parameters
-    self.a = a
-    self.w = w
+    self.a = init_param(a, self.num, allow_none=False)
+    self.w = init_param(w, self.num, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = x_ou_mean
-    self.y_ou_mean = y_ou_mean
-    self.x_ou_sigma = x_ou_sigma
-    self.y_ou_sigma = y_ou_sigma
-    self.x_ou_tau = x_ou_tau
-    self.y_ou_tau = y_ou_tau
+    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
     # variables
     check_initializer(x_initializer, 'x_initializer')
@@ -600,35 +604,35 @@ class WilsonCowanModel(RateGroup):
       size: Shape,
 
       # Excitatory parameters
-      E_tau=1.,  # excitatory time constant
-      E_a=1.2,  # excitatory gain
-      E_theta=2.8,  # excitatory firing threshold
+      E_tau: Union[float, Tensor, Initializer, Callable] = 1.,  # excitatory time constant
+      E_a: Union[float, Tensor, Initializer, Callable] = 1.2,  # excitatory gain
+      E_theta: Union[float, Tensor, Initializer, Callable] = 2.8,  # excitatory firing threshold
 
       # Inhibitory parameters
-      I_tau=1.,  # inhibitory time constant
-      I_a=1.,  # inhibitory gain
-      I_theta=4.0,  # inhibitory firing threshold
+      I_tau: Union[float, Tensor, Initializer, Callable] = 1.,  # inhibitory time constant
+      I_a: Union[float, Tensor, Initializer, Callable] = 1.,  # inhibitory gain
+      I_theta: Union[float, Tensor, Initializer, Callable] = 4.0,  # inhibitory firing threshold
 
       # connection parameters
-      wEE=12.,  # local E-E coupling
-      wIE=4.,  # local E-I coupling
-      wEI=13.,  # local I-E coupling
-      wII=11.,  # local I-I coupling
+      wEE: Union[float, Tensor, Initializer, Callable] = 12.,  # local E-E coupling
+      wIE: Union[float, Tensor, Initializer, Callable] = 4.,  # local E-I coupling
+      wEI: Union[float, Tensor, Initializer, Callable] = 13.,  # local I-E coupling
+      wII: Union[float, Tensor, Initializer, Callable] = 11.,  # local I-I coupling
 
       # Refractory parameter
-      r=1,
+      r: Union[float, Tensor, Initializer, Callable] = 1,
+
+      # noise parameters
+      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
 
       # state initializer
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(max_val=0.05),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(max_val=0.05),
-
-      # noise parameters
-      x_ou_mean: Parameter = 0.0,
-      x_ou_sigma: Parameter = 0.0,
-      x_ou_tau: Parameter = 5.0,
-      y_ou_mean: Parameter = 0.0,
-      y_ou_sigma: Parameter = 0.0,
-      y_ou_tau: Parameter = 5.0,
 
       # other parameters
       sde_method: str = None,
@@ -638,25 +642,25 @@ class WilsonCowanModel(RateGroup):
     super(WilsonCowanModel, self).__init__(size=size, name=name)
 
     # model parameters
-    self.E_tau = E_tau
-    self.E_a = E_a
-    self.E_theta = E_theta
-    self.I_tau = I_tau
-    self.I_a = I_a
-    self.I_theta = I_theta
-    self.wEE = wEE
-    self.wIE = wIE
-    self.wEI = wEI
-    self.wII = wII
-    self.r = r
+    self.E_a = init_param(E_a, self.num, allow_none=False)
+    self.I_a = init_param(I_a, self.num, allow_none=False)
+    self.E_tau = init_param(E_tau, self.num, allow_none=False)
+    self.I_tau = init_param(I_tau, self.num, allow_none=False)
+    self.E_theta = init_param(E_theta, self.num, allow_none=False)
+    self.I_theta = init_param(I_theta, self.num, allow_none=False)
+    self.wEE = init_param(wEE, self.num, allow_none=False)
+    self.wIE = init_param(wIE, self.num, allow_none=False)
+    self.wEI = init_param(wEI, self.num, allow_none=False)
+    self.wII = init_param(wII, self.num, allow_none=False)
+    self.r = init_param(r, self.num, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = x_ou_mean
-    self.y_ou_mean = y_ou_mean
-    self.x_ou_sigma = x_ou_sigma
-    self.y_ou_sigma = y_ou_sigma
-    self.x_ou_tau = x_ou_tau
-    self.y_ou_tau = y_ou_tau
+    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
     # variables
     check_initializer(x_initializer, 'x_initializer')

@@ -151,7 +151,7 @@ class ExplicitRKIntegrator(ODEIntegrator):
     # integrator keywords
     keywords = {
       C.F: 'the derivative function',
-      C.DT: 'the precision of numerical integration'
+      # C.DT: 'the precision of numerical integration'
     }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
@@ -160,7 +160,7 @@ class ExplicitRKIntegrator(ODEIntegrator):
       for i in range(2, len(self.A) + 1):
         keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
         keywords[f'k{i}_t_arg'] = 'the intermediate value'
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
     self.build()
 
   def build(self):

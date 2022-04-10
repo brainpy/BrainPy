@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy.errors import MathError
 from brainpy.initialize import Initializer
+from brainpy.nn.datatypes import MultipleData
 from brainpy.nn.nodes.base.dense import Dense
 from brainpy.tools.checking import check_shape_consistency
 
@@ -27,6 +28,7 @@ class LinearReadout(Dense):
   trainable: bool
     Default is true.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(self, num_unit: int, **kwargs):
     super(LinearReadout, self).__init__(num_unit=num_unit, **kwargs)
