@@ -57,7 +57,7 @@ class Pool(Node):
     self.padding = padding
 
   def init_ff_conn(self):
-    input_shapes = tuple((0,)) + tuple(d for d in self.feedforward_shapes[0] if d is not None)
+    input_shapes = tuple((0,)) + tuple(d for d in self.feedforward_shapes if d is not None)
     assert len(input_shapes) == len(self.dims), f"len({len(input_shapes)}) != len({self.dims})"
 
     padding_vals = jax.lax.padtype_to_pads(input_shapes, self.dims, self.strides, self.padding)
@@ -69,7 +69,7 @@ class Pool(Node):
     self.set_output_shape(out_shapes)
 
   def forward(self, ff, fb=None, **shared_kwargs):
-    y = jax.lax.reduce_window(ff[0], self.init_v, self.reduce_fn, self.dims, self.strides, self.padding)
+    y = jax.lax.reduce_window(ff, self.init_v, self.reduce_fn, self.dims, self.strides, self.padding)
 
     return y
 
@@ -101,7 +101,7 @@ class AvgPool(Pool):
     )
 
   def forward(self, ff, fb=None, **shared_kwargs):
-    y = jax.lax.reduce_window(ff[0], self.init_v, self.reduce_fn, self.dims, self.strides, self.padding)
+    y = jax.lax.reduce_window(ff, self.init_v, self.reduce_fn, self.dims, self.strides, self.padding)
     y = y / bm.prod(bm.asarray(self.window_shape))
     return y
 

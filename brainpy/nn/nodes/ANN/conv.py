@@ -26,8 +26,7 @@ def _check_tuple(v):
 
 def _conv_dimension_numbers(input_shape):
   """Computes the dimension numbers based on the input shape."""
-  print(input_shape)
-  ndim = len(input_shape[0])
+  ndim = len(input_shape)
   lhs_spec = (0, ndim - 1) + tuple(range(1, ndim - 1))
   rhs_spec = (ndim - 1, ndim - 2) + tuple(range(0, ndim - 2))
   out_spec = lhs_spec
@@ -115,7 +114,7 @@ class GeneralConv(Node):
       self.b = bm.TrainVar(self.b)
 
     if self.strides is None:
-      self.strides = (1,) * (len(input_shapes[0]) - 2)
+      self.strides = (1,) * (len(input_shapes) - 2)
 
     output_shapes = jax.lax.conv_transpose_shape_tuple(
       input_shapes, kernel_shape, self.strides, self.padding, dimension_numbers=self.dimension_numbers)
@@ -126,7 +125,6 @@ class GeneralConv(Node):
     pass
 
   def forward(self, ff, fb=None, **shared_kwargs):
-    ff = ff[0]
     y = jax.lax.conv_general_dilated(lhs=ff.value if isinstance(ff, bm.JaxArray) else ff,
                                      rhs=self.w.value,
                                      window_strides=self.strides,

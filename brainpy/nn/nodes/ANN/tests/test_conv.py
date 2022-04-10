@@ -14,7 +14,6 @@ class TestConv(TestCase):
     b = bp.nn.Conv2D(3, 32, (3, 3))
     model = i >> b
     model.initialize(num_batch=2)
-    model.plot_node_graph(fig_size=(5, 5), node_size=500)
 
     img = jnp.zeros((2, 200, 198, 3), dtype=jnp.float32)
     for k in range(3):
@@ -28,10 +27,10 @@ class TestConv(TestCase):
     out = model(img)
     print("out shape: ", out.shape)
     print(out[0])
-    print("First output channel:")
-    plt.figure(figsize=(10, 10))
-    plt.imshow(np.array(out)[0, :, :, 0])
-    plt.show()
+    # print("First output channel:")
+    # plt.figure(figsize=(10, 10))
+    # plt.imshow(np.array(out)[0, :, :, 0])
+    # plt.show()
 
   def test_conv1D(self):
     i = bp.nn.Input((5, 3))
@@ -43,10 +42,10 @@ class TestConv(TestCase):
 
     out = model(input)
     print("out shape: ", out.shape)
-    print("First output channel:")
-    plt.figure(figsize=(10, 10))
-    plt.imshow(np.array(out)[0, :, :])
-    plt.show()
+    # print("First output channel:")
+    # plt.figure(figsize=(10, 10))
+    # plt.imshow(np.array(out)[0, :, :])
+    # plt.show()
 
   def test_conv2D(self):
     i = bp.nn.Input((5, 5, 3))
@@ -58,10 +57,10 @@ class TestConv(TestCase):
 
     out = model(input)
     print("out shape: ", out.shape)
-    print("First output channel:")
-    plt.figure(figsize=(10, 10))
-    plt.show(np.array(out)[0, :, :, 31])
-    plt.show()
+    # print("First output channel:")
+    # plt.figure(figsize=(10, 10))
+    # plt.imshow(np.array(out)[0, :, :, 31])
+    # plt.show()
 
   def test_conv3D(self):
     i = bp.nn.Input((5, 5, 5, 3))
