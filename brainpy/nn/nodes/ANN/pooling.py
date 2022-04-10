@@ -6,23 +6,32 @@ import brainpy.math as bm
 from brainpy.initialize import XavierNormal, ZeroInit, init_param
 from brainpy.nn.base import Node
 
+__all__ = [
+  'Pool',
+  'MaxPool',
+  'AvgPool',
+  'MinPool'
+]
+
 
 class Pool(Node):
   def __init__(self, init_v, reduce_fn, window_shape, strides, padding, **kwargs):
     """Pooling functions are implemented using the ReduceWindow XLA op.
+
      Args:
-       init_v:
+       init_v: scalar
           the initial value for the reduction
-       reduce_fn:
+       reduce_fn: callable
           a reduce function of the form `(T, T) -> T`.
-       window_shape:
+       window_shape: tuple
           a shape tuple defining the window to reduce over.
-       strides:
+       strides: sequence[int]
           a sequence of `n` integers, representing the inter-window strides.
-       padding:
+       padding: str, sequence[int]
           either the string `'SAME'`, the string `'VALID'`, or a sequence
           of `n` `(low, high)` integer pairs that give the padding to apply before
           and after each spatial dimension.
+
       Returns:
           The output of the reduction for each window slice.
      """
@@ -66,6 +75,22 @@ class Pool(Node):
 
 
 class AvgPool(Pool):
+  """Pools the input by taking the average over a window.
+
+  Args:
+    window_shape: tuple
+      a shape tuple defining the window to reduce over.
+    strides: sequence[int]
+      a sequence of `n` integers, representing the inter-window strides (default: `(1, ..., 1)`).
+    padding: str, sequence[int]
+      either the string `'SAME'`, the string `'VALID'`, or a sequence
+      of `n` `(low, high)` integer pairs that give the padding to apply before
+      and after each spatial dimension (default: `'VALID'`).
+
+  Returns:
+    The average for each window slice.
+  """
+
   def __init__(self, window_shape, strides=None, padding="VALID"):
     super(AvgPool, self).__init__(
       init_v=0.,
@@ -82,6 +107,21 @@ class AvgPool(Pool):
 
 
 class MaxPool(Pool):
+  """Pools the input by taking the maximum over a window.
+
+    Args:
+      window_shape: tuple
+        a shape tuple defining the window to reduce over.
+      strides: sequence[int]
+        a sequence of `n` integers, representing the inter-window strides (default: `(1, ..., 1)`).
+      padding: str, sequence[int]
+        either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of `n` `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension (default: `'VALID'`).
+
+    Returns:
+      The maximum for each window slice.
+  """
   def __init__(self, window_shape, strides=None, padding="VALID"):
     super(MaxPool, self).__init__(
       init_v=-bm.inf,
@@ -93,6 +133,21 @@ class MaxPool(Pool):
 
 
 class MinPool(Pool):
+  """Pools the input by taking the minimum over a window.
+
+      Args:
+        window_shape: tuple
+          a shape tuple defining the window to reduce over.
+        strides: sequence[int]
+          a sequence of `n` integers, representing the inter-window strides (default: `(1, ..., 1)`).
+        padding: str, sequence[int]
+          either the string `'SAME'`, the string `'VALID'`, or a sequence
+          of `n` `(low, high)` integer pairs that give the padding to apply before
+          and after each spatial dimension (default: `'VALID'`).
+
+      Returns:
+        The minimum for each window slice.
+    """
   def __init__(self, window_shape, strides=None, padding="VALID"):
     super(MinPool, self).__init__(
       init_v=bm.inf,

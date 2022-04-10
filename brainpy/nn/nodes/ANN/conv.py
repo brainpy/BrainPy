@@ -36,6 +36,42 @@ def _conv_dimension_numbers(input_shape):
 
 class GeneralConv(Node):
   """Applies a convolution to the inputs.
+
+  Args:
+    in_channels: integer
+      number of input channels.
+    out_channels: integer
+      number of output channels.
+    kernel_size: integer, sequence[int]
+      shape of the convolutional kernel. For 1D convolution,
+      the kernel size can be passed as an integer. For all other cases, it must
+      be a sequence of integers.
+    strides: integer, sequence[int]
+      an integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
+    padding: str, sequence[int]
+      either the string `'SAME'`, the string `'VALID'`, the string
+      `'CIRCULAR'` (periodic boundary conditions), or a sequence of `n` `(low,
+      high)` integer pairs that give the padding to apply before and after each
+      spatial dimension. A single int is interpeted as applying the same padding
+      in all dims and passign a single int in a sequence causes the same padding
+      to be used on both sides.
+    input_dilation: integer, sequence[int]
+      an integer or a sequence of `n` integers, giving the
+      dilation factor to apply in each spatial dimension of `inputs`
+      (default: 1). Convolution with input dilation `d` is equivalent to
+      transposed convolution with stride `d`.
+    kernel_dilation: integer, sequence[int]
+      an integer or a sequence of `n` integers, giving the
+      dilation factor to apply in each spatial dimension of the convolution
+      kernel (default: 1). Convolution with kernel dilation
+      is also known as 'atrous convolution'.
+    groups: integer, default 1.
+      If specified divides the input
+      features into groups.
+    kernel_init: brainpy.init.Initializer
+      initializer for the convolutional kernel.
+    bias_init: brainpy.init.Initializer
+      initializer for the bias.
   """
 
   def __init__(self, in_channels, out_channels, kernel_size, strides=None, padding='SAME',
