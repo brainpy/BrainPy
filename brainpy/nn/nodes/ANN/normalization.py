@@ -16,6 +16,7 @@ __all__ = [
   'BatchNorm1d',
   'BatchNorm2d',
   'BatchNorm3d',
+  'LayerNorm'
 ]
 
 
@@ -33,9 +34,9 @@ class BatchNorm(Node):
     axes where the data will be normalized. The axis of channels should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  translate: bool
+  use_bias: bool
     whether to translate data in refactoring
-  scale: bool
+  use_scale: bool
     whether to scale data in refactoring
   beta_init: brainpy.init.Initializer
     an initializer generating the original translation matrix
@@ -46,18 +47,18 @@ class BatchNorm(Node):
   def __init__(self,
                axis: Union[int, tuple, list],
                epsilon: float = 1e-5,
-               translate: bool = True,
-               scale: bool = True,
+               use_bias: bool = True,
+               use_scale: bool = True,
                beta_init: Initializer = ZeroInit(),
                gamma_init: Initializer = OneInit(),
                **kwargs):
     super(BatchNorm, self).__init__(**kwargs)
-    self.center = translate
-    self.scale = scale
-    self.beta_init = beta_init if translate else ()
-    self.gamma_init = gamma_init if scale else ()
-    self.axis = (axis,) if jnp.isscalar(axis) else axis
     self.epsilon = epsilon
+    self.bias = use_bias
+    self.scale = use_scale
+    self.beta_init = beta_init if use_bias else ()
+    self.gamma_init = gamma_init if use_scale else ()
+    self.axis = (axis,) if jnp.isscalar(axis) else axis
 
   def _check_input_dim(self):
     pass
@@ -66,15 +67,15 @@ class BatchNorm(Node):
     self._check_input_dim()
 
     input_shape = tuple(d for i, d in enumerate(self.feedforward_shapes) if i not in self.axis)
-    self.beta = bm.TrainVar(self.beta_init(input_shape))
-    self.gamma = bm.TrainVar(self.gamma_init(input_shape))
+    self.beta = bm.TrainVar(self.beta_init(input_shape)) if self.bias else None
+    self.gamma = bm.TrainVar(self.gamma_init(input_shape)) if self.scale else None
     self.set_output_shape(self.feedforward_shapes)
 
   def forward(self, ff, **shared_kwargs):
     ed = tuple(None if i in self.axis else slice(None) for i in range(jnp.ndim(ff)))
     output = jax.nn.normalize(bm.as_device_array(ff), self.axis, epsilon=self.epsilon)
-    if self.center and self.scale: return self.gamma[ed] * output + self.beta[ed]
-    if self.center: return output + self.beta[ed]
+    if self.bias and self.scale: return self.gamma[ed] * output + self.beta[ed]
+    if self.bias: return output + self.beta[ed]
     if self.scale: return self.gamma[ed] * output
     return output
 
@@ -91,9 +92,9 @@ class BatchNorm1d(BatchNorm):
     axes where the data will be normalized. The axis of channels should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  translate: bool
+  use_bias: bool
     whether to translate data in refactoring
-  scale: bool
+  use_scale: bool
     whether to scale data in refactoring
   beta_init: brainpy.init.Initializer
     an initializer generating the original translation matrix
@@ -125,9 +126,9 @@ class BatchNorm2d(BatchNorm):
       axes where the data will be normalized. The axis of channels should be excluded.
     epsilon: float
       a value added to the denominator for numerical stability. Default: 1e-5
-    translate: bool
+    use_bias: bool
       whether to translate data in refactoring
-    scale: bool
+    use_scale: bool
       whether to scale data in refactoring
     beta_init: brainpy.init.Initializer
       an initializer generating the original translation matrix
@@ -157,9 +158,9 @@ class BatchNorm3d(BatchNorm):
       axes where the data will be normalized. The axis of channels should be excluded.
     epsilon: float
       a value added to the denominator for numerical stability. Default: 1e-5
-    translate: bool
+    use_bias: bool
       whether to translate data in refactoring
-    scale: bool
+    use_scale: bool
       whether to scale data in refactoring
     beta_init: brainpy.init.Initializer
       an initializer generating the original translation matrix
@@ -175,3 +176,36 @@ class BatchNorm3d(BatchNorm):
       raise ValueError(
         "expected 5D input (got {}D input)".format(ndim)
       )
+
+
+class LayerNorm(Node):
+  def __init__(self,
+               epsilon: float = 1e-6,
+               use_bias: bool = True,
+               use_scale: bool = True,
+               beta_init: Initializer = ZeroInit(),
+               gamma_init: Initializer = ZeroInit(),
+               **kwargs):
+    super(LayerNorm, self).__init__(**kwargs)
+    self.epsilon = epsilon
+    self.bias = use_bias
+    self.scale = use_scale
+    self.beta_init = beta_init if use_bias else ()
+    self.gamma_init = gamma_init if use_scale else ()
+
+  def init_ff_conn(self):
+    self.axis = tuple(i for i in range(len(self.feedforward_shapes)) if i != 0)
+    # todo: what if elementwise_affine = False?
+    input_shape = tuple(d for i, d in enumerate(self.feedforward_shapes) if i in self.axis)
+    self.beta = bm.TrainVar(self.beta_init(input_shape)) if self.bias else None
+    self.gamma = bm.TrainVar(self.gamma_init(input_shape)) if self.scale else None
+    self.set_output_shape(self.feedforward_shapes)
+
+  def forward(self, ff, **shared_kwargs):
+    # todo: wrong output shape
+    ed = tuple(None if i in self.axis else slice(None) for i in range(jnp.ndim(ff)))
+    output = jax.nn.normalize(bm.as_device_array(ff), self.axis, epsilon=self.epsilon)
+    if self.bias and self.scale: return self.gamma[ed] * output + self.beta[ed]
+    if self.bias: return output + self.beta[ed]
+    if self.scale: return self.gamma[ed] * output
+    return output
