@@ -2,8 +2,6 @@
 
 from typing import Union, Sequence, Callable
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
@@ -12,7 +10,7 @@ from brainpy.integrators.fde import GLShortMemory
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.tools.checking import check_float, check_integer
 from brainpy.tools.checking import check_initializer
-from brainpy.types import Parameter, Shape, Tensor
+from brainpy.types import Shape, Tensor
 
 __all__ = [
   'FractionalNeuron',
@@ -85,13 +83,13 @@ class FractionalFHR(FractionalNeuron):
       size: Shape,
       alpha: Union[float, Sequence[float]],
       num_memory: int = 1000,
-      a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.7,
-      b: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.8,
-      c: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -0.775,
-      d: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
-      delta: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.08,
-      mu: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.0001,
-      Vth: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.8,
+      a: Union[float, Tensor, Initializer, Callable] = 0.7,
+      b: Union[float, Tensor, Initializer, Callable] = 0.8,
+      c: Union[float, Tensor, Initializer, Callable] = -0.775,
+      d: Union[float, Tensor, Initializer, Callable] = 1.,
+      delta: Union[float, Tensor, Initializer, Callable] = 0.08,
+      mu: Union[float, Tensor, Initializer, Callable] = 0.0001,
+      Vth: Union[float, Tensor, Initializer, Callable] = 1.8,
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.5),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       y_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
@@ -219,16 +217,16 @@ class FractionalIzhikevich(FractionalNeuron):
       size: Shape,
       alpha: Union[float, Sequence[float]],
       num_step: int,
-      a: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.02,
-      b: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.20,
-      c: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = -65.,
-      d: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 8.,
-      f: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 0.04,
-      g: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 5.,
-      h: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 140.,
-      tau: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
-      R: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 1.,
-      V_th: Union[float, jnp.ndarray, bm.JaxArray, Initializer] = 30.,
+      a: Union[float, Tensor, Initializer, Callable] = 0.02,
+      b: Union[float, Tensor, Initializer, Callable] = 0.20,
+      c: Union[float, Tensor, Initializer, Callable] = -65.,
+      d: Union[float, Tensor, Initializer, Callable] = 8.,
+      f: Union[float, Tensor, Initializer, Callable] = 0.04,
+      g: Union[float, Tensor, Initializer, Callable] = 5.,
+      h: Union[float, Tensor, Initializer, Callable] = 140.,
+      R: Union[float, Tensor, Initializer, Callable] = 1.,
+      tau: Union[float, Tensor, Initializer, Callable] = 1.,
+      V_th: Union[float, Tensor, Initializer, Callable] = 30.,
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-65.),
       u_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.20 * -65.),
       name: str = None
