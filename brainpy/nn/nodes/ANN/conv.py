@@ -73,7 +73,7 @@ class GeneralConv(Node):
     input_shapes = self.feedforward_shapes
     kernel_shape = _check_tuple(self.kernel_size) + (self.in_channels // self.groups, self.out_channels)
     self.w = init_param(self.w_init, kernel_shape)
-    self.b = init_param(self.b_init, (self.out_channels,) + (1,) * len(self.kernel_size))
+    self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
     if self.trainable:
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
@@ -86,6 +86,7 @@ class GeneralConv(Node):
     self.set_output_shape(output_shapes)
 
   def init_fb_conn(self):
+    # input_shapes = self.feedback_shapes
     pass
 
   def forward(self, ff, fb=None, **shared_kwargs):
@@ -107,7 +108,7 @@ class Conv1D(GeneralConv):
   def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
     super(Conv1D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
 
-    self.dimension_numbers = ('NCW', 'WIO', 'NCW')
+    self.dimension_numbers = ('NWC', 'WIO', 'NWC')
 
   def _check_input_dim(self):
     ndim = len(self.feedforward_shapes)
@@ -123,7 +124,7 @@ class Conv2D(GeneralConv):
   def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
     super(Conv2D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
 
-    self.dimension_numbers = ('NCHW', 'HWIO', 'NCHW')
+    self.dimension_numbers = ('NHWC', 'HWIO', 'NHWC')
 
   def _check_input_dim(self):
     ndim = len(self.feedforward_shapes)
@@ -139,7 +140,7 @@ class Conv3D(GeneralConv):
   def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
     super(Conv3D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
 
-    self.dimension_numbers = ('NCHWD', 'HWDIO', 'NCHWD')
+    self.dimension_numbers = ('NHWDC', 'HWDIO', 'NHWDC')
 
   def _check_input_dim(self):
     ndim = len(self.feedforward_shapes)
@@ -149,5 +150,3 @@ class Conv3D(GeneralConv):
       )
 
     assert len(self.kernel_size) == 3, "expected 3D kernel size (got {}D input)".format(self.kernel_size)
-
-
