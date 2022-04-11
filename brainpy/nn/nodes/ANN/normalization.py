@@ -4,7 +4,6 @@ from typing import Union
 
 import jax.nn
 import jax.numpy as jnp
-import numpy as np
 
 import brainpy.math as bm
 import brainpy
@@ -37,13 +36,13 @@ class BatchNorm(Node):
   Parameters
   ----------
   axis: int, tuple, list
-    axes where the data will be normalized. The axis of channels should be excluded.
+    axes where the data will be normalized. The feature (channel) axis should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
   use_bias: bool
-    whether to translate data in refactoring
+    whether to translate data in refactoring. Default: True
   use_scale: bool
-    whether to scale data in refactoring
+    whether to scale data in refactoring. Default: True
   beta_init: brainpy.init.Initializer
     an initializer generating the original translation matrix
   gamma_init: brainpy.init.Initializer
@@ -95,13 +94,13 @@ class BatchNorm1d(BatchNorm):
   Parameters
   ----------
   axis: int, tuple, list
-    axes where the data will be normalized. The axis of channels should be excluded.
+    axes where the data will be normalized. The feature (channel) axis should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
   use_bias: bool
-    whether to translate data in refactoring
+    whether to translate data in refactoring. Default: True
   use_scale: bool
-    whether to scale data in refactoring
+    whether to scale data in refactoring. Default: True
   beta_init: brainpy.init.Initializer
     an initializer generating the original translation matrix
   gamma_init: brainpy.init.Initializer
@@ -129,13 +128,13 @@ class BatchNorm2d(BatchNorm):
     Parameters
     ----------
     axis: int, tuple, list
-      axes where the data will be normalized. The axis of channels should be excluded.
+      axes where the data will be normalized. The feature (channel) axis should be excluded.
     epsilon: float
       a value added to the denominator for numerical stability. Default: 1e-5
     use_bias: bool
-      whether to translate data in refactoring
+      whether to translate data in refactoring. Default: True
     use_scale: bool
-      whether to scale data in refactoring
+      whether to scale data in refactoring. Default: True
     beta_init: brainpy.init.Initializer
       an initializer generating the original translation matrix
     gamma_init: brainpy.init.Initializer
@@ -161,13 +160,13 @@ class BatchNorm3d(BatchNorm):
     Parameters
     ----------
     axis: int, tuple, list
-      axes where the data will be normalized. The axis of channels should be excluded.
+      axes where the data will be normalized. The feature (channel) axis should be excluded.
     epsilon: float
       a value added to the denominator for numerical stability. Default: 1e-5
     use_bias: bool
-      whether to translate data in refactoring
+      whether to translate data in refactoring. Default: True
     use_scale: bool
-      whether to scale data in refactoring
+      whether to scale data in refactoring. Default: True
     beta_init: brainpy.init.Initializer
       an initializer generating the original translation matrix
     gamma_init: brainpy.init.Initializer
@@ -194,9 +193,24 @@ class LayerNorm(Node):
   operation) instead of the whole channel. If users want to assign a single
   gamma and beta to a whole example/whole channel, please use GroupNorm/
   InstanceNorm.
+
+  Parameters
+  ----------
+  epsilon: float
+    a value added to the denominator for numerical stability. Default: 1e-5
+  use_bias: bool
+    whether to translate data in refactoring. Default: True
+  use_scale: bool
+    whether to scale data in refactoring. Default: True
+  beta_init: brainpy.init.Initializer
+    an initializer generating the original translation matrix
+  gamma_init: brainpy.init.Initializer
+    an initializer generating the original scaling matrix
+  axis: int, tuple, list
+    axes where the data will be normalized. The batch axis should be excluded.
   """
   def __init__(self,
-               epsilon: float = 1e-6,
+               epsilon: float = 1e-5,
                use_bias: bool = True,
                use_scale: bool = True,
                beta_init: Initializer = ZeroInit(),
@@ -243,11 +257,32 @@ class GroupNorm(Node):
   The shape of the data should be (b, d1, d2, ..., c), where `d` denotes the batch
   size and `c` denotes the feature (channel) size. The `d` and `c` axis should be
   excluded in parameter `axis`.
+
+  Parameters
+  ----------
+  num_groups: int
+    the number of groups. It should be a factor of the number of features.
+  group_size: int
+    the group size. It should equal to int(num_features / num_groups).
+    Either `num_groups` or `group_size` should be specified.
+  epsilon: float
+    a value added to the denominator for numerical stability. Default: 1e-5
+  use_bias: bool
+    whether to translate data in refactoring. Default: True
+  use_scale: bool
+    whether to scale data in refactoring. Default: True
+  beta_init: brainpy.init.Initializer
+    an initializer generating the original translation matrix
+  gamma_init: brainpy.init.Initializer
+    an initializer generating the original scaling matrix
+  axis: int, tuple, list
+    axes where the data will be normalized. Besides the batch axis, the channel
+    axis should be also excluded, since it will be automatically added to `axis`.
   """
   def __init__(self,
                num_groups: int = None,
                group_size: int = None,
-               epsilon: float = 1e-6,
+               epsilon: float = 1e-5,
                use_bias: bool = True,
                use_scale: bool = True,
                beta_init: Initializer = ZeroInit(),
@@ -319,10 +354,26 @@ class InstanceNorm(GroupNorm):
   """Instance normalization layer.
 
   This layer normalizes the data within each feature. It can be regarded as
-  a group normalization layer whose `group_size` equals to 1.
+  a group normalization layer in which `group_size` equals to 1.
+
+  Parameters
+  ----------
+  epsilon: float
+    a value added to the denominator for numerical stability. Default: 1e-5
+  use_bias: bool
+    whether to translate data in refactoring. Default: True
+  use_scale: bool
+    whether to scale data in refactoring. Default: True
+  beta_init: brainpy.init.Initializer
+    an initializer generating the original translation matrix
+  gamma_init: brainpy.init.Initializer
+    an initializer generating the original scaling matrix
+  axis: int, tuple, list
+    axes where the data will be normalized. The batch and channel axes
+    should be excluded.
   """
   def __init__(self,
-               epsilon: float = 1e-6,
+               epsilon: float = 1e-5,
                use_bias: bool = True,
                use_scale: bool = True,
                beta_init: Initializer = ZeroInit(),
