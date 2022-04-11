@@ -100,10 +100,53 @@ class TestBatchNorm(TestCase):
 
 
 class TestLayerNorm(TestCase):
-	def test_layernorm(self):
+	def test_layernorm1(self):
 		i = bp.nn.Input((3, 4))
-		b = bp.nn.LayerNorm()  # channel axis: 1
-		model = i >> b
+		l = bp.nn.LayerNorm()
+		model = i >> l
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		print(inputs)
+
+		print(model(inputs))
+
+	def test_layernorm2(self):
+		i = bp.nn.Input((3, 4))
+		l = bp.nn.LayerNorm(axis=2)
+		model = i >> l
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		print(inputs)
+
+		print(model(inputs))
+
+
+class TestInstanceNorm(TestCase):
+	def test_instancenorm(self):
+		i = bp.nn.Input((3, 4))
+		l = bp.nn.InstanceNorm()
+		model = i >> l
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		print(inputs)
+
+		print(model(inputs))
+
+
+class TestGroupNorm(TestCase):
+	def test_groupnorm1(self):
+		i = bp.nn.Input((3, 4))
+		l = bp.nn.GroupNorm(num_groups=2)
+		model = i >> l
 		model.initialize(num_batch=2)
 
 		inputs = bp.math.ones((2, 3, 4))

@@ -4,6 +4,7 @@ from typing import Union
 
 import jax.nn
 import jax.numpy as jnp
+import numpy as np
 
 import brainpy.math as bm
 import brainpy
@@ -16,14 +17,19 @@ __all__ = [
   'BatchNorm1d',
   'BatchNorm2d',
   'BatchNorm3d',
-  'LayerNorm'
+  'GroupNorm',
+  'LayerNorm',
+  'InstanceNorm',
 ]
 
 
 class BatchNorm(Node):
   """Batch Normalization node.
-  Most commonly, the first axis of the data is the batch, and the last is
-  the channel. However, users can specify the axes to be normalized.
+  This layer aims to reduce the internal covariant shift of data. It
+  normalizes a batch of data by fixing the mean and variance of inputs
+  on each feature (channel). Most commonly, the first axis of the data
+  is the batch, and the last is the channel. However, users can specify
+  the axes to be normalized.
 
   adapted from jax.example_libraries.stax.BatchNorm
   https://jax.readthedocs.io/en/latest/_modules/jax/example_libraries/stax.html#BatchNorm
@@ -179,12 +185,23 @@ class BatchNorm3d(BatchNorm):
 
 
 class LayerNorm(Node):
+  """Layer normalization (https://arxiv.org/abs/1607.06450).
+
+  This layer normalizes data on each example, independently of the batch. More
+  specifically, it normalizes data of shape (b, d1, d2, ..., c) on the axes of
+  the data dimensions and the channel (d1, d2, ..., c). Different from batch
+  normalization, gamma and beta are assigned to each position (elementwise
+  operation) instead of the whole channel. If users want to assign a single
+  gamma and beta to a whole example/whole channel, please use GroupNorm/
+  InstanceNorm.
+  """
   def __init__(self,
                epsilon: float = 1e-6,
                use_bias: bool = True,
                use_scale: bool = True,
                beta_init: Initializer = ZeroInit(),
-               gamma_init: Initializer = ZeroInit(),
+               gamma_init: Initializer = OneInit(),
+               axis: Union[int, tuple] = None,
                **kwargs):
     super(LayerNorm, self).__init__(**kwargs)
     self.epsilon = epsilon
@@ -192,9 +209,15 @@ class LayerNorm(Node):
     self.scale = use_scale
     self.beta_init = beta_init if use_bias else ()
     self.gamma_init = gamma_init if use_scale else ()
+    self.axis = (axis,) if jnp.isscalar(axis) else axis
+
+  def default_axis(self):
+    # default: the first axis (batch dim) is excluded
+    return tuple(i for i in range(1, len(self.feedforward_shapes)))
 
   def init_ff_conn(self):
-    self.axis = tuple(i for i in range(len(self.feedforward_shapes)) if i != 0)
+    if self.axis is None:
+      self.axis = self.default_axis()
     # todo: what if elementwise_affine = False?
     input_shape = tuple(d for i, d in enumerate(self.feedforward_shapes) if i in self.axis)
     self.beta = bm.TrainVar(self.beta_init(input_shape)) if self.bias else None
@@ -202,10 +225,110 @@ class LayerNorm(Node):
     self.set_output_shape(self.feedforward_shapes)
 
   def forward(self, ff, **shared_kwargs):
-    # todo: wrong output shape
-    ed = tuple(None if i in self.axis else slice(None) for i in range(jnp.ndim(ff)))
+    ed = tuple(None if i not in self.axis else slice(None) for i in range(jnp.ndim(ff)))
     output = jax.nn.normalize(bm.as_device_array(ff), self.axis, epsilon=self.epsilon)
     if self.bias and self.scale: return self.gamma[ed] * output + self.beta[ed]
     if self.bias: return output + self.beta[ed]
     if self.scale: return self.gamma[ed] * output
     return output
+
+
+class GroupNorm(Node):
+  """Group normalization layer.
+
+  This layer divides channels into groups and normalizes the features within each
+  group. Its computation is also independent of the batch size. The feature size
+  must be multiple of the group size.
+
+  The shape of the data should be (b, d1, d2, ..., c), where `d` denotes the batch
+  size and `c` denotes the feature (channel) size. The `d` and `c` axis should be
+  excluded in parameter `axis`.
+  """
+  def __init__(self,
+               num_groups: int = None,
+               group_size: int = None,
+               epsilon: float = 1e-6,
+               use_bias: bool = True,
+               use_scale: bool = True,
+               beta_init: Initializer = ZeroInit(),
+               gamma_init: Initializer = OneInit(),
+               axis: Union[int, tuple] = None,
+               **kwargs):
+    super(GroupNorm, self).__init__(**kwargs)
+    self.num_groups = num_groups
+    self.group_size = group_size
+    self.epsilon = epsilon
+    self.bias = use_bias
+    self.scale = use_scale
+    self.beta_init = beta_init if use_bias else ()
+    self.gamma_init = gamma_init if use_scale else ()
+    self.norm_axis = (axis,) if jnp.isscalar(axis) else axis
+
+  def init_ff_conn(self):
+    num_channels = self.feedforward_shapes[-1]
+    self.ndim = len(self.feedforward_shapes)
+
+    # compute num_groups and group_size
+    if ((self.num_groups is None and self.group_size is None) or
+        (self.num_groups is not None and self.group_size is not None)):
+      raise ValueError('Either `num_groups` or `group_size` should be specified. '
+                       'Once one is specified, the other will be automatically '
+                       'computed.')
+
+    if self.num_groups is None:
+      assert self.group_size > 0, '`group_size` should be a positive integer.'
+      if num_channels % self.group_size != 0:
+        raise ValueError('The number of channels ({}) is not multiple of the '
+                         'group size ({}).'.format(num_channels, self.group_size))
+      else:
+        self.num_groups = num_channels // self.group_size
+    else:  # self.num_groups is not None:
+      assert self.num_groups > 0, '`num_groups` should be a positive integer.'
+      if num_channels % self.num_groups != 0:
+        raise ValueError('The number of channels ({}) is not multiple of the '
+                         'number of groups ({}).'.format(num_channels, self.num_groups))
+      else:
+        self.group_size = num_channels // self.num_groups
+
+    # axes for normalization
+    if self.norm_axis is None:
+      # default: the first axis (batch dim) and the second-last axis (num_group dim) are excluded
+      self.norm_axis = tuple(i for i in range(1, len(self.feedforward_shapes) - 1)) + (self.ndim,)
+
+    group_shape = self.feedforward_shapes[:-1] + (self.num_groups, self.group_size)
+    input_shape = tuple(d for i, d in enumerate(group_shape) if i in self.norm_axis)
+    self.beta = bm.TrainVar(self.beta_init(input_shape)) if self.bias else None
+    self.gamma = bm.TrainVar(self.gamma_init(input_shape)) if self.scale else None
+    self.set_output_shape(self.feedforward_shapes)
+
+  def forward(self, ff, **shared_kwargs):
+    group_shape = ff.shape[:-1] + (self.num_groups, self.group_size)
+    ff_reshape = ff.reshape(group_shape)
+    ed = tuple(None if i not in self.norm_axis else slice(None) for i in range(jnp.ndim(ff_reshape)))
+    output = jax.nn.normalize(bm.as_device_array(ff_reshape), self.norm_axis, epsilon=self.epsilon)
+    if self.bias and self.scale:
+      output = self.gamma[ed] * output + self.beta[ed]
+    elif self.bias:
+      output = output + self.beta[ed]
+    elif self.scale:
+      output = self.gamma[ed] * output
+    return output.reshape(ff.shape)
+
+
+class InstanceNorm(GroupNorm):
+  """Instance normalization layer.
+
+  This layer normalizes the data within each feature. It can be regarded as
+  a group normalization layer whose `group_size` equals to 1.
+  """
+  def __init__(self,
+               epsilon: float = 1e-6,
+               use_bias: bool = True,
+               use_scale: bool = True,
+               beta_init: Initializer = ZeroInit(),
+               gamma_init: Initializer = OneInit(),
+               axis: Union[int, tuple] = None,
+               **kwargs):
+    super(InstanceNorm, self).__init__(group_size=1, epsilon=epsilon, use_bias=use_bias,
+                                       use_scale=use_scale, beta_init=beta_init,
+                                       gamma_init=gamma_init, axis=axis, **kwargs)
