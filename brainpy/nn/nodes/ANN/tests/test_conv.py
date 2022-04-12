@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 
 class TestConv(TestCase):
   def test_Conv2D_img(self):
-    i = bp.nn.Input((200, 198, 3))
-    b = bp.nn.Conv2D(3, 32, (3, 3))
+    i = bp.nn.Input((200, 198, 4))
+    b = bp.nn.Conv2D(4, 32, (3, 3), strides=(1, 1), padding='VALID', groups=2)
     model = i >> b
     model.initialize(num_batch=2)
 
-    img = jnp.zeros((2, 200, 198, 3))
-    for k in range(3):
+    img = jnp.zeros((2, 200, 198, 4))
+    for k in range(4):
       x = 30 + 60 * k
       y = 20 + 60 * k
       img = img.at[0, x:x + 10, y:y + 10, k].set(1.0)
