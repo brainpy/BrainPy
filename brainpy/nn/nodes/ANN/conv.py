@@ -36,8 +36,6 @@ class GeneralConv(Node):
   """Applies a convolution to the inputs.
 
   Args:
-    in_channels: integer
-      number of input channels.
     out_channels: integer
       number of output channels.
     kernel_size: sequence[int]
@@ -96,8 +94,7 @@ class GeneralConv(Node):
     else:
       raise ValueError
 
-    # assert in_channels % groups == 0, '"nin" should be divisible by groups'
-    assert out_channels % groups == 0, '"nout" should be divisible by groups'
+    assert out_channels % self.groups == 0, '"nout" should be divisible by groups'
 
   def _check_input_dim(self):
     pass
@@ -105,6 +102,7 @@ class GeneralConv(Node):
   def init_ff_conn(self):
     input_shapes = self.feedforward_shapes
     in_channels = int(input_shapes[-1])
+    assert in_channels % self.groups == 0, '"nin" should be divisible by groups'
     kernel_shape = _check_tuple(self.kernel_size) + (in_channels // self.groups, self.out_channels)
     self.w = init_param(self.w_init, kernel_shape)
     self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
@@ -128,6 +126,7 @@ class GeneralConv(Node):
                                                f"with feedforward input spatial dimensions {ff_spatial_axes}. "
 
     in_channels = int(ff_input_shapes[-1] + fb_input_shapes[-1])
+    assert in_channels % self.groups == 0, '"nin" should be divisible by groups'
     kernel_shape = _check_tuple(self.kernel_size) + (in_channels // self.groups, self.out_channels)
     self.w = init_param(self.w_init, kernel_shape)
     self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
