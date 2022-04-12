@@ -5,5 +5,5 @@
 from .conv import *
 from .dropout import *
 from .rnn_cells import *
-from .batch_norm import *
 from .pooling import *
+from .normalization import *

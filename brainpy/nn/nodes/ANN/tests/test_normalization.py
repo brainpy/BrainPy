@@ -65,7 +65,7 @@ class TestBatchNorm3d(TestCase):
 class TestBatchNorm(TestCase):
 	def test_batchnorm1(self):
 		i = bp.nn.Input((3, 4))
-		b = bp.nn.BatchNorm(axis=(0, 2))  # channel axis: 1
+		b = bp.nn.BatchNorm(axis=(0, 2), use_bias=False)  # channel axis: 1
 		model = i >> b
 		model.initialize(num_batch=2)
 
@@ -81,7 +81,7 @@ class TestBatchNorm(TestCase):
 		b = bp.nn.BatchNorm(axis=(0, 2))  # channel axis: 1
 		f = bp.nn.Reshape((-1, 12))
 		o = bp.nn.GeneralDense(2)
-		model = i >> b >>f >> o
+		model = i >> b >> f >> o
 		model.initialize(num_batch=2)
 
 		inputs = bp.math.ones((2, 3, 4))
@@ -90,7 +90,7 @@ class TestBatchNorm(TestCase):
 		# print(inputs)
 		print(model(inputs))
 
-
+		# training
 		X = bp.math.random.random((1000, 10, 3, 4))
 		Y = bp.math.random.randint(0, 2, (1000, 10,  2))
 		trainer = bp.nn.BPTT(model,
@@ -99,3 +99,59 @@ class TestBatchNorm(TestCase):
 		trainer.fit([X, Y])
 
 
+class TestLayerNorm(TestCase):
+	def test_layernorm1(self):
+		i = bp.nn.Input((3, 4))
+		l = bp.nn.LayerNorm()
+		model = i >> l
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		print(inputs)
+
+		print(model(inputs))
+
+	def test_layernorm2(self):
+		i = bp.nn.Input((3, 4))
+		l = bp.nn.LayerNorm(axis=2)
+		model = i >> l
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		print(inputs)
+
+		print(model(inputs))
+
+
+class TestInstanceNorm(TestCase):
+	def test_instancenorm(self):
+		i = bp.nn.Input((3, 4))
+		l = bp.nn.InstanceNorm()
+		model = i >> l
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		print(inputs)
+
+		print(model(inputs))
+
+
+class TestGroupNorm(TestCase):
+	def test_groupnorm1(self):
+		i = bp.nn.Input((3, 4))
+		l = bp.nn.GroupNorm(num_groups=2)
+		model = i >> l
+		model.initialize(num_batch=2)
+
+		inputs = bp.math.ones((2, 3, 4))
+		inputs[0, 0, :] = 2.
+		inputs[0, 1, 0] = 5.
+		print(inputs)
+
+		print(model(inputs))
