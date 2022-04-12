@@ -2,7 +2,6 @@
 
 
 import jax.lax
-
 import brainpy.math as bm
 from brainpy.initialize import XavierNormal, ZeroInit, init_param
 from brainpy.nn.base import Node
@@ -41,11 +40,11 @@ class GeneralConv(Node):
       number of input channels.
     out_channels: integer
       number of output channels.
-    kernel_size: integer, sequence[int]
+    kernel_size: sequence[int]
       shape of the convolutional kernel. For 1D convolution,
       the kernel size can be passed as an integer. For all other cases, it must
       be a sequence of integers.
-    strides: integer, sequence[int]
+    strides: sequence[int]
       an integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
     padding: str, sequence[int]
       either the string `'SAME'`, the string `'VALID'`, the string
@@ -73,11 +72,10 @@ class GeneralConv(Node):
       initializer for the bias.
   """
 
-  def __init__(self, in_channels, out_channels, kernel_size, strides=None, padding='SAME',
+  def __init__(self, out_channels, kernel_size, strides=None, padding='SAME',
                input_dilation=None, kernel_dilation=None, groups=1, w_init=XavierNormal(), b_init=ZeroInit(), **kwargs):
     super(GeneralConv, self).__init__(**kwargs)
 
-    self.in_channels = in_channels
     self.out_channels = out_channels
     self.kernel_size = kernel_size
     self.strides = strides
@@ -98,7 +96,7 @@ class GeneralConv(Node):
     else:
       raise ValueError
 
-    assert in_channels % groups == 0, '"nin" should be divisible by groups'
+    # assert in_channels % groups == 0, '"nin" should be divisible by groups'
     assert out_channels % groups == 0, '"nout" should be divisible by groups'
 
   def _check_input_dim(self):
@@ -106,7 +104,8 @@ class GeneralConv(Node):
 
   def init_ff_conn(self):
     input_shapes = self.feedforward_shapes
-    kernel_shape = _check_tuple(self.kernel_size) + (self.in_channels // self.groups, self.out_channels)
+    in_channels = int(input_shapes[-1])
+    kernel_shape = _check_tuple(self.kernel_size) + (in_channels // self.groups, self.out_channels)
     self.w = init_param(self.w_init, kernel_shape)
     self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
     if self.trainable:
@@ -121,11 +120,30 @@ class GeneralConv(Node):
     self.set_output_shape(output_shapes)
 
   def init_fb_conn(self):
-    # input_shapes = self.feedback_shapes
-    pass
+    fb_input_shapes = self.feedback_shapes
+    ff_input_shapes = self.feedforward_shapes
+    ff_spatial_axes = ff_input_shapes[1:-1]  # only first (batch) and last (channel) dimension are not spatial dims
+    fb_spatial_axes = fb_input_shapes[1:-1]
+    assert ff_spatial_axes == fb_spatial_axes, f"Feedback input spatial dimensions {fb_spatial_axes} are not aligned " \
+                                               f"with feedforward input spatial dimensions {ff_spatial_axes}. "
+
+    in_channels = int(ff_input_shapes[-1] + fb_input_shapes[-1])
+    kernel_shape = _check_tuple(self.kernel_size) + (in_channels // self.groups, self.out_channels)
+    self.w = init_param(self.w_init, kernel_shape)
+    self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
+    if self.trainable:
+      self.w = bm.TrainVar(self.w)
+      self.b = bm.TrainVar(self.b)
+
+    if self.strides is None:
+      self.strides = (1,) * (len(ff_input_shapes) - 2)
 
   def forward(self, ff, fb=None, **shared_kwargs):
-    y = jax.lax.conv_general_dilated(lhs=ff.value if isinstance(ff, bm.JaxArray) else ff,
+    if fb is not None:
+      data = bm.concatenate((ff, fb), axis=-1)
+    else:
+      data = ff
+    y = jax.lax.conv_general_dilated(lhs=data.value if isinstance(data, bm.JaxArray) else ff,
                                      rhs=self.w.value,
                                      window_strides=self.strides,
                                      padding=self.padding,
@@ -139,8 +157,8 @@ class GeneralConv(Node):
 
 
 class Conv1D(GeneralConv):
-  def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
-    super(Conv1D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
+  def __init__(self, out_channels, kernel_size, **kwargs):
+    super(Conv1D, self).__init__(out_channels, kernel_size, **kwargs)
 
     self.dimension_numbers = ('NWC', 'WIO', 'NWC')
 
@@ -155,8 +173,8 @@ class Conv1D(GeneralConv):
 
 
 class Conv2D(GeneralConv):
-  def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
-    super(Conv2D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
+  def __init__(self, out_channels, kernel_size, **kwargs):
+    super(Conv2D, self).__init__(out_channels, kernel_size, **kwargs)
 
     self.dimension_numbers = ('NHWC', 'HWIO', 'NHWC')
 
@@ -171,8 +189,8 @@ class Conv2D(GeneralConv):
 
 
 class Conv3D(GeneralConv):
-  def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
-    super(Conv3D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
+  def __init__(self, out_channels, kernel_size, **kwargs):
+    super(Conv3D, self).__init__(out_channels, kernel_size, **kwargs)
 
     self.dimension_numbers = ('NHWDC', 'HWDIO', 'NHWDC')
 
