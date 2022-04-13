@@ -8,6 +8,7 @@ import jax.numpy as jnp
 
 __all__ = [
   'enable_x64',
+  'disable_x64',
   'set_platform',
   'set_host_device_count',
 
@@ -64,6 +65,10 @@ def get_dt():
 def enable_x64(mode=True):
   assert mode in [True, False]
   jax.config.update("jax_enable_x64", mode)
+
+
+def disable_x64():
+  jax.config.update("jax_enable_x64", False)
 
 
 def set_platform(platform):
