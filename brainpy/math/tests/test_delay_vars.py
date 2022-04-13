@@ -32,6 +32,8 @@ class TestTimeDelay(unittest.TestCase):
     self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones(10) * 8))
     self.assertTrue(jnp.array_equal(delay(t0 - 0.2), jnp.ones(10) * 8))
 
+    bm.disable_x64()
+
   def test_dim2(self):
     t0 = 0.
     before_t0 = jnp.repeat(jnp.arange(10).reshape((-1, 1)), 10, axis=1)

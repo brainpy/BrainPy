@@ -31,3 +31,5 @@ class TestCaputoL1(unittest.TestCase):
       print()
       print(memory_trace[0], )
       print(memory_trace2[0], bp.math.array_equal(memory_trace[0], memory_trace2[0]))
+
+    bp.math.disable_x64()

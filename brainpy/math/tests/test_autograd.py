@@ -522,6 +522,7 @@ class TestPureFuncJacobian(unittest.TestCase):
     assert aux == (4 * x[1] ** 2 - 2 * x[2])
 
   def test_jacrev_return_aux1(self):
+    bm.enable_x64()
     def f1(x, y):
       a = 4 * x[1] ** 2 - 2 * x[2]
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], a, x[2] * jnp.sin(x[0])])
@@ -546,6 +547,8 @@ class TestPureFuncJacobian(unittest.TestCase):
     assert (grads[1] == _g2[1]).all()
     assert aux == _a
     assert (vec == _r).all()
+
+    bm.disable_x64()
 
 
 class TestClassFuncJacobian(unittest.TestCase):
@@ -684,6 +687,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     self.assertTrue((arg_grads == _jr[1]).all())
 
   def test_jacrev_aux1(self):
+    bm.enable_x64()
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -719,7 +723,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     self.assertTrue((arg_grads == _jr[1]).all())
     self.assertTrue(bm.array_equal(aux, _aux))
 
+    bm.disable_x64()
+
   def test_jacfwd_aux1(self):
+    bm.enable_x64()
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -758,7 +765,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     self.assertTrue((arg_grads == _jr[1]).all())
     self.assertTrue(bm.array_equal(aux, _aux))
 
+    bm.disable_x64()
+
   def test_jacrev_return_aux1(self):
+    bm.enable_x64()
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -795,7 +805,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     self.assertTrue(bm.array_equal(aux, _aux))
     self.assertTrue(bm.array_equal(value, _val))
 
+    bm.disable_x64()
+
   def test_jacfwd_return_aux1(self):
+    bm.enable_x64()
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -826,7 +839,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     _val, _aux = t(_y)
     (var_grads, arg_grads), value, aux = bm.jacfwd(t, grad_vars=t.x, argnums=0, has_aux=True, return_value=True)(_y)
     print(_val, )
-    print(_aux, )
+    print('_aux: ', _aux, 'aux: ', aux)
     print(var_grads, )
     print(arg_grads, )
     self.assertTrue((var_grads == _jr[0]).all())
@@ -834,6 +847,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     self.assertTrue(bm.array_equal(aux, _aux))
     self.assertTrue(bm.array_equal(value, _val))
 
+    bm.disable_x64()
 
 class TestPureFuncVectorGrad(unittest.TestCase):
   def test1(self):
