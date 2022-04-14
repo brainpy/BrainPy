@@ -6,6 +6,41 @@ import re
 
 from setuptools import find_packages
 from setuptools import setup
+from pip._internal.utils.compat import stdlib_pkgs
+from typing import cast
+
+# --------------For pip install backup plan--------------
+
+# def get_installed_distributions(
+#     local_only: bool = True,
+#     skip = stdlib_pkgs,
+#     include_editables: bool = True,
+#     editables_only: bool = False,
+#     user_only: bool = False,
+#     paths = None,
+# ):
+#   """Return a list of installed Distribution objects.
+#   Left for compatibility until direct pkg_resources uses are refactored out.
+#   """
+#   from pip._internal.metadata import get_default_environment, get_environment
+#   from pip._internal.metadata.pkg_resources import Distribution as _Dist
+#
+#   if paths is None:
+#     env = get_default_environment()
+#   else:
+#     env = get_environment(paths)
+#   dists = env.iter_installed_distributions(
+#     local_only=local_only,
+#     skip=skip,
+#     include_editables=include_editables,
+#     editables_only=editables_only,
+#     user_only=user_only,
+#   )
+#   return [cast(_Dist, dist)._dist for dist in dists]
+
+# [i.key for i in get_installed_distributions()]
+
+# ----------------------------------------------------
 
 try:
   import pkg_resources
@@ -16,9 +51,9 @@ try:
                         'brainpy package "brainpy-simulator" first. \n'
                         '>>> pip uninstall brainpy-simulator')
     if i.key == 'brain-py':
-      raise SystemError('Please uninstall the older version of '
-                        'brainpy package "brain-py" first. \n'
-                        '>>> pip uninstall brain-py')
+      raise SystemError(f'Please uninstall the older version {i.version} of '
+                        f'brainpy package "brain-py" first. \n'
+                        f'>>> pip uninstall brain-py {i.location}')
 except ModuleNotFoundError:
   pass
 
