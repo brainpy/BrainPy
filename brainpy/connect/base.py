@@ -228,9 +228,21 @@ class TwoEndConnector(Connector):
       csr = ij2csr(pre_ids, post_ids, self.pre_num)
       self._return_by_csr(structures, csr=csr, all_data=all_data)
 
-  def make_returns(self, structures, csr=None, mat=None, ij=None):
+  def make_returns(self, structures, conn_type, conn_data):
     """Make the desired synaptic structures and return them.
     """
+    csr = None
+    mat = None
+    ij = None
+    if conn_type == 'csr':
+      csr = conn_data
+    elif conn_type == 'mat':
+      mat = conn_data
+    elif conn_type == 'ij':
+      ij = conn_data
+    else:
+      raise ConnectorError(f'conn_type must be one of "csr", "mat" or "ij", but we got "{conn_type}" instead.')
+
     # checking
     all_data = dict()
     if (csr is None) and (mat is None) and (ij is None):
@@ -268,8 +280,13 @@ class TwoEndConnector(Connector):
     else:
       return tuple([all_data[n] for n in structures])
 
-  def require(self, *structures):
+  def build_conn(self):
     raise NotImplementedError
+
+  def require(self, *structures):
+    self.check(structures)
+    conn_type, conn_data = self.build_conn()
+    return self.make_returns(structures, conn_type, conn_data)
 
   def requires(self, *structures):
     return self.require(*structures)
