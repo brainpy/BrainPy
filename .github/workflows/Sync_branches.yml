@@ -1,6 +1,6 @@
 name: Sync multiple branches
 on:
-  pull_request:
+  push:
     branches:
       - master
 jobs:
@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@master
 
       - name: Merge master -> brainpy-2.x
-        uses: devmasx/merge-branch@v1.3.1
+        uses: devmasx/merge-branch@master
         with:
           type: now
           from_branch: master
