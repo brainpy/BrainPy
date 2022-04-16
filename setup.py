@@ -6,11 +6,11 @@ import re
 
 from setuptools import find_packages
 from setuptools import setup
-from pip._internal.utils.compat import stdlib_pkgs
-from typing import cast
 
 # --------------For pip install backup plan--------------
 
+# from pip._internal.utils.compat import stdlib_pkgs
+# from typing import cast
 # def get_installed_distributions(
 #     local_only: bool = True,
 #     skip = stdlib_pkgs,
@@ -38,8 +38,6 @@ from typing import cast
 #   )
 #   return [cast(_Dist, dist)._dist for dist in dists]
 
-# [i.key for i in get_installed_distributions()]
-
 # ----------------------------------------------------
 
 try:
@@ -47,15 +45,18 @@ try:
   installed_packages = pkg_resources.working_set
   for i in installed_packages:
     if i.key == 'brainpy-simulator':
-      raise SystemError('Please uninstall the older version of '
-                        'brainpy package "brainpy-simulator" first. \n'
+      raise SystemError('Please uninstall the older version of brainpy '
+                        f'package "brainpy-simulator={i.version}" '
+                        f'(located in {i.location}) first. \n'
                         '>>> pip uninstall brainpy-simulator')
     if i.key == 'brain-py':
-      raise SystemError(f'Please uninstall the older version {i.version} of '
-                        f'brainpy package "brain-py" first. \n'
-                        f'>>> pip uninstall brain-py {i.location}')
+      raise SystemError('Please uninstall the older version of brainpy '
+                        f'package "brain-py={i.version}" '
+                        f'(located in {i.location}) first. \n'
+                        '>>> pip uninstall brain-py')
 except ModuleNotFoundError:
   pass
+
 
 # version
 here = os.path.abspath(os.path.dirname(__file__))
@@ -86,6 +87,9 @@ setup(
   extras_require={
     'cpu': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
     'cuda': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
+    'all': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4',
+            'numba>=0.50', 'scipy>=1.1.0',
+            'networkx', 'matplotlib']
   },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   keywords='computational neuroscience, '
