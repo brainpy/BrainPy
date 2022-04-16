@@ -39,7 +39,7 @@ class One2One(TwoEndConnector):
     ind = np.arange(self.pre_num)
     indptr = np.arange(self.pre_num + 1)
 
-    return 'csr', (ind, indptr)
+    return dict(csr=(ind, indptr), mat=None, ij=None)
 
 
 one2one = One2One()
@@ -60,7 +60,7 @@ class All2All(TwoEndConnector):
     if not self.include_self:
       np.fill_diagonal(mat, False)
 
-    return 'mat', mat
+    return dict(csr=None, mat=mat, ij=None)
 
 
 all2all = All2All(include_self=True)
