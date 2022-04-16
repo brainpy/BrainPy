@@ -35,11 +35,11 @@ class One2One(TwoEndConnector):
                            f'same size, but {self.pre_num} != {self.post_num}.')
     return self
 
-  def require(self, *structures):
-    self.check(structures)
+  def build_conn(self):
     ind = np.arange(self.pre_num)
     indptr = np.arange(self.pre_num + 1)
-    return self.make_returns(structures, csr=(ind, indptr))
+
+    return dict(csr=(ind, indptr), mat=None, ij=None)
 
 
 one2one = One2One()
@@ -55,12 +55,12 @@ class All2All(TwoEndConnector):
     self.include_self = include_self
     super(All2All, self).__init__()
 
-  def require(self, *structures):
-    self.check(structures)
+  def build_conn(self):
     mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
     if not self.include_self:
       np.fill_diagonal(mat, False)
-    return self.make_returns(structures, mat=mat)
+
+    return dict(csr=None, mat=mat, ij=None)
 
 
 all2all = All2All(include_self=True)
@@ -102,9 +102,7 @@ class GridFour(OneEndConnector):
     super(GridFour, self).__init__()
     self.include_self = include_self
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     # only the 1- or 2-D structure is supported
     if len(self.pre_size) == 1:
       height, width = self.pre_size[0], 1
@@ -121,8 +119,8 @@ class GridFour(OneEndConnector):
       conn_j.extend(a[1])
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
-    return self.make_returns(structures, ij=(pre_ids, post_ids))
 
+    return 'ij', (pre_ids, post_ids)
 
 grid_four = GridFour()
 
@@ -170,9 +168,7 @@ class GridN(OneEndConnector):
     self.N = N
     self.include_self = include_self
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     if len(self.pre_size) == 1:
       height, width = self.pre_size[0], 1
     elif len(self.pre_size) == 2:
@@ -189,7 +185,8 @@ class GridN(OneEndConnector):
       conn_j.extend(res[1])
     pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
     post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
-    return self.make_returns(structures, ij=(pre_ids, post_ids))
+
+    return 'ij', (pre_ids, post_ids)
 
 
 class GridEight(GridN):

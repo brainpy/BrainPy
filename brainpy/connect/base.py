@@ -228,9 +228,23 @@ class TwoEndConnector(Connector):
       csr = ij2csr(pre_ids, post_ids, self.pre_num)
       self._return_by_csr(structures, csr=csr, all_data=all_data)
 
-  def make_returns(self, structures, csr=None, mat=None, ij=None):
+  def make_returns(self, structures, conn_data, csr=None, mat=None, ij=None):
     """Make the desired synaptic structures and return them.
     """
+    if isinstance(conn_data, dict):
+      csr = conn_data['csr']
+      mat = conn_data['mat']
+      ij = conn_data['ij']
+    elif isinstance(conn_data, tuple):
+      if conn_data[0] == 'csr':
+        csr = conn_data[1]
+      elif conn_data[0] == 'mat':
+        mat = conn_data[1]
+      elif conn_data[0] == 'ij':
+        ij = conn_data[1]
+      else:
+        raise ConnectorError(f'Must provide one of "csr", "mat" or "ij". Got "{conn_data[0]}" instead.')
+
     # checking
     all_data = dict()
     if (csr is None) and (mat is None) and (ij is None):
@@ -268,8 +282,22 @@ class TwoEndConnector(Connector):
     else:
       return tuple([all_data[n] for n in structures])
 
-  def require(self, *structures):
+  def build_conn(self):
+    """build connections with certain data type.
+
+    Returns
+    -------
+    A tuple with two elements: connection type (str) and connection data.
+      example: return 'csr', (ind, indptr)
+    Or a dict with three elements: csr, mat and ij.
+      example: return dict(csr=(ind, indptr), mat=None, ij=None)
+    """
     raise NotImplementedError
+
+  def require(self, *structures):
+    self.check(structures)
+    conn_data = self.build_conn()
+    return self.make_returns(structures, conn_data)
 
   def requires(self, *structures):
     return self.require(*structures)
