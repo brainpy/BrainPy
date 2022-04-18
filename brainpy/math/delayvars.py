@@ -273,8 +273,8 @@ class LengthDelay(AbstractDelay):
     self.idx = Variable(jnp.asarray([0], dtype=jnp.int32))
 
     # delay data
-    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape,
-                                   dtype=inits.dtype))
+    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape, dtype=inits.dtype))
+    self.data[-1] = inits
     if delay_data is None:
       pass
     elif isinstance(delay_data, (ndarray, jnp.ndarray, float, int)):
