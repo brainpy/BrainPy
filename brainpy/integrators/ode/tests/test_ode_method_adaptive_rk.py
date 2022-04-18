@@ -2,11 +2,13 @@
 
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import brainpy.math as bm
 from brainpy.integrators.ode import adaptive_rk
+
+plt = None
+
 
 sigma = 10
 beta = 8 / 3
@@ -23,6 +25,10 @@ def f_lorenz(x, y, z, t):
 
 
 def run_integrator(method, show=False, tol=0.001, adaptive=True):
+  global plt
+  if plt is None:
+    import matplotlib.pyplot as plt
+
   f_integral = method(f_lorenz, adaptive=adaptive, tol=tol, show_code=True)
   x, y, z = bm.ones(1), bm.ones(1), bm.ones(1)
   dt = bm.ones(1) * 0.01

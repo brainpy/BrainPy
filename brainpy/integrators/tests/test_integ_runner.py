@@ -2,13 +2,16 @@
 
 from unittest import TestCase
 
-import matplotlib.pyplot as plt
-
 import brainpy as bp
+
+plt = None
 
 
 class TestIntegratorRunnerForODEs(TestCase):
   def test_ode(self):
+    global plt
+    if plt is None:
+      import matplotlib.pyplot as plt
     sigma = 10
     beta = 8 / 3
     rho = 28

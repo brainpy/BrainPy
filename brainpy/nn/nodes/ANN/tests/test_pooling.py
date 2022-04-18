@@ -7,7 +7,6 @@ import brainpy as bp
 import jax.numpy as jnp
 import jax
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class TestPool(TestCase):
