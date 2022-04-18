@@ -40,9 +40,7 @@ class DelayCoupling(TwoEndConn):
 
   """
 
-  """Global delay variables. Useful when the same target
-  variable is used in multiple mappings."""
-  global_delay_vars: Dict[str, bm.LengthDelay] = dict()
+
 
   def __init__(
       self,
@@ -56,9 +54,6 @@ class DelayCoupling(TwoEndConn):
       name: str = None
   ):
     super(DelayCoupling, self).__init__(pre, post, name=name)
-
-    # local delay variables
-    self.local_delay_vars: Dict[str, bm.LengthDelay] = dict()
 
     # domain
     if domain not in ['global', 'local']:
@@ -133,7 +128,7 @@ class DelayCoupling(TwoEndConn):
           # for later update current value!
           self.local_delay_vars[var] = self.global_delay_vars[var]
         else:
-          if self.global_delay_vars[var].delay_len < num_delay_step:
+          if self.global_delay_vars[var].num_delay_step - 1 < num_delay_step:
             variable = source_vars[var]
             shape = (num_delay_step,) + variable.shape
             delay_data = delay_initializer(shape, dtype=variable.dtype)
