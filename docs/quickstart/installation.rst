@@ -18,13 +18,13 @@ To do so, use:
 
 .. code-block:: bash
 
-    pip install brain-py
+    pip install brainpy
 
 To update the BrainPy version, you can use
 
 .. code-block:: bash
 
-    pip install -U brain-py
+    pip install -U brainpy
 
 
 If you want to install the pre-release version (the latest development version)
@@ -32,7 +32,7 @@ of BrainPy, you can use:
 
 .. code-block:: bash
 
-   pip install --pre brain-py
+   pip install --pre brainpy
 
 
 Installation from source
