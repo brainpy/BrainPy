@@ -4,6 +4,7 @@ from typing import Union, Dict
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
+from brainpy.initialize import Initializer
 from brainpy.dyn.base import NeuGroup, TwoEndConn
 from brainpy.dyn.utils import init_delay
 from brainpy.integrators import odeint
@@ -120,13 +121,13 @@ class AMPA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      g_max: Parameter = 0.42,
-      E: Parameter = 0.,
-      alpha: Parameter = 0.98,
-      beta: Parameter = 0.18,
-      T: Parameter = 0.5,
-      T_duration: Parameter = 0.5,
-      delay_step: Parameter = None,
+      g_max: Union[float, Tensor, Initializer] = 0.42,
+      E: float = 0.,
+      alpha: float = 0.98,
+      beta: float = 0.18,
+      T: float = 0.5,
+      T_duration: float = 0.5,
+      delay_step: Union[int, Tensor, Initializer] = None,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -145,7 +146,7 @@ class AMPA(TwoEndConn):
     # connection
     assert self.conn is not None
     if not isinstance(self.conn, (All2All, One2One)):
-      self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+      self.conn_mat = self.conn.require('conn_mat')
 
     # variables
     if isinstance(self.conn, All2All):
@@ -153,7 +154,7 @@ class AMPA(TwoEndConn):
     elif isinstance(self.conn, One2One):
       self.g = bm.Variable(bm.zeros(self.post.num))
     else:
-      self.g = bm.Variable(bm.zeros(len(self.pre_ids)))
+      self.g = bm.Variable(bm.zeros(self.pre.num))
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
     self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
 
@@ -190,10 +191,9 @@ class AMPA(TwoEndConn):
       if not self.conn.include_self:
         g_post = g_post - self.g
     else:
-      syn_sp_times = bm.pre2syn(self.spike_arrival_time, self.pre_ids)
-      TT = ((_t - syn_sp_times) < self.T_duration) * self.T
+      TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
       self.g.value = self.integral(self.g, _t, TT, dt=_dt)
-      g_post = bm.syn2post(self.g, self.post_ids, self.post.num)
+      g_post = self.g @ self.conn_mat
 
     # output
     self.post.input -= self.g_max * g_post * (self.post.V - self.E)
@@ -275,4 +275,3 @@ class GABAa(AMPA):
                                 T_duration=T_duration,
                                 method=method,
                                 name=name)
-

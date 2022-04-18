@@ -12,6 +12,7 @@ from brainpy import tools
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn
+from brainpy.initialize import Initializer, ZeroInit
 from brainpy.errors import ModelBuildError
 from brainpy.integrators.base import Integrator
 from brainpy.types import Tensor
@@ -337,6 +338,10 @@ class TwoEndConn(DynamicalSystem):
       The name of the dynamic system.
   """
 
+  """Global delay variables. Useful when the same target
+    variable is used in multiple mappings."""
+  global_delay_vars: Dict[str, bm.LengthDelay] = dict()
+
   def __init__(
       self,
       pre: NeuGroup,
@@ -344,6 +349,9 @@ class TwoEndConn(DynamicalSystem):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
       name: str = None
   ):
+    # local delay variables
+    self.local_delay_vars: Dict[str, bm.LengthDelay] = dict()
+
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
@@ -399,3 +407,35 @@ class TwoEndConn(DynamicalSystem):
         raise ValueError(f'Must be string. But got {attr}.')
       if not hasattr(self.post, attr):
         raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
+
+  def register_delay(
+      self,
+      name: str,
+      num_delay: int,
+      variable: Union[bm.JaxArray, jnp.ndarray],
+      delay_initializer: Initializer = ZeroInit(),
+      domain: str = 'global'
+  ):
+    if domain not in ['global', 'local']:
+      raise ValueError('"domain" must be a string in ["global", "local"]. '
+                       f'Bug we got {domain}.')
+    num_delay = int(num_delay)
+    delay_data = delay_initializer((num_delay,) + variable.shape, dtype=variable.dtype)
+
+    if domain == 'local':
+      self.local_delay_vars[name] = bm.LengthDelay(variable, num_delay, delay_data)
+    else:
+      if name not in self.global_delay_vars:
+        self.global_delay_vars[name] = bm.LengthDelay(variable, num_delay, delay_data)
+        # save into local delay vars when first seen "var",
+        # for later update current value!
+        self.local_delay_vars[name] = self.global_delay_vars[name]
+      else:
+        if self.global_delay_vars[name].num_delay_step - 1 < num_delay:
+          self.global_delay_vars[name].init(variable, num_delay, delay_data)
+
+  def get_delay(self):
+    pass
+
+  def update_delay(self):
+    pass
