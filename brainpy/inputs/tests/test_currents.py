@@ -3,15 +3,19 @@
 
 from unittest import TestCase
 
-import matplotlib.pyplot as plt
+
 import numpy as np
 
 import brainpy as bp
 
+plt = None
 block = False
 
 
 def show(current, duration, title=''):
+  global plt
+  if plt is None:
+    import matplotlib.pyplot as plt
   ts = np.arange(0, duration, bp.math.get_dt())
   plt.plot(ts, current)
   plt.title(title)

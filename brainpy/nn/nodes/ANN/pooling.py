@@ -3,7 +3,6 @@
 
 import jax.lax
 import brainpy.math as bm
-from brainpy.initialize import XavierNormal, ZeroInit, init_param
 from brainpy.nn.base import Node
 
 __all__ = [

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import brainpy as bp
@@ -10,7 +9,11 @@ PI = bp.math.pi
 
 
 # visualization
-def mat_visualize(matrix, cmap=plt.cm.get_cmap('coolwarm')):
+def mat_visualize(matrix, cmap=None):
+  import matplotlib.pyplot as plt
+  if cmap is None:
+    cmap = plt.cm.get_cmap('coolwarm')
+  plt.cm.get_cmap('coolwarm')
   im = plt.matshow(matrix, cmap=cmap)
   plt.colorbar(mappable=im, shrink=0.8, aspect=15)
   plt.show()
@@ -71,6 +74,8 @@ class TestDOGDecayInit(unittest.TestCase):
     assert isinstance(weights, bp.math.ndarray)
 
   def test_dog_decay3(self):
+    import matplotlib.pyplot as plt
+
     size = (10, 12)
     dog_init = bp.init.DOGDecay(sigmas=(1., 3.),
                                 max_ws=(10., 5.),

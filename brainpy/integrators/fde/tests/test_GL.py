@@ -2,12 +2,18 @@
 
 
 import unittest
-import matplotlib.pyplot as plt
+
 import brainpy as bp
+
+plt = None
 
 
 class TestGLShortMemory(unittest.TestCase):
   def test_lorenz(self):
+    global plt
+    if plt is None:
+      import matplotlib.pyplot as plt
+
     a, b, c = 10, 28, 8 / 3
 
     def lorenz(x, y, z, t):
