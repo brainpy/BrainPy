@@ -6,7 +6,6 @@ from unittest import TestCase
 import brainpy as bp
 import jax.numpy as jnp
 import numpy as np
-import matplotlib.pyplot as plt
 
 class TestConv(TestCase):
   def test_Conv2D_img(self):

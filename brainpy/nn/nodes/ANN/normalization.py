@@ -6,7 +6,6 @@ import jax.nn
 import jax.numpy as jnp
 
 import brainpy.math as bm
-import brainpy
 from brainpy.initialize import ZeroInit, OneInit, Initializer
 from brainpy.nn.base import Node
 

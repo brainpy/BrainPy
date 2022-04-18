@@ -3,7 +3,6 @@
 
 import unittest
 import brainpy as bp
-import brainpy.math as bm
 
 
 class TestVisualize(unittest.TestCase):
