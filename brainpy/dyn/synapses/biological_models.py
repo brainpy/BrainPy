@@ -171,7 +171,7 @@ class AMPA(TwoEndConn):
       pre_spike = self.pre.spike
     else:
       pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-    self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      self.update_delay(self.pre.name + '.spike', self.pre.spike)
 
     # spike arrival time
     self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)

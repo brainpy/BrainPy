@@ -16,7 +16,6 @@ from brainpy.initialize import Initializer, ZeroInit, init_param
 from brainpy.errors import ModelBuildError
 from brainpy.integrators.base import Integrator
 from brainpy.types import Tensor
-from .utils import init_delay
 
 __all__ = [
   'DynamicalSystem',
@@ -468,6 +467,7 @@ class TwoEndConn(DynamicalSystem):
     # delay variable
     if domain == 'local':
       self.local_delay_vars[name] = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
+      self.register_implicit_nodes(self.local_delay_vars)
     else:
       if name not in self.global_delay_vars:
         self.global_delay_vars[name] = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
@@ -477,6 +477,7 @@ class TwoEndConn(DynamicalSystem):
       else:
         if self.global_delay_vars[name].num_delay_step - 1 < max_delay_step:
           self.global_delay_vars[name].init(delay_target, max_delay_step, initial_delay_data)
+      self.register_implicit_nodes(self.global_delay_vars)
     return delay_step
 
   def get_delay(

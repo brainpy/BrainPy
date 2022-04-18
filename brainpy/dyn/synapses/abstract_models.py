@@ -139,13 +139,12 @@ class DeltaSynapse(TwoEndConn):
                                           delay_target=self.pre.spike)
 
   def update(self, _t, _dt):
-    # get delay
+    # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
     else:
       pre_spike = self.get_delay(self.pre.name + '.spike', delay_step=self.delay_step)
-    # update delay
-    self.update_delay(self.pre.name + '.spike', delay_target=self.pre.spike)
+      self.update_delay(self.pre.name + '.spike', delay_target=self.pre.spike)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
@@ -321,7 +320,7 @@ class ExpCUBA(TwoEndConn):
       delayed_pre_spike = self.pre.spike
     else:
       delayed_pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-    self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      self.update_delay(self.pre.name + '.spike', self.pre.spike)
 
     # post values
     if isinstance(self.conn, All2All):
@@ -451,7 +450,7 @@ class ExpCOBA(ExpCUBA):
       delayed_spike = self.pre.spike
     else:
       delayed_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-    self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      self.update_delay(self.pre.name + '.spike', self.pre.spike)
 
     # post values
     if isinstance(self.conn, All2All):
@@ -622,7 +621,7 @@ class DualExpCUBA(TwoEndConn):
       delayed_pre_spike = self.pre.spike
     else:
       delayed_pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-    self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      self.update_delay(self.pre.name + '.spike', self.pre.spike)
 
     # post-synaptic values
     self.g.value, self.h.value = self.integral(self.g, self.h, _t, _dt)
@@ -1130,7 +1129,7 @@ class NMDA(TwoEndConn):
       delayed_pre_spike = self.pre.spike
     else:
       delayed_pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-    self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      self.update_delay(self.pre.name + '.spike', self.pre.spike)
 
     # post-synaptic value
     self.g.value, self.x.value = self.integral(self.g, self.x, _t, dt=_dt)
