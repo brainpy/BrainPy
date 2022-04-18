@@ -2,7 +2,7 @@
 
 
 from collections.abc import Iterable
-
+from typing import Union, Callable
 import jax.numpy as jnp
 import numpy as np
 
@@ -10,6 +10,7 @@ from brainpy import math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import RunningError
 from brainpy.running.monitor import Monitor
+from brainpy.initialize import init_param, Initializer
 
 __all__ = [
   'size2len',
@@ -18,13 +19,13 @@ __all__ = [
   'check_and_format_monitors',
 ]
 
-NORMAL_RUN = None
-STRUCT_RUN = 'struct_run'
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
 
 
-def init_delay(delay_step, delay_target, delay_data=None):
+def init_delay(delay_step: Union[int, bm.ndarray, jnp.ndarray, Callable, Initializer],
+               delay_target: Union[bm.ndarray, jnp.ndarray],
+               delay_data: Union[bm.ndarray, jnp.ndarray] = None):
   """Initialize delay variable.
 
   Parameters
@@ -49,25 +50,32 @@ def init_delay(delay_step, delay_target, delay_data=None):
   elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
     delay_type = 'heter'
     delay_step = bm.asarray(delay_step)
-    if delay_step.dtype not in [bm.int32, bm.int64]:
-      raise ValueError('Only support delay steps. If your provide delay time length, '
-                       'please divide the "dt" then provide us the number of delay steps.')
-    if delay_target.shape[0] != delay_step.shape[0]:
-      raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
+  elif callable(delay_step):
+    delay_step = init_param(delay_step, delay_target.shape, allow_none=False)
+    delay_type = 'heter'
   else:
     raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
-                     f'integer or an array of integers.')
+                     f'integer, array of integers, callable function, brainpy.init.Initializer.')
+  if delay_type == 'heter':
+    if delay_step.dtype not in [bm.int32, bm.int64]:
+      raise ValueError('Only support delay steps of int32, int64. If your '
+                       'provide delay time length, please divide the "dt" '
+                       'then provide us the number of delay steps.')
+    if delay_target.shape[0] != delay_step.shape[0]:
+      raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
 
   # init delay data
   if delay_type == 'homo':
-    delays = bm.LengthDelay(delay_target, delay_step, delay_data=delay_data)
+    delays = bm.LengthDelay(delay_target, delay_step, initial_delay_data=delay_data)
   elif delay_type == 'heter':
-    assert delay_step.size == delay_target.size, ('Heterogeneous delay must have a length '
-                                                  f'of the delay target {delay_target.shape}, '
-                                                  f'while we got {delay_step.shape}')
+    if delay_step.size != delay_target.size:
+      raise ValueError('Heterogeneous delay must have a length '
+                       f'of the delay target {delay_target.shape}, '
+                       f'while we got {delay_step.shape}')
     delays = bm.LengthDelay(delay_target, int(delay_step.max()))
   else:
     delays = None
+
   return delay_type, delay_step, delays
 
 
