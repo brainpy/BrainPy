@@ -1,6 +1,6 @@
-numpy>=1.15, <1.22
+numpy==1.21
 tqdm
-numba
+numba<=0.55
 matplotlib>=3.4
 sympy>=1.6
 scipy>=1.1.0
