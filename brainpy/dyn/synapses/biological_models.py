@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict
+from typing import Union, Dict, Callable
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
@@ -127,7 +127,7 @@ class AMPA(TwoEndConn):
       beta: float = 0.18,
       T: float = 0.5,
       T_duration: float = 0.5,
-      delay_step: Union[int, Tensor, Initializer] = None,
+      delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -156,7 +156,7 @@ class AMPA(TwoEndConn):
     else:
       self.g = bm.Variable(bm.zeros(self.pre.num))
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
-    self.delay_type, self.delay_step, self.pre_spike = init_delay(delay_step, self.pre.spike)
+    self.delay_step = self.register_delay(self.pre.name + '.spike', delay_step, self.pre.spike)
 
     # functions
     self.integral = odeint(method=method, f=self.derivative)
@@ -166,15 +166,12 @@ class AMPA(TwoEndConn):
     return dg
 
   def update(self, _t, _dt):
-    # delay pre-synaptic spikes
-    if self.delay_type == 'homo':
-      pre_spike = self.pre_spike(self.delay_step)
-      self.pre_spike.update(self.pre.spike)
-    elif self.delay_type == 'heter':
-      pre_spike = self.pre_spike(self.delay_step, bm.arange(self.pre.num))
-      self.pre_spike.update(self.pre.spike)
-    else:
+    # delays
+    if self.delay_step is None:
       pre_spike = self.pre.spike
+    else:
+      pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
+    self.update_delay(self.pre.name + '.spike', self.pre.spike)
 
     # spike arrival time
     self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)
@@ -265,7 +262,7 @@ class GABAa(AMPA):
       beta: Parameter = 0.18,
       T: Parameter = 1.,
       T_duration: Parameter = 1.,
-      delay_step: Parameter = None,
+      delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):

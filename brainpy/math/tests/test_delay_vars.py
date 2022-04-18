@@ -90,7 +90,7 @@ class TestLengthDelay(unittest.TestCase):
 
   def test2(self):
     dim = 3
-    delay = bm.LengthDelay(jnp.zeros(dim), 10, delay_data=jnp.arange(1, 11).reshape((10, 1)))
+    delay = bm.LengthDelay(jnp.zeros(dim), 10, initial_delay_data=jnp.arange(1, 11).reshape((10, 1)))
     print(delay(0))
     self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
     print(delay(1))
@@ -104,7 +104,7 @@ class TestLengthDelay(unittest.TestCase):
 
   def test3(self):
     dim = 3
-    delay = bm.LengthDelay(jnp.zeros(dim), 10, delay_data=jnp.arange(1, 11).reshape((10, 1)))
+    delay = bm.LengthDelay(jnp.zeros(dim), 10, initial_delay_data=jnp.arange(1, 11).reshape((10, 1)))
     print(delay(jnp.asarray([1, 2, 3]),
                 jnp.arange(3)))
     # self.assertTrue(bm.array_equal(delay(0), bm.zeros(dim)))

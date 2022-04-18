@@ -235,11 +235,11 @@ class LengthDelay(AbstractDelay):
 
   Parameters
   ----------
-  inits: int, sequence of int
+  delay_target: int, sequence of int
     The initial delay data.
   delay_len: int
     The maximum delay length.
-  delay_data: Tensor
+  initial_delay_data: Tensor
     The delay data.
   name: str
     The delay object name.
@@ -251,19 +251,19 @@ class LengthDelay(AbstractDelay):
 
   def __init__(
       self,
-      inits: Union[ndarray, jnp.ndarray],
+      delay_target: Union[ndarray, jnp.ndarray],
       delay_len: int,
-      delay_data: Union[ndarray, jnp.ndarray, float, int] = None,
+      initial_delay_data: Union[float, int, ndarray, jnp.ndarray, Callable] = None,
       name: str = None,
   ):
     super(LengthDelay, self).__init__(name=name)
-    self.init(inits, delay_len, delay_data)
+    self.init(delay_target, delay_len, initial_delay_data)
 
-  def init(self, inits, delay_len, delay_data):
-    if not isinstance(inits, (ndarray, jnp.ndarray)):
+  def init(self, delay_target, delay_len, initial_delay_data=None):
+    if not isinstance(delay_target, (ndarray, jnp.ndarray)):
       raise ValueError(f'Must be an instance of brainpy.math.ndarray '
-                       f'or jax.numpy.ndarray. But we got {type(inits)}')
-    self.shape = inits.shape
+                       f'or jax.numpy.ndarray. But we got {type(delay_target)}')
+    self.shape = delay_target.shape
 
     # delay_len
     check_integer(delay_len, 'delay_len', allow_none=False, min_bound=0)
@@ -273,14 +273,16 @@ class LengthDelay(AbstractDelay):
     self.idx = Variable(jnp.asarray([0], dtype=jnp.int32))
 
     # delay data
-    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape, dtype=inits.dtype))
-    self.data[-1] = inits
-    if delay_data is None:
+    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape, dtype=delay_target.dtype))
+    self.data[-1] = delay_target
+    if initial_delay_data is None:
       pass
-    elif isinstance(delay_data, (ndarray, jnp.ndarray, float, int)):
-      self.data[:-1] = delay_data
+    elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int)):
+      self.data[:-1] = initial_delay_data
+    elif callable(initial_delay_data):
+      self.data[:-1] = initial_delay_data((delay_len, ) + self.shape, dtype=delay_target.dtype)
     else:
-      raise ValueError(f'"delay_data" does not support {type(delay_data)}')
+      raise ValueError(f'"delay_data" does not support {type(initial_delay_data)}')
 
   def _check_delay(self, delay_len, transforms):
     if isinstance(delay_len, ndarray):
