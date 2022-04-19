@@ -206,8 +206,7 @@ class AMPA(TwoEndConn):
         if not self.conn.include_self:
           post_g = post_g - self.g
       else:
-        post_g = bm.expand_dims(self.g, 1) * self.g_max
-        post_g = post_g.sum(axis=0)
+        post_g = self.g @ self.g_max
     else:
       if self.conn_type == 'sparse':
         post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)

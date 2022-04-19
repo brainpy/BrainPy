@@ -348,8 +348,7 @@ class ExpCUBA(TwoEndConn):
           post_vs = post_vs - pre_spike
         post_vs = self.g_max * post_vs
       else:
-        post_vs = bm.expand_dims(pre_spike, 1) * self.g_max
-        post_vs = post_vs.sum(axis=0)
+        post_vs = pre_spike @ self.g_max
     elif isinstance(self.conn, One2One):
       post_vs = pre_spike * self.g_max
     else:
@@ -667,8 +666,7 @@ class DualExpCUBA(TwoEndConn):
           post_vs = post_vs - self.g
         post_vs = self.g_max * post_vs
       else:
-        post_vs = bm.expand_dims(self.g, 1) * self.g_max
-        post_vs = post_vs.sum(axis=0)
+        post_vs = self.g @ self.g_max
     elif isinstance(self.conn, One2One):
       post_vs = self.g_max * self.g
     else:
@@ -1230,8 +1228,7 @@ class NMDA(TwoEndConn):
         if not self.conn.include_self:
           post_g = post_g - self.g
       else:
-        post_g = bm.expand_dims(self.g, 1) * self.g_max
-        post_g = post_g.sum(axis=0)
+        post_g = self.g * self.g_max
     elif isinstance(self.conn, One2One):
       post_g = self.g_max * self.g
     else:
