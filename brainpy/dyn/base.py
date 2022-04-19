@@ -483,9 +483,10 @@ class TwoEndConn(DynamicalSystem):
   def get_delay(
       self,
       name: str,
-      delay_step: Union[int, bm.JaxArray, bm.ndarray]
+      delay_step: Union[int, bm.JaxArray, bm.ndarray],
+      indices=None,
   ):
-    """Get delay data according to the delay times.
+    """Get delay data according to the provided delay steps.
 
     Parameters
     ----------
@@ -493,6 +494,8 @@ class TwoEndConn(DynamicalSystem):
       The delay variable name.
     delay_step: int, JaxArray, ndarray
       The delay length.
+    indices: optional, JaxArray, ndarray
+      The indices of the delay.
 
     Returns
     -------
@@ -501,14 +504,18 @@ class TwoEndConn(DynamicalSystem):
     """
     if name in self.global_delay_vars:
       if isinstance(delay_step, int):
-        return self.global_delay_vars[name](delay_step)
+        return self.global_delay_vars[name](delay_step, indices)
       else:
-        return self.global_delay_vars[name](delay_step, jnp.arange(delay_step.size))
+        if indices is None:
+          indices = jnp.arange(delay_step.size)
+        return self.global_delay_vars[name](delay_step, indices)
     elif name in self.local_delay_vars:
       if isinstance(delay_step, int):
         return self.local_delay_vars[name](delay_step)
       else:
-        return self.local_delay_vars[name](delay_step, jnp.arange(delay_step.size))
+        if indices is None:
+          indices = jnp.arange(delay_step.size)
+        return self.local_delay_vars[name](delay_step, indices)
     else:
       raise ValueError(f'{name} is not defined in delay variables.')
 
