@@ -25,7 +25,7 @@ class MatConn(TwoEndConnector):
     self.pre_num, self.post_num = conn_mat.shape
     self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
     
-    self.conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
+    self.conn_mat = np.asarray(conn_mat).astype(MAT_DTYPE)
   
   def __call__(self, pre_size, post_size):
     assert self.pre_num == tools.size2num(pre_size)
