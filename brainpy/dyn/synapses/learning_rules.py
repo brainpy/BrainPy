@@ -21,10 +21,10 @@ class STP(TwoEndConn):
   **Model Descriptions**
 
   Short-term plasticity (STP) [1]_ [2]_ [3]_, also called dynamical synapses,
-  refers to a phenomenon in which synaptic efficacy changes over time in a way
-  that reflects the history of presynaptic activity. Two types of STP, with
-  opposite effects on synaptic efficacy, have been observed in experiments.
-  They are known as Short-Term Depression (STD) and Short-Term Facilitation (STF).
+  refers to the changes of synaptic strengths over time in a way that reflects
+  the history of presynaptic activity. Two types of STP, with opposite effects
+  on synaptic efficacy, have been observed in experiments. They are known as
+  Short-Term Depression (STD) and Short-Term Facilitation (STF).
 
   In the model proposed by Tsodyks and Markram [4]_ [5]_, the STD effect is
   modeled by a normalized variable :math:`x (0 \le x \le 1)`, denoting the fraction
@@ -231,7 +231,7 @@ class STP(TwoEndConn):
     syn_sps = bm.pre2syn(self.pre.spike, self.pre_ids)
     u = bm.where(syn_sps, u + self.U * (1 - self.u), u)
     x = bm.where(syn_sps, x - u * self.x, x)
-    self.I.value = bm.where(syn_sps, self.I, self.I + self.A * u * self.x)
+    self.I.value = bm.where(syn_sps, self.I + self.A * u * self.x, self.I)
     self.u.value = u
     self.x.value = x
     if self.delay_type in ['homo', 'heter']:
