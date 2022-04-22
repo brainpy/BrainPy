@@ -4,11 +4,10 @@ from typing import Union, Dict, Callable
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.initialize import Initializer
 from brainpy.dyn.base import NeuGroup, TwoEndConn
-from brainpy.dyn.utils import init_delay
+from brainpy.initialize import Initializer, init_param
 from brainpy.integrators import odeint
-from brainpy.types import Tensor, Parameter
+from brainpy.types import Tensor
 
 __all__ = [
   'AMPA',
@@ -121,7 +120,8 @@ class AMPA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      g_max: Union[float, Tensor, Initializer] = 0.42,
+      conn_type: str = 'dense',
+      g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
       E: float = 0.,
       alpha: float = 0.98,
       beta: float = 0.18,
@@ -144,24 +144,43 @@ class AMPA(TwoEndConn):
     self.T_duration = T_duration
 
     # connection
-    assert self.conn is not None
-    if not isinstance(self.conn, (All2All, One2One)):
-      self.conn_mat = self.conn.require('conn_mat')
+    self.conn_type = conn_type
+    if conn_type not in ['sparse', 'dense']:
+      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
+    if self.conn is None:
+      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
+    if isinstance(self.conn, One2One):
+      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
+      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
+    elif isinstance(self.conn, All2All):
+      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
+      if bm.size(self.g_max) != 1:
+        self.weight_type = 'heter'
+        bm.fill_diagonal(self.g_max, 0.)
+      else:
+        self.weight_type = 'homo'
+    else:
+      if conn_type == 'sparse':
+        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
+        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
+      elif conn_type == 'dense':
+        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
+        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
+        if self.weight_type == 'homo':
+          self.conn_mat = self.conn.require('conn_mat')
+      else:
+        raise ValueError(f'Unknown connection type: {conn_type}')
 
     # variables
-    if isinstance(self.conn, All2All):
-      self.g = bm.Variable(bm.zeros(self.pre.num))
-    elif isinstance(self.conn, One2One):
-      self.g = bm.Variable(bm.zeros(self.post.num))
-    else:
-      self.g = bm.Variable(bm.zeros(self.pre.num))
+    self.g = bm.Variable(bm.zeros(self.pre.num))
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
     self.delay_step = self.register_delay(self.pre.name + '.spike', delay_step, self.pre.spike)
 
     # functions
-    self.integral = odeint(method=method, f=self.derivative)
+    self.integral = odeint(method=method, f=self.dg)
 
-  def derivative(self, g, t, TT):
+  def dg(self, g, t, TT):
     dg = self.alpha * TT * (1 - g) - self.beta * g
     return dg
 
@@ -177,23 +196,28 @@ class AMPA(TwoEndConn):
     self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)
 
     # post-synaptic values
+    TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
+    self.g.value = self.integral(self.g, _t, TT, dt=_dt)
     if isinstance(self.conn, One2One):
-      TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
-      self.g.value = self.integral(self.g, _t, TT, dt=_dt)
-      g_post = self.g
+      post_g = self.g_max * self.g
     elif isinstance(self.conn, All2All):
-      TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
-      self.g.value = self.integral(self.g, _t, TT, dt=_dt)
-      g_post = self.g.sum()
-      if not self.conn.include_self:
-        g_post = g_post - self.g
+      if self.weight_type == 'homo':
+        post_g = self.g.sum() * self.g_max
+        if not self.conn.include_self:
+          post_g = post_g - self.g
+      else:
+        post_g = self.g @ self.g_max
     else:
-      TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
-      self.g.value = self.integral(self.g, _t, TT, dt=_dt)
-      g_post = self.g @ self.conn_mat
+      if self.conn_type == 'sparse':
+        post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
+      else:
+        if self.weight_type == 'homo':
+          post_g = (self.g_max * self.g) @ self.conn_mat
+        else:
+          post_g = self.g @ self.g_max
 
     # output
-    self.post.input -= self.g_max * g_post * (self.post.V - self.E)
+    self.post.input -= post_g * (self.post.V - self.E)
 
 
 class GABAa(AMPA):
@@ -220,31 +244,40 @@ class GABAa(AMPA):
 
   - `Gamma oscillation network model <https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Wang_1996_gamma_oscillation.html>`_
 
-  **Model Parameters**
 
-  ============= ============== ======== =======================================
-  **Parameter** **Init Value** **Unit** **Explanation**
-  ------------- -------------- -------- ---------------------------------------
-  delay         0              ms       The decay length of the pre-synaptic spikes.
-  g_max         0.04           µmho(µS) Maximum synapse conductance.
-  E             -80            mV       Reversal potential of synapse.
-  alpha         0.53           \        Activating rate constant of G protein catalyzed by activated GABAb receptor.
-  beta          0.18           \        De-activating rate constant of G protein.
-  T             1              mM       Transmitter concentration when synapse is triggered by a pre-synaptic spike.
-  T_duration    1              ms       Transmitter concentration duration time after being triggered.
-  ============= ============== ======== =======================================
+  Parameters
+  ----------
+  pre: NeuGroup
+    The pre-synaptic neuron group.
+  post: NeuGroup
+    The post-synaptic neuron group.
+  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+    The synaptic connections.
+  conn_type: str
+    The connection type used for model speed optimization. It can be
+    `sparse` and `dense`. The default is `dense`.
+  delay_step: int, ndarray, JaxArray, Initializer, Callable
+    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
+  E: float
+    The reversal potential for the synaptic current. [mV]
+  g_max: float, ndarray, JaxArray, Initializer, Callable
+    The synaptic strength (the maximum conductance). Default is 1.
+  alpha: float
+    Binding constant. Default 0.062
+  beta: float
+    Unbinding constant. Default 3.57
+  T: float
+    Transmitter concentration when synapse is triggered by
+    a pre-synaptic spike.. Default 1 [mM].
+  T_duration: float
+    Transmitter concentration duration time after being triggered. Default 1 [ms]
+  name: str
+    The name of this synaptic projection.
+  method: str
+    The numerical integration methods.
 
-  **Model Variables**
-
-  ================== ================== ==================================================
-  **Member name**    **Initial values** **Explanation**
-  ------------------ ------------------ --------------------------------------------------
-  g                  0                  Synapse gating variable.
-  pre_spike          False              The history of pre-synaptic neuron spikes.
-  spike_arrival_time -1e7               The arrival time of the pre-synaptic neuron spike.
-  ================== ================== ==================================================
-
-  **References**
+  References
+  ----------
 
   .. [1] Destexhe, Alain, and Denis Paré. "Impact of network activity
          on the integrative properties of neocortical pyramidal neurons
@@ -256,19 +289,25 @@ class GABAa(AMPA):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      g_max: Parameter = 0.04,
-      E: Parameter = -80.,
-      alpha: Parameter = 0.53,
-      beta: Parameter = 0.18,
-      T: Parameter = 1.,
-      T_duration: Parameter = 1.,
+      conn_type: str = 'dense',
+      g_max: Union[float, Tensor, Initializer, Callable] = 0.04,
+      E: float = -80.,
+      alpha: float = 0.53,
+      beta: float = 0.18,
+      T: float = 1.,
+      T_duration: float = 1.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):
     super(GABAa, self).__init__(pre, post, conn,
-                                delay_step=delay_step, g_max=g_max, E=E,
-                                alpha=alpha, beta=beta, T=T,
+                                conn_type=conn_type,
+                                delay_step=delay_step,
+                                g_max=g_max,
+                                E=E,
+                                alpha=alpha,
+                                beta=beta,
+                                T=T,
                                 T_duration=T_duration,
                                 method=method,
                                 name=name)

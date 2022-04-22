@@ -5,7 +5,7 @@ from typing import Union, Dict, Callable
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuGroup, TwoEndConn
-from brainpy.initialize import init_param, Initializer
+from brainpy.initialize import Initializer
 from brainpy.dyn.utils import init_delay
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor, Parameter
@@ -178,11 +178,11 @@ class STP(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      U: Parameter = 0.15,
-      tau_f: Parameter = 1500.,
-      tau_d: Parameter = 200.,
-      tau: Parameter = 8.,
-      A: Parameter = 1.,
+      U: float = 0.15,
+      tau_f: float = 1500.,
+      tau_d: float = 200.,
+      tau: float = 8.,
+      A: float = 1.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None

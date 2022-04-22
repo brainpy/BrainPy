@@ -25,7 +25,7 @@ class MatConn(TwoEndConnector):
     self.pre_num, self.post_num = conn_mat.shape
     self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
     
-    self.conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
+    self.conn_mat = np.asarray(conn_mat).astype(MAT_DTYPE)
   
   def __call__(self, pre_size, post_size):
     assert self.pre_num == tools.size2num(pre_size)
@@ -47,8 +47,8 @@ class IJConn(TwoEndConnector):
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"
-    self.pre_ids = np.asarray(i, dtype=IDX_DTYPE)
-    self.post_ids = np.asarray(j, dtype=IDX_DTYPE)
+    self.pre_ids = np.asarray(i).astype(IDX_DTYPE)
+    self.post_ids = np.asarray(j).astype(IDX_DTYPE)
 
   def __call__(self, pre_size, post_size):
     super(IJConn, self).__call__(pre_size, post_size)
@@ -80,7 +80,7 @@ class SparseMatConn(TwoEndConnector):
                            f'Please run "pip install scipy" to install scipy.')
 
     assert isinstance(csr_mat, csr_matrix)
-    csr_mat.data = np.asarray(csr_mat.data, dtype=MAT_DTYPE)
+    csr_mat.data = np.asarray(csr_mat.data).astype(MAT_DTYPE)
     self.csr_mat = csr_mat
     self.pre_num, self.post_num = csr_mat.shape
 

@@ -467,36 +467,15 @@ class JaxArray(object):
     """Returns the indices that would sort this array."""
     return JaxArray(self.value.argsort(axis=axis, kind=kind, order=order))
 
-  def astype(self, dtype, order='K', casting='unsafe', subok=True, copy=True):
+  def astype(self, dtype):
     """Copy of the array, cast to a specified type.
 
     Parameters
     ----------
     dtype: str, dtype
       Typecode or data-type to which the array is cast.
-    order : {‘C’, ‘F’, ‘A’, ‘K’}, optional
-      Controls the memory layout order of the result.
-      ‘C’ means C order, ‘F’ means Fortran order, ‘A’ means
-      ‘F’ order if all the arrays are Fortran contiguous,
-      ‘C’ order otherwise, and ‘K’ means as close to the order
-      the array elements appear in memory as possible. Default is ‘K’.
-    casting: {‘no’, ‘equiv’, ‘safe’, ‘same_kind’, ‘unsafe’}, optional
-      Controls what kind of data casting may occur.
-      Defaults to ‘unsafe’ for backwards compatibility.
-      - ‘no’ means the data types should not be cast at all.
-      - ‘equiv’ means only byte-order changes are allowed.
-      - ‘safe’ means only casts which can preserve values are allowed.
-      - ‘same_kind’ means only safe casts or casts within a kind, like float64 to float32, are allowed.
-      - ‘unsafe’ means any data conversions may be done.
-    subok: bool, optional
-      If True, then sub-classes will be passed-through (default), otherwise
-      the returned array will be forced to be a base-class array.
-    copy: bool, optional
-      By default, astype always returns a newly allocated array.
-      If this is set to false, and the dtype, order, and subok
-      requirements are satisfied, the input array is returned instead of a copy.
     """
-    return JaxArray(self.value.astype(dtype=dtype, order=order, casting=casting, subok=subok, copy=copy))
+    return JaxArray(self.value.astype(dtype=dtype))
 
   def byteswap(self, inplace=False):
     """Swap the bytes of the array elements
@@ -1143,9 +1122,15 @@ class Variable(JaxArray):
     """Returns the indices that would sort this array."""
     return self.value.argsort(axis=axis, kind=kind, order=order)
 
-  def astype(self, dtype, order='K', casting='unsafe', subok=True, copy=True):
-    """Copy of the array, cast to a specified type."""
-    return self.value.astype(dtype=dtype, order=order, casting=casting, subok=subok, copy=copy)
+  def astype(self, dtype):
+    """Copy of the array, cast to a specified type.
+
+    Parameters
+    ----------
+    dtype: str, dtype
+      Typecode or data-type to which the array is cast.
+    """
+    return JaxArray(self.value.astype(dtype=dtype))
 
   def byteswap(self, inplace=False):
     """Swap the bytes of the array elements
