@@ -6,6 +6,73 @@ brainpy 2.x (LTS)
 *****************
 
 
+Version 2.1.6 (2022.04.20)
+==========================
+
+
+What's Changed
+~~~~~~~~~~~~~~
+
+
+
+
+Version 2.1.5 (2022.04.18)
+==========================
+
+
+What's Changed
+~~~~~~~~~~~~~~
+
+* ``brainpy.math.random.shuffle`` is numpy like by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#153 <https://github.com/PKU-NIP-Lab/BrainPy/pull/153>`_
+* update LICENSE by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#155 <https://github.com/PKU-NIP-Lab/BrainPy/pull/155>`_
+* docs: add m1 warning by `@ztqakita <https://github.com/ztqakita>`_ in `#154 <https://github.com/PKU-NIP-Lab/BrainPy/pull/154>`_
+* compatible apis of 'brainpy.math' with those of 'jax.numpy' in most modules by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#156 <https://github.com/PKU-NIP-Lab/BrainPy/pull/156>`_
+* Important updates by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#157 <https://github.com/PKU-NIP-Lab/BrainPy/pull/157>`_
+* Updates by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#159 <https://github.com/PKU-NIP-Lab/BrainPy/pull/159>`_
+* Add LayerNorm, GroupNorm, and InstanceNorm as nn_nodes in normalization.py by `@c-xy17 <https://github.com/c-xy17>`_ in `#162 <https://github.com/PKU-NIP-Lab/BrainPy/pull/162>`_
+* feat: add conv & pooling nodes by `@ztqakita <https://github.com/ztqakita>`_ in `#161 <https://github.com/PKU-NIP-Lab/BrainPy/pull/161>`_
+* fix: update setup.py by `@ztqakita <https://github.com/ztqakita>`_ in `#163 <https://github.com/PKU-NIP-Lab/BrainPy/pull/163>`_
+* update setup.py by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#165 <https://github.com/PKU-NIP-Lab/BrainPy/pull/165>`_
+* fix: change trigger condition by `@ztqakita <https://github.com/ztqakita>`_ in `#166 <https://github.com/PKU-NIP-Lab/BrainPy/pull/166>`_
+* fix: add build_conn() function by `@ztqakita <https://github.com/ztqakita>`_ in `#164 <https://github.com/PKU-NIP-Lab/BrainPy/pull/164>`_
+* update synapses by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#167 <https://github.com/PKU-NIP-Lab/BrainPy/pull/167>`_
+* get the deserved name: brainpy by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#168 <https://github.com/PKU-NIP-Lab/BrainPy/pull/168>`_
+* update tests by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#169 <https://github.com/PKU-NIP-Lab/BrainPy/pull/169>`_
+
+**Full Changelog**\ : `V2.1.4...V2.1.5 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.4...V2.1.5>`_
+
+
+
+Version 2.1.4 (2022.04.04)
+==========================
+
+
+What's Changed
+~~~~~~~~~~~~~~
+
+* fix doc parsing bug by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#127 <https://github.com/PKU-NIP-Lab/BrainPy/pull/127>`_
+* Update overview_of_dynamic_model.ipynb by `@c-xy17 <https://github.com/c-xy17>`_ in `#129 <https://github.com/PKU-NIP-Lab/BrainPy/pull/129>`_
+* Reorganization of ``brainpylib.custom_op`` and adding interface in ``brainpy.math`` by `@ztqakita <https://github.com/ztqakita>`_ in `#128 <https://github.com/PKU-NIP-Lab/BrainPy/pull/128>`_
+* Fix: modify ``register_op`` and brainpy.math interface by `@ztqakita <https://github.com/ztqakita>`_ in `#130 <https://github.com/PKU-NIP-Lab/BrainPy/pull/130>`_
+* new features about RNN training and delay differential equations by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#132 <https://github.com/PKU-NIP-Lab/BrainPy/pull/132>`_
+* Fix `#123 <https://github.com/PKU-NIP-Lab/BrainPy/issues/123>`_\ : Add low-level operators docs and modify register_op by `@ztqakita <https://github.com/ztqakita>`_ in `#134 <https://github.com/PKU-NIP-Lab/BrainPy/pull/134>`_
+* feat: add generate_changelog by `@ztqakita <https://github.com/ztqakita>`_ in `#135 <https://github.com/PKU-NIP-Lab/BrainPy/pull/135>`_
+* fix `#133 <https://github.com/PKU-NIP-Lab/BrainPy/issues/133>`_\ , support batch size training with offline algorithms by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#136 <https://github.com/PKU-NIP-Lab/BrainPy/pull/136>`_
+* fix `#84 <https://github.com/PKU-NIP-Lab/BrainPy/issues/84>`_\ : support online training algorithms by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#137 <https://github.com/PKU-NIP-Lab/BrainPy/pull/137>`_
+* feat: add the batch normalization node by `@c-xy17 <https://github.com/c-xy17>`_ in `#138 <https://github.com/PKU-NIP-Lab/BrainPy/pull/138>`_
+* fix: fix shape checking error by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#139 <https://github.com/PKU-NIP-Lab/BrainPy/pull/139>`_
+* solve `#131 <https://github.com/PKU-NIP-Lab/BrainPy/issues/131>`_\ , support efficient synaptic computation for special connection types by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#140 <https://github.com/PKU-NIP-Lab/BrainPy/pull/140>`_
+* feat: update the API and test for batch normalization by `@c-xy17 <https://github.com/c-xy17>`_ in `#142 <https://github.com/PKU-NIP-Lab/BrainPy/pull/142>`_
+* Node is default trainable by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#143 <https://github.com/PKU-NIP-Lab/BrainPy/pull/143>`_
+* Updates training apis and docs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#145 <https://github.com/PKU-NIP-Lab/BrainPy/pull/145>`_
+* fix: add dependencies and update version by `@ztqakita <https://github.com/ztqakita>`_ in `#147 <https://github.com/PKU-NIP-Lab/BrainPy/pull/147>`_
+* update requirements by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#146 <https://github.com/PKU-NIP-Lab/BrainPy/pull/146>`_
+* data pass of the Node is default SingleData by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#148 <https://github.com/PKU-NIP-Lab/BrainPy/pull/148>`_
+
+**Full Changelog**\ : `V2.1.3...V2.1.4 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.3...V2.1.4>`_
+
+
+
 Version 2.1.3 (2022.03.27)
 ==========================
 
