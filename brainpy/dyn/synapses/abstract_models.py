@@ -1227,8 +1227,9 @@ class NMDA(TwoEndConn):
         post_g = bm.sum(self.g)
         if not self.conn.include_self:
           post_g = post_g - self.g
+        post_g = post_g * self.g_max
       else:
-        post_g = self.g * self.g_max
+        post_g = self.g @ self.g_max
     elif isinstance(self.conn, One2One):
       post_g = self.g_max * self.g
     else:
@@ -1242,4 +1243,4 @@ class NMDA(TwoEndConn):
 
     # output
     g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)
-    self.post.input -= post_g * (self.post.V - self.E) / g_inf
+    self.post.input += post_g * (self.E - self.post.V) / g_inf
