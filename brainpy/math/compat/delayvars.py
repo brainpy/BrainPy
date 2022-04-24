@@ -33,7 +33,7 @@ def FixedLenDelay(shape,
   warnings.warn('Please use "brainpy.math.TimeDelay" instead. '
                 '"brainpy.math.FixedLenDelay" is deprecated since version 2.1.2. ',
                 DeprecationWarning)
-  return TimeDelay(inits=jnp.zeros(shape),
+  return TimeDelay(delay_target=jnp.zeros(shape),
                    delay_len=delay_len,
                    before_t0=before_t0,
                    t0=t0,
