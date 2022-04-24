@@ -198,7 +198,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     class Test(bp.Base):
       def __init__(self):
         super(Test, self).__init__()
-
+        bp.math.random.seed()
         self.a = bm.TrainVar(bm.ones(10))
         self.b = bm.TrainVar(bm.random.randn(10))
         self.c = bm.TrainVar(bm.random.uniform(size=10))

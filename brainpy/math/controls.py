@@ -9,7 +9,7 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray, turn_on_global_jit, turn_off_global_jit
 from brainpy.math.numpy_ops import as_device_array
 
 __all__ = [
@@ -152,9 +152,12 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
     def call(xs=None, length=None):
       init_values = [v.value for v in dyn_vars]
       try:
+        turn_on_global_jit()
         dyn_values, (out_values, results) = lax.scan(
           f=fun2scan, init=init_values, xs=xs, length=length)
+        turn_off_global_jit()
       except UnexpectedTracerError as e:
+        turn_off_global_jit()
         for v, d in zip(dyn_vars, init_values): v.value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
@@ -164,8 +167,11 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
     def call(xs):
       init_values = [v.value for v in dyn_vars]
       try:
+        turn_on_global_jit()
         dyn_values, out_values = lax.scan(f=fun2scan, init=init_values, xs=xs)
+        turn_off_global_jit()
       except UnexpectedTracerError as e:
+        turn_off_global_jit()
         for v, d in zip(dyn_vars, init_values): v.value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
@@ -238,10 +244,13 @@ def make_while(cond_fun, body_fun, dyn_vars):
   def call(x=None):
     dyn_init = [v.value for v in dyn_vars]
     try:
+      turn_on_global_jit()
       dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
                                      body_fun=_body_fun,
                                      init_val=(dyn_init, x))
+      turn_off_global_jit()
     except UnexpectedTracerError as e:
+      turn_off_global_jit()
       for v, d in zip(dyn_vars, dyn_init): v.value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
@@ -323,11 +332,14 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   def call(pred, x=None):
     old_values = [v.value for v in dyn_vars]
     try:
+      turn_on_global_jit()
       dyn_values, res = lax.cond(pred=pred,
                                  true_fun=_true_fun,
                                  false_fun=_false_fun,
                                  operand=(old_values, x))
+      turn_off_global_jit()
     except UnexpectedTracerError as e:
+      turn_off_global_jit()
       for v, d in zip(dyn_vars, old_values): v.value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
     for v, d in zip(dyn_vars, dyn_values): v.value = d

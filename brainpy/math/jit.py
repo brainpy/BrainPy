@@ -20,7 +20,7 @@ except ImportError:
 from brainpy import errors
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import JaxArray, turn_on_global_jit, turn_off_global_jit
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -41,12 +41,16 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
   def call(*args, **kwargs):
     variable_data = vars.dict()
     try:
+      turn_on_global_jit()
       out, changes = jitted_func(variable_data, *args, **kwargs)
+      turn_off_global_jit()
     except UnexpectedTracerError as e:
-      vars.assign(variable_data)
+      turn_off_global_jit()
+      # vars.assign(variable_data)
       raise errors.JaxTracerError(variables=vars) from e
     except ConcretizationTypeError as e:
-      vars.assign(variable_data)
+      turn_off_global_jit()
+      # vars.assign(variable_data)
       raise errors.ConcretizationTypeError() from e
     vars.assign(changes)
     return out
