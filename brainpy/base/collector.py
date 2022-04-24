@@ -43,6 +43,19 @@ class Collector(dict):
     gather.update(other)
     return gather
 
+  def __sub__(self, other):
+    if not isinstance(other, dict):
+      raise ValueError(f'Only support dict, but we got {type(other)}.')
+    gather = type(self)()
+    for key, val in self.values():
+      if key in other:
+        if id(val) != id(other[key]):
+          raise ValueError(f'Cannot remove {key}, because we got two different values: '
+                           f'{val} != {other[key]}')
+      else:
+        gather[key] = val
+    return gather
+
   def subset(self, var_type):
     """Get the subset of the (key, value) pair.
 
