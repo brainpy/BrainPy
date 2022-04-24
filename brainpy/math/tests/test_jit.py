@@ -23,6 +23,8 @@ class TestJaxArrayJIT(unittest.TestCase):
       run()
 
   def test_jaxarray_inside_jit1(self):
+    bp.math.random.seed()
+
     class SomeProgram(bp.Base):
       def __init__(self):
         super(SomeProgram, self).__init__()

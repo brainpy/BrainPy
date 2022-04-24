@@ -14,6 +14,7 @@ class TestScan(unittest.TestCase):
 
       return update
 
+    bp.math.random.seed()
     _v1 = bm.Variable(bm.random.normal(size=10))
     _v2 = bm.Variable(bm.random.random(size=10))
     _xs = bm.random.uniform(size=(4, 10))
@@ -57,6 +58,7 @@ class TestScan(unittest.TestCase):
 
       return update
 
+    bp.math.random.seed()
     _v1 = bm.random.normal(size=10)
     _v2 = bm.random.random(size=10)
     _xs = bm.random.uniform(size=(4, 10))
