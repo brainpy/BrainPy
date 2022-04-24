@@ -21,6 +21,16 @@ class DelayCoupling(TwoEndConn):
   """
   Delay coupling base class.
 
+  Examples
+  --------
+
+  >>> import brainpy as bp
+  >>> areas = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+  >>> conn = bp.dyn.DiffusiveDelayCoupling(areas, areas, 'x,x->input',
+  >>>                                      conn_mat=Cmat, delay_mat=Dmat,
+  >>>                                      delay_initializer=bp.init.Uniform(0, 0.05))
+  >>> net = bp.dyn.Network(areas, conn)
+
   Parameters
   ----------
   coupling: str
@@ -37,11 +47,7 @@ class DelayCoupling(TwoEndConn):
     Fiber length matrix. Will be used for computing the
     delay matrix together with the signal transmission
     speed parameter `signal_speed`. Default None.
-
   """
-
-
-
   def __init__(
       self,
       pre: NeuGroup,
@@ -50,16 +56,9 @@ class DelayCoupling(TwoEndConn):
       conn_mat: Tensor,
       delay_mat: Optional[Tensor] = None,
       delay_initializer: Initializer = ZeroInit(),
-      domain: str = 'local',
       name: str = None
   ):
     super(DelayCoupling, self).__init__(pre, post, name=name)
-
-    # domain
-    if domain not in ['global', 'local']:
-      raise ValueError('"domain" must be a string in ["global", "local"]. '
-                       f'Bug we got {domain}.')
-    self.domain = domain
 
     # pairs of (source, destination)
     self.source_target_pairs: Dict[str, List[bm.Variable]] = dict()
@@ -91,18 +90,16 @@ class DelayCoupling(TwoEndConn):
         self.source_target_pairs[source].append(target)
 
     # Connection matrix
-    conn_mat = bm.asarray(conn_mat)
-    required_shape = (self.post.num, self.pre.num)
-    if conn_mat.shape != required_shape:
-      raise ValueError(f'we expect the structural connection matrix has the shape of '
-                       f'(post.num, pre.num), i.e., {required_shape}, '
-                       f'while we got {conn_mat.shape}.')
     self.conn_mat = bm.asarray(conn_mat)
-    bm.fill_diagonal(self.conn_mat, 0)
+    required_shape = (self.pre.num, self.post.num)
+    if self.conn_mat.shape != required_shape:
+      raise ValueError(f'we expect the structural connection matrix has the shape of '
+                       f'(pre.num, post.num), i.e., {required_shape}, '
+                       f'while we got {self.conn_mat.shape}.')
 
     # Delay matrix
     if delay_mat is None:
-      self.delay_mat = bm.zeros(required_shape, dtype=bm.int_)
+      self.delay_mat = None
     else:
       if delay_mat.shape != required_shape:
         raise ValueError(f'we expect the fiber length matrix has the shape of '
@@ -112,30 +109,17 @@ class DelayCoupling(TwoEndConn):
 
     # delay variables
     num_delay_step = int(self.delay_mat.max())
-    for var in self.source_target_pairs.keys():
-      if domain == 'local':
-        variable = source_vars[var]
-        shape = (num_delay_step,) + variable.shape
-        delay_data = delay_initializer(shape, dtype=variable.dtype)
-        self.local_delay_vars[var] = bm.LengthDelay(variable, num_delay_step, delay_data)
-      else:
-        if var not in self.global_delay_vars:
-          variable = source_vars[var]
-          shape = (num_delay_step,) + variable.shape
-          delay_data = delay_initializer(shape, dtype=variable.dtype)
-          self.global_delay_vars[var] = bm.LengthDelay(variable, num_delay_step, delay_data)
-          # save into local delay vars when first seen "var",
-          # for later update current value!
-          self.local_delay_vars[var] = self.global_delay_vars[var]
-        else:
-          if self.global_delay_vars[var].num_delay_step - 1 < num_delay_step:
-            variable = source_vars[var]
-            shape = (num_delay_step,) + variable.shape
-            delay_data = delay_initializer(shape, dtype=variable.dtype)
-            self.global_delay_vars[var].init(variable, num_delay_step, delay_data)
+    for source in self.source_target_pairs.keys():
+      variable = source_vars[source]
+      self.register_delay(source,
+                          delay_step=num_delay_step,
+                          delay_target=variable,
+                          initial_delay_data=delay_initializer)
 
-    self.register_implicit_nodes(self.local_delay_vars)
-    self.register_implicit_nodes(self.global_delay_vars)
+  def reset(self):
+    if self.delay_mat is not None:
+      for source in self.source_target_pairs.keys():
+        self.reset_delay(source, getattr(self.pre, source.split('.')[1]))
 
   def update(self, _t, _dt):
     raise NotImplementedError('Must implement the update() function by users.')
@@ -145,23 +129,19 @@ class DiffusiveDelayCoupling(DelayCoupling):
   def update(self, _t, _dt):
     for source, targets in self.source_target_pairs.items():
       # delay variable
-      if self.domain == 'local':
-        delay_var: bm.LengthDelay = self.local_delay_vars[source]
-      elif self.domain == 'global':
-        delay_var: bm.LengthDelay = self.global_delay_vars[source]
-      else:
-        raise ValueError(f'Unknown domain: {self.domain}')
+      delay_var: bm.LengthDelay = self.global_delay_vars[source]
 
       # current data
-      name, var = source.split('.')
-      assert name == self.pre.name
-      variable = getattr(self.pre, var)
+      variable = getattr(self.pre, source.split('.')[1])
 
       # delays
-      f = vmap(lambda i: delay_var(self.delay_mat[i], bm.arange(self.pre.num)))  # (pre.num,)
-      delays = f(bm.arange(self.post.num).value)
-      diffusive = delays - bm.expand_dims(variable, axis=1)  # (post.num, pre.num)
-      diffusive = (self.conn_mat * diffusive).sum(axis=1)
+      if self.delay_mat is None:
+        diffusive = bm.expand_dims(variable, axis=1)
+      else:
+        f = vmap(lambda i: delay_var(self.delay_mat[i], bm.arange(self.post.num)))  # (post.num,)
+        delays = f(bm.arange(self.pre.num).value)
+        diffusive = bm.expand_dims(variable, axis=1) - delays  # (pre.num, post.num)
+      diffusive = (self.conn_mat * diffusive).sum(axis=0)
 
       # output to target variable
       for target in targets:
@@ -176,22 +156,15 @@ class AdditiveDelayCoupling(DelayCoupling):
   def update(self, _t, _dt):
     for source, targets in self.source_target_pairs.items():
       # delay variable
-      if self.domain == 'local':
-        delay_var: bm.LengthDelay = self.local_delay_vars[source]
-      elif self.domain == 'global':
-        delay_var: bm.LengthDelay = self.global_delay_vars[source]
-      else:
-        raise ValueError(f'Unknown domain: {self.domain}')
+      delay_var: bm.LengthDelay = self.global_delay_vars[source]
 
       # current data
-      name, var = source.split('.')
-      assert name == self.pre.name
-      variable = getattr(self.pre, var)
+      variable = getattr(self.pre, source.split('.')[0])
 
       # delay function
-      f = vmap(lambda i: delay_var(self.delay_mat[i], bm.arange(self.pre.num)))  # (pre.num,)
-      delays = f(bm.arange(self.post.num))  # (post.num, pre.num)
-      additive = (self.conn_mat * delays).sum(axis=1)
+      f = vmap(lambda i: delay_var(self.delay_mat[i], bm.arange(self.post.num)))  # (post.num,)
+      delays = f(bm.arange(self.pre.num))  # (pre.num, post.num)
+      additive = (self.conn_mat * delays).sum(axis=0)
 
       # output to target variable
       for target in targets:

@@ -86,7 +86,12 @@ class DynamicalSystem(Base):
     Assume any dynamical system depends on the time variable ``t`` and
     the time step ``dt``.
     """
-    raise NotImplementedError('Must implement "update" function by user self.')
+    raise NotImplementedError('Must implement "update" function by subclass self.')
+
+  def reset(self):
+    """Reset function which reset the whole variables in the model.
+    """
+    raise NotImplementedError('Must implement "reset" function by subclass self.')
 
 
 class Container(DynamicalSystem):
@@ -143,6 +148,17 @@ class Container(DynamicalSystem):
     else:
       return super(Container, self).__getattribute__(item)
 
+  def reset(self):
+    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
+    neuron_groups = nodes.subset(NeuGroup)
+    synapse_groups = nodes.subset(TwoEndConn)
+    for node in neuron_groups.values():
+      node.reset()
+    for node in synapse_groups.values():
+      node.reset()
+    for node in (nodes - neuron_groups - synapse_groups).values():
+      node.reset()
+
 
 class Network(Container):
   """Base class to model network objects, an alias of Container.
@@ -196,6 +212,7 @@ class ConstantDelay(DynamicalSystem):
   def __init__(self, size, delay, dtype=None, dt=None, **kwargs):
     # dt
     self.dt = bm.get_dt() if dt is None else dt
+    self.dtype = dtype
 
     # data size
     if isinstance(size, int): size = (size,)
@@ -213,6 +230,7 @@ class ConstantDelay(DynamicalSystem):
       self.out_idx = bm.Variable(bm.array([0], dtype=bm.uint32))
       self.in_idx = bm.Variable(bm.array([self.num_step - 1], dtype=bm.uint32))
       self.data = bm.Variable(bm.zeros((self.num_step,) + self.size, dtype=dtype))
+      self.num = 1
 
     else:  # non-uniform delay
       self.uniform_delay = False
@@ -236,6 +254,12 @@ class ConstantDelay(DynamicalSystem):
       self.data = bm.Variable(bm.zeros((self.num_step.max(),) + size, dtype=dtype))
 
     super(ConstantDelay, self).__init__(**kwargs)
+
+  def reset(self):
+    """Reset the variables."""
+    self.in_idx[:] = self.num_step - 1
+    self.out_idx[:] = 0
+    self.data[:] = 0
 
   @property
   def oldest(self):
@@ -264,12 +288,6 @@ class ConstantDelay(DynamicalSystem):
     """Update the delay index."""
     self.in_idx[:] = (self.in_idx + 1) % self.num_step
     self.out_idx[:] = (self.out_idx + 1) % self.num_step
-
-  def reset(self):
-    """Reset the variables."""
-    self.in_idx[:] = self.num_step - 1
-    self.out_idx[:] = 0
-    self.data[:] = 0
 
 
 class NeuGroup(DynamicalSystem):
@@ -476,15 +494,15 @@ class TwoEndConn(DynamicalSystem):
         self.local_delay_vars[name] = self.global_delay_vars[name]
       else:
         if self.global_delay_vars[name].num_delay_step - 1 < max_delay_step:
-          self.global_delay_vars[name].init(delay_target, max_delay_step, initial_delay_data)
+          self.global_delay_vars[name].reset(delay_target, max_delay_step, initial_delay_data)
       self.register_implicit_nodes(self.global_delay_vars)
     return delay_step
 
-  def get_delay(
+  def get_delay_data(
       self,
       name: str,
-      delay_step: Union[int, bm.JaxArray, bm.ndarray],
-      indices=None,
+      delay_step: Union[int, bm.JaxArray, jnp.DeviceArray],
+      indices: Union[int, bm.JaxArray, jnp.DeviceArray] = None,
   ):
     """Get delay data according to the provided delay steps.
 
@@ -494,7 +512,7 @@ class TwoEndConn(DynamicalSystem):
       The delay variable name.
     delay_step: int, JaxArray, ndarray
       The delay length.
-    indices: optional, JaxArray, ndarray
+    indices: optional, int, JaxArray, ndarray
       The indices of the delay.
 
     Returns
@@ -522,10 +540,31 @@ class TwoEndConn(DynamicalSystem):
   def update_delay(
       self,
       name: str,
-      delay_target: Union[int, bm.JaxArray, bm.ndarray]
+      delay_data: Union[float, bm.JaxArray, jnp.ndarray]
   ):
+    """Update the delay according to the delay data.
+
+    Parameters
+    ----------
+    name: str
+      The name of the delay.
+    delay_data: float, JaxArray, ndarray
+      The delay data to update at the current time.
+    """
     if name in self.local_delay_vars:
-      return self.local_delay_vars[name].update(delay_target)
+      return self.local_delay_vars[name].update(delay_data)
+    else:
+      if name not in self.global_delay_vars:
+        raise ValueError(f'{name} is not defined in delay variables.')
+
+  def reset_delay(
+      self,
+      name: str,
+      delay_target: Union[bm.JaxArray, jnp.DeviceArray]
+  ):
+    """Reset the delay variable."""
+    if name in self.local_delay_vars:
+      return self.local_delay_vars[name].reset(delay_target)
     else:
       if name not in self.global_delay_vars:
         raise ValueError(f'{name} is not defined in delay variables.')

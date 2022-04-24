@@ -110,10 +110,15 @@ class FractionalFHR(FractionalNeuron):
     self.Vth = init_param(Vth, self.num, allow_none=False)
     self.delta = init_param(delta, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
     check_initializer(w_initializer, 'w_initializer', allow_none=False)
     check_initializer(y_initializer, 'y_initializer', allow_none=False)
+    self._V_initializer = V_initializer
+    self._w_initializer = w_initializer
+    self._y_initializer = y_initializer
+
+    # variables
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.y = bm.Variable(init_param(y_initializer, (self.num,)))
@@ -126,6 +131,16 @@ class FractionalFHR(FractionalNeuron):
                                   alpha=alpha,
                                   num_memory=num_memory,
                                   inits=[self.V, self.w, self.y])
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.w.value = init_param(self._w_initializer, (self.num,))
+    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+    # integral function reset
+    self.integral.reset([self.V, self.w, self.y])
 
   def dV(self, V, t, w, y):
     return V - V ** 3 / 3 - w + y + self.input
@@ -148,14 +163,6 @@ class FractionalFHR(FractionalNeuron):
     self.w.value = w
     self.y.value = y
     self.input[:] = 0.
-
-  def set_init(self, values: dict):
-    for k, v in values.items():
-      if k not in self.integral.inits:
-        raise ValueError(f'Variable "{k}" is not defined in this model.')
-      variable = getattr(self, k)
-      variable[:] = v
-      self.integral.inits[k][:] = v
 
 
 class FractionalIzhikevich(FractionalNeuron):
@@ -248,9 +255,13 @@ class FractionalIzhikevich(FractionalNeuron):
     self.R = init_param(R, self.num, allow_none=False)
     self.V_th = init_param(V_th, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
     check_initializer(u_initializer, 'u_initializer', allow_none=False)
+    self._V_initializer = V_initializer
+    self._u_initializer = u_initializer
+
+    # variables
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.u = bm.Variable(init_param(u_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
@@ -263,6 +274,15 @@ class FractionalIzhikevich(FractionalNeuron):
                                    alpha=alpha,
                                    num_step=num_step,
                                    inits=[self.V, self.u])
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.u.value = init_param(self._u_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+    # integral function reset
+    self.integral.reset([self.V, self.u])
 
   def dV(self, V, t, u, I_ext):
     dVdt = self.f * V * V + self.g * V + self.h - u + self.R * I_ext
@@ -284,11 +304,3 @@ class FractionalIzhikevich(FractionalNeuron):
     self.u.value = bm.where(spikes, u + self.d, u)
     self.spike.value = spikes
     self.input[:] = 0.
-
-  def set_init(self, values: dict):
-    for k, v in values.items():
-      if k not in self.integral.inits:
-        raise ValueError(f'Variable "{k}" is not defined in this model.')
-      variable = getattr(self, k)
-      variable[:] = v
-      self.integral.inits[k][:] = v
