@@ -77,7 +77,7 @@ class BatchNorm(Node):
 
   def forward(self, ff, **shared_kwargs):
     ed = tuple(None if i in self.axis else slice(None) for i in range(jnp.ndim(ff)))
-    output = jax.nn.normalize(bm.as_device_array(ff), self.axis, epsilon=self.epsilon)
+    output = bm.normalize(ff, self.axis, epsilon=self.epsilon)
     if self.bias and self.scale: return self.gamma[ed] * output + self.beta[ed]
     if self.bias: return output + self.beta[ed]
     if self.scale: return self.gamma[ed] * output
@@ -239,7 +239,7 @@ class LayerNorm(Node):
 
   def forward(self, ff, **shared_kwargs):
     ed = tuple(None if i not in self.axis else slice(None) for i in range(jnp.ndim(ff)))
-    output = jax.nn.normalize(bm.as_device_array(ff), self.axis, epsilon=self.epsilon)
+    output = bm.normalize(ff, self.axis, epsilon=self.epsilon)
     if self.bias and self.scale: return self.gamma[ed] * output + self.beta[ed]
     if self.bias: return output + self.beta[ed]
     if self.scale: return self.gamma[ed] * output
@@ -339,7 +339,7 @@ class GroupNorm(Node):
     group_shape = ff.shape[:-1] + (self.num_groups, self.group_size)
     ff_reshape = ff.reshape(group_shape)
     ed = tuple(None if i not in self.norm_axis else slice(None) for i in range(jnp.ndim(ff_reshape)))
-    output = jax.nn.normalize(bm.as_device_array(ff_reshape), self.norm_axis, epsilon=self.epsilon)
+    output = bm.normalize(ff_reshape, self.norm_axis, epsilon=self.epsilon)
     if self.bias and self.scale:
       output = self.gamma[ed] * output + self.beta[ed]
     elif self.bias:

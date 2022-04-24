@@ -142,37 +142,41 @@ class HH(NeuGroup):
     >>> plt.yticks([])
     >>> plt.show()
 
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  ENa: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of sodium. Default is 50 mV.
+  gNa: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of sodium channel. Default is 120 msiemens.
+  EK: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of potassium. Default is -77 mV.
+  gK: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of potassium channel. Default is 36 msiemens.
+  EL: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of learky channel. Default is -54.387 mV.
+  gL: float, JaxArray, ndarray, Initializer, callable
+    The conductance of learky channel. Default is 0.03 msiemens.
+  V_th: float, JaxArray, ndarray, Initializer, callable
+    The threshold of the membrane spike. Default is 20 mV.
+  C: float, JaxArray, ndarray, Initializer, callable
+    The membrane capacitance. Default is 1 ufarad.
+  V_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of membrane potential.
+  m_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of m channel.
+  h_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of h channel.
+  n_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of n channel.
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
 
-  **Model Parameters**
-
-  ============= ============== ======== ====================================
-  **Parameter** **Init Value** **Unit** **Explanation**
-  ------------- -------------- -------- ------------------------------------
-  V_th          20.            mV       the spike threshold.
-  C             1.             ufarad   capacitance.
-  E_Na          50.            mV       reversal potential of sodium.
-  E_K           -77.           mV       reversal potential of potassium.
-  E_leak        54.387         mV       reversal potential of unspecific.
-  g_Na          120.           msiemens conductance of sodium channel.
-  g_K           36.            msiemens conductance of potassium channel.
-  g_leak        .03            msiemens conductance of unspecific channels.
-  ============= ============== ======== ====================================
-
-  **Model Variables**
-
-  ================== ================= =========================================================
-  **Variables name** **Initial Value** **Explanation**
-  ------------------ ----------------- ---------------------------------------------------------
-  V                        -65         Membrane potential.
-  m                        0.05        gating variable of the sodium ion channel.
-  n                        0.32        gating variable of the potassium ion channel.
-  h                        0.60        gating variable of the sodium ion channel.
-  input                     0          External and synaptic input current.
-  spike                    False       Flag to mark whether the neuron is spiking.
-  t_last_spike       -1e7               Last spike time stamp.
-  ================== ================= =========================================================
-
-  **References**
+  References
+  ----------
 
   .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
          of membrane current and its application to conduction and excitation
@@ -214,21 +218,36 @@ class HH(NeuGroup):
     self.C = init_param(C, self.num, allow_none=False)
     self.V_th = init_param(V_th, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(m_initializer, 'm_initializer', allow_none=False)
     check_initializer(h_initializer, 'h_initializer', allow_none=False)
     check_initializer(n_initializer, 'n_initializer', allow_none=False)
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    self.m = bm.Variable(init_param(m_initializer, (self.num,)))
-    self.h = bm.Variable(init_param(h_initializer, (self.num,)))
-    self.n = bm.Variable(init_param(n_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
+    self._m_initializer = m_initializer
+    self._h_initializer = h_initializer
+    self._n_initializer = n_initializer
+    self._V_initializer = V_initializer
+
+    # variables
+    self.m = bm.Variable(init_param(self._m_initializer, (self.num,)))
+    self.h = bm.Variable(init_param(self._h_initializer, (self.num,)))
+    self.n = bm.Variable(init_param(self._n_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(self._V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.m.value = init_param(self._m_initializer, (self.num,))
+    self.h.value = init_param(self._h_initializer, (self.num,))
+    self.n.value = init_param(self._n_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
 
   def dm(self, m, t, V):
     alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
@@ -336,20 +355,8 @@ class MorrisLecar(NeuGroup):
   V_th          10             mV       The spike threshold.
   ============= ============== ======== =======================================================
 
-  **Model Variables**
-
-  ================== ================= =========================================================
-  **Variables name** **Initial Value** **Explanation**
-  ------------------ ----------------- ---------------------------------------------------------
-  V                  -20               Membrane potential.
-  W                  0.02              Gating variable, refers to the fraction of
-                                       opened K+ channels.
-  input              0                 External and synaptic input current.
-  spike              False             Flag to mark whether the neuron is spiking.
-  t_last_spike       -1e7              Last spike time stamp.
-  ================== ================= =========================================================
-
-  **References**
+  References
+  ----------
 
   .. [1] Meier, Stephen R., Jarrett L. Lancaster, and Joseph M. Starobin.
          "Bursting regimes in a reaction-diffusion system with action
@@ -398,9 +405,13 @@ class MorrisLecar(NeuGroup):
     self.phi = init_param(phi, self.num, allow_none=False)
     self.V_th = init_param(V_th, self.num, allow_none=False)
 
-    # vars
+    # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
     check_initializer(W_initializer, 'W_initializer', allow_none=False)
+    self._W_initializer = W_initializer
+    self._V_initializer = V_initializer
+
+    # variables
     self.W = bm.Variable(init_param(W_initializer, (self.num,)))
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
@@ -409,6 +420,13 @@ class MorrisLecar(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.W.value = init_param(self._W_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.input.value = bm.zeros(self.num)
+    self.spike.value = bm.zeros(self.num, dtype=bool)
+    self.t_last_spike.value = bm.ones(self.num) * -1e7
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))

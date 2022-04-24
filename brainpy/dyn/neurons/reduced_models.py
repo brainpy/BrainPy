@@ -98,8 +98,11 @@ class LIF(NeuGroup):
     self.tau = init_param(tau, self.num, allow_none=False)
     self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(V_initializer, 'V_initializer')
+    self._V_initializer = V_initializer
+
+    # variables
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
@@ -108,6 +111,13 @@ class LIF(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+    self.refractory[:] = False
 
   def derivative(self, V, t, I_ext):
     dvdt = (-V + self.V_rest + I_ext) / self.tau
@@ -251,8 +261,11 @@ class ExpIF(NeuGroup):
     self.tau = init_param(tau, self.num, allow_none=False)
     self.R = init_param(R, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(V_initializer, 'V_initializer')
+    self._V_initializer = V_initializer
+
+    # variables
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
@@ -261,6 +274,13 @@ class ExpIF(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+    self.refractory[:] = False
 
   def derivative(self, V, t, I_ext):
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
@@ -384,9 +404,13 @@ class AdExIF(NeuGroup):
     self.tau_w = init_param(tau_w, self.num, allow_none=False)
     self.R = init_param(R, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(V_initializer, 'V_initializer')
     check_initializer(w_initializer, 'w_initializer')
+    self._V_initializer = V_initializer
+    self._w_initializer = w_initializer
+
+    # variables
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
@@ -396,6 +420,14 @@ class AdExIF(NeuGroup):
 
     # functions
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.w.value = init_param(self._w_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+    self.refractory[:] = False
 
   def dV(self, V, t, w, I_ext):
     dVdt = (- V + self.V_rest + self.delta_T * bm.exp((V - self.V_T) / self.delta_T) -
@@ -515,6 +547,10 @@ class QuaIF(NeuGroup):
     self.tau = init_param(tau, self.num, allow_none=False)
     self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
 
+    # initializers
+    check_initializer(V_initializer, '_V_initializer', allow_none=False)
+    self._V_initializer = V_initializer
+
     # variables
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
@@ -524,6 +560,13 @@ class QuaIF(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+    self.refractory[:] = False
 
   def derivative(self, V, t, I_ext):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I_ext) / self.tau
@@ -648,9 +691,13 @@ class AdQuaIF(NeuGroup):
     self.tau = init_param(tau, self.num, allow_none=False)
     self.tau_w = init_param(tau_w, self.num, allow_none=False)
 
+    # initializers
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check_initializer(w_initializer, 'w_initializer', allow_none=False)
+    self._V_initializer = V_initializer
+    self._w_initializer = w_initializer
+
     # variables
-    check_initializer(V_initializer, 'V_initializer')
-    check_initializer(w_initializer, 'w_initializer')
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
@@ -660,6 +707,14 @@ class AdQuaIF(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.w.value = init_param(self._w_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+    self.refractory[:] = False
 
   def dV(self, V, t, w, I_ext):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I_ext) / self.tau
@@ -808,11 +863,17 @@ class GIF(NeuGroup):
     self.A1 = init_param(A1, self.num, allow_none=False)
     self.A2 = init_param(A2, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(V_initializer, 'V_initializer')
     check_initializer(I1_initializer, 'I1_initializer')
     check_initializer(I2_initializer, 'I2_initializer')
     check_initializer(Vth_initializer, 'Vth_initializer')
+    self._V_initializer = V_initializer
+    self._I1_initializer = I1_initializer
+    self._I2_initializer = I2_initializer
+    self._Vth_initializer = Vth_initializer
+
+    # variables
     self.I1 = bm.Variable(init_param(I1_initializer, (self.num,)))
     self.I2 = bm.Variable(init_param(I2_initializer, (self.num,)))
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
@@ -823,6 +884,15 @@ class GIF(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.I1.value = init_param(self._I1_initializer, (self.num,))
+    self.I2.value = init_param(self._I2_initializer, (self.num,))
+    self.V_th.value = init_param(self._Vth_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
 
   def dI1(self, I1, t):
     return - self.k1 * I1
@@ -949,9 +1019,13 @@ class Izhikevich(NeuGroup):
     self.V_th = init_param(V_th, self.num, allow_none=False)
     self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
 
+    # initializers
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check_initializer(u_initializer, 'u_initializer', allow_none=False)
+    self._V_initializer = V_initializer
+    self._u_initializer = u_initializer
+
     # variables
-    check_initializer(V_initializer, 'V_initializer')
-    check_initializer(u_initializer, 'u_initializer')
     self.u = bm.Variable(init_param(u_initializer, (self.num,)))
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
@@ -961,6 +1035,14 @@ class Izhikevich(NeuGroup):
 
     # functions
     self.integral = odeint(method=method, f=JointEq([self.dV, self.du]))
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.u.value = init_param(self._u_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.refractory[:] = False
+    self.t_last_spike[:] = -1e7
 
   def dV(self, V, t, u, I_ext):
     dVdt = 0.04 * V * V + 5 * V + 140 - u + I_ext
@@ -1112,9 +1194,14 @@ class HindmarshRose(NeuGroup):
     self.V_rest = init_param(V_rest, self.num, allow_none=False)
 
     # variables
-    check_initializer(V_initializer, 'V_initializer')
-    check_initializer(y_initializer, 'y_initializer')
-    check_initializer(z_initializer, 'z_initializer')
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check_initializer(y_initializer, 'y_initializer', allow_none=False)
+    check_initializer(z_initializer, 'z_initializer', allow_none=False)
+    self._V_initializer = V_initializer
+    self._y_initializer = y_initializer
+    self._z_initializer = z_initializer
+
+    # variables
     self.z = bm.Variable(init_param(V_initializer, (self.num,)))
     self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.V = bm.Variable(init_param(z_initializer, (self.num,)))
@@ -1124,6 +1211,14 @@ class HindmarshRose(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.z.value = init_param(self._z_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
 
   def dV(self, V, t, y, z, I_ext):
     return y - self.a * V * V * V + self.b * V * V - z + I_ext
@@ -1252,9 +1347,13 @@ class FHN(NeuGroup):
     self.tau = init_param(tau, self.num, allow_none=False)
     self.Vth = init_param(Vth, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(V_initializer, 'V_initializer')
     check_initializer(w_initializer, 'w_initializer')
+    self._V_initializer = V_initializer
+    self._w_initializer = w_initializer
+
+    # variables
     self.w = bm.Variable(init_param(w_initializer, (self.num,)))
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
@@ -1263,6 +1362,13 @@ class FHN(NeuGroup):
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.w.value = init_param(self._w_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
 
   def dV(self, V, t, w, I_ext):
     return V - V * V * V / 3 - w + I_ext

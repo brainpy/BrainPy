@@ -202,14 +202,20 @@ class STP(TwoEndConn):
     self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
 
     # variables
-    num = len(self.pre_ids)
-    self.x = bm.Variable(bm.ones(num, dtype=bm.float_))
-    self.u = bm.Variable(bm.zeros(num, dtype=bm.float_))
-    self.I = bm.Variable(bm.zeros(num, dtype=bm.float_))
+    self.num = len(self.pre_ids)
+    self.x = bm.Variable(bm.ones(self.num, dtype=bm.float_))
+    self.u = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
+    self.I = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
     self.delay_type, self.delay_step, self.delay_I = init_delay(delay_step, self.I)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.x.value = bm.zeros(self.num)
+    self.u.value = bm.zeros(self.num)
+    self.I.value = bm.zeros(self.num)
+    self.delay_I.reset(self.I)
 
   @property
   def derivative(self):

@@ -64,6 +64,9 @@ class OUProcess(NeuGroup):
     # integral functions
     self.integral = sdeint(f=self.df, g=self.dg, method=method)
 
+  def reset(self):
+    self.x[:] = self.mean
+
   def df(self, x, t):
     f_x_ou = (self.mean - x) / self.tau
     return f_x_ou
