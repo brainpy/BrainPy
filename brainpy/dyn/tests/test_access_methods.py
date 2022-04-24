@@ -98,34 +98,35 @@ class HH(bp.dyn.NeuGroup):
 
 
 def test1():
-    num = 10
-    neu = HH(num)
-    neu.V = -70. + bp.math.random.normal(size=num) * 20
+  bp.math.random.seed(123)
+  num = 10
+  neu = HH(num)
+  neu.V = -70. + bp.math.random.normal(size=num) * 20
 
-    syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
-    syn.g_max = 0.1 / num
+  syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
+  syn.g_max = 0.1 / num
 
-    net = bp.dyn.Network(neu=neu, syn=syn)
+  net = bp.dyn.Network(neu=neu, syn=syn)
 
-    for method in ['relative', 'absolute']:
-      print(f'Method: {method}\n')
-      print('vars:')
-      print('-----')
-      print('neu.vars()', list(neu.vars(method).keys()))
-      print('syn.vars()', list(syn.vars(method).keys()))
-      print('net.vars()', list(net.vars(method).keys()))
-      print()
+  for method in ['relative', 'absolute']:
+    print(f'Method: {method}\n')
+    print('vars:')
+    print('-----')
+    print('neu.vars()', list(neu.vars(method).keys()))
+    print('syn.vars()', list(syn.vars(method).keys()))
+    print('net.vars()', list(net.vars(method).keys()))
+    print()
 
-      print('ints:')
-      print('-----')
-      print('neu.ints()', list(neu.ints(method).keys()))
-      print('syn.ints()', list(syn.ints(method).keys()))
-      print('net.ints()', list(net.ints(method).keys()))
-      print()
+    print('ints:')
+    print('-----')
+    print('neu.ints()', list(neu.ints(method).keys()))
+    print('syn.ints()', list(syn.ints(method).keys()))
+    print('net.ints()', list(net.ints(method).keys()))
+    print()
 
-      print('nodes:')
-      print('------')
-      print('neu.nodes()', list(neu.nodes(method).keys()))
-      print('syn.nodes()', list(syn.nodes(method).keys()))
-      print('net.nodes()', list(net.nodes(method).keys()))
-      print()
+    print('nodes:')
+    print('------')
+    print('neu.nodes()', list(neu.nodes(method).keys()))
+    print('syn.nodes()', list(syn.nodes(method).keys()))
+    print('net.nodes()', list(net.nodes(method).keys()))
+    print()

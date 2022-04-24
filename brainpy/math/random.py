@@ -70,9 +70,9 @@ class RandomState(Variable):
     """Create a new seed from the current seed.
     """
     if not isinstance(self.value, jnp.ndarray):
-      self.value = jnp.asarray(self.value)
+      self._value = jnp.asarray(self.value)
     keys = jr.split(self.value, num=2)
-    self.value = keys[0]
+    self._value = keys[0]
     return keys[1]
 
   def split_keys(self, n):
@@ -86,7 +86,7 @@ class RandomState(Variable):
       The number of seeds to generate.
     """
     keys = jr.split(self.value, n + 1)
-    self.value = keys[0]
+    self._value = keys[0]
     return keys[1:]
 
   # ---------------- #

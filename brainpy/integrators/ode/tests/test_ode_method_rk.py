@@ -28,7 +28,9 @@ def run_integrator(method, show=False):
     import matplotlib.pyplot as plt
 
   f_integral = bm.jit(method(f_lorenz, dt=dt), auto_infer=False)
-  x, y, z = bm.ones(1), bm.ones(1), bm.ones(1)
+  x = bm.Variable(bm.ones(1))
+  y = bm.Variable(bm.ones(1))
+  z = bm.Variable(bm.ones(1))
 
   def f(t):
     x.value, y.value, z.value = f_integral(x, y, z, t)

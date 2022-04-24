@@ -91,6 +91,7 @@ class TestBatchNorm(TestCase):
 		print(model(inputs))
 
 		# training
+		bp.math.random.seed()
 		X = bp.math.random.random((1000, 10, 3, 4))
 		Y = bp.math.random.randint(0, 2, (1000, 10,  2))
 		trainer = bp.nn.BPTT(model,
