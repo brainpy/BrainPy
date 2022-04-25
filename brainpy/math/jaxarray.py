@@ -33,17 +33,20 @@ _global_jit_mode = False
 
 
 def turn_on_global_jit():
+  """Turn on the global JIT mode to declare
+  all instantiated JaxArray cannot be updated."""
   global _global_jit_mode
   _global_jit_mode = True
 
 
 def turn_off_global_jit():
+  """Turn off the global JIT mode."""
   global _global_jit_mode
   _global_jit_mode = False
 
 
 class JaxArray(object):
-  """Multiple-dimensional array for JAX backend.
+  """Multiple-dimensional array in JAX backend.
   """
   __slots__ = ("_value", "_outside_global_jit")
 
