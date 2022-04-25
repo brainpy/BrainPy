@@ -168,11 +168,11 @@ class DSRunner(Runner):
     return func
 
   def _run_one_step(self, _t):
-    self._input_step(_t=_t, _dt=self.dt)
-    self.target.update(_t=_t, _dt=self.dt)
+    self._input_step(_t, self.dt)
+    self.target.update(_t, self.dt)
     if self.progress_bar:
       id_tap(lambda *args: self._pbar.update(), ())
-    return self._monitor_step(_t=_t, _dt=self.dt)
+    return self._monitor_step(_t, self.dt)
 
   def build_run_function(self):
     if self.jit:

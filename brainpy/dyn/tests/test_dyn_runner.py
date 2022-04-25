@@ -1,19 +1,36 @@
 # -*- coding: utf-8 -*-
 
 
+import unittest
 import brainpy as bp
 import brainpy.math as bm
 
 
-class ExampleDS(bp.dyn.DynamicalSystem):
-  def __init__(self):
-    super(ExampleDS, self).__init__()
-    self.i = bm.Variable(bm.zeros(1))
-    self.o = bm.Variable(bm.zeros(2))
+class TestDSRunner(unittest.TestCase):
+  def test1(self):
+    class ExampleDS(bp.dyn.DynamicalSystem):
+      def __init__(self):
+        super(ExampleDS, self).__init__()
+        self.i = bm.Variable(bm.zeros(1))
 
-  def update(self, _t, _dt):
-    self.i += 1
+      def update(self, _t, _dt):
+        self.i += 1
 
+    ds = ExampleDS()
+    runner = bp.dyn.DSRunner(ds, dt=1., monitors=['i'], progress_bar=False)
+    runner.run(100.)
+
+  def test_t_and_dt(self):
+    class ExampleDS(bp.dyn.DynamicalSystem):
+      def __init__(self):
+        super(ExampleDS, self).__init__()
+        self.i = bm.Variable(bm.zeros(1))
+
+      def update(self, t, dt):
+        self.i += 1 * dt
+
+    runner = bp.dyn.DSRunner(ExampleDS(), dt=1., monitors=['i'], progress_bar=False)
+    runner.run(100.)
 
 # class TestMonitor(TestCase):
 #   def test_1d_array(self):
@@ -62,4 +79,3 @@ class ExampleDS(bp.dyn.DynamicalSystem):
 #     assert np.ndim(try3.mon.a) == 2 and np.shape(try3.mon.a)[1] == 1
 #     series = np.arange(2, 1002, 1. / 0.1).reshape((-1, 1))
 #     assert np.allclose(series, try3.mon.a)
-
