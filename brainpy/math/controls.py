@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
 
 
+from typing import Union, Sequence, Any, Dict
+
 from jax import lax
 from jax.tree_util import tree_flatten, tree_unflatten
+
 try:
   from jax.errors import UnexpectedTracerError
 except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors
-from brainpy.math.jaxarray import JaxArray, turn_on_global_jit, turn_off_global_jit
+from brainpy.math.jaxarray import (JaxArray, Variable,
+                                   turn_on_global_jit,
+                                   turn_off_global_jit)
 from brainpy.math.numpy_ops import as_device_array
 
 __all__ = [
   'make_loop',
   'make_while',
   'make_cond',
+  'ifelse',
 ]
 
 
@@ -85,16 +91,16 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   >>> def f(x): a.value += 1.
   >>> loop = bm.make_loop(f, dyn_vars=[a], out_vars=a)
   >>> loop(length=10)
-  JaxArray(DeviceArray([[ 1.],
-                        [ 2.],
-                        [ 3.],
-                        [ 4.],
-                        [ 5.],
-                        [ 6.],
-                        [ 7.],
-                        [ 8.],
-                        [ 9.],
-                        [10.]], dtype=float32))
+  JaxArray([[ 1.],
+            [ 2.],
+            [ 3.],
+            [ 4.],
+            [ 5.],
+            [ 6.],
+            [ 7.],
+            [ 8.],
+            [ 9.],
+            [10.]], dtype=float32)
   >>> b = bm.zeros(1)
   >>> def f(x):
   >>>   b.value += 1
@@ -102,27 +108,27 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   >>> loop = bm.make_loop(f, dyn_vars=[b], out_vars=b, has_return=True)
   >>> hist_b, hist_b_plus = loop(length=10)
   >>> hist_b
-  JaxArray(DeviceArray([[ 1.],
-                        [ 2.],
-                        [ 3.],
-                        [ 4.],
-                        [ 5.],
-                        [ 6.],
-                        [ 7.],
-                        [ 8.],
-                        [ 9.],
-                        [10.]], dtype=float32))
+  JaxArray([[ 1.],
+            [ 2.],
+            [ 3.],
+            [ 4.],
+            [ 5.],
+            [ 6.],
+            [ 7.],
+            [ 8.],
+            [ 9.],
+            [10.]], dtype=float32)
   >>> hist_b_plus
-  JaxArray(DeviceArray([[ 2.],
-                        [ 3.],
-                        [ 4.],
-                        [ 5.],
-                        [ 6.],
-                        [ 7.],
-                        [ 8.],
-                        [ 9.],
-                        [10.],
-                        [11.]], dtype=float32))
+  JaxArray([[ 2.],
+            [ 3.],
+            [ 4.],
+            [ 5.],
+            [ 6.],
+            [ 7.],
+            [ 8.],
+            [ 9.],
+            [10.],
+            [11.]], dtype=float32)
 
   Parameters
   ----------
@@ -201,7 +207,7 @@ def make_while(cond_fun, body_fun, dyn_vars):
   >>> loop = bm.make_while(cond_f, body_f, dyn_vars=[a])
   >>> loop()
   >>> a
-  JaxArray(DeviceArray([10.], dtype=float32))
+  JaxArray([10.], dtype=float32)
 
   Parameters
   ----------
@@ -223,12 +229,11 @@ def make_while(cond_fun, body_fun, dyn_vars):
   elif isinstance(dyn_vars, (tuple, list)):
     dyn_vars = tuple(dyn_vars)
   else:
-    raise ValueError(
-      f'"dyn_vars" does not support {type(dyn_vars)}, '
-      f'only support dict/list/tuple of {JaxArray.__name__}')
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {JaxArray.__name__}')
   for v in dyn_vars:
     if not isinstance(v, JaxArray):
-      raise ValueError(f'brainpy.math.jax.loops only support {JaxArray.__name__}, but got {type(v)}')
+      raise ValueError(f'Only support {JaxArray.__name__}, but got {type(v)}')
 
   def _body_fun(op):
     dyn_values, static_values = op
@@ -274,12 +279,12 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   >>> cond = bm.make_cond(true_f, false_f, dyn_vars=[a, b])
   >>> cond(True)
   >>> a, b
-  (JaxArray(DeviceArray([1., 1.], dtype=float32)),
-   JaxArray(DeviceArray([1., 1.], dtype=float32)))
+  (JaxArray([1., 1.], dtype=float32),
+   JaxArray([1., 1.], dtype=float32))
   >>> cond(False)
   >>> a, b
-  (JaxArray(DeviceArray([1., 1.], dtype=float32)),
-   JaxArray(DeviceArray([0., 0.], dtype=float32)))
+  (JaxArray([1., 1.], dtype=float32),
+   JaxArray([0., 0.], dtype=float32))
 
   Parameters
   ----------
@@ -300,20 +305,17 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   if dyn_vars is None:
     dyn_vars = []
   if isinstance(dyn_vars, JaxArray):
-    dyn_vars = (dyn_vars, )
+    dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
     dyn_vars = tuple(dyn_vars.values())
   elif isinstance(dyn_vars, (tuple, list)):
     dyn_vars = tuple(dyn_vars)
   else:
-    raise ValueError(
-      f'"dyn_vars" does not support {type(dyn_vars)}, '
-      f'only support dict/list/tuple of {JaxArray.__name__}')
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {JaxArray.__name__}')
   for v in dyn_vars:
     if not isinstance(v, JaxArray):
-      raise ValueError(
-        f'brainpy.math.jax.loops only support '
-        f'{JaxArray.__name__}, but got {type(v)}')
+      raise ValueError(f'Only support {JaxArray.__name__}, but got {type(v)}')
 
   def _true_fun(op):
     dyn_vals, static_vals = op
@@ -346,3 +348,166 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
     return res
 
   return call
+
+
+def _cond_with_dyn_vars(pred, true_fun, false_fun, operands, dyn_vars):
+  # iterable variables
+  if isinstance(dyn_vars, JaxArray):
+    dyn_vars = (dyn_vars,)
+  elif isinstance(dyn_vars, dict):
+    dyn_vars = tuple(dyn_vars.values())
+  elif isinstance(dyn_vars, (tuple, list)):
+    dyn_vars = tuple(dyn_vars)
+  else:
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {JaxArray.__name__}')
+  for v in dyn_vars:
+    if not isinstance(v, JaxArray):
+      raise ValueError(f'Only support {JaxArray.__name__}, but got {type(v)}')
+
+  def _true_fun(op):
+    dyn_vals, static_vals = op
+    for v, d in zip(dyn_vars, dyn_vals): v.value = d
+    res = true_fun(static_vals)
+    dyn_vals = [v.value for v in dyn_vars]
+    return dyn_vals, res
+
+  def _false_fun(op):
+    dyn_vals, static_vals = op
+    for v, d in zip(dyn_vars, dyn_vals): v.value = d
+    res = false_fun(static_vals)
+    dyn_vals = [v.value for v in dyn_vars]
+    return dyn_vals, res
+
+  # calling the model
+  old_values = [v.value for v in dyn_vars]
+  try:
+    turn_on_global_jit()
+    dyn_values, res = lax.cond(pred=pred,
+                               true_fun=_true_fun,
+                               false_fun=_false_fun,
+                               operand=(old_values, operands))
+    turn_off_global_jit()
+  except UnexpectedTracerError as e:
+    turn_off_global_jit()
+    for v, d in zip(dyn_vars, old_values): v.value = d
+    raise errors.JaxTracerError(variables=dyn_vars) from e
+  for v, d in zip(dyn_vars, dyn_values): v.value = d
+  return res
+
+
+def _check_f(f):
+  if callable(f):
+    return f
+  else:
+    return (lambda _: f)
+
+
+def ifelse(
+    conditions: Union[bool, Sequence[bool]],
+    branches: Sequence,
+    operands: Any = None,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    show_code: bool = False,
+):
+  """If-else control flows like native Pythonic programming.
+
+  Examples
+  --------
+
+  >>> import brainpy.math as bm
+  >>> def f(a):
+  >>>    return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
+  >>>                     branches=[lambda _: 1,
+  >>>                               lambda _: 2,
+  >>>                               lambda _: 3,
+  >>>                               lambda _: 4,
+  >>>                               lambda _: 5])
+  >>> f(1)
+  4
+  >>> # or, it can be expressed as:
+  >>> def f(a):
+  >>>   return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
+  >>>                    branches=[1, 2, 3, 4, 5])
+
+
+  Parameters
+  ----------
+  conditions: bool, sequence of bool
+    The boolean conditions.
+  branches: Sequence
+    The branches, at least has two elements. Elements can be functions,
+    arrays, or numbers. The number of ``branches`` and ``conditions`` has
+    the relationship of `len(branches) == len(conditions) + 1`.
+  operands: optional, Any
+    The operands for each branch.
+  dyn_vars: Variable, sequence of Variable, dict
+    The dynamically changed variables.
+  show_code: bool
+    Whether show the formatted code.
+
+  Returns
+  -------
+  res: Any
+    The results of the control flow.
+  """
+  # checking
+  if not isinstance(conditions, (tuple, list)):
+    conditions = [conditions]
+  if not isinstance(conditions, (tuple, list)):
+    raise ValueError(f'"conditions" must be a tuple/list of boolean values. '
+                     f'But we got {type(conditions)}: {conditions}')
+  if not isinstance(branches, (tuple, list)):
+    raise ValueError(f'"branches" must be a tuple/list. '
+                     f'But we got {type(branches)}.')
+  branches = [_check_f(b) for b in branches]
+  if len(branches) != len(conditions) + 1:
+    raise ValueError(f'The numbers of branches and conditions do not match. '
+                     f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
+                     f'We expect len(conditions) + 1 == len(branches). ')
+  if dyn_vars is None:
+    dyn_vars = []
+  if isinstance(dyn_vars, Variable):
+    dyn_vars = (dyn_vars,)
+  elif isinstance(dyn_vars, dict):
+    dyn_vars = tuple(dyn_vars.values())
+  elif isinstance(dyn_vars, (tuple, list)):
+    dyn_vars = tuple(dyn_vars)
+  else:
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, only '
+                     f'support dict/list/tuple of brainpy.math.Variable')
+  for v in dyn_vars:
+    if not isinstance(v, Variable):
+      raise ValueError(f'Only support brainpy.math.Variable, but we got {type(v)}')
+
+  # format new codes
+  code_scope = {'conditions': conditions, 'branches': branches}
+  codes = ['def f(operands):', f'  f0 = branches[{len(conditions)}]']
+  num_cond = len(conditions) - 1
+  if len(dyn_vars) > 0:
+    code_scope['_cond'] = _cond_with_dyn_vars
+    code_scope['dyn_vars'] = dyn_vars
+    for i in range(len(conditions) - 1):
+      codes.append(f'  f{i+1} = lambda r: '
+                   f'_cond(conditions[{num_cond - i}], '
+                   f'branches[{num_cond - i}], f{i}, r, dyn_vars)')
+    codes.append(f'  return _cond(conditions[0], '
+                 f'branches[0], '
+                 f'f{len(conditions) - 1}, '
+                 f'operands, dyn_vars)')
+  else:
+    code_scope['_cond'] = lax.cond
+    for i in range(len(conditions) - 1):
+      codes.append(f'  f{i+1} = lambda r: '
+                   f'_cond(conditions[{num_cond - i}], '
+                   f'branches[{num_cond - i}], f{i}, r)')
+    codes.append(f'  return _cond(conditions[0], '
+                 f'branches[0], '
+                 f'f{len(conditions) - 1}, '
+                 f'operands)')
+  codes = '\n'.join(codes)
+  if show_code:
+    print(codes)
+  exec(compile(codes.strip(), '', 'exec'), code_scope)
+  f = code_scope['f']
+  return f(operands)
