@@ -47,8 +47,15 @@ class DynamicalSystem(Base):
       The name of the dynamic system.
   """
 
+  """Global delay variables. Useful when the same target
+     variable is used in multiple mappings."""
+  global_delay_vars: Dict[str, bm.LengthDelay] = dict()
+
   def __init__(self, name=None):
     super(DynamicalSystem, self).__init__(name=name)
+
+    # local delay variables
+    self.local_delay_vars: Dict[str, bm.LengthDelay] = dict()
 
   @property
   def steps(self):
@@ -80,6 +87,149 @@ class DynamicalSystem(Base):
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
     return self.update(*args, **kwargs)
+
+  def register_delay(
+      self,
+      name: str,
+      delay_step: Union[int, Tensor, Callable, Initializer],
+      delay_target: Union[bm.JaxArray, jnp.ndarray],
+      initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
+      domain: str = 'global'
+  ):
+    """Register delay variable.
+
+    Parameters
+    ----------
+    name: str
+      The delay variable name.
+    delay_step: int, JaxArray, ndarray, callable, Initializer
+      The number of the steps of the delay.
+    delay_target: JaxArray, ndarray, Variable
+      The target for delay.
+    initial_delay_data: float, int, JaxArray, ndarray, callable, Initializer
+      The initializer for the delay data.
+    domain: str
+      The domain of the delay data to store.
+
+    Returns
+    -------
+    delay_step: int, JaxArray, ndarray
+      The number of the delay steps.
+    """
+    # delay steps
+    if delay_step is None:
+      return delay_step
+    elif isinstance(delay_step, int):
+      delay_type = 'homo'
+    elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
+      delay_type = 'heter'
+      delay_step = bm.asarray(delay_step)
+    elif callable(delay_step):
+      delay_step = init_param(delay_step, delay_target.shape, allow_none=False)
+      delay_type = 'heter'
+    else:
+      raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
+                       f'integer, array of integers, callable function, brainpy.init.Initializer.')
+    if delay_type == 'heter':
+      if delay_step.dtype not in [bm.int32, bm.int64]:
+        raise ValueError('Only support delay steps of int32, int64. If your '
+                         'provide delay time length, please divide the "dt" '
+                         'then provide us the number of delay steps.')
+      if delay_target.shape[0] != delay_step.shape[0]:
+        raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
+    max_delay_step = int(bm.max(delay_step))
+
+    # delay domain
+    if domain not in ['global', 'local']:
+      raise ValueError('"domain" must be a string in ["global", "local"]. '
+                       f'Bug we got {domain}.')
+
+    # delay variable
+    if domain == 'local':
+      self.local_delay_vars[name] = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
+      self.register_implicit_nodes(self.local_delay_vars)
+    else:
+      if name not in self.global_delay_vars:
+        self.global_delay_vars[name] = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
+        # save into local delay vars when first seen "var",
+        # for later update current value!
+        self.local_delay_vars[name] = self.global_delay_vars[name]
+      else:
+        if self.global_delay_vars[name].num_delay_step - 1 < max_delay_step:
+          self.global_delay_vars[name].reset(delay_target, max_delay_step, initial_delay_data)
+      self.register_implicit_nodes(self.global_delay_vars)
+    return delay_step
+
+  def get_delay_data(
+      self,
+      name: str,
+      delay_step: Union[int, bm.JaxArray, jnp.DeviceArray],
+      indices: Union[int, bm.JaxArray, jnp.DeviceArray] = None,
+  ):
+    """Get delay data according to the provided delay steps.
+
+    Parameters
+    ----------
+    name: str
+      The delay variable name.
+    delay_step: int, JaxArray, ndarray
+      The delay length.
+    indices: optional, int, JaxArray, ndarray
+      The indices of the delay.
+
+    Returns
+    -------
+    delay_data: JaxArray, ndarray
+      The delay data at the given time.
+    """
+    if name in self.global_delay_vars:
+      if isinstance(delay_step, int):
+        return self.global_delay_vars[name](delay_step, indices)
+      else:
+        if indices is None:
+          indices = jnp.arange(delay_step.size)
+        return self.global_delay_vars[name](delay_step, indices)
+    elif name in self.local_delay_vars:
+      if isinstance(delay_step, int):
+        return self.local_delay_vars[name](delay_step)
+      else:
+        if indices is None:
+          indices = jnp.arange(delay_step.size)
+        return self.local_delay_vars[name](delay_step, indices)
+    else:
+      raise ValueError(f'{name} is not defined in delay variables.')
+
+  def update_delay(
+      self,
+      name: str,
+      delay_data: Union[float, bm.JaxArray, jnp.ndarray]
+  ):
+    """Update the delay according to the delay data.
+
+    Parameters
+    ----------
+    name: str
+      The name of the delay.
+    delay_data: float, JaxArray, ndarray
+      The delay data to update at the current time.
+    """
+    if name in self.local_delay_vars:
+      return self.local_delay_vars[name].update(delay_data)
+    else:
+      if name not in self.global_delay_vars:
+        raise ValueError(f'{name} is not defined in delay variables.')
+
+  def reset_delay(
+      self,
+      name: str,
+      delay_target: Union[bm.JaxArray, jnp.DeviceArray]
+  ):
+    """Reset the delay variable."""
+    if name in self.local_delay_vars:
+      return self.local_delay_vars[name].reset(delay_target)
+    else:
+      if name not in self.global_delay_vars:
+        raise ValueError(f'{name} is not defined in delay variables.')
 
   def update(self, _t, _dt):
     """The function to specify the updating rule.
@@ -356,10 +506,6 @@ class TwoEndConn(DynamicalSystem):
       The name of the dynamic system.
   """
 
-  """Global delay variables. Useful when the same target
-    variable is used in multiple mappings."""
-  global_delay_vars: Dict[str, bm.LengthDelay] = dict()
-
   def __init__(
       self,
       pre: NeuGroup,
@@ -367,8 +513,6 @@ class TwoEndConn(DynamicalSystem):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
       name: str = None
   ):
-    # local delay variables
-    self.local_delay_vars: Dict[str, bm.LengthDelay] = dict()
 
     # pre or post neuron group
     # ------------------------
@@ -425,146 +569,3 @@ class TwoEndConn(DynamicalSystem):
         raise ValueError(f'Must be string. But got {attr}.')
       if not hasattr(self.post, attr):
         raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
-
-  def register_delay(
-      self,
-      name: str,
-      delay_step: Union[int, bm.ndarray, jnp.ndarray, Callable, Initializer],
-      delay_target: Union[bm.JaxArray, jnp.ndarray],
-      initial_delay_data: Union[Initializer, Callable] = None,
-      domain: str = 'global'
-  ):
-    """Register delay variable.
-
-    Parameters
-    ----------
-    name: str
-      The delay variable name.
-    delay_step: int, JaxArray, ndarray, callable, Initializer
-      The number of the steps of the delay.
-    delay_target: JaxArray, ndarray, Variable
-      The target for delay.
-    initial_delay_data: float, int, JaxArray, ndarray, callable, Initializer
-      The initializer for the delay data.
-    domain: str
-      The domain of the delay data to store.
-
-    Returns
-    -------
-    delay_step: int, JaxArray, ndarray
-      The number of the delay steps.
-    """
-    # delay steps
-    if delay_step is None:
-      return delay_step
-    elif isinstance(delay_step, int):
-      delay_type = 'homo'
-    elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
-      delay_type = 'heter'
-      delay_step = bm.asarray(delay_step)
-    elif callable(delay_step):
-      delay_step = init_param(delay_step, delay_target.shape, allow_none=False)
-      delay_type = 'heter'
-    else:
-      raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
-                       f'integer, array of integers, callable function, brainpy.init.Initializer.')
-    if delay_type == 'heter':
-      if delay_step.dtype not in [bm.int32, bm.int64]:
-        raise ValueError('Only support delay steps of int32, int64. If your '
-                         'provide delay time length, please divide the "dt" '
-                         'then provide us the number of delay steps.')
-      if delay_target.shape[0] != delay_step.shape[0]:
-        raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
-    max_delay_step = int(bm.max(delay_step))
-
-    # delay domain
-    if domain not in ['global', 'local']:
-      raise ValueError('"domain" must be a string in ["global", "local"]. '
-                       f'Bug we got {domain}.')
-
-    # delay variable
-    if domain == 'local':
-      self.local_delay_vars[name] = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
-      self.register_implicit_nodes(self.local_delay_vars)
-    else:
-      if name not in self.global_delay_vars:
-        self.global_delay_vars[name] = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
-        # save into local delay vars when first seen "var",
-        # for later update current value!
-        self.local_delay_vars[name] = self.global_delay_vars[name]
-      else:
-        if self.global_delay_vars[name].num_delay_step - 1 < max_delay_step:
-          self.global_delay_vars[name].reset(delay_target, max_delay_step, initial_delay_data)
-      self.register_implicit_nodes(self.global_delay_vars)
-    return delay_step
-
-  def get_delay_data(
-      self,
-      name: str,
-      delay_step: Union[int, bm.JaxArray, jnp.DeviceArray],
-      indices: Union[int, bm.JaxArray, jnp.DeviceArray] = None,
-  ):
-    """Get delay data according to the provided delay steps.
-
-    Parameters
-    ----------
-    name: str
-      The delay variable name.
-    delay_step: int, JaxArray, ndarray
-      The delay length.
-    indices: optional, int, JaxArray, ndarray
-      The indices of the delay.
-
-    Returns
-    -------
-    delay_data: JaxArray, ndarray
-      The delay data at the given time.
-    """
-    if name in self.global_delay_vars:
-      if isinstance(delay_step, int):
-        return self.global_delay_vars[name](delay_step, indices)
-      else:
-        if indices is None:
-          indices = jnp.arange(delay_step.size)
-        return self.global_delay_vars[name](delay_step, indices)
-    elif name in self.local_delay_vars:
-      if isinstance(delay_step, int):
-        return self.local_delay_vars[name](delay_step)
-      else:
-        if indices is None:
-          indices = jnp.arange(delay_step.size)
-        return self.local_delay_vars[name](delay_step, indices)
-    else:
-      raise ValueError(f'{name} is not defined in delay variables.')
-
-  def update_delay(
-      self,
-      name: str,
-      delay_data: Union[float, bm.JaxArray, jnp.ndarray]
-  ):
-    """Update the delay according to the delay data.
-
-    Parameters
-    ----------
-    name: str
-      The name of the delay.
-    delay_data: float, JaxArray, ndarray
-      The delay data to update at the current time.
-    """
-    if name in self.local_delay_vars:
-      return self.local_delay_vars[name].update(delay_data)
-    else:
-      if name not in self.global_delay_vars:
-        raise ValueError(f'{name} is not defined in delay variables.')
-
-  def reset_delay(
-      self,
-      name: str,
-      delay_target: Union[bm.JaxArray, jnp.DeviceArray]
-  ):
-    """Reset the delay variable."""
-    if name in self.local_delay_vars:
-      return self.local_delay_vars[name].reset(delay_target)
-    else:
-      if name not in self.global_delay_vars:
-        raise ValueError(f'{name} is not defined in delay variables.')

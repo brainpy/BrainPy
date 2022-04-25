@@ -89,7 +89,7 @@ class RateFHN(NeuGroup):
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
-      method: str = None,
+      method: str = 'exp_auto',
       sde_method: str = None,
       name: str = None,
   ):
@@ -556,7 +556,7 @@ class StuartLandauOscillator(RateGroup):
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
-      method: str = None,
+      method: str = 'exp_auto',
       sde_method: str = None,
       name: str = None,
   ):
@@ -673,7 +673,7 @@ class WilsonCowanModel(RateGroup):
       wII: Union[float, Tensor, Initializer, Callable] = 11.,  # local I-I coupling
 
       # Refractory parameter
-      r: Union[float, Tensor, Initializer, Callable] = 1,
+      r: Union[float, Tensor, Initializer, Callable] = 1.,
 
       # noise parameters
       x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
