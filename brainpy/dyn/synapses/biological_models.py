@@ -191,7 +191,7 @@ class AMPA(TwoEndConn):
     # variables
     self.g = bm.Variable(bm.zeros(self.pre.num))
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
-    self.delay_step = self.register_delay(self.pre.name + '.spike',
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike",
                                           delay_step=delay_step,
                                           delay_target=self.pre.spike)
 
@@ -201,7 +201,7 @@ class AMPA(TwoEndConn):
   def reset(self):
     self.g.value = bm.zeros(self.pre.num)
     if self.delay_step is not None:
-      self.reset_delay(self.pre.name + '.spike', self.pre.spike)
+      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
 
   def dg(self, g, t, TT):
     dg = self.alpha * TT * (1 - g) - self.beta * g
@@ -212,8 +212,8 @@ class AMPA(TwoEndConn):
     if self.delay_step is None:
       pre_spike = self.pre.spike
     else:
-      pre_spike = self.get_delay_data(self.pre.name + '.spike', self.delay_step)
-      self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # spike arrival time
     self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)

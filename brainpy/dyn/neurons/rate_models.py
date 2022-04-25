@@ -673,7 +673,7 @@ class WilsonCowanModel(RateGroup):
       wII: Union[float, Tensor, Initializer, Callable] = 11.,  # local I-I coupling
 
       # Refractory parameter
-      r: Union[float, Tensor, Initializer, Callable] = 1,
+      r: Union[float, Tensor, Initializer, Callable] = 1.,
 
       # noise parameters
       x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
@@ -749,7 +749,6 @@ class WilsonCowanModel(RateGroup):
     if self.y_ou is not None:
       self.y_ou.reset()
 
-  # functions
   def F(self, x, a, theta):
     return 1 / (1 + bm.exp(-a * (x - theta))) - 1 / (1 + bm.exp(a * theta))
 
