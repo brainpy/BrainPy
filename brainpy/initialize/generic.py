@@ -16,7 +16,7 @@ __all__ = [
 
 
 def init_param(
-    param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray, float],
+    param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray, float, int, bool],
     size: Shape,
     allow_none: bool = True
 ):
@@ -24,7 +24,7 @@ def init_param(
 
   Parameters
   ----------
-  param: callable, Initializer, bm.ndarray, jnp.ndarray
+  param: callable, Initializer, bm.ndarray, jnp.ndarray, float, int, bool
     The initialization of the parameter.
     - If it is None, the created parameter will be None.
     - If it is a callable function :math:`f`, the ``f(size)`` will be returned.
@@ -47,7 +47,7 @@ def init_param(
     else:
       raise ValueError(f'Expect a parameter with type of float, JaxArray, Initializer, or '
                        f'Callable function, but we got None. ')
-  elif isinstance(param, float):
+  elif isinstance(param, (float, int, bool)):
     return param
   elif callable(param):
     param = bm.asarray(param(size))
