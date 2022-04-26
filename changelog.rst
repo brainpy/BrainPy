@@ -6,14 +6,22 @@ brainpy 2.x (LTS)
 *****************
 
 
-Version 2.1.6 (2022.04.20)
+Version 2.1.7 (2022.04.22)
 ==========================
 
 
 What's Changed
 ~~~~~~~~~~~~~~
 
+* synapse models support heterogeneuos weights by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#170 <https://github.com/PKU-NIP-Lab/BrainPy/pull/170>`_
+* more efficient synapse implementation by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#171 <https://github.com/PKU-NIP-Lab/BrainPy/pull/171>`_
+* fix input models in brainpy.dyn by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#172 <https://github.com/PKU-NIP-Lab/BrainPy/pull/172>`_
+* fix: np array astype by `@ztqakita <https://github.com/ztqakita>`_ in `#173 <https://github.com/PKU-NIP-Lab/BrainPy/pull/173>`_
+* update README: 'brain-py' to 'brainpy' by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#174 <https://github.com/PKU-NIP-Lab/BrainPy/pull/174>`_
+* fix: fix the updating rules in the STP model by `@c-xy17 <https://github.com/c-xy17>`_ in `#176 <https://github.com/PKU-NIP-Lab/BrainPy/pull/176>`_
+* Updates and fixes by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#177 <https://github.com/PKU-NIP-Lab/BrainPy/pull/177>`_
 
+**Full Changelog**\ : `V2.1.5...V2.1.7 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.5...V2.1.7>`_
 
 
 Version 2.1.5 (2022.04.18)
