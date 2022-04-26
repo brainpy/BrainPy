@@ -287,21 +287,26 @@ class LengthDelay(AbstractDelay):
       self,
       delay_target: Union[ndarray, jnp.ndarray],
       delay_len: int,
-      initial_delay_data: Union[float, int, ndarray, jnp.ndarray, Callable] = None,
+      initial_delay_data: Union[float, int, bool, ndarray, jnp.ndarray, Callable] = None,
       name: str = None,
   ):
     super(LengthDelay, self).__init__(name=name)
 
     # attributes and variables
-    self.shape: Tuple[int] = None
     self.num_delay_step: int = None
+    self.shape: Tuple[int] = None
     self.idx: Variable = None
     self.data: Variable = None
 
     # initialization
     self.reset(delay_target, delay_len, initial_delay_data)
 
-  def reset(self, delay_target, delay_len=None, initial_delay_data=None):
+  def reset(
+      self,
+      delay_target,
+      delay_len=None,
+      initial_delay_data=None
+  ):
     if not isinstance(delay_target, (ndarray, jnp.ndarray)):
       raise ValueError(f'Must be an instance of brainpy.math.ndarray '
                        f'or jax.numpy.ndarray. But we got {type(delay_target)}')
@@ -327,7 +332,7 @@ class LengthDelay(AbstractDelay):
     self.data[-1] = delay_target
     if initial_delay_data is None:
       pass
-    elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int)):
+    elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int, bool)):
       self.data[:-1] = initial_delay_data
     elif callable(initial_delay_data):
       self.data[:-1] = initial_delay_data((delay_len,) + self.shape, dtype=delay_target.dtype)

@@ -31,22 +31,21 @@ class Network(bp.dyn.Network):
     # ConnectomeDB of the Human Connectome Project (HCP)
     # from the following link:
     # - https://share.weiyun.com/wkPpARKy
-    hcp = np.load('hcp.npz')
+    hcp = np.load('data/hcp.npz')
     conn_mat = bm.asarray(hcp['Cmat'])
     bm.fill_diagonal(conn_mat, 0)
     delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.get_dt())
+    bm.fill_diagonal(delay_mat, 0)
 
-    self.fhn = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01,
-                              name='fhn', method='exp_auto')
-    self.coupling = bp.dyn.DiffusiveDelayCoupling(self.fhn, self.fhn,
-                                                  'x->input',
-                                                  conn_mat=conn_mat,
-                                                  delay_mat=delay_mat,
-                                                  delay_initializer=bp.init.Uniform(0, 0.05))
+    self.fhn = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+    self.coupling = bp.dyn.DiffusiveCoupling(self.fhn.x, self.fhn.x, self.fhn.input,
+                                             conn_mat=conn_mat,
+                                             delay_steps=delay_mat.astype(bm.int_),
+                                             initial_delay_data=bp.init.Uniform(0, 0.05))
 
-  def update(self, _t, _dt):
-    self.coupling.update(_t, _dt)
-    self.fhn.update(_t, _dt)
+  def update(self, t, dt):
+    self.coupling.update(t, dt)
+    self.fhn.update(t, dt)
 
 
 def brain_simulation():
@@ -65,6 +64,5 @@ def brain_simulation():
 
 
 if __name__ == '__main__':
-    bifurcation_analysis()
-    brain_simulation()
-
+  # bifurcation_analysis()
+  brain_simulation()

@@ -89,7 +89,7 @@ class RateFHN(NeuGroup):
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
-      method: str = None,
+      method: str = 'exp_auto',
       sde_method: str = None,
       name: str = None,
   ):
@@ -556,7 +556,7 @@ class StuartLandauOscillator(RateGroup):
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
-      method: str = None,
+      method: str = 'exp_auto',
       sde_method: str = None,
       name: str = None,
   ):
