@@ -7,3 +7,4 @@ Math Basics
    overview
    tensors_and_variables
    jit_compilation
+   control_flows

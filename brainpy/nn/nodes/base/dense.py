@@ -15,12 +15,12 @@ from brainpy.tools.checking import (check_shape_consistency,
 from brainpy.types import Tensor
 
 __all__ = [
-  'GeneralDense',
+  'DenseMD',
   'Dense',
 ]
 
 
-class GeneralDense(Node):
+class DenseMD(Node):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -51,7 +51,7 @@ class GeneralDense(Node):
       trainable: bool = True,
       **kwargs
   ):
-    super(GeneralDense, self).__init__(trainable=trainable, **kwargs)
+    super(DenseMD, self).__init__(trainable=trainable, **kwargs)
 
     # shape
     self.num_unit = num_unit
@@ -104,7 +104,7 @@ class GeneralDense(Node):
     return res
 
 
-class Dense(GeneralDense):
+class Dense(DenseMD):
   r"""A linear transformation.
 
   Different from :py:class:`GeneralDense`, this class only supports 2D input data.
@@ -148,7 +148,7 @@ class Dense(GeneralDense):
     if other_size != (None,):
       raise ValueError(f'{self.__class__.__name__} only support 2D inputs, while '
                        f'we got {len(other_size) + 1}-D shapes. For >2D inputs, '
-                       f'you should use brainpy.nn.{GeneralDense.__name__} instead. ')
+                       f'you should use brainpy.nn.{DenseMD.__name__} instead. ')
     super(Dense, self).init_ff_conn()
 
   def init_fb_conn(self):
@@ -156,7 +156,7 @@ class Dense(GeneralDense):
     if other_size != (None,):
       raise ValueError(f'{self.__class__.__name__} only support 2D inputs, while '
                        f'we got {len(other_size) + 1}-D shapes. For >2D inputs, '
-                       f'you should use brainpy.nn.{GeneralDense.__name__} instead. ')
+                       f'you should use brainpy.nn.{DenseMD.__name__} instead. ')
     super(Dense, self).init_fb_conn()
 
   def offline_fit(

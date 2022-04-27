@@ -116,16 +116,12 @@ Windows
 
 For **Windows** users, JAX can be installed by the following methods:
 
-**Method 1**: There are several community supported Windows build for jax, please refer
-to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
-Simply speaking, the provided binary releases of JAX for Windows
-are available at https://whls.blob.core.windows.net/unstable/index.html .
+- **Method 1**: There are several community supported Windows build for jax, please refer
+  to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
+  Simply speaking, the provided binary releases of JAX for Windows
+  are available at https://whls.blob.core.windows.net/unstable/index.html .
 
-**Method 2**: For Windows 10+ system, you can use `Windows Subsystem for Linux (WSL)`_.
-The installation guide can be found in `WSL Installation Guide for Windows 10`_.
-Then, you can install JAX in WSL just like the installation step in Linux/MacOs.
-
-You can download the preferred release ".whl" file, and install it via ``pip``:
+  You can download the preferred release ".whl" file, and install it via ``pip``:
 
 .. code-block:: bash
 
@@ -133,8 +129,12 @@ You can download the preferred release ".whl" file, and install it via ``pip``:
 
     pip install jax
 
+- **Method 2**: For Windows 10+ system, you can use `Windows Subsystem for Linux (WSL)`_.
+  The installation guide can be found in `WSL Installation Guide for Windows 10`_.
+  Then, you can install JAX in WSL just like the installation step in Linux/MacOs.
 
-**Method 3**: You can also `build JAX from source`_.
+
+- **Method 3**: You can also `build JAX from source`_.
 
 
 Other Dependency
