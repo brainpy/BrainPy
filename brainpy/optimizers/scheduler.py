@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 from brainpy.base.base import Base
 from brainpy.errors import MathError
-from brainpy.math.jaxarray import Variable
+import brainpy.math as bm
 
 __all__ = [
   # schedulers
@@ -38,7 +38,7 @@ class Scheduler(Base):
 
     assert isinstance(lr, (float, int))
     self.lr = lr
-    self.step = Variable(jnp.array([0]))
+    self.step = bm.Variable(jnp.array([0]))
 
   def update(self):
     self.step += 1
@@ -96,7 +96,7 @@ class PolynomialDecay(Scheduler):
 
   def __call__(self, i=None):
     i = self.step[0] if i is None else i
-    i = jnp.minimum(i, self.decay_steps)
+    i = bm.minimum(i, self.decay_steps).value
     step_mult = (1 - i / self.decay_steps) ** self.power
     return step_mult * (self.lr - self.final_lr) + self.final_lr
 
