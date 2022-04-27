@@ -13,7 +13,7 @@ __all__ = [
   'matrix_correlation',
   'weighted_correlation',
   'functional_connectivity',
-  'functional_connectivity_dynamics',
+  # 'functional_connectivity_dynamics',
 ]
 
 
