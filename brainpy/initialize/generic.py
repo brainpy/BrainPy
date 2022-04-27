@@ -18,7 +18,7 @@ __all__ = [
 def init_param(
     param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray, float, int, bool],
     size: Shape,
-    allow_none: bool = True
+    allow_none: bool = True,
 ):
   """Initialize parameters.
 
@@ -53,7 +53,10 @@ def init_param(
     param = bm.asarray(param(size))
   elif isinstance(param, (onp.ndarray, jnp.ndarray)):
     param = bm.asarray(param)
-  elif isinstance(param, (bm.JaxArray,)):
+  elif isinstance(param, bm.Variable):
+    if bm.size(param) == 1:
+      return param
+  elif isinstance(param, bm.JaxArray):
     param = param
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
