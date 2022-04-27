@@ -123,12 +123,12 @@ class LIF(NeuGroup):
     dvdt = (-V + self.V_rest + I_ext) / self.tau
     return dvdt
 
-  def update(self, _t, _dt):
-    refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    V = self.integral(self.V, t, self.input, dt=dt)
     V = bm.where(refractory, self.V, V)
     spike = V >= self.V_th
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
     self.refractory.value = bm.logical_or(refractory, spike)
     self.spike.value = spike
@@ -287,12 +287,12 @@ class ExpIF(NeuGroup):
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I_ext) / self.tau
     return dvdt
 
-  def update(self, _t, _dt):
-    refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    V = self.integral(self.V, t, self.input, dt=dt)
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
     self.refractory.value = bm.logical_or(refractory, spike)
     self.spike.value = spike
@@ -442,10 +442,10 @@ class AdExIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  def update(self, _t, _dt):
-    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, w = self.integral(self.V, self.w, t, self.input, dt=dt)
     spike = V >= self.V_th
-    self.t_last_spike[:] = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike[:] = bm.where(spike, t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
     self.w.value = bm.where(spike, w + self.b, w)
     self.spike.value = spike
@@ -572,12 +572,12 @@ class QuaIF(NeuGroup):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I_ext) / self.tau
     return dVdt
 
-  def update(self, _t, _dt, **kwargs):
-    refractory = (_t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, _t, self.input, dt=_dt)
+  def update(self, t, dt, **kwargs):
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    V = self.integral(self.V, t, self.input, dt=dt)
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
     self.refractory.value = bm.logical_or(refractory, spike)
     self.spike.value = spike
@@ -728,10 +728,10 @@ class AdQuaIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  def update(self, _t, _dt):
-    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, w = self.integral(self.V, self.w, t, self.input, dt=dt)
     spike = self.V_th <= V
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.V.value = bm.where(spike, self.V_reset, V)
     self.w.value = bm.where(spike, w + self.b, w)
     self.spike.value = spike
@@ -910,8 +910,8 @@ class GIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dI1, self.dI2, self.dVth, self.dV])
 
-  def update(self, _t, _dt):
-    I1, I2, V_th, V = self.integral(self.I1, self.I2, self.V_th, self.V, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    I1, I2, V_th, V = self.integral(self.I1, self.I2, self.V_th, self.V, t, self.input, dt=dt)
     spike = self.V_th <= V
     V = bm.where(spike, self.V_reset, V)
     I1 = bm.where(spike, self.R1 * I1 + self.A1, I1)
@@ -1052,12 +1052,12 @@ class Izhikevich(NeuGroup):
     dudt = self.a * (self.b * V - u)
     return dudt
 
-  def update(self, _t, _dt):
-    V, u = self.integral(self.V, self.u, _t, self.input, dt=_dt)
-    refractory = (_t - self.t_last_spike) <= self.tau_ref
+  def update(self, t, dt):
+    V, u = self.integral(self.V, self.u, t, self.input, dt=dt)
+    refractory = (t - self.t_last_spike) <= self.tau_ref
     V = bm.where(refractory, self.V, V)
     spike = self.V_th <= V
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.V.value = bm.where(spike, self.c, V)
     self.u.value = bm.where(spike, u + self.d, u)
     self.refractory.value = bm.logical_or(refractory, spike)
@@ -1233,10 +1233,10 @@ class HindmarshRose(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dy, self.dz])
 
-  def update(self, _t, _dt):
-    V, y, z = self.integral(self.V, self.y, self.z, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, y, z = self.integral(self.V, self.y, self.z, t, self.input, dt=dt)
     self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
-    self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(self.spike, t, self.t_last_spike)
     self.V.value = V
     self.y.value = y
     self.z.value = z
@@ -1380,10 +1380,10 @@ class FHN(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  def update(self, _t, _dt):
-    V, w = self.integral(self.V, self.w, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, w = self.integral(self.V, self.w, t, self.input, dt=dt)
     self.spike.value = bm.logical_and(V >= self.Vth, self.V < self.Vth)
-    self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(self.spike, t, self.t_last_spike)
     self.V.value = V
     self.w.value = w
     self.input[:] = 0.

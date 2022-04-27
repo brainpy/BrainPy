@@ -482,7 +482,7 @@ class _HenonMap(dyn.DynamicalSystem):
     self.x = bm.Variable(bm.zeros(num))
     self.y = bm.Variable(bm.zeros(num))
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     x_new = 1 - self.a * self.x * self.x + self.y
     self.y.value = self.b * self.x
     self.x.value = x_new
@@ -495,7 +495,7 @@ class _LogisticMap(dyn.DynamicalSystem):
     self.mu = mu
     self.x = bm.Variable(bm.ones(num) * 0.2)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     self.x.value = self.mu * self.x * (1 - self.x)
 
 
@@ -529,8 +529,8 @@ class _ModifiedLuChenSystem(dyn.DynamicalSystem):
 
     self.integral = odeint(derivative, method=method)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     self.x.value, self.y.value, self.z.value = self.integral(
-      self.x, self.y, self.z, _t, _dt)
+      self.x, self.y, self.z, t, dt)
     self.z_delay.push(self.z)
-    self.z_delay.update(_t, _dt)
+    self.z_delay.update(t, dt)

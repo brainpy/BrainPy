@@ -27,7 +27,7 @@ __all__ = [
 
 
 class RateGroup(NeuGroup):
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     raise NotImplementedError
 
 
@@ -153,15 +153,15 @@ class RateFHN(NeuGroup):
   def dy(self, y, t, x, y_ext=0.):
     return (x - self.delta - self.epsilon * y) / self.tau + y_ext
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
@@ -330,17 +330,17 @@ class FeedbackFHN(NeuGroup):
                        f'not consistent with the "dt" {self.dt} '
                        f'used in model definition.')
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if check.is_checking():
-      id_tap(self._check_dt, _dt)
+      id_tap(self._check_dt, dt)
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
@@ -497,15 +497,15 @@ class RateQIF(NeuGroup):
     return (x ** 2 + self.eta + x_ext + self.J * y * self.tau -
             (bm.pi * y * self.tau) ** 2) / self.tau
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, t=_t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t=t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
@@ -615,16 +615,16 @@ class StuartLandauOscillator(RateGroup):
   def dy(self, y, t, x, y_ext, a, w):
     return (a - x * x - y * y) * y - w * y + y_ext
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input,
-                         y_ext=y_ext, a=self.a, w=self.w, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input,
+                         y_ext=y_ext, a=self.a, w=self.w, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
@@ -760,15 +760,15 @@ class WilsonCowanModel(RateGroup):
     x = self.wEI * x - self.wII * y + y_ext
     return (-y + (1 - self.r * y) * self.F(x, self.I_a, self.I_theta)) / self.I_tau
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.

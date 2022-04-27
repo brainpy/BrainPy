@@ -34,11 +34,11 @@ class GABAa(bp.dyn.TwoEndConn):
   def int_s(s, t, TT, alpha, beta):
     return alpha * TT * (1 - s) - beta * s
 
-  def update(self, _t, _i, **kwargs):
+  def update(self, t, dt, **kwargs):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
-    self.t_last_pre_spike = bp.math.where(spike, _t, self.t_last_pre_spike)
-    TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
-    self.s = self.int_s(self.s, _t, TT, self.alpha, self.beta)
+    self.t_last_pre_spike = bp.math.where(spike, t, self.t_last_pre_spike)
+    TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
+    self.s = self.int_s(self.s, t, TT, self.alpha, self.beta)
     self.g.push(self.g_max * self.s)
     g = self.g.pull()
     self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
@@ -88,8 +88,8 @@ class HH(bp.dyn.NeuGroup):
 
     return dVdt, self.phi * dhdt, self.phi * dndt
 
-  def update(self, _t, _i, **kwargs):
-    V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
+  def update(self, t, _i, **kwargs):
+    V, h, n = self.integral(self.V, self.h, self.n, t, self.inputs)
     self.spikes[:] = (self.V < self.V_th) * (V >= self.V_th)
     self.V[:] = V
     self.h[:] = h

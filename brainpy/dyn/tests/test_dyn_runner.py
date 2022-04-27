@@ -13,7 +13,7 @@ class TestDSRunner(unittest.TestCase):
         super(ExampleDS, self).__init__()
         self.i = bm.Variable(bm.zeros(1))
 
-      def update(self, _t, _dt):
+      def update(self, t, dt):
         self.i += 1
 
     ds = ExampleDS()

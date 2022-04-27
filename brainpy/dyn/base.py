@@ -231,7 +231,7 @@ class DynamicalSystem(Base):
       if name not in self.global_delay_vars:
         raise ValueError(f'{name} is not defined in delay variables.')
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     """The function to specify the updating rule.
     Assume any dynamical system depends on the time variable ``t`` and
     the time step ``dt``.
@@ -281,7 +281,7 @@ class Container(DynamicalSystem):
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
     self.register_implicit_nodes(ds_dict)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     """Step function of a network.
 
     In this update function, the update functions in children systems are
@@ -289,7 +289,7 @@ class Container(DynamicalSystem):
     """
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     for node in nodes.values():
-      node.update(_t, _dt)
+      node.update(t, dt)
 
   def __getattr__(self, item):
     child_ds = super(Container, self).__getattribute__('implicit_nodes')
@@ -434,7 +434,7 @@ class ConstantDelay(DynamicalSystem):
     else:
       self.data[self.in_idx, self.diag] = value
 
-  def update(self, _t=None, _dt=None, **kwargs):
+  def update(self, t=None, dt=None, **kwargs):
     """Update the delay index."""
     self.in_idx[:] = (self.in_idx + 1) % self.num_step
     self.out_idx[:] = (self.out_idx + 1) % self.num_step
@@ -477,14 +477,14 @@ class NeuGroup(DynamicalSystem):
     # initialize
     super(NeuGroup, self).__init__(name=name)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     """The function to specify the updating rule.
 
     Parameters
     ----------
-    _t : float
+    t : float
       The current time.
-    _dt : float
+    dt : float
       The time step.
     """
     raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '

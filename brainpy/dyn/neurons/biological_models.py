@@ -278,10 +278,10 @@ class HH(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dm, self.dh, self.dn])
 
-  def update(self, _t, _dt):
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt=dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(self.spike, t, self.t_last_spike)
     self.V.value = V
     self.m.value = m
     self.h.value = h
@@ -446,10 +446,10 @@ class MorrisLecar(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dW])
 
-  def update(self, _t, _dt):
-    V, self.W.value = self.integral(self.V, self.W, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, self.W.value = self.integral(self.V, self.W, t, self.input, dt=dt)
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.V.value = V
     self.spike.value = spike
     self.input[:] = 0.

@@ -155,10 +155,10 @@ class FractionalFHR(FractionalNeuron):
   def derivative(self):
     return JointEq([self.dV, self.dw, self.dy])
 
-  def update(self, _t, _dt):
-    V, w, y = self.integral(self.V, self.w, self.y, _t, _dt)
+  def update(self, t, dt):
+    V, w, y = self.integral(self.V, self.w, self.y, t, dt)
     self.spike.value = bm.logical_and(V >= self.Vth, self.V < self.Vth)
-    self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(self.spike, t, self.t_last_spike)
     self.V.value = V
     self.w.value = w
     self.y.value = y
@@ -296,10 +296,10 @@ class FractionalIzhikevich(FractionalNeuron):
   def derivative(self):
     return JointEq([self.dV, self.du])
 
-  def update(self, _t, _dt):
-    V, u = self.integral(self.V, self.u, t=_t, I_ext=self.input, dt=_dt)
+  def update(self, t, dt):
+    V, u = self.integral(self.V, self.u, t=t, I_ext=self.input, dt=dt)
     spikes = V >= self.V_th
-    self.t_last_spike.value = bm.where(spikes, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spikes, t, self.t_last_spike)
     self.V.value = bm.where(spikes, self.c, V)
     self.u.value = bm.where(spikes, u + self.d, u)
     self.spike.value = spikes
