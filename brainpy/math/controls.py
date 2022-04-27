@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Union, Sequence, Any, Dict
+from typing import Union, Sequence, Any, Dict, Callable
 
+import jax.numpy as jnp
 from jax import lax
 from jax.tree_util import tree_flatten, tree_unflatten
 
@@ -21,6 +22,7 @@ __all__ = [
   'make_loop',
   'make_while',
   'make_cond',
+  'cond',
   'ifelse',
 ]
 
@@ -87,11 +89,11 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
 
   >>> import brainpy.math as bm
   >>>
-  >>> a = bm.zeros(1)
+  >>> a = bm.Variable(bm.zeros(1))
   >>> def f(x): a.value += 1.
   >>> loop = bm.make_loop(f, dyn_vars=[a], out_vars=a)
   >>> loop(length=10)
-  JaxArray([[ 1.],
+  Variable([[ 1.],
             [ 2.],
             [ 3.],
             [ 4.],
@@ -101,14 +103,14 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
             [ 8.],
             [ 9.],
             [10.]], dtype=float32)
-  >>> b = bm.zeros(1)
+  >>> b = bm.Variable(bm.zeros(1))
   >>> def f(x):
   >>>   b.value += 1
   >>>   return b + 1
   >>> loop = bm.make_loop(f, dyn_vars=[b], out_vars=b, has_return=True)
   >>> hist_b, hist_b_plus = loop(length=10)
   >>> hist_b
-  JaxArray([[ 1.],
+  Variable([[ 1.],
             [ 2.],
             [ 3.],
             [ 4.],
@@ -317,83 +319,40 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
     if not isinstance(v, JaxArray):
       raise ValueError(f'Only support {JaxArray.__name__}, but got {type(v)}')
 
-  def _true_fun(op):
-    dyn_vals, static_vals = op
-    for v, d in zip(dyn_vars, dyn_vals): v.value = d
-    res = true_fun(static_vals)
-    dyn_vals = [v.value for v in dyn_vars]
-    return dyn_vals, res
+  if len(dyn_vars) > 0:
+    def _true_fun(op):
+      dyn_vals, static_vals = op
+      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      res = true_fun(static_vals)
+      dyn_vals = [v.value for v in dyn_vars]
+      return dyn_vals, res
 
-  def _false_fun(op):
-    dyn_vals, static_vals = op
-    for v, d in zip(dyn_vars, dyn_vals): v.value = d
-    res = false_fun(static_vals)
-    dyn_vals = [v.value for v in dyn_vars]
-    return dyn_vals, res
+    def _false_fun(op):
+      dyn_vals, static_vals = op
+      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      res = false_fun(static_vals)
+      dyn_vals = [v.value for v in dyn_vars]
+      return dyn_vals, res
 
-  def call(pred, x=None):
-    old_values = [v.value for v in dyn_vars]
-    try:
-      turn_on_global_jit()
-      dyn_values, res = lax.cond(pred=pred,
-                                 true_fun=_true_fun,
-                                 false_fun=_false_fun,
-                                 operand=(old_values, x))
-      turn_off_global_jit()
-    except UnexpectedTracerError as e:
-      turn_off_global_jit()
-      for v, d in zip(dyn_vars, old_values): v.value = d
-      raise errors.JaxTracerError(variables=dyn_vars) from e
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
-    return res
+    def call(pred, x=None):
+      old_values = [v.value for v in dyn_vars]
+      try:
+        turn_on_global_jit()
+        dyn_values, res = lax.cond(pred, _true_fun, _false_fun, (old_values, x))
+        turn_off_global_jit()
+      except UnexpectedTracerError as e:
+        turn_off_global_jit()
+        for v, d in zip(dyn_vars, old_values): v.value = d
+        raise errors.JaxTracerError(variables=dyn_vars) from e
+      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      return res
+
+  else:
+    def call(pred, x=None):
+      res = lax.cond(pred, true_fun, false_fun, x)
+      return res
 
   return call
-
-
-def _cond_with_dyn_vars(pred, true_fun, false_fun, operands, dyn_vars):
-  # iterable variables
-  if isinstance(dyn_vars, JaxArray):
-    dyn_vars = (dyn_vars,)
-  elif isinstance(dyn_vars, dict):
-    dyn_vars = tuple(dyn_vars.values())
-  elif isinstance(dyn_vars, (tuple, list)):
-    dyn_vars = tuple(dyn_vars)
-  else:
-    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
-                     f'only support dict/list/tuple of {JaxArray.__name__}')
-  for v in dyn_vars:
-    if not isinstance(v, JaxArray):
-      raise ValueError(f'Only support {JaxArray.__name__}, but got {type(v)}')
-
-  def _true_fun(op):
-    dyn_vals, static_vals = op
-    for v, d in zip(dyn_vars, dyn_vals): v.value = d
-    res = true_fun(static_vals)
-    dyn_vals = [v.value for v in dyn_vars]
-    return dyn_vals, res
-
-  def _false_fun(op):
-    dyn_vals, static_vals = op
-    for v, d in zip(dyn_vars, dyn_vals): v.value = d
-    res = false_fun(static_vals)
-    dyn_vals = [v.value for v in dyn_vars]
-    return dyn_vals, res
-
-  # calling the model
-  old_values = [v.value for v in dyn_vars]
-  try:
-    turn_on_global_jit()
-    dyn_values, res = lax.cond(pred=pred,
-                               true_fun=_true_fun,
-                               false_fun=_false_fun,
-                               operand=(old_values, operands))
-    turn_off_global_jit()
-  except UnexpectedTracerError as e:
-    turn_off_global_jit()
-    for v, d in zip(dyn_vars, old_values): v.value = d
-    raise errors.JaxTracerError(variables=dyn_vars) from e
-  for v, d in zip(dyn_vars, dyn_values): v.value = d
-  return res
 
 
 def _check_f(f):
@@ -401,6 +360,100 @@ def _check_f(f):
     return f
   else:
     return (lambda _: f)
+
+
+def cond(
+    pred: bool,
+    true_fun: Union[Callable, jnp.ndarray, JaxArray, float, int, bool],
+    false_fun: Union[Callable, jnp.ndarray, JaxArray, float, int, bool],
+    operands: Any,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None
+):
+  """Simple conditional statement (if-else) with instance of :py:class:`~.Variable`.
+
+  >>> import brainpy.math as bm
+  >>> a = bm.Variable(bm.zeros(2))
+  >>> b = bm.Variable(bm.ones(2))
+  >>> def true_f(_):  a.value += 1
+  >>> def false_f(_): b.value -= 1
+  >>>
+  >>> bm.cond(True, true_f, false_f, dyn_vars=[a, b])
+  >>> a, b
+  Variable([1., 1.], dtype=float32), Variable([1., 1.], dtype=float32)
+  >>>
+  >>> bm.cond(False, true_f, false_f, dyn_vars=[a, b])
+  >>> a, b
+  Variable([1., 1.], dtype=float32), Variable([0., 0.], dtype=float32)
+
+  Parameters
+  ----------
+  pred: bool
+    Boolean scalar type, indicating which branch function to apply.
+  true_fun: callable, jnp.ndarray, JaxArray, float, int, bool
+    Function to be applied if ``pred`` is True.
+  false_fun: callable, jnp.ndarray, JaxArray, float, int, bool
+    Function to be applied if ``pred`` is False.
+  operands: Any
+    Operands (A) input to branching function depending on ``pred``. The type
+    can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
+  dyn_vars: optional, Variable, sequence of Variable, dict
+    The dynamically changed variables.
+
+  Returns
+  -------
+  res: Any
+    The conditional results.
+  """
+  # checking
+  true_fun = _check_f(true_fun)
+  false_fun = _check_f(false_fun)
+  if dyn_vars is None:
+    dyn_vars = tuple()
+  elif isinstance(dyn_vars, Variable):
+    dyn_vars = (dyn_vars,)
+  elif isinstance(dyn_vars, dict):
+    dyn_vars = tuple(dyn_vars.values())
+  elif isinstance(dyn_vars, (tuple, list)):
+    dyn_vars = tuple(dyn_vars)
+  else:
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {Variable.__name__}')
+  for v in dyn_vars:
+    if not isinstance(v, Variable):
+      raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
+
+  # calling the model
+  if len(dyn_vars) > 0:
+    def _true_fun(op):
+      dyn_vals, static_vals = op
+      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      res = true_fun(static_vals)
+      dyn_vals = [v.value for v in dyn_vars]
+      return dyn_vals, res
+
+    def _false_fun(op):
+      dyn_vals, static_vals = op
+      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      res = false_fun(static_vals)
+      dyn_vals = [v.value for v in dyn_vars]
+      return dyn_vals, res
+
+    old_values = [v.value for v in dyn_vars]
+    try:
+      turn_on_global_jit()
+      dyn_values, res = lax.cond(pred=pred,
+                                 true_fun=_true_fun,
+                                 false_fun=_false_fun,
+                                 operand=(old_values, operands))
+      turn_off_global_jit()
+    except UnexpectedTracerError as e:
+      turn_off_global_jit()
+      # for v, d in zip(dyn_vars, old_values): v.value = d
+      raise errors.JaxTracerError(variables=dyn_vars) from e
+    for v, d in zip(dyn_vars, dyn_values): v.value = d
+  else:
+    res = lax.cond(pred, true_fun, false_fun, operands)
+  return res
 
 
 def ifelse(
@@ -481,33 +534,30 @@ def ifelse(
       raise ValueError(f'Only support brainpy.math.Variable, but we got {type(v)}')
 
   # format new codes
-  code_scope = {'conditions': conditions, 'branches': branches}
-  codes = ['def f(operands):', f'  f0 = branches[{len(conditions)}]']
-  num_cond = len(conditions) - 1
-  if len(dyn_vars) > 0:
-    code_scope['_cond'] = _cond_with_dyn_vars
-    code_scope['dyn_vars'] = dyn_vars
-    for i in range(len(conditions) - 1):
-      codes.append(f'  f{i+1} = lambda r: '
-                   f'_cond(conditions[{num_cond - i}], '
-                   f'branches[{num_cond - i}], f{i}, r, dyn_vars)')
-    codes.append(f'  return _cond(conditions[0], '
-                 f'branches[0], '
-                 f'f{len(conditions) - 1}, '
-                 f'operands, dyn_vars)')
+  if len(conditions) == 1:
+    if len(dyn_vars) > 0:
+      return cond(conditions[0], branches[0], branches[1], operands, dyn_vars)
+    else:
+      return lax.cond(conditions[0], branches[0], branches[1], operands)
   else:
-    code_scope['_cond'] = lax.cond
-    for i in range(len(conditions) - 1):
-      codes.append(f'  f{i+1} = lambda r: '
-                   f'_cond(conditions[{num_cond - i}], '
-                   f'branches[{num_cond - i}], f{i}, r)')
-    codes.append(f'  return _cond(conditions[0], '
-                 f'branches[0], '
-                 f'f{len(conditions) - 1}, '
-                 f'operands)')
-  codes = '\n'.join(codes)
-  if show_code:
-    print(codes)
-  exec(compile(codes.strip(), '', 'exec'), code_scope)
-  f = code_scope['f']
-  return f(operands)
+    code_scope = {'conditions': conditions, 'branches': branches}
+    codes = ['def f(operands):',
+             f'  f0 = branches[{len(conditions)}]']
+    num_cond = len(conditions) - 1
+    if len(dyn_vars) > 0:
+      code_scope['_cond'] = cond
+      code_scope['dyn_vars'] = dyn_vars
+      for i in range(len(conditions) - 1):
+        codes.append(f'  f{i + 1} = lambda r: _cond(conditions[{num_cond - i}], '
+                     f'branches[{num_cond - i}], f{i}, r, dyn_vars)')
+      codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, operands, dyn_vars)')
+    else:
+      code_scope['_cond'] = lax.cond
+      for i in range(len(conditions) - 1):
+        codes.append(f'  f{i + 1} = lambda r: _cond(conditions[{num_cond - i}], branches[{num_cond - i}], f{i}, r)')
+      codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, operands)')
+    codes = '\n'.join(codes)
+    if show_code: print(codes)
+    exec(compile(codes.strip(), '', 'exec'), code_scope)
+    f = code_scope['f']
+    return f(operands)

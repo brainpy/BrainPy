@@ -688,13 +688,30 @@ class RecurrentNode(Node):
 
   - Self-connection when using ``plot_node_graph()`` function
   - Set trainable state with ``state_trainable=True``.
+
+  Parameters
+  ----------
+  name: str
+    The name of the node.
+  input_shape: int, sequence of int
+    The shape of the input data.
+  state_trainable: bool
+    Whether train the model state or not. Default is False.
+  trainable: bool
+    Whether train the model or not. Default is True.
+
+    .. versionchanged:: 2.1.8.1
+       The faultvalue of ``trainable`` changed from False to True in version 2.1.8.1.
+
   """
 
-  def __init__(self,
-               name: Optional[str] = None,
-               input_shape: Optional[Union[Sequence[int], int]] = None,
-               trainable: bool = False,
-               state_trainable: bool = False):
+  def __init__(
+      self,
+      name: Optional[str] = None,
+      input_shape: Optional[Union[Sequence[int], int]] = None,
+      trainable: bool = True,
+      state_trainable: bool = False
+  ):
     self._state_trainable = state_trainable
     self._train_state = None
     super(RecurrentNode, self).__init__(name=name,
