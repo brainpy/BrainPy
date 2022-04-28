@@ -132,16 +132,13 @@ class PoissonGroup(NeuGroup):
 
     # variables
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
     self.rng = bm.random.RandomState(seed=seed)
 
   def update(self, t, _i):
     self.spike.update(self.rng.random(self.num) <= self.freqs * self.dt)
-    self.t_last_spike.update(bm.where(self.spike, t, self.t_last_spike))
 
   def reset(self):
     self.spike[:] = False
-    self.t_last_spike[:] = -1e7
     self.rng.seed(self.seed)
 
 

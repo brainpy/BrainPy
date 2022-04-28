@@ -235,7 +235,6 @@ class HH(NeuGroup):
     self.V = bm.Variable(init_param(self._V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -247,7 +246,6 @@ class HH(NeuGroup):
     self.V.value = init_param(self._V_initializer, (self.num,))
     self.input[:] = 0
     self.spike[:] = False
-    self.t_last_spike[:] = -1e7
 
   def dm(self, m, t, V):
     alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
@@ -281,7 +279,6 @@ class HH(NeuGroup):
   def update(self, t, dt):
     V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt=dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    self.t_last_spike.value = bm.where(self.spike, t, self.t_last_spike)
     self.V.value = V
     self.m.value = m
     self.h.value = h
@@ -416,7 +413,6 @@ class MorrisLecar(NeuGroup):
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -426,7 +422,6 @@ class MorrisLecar(NeuGroup):
     self.V.value = init_param(self._V_initializer, (self.num,))
     self.input.value = bm.zeros(self.num)
     self.spike.value = bm.zeros(self.num, dtype=bool)
-    self.t_last_spike.value = bm.ones(self.num) * -1e7
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
@@ -449,7 +444,111 @@ class MorrisLecar(NeuGroup):
   def update(self, t, dt):
     V, self.W.value = self.integral(self.V, self.W, t, self.input, dt=dt)
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.V.value = V
     self.spike.value = spike
+    self.input[:] = 0.
+
+
+class PinskyRinzelModel(NeuGroup):
+  def __init__(
+      self,
+      size: Shape,
+      ENa: Union[float, Tensor, Initializer, Callable] = 50.,
+      gNa: Union[float, Tensor, Initializer, Callable] = 120.,
+      EK: Union[float, Tensor, Initializer, Callable] = -77.,
+      gK: Union[float, Tensor, Initializer, Callable] = 36.,
+      EL: Union[float, Tensor, Initializer, Callable] = -54.387,
+      gL: Union[float, Tensor, Initializer, Callable] = 0.03,
+      V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      C: Union[float, Tensor, Initializer, Callable] = 1.0,
+      Vs_initializer: Union[Initializer, Callable, Tensor] = Uniform(-70, -60.),
+      Vd_initializer: Union[Initializer, Callable, Tensor] = Uniform(-70, -60.),
+      h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
+      n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
+      method: str = 'exp_auto',
+      name: str = None,
+      record_t_last_spike: bool = False
+  ):
+    # initialization
+    super(PinskyRinzelModel, self).__init__(size=size, name=name)
+
+    # parameters
+    self.ENa = init_param(ENa, self.num, allow_none=False)
+    self.EK = init_param(EK, self.num, allow_none=False)
+    self.EL = init_param(EL, self.num, allow_none=False)
+    self.gNa = init_param(gNa, self.num, allow_none=False)
+    self.gK = init_param(gK, self.num, allow_none=False)
+    self.gL = init_param(gL, self.num, allow_none=False)
+    self.C = init_param(C, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.record_t_last_spike = record_t_last_spike
+
+    # initializers
+    check_initializer(h_initializer, 'h_initializer', allow_none=False)
+    check_initializer(n_initializer, 'n_initializer', allow_none=False)
+    check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
+    check_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
+    self._h_initializer = h_initializer
+    self._n_initializer = n_initializer
+    self._Vs_initializer = Vs_initializer
+    self._Vd_initializer = Vd_initializer
+
+    # variables
+    self.h = bm.Variable(init_param(self._h_initializer, (self.num,)))
+    self.n = bm.Variable(init_param(self._n_initializer, (self.num,)))
+    self.Vs = bm.Variable(init_param(self._Vs_initializer, (self.num,)))
+    self.Vd = bm.Variable(init_param(self._Vd_initializer, (self.num,)))
+    self.input = bm.Variable(bm.zeros(self.num))
+    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+
+    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.h.value = init_param(self._h_initializer, (self.num,))
+    self.n.value = init_param(self._n_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+    self.t_last_spike[:] = -1e7
+
+  def dm(self, m, t, V):
+    alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
+    beta = 4.0 * bm.exp(-(V + 65) / 18)
+    dmdt = alpha * (1 - m) - beta * m
+    return dmdt
+
+  def dh(self, h, t, V):
+    alpha = 0.07 * bm.exp(-(V + 65) / 20.)
+    beta = 1 / (1 + bm.exp(-(V + 35) / 10))
+    dhdt = alpha * (1 - h) - beta * h
+    return dhdt
+
+  def dn(self, n, t, V):
+    alpha = 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
+    beta = 0.125 * bm.exp(-(V + 65) / 80)
+    dndt = alpha * (1 - n) - beta * n
+    return dndt
+
+  def dV(self, V, t, m, h, n, I_ext):
+    I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
+    I_K = (self.gK * n ** 4.0) * (V - self.EK)
+    I_leak = self.gL * (V - self.EL)
+    dVdt = (- I_Na - I_K - I_leak + I_ext) / self.C
+    return dVdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dm, self.dh, self.dn])
+
+  def update(self, t, dt):
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt=dt)
+    self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+    self.t_last_spike.value = bm.where(self.spike, t, self.t_last_spike)
+    self.V.value = V
+    self.m.value = m
+    self.h.value = h
+    self.n.value = n
     self.input[:] = 0.

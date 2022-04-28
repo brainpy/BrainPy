@@ -124,7 +124,6 @@ class FractionalFHR(FractionalNeuron):
     self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral function
     self.integral = GLShortMemory(self.derivative,
@@ -138,7 +137,6 @@ class FractionalFHR(FractionalNeuron):
     self.y.value = init_param(self._y_initializer, (self.num,))
     self.input[:] = 0
     self.spike[:] = False
-    self.t_last_spike[:] = -1e7
     # integral function reset
     self.integral.reset([self.V, self.w, self.y])
 
@@ -158,7 +156,6 @@ class FractionalFHR(FractionalNeuron):
   def update(self, t, dt):
     V, w, y = self.integral(self.V, self.w, self.y, t, dt)
     self.spike.value = bm.logical_and(V >= self.Vth, self.V < self.Vth)
-    self.t_last_spike.value = bm.where(self.spike, t, self.t_last_spike)
     self.V.value = V
     self.w.value = w
     self.y.value = y
@@ -266,7 +263,6 @@ class FractionalIzhikevich(FractionalNeuron):
     self.u = bm.Variable(init_param(u_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # functions
     check_integer(num_step, 'num_step', allow_none=False)
@@ -280,7 +276,6 @@ class FractionalIzhikevich(FractionalNeuron):
     self.u.value = init_param(self._u_initializer, (self.num,))
     self.input[:] = 0
     self.spike[:] = False
-    self.t_last_spike[:] = -1e7
     # integral function reset
     self.integral.reset([self.V, self.u])
 
@@ -299,7 +294,6 @@ class FractionalIzhikevich(FractionalNeuron):
   def update(self, t, dt):
     V, u = self.integral(self.V, self.u, t=t, I_ext=self.input, dt=dt)
     spikes = V >= self.V_th
-    self.t_last_spike.value = bm.where(spikes, t, self.t_last_spike)
     self.V.value = bm.where(spikes, self.c, V)
     self.u.value = bm.where(spikes, u + self.d, u)
     self.spike.value = spikes
