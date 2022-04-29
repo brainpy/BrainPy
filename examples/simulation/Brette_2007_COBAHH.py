@@ -62,8 +62,8 @@ class HH(bp.dyn.NeuGroup):
     # functions
     self.integral = bp.odeint(bp.JointEq([dV, dm, dh, dn]), method=method)
 
-  def update(self, _t, _dt):
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, Isyn=self.input, dt=_dt)
+  def update(self, t, dt):
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, Isyn=self.input, dt=dt)
     self.spike.value = bm.logical_and(self.V < V_th, V >= V_th)
     self.m.value = m
     self.h.value = h

@@ -89,9 +89,9 @@ class SpikeTimeGroup(NeuGroup):
     self.i[0] = 1
     self.spike[:] = False
 
-  def update(self, _t, _i, **kwargs):
+  def update(self, t, _i, **kwargs):
     self.spike[:] = False
-    self._run(_t)
+    self._run(t)
 
 
 def SpikeTimeInput(*args, **kwargs):
@@ -132,16 +132,13 @@ class PoissonGroup(NeuGroup):
 
     # variables
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
     self.rng = bm.random.RandomState(seed=seed)
 
-  def update(self, _t, _i):
+  def update(self, t, _i):
     self.spike.update(self.rng.random(self.num) <= self.freqs * self.dt)
-    self.t_last_spike.update(bm.where(self.spike, _t, self.t_last_spike))
 
   def reset(self):
     self.spike[:] = False
-    self.t_last_spike[:] = -1e7
     self.rng.seed(self.seed)
 
 

@@ -182,7 +182,7 @@ class DiffusiveCoupling(DelayCoupling):
     self.coupling_var1 = coupling_var1
     self.coupling_var2 = coupling_var2
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delay variable
     if self.delay_type != 'none':
       delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
@@ -261,7 +261,7 @@ class AdditiveCoupling(DelayCoupling):
 
     self.coupling_var = coupling_var
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delay variable
     delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
 

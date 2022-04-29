@@ -30,14 +30,14 @@ class LIF(bp.dyn.NeuGroup):
     # functions
     self.integral = bp.odeint(lambda V, t: (- self.gL * (V - self.V_L) + self.input) / self.Cm)
 
-  def update(self, _t, _dt):
-    ref = (_t - self.t_last_spike) <= self.t_refractory
-    V = self.integral(self.V, _t, _dt)
+  def update(self, t, dt):
+    ref = (t - self.t_last_spike) <= self.t_refractory
+    V = self.integral(self.V, t, dt)
     V = bm.where(ref, self.V, V)
     spike = (V >= self.V_th)
     self.V.value = bm.where(spike, self.V_reset, V)
     self.spike.value = spike
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
+    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
     self.refractory.value = bm.logical_or(spike, ref)
     self.input[:] = 0.
 
@@ -58,12 +58,12 @@ class PoissonStim(bp.dyn.NeuGroup):
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     self.rng = bm.random.RandomState()
 
-  def update(self, _t, _dt):
-    in_interval = bm.logical_and(pre_stimulus_period < _t, _t < pre_stimulus_period + stimulus_period)
+  def update(self, t, dt):
+    in_interval = bm.logical_and(pre_stimulus_period < t, t < pre_stimulus_period + stimulus_period)
     prev_freq = bm.where(in_interval, self.freq[0], 0.)
-    in_interval = bm.logical_and(in_interval, (_t - self.freq_t_last_change[0]) >= self.t_interval)
+    in_interval = bm.logical_and(in_interval, (t - self.freq_t_last_change[0]) >= self.t_interval)
     self.freq[0] = bm.where(in_interval, self.rng.normal(self.freq_mean, self.freq_var), prev_freq)
-    self.freq_t_last_change[0] = bm.where(in_interval, _t, self.freq_t_last_change[0])
+    self.freq_t_last_change[0] = bm.where(in_interval, t, self.freq_t_last_change[0])
     self.spike.value = self.rng.random(self.num) < self.freq[0] * self.dt
 
 
@@ -177,11 +177,11 @@ class DecisionMaking(bp.dyn.Network):
     self.IA = IA
     self.IB = IB
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     nodes = self.nodes(level=1, include_self=False)
     nodes = nodes.subset(bp.dyn.DynamicalSystem).unique()
     for node in nodes.values():
-      node.update(_t, _dt)
+      node.update(t, dt)
 
 
 net = DecisionMaking(scale=1.)

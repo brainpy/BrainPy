@@ -74,5 +74,5 @@ class OUProcess(NeuGroup):
   def dg(self, x, t):
     return self.sigma
 
-  def update(self, _t, _dt):
-    self.x.value = self.integral(self.x, _t, _dt)
+  def update(self, t, dt):
+    self.x.value = self.integral(self.x, t, dt)
