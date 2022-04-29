@@ -230,6 +230,20 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                header='Base Class')
 
   module_and_name = [
+    ('base', 'Base Class'),
+    ('Na_channels', 'Sodium Channel Models'),
+    ('K_channels', 'Potassium Channel Models'),
+    ('Ca_channels', 'Calcium Channel Models'),
+    ('Ih_channels', 'Ih Channel Models'),
+    ('leaky_channels', 'Leaky Channel Models'),
+  ]
+  write_submodules(module_name='brainpy.dyn.channels',
+                   filename=os.path.join(path, 'channels.rst'),
+                   header='Channel Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  module_and_name = [
     ('biological_models', 'Biological Models'),
     ('fractional_models', 'Fractional-order Models'),
     ('input_models', 'Input Models'),
