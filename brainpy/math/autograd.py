@@ -16,7 +16,7 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose
 from jax.util import safe_map
 
 from brainpy import errors
-from brainpy.math.jaxarray import JaxArray, turn_on_global_jit, turn_off_global_jit
+from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
   'grad',  # gradient of scalar function
@@ -33,19 +33,15 @@ def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
     old_grad_vs = [v.value for v in grad_vars]
     old_dyn_vs = [v.value for v in dyn_vars]
     try:
-      turn_on_global_jit()
       grads, (outputs, new_grad_vs, new_dyn_vs) = grad_func(old_grad_vs,
                                                             old_dyn_vs,
                                                             *args,
                                                             **kwargs)
-      turn_off_global_jit()
     except UnexpectedTracerError as e:
-      turn_off_global_jit()
       for v, d in zip(grad_vars, old_grad_vs): v.value = d
       for v, d in zip(dyn_vars, old_dyn_vs): v.value = d
       raise errors.JaxTracerError(variables=dyn_vars + grad_vars) from e
     except Exception as e:
-      turn_off_global_jit()
       for v, d in zip(grad_vars, old_grad_vs): v.value = d
       for v, d in zip(dyn_vars, old_dyn_vs): v.value = d
       raise e
