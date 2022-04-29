@@ -2,7 +2,7 @@
 
 import math as pm
 import warnings
-from typing import Union, Dict, Callable
+from typing import Union, Dict, Callable, Sequence
 
 import jax.numpy as jnp
 import numpy as np
@@ -12,10 +12,11 @@ from brainpy import tools
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn
-from brainpy.initialize import Initializer, ZeroInit, init_param
 from brainpy.errors import ModelBuildError
-from brainpy.integrators.base import Integrator
-from brainpy.types import Tensor
+from brainpy.initialize import Initializer, init_param, Uniform
+from brainpy.integrators import Integrator, odeint
+from brainpy.tools.others import to_size, size2num
+from brainpy.types import Tensor, Shape
 
 __all__ = [
   'DynamicalSystem',
@@ -23,7 +24,11 @@ __all__ = [
   'Network',
   'ConstantDelay',
   'NeuGroup',
+  'ConNeuGroup',
   'TwoEndConn',
+  'Channel',
+
+  'ContainerWrapper',
 ]
 
 _error_msg = 'Unknown type of the update function: {} ({}). ' \
@@ -56,6 +61,9 @@ class DynamicalSystem(Base):
 
     # local delay variables
     self.local_delay_vars: Dict[str, bm.LengthDelay] = dict()
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(name={self.name})'
 
   @property
   def steps(self):
@@ -231,7 +239,7 @@ class DynamicalSystem(Base):
       if name not in self.global_delay_vars:
         raise ValueError(f'{name} is not defined in delay variables.')
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     """The function to specify the updating rule.
     Assume any dynamical system depends on the time variable ``t`` and
     the time step ``dt``.
@@ -281,7 +289,14 @@ class Container(DynamicalSystem):
         raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
     self.register_implicit_nodes(ds_dict)
 
-  def update(self, _t, _dt):
+  def __repr__(self):
+    cls_name = self.__class__.__name__
+    # split = '\n' + (' ' * (len(cls_name) + 1))
+    split = ', '
+    children = [f'{key}={str(val)}' for key, val in self.implicit_nodes.items()]
+    return f'{cls_name}({split.join(children)})'
+
+  def update(self, t, dt):
     """Step function of a network.
 
     In this update function, the update functions in children systems are
@@ -289,9 +304,17 @@ class Container(DynamicalSystem):
     """
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     for node in nodes.values():
-      node.update(_t, _dt)
+      node.update(t, dt)
+
+  def __getitem__(self, item):
+    """Wrap the slice access (self['']). """
+    if item in self.implicit_nodes:
+      return self.implicit_nodes[item]
+    else:
+      raise ValueError(f'Unknown item {item}, we only found {list(self.implicit_nodes.keys())}')
 
   def __getattr__(self, item):
+    """Wrap the dot access ('self.'). """
     child_ds = super(Container, self).__getattribute__('implicit_nodes')
     if item in child_ds:
       return child_ds[item]
@@ -308,6 +331,20 @@ class Container(DynamicalSystem):
       node.reset()
     for node in (nodes - neuron_groups - synapse_groups).values():
       node.reset()
+
+  @classmethod
+  def has(cls, **children_cls):
+    """
+
+    Parameters
+    ----------
+    children_cls
+
+    Returns
+    -------
+
+    """
+    return ContainerWrapper(master=cls, **children_cls)
 
 
 class Network(Container):
@@ -434,7 +471,7 @@ class ConstantDelay(DynamicalSystem):
     else:
       self.data[self.in_idx, self.diag] = value
 
-  def update(self, _t=None, _dt=None, **kwargs):
+  def update(self, t=None, dt=None, **kwargs):
     """Update the delay index."""
     self.in_idx[:] = (self.in_idx + 1) % self.num_step
     self.out_idx[:] = (self.out_idx + 1) % self.num_step
@@ -459,7 +496,9 @@ class NeuGroup(DynamicalSystem):
     The name of the dynamic system.
   """
 
-  def __init__(self, size, name=None):
+  def __init__(self,
+               size: Shape,
+               name: str = None):
     # size
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
@@ -477,18 +516,19 @@ class NeuGroup(DynamicalSystem):
     # initialize
     super(NeuGroup, self).__init__(name=name)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     """The function to specify the updating rule.
 
     Parameters
     ----------
-    _t : float
+    t : float
       The current time.
-    _dt : float
+    dt : float
       The time step.
     """
     raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '
                               f'implement "update" function.')
+
 
 
 class TwoEndConn(DynamicalSystem):
@@ -569,3 +609,173 @@ class TwoEndConn(DynamicalSystem):
         raise ValueError(f'Must be string. But got {attr}.')
       if not hasattr(self.post, attr):
         raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
+
+
+class Channel(DynamicalSystem):
+  """Abstract channel model."""
+
+  def __init__(
+      self,
+      size: Union[int, Sequence[int]],
+      name: str = None,
+  ):
+    super(Channel, self).__init__(name=name)
+    self.size = to_size(size)
+    self.num = size2num(self.size)
+
+  def update(self, t, dt):
+    raise NotImplementedError('Must be implemented by the subclass.')
+
+  def current(self):
+    raise NotImplementedError('Must be implemented by the subclass.')
+
+  def reset(self):
+    raise NotImplementedError('Must be implemented by the subclass.')
+
+
+class ConNeuGroup(NeuGroup, Container):
+  """Base class to model conductance-based neuron group.
+
+  The standard formulation for a conductance-based model is given as
+
+  .. math::
+
+      C_m {dV \over dt} = \sum_jg_j(E - V) + I_{ext}
+
+  where :math:`g_j=\bar{g}_{j} M^x N^y` is the channel conductance, :math:`E` is the
+  reversal potential, :math:`M` is the activation variable, and :math:`N` is the
+  inactivation variable.
+
+  :math:`M` and :math:`N` have the dynamics of
+
+  .. math::
+
+      {dx \over dt} = \phi_x {x_\infty (V) - x \over \tau_x(V)}
+
+  where :math:`x \in [M, N]`, :math:`\phi_x` is a temperature-dependent factor,
+  :math:`x_\infty` is the steady state, and :math:`\tau_x` is the time constant.
+  Equivalently, the above equation can be written as:
+
+  .. math::
+
+      \frac{d x}{d t}=\phi_{x}\left(\alpha_{x}(1-x)-\beta_{x} x\right)
+
+  where :math:`\alpha_{x}` and :math:`\beta_{x}` are rate constants.
+
+  .. versionadded:: 2.1.9
+
+  Parameters
+  ----------
+  size : int, sequence of int
+    The network size of this neuron group.
+  method: str
+    The numerical integration method.
+  name : optional, str
+    The neuron group name.
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      C: Union[float, Tensor, Initializer, Callable] = 1.,
+      A: Union[float, Tensor, Initializer, Callable] = 1e-3,
+      V_th: Union[float, Tensor, Initializer, Callable] = 0.,
+      V_initializer: Union[Initializer, Callable, Tensor] = Uniform(-70, -60.),
+      method: str = 'exp_auto',
+      name: str = None,
+      **channels
+  ):
+    NeuGroup.__init__(self, size)
+    Container.__init__(self, **channels, name=name)
+
+    # parameters for neurons
+    self.C = C
+    self.A = A
+    self.V_th = V_th
+    self._V_initializer = V_initializer
+
+    # variables
+    self.V = bm.Variable(init_param(V_initializer, self.num, allow_none=False))
+    self.input = bm.Variable(bm.zeros(self.num))
+    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+
+    # function
+    self.integral = odeint(self.derivative, method=method)
+
+  def reset(self):
+    self.V.value = init_param(self._V_initializer, self.num, allow_none=False)
+    self.spike[:] = False
+    self.input[:] = 0
+
+  def derivative(self, V, t):
+    Iext = self.input.value * (1e-3 / self.A)
+    for ch in self.implicit_nodes.values():
+      Iext += ch.current(V)
+    return Iext / self.C
+
+  def update(self, t, dt):
+    V = self.integral(self.V.value, t, dt)
+    for node in self.implicit_nodes.unique().values():
+      node.update(t, dt, self.V.value)
+    self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
+    self.input[:] = 0.
+    self.V.value = V
+
+
+class ContainerWrapper(object):
+  def __init__(self, master, **children):
+    self.master = master
+    self.children_cls = children
+
+    if not isinstance(master, type):
+      raise TypeError(f'"master" should be a type. But we got {master}')
+    # if not issubclass(master, Channel):
+    #   raise TypeError(f'{master} should be a subclass of {Channel.__name__}.')
+    for key, child in children.items():
+      if isinstance(child, type):
+        if not issubclass(child, Channel):
+          raise TypeError(f'{child} should be a subclass of Base.')
+        if child.master_cls is None:
+          raise TypeError(f'{child} should set its master_cls.')
+        if not issubclass(master, child.master_cls):
+          raise TypeError(f'Type does not match. {child} requires a master with type '
+                          f'of {child.master_cls}, but the master now is {master}.')
+      elif isinstance(child, ContainerWrapper):
+        if not issubclass(child.master, Channel):
+          raise TypeError(f'{child.master} should be a subclass of Base.')
+        if child.master.master_cls is None:
+          raise TypeError(f'{child.master} should set its master_cls.')
+        if not issubclass(master, child.master.master_cls):
+          raise TypeError(f'Type does not match. {child.master} requires a master with type '
+                          f'of {child.master.master_cls}, but the master now is {master}.')
+
+      else:
+        raise TypeError(f'The item in children should be a type or '
+                        f'{ContainerWrapper.__name__} instance. But we got {child}')
+
+  def __call__(self, size, *shared_args, shared_kwargs=None, **idv_args):
+    if shared_kwargs is None:
+      shared_kwargs = dict()
+
+    # initialize children classes
+    children = dict()
+    for key, cls in self.children_cls.items():
+      if key in idv_args:
+        pars = idv_args.pop(key)
+      else:
+        pars = dict()
+      children[key] = cls(size, *shared_args, **shared_kwargs, **pars)
+
+    # initialize master class
+    master = self.master(size, *shared_args, **shared_kwargs, **idv_args, **children)
+
+    # assign master or parent to children
+    for child in children.values():
+      child.master = master
+
+    return master
+
+  def __repr__(self):
+    children = [f'{key}={val.__name__}' for key, val in self.children_cls.items()]
+    return f'{self.master.__name__}({", ".join(children)})'

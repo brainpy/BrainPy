@@ -13,6 +13,7 @@ from brainpy.types import Shape, Tensor
 __all__ = [
   'HH',
   'MorrisLecar',
+  'PinskyRinzelModel',
 ]
 
 
@@ -235,7 +236,6 @@ class HH(NeuGroup):
     self.V = bm.Variable(init_param(self._V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -247,7 +247,6 @@ class HH(NeuGroup):
     self.V.value = init_param(self._V_initializer, (self.num,))
     self.input[:] = 0
     self.spike[:] = False
-    self.t_last_spike[:] = -1e7
 
   def dm(self, m, t, V):
     alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
@@ -278,10 +277,9 @@ class HH(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dm, self.dh, self.dn])
 
-  def update(self, _t, _dt):
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt=dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    self.t_last_spike.value = bm.where(self.spike, _t, self.t_last_spike)
     self.V.value = V
     self.m.value = m
     self.h.value = h
@@ -294,7 +292,7 @@ class MorrisLecar(NeuGroup):
 
   **Model Descriptions**
 
-  The Morris-Lecar model [1]_ (Also known as :math:`I_{Ca}+I_K`-model)
+  The Morris-Lecar model [4]_ (Also known as :math:`I_{Ca}+I_K`-model)
   is a two-dimensional "reduced" excitation model applicable to
   systems having two non-inactivating voltage-sensitive conductances.
   This model was named after Cathy Morris and Harold Lecar, who
@@ -358,12 +356,12 @@ class MorrisLecar(NeuGroup):
   References
   ----------
 
-  .. [1] Meier, Stephen R., Jarrett L. Lancaster, and Joseph M. Starobin.
+  .. [4] Meier, Stephen R., Jarrett L. Lancaster, and Joseph M. Starobin.
          "Bursting regimes in a reaction-diffusion system with action
          potential-dependent equilibrium." PloS one 10.3 (2015):
          e0122401.
-  .. [2] http://www.scholarpedia.org/article/Morris-Lecar_model
-  .. [3] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
+  .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
+  .. [6] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
   """
 
   def __init__(
@@ -416,7 +414,6 @@ class MorrisLecar(NeuGroup):
     self.V = bm.Variable(init_param(V_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -426,7 +423,6 @@ class MorrisLecar(NeuGroup):
     self.V.value = init_param(self._V_initializer, (self.num,))
     self.input.value = bm.zeros(self.num)
     self.spike.value = bm.zeros(self.num, dtype=bool)
-    self.t_last_spike.value = bm.ones(self.num) * -1e7
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
@@ -446,10 +442,366 @@ class MorrisLecar(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dW])
 
-  def update(self, _t, _dt):
-    V, self.W.value = self.integral(self.V, self.W, _t, self.input, dt=_dt)
+  def update(self, t, dt):
+    V, self.W.value = self.integral(self.V, self.W, t, self.input, dt=dt)
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    self.t_last_spike.value = bm.where(spike, _t, self.t_last_spike)
     self.V.value = V
     self.spike.value = spike
     self.input[:] = 0.
+
+
+class PinskyRinzelModel(NeuGroup):
+  r"""The Pinsky and Rinsel (1994) model.
+
+  The Pinsky and Rinsel (1994) model [7]_ is a 2-compartment (soma and dendrite),
+  conductance-based (Hodgin-Huxley type) model of a hippocampal CA3 pyramidal
+  neuron. It is a reduced version of an earlier, 19-compartment model by
+  Traub, et. al. (1991) [8]_. This model demonstrates how similar qualitative
+  and quantitative spiking behaviors can be obtained despite the reduction
+  in model complexity.
+
+  Specifically, this model demonstrates calcium bursting behavior and how
+  the 'ping-pong' interplay between somatic and dendritic currents results
+  in a complex shape of the burst.
+
+  .. image:: ../../../../_static/Pinsky-Rinzel-model-illustration.png
+      :align: center
+
+  Mathematically, the model is given by:
+
+  .. math::
+
+     \begin{aligned}
+    &\mathrm{C}_{\mathrm{m}} \mathrm{V}_{\mathrm{s}}^{\prime}=-\mathrm{I}_{\mathrm{Leak}}-\mathrm{I}_{\mathrm{Na}}-\mathrm{I}_{\mathrm{K}_{\mathrm{DR}}}-\frac{\mathrm{I}_{\mathrm{DS}}}{\mathrm{p}}+\frac{\mathrm{I}_{\mathrm{S}_{\mathrm{app}}}}{\mathrm{p}} \\
+    &\mathrm{C}_{\mathrm{m}} \mathrm{V}_{\mathrm{d}}^{\prime}=-\mathrm{I}_{\mathrm{Leak}}-\mathrm{I}_{\mathrm{Ca}}-\mathrm{I}_{\mathrm{K}_{\mathrm{Ca}}}-\mathrm{I}_{\mathrm{K}_{\mathrm{AHP}}}+\frac{\mathrm{I}_{\mathrm{SD}}}{(1-\mathrm{p})}+\frac{\mathrm{I}_{\mathrm{D}_{\mathrm{app}}}}{(1-\mathrm{p})} \\
+    &\frac{\mathrm{dCa}}{\mathrm{dt}}=-0.13 \mathrm{I}_{\mathrm{Ca}}-0.075 \mathrm{Ca}
+    \end{aligned}
+
+  The currents of the model are functions of potentials as follows:
+
+  .. math::
+
+     \begin{aligned}
+      \mathrm{I}_{\mathrm{Na}} &=\mathrm{g}_{\mathrm{Na}} m_{\infty}^{2}\left(\mathrm{~V}_{\mathrm{s}}\right) h\left(\mathrm{~V}_{\mathrm{s}}-\mathrm{V}_{\mathrm{Na}}\right) \\
+      \mathrm{I}_{\mathrm{K}_{\mathrm{DR}}} &=\mathrm{g}_{\mathrm{K}_{\mathrm{DR}}} n\left(\mathrm{~V}_{\mathrm{s}}-\mathrm{V}_{\mathrm{K}}\right) \\
+      \mathrm{I}_{\mathrm{Ca}} &=\mathrm{g}_{\mathrm{Ca}}{ }^{2}\left(\mathrm{~V}_{\mathrm{d}}-\mathrm{V}_{\mathrm{N}}\right) \\
+      \mathrm{I}_{\mathrm{K}_{\mathrm{Ca}}} &=\mathrm{g}_{\mathrm{k}_{\mathrm{Ca}}} C \chi(\mathrm{Ca})\left(\mathrm{V}_{\mathrm{d}}-\mathrm{V}_{\mathrm{Ca}}\right) \\
+      \mathrm{I}_{\mathrm{K}_{\mathrm{AHP}}} &=\mathrm{g}_{\mathrm{K}_{\mathrm{AHP}}} q\left(\mathrm{~V}_{\mathrm{d}}-\mathrm{V}_{\mathrm{K}}\right) \\
+      \mathrm{I}_{\mathrm{SD}} &=-\mathrm{I}_{\mathrm{DS}}=\mathrm{g}_{\mathrm{c}}\left(\mathrm{V}_{\mathrm{d}}-\mathrm{V}_{\mathrm{s}}\right) \\
+      \mathrm{I}_{\mathrm{Leak}} &=\mathrm{g}_{\mathrm{L}}\left(\mathrm{V}-\mathrm{V}_{\mathrm{L}}\right)
+      \end{aligned}
+
+  The activation and inactivation variables should satisfy these equations
+
+  .. math::
+
+     \begin{aligned}
+    \omega^{\prime}(\mathrm{V}) &=\frac{\omega_{\infty}(\mathrm{V})-\omega}{\tau_{\omega}(\mathrm{V})} \\
+    \omega_{\infty}(\mathrm{V}) &=\frac{\alpha_{\omega}(\mathrm{V})}{\alpha_{\omega}(\mathrm{V})+\beta_{\omega}(\mathrm{V})} \\
+    \tau_{\omega}(\mathrm{V}) &=\frac{1}{\alpha_{\omega}(\mathrm{V})+\beta_{\omega}(\mathrm{V})}
+    \end{aligned}
+
+  where, independently, we consider :math:`\omega = h, n, s, m, c, q`.
+
+  The rate functions are defined as follows
+
+  .. math::
+
+     \begin{aligned}
+    \alpha_{m}\left(\mathrm{~V}_{\mathrm{s}}\right) &=\frac{0.32\left(-46.9-\mathrm{V}_{\mathrm{s}}\right)}{\exp \left(\frac{-46.9-\mathrm{V}_{\mathrm{s}}}{4}\right)-1} \\
+    \beta_{m}\left(\mathrm{~V}_{\mathrm{s}}\right) &=\frac{0.28\left(\mathrm{~V}_{\mathrm{s}}+19.9\right)}{\exp \left(\frac{\mathrm{V}_{\mathrm{s}}+19.9}{5}\right)-1}, \\
+    \alpha_{n}\left(\mathrm{~V}_{\mathrm{s}}\right) &=\frac{0.016\left(-24.9-\mathrm{V}_{\mathrm{s}}\right)}{\exp \left(\frac{-24.9-\mathrm{V}_{\mathrm{s}}}{5}\right)-1} \\
+    \beta_{n}\left(\mathrm{~V}_{\mathrm{s}}\right) &=0.25 \exp \left(-1-0.025 \mathrm{~V}_{\mathrm{s}}\right) \\
+    \alpha_{h}\left(\mathrm{~V}_{\mathrm{s}}\right) &=0.128 \exp \left(\frac{-43-\mathrm{V}_{\mathrm{s}}}{18}\right) \\
+    \beta_{h}\left(\mathrm{~V}_{\mathrm{s}}\right) &=\frac{4}{1+\exp \left(\frac{\left(-20-\mathrm{V}_{\mathrm{s}}\right.}{5}\right)}, \\
+    \alpha_{s}\left(\mathrm{~V}_{\mathrm{d}}\right) &=\frac{1.6}{1+\exp \left(-0.072\left(\mathrm{~V}_{\mathrm{d}}-5\right)\right)} \\
+    \beta_{s}\left(\mathrm{~V}_{\mathrm{d}}\right) &=\frac{0.02\left(\mathrm{~V}_{\mathrm{d}}+8.9\right)}{\exp \left(\frac{\left(\mathrm{V}_{\mathrm{d}}+8.9\right)}{5}\right)-1}, \\
+    \alpha_{C}\left(\mathrm{~V}_{\mathrm{d}}\right) &=\frac{\left(1-H\left(\mathrm{~V}_{\mathrm{d}}+10\right)\right) \exp \left(\frac{\left(\mathrm{V}_{\mathrm{d}}+50\right)}{11}-\frac{\left(\mathrm{V}_{\mathrm{d}}+53.5\right)}{27}\right)}{18.975}+H\left(\mathrm{~V}_{\mathrm{d}}+10\right)\left(2 \exp \left(\frac{\left(-53.5-\mathrm{V}_{\mathrm{d}}\right.}{27}\right)\right) \\
+    \beta_{C}\left(\mathrm{~V}_{\mathrm{d}}\right) &=\left(1-H\left(\mathrm{~V}_{\mathrm{d}}+10\right)\right)\left(2 \exp \left(\frac{\left(-53.5-\mathrm{V}_{\mathrm{d}}\right)}{27}\right)-\alpha_{c}\left(\mathrm{~V}_{\mathrm{d}}\right)\right) \\
+    \alpha_{q}(\mathrm{Ca}) &=\min (0.00002 \mathrm{Ca}, 0.01) \\
+    \beta_{q}(\mathrm{Ca}) &=0.001 \\
+    \chi(\mathrm{Ca}) &=\min \left(\frac{\mathrm{Ca}}{250}, 1\right)
+    \end{aligned}
+
+  The standard values of the parameters are given below. The maximal conductances
+  (in :math:`\mathrm{mS} / \mathrm{cm}^{2}`) are
+  :math:`\bar{g}_{L}=0.1`, :math:`\bar{g}_{\mathrm{Na}}=30`,
+  :math:`\bar{g}_{\mathrm{K}-\mathrm{DR}}=15`,
+  :math:`\bar{g}_{\mathrm{Ca}}=10`,
+  :math:`\bar{g}_{\mathrm{K}-\mathrm{AHP}}=0.8`,
+  :math:`\bar{g}_{\mathrm{K}-\mathrm{C}}=15`,
+  :math:`\bar{g}_{\mathrm{NMDA}}=0.0` and
+  :math:`\bar{g}_{\mathrm{AMPA}}=0.0`.
+  The reversal potentials (in :math:`\mathrm{mV}` ) are
+  :math:`V_{\mathrm{Na}}=120, V_{\mathrm{C}}=140, V_{\mathrm{K}}=-15 \mathrm{mV})`
+  are :math:`V_{\mathrm{Na}}=120, V_{\mathrm{Ca}}=140, V_{\mathrm{K}}=-15, $V_{L}=0`
+  and :math:`V_{\text {Syn }}=60`. The applied currents
+  (in :math:`\mu \mathrm{A} / \mathrm{cm}^{2}` ) are :math:`I_{s}=-0.5` and :math:`I_{d}=0.0`.
+  The coupling parameters are :math:`g_{c}=2.1 \mathrm{mS} / \mathrm{cm}^{2}` and
+  :math:`p=0.5`. The capacitance, :math:`C_{M}`, is
+  :math:`3 \mu \mathrm{F} / \mathrm{cm}^{2}` and :math:`\chi(C a)=\min (C a / 250,1)`.
+  Values for these parameters, and these function definitions, are taken from Traub et al, 1991.
+
+
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  gNa: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of sodium channel.
+  gK: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of potassium delayed-rectifier channel.
+  gCa: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of calcium channel.
+  gAHP: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of potassium after-hyper-polarization channel.
+  gC: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of calcium activated potassium channel.
+  gL: float, JaxArray, ndarray, Initializer, callable
+    The conductance of leaky channel.
+  ENa: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of sodium channel.
+  EK: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of potassium delayed-rectifier channel.
+  ECa: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of calcium channel.
+  EL: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of leaky channel.
+  gc: float, JaxArray, ndarray, Initializer, callable
+    The coupling strength between the soma and dendrite.
+  V_th: float, JaxArray, ndarray, Initializer, callable
+    The threshold of the membrane spike.
+  Cm: float, JaxArray, ndarray, Initializer, callable
+    The threshold of the membrane spike.
+  A: float, JaxArray, ndarray, Initializer, callable
+    The total cell membrane area, which is normalized to 1.
+  p: float, JaxArray, ndarray, Initializer, callable
+    The proportion of cell area taken up by the soma.
+  Vs_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of somatic membrane potential.
+  Vd_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of dendritic membrane potential.
+  Ca_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of Calcium concentration.
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
+
+  References
+  ----------
+  .. [7] Pinsky, Paul F., and John Rinzel. "Intrinsic and network
+         rhythmogenesis in a reduced Traub model for CA3 neurons."
+         Journal of computational neuroscience 1.1 (1994): 39-60.
+  .. [8] Traub, R. D., Wong, R. K., Miles, R., & Michelson, H. (1991).
+         A model of a CA3 hippocampal pyramidal neuron incorporating
+         voltage-clamp data on intrinsic conductances. Journal of
+         neurophysiology, 66(2), 635-650.
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      # maximum conductance
+      gNa: Union[float, Tensor, Initializer, Callable] = 30.,
+      gK: Union[float, Tensor, Initializer, Callable] = 15.,
+      gCa: Union[float, Tensor, Initializer, Callable] = 10.,
+      gAHP: Union[float, Tensor, Initializer, Callable] = 0.8,
+      gC: Union[float, Tensor, Initializer, Callable] = 15.,
+      gL: Union[float, Tensor, Initializer, Callable] = 0.1,
+      # reversal potential
+      ENa: Union[float, Tensor, Initializer, Callable] = 60.,
+      EK: Union[float, Tensor, Initializer, Callable] = -75.,
+      ECa: Union[float, Tensor, Initializer, Callable] = 80.,
+      EL: Union[float, Tensor, Initializer, Callable] = -60.,
+      # other parameters
+      gc: Union[float, Tensor, Initializer, Callable] = 2.1,
+      V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      Cm: Union[float, Tensor, Initializer, Callable] = 3.0,
+      p: Union[float, Tensor, Initializer, Callable] = 0.5,
+      A: Union[float, Tensor, Initializer, Callable] = 1.,
+      # initializers
+      Vs_initializer: Union[Initializer, Callable, Tensor] = OneInit(-64.6),
+      Vd_initializer: Union[Initializer, Callable, Tensor] = OneInit(-64.5),
+      Ca_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.2),
+      # others
+      method: str = 'exp_auto',
+      name: str = None,
+  ):
+    # initialization
+    super(PinskyRinzelModel, self).__init__(size=size, name=name)
+
+    # conductance parameters
+    self.gAHP = init_param(gAHP, self.num, allow_none=False)
+    self.gCa = init_param(gCa, self.num, allow_none=False)
+    self.gNa = init_param(gNa, self.num, allow_none=False)
+    self.gK = init_param(gK, self.num, allow_none=False)
+    self.gL = init_param(gL, self.num, allow_none=False)
+    self.gC = init_param(gC, self.num, allow_none=False)
+
+    # reversal potential parameters
+    self.ENa = init_param(ENa, self.num, allow_none=False)
+    self.ECa = init_param(ECa, self.num, allow_none=False)
+    self.EK = init_param(EK, self.num, allow_none=False)
+    self.EL = init_param(EL, self.num, allow_none=False)
+
+    # other neuronal parameters
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.Cm = init_param(Cm, self.num, allow_none=False)
+    self.gc = init_param(gc, self.num, allow_none=False)
+    self.p = init_param(p, self.num, allow_none=False)
+    self.A = init_param(A, self.num, allow_none=False)
+
+    # initializers
+    check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
+    check_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
+    check_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
+    self._Vs_initializer = Vs_initializer
+    self._Vd_initializer = Vd_initializer
+    self._Ca_initializer = Ca_initializer
+
+    # variables
+    self.Vs = bm.Variable(init_param(self._Vs_initializer, (self.num,)))
+    self.Vd = bm.Variable(init_param(self._Vd_initializer, (self.num,)))
+    self.Ca = bm.Variable(init_param(self._Ca_initializer, (self.num,)))
+    self.h = bm.Variable(self.inf_h(self.Vs))
+    self.n = bm.Variable(self.inf_n(self.Vs))
+    self.s = bm.Variable(self.inf_s(self.Vd))
+    self.c = bm.Variable(self.inf_c(self.Vd))
+    self.q = bm.Variable(self.inf_q(self.Ca))
+    self.Id = bm.Variable(bm.zeros((self.num,)))  # input to soma
+    self.Is = bm.Variable(bm.zeros((self.num,)))  # input to dendrite
+    # self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.Vd.value = init_param(self._Vd_initializer, (self.num,))
+    self.Vs.value = init_param(self._Vs_initializer, (self.num,))
+    self.Ca.value = init_param(self._Ca_initializer, (self.num,))
+    self.h.value = self.inf_h(self.Vs)
+    self.n.value = self.inf_n(self.Vs)
+    self.s.value = self.inf_s(self.Vd)
+    self.c.value = self.inf_c(self.Vd)
+    self.q.value = self.inf_q(self.Ca)
+    self.Id[:] = 0
+    self.Is[:] = 0
+    # self.spike[:] = False
+
+  def dCa(self, Ca, t, s, Vd):
+    ICa = self.gCa * s * s * (Vd - self.ECa)
+    return -0.13 * ICa - 0.075 * Ca
+
+  def dh(self, h, t, Vs): return self.alpha_h(Vs) * (1 - h) - self.beta_h(Vs) * h
+
+  def dn(self, n, t, Vs): return self.alpha_n(Vs) * (1 - n) - self.beta_n(Vs) * n
+
+  def ds(self, s, t, Vd): return self.alpha_s(Vd) * (1 - s) - self.beta_s(Vd) * s
+
+  def dc(self, c, t, Vd): return self.alpha_c(Vd) * (1 - c) - self.beta_c(Vd) * c
+
+  def dq(self, q, t, Ca): return self.alpha_q(Ca) * (1 - q) - self.beta_q(Ca) * q
+
+  def dVs(self, Vs, t, h, n, Vd):
+    I_Na = (self.gNa * self.inf_m(Vs) ** 2 * h) * (Vs - self.ENa)
+    I_KDR = (self.gK * n) * (Vs - self.EK)
+    I_leak = self.gL * (Vs - self.EL)
+    I_gj = self.gc / self.p * (Vd - Vs)
+    dVdt = (- I_Na - I_KDR - I_leak + I_gj + self.Is / self.p) / self.Cm
+    return dVdt
+
+  def dVd(self, Vd, t, s, q, c, Ca, Vs):
+    I_leak = self.gL * (Vd - self.EL)
+    I_Ca = self.gCa * s * s * (Vd - self.ECa)
+    I_AHP = self.gAHP * q * (Vd - self.EK)
+    I_C = self.gC * bm.minimum(Ca / 250., 1.) * (Vd - self.EK)
+    p = 1 - self.p
+    I_gj = self.gc / p * (Vs - Vd)
+    dVdt = (- I_leak - I_Ca - I_AHP - I_C + I_gj + self.Id / p) / self.Cm
+    return dVdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dVs, self.dVd, self.dCa, self.dh, self.dn, self.ds, self.dc, self.dq])
+
+  def update(self, t, dt):
+    Vs, Vd, Ca, h, n, s, c, q = self.integral(Vs=self.Vs.value,
+                                              Vd=self.Vd.value,
+                                              Ca=self.Ca.value,
+                                              h=self.h.value,
+                                              n=self.n.value,
+                                              s=self.s.value,
+                                              c=self.c.value,
+                                              q=self.q.value,
+                                              t=t,
+                                              dt=dt)
+    self.Vs.value = Vs
+    self.Vd.value = Vd
+    self.Ca.value = Ca
+    self.h.value = h
+    self.n.value = n
+    self.s.value = s
+    self.c.value = c
+    self.q.value = q
+    self.Id[:] = 0.
+    self.Is[:] = 0.
+
+  def alpha_m(self, Vs): return 0.32 * (13.1 - (Vs + 60.)) / (bm.exp((13.1 - (Vs + 60.)) / 4.) - 1.)
+
+  def beta_m(self, Vs): return 0.28 * ((Vs + 60.) - 40.1) / (bm.exp(((Vs + 60.) - 40.1) / 5.) - 1.)
+
+  def inf_m(self, Vs):
+    alpha = self.alpha_m(Vs)
+    beta = self.beta_m(Vs)
+    return alpha / (alpha + beta)
+
+  def alpha_n(self, Vs): return 0.016 * (35.1 - (Vs + 60.)) / (bm.exp((35.1 - (Vs + 60.)) / 5) - 1)
+
+  def beta_n(self, Vs): return 0.25 * bm.exp(0.5 - 0.025 * (Vs + 60.))
+
+  def inf_n(self, Vs):
+    alpha = self.alpha_n(Vs)
+    beta = self.beta_n(Vs)
+    return alpha / (alpha + beta)
+
+  def alpha_h(self, Vs): return 0.128 * bm.exp((17. - (Vs + 60.)) / 18.)
+
+  def beta_h(self, Vs): return 4. / (1 + bm.exp((40. - (Vs + 60.)) / 5))
+
+  def inf_h(self, Vs):
+    alpha = self.alpha_h(Vs)
+    beta = self.beta_h(Vs)
+    return alpha / (alpha + beta)
+
+  def alpha_s(self, Vd): return 1.6 / (1 + bm.exp(-0.072 * ((Vd + 60.) - 65.)))
+
+  def beta_s(self, Vd): return 0.02 * ((Vd + 60.) - 51.1) / (bm.exp(((Vd + 60.) - 51.1) / 5.) - 1.)
+
+  def inf_s(self, Vd):
+    alpha = self.alpha_s(Vd)
+    beta = self.beta_s(Vd)
+    return alpha / (alpha + beta)
+
+  def alpha_c(self, Vd):
+    return bm.where((Vd + 60.) <= 50.,
+                    (bm.exp(((Vd + 60.) - 10.) / 11.) - bm.exp(((Vd + 60.) - 6.5) / 27.)) / 18.975,
+                    2. * bm.exp((6.5 - (Vd + 60.)) / 27.))
+
+  def beta_c(self, Vd):
+    alpha_c = (bm.exp(((Vd + 60.) - 10.) / 11.) - bm.exp(((Vd + 60.) - 6.5) / 27.)) / 18.975
+    return bm.where((Vd + 60.) <= 50., 2. * bm.exp((6.5 - (Vd + 60.)) / 27.) - alpha_c, 0.)
+
+  def inf_c(self, Vd):
+    alpha_c = self.alpha_c(Vd)
+    beta_c = self.beta_c(Vd)
+    return alpha_c / (alpha_c + beta_c)
+
+  def alpha_q(self, Ca): return bm.minimum(2e-5 * Ca, 1e-2)
+
+  def beta_q(self, Ca): return 1e-3
+
+  def inf_q(self, Ca):
+    alpha = self.alpha_q(Ca)
+    beta = self.beta_q(Ca)
+    return alpha / (alpha + beta)

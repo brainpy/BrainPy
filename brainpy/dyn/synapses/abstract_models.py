@@ -141,7 +141,7 @@ class DeltaSynapse(TwoEndConn):
     if self.delay_step is not None:
       self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
@@ -342,7 +342,7 @@ class ExpCUBA(TwoEndConn):
     if self.delay_step is not None:
       self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
@@ -376,7 +376,7 @@ class ExpCUBA(TwoEndConn):
           post_vs = pre_spike @ self.g_max
 
     # updates
-    self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_vs
+    self.g.value = self.integral(self.g.value, t, dt=dt) + post_vs
     self.post.input += self.output(self.g)
 
   def output(self, g_post):
@@ -671,7 +671,7 @@ class DualExpCUBA(TwoEndConn):
   def dg(self, g, t, h):
     return -g / self.tau_decay + h
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
@@ -680,7 +680,7 @@ class DualExpCUBA(TwoEndConn):
       self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # update synaptic variables
-    self.g.value, self.h.value = self.integral(self.g, self.h, _t, _dt)
+    self.g.value, self.h.value = self.integral(self.g, self.h, t, dt)
     self.h += pre_spike
 
     # post-synaptic values
@@ -1251,7 +1251,7 @@ class NMDA(TwoEndConn):
   def dx(self, x, t):
     return -x / self.tau_rise
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       delayed_pre_spike = self.pre.spike
@@ -1260,7 +1260,7 @@ class NMDA(TwoEndConn):
       self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # update synapse variables
-    self.g.value, self.x.value = self.integral(self.g, self.x, _t, dt=_dt)
+    self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)
     self.x += delayed_pre_spike
 
     # post-synaptic value

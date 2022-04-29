@@ -281,10 +281,10 @@ class TestExpEulerAuto(unittest.TestCase):
 
         return dVdt
 
-      def update(self, _t, _dt):
-        h = self.int_h(self.h, _t, self.V, dt=_dt)
-        n = self.int_n(self.n, _t, self.V, dt=_dt)
-        V = self.int_V(self.V, _t, self.h, self.n, self.input, dt=_dt)
+      def update(self, t, dt):
+        h = self.int_h(self.h, t, self.V, dt=dt)
+        n = self.int_n(self.n, t, self.V, dt=dt)
+        V = self.int_V(self.V, t, self.h, self.n, self.input, dt=dt)
         self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
         self.V.value = V
         self.h.value = h

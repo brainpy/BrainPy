@@ -26,8 +26,8 @@ class ExpCOBA(bp.dyn.TwoEndConn):
     # function
     self.integral = bp.odeint(lambda g, t: -g / self.tau, method=method)
 
-  def update(self, _t, _dt):
-    self.g.value = self.integral(self.g, _t, dt=_dt)
+  def update(self, t, dt):
+    self.g.value = self.integral(self.g, t, dt=dt)
     self.g += bm.pre2post_event_sum(self.pre.spike, self.pre2post, self.post.num, self.g_max)
     self.post.input += self.g * (self.E - self.post.V)
 

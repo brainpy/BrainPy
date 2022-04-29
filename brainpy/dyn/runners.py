@@ -30,13 +30,13 @@ class DSRunner(Runner):
     The inputs for the target DynamicalSystem. It should be the format
     of `[(target, value, [type, operation])]`, where `target` is the
     input target, `value` is the input value, `type` is the input type
-    (such as "fix" or "iter"), `operation` is the operation for inputs
+    (such as "fix", "iter", "func"), `operation` is the operation for inputs
     (such as "+", "-", "*", "/", "=").
 
     - ``target``: should be a string. Can be specified by the *absolute access* or *relative access*.
     - ``value``: should be a scalar, vector, matrix, iterable function or objects.
     - ``type``: should be a string. "fix" means the input `value` is a constant. "iter" means the
-      input `value` can be changed over time.
+      input `value` can be changed over time. "func" mean the input is obtained through the functional call.
     - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
     - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
       for example ``[(target1, value1), (target2, value2)]``.

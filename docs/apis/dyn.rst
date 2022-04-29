@@ -9,6 +9,7 @@
     :maxdepth: 1
 
     auto/dyn/base
+    auto/dyn/channels
     auto/dyn/neurons
     auto/dyn/synapses
     auto/dyn/runners

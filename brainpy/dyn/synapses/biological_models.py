@@ -207,7 +207,7 @@ class AMPA(TwoEndConn):
     dg = self.alpha * TT * (1 - g) - self.beta * g
     return dg
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
@@ -216,11 +216,11 @@ class AMPA(TwoEndConn):
       self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # spike arrival time
-    self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)
+    self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
 
     # post-synaptic values
-    TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
-    self.g.value = self.integral(self.g, _t, TT, dt=_dt)
+    TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
+    self.g.value = self.integral(self.g, t, TT, dt=dt)
     if isinstance(self.conn, One2One):
       post_g = self.g_max * self.g
     elif isinstance(self.conn, All2All):

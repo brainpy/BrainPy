@@ -38,9 +38,9 @@ class GJCoupledFHN(bp.dyn.DynamicalSystem):
     dw = (V + self.a - self.b * w) / self.tau
     return dw
 
-  def update(self, _t, _dt):
-    self.V.value = self.int_V(self.V, _t, self.w, self.Iext, _dt)
-    self.w.value = self.int_w(self.w, _t, self.V, _dt)
+  def update(self, t, dt):
+    self.V.value = self.int_V(self.V, t, self.w, self.Iext, dt)
+    self.w.value = self.int_w(self.w, t, self.V, dt)
     self.Iext[:] = 0.
 
 
