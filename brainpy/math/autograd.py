@@ -41,6 +41,10 @@ def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
       for v, d in zip(grad_vars, old_grad_vs): v.value = d
       for v, d in zip(dyn_vars, old_dyn_vs): v.value = d
       raise errors.JaxTracerError(variables=dyn_vars + grad_vars) from e
+    except Exception as e:
+      for v, d in zip(grad_vars, old_grad_vs): v.value = d
+      for v, d in zip(dyn_vars, old_dyn_vs): v.value = d
+      raise e
     for v, d in zip(grad_vars, new_grad_vs): v.value = d
     for v, d in zip(dyn_vars, new_dyn_vs): v.value = d
 

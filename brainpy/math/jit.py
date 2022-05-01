@@ -30,7 +30,7 @@ __all__ = [
 logger = logging.getLogger('brainpy.math.jit')
 
 
-def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
+def _make_jit_with_vars(func, vars, static_argnames=None, device=None, f_name=None):
   @functools.partial(jax.jit, static_argnames=static_argnames, device=device)
   def jitted_func(variable_data, *args, **kwargs):
     vars.assign(variable_data)
@@ -46,14 +46,30 @@ def _make_jit(func, vars, static_argnames=None, device=None, f_name=None):
       turn_off_global_jit()
     except UnexpectedTracerError as e:
       turn_off_global_jit()
-      # vars.assign(variable_data)
+      vars.assign(variable_data)
       raise errors.JaxTracerError(variables=vars) from e
     except ConcretizationTypeError as e:
       turn_off_global_jit()
-      # vars.assign(variable_data)
+      vars.assign(variable_data)
       raise errors.ConcretizationTypeError() from e
+    except Exception as e:
+      turn_off_global_jit()
+      vars.assign(variable_data)
+      raise e
     vars.assign(changes)
     return out
+
+  return change_func_name(name=f_name, f=call) if f_name else call
+
+
+def _make_jit_without_vars(func, static_argnames=None, device=None, f_name=None):
+  jit_f = jax.jit(func, static_argnames=static_argnames, device=device)
+
+  def call(*args, **kwargs):
+    turn_on_global_jit()
+    r = jit_f(*args, **kwargs)
+    turn_off_global_jit()
+    return r
 
   return change_func_name(name=f_name, f=call) if f_name else call
 
@@ -194,15 +210,13 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
         dyn_vars = TensorCollector()
 
     if len(dyn_vars) == 0:  # pure function
-      return jax.jit(func,
-                     static_argnames=static_argnames,
-                     device=device)
+      return _make_jit_without_vars(func, static_argnames=static_argnames, device=device)
 
     else:  # Base object which implements __call__, or bounded method of Base object
-      return _make_jit(vars=dyn_vars,
-                       func=func,
-                       static_argnames=static_argnames,
-                       device=device)
+      return _make_jit_with_vars(vars=dyn_vars,
+                                 func=func,
+                                 static_argnames=static_argnames,
+                                 device=device)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '

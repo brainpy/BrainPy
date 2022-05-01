@@ -182,6 +182,10 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
         turn_off_global_jit()
         for v, d in zip(dyn_vars, init_values): v.value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
+      except Exception as e:
+        turn_off_global_jit()
+        for v, d in zip(dyn_vars, init_values): v.value = d
+        raise e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return tree_unflatten(tree, out_values)
 
@@ -260,6 +264,10 @@ def make_while(cond_fun, body_fun, dyn_vars):
       turn_off_global_jit()
       for v, d in zip(dyn_vars, dyn_init): v.value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
+    except Exception as e:
+      turn_off_global_jit()
+      for v, d in zip(dyn_vars, dyn_init): v.value = d
+      raise e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
 
   return call
@@ -344,12 +352,18 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
         turn_off_global_jit()
         for v, d in zip(dyn_vars, old_values): v.value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
+      except Exception as e:
+        turn_off_global_jit()
+        for v, d in zip(dyn_vars, old_values): v.value = d
+        raise e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return res
 
   else:
     def call(pred, x=None):
+      turn_on_global_jit()
       res = lax.cond(pred, true_fun, false_fun, x)
+      turn_off_global_jit()
       return res
 
   return call
@@ -448,11 +462,18 @@ def cond(
       turn_off_global_jit()
     except UnexpectedTracerError as e:
       turn_off_global_jit()
-      # for v, d in zip(dyn_vars, old_values): v.value = d
+      for v, d in zip(dyn_vars, old_values):
+        v.value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
+    except Exception as e:
+      turn_off_global_jit()
+      for v, d in zip(dyn_vars, old_values): v.value = d
+      raise e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
   else:
+    turn_on_global_jit()
     res = lax.cond(pred, true_fun, false_fun, operands)
+    turn_off_global_jit()
   return res
 
 
