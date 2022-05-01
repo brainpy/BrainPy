@@ -40,8 +40,8 @@ def _noise_terms(code_lines, variables, triple_integral=True):
   #     code_lines.append('  ')
 
   for var in variables:
-    code_lines.append(f'  {var}_I1 = random.normal(0.000, dt_sqrt, math.shape({var}))')
-    code_lines.append(f'  {var}_I0 = random.normal(0.000, dt_sqrt, math.shape({var}))')
+    code_lines.append(f'  {var}_I1 = dt_sqrt * random.randn(*math.shape({var}))')
+    code_lines.append(f'  {var}_I0 = dt_sqrt * random.randn(*math.shape({var}))')
     code_lines.append(f'  {var}_I10 = 0.5 * {constants.DT} * ({var}_I1 + {var}_I0 / 3.0 ** 0.5)')
     code_lines.append(f'  {var}_I11 = 0.5 * ({var}_I1 ** 2 - {constants.DT})')
     if triple_integral:
