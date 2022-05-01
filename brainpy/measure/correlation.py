@@ -23,8 +23,8 @@ def _cc(states, i, j):
   sqrt_ij = jnp.sqrt(jnp.sum(states[i]) * jnp.sum(states[j]))
   return lax.cond(sqrt_ij == 0.,
                   lambda _: 0.,
-                  lambda ij: jnp.sum(states[i] * states[j]) / sqrt_ij,
-                  (i, j))
+                  lambda _: jnp.sum(states[i] * states[j]) / sqrt_ij,
+                  None)
 
 
 def cross_correlation(spikes, bin, dt=None):
@@ -51,7 +51,6 @@ def cross_correlation(spikes, bin, dt=None):
   ----------
   spikes :
       The history of spike states of the neuron group.
-      It can be easily get via `StateMonitor(neu, ['spike'])`.
   bin : float, int
       The time bin to normalize spike states.
   dt : float, optional
@@ -148,10 +147,7 @@ def voltage_fluctuation(potentials):
   var_mean = jnp.mean(_var(potentials, jnp.arange(num_neu)))
   avg = jnp.mean(potentials, axis=1)
   avg_var = jnp.mean(avg * avg) - jnp.mean(avg) ** 2
-  return lax.cond(var_mean != 0.,
-                  lambda _: avg_var / var_mean,
-                  lambda _: 1.,
-                  ())
+  return lax.cond(var_mean != 0., lambda _: avg_var / var_mean, lambda _: 1., None)
 
 
 def matrix_correlation(x, y):

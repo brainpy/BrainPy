@@ -54,12 +54,12 @@ def init_param(
   elif isinstance(param, (onp.ndarray, jnp.ndarray)):
     param = bm.asarray(param)
   elif isinstance(param, bm.Variable):
-    if bm.size(param) == 1:
-      return param
+    param = param
   elif isinstance(param, bm.JaxArray):
     param = param
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
-  if param.shape != size:
-    raise ValueError(f'"param.shape" is not consistent with the required size {size}')
+  if param.shape != () and param.shape != (1,) and param.shape != size:
+    raise ValueError(f'The shape of the parameters should be (), (1,) '
+                     f'or {size}, but we got {param.shape}')
   return param
