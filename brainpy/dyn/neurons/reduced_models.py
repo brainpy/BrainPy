@@ -5,8 +5,7 @@ from typing import Union, Callable
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
-from brainpy.integrators.joint_eq import JointEq
-from brainpy.integrators.ode import odeint
+from brainpy.integrators import sdeint, odeint, JointEq
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, Tensor
 
@@ -46,31 +45,34 @@ class LIF(NeuGroup):
 
   - `(Brette, Romain. 2004) LIF phase locking <https://brainpy-examples.readthedocs.io/en/latest/neurons/Romain_2004_LIF_phase_locking.html>`_
 
-  **Model Parameters**
 
-  ============= ============== ======== =========================================
-  **Parameter** **Init Value** **Unit** **Explanation**
-  ------------- -------------- -------- -----------------------------------------
-  V_rest         0              mV       Resting membrane potential.
-  V_reset        -5             mV       Reset potential after spike.
-  V_th           20             mV       Threshold potential of spike.
-  tau            10             ms       Membrane time constant. Compute by R * C.
-  tau_ref       5              ms       Refractory period length.(ms)
-  ============= ============== ======== =========================================
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  V_rest: float, JaxArray, ndarray, Initializer, callable
+    Resting membrane potential.
+  V_reset: float, JaxArray, ndarray, Initializer, callable
+    Reset potential after spike.
+  V_th: float, JaxArray, ndarray, Initializer, callable
+    Threshold potential of spike.
+  tau: float, JaxArray, ndarray, Initializer, callable
+    Membrane time constant.
+  tau_ref: float, JaxArray, ndarray, Initializer, callable
+    Refractory period length.(ms)
+  V_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of membrane potential.
+  noise: JaxArray, ndarray, Initializer, callable
+    The noise added onto the membrane potential
+  noise_type: str
+    The type of the provided noise. Can be `value` or `func`.
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
 
-  **Neuron Variables**
-
-  ================== ================= =========================================================
-  **Variables name** **Initial Value** **Explanation**
-  ------------------ ----------------- ---------------------------------------------------------
-  V                    0                Membrane potential.
-  input                0                External and synaptic input current.
-  spike                False             Flag to mark whether the neuron is spiking.
-  refractory           False             Flag to mark whether the neuron is in refractory period.
-  t_last_spike         -1e7              Last spike time stamp.
-  ================== ================= =========================================================
-
-  **References**
+  References
+  ----------
 
   .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
          neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
@@ -85,6 +87,8 @@ class LIF(NeuGroup):
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       tau_ref: Union[float, Tensor, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
+      noise_type: str = 'value',
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -92,11 +96,18 @@ class LIF(NeuGroup):
     super(LIF, self).__init__(size=size, name=name)
 
     # parameters
+    self.noise_type = noise_type
+    if noise_type not in ['func', 'value']:
+      raise ValueError(f'noise_type only supports `func` and `value`, but we got {noise_type}')
     self.V_rest = init_param(V_rest, self.num, allow_none=False)
     self.V_reset = init_param(V_reset, self.num, allow_none=False)
     self.V_th = init_param(V_th, self.num, allow_none=False)
     self.tau = init_param(tau, self.num, allow_none=False)
     self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
+    if noise_type == 'func':
+      self.noise = noise
+    else:
+      self.noise = init_param(noise, self.num, allow_none=True)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
@@ -110,7 +121,12 @@ class LIF(NeuGroup):
     self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    f = lambda V, t, I_ext: (-V + self.V_rest + I_ext) / self.tau
+    if self.noise is not None:
+      g = noise if (noise_type == 'func') else (lambda V, t, I_ext: self.noise / bm.sqrt(self.tau))
+      self.integral = sdeint(method=method, f=f, g=g)
+    else:
+      self.integral = odeint(method=method, f=f)
 
   def reset(self):
     self.V.value = init_param(self._V_initializer, (self.num,))
@@ -118,10 +134,6 @@ class LIF(NeuGroup):
     self.spike[:] = False
     self.t_last_spike[:] = -1e7
     self.refractory[:] = False
-
-  def derivative(self, V, t, I_ext):
-    dvdt = (-V + self.V_rest + I_ext) / self.tau
-    return dvdt
 
   def update(self, t, dt):
     refractory = (t - self.t_last_spike) <= self.tau_ref

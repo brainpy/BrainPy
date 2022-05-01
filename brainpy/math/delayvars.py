@@ -328,7 +328,7 @@ class LengthDelay(AbstractDelay):
     if self.data is None:
       self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape, dtype=delay_target.dtype))
     else:
-      self.data.value = jnp.zeros((self.num_delay_step,) + self.shape, dtype=delay_target.dtype)
+      self.data._value = jnp.zeros((self.num_delay_step,) + self.shape, dtype=delay_target.dtype)
     self.data[-1] = delay_target
     if initial_delay_data is None:
       pass
