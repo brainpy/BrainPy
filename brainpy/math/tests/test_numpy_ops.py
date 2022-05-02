@@ -37,4 +37,18 @@ class TestNumPyOPS(unittest.TestCase):
     with self.assertRaises(ValueError):
       bm.remove_diag(a)
 
+  def test_fill_diagonal(self):
+    a = bm.arange(10)
+    with self.assertRaises(ValueError):
+      bm.fill_diagonal(a, 0.)
+
+    b = jnp.ones((10, 10))
+    with self.assertRaises(ValueError):
+      bm.fill_diagonal(b, 0)
+
+    bm.random.seed()
+    c = bm.random.rand(10, 10)
+    bm.fill_diagonal(c, 0)
+
+    bm.fill_diagonal(c, bm.arange(10))
 
