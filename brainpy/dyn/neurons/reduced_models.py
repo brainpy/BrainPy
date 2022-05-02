@@ -89,6 +89,7 @@ class LIF(NeuGroup):
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       noise_type: str = 'value',
+      keep_size: bool=False,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -96,29 +97,31 @@ class LIF(NeuGroup):
     super(LIF, self).__init__(size=size, name=name)
 
     # parameters
+    self.keep_size = keep_size
     self.noise_type = noise_type
     if noise_type not in ['func', 'value']:
       raise ValueError(f'noise_type only supports `func` and `value`, but we got {noise_type}')
-    self.V_rest = init_param(V_rest, self.num, allow_none=False)
-    self.V_reset = init_param(V_reset, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
+    size = self.size if keep_size else self.num
+    self.V_rest = init_param(V_rest, size, allow_none=False)
+    self.V_reset = init_param(V_reset, size, allow_none=False)
+    self.V_th = init_param(V_th, size, allow_none=False)
+    self.tau = init_param(tau, size, allow_none=False)
+    self.tau_ref = init_param(tau_ref, size, allow_none=False)
     if noise_type == 'func':
       self.noise = noise
     else:
-      self.noise = init_param(noise, self.num, allow_none=True)
+      self.noise = init_param(noise, size, allow_none=True)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
     self._V_initializer = V_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.V = bm.Variable(init_param(V_initializer, size))
+    self.input = bm.Variable(bm.zeros(size))
+    self.spike = bm.Variable(bm.zeros(size, dtype=bool))
+    self.t_last_spike = bm.Variable(bm.ones(size) * -1e7)
+    self.refractory = bm.Variable(bm.zeros(size, dtype=bool))
 
     # integral
     f = lambda V, t, I_ext: (-V + self.V_rest + I_ext) / self.tau
@@ -129,7 +132,7 @@ class LIF(NeuGroup):
       self.integral = odeint(method=method, f=f)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.size if self.keep_size else self.num)
     self.input[:] = 0
     self.spike[:] = False
     self.t_last_spike[:] = -1e7
