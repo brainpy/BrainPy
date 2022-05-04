@@ -320,9 +320,9 @@ class LengthDelay(AbstractDelay):
 
     # time variables
     if self.idx is None:
-      self.idx = Variable(jnp.asarray([0], dtype=jnp.int32))
+      self.idx = Variable(jnp.asarray([0]))
     else:
-      self.idx.value = jnp.asarray([0], dtype=jnp.int32)
+      self.idx.value = jnp.asarray([0])
 
     # delay data
     if self.data is None:
@@ -349,7 +349,7 @@ class LengthDelay(AbstractDelay):
                        f'maximum delay {self.num_delay_step}. But we '
                        f'got {delay_len}')
 
-  def __call__(self, delay_len, indices=None):
+  def __call__(self, delay_len, *indices):
     # check
     if check.is_checking():
       id_tap(self._check_delay, delay_len)
@@ -358,10 +358,10 @@ class LengthDelay(AbstractDelay):
     if delay_idx.dtype not in [jnp.int32, jnp.int64]:
       raise ValueError(f'"delay_len" must be integer, but we got {delay_len}')
     # the delay data
-    if indices is None:
-      return self.data[delay_idx]
+    if len(indices) > 0:
+      return self.data[delay_idx, *indices]
     else:
-      return self.data[delay_idx, indices]
+      return self.data[delay_idx]
 
   def update(self, value: Union[float, JaxArray, jnp.DeviceArray]):
     if jnp.shape(value) != self.shape:
