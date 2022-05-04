@@ -33,7 +33,7 @@ logger = logging.getLogger('brainpy.math.jit')
 def _make_jit_with_vars(func, vars, static_argnames=None, device=None, f_name=None):
   @functools.partial(jax.jit, static_argnames=static_argnames, device=device)
   def jitted_func(variable_data, *args, **kwargs):
-    vars.assign(variable_data)
+    for key, v in vars.items(): v._value = variable_data[key]
     out = func(*args, **kwargs)
     changes = vars.dict()
     return out, changes
@@ -46,15 +46,15 @@ def _make_jit_with_vars(func, vars, static_argnames=None, device=None, f_name=No
       turn_off_global_jit()
     except UnexpectedTracerError as e:
       turn_off_global_jit()
-      vars.assign(variable_data)
+      for key, v in vars.items(): v._value = variable_data[key]
       raise errors.JaxTracerError(variables=vars) from e
     except ConcretizationTypeError as e:
       turn_off_global_jit()
-      vars.assign(variable_data)
+      for key, v in vars.items(): v._value = variable_data[key]
       raise errors.ConcretizationTypeError() from e
     except Exception as e:
       turn_off_global_jit()
-      vars.assign(variable_data)
+      for key, v in vars.items(): v._value = variable_data[key]
       raise e
     vars.assign(changes)
     return out

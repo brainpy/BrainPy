@@ -38,15 +38,15 @@ def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
                                                             *args,
                                                             **kwargs)
     except UnexpectedTracerError as e:
-      for v, d in zip(grad_vars, old_grad_vs): v.value = d
-      for v, d in zip(dyn_vars, old_dyn_vs): v.value = d
+      for v, d in zip(grad_vars, old_grad_vs): v._value = d
+      for v, d in zip(dyn_vars, old_dyn_vs): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars + grad_vars) from e
     except Exception as e:
-      for v, d in zip(grad_vars, old_grad_vs): v.value = d
-      for v, d in zip(dyn_vars, old_dyn_vs): v.value = d
+      for v, d in zip(grad_vars, old_grad_vs): v._value = d
+      for v, d in zip(dyn_vars, old_dyn_vs): v._value = d
       raise e
-    for v, d in zip(grad_vars, new_grad_vs): v.value = d
-    for v, d in zip(dyn_vars, new_dyn_vs): v.value = d
+    for v, d in zip(grad_vars, new_grad_vs): v._value = d
+    for v, d in zip(dyn_vars, new_dyn_vs): v._value = d
 
     # check returned grads
     if len(grad_vars) == 0:
@@ -133,8 +133,8 @@ def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
     @partial(jax.grad, argnums=argnums, has_aux=True, holomorphic=holomorphic,
              allow_int=allow_int, reduce_axes=reduce_axes)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       # Users should return the auxiliary data like::
       # >>> # 1. example of return one data
       # >>> return scalar_loss, data
@@ -150,8 +150,8 @@ def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
              argnums=argnums, has_aux=True, holomorphic=holomorphic,
              allow_int=allow_int, reduce_axes=reduce_axes)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       # Users should return the scalar value like this::
       # >>> return scalar_loss
       output = func(*args, **kwargs)
@@ -405,8 +405,8 @@ def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
     @partial(_jacrev, argnums=argnums, holomorphic=holomorphic,
              allow_int=allow_int, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       # outputs: [0] is the value for gradient,
       #          [1] is other values for return
       outputs = func(*args, **kwargs)
@@ -417,8 +417,8 @@ def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
     @partial(_jacrev, argnums=argnums, holomorphic=holomorphic,
              allow_int=allow_int, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
       output = outputs.value if isinstance(outputs, JaxArray) else outputs
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
@@ -554,8 +554,8 @@ def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=F
     @partial(_jacfwd,
              argnums=argnums, holomorphic=holomorphic, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       # outputs: [0] is the value for gradient,
       #          [1] is other values for return
       outputs = func(*args, **kwargs)
@@ -566,8 +566,8 @@ def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=F
     @partial(_jacfwd,
              argnums=argnums, holomorphic=holomorphic, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
       output = outputs.value if isinstance(outputs, JaxArray) else outputs
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
@@ -728,8 +728,8 @@ def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
   if has_aux:
     @partial(_vector_grad, argnums=argnums, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
       output = outputs[0].value if isinstance(outputs[0], JaxArray) else outputs[0]
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
@@ -737,8 +737,8 @@ def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
   else:
     @partial(_vector_grad, argnums=argnums, has_aux=True)
     def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
-      for v, d in zip(grad_vars, grad_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
+      for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
       output = outputs.value if isinstance(outputs, JaxArray) else outputs
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
