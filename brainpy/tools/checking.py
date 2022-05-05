@@ -289,13 +289,14 @@ def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_n
     else:
       raise ValueError(f'{name} must be an int, but got None')
   if not isinstance(value, int):
-    raise ValueError(f'{name} must be an int, but got {type(value)}')
+    if hasattr(value, 'dtype') and not jnp.issubdtype(value.dtype, jnp.integer):
+      raise ValueError(f'{name} must be an int, but got {value}')
   if min_bound is not None:
-    if value < min_bound:
+    if jnp.any(value < min_bound):
       raise ValueError(f"{name} must be an int bigger than {min_bound}, "
                        f"while we got {value}")
   if max_bound is not None:
-    if value > max_bound:
+    if jnp.any(value > max_bound):
       raise ValueError(f"{name} must be an int smaller than {max_bound}, "
                        f"while we got {value}")
 

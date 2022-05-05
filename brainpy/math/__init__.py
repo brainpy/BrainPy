@@ -46,7 +46,6 @@ from . import random
 from .autograd import *
 from .controls import *
 from .jit import *
-# from .parallels import *
 
 # settings
 from . import setting

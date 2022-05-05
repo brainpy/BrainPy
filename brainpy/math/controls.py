@@ -64,7 +64,7 @@ def _get_scan_info(f, dyn_vars, out_vars=None, has_return=False):
   # functions
   if has_return:
     def fun2scan(dyn_values, x):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       results = f(x)
       dyn_values = [v.value for v in dyn_vars]
       out_values = [v.value for v in out_vars]
@@ -72,7 +72,7 @@ def _get_scan_info(f, dyn_vars, out_vars=None, has_return=False):
 
   else:
     def fun2scan(dyn_values, x):
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       f(x)
       dyn_values = [v.value for v in dyn_vars]
       out_values = [v.value for v in out_vars]
@@ -180,11 +180,11 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
         turn_off_global_jit()
       except UnexpectedTracerError as e:
         turn_off_global_jit()
-        for v, d in zip(dyn_vars, init_values): v.value = d
+        for v, d in zip(dyn_vars, init_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       except Exception as e:
         turn_off_global_jit()
-        for v, d in zip(dyn_vars, init_values): v.value = d
+        for v, d in zip(dyn_vars, init_values): v._value = d
         raise e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return tree_unflatten(tree, out_values)
@@ -243,13 +243,13 @@ def make_while(cond_fun, body_fun, dyn_vars):
 
   def _body_fun(op):
     dyn_values, static_values = op
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
+    for v, d in zip(dyn_vars, dyn_values): v._value = d
     body_fun(static_values)
     return [v.value for v in dyn_vars], static_values
 
   def _cond_fun(op):
     dyn_values, static_values = op
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
+    for v, d in zip(dyn_vars, dyn_values): v._value = d
     return as_device_array(cond_fun(static_values))
 
   def call(x=None):
@@ -262,11 +262,11 @@ def make_while(cond_fun, body_fun, dyn_vars):
       turn_off_global_jit()
     except UnexpectedTracerError as e:
       turn_off_global_jit()
-      for v, d in zip(dyn_vars, dyn_init): v.value = d
+      for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
     except Exception as e:
       turn_off_global_jit()
-      for v, d in zip(dyn_vars, dyn_init): v.value = d
+      for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
 
@@ -330,14 +330,14 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
   if len(dyn_vars) > 0:
     def _true_fun(op):
       dyn_vals, static_vals = op
-      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      for v, d in zip(dyn_vars, dyn_vals): v._value = d
       res = true_fun(static_vals)
       dyn_vals = [v.value for v in dyn_vars]
       return dyn_vals, res
 
     def _false_fun(op):
       dyn_vals, static_vals = op
-      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      for v, d in zip(dyn_vars, dyn_vals): v._value = d
       res = false_fun(static_vals)
       dyn_vals = [v.value for v in dyn_vars]
       return dyn_vals, res
@@ -350,11 +350,11 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
         turn_off_global_jit()
       except UnexpectedTracerError as e:
         turn_off_global_jit()
-        for v, d in zip(dyn_vars, old_values): v.value = d
+        for v, d in zip(dyn_vars, old_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       except Exception as e:
         turn_off_global_jit()
-        for v, d in zip(dyn_vars, old_values): v.value = d
+        for v, d in zip(dyn_vars, old_values): v._value = d
         raise e
       for v, d in zip(dyn_vars, dyn_values): v.value = d
       return res
@@ -440,14 +440,14 @@ def cond(
   if len(dyn_vars) > 0:
     def _true_fun(op):
       dyn_vals, static_vals = op
-      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      for v, d in zip(dyn_vars, dyn_vals): v._value = d
       res = true_fun(static_vals)
       dyn_vals = [v.value for v in dyn_vars]
       return dyn_vals, res
 
     def _false_fun(op):
       dyn_vals, static_vals = op
-      for v, d in zip(dyn_vars, dyn_vals): v.value = d
+      for v, d in zip(dyn_vars, dyn_vals): v._value = d
       res = false_fun(static_vals)
       dyn_vals = [v.value for v in dyn_vars]
       return dyn_vals, res
@@ -462,12 +462,11 @@ def cond(
       turn_off_global_jit()
     except UnexpectedTracerError as e:
       turn_off_global_jit()
-      for v, d in zip(dyn_vars, old_values):
-        v.value = d
+      for v, d in zip(dyn_vars, old_values): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
     except Exception as e:
       turn_off_global_jit()
-      for v, d in zip(dyn_vars, old_values): v.value = d
+      for v, d in zip(dyn_vars, old_values): v._value = d
       raise e
     for v, d in zip(dyn_vars, dyn_values): v.value = d
   else:

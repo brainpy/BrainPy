@@ -8,30 +8,31 @@ from jax.experimental.host_callback import id_tap
 import brainpy.math as bm
 from brainpy import check
 from brainpy.dyn.base import NeuGroup
-from brainpy.initialize import Initializer, Uniform, init_param
+from brainpy.initialize import Initializer, Uniform, init_param, ZeroInit
 from brainpy.integrators.dde import ddeint
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_float, check_initializer
 from brainpy.types import Shape, Tensor
-from .noise_models import OUProcess
+from .noises import OUProcess
 
 __all__ = [
-  'RateGroup',
-  'RateFHN',
+  'Population',
+  'FHN',
   'FeedbackFHN',
-  'RateQIF',
+  'QIF',
   'StuartLandauOscillator',
   'WilsonCowanModel',
+  'ThresholdLinearModel',
 ]
 
 
-class RateGroup(NeuGroup):
+class Population(NeuGroup):
   def update(self, t, dt):
     raise NotImplementedError
 
 
-class RateFHN(NeuGroup):
+class FHN(NeuGroup):
   r"""FitzHugh-Nagumo system used in [1]_.
 
   .. math::
@@ -93,7 +94,7 @@ class RateFHN(NeuGroup):
       sde_method: str = None,
       name: str = None,
   ):
-    super(RateFHN, self).__init__(size=size, name=name)
+    super(FHN, self).__init__(size=size, name=name)
 
     # model parameters
     self.alpha = init_param(alpha, self.num, allow_none=False)
@@ -346,7 +347,7 @@ class FeedbackFHN(NeuGroup):
     self.input[:] = 0.
 
 
-class RateQIF(NeuGroup):
+class QIF(NeuGroup):
   r"""A mean-field model of a quadratic integrate-and-fire neuron population.
 
   **Model Descriptions**
@@ -437,7 +438,7 @@ class RateQIF(NeuGroup):
       name: str = None,
       sde_method: str = None,
   ):
-    super(RateQIF, self).__init__(size=size, name=name)
+    super(QIF, self).__init__(size=size, name=name)
 
     # parameters
     self.tau = init_param(tau, self.num, allow_none=False)
@@ -511,7 +512,7 @@ class RateQIF(NeuGroup):
     self.input[:] = 0.
 
 
-class StuartLandauOscillator(RateGroup):
+class StuartLandauOscillator(Population):
   r"""
   Stuart-Landau model with Hopf bifurcation.
 
@@ -630,7 +631,7 @@ class StuartLandauOscillator(RateGroup):
     self.input[:] = 0.
 
 
-class WilsonCowanModel(RateGroup):
+class WilsonCowanModel(Population):
   """Wilson-Cowan population model.
 
 
@@ -774,21 +775,106 @@ class WilsonCowanModel(RateGroup):
     self.input[:] = 0.
 
 
-class JansenRitModel(RateGroup):
+class JansenRitModel(Population):
   pass
 
 
-class KuramotoOscillator(RateGroup):
+class KuramotoOscillator(Population):
   pass
 
 
-class ThetaNeuron(RateGroup):
+class ThetaNeuron(Population):
   pass
 
 
-class RateQIFWithSFA(RateGroup):
+class RateQIFWithSFA(Population):
   pass
 
 
-class VanDerPolOscillator(RateGroup):
+class VanDerPolOscillator(Population):
   pass
+
+
+class ThresholdLinearModel(Population):
+  r"""A threshold linear rate model.
+
+  The threshold linear rate model is given by [1]_
+
+  .. math::
+
+     \begin{aligned}
+      &\tau_{E} \frac{d \nu_{E}}{d t}=-\nu_{E}+\beta_{E}\left[I_{E}\right]_{+} \\
+      &\tau_{I} \frac{d \nu_{I}}{d t}=-\nu_{I}+\beta_{I}\left[I_{I}\right]_{+}
+      \end{aligned}
+
+  where :math:`\left[I_{E}\right]_{+}=\max \left(I_{E}, 0\right)`.
+  :math:`v_E` and :math:`v_I` denote the firing rates of the excitatory and inhibitory
+  populations respectively, :math:`\tau_E` and :math:`\tau_I` are the corresponding
+  intrinsic time constants.
+
+
+  Reference
+  ---------
+  .. [1] Chaudhuri, Rishidev, et al. "A large-scale circuit mechanism
+         for hierarchical dynamical processing in the primate cortex."
+         Neuron 88.2 (2015): 419-431.
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      tau_e: Union[float, Callable, Initializer, Tensor] = 2e-2,
+      tau_i: Union[float, Callable, Initializer, Tensor] = 1e-2,
+      beta_e: Union[float, Callable, Initializer, Tensor] = .066,
+      beta_i: Union[float, Callable, Initializer, Tensor] = .351,
+      noise_e: Union[float, Callable, Initializer, Tensor] = 0.,
+      noise_i: Union[float, Callable, Initializer, Tensor] = 0.,
+      e_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      i_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      seed: int = None,
+      name: str = None
+  ):
+    super(ThresholdLinearModel, self).__init__(size, name=name)
+
+    # parameters
+    self.seed = seed
+    self.tau_e = init_param(tau_e, self.num, False)
+    self.tau_i = init_param(tau_i, self.num, False)
+    self.beta_e = init_param(beta_e, self.num, False)
+    self.beta_i = init_param(beta_i, self.num, False)
+    self.noise_e = init_param(noise_e, self.num, False)
+    self.noise_i = init_param(noise_i, self.num, False)
+    self._e_initializer = e_initializer
+    self._i_initializer = i_initializer
+
+    # variables
+    self.e = bm.Variable(init_param(e_initializer, self.num))  # Firing rate of excitatory population
+    self.i = bm.Variable(init_param(i_initializer, self.num))  # Firing rate of inhibitory population
+    self.Ie = bm.Variable(bm.zeros(self.num))  # Input of excitaory population
+    self.Ii = bm.Variable(bm.zeros(self.num))  # Input of inhibitory population
+    if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
+      self.rng = bm.random.RandomState(self.seed)
+
+  def reset(self):
+    self.rng.seed(self.seed)
+    self.e.value = init_param(self._e_initializer, self.num)
+    self.i.value = init_param(self._i_initializer, self.num)
+    self.Ie[:] = 0.
+    self.Ii[:] = 0.
+
+  def update(self, t, dt):
+    de = -self.e + self.beta_e * bm.maximum(self.Ie, 0.)
+    if bm.any(self.noise_e != 0.):
+      de += self.rng.randn(self.num) * self.noise_e
+    de = de / self.tau_e
+    self.e.value = bm.maximum(self.e + de * dt, 0.)
+    di = -self.i + self.beta_i * bm.maximum(self.Ii, 0.)
+    if bm.any(self.noise_i != 0.):
+      di += self.rng.randn(self.num) * self.noise_i
+    di = di / self.tau_i
+    self.i.value = bm.maximum(self.i + di * dt, 0.)
+    self.Ie[:] = 0.
+    self.Ii[:] = 0.
+
+

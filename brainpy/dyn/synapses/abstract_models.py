@@ -178,7 +178,7 @@ class DeltaSynapse(TwoEndConn):
     # update outputs
     target = getattr(self.post, self.post_key)
     if self.post_has_ref:
-      target += post_vs * (1. - self.post.refractory)
+      target += post_vs * bm.logical_not(self.post.refractory)
     else:
       target += post_vs
 

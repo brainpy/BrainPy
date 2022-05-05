@@ -502,14 +502,17 @@ class NeuGroup(DynamicalSystem):
     # size
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
-        raise ModelBuildError('size must be int, or a tuple/list of int.')
+        raise ModelBuildError(f'size must be int, or a tuple/list of int. '
+                              f'But we got {type(size)}')
       if not isinstance(size[0], int):
-        raise ModelBuildError('size must be int, or a tuple/list of int.')
+        raise ModelBuildError('size must be int, or a tuple/list of int.'
+                              f'But we got {type(size)}')
       size = tuple(size)
     elif isinstance(size, int):
       size = (size,)
     else:
-      raise ModelBuildError('size must be int, or a tuple/list of int.')
+      raise ModelBuildError('size must be int, or a tuple/list of int.'
+                            f'But we got {type(size)}')
     self.size = size
     self.num = tools.size2num(size)
 
