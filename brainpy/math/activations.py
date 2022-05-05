@@ -19,6 +19,7 @@ import jax.scipy
 import numpy as np
 
 from brainpy.math.jaxarray import JaxArray
+from brainpy.math.numpy_ops import tanh
 
 __all__ = [
   'celu',
@@ -63,7 +64,7 @@ def get(activation):
   return global_vars[activation]
 
 
-tanh = jnp.tanh
+# tanh = jnp.tanh
 identity = lambda x: x
 
 
@@ -146,7 +147,7 @@ def gelu(x, approximate=True):
   x = x.value if isinstance(x, JaxArray) else x
   if approximate:
     sqrt_2_over_pi = np.sqrt(2 / np.pi).astype(x.dtype)
-    cdf = 0.5 * (1.0 + jnp.tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
+    cdf = 0.5 * (1.0 + tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
     y = x * cdf
   else:
     y = jnp.array(x * (jax.lax.erf(x / np.sqrt(2)) + 1) / 2, dtype=x.dtype)
