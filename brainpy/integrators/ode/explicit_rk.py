@@ -132,14 +132,26 @@ class ExplicitRKIntegrator(ODEIntegrator):
   B = []  # The B vector in the Butcher tableau.
   C = []  # The C vector in the Butcher tableau.
 
-  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
-    super(ExplicitRKIntegrator, self).__init__(f=f, var_type=var_type, dt=dt,
-                                               name=name, show_code=show_code)
+  def __init__(self,
+               f,
+               var_type=None,
+               dt=None,
+               name=None,
+               show_code=False,
+               state_delays=None,
+               neutral_delays=None):
+    super(ExplicitRKIntegrator, self).__init__(f=f,
+                                               var_type=var_type,
+                                               dt=dt,
+                                               name=name,
+                                               show_code=show_code,
+                                               state_delays=state_delays,
+                                               neutral_delays=neutral_delays)
 
     # integrator keywords
     keywords = {
       C.F: 'the derivative function',
-      C.DT: 'the precision of numerical integration'
+      # C.DT: 'the precision of numerical integration'
     }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
@@ -148,7 +160,7 @@ class ExplicitRKIntegrator(ODEIntegrator):
       for i in range(2, len(self.A) + 1):
         keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
         keywords[f'k{i}_t_arg'] = 'the intermediate value'
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
     self.build()
 
   def build(self):
@@ -566,11 +578,25 @@ class RK2(ExplicitRKIntegrator):
 
   """
 
-  def __init__(self, f, beta=2 / 3, var_type=None, dt=None, name=None, show_code=False):
+  def __init__(self,
+               f,
+               beta=2 / 3,
+               var_type=None,
+               dt=None,
+               name=None,
+               show_code=False,
+               state_delays=None,
+               neutral_delays=None):
     self.A = [(), (beta,)]
     self.B = [1 - 1 / (2 * beta), 1 / (2 * beta)]
     self.C = [0, beta]
-    super(RK2, self).__init__(f=f, var_type=var_type, dt=dt, name=name, show_code=show_code)
+    super(RK2, self).__init__(f=f,
+                              var_type=var_type,
+                              dt=dt,
+                              name=name,
+                              show_code=show_code,
+                              state_delays=state_delays,
+                              neutral_delays=neutral_delays)
 
 
 register_ode_integrator('rk2', RK2)

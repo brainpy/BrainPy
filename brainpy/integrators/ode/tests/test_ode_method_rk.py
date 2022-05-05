@@ -2,11 +2,11 @@
 
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import brainpy.math as bm
 from brainpy.integrators.ode import explicit_rk
+plt = None
 
 sigma = 10
 beta = 8 / 3
@@ -23,8 +23,14 @@ def f_lorenz(x, y, z, t):
 
 
 def run_integrator(method, show=False):
+  global plt
+  if plt is None:
+    import matplotlib.pyplot as plt
+
   f_integral = bm.jit(method(f_lorenz, dt=dt), auto_infer=False)
-  x, y, z = bm.ones(1), bm.ones(1), bm.ones(1)
+  x = bm.Variable(bm.ones(1))
+  y = bm.Variable(bm.ones(1))
+  z = bm.Variable(bm.ones(1))
 
   def f(t):
     x.value, y.value, z.value = f_integral(x, y, z, t)

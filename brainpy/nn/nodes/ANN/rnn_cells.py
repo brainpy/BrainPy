@@ -11,6 +11,7 @@ from brainpy.initialize import (XavierNormal,
                                 init_param,
                                 Initializer)
 from brainpy.nn.base import RecurrentNode
+from brainpy.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_integer,
                                     check_initializer,
                                     check_shape_consistency)
@@ -34,7 +35,28 @@ class VanillaRNN(RecurrentNode):
      h_t = \mathrm{ReLU}(w_i x_t + b_i + w_h h_{t-1} + b_h)
 
   The output is equal to the new state, :math:`h_t`.
+
+
+  Parameters
+  ----------
+  num_unit: int
+    The number of hidden unit in the node.
+  state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The state initializer.
+  wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The input weight initializer.
+  wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The hidden weight initializer.
+  bias_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The bias weight initializer.
+  activation: str, callable
+    The activation function. It can be a string or a callable function.
+    See ``brainpy.math.activations`` for more details.
+  trainable: bool
+    Whether set the node is trainable.
+
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -44,10 +66,9 @@ class VanillaRNN(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
-      trainable: bool = True,
       **kwargs
   ):
-    super(VanillaRNN, self).__init__(trainable=trainable, **kwargs)
+    super(VanillaRNN, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -126,12 +147,31 @@ class GRU(RecurrentNode):
 
   Warning: Backwards compatibility of GRU weights is currently unsupported.
 
+  Parameters
+  ----------
+  num_unit: int
+    The number of hidden unit in the node.
+  state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The state initializer.
+  wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The input weight initializer.
+  wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The hidden weight initializer.
+  bias_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The bias weight initializer.
+  activation: str, callable
+    The activation function. It can be a string or a callable function.
+    See ``brainpy.math.activations`` for more details.
+  trainable: bool
+    Whether set the node is trainable.
+
   References
   ----------
   .. [1] Chung, J., Gulcehre, C., Cho, K. and Bengio, Y., 2014. Empirical
          evaluation of gated recurrent neural networks on sequence modeling.
          arXiv preprint arXiv:1412.3555.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -140,10 +180,9 @@ class GRU(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = Orthogonal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      trainable: bool = True,
       **kwargs
   ):
-    super(GRU, self).__init__(trainable=trainable, **kwargs)
+    super(GRU, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -238,6 +277,25 @@ class LSTM(RecurrentNode):
   to :math:`b_f` after initialization in order to reduce the scale of forgetting in
   the beginning of the training.
 
+
+  Parameters
+  ----------
+  num_unit: int
+    The number of hidden unit in the node.
+  state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The state initializer.
+  wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The input weight initializer.
+  wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The hidden weight initializer.
+  bias_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+    The bias weight initializer.
+  activation: str, callable
+    The activation function. It can be a string or a callable function.
+    See ``brainpy.math.activations`` for more details.
+  trainable: bool
+    Whether set the node is trainable.
+
   References
   ----------
 
@@ -247,6 +305,7 @@ class LSTM(RecurrentNode):
          exploration of recurrent network architectures." In International conference
          on machine learning, pp. 2342-2350. PMLR, 2015.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -255,10 +314,9 @@ class LSTM(RecurrentNode):
       wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
       bias_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      trainable: bool = True,
       **kwargs
   ):
-    super(LSTM, self).__init__(trainable=trainable, **kwargs)
+    super(LSTM, self).__init__(**kwargs)
 
     self.num_unit = num_unit
     check_integer(num_unit, 'num_unit', min_bound=1, allow_none=False)
@@ -337,16 +395,16 @@ class LSTM(RecurrentNode):
 
 
 class ConvNDLSTM(RecurrentNode):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv1DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv2DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')
 
 
 class Conv3DLSTM(ConvNDLSTM):
-  pass
+  data_pass = MultipleData('sequence')

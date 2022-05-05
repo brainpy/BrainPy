@@ -5,9 +5,11 @@ Dynamics simulation module.
 """
 
 
-from .base import *
-from .runners import *
 from .neurons import *
 from .synapses import *
+from .channels import *
+from .base import *
+from .utils import *
+from .runners import *
 
-from . import neurons, synapses, utils, runners
+from . import neurons, synapses, channels, rates, utils, runners

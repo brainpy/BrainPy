@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import abc
+from typing import Dict, Callable
 
-from brainpy import math, errors
+from brainpy import math as bm, errors
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
-from brainpy.tools.checking import check_float
+from brainpy.integrators.constants import DT
 
 __all__ = [
   'SDEIntegrator',
@@ -22,10 +22,20 @@ def f_names(f):
 class SDEIntegrator(Integrator):
   """SDE Integrator."""
 
-  def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+  def __init__(
+      self,
+      f: Callable,
+      g: Callable,
+      dt: float = None,
+      name: str = None,
+      show_code: bool = False,
+      var_type: str = None,
+      intg_type: str = None,
+      wiener_type: str = None,
+      state_delays: Dict[str, bm.AbstractDelay] = None,
+  ):
 
-    dt = math.get_dt() if dt is None else dt
+    dt = bm.get_dt() if dt is None else dt
     parses = utils.get_args(f)
     variables = parses[0]  # variable names, (before 't')
     parameters = parses[1]  # parameter names, (after 't')
@@ -36,7 +46,8 @@ class SDEIntegrator(Integrator):
                                         variables=variables,
                                         parameters=parameters,
                                         arguments=arguments,
-                                        dt=dt)
+                                        dt=dt,
+                                        state_delays=state_delays)
 
     # derivative functions
     self.derivative = {constants.F: f, constants.G: g}
@@ -59,13 +70,13 @@ class SDEIntegrator(Integrator):
                                    f'But we got {wiener_type}.')
     self.var_type = var_type  # variable type
     self.intg_type = intg_type  # integral type
-    self.wiener_type = wiener_type # wiener process type
+    self.wiener_type = wiener_type  # wiener process type
 
     # random seed
-    self.rng = math.random.RandomState()
+    self.rng = bm.random.RandomState()
 
     # code scope
-    self.code_scope = {constants.F: f, constants.G: g, 'math': math, 'random': self.rng}
+    self.code_scope = {constants.F: f, constants.G: g, 'math': bm, 'random': self.rng}
 
     # code lines
     self.func_name = f_names(f)
@@ -73,7 +84,3 @@ class SDEIntegrator(Integrator):
 
     # others
     self.show_code = show_code
-
-  @abc.abstractmethod
-  def build(self):
-    raise NotImplementedError('Must implement how to build your step function.')

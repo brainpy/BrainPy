@@ -40,8 +40,8 @@ def _noise_terms(code_lines, variables, triple_integral=True):
   #     code_lines.append('  ')
 
   for var in variables:
-    code_lines.append(f'  {var}_I1 = random.normal(0.000, dt_sqrt, math.shape({var}))')
-    code_lines.append(f'  {var}_I0 = random.normal(0.000, dt_sqrt, math.shape({var}))')
+    code_lines.append(f'  {var}_I1 = dt_sqrt * random.randn(*math.shape({var}))')
+    code_lines.append(f'  {var}_I0 = dt_sqrt * random.randn(*math.shape({var}))')
     code_lines.append(f'  {var}_I10 = 0.5 * {constants.DT} * ({var}_I1 + {var}_I0 / 3.0 ** 0.5)')
     code_lines.append(f'  {var}_I11 = 0.5 * ({var}_I1 ** 2 - {constants.DT})')
     if triple_integral:
@@ -95,10 +95,10 @@ class SRK1W1(SDEIntegrator):
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(SRK1W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
-                                 wiener_type=wiener_type)
+                                 wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
@@ -214,10 +214,10 @@ class SRK2W1(SDEIntegrator):
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(SRK2W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
-                                 wiener_type=wiener_type)
+                                 wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
@@ -324,10 +324,10 @@ register_sde_integrator('srk2w1', SRK2W1)
 
 class KlPl(SDEIntegrator):
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(KlPl, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                var_type=var_type, intg_type=intg_type,
-                               wiener_type=wiener_type)
+                               wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 

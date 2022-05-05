@@ -39,7 +39,8 @@ class DDEIntegrator(Integrator):
                                         variables=variables,
                                         parameters=parameters,
                                         arguments=arguments,
-                                        dt=dt)
+                                        dt=dt,
+                                        state_delays=state_delays)
 
     # other settings
     self.var_type = var_type
@@ -57,16 +58,6 @@ class DDEIntegrator(Integrator):
     self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
 
     # delays
-    self._state_delays = dict()
-    if state_delays is not None:
-      check_dict_data(state_delays,
-                      key_type=str,
-                      val_type=(bm.TimeDelay, bm.LengthDelay))
-      for key, delay in state_delays.items():
-        if key not in self.variables:
-          raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')
-        self._state_delays[key] = delay
-    self.register_implicit_nodes(self._state_delays)
     self._neutral_delays = dict()
     if neutral_delays is not None:
       check_dict_data(neutral_delays,
@@ -77,7 +68,6 @@ class DDEIntegrator(Integrator):
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')
         self._neutral_delays[key] = delay
     self.register_implicit_nodes(self._neutral_delays)
-
     if (len(self.neutral_delays) + len(self.state_delays)) == 0:
       raise DiffEqError('There is no delay variable, it should not be '
                         'a delay differential equation, please use "brainpy.odeint()". '
@@ -85,18 +75,18 @@ class DDEIntegrator(Integrator):
                         '"state_delays" and "neutral_delays" arguments.')
 
   @property
-  def state_delays(self):
-    return self._state_delays
-
-  @property
   def neutral_delays(self):
     return self._neutral_delays
+
+  @neutral_delays.setter
+  def neutral_delays(self, value):
+    raise ValueError('Cannot set "neutral_delays" by users.')
 
   def __call__(self, *args, **kwargs):
     assert self.integral is not None, 'Please build the integrator first.'
     # check arguments
     for i, arg in enumerate(args):
-      kwargs[self.arguments[i]] = arg
+      kwargs[self.arg_names[i]] = arg
 
     # integral
     new_vars = self.integral(**kwargs)
@@ -119,7 +109,11 @@ class DDEIntegrator(Integrator):
           delay.update(new_dvars[key])
         elif isinstance(delay, bm.TimeDelay):
           delay.update(kwargs['t'] + dt, new_dvars[key])
-        raise ValueError('Unknown delay variable.')
+        else:
+          raise ValueError('Unknown delay variable. We only supports '
+                           'brainpy.math.LengthDelay, brainpy.math.TimeDelay, '
+                           'brainpy.math.NeutralDelay. '
+                           f'While we got {delay}')
 
     # update state delay variables
     for key, delay in self.state_delays.items():
@@ -127,7 +121,11 @@ class DDEIntegrator(Integrator):
         delay.update(dict_vars[key])
       elif isinstance(delay, bm.TimeDelay):
         delay.update(kwargs['t'] + dt, dict_vars[key])
-      raise ValueError('Unknown delay variable.')
+      else:
+        raise ValueError('Unknown delay variable. We only supports '
+                         'brainpy.math.LengthDelay, brainpy.math.TimeDelay, '
+                         'brainpy.math.NeutralDelay. '
+                         f'While we got {delay}')
 
     return new_vars
 

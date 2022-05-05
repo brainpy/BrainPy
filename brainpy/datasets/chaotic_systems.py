@@ -112,7 +112,9 @@ def modified_lu_chen_series(duration, dt=0.001, a=36, c=20, b=3, d1=1, d2=0., ta
   eq.x[:] = inits['x']
   eq.y[:] = inits['y']
   eq.z[:] = inits['z']
-  runner = dyn.DSRunner(eq, monitors=['x', 'y', 'z'], dt=dt, progress_bar=False,
+  runner = dyn.DSRunner(eq,
+                        monitors=['x', 'y', 'z'],
+                        dt=dt, progress_bar=False,
                         numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
@@ -167,19 +169,20 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
     assert isinstance(inits, (bm.ndarray, jnp.ndarray))
 
   rng = bm.random.RandomState(seed)
-  xdelay = bm.TimeDelay(inits, tau, dt=dt)
-  xdelay.data = inits + 0.2 * (rng.random((xdelay.num_delay_step,) + inits.shape) - 0.5)
+  xdelay = bm.TimeDelay(inits, tau, dt=dt, interp_method='round')
+  xdelay.data.value = inits + 0.2 * (rng.random((xdelay.num_delay_step,) + inits.shape) - 0.5)
 
-  @ddeint(method=method, state_delays={'x': xdelay})
+  @ddeint(method=method,
+          state_delays={'x': xdelay})
   def mg_eq(x, t):
-    return beta * xdelay(t - tau) / (1 + xdelay(t - tau) ** n) - gamma * x
+    xtau = xdelay(t - tau)
+    return beta * xtau / (1 + xtau ** n) - gamma * x
 
   runner = IntegratorRunner(mg_eq,
                             inits={'x': inits},
                             monitors=['x'],
-                            fun_monitors={'x(tau)': lambda t, dt: xdelay(t - tau)},
-                            progress_bar=progress_bar,
-                            dt=dt,
+                            fun_monitors={'x(tau)': lambda t, _: xdelay(t - tau)},
+                            progress_bar=progress_bar, dt=dt,
                             numpy_mon_after_run=numpy_mon)
   runner.run(duration)
   return {'ts': runner.mon.ts,
@@ -193,6 +196,14 @@ def lorenz_series(duration, dt=0.001, sigma=10, beta=8 / 3, rho=28, method='rk4'
 
   The Lorenz system is a system of ordinary differential equations first
   studied by mathematician and meteorologist Edward Lorenz.
+
+
+  Returns
+  -------
+  data: dict
+    A dict data with the keys of ``ts``, ``x``, ``y``, and ``z``,
+    where ``ts`` is the history time value, ``x, y, z`` are history
+    values of the variable in the Lorenz system.
 
   References
   ----------
@@ -471,7 +482,7 @@ class _HenonMap(dyn.DynamicalSystem):
     self.x = bm.Variable(bm.zeros(num))
     self.y = bm.Variable(bm.zeros(num))
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     x_new = 1 - self.a * self.x * self.x + self.y
     self.y.value = self.b * self.x
     self.x.value = x_new
@@ -484,7 +495,7 @@ class _LogisticMap(dyn.DynamicalSystem):
     self.mu = mu
     self.x = bm.Variable(bm.ones(num) * 0.2)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     self.x.value = self.mu * self.x * (1 - self.x)
 
 
@@ -518,8 +529,8 @@ class _ModifiedLuChenSystem(dyn.DynamicalSystem):
 
     self.integral = odeint(derivative, method=method)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     self.x.value, self.y.value, self.z.value = self.integral(
-      self.x, self.y, self.z, _t, _dt)
+      self.x, self.y, self.z, t, dt)
     self.z_delay.push(self.z)
-    self.z_delay.update(_t, _dt)
+    self.z_delay.update(t, dt)

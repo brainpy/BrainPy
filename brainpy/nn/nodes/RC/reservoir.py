@@ -5,6 +5,7 @@ from typing import Optional, Union, Callable
 import brainpy.math as bm
 from brainpy.initialize import Normal, ZeroInit, Initializer, init_param
 from brainpy.nn.base import RecurrentNode
+from brainpy.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_float,
                                     check_initializer,
@@ -90,6 +91,7 @@ class Reservoir(RecurrentNode):
   .. [1] Lukoševičius, Mantas. "A practical guide to applying echo state networks."
          Neural networks: Tricks of the trade. Springer, Berlin, Heidelberg, 2012. 659-686.
   """
+  data_pass = MultipleData('sequence')
 
   def __init__(
       self,
@@ -111,9 +113,10 @@ class Reservoir(RecurrentNode):
       noise_fb: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
+      trainable: bool = False,
       **kwargs
   ):
-    super(Reservoir, self).__init__(**kwargs)
+    super(Reservoir, self).__init__(trainable=trainable, **kwargs)
 
     # parameters
     self.num_unit = num_unit

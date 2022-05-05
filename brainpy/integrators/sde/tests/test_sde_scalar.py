@@ -8,6 +8,8 @@ import pytest
 import brainpy as bp
 from brainpy.integrators import sde
 
+plt = None
+
 sigma = 10
 beta = 8 / 3
 rho = 28
@@ -39,20 +41,24 @@ def lorenz_system(method, **kwargs):
   x, y, z = 1, 1, 1
   for t in times:
     x, y, z = integral(x, y, z, t)
-    mon1.append(x.value)
-    mon2.append(y.value)
-    mon3.append(z.value)
-  mon1 = bp.math.array(mon1)
-  mon2 = bp.math.array(mon2)
-  mon3 = bp.math.array(mon3)
+    mon1.append(x)
+    mon2.append(y)
+    mon3.append(z)
+  mon1 = bp.math.array(mon1).to_numpy()
+  mon2 = bp.math.array(mon2).to_numpy()
+  mon3 = bp.math.array(mon3).to_numpy()
 
-  # fig = plt.figure()
-  # ax = fig.gca(projection='3d')
-  # plt.plot(mon1, mon2, mon3)
-  # ax.set_xlabel('x')
-  # ax.set_xlabel('y')
-  # ax.set_xlabel('z')
-  # plt.show()
+  global plt
+  if plt is None:
+    import matplotlib.pyplot as plt
+
+  fig = plt.figure()
+  ax = fig.gca(projection='3d')
+  plt.plot(mon1, mon2, mon3)
+  ax.set_xlabel('x')
+  ax.set_xlabel('y')
+  ax.set_xlabel('z')
+  plt.show()
 
 
 class TestScalarWienerIntegral(unittest.TestCase):

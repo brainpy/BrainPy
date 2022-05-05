@@ -79,7 +79,7 @@ __all__ = [
   'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap', 'take_along_axis',
 
   # others
-  'clip_by_norm', 'as_device_array', 'as_variable', 'as_numpy',
+  'clip_by_norm', 'as_device_array', 'as_variable', 'as_numpy', 'delete', 'remove_diag',
 ]
 
 _min = min
@@ -91,6 +91,20 @@ _max = max
 
 # def as_jax_array(tensor):
 #   return asarray(tensor)
+
+
+def remove_diag(arr):
+  if arr.ndim != 2:
+    raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
+  eyes = ones(arr.shape, dtype=bool)
+  fill_diagonal(eyes, False)
+  return reshape(arr[eyes.value], (arr.shape[0], arr.shape[1]-1))
+
+
+def delete(arr, obj, axis=None):
+  arr = _remove_jaxarray(arr)
+  obj = _remove_jaxarray(obj)
+  return JaxArray(jnp.delete(arr, obj, axis=axis))
 
 
 def as_device_array(tensor):
@@ -469,7 +483,7 @@ def negative(x):
 
 def positive(x):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.positive(x.value))
+  return JaxArray(jnp.positive(x))
 
 
 def multiply(x1, x2):
@@ -1507,8 +1521,11 @@ def vander(x, N=None, increasing=False):
 
 
 def fill_diagonal(a, val):
-  assert isinstance(a, JaxArray), f'Must be a JaxArray, but got {type(a)}'
-  assert a.ndim >= 2, f'Only support tensor has dimension >= 2, but got {a.shape}'
+  if not isinstance(a, JaxArray):
+    raise ValueError(f'Must be a JaxArray, but got {type(a)}')
+  if a.ndim < 2:
+    raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
+  val = _remove_jaxarray(val)
   i, j = jnp.diag_indices(_min(a.shape[-2:]))
   a._value = a.value.at[..., i, j].set(val)
 

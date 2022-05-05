@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence
+from typing import Union, Sequence, Callable
 
 import jax.numpy as jnp
 from jax import jit, vmap
 from jax import ops as jops
+from jax.abstract_arrays import ShapedArray
 
 from brainpy.errors import PackageMissingError, MathError
 from brainpy.math import setting
@@ -42,9 +43,12 @@ __all__ = [
 
   # others
   'sparse_matmul',
+
+  # numba operators
+  'register_op'
 ]
 
-_BRAINPYLIB_MINIMAL_VERSION = '0.0.3'
+_BRAINPYLIB_MINIMAL_VERSION = '0.0.4'
 
 _pre2post = vmap(lambda pre_ids, pre_vs: pre_vs[pre_ids].sum(), in_axes=(0, None))
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
@@ -69,6 +73,45 @@ def _check_brainpylib(ops_name):
       f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
       f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}'
     )
+
+
+def register_op(
+    op_name: str,
+    cpu_func: Callable,
+    gpu_func: Callable = None,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]] = None,
+    apply_cpu_func_to_gpu: bool = False
+):
+  """
+  Converting the numba-jitted function in a Jax/XLA compatible primitive.
+
+  Parameters
+  ----------
+  op_name: str
+    Name of the operators.
+  cpu_func: Callble
+    A callable numba-jitted function or pure function (can be lambda function) running on CPU.
+  gpu_func: Callable, default = None
+    A callable cuda-jitted kernel running on GPU.
+  out_shapes: Callable, ShapedArray, Sequence[ShapedArray], default = None
+    Outputs shapes of target function. `out_shapes` can be a `ShapedArray` or
+    a sequence of `ShapedArray`. If it is a function, it takes as input the argument
+    shapes and dtypes and should return correct output shapes of `ShapedArray`.
+  apply_cpu_func_to_gpu: bool, default = False
+    True when gpu_func is implemented on CPU and other logics(data transfer) is implemented on GPU.
+
+  Returns
+  -------
+  A jitable JAX function.
+  """
+  _check_brainpylib(register_op.__name__)
+  f = brainpylib.register_op(op_name, cpu_func, gpu_func, out_shapes, apply_cpu_func_to_gpu)
+
+  def fixed_op(*inputs):
+    inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
+    return f(*inputs)
+
+  return fixed_op
 
 
 def pre2post_event_sum(events, pre2post, post_num, values=1.):
@@ -650,8 +693,7 @@ def _matmul_with_left_sparse(sparse: Sequence,
     prod = B * jnp.reshape(values, (-1, 1))
   else:
     prod = B * values
-  res = jops.segment_sum(prod, rows, shape)
-  return JaxArray(res)
+  return jops.segment_sum(prod, rows, shape)
 
 
 def _matmul_with_right_sparse(dense, sparse, shape):
@@ -688,7 +730,7 @@ def _matmul_with_right_sparse(dense, sparse, shape):
   else:
     prod = dense[rows] * values
     res = jops.segment_sum(prod, cols, shape)
-  return JaxArray(res)
+  return res
 
 
 def sparse_matmul(A, B, shape: Shape):

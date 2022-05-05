@@ -41,10 +41,10 @@ class HindmarshRose(bp.dyn.DynamicalSystem):
     self.int_y = bp.odeint(f=dy, method=method)
     self.int_z = bp.odeint(f=dz, method=method)
 
-  def update(self, _t, _dt):
-    self.x.value = self.int_x(self.x, _t, self.y, self.z, self.I, _dt)
-    self.y.value = self.int_y(self.y, _t, self.x, _dt)
-    self.z.value = self.int_z(self.z, _t, self.x, _dt)
+  def update(self, t, dt):
+    self.x.value = self.int_x(self.x, t, self.y, self.z, self.I, dt)
+    self.y.value = self.int_y(self.y, t, self.x, dt)
+    self.z.value = self.int_z(self.z, t, self.x, dt)
     self.I[:] = 0.
 
 

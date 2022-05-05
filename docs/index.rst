@@ -80,6 +80,8 @@ The code of BrainPy is open-sourced at GitHub:
    tutorial_math/compilation
    tutorial_math/differentiation
    tutorial_math/control_flows
+   tutorial_math/low-level_operator_customization
+   tutorial_math/interoperation
 
 
 .. toctree::
@@ -102,7 +104,6 @@ The code of BrainPy is open-sourced at GitHub:
    apis/auto/running.rst
    apis/tools.rst
    apis/compat.rst
-   apis/math_compat.rst
    apis/auto/changelog-brainpy.rst
    apis/auto/changelog-brainpylib.rst
 

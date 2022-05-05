@@ -4,8 +4,7 @@ import jax.numpy as jnp
 
 from brainpy.base.base import Base
 from brainpy.errors import MathError
-from brainpy.math import numpy_ops as ops
-from brainpy.math.jaxarray import Variable
+import brainpy.math as bm
 
 __all__ = [
   # schedulers
@@ -39,13 +38,16 @@ class Scheduler(Base):
 
     assert isinstance(lr, (float, int))
     self.lr = lr
-    self.step = Variable(ops.array([0]))
+    self.step = bm.Variable(jnp.array([0]))
 
   def update(self):
     self.step += 1
 
   def __call__(self, i=None):
     raise NotImplementedError
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}({self.lr})'
 
 
 class Constant(Scheduler):
@@ -63,6 +65,11 @@ class ExponentialDecay(Scheduler):
     i = self.step[0] if i is None else i
     return self.lr * self.decay_rate ** (i / self.decay_steps)
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}({self.lr}, '
+            f'decay_steps={self.decay_steps}, '
+            f'decay_rate={self.decay_rate})')
+
 
 class InverseTimeDecay(ExponentialDecay):
   def __init__(self, lr, decay_steps, decay_rate, staircase=False):
@@ -72,9 +79,12 @@ class InverseTimeDecay(ExponentialDecay):
   def __call__(self, i=None):
     i = self.step[0] if i is None else i
     if self.staircase:
-      return self.lr / (1 + self.decay_rate * ops.floor(i / self.decay_steps).value)
+      return self.lr / (1 + self.decay_rate * jnp.floor(i / self.decay_steps))
     else:
       return self.lr / (1 + self.decay_rate * i / self.decay_steps)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}({self.lr}, staircase={self.staircase})'
 
 
 class PolynomialDecay(Scheduler):
@@ -86,9 +96,15 @@ class PolynomialDecay(Scheduler):
 
   def __call__(self, i=None):
     i = self.step[0] if i is None else i
-    i = ops.minimum(i, self.decay_steps).value
+    i = bm.minimum(i, self.decay_steps).value
     step_mult = (1 - i / self.decay_steps) ** self.power
     return step_mult * (self.lr - self.final_lr) + self.final_lr
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}({self.lr}, '
+            f'decay_steps={self.decay_steps}, '
+            f'final_lr={self.final_lr}, '
+            f'power={self.power})')
 
 
 class PiecewiseConstant(Scheduler):
@@ -106,4 +122,4 @@ class PiecewiseConstant(Scheduler):
 
   def __call__(self, i=None):
     i = self.step[0] if i is None else i
-    return self.values[ops.sum(i > self.boundaries)]
+    return self.values[jnp.sum(i > self.boundaries)]

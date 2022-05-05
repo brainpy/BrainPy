@@ -13,7 +13,7 @@ __all__ = [
   'matrix_correlation',
   'weighted_correlation',
   'functional_connectivity',
-  'functional_connectivity_dynamics',
+  # 'functional_connectivity_dynamics',
 ]
 
 
@@ -23,8 +23,8 @@ def _cc(states, i, j):
   sqrt_ij = jnp.sqrt(jnp.sum(states[i]) * jnp.sum(states[j]))
   return lax.cond(sqrt_ij == 0.,
                   lambda _: 0.,
-                  lambda ij: jnp.sum(states[i] * states[j]) / sqrt_ij,
-                  (i, j))
+                  lambda _: jnp.sum(states[i] * states[j]) / sqrt_ij,
+                  None)
 
 
 def cross_correlation(spikes, bin, dt=None):
@@ -51,7 +51,6 @@ def cross_correlation(spikes, bin, dt=None):
   ----------
   spikes :
       The history of spike states of the neuron group.
-      It can be easily get via `StateMonitor(neu, ['spike'])`.
   bin : float, int
       The time bin to normalize spike states.
   dt : float, optional
@@ -68,17 +67,17 @@ def cross_correlation(spikes, bin, dt=None):
          inhibition in a hippocampal interneuronal network model." Journal of
          neuroscience 16.20 (1996): 6402-6413.
   """
-  spikes = bm.asarray(spikes)
+  spikes = bm.as_device_array(spikes)
   dt = bm.get_dt() if dt is None else dt
   bin_size = int(bin / dt)
   num_hist, num_neu = spikes.shape
   num_bin = int(np.ceil(num_hist / bin_size))
   if num_bin * bin_size != num_hist:
-    spikes = bm.append(spikes, bm.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
+    spikes = jnp.append(spikes, jnp.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
   states = spikes.T.reshape((num_neu, num_bin, bin_size))
-  states = bm.asarray(bm.sum(states, axis=2) > 0., dtype=jnp.float_)
+  states = jnp.asarray(jnp.sum(states, axis=2) > 0., dtype=jnp.float_)
   indices = jnp.tril_indices(4, k=-1)
-  return jnp.mean(_cc(states.value, *indices))
+  return jnp.mean(_cc(states, *indices))
 
 
 @partial(vmap, in_axes=(None, 0))
@@ -148,10 +147,7 @@ def voltage_fluctuation(potentials):
   var_mean = jnp.mean(_var(potentials, jnp.arange(num_neu)))
   avg = jnp.mean(potentials, axis=1)
   avg_var = jnp.mean(avg * avg) - jnp.mean(avg) ** 2
-  return lax.cond(var_mean != 0.,
-                  lambda _: avg_var / var_mean,
-                  lambda _: 1.,
-                  ())
+  return lax.cond(var_mean != 0., lambda _: avg_var / var_mean, lambda _: 1., None)
 
 
 def matrix_correlation(x, y):

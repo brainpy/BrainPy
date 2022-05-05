@@ -127,10 +127,23 @@ class AdaptiveRKIntegrator(ODEIntegrator):
   B2 = []  # The B2 vector in the Butcher tableau.
   C = []  # The C vector in the Butcher tableau.
 
-  def __init__(self, f, var_type=None, dt=None, name=None,
-               adaptive=None, tol=None, show_code=False):
-    super(AdaptiveRKIntegrator, self).__init__(f=f, var_type=var_type, dt=dt,
-                                               name=name, show_code=show_code)
+  def __init__(self,
+               f,
+               var_type=None,
+               dt=None,
+               name=None,
+               adaptive=None,
+               tol=None,
+               show_code=False,
+               state_delays=None,
+               neutral_delays=None):
+    super(AdaptiveRKIntegrator, self).__init__(f=f,
+                                               var_type=var_type,
+                                               dt=dt,
+                                               name=name,
+                                               show_code=show_code,
+                                               state_delays=state_delays,
+                                               neutral_delays=neutral_delays)
 
     # check parameters
     self.adaptive = False if (adaptive is None) else adaptive
@@ -141,8 +154,10 @@ class AdaptiveRKIntegrator(ODEIntegrator):
                                    f'not {self.var_type}.')
 
     # integrator keywords
-    keywords = {C.F: 'the derivative function',
-                C.DT: 'the precision of numerical integration'}
+    keywords = {
+      C.F: 'the derivative function',
+      # C.DT: 'the precision of numerical integration'
+    }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
       for i in range(1, len(self.A) + 1):
@@ -158,7 +173,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
         keywords[f'{v}_te'] = 'the local truncation error'
       self.code_scope['tol'] = tol
       self.code_scope['math'] = bm
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
 
     # build the integrator
     self.build()

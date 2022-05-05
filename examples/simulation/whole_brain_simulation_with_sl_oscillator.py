@@ -5,12 +5,13 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy.dyn import rates
 
 bp.check.turn_off()
 
 
 def bifurcation_analysis():
-  model = bp.dyn.StuartLandauOscillator(1, method='exp_auto')
+  model = rates.StuartLandauOscillator(1, method='exp_auto')
   pp = bp.analysis.Bifurcation2D(
     model,
     target_vars={'x': [-2, 2], 'y': [-2, 2]},
@@ -30,26 +31,23 @@ class Network(bp.dyn.Network):
     # ConnectomeDB of the Human Connectome Project (HCP)
     # from the following link:
     # - https://share.weiyun.com/wkPpARKy
-    hcp = np.load('hcp.npz')
+    hcp = np.load('data/hcp.npz')
     conn_mat = bm.asarray(hcp['Cmat'])
     bm.fill_diagonal(conn_mat, 0)
     gc = 0.6  # global coupling strength
 
-    self.sl = bp.dyn.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14,
-                                            name='sl', method='exp_auto')
-    self.coupling = bp.dyn.DiffusiveDelayCoupling(self.sl, self.sl,
-                                                  'x->input',
-                                                  conn_mat=conn_mat * gc,
-                                                  delay_initializer=bp.init.Uniform(0, 0.05))
+    self.sl = rates.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14, name='sl')
+    self.coupling = rates.DiffusiveCoupling(self.sl.x, self.sl.x, self.sl.input,
+                                            conn_mat=conn_mat * gc)
 
-  def update(self, _t, _dt):
-    self.coupling.update(_t, _dt)
-    self.sl.update(_t, _dt)
+  def update(self, t, dt):
+    self.coupling.update(t, dt)
+    self.sl.update(t, dt)
 
 
 def simulation():
   net = Network()
-  runner = bp.dyn.DSRunner(net, monitors=['sl.x'])
+  runner = bp.dyn.DSRunner(net, monitors=['sl.x'], jit=True)
   runner.run(6e3)
 
   plt.rcParams['image.cmap'] = 'plasma'

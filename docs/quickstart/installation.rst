@@ -18,13 +18,13 @@ To do so, use:
 
 .. code-block:: bash
 
-    pip install brain-py
+    pip install brainpy
 
 To update the BrainPy version, you can use
 
 .. code-block:: bash
 
-    pip install -U brain-py
+    pip install -U brainpy
 
 
 If you want to install the pre-release version (the latest development version)
@@ -32,7 +32,7 @@ of BrainPy, you can use:
 
 .. code-block:: bash
 
-   pip install --pre brain-py
+   pip install --pre brainpy
 
 
 Installation from source
@@ -105,21 +105,23 @@ Alternatively, you can download the preferred release ".whl" file for jaxlib, an
 
     pip install jax
 
+
+.. warning::
+    For m1 macOS users, you should run your python environment on ``Apple`` silicon instead of ``intel``
+    silicon since ``rosetta2`` cannot translate ``jaxlib``. One suggestion is uninstall miniconda3 and install
+    miniforge3 for managing your python environment.
+
 Windows
 ^^^^^^^
 
 For **Windows** users, JAX can be installed by the following methods:
 
-*Method 1*: For Windows 10+ system, you can use `Windows Subsystem for Linux (WSL)`_.
-The installation guide can be found in `WSL Installation Guide for Windows 10`_.
-Then, you can install JAX in WSL just like the installation step in Linux/MacOs.
+- **Method 1**: There are several community supported Windows build for jax, please refer
+  to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
+  Simply speaking, the provided binary releases of JAX for Windows
+  are available at https://whls.blob.core.windows.net/unstable/index.html .
 
-*Method 2*: There are several community supported Windows build for jax, please refer
-to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
-Simply speaking, the provided binary releases of JAX for Windows
-are available at https://whls.blob.core.windows.net/unstable/index.html .
-
-You can download the preferred release ".whl" file, and install it via ``pip``:
+  You can download the preferred release ".whl" file, and install it via ``pip``:
 
 .. code-block:: bash
 
@@ -127,8 +129,12 @@ You can download the preferred release ".whl" file, and install it via ``pip``:
 
     pip install jax
 
+- **Method 2**: For Windows 10+ system, you can use `Windows Subsystem for Linux (WSL)`_.
+  The installation guide can be found in `WSL Installation Guide for Windows 10`_.
+  Then, you can install JAX in WSL just like the installation step in Linux/MacOs.
 
-*Method 3*: You can also `build JAX from source`_.
+
+- **Method 3**: You can also `build JAX from source`_.
 
 
 Other Dependency

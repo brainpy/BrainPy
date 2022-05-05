@@ -132,12 +132,12 @@ class GLShortMemory(FDEIntegrator):
     self.num_memory = num_memory
 
     # initial values
-    self.inits = check_inits(inits, self.variables)
+    inits = check_inits(inits, self.variables)
 
     # delays
     self.delays = {}
-    for key, val in self.inits.items():
-      delay = bm.Variable(bm.zeros((self.num_memory,) + val.shape, dtype=bm.float_))
+    for key, val in inits.items():
+      delay = bm.Variable(bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype))
       delay[0] = val
       self.delays[key] = delay
     self._idx = bm.Variable(bm.asarray([1], dtype=bm.int32))
@@ -151,13 +151,22 @@ class GLShortMemory(FDEIntegrator):
     # integral function
     self.set_integral(self._integral_func)
 
+  def reset(self, inits):
+    """Reset function of the delay variables."""
+    self._idx.value = bm.asarray([1], dtype=bm.int32)
+    inits = check_inits(inits, self.variables)
+    for key, val in inits.items():
+      delay = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
+      delay[0] = val
+      self.delays[key].value = delay
+
   @property
   def binomial_coef(self):
     return bm.as_numpy(jnp.flip(self._binomial_coef, axis=0))
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
-    all_args = format_args(args, kwargs, self.arguments)
+    all_args = format_args(args, kwargs, self.arg_names)
     dt = all_args.pop(DT, self.dt)
 
     # derivative values

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm
@@ -41,11 +42,11 @@ def section_input(values, durations, dt=None, return_length=False):
 
   Returns
   -------
-  current_and_duration : tuple
-      (The formatted current, total duration)
+  current_and_duration
   """
-  assert len(durations) == len(values), f'"values" and "durations" must be the same length, while ' \
-                                        f'we got {len(values)} != {len(durations)}.'
+  if len(durations) != len(values):
+    raise ValueError(f'"values" and "durations" must be the same length, while '
+                     f'we got {len(values)} != {len(durations)}.')
 
   dt = bm.get_dt() if dt is None else dt
 
@@ -53,7 +54,7 @@ def section_input(values, durations, dt=None, return_length=False):
   I_duration = sum(durations)
   I_shape = ()
   for val in values:
-    shape = bm.shape(val)
+    shape = jnp.shape(val)
     if len(shape) > len(I_shape):
       I_shape = shape
 
@@ -66,9 +67,9 @@ def section_input(values, durations, dt=None, return_length=False):
     start += length
 
   if return_length:
-    return I_current, I_duration
+    return I_current.value, I_duration
   else:
-    return I_current
+    return I_current.value
 
 
 def constant_input(I_and_duration, dt=None):
@@ -103,16 +104,16 @@ def constant_input(I_and_duration, dt=None):
   I_shape = ()
   for I in I_and_duration:
     I_duration += I[1]
-    shape = bm.shape(I[0])
+    shape = jnp.shape(I[0])
     if len(shape) > len(I_shape):
       I_shape = shape
 
   # get the current
   start = 0
-  I_current = bm.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
+  I_current = jnp.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
   for c_size, duration in I_and_duration:
     length = int(duration / dt)
-    I_current[start: start + length] = c_size
+    I_current = I_current.at[start: start + length].set(c_size)
     start += length
   return I_current, I_duration
 
@@ -159,11 +160,11 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
   if isinstance(sp_sizes, (float, int)):
     sp_sizes = [sp_sizes] * len(sp_times)
 
-  current = bm.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
+  current = jnp.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
   for time, dur, size in zip(sp_times, sp_lens, sp_sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
-    current[pp: pp + p_len] = size
+    current = current.at[pp: pp + p_len].set(size)
   return current
 
 
@@ -196,10 +197,11 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   dt = bm.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
-  current = bm.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
+  current = jnp.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
   p1 = int(np.ceil(t_start / dt))
   p2 = int(np.ceil(t_end / dt))
-  current[p1: p2] = bm.array(bm.linspace(c_start, c_end, p2 - p1), dtype=bm.float_)
+  cc = jnp.array(jnp.linspace(c_start, c_end, p2 - p1), dtype=bm.float_)
+  current = current.at[p1: p2].set(cc)
   return current
 
 
@@ -232,9 +234,9 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
   t_end = duration if t_end is None else t_end
   i_start = int(t_start / dt)
   i_end = int(t_end / dt)
-  noises = rng.standard_normal((i_end - i_start, n)) * bm.sqrt(dt)
-  currents = bm.zeros((int(duration / dt), n))
-  currents[i_start: i_end] = noises
+  noises = rng.standard_normal((i_end - i_start, n)) * jnp.sqrt(dt)
+  currents = jnp.zeros((int(duration / dt), n))
+  currents = currents.at[i_start: i_end].set(bm.as_device_array(noises))
   return currents
 
 
@@ -266,24 +268,24 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
 
   """
   dt = bm.get_dt() if dt is None else dt
-  dt_sqrt = bm.sqrt(dt)
+  dt_sqrt = jnp.sqrt(dt)
   check_float(dt, 'dt', allow_none=False, min_bound=0.)
   check_integer(n, 'n', allow_none=False, min_bound=0)
   rng = bm.random.RandomState(seed)
-  x = bm.Variable(bm.ones(n) * mean)
+  x = bm.Variable(jnp.ones(n) * mean)
 
   def _f(t):
     x.value = x + dt * ((mean - x) / tau) + sigma * dt_sqrt * rng.standard_normal(n)
 
   f = bm.make_loop(_f, dyn_vars=[x, rng], out_vars=x)
-  noises = f(bm.arange(t_start, t_end, dt))
+  noises = f(jnp.arange(t_start, t_end, dt))
 
   t_end = duration if t_end is None else t_end
   i_start = int(t_start / dt)
   i_end = int(t_end / dt)
   currents = bm.zeros((int(duration / dt), n))
   currents[i_start: i_end] = noises
-  return currents
+  return currents.value
 
 
 def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=None, dc_bias=False):
@@ -311,15 +313,15 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
   check_float(dt, 'dt', allow_none=False, min_bound=0.)
   if t_end is None:
     t_end = duration
-  times = bm.arange(0, t_end-t_start, dt)
-  start_i = int(t_start/dt)
-  end_i = int(t_end/dt)
-  sin_inputs = amplitude * bm.sin(2 * bm.pi * times * (frequency / 1000.0))
+  times = jnp.arange(0, t_end - t_start, dt)
+  start_i = int(t_start / dt)
+  end_i = int(t_end / dt)
+  sin_inputs = amplitude * jnp.sin(2 * jnp.pi * times * (frequency / 1000.0))
   if dc_bias:
     sin_inputs += amplitude
   currents = bm.zeros(int(duration / dt))
   currents[start_i:end_i] = sin_inputs
-  return currents
+  return currents.value
 
 
 def _square(t, duty=0.5):
@@ -374,13 +376,12 @@ def square_input(amplitude, frequency, duration, dt=None, dc_bias=False, t_start
   check_float(dt, 'dt', allow_none=False, min_bound=0.)
   if t_end is None:
     t_end = duration
-  times = bm.arange(0, t_end - t_start, dt)
+  times = jnp.arange(0, t_end - t_start, dt)
   currents = bm.zeros(int(duration / dt))
-  start_i = int(t_start/dt)
-  end_i = int(t_end/dt)
-  sin_inputs = amplitude * _square(2 * bm.pi * times * (frequency / 1000.0))
+  start_i = int(t_start / dt)
+  end_i = int(t_end / dt)
+  sin_inputs = amplitude * _square(2 * jnp.pi * times * (frequency / 1000.0))
   if dc_bias:
     sin_inputs += amplitude
   currents[start_i:end_i] = sin_inputs
-  return currents
-
+  return currents.value

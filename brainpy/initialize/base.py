@@ -16,6 +16,9 @@ class Initializer(abc.ABC):
   def __call__(self, shape, dtype=None):
     raise NotImplementedError
 
+  def __repr__(self):
+    return self.__class__.__name__
+
 
 class InterLayerInitializer(Initializer):
   """The superclass of Initializers that initialize the weights between two layers."""
@@ -24,6 +27,9 @@ class InterLayerInitializer(Initializer):
   def __call__(self, shape, dtype=None):
     raise NotImplementedError
 
+  def __repr__(self):
+    return self.__class__.__name__
+
 
 class IntraLayerInitializer(Initializer):
   """The superclass of Initializers that initialize the weights within a layer."""
@@ -31,3 +37,6 @@ class IntraLayerInitializer(Initializer):
   @abc.abstractmethod
   def __call__(self, shape, dtype=None):
     raise NotImplementedError
+
+  def __repr__(self):
+    return self.__class__.__name__

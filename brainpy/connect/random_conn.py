@@ -2,7 +2,6 @@
 
 import numpy as np
 
-from brainpy import tools
 from brainpy.errors import ConnectorError
 
 from .base import *
@@ -50,9 +49,7 @@ class FixedProb(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     ind = []
     count = np.zeros(self.pre_num, dtype=IDX_DTYPE)
 
@@ -65,7 +62,7 @@ class FixedProb(TwoEndConnector):
     ind = np.concatenate(ind)
     indptr = np.concatenate(([0], count)).cumsum()
 
-    return self.make_returns(structures, csr=(ind, indptr))
+    return 'csr', (ind, indptr)
 
 
 # @tools.numba_jit
@@ -112,9 +109,7 @@ class FixedPreNum(TwoEndConnector):
     self.include_self = include_self
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     # check
     if isinstance(self.num, int):
       assert 0 <= self.num <= self.pre_num, f'"num" must be smaller than "self.pre_num", ' \
@@ -131,7 +126,8 @@ class FixedPreNum(TwoEndConnector):
       pre_ids.append(pres)
     pre_ids = np.concatenate(pre_ids)
     post_ids = np.repeat(np.arange(self.post_num), num)
-    return self.make_returns(structures, ij=(pre_ids, post_ids))
+
+    return 'ij', (pre_ids, post_ids)
 
 
 class FixedPostNum(TwoEndConnector):
@@ -171,9 +167,7 @@ class FixedPostNum(TwoEndConnector):
     self.include_self = include_self
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     # check
     if isinstance(self.num, int):
       assert 0 <= self.num <= self.post_num, f'"num" must be smaller than "self.post_num", ' \
@@ -195,7 +189,7 @@ class FixedPostNum(TwoEndConnector):
     count = np.ones(self.pre_num, dtype=IDX_DTYPE) * num
     indptr = np.concatenate(([0], count)).cumsum()
 
-    return self.make_returns(structures, csr=(post_ids, indptr))
+    return 'csr', (post_ids, indptr)
 
 
 class GaussianProb(OneEndConnector):
@@ -247,9 +241,7 @@ class GaussianProb(OneEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     # value range to encode
     if self.encoding_values is None:
       value_ranges = tuple([(0, s) for s in self.pre_size])
@@ -309,7 +301,7 @@ class GaussianProb(OneEndConnector):
     if not self.include_self:
       np.fill_diagonal(conn_mat, False)
 
-    return self.make_returns(structures, mat=conn_mat)
+    return 'mat', conn_mat
 
 
 # @tools.numba_jit
@@ -366,9 +358,7 @@ class SmallWorld(TwoEndConnector):
     self.num_neighbor = num_neighbor
     self.include_self = include_self
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     assert self.pre_size == self.post_size
 
     if isinstance(self.pre_size, int) or (isinstance(self.pre_size, (tuple, list)) and len(self.pre_size) == 1):
@@ -416,7 +406,8 @@ class SmallWorld(TwoEndConnector):
         # conn = np.asarray(conn, dtype=MAT_DTYPE)
     else:
       raise ConnectorError('Currently only support 1D ring connection.')
-    return self.make_returns(structures, mat=conn)
+
+    return 'mat', conn
 
 
 def _random_subset(seq, m, rng):
@@ -467,9 +458,7 @@ class ScaleFreeBA(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m < 1 or self.m >= num_node:
@@ -498,7 +487,8 @@ class ScaleFreeBA(TwoEndConnector):
       # Pick uniformly from repeated_nodes (preferential attachment)
       targets = list(_random_subset(repeated_nodes, self.m, self.rng))
       source += 1
-    return self.make_returns(structures, mat=conn)
+
+    return 'mat', conn
 
 
 class ScaleFreeBADual(TwoEndConnector):
@@ -539,9 +529,7 @@ class ScaleFreeBADual(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m1 < 1 or self.m1 >= num_node:
@@ -579,7 +567,8 @@ class ScaleFreeBADual(TwoEndConnector):
       # Pick uniformly from repeated_nodes (preferential attachment)
       targets = list(_random_subset(repeated_nodes, m, self.rng))
       source += 1
-    return self.make_returns(structures, mat=conn)
+
+    return 'mat', conn
 
 
 class PowerLaw(TwoEndConnector):
@@ -636,9 +625,7 @@ class PowerLaw(TwoEndConnector):
     self.seed = seed
     self.rng = np.random.RandomState(seed)
 
-  def require(self, *structures):
-    self.check(structures)
-
+  def build_conn(self):
     assert self.pre_num == self.post_num
     num_node = self.pre_num
     if self.m < 1 or num_node < self.m:
@@ -678,4 +665,6 @@ class PowerLaw(TwoEndConnector):
         count = count + 1
       repeated_nodes.extend([source] * self.m)  # add source node to list m times
       source += 1
-    return self.make_returns(structures, mat=conn)
+
+    return 'mat', conn
+

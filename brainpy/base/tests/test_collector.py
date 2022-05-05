@@ -28,17 +28,17 @@ class GABAa_without_Variable(bp.dyn.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.ones(self.size) * -1e7
     self.s = bp.math.zeros(self.size)
-    self.g = self.register_constant_delay('g', size=self.size, delay=delay)
+    self.g = bp.dyn.ConstantDelay(size=self.size, delay=delay)
 
   @bp.odeint
   def int_s(self, s, t, TT):
     return self.alpha * TT * (1 - s) - self.beta * s
 
-  def update(self, _t, _i):
+  def update(self, t, dt):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
-    self.t_last_pre_spike[:] = bp.math.where(spike, _t, self.t_last_pre_spike)
-    TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
-    self.s[:] = self.int_s(self.s, _t, TT)
+    self.t_last_pre_spike[:] = bp.math.where(spike, t, self.t_last_pre_spike)
+    TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
+    self.s[:] = self.int_s(self.s, t, TT)
     self.g.push(self.g_max * self.s)
     g = self.g.pull()
     self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
@@ -87,8 +87,8 @@ class HH_without_Variable(bp.dyn.NeuGroup):
 
     return dVdt, dhdt, dndt
 
-  def update(self, _t, _i):
-    V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
+  def update(self, t, dt):
+    V, h, n = self.integral(self.V, self.h, self.n, t, self.inputs)
     self.spikes[:] = bp.math.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V[:] = V
     self.h[:] = h
@@ -163,8 +163,8 @@ class HH_with_Variable(bp.dyn.NeuGroup):
 
     return dVdt, dhdt, dndt
 
-  def update(self, _t, _i):
-    V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
+  def update(self, t, dt):
+    V, h, n = self.integral(self.V, self.h, self.n, t, self.inputs)
     self.spikes[:] = bp.math.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V[:] = V
     self.h[:] = h
@@ -227,17 +227,17 @@ class GABAa_with_Variable(bp.dyn.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.Variable(bp.math.ones(self.size) * -1e7)
     self.s = bp.math.Variable(bp.math.zeros(self.size))
-    self.g = self.register_constant_delay('g', size=self.size, delay=delay)
+    self.g = bp.dyn.ConstantDelay(size=self.size, delay=delay)
 
   @bp.odeint
   def int_s(self, s, t, TT):
     return self.alpha * TT * (1 - s) - self.beta * s
 
-  def update(self, _t, _i):
+  def update(self, t, _i):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
-    self.t_last_pre_spike[:] = bp.math.where(spike, _t, self.t_last_pre_spike)
-    TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
-    self.s[:] = self.int_s(self.s, _t, TT)
+    self.t_last_pre_spike[:] = bp.math.where(spike, t, self.t_last_pre_spike)
+    TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
+    self.s[:] = self.int_s(self.s, t, TT)
     self.g.push(self.g_max * self.s)
     g = self.g.pull()
     self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)

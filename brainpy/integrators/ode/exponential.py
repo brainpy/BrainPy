@@ -381,23 +381,35 @@ class ExponentialEuler(ODEIntegrator):
     The timeout limit to use sympy solver.
   """
 
-  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False,
-               timeout=5):
-    super(ExponentialEuler, self).__init__(f=f, var_type=var_type, dt=dt,
-                                           name=name, show_code=show_code)
+  def __init__(self,
+               f,
+               var_type=None,
+               dt=None,
+               name=None,
+               show_code=False,
+               timeout=5,
+               state_delays=None,
+               neutral_delays=None):
+    super(ExponentialEuler, self).__init__(f=f,
+                                           var_type=var_type,
+                                           dt=dt,
+                                           name=name,
+                                           show_code=show_code,
+                                           state_delays=state_delays,
+                                           neutral_delays=neutral_delays)
 
     self.timeout = timeout
 
     # keyword checking
     keywords = {
       C.F: 'the derivative function',
-      C.DT: 'the precision of numerical integration',
+      # C.DT: 'the precision of numerical integration',
       'exp': 'the exponential function',
       'math': 'the math module',
     }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
 
     # build the integrator
     self.build()
@@ -529,7 +541,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>> import brainpy as bp
     >>> import brainpy.math as bm
     >>>
-    >>> class HH(bp.NeuGroup):
+    >>> class HH(bp.dyn.NeuGroup):
     >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
     >>>                gL=0.1, V_th=20., phi=5.0, name=None):
     >>>     super(HH, self).__init__(size=size, name=name)
@@ -590,7 +602,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
     >>>
-    >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
+    >>> run = bp.dyn.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
@@ -602,7 +614,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>> import brainpy as bp
     >>> import brainpy.math as bm
     >>>
-    >>> class HH(bp.NeuGroup):
+    >>> class HH(bp.dyn.NeuGroup):
     >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
     >>>                gL=0.1, V_th=20., phi=5.0, name=None):
     >>>     super(HH, self).__init__(size=size, name=name)
@@ -660,7 +672,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
     >>>
-    >>> run = bp.StructRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
+    >>> run = bp.dyn.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
@@ -680,21 +692,33 @@ class ExpEulerAuto(ODEIntegrator):
     The integrator name.
   show_code : bool
   dyn_var : optional, dict, sequence of JaxArray, JaxArray
-  has_aux : bool
   """
 
-  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False, dyn_var=None):
-    super(ExpEulerAuto, self).__init__(f=f, var_type=var_type, dt=dt,
-                                       name=name, show_code=show_code)
+  def __init__(self,
+               f,
+               var_type=None,
+               dt=None,
+               name=None,
+               show_code=False,
+               dyn_var=None,
+               state_delays=None,
+               neutral_delays=None):
+    super(ExpEulerAuto, self).__init__(f=f,
+                                       var_type=var_type,
+                                       dt=dt,
+                                       name=name,
+                                       show_code=show_code,
+                                       state_delays=state_delays,
+                                       neutral_delays=neutral_delays)
 
     self.dyn_var = dyn_var
 
     # keyword checking
     keywords = {
       C.F: 'the derivative function',
-      C.DT: 'the precision of numerical integration',
+      # C.DT: 'the precision of numerical integration',
     }
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
 
     # build the integrator
     self.code_lines = []

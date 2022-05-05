@@ -5,14 +5,14 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, operators, parallels, setting, delay_vars,
+                          jit, operators, parallels, setting, delayvars,
                           compat)
 
 block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, activations,
                operators, parallels, setting,
-               delay_vars, compat]:
+               delayvars, compat]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -230,11 +230,23 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                header='Base Class')
 
   module_and_name = [
+    ('base', 'Base Class'),
+    ('Na_channels', 'Sodium Channel Models'),
+    ('K_channels', 'Potassium Channel Models'),
+    ('Ca_channels', 'Calcium Channel Models'),
+    ('Ih_channels', 'Ih Channel Models'),
+    ('leaky_channels', 'Leaky Channel Models'),
+  ]
+  write_submodules(module_name='brainpy.dyn.channels',
+                   filename=os.path.join(path, 'channels.rst'),
+                   header='Channel Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  module_and_name = [
     ('biological_models', 'Biological Models'),
     ('fractional_models', 'Fractional-order Models'),
     ('input_models', 'Input Models'),
-    ('noise_models', 'Noise Models'),
-    ('rate_models', 'Rate Models'),
     ('reduced_models', 'Reduced Models'),
   ]
   write_submodules(module_name='brainpy.dyn.neurons',
@@ -246,12 +258,22 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   module_and_name = [
     ('biological_models', 'Biological Models'),
     ('abstract_models', 'Abstract Models'),
-    ('delay_coupling', 'Delay Coupling Models'),
     ('learning_rules', 'Learning Rule Models'),
   ]
   write_submodules(module_name='brainpy.dyn.synapses',
                    filename=os.path.join(path, 'synapses.rst'),
                    header='Synapse Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  module_and_name = [
+    ('populations', 'Population Models'),
+    ('couplings', 'Coupling Models'),
+    ('noises', 'Noise Models'),
+  ]
+  write_submodules(module_name='brainpy.dyn.rates',
+                   filename=os.path.join(path, 'rates.rst'),
+                   header='Rate Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -417,7 +439,7 @@ def generate_math_docs(path='apis/auto/math/'):
   write_module(module_name='brainpy.math.function',
                filename=os.path.join(path, 'function.rst'),
                header='Function')
-  write_module(module_name='brainpy.math.delay_vars',
+  write_module(module_name='brainpy.math.delayvars',
                filename=os.path.join(path, 'delay_vars.rst'),
                header='Delay Variables')
 
@@ -444,17 +466,36 @@ def generate_nn_docs(path='apis/auto/nn/'):
   write_module(module_name='brainpy.nn.graph_flow',
                filename=os.path.join(path, 'graph_flow.rst'),
                header='Node Graph Tools')
-  write_module(module_name='brainpy.nn.constants',
-               filename=os.path.join(path, 'constants.rst'),
-               header='Constants')
+  write_module(module_name='brainpy.nn.datatypes',
+               filename=os.path.join(path, 'data_types.rst'),
+               header='Data Types')
 
-  write_module(module_name='brainpy.nn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners and Trainers')
+  module_and_name = [
+    ('rnn_runner', 'Base RNN Runner'),
+    ('rnn_trainer', 'Base RNN Trainer'),
+    ('online_trainer', 'Online RNN Trainer'),
+    ('offline_trainer', 'Offline RNN Trainer'),
+    ('back_propagation', 'Back-propagation Trainer'),
+  ]
+  write_submodules(module_name='brainpy.nn.runners',
+                   filename=os.path.join(path, 'runners.rst'),
+                   header='Runners and Trainers',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+
+  module_and_name = [
+    ('online', 'Online Training Algorithms'),
+    ('offline', 'Offline Training Algorithms'),
+  ]
+  write_submodules(module_name='brainpy.nn.algorithms',
+                   filename=os.path.join(path, 'algorithms.rst'),
+                   header='Training Algorithms',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
   write_module(module_name='brainpy.nn.nodes.base',
                filename=os.path.join(path, 'nodes_base.rst'),
-               header='Common and Basic Nodes')
+               header='Nodes: basic')
   write_module(module_name='brainpy.nn.nodes.ANN',
                filename=os.path.join(path, 'nodes_ANN.rst'),
                header='Nodes: artificial neural network ')
@@ -533,7 +574,7 @@ def generate_compact_docs(path='apis/auto/compat/'):
                header='Runners')
 
 
-def generate_math_compact_docs(path='apis/auto/math_compat/'):
+def generate_math_compact_docs(path='apis/auto/math/'):
   if not os.path.exists(path):
     os.makedirs(path)
 
