@@ -8,30 +8,31 @@ from jax.experimental.host_callback import id_tap
 import brainpy.math as bm
 from brainpy import check
 from brainpy.dyn.base import NeuGroup
-from brainpy.initialize import Initializer, Uniform, init_param
+from brainpy.initialize import Initializer, Uniform, init_param, ZeroInit
 from brainpy.integrators.dde import ddeint
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_float, check_initializer
 from brainpy.types import Shape, Tensor
-from .noise_models import OUProcess
+from .noises import OUProcess
 
 __all__ = [
-  'RateGroup',
-  'RateFHN',
+  'Population',
+  'FHN',
   'FeedbackFHN',
-  'RateQIF',
+  'QIF',
   'StuartLandauOscillator',
   'WilsonCowanModel',
+  'ThresholdLinearModel',
 ]
 
 
-class RateGroup(NeuGroup):
-  def update(self, _t, _dt):
+class Population(NeuGroup):
+  def update(self, t, dt):
     raise NotImplementedError
 
 
-class RateFHN(NeuGroup):
+class FHN(NeuGroup):
   r"""FitzHugh-Nagumo system used in [1]_.
 
   .. math::
@@ -89,11 +90,11 @@ class RateFHN(NeuGroup):
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
-      method: str = None,
+      method: str = 'exp_auto',
       sde_method: str = None,
       name: str = None,
   ):
-    super(RateFHN, self).__init__(size=size, name=name)
+    super(FHN, self).__init__(size=size, name=name)
 
     # model parameters
     self.alpha = init_param(alpha, self.num, allow_none=False)
@@ -113,11 +114,15 @@ class RateFHN(NeuGroup):
     self.y_ou_tau = init_param(y_ou_tau, self.num,
                                allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
 
-    # variables
+    # initializers
     check_initializer(x_initializer, 'x_initializer')
     check_initializer(y_initializer, 'y_initializer')
+    self._x_initializer = x_initializer
+    self._y_initializer = y_initializer
+
+    # variables
     self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -134,21 +139,30 @@ class RateFHN(NeuGroup):
     # integral functions
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
+  def reset(self):
+    self.x.value = init_param(self._x_initializer, (self.num,))
+    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.input[:] = 0
+    if self.x_ou is not None:
+      self.x_ou.reset()
+    if self.y_ou is not None:
+      self.y_ou.reset()
+
   def dx(self, x, t, y, x_ext):
     return - self.alpha * x ** 3 + self.beta * x ** 2 + self.gamma * x - y + x_ext
 
   def dy(self, y, t, x, y_ext=0.):
     return (x - self.delta - self.epsilon * y) / self.tau + y_ext
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
@@ -267,11 +281,15 @@ class FeedbackFHN(NeuGroup):
     self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
     self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(x_initializer, 'x_initializer')
     check_initializer(y_initializer, 'y_initializer')
+    self._x_initializer = x_initializer
+    self._y_initializer = y_initializer
+
+    # variables
     self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
     self.input = bm.Variable(bm.zeros(self.num))
 
@@ -291,6 +309,16 @@ class FeedbackFHN(NeuGroup):
                            f=JointEq([self.dx, self.dy]),
                            state_delays={'V': self.x_delay})
 
+  def reset(self):
+    self.x.value = init_param(self._x_initializer, (self.num,))
+    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.x_delay.reset(self.x, self.delay)
+    self.input[:] = 0
+    if self.x_ou is not None:
+      self.x_ou.reset()
+    if self.y_ou is not None:
+      self.y_ou.reset()
+
   def dx(self, x, t, y, x_ext):
     return x - x * x * x / 3 - y + x_ext + self.mu * (self.x_delay(t - self.delay) - self.v0)
 
@@ -303,23 +331,23 @@ class FeedbackFHN(NeuGroup):
                        f'not consistent with the "dt" {self.dt} '
                        f'used in model definition.')
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if check.is_checking():
-      id_tap(self._check_dt, _dt)
+      id_tap(self._check_dt, dt)
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
 
 
-class RateQIF(NeuGroup):
+class QIF(NeuGroup):
   r"""A mean-field model of a quadratic integrate-and-fire neuron population.
 
   **Model Descriptions**
@@ -410,7 +438,7 @@ class RateQIF(NeuGroup):
       name: str = None,
       sde_method: str = None,
   ):
-    super(RateQIF, self).__init__(size=size, name=name)
+    super(QIF, self).__init__(size=size, name=name)
 
     # parameters
     self.tau = init_param(tau, self.num, allow_none=False)
@@ -429,11 +457,15 @@ class RateQIF(NeuGroup):
     self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
     self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(x_initializer, 'x_initializer')
     check_initializer(y_initializer, 'y_initializer')
+    self._x_initializer = x_initializer
+    self._y_initializer = y_initializer
+
+    # variables
     self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -450,6 +482,15 @@ class RateQIF(NeuGroup):
     # functions
     self.integral = odeint(JointEq([self.dx, self.dy]), method=method)
 
+  def reset(self):
+    self.x.value = init_param(self._x_initializer, (self.num,))
+    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.input[:] = 0
+    if self.x_ou is not None:
+      self.x_ou.reset()
+    if self.y_ou is not None:
+      self.y_ou.reset()
+
   def dy(self, y, t, x, y_ext):
     return (self.delta / (bm.pi * self.tau) + 2. * x * y + y_ext) / self.tau
 
@@ -457,21 +498,21 @@ class RateQIF(NeuGroup):
     return (x ** 2 + self.eta + x_ext + self.J * y * self.tau -
             (bm.pi * y * self.tau) ** 2) / self.tau
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, t=_t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t=t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
 
 
-class StuartLandauOscillator(RateGroup):
+class StuartLandauOscillator(Population):
   r"""
   Stuart-Landau model with Hopf bifurcation.
 
@@ -516,7 +557,7 @@ class StuartLandauOscillator(RateGroup):
       # other parameters
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
-      method: str = None,
+      method: str = 'exp_auto',
       sde_method: str = None,
       name: str = None,
   ):
@@ -535,11 +576,15 @@ class StuartLandauOscillator(RateGroup):
     self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
     self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(x_initializer, 'x_initializer')
     check_initializer(y_initializer, 'y_initializer')
+    self._x_initializer = x_initializer
+    self._y_initializer = y_initializer
+
+    # variables
     self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -556,28 +601,37 @@ class StuartLandauOscillator(RateGroup):
     # integral functions
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
+  def reset(self):
+    self.x.value = init_param(self._x_initializer, (self.num,))
+    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.input[:] = 0
+    if self.x_ou is not None:
+      self.x_ou.reset()
+    if self.y_ou is not None:
+      self.y_ou.reset()
+
   def dx(self, x, t, y, x_ext, a, w):
     return (a - x * x - y * y) * x - w * y + x_ext
 
   def dy(self, y, t, x, y_ext, a, w):
     return (a - x * x - y * y) * y - w * y + y_ext
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input,
-                         y_ext=y_ext, a=self.a, w=self.w, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input,
+                         y_ext=y_ext, a=self.a, w=self.w, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
 
 
-class WilsonCowanModel(RateGroup):
+class WilsonCowanModel(Population):
   """Wilson-Cowan population model.
 
 
@@ -620,7 +674,7 @@ class WilsonCowanModel(RateGroup):
       wII: Union[float, Tensor, Initializer, Callable] = 11.,  # local I-I coupling
 
       # Refractory parameter
-      r: Union[float, Tensor, Initializer, Callable] = 1,
+      r: Union[float, Tensor, Initializer, Callable] = 1.,
 
       # noise parameters
       x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
@@ -662,11 +716,15 @@ class WilsonCowanModel(RateGroup):
     self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
     self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
 
-    # variables
+    # initializers
     check_initializer(x_initializer, 'x_initializer')
     check_initializer(y_initializer, 'y_initializer')
+    self._x_initializer = x_initializer
+    self._y_initializer = y_initializer
+
+    # variables
     self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(x_initializer, (self.num,)))
+    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
     self.input = bm.Variable(bm.zeros(self.num))
 
     # noise variables
@@ -683,7 +741,15 @@ class WilsonCowanModel(RateGroup):
     # functions
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
-  # functions
+  def reset(self):
+    self.x.value = init_param(self._x_initializer, (self.num,))
+    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.input[:] = 0
+    if self.x_ou is not None:
+      self.x_ou.reset()
+    if self.y_ou is not None:
+      self.y_ou.reset()
+
   def F(self, x, a, theta):
     return 1 / (1 + bm.exp(-a * (x - theta))) - 1 / (1 + bm.exp(a * theta))
 
@@ -695,35 +761,120 @@ class WilsonCowanModel(RateGroup):
     x = self.wEI * x - self.wII * y + y_ext
     return (-y + (1 - self.r * y) * self.F(x, self.I_a, self.I_theta)) / self.I_tau
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     if self.x_ou is not None:
       self.input += self.x_ou.x
-      self.x_ou.update(_t, _dt)
+      self.x_ou.update(t, dt)
     y_ext = 0.
     if self.y_ou is not None:
       y_ext = self.y_ou.x
-      self.y_ou.update(_t, _dt)
-    x, y = self.integral(self.x, self.y, _t, x_ext=self.input, y_ext=y_ext, dt=_dt)
+      self.y_ou.update(t, dt)
+    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=y_ext, dt=dt)
     self.x.value = x
     self.y.value = y
     self.input[:] = 0.
 
 
-class JansenRitModel(RateGroup):
+class JansenRitModel(Population):
   pass
 
 
-class KuramotoOscillator(RateGroup):
+class KuramotoOscillator(Population):
   pass
 
 
-class ThetaNeuron(RateGroup):
+class ThetaNeuron(Population):
   pass
 
 
-class RateQIFWithSFA(RateGroup):
+class RateQIFWithSFA(Population):
   pass
 
 
-class VanDerPolOscillator(RateGroup):
+class VanDerPolOscillator(Population):
   pass
+
+
+class ThresholdLinearModel(Population):
+  r"""A threshold linear rate model.
+
+  The threshold linear rate model is given by [1]_
+
+  .. math::
+
+     \begin{aligned}
+      &\tau_{E} \frac{d \nu_{E}}{d t}=-\nu_{E}+\beta_{E}\left[I_{E}\right]_{+} \\
+      &\tau_{I} \frac{d \nu_{I}}{d t}=-\nu_{I}+\beta_{I}\left[I_{I}\right]_{+}
+      \end{aligned}
+
+  where :math:`\left[I_{E}\right]_{+}=\max \left(I_{E}, 0\right)`.
+  :math:`v_E` and :math:`v_I` denote the firing rates of the excitatory and inhibitory
+  populations respectively, :math:`\tau_E` and :math:`\tau_I` are the corresponding
+  intrinsic time constants.
+
+
+  Reference
+  ---------
+  .. [1] Chaudhuri, Rishidev, et al. "A large-scale circuit mechanism
+         for hierarchical dynamical processing in the primate cortex."
+         Neuron 88.2 (2015): 419-431.
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      tau_e: Union[float, Callable, Initializer, Tensor] = 2e-2,
+      tau_i: Union[float, Callable, Initializer, Tensor] = 1e-2,
+      beta_e: Union[float, Callable, Initializer, Tensor] = .066,
+      beta_i: Union[float, Callable, Initializer, Tensor] = .351,
+      noise_e: Union[float, Callable, Initializer, Tensor] = 0.,
+      noise_i: Union[float, Callable, Initializer, Tensor] = 0.,
+      e_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      i_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      seed: int = None,
+      name: str = None
+  ):
+    super(ThresholdLinearModel, self).__init__(size, name=name)
+
+    # parameters
+    self.seed = seed
+    self.tau_e = init_param(tau_e, self.num, False)
+    self.tau_i = init_param(tau_i, self.num, False)
+    self.beta_e = init_param(beta_e, self.num, False)
+    self.beta_i = init_param(beta_i, self.num, False)
+    self.noise_e = init_param(noise_e, self.num, False)
+    self.noise_i = init_param(noise_i, self.num, False)
+    self._e_initializer = e_initializer
+    self._i_initializer = i_initializer
+
+    # variables
+    self.e = bm.Variable(init_param(e_initializer, self.num))  # Firing rate of excitatory population
+    self.i = bm.Variable(init_param(i_initializer, self.num))  # Firing rate of inhibitory population
+    self.Ie = bm.Variable(bm.zeros(self.num))  # Input of excitaory population
+    self.Ii = bm.Variable(bm.zeros(self.num))  # Input of inhibitory population
+    if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
+      self.rng = bm.random.RandomState(self.seed)
+
+  def reset(self):
+    self.rng.seed(self.seed)
+    self.e.value = init_param(self._e_initializer, self.num)
+    self.i.value = init_param(self._i_initializer, self.num)
+    self.Ie[:] = 0.
+    self.Ii[:] = 0.
+
+  def update(self, t, dt):
+    de = -self.e + self.beta_e * bm.maximum(self.Ie, 0.)
+    if bm.any(self.noise_e != 0.):
+      de += self.rng.randn(self.num) * self.noise_e
+    de = de / self.tau_e
+    self.e.value = bm.maximum(self.e + de * dt, 0.)
+    di = -self.i + self.beta_i * bm.maximum(self.Ii, 0.)
+    if bm.any(self.noise_i != 0.):
+      di += self.rng.randn(self.num) * self.noise_i
+    di = di / self.tau_i
+    self.i.value = bm.maximum(self.i + di * dt, 0.)
+    self.Ie[:] = 0.
+    self.Ii[:] = 0.
+
+

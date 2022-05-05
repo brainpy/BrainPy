@@ -26,22 +26,42 @@ __all__ = [
 
 _all_slice = slice(None, None, None)
 
-msg = ('JaxArray cannot be updated in JIT mode. You should '
-       'mark it as the brainpy.math.Variable instead.')
+msg = ('JaxArray created outside of the jit function '
+       'cannot be updated in JIT mode. You should '
+       'mark it as brainpy.math.Variable instead.')
+_global_jit_mode = False
+
+
+def turn_on_global_jit():
+  """Turn on the global JIT mode to declare
+  all instantiated JaxArray cannot be updated."""
+  global _global_jit_mode
+  _global_jit_mode = True
+
+
+def turn_off_global_jit():
+  """Turn off the global JIT mode."""
+  global _global_jit_mode
+  _global_jit_mode = False
 
 
 class JaxArray(object):
-  """Multiple-dimensional array for JAX backend.
+  """Multiple-dimensional array in JAX backend.
   """
-  __slots__ = ("_value", "_jit_mode")
+  __slots__ = ("_value", "_outside_global_jit")
 
   def __init__(self, value):
+    # array value
     if isinstance(value, (list, tuple)):
       value = jnp.asarray(value)
     if isinstance(value, JaxArray):
       value = value._value
     self._value = value
-    self._jit_mode = False
+    # jit mode
+    if _global_jit_mode:
+      self._outside_global_jit = False
+    else:
+      self._outside_global_jit = True
 
   @property
   def value(self):
@@ -54,7 +74,7 @@ class JaxArray(object):
   def update(self, value):
     """Update the value of this JaxArray.
     """
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     if value.shape != self._value.shape:
       raise MathError(f"The shape of the original data is {self._value.shape}, "
@@ -146,7 +166,7 @@ class JaxArray(object):
     return self.value[index]
 
   def __setitem__(self, index, value):
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
 
     # value is JaxArray
@@ -212,7 +232,7 @@ class JaxArray(object):
 
   def __iadd__(self, oc):
     # a += b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value += (oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -225,7 +245,7 @@ class JaxArray(object):
 
   def __isub__(self, oc):
     # a -= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__sub__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -238,7 +258,7 @@ class JaxArray(object):
 
   def __imul__(self, oc):
     # a *= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__mul__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -257,7 +277,7 @@ class JaxArray(object):
 
   def __itruediv__(self, oc):
     # a /= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__truediv__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -270,7 +290,7 @@ class JaxArray(object):
 
   def __ifloordiv__(self, oc):
     # a //= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__floordiv__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -289,7 +309,7 @@ class JaxArray(object):
 
   def __imod__(self, oc):
     # a %= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__mod__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -302,7 +322,7 @@ class JaxArray(object):
 
   def __ipow__(self, oc):
     # a **= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value ** (oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -315,7 +335,7 @@ class JaxArray(object):
 
   def __imatmul__(self, oc):
     # a @= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__matmul__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -328,7 +348,7 @@ class JaxArray(object):
 
   def __iand__(self, oc):
     # a &= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__and__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -341,7 +361,7 @@ class JaxArray(object):
 
   def __ior__(self, oc):
     # a |= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__or__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -354,7 +374,7 @@ class JaxArray(object):
 
   def __ixor__(self, oc):
     # a ^= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__xor__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -367,7 +387,7 @@ class JaxArray(object):
 
   def __ilshift__(self, oc):
     # a <<= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__lshift__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -380,7 +400,7 @@ class JaxArray(object):
 
   def __irshift__(self, oc):
     # a >>= b
-    if self._jit_mode:
+    if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
     self._value = self._value.__rshift__(oc._value if isinstance(oc, JaxArray) else oc)
     return self
@@ -528,33 +548,18 @@ class JaxArray(object):
     """Dot product of two arrays."""
     return JaxArray(self.value.dot(b))
 
-  # def dump(self, file):
-  #   """Dump a pickle of the array to the specified file.
-  #   The array can be read back with pickle.load or numpy.load."""
-  #   pass
-
-  # def dumps(self):
-  #   """Returns the pickle of the array as a string. pickle.loads
-  #   or numpy.loads will convert the string back to an array."""
-  #   pass
-
   def fill(self, value):
     """Fill the array with a scalar value."""
+    if self._outside_global_jit and _global_jit_mode:
+      raise MathError(msg)
     self._value = jnp.ones_like(self.value) * value
 
   def flatten(self, order='C'):
     return JaxArray(self.value.flatten(order=order))
 
-  # def getfield(self, dtype, offset=0):
-  #   return type(self)(self.value.getfield(dtype=dtype, offset=offset))
-
   def item(self, *args):
     """Copy an element of an array to a standard Python scalar and return it."""
     return self.value.item(*args)
-
-  # def itemset(self, *args):
-  #   """Insert scalar into an array (scalar is cast to array’s dtype, if possible)"""
-  #   self.value.itemset(*args)
 
   def max(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the maximum along a given axis."""
@@ -657,6 +662,8 @@ class JaxArray(object):
         but unspecified fields will still be used, in the order in which
         they come up in the dtype, to break ties.
     """
+    if self._outside_global_jit and _global_jit_mode:
+      raise MathError(msg)
     self._value = self.value.sort(axis=axis, kind=kind, order=order)
 
   def squeeze(self, axis=None):
@@ -882,10 +889,21 @@ ndarray = JaxArray
 class Variable(JaxArray):
   """The pointer to specify the dynamical variable.
   """
-  __slots__ = ('_value', )
+  __slots__ = ('_value',)
 
   def __init__(self, value):
     super(Variable, self).__init__(value)
+
+  def update(self, value):
+    """Update the value of this JaxArray.
+    """
+    if value.shape != self._value.shape:
+      raise MathError(f"The shape of the original data is {self._value.shape}, "
+                      f"while we got {value.shape}.")
+    if value.dtype != self._value.dtype:
+      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
+                      f"while we got {value.dtype}.")
+    self._value = value.value if isinstance(value, JaxArray) else value
 
   @property
   def real(self):
@@ -894,6 +912,22 @@ class Variable(JaxArray):
   @property
   def T(self):
     return self.value.T
+
+  def __setitem__(self, index, value):
+    # value is JaxArray
+    if isinstance(value, JaxArray):
+      value = value.value
+
+    # tuple index
+    if isinstance(index, tuple):
+      index = tuple(x.value if isinstance(x, JaxArray) else x for x in index)
+
+    # JaxArray index
+    elif isinstance(index, JaxArray):
+      index = index.value
+
+    # update
+    self._value = self._value.at[index].set(value)
 
   def __neg__(self):
     return self._value.__neg__()
@@ -1030,6 +1064,7 @@ class Variable(JaxArray):
 
   def __rand__(self, oc):
     return self._value.__rand__(oc._value if isinstance(oc, JaxArray) else oc)
+
   def __iand__(self, oc):
     # a &= b
     self._value = self._value.__and__(oc._value if isinstance(oc, JaxArray) else oc)
@@ -1329,7 +1364,7 @@ class Variable(JaxArray):
 class TrainVar(Variable):
   """The pointer to specify the trainable variable.
   """
-  __slots__ = ('_value', )
+  __slots__ = ('_value',)
 
   def __init__(self, value):
     super(TrainVar, self).__init__(value)
@@ -1338,7 +1373,7 @@ class TrainVar(Variable):
 class Parameter(Variable):
   """The pointer to specify the parameter.
   """
-  __slots__ = ('_value', )
+  __slots__ = ('_value',)
 
   def __init__(self, value):
     super(Parameter, self).__init__(value)

@@ -148,14 +148,14 @@ class LowDimAnalyzer(object):
     _target_vp = self.target_vars + self.target_pars
     if resolutions is None:
       for key, lim in self.target_vars.items():
-        self.resolutions[key] = bm.asarray(np.linspace(*lim, 20))
+        self.resolutions[key] = bm.linspace(*lim, 20)
       for key, lim in self.target_pars.items():
-        self.resolutions[key] = bm.asarray(np.linspace(*lim, 20))
+        self.resolutions[key] = bm.linspace(*lim, 20)
     elif isinstance(resolutions, float):
       for key, lim in self.target_vars.items():
-        self.resolutions[key] = bm.asarray(np.arange(*lim, resolutions))
+        self.resolutions[key] = bm.arange(*lim, resolutions)
       for key, lim in self.target_pars.items():
-        self.resolutions[key] = bm.asarray(np.arange(*lim, resolutions))
+        self.resolutions[key] = bm.arange(*lim, resolutions)
     elif isinstance(resolutions, dict):
       for key in resolutions.keys():
         if key in self.target_var_names:
@@ -167,11 +167,11 @@ class LowDimAnalyzer(object):
                                    f'the target parameters {self.target_par_names}.')
       for key in self.target_var_names + self.target_par_names:
         if key not in resolutions:
-          self.resolutions[key] = bm.asarray(np.linspace(*_target_vp[key], 20))
+          self.resolutions[key] = bm.linspace(*_target_vp[key], 20)
         else:
           resolution = resolutions[key]
           if isinstance(resolution, float):
-            self.resolutions[key] = bm.asarray(np.arange(*_target_vp[key], resolution))
+            self.resolutions[key] = bm.arange(*_target_vp[key], resolution)
           elif isinstance(resolution, (bm.ndarray, np.ndarray, jnp.ndarray)):
             if not np.ndim(resolution) == 1:
               raise errors.AnalyzerError(f'resolution must be a 1D array, but get its '

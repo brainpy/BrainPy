@@ -83,32 +83,39 @@ class AMPA(TwoEndConn):
     >>> plt.legend()
     >>> plt.show()
 
-  **Model Parameters**
+  Parameters
+  ----------
+  pre: NeuGroup
+    The pre-synaptic neuron group.
+  post: NeuGroup
+    The post-synaptic neuron group.
+  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+    The synaptic connections.
+  conn_type: str
+    The connection type used for model speed optimization. It can be
+    `sparse` and `dense`. The default is `dense`.
+  delay_step: int, ndarray, JaxArray, Initializer, Callable
+    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
+  E: float, JaxArray, ndarray
+    The reversal potential for the synaptic current. [mV]
+  g_max: float, ndarray, JaxArray, Initializer, Callable
+    The synaptic strength (the maximum conductance). Default is 1.
+  alpha: float, JaxArray, ndarray
+    Binding constant.
+  beta: float, JaxArray, ndarray
+    Unbinding constant.
+  T: float, JaxArray, ndarray
+    Transmitter concentration when synapse is triggered by
+    a pre-synaptic spike.. Default 1 [mM].
+  T_duration: float, JaxArray, ndarray
+    Transmitter concentration duration time after being triggered. Default 1 [ms]
+  name: str
+    The name of this synaptic projection.
+  method: str
+    The numerical integration methods.
 
-  ============= ============== ======== ================================================
-  **Parameter** **Init Value** **Unit** **Explanation**
-  ------------- -------------- -------- ------------------------------------------------
-  delay         0              ms       The decay length of the pre-synaptic spikes.
-  g_max         .42            µmho(µS) Maximum conductance.
-  E             0              mV       The reversal potential for the synaptic current.
-  alpha         .98            \        Binding constant.
-  beta          .18            \        Unbinding constant.
-  T             .5             mM       Neurotransmitter concentration.
-  T_duration    .5             ms       Duration of the neurotransmitter concentration.
-  ============= ============== ======== ================================================
-
-
-  **Model Variables**
-
-  ================== ================== ==================================================
-  **Member name**    **Initial values** **Explanation**
-  ------------------ ------------------ --------------------------------------------------
-  g                  0                  Synapse gating variable.
-  pre_spike          False              The history of pre-synaptic neuron spikes.
-  spike_arrival_time -1e7               The arrival time of the pre-synaptic neuron spike.
-  ================== ================== ==================================================
-
-  **References**
+  References
+  ----------
 
   .. [1] Vijayan S, Kopell N J. Thalamic model of awake alpha oscillations
          and implications for stimulus processing[J]. Proceedings of the
@@ -122,12 +129,12 @@ class AMPA(TwoEndConn):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
-      E: float = 0.,
-      alpha: float = 0.98,
-      beta: float = 0.18,
-      T: float = 0.5,
-      T_duration: float = 0.5,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      E: Union[float, Tensor] = 0.,
+      alpha: Union[float, Tensor] = 0.98,
+      beta: Union[float, Tensor] = 0.18,
+      T: Union[float, Tensor] = 0.5,
+      T_duration: Union[float, Tensor] = 0.5,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -136,12 +143,21 @@ class AMPA(TwoEndConn):
     self.check_post_attrs('input', 'V')
 
     # parameters
-    self.g_max = g_max
     self.E = E
     self.alpha = alpha
     self.beta = beta
     self.T = T
     self.T_duration = T_duration
+    if bm.size(E) != 1:
+      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. But we got {E}')
+    if bm.size(alpha) != 1:
+      raise ValueError(f'"alpha" must be a scalar or a tensor with size of 1. But we got {alpha}')
+    if bm.size(beta) != 1:
+      raise ValueError(f'"beta" must be a scalar or a tensor with size of 1. But we got {beta}')
+    if bm.size(T) != 1:
+      raise ValueError(f'"T" must be a scalar or a tensor with size of 1. But we got {T}')
+    if bm.size(T_duration) != 1:
+      raise ValueError(f'"T_duration" must be a scalar or a tensor with size of 1. But we got {T_duration}')
 
     # connection
     self.conn_type = conn_type
@@ -175,36 +191,44 @@ class AMPA(TwoEndConn):
     # variables
     self.g = bm.Variable(bm.zeros(self.pre.num))
     self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
-    self.delay_step = self.register_delay(self.pre.name + '.spike', delay_step, self.pre.spike)
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike",
+                                          delay_step=delay_step,
+                                          delay_target=self.pre.spike)
 
     # functions
     self.integral = odeint(method=method, f=self.dg)
+
+  def reset(self):
+    self.g.value = bm.zeros(self.pre.num)
+    if self.delay_step is not None:
+      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
 
   def dg(self, g, t, TT):
     dg = self.alpha * TT * (1 - g) - self.beta * g
     return dg
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
     else:
-      pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-      self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # spike arrival time
-    self.spike_arrival_time.value = bm.where(pre_spike, _t, self.spike_arrival_time)
+    self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
 
     # post-synaptic values
-    TT = ((_t - self.spike_arrival_time) < self.T_duration) * self.T
-    self.g.value = self.integral(self.g, _t, TT, dt=_dt)
+    TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
+    self.g.value = self.integral(self.g, t, TT, dt=dt)
     if isinstance(self.conn, One2One):
       post_g = self.g_max * self.g
     elif isinstance(self.conn, All2All):
       if self.weight_type == 'homo':
-        post_g = self.g.sum() * self.g_max
+        post_g = bm.sum(self.g)
         if not self.conn.include_self:
           post_g = post_g - self.g
+        post_g = post_g * self.g_max
       else:
         post_g = self.g @ self.g_max
     else:
@@ -258,18 +282,18 @@ class GABAa(AMPA):
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float
+  E: float, JaxArray, ndarray
     The reversal potential for the synaptic current. [mV]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  alpha: float
+  alpha: float, JaxArray, ndarray
     Binding constant. Default 0.062
-  beta: float
+  beta: float, JaxArray, ndarray
     Unbinding constant. Default 3.57
-  T: float
+  T: float, JaxArray, ndarray
     Transmitter concentration when synapse is triggered by
     a pre-synaptic spike.. Default 1 [mM].
-  T_duration: float
+  T_duration: float, JaxArray, ndarray
     Transmitter concentration duration time after being triggered. Default 1 [ms]
   name: str
     The name of this synaptic projection.
@@ -278,7 +302,6 @@ class GABAa(AMPA):
 
   References
   ----------
-
   .. [1] Destexhe, Alain, and Denis Paré. "Impact of network activity
          on the integrative properties of neocortical pyramidal neurons
          in vivo." Journal of neurophysiology 81.4 (1999): 1531-1547.
@@ -291,12 +314,12 @@ class GABAa(AMPA):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.04,
-      E: float = -80.,
-      alpha: float = 0.53,
-      beta: float = 0.18,
-      T: float = 1.,
-      T_duration: float = 1.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      E: Union[float, Tensor] = -80.,
+      alpha: Union[float, Tensor] = 0.53,
+      beta: Union[float, Tensor] = 0.18,
+      T: Union[float, Tensor] = 1.,
+      T_duration: Union[float, Tensor] = 1.,
       method: str = 'exp_auto',
       name: str = None
   ):

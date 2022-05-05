@@ -51,12 +51,12 @@ class CANN1D(bp.dyn.NeuGroup):
   def get_stimulus_by_pos(self, pos):
     return self.A * bm.exp(-0.25 * bm.square(self.dist(self.x - pos) / self.a))
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     r1 = bm.square(self.u)
     r2 = 1.0 + self.k * bm.sum(r1)
     self.r.value = r1 / r2
     Irec = bm.dot(self.conn_mat, self.r)
-    self.u.value = self.u + (-self.u + Irec + self.input) / self.tau * _dt
+    self.u.value = self.u + (-self.u + Irec + self.input) / self.tau * dt
     self.input[:] = 0.
 
 

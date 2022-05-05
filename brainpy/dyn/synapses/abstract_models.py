@@ -133,17 +133,21 @@ class DeltaSynapse(TwoEndConn):
         raise ValueError(f'Unknown connection type: {conn_type}')
 
     # variables
-    self.delay_step = self.register_delay(self.pre.name + '.spike',
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike",
                                           delay_step=delay_step,
                                           delay_target=self.pre.spike)
 
-  def update(self, _t, _dt):
+  def reset(self):
+    if self.delay_step is not None:
+      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
+
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
     else:
-      pre_spike = self.get_delay(self.pre.name + '.spike', delay_step=self.delay_step)
-      self.update_delay(self.pre.name + '.spike', delay_target=self.pre.spike)
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
+      self.update_delay(f"{self.pre.name}.spike", delay_data=self.pre.spike)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
@@ -174,7 +178,7 @@ class DeltaSynapse(TwoEndConn):
     # update outputs
     target = getattr(self.post, self.post_key)
     if self.post_has_ref:
-      target += post_vs * (1. - self.post.refractory)
+      target += post_vs * bm.logical_not(self.post.refractory)
     else:
       target += post_vs
 
@@ -258,7 +262,7 @@ class ExpCUBA(TwoEndConn):
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau: float
+  tau: float, JaxArray, ndarray
     The time constant of decay. [ms]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
@@ -282,8 +286,8 @@ class ExpCUBA(TwoEndConn):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'sparse',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau: float = 8.0,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      tau: Union[float, Tensor] = 8.0,
       name: str = None,
       method: str = 'exp_auto',
   ):
@@ -293,6 +297,9 @@ class ExpCUBA(TwoEndConn):
 
     # parameters
     self.tau = tau
+    if bm.size(self.tau) != 1:
+      raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. '
+                       f'But we got {self.tau}')
 
     # connections and weights
     self.conn_type = conn_type
@@ -325,18 +332,23 @@ class ExpCUBA(TwoEndConn):
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))
-    self.delay_step = self.register_delay(self.pre.name + '.spike', delay_step, self.pre.spike)
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
-  def update(self, _t, _dt):
+  def reset(self):
+    self.g.value = bm.zeros(self.post.num)
+    if self.delay_step is not None:
+      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
+
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
     else:
-      pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-      self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
@@ -364,7 +376,7 @@ class ExpCUBA(TwoEndConn):
           post_vs = pre_spike @ self.g_max
 
     # updates
-    self.g.value = self.integral(self.g.value, _t, dt=_dt) + post_vs
+    self.g.value = self.integral(self.g.value, t, dt=dt) + post_vs
     self.post.input += self.output(self.g)
 
   def output(self, g_post):
@@ -418,7 +430,7 @@ class ExpCOBA(ExpCUBA):
     >>> plt.legend()
     >>> plt.show()
 
-    Parameters
+  Parameters
   ----------
   pre: NeuGroup
     The pre-synaptic neuron group.
@@ -431,9 +443,9 @@ class ExpCOBA(ExpCUBA):
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float
+  E: float, JaxArray, ndarray
     The reversal potential for the synaptic current. [mV]
-  tau: float
+  tau: float, JaxArray, ndarray
     The time constant of decay. [ms]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
@@ -460,8 +472,8 @@ class ExpCOBA(ExpCUBA):
       # connection strength
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       # synapse parameter
-      tau: float = 8.0,
-      E: float = 0.,
+      tau: Union[float, Tensor] = 8.0,
+      E: Union[float, Tensor] = 0.,
       # synapse delay
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       # others
@@ -475,6 +487,9 @@ class ExpCOBA(ExpCUBA):
 
     # parameter
     self.E = E
+    if bm.size(self.E) != 1:
+      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. '
+                       f'But we got {self.E}')
 
   def output(self, g_post):
     return g_post * (self.E - self.post.V)
@@ -558,9 +573,9 @@ class DualExpCUBA(TwoEndConn):
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau_decay: float
+  tau_decay: float, JaxArray, JaxArray, ndarray
     The time constant of the synaptic decay phase. [ms]
-  tau_rise: float
+  tau_rise: float, JaxArray, JaxArray, ndarray
     The time constant of the synaptic rise phase. [ms]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
@@ -587,8 +602,8 @@ class DualExpCUBA(TwoEndConn):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau_decay: float = 10.0,
-      tau_rise: float = 1.,
+      tau_decay: Union[float, Tensor] = 10.0,
+      tau_rise: Union[float, Tensor] = 1.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
@@ -600,6 +615,12 @@ class DualExpCUBA(TwoEndConn):
     # parameters
     self.tau_rise = tau_rise
     self.tau_decay = tau_decay
+    if bm.size(self.tau_rise) != 1:
+      raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. '
+                       f'But we got {self.tau_rise}')
+    if bm.size(self.tau_decay) != 1:
+      raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. '
+                       f'But we got {self.tau_decay}')
 
     # connections
     self.conn_type = conn_type
@@ -631,12 +652,18 @@ class DualExpCUBA(TwoEndConn):
         raise ValueError(f'Unknown connection type: {conn_type}')
 
     # variables
-    self.h = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
-    self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
-    self.delay_step = self.register_delay(self.pre.name + '.spike', delay_step, self.pre.spike)
+    self.h = bm.Variable(bm.zeros(self.pre.num))
+    self.g = bm.Variable(bm.zeros(self.pre.num))
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dh]))
+
+  def reset(self):
+    self.h.value = bm.zeros(self.pre.num)
+    self.g.value = bm.zeros(self.pre.num)
+    if self.delay_step is not None:
+      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
 
   def dh(self, h, t):
     return -h / self.tau_rise
@@ -644,16 +671,16 @@ class DualExpCUBA(TwoEndConn):
   def dg(self, g, t, h):
     return -g / self.tau_decay + h
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       pre_spike = self.pre.spike
     else:
-      pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-      self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # update synaptic variables
-    self.g.value, self.h.value = self.integral(self.g, self.h, _t, _dt)
+    self.g.value, self.h.value = self.integral(self.g, self.h, t, dt)
     self.h += pre_spike
 
     # post-synaptic values
@@ -742,11 +769,11 @@ class DualExpCOBA(DualExpCUBA):
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float
+  E: float, JaxArray, ndarray
     The reversal potential for the synaptic current. [mV]
-  tau_decay: float
+  tau_decay: float, JaxArray, ndarray
     The time constant of the synaptic decay phase. [ms]
-  tau_rise: float
+  tau_rise: float, JaxArray, ndarray
     The time constant of the synaptic rise phase. [ms]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
@@ -771,10 +798,10 @@ class DualExpCOBA(DualExpCUBA):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau_decay: float = 10.0,
-      tau_rise: float = 1.,
-      E: float = 0.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      tau_decay: Union[float, Tensor] = 10.0,
+      tau_rise: Union[float, Tensor] = 1.,
+      E: Union[float, Tensor] = 0.,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -786,6 +813,9 @@ class DualExpCOBA(DualExpCUBA):
 
     # parameters
     self.E = E
+    if bm.size(self.E) != 1:
+      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. '
+                       f'But we got {self.E}')
 
   def output(self, g_post):
     return g_post * (self.E - self.post.V)
@@ -860,7 +890,7 @@ class AlphaCUBA(DualExpCUBA):
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau_decay: float
+  tau_decay: float, JaxArray, ndarray
     The time constant of the synaptic decay phase. [ms]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
@@ -884,8 +914,8 @@ class AlphaCUBA(DualExpCUBA):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau_decay: float = 10.0,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      tau_decay: Union[float, Tensor] = 10.0,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -956,9 +986,9 @@ class AlphaCOBA(DualExpCOBA):
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float
+  E: float, JaxArray, ndarray
     The reversal potential for the synaptic current. [mV]
-  tau_decay: float
+  tau_decay: float, JaxArray, ndarray
     The time constant of the synaptic decay phase. [ms]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
@@ -983,9 +1013,9 @@ class AlphaCOBA(DualExpCOBA):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Callable, Initializer] = 1.,
-      tau_decay: float = 10.0,
-      E: float = 0.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      tau_decay: Union[float, Tensor] = 10.0,
+      E: Union[float, Tensor] = 0.,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -1096,21 +1126,21 @@ class NMDA(TwoEndConn):
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float
-    The reversal potential for the synaptic current. [mV]
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  alpha: float
+  E: float, JaxArray, ndarray
+    The reversal potential for the synaptic current. [mV]
+  alpha: float, JaxArray, ndarray
     Binding constant. Default 0.062
-  beta: float
+  beta: float, JaxArray, ndarray
     Unbinding constant. Default 3.57
-  cc_Mg: float
+  cc_Mg: float, JaxArray, ndarray
     Concentration of Magnesium ion. Default 1.2 [mM].
-  tau_decay: float
+  tau_decay: float, JaxArray, ndarray
     The time constant of the synaptic decay phase. Default 100 [ms]
-  tau_rise: float
+  tau_rise: float, JaxArray, ndarray
     The time constant of the synaptic rise phase. Default 2 [ms]
-  a: float
+  a: float, JaxArray, ndarray
     Default 0.5 ms^-1.
   name: str
     The name of this synaptic projection.
@@ -1140,14 +1170,14 @@ class NMDA(TwoEndConn):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
-      E: float = 0.,
-      cc_Mg: float = 1.2,
-      alpha: float = 0.062,
-      beta: float = 3.57,
-      tau_decay: float = 100.,
-      a: float = 0.5,
-      tau_rise: float = 2.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      E: Union[float, Tensor] = 0.,
+      cc_Mg: Union[float, Tensor] = 1.2,
+      alpha: Union[float, Tensor] = 0.062,
+      beta: Union[float, Tensor] = 3.57,
+      tau_decay: Union[float, Tensor] = 100.,
+      a: Union[float, Tensor] = 0.5,
+      tau_rise: Union[float, Tensor] = 2.,
       method: str = 'exp_auto',
       name: str = None,
   ):
@@ -1163,8 +1193,22 @@ class NMDA(TwoEndConn):
     self.tau_decay = tau_decay
     self.tau_rise = tau_rise
     self.a = a
+    if bm.size(a) != 1:
+      raise ValueError(f'"a" must be a scalar or a tensor with size of 1. But we got {a}')
+    if bm.size(E) != 1:
+      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. But we got {E}')
+    if bm.size(alpha) != 1:
+      raise ValueError(f'"alpha" must be a scalar or a tensor with size of 1. But we got {alpha}')
+    if bm.size(beta) != 1:
+      raise ValueError(f'"beta" must be a scalar or a tensor with size of 1. But we got {beta}')
+    if bm.size(cc_Mg) != 1:
+      raise ValueError(f'"cc_Mg" must be a scalar or a tensor with size of 1. But we got {cc_Mg}')
+    if bm.size(tau_decay) != 1:
+      raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. But we got {tau_decay}')
+    if bm.size(tau_rise) != 1:
+      raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. But we got {tau_rise}')
 
-    # connections
+    # connections and weights
     self.conn_type = conn_type
     if conn_type not in ['sparse', 'dense']:
       raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
@@ -1196,7 +1240,7 @@ class NMDA(TwoEndConn):
     # variables
     self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
     self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
-    self.delay_step = self.register_delay(self.pre.name + '.spike', delay_step, self.pre.spike)
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
@@ -1207,16 +1251,16 @@ class NMDA(TwoEndConn):
   def dx(self, x, t):
     return -x / self.tau_rise
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     # delays
     if self.delay_step is None:
       delayed_pre_spike = self.pre.spike
     else:
-      delayed_pre_spike = self.get_delay(self.pre.name + '.spike', self.delay_step)
-      self.update_delay(self.pre.name + '.spike', self.pre.spike)
+      delayed_pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
 
     # update synapse variables
-    self.g.value, self.x.value = self.integral(self.g, self.x, _t, dt=_dt)
+    self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)
     self.x += delayed_pre_spike
 
     # post-synaptic value

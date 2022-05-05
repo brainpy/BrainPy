@@ -38,9 +38,9 @@ class MeanFieldQIF(bp.dyn.DynamicalSystem):
     self.int_r = bp.odeint(dr, method=method)
     self.int_v = bp.odeint(dv, method=method)
 
-  def update(self, _t, _dt):
-    self.r.value = self.int_r(self.r, _t, self.v, self.delta, _dt)
-    self.v.value = self.int_v(self.v, _t, self.r, self.Iext, self.eta, _dt)
+  def update(self, t, dt):
+    self.r.value = self.int_r(self.r, t, self.v, self.delta, dt)
+    self.v.value = self.int_v(self.v, t, self.r, self.Iext, self.eta, dt)
     self.Iext[:] = 0.
 
 

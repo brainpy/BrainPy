@@ -24,7 +24,7 @@ class TestBatchNorm1d(TestCase):
 	def test_batchnorm1d2(self):
 		i = bp.nn.Input(4)
 		b = bp.nn.BatchNorm1d()
-		o = bp.nn.GeneralDense(4)
+		o = bp.nn.DenseMD(4)
 		model = i >> b >> o
 		model.initialize(num_batch=2)
 
@@ -80,7 +80,7 @@ class TestBatchNorm(TestCase):
 		i = bp.nn.Input((3, 4))
 		b = bp.nn.BatchNorm(axis=(0, 2))  # channel axis: 1
 		f = bp.nn.Reshape((-1, 12))
-		o = bp.nn.GeneralDense(2)
+		o = bp.nn.DenseMD(2)
 		model = i >> b >> f >> o
 		model.initialize(num_batch=2)
 
@@ -91,6 +91,7 @@ class TestBatchNorm(TestCase):
 		print(model(inputs))
 
 		# training
+		bp.math.random.seed()
 		X = bp.math.random.random((1000, 10, 3, 4))
 		Y = bp.math.random.randint(0, 2, (1000, 10,  2))
 		trainer = bp.nn.BPTT(model,

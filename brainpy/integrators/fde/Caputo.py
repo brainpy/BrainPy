@@ -326,7 +326,8 @@ class CaputoL1Schema(FDEIntegrator):
     self.coef = bm.flip(coef, axis=0)
 
     # variable states
-    self.diff_states = {v + "_diff": bm.Variable(bm.zeros((num_step,) + self.inits[v].shape))
+    self.diff_states = {v + "_diff": bm.Variable(bm.zeros((num_step,) + self.inits[v].shape,
+                                                          dtype=self.inits[v].dtype))
                         for v in self.variables}
     self.register_implicit_vars(self.diff_states)
     self.idx = bm.Variable(bm.asarray([self.num_step - 1], dtype=bm.int32))
@@ -334,7 +335,17 @@ class CaputoL1Schema(FDEIntegrator):
     # integral function
     self.set_integral(self._integral_func)
 
+  def reset(self, inits):
+    """Reset function."""
+    self.idx.value = bm.asarray([self.num_step - 1], dtype=bm.int32)
+    inits = check_inits(inits, self.variables)
+    for key, value in inits.items():
+      self.inits[key].value = value
+    for key, val in inits.items():
+      self.diff_states[key + "_diff"].value = bm.zeros((self.num_step,) + val.shape, dtype=val.dtype)
+
   def hists(self, var=None, numpy=True):
+    """Get the recorded history values."""
     if var is None:
       hists_ = {k: bm.vstack([self.inits[k], self.diff_states[k + '_diff']])
                 for k in self.variables}

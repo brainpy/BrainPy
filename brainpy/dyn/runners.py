@@ -30,13 +30,13 @@ class DSRunner(Runner):
     The inputs for the target DynamicalSystem. It should be the format
     of `[(target, value, [type, operation])]`, where `target` is the
     input target, `value` is the input value, `type` is the input type
-    (such as "fix" or "iter"), `operation` is the operation for inputs
+    (such as "fix", "iter", "func"), `operation` is the operation for inputs
     (such as "+", "-", "*", "/", "=").
 
     - ``target``: should be a string. Can be specified by the *absolute access* or *relative access*.
     - ``value``: should be a scalar, vector, matrix, iterable function or objects.
     - ``type``: should be a string. "fix" means the input `value` is a constant. "iter" means the
-      input `value` can be changed over time.
+      input `value` can be changed over time. "func" mean the input is obtained through the functional call.
     - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
     - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
       for example ``[(target1, value1), (target2, value2)]``.
@@ -163,16 +163,17 @@ class DSRunner(Runner):
              for k, v in return_without_idx.items()}
       res.update({k: (v.flatten()[idx] if bm.ndim(v) > 1 else v[idx])
                   for k, (v, idx) in return_with_idx.items()})
+      res.update({k: f(_t, _dt) for k, f in self.fun_monitors.items()})
       return res
 
     return func
 
   def _run_one_step(self, _t):
-    self._input_step(_t=_t, _dt=self.dt)
-    self.target.update(_t=_t, _dt=self.dt)
+    self._input_step(_t, self.dt)
+    self.target.update(_t, self.dt)
     if self.progress_bar:
       id_tap(lambda *args: self._pbar.update(), ())
-    return self._monitor_step(_t=_t, _dt=self.dt)
+    return self._monitor_step(_t, self.dt)
 
   def build_run_function(self):
     if self.jit:

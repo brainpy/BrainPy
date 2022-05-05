@@ -87,6 +87,8 @@ class TestCurrents(TestCase):
     self.assertTrue(I2.shape[0] == 6000)
 
   def test_general2(self):
-    current = bp.inputs.section_input(values=[0, bp.math.ones(10), bp.math.random.random((3, 10))],
+    bp.math.random.seed(123)
+    current = bp.inputs.section_input(values=[0, bp.math.ones(10),
+                                              bp.math.random.random((3, 10))],
                                       durations=[100, 300, 100])
     self.assertTrue(current.shape == (5000, 3, 10))

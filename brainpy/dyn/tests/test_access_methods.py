@@ -34,11 +34,11 @@ class GABAa(bp.dyn.TwoEndConn):
   def int_s(s, t, TT, alpha, beta):
     return alpha * TT * (1 - s) - beta * s
 
-  def update(self, _t, _i, **kwargs):
+  def update(self, t, dt, **kwargs):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
-    self.t_last_pre_spike = bp.math.where(spike, _t, self.t_last_pre_spike)
-    TT = ((_t - self.t_last_pre_spike) < self.T_duration) * self.T
-    self.s = self.int_s(self.s, _t, TT, self.alpha, self.beta)
+    self.t_last_pre_spike = bp.math.where(spike, t, self.t_last_pre_spike)
+    TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
+    self.s = self.int_s(self.s, t, TT, self.alpha, self.beta)
     self.g.push(self.g_max * self.s)
     g = self.g.pull()
     self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
@@ -88,8 +88,8 @@ class HH(bp.dyn.NeuGroup):
 
     return dVdt, self.phi * dhdt, self.phi * dndt
 
-  def update(self, _t, _i, **kwargs):
-    V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
+  def update(self, t, _i, **kwargs):
+    V, h, n = self.integral(self.V, self.h, self.n, t, self.inputs)
     self.spikes[:] = (self.V < self.V_th) * (V >= self.V_th)
     self.V[:] = V
     self.h[:] = h
@@ -98,34 +98,35 @@ class HH(bp.dyn.NeuGroup):
 
 
 def test1():
-    num = 10
-    neu = HH(num)
-    neu.V = -70. + bp.math.random.normal(size=num) * 20
+  bp.math.random.seed(123)
+  num = 10
+  neu = HH(num)
+  neu.V = -70. + bp.math.random.normal(size=num) * 20
 
-    syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
-    syn.g_max = 0.1 / num
+  syn = GABAa(pre=neu, post=neu, conn=bp.connect.All2All(include_self=False))
+  syn.g_max = 0.1 / num
 
-    net = bp.dyn.Network(neu=neu, syn=syn)
+  net = bp.dyn.Network(neu=neu, syn=syn)
 
-    for method in ['relative', 'absolute']:
-      print(f'Method: {method}\n')
-      print('vars:')
-      print('-----')
-      print('neu.vars()', list(neu.vars(method).keys()))
-      print('syn.vars()', list(syn.vars(method).keys()))
-      print('net.vars()', list(net.vars(method).keys()))
-      print()
+  for method in ['relative', 'absolute']:
+    print(f'Method: {method}\n')
+    print('vars:')
+    print('-----')
+    print('neu.vars()', list(neu.vars(method).keys()))
+    print('syn.vars()', list(syn.vars(method).keys()))
+    print('net.vars()', list(net.vars(method).keys()))
+    print()
 
-      print('ints:')
-      print('-----')
-      print('neu.ints()', list(neu.ints(method).keys()))
-      print('syn.ints()', list(syn.ints(method).keys()))
-      print('net.ints()', list(net.ints(method).keys()))
-      print()
+    print('ints:')
+    print('-----')
+    print('neu.ints()', list(neu.ints(method).keys()))
+    print('syn.ints()', list(syn.ints(method).keys()))
+    print('net.ints()', list(net.ints(method).keys()))
+    print()
 
-      print('nodes:')
-      print('------')
-      print('neu.nodes()', list(neu.nodes(method).keys()))
-      print('syn.nodes()', list(syn.nodes(method).keys()))
-      print('net.nodes()', list(net.nodes(method).keys()))
-      print()
+    print('nodes:')
+    print('------')
+    print('neu.nodes()', list(neu.nodes(method).keys()))
+    print('syn.nodes()', list(syn.nodes(method).keys()))
+    print('net.nodes()', list(net.nodes(method).keys()))
+    print()

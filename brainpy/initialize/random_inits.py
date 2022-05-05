@@ -37,15 +37,16 @@ class Normal(InterLayerInitializer):
 
   """
 
-  def __init__(self, scale=1., seed=None):
+  def __init__(self, mean=0., scale=1., seed=None):
     super(Normal, self).__init__()
     self.scale = scale
+    self.mean = mean
     self.seed = seed
     self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
-    weights = self.rng.normal(size=shape, scale=self.scale)
+    weights = self.rng.normal(size=shape, loc=self.mean,  scale=self.scale)
     return bm.asarray(weights, dtype=dtype)
 
   def __repr__(self):

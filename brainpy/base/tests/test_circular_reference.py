@@ -50,8 +50,8 @@ class HH(bp.dyn.NeuGroup):
 
     return dVdt, dhdt, dndt
 
-  def update(self, _t, _i):
-    V, h, n = self.integral(self.V, self.h, self.n, _t, self.inputs)
+  def update(self, t, dt):
+    V, h, n = self.integral(self.V, self.h, self.n, t, self.inputs)
     self.spikes[:] = bp.math.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V[:] = V
     self.h[:] = h
