@@ -12,4 +12,5 @@
     auto/dyn/channels
     auto/dyn/neurons
     auto/dyn/synapses
+    auto/dyn/rates
     auto/dyn/runners
