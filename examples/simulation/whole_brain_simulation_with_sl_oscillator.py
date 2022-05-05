@@ -5,12 +5,13 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy.dyn import rates
 
 bp.check.turn_off()
 
 
 def bifurcation_analysis():
-  model = bp.dyn.StuartLandauOscillator(1, method='exp_auto')
+  model = rates.StuartLandauOscillator(1, method='exp_auto')
   pp = bp.analysis.Bifurcation2D(
     model,
     target_vars={'x': [-2, 2], 'y': [-2, 2]},
@@ -35,9 +36,9 @@ class Network(bp.dyn.Network):
     bm.fill_diagonal(conn_mat, 0)
     gc = 0.6  # global coupling strength
 
-    self.sl = bp.dyn.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14, name='sl')
-    self.coupling = bp.dyn.DiffusiveCoupling(self.sl.x, self.sl.x, self.sl.input,
-                                             conn_mat=conn_mat * gc)
+    self.sl = rates.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14, name='sl')
+    self.coupling = rates.DiffusiveCoupling(self.sl.x, self.sl.x, self.sl.input,
+                                            conn_mat=conn_mat * gc)
 
   def update(self, t, dt):
     self.coupling.update(t, dt)
@@ -60,5 +61,5 @@ def simulation():
 
 
 if __name__ == '__main__':
-  # bifurcation_analysis()
+  bifurcation_analysis()
   simulation()
