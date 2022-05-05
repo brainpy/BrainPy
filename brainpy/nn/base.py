@@ -123,12 +123,7 @@ class Node(Base):
 
     # parameters
     if input_shape is not None:
-      if input_shape[0] is None:
-        input_shape = tools.to_size(input_shape)
-      else:
-        input_shape = (None,) + tools.to_size(input_shape)
-      self._feedforward_shapes = {self.name: input_shape}
-      self._init_ff_conn()
+      self._feedforward_shapes = {self.name: (None,) + tools.to_size(input_shape)}
 
   def __repr__(self):
     return (f"{type(self).__name__}(name={self.name}, "
@@ -429,12 +424,12 @@ class Node(Base):
       self._is_fb_initialized = True
 
   @not_implemented
-  def init_fb_conn(self, fb_shapes):
+  def init_fb_conn(self):
     """Initialize the feedback connections.
     This function will be called only once."""
     raise ValueError(f'This node \n\n{self} \n\ndoes not support feedback connection.')
 
-  def init_ff_conn(self, ff_shapes):
+  def init_ff_conn(self):
     """Initialize the feedforward connections.
     This function will be called only once."""
     raise NotImplementedError('Please implement the feedforward initialization.')
