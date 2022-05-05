@@ -6,12 +6,13 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy.dyn import rates
 
 bp.check.turn_off()
 
 
 def bifurcation_analysis():
-  model = bp.dyn.RateFHN(1, method='exp_auto')
+  model = rates.FHN(1, method='exp_auto')
   pp = bp.analysis.Bifurcation2D(
     model,
     target_vars={'x': [-2, 2], 'y': [-2, 2]},
@@ -37,11 +38,11 @@ class Network(bp.dyn.Network):
     delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.get_dt())
     bm.fill_diagonal(delay_mat, 0)
 
-    self.fhn = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
-    self.coupling = bp.dyn.DiffusiveCoupling(self.fhn.x, self.fhn.x, self.fhn.input,
-                                             conn_mat=conn_mat,
-                                             delay_steps=delay_mat.astype(bm.int_),
-                                             initial_delay_data=bp.init.Uniform(0, 0.05))
+    self.fhn = rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+    self.coupling = rates.DiffusiveCoupling(self.fhn.x, self.fhn.x, self.fhn.input,
+                                            conn_mat=conn_mat,
+                                            delay_steps=delay_mat.astype(bm.int_),
+                                            initial_delay_data=bp.init.Uniform(0, 0.05))
 
   def update(self, t, dt):
     self.coupling.update(t, dt)
@@ -64,5 +65,5 @@ def brain_simulation():
 
 
 if __name__ == '__main__':
-  # bifurcation_analysis()
+  bifurcation_analysis()
   brain_simulation()
