@@ -247,8 +247,6 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
     ('biological_models', 'Biological Models'),
     ('fractional_models', 'Fractional-order Models'),
     ('input_models', 'Input Models'),
-    ('noise_models', 'Noise Models'),
-    ('rate_models', 'Rate Models'),
     ('reduced_models', 'Reduced Models'),
   ]
   write_submodules(module_name='brainpy.dyn.neurons',
@@ -260,12 +258,22 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   module_and_name = [
     ('biological_models', 'Biological Models'),
     ('abstract_models', 'Abstract Models'),
-    ('delay_coupling', 'Delay Coupling Models'),
     ('learning_rules', 'Learning Rule Models'),
   ]
   write_submodules(module_name='brainpy.dyn.synapses',
                    filename=os.path.join(path, 'synapses.rst'),
                    header='Synapse Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  module_and_name = [
+    ('populations', 'Population Models'),
+    ('couplings', 'Coupling Models'),
+    ('noises', 'Noise Models'),
+  ]
+  write_submodules(module_name='brainpy.dyn.rates',
+                   filename=os.path.join(path, 'rates.rst'),
+                   header='Rate Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
