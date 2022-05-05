@@ -1478,7 +1478,6 @@ class Network(Node):
     legends = dict() if legends is None else legends
     ax.legend(proxie, labels, scatterpoints=1, markerscale=2, loc='best', **legends)
     if show:
-      plt.tight_layout()
       plt.show()
 
 
