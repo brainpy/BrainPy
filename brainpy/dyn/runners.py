@@ -163,6 +163,7 @@ class DSRunner(Runner):
              for k, v in return_without_idx.items()}
       res.update({k: (v.flatten()[idx] if bm.ndim(v) > 1 else v[idx])
                   for k, (v, idx) in return_with_idx.items()})
+      res.update({k: f(_t, _dt) for k, f in self.fun_monitors.items()})
       return res
 
     return func

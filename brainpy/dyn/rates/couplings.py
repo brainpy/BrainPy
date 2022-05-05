@@ -25,7 +25,7 @@ class DelayCoupling(DynamicalSystem):
   ----------
   delay_var: Variable
     The delay variable.
-  output_var: Variable, sequence of Variable
+  target_var: Variable, sequence of Variable
     The target variables to output.
   conn_mat: JaxArray, ndarray
     The connection matrix.
@@ -40,7 +40,7 @@ class DelayCoupling(DynamicalSystem):
   def __init__(
       self,
       delay_var: bm.Variable,
-      output_var: Union[bm.Variable, Sequence[bm.Variable]],
+      target_var: Union[bm.Variable, Sequence[bm.Variable]],
       conn_mat: Tensor,
       required_shape: Tuple[int, ...],
       delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
@@ -56,10 +56,10 @@ class DelayCoupling(DynamicalSystem):
     self.delay_var = delay_var
 
     # output variables
-    if isinstance(output_var, bm.Variable):
-      output_var = [output_var]
-    check_sequence(output_var, 'output_var', elem_type=bm.Variable, allow_none=False)
-    self.output_var = output_var
+    if isinstance(target_var, bm.Variable):
+      target_var = [target_var]
+    check_sequence(target_var, 'output_var', elem_type=bm.Variable, allow_none=False)
+    self.output_var = target_var
 
     # Connection matrix
     self.conn_mat = bm.asarray(conn_mat)
@@ -122,8 +122,9 @@ class DiffusiveCoupling(DelayCoupling):
   --------
 
   >>> import brainpy as bp
-  >>> areas = bp.dyn.RateFHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
-  >>> conn = bp.dyn.DiffusiveCoupling(areas.x, areas.x, areas.input,
+  >>> from brainpy.dyn import rates
+  >>> areas = rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+  >>> conn = rates.DiffusiveCoupling(areas.x, areas.x, areas.input,
   >>>                                 conn_mat=Cmat, delay_steps=Dmat,
   >>>                                 initial_delay_data=bp.init.Uniform(0, 0.05))
   >>> net = bp.dyn.Network(areas, conn)
@@ -134,7 +135,7 @@ class DiffusiveCoupling(DelayCoupling):
     The first coupling variable, used for delay.
   coupling_var2: Variable
     Another coupling variable.
-  output_var: Variable, sequence of Variable
+  target_var: Variable, sequence of Variable
     The target variables to output.
   conn_mat: JaxArray, ndarray
     The connection matrix.
@@ -150,7 +151,7 @@ class DiffusiveCoupling(DelayCoupling):
       self,
       coupling_var1: bm.Variable,
       coupling_var2: bm.Variable,
-      output_var: Union[bm.Variable, Sequence[bm.Variable]],
+      target_var: Union[bm.Variable, Sequence[bm.Variable]],
       conn_mat: Tensor,
       delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
@@ -171,7 +172,7 @@ class DiffusiveCoupling(DelayCoupling):
 
     super(DiffusiveCoupling, self).__init__(
       delay_var=coupling_var1,
-      output_var=output_var,
+      target_var=target_var,
       conn_mat=conn_mat,
       required_shape=(coupling_var1.size, coupling_var2.size),
       delay_steps=delay_steps,
@@ -190,15 +191,18 @@ class DiffusiveCoupling(DelayCoupling):
     # delays
     if self.delay_type == 'none':
       diffusive = bm.expand_dims(self.coupling_var1, axis=1) - self.coupling_var2
+      diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'array':
       f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var1.size)))  # (pre.num,)
       delays = f(bm.arange(self.coupling_var2.size).value)
       diffusive = delays.T - self.coupling_var2  # (post.num, pre.num)
+      diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'int':
-      diffusive = bm.expand_dims(delay_var(self.delay_steps), axis=1) - self.coupling_var2
+      delayed_var = delay_var(self.delay_steps)
+      diffusive = bm.expand_dims(delayed_var, axis=1) - self.coupling_var2
+      diffusive = (self.conn_mat * diffusive).sum(axis=0)
     else:
       raise ValueError
-    diffusive = (self.conn_mat * diffusive).sum(axis=0)
 
     # output to target variable
     for target in self.output_var:
@@ -221,7 +225,7 @@ class AdditiveCoupling(DelayCoupling):
   ----------
   coupling_var: Variable
     The coupling variable, used for delay.
-  output_var: Variable, sequence of Variable
+  target_var: Variable, sequence of Variable
     The target variables to output.
   conn_mat: JaxArray, ndarray
     The connection matrix.
@@ -236,7 +240,7 @@ class AdditiveCoupling(DelayCoupling):
   def __init__(
       self,
       coupling_var: bm.Variable,
-      output_var: Union[bm.Variable, Sequence[bm.Variable]],
+      target_var: Union[bm.Variable, Sequence[bm.Variable]],
       conn_mat: Tensor,
       delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
@@ -251,7 +255,7 @@ class AdditiveCoupling(DelayCoupling):
 
     super(AdditiveCoupling, self).__init__(
       delay_var=coupling_var,
-      output_var=output_var,
+      target_var=target_var,
       conn_mat=conn_mat,
       required_shape=(coupling_var.size, coupling_var.size),
       delay_steps=delay_steps,
@@ -267,7 +271,7 @@ class AdditiveCoupling(DelayCoupling):
 
     # delay function
     if self.delay_steps is None:
-      additive = self.conn_mat * bm.expand_dims(self.coupling_var, axis=1)
+      additive = self.coupling_var @ self.conn_mat
     else:
       f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var.size)))  # (pre.num,)
       delays = f(bm.arange(self.coupling_var.size).value)  # (post.num, pre.num)

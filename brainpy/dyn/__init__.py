@@ -12,4 +12,4 @@ from .base import *
 from .utils import *
 from .runners import *
 
-from . import neurons, synapses, channels, utils, runners
+from . import neurons, synapses, channels, rates, utils, runners
