@@ -70,7 +70,10 @@ class GeneralDense(Node):
     self.bias = None
     self.Wfb = None
 
-  def init_ff_conn(self):
+    if self.feedforward_shapes is not None:
+      self.init_ff_conn(self.feedforward_shapes)
+
+  def init_ff_conn(self, ff_shapes):
     # shapes
     other_size, free_shapes = check_shape_consistency(self.feedforward_shapes, -1, True)
     # set output size
@@ -83,7 +86,7 @@ class GeneralDense(Node):
       self.Wff = bm.TrainVar(self.Wff)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
-  def init_fb_conn(self):
+  def init_fb_conn(self, fb_shapes):
     other_size, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
 
     # initialize feedback weights
