@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map, tree_flatten, tree_unflatten
@@ -45,6 +46,7 @@ __all__ = [
   'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like', 'full',
   'full_like', 'eye', 'identity', 'array', 'asarray', 'arange', 'linspace',
   'logspace', 'meshgrid', 'diag', 'tri', 'tril', 'triu', 'vander', 'fill_diagonal',
+  'array_split',
 
   # indexing funcs
   'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices',
@@ -77,6 +79,15 @@ __all__ = [
   'save', 'savez', 'mask_indices', 'msort', 'nan_to_num', 'nanargmax', 'nanargmin', 'pad', 'poly', 'polyadd', 'polyder',
   'polyfit', 'polyint', 'polymul', 'polysub', 'polyval', 'resize', 'rollaxis', 'roots', 'rot90', 'setdiff1d',
   'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap', 'take_along_axis',
+  'can_cast', 'choose', 'copy', 'frombuffer', 'fromfile', 'fromfunction', 'fromiter', 'fromstring',
+  'get_printoptions', 'iscomplexobj', 'isneginf', 'isposinf', 'isrealobj', 'issubdtype', 'issubsctype',
+  'iterable', 'packbits', 'piecewise', 'printoptions', 'set_printoptions', 'promote_types', 'ravel_multi_index',
+  'result_type', 'sort_complex', 'unpackbits',
+
+  # unique
+  'add_docstring', 'add_newdoc', 'add_newdoc_ufunc', 'array2string', 'asanyarray', 'ascontiguousarray', 'asfarray',
+  'asscalar', 'common_type', 'disp', 'genfromtxt', 'loadtxt', 'info', 'issubclass_', 'place', 'polydiv', 'put',
+  'putmask', 'safe_eval', 'savetxt', 'savez_compressed', 'show_config', 'typename',
 
   # others
   'clip_by_norm', 'as_device_array', 'as_variable', 'as_numpy', 'delete', 'remove_diag',
@@ -98,7 +109,7 @@ def remove_diag(arr):
     raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
   eyes = ones(arr.shape, dtype=bool)
   fill_diagonal(eyes, False)
-  return reshape(arr[eyes.value], (arr.shape[0], arr.shape[1]-1))
+  return reshape(arr[eyes.value], (arr.shape[0], arr.shape[1] - 1))
 
 
 def delete(arr, obj, axis=None):
@@ -289,13 +300,13 @@ load = jnp.load
 
 def save(file, arr, allow_pickle=True, fix_imports=True):
   arr = _remove_jaxarray(arr)
-  jnp.save(file, arr, allow_pickle, fix_imports)
+  np.save(file, arr, allow_pickle, fix_imports)
 
 
 def savez(file, *args, **kwds):
   args = [_remove_jaxarray(a) for a in args]
   kwds = {k: _remove_jaxarray(v) for k, v in kwds.items()}
-  jnp.savez(file, *args, **kwds)
+  np.savez(file, *args, **kwds)
 
 
 mask_indices = jnp.mask_indices
@@ -1404,6 +1415,8 @@ def array_split(ary, indices_or_sections, axis: int = 0):
   ary = _remove_jaxarray(ary)
   if isinstance(indices_or_sections, JaxArray):
     indices_or_sections = indices_or_sections.value
+  elif isinstance(indices_or_sections, (tuple, list)):
+    indices_or_sections = [_remove_jaxarray(i) for i in indices_or_sections]
   return tuple([JaxArray(a) for a in jnp.array_split(ary, indices_or_sections, axis)])
 
 
@@ -1788,3 +1801,325 @@ float32 = jnp.float32
 float64 = jnp.float64
 complex64 = jnp.complex64
 complex128 = jnp.complex128
+
+
+#
+
+def can_cast(from_, to, casting=None):
+  """    can_cast(from_, to, casting='safe')
+
+    Returns True if cast between data types can occur according to the
+    casting rule.  If from is a scalar or array scalar, also returns
+    True if the scalar value can be cast without overflow or truncation
+    to an integer.
+
+    Parameters
+    ----------
+    from_ : dtype, dtype specifier, scalar, or array
+        Data type, scalar, or array to cast from.
+    to : dtype or dtype specifier
+        Data type to cast to.
+    casting : {'no', 'equiv', 'safe', 'same_kind', 'unsafe'}, optional
+        Controls what kind of data casting may occur.
+
+          * 'no' means the data types should not be cast at all.
+          * 'equiv' means only byte-order changes are allowed.
+          * 'safe' means only casts which can preserve values are allowed.
+          * 'same_kind' means only safe casts or casts within a kind,
+            like float64 to float32, are allowed.
+          * 'unsafe' means any data conversions may be done.
+
+    Returns
+    -------
+    out : bool
+        True if cast can occur according to the casting rule.
+
+  """
+  from_ = _remove_jaxarray(from_)
+  to = _remove_jaxarray(to)
+  return jnp.can_cast(from_, to, casting=casting)
+
+
+def choose(a, choices, mode='raise'):
+  a = _remove_jaxarray(a)
+  choices = [_remove_jaxarray(c) for c in choices]
+  return jnp.choose(a, choices, mode=mode)
+
+
+def copy(a, order=None):
+  return array(a, copy=True, order=order)
+
+
+def frombuffer(buffer, dtype=float, count=-1, offset=0):
+  return asarray(np.frombuffer(buffer=buffer, dtype=dtype, count=count, offset=offset))
+
+
+def fromfile(file, dtype=None, count=-1, sep='', offset=0, *args, **kwargs):
+  return asarray(np.fromfile(file, dtype=dtype, count=count, sep=sep, offset=offset, *args, **kwargs))
+
+
+def fromfunction(function, shape, dtype=float, **kwargs):
+  return jnp.fromfunction(function, shape, dtype=dtype, **kwargs)
+
+
+def fromiter(iterable, dtype, count=-1, *args, **kwargs):
+  iterable = _remove_jaxarray(iterable)
+  return asarray(np.fromiter(iterable, dtype=dtype, count=count, *args, **kwargs))
+
+
+def fromstring(string, dtype=float, count=-1, *, sep):
+  return asarray(np.fromstring(string=string, dtype=dtype, count=count, sep=sep))
+
+
+get_printoptions = np.get_printoptions
+
+
+def iscomplexobj(x):
+  return np.iscomplexobj(_remove_jaxarray(x))
+
+
+def isneginf(x):
+  return JaxArray(jnp.isneginf(_remove_jaxarray(x)))
+
+
+def isposinf(x):
+  return JaxArray(jnp.isposinf(_remove_jaxarray(x)))
+
+
+def isrealobj(x):
+  return not iscomplexobj(x)
+
+
+issubdtype = jnp.issubdtype
+issubsctype = jnp.issubsctype
+
+
+def iterable(x):
+  return np.iterable(_remove_jaxarray(x))
+
+
+def packbits(a, axis: Optional[int] = None, bitorder='big'):
+  return JaxArray(jnp.packbits(_remove_jaxarray(a), axis=axis, bitorder=bitorder))
+
+
+def piecewise(x, condlist, funclist, *args, **kw):
+  condlist = asarray(condlist, dtype=bool)
+  return JaxArray(jnp.piecewise(_remove_jaxarray(x), condlist, funclist, *args, **kw))
+
+
+printoptions = np.printoptions
+set_printoptions = np.set_printoptions
+
+
+def promote_types(a, b):
+  a = _remove_jaxarray(a)
+  b = _remove_jaxarray(b)
+  return jnp.promote_types(a, b)
+
+
+def ravel_multi_index(multi_index, dims, mode='raise', order='C'):
+  multi_index = [_remove_jaxarray(i) for i in multi_index]
+  return JaxArray(jnp.ravel_multi_index(multi_index, dims, mode=mode, order=order))
+
+
+def result_type(*args):
+  args = [_remove_jaxarray(a) for a in args]
+  return jnp.result_type(*args)
+
+
+def sort_complex(a):
+  return JaxArray(jnp.sort_complex(_remove_jaxarray(a)))
+
+
+def unpackbits(a, axis: Optional[int] = None, count=None, bitorder='big'):
+  a = _remove_jaxarray(a)
+  return JaxArray(jnp.unpackbits(a, axis, count=count, bitorder=bitorder))
+
+
+# Unique APIs
+# -----------
+
+add_docstring = np.add_docstring
+add_newdoc = np.add_newdoc
+add_newdoc_ufunc = np.add_newdoc_ufunc
+
+
+def array2string(a, max_line_width=None, precision=None,
+                 suppress_small=None, separator=' ', prefix="",
+                 style=np._NoValue, formatter=None, threshold=None,
+                 edgeitems=None, sign=None, floatmode=None, suffix="",
+                 legacy=None):
+  a = as_numpy(a)
+  return array2string(a, max_line_width=max_line_width, precision=precision,
+                      suppress_small=suppress_small, separator=separator, prefix=prefix,
+                      style=style, formatter=formatter, threshold=threshold,
+                      edgeitems=edgeitems, sign=sign, floatmode=floatmode, suffix=suffix,
+                      legacy=legacy)
+
+
+def asanyarray(a, dtype=None, order=None):
+  return asarray(a, dtype=dtype, order=order)
+
+
+def ascontiguousarray(a, dtype=None, order=None):
+  return asarray(a, dtype=dtype, order=order)
+
+
+def asfarray(a, dtype=np.float_):
+  if not np.issubdtype(dtype, np.inexact):
+    dtype = np.float_
+  return asarray(a, dtype=dtype)
+
+
+def asscalar(a):
+  return a.item()
+
+
+array_type = [[np.half, np.single, np.double, np.longdouble],
+              [None, np.csingle, np.cdouble, np.clongdouble]]
+array_precision = {np.half: 0,
+                   np.single: 1,
+                   np.double: 2,
+                   np.longdouble: 3,
+                   np.csingle: 1,
+                   np.cdouble: 2,
+                   np.clongdouble: 3}
+
+
+def common_type(*arrays):
+  is_complex = False
+  precision = 0
+  for a in arrays:
+    t = a.dtype.type
+    if iscomplexobj(a):
+      is_complex = True
+    if issubclass(t, jnp.integer):
+      p = 2  # array_precision[_nx.double]
+    else:
+      p = array_precision.get(t, None)
+      if p is None:
+        raise TypeError("can't get common type for non-numeric array")
+    precision = max(precision, p)
+  if is_complex:
+    return array_type[1][precision]
+  else:
+    return array_type[0][precision]
+
+
+disp = np.disp
+
+genfromtxt = lambda *args, **kwargs: asarray(np.genfromtxt(*args, **kwargs))
+loadtxt = lambda *args, **kwargs: asarray(np.loadtxt(*args, **kwargs))
+
+info = np.info
+issubclass_ = np.issubclass_
+
+
+def place(arr, mask, vals):
+  if not isinstance(arr, JaxArray):
+    raise ValueError(f'Must be an instance of {JaxArray.__name__}, but we got {type(arr)}')
+  arr[mask] = vals
+
+
+def polydiv(u, v):
+  """
+  Returns the quotient and remainder of polynomial division.
+
+  .. note::
+     This forms part of the old polynomial API. Since version 1.4, the
+     new polynomial API defined in `numpy.polynomial` is preferred.
+     A summary of the differences can be found in the
+     :doc:`transition guide </reference/routines.polynomials>`.
+
+  The input arrays are the coefficients (including any coefficients
+  equal to zero) of the "numerator" (dividend) and "denominator"
+  (divisor) polynomials, respectively.
+
+  Parameters
+  ----------
+  u : array_like
+      Dividend polynomial's coefficients.
+
+  v : array_like
+      Divisor polynomial's coefficients.
+
+  Returns
+  -------
+  q : JaxArray
+      Coefficients, including those equal to zero, of the quotient.
+  r : JaxArray
+      Coefficients, including those equal to zero, of the remainder.
+
+  See Also
+  --------
+  poly, polyadd, polyder, polydiv, polyfit, polyint, polymul, polysub
+  polyval
+
+  Notes
+  -----
+  Both `u` and `v` must be 0-d or 1-d (ndim = 0 or 1), but `u.ndim` need
+  not equal `v.ndim`. In other words, all four possible combinations -
+  ``u.ndim = v.ndim = 0``, ``u.ndim = v.ndim = 1``,
+  ``u.ndim = 1, v.ndim = 0``, and ``u.ndim = 0, v.ndim = 1`` - work.
+
+  Examples
+  --------
+  .. math:: \\frac{3x^2 + 5x + 2}{2x + 1} = 1.5x + 1.75, remainder 0.25
+
+  >>> x = bm.array([3.0, 5.0, 2.0])
+  >>> y = bm.array([2.0, 1.0])
+  >>> bm.polydiv(x, y)
+  (JaxArray([1.5 , 1.75]), JaxArray([0.25]))
+
+  """
+  u = atleast_1d(u) + 0.0
+  v = atleast_1d(v) + 0.0
+  # w has the common type
+  w = u[0] + v[0]
+  m = len(u) - 1
+  n = len(v) - 1
+  scale = 1. / v[0]
+  q = zeros((max(m - n + 1, 1),), w.dtype)
+  r = u.astype(w.dtype)
+  for k in range(0, m - n + 1):
+    d = scale * r[k]
+    q[k] = d
+    r[k:k + n + 1] -= d * v
+  while allclose(r[0], 0, rtol=1e-14) and (r.shape[-1] > 1):
+    r = r[1:]
+  return JaxArray(q), JaxArray(r)
+
+
+def put(a, ind, v):
+  if not isinstance(a, JaxArray):
+    raise ValueError(f'Must be an instance of {JaxArray.__name__}, but we got {type(a)}')
+  a[ind] = v
+
+
+def putmask(a, mask, values):
+  if not isinstance(a, JaxArray):
+    raise ValueError(f'Must be an instance of {JaxArray.__name__}, but we got {type(a)}')
+  if a.shape != values.shape:
+    raise ValueError('Only support the shapes of "a" and "values" are consistent.')
+  a[mask] = values
+
+
+def safe_eval(source):
+  return tree_map(JaxArray, np.safe_eval(source))
+
+
+def savetxt(fname, X, fmt='%.18e', delimiter=' ', newline='\n', header='',
+            footer='', comments='# ', encoding=None):
+  X = as_numpy(X)
+  np.savetxt(fname, X, fmt=fmt, delimiter=delimiter, newline=newline, header=header,
+             footer=footer, comments=comments, encoding=encoding)
+
+
+def savez_compressed(file, *args, **kwds):
+  args = tuple([as_numpy(a) for a in args])
+  kwds = {k: as_numpy(v) for k, v in kwds.items()}
+  np.savez_compressed(file, *args, **kwds)
+
+
+show_config = np.show_config
+typename = np.typename

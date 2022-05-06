@@ -11,7 +11,7 @@ from brainpy.math import (activations, autograd, controls, function,
 block_list = ['test', 'register_pytree_node']
 for module in [jit, autograd, function,
                controls, activations,
-               operators, parallels, setting,
+               parallels, setting,
                delayvars, compat]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
@@ -112,21 +112,28 @@ def _get_functions(obj):
               ])
 
 
-def _import(mod, klass):
+def _import(mod, klass=None, is_jax=False):
   obj = importlib.import_module(mod)
   if klass:
     obj = getattr(obj, klass)
     return obj, ':meth:`{}.{}.{{}}`'.format(mod, klass)
   else:
-    # ufunc is not a function
-    return obj, ':obj:`{}.{{}}`'.format(mod)
+    if not is_jax:
+      return obj, ':obj:`{}.{{}}`'.format(mod)
+    else:
+      from docs import implemented_jax_funcs
+      return implemented_jax_funcs, ':obj:`{}.{{}}`'.format(mod)
 
 
-def _generate_comparison_rst(numpy_mod, brainpy_jax, klass, header=', , '):
+def _generate_comparison_rst(numpy_mod, brainpy_mod, jax_mod, klass=None, header=', , ', is_jax=False):
   np_obj, np_fmt = _import(numpy_mod, klass)
   np_funcs = _get_functions(np_obj)
-  brainpy_jax_obj, brainpy_jax_fmt = _import(brainpy_jax, klass)
-  brainpy_funcs = _get_functions(brainpy_jax_obj)
+
+  bm_obj, bm_fmt = _import(brainpy_mod, klass)
+  bm_funcs = _get_functions(bm_obj)
+
+  jax_obj, jax_fmt = _import(jax_mod, klass, is_jax=is_jax)
+  jax_funcs = _get_functions(jax_obj)
 
   buf = []
   buf += [
@@ -136,31 +143,34 @@ def _generate_comparison_rst(numpy_mod, brainpy_jax, klass, header=', , '):
   ]
   for f in sorted(np_funcs):
     np_cell = np_fmt.format(f)
-    brainpy_cell = brainpy_jax_fmt.format(f) if f in brainpy_funcs else r'\-'
-    line = '   {}, {}'.format(np_cell, brainpy_cell)
+    bm_cell = bm_fmt.format(f) if f in bm_funcs else r'\-'
+    jax_cell = jax_fmt.format(f) if f in jax_funcs else r'\-'
+    line = '   {}, {}, {}'.format(np_cell, bm_cell, jax_cell)
     buf.append(line)
 
-  unique_names = brainpy_funcs - np_funcs
+  unique_names = bm_funcs - np_funcs
   for f in sorted(unique_names):
     np_cell = r'\-'
-    brainpy_cell = brainpy_jax_fmt.format(f) if f in brainpy_funcs else r'\-'
-    line = '   {}, {}'.format(np_cell, brainpy_cell)
+    bm_cell = bm_fmt.format(f) if f in bm_funcs else r'\-'
+    jax_cell = jax_fmt.format(f) if f in jax_funcs else r'\-'
+    line = '   {}, {}, {}'.format(np_cell, bm_cell, jax_cell)
     buf.append(line)
 
   buf += [
     '',
     '**Summary**\n',
     '- Number of NumPy functions: {}\n'.format(len(np_funcs)),
-    '- Number of functions covered by ``brainpy.math``: {}\n'.format(
-      len(brainpy_funcs & np_funcs)),
+    '- Number of functions covered by ``brainpy.math``: {}\n'.format(len(bm_funcs & np_funcs)),
+    '- Number of functions unique in ``brainpy.math``: {}\n'.format(len(bm_funcs - np_funcs)),
+    '- Number of functions covered by ``jax.numpy``: {}\n'.format(len(jax_funcs & np_funcs)),
   ]
   return buf
 
 
-def _section(header, numpy_mod, brainpy_jax, klass=None):
+def _section(header, numpy_mod, brainpy_mod, jax_mod, klass=None, is_jax=False):
   buf = [header, '-' * len(header), '', ]
-  header2 = 'NumPy, brainpy.math'
-  buf += _generate_comparison_rst(numpy_mod, brainpy_jax, klass, header=header2)
+  header2 = 'NumPy, brainpy.math, jax.numpy'
+  buf += _generate_comparison_rst(numpy_mod, brainpy_mod, jax_mod, klass=klass, header=header2, is_jax=is_jax)
   buf += ['']
   return buf
 
@@ -168,7 +178,6 @@ def _section(header, numpy_mod, brainpy_jax, klass=None):
 def generate_analysis_docs(path='apis/auto/analysis/'):
   if not os.path.exists(path):
     os.makedirs(path)
-
   write_module(module_name='brainpy.analysis.lowdim',
                filename=os.path.join(path, 'lowdim.rst'),
                header='Low-dimensional Analyzers')
@@ -391,20 +400,26 @@ def generate_math_docs(path='apis/auto/math/'):
   buf = []
   buf += _section(header='Multi-dimensional Array',
                   numpy_mod='numpy',
-                  brainpy_jax='brainpy.math',
-                  klass='ndarray')
+                  brainpy_mod='brainpy.math',
+                  jax_mod='jax.numpy',
+                  klass='ndarray', )
   buf += _section(header='Array Operations',
                   numpy_mod='numpy',
-                  brainpy_jax='brainpy.math')
+                  brainpy_mod='brainpy.math',
+                  jax_mod='jax.numpy',
+                  is_jax=True)
   buf += _section(header='Linear Algebra',
                   numpy_mod='numpy.linalg',
-                  brainpy_jax='brainpy.math.linalg')
+                  brainpy_mod='brainpy.math.linalg',
+                  jax_mod='jax.numpy.linalg', )
   buf += _section(header='Discrete Fourier Transform',
                   numpy_mod='numpy.fft',
-                  brainpy_jax='brainpy.math.fft')
+                  brainpy_mod='brainpy.math.fft',
+                  jax_mod='jax.numpy.fft', )
   buf += _section(header='Random Sampling',
                   numpy_mod='numpy.random',
-                  brainpy_jax='brainpy.math.random')
+                  brainpy_mod='brainpy.math.random',
+                  jax_mod='jax.random',)
   codes = '\n'.join(buf)
 
   if not os.path.exists(path):

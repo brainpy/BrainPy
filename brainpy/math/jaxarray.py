@@ -590,6 +590,18 @@ class JaxArray(object):
     r = self.value.ptp(axis=axis, keepdims=keepdims)
     return r if (axis is None or keepdims) else JaxArray(r)
 
+  def put(self, indices, values):
+    """Replaces specified elements of an array with given values.
+
+    Parameters
+    ----------
+    indices: array_like
+      Target indices, interpreted as integers.
+    values: array_like
+      Values to place in the array at target indices.
+    """
+    self.__setitem__(indices, values)
+
   def ravel(self, order=None):
     """Return a flattened array."""
     return JaxArray(self.value.ravel(order=order))
@@ -1166,15 +1178,6 @@ class Variable(JaxArray):
       Typecode or data-type to which the array is cast.
     """
     return JaxArray(self.value.astype(dtype=dtype))
-
-  def byteswap(self, inplace=False):
-    """Swap the bytes of the array elements
-
-    Toggle between low-endian and big-endian data representation by
-    returning a byteswapped array, optionally swapped in-place.
-    Arrays of byte-strings are not swapped. The real and imaginary
-    parts of a complex number are swapped individually."""
-    return self.value.byteswap(inplace=inplace)
 
   def choose(self, choices, mode='raise'):
     """Use an index array to construct a new array from a set of choices."""
