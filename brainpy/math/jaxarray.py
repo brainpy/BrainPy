@@ -52,16 +52,11 @@ class JaxArray(object):
 
   def __init__(self, value):
     # array value
-    if isinstance(value, (list, tuple)):
-      value = jnp.asarray(value)
-    if isinstance(value, JaxArray):
-      value = value._value
+    if isinstance(value, (list, tuple)): value = jnp.asarray(value)
+    if isinstance(value, JaxArray): value = value._value
     self._value = value
     # jit mode
-    if _global_jit_mode:
-      self._outside_global_jit = False
-    else:
-      self._outside_global_jit = True
+    self._outside_global_jit = False if _global_jit_mode else True
 
   @property
   def value(self):
@@ -189,7 +184,7 @@ class JaxArray(object):
   # ---------- #
 
   def __bool__(self) -> bool:
-    return bool(self._value)
+    return self._value.__bool__()
 
   def __len__(self) -> int:
     return len(self._value)
@@ -412,6 +407,10 @@ class JaxArray(object):
   #       JAX methods       #
   # ----------------------- #
 
+  @property
+  def at(self):
+    return self.value.at
+
   def block_host_until_ready(self, *args):
     self._value.block_host_until_ready(*args)
 
@@ -610,9 +609,13 @@ class JaxArray(object):
     """Repeat elements of an array."""
     return JaxArray(self.value.repeat(repeats=repeats, axis=axis))
 
-  def reshape(self, shape, order='C'):
+  def reshape(self, *shape, order='C'):
     """Returns an array containing the same data with a new shape."""
     return JaxArray(self.value.reshape(*shape, order=order))
+
+  def resize(self, new_shape):
+    """Change shape and size of array in-place."""
+    self._value = self.value.reshape(new_shape)
 
   def round(self, decimals=0):
     """Return ``a`` with each element rounded to the given number of decimals."""
@@ -654,7 +657,7 @@ class JaxArray(object):
     v = v.value if isinstance(v, JaxArray) else v
     return JaxArray(self.value.searchsorted(v=v, side=side, sorter=sorter))
 
-  def sort(self, axis=-1, kind=None, order=None):
+  def sort(self, axis=-1, kind='quicksort', order=None):
     """Sort an array in-place.
 
     Parameters
@@ -662,7 +665,7 @@ class JaxArray(object):
     axis : int, optional
         Axis along which to sort. Default is -1, which means sort along the
         last axis.
-    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}
         Sorting algorithm. The default is 'quicksort'. Note that both 'stable'
         and 'mergesort' use timsort under the covers and, in general, the
         actual implementation will vary with datatype. The 'mergesort' option
@@ -700,10 +703,6 @@ class JaxArray(object):
         Type to use in computing the standard deviation. For arrays of
         integer type the default is float64, for arrays of float types it is
         the same as the array type.
-    out : ndarray, optional
-        Alternative output array in which to place the result. It must have
-        the same shape as the expected output but the type (of the calculated
-        values) will be cast if necessary.
     ddof : int, optional
         Means Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
@@ -718,8 +717,6 @@ class JaxArray(object):
         `ndarray`, however any non-default value will be.  If the
         sub-class' method does not implement `keepdims` any
         exceptions will be raised.
-    where : array_like of bool, optional
-        Elements to include in the standard deviation.
 
     Returns
     -------
@@ -887,9 +884,9 @@ class JaxArray(object):
     """Convert to jax.numpy.ndarray."""
     return self.value
 
-  def __array__(self):
+  def __array__(self, dtype=None):
     """Support ``numpy.array()`` and ``numpy.asarray()`` functions."""
-    return np.asarray(self.value)
+    return np.asarray(self.value, dtype=dtype)
 
   def __jax_array__(self):
     return self.value
