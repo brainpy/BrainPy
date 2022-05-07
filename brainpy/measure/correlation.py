@@ -76,7 +76,7 @@ def cross_correlation(spikes, bin, dt=None):
     spikes = jnp.append(spikes, jnp.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
   states = spikes.T.reshape((num_neu, num_bin, bin_size))
   states = jnp.asarray(jnp.sum(states, axis=2) > 0., dtype=jnp.float_)
-  indices = jnp.tril_indices(4, k=-1)
+  indices = jnp.tril_indices(num_neu, k=-1)
   return jnp.mean(_cc(states, *indices))
 
 
