@@ -29,7 +29,7 @@ class TestNumPyOPS(unittest.TestCase):
   def test_remove_diag1(self):
     bm.random.seed()
     a = bm.random.random((3, 3))
-    self.assertTrue(bm.remove_diag(a) == (3, 2))
+    self.assertTrue(bm.remove_diag(a).shape == (3, 2))
 
   def test_remove_diag2(self):
     bm.random.seed()
