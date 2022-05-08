@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Callable
+from typing import Union, Sequence, Callable, Optional
 
 import jax.numpy as jnp
-from jax import jit, vmap
+from jax import jit, vmap, lax
 from jax import ops as jops
 from jax.abstract_arrays import ShapedArray
 
@@ -43,6 +43,10 @@ __all__ = [
 
   # others
   'sparse_matmul',
+  'segment_sum',
+  'segment_prod',
+  'segment_max',
+  'segment_min',
 
   # numba operators
   'register_op'
@@ -804,3 +808,63 @@ def sparse_matmul(A, B, shape: Shape):
                                           f'A:\n{A}\n'
                                           f'B:\n{B}')
     return _matmul_with_right_sparse(A, B, shape)
+
+
+def segment_sum(data: Union[JaxArray, jnp.ndarray],
+                segment_ids: Union[JaxArray, jnp.ndarray],
+                num_segments: Optional[int] = None,
+                indices_are_sorted: bool = False,
+                unique_indices: bool = False,
+                bucket_size: Optional[int] = None,
+                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
+  return JaxArray(jops.segment_sum(data.value if isinstance(data, JaxArray) else data,
+                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+                                   num_segments,
+                                   indices_are_sorted,
+                                   unique_indices,
+                                   bucket_size, mode))
+
+
+def segment_prod(data: Union[JaxArray, jnp.ndarray],
+                 segment_ids: Union[JaxArray, jnp.ndarray],
+                 num_segments: Optional[int] = None,
+                 indices_are_sorted: bool = False,
+                 unique_indices: bool = False,
+                 bucket_size: Optional[int] = None,
+                 mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
+  return JaxArray(jops.segment_prod(data.value if isinstance(data, JaxArray) else data,
+                                    segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+                                    num_segments,
+                                    indices_are_sorted,
+                                    unique_indices,
+                                    bucket_size, mode))
+
+
+def segment_max(data: Union[JaxArray, jnp.ndarray],
+                segment_ids: Union[JaxArray, jnp.ndarray],
+                num_segments: Optional[int] = None,
+                indices_are_sorted: bool = False,
+                unique_indices: bool = False,
+                bucket_size: Optional[int] = None,
+                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
+  return JaxArray(jops.segment_max(data.value if isinstance(data, JaxArray) else data,
+                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+                                   num_segments,
+                                   indices_are_sorted,
+                                   unique_indices,
+                                   bucket_size, mode))
+
+
+def segment_min(data: Union[JaxArray, jnp.ndarray],
+                segment_ids: Union[JaxArray, jnp.ndarray],
+                num_segments: Optional[int] = None,
+                indices_are_sorted: bool = False,
+                unique_indices: bool = False,
+                bucket_size: Optional[int] = None,
+                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
+  return JaxArray(jops.segment_min(data.value if isinstance(data, JaxArray) else data,
+                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+                                   num_segments,
+                                   indices_are_sorted,
+                                   unique_indices,
+                                   bucket_size, mode))

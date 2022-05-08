@@ -14,7 +14,8 @@ from brainpy.math import Variable
 class TestJaxArray(unittest.TestCase):
   def test_tree(self):
     structured = {'a': Variable(jnp.zeros(1)),
-                  'b': (Variable(jnp.ones(2)), Variable(jnp.ones(2) * 2))}
+                  'b': (Variable(jnp.ones(2)),
+                        Variable(jnp.ones(2) * 2))}
     flat, tree = tree_flatten(structured)
     unflattened = tree_unflatten(tree, flat)
     print("\nstructured={}\n\n  flat={}\n\n  tree={}\n\n  unflattened={}".format(
