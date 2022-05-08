@@ -355,7 +355,7 @@ class LengthDelay(AbstractDelay):
       id_tap(self._check_delay, delay_len)
     # the delay length
     delay_idx = (self.idx[0] - delay_len - 1) % self.num_delay_step
-    if delay_idx.dtype not in [jnp.int32, jnp.int64]:
+    if not jnp.issubdtype(delay_idx.dtype, jnp.integer):
       raise ValueError(f'"delay_len" must be integer, but we got {delay_len}')
     # the delay data
     indices = (delay_idx, ) + tuple(indices)
